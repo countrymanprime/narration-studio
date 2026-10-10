@@ -1,0 +1,75 @@
+{
+  "_comment": "Code paths and the docs a change to them owes (scripts/ci/docs-impact.mjs). A rule is satisfied when the change touches any one doc in `docs` (a glob is allowed). `exclude` removes tests and fixtures from `paths`. Keep the map in step with .claude/skills/doc-impact-check/references/map.md.",
+  "rules": [
+    {
+      "id": "reaper-lua",
+      "paths": ["integrations/reaper/*.lua"],
+      "exclude": [],
+      "docs": [
+        "docs/architecture/reaper-bridge.md",
+        "docs/architecture/reaper-navigation.md",
+        "docs/architecture/daw-integration.md",
+        "docs/operations/reaper-verification-pass.md"
+      ]
+    },
+    {
+      "id": "reaper-bridge-host",
+      "paths": ["apps/desktop/internal/bridge/*.go"],
+      "exclude": ["**/*_test.go"],
+      "docs": ["docs/architecture/reaper-bridge.md", "docs/architecture/reaper-navigation.md", "docs/architecture/wire-contracts.md"]
+    },
+    {
+      "id": "ui-primitives",
+      "paths": ["apps/ui/src/components/primitives/*.tsx", "apps/ui/src/styles.css"],
+      "exclude": ["**/*.test.tsx", "**/*.stories.tsx"],
+      "docs": ["docs/ui/**", "docs/design/*.md"]
+    },
+    {
+      "id": "manuscript-guide",
+      "paths": ["sidecars/manuscript-guide/core/**", "apps/desktop/internal/guide/*.go"],
+      "exclude": ["**/*_test.go", "**/tests/**"],
+      "docs": [
+        "docs/utilities/manuscript-guide.md",
+        "docs/architecture/story-bible-preview.md",
+        "docs/architecture/story-bible-entity-accuracy.md",
+        "docs/guides/using-the-app/story-bible.md"
+      ]
+    },
+    {
+      "id": "transcript-compare",
+      "paths": ["sidecars/transcript-compare/core/**"],
+      "exclude": ["**/tests/**"],
+      "docs": ["docs/utilities/transcript-compare.md", "docs/utilities/recording-coverage.md", "docs/utilities/take-review.md"]
+    },
+    {
+      "id": "teleprompter",
+      "paths": ["sidecars/manuscript-teleprompter/core/**"],
+      "exclude": ["**/tests/**"],
+      "docs": ["docs/architecture/manuscript-teleprompter.md", "docs/guides/using-the-app/booth.md"]
+    },
+    {
+      "id": "findings",
+      "paths": ["apps/desktop/internal/findings/*.go"],
+      "exclude": ["**/*_test.go"],
+      "docs": ["docs/architecture/findings-contract.md"]
+    },
+    {
+      "id": "downloads",
+      "paths": ["apps/desktop/internal/assets/*.go", "config/*-assets.json"],
+      "exclude": ["**/*_test.go"],
+      "docs": ["docs/architecture/first-use-dependency-provisioning.md", "docs/architecture/model-provenance.md"]
+    },
+    {
+      "id": "in-app-update",
+      "paths": ["apps/desktop/internal/update/*.go"],
+      "exclude": ["**/*_test.go"],
+      "docs": ["docs/architecture/in-app-update.md", "docs/operations/ci-and-releases.md"]
+    },
+    {
+      "id": "ci-and-release",
+      "paths": [".github/workflows/*.yml", "scripts/release/*.mjs", "scripts/ci/*.mjs", "tools/docs-site/*.py"],
+      "exclude": ["**/*.test.mjs"],
+      "docs": ["docs/operations/ci-and-releases.md", "docs/operations/verification-tooling.md", "docs/operations/github-workflow.md"]
+    }
+  ]
+}

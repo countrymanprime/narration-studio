@@ -43,7 +43,9 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 1. For developer checks, GitHub Actions, release promotion, and the required
    one-time repository settings, use [CI and releases](operations/ci-and-releases.md);
    for coverage, property tests, fuzzing, dead-code and import checks, use
-   [Verification and code-health tooling](operations/verification-tooling.md).
+   [Verification and code-health tooling](operations/verification-tooling.md);
+   for the checks that keep documentation current and free of filler, use
+   [Documentation gates](operations/documentation-gates.md).
 1. For issues, labels, milestones, and the project board, use
    [Tracking work on GitHub](operations/github-workflow.md).
    Before switching on a REAPER bridge command that ships behind the Experimental REAPER actions switch, run

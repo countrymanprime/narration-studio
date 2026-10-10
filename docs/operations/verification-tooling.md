@@ -100,7 +100,7 @@ Turning on Settings > General > "Debug logging" raises the level from `info` to 
 
 ## Not built, on purpose
 
-These were considered and left out; the reasons are current as of the work that delivered this tooling (`git log` for `docs/prds/verification-and-code-health-tooling.prd.md` recovers the full PRD).
+These were considered and left out; the reasons are current as of the work that delivered this tooling (the PRD was deleted when the work landed; `git log` for `docs/prds/verification-and-code-health-tooling.prd.md` recovers it).
 
 - **Chromatic:** a SaaS visual service, redundant with the Playwright suite, and it cannot see the WebView2 host.
 - **MSW:** the app talks to Wails bindings, not HTTP, and the mock API already covers tests.

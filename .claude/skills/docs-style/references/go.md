@@ -8,4 +8,4 @@ Source: [Go Doc Comments](https://go.dev/doc/comment), [Testable examples](https
 - An indented line inside a comment becomes a code block, so do not indent wrapped prose.
 - A comment on unexported code says why, not what: the constraint, the ADR, the failure it prevents. Cite the ADR number.
 - Prefer an `ExampleXxx` function with a `// Output:` comment to a code block in prose. `go test` runs it, so it cannot go stale. Without `// Output:` it only compiles.
-- Checks today: `gofmt`, `go vet`, golangci-lint `standard`. No missing-comment check runs yet.
+- Checks today: `gofmt`, `go vet`, golangci-lint `standard`, and `scripts/ci/doc-comments.mjs go apps/desktop`, which runs revive `exported` (config: `apps/desktop/.golangci-docs.yml`) on lines your change adds. A new exported name with no comment, or a comment that does not start with the name, fails. Existing names are not flagged.

@@ -85,7 +85,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `ci.yml` (`CI`) | pull request that is not docs- or Markdown-only; manual | `quality / *` and `ui-dist / build` (the reusable `_quality.yml` and `_ui-dist.yml`), `Build (Windows)`, `CI passed` | no ruleset requires it |
 | `prerelease.yml` (`Prerelease`) | push to `main` that is not docs- or Markdown-only; manual | `ui-dist / build`, `version`, `Windows build` (needs `ui-dist` and `version`) and `Windows release` (needs the build); no quality jobs, the pull request's `CI` run is the quality gate ([#544](https://github.com/countrymanprime/narration-utils/issues/544) tracks making it a required one); both run only when `version` found a releasable change. A manual run can tick `cold-freeze` to freeze the sidecars without the [freeze cache](#the-sidecar-freeze-cache) | not a pull request check |
 | `promote-release.yml` | manual, with an RC tag; behind the `production` environment | `promote` | not a pull request check |
-| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Markdown lint (changed files)` (pull requests only), `Links (offline)` (pull requests and manual) and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | the offline link job and the changed-file Markdown lint job both **fail the run** on a finding; no ruleset requires either (owner-only setting) |
+| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Markdown lint (changed files)` (pull requests only), `Docs impact` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)), `Links (offline)` (pull requests and manual) and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | the offline link job, the changed-file Markdown lint job and the docs-impact and docs-prose jobs all **fail the run** on a finding; no ruleset requires any of them (owner-only setting) |
 | `zizmor.yml` | every pull request, push to `main`, manual | `zizmor` | advisory in GitHub terms (not required); a finding at the `regular` persona fails the run |
 | `security.yml` (`Security scan`) | every pull request, push to `main`, weekly (Tuesday 06:41 UTC), manual | `govulncheck`, `osv-scanner (pull request)` (only for a same-repository pull request that is not Dependabot's) or `osv-scanner` (every other trigger) | advisory: neither fails on a finding |
 | `codeql.yml` (`CodeQL`) | pull request to `main` that is not docs- or Markdown-only (same-repository, not Dependabot), push to `main`, weekly (Monday 05:23 UTC), manual | `Analyze (go)`, `Analyze (javascript-typescript)`, `Analyze (python)` | advisory |
@@ -409,6 +409,35 @@ What it does not see: a path in a code comment (`docs/prds/<name>.prd.md` in a G
 
 The baseline on 2026-09-21 (S17 phase 1): 0 dead repository links; 7 external links rotted or unreachable, six of them pull requests of the owner's private repositories cited as history in the UI atlas kit's rollout ledger (deleted with the kit, [ADR 0243](../adr/0243-the-ui-atlas-kit-is-dissolved-into-apps-ui-which-owns-its-visual-suite-and-atlas-outright.md)) and one real finding, the README's link to the published site `https://countrymanprime.github.io/narration-utils/`, which answers 404 until the owner enables GitHub Pages ([#231](https://github.com/countrymanprime/narration-utils/issues/231)). To add a link the checker should not chase, add a regular expression to `.lycheeignore` with its reason; to run the check locally, install lychee (`cargo install lychee --locked`) and run `lychee --config .lychee.toml --offline .` (drop `--offline` for the online run).
 
+## The docs-impact check
+
+[Documentation gates](documentation-gates.md) is the one-page map of this check and the three after it. This section and the next two give how each is wired.
+
+A change to code that `docs/` describes has to touch one of those docs, or say why none is owed (issue #943). `scripts/ci/docs-impact.mjs` reads `scripts/ci/docs-impact-map.json`: each rule lists code paths, paths to leave out (tests, stories), and the docs that describe them. A rule fails when the change touches its code and none of its docs. The map is a starting set of ten rules, not every doc in the tree; add a rule when a doc starts describing a new area. `scripts/ci/docs-impact.test.mjs` fails when a rule names a doc or a code path that no longer exists.
+
+- **Opt-out.** A line `Docs: none — <reason>` in the pull request description (or a commit message, which is what `pnpm check` reads) waives the check. A reason under 12 characters, or one such as "not needed", "n/a" or "trivial", does not count.
+- **Where it runs.** `Docs / Docs impact` runs on every pull request, with no path filter and on `edited` too, so adding the opt-out line re-runs it. `pnpm check` runs the same script against `origin/main` first.
+- **Agents.** `.claude/settings.json` runs it as a `Stop` and `SubagentStop` hook. A failure exits 2, which stops the agent from finishing and shows it the reason. It lets the stop through when `stop_hook_active` is set, so an agent that cannot satisfy it is asked once and not trapped, and when git cannot compare (no `origin/main`). In a session the agent states the opt-out line in its last message.
+- **Limits.** It compares paths, so an empty edit to a mapped doc satisfies it. It diffs the whole branch, so the hook also asks an agent that stopped on a branch with an existing gap, once per stop. `doc-impact-check` and review judge whether the doc changed in substance. A rule over a wide folder fails a refactor that changes no documented behaviour; that is what the opt-out is for.
+
+### The docs prose checks
+
+`Docs / Docs prose` runs two scripts over the Markdown a pull request adds or changes, and `pnpm check` runs the same two against `origin/main`, reading uncommitted and untracked Markdown as well so a run before the commit sees what the commit will hold:
+
+- **`scripts/ci/docs-slop.mjs`** reads the phrase list in `scripts/ci/docs-slop-phrases.json`. An `error` phrase (a filler opener, an inflated-importance phrase, a sales word or chat residue) fails the run. A `warn` phrase (words such as `robust`, `leverage` and `ensures`) is printed in the job summary and never fails, because each has real uses. It skips code, link targets, quotations, comments, front matter and the files the list's `ignore` names (the skills and report that quote the phrases). `node scripts/ci/docs-slop.mjs --all` measures the list against every tracked Markdown file; on 2026-10-10 that was no errors and 71 warnings. Do not weaken the list to get past a finding: cut the sentence or state the checkable fact ([doc-unslop](../../.claude/skills/doc-unslop/SKILL.md)).
+- **`scripts/ci/docs-references.mjs`** fails when a doc names, in backticks, a repo path or a root `pnpm` script that does not exist. It accepts a Go `package.Symbol`, a path relative to a sub-project, a pnpm built-in such as `pnpm licenses`, and a path git ignores. It skips ADRs, PRDs, research, `docs/ui/`, fenced code, quotations, placeholders and any line that says the path was deleted, removed, retired, replaced or renamed (or points to `git log`), which is how a doc names a path that is gone on purpose. On 2026-10-10 the first run found 15 hits, ten of them stale paths that this change fixed.
+
+Both are smell detectors: a phrase list cannot judge a sentence, and a path check cannot tell a path from a backticked word shaped like one. The `doc-unslop` skill does the judgment.
+
+### The doc-comment check
+
+`scripts/ci/doc-comments.mjs` fails when a change adds a public Python name without a docstring or an exported Go name without a doc comment. It is a ratchet by diff, not by count: only a violation on a line the change adds fails, so the existing backlog (385 exported Go names and 177 Python names on 2026-10-10) never blocks an unrelated change and new code cannot add to it. Editing the body of an old function does not flag it.
+
+- **Python:** ruff D100-D104 and D106 with the Google convention, filtered to added lines because ruff has no new-issues-only mode. It runs as the last `lint` command of `narration-common` and the three sidecars, so it runs wherever Python lint runs. Tests, spikes, `conftest.py`, `__init__` and magic methods are skipped.
+- **Go:** revive `exported` through `apps/desktop/.golangci-docs.yml` with golangci-lint's own `--new-from-merge-base`, at the end of `quality.mjs go-lint`. Test files are skipped and the stutter check is off.
+- **Base:** `origin/main`, or `origin/$GITHUB_BASE_REF` in CI. It exits 2 when git cannot find the merge base. Both jobs check out full history.
+- **Not covered:** TypeScript and Lua (see the docs-style references for why). Add them when a checker is in the toolchain.
+
 ## Third-party notices
 
 `scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). Owner decision D17 ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
@@ -544,7 +573,7 @@ runner called:
   their own `run:` steps (they pass a shard) and skip them through
   `.github/actions/nx-affected` when the UI is not affected. The `repo-scripts` and `docs-site` steps always run,
   because the layout and project guards read every tracked file and the docs site reads `docs/`, which no project owns.
-- **No changed-file classifier.** `scripts/ci/changed-files.mjs` (and its test) sorted a pull request into `bootstrap` and
+- **No changed-file classifier.** `scripts/ci/changed-files.mjs` (and its test, both deleted) sorted a pull request into `bootstrap` and
   `package` scopes for a four-platform bootstrap and installer matrix that no longer exists. No workflow, script, Nx target or
   document called it, and Nx `affected` with `nx-scope.sh` does the job, so both files were deleted (2026-09-21) rather than wired
   in; Knip stays at zero. `git log --follow scripts/ci/changed-files.mjs` has the history.

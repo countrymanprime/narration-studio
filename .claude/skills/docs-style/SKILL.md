@@ -41,4 +41,4 @@ Comment the contract and the non-obvious why. Do not narrate what the code shows
 
 ## What this skill is not
 
-It does not lint. `markdownlint` and `lychee` run in `pnpm check` and `docs.yml`. It does not review a diff for filler; that is `doc-unslop`.
+It does not lint. `markdownlint`, `lychee`, `scripts/ci/docs-slop.mjs` (filler phrases) and `scripts/ci/docs-references.mjs` (dead backticked paths) run in `pnpm check` and `docs.yml`. It does not judge a diff for filler; that is `doc-unslop`.
