@@ -1,0 +1,26 @@
+# golangci-lint v2 config for the doc-comment check only (scripts/ci/doc-comments.mjs go apps/desktop). The main
+# config, .golangci.yml, is the lint gate and is untouched. This one runs revive's `exported` rule and the script
+# passes --new-from-merge-base, so only an exported name this change adds without a doc comment is reported.
+# Existing undocumented names are not (385 on 2026-10-10).
+version: "2"
+
+run:
+  # Test files do not need doc comments.
+  tests: false
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: none
+  enable:
+    - revive
+  settings:
+    revive:
+      rules:
+        # A missing comment, or one that does not start with the name. The stutter check (an exported name that
+        # repeats its package, such as findings.FindingStore) is a naming opinion, not documentation.
+        - name: exported
+          arguments:
+            - disableStutteringCheck

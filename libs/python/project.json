@@ -8,7 +8,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": ["node scripts/quality.mjs python -m ruff format --check libs/python", "node scripts/quality.mjs python -m ruff check libs/python"],
+        "commands": ["node scripts/quality.mjs python -m ruff format --check libs/python", "node scripts/quality.mjs python -m ruff check libs/python", "node scripts/ci/doc-comments.mjs python libs/python"],
         "parallel": false
       }
     },

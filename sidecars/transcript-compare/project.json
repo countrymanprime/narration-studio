@@ -10,7 +10,8 @@
       "options": {
         "commands": [
           "node scripts/quality.mjs python -m ruff format --check sidecars/transcript-compare",
-          "node scripts/quality.mjs python -m ruff check sidecars/transcript-compare"
+          "node scripts/quality.mjs python -m ruff check sidecars/transcript-compare",
+          "node scripts/ci/doc-comments.mjs python sidecars/transcript-compare"
         ],
         "parallel": false
       }

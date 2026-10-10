@@ -427,6 +427,15 @@ A change to code that `docs/` describes has to touch one of those docs, or say w
 
 Both are smell detectors: a phrase list cannot judge a sentence, and a path check cannot tell a path from a backticked word shaped like one. The `doc-unslop` skill does the judgment.
 
+### The doc-comment check
+
+`scripts/ci/doc-comments.mjs` fails when a change adds a public Python name without a docstring or an exported Go name without a doc comment. It is a ratchet by diff, not by count: only a violation on a line the change adds fails, so the existing backlog (385 exported Go names and 177 Python names on 2026-10-10) never blocks an unrelated change and new code cannot add to it. Editing the body of an old function does not flag it.
+
+- **Python:** ruff D100-D104 and D106 with the Google convention, filtered to added lines because ruff has no new-issues-only mode. It runs as the last `lint` command of `narration-common` and the three sidecars, so it runs wherever Python lint runs. Tests, spikes, `conftest.py`, `__init__` and magic methods are skipped.
+- **Go:** revive `exported` through `apps/desktop/.golangci-docs.yml` with golangci-lint's own `--new-from-merge-base`, at the end of `quality.mjs go-lint`. Test files are skipped and the stutter check is off.
+- **Base:** `origin/main`, or `origin/$GITHUB_BASE_REF` in CI. It exits 2 when git cannot find the merge base. Both jobs check out full history.
+- **Not covered:** TypeScript and Lua (see the docs-style references for why). Add them when a checker is in the toolchain.
+
 ## Third-party notices
 
 `scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). Owner decision D17 ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
