@@ -34,7 +34,7 @@ _LINK = re.compile(r'(!?\[[^\]\n]*\])\(([^)\s]+)((?:\s+"[^"]*")?)\)')
 # Elements whose content HTML parsers read as text up to a closing tag that prose never writes: a `<title>` in a sentence
 # ("named <title> progress") makes newer Python html.parser swallow the rest of the page, headings included. GitHub hides such a tag;
 # the site shows it as text.
-_RAW_TEXT_TAG = re.compile(r"<(/?)(title|textarea|script|style|iframe|noembed|noframes|noscript|plaintext|xmp)\b([^>\n]*)>", re.IGNORECASE)
+_RAW_TEXT_TAG = re.compile(r"<(/?)(title|textarea|script|style|iframe|noembed|noframes|noscript|plaintext|xmp)\b([^>]*)>", re.IGNORECASE)
 _REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$")
 _CODE = re.compile(r"^[ \t]*(`{3,}|~{3,})[^\n]*\n.*?(?:^[ \t]*\1[ \t]*$|\Z)|`[^`\n]+`", re.MULTILINE | re.DOTALL)
 _REFERENCE_DEFINITION = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(\S+)", re.MULTILINE)
