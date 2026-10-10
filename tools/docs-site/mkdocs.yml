@@ -6,6 +6,9 @@ site_description: Documentation for narration-utils, a local-first toolkit for a
 site_url: https://countrymanprime.github.io/narration-utils/
 
 docs_dir: ../../docs
+# The studio-next mock is a Vite app (its index.html collides with its README.md); it is never published (include.txt).
+exclude_docs: |
+  research/mockups/studio-next/
 site_dir: build/site
 strict: true
 
