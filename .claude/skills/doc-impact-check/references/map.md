@@ -1,6 +1,6 @@
 # Changed path → docs owed
 
-Paths are repo-relative. A change can match several rows. Add a row when a new area gets a doc.
+Paths are repo-relative. A change can match several rows. Add a row when a new area gets a doc. `scripts/ci/docs-impact-map.json` enforces a subset of these rows; the rest are for judgment. When you add a row here that a script can check, add it there too.
 
 | Changed path | Docs to check or update |
 | --- | --- |

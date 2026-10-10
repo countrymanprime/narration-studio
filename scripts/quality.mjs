@@ -193,4 +193,7 @@ if (mode !== 'check') {
 // The full gate: every project's lint, format, knip, test, test-node and build target, one at a time, never from
 // the Nx cache (a green gate must mean the checks ran). CI runs the same targets with
 // `nx affected` (see .github/actions/nx-run).
+// Code changed without the docs that describe it (scripts/ci/docs-impact.mjs). It diffs against origin/main, so a
+// change that owes no doc says so in a commit message: `Docs: none — <reason>`. CI runs it in docs.yml with the PR body.
+run('node', ['scripts/ci/docs-impact.mjs']);
 run('pnpm', ['exec', 'nx', 'run-many', '-t', 'lint', 'format', 'architecture', 'knip', 'test', 'test-node', 'build', '--skip-nx-cache', '--parallel=1', '--nx-bail', '--output-style=stream']);
