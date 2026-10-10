@@ -14,7 +14,7 @@ Agent-written docs drift two ways: they go stale when code changes, and they fil
 1. **State only what code, a command or a test can show.** Name the file, symbol, command or ADR that proves each claim. A claim with no checkable source is a guess; cut it or find the source.
 2. **Link, do not copy.** One fact lives in one place. If a generated page (`docs/ui/`, `model-provenance.md`, the ADR index) or another doc already says it, link to it. Copied tables, lists of files and command output go stale first.
 3. **One page, one type** (Diátaxis). Put it where its type lives and do not mix:
-   - Reference: what exists, mirroring the code (`docs/architecture/`, `docs/utilities/`, `docs/design/`).
+   - Reference: what exists, mirroring the code (`docs/architecture/`, `docs/utilities/`, `docs/design/`, `docs/reference/`).
    - How-to and procedure: steps to reach a goal (`docs/operations/`, `docs/guides/`).
    - Explanation: why it is built this way (`docs/architecture/` prose, and ADRs for decisions).
    - Plan: intent, not a claim that it exists (`docs/prds/`, `docs/roadmap.md`).
