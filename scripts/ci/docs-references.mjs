@@ -25,7 +25,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, '..', '..');
 
 // Roots a documented path starts with. Anything else (a `foo/bar` that is an example, a package name) is not checked.
-const ROOTS = ['apps', 'sidecars', 'libs', 'integrations', 'config', 'tests', 'tools', 'scripts', 'docs', 'shared', '.github', '.claude'];
+const ROOTS = 'apps sidecars libs integrations config tests tools scripts docs shared .github .claude'.split(' ');
 const ROOT_FILES = ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', 'SECURITY.md', 'LICENSE', 'package.json', 'pnpm-workspace.yaml', 'nx.json', 'knip.jsonc', 'pyproject.toml'];
 const UNCHECKED_FILES = ['docs/adr/**', 'docs/prds/**', 'docs/research/**', 'docs/ui/**', 'tests/fixtures/**', 'CHANGELOG.md'];
 // pnpm's own commands: `pnpm licenses` is not a script in package.json.

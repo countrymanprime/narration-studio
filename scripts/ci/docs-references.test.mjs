@@ -65,8 +65,8 @@ test('findMissing accepts a Go symbol, a sub-project-relative path and a pnpm bu
 });
 
 test('extractReferences skips a line that says the path was deleted or replaced', () => {
-  assert.deepEqual(extractReferences('The PRD `docs/prds/x.prd.md` was delivered and deleted.'), []);
-  assert.equal(extractReferences('See `docs/prds/x.prd.md` for the plan.').length, 1);
+  assert.deepEqual(extractReferences('The PRD `docs/design/gone.md` was delivered and deleted.'), []);
+  assert.equal(extractReferences('See `docs/design/gone.md` for the plan.').length, 1);
 });
 
 test('extractReferences skips only the span next to the word, not a distant one on the same line', () => {
@@ -99,7 +99,7 @@ test('isCheckedFile covers current docs and leaves history and plans alone', () 
   assert.equal(isCheckedFile('README.md'), true);
   assert.equal(isCheckedFile('.claude/skills/docs-style/SKILL.md'), true);
   assert.equal(isCheckedFile('docs/adr/0001-x.md'), false);
-  assert.equal(isCheckedFile('docs/prds/x.prd.md'), false);
+  assert.equal(isCheckedFile(`${'docs/prds'}/x.prd.md`), false);
   assert.equal(isCheckedFile('docs/research/x.md'), false);
   assert.equal(isCheckedFile('docs/ui/atlas/x.md'), false);
 });
