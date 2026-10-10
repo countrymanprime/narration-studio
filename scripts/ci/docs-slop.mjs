@@ -38,7 +38,7 @@ export function isIgnored(file, ignoreGlobs) {
 /** Blanks what a reader does not read as prose: comments, inline code, link targets and bare URLs. */
 function blankNonProse(line) {
   return line
-    .replace(/<!--.*?-->/g, ' ')
+    .replace(/<!--[\s\S]*?--!?>/g, ' ')
     .replace(/(`+)[^`]*?\1/g, ' ')
     .replace(/\]\([^)]*\)/g, ']')
     .replace(/<https?:[^>]*>/g, ' ')
