@@ -196,4 +196,7 @@ if (mode !== 'check') {
 // Code changed without the docs that describe it (scripts/ci/docs-impact.mjs). It diffs against origin/main, so a
 // change that owes no doc says so in a commit message: `Docs: none — <reason>`. CI runs it in docs.yml with the PR body.
 run('node', ['scripts/ci/docs-impact.mjs']);
+// Filler phrases and dead backticked paths in the Markdown this change touches (docs-slop.mjs, docs-references.mjs).
+run('node', ['scripts/ci/docs-slop.mjs']);
+run('node', ['scripts/ci/docs-references.mjs', '--strict']);
 run('pnpm', ['exec', 'nx', 'run-many', '-t', 'lint', 'format', 'architecture', 'knip', 'test', 'test-node', 'build', '--skip-nx-cache', '--parallel=1', '--nx-bail', '--output-style=stream']);

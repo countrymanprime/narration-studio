@@ -15,6 +15,7 @@ On every Markdown file the change adds or edits (`docs/`, READMEs, ADRs, PRDs, s
 
 ## What to do
 
+0. **Run `node scripts/ci/docs-slop.mjs`** first. It fails on the plainest filler and prints warnings for words like `robust` and `currently`; the steps below are the judgment it cannot make.
 1. **Read only changed lines and their section.** Do not rewrite untouched prose.
 2. **Mark each sentence** keep, cut or fix. Ask of each: can a reader verify it from code, a command, a test or a link? Would they miss it if it were gone?
 3. **Cut or fix on a single sighting:**
