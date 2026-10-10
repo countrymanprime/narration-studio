@@ -15,7 +15,7 @@ Before implementing a change that touches:
 - `libs/python/narration_common/**`
 - `integrations/reaper/**`
 - `apps/ui/src/components/**` or any module imported by more than one page
-- Any file whose name or location suggests it's a shared/common module rather than something owned by a single tool
+- Any file whose name or location suggests it's a shared or common module rather than something owned by a single tool
 
 Skip it for changes fully contained inside one tool's own directory (e.g. `sidecars/transcript-compare/core/` internals) with no shared exports touched.
 
