@@ -30,7 +30,8 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
    REAPER's own API behaviour is only checked by hand inside REAPER.
 3. Open a pull request whose **title is a Conventional Commit** (`feat: …`, `fix(scope): …`). It becomes the squash
    commit and decides the next version. Put `Closes #<issue>` in the description and fill in the template.
-4. If you settled a real design decision, record it as an ADR in `docs/adr/`.
+4. Update the docs your change owes. CI fails a change to mapped code that touches none of its docs, unless the description says `Docs: none — <reason>` ([Documentation gates](docs/operations/documentation-gates.md)).
+5. If you settled a real design decision, record it as an ADR in `docs/adr/`.
 
 ## Licensing of contributions
 

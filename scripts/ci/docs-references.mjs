@@ -142,7 +142,7 @@ function main() {
   const tracked = git(['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
   const exists = makeExists(tracked);
   const scripts = new Set(Object.keys(JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')).scripts));
-  const candidates = args.includes('--all') ? tracked.filter((file) => file.endsWith('.md')) : changedMarkdownFiles({ base, cwd: REPO_ROOT });
+  const candidates = args.includes('--all') ? tracked.filter((file) => file.endsWith('.md')) : changedMarkdownFiles({ base, cwd: REPO_ROOT, includeWorkingTree: true });
   const files = candidates.filter(isCheckedFile);
 
   let report = [];

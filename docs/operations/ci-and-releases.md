@@ -411,6 +411,8 @@ The baseline on 2026-09-21 (S17 phase 1): 0 dead repository links; 7 external li
 
 ## The docs-impact check
 
+[Documentation gates](documentation-gates.md) is the one-page map of this check and the three after it. This section and the next two give how each is wired.
+
 A change to code that `docs/` describes has to touch one of those docs, or say why none is owed (issue #943). `scripts/ci/docs-impact.mjs` reads `scripts/ci/docs-impact-map.json`: each rule lists code paths, paths to leave out (tests, stories), and the docs that describe them. A rule fails when the change touches its code and none of its docs. The map is a starting set of ten rules, not every doc in the tree; add a rule when a doc starts describing a new area. `scripts/ci/docs-impact.test.mjs` fails when a rule names a doc or a code path that no longer exists.
 
 - **Opt-out.** A line `Docs: none — <reason>` in the pull request description (or a commit message, which is what `pnpm check` reads) waives the check. A reason under 12 characters, or one such as "not needed", "n/a" or "trivial", does not count.
@@ -420,7 +422,7 @@ A change to code that `docs/` describes has to touch one of those docs, or say w
 
 ### The docs prose checks
 
-`Docs / Docs prose` runs two scripts over the Markdown a pull request adds or changes, and `pnpm check` runs the same two against `origin/main`:
+`Docs / Docs prose` runs two scripts over the Markdown a pull request adds or changes, and `pnpm check` runs the same two against `origin/main`, reading uncommitted and untracked Markdown as well so a run before the commit sees what the commit will hold:
 
 - **`scripts/ci/docs-slop.mjs`** reads the phrase list in `scripts/ci/docs-slop-phrases.json`. An `error` phrase (a filler opener, an inflated-importance phrase, a sales word or chat residue) fails the run. A `warn` phrase (words such as `robust`, `leverage` and `ensures`) is printed in the job summary and never fails, because each has real uses. It skips code, link targets, quotations, comments, front matter and the files the list's `ignore` names (the skills and report that quote the phrases). `node scripts/ci/docs-slop.mjs --all` measures the list against every tracked Markdown file; on 2026-10-10 that was no errors and 71 warnings. Do not weaken the list to get past a finding: cut the sentence or state the checkable fact ([doc-unslop](../../.claude/skills/doc-unslop/SKILL.md)).
 - **`scripts/ci/docs-references.mjs`** fails when a doc names, in backticks, a repo path or a root `pnpm` script that does not exist. It accepts a Go `package.Symbol`, a path relative to a sub-project, a pnpm built-in such as `pnpm licenses`, and a path git ignores. It skips ADRs, PRDs, research, `docs/ui/`, fenced code, quotations, placeholders and any line that says the path was deleted, removed, retired, replaced or renamed (or points to `git log`), which is how a doc names a path that is gone on purpose. On 2026-10-10 the first run found 15 hits, ten of them stale paths that this change fixed.
