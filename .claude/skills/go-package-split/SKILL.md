@@ -7,7 +7,7 @@ description: Moving code out of the apps/desktop root package or splitting a gro
 
 ## Why this exists
 
-`apps/desktop` keeps its Wails bindings, host glue and tests in one root package (hundreds of files; `app.go` alone is about 2,000 lines) next to roughly 60 `internal/*` packages. A split done by feel breaks import fences, lock annotations or the contract tests without a compile error.
+`apps/desktop` keeps its Wails bindings, host glue and tests in one root package (256 `.go` files as of 2026-10-10; `app.go` is 2,001 lines) next to 79 `internal/*` packages. A split done by feel breaks import fences, lock annotations or the contract tests without a compile error.
 
 ## When to use this
 

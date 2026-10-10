@@ -7,7 +7,7 @@ description: Adding a new Python sidecar under sidecars/ or a new mode to an exi
 
 ## Why this exists
 
-A sidecar is a Python program the Go host launches as a bundled executable. Its source is only a quarter of the work: the Nx project, coverage floor, packaging, installable-release check, model assets and the arguments the host passes it are each separate files, and a missing one fails late (in a release build or on a clean install).
+A sidecar is a Python program the Go host launches as a bundled executable. Besides its source, a sidecar needs an Nx project, a coverage floor, packaging, an entry in the installable-release check, model assets and the arguments the host passes it. Each is a separate file, and a missing one fails in a release build or on a clean install.
 
 ## When to use this
 

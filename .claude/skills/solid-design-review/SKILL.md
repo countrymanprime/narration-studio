@@ -7,7 +7,7 @@ description: Applies SOLID principles to a plan before code (pass 1, a Design ch
 
 ## Why this exists
 
-Design drift is cheap to prevent in a plan and expensive to find in review. This repo already enforces some of it with tools (depguard fences, dependency-cruiser rules, the 800-line file ceiling, `*port` packages). This skill covers the rest by making the principles an explicit step, with a place to record why one is not followed.
+This repo already enforces part of its design with tools: depguard fences, dependency-cruiser rules, the 800-line file ceiling and `*port` packages. This skill makes SOLID an explicit step for the rest, and gives a place to record why a principle is not followed.
 
 ## When to use this
 

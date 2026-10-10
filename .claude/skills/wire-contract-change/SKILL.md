@@ -7,7 +7,7 @@ description: Adding or changing a Wails binding result, live event, persisted fi
 
 ## Why this exists
 
-The Go host, the Python sidecars, the REAPER Lua and the React UI each define their own copy of a payload's shape. Only the schemas, the golden files and the contract tests keep them equal. A change that touches one side and forgets another fails at runtime on a narrator's machine, not in CI.
+The Go host, the Python sidecars, the REAPER Lua and the React UI each define their own copy of a payload's shape. The schemas, golden files and contract tests are what keep them equal; a side that is changed without them fails at runtime instead of in CI.
 
 ## When to use this
 
