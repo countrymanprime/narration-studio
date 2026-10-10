@@ -72,6 +72,34 @@ jobs:
           # The description may carry the `Docs: none — <reason>` opt-out. Read through env, never interpolated into the script.
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node scripts/ci/docs-impact.mjs --summary
+  docs-prose:
+    name: Docs prose
+    # Needs a base to diff; the schedule and a manual run have none.
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Both scripts diff against the merge base with the pull request's base branch.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-pnpm: 'false'
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+      - name: Fail on filler phrases in the Markdown this pull request changes
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: node scripts/ci/docs-slop.mjs --summary
+      - name: Fail on a backticked path or pnpm script that no longer exists
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: node scripts/ci/docs-references.mjs --strict --summary
   links-offline:
     name: Links (offline)
     # The scheduled run exists for the online job; the offline one has nothing to add to it.

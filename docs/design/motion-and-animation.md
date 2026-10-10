@@ -8,7 +8,6 @@ State changes and page loads currently "pop in" with no transition in most place
 
 ## What exists today
 
-- The `MeterBar` primitive (`apps/ui/src/components/primitives/MeterBar.tsx`) has `motion-safe:transition-[flex-basis] motion-safe:duration-300` on each segment, so it does not animate for people who ask for reduced motion ([ADR 0050](../adr/0050-the-segmented-meter-is-an-image-named-by-its-segments-and-field-wires-its-hint-and-error.md)).
 - The `WorkDialog` progress fill eases its width and slides while indeterminate, both under `motion-safe:` ([ADR 0057](../adr/0057-a-running-job-that-cannot-be-cancelled-keeps-its-dialog-blocking-and-says-so.md)). The old `.progressbar > div { transition }` rule in `components.css` is gone because it beat the utility; `legacyCss.test.ts` fails on any `transition` or `animation` declared there.
 - The other three progress fills (the Home import preview, the Proofing comparison, the Story Bible voice download) still carry an unconditional `transition-[width] duration-[0.4s] ease-in-out` utility and ease under reduced motion. That is a known gap: move them to `motion-safe:` when this system is formalized.
 - The atlas cannot prove reduced motion: the Storybook preview switches every animation and transition off for deterministic screenshots, so the guards are unit tests on the classes.
