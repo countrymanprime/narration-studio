@@ -8,4 +8,4 @@ Source: [Google Python style guide, 3.8](https://google.github.io/styleguide/pyg
 - A public function in `libs/python/narration_common` has a docstring. Private helpers need one only when the name does not say what they do.
 - Type hints carry the types; do not repeat them in `Args:`.
 - Prefer a doctest to a code block in prose when the example is short and deterministic.
-- Checks today: `ruff` (default rules, no `D` rules), `pytest`. No docstring check runs yet.
+- Checks today: `ruff` (default rules), `pytest`, and `scripts/ci/doc-comments.mjs python <dir>`, which runs ruff D100-D104 and D106 (Google convention) on lines your change adds in `libs/python` and the sidecars, skipping tests, spikes and `conftest.py`. A new public module, class, function or method with no docstring fails; `__init__` and magic methods are not required. Existing names are not flagged. A name that needs none takes `# noqa: D1xx`.

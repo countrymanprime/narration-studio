@@ -182,6 +182,8 @@ if (mode === 'go-lint') {
   // always used under a lock but has no annotation is reported too, so a new guarded field gets one. Product code
   // only (-test=false): tests set seams on a Host no goroutine can see yet, and the race detector covers them.
   run('checklocks', ['-test=false', './...'], { cwd: join(root, dir) });
+  // A new exported name needs a doc comment (revive `exported`, new lines only; scripts/ci/doc-comments.mjs).
+  run('node', ['scripts/ci/doc-comments.mjs', 'go', dir]);
   process.exit(0);
 }
 

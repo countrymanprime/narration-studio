@@ -10,7 +10,8 @@
       "options": {
         "commands": [
           "node scripts/quality.mjs python -m ruff format --check sidecars/manuscript-guide",
-          "node scripts/quality.mjs python -m ruff check sidecars/manuscript-guide"
+          "node scripts/quality.mjs python -m ruff check sidecars/manuscript-guide",
+          "node scripts/ci/doc-comments.mjs python sidecars/manuscript-guide"
         ],
         "parallel": false
       }
