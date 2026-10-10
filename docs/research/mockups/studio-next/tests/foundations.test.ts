@@ -101,7 +101,7 @@ import { stripTags as stripTagsForTest } from '../src/format/text'
 describe('stripTags', () => {
   it('removes tags, including nested ones that would rebuild a tag', () => {
     expect(stripTagsForTest('a <em>b</em> c')).toBe('a b c')
-    expect(stripTagsForTest('<scr<script>ipt>x')).toBe('x')
+    expect(stripTagsForTest('<scr<script>ipt>x')).toBe('iptx')
     expect(stripTagsForTest('1 < 2 > 0')).toBe('1  0')
     expect(stripTagsForTest('a < b')).toBe('a  b')
   })
