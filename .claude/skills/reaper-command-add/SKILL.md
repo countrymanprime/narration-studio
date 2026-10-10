@@ -15,14 +15,15 @@ Adding, changing or removing a command in `integrations/reaper/*.lua` or the Go 
 
 ## What to do
 
-1. `change-impact-scan`: find the harness test for every command a Lua consumer touches. A consumer with none is zero-coverage; say so.
-2. Write the harness test first in `integrations/reaper/tests/<feature>_test.lua` (happy, error, stale, conflict and idempotent paths). Extend `fake_reaper.lua` only to match behaviour observed in REAPER.
-3. Implement the command in its own feature file: it returns `function(registry)` and calls `registry.register(name, handler)`. Add the file to `FEATURE_FILES` in `narration_ui_bridge.lua` and to the shipped file list in `scripts/release/reaper-files.mjs`. A duplicate name is an error by design.
-4. Update the name list pinned in `registry_test.lua`. Add lines to `tests/mutations.json` whose removal must fail the suite (stale GUID, overwrite without asking, undo point with nothing changed).
-5. Go side: the sender and parser in `internal/bridge/`, with a test. A new event goes in the table in `internal/bridge/wire.go` with `wire_test.go` pinning the exact line the Lua harness pins (`wire-contract-change`).
-6. Stay on the Lua that REAPER 7 and the harness share (Lua 5.4; no `goto`, integer division or bit operators). `stylua` formats it.
-7. `pnpm check` runs the harness and the mutation check. What a fake cannot prove (what `P_EXT` does on save, split and copy, real return values, undo, render keys) is checked in a scripted REAPER run on a copy of a project with an isolated `-cfgfile`, recorded under `docs/research/` per `docs/operations/reaper-verification-pass.md`. Mark anything needing the owner or audio hardware as pending, and fix the fake if it was wrong.
-8. A command that reaches the project or files is a trust boundary: re-read its row in `docs/architecture/threat-model.md`.
+1. `daw-capabilities`: find the command's capability in the [DAW reference](../../../docs/reference/daw/capabilities.md) and read what it must return; a command with no capability is a design question first.
+2. `change-impact-scan`: find the harness test for every command a Lua consumer touches. A consumer with none is zero-coverage; say so.
+3. Write the harness test first in `integrations/reaper/tests/<feature>_test.lua` (happy, error, stale, conflict and idempotent paths). Extend `fake_reaper.lua` only to match behaviour observed in REAPER.
+4. Implement the command in its own feature file: it returns `function(registry)` and calls `registry.register(name, handler)`. Add the file to `FEATURE_FILES` in `narration_ui_bridge.lua` and to the shipped file list in `scripts/release/reaper-files.mjs`. A duplicate name is an error by design.
+5. Update the name list pinned in `registry_test.lua`. Add lines to `tests/mutations.json` whose removal must fail the suite (stale GUID, overwrite without asking, undo point with nothing changed).
+6. Go side: the sender and parser in `internal/bridge/`, with a test. A new event goes in the table in `internal/bridge/wire.go` with `wire_test.go` pinning the exact line the Lua harness pins (`wire-contract-change`).
+7. Stay on the Lua that REAPER 7 and the harness share (Lua 5.4; no `goto`, integer division or bit operators). `stylua` formats it.
+8. `pnpm check` runs the harness and the mutation check. What a fake cannot prove (what `P_EXT` does on save, split and copy, real return values, undo, render keys) is checked in a scripted REAPER run on a copy of a project with an isolated `-cfgfile`, recorded under `docs/research/` per `docs/operations/reaper-verification-pass.md`. Mark anything needing the owner or audio hardware as pending, and fix the fake if it was wrong.
+9. A command that reaches the project or files is a trust boundary: re-read its row in `docs/architecture/threat-model.md`.
 
 ## What this skill is not
 

@@ -13,6 +13,12 @@
       ]
     },
     {
+      "id": "daw-port",
+      "paths": ["apps/desktop/internal/dawport/*.go", "apps/desktop/internal/dawport/reaper/*.go", "apps/desktop/internal/dawport/audacity/*.go"],
+      "exclude": ["**/*_test.go"],
+      "docs": ["docs/reference/daw/capabilities.md", "docs/reference/daw/matrix.md", "docs/architecture/daw-integration.md"]
+    },
+    {
       "id": "reaper-bridge-host",
       "paths": ["apps/desktop/internal/bridge/*.go"],
       "exclude": ["**/*_test.go"],

@@ -51,32 +51,7 @@ REAPER never parses this JSON. The Wails host owns setting resolution and passes
 
 Every DAW action reaches an engine through `apps/desktop/internal/dawport` ([ADR 0300](../adr/0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md); the DAW port PRD, deleted and delivered), which replaced the narrower `dawadapter.Review` seam [ADR 0143](../adr/0143-the-review-workflow-calls-a-daw-through-dawadapter-and-the-event-vocabulary-is-part-of-the-contract.md) introduced for the review workflow alone; `internal/dawadapter` is retired (Phase 8). An adapter per engine — `dawport/reaper` today, `dawport/audacity` as a declaration only until its pipe client exists — declares a `port.Level` for each capability and implements one small role interface for every capability it has (`ReviewSession` is the review workflow's role, `dawadapter.Review` before P8). A `dawport.Resolver` alone decides what is usable right now, from that declaration, runtime reachability and the narrator's per-capability `DAW.capability.<name>` toggle.
 
-| Capability | Role interface | REAPER's level today |
-| --- | --- | --- |
-| `review` | `ReviewSession` | Supported |
-| `navigate` | `Navigator` | Supported |
-| `markers` | `MarkerWriter` | Supported |
-| `pickups` | `PickupList` | Supported |
-| `line_identity` | `LineStamper` | Supported |
-| `render_config` | `RenderConfigurer` | Supported |
-| `cleanup_tools` | `CleanupLauncher` | Supported |
-| `retake_lanes` | `RetakeLanePicker` | Supported |
-| `project_state` | `ProjectStateReader` | Supported |
-| `take_create` | `TakeCreator` | Supported |
-| `heartbeat` | `Heartbeat` | Supported |
-| `project_read` | `ProjectReader` | Supported (works offline, REAPER closed) |
-| `track_state` | `TrackStateReader` | Experimental |
-| `track_select` | `TrackSelector` | Experimental |
-| `record` | `Recorder` | Experimental |
-| `punch` | `Puncher` | Experimental |
-| `regions` | `RegionWriter` | Experimental |
-| `takes` | `TakeSelector` | Experimental |
-| `fx_chains` | `FXManager` | Experimental |
-| `silence_trim` | `SilenceTrimmer` | Experimental (built, not yet wired to a binding) |
-| `item_gain` | `GainAdjuster` | Experimental (built, not yet wired to a binding) |
-| `render_with_fx` | `FXRenderer` | Experimental (the mastering port's `daw` row, [ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md), [ADR 0435](../adr/0435-render-with-fx-renders-one-region-at-a-time-into-a-run-folder-with-a-one-time-approval-and-puts-the-narrators-render-settings-back.md); the only role that makes the engine render, each render with a one-time approval into an empty run folder the host made) |
-| `master_chain_read` | `MasterChainReader` | Experimental (lists the track and master FX a render would run; gated by `bridge.Actions` like the other experimental commands) |
-| `macro_render` | `MacroRenderer` | Experimental for Audacity, Unsupported for REAPER (the mastering port's `audacity` row, [ADR 0460](../adr/0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md); synchronous, unlike `render_with_fx`: imports the source as its own track, selects only that track, applies the narrator's named macro, exports) |
+The capabilities, each role interface, what a conforming engine returns and the level each engine declares are in the [DAW reference](../reference/daw/README.md): [capabilities](../reference/daw/capabilities.md) for the catalog and [the matrix](../reference/daw/matrix.md), which is generated from the adapters' declarations. The mastering port's render rows (`render_with_fx`, `master_chain_read`, `macro_render`) are Experimental or Unsupported by design ([ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md), [ADR 0435](../adr/0435-render-with-fx-renders-one-region-at-a-time-into-a-run-folder-with-a-one-time-approval-and-puts-the-narrators-render-settings-back.md), [ADR 0460](../adr/0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md)).
 
 - **Requests in, events out**, unchanged from ADR 0143: an asynchronous role's method only hands a request to the engine and returns an error when it could not be sent; the answer arrives later as an event tagged with the run ID. `dawport.Event` and `Subscription` alias the bridge's own types, so the event tags and fields in `internal/bridge/wire.go` stay part of the contract: a second adapter reports the same events rather than the service growing a second parser.
 - **No consumer holds the concrete bridge client any more.** Every package that used to keep `*bridge.Client`/`*bridge.Actions` now takes a role from a `dawport.Resolver` through `dawport.Role[T]` instead (DAW port PRD Phases 5a-5d); only `internal/bridge` (the transport) and `dawport/reaper` (the one adapter that wraps it) still hold it. Only `dawport` itself, the composition root (`app.go`'s `configureLocked`, which alone picks the launch's adapter and transport by kind) and the picker switch (`pickerSwitchDAW`, `apps/desktop/bindings.go`) still branch on a DAW's kind or label — everything else asks the resolver for a capability. `internal/dawport/boundary_test.go` enforces both rules with a small, named exceptions list that shrinks as the remaining ones are retired.
