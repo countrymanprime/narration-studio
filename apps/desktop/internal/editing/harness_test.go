@@ -1,4 +1,4 @@
-// This file is Phase 1 of docs/prds/editing-readiness-analysis.prd.md
+// This file is Phase 1 of the deleted editing-readiness-analysis PRD
 // ("Editing corpus and evaluation harness"): "a Go harness computing
 // per-class recall, precision and a sensitivity sweep on a tuning half and
 // a held-out half." It scores DX Phase 9's real, already-shipped cleanup

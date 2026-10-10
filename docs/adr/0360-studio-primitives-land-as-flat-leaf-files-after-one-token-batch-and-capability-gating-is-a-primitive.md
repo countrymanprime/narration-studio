@@ -53,7 +53,7 @@ Each token goes in both theme blocks of `styles.css`, and the booth block covers
 - **The existing gated controls.** "Punch from here", "Record in REAPER" and the nav's `requiresDaw` move onto the gate in the DAW port PRD's P7, after the gate and the hook land. One PRD edits those files, not two. The gate itself needs no API, so it lands and is judged in the atlas before the binding exists.
 - **Other disabled controls.** `TooltipTarget`'s disabled-child behaviour stays for disabled controls that are not about a DAW capability.
 
-**`Kbd` only draws keys.** The command registry, key bindings and pedal input belong to [Input Commands and Pedals](../prds/input-commands-and-pedals.prd.md) ([ADR 0361](0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)).
+**`Kbd` only draws keys.** The command registry, key bindings and pedal input belong to Input Commands and Pedals (deleted PRD `input-commands-and-pedals`) ([ADR 0361](0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)).
 
 **The two shells are layout only.**
 

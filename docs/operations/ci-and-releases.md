@@ -13,7 +13,7 @@ gate](#nx-projects-and-the-quality-gate)).
 
 GitHub Actions cannot configure repository settings from a workflow, so this section records what is set on the
 repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, and `.../environments` and `.../actions/permissions`, on
-2026-09-21) and what that means for CI. The docs follow the settings, not the other way round (owner decision D11 of the [implementation plan](../prds/implementation-plan.md)).
+2026-09-21) and what that means for CI. The docs follow the settings, not the other way round (owner decision D11 of the implementation plan (deleted PRD `implementation-plan`)).
 
 - **`Main Protection` ruleset** (active): deleting `main`, force-pushing to it and re-creating it are blocked. The
   admin role and the owner bypass it.
@@ -460,7 +460,7 @@ demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook 
   every asset URL relative (`./sb-manager/...`, `./assets/...`), so no `base` setting is needed. Checked by serving the build
   from `/narration-utils/` on a server that answers 404 for anything outside that folder and loading `index.html` and `iframe.html`
   in Chromium in light and dark (`globals=theme:dark`): no request failed, no page or console error, the stories rendered
-  (2026-09-21, [PRD phase 9](../prds/release-readiness-provisioning-and-docs-site.prd.md)). Phase 11 put it one folder deeper
+  (2026-09-21, PRD phase 9 (deleted)). Phase 11 put it one folder deeper
   (`/narration-utils/storybook/`) and loaded it from there the same way; the docs pages use relative links only. The fonts are bundled
   (`apps/ui/src/fonts.ts`, #238), so the published atlas makes no third-party request.
 - **Not enabled yet.** Pages is off for the repository and turning it on is an owner-only setting

@@ -1,6 +1,6 @@
 /**
  * The four web pronunciation lookup sites this phase ships (Go: `apps/desktop/internal/pronunciationlookup`,
- * `docs/prds/prep-depth.prd.md` Phase 2; `docs/architecture/provider-ports.md` Open Question Q5's `BrowserLookup`
+ * `the deleted prep-depth PRD` Phase 2; `docs/architecture/provider-ports.md` Open Question Q5's `BrowserLookup`
  * role). Each value is the source id `PronunciationLookupOpen` takes, matching `pronunciationlookup.Source` on the
  * Go side one for one.
  */

@@ -6,7 +6,7 @@
 
 ## Context
 
-[Input commands and pedals](../prds/input-commands-and-pedals.prd.md) Phase 10 must keep the booth silent while REAPER records. Today the only way the host learns that is `ReadAloudReaperState` ([ADR 0249](0249-read-aloud-asks-reaper-once-whether-the-chapters-linked-track-is-the-one-track-armed.md)): a `chapter_track_state` request the UI makes on a click. That request is Experimental and switched off by default, it waits for an answer, and it goes stale the moment the narrator presses Record in REAPER.
+Input commands and pedals (deleted PRD `input-commands-and-pedals`) Phase 10 must keep the booth silent while REAPER records. Today the only way the host learns that is `ReadAloudReaperState` ([ADR 0249](0249-read-aloud-asks-reaper-once-whether-the-chapters-linked-track-is-the-one-track-armed.md)): a `chapter_track_state` request the UI makes on a click. That request is Experimental and switched off by default, it waits for an answer, and it goes stale the moment the narrator presses Record in REAPER.
 
 The DAW port PRD's Phase 9 asks the `Heartbeat` role to report play and record state, so the answer is something the host already knows without asking. But the heartbeat REAPER sends (`PROJECT_STATUS`, every 1.5 s) carries only the project path, its unsaved flag and the edit counter. The PRD's "not building" list rules out new REAPER commands and Lua changes for the port refactor. This phase can't be done without changing what the heartbeat sends, so that rule is set aside here, for this one change and no new command.
 

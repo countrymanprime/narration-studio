@@ -1,5 +1,5 @@
 -- The PROJECT_STATUS reachability heartbeat narration_ui_bridge.lua's tick loop appends (Phase 7,
--- docs/prds/project-workspace-and-daw-link.prd.md, ADR 0092/W10): the mechanism spike S6
+-- the deleted project-workspace-and-daw-link PRD, ADR 0092/W10): the mechanism spike S6
 -- (docs/research/reaper-spike-s6-daw-reachability.md) proved, wired into the same command loop compare_test.lua
 -- and launcher_test.lua already exercise. Uses Session:all_events() (not :events(), which filters this tag out
 -- for every other test file's sake - see harness.lua).

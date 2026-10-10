@@ -1,5 +1,5 @@
 // This file is the real-speech follow-up to Phase 4 of
-// docs/prds/editing-readiness-analysis.prd.md: validationrun_test.go's
+// the deleted editing-readiness-analysis PRD: validationrun_test.go's
 // selection rule and scoring, run on the LibriVox Alice signal corpus
 // (tests/fixtures/audio/librivox-alice, `build.py signal`) as a second
 // evaluation set beside the synthetic one. That corpus is Kara Shallenberg's

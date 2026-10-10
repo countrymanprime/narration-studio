@@ -1,4 +1,4 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 8 of the deleted editing-readiness-analysis PRD: the
 // render path's own ledger record. Unlike the per-item records ledger.go
 // writes (item-scoped, currency judged by evidence.LedgerFingerprint /
 // evidence.EvaluateFingerprints), Phase 8's ledger scope is explicitly "the

@@ -1,6 +1,6 @@
 """
 Loads the Moonshine streaming engine for live_asr.py (the Manuscript Teleprompter's second live engine, ADR 0021; see
-docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 6). live_asr.py turns the loaded Transcriber's line events into
+the deleted teleprompter-engines-and-input-devices PRD Phase 6). live_asr.py turns the loaded Transcriber's line events into
 the same partial/word/segment_end events the Whisper engine produces; this module only decides WHICH model files are loaded.
 
 Two ways in:

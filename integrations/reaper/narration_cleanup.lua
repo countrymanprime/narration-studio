@@ -1,4 +1,4 @@
--- Cleanup launchers over the bridge: launch_cleanup_tool (docs/prds/reaper-automation-follow-through.prd.md Phase 23,
+-- Cleanup launchers over the bridge: launch_cleanup_tool (the deleted reaper-automation-follow-through PRD Phase 23,
 -- ADR 0146). Opens REAPER's own Repair Pops/Clicks dialog, or the narrator's own installed Magnolius DeClick script,
 -- on the items the narrator has selected. The dialog does the work and the narrator drives it; this file changes
 -- nothing itself.

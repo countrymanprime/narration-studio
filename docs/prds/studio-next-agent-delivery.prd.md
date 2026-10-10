@@ -2,7 +2,7 @@
 
 **Source:** owner requirement of 2026-10-10 for the Studio Next PRD series: "I want the design to include agents and sessions running constantly", clarified as: coordinator and worker sessions must be able to run continuously on the rebuild; this is about how the work is delivered, not an in-app feature.
 
-**Builds on:** [The agent train](../operations/agent-train.md) (the coordinator's procedure, switches, lanes, serial points, owner standing rules, worker protocol and templates), [Tracking work on GitHub](../operations/github-workflow.md), [CLAUDE.md](../../CLAUDE.md), and the [implementation plan](implementation-plan.md) sections 3 and 8. It does not replace the train; it fits the series into it and lists every place it would extend or change it.
+**Builds on:** [The agent train](../operations/agent-train.md) (the coordinator's procedure, switches, lanes, serial points, owner standing rules, worker protocol and templates), [Tracking work on GitHub](../operations/github-workflow.md), [CLAUDE.md](../../CLAUDE.md), and the implementation plan (deleted PRD `implementation-plan`) sections 3 and 8. It does not replace the train; it fits the series into it and lists every place it would extend or change it.
 
 **Status (2026-10-10):** draft. Every extension or deviation is a proposal in the table "Deviations from the agent train"; none is in force until the owner accepts it and the change lands in `docs/operations/agent-train.md` (SNA-3) with an ADR where it settles a decision. Until then the train runs as written.
 

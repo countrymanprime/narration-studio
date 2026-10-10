@@ -1,4 +1,4 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 8 of the deleted editing-readiness-analysis PRD: the
 // render-sourced signal and evidence (Q6). It mirrors signals.go's own
 // item-path shape - a pure decision function over already-gathered input, no
 // decode, no store access - but judges the chapter's rendered file instead:

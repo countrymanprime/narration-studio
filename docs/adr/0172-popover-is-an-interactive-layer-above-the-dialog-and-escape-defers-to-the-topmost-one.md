@@ -5,7 +5,7 @@
 
 ## Context
 
-[Read Aloud Control Bar](../prds/read-aloud-control-bar.prd.md) redesigns the Read aloud dialog's configuration card as
+Read Aloud Control Bar (deleted PRD `read-aloud-control-bar`) redesigns the Read aloud dialog's configuration card as
 a compact bar with a microphone device picker and a Settings panel, each opened from a button inside a full-size
 `Dialog` (`size="full"`, [ADR 0094](0094-dialog-gains-a-full-size-variant-that-fills-the-viewport-with-a-margin.md)).
 Neither fits an existing primitive: `Menu` (ADR 0052) only holds a flat list of action items with no room for a

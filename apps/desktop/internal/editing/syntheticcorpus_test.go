@@ -1,4 +1,4 @@
-// This file is Phase 1 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 1 of the deleted editing-readiness-analysis PRD: the
 // "synthetic generators (known silence lengths, impulses at known
 // positions)" its Scope calls for, committed to the repo because they are
 // code-generated, unlike real audio (Q10 recommendation: "synthetic

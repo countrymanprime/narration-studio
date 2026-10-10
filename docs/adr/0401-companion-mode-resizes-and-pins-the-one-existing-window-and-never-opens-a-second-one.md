@@ -7,7 +7,7 @@
 
 The benchmark's [audiobook studio benchmark](../research/audiobook-studio-benchmark.md) recommendation 2 asks for "the compact companion panel," a narrow, always-on-top panel that stays visible beside the DAW so a narrator working with REAPER as the primary window can punch, resolve a note or check a pickup without switching away from REAPER.
 
-[Wails v3 Migration](../prds/wails-v3-migration.prd.md) already records, as part of its scope, that the desktop shell keeps "no new native menu... no system tray, no second window" (`:34`). `apps/desktop/wailsapp.go` reflects this today: `application.Get().Window.GetByName("main")` is the only window the host ever asks for, and the one existing call to `SetAlwaysOnTop` (`bringWindowForward`) is a one-shot nudge that turns itself off in the same function, not a persisted mode.
+Wails v3 Migration (deleted PRD `wails-v3-migration`) already records, as part of its scope, that the desktop shell keeps "no new native menu... no system tray, no second window" (`:34`). `apps/desktop/wailsapp.go` reflects this today: `application.Get().Window.GetByName("main")` is the only window the host ever asks for, and the one existing call to `SetAlwaysOnTop` (`bringWindowForward`) is a one-shot nudge that turns itself off in the same function, not a persisted mode.
 
 A second, independent always-on-top webview window (Wails v3's `application.NewWebviewWindow`) would satisfy the benchmark's description most literally, but it reopens a decision the Wails v3 Migration PRD already made deliberately, doubles the surfaces that need their own lifecycle, focus and accessibility handling, and gives the host two windows to keep in sync with one project's state instead of one.
 

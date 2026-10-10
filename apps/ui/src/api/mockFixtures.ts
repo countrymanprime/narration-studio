@@ -596,7 +596,7 @@ export const WIRE_TRANSCRIPT: TranscriptState = {
 };
 
 // Two devices, one with the kind of parenthesised driver suffix real `dshow` names carry, so the picker's option
-// labels are exercised against realistic text (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 1 finding).
+// labels are exercised against realistic text (the deleted teleprompter-engines-and-input-devices PRD Phase 1 finding).
 export const WIRE_TELEPROMPTER_DEVICES: TeleprompterDevice[] = [
   { name: 'Microphone Array (Realtek(R) Audio)' },
   { name: 'Headset Microphone (USB Audio Device)' },
@@ -715,7 +715,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     },
   ],
   Piper: [choice('tts_provider', 'TTS provider', ['piper'], 'piper'), choice('tts_voice_id', 'Preview voice', ['en_US-ljspeech-high'], 'en_US-ljspeech-high')],
-  // Global-scope machine facts (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine and
+  // Global-scope machine facts (the deleted teleprompter-engines-and-input-devices PRD, "Where the device, engine and
   // model choices are stored"): the device is unset until the narrator picks one, so the mock starts it empty like the
   // host does. Engine and model carry the repo defaults (whisper, tiny). The engine choices are what a Windows host
   // offers (the host fills in the engines its platform can launch; Moonshine ships only on Windows, ADR 0107), and the
@@ -817,7 +817,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveSource: 'repo default',
     })),
   ],
-  // The narrator's own delivery limits (docs/prds/diagnostics-delivery-and-cleanup-tools.prd.md Phase 2), mirroring the host's
+  // The narrator's own delivery limits (the deleted diagnostics-delivery-and-cleanup-tools PRD Phase 2), mirroring the host's
   // fieldSchemas and numberSpecs.
   Delivery: [
     deliveryLimit('integrated_lufs_min', 'Integrated loudness, lowest', -70, 'LUFS'),
@@ -869,7 +869,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     choice('preset', 'Preset', ['sample', 'spot_check'], 'sample'),
     recordingCheck('exclude_ending_fraction', 'Exclude the ending (fraction of chapters)', '0', { min: 0, max: 0.5, step: 0.01, unit: '' }),
   ],
-  // Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5, Q2): the narrator's remap changes, as a
+  // Keymap.overrides (the deleted input-commands-and-pedals PRD Phase 5, Q2): the narrator's remap changes, as a
   // versioned JSON document parsed with keymapOverridesSchema. No Settings category renders it yet (Phase 6 adds
   // the "Keyboard & pedals" screen), so it stays a plain "text" field here too, mirroring the host's fieldSchemas.
   Keymap: [

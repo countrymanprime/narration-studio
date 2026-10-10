@@ -1,5 +1,5 @@
 // Command spike-globalhotkeys is a throwaway proof-of-concept for Phase 12 of the
-// Input Commands and Pedals PRD (docs/prds/input-commands-and-pedals.prd.md, tracking
+// Input Commands and Pedals PRD (the deleted input-commands-and-pedals PRD, tracking
 // issue #646): can Wails v3 or the OS register a hotkey that still fires while another
 // application (REAPER) has OS focus?
 //

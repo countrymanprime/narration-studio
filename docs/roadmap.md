@@ -19,7 +19,7 @@ The suite helps a narrator find and review issues faster. It may analyze local m
 
 ### 1. Dashboard foundation
 
-**Status: built; checks in REAPER pending with the owner.** [Proof](guides/using-the-app/proof.md) lists the findings of Transcript Compare and the Story Bible, records decisions in the project sidecar, and goes to, loops and marks a finding in REAPER ([review dashboard PRD](prds/review-dashboard-and-findings-adoption.prd.md) Phases 1 to 8). The owner's checks in REAPER are in [the checklist](architecture/reaper-navigation.md#manual-verification-checklist).
+**Status: built; checks in REAPER pending with the owner.** [Proof](guides/using-the-app/proof.md) lists the findings of Transcript Compare and the Story Bible, records decisions in the project sidecar, and goes to, loops and marks a finding in REAPER (review dashboard PRD (deleted) Phases 1 to 8). The owner's checks in REAPER are in [the checklist](architecture/reaper-navigation.md#manual-verification-checklist).
 
 - Adapt Manuscript Guide and Transcript Compare outputs into structured findings.
 - Add a review page in the app with filters and review decisions; REAPER only carries out its navigate, loop and marker actions.
@@ -56,7 +56,7 @@ the packaged smoke test and a per-user Windows setup program built in CI, beside
 setup program on a clean Windows machine, publish the component atlas and the docs site (phases 9 to 11), and a first stable rehearsal (the owner runs Promote); signing is deferred. The first stable release is Windows-only and unsigned (owner decision D7); no model is bundled.
 See the [first-use dependency provisioning rules](architecture/first-use-dependency-provisioning.md) for the required
 catalog, integrity, UX, migration, and acceptance criteria and the
-[release readiness PRD](prds/release-readiness-provisioning-and-docs-site.prd.md) for the phases.
+release readiness PRD (deleted) for the phases.
 
 ### Deferred work
 
@@ -68,7 +68,7 @@ catalog, integrity, UX, migration, and acceptance criteria and the
 
 ## Audacity adapter
 
-Unscheduled on this roadmap, like the chapter stage recommendations set (owner decision D9 of the [implementation plan](prds/implementation-plan.md)), but no longer deferred behind the REAPER workflow (owner decision D23): it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See the [Audacity integration PRD](prds/audacity-integration.prd.md) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
+Unscheduled on this roadmap, like the chapter stage recommendations set (owner decision D9 of the implementation plan (deleted PRD `implementation-plan`)), but no longer deferred behind the REAPER workflow (owner decision D23): it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See the Audacity integration PRD (deleted) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
 
 ## Dependency rules
 

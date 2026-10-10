@@ -1,6 +1,6 @@
 # Audacity launcher feasibility (audacity-integration Phase 10)
 
-**Status: done, 2026-09-23. Desk research only: Audacity's manual and its source at the release tags named below. Nothing was run in Audacity.** This note answers the question Phase 10 of the [Audacity integration PRD](../prds/audacity-integration.prd.md) has to settle before anything is built: can an Audacity-side artifact (a macro, a Nyquist plug-in, anything else Audacity loads) launch the app's executable with arguments on Windows, the way [`NarrationUtils_Launcher.lua`](../../integrations/reaper/NarrationUtils_Launcher.lua) launches it from REAPER with `--daw REAPER` and the project folder?
+**Status: done, 2026-09-23. Desk research only: Audacity's manual and its source at the release tags named below. Nothing was run in Audacity.** This note answers the question Phase 10 of the Audacity integration PRD (deleted) has to settle before anything is built: can an Audacity-side artifact (a macro, a Nyquist plug-in, anything else Audacity loads) launch the app's executable with arguments on Windows, the way [`NarrationUtils_Launcher.lua`](../../integrations/reaper/NarrationUtils_Launcher.lua) launches it from REAPER with `--daw REAPER` and the project folder?
 
 ## What it settles
 

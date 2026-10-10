@@ -1,4 +1,4 @@
-// This file is Phase 6 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 6 of the deleted editing-readiness-analysis PRD: the
 // three tri-state signals, in the shape chapter-stage-recommendations.prd.md
 // defines (apps/desktop/internal/stages). It mirrors
 // apps/desktop/internal/coverage/signal.go's own split: a pure decision

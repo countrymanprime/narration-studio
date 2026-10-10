@@ -5,7 +5,7 @@
 
 ## Context
 
-A narrator's only way to get the app was to download a 400 MB zip holding `narration-utils.exe` and run it from wherever it was unpacked: no Start Menu entry, no shortcut, no uninstaller, no check that the WebView2 runtime is present ([standalone launch](../architecture/standalone-launch.md#packaging), [the release readiness PRD](../prds/release-readiness-provisioning-and-docs-site.prd.md) phase 14, Open Question 10, answered: NSIS through Wails' `-nsis`; per user or per machine to be decided and recorded here).
+A narrator's only way to get the app was to download a 400 MB zip holding `narration-utils.exe` and run it from wherever it was unpacked: no Start Menu entry, no shortcut, no uninstaller, no check that the WebView2 runtime is present ([standalone launch](../architecture/standalone-launch.md#packaging), the release readiness PRD (deleted) phase 14, Open Question 10, answered: NSIS through Wails' `-nsis`; per user or per machine to be decided and recorded here).
 
 Facts established before writing any definition (2026-09-21):
 

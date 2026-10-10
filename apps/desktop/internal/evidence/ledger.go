@@ -1,5 +1,5 @@
 // This file is Phase 3 of the analysis evidence ledger PRD
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-3---analysis-ledger,
+// (the deleted analysis-evidence-ledger PRD,
 // Q3, D7): the ledger record type and its one-JSON-file-per-record store
 // under <project>/narration-utils/analysis/ledger/. Importers/callers: the
 // recording coverage service (apps/desktop/internal/coverage) writes one
@@ -16,7 +16,7 @@
 // and keep going. callout any new adrs on the pr that you created them so i
 // can review."
 //
-// Phase 6 addition (staleness.go, docs/prds/analysis-evidence-ledger.prd.md
+// Phase 6 addition (staleness.go, the deleted analysis-evidence-ledger PRD
 // #phase-6---staleness-evaluator): LedgerFingerprint gained ItemFacts, and
 // this file gained the LedgerItemFact type. A record's ItemFingerprints and
 // AnalysisKeys are opaque hashes by design (Architecture Notes: "Fingerprints

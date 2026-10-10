@@ -5,7 +5,7 @@
 
 ## Context
 
-[Prep Depth](../prds/prep-depth.prd.md) Phase 5 adds a markup layer: stress, pause and character-tag spans the narrator places on the script while prepping, which must "carry through to the booth view" and must never land silently on the wrong words when the text changes. The PRD left three things to planning or to a recommendation (D22):
+Prep Depth (deleted PRD `prep-depth`) Phase 5 adds a markup layer: stress, pause and character-tag spans the narrator places on the script while prepping, which must "carry through to the booth view" and must never land silently on the wrong words when the text changes. The PRD left three things to planning or to a recommendation (D22):
 
 - **Q5 (where markup lives):** recommendation A, a project sidecar `<project>/narration-utils/prep/markup.json` of offset spans, not the manuscript JSON.
 - **Q6 (validation):** recommendation A, check every span against the current text on read and report a mismatch as stale rather than apply it at the wrong position; the risk table asks that whitespace-only edits not flag staleness.

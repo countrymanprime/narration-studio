@@ -25,7 +25,7 @@ type Props = {
   blocks?: string;
 };
 
-// The device picker (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 2), replacing Phase 1's typed-name
+// The device picker (the deleted teleprompter-engines-and-input-devices PRD Phase 2), replacing Phase 1's typed-name
 // seam: a dropdown of the names the sidecar's capture path actually opens, and nothing else - no typed name, no
 // "Other…" entry. This is the standing "Microphone is never typed" decision (the PRD's Decisions Log, 2026-09-20): a
 // failed or empty listing blocks the phase instead of falling back to typing, so a device the list does not have

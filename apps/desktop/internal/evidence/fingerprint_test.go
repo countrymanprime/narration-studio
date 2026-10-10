@@ -153,7 +153,7 @@ func TestComputeItemFingerprintIsDeterministic(t *testing.T) {
 }
 
 // TestEditTypeTable is the PRD's Phase 2 acceptance table
-// (docs/prds/analysis-evidence-ledger.prd.md#edit-type-table-phase-2-acceptance):
+// (the deleted analysis-evidence-ledger PRD):
 // every listed edit and the analysis key/item fingerprint columns it
 // specifies.
 func TestEditTypeTable(t *testing.T) {

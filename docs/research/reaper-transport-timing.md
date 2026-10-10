@@ -34,7 +34,7 @@ Research could **not** use, all returning `EGRESS_BLOCKED` from this session's n
 - `python-reapy.readthedocs.io` (reapy's own hosted docs — worked around by reading its `docs/source/*.rst` source directly from GitHub instead)
 - `www.extremraym.com` and `reaperapidocs.vercel.app` (third-party ReaScript doc mirrors)
 
-This is the same class of gap the Phase 8 spike for [input commands and pedals](../prds/input-commands-and-pedals.prd.md) hit on a different set of hosts (`webkit.org`, `learn.microsoft.com`, `caniuse.com`, `developer.mozilla.org`) — see [`web-midi-hid-webview-spike.md`](web-midi-hid-webview-spike.md#not-done-and-why). Every host that would have carried the single most authoritative source (REAPER's own documentation of `GetPlayState`/`GetPlayPosition`, and the forum threads where narrators and script authors discuss them directly) was unreachable, so this note's confidence rests on GitHub-hosted primary sources and `WebSearch` synthesis instead, at the confidence levels that supports — not asserted higher.
+This is the same class of gap the Phase 8 spike for input commands and pedals (deleted PRD `input-commands-and-pedals`) hit on a different set of hosts (`webkit.org`, `learn.microsoft.com`, `caniuse.com`, `developer.mozilla.org`) — see [`web-midi-hid-webview-spike.md`](web-midi-hid-webview-spike.md#not-done-and-why). Every host that would have carried the single most authoritative source (REAPER's own documentation of `GetPlayState`/`GetPlayPosition`, and the forum threads where narrators and script authors discuss them directly) was unreachable, so this note's confidence rests on GitHub-hosted primary sources and `WebSearch` synthesis instead, at the confidence levels that supports — not asserted higher.
 
 `api.github.com` was also unavailable for repositories outside this session's scope (`countrymanprime/narration-utils` only) — SWS's, OSARA's and reapy's own repos weren't attached via `add_repo`, since this is read-only research on public code, not a checkout to build or modify. Their raw file content and web (PR/issue) pages were fetched directly instead, which covered everything actually found below.
 
@@ -54,6 +54,7 @@ OSARA is the accessibility screen-reader extension for REAPER (canonical repo co
 Downloaded `src/reaper_osara.cpp` directly (7,077 lines) and grepped it rather than relying on piecemeal summaries:
 
 - **`cmdChangeTransportState()`** (around line 6223):
+
   ```cpp
   void cmdChangeTransportState(int command) {
       int before = GetPlayState();
@@ -62,6 +63,7 @@ Downloaded `src/reaper_osara.cpp` directly (7,077 lines) and grepped it rather t
       reportTransportState(before, after);
   }
   ```
+
   This calls `GetPlayState()` again in the very next line after `Main_OnCommand` runs the transport action (Play/Stop/Record/Pause), in the same synchronous call — no wait, no re-check on a later tick — and then announces the new state from that read. That `GetPlayState()` is trustworthy read *immediately* after the state-changing call, with zero propagation delay of its own, is about as direct as evidence gets for "the value itself isn't stale" — it just doesn't cover a transition our script didn't trigger.
 - **`reportTransportState()`** (around line 2096) uses the identical bit semantics as ADR 0305: "REAPER play state bits: 1 = playing, 2 = paused, 4 = recording," with an explicit comment "Recording also sets the playing bit, so handle record before play" — the same fact ADR 0305 states as "`Playing` is the play bit alone, so it is also true while recording."
 - **The gap this doesn't cover:** `cmdChangeTransportState` only fires for actions OSARA itself dispatches through REAPER's `hookcommand2`/`hookcommand` action-handling path (registered near the end of the file, with its own noted REAPER quirk: "actions triggered by user-defined actions don't trigger `hookcommand2` … IMO, this is a REAPER bug"). A transport change made by REAPER's own UI transport buttons, an OSC surface, or a hardware controller that doesn't go through that path isn't covered by this function at all.

@@ -1,4 +1,4 @@
-// The book-wide spread (docs/prds/delivery-platform-profiles.prd.md Phase 10, mockup 11 "Book consistency"): a per-rule
+// The book-wide spread (the deleted delivery-platform-profiles PRD Phase 10, mockup 11 "Book consistency"): a per-rule
 // min/max/median across every measured file's judged value, for the numeric per-file level rules only (RMS, peak, noise
 // floor). A rule contributes a file's value only once the app has actually judged it (`met` or `not_met`): a `not_checked`
 // row (an MP3's level before Phase 8 decodes it) or a `not_measurable` one (silence, a too-short file) is never counted, so

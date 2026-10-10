@@ -5,7 +5,7 @@
 
 ## Context
 
-The [REAPER automation follow-through PRD](../prds/reaper-automation-follow-through.prd.md) Phase 23 asks for one-click launch of REAPER's own repair dialog on the selected items: an "allow-listed named-action command", with "action IDs verified in the Action list", and third-party tools "only if installed and never bundled" (Magnolius is GPL-3.0). The success signal is "the dialog opens; the app changes nothing itself".
+The REAPER automation follow-through PRD (deleted) Phase 23 asks for one-click launch of REAPER's own repair dialog on the selected items: an "allow-listed named-action command", with "action IDs verified in the Action list", and third-party tools "only if installed and never bundled" (Magnolius is GPL-3.0). The success signal is "the dialog opens; the app changes nothing itself".
 
 REAPER 7.80 added `Edit > Repair Pops/Clicks` ([changelog](https://www.reaper.fm/whatsnew.txt)). Its numeric action ID is not published, and no REAPER run was approved for this phase to read it from the Action list. REAPER 7.80's own binary carries the texts "Repair pops/clicks..." and "Repair Pops/Clicks..." but not the ID they are bound to. A third-party ReaScript such as Magnolius's `Magnolius_DeClick.lua` has no fixed ID at all: REAPER gives a loaded script a `_RS…` command ID derived from where it was installed, and names it `Script: <file name>`.
 

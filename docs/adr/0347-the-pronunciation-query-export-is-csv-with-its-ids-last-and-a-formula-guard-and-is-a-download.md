@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-27
-**Supersedes:** none. Builds on [ADR 0346](0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md) (status and note). Prep depth PRD ([`docs/prds/prep-depth.prd.md`](../prds/prep-depth.prd.md)) Phase 3, Open Question Q3 (recommendation taken, D22).
+**Supersedes:** none. Builds on [ADR 0346](0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md) (status and note). Prep depth PRD (`docs/prds/prep-depth.prd.md` (deleted)) Phase 3, Open Question Q3 (recommendation taken, D22).
 
 ## Context
 

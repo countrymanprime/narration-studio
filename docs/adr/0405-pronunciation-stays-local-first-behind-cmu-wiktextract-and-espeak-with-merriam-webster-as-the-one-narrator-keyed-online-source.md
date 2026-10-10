@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Date:** 2026-09-27
-**Supersedes:** for pronunciation dictionary data only — narrows [`prep-depth.prd.md`](../prds/prep-depth.prd.md)'s Success Metrics row "No network call from the app for a lookup" and [`provider-ports.md`](../architecture/provider-ports.md) Open Question Q5's "never fetched by the app" wording for the `PronunciationSource` port. Neither of those is itself an ADR, so nothing here is superseded in the ADR sense (Rule 2 of [`docs/adr/README.md`](README.md)); this ADR is the decision record those two documents' own text will be updated to match, in the phase that implements it (Phase 9 of `prep-depth.prd.md`), not in this pull request.
+**Supersedes:** for pronunciation dictionary data only — narrows `prep-depth.prd.md` (deleted)'s Success Metrics row "No network call from the app for a lookup" and [`provider-ports.md`](../architecture/provider-ports.md) Open Question Q5's "never fetched by the app" wording for the `PronunciationSource` port. Neither of those is itself an ADR, so nothing here is superseded in the ADR sense (Rule 2 of [`docs/adr/README.md`](README.md)); this ADR is the decision record those two documents' own text will be updated to match, in the phase that implements it (Phase 9 of `prep-depth.prd.md`), not in this pull request.
 
 ## Context
 

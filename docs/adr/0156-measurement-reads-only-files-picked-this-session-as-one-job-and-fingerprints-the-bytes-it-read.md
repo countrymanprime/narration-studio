@@ -6,7 +6,7 @@
 ## Context
 
 `internal/measure` could measure a WAV file but nothing in the app called it for the narrator's own files. Phase 1 of
-[the diagnostics PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) exposes it through bindings. That opens a
+the diagnostics PRD (deleted) exposes it through bindings. That opens a
 new path from the webview to a file the Go host opens: whatever path the UI sends, the host reads. Every earlier
 boundary of that kind keeps the page from naming a path: `/media` serves only a source of the current project's `.rpp`
 (ADR 0012), a recording check takes a chapter id, a take comparison a finding id. A measurement also runs for as long as

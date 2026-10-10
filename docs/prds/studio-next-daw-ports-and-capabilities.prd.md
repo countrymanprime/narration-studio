@@ -77,7 +77,7 @@ If every DAW call answers one result shape and every capability says why and how
 
 ## Users & Context
 
-Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorder; the page workers who consume `DawClient`; the owner running scripted REAPER checks on a copy of a project (isolated `-cfgfile`, never touching the `Challenges_001` folder, [D3 in the plan](implementation-plan.md)). Hardware steps are pending on #510.
+Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorder; the page workers who consume `DawClient`; the owner running scripted REAPER checks on a copy of a project (isolated `-cfgfile`, never touching the `Challenges_001` folder, D3 in the plan (deleted PRD `implementation-plan`)). Hardware steps are pending on #510.
 
 ## Solution Detail
 

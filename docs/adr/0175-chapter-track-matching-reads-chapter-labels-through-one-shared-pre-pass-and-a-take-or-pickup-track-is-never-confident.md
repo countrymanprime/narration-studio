@@ -6,7 +6,7 @@
 
 ## Context
 
-[DAW Chapter-Track Auto-Sync](../prds/daw-chapter-track-auto-sync.prd.md) measured the matcher of [ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md)
+DAW Chapter-Track Auto-Sync (deleted PRD `daw-chapter-track-auto-sync`) measured the matcher of [ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md)
 against real track-name habits. "Ch. 6", "Ch6", "CH06", "06" and "Sixth Chapter" matched nothing; "Chapter 06",
 "Chapter6" and "Chap 6" matched only as fuzzy guesses that can never link; and two names matched the wrong chapter:
 "Chapter VI" went to Chapter 1 and "Chapter 6 v2" to Chapter 2. A pickup or take track ("Chapter 6 (pickups)",

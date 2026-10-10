@@ -1,5 +1,5 @@
 // Package daw locates the REAPER executable on the host machine
-// (docs/prds/project-workspace-and-daw-link.prd.md Phase 6 spike, W11) so a
+// (the deleted project-workspace-and-daw-link PRD Phase 6 spike, W11) so a
 // future launch action (Phase 8) never needs the narrator to type a path by
 // hand. The evidence behind the two auto-detect sources this package tries is
 // recorded in docs/research/reaper-spike-s6-daw-reachability.md and

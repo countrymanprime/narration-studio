@@ -34,7 +34,7 @@ const isEngine = (value: string): value is TeleprompterEngine => value === 'whis
 const engineOptions = (choices: string[]) =>
   choices.filter(isEngine).map((engine) => ({ value: engine, label: ENGINE_LABELS[engine], title: ENGINE_CAPTIONS[engine] }));
 // The pre-Phase-2 (input devices PRD) browser-storage device value: migrated once into the global settings file
-// (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine and model choices are stored")
+// (the deleted teleprompter-engines-and-input-devices PRD, "Where the device, engine and model choices are stored")
 // and then removed, so it is never read again once the settings value exists. Only the standalone page migrates it
 // (see `migrateLegacyDevice` below) - the read-aloud modal (teleprompter-manuscript-integration.prd.md Phase 2) is
 // new and never had a browser-storage value of its own to migrate.

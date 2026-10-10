@@ -1,4 +1,4 @@
-// Package mastering is the built-in mastering chain (docs/prds/render-encode-master.prd.md Phase 3): a fixed EQ, then a
+// Package mastering is the built-in mastering chain (the deleted render-encode-master PRD Phase 3): a fixed EQ, then a
 // limiter, then gain into the selected delivery profile's RMS window, ACX's own order. It runs only when the narrator
 // asks (a caller's action, never on its own), and it writes a NEW WAV file: the source is opened read-only and never
 // written, and a destination that is the source, or that already exists, is refused.

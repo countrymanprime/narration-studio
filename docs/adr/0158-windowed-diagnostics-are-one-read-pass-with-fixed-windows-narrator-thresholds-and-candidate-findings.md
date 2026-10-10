@@ -5,7 +5,7 @@
 
 ## Context
 
-Phase 4 of [the diagnostics PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) asks for shared, tested
+Phase 4 of the diagnostics PRD (deleted) asks for shared, tested
 detectors for clipping, level shifts, silence and room tone, in Go beside `measure`, that emit findings. The PRD says
 what they detect and that every threshold is the narrator's. It does not say how each is measured, what a threshold
 means before the narrator sets one, or how severe each finding is. Those choices decide what Phases 6 (the Diagnostics

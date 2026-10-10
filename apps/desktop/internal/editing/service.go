@@ -1,4 +1,4 @@
-// This file is Phase 5 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 5 of the deleted editing-readiness-analysis PRD: the
 // narrator-triggered scan. It resolves a chapter to its confirmed track and
 // items (D5), decodes only what the cache does not already answer
 // (Architecture Notes: "cache lookup per item, decode only misses in one

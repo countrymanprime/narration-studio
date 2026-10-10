@@ -2,7 +2,7 @@
 
 How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt only says "read `docs/operations/agent-train.md` on `main` and run one pass", so changing the procedure is a normal pull request.
 
-It replaces the scheduling rules of [the implementation plan's section 8](../prds/implementation-plan.md#8-the-lane-train-2026-09-24) (the lane train of 2026-09-24):
+It replaces the scheduling rules of the implementation plan's section 8 (deleted PRD `implementation-plan`) (the lane train of 2026-09-24):
 
 - **Kept:** D40 (the coordinator merges), D43 (the light merge gate), D44 (the visual suite and atlas run in full once, at the end) and D46 (built UI is compared with its mock, amended by D97), plus the older D1–D39.
 - **Replaced:** D41 (three lanes) and D45 (hold on credits), by [Lanes](#lanes) and [Usage and autoscaling](#usage-and-autoscaling) below.
@@ -334,7 +334,7 @@ Waves order the work, and the coordinator doesn't start a wave until everything 
 | Wave | Streams |
 | --- | --- |
 | **0** | See the table below |
-| **1: contracts** | DAW port (PRD deleted, delivered) P1–P4 in lane K, one after another: N-K1 = P1 + P2, N-K2 = P3 + P4. [Provider ports](../architecture/provider-ports.md) phases after N-K1 (lane K, then B). Studio UI primitives (PRD deleted, delivered) token batch (alone), then `CapabilityGate` (lane U). [Input commands and pedals](../prds/input-commands-and-pedals.prd.md) registry core (lane U) |
+| **1: contracts** | DAW port (PRD deleted, delivered) P1–P4 in lane K, one after another: N-K1 = P1 + P2, N-K2 = P3 + P4. [Provider ports](../architecture/provider-ports.md) phases after N-K1 (lane K, then B). Studio UI primitives (PRD deleted, delivered) token batch (alone), then `CapabilityGate` (lane U). Input commands and pedals (deleted PRD `input-commands-and-pedals`) registry core (lane U) |
 | **2: fan out** | DAW port P5a–P5d at the same time (lane B, four workers); the remaining primitives, file-disjoint (lane U, two workers); provider-port migrations (lane B); input sources and migrations (lane U); DAW port P6 and P7 |
 | **3: features** | The wave-0 PRDs, in benchmark order: booth actions enablement, booth mode and companion panel, closed-loop proofing, delivery profiles (extended), production tracking |
 | **4** | Prep depth, series voice bible, render, encode and master, native recording on the DAW port, Audacity 4. Then the final sweep (D43, D44, D46): the full `pnpm check`, visual suite, atlas, aria, a mockup pass, doc screenshots regenerated once |

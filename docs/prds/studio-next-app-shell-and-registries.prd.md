@@ -100,7 +100,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Technical Approach
 
-**Architecture.** New folder `apps/ui/src/registries/` (providers, sources, context, guards) imported by features, never the reverse; `JumpMenu`, `ContextMenuHost` and the history slide-over under `components/shell/`. The jump menu uses `Dialog` and `Listbox`; no new Base UI import outside primitives. Dependency-cruiser rules: features import registries; registries import nothing from features. The overlay service lives in `apps/ui/src/overlay/` and imports primitives only.
+**Architecture.** New folder `apps/ui/src/registries/` (providers, sources, context, guards) imported by features, never the reverse; `JumpMenu`, `ContextMenuHost` and the history slide-over under `components/layout/`. The jump menu uses `Dialog` and `Listbox`; no new Base UI import outside primitives. Dependency-cruiser rules: features import registries; registries import nothing from features. The overlay service lives in `apps/ui/src/overlay/` and imports primitives only.
 
 **Contracts.** No wire payloads. The catalogue test generalises `commands.catalog.test.ts`: every id registered, every static row in each surface.
 
@@ -142,8 +142,8 @@ Phases 2 and 3 are independent; 4 and 5 can run together; 6 and 7 are independen
 | --- | --- | --- |
 | 2 | `apps/ui/src/input/commands.catalog.ts` and tests | Any slice adding a command row (add-only) |
 | 3 | `apps/ui/src/overlay/**`, `components/primitives/Toast*` (read) | Toast owners |
-| 4 | `components/shell/JumpMenu*`, `registries/search*` | none |
-| 5 | `components/shell/ContextMenuHost*`, existing `ContextMenu` call sites | Page slices that edit the same call sites |
+| 4 | `components/layout/JumpMenu*`, `registries/search*` | none |
+| 5 | `components/layout/ContextMenuHost*`, existing `ContextMenu` call sites | Page slices that edit the same call sites |
 | 6 | `components/help/*`, `components/settings/KeyboardPanel.tsx` | Settings slices |
 | 8 | `AppShell.tsx` | Serial point |
 

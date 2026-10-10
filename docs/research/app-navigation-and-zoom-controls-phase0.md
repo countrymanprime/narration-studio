@@ -1,6 +1,6 @@
 # Phase 0: verifying today's back/forward and zoom behaviour on Wails v3
 
-**Status: done, 2026-09-28.** Phase 0 of the [App Navigation and Zoom Controls PRD](../prds/app-navigation-and-zoom-controls.prd.md) (tracking issue [#547](https://github.com/countrymanprime/narration-utils/issues/547)), lane D. This settles what the PRD's own Evidence section could only infer from source before Phase 1 shipped, plus the four things Phase 0 names explicitly: which zoom gestures work, whether zoom persists, and whether the mouse's back/forward buttons and Alt+Left/Right navigate. No REAPER, no owner, per the phase's own scope.
+**Status: done, 2026-09-28.** Phase 0 of the App Navigation and Zoom Controls PRD (deleted) (tracking issue [#547](https://github.com/countrymanprime/narration-utils/issues/547)), lane D. This settles what the PRD's own Evidence section could only infer from source before Phase 1 shipped, plus the four things Phase 0 names explicitly: which zoom gestures work, whether zoom persists, and whether the mouse's back/forward buttons and Alt+Left/Right navigate. No REAPER, no owner, per the phase's own scope.
 
 ## The question
 

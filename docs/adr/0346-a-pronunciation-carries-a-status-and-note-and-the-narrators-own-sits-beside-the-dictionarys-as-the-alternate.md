@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-27
-**Supersedes:** none. It extends the Story Bible pronunciation of [ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and keeps the `chosen` rule of the story bible entries PRD (B11). Prep depth PRD ([`docs/prds/prep-depth.prd.md`](../prds/prep-depth.prd.md)) Phase 1, Open Question Q2 (recommendation taken, D22).
+**Supersedes:** none. It extends the Story Bible pronunciation of [ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and keeps the `chosen` rule of the story bible entries PRD (B11). Prep depth PRD (`docs/prds/prep-depth.prd.md` (deleted)) Phase 1, Open Question Q2 (recommendation taken, D22).
 
 ## Context
 

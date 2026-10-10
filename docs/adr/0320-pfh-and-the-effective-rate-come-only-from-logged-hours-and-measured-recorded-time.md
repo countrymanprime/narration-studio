@@ -8,7 +8,7 @@
 
 The production tracking PRD (delivered and deleted; `git log --diff-filter=D -- docs/prds/production-tracking.prd.md` finds it) Phase 2, Q4, adds two figures a narrator otherwise works out in a spreadsheet: **PFH**, hours worked per finished hour, and the **effective hourly rate**, what the book pays per hour worked; how it works now is in [Production](../guides/using-the-app/production.md). The app can reach two different "finished runtime" numbers for a chapter:
 
-- the measured recorded seconds of its one confirmed track (`tracks.Track.RecordedSeconds`, [Actual Recorded](../prds/actual-recorded-column.prd.md)); and
+- the measured recorded seconds of its one confirmed track (`tracks.Track.RecordedSeconds`, Actual Recorded (deleted PRD `actual-recorded-column`)); and
 - the word-count estimate on Home (`estimateFinishedHours`, 9,300 words per finished hour).
 
 A PFH that falls back to the estimate would look complete from the first day, but it would present a guess as a measurement. [ADR 0015](0015-real-progress-only.md) and the Actual Recorded PRD already rejected that for progress and recorded length. The rate has the same problem when no contracted amount has been entered: 0 and "a guess" both read as facts.

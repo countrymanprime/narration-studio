@@ -346,7 +346,7 @@ func TestTeleprompterDevicesReturnsTheSidecarsListThroughTheHostBinding(t *testi
 }
 
 // The `TeleprompterDevices` payload the UI receives (ADR 0069), pinned for the TS contract test
-// (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 2).
+// (the deleted teleprompter-engines-and-input-devices PRD Phase 2).
 func TestContractTeleprompterDevices(t *testing.T) {
 	t.Setenv(fakeTeleprompterEnv, "1")
 	host := &Host{teleprompter: teleprompter.New(teleprompter.Config{Project: t.TempDir(), SessionDir: t.TempDir(), Python: os.Args[0]}, process.NewSupervisor(), nil, nil)}

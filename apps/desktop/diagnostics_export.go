@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/update"
 )
 
-// copyDiagnosticsWindow is the "last 30 minutes" scope (docs/prds/tool-run-logging.prd.md phase 7, Q5).
+// copyDiagnosticsWindow is the "last 30 minutes" scope (the deleted tool-run-logging PRD phase 7, Q5).
 const copyDiagnosticsWindow = 30 * time.Minute
 
 // SystemOpenLogFolder shows the run log's folder (logs/run.jsonl, host.log and logs/runs/) in the file manager, the

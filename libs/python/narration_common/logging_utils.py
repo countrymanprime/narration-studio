@@ -1,6 +1,6 @@
 """Shared stderr[+file] logging helper for REAPER package Python backends.
 
-docs/prds/tool-run-logging.prd.md phase 2: every call writes one JSON line — {"ts", "level", "run" (when
+the deleted tool-run-logging PRD phase 2: every call writes one JSON line — {"ts", "level", "run" (when
 NARRATION_RUN_ID is set by the host, internal/process.runEnv), "msg", **fields} — to stderr and, when set_log_file was
 called, to the same mirror file the `--log` flag has always written. A plain `log("text")` call still works exactly as
 before, at level "info". NARRATION_LOG_LEVEL ("info" unless the host set it to "debug", the same variable

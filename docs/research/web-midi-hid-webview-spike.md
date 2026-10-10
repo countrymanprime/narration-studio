@@ -1,6 +1,6 @@
 # Spike: Web MIDI and WebHID availability and permission behaviour in WebView2, WKWebView and WebKitGTK 6.0
 
-**Status: done (desk research only), 2026-09-26.** Phase 8 of the [Input Commands and Pedals PRD](../prds/input-commands-and-pedals.prd.md) (tracking issue [#646](https://github.com/countrymanprime/narration-utils/issues/646)). Answers the questions the PRD's Technical Approach and [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) leave open before any `MidiSource` (Phase 9) or `HidSource` (Phase 11) work starts. **No live Wails v3 build was run** — see [Method](#method) and [Not done, and why](#not-done-and-why).
+**Status: done (desk research only), 2026-09-26.** Phase 8 of the Input Commands and Pedals PRD (deleted) (tracking issue [#646](https://github.com/countrymanprime/narration-utils/issues/646)). Answers the questions the PRD's Technical Approach and [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) leave open before any `MidiSource` (Phase 9) or `HidSource` (Phase 11) work starts. **No live Wails v3 build was run** — see [Method](#method) and [Not done, and why](#not-done-and-why).
 
 ## What it settles
 

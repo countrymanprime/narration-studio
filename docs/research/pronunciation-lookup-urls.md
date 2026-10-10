@@ -1,6 +1,6 @@
 # Web pronunciation lookup URLs: templates (Phase 0)
 
-**Date:** 2026-09-27. **Stream:** N-B23, [Prep Depth](../prds/prep-depth.prd.md) Phase 2. **Answers:** the four sites' own search-URL shapes (Open Question Q4: exactly Forvo, YouGlish, Merriam-Webster and Howjsay for v1, D71).
+**Date:** 2026-09-27. **Stream:** N-B23, Prep Depth (deleted PRD `prep-depth`) Phase 2. **Answers:** the four sites' own search-URL shapes (Open Question Q4: exactly Forvo, YouGlish, Merriam-Webster and Howjsay for v1, D71).
 
 **Verdict: unverified; owner check pending.** This session's egress proxy refuses all four domains outright (`EGRESS_BLOCKED`, not a site error), the same gap the owner's D71 comment on [#509](https://github.com/countrymanprime/narration-utils/issues/509) already recorded: this train's sessions cannot reach these sites, so Phase 2 does not block on hand-verification here. The templates below are this session's best-known shape for each site, read from memory rather than the live page, and every one is marked **unverified** until the owner confirms it by hand (a QA item filed on [#510](https://github.com/countrymanprime/narration-utils/issues/510), per the worker protocol).
 

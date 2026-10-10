@@ -5,7 +5,7 @@
 
 ## Context
 
-The [Audacity integration PRD](../prds/audacity-integration.prd.md) gated its pipe client (Phase 4) and everything after it on the owner's spike session S-A1/S-A2, run against a real Audacity 3.x. On 2026-09-28 the owner reversed that order: build the Audacity hookups now, **for Audacity 4**, from the published specs, and turn the spike session into the verification pass, the way REAPER works ([ADR 0066](0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md): the logic is proven against a fake, and the real behaviour is checked by the owner and recorded as pending).
+The Audacity integration PRD (deleted) gated its pipe client (Phase 4) and everything after it on the owner's spike session S-A1/S-A2, run against a real Audacity 3.x. On 2026-09-28 the owner reversed that order: build the Audacity hookups now, **for Audacity 4**, from the published specs, and turn the spike session into the verification pass, the way REAPER works ([ADR 0066](0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md): the logic is proven against a fake, and the real behaviour is checked by the owner and recorded as pending).
 
 The research for this ([Audacity 4 scripting spec](../research/audacity-4-scripting-spec.md), 2026-09-28, from Audacity's source, release notes, issues and the manual's source) found:
 

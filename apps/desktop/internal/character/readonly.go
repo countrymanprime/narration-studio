@@ -12,7 +12,7 @@ import (
 )
 
 // ReadOnly reads project's stored references.json without a Service configured for it - the cross-project read
-// docs/prds/character-continuity-review.prd.md Phase 9 (Q10, Q11) needs so a series' other books can be listed
+// the deleted character-continuity-review PRD Phase 9 (Q10, Q11) needs so a series' other books can be listed
 // alongside the current one.
 //
 // Unlike Service.readLocked, this is a plain, non-mutating read: it never quarantines or otherwise touches a file

@@ -1,5 +1,5 @@
 // This file is Phase 4 of the analysis evidence ledger PRD
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-4---per-item-result-cache,
+// (the deleted analysis-evidence-ledger PRD,
 // Q5, D8): the per-item result cache. Q5's recommendation (option A) is what
 // this stores - per-source features (a silence run over the whole source, a
 // transcript's words over the whole source), sliced to an item's played

@@ -1,4 +1,4 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: Q6's
+// This file is Phase 8 of the deleted editing-readiness-analysis PRD: Q6's
 // per-chapter choice of which analysis source counts, items (the default) or
 // a chapter's rendered file. ChoiceStore mirrors
 // apps/desktop/internal/proofing/renders.go's own RenderStore exactly (same

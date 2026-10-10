@@ -5,7 +5,7 @@
 
 ## Context
 
-[ADR 0191](0191-a-chapters-name-is-title-em-dash-subtitle-in-source-casing-through-one-formatter-and-one-primitive.md) set one rule for a chapter's name in the UI: "Title — Subtitle" in source casing, through `apps/ui/src/chapterName.ts`. Phase 4 of [Chapter Title Display Consistency](../prds/chapter-title-display-consistency.prd.md) asked the Go host and the Python sidecars to follow the same rule, pinned by one fixture, and to replace three `": "`-joining `display_title`/`displayTitle` copies. It also asked that matching not change. Two of those copies are matching keys, not display text:
+[ADR 0191](0191-a-chapters-name-is-title-em-dash-subtitle-in-source-casing-through-one-formatter-and-one-primitive.md) set one rule for a chapter's name in the UI: "Title — Subtitle" in source casing, through `apps/ui/src/chapterName.ts`. Phase 4 of Chapter Title Display Consistency (deleted PRD `chapter-title-display-consistency`) asked the Go host and the Python sidecars to follow the same rule, pinned by one fixture, and to replace three `": "`-joining `display_title`/`displayTitle` copies. It also asked that matching not change. Two of those copies are matching keys, not display text:
 - `compare.py`'s `display_title` builds the chapter candidates, resolves an explicit chapter selection, and titles a take comparison. `apps/desktop/takecompare_job.go`'s `displayTitle` compares against that title.
 - `chapter_script.py`'s `display_title` is a form a caller may name a chapter by.
 
@@ -35,5 +35,5 @@ Owner decision D34 adds that plain-text outputs use " - " where an em dash could
 - A log, a diff heading or a chapter list reads the same as the app's screens, and the fixture fails a language that drifts.
 - Two forms of a name remain in the code: the display name and the `": "` key. The key is never shown as a name by any of these sites.
 - The Vitest read of the fixture is `apps/ui/src/chapterName.fixture.test.ts` (lane C): it reads `tests/fixtures/chapter-names.json` directly and asserts `chapterName()` against every case's `full`/`short`/`plain`/`readAloud` column, proving TypeScript agrees with Go and Python.
-- REAPER region names, render file names and ID3 chapter titles (PRD Q7) are wired: see item 5. A future PRD that changes what `create_regions` is asked to name a region (for example [DAW Chapter-Track Auto-Sync](../prds/daw-chapter-track-auto-sync.prd.md)) builds on `chaptername.Name(..., Plain)`, not a bare title, and needs no REAPER Lua change of its own - `create_regions` already writes whatever title string the host sends.
+- REAPER region names, render file names and ID3 chapter titles (PRD Q7) are wired: see item 5. A future PRD that changes what `create_regions` is asked to name a region (for example DAW Chapter-Track Auto-Sync (deleted PRD `daw-chapter-track-auto-sync`)) builds on `chaptername.Name(..., Plain)`, not a bare title, and needs no REAPER Lua change of its own - `create_regions` already writes whatever title string the host sends.
 - Superseding this needs a new ADR, for example to move a matching key to the display rule with a migration.

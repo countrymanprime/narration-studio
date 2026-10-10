@@ -4,7 +4,7 @@ import { faCircleCheck, faCircleMinus, faCircleXmark, faEarListen, faLock, faTri
 import type { DeliveryRuleStatus, DeliveryVerification } from '../../types';
 import { StatusBadge, toneColors, type StatusTone, type BadgeLook } from '../primitives/StatusBadge';
 
-// The small status marks of Master & QC (docs/prds/delivery-platform-profiles.prd.md, mockups 01 to 04): a rule's result,
+// The small status marks of Master & QC (the deleted delivery-platform-profiles PRD, mockups 01 to 04): a rule's result,
 // how its requirement was verified, and the profile's counts. The words carry the meaning; the colour and icon repeat it.
 // `Mark` draws through StatusBadge, the one badge primitive (mock-fidelity-primitives-and-components.prd.md Phase 14, ADR
 // 0600): a tone that was already a fill (`ok`, `danger`, `info`) stays soft; one that was outline-only (`warn`, `muted`)

@@ -33,7 +33,7 @@ func editingPolicy(store *settings.Store) editingpkg.Policy {
 // project is open (mirrors bindings_stages.go's errStagesNoProject).
 var errEditingNoProject = errors.New("open a project before checking editing")
 
-// The editing-readiness check bindings (docs/prds/editing-readiness-analysis.prd.md
+// The editing-readiness check bindings (the deleted editing-readiness-analysis PRD
 // Phase 5). A check runs only when the narrator asks (Q9): nothing here
 // starts one on its own. Unlike CoverageStart/CoverageState, these bindings
 // are plain poll-style calls with no live event and no OS-notification job
@@ -108,7 +108,7 @@ func (h *Host) EditingCandidates(chapterID string) (string, error) {
 	return encodeBinding(found, nil)
 }
 
-// The Q6 per-chapter source-choice bindings (docs/prds/editing-readiness-analysis.prd.md
+// The Q6 per-chapter source-choice bindings (the deleted editing-readiness-analysis PRD
 // Phase 8): which analysis source counts for a chapter's editing check, items
 // on its track (the default) or its rendered file. Choosing render never
 // silently replaces the item check - it is an explicit, per-chapter pick the

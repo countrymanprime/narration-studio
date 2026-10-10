@@ -1,5 +1,5 @@
 // Package continuity implements Phase 5 of
-// docs/prds/character-continuity-review.prd.md: baselines built only from
+// the deleted character-continuity-review PRD: baselines built only from
 // the narrator's approved voice references, candidate dialogue lines located
 // through the manuscript's dialogue cues and aligned words, the outlier rule
 // calibrated by the Phase 1 trial (Q6), the recording-chain check that

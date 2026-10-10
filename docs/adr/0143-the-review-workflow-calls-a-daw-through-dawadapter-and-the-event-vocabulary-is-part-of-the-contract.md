@@ -5,7 +5,7 @@
 
 ## Context
 
-The [Audacity integration PRD](../prds/audacity-integration.prd.md) (Phase 3, and its Decisions Log row "Extract a `DAWAdapter` boundary before adding a second DAW") asks for a behaviour-preserving Go seam before any Audacity code lands, so that a second DAW is a second implementation rather than `if daw == "REAPER"` branches in the host and UI. Owner decision Q2 (2026-09-23) puts the Audacity pipe client in a new Go package behind that interface.
+The Audacity integration PRD (deleted) (Phase 3, and its Decisions Log row "Extract a `DAWAdapter` boundary before adding a second DAW") asks for a behaviour-preserving Go seam before any Audacity code lands, so that a second DAW is a second implementation rather than `if daw == "REAPER"` branches in the host and UI. Owner decision Q2 (2026-09-23) puts the Audacity pipe client in a new Go package behind that interface.
 
 Before this change `apps/desktop/internal/transcript.Service` (the review workflow: prepare, inspect, navigate, export) wrote REAPER bridge commands by name (`prepare_compare`, `inspect_compare_results`, `jump_to_compare_marker`, `export_compare_markers`) on a `*bridge.Client`, and read results as `COMPARE_*` and `ERROR` events from that client's fan-out ([ADR 0068](0068-bridge-events-fan-out-to-subscribers-by-tag-and-run-and-every-error-names-its-run.md)). Six other consumers hold the same client for REAPER-only work: pickups, line identity, project state, render config, take creation and reachability.
 

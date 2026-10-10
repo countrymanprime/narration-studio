@@ -5,7 +5,7 @@
 
 ## Context
 
-[Chapter Title Display Consistency](../prds/chapter-title-display-consistency.prd.md): the owner reported the same
+Chapter Title Display Consistency (deleted PRD `chapter-title-display-consistency`): the owner reported the same
 chapter name drawn at least five different ways across the app — `Title: Subtitle`, `TITLE SUBTITLE` in CSS capitals
 with no separator, `Title — Subtitle` in three different styles, a stacked title/subtitle with no separator at all,
 and the title alone with the subtitle silently dropped. About 30 call sites built the name inline, each with its own

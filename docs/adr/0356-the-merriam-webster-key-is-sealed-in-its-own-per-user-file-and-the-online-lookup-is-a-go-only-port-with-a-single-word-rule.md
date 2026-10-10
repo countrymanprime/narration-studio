@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Date:** 2026-09-27
-**Supersedes:** none. Implements [ADR 0405](0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md) point 2 (prep depth PRD, [`docs/prds/prep-depth.prd.md`](../prds/prep-depth.prd.md), Phase 9; Open Questions Q10 and Q11, recommendations taken, D22) and records where the implementation departs from the letter of Q10 and the PRD's Technical Approach, and why. Proposed, not Accepted, because three of those departures are the owner's to confirm (Consequences, last bullet; #510).
+**Supersedes:** none. Implements [ADR 0405](0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md) point 2 (prep depth PRD, `docs/prds/prep-depth.prd.md` (deleted), Phase 9; Open Questions Q10 and Q11, recommendations taken, D22) and records where the implementation departs from the letter of Q10 and the PRD's Technical Approach, and why. Proposed, not Accepted, because three of those departures are the owner's to confirm (Consequences, last bullet; #510).
 
 ## Context
 

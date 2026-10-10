@@ -1,5 +1,5 @@
 // Package character implements Phase 3 of
-// docs/prds/character-continuity-review.prd.md: listing a saved REAPER
+// the deleted character-continuity-review PRD: listing a saved REAPER
 // project's regions with identity, and letting the narrator approve or
 // revoke one as a voice reference for a character (or for plain narration,
 // Q9). No acoustic analysis happens here - approving a reference is the only

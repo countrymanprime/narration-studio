@@ -29,7 +29,7 @@ narrator always confirms. See [Using the app: Production](../guides/using-the-ap
 the screens and [Settings](../guides/using-the-app/settings.md) for the four numbers.
 
 Each chapter's status is known without a click for exactly this reason. Chapter sync's `chaptersync:state` event
-([DAW chapter-track auto-sync](../prds/daw-chapter-track-auto-sync.prd.md) Phase 6) carries one row per narration
+(DAW chapter-track auto-sync (deleted PRD `daw-chapter-track-auto-sync`) Phase 6) carries one row per narration
 chapter: its track, whether its check is `current`, `stale` (with the reasons above) or `never` run, when the check
 finished, whether one is running, and when the track last changed. The row is this evaluation of the stored result
 against the saved project, so reading it still never starts a check (Q14). The event is sent after each sync, each
@@ -115,7 +115,7 @@ flowchart LR
   ([ADR 0204](../adr/0204-the-recording-check-result-carries-the-hosts-judgement-by-the-stage-signals-rule.md)). `recordedFraction` on the chapter
   payload is the present share of a current complete check only; it no longer feeds the board's **Recorded** column,
   which instead reads `recordedSeconds`, a real duration from the chapter's linked track in the saved project, unrelated
-  to any check ([Actual Recorded](../prds/actual-recorded-column.prd.md) Phase 3, superseding Q12 below).
+  to any check (Actual Recorded (deleted PRD `actual-recorded-column`) Phase 3, superseding Q12 below).
   `coverage.RecordingSignal` gives the stage recommendations engine the tri-state
   `recording.text_present` signal
   ([ADR 0131](../adr/0131-the-recording-signal-is-read-from-stored-checks-with-thresholds-applied-on-read-and-alignment-from-settings.md),
@@ -240,7 +240,7 @@ docs/prds/recording-coverage-analysis.prd.md` finds it); MC1-MC7 are the model c
 | Q8 | The live teleprompter tracker is not reused: its "done" is a cursor position |
 | Q10 | Muted items are skipped and listed |
 | Q11 | A spoken title or subtitle is optional, and never counted as missing or extra |
-| Q12 | *Superseded* by [Actual Recorded](../prds/actual-recorded-column.prd.md) Phase 3: an unmeasured chapter kept the status estimate, labelled "estimated from status"; the column now reads a real recorded length or a plain dash, never a guess |
+| Q12 | *Superseded* by Actual Recorded (deleted PRD `actual-recorded-column`) Phase 3: an unmeasured chapter kept the status estimate, labelled "estimated from status"; the column now reads a real recorded length or a plain dash, never a guess |
 | Q13 | Another model or language keeps a result current (labelled). Another alignment setting makes it stale |
 | Q14 | On demand only: the Production board reads stored results and never starts a check. Superseded in part by [ADR 0211](../adr/0211-a-changed-chapter-is-rechecked-in-the-background-only-on-mains-power-with-reaper-quiet-and-not-recording.md): the host re-checks a changed chapter on its own, only on mains power with REAPER quiet and not recording (`RecordingCoverage.background_checks`, on by default); reading a status still never starts one |
 | Q15 | Synthetic fixtures now, with `NARRATION_COVERAGE_CORPUS` for a real permissioned corpus later ([ADR 0125](../adr/0125-recording-coverage-ground-truth-is-scripted-recordings-with-paragraph-labels-and-a-corpus-directory-variable.md)) |

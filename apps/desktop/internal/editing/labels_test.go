@@ -1,4 +1,4 @@
-// This file is Phase 1 of docs/prds/editing-readiness-analysis.prd.md ("Editing
+// This file is Phase 1 of the deleted editing-readiness-analysis PRD ("Editing
 // corpus and evaluation harness"). Its own scope: "A labeling format (CSV:
 // source file identity, start, end, class among silence_to_trim, click,
 // breath, keep_pause, keep_breath, note) with negative labels for

@@ -75,10 +75,10 @@ Every registered row passes its port's suite, and each registry's own test runs 
 
 | Item | Home |
 | --- | --- |
-| A `Packager` row (chapters and tags into a delivery file) | [Render, Encode and Master](../prds/render-encode-master.prd.md), phase 4 built the book-assembly step that would use one (`internal/packager`) mock-first (D67); the row itself, likely wrapping `internal/chaptertags`, is a later swap |
-| The `daw` mastering row built (REAPER renders a region through the project's FX, with the narrator's approval for each render) and an Audacity mastering row (effect macros, then `Export2`) | [Render, Encode and Master](../prds/render-encode-master.prd.md), phases 9 and 10 |
-| `BrowserLookup` rows (web pronunciation lookups the narrator's browser opens) | [Prep Depth](../prds/prep-depth.prd.md), phase 2 |
-| CoreAudio (macOS) capture | [CoreAudio Capture](../prds/coreaudio-capture.prd.md), deferred by D74: Windows is the only supported platform ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md), which supersedes ADR 0402). Its Phase 1 row was built and removed; restore from commit `bf9f0093` |
+| A `Packager` row (chapters and tags into a delivery file) | Render, Encode and Master (deleted PRD `render-encode-master`), phase 4 built the book-assembly step that would use one (`internal/packager`) mock-first (D67); the row itself, likely wrapping `internal/chaptertags`, is a later swap |
+| The `daw` mastering row built (REAPER renders a region through the project's FX, with the narrator's approval for each render) and an Audacity mastering row (effect macros, then `Export2`) | Render, Encode and Master (deleted PRD `render-encode-master`), phases 9 and 10 |
+| `BrowserLookup` rows (web pronunciation lookups the narrator's browser opens) | Prep Depth (deleted PRD `prep-depth`), phase 2 |
+| CoreAudio (macOS) capture | CoreAudio Capture (deleted PRD `coreaudio-capture`), deferred by D74: Windows is the only supported platform ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md), which supersedes ADR 0402). Its Phase 1 row was built and removed; restore from commit `bf9f0093` |
 | A `--capabilities` flag on each sidecar so the host learns an engine's runtime capability instead of from a static descriptor and the existing probes | Sidecar Capabilities Flag (PRD deleted, delivered); reports what a sidecar process actually registered, consumed by `smoke.go` (ADR 0403, Accepted) |
 
 ## Decisions taken while building it

@@ -5,7 +5,7 @@
 
 ## Context
 
-[Teleprompter Manuscript Integration](../prds/teleprompter-manuscript-integration.prd.md) Phase 11 asks the app to identify the microphone REAPER uses and preselect it in the teleprompter's picker "only on a confident match, and say why". The read is already there: `chapter_track_state` reports REAPER's open input device (`GetAudioDeviceInfo("IDENT_IN")`, [ADR 0231](0231-chapter-track-state-is-one-read-only-answer-of-the-transport-the-arms-the-input-device-and-one-tracks-items.md)). The names still differ:
+Teleprompter Manuscript Integration (deleted PRD `teleprompter-manuscript-integration`) Phase 11 asks the app to identify the microphone REAPER uses and preselect it in the teleprompter's picker "only on a confident match, and say why". The read is already there: `chapter_track_state` reports REAPER's open input device (`GetAudioDeviceInfo("IDENT_IN")`, [ADR 0231](0231-chapter-track-state-is-one-read-only-answer-of-the-transport-the-arms-the-input-device-and-one-tracks-items.md)). The names still differ:
 
 - REAPER names the device by its driver: "Focusrite USB ASIO" under ASIO; under WASAPI, probably the Windows endpoint name.
 - The teleprompter opens microphones by their `dshow` names, such as "Microphone (Focusrite USB Audio)" or "Microphone (2- Shure MV7)".

@@ -10,7 +10,7 @@ import (
 
 // FindByDawFile scans projectsDir's immediate subfolders for the one project
 // whose manifest links rppPath as its DAW project file
-// (docs/prds/project-workspace-and-daw-link.prd.md Phase 5, W5: "match by
+// (the deleted project-workspace-and-daw-link PRD Phase 5, W5: "match by
 // linked file"; W4: the rpp may live outside its project's folder, so this
 // walks every project's own link rather than assuming rppPath's containing
 // folder is the project).

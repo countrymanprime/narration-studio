@@ -5,7 +5,7 @@
 
 ## Context
 
-[Delivery Platform Profiles](../prds/delivery-platform-profiles.prd.md) Open Question P2 asked whether custom profiles ship in v1; the recommended answer (A), approved with the mockups, is yes, for the numbers only. The move of the old "your limits" settings (ADR 0179) needs somewhere to keep an existing narrator's numbers anyway. The layered settings store holds strings only, so a structured profile cannot live there; the credit templates set the precedent of a user-level JSON file beside `recent-projects.json` (`credit-templates.json`, audiobook-credits-templates.prd.md C7).
+Delivery Platform Profiles (deleted PRD `delivery-platform-profiles`) Open Question P2 asked whether custom profiles ship in v1; the recommended answer (A), approved with the mockups, is yes, for the numbers only. The move of the old "your limits" settings (ADR 0179) needs somewhere to keep an existing narrator's numbers anyway. The layered settings store holds strings only, so a structured profile cannot live there; the credit templates set the precedent of a user-level JSON file beside `recent-projects.json` (`credit-templates.json`, audiobook-credits-templates.prd.md C7).
 
 ## Decision
 

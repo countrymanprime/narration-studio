@@ -9,7 +9,7 @@ import (
 )
 
 // DawLaunch starts REAPER on the current project's linked DAW file (Phase 8,
-// docs/prds/project-workspace-and-daw-link.prd.md): it resolves reaper.exe (a
+// the deleted project-workspace-and-daw-link PRD): it resolves reaper.exe (a
 // Settings override always wins, otherwise auto-detect - daw.Resolve /
 // daw.LocateReaperExecutable, ADR 0092 W11), and passes the linked .rpp,
 // plus, when the DAW.auto_start_launcher setting is on (owner decision D10,

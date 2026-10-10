@@ -7,7 +7,7 @@ import (
 )
 
 // Companion mode resizes and pins the app's one existing window; it never opens a second one (ADR 0401, reconciling
-// with docs/prds/wails-v3-migration.prd.md's "no second window" decision). CompanionModeEnter and CompanionModeExit
+// with the deleted wails-v3-migration PRD's "no second window" decision). CompanionModeEnter and CompanionModeExit
 // are the only two bindings this needs: the layout that fills the narrowed window (CompactShell) is a later phase.
 
 // companionModeWidth is the fixed width Companion mode narrows the window to (PRD Open Question 3), matching the

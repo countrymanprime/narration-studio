@@ -6,7 +6,7 @@
 
 ## Context
 
-The [Native Recording Suite](../prds/native-recording-suite.prd.md) PRD plans a recorder the app owns end to end. The owner took the PRD's recommendations for all nine open questions (D86 on [#509](https://github.com/countrymanprime/narration-utils/issues/509), 2026-09-28). The recorder is record-and-organize only (Q1), sits beside the REAPER bridge (Q2), and lives in the Booth, whose engine chip reads "Built-in recorder" (D79). Phase 1 is the spike that answers Q3, which capture engine to use. The PRD named three candidates:
+The Native Recording Suite (deleted PRD `native-recording-suite`) PRD plans a recorder the app owns end to end. The owner took the PRD's recommendations for all nine open questions (D86 on [#509](https://github.com/countrymanprime/narration-utils/issues/509), 2026-09-28). The recorder is record-and-organize only (Q1), sits beside the REAPER bridge (Q2), and lives in the Booth, whose engine chip reads "Built-in recorder" (D79). Phase 1 is the spike that answers Q3, which capture engine to use. The PRD named three candidates:
 
 - a CGo binding to WASAPI (miniaudio through `malgo`);
 - a small dedicated Go audio package;

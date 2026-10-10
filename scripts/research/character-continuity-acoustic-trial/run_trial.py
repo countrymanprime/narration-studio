@@ -1,6 +1,6 @@
 """Orchestrate the character-continuity acoustic trial: the six-step protocol in
 ../local-dependency-evaluation.md's "Evaluation protocol", applied to Phase 1 of
-docs/prds/character-continuity-review.prd.md.
+the deleted character-continuity-review PRD.
 
 Usage:
     uv run --with numpy python run_trial.py <corpus_out_dir> [--engines baseline,praat,resemblyzer]

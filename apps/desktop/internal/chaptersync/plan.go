@@ -1,5 +1,5 @@
 // Package chaptersync is the host side of the DAW chapter-track auto-sync PRD
-// (docs/prds/daw-chapter-track-auto-sync.prd.md). Phase 2 is here: Build, a
+// (the deleted daw-chapter-track-auto-sync PRD). Phase 2 is here: Build, a
 // pure planner that answers "what should be linked" from the manuscript's
 // chapters, the saved REAPER project, the stored links and the last sync's
 // snapshot, and Store, which keeps that snapshot in

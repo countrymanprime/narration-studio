@@ -1,6 +1,6 @@
 # Manuscript Teleprompter
 
-**Status: Shipped (first cut).** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog, stage navigation Phase 4) exist. This document is the design record; open and planned work is specified in [teleprompter-engines-and-input-devices.prd.md](../prds/teleprompter-engines-and-input-devices.prd.md) and [teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+**Status: Shipped (first cut).** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog, stage navigation Phase 4) exist. This document is the design record; open and planned work is specified in teleprompter-engines-and-input-devices.prd.md (deleted) and teleprompter-manuscript-integration.prd.md (deleted).
 
 ## Problem
 
@@ -31,7 +31,7 @@ continuously and needs no manual scrolling:
   discarded; it becomes a flagged item.
 Flagged words (hover to see what was heard, click for review actions) are not
 built; they are specified in
-[teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+teleprompter-manuscript-integration.prd.md (deleted).
 
 Nothing about this view edits the manuscript or the audio. It only tracks
 position and produces reviewable flags, same as every other analyzer in this
@@ -227,7 +227,7 @@ fuzzy matching against the script is the ordinary open-source pattern.
    segment grows, cheaper short update intervals, and `set_context()`.
 4. **Default engine.** Evaluating both engines in the real UI and recording
    the default and its rationale in an ADR is planned in
-   [teleprompter-engines-and-input-devices.prd.md](../prds/teleprompter-engines-and-input-devices.prd.md).
+   teleprompter-engines-and-input-devices.prd.md (deleted).
    `faster-whisper` stays for offline Transcript Compare either way.
 
 ## Engine evaluation protocol and lag-capture aid (teleprompter-engines-and-input-devices PRD, Phase 8)
@@ -347,7 +347,7 @@ opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
 printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
 words by kind, which on a clean read is the false-flag rate. How a flag is
 confirmed later (recheck on click, a trailing confirmation pass) is deferred
-in [teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+in teleprompter-manuscript-integration.prd.md (deleted).
 
 ## Streaming subprocess support (resolves decision #5)
 
@@ -553,8 +553,8 @@ of the chapter).
 
 **Still open:** punch-and-roll from a word beyond the flag's "Punch from here", and the per-character reference clips
 the rail reserves a place for, are specified in
-[teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md) and
-[character-continuity-review.prd.md](../prds/character-continuity-review.prd.md).
+teleprompter-manuscript-integration.prd.md (deleted) and
+character-continuity-review.prd.md (deleted).
 
 ## Resume: where REAPER is and where the prompter was
 
@@ -645,9 +645,9 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 The remaining open items (engine choice and default, Moonshine provisioning and
 packaging, microphone selection, and the audio source for reviewing a flag) are
 specified in
-[teleprompter-engines-and-input-devices.prd.md](../prds/teleprompter-engines-and-input-devices.prd.md)
+teleprompter-engines-and-input-devices.prd.md (deleted)
 and
-[teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+teleprompter-manuscript-integration.prd.md (deleted).
 
 - Script tracker placement and source: decided. The sidecar hosts it and reads
   the script from a chapter of the project's canonical `manuscript.json`

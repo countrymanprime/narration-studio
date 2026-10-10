@@ -5,7 +5,7 @@
 
 ## Context
 
-Two PRDs need REAPER regions: the follow-through PRD's Phase 7 (a region per chapter from its matched track, RF-7) and [credits in the chapter table](../prds/credits-in-chapter-table.prd.md) Phase 4 (credits regions named like the chapter table's rows, so the `$region` render writes separate credits files). `create_chapter_regions` in `narration_line_identity.lua` already created regions from a `start|end|title` payload, idempotently, and was verified in a scripted REAPER 7.80 run, but no host code called it, and re-running it after a chapter was re-recorded added a second region with the same title.
+Two PRDs need REAPER regions: the follow-through PRD's Phase 7 (a region per chapter from its matched track, RF-7) and credits in the chapter table (deleted PRD `credits-in-chapter-table`) Phase 4 (credits regions named like the chapter table's rows, so the `$region` render writes separate credits files). `create_chapter_regions` in `narration_line_identity.lua` already created regions from a `start|end|title` payload, idempotently, and was verified in a scripted REAPER 7.80 run, but no host code called it, and re-running it after a chapter was re-recorded added a second region with the same title.
 
 ## Decision
 

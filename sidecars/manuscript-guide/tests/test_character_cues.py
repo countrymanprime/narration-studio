@@ -1,4 +1,4 @@
-"""Character Continuity Review, Phase 2 (docs/prds/character-continuity-review.prd.md):
+"""Character Continuity Review, Phase 2 (the deleted character-continuity-review PRD):
 
 - stable entity ids across a rebuild, even when the canonical spelling choice shifts (CC-2)
 - alias split (the inverse of the existing `merge`)

@@ -7,7 +7,7 @@
 
 The layered settings store (`apps/desktop/app.go` `fieldSchemas`, `saveSettings`) validated only the `text`, `choice`,
 `color` and `bool` kinds. Two features need numbers a narrator can type: the delivery limits of
-[the diagnostics PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) Phase 2, and the four threshold settings of
+the diagnostics PRD (deleted) Phase 2, and the four threshold settings of
 [the recording check](../utilities/recording-coverage.md) (recording-coverage analysis Phase 7) ("DX-2's numeric kind"). The diagnostics
 PRD's Open Questions 1 and 9 are unanswered by the owner; per rule D22 of `docs/prds/implementation-plan.md` this change
 takes their recommendations: limits only, no built-in numeric preset (Q1 A, as ADR 0025 already requires), stored as a

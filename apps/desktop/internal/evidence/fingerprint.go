@@ -10,7 +10,7 @@ import (
 )
 
 // This file is the analysis evidence ledger PRD's Phase 2
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-2---source-identity-fingerprint-and-analysis-key):
+// (the deleted analysis-evidence-ledger PRD):
 // the played range, the analysis key and the item/track fingerprints, over
 // a canonical encoding. It builds on tracks.Item/tracks.Take (Phase 1) and
 // SourceIdentity (Phase 1, identity.go). It writes nothing and reads no

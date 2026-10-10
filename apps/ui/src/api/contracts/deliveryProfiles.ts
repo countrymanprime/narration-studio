@@ -1,4 +1,4 @@
-// Delivery profiles (docs/prds/delivery-platform-profiles.prd.md, ADR 0179): a named, versioned set of rules the rendered
+// Delivery profiles (the deleted delivery-platform-profiles PRD, ADR 0179): a named, versioned set of rules the rendered
 // files are judged against, each citing the platform requirement it enforces and saying whether the app measures it, cannot
 // check it yet, or leaves it to listening. The built-in ACX profile ships (acx@2026-09); a custom profile is a copy with
 // changed numbers or rules turned off. Field names are internal/deliveryprofile's own.

@@ -5,7 +5,7 @@
 
 ## Context
 
-The Read Aloud control bar ([read-aloud-control-bar PRD](../prds/read-aloud-control-bar.prd.md) Phase 5) gives the narrator Pause for a drink, a page turn or a cough without ending the session. The owner approved Q3 A (D39): Pause keeps the session alive but ignores audio, the tracker holds its word and does not report `waiting`, the status says "Paused", Stop ends the session and keeps its flags, and there is no separate mute. The alternative, Pause as Stop plus a resume through `startWord`, would end a session, keep its flags and reload the model (a few seconds) on every pause. [ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md) already gives the host a way to reach a running sidecar: a control file it tails once per chunk, with one command, `seek`.
+The Read Aloud control bar (read-aloud-control-bar PRD (deleted) Phase 5) gives the narrator Pause for a drink, a page turn or a cough without ending the session. The owner approved Q3 A (D39): Pause keeps the session alive but ignores audio, the tracker holds its word and does not report `waiting`, the status says "Paused", Stop ends the session and keeps its flags, and there is no separate mute. The alternative, Pause as Stop plus a resume through `startWord`, would end a session, keep its flags and reload the model (a few seconds) on every pause. [ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md) already gives the host a way to reach a running sidecar: a control file it tails once per chunk, with one command, `seek`.
 
 ## Decision
 

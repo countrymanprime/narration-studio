@@ -1,6 +1,6 @@
 # Phase 14 conditional evaluation: static `.rpp` read of line IDs
 
-**Status: done, 2026-09-22. No code was launched or changed by this evaluation; it is a desk check of the existing codebase on the `reconcile-rf-el` tip (`hostAPIVersion` 19).** Phase 14 of [reaper-automation-follow-through.prd.md](../prds/reaper-automation-follow-through.prd.md) and its Open Question 9 are explicitly conditional: "build it only if the S0 spike shows a stable, parseable serialisation *and* a standalone consumer needs it; otherwise never, always read through `read_line_ids`." [Spike S0](reaper-spike-s0-item-extension-data.md) already settled the first half (yes, a stable `key value` `<EXTI`/`<EXT` block, four value forms, parseable without REAPER). This note settles the second half.
+**Status: done, 2026-09-22. No code was launched or changed by this evaluation; it is a desk check of the existing codebase on the `reconcile-rf-el` tip (`hostAPIVersion` 19).** Phase 14 of reaper-automation-follow-through.prd.md (deleted) and its Open Question 9 are explicitly conditional: "build it only if the S0 spike shows a stable, parseable serialisation *and* a standalone consumer needs it; otherwise never, always read through `read_line_ids`." [Spike S0](reaper-spike-s0-item-extension-data.md) already settled the first half (yes, a stable `key value` `<EXTI`/`<EXT` block, four value forms, parseable without REAPER). This note settles the second half.
 
 ## Question
 

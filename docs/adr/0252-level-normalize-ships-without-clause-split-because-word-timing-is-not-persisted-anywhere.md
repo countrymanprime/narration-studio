@@ -5,7 +5,7 @@
 
 ## Context
 
-[Diagnostics, Delivery Reports and Cleanup Tools](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) Phase 11
+Diagnostics, Delivery Reports and Cleanup Tools (deleted PRD `diagnostics-delivery-and-cleanup-tools`) Phase 11
 bundles two capabilities under one goal, "split on transcript boundaries and match loudness, reversibly": clause
 split (propose boundaries from transcript word timing, let the narrator adjust them, then split) and level normalize
 (measure each resulting item's LUFS or RMS, propose a gain to match the narrator's target, apply it via item volume).

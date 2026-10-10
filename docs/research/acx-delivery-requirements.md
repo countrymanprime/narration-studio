@@ -1,6 +1,6 @@
 # ACX Delivery Requirements, as the Built-in Profile Records Them
 
-**Status:** Phase 0 of [Delivery Platform Profiles](../prds/delivery-platform-profiles.prd.md), partial: **pending owner** for reading ACX's page and for the comparison with Audacity's ACX Check.
+**Status:** Phase 0 of Delivery Platform Profiles (deleted PRD `delivery-platform-profiles`), partial: **pending owner** for reading ACX's page and for the comparison with Audacity's ACX Check.
 
 **Profile:** `acx@2026-09` (`apps/desktop/internal/deliveryprofile/acx.go`). The Go table test `TestTheACXProfileHoldsEveryRequirementOfTheCheckedInTable` holds the same rows as the table below; change both together.
 
@@ -9,7 +9,7 @@
 - **Primary source:** ACX, [Audio Submission Requirements](https://help.acx.com/s/article/what-are-the-acx-audio-submission-requirements).
 - **Not reachable from agent sessions.** The help site is blocked by the environment's egress proxy (checked again on 2026-09-24: the proxy refuses the CONNECT). Nothing below was read on ACX's page in the session that wrote this note.
 - **What the repository recorded from ACX's page:**
-  - 2026-09-20, [Audiobook Credits Templates](../prds/audiobook-credits-templates.prd.md) (Evidence, "ACX conventions"): separate opening and closing credits files ("Opening and closing credits should be separate files", ACX's words), a retail sample of 5 minutes or less, "1 to 5 seconds of room tone at the beginning and end of each file", each file no longer than 120 minutes and starting with a section header.
+  - 2026-09-20, Audiobook Credits Templates (deleted PRD `audiobook-credits-templates`) (Evidence, "ACX conventions"): separate opening and closing credits files ("Opening and closing credits should be separate files", ACX's words), a retail sample of 5 minutes or less, "1 to 5 seconds of room tone at the beginning and end of each file", each file no longer than 120 minutes and starting with a section header.
   - Recorded 2026-09-23, [REAPER automation surface](reaper-automation-surface.md) (section 5, "ACX requirements", citing the same page): RMS between −23 and −18 dB, peak below −3 dB, noise floor below −60 dB RMS, MP3 at 192 kbps or higher CBR at 44.1 kHz.
 - **Secondary sources (2025-2026, searched 2026-09-24 by the PRD):** [narrationbox](https://narrationbox.com/blog/acx-audio-specs-explained-2025-2026), [ChapterPass](https://chapterpass.com/learn/acx-audio-requirements), [Hanna Eng](https://www.hanna-eng.com/guides/acx-audiobook-requirements/). They agree with the numbers above except the room tone at the head (0.5 to 1 s).
 

@@ -8,7 +8,7 @@
 
 [ADR 0061](0061-settings-states-are-also-captured-at-a-390px-reflow-width.md) already captures every Settings state at
 a 390px reflow width, on top of the regular desktop/small-desktop/tablet matrix (ADR 0037: no phone viewport), because
-Settings' own layout stacks below `md`. The [App Navigation and Zoom Controls PRD](../prds/app-navigation-and-zoom-controls.prd.md)
+Settings' own layout stacks below `md`. The App Navigation and Zoom Controls PRD (deleted)
 (Phase 1: Back/Forward; Phase 2: the zoom group) adds new, permanent header controls the narrator can reach at *any*
 window width or zoom level, not only below `md`: the real webview zoom this PRD adds runs from 100% to 200% on
 Windows (Q6, [ADR 0201](0201-app-zoom-under-wails-v3-on-windows-runs-from-100-to-200-percent-and-reads-the-level-back-from-the-window.md)),

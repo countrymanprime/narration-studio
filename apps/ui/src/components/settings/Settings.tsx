@@ -48,7 +48,7 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   // one choice field per signal id a provider declares, plus the master switch.
   { key: 'StageRecommendations', label: 'Stage suggestions', tool: 'StageRecommendations', scopes: ['global', 'project'] },
   { key: 'ManuscriptGuide', label: 'Story Bible', tool: 'ManuscriptGuide', scopes: ['global', 'project'] },
-  // The delivery profile a project is judged against, and the custom profiles (docs/prds/delivery-platform-profiles.prd.md, ADR 0179).
+  // The delivery profile a project is judged against, and the custom profiles (the deleted delivery-platform-profiles PRD, ADR 0179).
   { key: 'Delivery', label: 'Delivery', scopes: ['project', 'global'] },
   { key: 'Daw', label: 'DAW Integration', tool: 'DAW', scopes: ['global', 'project'] },
   { key: 'Piper', label: 'TTS', tool: 'Piper', scopes: ['global', 'project'] },

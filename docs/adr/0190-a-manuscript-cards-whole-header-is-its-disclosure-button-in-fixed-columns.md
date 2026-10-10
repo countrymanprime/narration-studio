@@ -5,8 +5,8 @@
 
 ## Context
 
-[Manuscript Chapter Header Alignment](../prds/manuscript-chapter-header-alignment.prd.md) and
-[Manuscript Credits Card Parity](../prds/manuscript-credits-card-parity.prd.md) both change the same header and land
+Manuscript Chapter Header Alignment (deleted PRD `manuscript-chapter-header-alignment`) and
+Manuscript Credits Card Parity (deleted PRD `manuscript-credits-card-parity`) both change the same header and land
 together (the parity PRD's Phase 1 preferred sequence): the owner reported that the chapter header's stat block and
 Read aloud button zigzag down the page because the stat block sits at the right edge with the button to its left, and
 that "the opening credits panel ... needs to work the same" as a chapter card, which only its title text opens and

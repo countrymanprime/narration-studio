@@ -6,7 +6,7 @@
 
 ## Context
 
-[Read Aloud Control Bar](../prds/read-aloud-control-bar.prd.md) Phase 3 replaces the read-aloud dialog's configuration
+Read Aloud Control Bar (deleted PRD `read-aloud-control-bar`) Phase 3 replaces the read-aloud dialog's configuration
 card - Microphone, Engine, Model and Start reading, a `Panel` that scrolls with the rest of the dialog body and is
 sticky only once a session is active (`ReadAlongView.tsx`) - with a compact always-visible media bar, because the
 owner reported losing the Start button while reading down a long chapter. Phase 1 already gave the reading panel a

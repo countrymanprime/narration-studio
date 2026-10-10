@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Phase 0 spike for docs/prds/app-navigation-and-zoom-controls.prd.md: verifies today's zoom and
+  Phase 0 spike for the deleted app-navigation-and-zoom-controls PRD: verifies today's zoom and
   back/forward behaviour on the real packaged Windows build (Wails v3), scripted, with no REAPER
   and no owner. Throwaway research tooling (like apps/desktop/cmd/spike-globalhotkeys before it):
   not wired into the shipped binary, not run by any always-on CI job.

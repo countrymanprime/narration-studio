@@ -10,7 +10,7 @@ The app has been Windows first since [ADR 0030](0030-the-app-starts-without-a-pr
 
 - `build-macos.yml` and `build-linux.yml` built and attached an unsmoked, installer-less asset after every Windows release, through a second signing workflow, `_attach-platform.yml`.
 - The release scripts, the update manifest and the docs carried both platforms.
-- The CoreAudio capture backend ([ADR 0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md), [CoreAudio Capture](../prds/coreaudio-capture.prd.md)) added a macOS-only row to the capture port. Nobody could verify it on Apple hardware, and its registry row made the sidecar capabilities test depend on which rows loaded on the machine running it (the `{'coreaudio', 'dshow'}` flake of `test_live_asr.py`).
+- The CoreAudio capture backend ([ADR 0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md), CoreAudio Capture (deleted PRD `coreaudio-capture`)) added a macOS-only row to the capture port. Nobody could verify it on Apple hardware, and its registry row made the sidecar capabilities test depend on which rows loaded on the machine running it (the `{'coreaudio', 'dshow'}` flake of `test_live_asr.py`).
 
 Nobody uses the app on macOS or Linux. On 2026-09-27 the owner decided (D74, on [#509](https://github.com/countrymanprime/narration-utils/issues/509), recorded under "Owner standing rules" in the [agent train](../operations/agent-train.md)): Windows only, for now. Linux and macOS support is removed until the app is in a steadier state or someone uses those systems, because it slows the project down. `Build (Windows)` stays the build gate.
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-[render-encode-master.prd.md](../prds/render-encode-master.prd.md) Phase 5 wires the Master & QC export flow's bindings and UI over three already-delivered, binding-free pieces: `internal/mastering.Master` (Phase 3), the `Encoder` port's `ffmpeg` row (`internal/encodeport`, Phases 1-2) and `internal/packager.Assemble` (Phase 4). The PRD's own Architecture section sketches four bindings by name — `EncodeStart`, `EncodeCancel`, `MasterStart`, `PackageAssemble` — as a description of the work, not a frozen API; Phase 5 is where the exact shape is decided. Three questions had no existing answer:
+render-encode-master.prd.md (deleted) Phase 5 wires the Master & QC export flow's bindings and UI over three already-delivered, binding-free pieces: `internal/mastering.Master` (Phase 3), the `Encoder` port's `ffmpeg` row (`internal/encodeport`, Phases 1-2) and `internal/packager.Assemble` (Phase 4). The PRD's own Architecture section sketches four bindings by name — `EncodeStart`, `EncodeCancel`, `MasterStart`, `PackageAssemble` — as a description of the work, not a frozen API; Phase 5 is where the exact shape is decided. Three questions had no existing answer:
 
 1. Does mastering get its own job and its own Start/State/Cancel bindings, separate from encoding, or do they share one?
 2. Where do a mastered WAV and an encoded file live before they are packaged — they are not the narrator's deliverable (the package is, Q5), but they are not nothing either?

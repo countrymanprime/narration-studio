@@ -1,7 +1,7 @@
 # Editing readiness: the corpus, the labeling format and the evaluation harness
 
 **Status: synthetic baseline only, 2026-09-27.** This is Phase 1 of
-[`editing-readiness-analysis.prd.md`](../prds/editing-readiness-analysis.prd.md) ("Editing corpus and evaluation
+`editing-readiness-analysis.prd.md` (deleted) ("Editing corpus and evaluation
 harness"): no product code, a labeling format, a corpus plan, synthetic generators, and a Go harness that scores
 [DX Phase 9's cleanup detector](../../apps/desktop/internal/measure/cleanup.go) (`measure.CleanupFindings`'s own
 candidates: silence, click, breath) against labeled locations. Every number below is from the **committed synthetic

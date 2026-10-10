@@ -1,4 +1,4 @@
--- Spike S5 (Phase 10, docs/prds/reaper-automation-follow-through.prd.md): render details.
+-- Spike S5 (Phase 10, the deleted reaper-automation-follow-through PRD): render details.
 -- Verifies, against a real REAPER: RENDER_STATS/RENDER_STATS_SUMMARY key format, $region naming in RENDER_PATTERN for
 -- per-region ("chapter") rendering, the current IDs of the actions research section 2 and 6 named, and whether a
 -- render can be previewed/validated without writing files. Run by run-reaper.ps1 inside an isolated REAPER

@@ -26,7 +26,7 @@ What is delivered, and what is deliberately not:
 - **Windows only.** The setup program and the in-app update are Windows features ([CI and releases](../operations/ci-and-releases.md#the-windows-setup-program)),
   and Windows is the only platform the app ships on ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
   The setup program is built in CI and has not yet been run on a clean machine by the owner (release-readiness phase 14 and the first
-  stable rehearsal). Work still open is tracked in [release-readiness-provisioning-and-docs-site.prd.md](../prds/release-readiness-provisioning-and-docs-site.prd.md).
+  stable rehearsal). Work still open is tracked in release-readiness-provisioning-and-docs-site.prd.md (deleted).
 
 ## Problem
 

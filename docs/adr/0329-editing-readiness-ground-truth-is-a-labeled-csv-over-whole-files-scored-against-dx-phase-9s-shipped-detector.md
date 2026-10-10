@@ -5,7 +5,7 @@
 
 ## Context
 
-[`editing-readiness-analysis.prd.md`](../prds/editing-readiness-analysis.prd.md)'s D12 allows no click or breath signal
+`editing-readiness-analysis.prd.md` (deleted)'s D12 allows no click or breath signal
 to report `met` until it is validated against an annotated corpus (Phase 4), and no threshold anywhere in the PRD is a
 fact before then. Phase 1 ("Editing corpus and evaluation harness") has to exist first: a labeling format, a corpus
 plan, and a Go harness that measures recall and precision per class, before there is anything for Phase 4 to validate.

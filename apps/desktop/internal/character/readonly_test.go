@@ -54,7 +54,7 @@ func TestReadOnlyFailsOnCorruptJSONWithoutTouchingTheFile(t *testing.T) {
 	}
 
 	// ReadOnly must never quarantine, rename or otherwise write - it crosses into another project's data only to
-	// read it (Phase 9, docs/prds/character-continuity-review.prd.md: "no write path from one project's session
+	// read it (Phase 9, the deleted character-continuity-review PRD: "no write path from one project's session
 	// into another project's own data").
 	bytes, err := os.ReadFile(path)
 	if err != nil {

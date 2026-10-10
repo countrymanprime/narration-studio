@@ -19,7 +19,7 @@ Everything happens on [Proof](../guides/using-the-app/proof.md#pickups-and-dupli
    or a stretch of the timeline. The scan is a cancellable job with the sidecar's own progress. A track named as the
    chapter's pickup track ("Chapter 6 (pickups)") is recognised by chapter sync and carried on that chapter's row of
    `chaptersync:state` (`pickupTrackName`), so the dialog can start with it
-   ([DAW chapter-track auto-sync](../prds/daw-chapter-track-auto-sync.prd.md) Phase 8). A finished scan that included
+   (DAW chapter-track auto-sync (deleted PRD `daw-chapter-track-auto-sync`) Phase 8). A finished scan that included
    the pickup track records it as scanned, and the row's `pickupsChanged` says when the track has changed since, so the
    scan can be offered again. A pickup track is never the chapter's link: the recording check still reads the chapter
    track only.

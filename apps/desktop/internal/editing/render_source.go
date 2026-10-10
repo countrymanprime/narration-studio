@@ -1,4 +1,4 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: a
+// This file is Phase 8 of the deleted editing-readiness-analysis PRD: a
 // second, whole-file analysis source for a chapter's rendered WAV (Q6),
 // alongside the played-range item source Phase 2 built (source.go,
 // decode.go). "Let the narrator check a render, without letting it silently

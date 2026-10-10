@@ -1,6 +1,6 @@
 // Package projectstate is the host's end of the REAPER live "project changed" indicator (the project_state
-// bridge command; see docs/prds/reaper-automation-follow-through.prd.md Phase 13, "Change-driven re-compare
-// indicator", and docs/prds/analysis-evidence-ledger.prd.md Open Question 12, answered (B)). It is a Could-tier,
+// bridge command; see the deleted reaper-automation-follow-through PRD Phase 13, "Change-driven re-compare
+// indicator", and the deleted analysis-evidence-ledger PRD Open Question 12, answered (B)). It is a Could-tier,
 // coarse hint: REAPER's own edit counter (GetProjectStateChangeCount), read only while REAPER is open from this
 // app, alongside the saved .rpp file's modification time (stat'd here - Lua has no portable file-stat call, and
 // the host already reads paths like this one elsewhere).

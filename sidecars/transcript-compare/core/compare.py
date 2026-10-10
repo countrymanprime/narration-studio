@@ -837,7 +837,7 @@ def normalized_tokens(s):
     return tokens
 
 
-# --- Chapter label pre-pass (docs/prds/daw-chapter-track-auto-sync.prd.md Phase 1, S5, S9) ---
+# --- Chapter label pre-pass (the deleted daw-chapter-track-auto-sync PRD Phase 1, S5, S9) ---
 # The same pass as apps/desktop/internal/chaptermatch/label.go's LabelTokens: a track named "Ch. 6", "Ch6", "06",
 # "Sixth Chapter", "Chapter VI" or "Chapter 6 v2" reads as the chapter label it is before find_chapter_by_track_name
 # compares it, headings alike. tests/fixtures/chapter-track-match/parity-cases.json's labelTokens cases pin the two.

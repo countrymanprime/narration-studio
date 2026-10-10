@@ -1,4 +1,4 @@
-// This file is Phase 4 of docs/prds/editing-readiness-analysis.prd.md ("Click
+// This file is Phase 4 of the deleted editing-readiness-analysis PRD ("Click
 // and breath validation"): the detector versions the click and breath
 // records are stamped with, the recorded held-out runs of those versions, the
 // gate that lets a class signal say met only for a version with a qualifying

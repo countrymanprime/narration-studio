@@ -749,7 +749,7 @@ func (h *Host) TeleprompterPause(paused bool) (string, error) {
 const teleprompterDevicesTimeout = 10 * time.Second
 
 // TeleprompterDevices lists the input devices the teleprompter's capture path can open, by the name it opens them
-// under (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 1). It never fails Start-style: a listing
+// under (the deleted teleprompter-engines-and-input-devices PRD Phase 1). It never fails Start-style: a listing
 // problem comes back as `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can always still try
 // to start with a device the narrator picked before.
 func (h *Host) TeleprompterDevices() (string, error) {

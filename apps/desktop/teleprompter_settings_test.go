@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The Teleprompter device setting (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine
+// The Teleprompter device setting (the deleted teleprompter-engines-and-input-devices PRD, "Where the device, engine
 // and model choices are stored"): a global-only machine fact, so it survives an app restart and is never a per-project
 // override.
 func newTestHostForTeleprompterSettings(t *testing.T, projectFolder string) *Host {

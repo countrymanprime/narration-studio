@@ -1,5 +1,5 @@
 -- Per-chapter render configuration over the bridge: configure_chapter_render (see
--- docs/research/reaper-spike-s5-render-details.md, Phase 10, and docs/prds/reaper-automation-follow-through.prd.md
+-- docs/research/reaper-spike-s5-render-details.md, Phase 10, and the deleted reaper-automation-follow-through PRD
 -- Phase 11 / Open Question 7, answered (a): configure only, the narrator presses Render themselves.
 --
 -- Sets the render bounds to all regions (RENDER_BOUNDSFLAG=3), the naming pattern to the region name ($region) and

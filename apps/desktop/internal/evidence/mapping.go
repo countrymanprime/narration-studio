@@ -1,5 +1,5 @@
 // This file is Phase 5 of the analysis evidence ledger PRD
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-5---confirmed-chapter-track-mapping,
+// (the deleted analysis-evidence-ledger PRD,
 // Q6, Q7, Q9, D5): the narrator-confirmed trackGuid -> chapterId mapping
 // store, plus the pure suggestion helper over TM Phase 8's chapter-to-track
 // matcher (internal/chaptermatch). Q6 (option A): one

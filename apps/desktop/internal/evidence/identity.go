@@ -1,5 +1,5 @@
 // Package evidence is the analysis evidence ledger PRD's own small
-// platform (docs/prds/analysis-evidence-ledger.prd.md): source identity,
+// platform (the deleted analysis-evidence-ledger PRD): source identity,
 // fingerprints, the analysis ledger, a per-item result cache, and the
 // confirmed chapter-track mapping. Phase 1 lands only SourceIdentity and
 // its hash policy (Q1): the piece diagnostics-delivery-and-cleanup-tools'

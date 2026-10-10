@@ -1,7 +1,7 @@
 """
 Input device enumeration for the Manuscript Teleprompter live sidecar (see
 docs/architecture/manuscript-teleprompter.md and
-docs/prds/teleprompter-engines-and-input-devices.prd.md, Phase 1 and the
+the deleted teleprompter-engines-and-input-devices PRD, Phase 1 and the
 "Where device enumeration runs" open question).
 
 Spike outcome (recommendation (a) confirmed): PyAV *can* list Windows

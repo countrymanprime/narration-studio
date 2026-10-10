@@ -38,7 +38,7 @@ type Supervisor struct{ jobs jobSet }
 func NewSupervisor() *Supervisor { return &Supervisor{jobs: newJobSet()} }
 
 // runEnv is nil (inherit the parent environment, exec's own default) unless ctx carries a run, in which case it adds
-// NARRATION_RUN_ID and NARRATION_LOG_LEVEL (docs/prds/tool-run-logging.prd.md phase 2) to the child's environment
+// NARRATION_RUN_ID and NARRATION_LOG_LEVEL (the deleted tool-run-logging PRD phase 2) to the child's environment
 // without losing the rest of it.
 func runEnv(ctx context.Context) []string {
 	run := runlog.FromContext(ctx)

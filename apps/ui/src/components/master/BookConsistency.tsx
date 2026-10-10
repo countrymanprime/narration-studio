@@ -1,4 +1,4 @@
-// The book-wide spread (docs/prds/delivery-platform-profiles.prd.md Phase 10, mockup 11 "Book consistency"): below the
+// The book-wide spread (the deleted delivery-platform-profiles PRD Phase 10, mockup 11 "Book consistency"): below the
 // per-file table, one strip per numeric per-file level rule (RMS, peak, noise floor) showing the measured book's min,
 // median and max, and where each judged file falls between them. No new chart primitive (studio-ui-primitives.prd.md
 // keeps charts feature-local): a plain track built from the page's own design tokens, so it reads correctly in light and

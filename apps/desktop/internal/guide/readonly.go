@@ -12,7 +12,7 @@ import (
 )
 
 // ReadOnlyNames reads project's own Story Bible and returns each non-Draft entity's canonical name by id - the
-// cross-project name lookup docs/prds/character-continuity-review.prd.md Phase 11 needs so a series voice bible can
+// cross-project name lookup the deleted character-continuity-review PRD Phase 11 needs so a series voice bible can
 // label a character approved in a book that is not the one currently open (entity ids are a hash of the normalized
 // name, apps/desktop/internal/character.ReadOnly's own sibling-reading precedent, so the same character in two
 // books already shares one id; only the display name has to be looked up per book).

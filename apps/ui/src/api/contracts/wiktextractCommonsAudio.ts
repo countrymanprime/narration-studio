@@ -1,6 +1,6 @@
 /**
  * Wikimedia Commons audio links read from Wiktextract's own offline pronunciation data (Go: `apps/desktop/internal/wiktextract`,
- * `apps/desktop/bindings_wiktextract_commons.go`; `docs/prds/prep-depth.prd.md` Phase 10, D72, Open Question Q12; `#782`). One
+ * `apps/desktop/bindings_wiktextract_commons.go`; `the deleted prep-depth PRD` Phase 10, D72, Open Question Q12; `#782`). One
  * word at a time, opened externally through the same host path `PronunciationLookupOpen` already uses - never fetched, streamed
  * or cached by the app itself.
  */

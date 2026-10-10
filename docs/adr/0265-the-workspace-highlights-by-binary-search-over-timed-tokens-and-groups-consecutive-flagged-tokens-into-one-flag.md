@@ -5,7 +5,7 @@
 
 ## Context
 
-[Edit and proof workspace](../prds/edit-and-proof-workspace.prd.md) Phase 2 (lane C) builds the chapter workspace
+Edit and proof workspace (deleted PRD `edit-and-proof-workspace`) Phase 2 (lane C) builds the chapter workspace
 on top of Phase 1's `WorkspaceAlignment` binding (ADR 0212, ADR 0242): a chapter's tokens, each carrying a status
 (`read`, `misread`, `skip`, `short_read`, `different_text`, `head`, `tail`) and, when something was heard, an item
 index and a source-time interval. The PRD's Architecture section names three needs Phase 2 has to answer itself,

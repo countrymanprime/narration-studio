@@ -2,7 +2,7 @@
 
 **Status:** Proposed (needs the owner: it narrows the nav PRD's recommended zoom range, Q6)
 **Date:** 2026-09-25
-**Supersedes:** none. It answers, if accepted, how [App Navigation and Zoom Controls](../prds/app-navigation-and-zoom-controls.prd.md) Phase 2 applies Q6 on Wails v3 ([ADR 0200](0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)).
+**Supersedes:** none. It answers, if accepted, how App Navigation and Zoom Controls (deleted PRD `app-navigation-and-zoom-controls`) Phase 2 applies Q6 on Wails v3 ([ADR 0200](0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)).
 
 ## Context
 

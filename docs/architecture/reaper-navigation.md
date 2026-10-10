@@ -1,6 +1,6 @@
 # Going to and looping a finding in REAPER
 
-**Status: implemented end to end: bridge commands, Go client, host bindings and the Review page's Go to, Loop, Stop and Add marker buttons** (Phases 6, 7 and 8 of [the review dashboard PRD](../prds/review-dashboard-and-findings-adoption.prd.md)), tested in the harness, in Go, in the UI and the visual suite. Go to, Loop and Stop were also checked in a scripted REAPER 7.80 run. Hearing the loop, three other steps, a run of the checklist from the page, and the approved marker in a real REAPER are pending (scripted run and owner); see the [manual checklist](#manual-verification-checklist). The chapter workspace's Go to and Loop reuse the same commands over new host bindings (`WorkspaceGoTo`, `WorkspaceLoop`, edit-and-proof-workspace PRD Phase 3, no new Lua); see [From the workspace](#from-the-workspace). Decisions: [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md), [ADR 0123](../adr/0123-the-approved-marker-is-one-take-marker-for-an-accepted-finding-named-like-transcript-compares-in-one-undo-point.md) (the approved marker).
+**Status: implemented end to end: bridge commands, Go client, host bindings and the Review page's Go to, Loop, Stop and Add marker buttons** (Phases 6, 7 and 8 of the review dashboard PRD (deleted)), tested in the harness, in Go, in the UI and the visual suite. Go to, Loop and Stop were also checked in a scripted REAPER 7.80 run. Hearing the loop, three other steps, a run of the checklist from the page, and the approved marker in a real REAPER are pending (scripted run and owner); see the [manual checklist](#manual-verification-checklist). The chapter workspace's Go to and Loop reuse the same commands over new host bindings (`WorkspaceGoTo`, `WorkspaceLoop`, edit-and-proof-workspace PRD Phase 3, no new Lua); see [From the workspace](#from-the-workspace). Decisions: [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md), [ADR 0123](../adr/0123-the-approved-marker-is-one-take-marker-for-an-accepted-finding-named-like-transcript-compares-in-one-undo-point.md) (the approved marker).
 
 ## What it does
 
@@ -97,7 +97,7 @@ The host remembers which finding it looped (`findingNavigation.loopingID`) until
 
 ## From the workspace
 
-Phase 3 of [the edit-and-proof workspace PRD](../prds/edit-and-proof-workspace.prd.md) puts the same `navigate_item` and `loop_context` behind two more host bindings, on the chapter workspace's transport bar (now Proof's chapter view; `apps/ui/src/components/proof/TransportBar.tsx`, `useWorkspaceReaper.ts`), for the word currently at the playhead:
+Phase 3 of the edit-and-proof workspace PRD (deleted) puts the same `navigate_item` and `loop_context` behind two more host bindings, on the chapter workspace's transport bar (now Proof's chapter view; `apps/ui/src/components/proof/TransportBar.tsx`, `useWorkspaceReaper.ts`), for the word currently at the playhead:
 
 | Binding | Sends | Answers |
 | --- | --- | --- |

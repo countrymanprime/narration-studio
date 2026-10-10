@@ -5,7 +5,7 @@
 
 ## Context
 
-The [edit and proof workspace](../prds/edit-and-proof-workspace.prd.md) follows the chapter's text while the recording plays and shows where the reading differs from the text. Phase 1 needs the word alignment for that. The recording check already computes it (`compare.diff_and_build_markers`, [ADR 0126](0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md)) and throws it away after counting.
+The edit and proof workspace (deleted PRD `edit-and-proof-workspace`) follows the chapter's text while the recording plays and shows where the reading differs from the text. Phase 1 needs the word alignment for that. The recording check already computes it (`compare.diff_and_build_markers`, [ADR 0126](0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md)) and throws it away after counting.
 
 The owner took the recommended answer to EP3 (D39), which is C:
 

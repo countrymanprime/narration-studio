@@ -5,7 +5,7 @@
 
 ## Context
 
-Owner decision D28 ([implementation plan](../prds/implementation-plan.md), section 6) answers the Read Aloud control bar's Q7 to Q9 ([PRD](../prds/read-aloud-control-bar.prd.md), Phase 7): arming the chapter's track disarms every other track and remembers the previous arms, restoring them when a recording the app started stops; the app only stops recordings it started. How REAPER treats a track arm, what starts a recording, and when `GetPlayState` reports it are not in the reference ([the calls](../research/reaper-api-for-planned-commands.md)); the two REAPER MCP servers that are file-polling Lua bridges like ours (TwelveTake-Studios/reaper-mcp and danishaft/reaper-mcp, both MIT; read for approach only) wrap an arm in an undo block and check nothing after pressing record.
+Owner decision D28 (implementation plan (deleted PRD `implementation-plan`), section 6) answers the Read Aloud control bar's Q7 to Q9 (PRD (deleted), Phase 7): arming the chapter's track disarms every other track and remembers the previous arms, restoring them when a recording the app started stops; the app only stops recordings it started. How REAPER treats a track arm, what starts a recording, and when `GetPlayState` reports it are not in the reference ([the calls](../research/reaper-api-for-planned-commands.md)); the two REAPER MCP servers that are file-polling Lua bridges like ours (TwelveTake-Studios/reaper-mcp and danishaft/reaper-mcp, both MIT; read for approach only) wrap an arm in an undo block and check nothing after pressing record.
 
 ## Decision
 

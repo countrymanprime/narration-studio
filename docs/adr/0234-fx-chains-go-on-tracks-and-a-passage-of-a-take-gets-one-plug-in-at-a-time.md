@@ -5,7 +5,7 @@
 
 ## Context
 
-The [edit and proof workspace](../prds/edit-and-proof-workspace.prd.md) lets the narrator add effects from the app (EP8 and EP9). The first design (this ADR while Proposed) applied a whole `.RfxChain` as take FX to a split-out passage. Reviewing it, the owner decided: **FX chains are applied only to tracks, including the master track; takes and items get single FX. They can add several, one at a time, but never a chain.**
+The edit and proof workspace (deleted PRD `edit-and-proof-workspace`) lets the narrator add effects from the app (EP8 and EP9). The first design (this ADR while Proposed) applied a whole `.RfxChain` as take FX to a split-out passage. Reviewing it, the owner decided: **FX chains are applied only to tracks, including the master track; takes and items get single FX. They can add several, one at a time, but never a chain.**
 
 REAPER can tell the two apart. A chain is a `.RfxChain` file under `<resource path>/FXChains`; a single plug-in is an entry of `EnumInstalledFX`, which also lists REAPER's FX container (ident `Container`, the thing a chain lives in) and its video processor, which are not single plug-ins ([the calls](../research/reaper-api-for-planned-commands.md)). No REAPER MCP server we read loads a chain by path, so the verification pass (rows A7, A8) is the first evidence of what REAPER does with one.
 

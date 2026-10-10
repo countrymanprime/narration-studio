@@ -33,7 +33,7 @@ shape without yet reading REAPER's live state or a stored prompter position (its
 5. **Track linking leaves the resume area.** This amends ADR 0112 decision 4: instead of an inline track picker for an
    uncertain, ambiguous or missing match, and instead of an inline warning paragraph for a confirmed track that was
    renamed, missing or linked twice, the prompt shows one line naming the problem with a link to the Tracks page
-   (`/tracks`). Choosing a different track in place is [Chapter Track Link Control](../prds/chapter-track-link-control.prd.md)'s
+   (`/tracks`). Choosing a different track in place is Chapter Track Link Control (deleted PRD `chapter-track-link-control`)'s
    job, not this dialog's.
 
 ## Consequences

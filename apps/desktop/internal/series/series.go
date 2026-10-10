@@ -1,4 +1,4 @@
-// Package series is Phase 9 of docs/prds/character-continuity-review.prd.md
+// Package series is Phase 9 of the deleted character-continuity-review PRD
 // (Q10, Q11): a narrator-authored, per-user list of series, each naming the
 // project folders that are its member books, plus read-only access to
 // another member project's own approved character references so a later

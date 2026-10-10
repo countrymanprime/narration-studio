@@ -33,7 +33,7 @@ const (
 )
 
 // DefaultModel is the live model a request that names none gets: tiny is the one model with measured live lag
-// (docs/prds/teleprompter-engines-and-input-devices.prd.md), and both engines' catalogs have it.
+// (the deleted teleprompter-engines-and-input-devices PRD), and both engines' catalogs have it.
 const DefaultModel = "tiny"
 
 // Engines are the live engines the desktop host can launch on platform (a GOOS value), default first, as the ASR registry
@@ -335,7 +335,7 @@ type devicesResult struct {
 // call). It returns a Go error only for a setup problem (the service is not configured); every sidecar-side or
 // process-level failure - a bad exit code, a timeout, unparseable output - is folded into the returned message
 // instead, the same "never block Start" contract the sidecar's own {"devices": [], "error": ...} shape gives (see
-// docs/prds/teleprompter-engines-and-input-devices.prd.md, Architecture Notes).
+// the deleted teleprompter-engines-and-input-devices PRD, Architecture Notes).
 func (s *Service) Devices(ctx context.Context) ([]Device, string, error) {
 	s.mu.RLock()
 	python, backend, sidecars := s.config.Python, s.config.Backend, s.sidecars

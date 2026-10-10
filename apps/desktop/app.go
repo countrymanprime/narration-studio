@@ -146,7 +146,7 @@ type Host struct {
 	// production is the project's stage timer and time log (production-tracking.prd.md, bindings_production.go). Swapped
 	// on every project switch; nil with no project folder, so nothing is ever logged outside a project.
 	production *production.Service
-	// editing is the editing-readiness scan service (docs/prds/editing-readiness-analysis.prd.md Phase 5,
+	// editing is the editing-readiness scan service (the deleted editing-readiness-analysis PRD Phase 5,
 	// bindings_editing.go): played-range empty-space analysis over the chapter's confirmed track, cache-first, with its
 	// own ledger records and silence_cleanup findings. Swapped on every project switch like coverage; it starts only on
 	// the narrator's own request (Q9), never in the background.
@@ -216,7 +216,7 @@ type Host struct {
 	// change and a measurement ending together cannot leave the findings of the profile that lost the race.
 	deliveryFindingsMu sync.Mutex
 	log                *hostlog.Log
-	// runLog is the structured, leveled run log (docs/prds/tool-run-logging.prd.md, ADR 0251): every host job and
+	// runLog is the structured, leveled run log (the deleted tool-run-logging PRD, ADR 0251): every host job and
 	// sidecar launch wraps itself in runLog.Begin/Run.End (phase 3); set once in NewHost and never swapped.
 	runLog *runlog.Logger
 	// jobRuns is runLog's other half for most job kinds (runlog_jobs.go): the run each carries from its own start
@@ -1411,7 +1411,7 @@ func resolveTeleprompterModelID(options map[string]string) string {
 }
 
 // resolveTeleprompterEngine picks the live engine the same way: the request's, else Whisper, the default until the
-// engine evaluation records another (docs/prds/teleprompter-engines-and-input-devices.prd.md phase 8). The UI sends
+// engine evaluation records another (the deleted teleprompter-engines-and-input-devices PRD phase 8). The UI sends
 // the Teleprompter.engine setting it read, so the host never guesses the narrator's choice.
 func resolveTeleprompterEngine(options map[string]string) string {
 	if value := strings.TrimSpace(options["engine"]); value != "" {
@@ -1431,7 +1431,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// override it (project.Manifest.Credits.Narrator, credits.Values.Resolve). credits_room_tone_seconds is the room tone
 	// the estimate adds to each opening and closing credits file (C9, Phase 5, ADR 0151): the narrator's own figure,
 	// defaulting to 0, since published room-tone guidance disagrees (ADR 0025).
-	// debug_logging turns on the run log's debug-level decision records (docs/prds/tool-run-logging.prd.md Q1, ADR
+	// debug_logging turns on the run log's debug-level decision records (the deleted tool-run-logging PRD Q1, ADR
 	// 0251): global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
 	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
@@ -1449,7 +1449,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
 	"Updates":           {{"check_on_startup", "Check for updates on startup", "bool", nil}, {"channel", "Update channel", "choice", []string{"candidates", "stable"}}},
 	"TranscriptCompare": {{"model_size", "Default Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}}, {"chunk_seconds", "Default chunk length", "choice", []string{"30", "60", "300", "600"}}, {"color_misread", "Misread marker color", "color", nil}, {"color_skipped", "Skipped marker color", "color", nil}, {"color_extra", "Extra marker color", "color", nil}},
-	// Global scope only (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine and model
+	// Global scope only (the deleted teleprompter-engines-and-input-devices PRD, "Where the device, engine and model
 	// choices are stored"): the device, engine and model are machine facts (hardware and CPU wired to this computer),
 	// not a per-project preference. The chosen capture device is validated only as free text - the sidecar's own open
 	// call is what proves a device name is real; the "text" kind already accepts any string, including empty (unset).
@@ -1468,7 +1468,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"punch_preroll_seconds", "Punch pre-roll (seconds)", "number", nil},
 	},
 	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, apps/desktop/internal/daw).
-	// DAW.auto_start_launcher is owner decision D10 (docs/prds/implementation-plan.md section 1): the app may pass
+	// DAW.auto_start_launcher is owner decision D10 (the deleted implementation-plan PRD section 1): the app may pass
 	// NarrationUtils_Launcher.lua as REAPER's trailing script argument when it starts REAPER (Phase 8, ADR 0092
 	// W12), so the bridge is live without the narrator running the action by hand - but only when this is on, and
 	// it defaults off.
@@ -1552,7 +1552,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	"Proofing": {
 		{"render_length_tolerance_seconds", "Render length tolerance", "number", nil},
 	},
-	// Editing is the editing-readiness analysis's own policy (docs/prds/editing-readiness-analysis.prd.md Phase 3, Q2,
+	// Editing is the editing-readiness analysis's own policy (the deleted editing-readiness-analysis PRD Phase 3, Q2,
 	// Q3): the empty-space signal's maximum gap and optional head/tail limits. Every one of the three is unset by
 	// default (numberSpecs below has no builtinDefaults/config-defaults.json entry to match): D22's own recommendation
 	// is "unknown until the narrator sets a value", since no number in the repo has a cited source and a guessed
@@ -1573,7 +1573,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"preset", "Preset", "choice", []string{"sample", "spot_check"}},
 		{"exclude_ending_fraction", "Exclude the ending (fraction of chapters)", "number", nil},
 	},
-	// Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5, Open Question Q2): one row of kind
+	// Keymap.overrides (the deleted input-commands-and-pedals PRD Phase 5, Open Question Q2): one row of kind
 	// "text", global scope, holding a versioned JSON document `{"version":1,"bindings":{"<command id>":["<gesture>",
 	// ...]}}` of the narrator's changes from the input registry's default keymap. It is a generic field like any
 	// other, but no Settings category names its tool yet, so it stays off the generic Settings page - Phase 6 adds
@@ -1617,7 +1617,7 @@ func capabilityFieldSchemas() []fieldSchema {
 	return fields
 }
 
-// keymapOverridesMaxBytes bounds Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5): a
+// keymapOverridesMaxBytes bounds Keymap.overrides (the deleted input-commands-and-pedals PRD Phase 5): a
 // generous cap for a document holding one short gesture list per command, well short of anything that would
 // slow down loading or saving settings.
 const keymapOverridesMaxBytes = 64 * 1024

@@ -1,6 +1,6 @@
 # Edit and proof workspace, Phase 0: spike SF, the undo questions and the peaks cost
 
-**Status: desk work done on 2026-09-25. The REAPER run is pending the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510), item 3).** This is Phase 0 of [edit-and-proof-workspace.prd.md](../prds/edit-and-proof-workspace.prd.md) (tracking issue [#546](https://github.com/countrymanprime/narration-utils/issues/546)). Nothing below has been observed in a running REAPER yet. The spike script is ready to run unattended, under owner decision D3.
+**Status: desk work done on 2026-09-25. The REAPER run is pending the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510), item 3).** This is Phase 0 of edit-and-proof-workspace.prd.md (deleted) (tracking issue [#546](https://github.com/countrymanprime/narration-utils/issues/546)). Nothing below has been observed in a running REAPER yet. The spike script is ready to run unattended, under owner decision D3.
 
 ## What changed since the PRD asked
 

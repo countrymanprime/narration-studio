@@ -5,7 +5,7 @@
 
 ## Context
 
-REAPER narrators reach the app from REAPER's Action list: `NarrationUtils_Launcher.lua` starts it with `--daw REAPER` and the open project's folder and file. The owner first answered the [Audacity integration PRD](../prds/audacity-integration.prd.md)'s Question 3 with "a saved Audacity macro that launches the app", and Question 7 with "the release ships the macro file and `verify-installable.mjs` checks it".
+REAPER narrators reach the app from REAPER's Action list: `NarrationUtils_Launcher.lua` starts it with `--daw REAPER` and the open project's folder and file. The owner first answered the Audacity integration PRD (deleted)'s Question 3 with "a saved Audacity macro that launches the app", and Question 7 with "the release ships the macro file and `verify-installable.mjs` checks it".
 
 The [launcher feasibility note](../research/audacity-launcher-feasibility.md) found that nothing Audacity loads can start a program, from Audacity's manual and its source. No macro or scripting command does it, Audacity compiles Nyquist's `system` as a stub, and a native module has to be rebuilt for every Audacity minor release. The one exec path is a side channel through the "(external program)" exporter. It overwrites a preference, blocks Audacity while the program runs and cannot pass the project, so it is not a launcher. Audacity 4.0 also has no macros and no scripting pipe. The owner revised both answers on 2026-09-23.
 

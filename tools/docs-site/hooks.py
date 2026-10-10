@@ -202,7 +202,7 @@ def storybook_section(site_url: str, storybook_path: str) -> str:
 
 
 def demo_section(site_url: str, demo_path: str) -> str:
-    """The paragraph appended beside the Live Storybook section: a link to the running app demo (docs/prds/public-app-demo.prd.md), sample data only, nothing saved."""
+    """The paragraph appended beside the Live Storybook section: a link to the running app demo (the deleted public-app-demo PRD), sample data only, nothing saved."""
     url = site_url.rstrip("/") + "/" + demo_path.lstrip("/")
     return (
         "\n\n## Live demo\n\n"

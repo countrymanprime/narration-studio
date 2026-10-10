@@ -1,4 +1,4 @@
-// This file is Phase 4's run of docs/prds/editing-readiness-analysis.prd.md:
+// This file is Phase 4's run of the deleted editing-readiness-analysis PRD:
 // DX Phase 9's click and breath detectors (measure/cleanup.go, exercised,
 // never changed here) swept on the tuning half of the validation corpus
 // (validationcorpus_test.go), scored on the held-out half per class and

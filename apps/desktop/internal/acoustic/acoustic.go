@@ -1,5 +1,5 @@
 // Package acoustic implements Phase 4 of
-// docs/prds/character-continuity-review.prd.md: a dependency-free,
+// the deleted character-continuity-review PRD: a dependency-free,
 // range-limited feature extraction engine (pitch, speaking rate, energy and
 // a coarse spectral summary) matching Open Question Q1's adopted decision
 // (docs/research/character-continuity-acoustic-trial.md, option A). It

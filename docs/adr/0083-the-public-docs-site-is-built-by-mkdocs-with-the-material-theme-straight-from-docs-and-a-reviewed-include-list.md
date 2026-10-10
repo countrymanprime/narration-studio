@@ -5,7 +5,7 @@
 
 ## Context
 
-The repository has no published documentation: readers use GitHub's file view, the wiki is disabled on purpose because an unreviewed copy drifts ([github-workflow](../operations/github-workflow.md)), and there is no link check anywhere. The [release-readiness PRD](../prds/release-readiness-provisioning-and-docs-site.prd.md) (phases 10 and 11) asked for a public site generated from `docs/` on every build, never a hand-kept copy, and the owner decided two things: compare VitePress and MkDocs Material on the real tree before choosing (question 8), and publish a curated include list, with `docs/research/` staying out until reviewed (question 9).
+The repository has no published documentation: readers use GitHub's file view, the wiki is disabled on purpose because an unreviewed copy drifts ([github-workflow](../operations/github-workflow.md)), and there is no link check anywhere. The release-readiness PRD (deleted) (phases 10 and 11) asked for a public site generated from `docs/` on every build, never a hand-kept copy, and the owner decided two things: compare VitePress and MkDocs Material on the real tree before choosing (question 8), and publish a curated include list, with `docs/research/` staying out until reviewed (question 9).
 
 The [spike](../research/docs-site-generator-spike.md) built the real tree (187 Markdown files, 1,265 links, 26 of which need an answer: 5 dead, 3 to folders, 18 that leave `docs/`) with both tools outside the repository. The findings that decide it:
 

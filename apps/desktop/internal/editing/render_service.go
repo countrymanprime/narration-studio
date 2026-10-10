@@ -1,4 +1,4 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 8 of the deleted editing-readiness-analysis PRD: the
 // render source's own scan loop and signal gathering, run alongside (never
 // instead of) the item path's own run (scan.go) and gatherCoverage/
 // gatherCandidates (provider.go). Unlike run, there is no per-item loop - one

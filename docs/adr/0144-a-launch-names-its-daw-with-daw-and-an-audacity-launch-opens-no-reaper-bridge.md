@@ -5,7 +5,7 @@
 
 ## Context
 
-The [Audacity integration PRD](../prds/audacity-integration.prd.md) Phase 5 asks the app to accept `--daw Audacity`, the way `NarrationUtils_Launcher.lua` starts it with `--daw REAPER`, and to prove the layered settings store serves an Audacity project with no new code. Until then `--daw` was a free-form label: the host kept whatever string it was given and showed it in the UI. Two places read it: `dawLinkFacts` (`daw == "REAPER"` counts as linked, W18) and `Startup`, which explained a missing project folder with REAPER-specific text for any non-empty label.
+The Audacity integration PRD (deleted) Phase 5 asks the app to accept `--daw Audacity`, the way `NarrationUtils_Launcher.lua` starts it with `--daw REAPER`, and to prove the layered settings store serves an Audacity project with no new code. Until then `--daw` was a free-form label: the host kept whatever string it was given and showed it in the UI. Two places read it: `dawLinkFacts` (`daw == "REAPER"` counts as linked, W18) and `Startup`, which explained a missing project folder with REAPER-specific text for any non-empty label.
 
 The Audacity pipe client (Phase 4) waits on the owner's `mod-script-pipe` spike S-A1, so an Audacity launch has nothing to review through yet. Without a decision the review workflow would either take the standalone path (no adapter, "the REAPER bridge is unavailable") or, when a `--session-dir` came along, write REAPER bridge commands that no REAPER will read. Command-line arguments are a trust boundary ([threat model](../architecture/threat-model.md), section 6).
 

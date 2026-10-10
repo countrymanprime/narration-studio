@@ -1,4 +1,4 @@
-// This file is Phase 3 of docs/prds/editing-readiness-analysis.prd.md: the
+// This file is Phase 3 of the deleted editing-readiness-analysis PRD: the
 // empty-space composition. Architecture Notes: "Empty space is the
 // complement of speech-bearing audio. For each analyzed item, the
 // speech-bearing intervals are the played range minus its silence runs,

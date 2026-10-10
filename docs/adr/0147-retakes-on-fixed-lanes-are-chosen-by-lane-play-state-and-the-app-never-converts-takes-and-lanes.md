@@ -5,7 +5,7 @@
 
 ## Context
 
-Phase 25 of the [REAPER automation follow-through PRD](../prds/reaper-automation-follow-through.prd.md) is "retakes as fixed lanes: choose the good lane per line", scoped as "narrator-approved, undoable, never automatic" and gated on spike S7 and on the take-review decisions. Take review already decided how a candidate reading reaches the timeline: as a new take on the target item (`AddTakeToMediaItem`), provenance in take `P_EXT` ([ADR 0098](0098-take-provenance-in-take-extension-data-extends-adr-0026.md)), and the app never sets the active take.
+Phase 25 of the REAPER automation follow-through PRD (deleted) is "retakes as fixed lanes: choose the good lane per line", scoped as "narrator-approved, undoable, never automatic" and gated on spike S7 and on the take-review decisions. Take review already decided how a candidate reading reaches the timeline: as a new take on the target item (`AddTakeToMediaItem`), provenance in take `P_EXT` ([ADR 0098](0098-take-provenance-in-take-extension-data-extends-adr-0026.md)), and the app never sets the active take.
 
 [Spike S7](../research/reaper-spike-s7-fixed-lanes.md) ran the fixed-lane API in REAPER 7.80 and found:
 

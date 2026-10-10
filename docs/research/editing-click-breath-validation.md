@@ -1,7 +1,7 @@
 # Editing readiness: click and breath validation
 
 **Status: provisional (D70), 2026-09-28. Both classes ship gated off.** This is Phase 4 of
-[`editing-readiness-analysis.prd.md`](../prds/editing-readiness-analysis.prd.md) ("Click and breath validation"). It runs
+`editing-readiness-analysis.prd.md` (deleted) ("Click and breath validation"). It runs
 [DX Phase 9's click and breath detectors](../../apps/desktop/internal/measure/cleanup.go) (exercised, not changed; DX-9
 owns them) on a tuning half, chooses the scan defaults there, and reports precision and recall on a held-out half per
 class and recording condition. Neither class reaches the proposed 90% recall, so both `editing.clicks` and

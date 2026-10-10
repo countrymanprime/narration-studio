@@ -2,7 +2,7 @@ import type { CapabilityEntry } from './components/primitives/CapabilityGate';
 
 /**
  * Which requirements a disabled control is missing, so its tooltip can name all of them at once instead of just the
- * first (docs/prds/project-workspace-and-daw-link.prd.md, Open Question W17: "a combined reason listing what is
+ * first (the deleted project-workspace-and-daw-link PRD, Open Question W17: "a combined reason listing what is
  * missing"). The two are independent - a page can need a manuscript, a linked DAW project file, or both, and the
  * single shared `MANUSCRIPT_REQUIRED_REASON` string this repo has today (AppShell.tsx) cannot express the second.
  */

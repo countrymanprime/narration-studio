@@ -6,7 +6,7 @@
 
 ## Context
 
-Phase 12 of [reaper-automation-follow-through.prd.md](../prds/reaper-automation-follow-through.prd.md) ("Chapter tag embedding") was scoped as "Go ID3 CHAP/CTOC writer producing a new file beside the render (library and license TBD - needs research), explicit action, tests on fixtures", with the goal "chapter metadata in rendered MP3s" and success signal "a third-party player shows the chapters; the source render is untouched." D17 (implementation plan) requires any new Go dependency to be AGPL-3.0-or-later compatible.
+Phase 12 of reaper-automation-follow-through.prd.md (deleted) ("Chapter tag embedding") was scoped as "Go ID3 CHAP/CTOC writer producing a new file beside the render (library and license TBD - needs research), explicit action, tests on fixtures", with the goal "chapter metadata in rendered MP3s" and success signal "a third-party player shows the chapters; the source render is untouched." D17 (implementation plan) requires any new Go dependency to be AGPL-3.0-or-later compatible.
 
 Two things needed research before writing any code:
 

@@ -1,4 +1,4 @@
-// This file is Phase 4 of docs/prds/editing-readiness-analysis.prd.md
+// This file is Phase 4 of the deleted editing-readiness-analysis PRD
 // ("Click and breath validation"): the corpus the click and breath detectors
 // are tuned and held out on. No permissioned narrator audio exists on main
 // (D70/D71; the LibriVox Alice signal set labels clicks only and runs

@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// This file is Phase 1 of docs/prds/chapter-track-link-control.prd.md: an
+// This file is Phase 1 of the deleted chapter-track-link-control PRD: an
 // atomic "set this chapter's track" and "unlink this chapter", and one read of
 // every narration chapter's link state and track facts from a single parse of
 // the saved .rpp (ChapterTrackMatch per row would parse it once per chapter).

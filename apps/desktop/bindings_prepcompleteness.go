@@ -2,7 +2,7 @@ package main
 
 import "github.com/countrymanprime/narration-utils/shell/internal/prepcompleteness"
 
-// The prep completeness summary (docs/prds/prep-depth.prd.md Phase 7, Could): a per-chapter rollup of open
+// The prep completeness summary (the deleted prep-depth PRD Phase 7, Could): a per-chapter rollup of open
 // pronunciation queries (Phase 3, guide.Service.PronunciationQueries) and unresolved markup staleness (Phase 5,
 // prepmarkup.Service.List), read by the Production home's Prep column (stage-navigation-and-page-replacement.prd.md
 // D79). It adds no store and no binding beyond this one read; every figure comes from the two phases' own data.

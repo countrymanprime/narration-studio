@@ -7,7 +7,7 @@
 
 ## Context
 
-[Input Commands and Pedals](../prds/input-commands-and-pedals.prd.md) comes from recommendation 2 of the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md). The benchmark requires that "every command on the keyboard, and footswitches (USB, MIDI or HID) can be mapped", that the booth is keyboard-first and silent while recording, and that everything works from a screen reader. Today the app has three hand-written `keydown` listeners, each with its own rules for when a key counts:
+Input Commands and Pedals (deleted PRD `input-commands-and-pedals`) comes from recommendation 2 of the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md). The benchmark requires that "every command on the keyboard, and footswitches (USB, MIDI or HID) can be mapped", that the booth is keyboard-first and silent while recording, and that everything works from a screen reader. Today the app has three hand-written `keydown` listeners, each with its own rules for when a key counts:
 
 - **Back and Forward:** `apps/ui/src/App.tsx:269-306`. It skips a key while a dialog is open.
 - **Workspace keys:** `components/workspace/WorkspacePage.tsx:148-185`. It skips a key typed into a field, but ignores modifiers and `defaultPrevented`.

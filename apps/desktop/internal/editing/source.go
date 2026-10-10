@@ -1,4 +1,4 @@
-// Package editing is Phase 2 of docs/prds/editing-readiness-analysis.prd.md
+// Package editing is Phase 2 of the deleted editing-readiness-analysis PRD
 // (ER): a read-only editing-chore scan for one chapter's confirmed track.
 // This file is Phase 2's own scope: turning a parsed tracks.Item into an
 // analysis Source (its active take's file and played range, EL Phase 2's

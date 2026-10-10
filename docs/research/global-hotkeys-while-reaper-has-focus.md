@@ -1,6 +1,6 @@
 # Spike: can a global hotkey fire while REAPER has OS focus?
 
-**Status: done, 2026-09-27.** Phase 12 of the [Input Commands and Pedals PRD](../prds/input-commands-and-pedals.prd.md) (tracking issue [#646](https://github.com/countrymanprime/narration-utils/issues/646)), lane A. This is research for the future companion-panel PRD, not a shipped feature — the PRD's own Phase 12 row says "Not MVP." Follows the format and rigor of [Phase 8's own spike note](web-midi-hid-webview-spike.md) for this PRD. A throwaway proof-of-concept lives at `apps/desktop/cmd/spike-globalhotkeys/main.go` on this spike's branch; it is not wired into the shipped binary and is not meant to ship (see [Method](#method)).
+**Status: done, 2026-09-27.** Phase 12 of the Input Commands and Pedals PRD (deleted) (tracking issue [#646](https://github.com/countrymanprime/narration-utils/issues/646)), lane A. This is research for the future companion-panel PRD, not a shipped feature — the PRD's own Phase 12 row says "Not MVP." Follows the format and rigor of [Phase 8's own spike note](web-midi-hid-webview-spike.md) for this PRD. A throwaway proof-of-concept lives at `apps/desktop/cmd/spike-globalhotkeys/main.go` on this spike's branch; it is not wired into the shipped binary and is not meant to ship (see [Method](#method)).
 
 ## The question
 

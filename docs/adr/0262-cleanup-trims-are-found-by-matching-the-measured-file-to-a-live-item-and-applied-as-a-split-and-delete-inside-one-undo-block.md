@@ -5,7 +5,7 @@
 
 ## Context
 
-[Diagnostics, Delivery Reports and Cleanup Tools](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) Phase 10 asks
+Diagnostics, Delivery Reports and Cleanup Tools (deleted PRD `diagnostics-delivery-and-cleanup-tools`) Phase 10 asks
 for preview markers and approve-to-apply trims in REAPER over the `silence_cleanup` findings ADR 0238 already raises,
 plus a Go client and the manual REAPER checklist. Three things the PRD's own Architecture Notes leave open turned out
 to need a decision before any of it could be built:

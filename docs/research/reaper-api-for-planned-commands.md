@@ -1,6 +1,6 @@
 # The ReaScript calls behind the planned REAPER bridge commands
 
-**Status: desk research, 2026-09-24. Nothing here has been run in a real REAPER.** Owner decision D38 ([implementation plan](../prds/implementation-plan.md), section 6) asks that every new bridge command of stack S28 have its ReaScript calls written down from the API reference before it is built, and that the commands ship behind the "Experimental REAPER actions" Settings switch until the owner and Claude run the [verification pass](../operations/reaper-verification-pass.md) on a copy of a test project. This page is that record: for each planned command, the calls it makes, what the reference says each one does, and what only a running REAPER can settle.
+**Status: desk research, 2026-09-24. Nothing here has been run in a real REAPER.** Owner decision D38 (implementation plan (deleted PRD `implementation-plan`), section 6) asks that every new bridge command of stack S28 have its ReaScript calls written down from the API reference before it is built, and that the commands ship behind the "Experimental REAPER actions" Settings switch until the owner and Claude run the [verification pass](../operations/reaper-verification-pass.md) on a copy of a test project. This page is that record: for each planned command, the calls it makes, what the reference says each one does, and what only a running REAPER can settle.
 
 **Source.** The ReaScript reference REAPER generates (`reascripthelp.html`, Help > ReaScript documentation), read through the Ultraschall project's rendered copy for REAPER 7.38 ([`Reaper_Api_Documentation.html`](https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/blob/master/ultraschall_api/Documentation/Reaper_Api_Documentation.html)), because `reaper.fm` was not reachable from the build environment. The owner's REAPER is 7.80 ([spike S6](reaper-spike-s6-daw-reachability.md)); every call below exists in 7.38, and the verification pass records what 7.80 does. Quotations are the reference's own words. Where the reference says nothing about a behaviour the command depends on, the row says so and the verification pass has a step for it.
 
@@ -19,7 +19,7 @@
 
 ## `chapter_track_state` (read-only)
 
-Serves Read Aloud Resume from the DAW (PRD deleted, delivered) Phase 4, [Read Aloud Control Bar](../prds/read-aloud-control-bar.prd.md) Phase 6 and the command half of [Teleprompter Manuscript Integration](../prds/teleprompter-manuscript-integration.prd.md) Phase 11 (TMI-11). One read of the transport and of one track.
+Serves Read Aloud Resume from the DAW (PRD deleted, delivered) Phase 4, Read Aloud Control Bar (deleted PRD `read-aloud-control-bar`) Phase 6 and the command half of Teleprompter Manuscript Integration (deleted PRD `teleprompter-manuscript-integration`) Phase 11 (TMI-11). One read of the transport and of one track.
 
 | Call | Reference | What the command reports |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Only a running REAPER can say: whether `GetPlayPosition` moves while paused, wha
 
 ## `changeCount` on the `PROJECT_STATUS` heartbeat
 
-Serves [DAW Chapter-Track Auto-Sync](../prds/daw-chapter-track-auto-sync.prd.md) Phase 4 (and, through it, RF-13 and EL-8). The heartbeat's tick appends `GetProjectStateChangeCount(0)` as a fourth, optional field (`PROJECT_STATUS||<rpp>|<unsaved>|<changeCount>`), once every 1.5 s as today. The reference's description is the only thing it depends on; the verification pass checks the counter moves on an item move, a marker add and a Save, and whether it moves on a track arm.
+Serves DAW Chapter-Track Auto-Sync (deleted PRD `daw-chapter-track-auto-sync`) Phase 4 (and, through it, RF-13 and EL-8). The heartbeat's tick appends `GetProjectStateChangeCount(0)` as a fourth, optional field (`PROJECT_STATUS||<rpp>|<unsaved>|<changeCount>`), once every 1.5 s as today. The reference's description is the only thing it depends on; the verification pass checks the counter moves on an item move, a marker add and a Save, and whether it moves on a track arm.
 
 ## `arm_only`, `record_start`, `record_stop` (write; D28)
 
@@ -53,7 +53,7 @@ Serve Read Aloud Control Bar Phase 7. Owner decision D28: arming the chapter's t
 
 ## `set_active_take` (write)
 
-Serves [Edit and Proof Workspace](../prds/edit-and-proof-workspace.prd.md) Phase 6 (EP7 A, "Use this take").
+Serves Edit and Proof Workspace (deleted PRD `edit-and-proof-workspace`) Phase 6 (EP7 A, "Use this take").
 
 | Call | Reference |
 | --- | --- |
@@ -81,7 +81,7 @@ Serve Edit and Proof Workspace Phases 8 and 9 (EP8, EP9). **The owner's rule (20
 
 ## `create_regions` (write)
 
-Serves the chapter regions of the [REAPER automation follow-through](../prds/reaper-automation-follow-through.prd.md) Phase 7 (RF-7) and [Credits in the Chapter Table](../prds/credits-in-chapter-table.prd.md) Phase 4. It replaces the existing `create_chapter_regions` (`narration_line_identity.lua`, which no host code calls yet) rather than adding a second region command.
+Serves the chapter regions of the REAPER automation follow-through (deleted PRD `reaper-automation-follow-through`) Phase 7 (RF-7) and Credits in the Chapter Table (deleted PRD `credits-in-chapter-table`) Phase 4. It replaces the existing `create_chapter_regions` (`narration_line_identity.lua`, which no host code calls yet) rather than adding a second region command.
 
 | Call | Reference |
 | --- | --- |

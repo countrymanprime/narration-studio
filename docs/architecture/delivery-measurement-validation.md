@@ -1,6 +1,6 @@
 # Delivery measurement validation against the EBU loudness test set
 
-This note records how the Go `measure` package (`apps/desktop/internal/measure`) is checked against the EBU's official loudness test signals, and the result of each run. It is Phase 3 of the [diagnostics, delivery and cleanup tools PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md). [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
+This note records how the Go `measure` package (`apps/desktop/internal/measure`) is checked against the EBU's official loudness test signals, and the result of each run. It is Phase 3 of the diagnostics, delivery and cleanup tools PRD (deleted). [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
 
 ## What is checked
 

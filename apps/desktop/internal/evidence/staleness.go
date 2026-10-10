@@ -1,5 +1,5 @@
 // This file is Phase 6 of the analysis evidence ledger PRD
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-6---staleness-evaluator,
+// (the deleted analysis-evidence-ledger PRD,
 // Q4, Q8): the staleness evaluator. Given a chapter's current fingerprints
 // (from a live/saved .rpp parse, Phase 1/2) and the ledger's latest complete
 // record for that (analyzer, chapter) (Phase 3), it answers Q4's currentness

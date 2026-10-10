@@ -32,7 +32,7 @@ export function StageSummaryChips({ state, onShow }: { state: StagesState; onSho
 
 /**
  * The line above the breakdown table: shown only when the last read failed, with the reason and a retry
- * (docs/prds/home-stage-check-line.prd.md Phase 1). Every other read happens by itself, so there is nothing to say
+ * (the deleted home-stage-check-line PRD Phase 1). Every other read happens by itself, so there is nothing to say
  * and no idle button when the read succeeded.
  */
 export function StageCheckLine({ state, onCheckNow }: { state: StagesState; onCheckNow: () => void }) {

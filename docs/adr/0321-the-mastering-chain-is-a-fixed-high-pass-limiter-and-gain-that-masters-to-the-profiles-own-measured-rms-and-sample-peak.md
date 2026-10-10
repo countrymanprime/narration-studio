@@ -6,7 +6,7 @@
 
 ## Context
 
-[Render, Encode and Master](../prds/render-encode-master.prd.md) Phase 3 adds a built-in mastering chain, in ACX's own order: EQ, then a limiter, then gain into the RMS window [W3]. The PRD took these recommendations under D22:
+Render, Encode and Master (deleted PRD `render-encode-master`) Phase 3 adds a built-in mastering chain, in ACX's own order: EQ, then a limiter, then gain into the RMS window [W3]. The PRD took these recommendations under D22:
 
 - Q3: a built-in Go chain, not a REAPER FX chain.
 - Q4: fixed parameters, with the targets read from the selected delivery profile.

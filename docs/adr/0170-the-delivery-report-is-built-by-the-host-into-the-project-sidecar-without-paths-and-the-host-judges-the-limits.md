@@ -5,7 +5,7 @@
 
 ## Context
 
-Phase 7 of [the diagnostics PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) asks for an exported report, HTML
+Phase 7 of the diagnostics PRD (deleted) asks for an exported report, HTML
 and JSON with the same finding IDs and review states, redactable, in a sidecar folder, and deterministic. Before it, the
 Delivery page judged each measured value against the narrator's limits itself, mirroring `measure.Evaluate` in
 TypeScript (Phase 5), and Phases 5 and 6 left moving that judgement to the host to this phase, because a report written by

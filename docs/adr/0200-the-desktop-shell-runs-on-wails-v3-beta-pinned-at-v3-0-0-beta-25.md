@@ -6,7 +6,7 @@
 
 ## Context
 
-The owner decided on 2026-09-24 to move the desktop shell from Wails v2.16 to the Wails v3 beta, pinned starting at `v3.0.0-beta.25`, so the header zoom controls can use the window's runtime `SetZoom` (D29 in `docs/prds/implementation-plan.md`; [Wails v3 Migration](../prds/wails-v3-migration.prd.md); nav PRD Q3). Wails v2.16 has only a startup zoom factor. `v3.0.0-beta.25` was the newest v3 tag that day.
+The owner decided on 2026-09-24 to move the desktop shell from Wails v2.16 to the Wails v3 beta, pinned starting at `v3.0.0-beta.25`, so the header zoom controls can use the window's runtime `SetZoom` (D29 in `docs/prds/implementation-plan.md`; Wails v3 Migration (deleted PRD `wails-v3-migration`); nav PRD Q3). Wails v2.16 has only a startup zoom factor. `v3.0.0-beta.25` was the newest v3 tag that day.
 
 v3 is not a drop-in: the app is `application.New` plus a window instead of `wails.Run`; bound objects are services; every runtime call is a method of the application instead of a function of a context; the bindings are generated anew and call the host through `@wailsio/runtime`; and `wails build` no longer builds the program, its resources and the installer from `wails.json`. Reading v3 beta.25 against v2.16 also found defaults that change what the narrator gets: Ctrl+wheel zoom off, the browser's right-click menu on, a macOS app that outlives its window, a cancelled Windows file dialog that is an error, a failed Go method that rejects with a `RuntimeError` instead of its text, and a Windows manifest with a three-part version.
 

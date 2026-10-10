@@ -102,7 +102,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'ok',
     'Stop (and the dialog\'s "Stop reading?" confirm) always stops listening first; this is a best-effort follow-up only when this app actually started a REAPER recording, so a refusal (REAPER already stopped on its own) shows inline but never blocks the reading session from having already ended.',
   ),
-  'src/components/booth/useTeleprompterSession.ts::settingsForScope#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Loads the persisted microphone (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 2) and runs the one-time browser-storage migration on the standalone page; if it fails the field just starts empty, exactly as it did before Phase 2.'),
+  'src/components/booth/useTeleprompterSession.ts::settingsForScope#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Loads the persisted microphone (the deleted teleprompter-engines-and-input-devices PRD Phase 2) and runs the one-time browser-storage migration on the standalone page; if it fails the field just starts empty, exactly as it did before Phase 2.'),
   'src/components/booth/useTeleprompterSession.ts::manuscriptParagraphs#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'An inline error.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterStart#1': row('click', 'job', 'disabled', 'host', 'ui', 'inline', 'no', 'ok', 'The state event moves the page to "starting" and disables Start; the host refuses a second session.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterStop#1': row('click', 'job', 'none', 'none', 'ui', 'inline', 'no', 'ok', 'The state event moves the page on; an inline error otherwise.'),
@@ -168,7 +168,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    "The chosen microphone (global settings, docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 2) is saved as it is picked or typed; a save failure shows as the inline error (the page's or the ReadAloudDialog modal's), and the value picked stays selected in the field either way.",
+    "The chosen microphone (global settings, the deleted teleprompter-engines-and-input-devices PRD Phase 2) is saved as it is picked or typed; a save failure shows as the inline error (the page's or the ReadAloudDialog modal's), and the value picked stays selected in the field either way.",
   ),
   // Companion mode (booth-mode-and-companion-panel.prd.md Phase 7, ADR 0401): CompanionShell narrows and pins the one window
   // while it is mounted and gives it back on unmount, and shows REAPER's playhead from the DAW port's live transport.

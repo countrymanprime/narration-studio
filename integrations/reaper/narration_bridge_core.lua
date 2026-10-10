@@ -45,7 +45,7 @@ local JSON_ESCAPES = { ['\\'] = '\\\\', ['"'] = '\\"', ['\n'] = '\\n', ['\r'] = 
 local function json_escape(value)
   return (tostring(value or ''):gsub('[\\"\n\r\t]', JSON_ESCAPES))
 end
--- One JSON line per bridge command at debug level (docs/prds/tool-run-logging.prd.md phase 6), correlated by the
+-- One JSON line per bridge command at debug level (the deleted tool-run-logging PRD phase 6), correlated by the
 -- host's run id (runlog.Run.ID(), a different id than the per-request one `event` above carries) so a "Copy
 -- diagnostics" bundle can show REAPER's side of a run next to the host's run.jsonl and a sidecar's stderr. A no-op
 -- unless the host asked for debug (level == 'debug') and sent a run id; `fields` is an ordered list of {key, value}

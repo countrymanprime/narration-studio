@@ -5,7 +5,7 @@
 
 ## Context
 
-[Editing Readiness Analysis](../prds/editing-readiness-analysis.prd.md) Phase 7 ("Editing check panel", stream C9)
+Editing Readiness Analysis (deleted PRD `editing-readiness-analysis`) Phase 7 ("Editing check panel", stream C9)
 builds the `SlideOver` that runs Phase 5's scan job and shows Phase 6's three signals
 (`editing.empty_space`, `editing.clicks`, `editing.breaths`) with their candidates, opened from SR's evidence
 popover (`StageEvidence.tsx`, chapter-stage-recommendations.prd.md Phase 5) and from the Tracks page's chapter

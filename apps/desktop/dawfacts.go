@@ -7,7 +7,7 @@ import (
 )
 
 // dawLinkFacts computes the three separate DAW facts that
-// docs/prds/project-workspace-and-daw-link.prd.md's Open Question W13 asks
+// the deleted project-workspace-and-daw-link PRD's Open Question W13 asks
 // Bootstrap to carry, instead of collapsing them into the `daw` label string
 // (which today is just "REAPER" or "Standalone" and cannot express any of
 // this, W13/W14):

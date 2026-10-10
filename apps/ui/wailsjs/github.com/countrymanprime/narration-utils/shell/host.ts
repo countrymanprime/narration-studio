@@ -510,7 +510,7 @@ export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<stri
 
 /**
  * DawLaunch starts REAPER on the current project's linked DAW file (Phase 8,
- * docs/prds/project-workspace-and-daw-link.prd.md): it resolves reaper.exe (a
+ * the deleted project-workspace-and-daw-link PRD): it resolves reaper.exe (a
  * Settings override always wins, otherwise auto-detect - daw.Resolve /
  * daw.LocateReaperExecutable, ADR 0092 W11), and passes the linked .rpp,
  * plus, when the DAW.auto_start_launcher setting is on (owner decision D10,
@@ -1820,7 +1820,7 @@ export function TakeReviewScanState(): $CancellablePromise<string> {
 
 /**
  * TeleprompterDevices lists the input devices the teleprompter's capture path can open, by the name it opens them
- * under (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 1). It never fails Start-style: a listing
+ * under (the deleted teleprompter-engines-and-input-devices PRD Phase 1). It never fails Start-style: a listing
  * problem comes back as `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can always still try
  * to start with a device the narrator picked before.
  */

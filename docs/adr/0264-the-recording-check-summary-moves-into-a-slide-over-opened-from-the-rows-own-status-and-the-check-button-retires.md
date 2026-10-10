@@ -5,7 +5,7 @@
 
 ## Context
 
-[DAW Chapter-Track Auto-Sync](../prds/daw-chapter-track-auto-sync.prd.md) Phase 6 ("Status without a click", S14)
+DAW Chapter-Track Auto-Sync (deleted PRD `daw-chapter-track-auto-sync`) Phase 6 ("Status without a click", S14)
 retires Home's per-row **Check** button in favour of a status that is always there: `chaptersync:state` already
 carries, per narration chapter, whether its check is `current`, `stale` (with reasons) or `never`, when it was
 checked, whether one is running, and when its track last changed (host-complete before this PR).
@@ -14,7 +14,7 @@ summary goes once the button is gone: "a chapter slide-over opened from the row'
 button", built in the same change that retires the button "so the dialog is never unreachable" — the two PRDs
 deliberately left this as one piece of work rather than two.
 
-`ChapterTrackButton`/`ChapterTrackPanel` ([Chapter Track Link Control](../prds/chapter-track-link-control.prd.md)
+`ChapterTrackButton`/`ChapterTrackPanel` (Chapter Track Link Control (deleted PRD `chapter-track-link-control`)
 Phase 2, already merged in #534) already opens a slide-over for the chapter's *track* facts and links from a button in
 the same row. A second, independent trigger for the chapter's *check* summary was needed beside it, since a track's
 link state and a check's freshness are different questions (a chapter can be linked and stale, or unlinked and never
@@ -41,7 +41,7 @@ checked) and the row already has a dedicated column for each.
    top of the body for `never`/refused states that have no report yet to attach it to.
 4. **Home re-reads its chapter list and stage suggestions on every `chaptersync:state` event**, not only on window
    focus: the event already fires after every sync, every watched save, and every check that ends, so it is a strictly
-   more complete trigger than the focus-only read [Home Stage Check Line](../prds/home-stage-check-line.prd.md) Q2
+   more complete trigger than the focus-only read Home Stage Check Line (deleted PRD `home-stage-check-line`) Q2
    proposed as a stop-gap. The first event (the initial subscribe) is skipped, since the chapter list and stage
    suggestions already load once on their own.
 
