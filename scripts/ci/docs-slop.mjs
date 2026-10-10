@@ -101,7 +101,7 @@ function main() {
   const base = baseFlag !== -1 ? args[baseFlag + 1] : process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main';
   const { phrases, ignore } = loadConfig();
   const all = args.includes('--all');
-  const files = (all ? trackedMarkdown() : changedMarkdownFiles({ base, cwd: REPO_ROOT })).filter((file) => !isIgnored(file, ignore));
+  const files = (all ? trackedMarkdown() : changedMarkdownFiles({ base, cwd: REPO_ROOT, includeWorkingTree: true })).filter((file) => !isIgnored(file, ignore));
 
   const report = [];
   for (const file of files) {
