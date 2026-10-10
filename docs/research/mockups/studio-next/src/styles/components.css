@@ -1,0 +1,19 @@
+/* Story Bible analysis tools: the Settings list and the consent dialog. */
+.comps{display:flex;flex-direction:column;gap:0}
+.comp{display:flex;flex-direction:column;gap:4px;padding:12px 0;border-top:1px solid var(--line);min-width:0}
+.comp:first-child{border-top:0;padding-top:0}
+.comp .comphead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.comp .comphead b{font-size:15px}
+.comp .compfacts{display:flex;flex-wrap:wrap;gap:2px 14px}
+.comp p{margin:0;max-width:62ch}
+.comp .compprog{display:flex;align-items:center;gap:10px;min-width:0}
+.comp .compprog .cc-bar{flex:1;min-width:80px}
+.comp .compprog .sub{white-space:nowrap}
+.cfact{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
+.cfact:first-child{border-top:0;padding-top:0}
+.cfact h3{margin:0;font-size:16px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cfact dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:2px 0;font-size:13px}
+.cfact dt{color:var(--muted)} .cfact dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.cfact p{margin:0}
+.promptopts{display:flex;flex-direction:column;gap:8px}
+.promptopts .btn{justify-content:flex-start;width:100%}

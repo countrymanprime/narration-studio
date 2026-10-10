@@ -1,0 +1,18 @@
+/* Story Bible suggestions: the rows under "Suggested", the labelled claims on an entry, and the import preview. */
+.sugs{display:flex;flex-direction:column;gap:6px;list-style:none;margin:0;padding:0}
+.xsug{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:8px;background:var(--raised);padding:8px 8px 8px 12px;min-width:0}
+.xsug[data-status="needs-verification"]{border-color:var(--warn,var(--copper))}
+.xsug .sugtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.xsug .sugkind{flex:none;min-width:64px}
+.xsug .sugtext{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.xsug .sugtools{display:flex;gap:2px;margin-left:auto}
+.xquote{all:unset;box-sizing:border-box;display:block;max-width:100%;cursor:pointer;font:italic 13px var(--f-serif);color:var(--muted);overflow-wrap:anywhere;border-radius:4px;padding:1px 2px}
+.xquote:hover{color:var(--ink);text-decoration:underline}
+.xquote:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.confchip{cursor:help}
+.claims{display:flex;flex-direction:column;gap:8px}
+.claim{display:flex;flex-direction:column;gap:2px;min-width:0}
+.impprev{table-layout:fixed;width:100%}
+.impprev td,.impprev th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exbox{font:12px/1.45 var(--f-mono);white-space:pre;overflow:auto;max-height:180px;border:1px solid var(--line);border-radius:8px;background:var(--raised);padding:10px 12px;margin:0}
+.xsug button.xquote,.claim button.xquote{background:none;border:0;box-shadow:none;min-height:0;height:auto;text-align:left;justify-content:flex-start;padding:1px 2px}
