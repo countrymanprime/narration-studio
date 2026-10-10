@@ -16,7 +16,7 @@ Do not use this for a decision that's only proposed/being discussed — write it
 1. Read `docs/adr/README.md`'s index table to find the next available number (zero-padded, four digits, sequential — do not reuse or skip numbers).
 2. Read `docs/adr/template.md` for the section structure.
 3. Write the new file at `docs/adr/NNNN-short-kebab-title.md` using that structure. The Context section states what was actually observed (a bug, a user request, a constraint hit during implementation) — link to it if there's a source. The Decision section names concrete files/components, not just the abstract principle. The Consequences section is honest about tradeoffs, not just upside.
-4. Add a row to the index table in `docs/adr/README.md`, in numeric order.
+4. Add a row to the index table in `docs/adr/README.md`, in numeric order. Run `node scripts/ci/adr-index.mjs --write` and `node scripts/ci/adr-topics.mjs --write`; if the topics check says no topic claims the ADR, add a title pattern or a pin in `scripts/ci/adr-topics.json`.
 5. Never backdate or renumber an existing ADR to "make room" — new decisions always get the next number.
 
 ## Superseding an existing ADR

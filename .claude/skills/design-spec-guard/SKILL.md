@@ -20,7 +20,7 @@ Also invoke mid-refactor if a diff is about to touch one of those files and you'
 
 ## What to do
 
-1. Read `docs/adr/README.md`'s index, then read the full text of every ADR whose title or file-references look relevant to the change under consideration. Do not skip based on the title alone — read the Decision and Consequences sections.
+1. Start from `decision-index` for the topics the change touches (`ui-primitives-and-design-system` at least), then read the full text of every ADR whose title or file-references look relevant to the change under consideration. Do not skip based on the title alone — read the Decision and Consequences sections.
 2. Read `docs/design/design-system.md` for the current-state conventions (tokens, primitive components, the CSS layering gotcha, the interaction conventions section).
 3. Compare the proposed change against what you just read. For each ADR/convention that the change would contradict:
    - If the change is **explicitly listed** in an approved plan file (the plan the user is currently executing), it's allowed — the plan itself is the record of an intentional supersession, and a new ADR should be written afterward if the decision is meant to stick (use `adr-author` for that).
