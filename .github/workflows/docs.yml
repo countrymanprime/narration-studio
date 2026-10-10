@@ -11,6 +11,8 @@ name: Docs
 # links, which rot on their own, so it runs weekly and by hand and only reports: it never blocks a pull request.
 on:
   pull_request:
+    # `edited` re-runs the docs-impact job when the description gains a `Docs: none — <reason>` line.
+    types: [opened, synchronize, reopened, edited]
   schedule:
     - cron: '17 7 * * 1'
   workflow_dispatch: {}
@@ -44,6 +46,32 @@ jobs:
         env:
           GITHUB_BASE_REF: ${{ github.base_ref }}
         run: node scripts/ci/lint-markdown-changed.mjs --summary
+  docs-impact:
+    name: Docs impact
+    # Needs a pull request description and a base to diff; the schedule and a manual run have neither.
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # scripts/ci/docs-impact.mjs diffs against the merge base with the pull request's base branch.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-pnpm: 'false'
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+      - name: Fail when code changed and the docs that describe it did not
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          # The description may carry the `Docs: none — <reason>` opt-out. Read through env, never interpolated into the script.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/ci/docs-impact.mjs --summary
   links-offline:
     name: Links (offline)
     # The scheduled run exists for the online job; the offline one has nothing to add to it.

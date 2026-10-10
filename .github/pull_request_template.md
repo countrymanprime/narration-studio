@@ -16,4 +16,5 @@ Closes #
 - [ ] If `apps/ui` changed: the PR body has a **Screenshots** section with the mock, before (`main`) and after for every changed state (CLAUDE.md, "A UI change ships with screenshots of the change"). Without it the PR is rejected.
 - [ ] If `integrations/reaper` changed: I ran the bridge harness (`pnpm check`) and verified REAPER's own API behaviour by hand inside REAPER (the harness fakes `reaper`).
 - [ ] If this changes a trust boundary or what the app sends off the machine (a download, the update, a sidecar's arguments, the REAPER bridge, a file the app opens, the release pipeline): I re-read its row in `docs/architecture/threat-model.md`, updated it and bumped its review date, and updated `SECURITY.md` if the scope changed.
+- [ ] Docs: I updated the docs the change owes (`doc-impact-check` lists them), or the description says `Docs: none — <specific reason>`.
 - [ ] If this settles or changes a decision: I added or updated an ADR in `docs/adr/`.
