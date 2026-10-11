@@ -141,6 +141,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Reads the chapters, chapter links and tracks only to place a pickup in its chapter; without them the pickup says it is not on a linked chapter track, and every pickup action still works and shows its own failure inline.',
   'src/components/proof/FindingDetail.tsx#1':
     'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden.',
+  'src/components/proof/inspector/useShownEvidence.ts#1':
+    'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (mirrors FindingDetail.tsx#1).',
   'src/components/editing/EditingCandidateRow.tsx#1':
     'Re-reads a candidate after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (mirrors FindingDetail.tsx#1).',
   'src/components/editing/EditingCheckPanel.tsx#1':
