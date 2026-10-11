@@ -17,7 +17,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-keyboard-recording',
     description:
-      'Settings, Keyboard & pedals: the recorder open inline under "Play or pause reading" after a captured Page Down, its live region announcing the capture, Replace / Add as another key / Unbind / Reset to default / Cancel',
+      'Settings, Keyboard & pedals: the recorder open inline under "Record or stop" after a captured J, its live region announcing the capture, Replace / Add as another key / Unbind / Reset to default / Cancel',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

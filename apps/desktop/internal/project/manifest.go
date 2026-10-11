@@ -58,6 +58,9 @@ type Manifest struct {
 	// Payment is how the book pays: "per_finished_hour", "royalty_share" or "none" (ADR 0800), additive like Credits.
 	// Empty: written before the payment type existed; internal/production reads it from ContractedAmount.
 	Payment string `json:"payment,omitempty"`
+	// RateBasis is the schedule basis the narrator chose: "standard" or "own" (their own pace). Empty reads as standard.
+	// It is a choice, not a measurement: the host never checks it against the take log.
+	RateBasis string `json:"rateBasis,omitempty"`
 	// Milestones are the narrator's own dated checkpoints: a generic list, the ACX 15-minute checkpoint being one the
 	// narrator adds like any other. Additive like Credits.
 	Milestones []Milestone `json:"milestones,omitempty"`

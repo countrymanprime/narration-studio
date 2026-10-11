@@ -191,3 +191,49 @@ func TestFindingsSummaryCountsAndListsFacets(t *testing.T) {
 		t.Fatalf("facets = %+v / %+v", summary.Analyzers, summary.Chapters)
 	}
 }
+
+func TestFindingsSetTypeStoresTheChoiceWithoutDecidingAnything(t *testing.T) {
+	host := newFindingsHost(t)
+	before := bindingAnswer[findings.Summary](t)(host.FindingsSummary())
+
+	retyped := bindingAnswer[findings.Finding](t)(host.FindingsSetType("aaa", "v1", "pron"))
+	if retyped.Review.Type != findings.NotePron || retyped.Review.Status != findings.StatusUnreviewed {
+		t.Fatalf("review = %+v, want type pron and still unreviewed", retyped.Review)
+	}
+	if got := bindingAnswer[findings.Finding](t)(host.FindingsGet("aaa")); got.Review.Type != findings.NotePron {
+		t.Fatalf("persisted type = %q", got.Review.Type)
+	}
+	if after := bindingAnswer[findings.Summary](t)(host.FindingsSummary()); !equalSummary(after, before) {
+		t.Fatalf("a retype changed the counts: %+v -> %+v", before, after)
+	}
+	// The analyzer's own word ("misread" for a transcript discrepancy) is the default again: the type is absent.
+	back := bindingAnswer[findings.Finding](t)(host.FindingsSetType("aaa", "v1", "misread"))
+	if back.Review.Type != "" {
+		t.Fatalf("type after choosing the default = %q, want absent", back.Review.Type)
+	}
+}
+
+func equalSummary(a, b findings.Summary) bool {
+	return a.Total == b.Total && a.Unreviewed == b.Unreviewed && a.Accepted == b.Accepted && a.Dismissed == b.Dismissed &&
+		a.Deferred == b.Deferred && a.Decided == b.Decided && a.Cleared == b.Cleared
+}
+
+func TestFindingsSetTypeRefusesAStaleUnknownOrEmptyAndRecordsNothing(t *testing.T) {
+	host := newFindingsHost(t)
+	cases := []struct{ name, id, version, noteType, want string }{
+		{"evidence changed since it was shown", "aaa", "v0", "pron", "changed"},
+		{"finding no longer exists", "missing", "v1", "pron", "no longer"},
+		{"word outside the ten", "aaa", "v1", "loud", "finding types"},
+		{"empty id", "", "v1", "pron", "id is required"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := host.FindingsSetType(tc.id, tc.version, tc.noteType); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want one mentioning %q", err, tc.want)
+			}
+		})
+	}
+	if got := bindingAnswer[findings.Finding](t)(host.FindingsGet("aaa")); got.Review.Type != "" {
+		t.Fatalf("a refused retype was stored: %+v", got.Review)
+	}
+}

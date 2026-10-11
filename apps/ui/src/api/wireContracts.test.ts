@@ -2126,6 +2126,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(findingSchema, await api.findingsGet(shown.id), 'mock findings get');
     const reviewed = await api.findingsReview({ id: shown.id, evidenceVersion: shown.evidence_version ?? '', status: 'deferred', note: 'Check tomorrow.' });
     expectMatches(findingSchema, reviewed, 'mock findings review');
+    const retyped = await api.findingsSetType(shown.id, shown.evidence_version ?? '', 'breath');
+    expectMatches(findingSchema, retyped, 'mock findings retype');
+    expect(retyped.review).toMatchObject({ status: 'deferred', type: 'breath' });
     expectMatches(findingsSummarySchema, await api.findingsSummary(), 'mock findings summary');
     const empty = createMockApi({}, { findings: [] });
     expectMatches(findingsPageSchema, await empty.findingsList({}), 'mock findings list, empty queue');
@@ -2304,6 +2307,41 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const unknown = await api.workspaceAlignment('no-such-chapter');
     expectMatches(workspaceAlignmentResultSchema, unknown, 'mock workspace alignment, never');
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
+  });
+
+  it('the heard words (ADR 0855): a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
+    const golden = JSON.parse(readFileSync(`${GOLDEN_DIR}workspace-alignment-added-words.json`, 'utf8'));
+    const parsed = workspaceAlignmentResultSchema.parse(golden);
+    expect(parsed.engine).toEqual({ id: 'whisper:small', name: 'Whisper small' });
+    expect(parsed.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(parsed.extras.flatMap((extra) => extra.words ?? []).map((word) => word.timing)).toEqual(['spread', 'spread', 'unplaced', 'unplaced', 'spread']);
+
+    const withToken = (patch: Record<string, unknown>) => ({ ...golden, tokens: [{ ...golden.tokens[0], ...patch }] });
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: 'no_word_scores' })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: null, confReason: null })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ added: true })).success).toBe(false);
+    // A later score needs no wire change: a number beside no reason is accepted.
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: null })).success).toBe(true);
+
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    // A confirmed link to a live item, so the mock times its words (as the workspace peaks row below seeds it).
+    const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
+    const link = {
+      trackGuid: linkedTrack.guid,
+      chapterId: measured.id,
+      chapterTitle: measured.title,
+      confirmedAt: '2026-09-24T09:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const mock = await createMockApi({}, { chapterTrackMappings: [link] }).workspaceAlignment(measured.id);
+    expectMatches(workspaceAlignmentResultSchema, mock, 'mock workspace alignment, heard words');
+    expect(mock.engine).toBeDefined();
+    expect(mock.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(mock.tokens.some((token) => token.status === 'misread')).toBe(true);
+    expect(mock.extras.flatMap((extra) => extra.words ?? []).every((word) => word.added && word.timing === 'spread')).toBe(true);
+    expect(mock.extras.flatMap((extra) => extra.words ?? []).length).toBeGreaterThan(0);
   });
 
   it("the workspace peaks answer the live item's waveform, deterministically", async () => {
@@ -2795,6 +2833,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(productionPlanSchema.safeParse({ ...older, milestones: [{ name: 'M', dueDate: '2026-10-15', done: 'yes' }] }).success).toBe(false);
   });
 
+  it('the production plan schedule basis: own is stored, standard is the absent field, an unknown basis saves nothing', async () => {
+    const api = createMockApi();
+    expect(await api.productionPlan()).not.toHaveProperty('rateBasis');
+    const own = await api.setProductionRateBasis('own');
+    expectMatches(productionPlanSchema, own, 'mock production plan, own pace');
+    expect(own.rateBasis).toBe('own');
+    expect((await api.productionPlan()).rateBasis).toBe('own');
+    await expect(api.setProductionRateBasis('fast' as never)).rejects.toThrow('not a schedule basis');
+    expect((await api.productionPlan()).rateBasis).toBe('own');
+    expect(await api.setProductionRateBasis('standard')).not.toHaveProperty('rateBasis');
+    expect(productionPlanSchema.safeParse({ deadline: null, contractedAmount: null, milestones: [], rateBasis: 'fast' }).success).toBe(false);
+  });
+
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
@@ -2962,6 +3013,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionPlan',
       'setProductionDeadline',
       'setProductionPayment',
+      'setProductionRateBasis',
       'saveProductionMilestones',
       'stageRecommendations',
       'stageConfirm',
@@ -3005,6 +3057,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'findingsList',
       'findingsGet',
       'findingsReview',
+      'findingsSetType',
       'findingsSummary',
       'findingsReaperStatus',
       'findingsGoTo',

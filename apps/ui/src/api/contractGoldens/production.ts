@@ -18,6 +18,8 @@ export const productionGoldens: Record<string, z.ZodType> = {
   'production-plan-old-manifest.json': productionPlanSchema,
   'production-plan-royalty-share.json': productionPlanSchema,
   'production-plan-milestone-measure.json': productionPlanSchema,
+  // SN-P51: the schedule basis (ProductionSetRateBasis).
+  'production-plan-rate-basis.json': productionPlanSchema,
   // Phase 4: the Production page's overview and the stage timer.
   'production-overview.json': productionOverviewSchema,
   'production-overview-empty.json': productionOverviewSchema,

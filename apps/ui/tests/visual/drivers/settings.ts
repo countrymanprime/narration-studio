@@ -252,9 +252,9 @@ export const settingsDrivers: Record<string, Driver> = {
     await goToPage(page, 'Settings');
     await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Keyboard & pedals');
-    await openKeyboardRecorder(page, 'Play or pause reading');
-    await page.keyboard.press('PageDown');
-    await page.getByText('Page Down captured. No other command uses it where reading happens.').waitFor();
+    await openKeyboardRecorder(page, 'Record or stop');
+    await page.keyboard.press('KeyJ');
+    await page.getByText('J captured. No other command uses it where reading happens.').waitFor();
   },
   'global-keyboard-conflict': async (page) => {
     await goToPage(page, 'Settings');

@@ -83,7 +83,7 @@ describe('KeyboardPanel', () => {
     expect(screen.getByText("Page · a chapter's Proof view")).toBeTruthy();
     expect(screen.getByText('Booth · the Booth and its companion panel')).toBeTruthy();
     expect(screen.getByText('Back')).toBeTruthy();
-    expect(screen.getByText('Play or pause reading')).toBeTruthy();
+    expect(screen.getByText('Record or stop')).toBeTruthy();
   });
 
   it('marks a noisy command as playing audio', async () => {
@@ -101,24 +101,24 @@ describe('KeyboardPanel', () => {
 
   it('opens an inline recorder on Change, with an idle prompt in its live region', async () => {
     renderPanel();
-    const group = await openRecorderFor('Play or pause reading');
-    expect(group.getByRole('status').textContent).toBe('Press a key or a pedal for "Play or pause reading"…');
+    const group = await openRecorderFor('Record or stop');
+    expect(group.getByRole('status').textContent).toBe('Press a key or a pedal for "Record or stop"…');
   });
 
   it('captures a key, announces it in the live region, and saves it on Replace', async () => {
     const { api, notify } = renderPanel();
     const saveSettings = vi.spyOn(api, 'saveSettings');
-    const group = await openRecorderFor('Play or pause reading');
+    const group = await openRecorderFor('Record or stop');
 
-    keydown({ code: 'PageDown' });
-    expect(group.getByRole('status').textContent).toBe('Page Down captured. No other command uses it where reading happens.');
+    keydown({ code: 'KeyJ' });
+    expect(group.getByRole('status').textContent).toBe('J captured. No other command uses it where reading happens.');
     expect(group.getByRole('button', { name: 'Add as another key' })).toBeTruthy();
     expect(group.getByRole('button', { name: 'Unbind' })).toBeTruthy();
 
     fireEvent.click(group.getByRole('button', { name: 'Replace' }));
     await waitFor(() =>
       expect(saveSettings).toHaveBeenCalledWith('Keymap', 'global', {
-        overrides: JSON.stringify({ version: 1, bindings: { 'reading.toggle': ['PageDown'] } }),
+        overrides: JSON.stringify({ version: 1, bindings: { 'reading.toggle': ['KeyJ'] } }),
       }),
     );
     expect(notify).toHaveBeenCalledWith('Keyboard shortcut saved.');
@@ -170,8 +170,8 @@ describe('KeyboardPanel', () => {
   it('Cancel closes the recorder without saving', async () => {
     const { api } = renderPanel();
     const saveSettings = vi.spyOn(api, 'saveSettings');
-    const group = await openRecorderFor('Play or pause reading');
-    keydown({ code: 'PageDown' });
+    const group = await openRecorderFor('Record or stop');
+    keydown({ code: 'KeyJ' });
 
     fireEvent.click(group.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('group', { name: /Change/ })).toBeNull();
@@ -180,7 +180,7 @@ describe('KeyboardPanel', () => {
 
   it('a bare Escape cancels the recorder the same way', async () => {
     renderPanel();
-    await openRecorderFor('Play or pause reading');
+    await openRecorderFor('Record or stop');
     keydown({ code: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('group', { name: /Change/ })).toBeNull());
   });
@@ -201,7 +201,7 @@ describe('KeyboardPanel', () => {
 
   it('Unbind removes every gesture and shows Unbound', async () => {
     renderPanel();
-    const group = await openRecorderFor('Play or pause reading');
+    const group = await openRecorderFor('Record or stop');
     fireEvent.click(group.getByRole('button', { name: 'Unbind' }));
     expect(await screen.findByText('Unbound')).toBeTruthy();
     expect(screen.getByText('Changed')).toBeTruthy();
@@ -209,7 +209,7 @@ describe('KeyboardPanel', () => {
 
   it('the row Reset button restores the catalog default', async () => {
     renderPanel();
-    const group = await openRecorderFor('Play or pause reading');
+    const group = await openRecorderFor('Record or stop');
     fireEvent.click(group.getByRole('button', { name: 'Unbind' }));
     await screen.findByText('Unbound');
 
@@ -220,11 +220,11 @@ describe('KeyboardPanel', () => {
 
   it('Reset all to defaults is disabled with no overrides and clears every override once there is one', async () => {
     renderPanel();
-    await screen.findByText('Play or pause reading');
+    await screen.findByText('Record or stop');
     const resetAll = screen.getByRole('button', { name: 'Reset all to defaults' }) as HTMLButtonElement;
     expect(resetAll.disabled).toBe(true);
 
-    const group = await openRecorderFor('Play or pause reading');
+    const group = await openRecorderFor('Record or stop');
     fireEvent.click(group.getByRole('button', { name: 'Unbind' }));
     await screen.findByText('Unbound');
 
@@ -240,8 +240,8 @@ describe('KeyboardPanel', () => {
         throw new Error('the host refused it');
       },
     });
-    const group = await openRecorderFor('Play or pause reading');
-    keydown({ code: 'PageDown' });
+    const group = await openRecorderFor('Record or stop');
+    keydown({ code: 'KeyJ' });
     fireEvent.click(group.getByRole('button', { name: 'Replace' }));
 
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('the host refused it'), 'error'));

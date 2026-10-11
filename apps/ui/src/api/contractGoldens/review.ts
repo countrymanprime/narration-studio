@@ -31,6 +31,7 @@ export const reviewGoldens: Record<string, z.ZodType> = {
   'take-divergence-results.json': z.object({ lines: z.array(z.string()) }),
   'findings-list.json': findingsPageSchema,
   'findings-review.json': findingSchema,
+  'findings-retype.json': findingSchema,
   'findings-summary.json': findingsSummarySchema,
   'findings-reaper-status-looping.json': reaperStatusSchema,
   'findings-reaper-status-not-running.json': reaperStatusSchema,

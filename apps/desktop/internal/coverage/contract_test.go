@@ -101,6 +101,19 @@ func TestContractWorkspaceAlignment(t *testing.T) {
 	pinAlignment(t, "workspace-alignment-stale", stale)
 }
 
+// TestContractWorkspaceAlignmentAddedWords pins the heard words of extra runs (ADR 0855): one before anything was
+// heard, one across two items (unplaced) and one after the last token.
+func TestContractWorkspaceAlignmentAddedWords(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: addedWordsResults})
+	run(t, service, testRequest())
+	view := alignmentOf(t, service)
+	if len(view.Extras) != 3 || view.Engine == nil {
+		t.Fatalf("the fixture needs three extra runs and an engine: %+v", view)
+	}
+	pinAlignment(t, "workspace-alignment-added-words", view)
+}
+
 func TestAResultViewCarriesTheFractionOnlyWhenCurrent(t *testing.T) {
 	p := newTestProject(t)
 	service := p.service(&fakeSidecar{present: 8})

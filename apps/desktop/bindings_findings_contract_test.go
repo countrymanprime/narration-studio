@@ -113,6 +113,12 @@ func TestContractFindingsReviewBindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkBindingContract(t, "findings-summary", summary)
+
+	retyped, err := host.FindingsSetType(shown.Findings[0].ID, shown.Findings[0].EvidenceVersion, "pron")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "findings-retype", retyped)
 }
 
 // checkBindingContract pins a string binding's answer as the UI receives it, with the decision timestamp fixed.

@@ -42,9 +42,20 @@ type Decision struct {
 	Timestamp       string `json:"timestamp"`
 }
 
+// TypeChoice is one entry in the append-only type history: the narrator's chosen kind for a finding, made
+// against a specific EvidenceVersion (ADR 0844). An empty Type returns the finding to the analyzer's own word.
+// The latest entry for an id wins; a retype is not a Decision and never touches status, note or the counts.
+type TypeChoice struct {
+	FindingID       string   `json:"finding_id"`
+	EvidenceVersion string   `json:"evidence_version,omitempty"`
+	Type            NoteType `json:"type"`
+	Timestamp       string   `json:"timestamp"`
+}
+
 type reviewHistory struct {
-	SchemaVersion int        `json:"schema_version"`
-	Decisions     []Decision `json:"decisions"`
+	SchemaVersion int          `json:"schema_version"`
+	Decisions     []Decision   `json:"decisions"`
+	Types         []TypeChoice `json:"types,omitempty"`
 }
 
 // Store persists analyzer findings and narrator decisions for one project.
@@ -124,12 +135,13 @@ func (s *Store) mergeScope(analyzer, scope string, fresh []Finding, markAbsent b
 	if err != nil {
 		return nil, err
 	}
-	latest := latestDecisions(history)
+	latest := latestDecisions(history.Decisions)
+	chosen := latestTypes(history.Types)
 
 	merged := make([]Finding, 0, len(fresh)+len(previous))
 	position := make(map[string]int, len(fresh))
 	for _, f := range fresh {
-		f = applyDecision(f, latest[f.ID])
+		f = applyType(applyDecision(f, latest[f.ID]), chosen[f.ID])
 		f.NotInLatestRun = false
 		if at, repeated := position[f.ID]; repeated {
 			merged[at] = f
@@ -142,7 +154,7 @@ func (s *Store) mergeScope(analyzer, scope string, fresh []Finding, markAbsent b
 		if _, seen := position[prior.ID]; seen {
 			continue
 		}
-		carried := applyDecision(prior, latest[prior.ID])
+		carried := applyType(applyDecision(prior, latest[prior.ID]), chosen[prior.ID])
 		if markAbsent {
 			carried.NotInLatestRun = true
 		}
@@ -171,6 +183,26 @@ func applyDecision(f Finding, decision *Decision) Finding {
 	return f
 }
 
+// applyType folds the narrator's latest type choice into a finding: kept while the evidence version still
+// matches, dropped (the analyzer's word applies) once it changed. Call it after applyDecision, which rebuilds
+// the review state.
+func applyType(f Finding, choice *TypeChoice) Finding {
+	f.Review.Type = ""
+	if choice != nil && choice.EvidenceVersion == f.EvidenceVersion {
+		f.Review.Type = choice.Type
+	}
+	return f
+}
+
+func latestTypes(history []TypeChoice) map[string]*TypeChoice {
+	latest := make(map[string]*TypeChoice, len(history))
+	for i := range history {
+		choice := history[i]
+		latest[choice.FindingID] = &choice
+	}
+	return latest
+}
+
 func latestDecisions(history []Decision) map[string]*Decision {
 	latest := make(map[string]*Decision, len(history))
 	for i := range history {
@@ -193,7 +225,8 @@ func (s *Store) RecordDecision(id, evidenceVersion string, status Status, note, 
 	defer s.mu.Unlock()
 
 	decision := Decision{FindingID: id, EvidenceVersion: evidenceVersion, Status: status, Note: note, Timestamp: timestamp}
-	if err := s.appendHistory(decision); err != nil {
+	history, err := s.appendHistory(func(h *reviewHistory) { h.Decisions = append(h.Decisions, decision) })
+	if err != nil {
 		return Finding{}, false, err
 	}
 
@@ -204,7 +237,36 @@ func (s *Store) RecordDecision(id, evidenceVersion string, status Status, note, 
 	if path == "" {
 		return Finding{}, false, nil
 	}
-	findingsInFile[index] = applyDecision(findingsInFile[index], &decision)
+	findingsInFile[index] = applyType(applyDecision(findingsInFile[index], &decision), latestTypes(history.Types)[id])
+	if err := writeJSONFile(path, findingsInFile); err != nil {
+		return Finding{}, false, err
+	}
+	return findingsInFile[index], true, nil
+}
+
+// RecordType appends the narrator's chosen kind for a finding to the review history (ADR 0844) and, when a
+// finding with id exists, applies it so the change shows at once. noteType is one of NoteTypes, or empty to
+// return the finding to the analyzer's own word. It never changes status, note or timestamp. found is false
+// when no stored finding has id; the entry is still recorded.
+func (s *Store) RecordType(id, evidenceVersion string, noteType NoteType, timestamp string) (finding Finding, found bool, err error) {
+	if id == "" {
+		return Finding{}, false, fmt.Errorf("a finding id is required")
+	}
+	if noteType != "" && !validNoteType(noteType) {
+		return Finding{}, false, fmt.Errorf("finding type %q is not one of the ten types", noteType)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	choice := TypeChoice{FindingID: id, EvidenceVersion: evidenceVersion, Type: noteType, Timestamp: timestamp}
+	if _, err := s.appendHistory(func(h *reviewHistory) { h.Types = append(h.Types, choice) }); err != nil {
+		return Finding{}, false, err
+	}
+	path, findingsInFile, index, err := s.locate(id)
+	if err != nil || path == "" {
+		return Finding{}, false, err
+	}
+	findingsInFile[index] = applyType(findingsInFile[index], &choice)
 	if err := writeJSONFile(path, findingsInFile); err != nil {
 		return Finding{}, false, err
 	}
@@ -390,7 +452,7 @@ func (s *Store) readScope(path string) ([]Finding, error) {
 // readHistory reads the review history. It is the narrator's own decisions
 // (persist.NarratorData): a corrupt file is kept aside and the narrator is
 // told, never silently replaced.
-func (s *Store) readHistory() ([]Decision, error) {
+func (s *Store) readHistory() (reviewHistory, error) {
 	var result reviewHistory
 	outcome := s.report().ReadJSON(s.reviewPath(), "findings review history", persist.NarratorData, func(bytes []byte) error {
 		var decoded reviewHistory
@@ -401,22 +463,27 @@ func (s *Store) readHistory() ([]Decision, error) {
 		return nil
 	})
 	if outcome == persist.Unreadable {
-		return nil, fmt.Errorf("could not read the findings review history")
+		return reviewHistory{}, fmt.Errorf("could not read the findings review history")
 	}
-	return result.Decisions, nil
+	return result, nil
 }
 
-func (s *Store) appendHistory(decision Decision) error {
+// appendHistory reads the history, lets add append one entry, and writes it back; it returns what was written.
+func (s *Store) appendHistory(add func(*reviewHistory)) (reviewHistory, error) {
 	path := s.reviewPath()
 	if err := persist.CanOverwrite(path, "findings review history"); err != nil {
-		return err
+		return reviewHistory{}, err
 	}
-	existing, err := s.readHistory()
+	history, err := s.readHistory()
 	if err != nil {
-		return err
+		return reviewHistory{}, err
 	}
-	existing = append(existing, decision)
-	return writeJSONFile(path, reviewHistory{SchemaVersion: SchemaVersion, Decisions: existing})
+	add(&history)
+	history.SchemaVersion = SchemaVersion
+	if err := writeJSONFile(path, history); err != nil {
+		return reviewHistory{}, err
+	}
+	return history, nil
 }
 
 func writeJSONFile(path string, value any) error {
