@@ -26,6 +26,9 @@ function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: D
           onOpenEnginePanel={() => {}}
           history={noHistory}
           zoom={defaultZoom}
+          onOpenJump={() => {}}
+          onOpenHistory={() => {}}
+          undo={{ disabledReason: 'Nothing to undo', run: () => {} }}
           {...props}
         >
           <div>page content</div>
@@ -79,44 +82,19 @@ describe('AppShell nav gating', () => {
   });
 });
 
-describe('AppShell header pill', () => {
-  it('shows "No REAPER project linked" and opens the engine panel on click when nothing is linked', () => {
+describe('AppShell engine chip', () => {
+  it('names the DAW the capabilities report and opens the engine panel on click', () => {
     const onOpenEnginePanel = vi.fn();
-    renderShell({ dawFileLinked: false, onOpenEnginePanel });
-    const pill = screen.getByRole('button', { name: /No REAPER project linked/ });
-    expect(pill.textContent).toContain('No REAPER project linked');
-    fireEvent.click(pill);
+    renderShell({ daw: 'Audacity', dawFileLinked: true, dawReachable: true, dawProjectMatches: true, onOpenEnginePanel });
+    const chip = screen.getByRole('button', { name: /^Audacity: / });
+    expect(chip.textContent).toBe('Audacity');
+    fireEvent.click(chip);
     expect(onOpenEnginePanel).toHaveBeenCalledTimes(1);
   });
 
-  it('shows "REAPER linked" once one is, and never claims to know whether REAPER is running', () => {
-    renderShell({ dawFileLinked: true });
-    const pill = screen.getByRole('button', { name: /REAPER linked/ });
-    expect(pill.textContent).toBe('REAPER linked');
-    expect(screen.queryByText(/detected/i)).toBeNull();
-    expect(screen.queryByText(/No DAW detected/i)).toBeNull();
-  });
-});
-
-// ADR 0092: the mismatch state only appears once a live
-// heartbeat disagrees with the linked file, never from a linked-but-unconfirmed state.
-describe('AppShell header pill mismatch state', () => {
-  it('still reads "REAPER linked" when linked but not yet confirmed reachable', () => {
-    renderShell({ dawFileLinked: true, dawReachable: false, dawProjectMatches: false });
-    expect(screen.getByRole('button', { name: /REAPER linked/ })).toBeTruthy();
-    expect(screen.queryByText(/Wrong REAPER project open/)).toBeNull();
-  });
-
-  it('shows "Wrong REAPER project open" only when REAPER is reachable and its open project does not match', () => {
-    renderShell({ dawFileLinked: true, dawReachable: true, dawProjectMatches: false });
-    const pill = screen.getByRole('button', { name: /Wrong REAPER project open/ });
-    expect(pill.textContent).toBe('Wrong REAPER project open');
-  });
-
-  it('reads "REAPER linked" when reachable and the open project matches', () => {
-    renderShell({ dawFileLinked: true, dawReachable: true, dawProjectMatches: true });
-    expect(screen.getByRole('button', { name: /REAPER linked/ })).toBeTruthy();
-    expect(screen.queryByText(/Wrong REAPER project open/)).toBeNull();
+  it('hard-codes no DAW: with no answer yet the chip names none', () => {
+    renderShell({ daw: undefined });
+    expect(screen.queryByText(/REAPER|Audacity/)).toBeNull();
   });
 });
 
@@ -189,14 +167,14 @@ describe('AppShell grouped navigation', () => {
 
 // The engine chip replaces the REAPER pill, in place.
 describe('AppShell engine chip', () => {
-  it('defaults to the REAPER pill states when no engine prop is given', () => {
-    renderShell({ dawFileLinked: false });
-    expect(screen.getByRole('button', { name: /No REAPER project linked/ })).toBeTruthy();
+  it('is a button that opens the engine panel when no engine prop is given', () => {
+    renderShell({ daw: 'REAPER', dawFileLinked: false });
+    expect(screen.getByRole('button', { name: /^REAPER: / })).toBeTruthy();
   });
 
-  it('shows "Built-in recorder" and drops the REAPER link action when engine is builtin', () => {
-    renderShell({ engine: 'builtin' });
-    expect(screen.getByLabelText('Built-in recorder')).toBeTruthy();
+  it('shows "Built-in" and drops the link action when engine is builtin', () => {
+    renderShell({ engine: 'builtin', daw: 'REAPER' });
+    expect(screen.getByText('Built-in')).toBeTruthy();
     expect(screen.queryByText(/REAPER/)).toBeNull();
   });
 });
@@ -287,11 +265,11 @@ describe('AppShell running-timer chip', () => {
 
   it('shows the running timer between the project name and the engine chip', () => {
     const startedAt = new Date(Date.now() - 65_000).toISOString();
-    renderShell({ timer: { startedAt, chapterTitle: 'Chapter 7', stage: 'recording' } });
+    renderShell({ daw: 'REAPER', timer: { startedAt, chapterTitle: 'Chapter 7', stage: 'recording' } });
     const chip = screen.getByRole('timer', { name: /^Timer running on Chapter 7, Recording: 0:01:0\d$/ });
     expect(chip.textContent).toMatch(/^0:01:0\d· timer on Chapter 7$/);
     const header = chip.closest('header')!;
-    const order = [within(header).getByText('Project'), chip, within(header).getByRole('button', { name: /REAPER linked/ })];
+    const order = [within(header).getByText('Project'), chip, within(header).getByRole('button', { name: /^REAPER: / })];
     for (let i = 1; i < order.length; i += 1) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
@@ -311,8 +289,6 @@ describe('AppShell rail', () => {
     expect(screen.getByRole('button', { name: 'Story Bible, 3' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Proof, 14' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Pickups, 9' })).toBeTruthy();
-    // The icon rail has no room for a badge and keeps the plain name.
-    expect(screen.getByRole('button', { name: 'Proof' })).toBeTruthy();
   });
 
   it('draws no badge for a count that is missing or zero, and never on the other items', () => {
@@ -321,5 +297,70 @@ describe('AppShell rail', () => {
     expect(screen.queryByRole('button', { name: /Proof, / })).toBeNull();
     expect(screen.queryByRole('button', { name: /Pickups, / })).toBeNull();
     expect(screen.queryByRole('button', { name: /(Script|Booth|Production|Master & QC), \d/ })).toBeNull();
+  });
+});
+
+describe('AppShell header: jump, undo and history', () => {
+  it('opens the jump menu from the "Jump to or run…" button, which shows the key', () => {
+    const onOpenJump = vi.fn();
+    renderShell({ onOpenJump });
+    const button = screen.getByRole('button', { name: /Jump to or run/ });
+    expect(button.textContent).toContain('Ctrl');
+    fireEvent.click(button);
+    expect(onOpenJump).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the history panel from the History button', () => {
+    const onOpenHistory = vi.fn();
+    renderShell({ onOpenHistory });
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    expect(onOpenHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Undo with the reason when the journal is empty, and keeps it focusable', () => {
+    const run = vi.fn();
+    renderShell({ undo: { disabledReason: 'Nothing to undo', run } });
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    expect(undo.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(undo);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('runs Undo when the journal has an entry', () => {
+    const run = vi.fn();
+    renderShell({ undo: { run } });
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws none of these on the Booth', () => {
+    renderShell({ pathname: '/booth' });
+    expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Jump to or run/ })).toBeNull();
+  });
+});
+
+describe('AppShell rail', () => {
+  it('collapses below 1360 CSS px, not 1400', () => {
+    const { container } = renderShell();
+    const rail = container.querySelector('aside');
+    expect(rail?.className).toContain('min-[1360px]');
+    expect(container.innerHTML).not.toContain('1400px');
+    expect(container.innerHTML).not.toContain('1399px');
+  });
+
+  it('keeps every item reachable by name in the one rail, which is also what the collapsed rail shows', () => {
+    const { container } = renderShell();
+    const rail = container.querySelector('aside') as HTMLElement;
+    for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Settings']) {
+      expect(within(rail).getByRole('button', { name })).toBeTruthy();
+    }
+  });
+
+  it('draws a count badge only from a count the host reported', () => {
+    renderShell({ navCounts: { proof: 3 } });
+    expect(screen.getAllByRole('button', { name: 'Proof, 3' }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /^Master & QC, / })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Pickups, / })).toBeNull();
   });
 });

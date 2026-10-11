@@ -1,55 +1,72 @@
+import type { DawKind } from '../../api/contracts/daw';
+import { dawShortName } from '../../studio/StudioProvider';
 import { HeaderChip } from '../primitives/HeaderChip';
 import { TooltipTarget } from '../primitives/Tooltip';
 
-// The header's audio-engine indicator (ADR 0407 item 4),
-// replacing the REAPER link pill in place: same styled button, same three REAPER states, plus a fourth the UI can draw
-// but that nothing selects yet ('builtin', Q7) - the native recording suite's own binding chooses it later. A click
-// opens the engine panel (Phase 6, Q3 A), which holds the link and relink action.
+// The header's recording-engine chip (the Studio Next mock's top bar): the name of the recorder the project is connected to, with a dot
+// for how it is doing. Its tooltip says whether it is running. A click opens the engine panel (Phase 6), which holds the link and
+// relink action. 'builtin' is the project's recorder choice (Q7) and, like a DAW of 'none', has no link to open.
 export type EngineState = 'daw' | 'builtin';
 
 export function EngineChip({
+  daw,
   engine = 'daw',
   dawFileLinked,
   dawReachable = false,
   dawProjectMatches = false,
+  followingChapter,
   onOpenEnginePanel,
   linkingDawFile = false,
 }: {
+  /** Which DAW backs the session (`dawCapabilities().daw`); undefined until the first answer, when the chip names none. */
+  daw?: DawKind;
   /** Which engine backs this project (Q7); the UI defaults to 'daw' until native recording picks 'builtin'. */
   engine?: EngineState;
   dawFileLinked: boolean;
-  /** Whether a live REAPER heartbeat has been seen recently (Phase 7, ADR 0092); false also covers "unknown". */
+  /** Whether a live heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
   dawReachable?: boolean;
-  /** Whether that heartbeat's open project is the linked file (Phase 7); only meaningful when dawReachable is true. */
+  /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
-  /** Opens the engine panel (Phase 6): the linked .rpp and its link action, the tracks, chapter sync and the REAPER tools. */
+  /** The chapter the DAW is following, when the host reports one. */
+  followingChapter?: string;
+  /** Opens the engine panel: the linked project and its link action, the tracks, chapter sync and the DAW tools. */
   onOpenEnginePanel: () => void;
   /** True while the shared DAW-link binding is running for any of its three call sites (ADR 0075's ref guard). */
   linkingDawFile?: boolean;
 }) {
-  if (engine === 'builtin') {
+  if (engine === 'builtin' || daw === 'none') {
     return (
       // role="group" (not a plain span): aria-label is only permitted on an element whose role supports naming, and
       // below `md` the visible text hides, leaving the dot as the chip's only content (axe aria-prohibited-attr).
-      <HeaderChip role="group" aria-label="Built-in recorder" dot="var(--accent)" short className="flex-none">
-        <span className="max-md:hidden">Built-in recorder</span>
+      <HeaderChip role="group" aria-label="Built-in: Recording happens in the app" dot="var(--non-text)" short className="flex-none">
+        <span className="max-md:hidden">Built-in</span>
       </HeaderChip>
     );
   }
-  const dawMismatch = dawFileLinked && dawReachable && !dawProjectMatches;
-  const label = dawMismatch ? 'Wrong REAPER project open' : dawFileLinked ? 'REAPER linked' : 'No REAPER project linked';
-  const tooltip = dawMismatch
-    ? 'REAPER has a different project open than the one linked here. Open the engine panel to link the open project, or switch REAPER to the linked file.'
-    : dawFileLinked
-      ? 'Open the engine panel: the linked REAPER project, its tracks and the REAPER tools'
-      : 'Open the engine panel to link a REAPER project (.rpp) file';
-  // The mock's linked chip is `--ok-soft` with an `--ok` dot (mock 01); a wrong project is a warning; nothing linked is a
-  // neutral readout with a quiet dot.
-  const tone = dawMismatch ? 'warning' : dawFileLinked ? 'success' : 'neutral';
-  const dot = dawMismatch ? 'var(--warn)' : dawFileLinked ? 'var(--ok)' : 'var(--non-text)';
+  const label = daw ? dawShortName(daw) : '';
+  const mismatch = dawFileLinked && dawReachable && !dawProjectMatches;
+  const tooltip = !dawFileLinked
+    ? 'Open the engine panel to link a project file'
+    : !dawReachable
+      ? 'Not running'
+      : mismatch
+        ? 'A different project is open than the one linked here. Open the engine panel to link the open project, or switch to the linked file.'
+        : followingChapter
+          ? `Linked · following ${followingChapter}`
+          : 'Linked';
+  const tone = !dawFileLinked ? 'neutral' : mismatch || !dawReachable ? 'warning' : 'success';
+  const dot = tone === 'neutral' ? 'var(--non-text)' : tone === 'warning' ? 'var(--warn)' : 'var(--ok)';
   return (
     <TooltipTarget text={tooltip}>
-      <HeaderChip tone={tone} dot={dot} onClick={onOpenEnginePanel} aria-busy={linkingDawFile} aria-label={`${label} — ${tooltip}`} short className="flex-none">
+      <HeaderChip
+        tone={tone}
+        dot={dot}
+        onClick={onOpenEnginePanel}
+        aria-busy={linkingDawFile}
+        aria-label={label ? `${label}: ${tooltip}` : tooltip}
+        short
+        className="flex-none"
+      >
         {/* Below `md` the chip shortens to its dot; the full text stays in the accessible name above (app-navigation Q10 A). */}
         <span className="max-md:hidden">{label}</span>
       </HeaderChip>
