@@ -129,7 +129,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADR and audit | A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | in review (ADR 0792; audit: docs/sn-b1-script-bible-audit) | - | SN0-1 | 0.5 | - |
 | 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | pending | 3 | 1 | 1.5 | - |
-| 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | pending | 2 | 1 | 1.0 | - |
+| 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | in progress ([#1084](https://github.com/countrymanprime/narration-utils/issues/1084): drafts, sort, alias counts; needs-review filter and mark reviewed wait for SNX-4) | 2 | 1 | 1.0 | - |
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | pending | 2, 3 | 1 | 0.8 | - |
 | 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | pending | 2 | 1 | 1.0 | - |
 | 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | pending | - | 5, SNR-4, SNF-3 | 1.2 | - |

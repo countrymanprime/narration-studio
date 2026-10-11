@@ -210,13 +210,3 @@ export function windowExcerpt(text: string, matchStart: number, matchLength: num
     matchLength: matchLen,
   };
 }
-
-export type EntitySort = { key: 'name' | 'occurrences'; dir: 'asc' | 'desc' };
-export const sortEntities = (entities: GuideEntity[], sort: EntitySort): GuideEntity[] => {
-  const factor = sort.dir === 'asc' ? 1 : -1;
-  return [...entities].sort((a, b) => {
-    const left = sort.key === 'occurrences' ? a.occurrence_count : a.canonical_name.toLowerCase();
-    const right = sort.key === 'occurrences' ? b.occurrence_count : b.canonical_name.toLowerCase();
-    return (left > right ? 1 : left < right ? -1 : 0) * factor;
-  });
-};
