@@ -12,7 +12,7 @@
 
 1. **An optional `code`.** `dawport.Result` (`apps/desktop/internal/dawport/result.go`) and `DawResult` (`apps/ui/src/api/contracts/daw.ts`) gain `code`, sent only on a refusal the page branches on. `stale` is the only value (`dawport.CodeStale`, `DAW_REFUSAL_CODES`); `dawResultSchema` rejects any other, and a further value needs its own ADR.
 2. **The sentence stays the narrator's.** `refused` and `message` keep the host's own sentence, unchanged; the code sits beside it and the UI never words a refusal from it. A page branches on `code: "stale"` to read the project again and offer "run the check again".
-3. **Where it is set.** `RefusedStale(sentence)` is `Refused` with the code. `RefusedFrom` maps capability refusals only and never sets a code. The UI host adapter (`apps/ui/src/ports/daw.ts`) maps the existing host results whose `reason` is `stale` (`useTake`, `addMarker`) and a record start's `track_missing` to the code, leaving the host bindings and their sentences as they are; the mock answers the same.
+3. **Where it is set.** `RefusedStale(sentence)` is `Refused` with the code. `RefusedFrom` maps capability refusals only and never sets a code. The UI host adapter (`apps/ui/src/ports/daw.ts`) maps the existing host results whose `reason` is `stale` (`useTake`, `addMarker`) and a record start's `track_missing` to the code, leaving the host bindings and their sentences as they are. The mock answers its stale take and missing track the same; it has no stale finding to answer.
 4. **Additive.** The key is optional, so `hostAPIVersion` is not bumped (ADR 0810 point 3).
 
 ## Consequences
