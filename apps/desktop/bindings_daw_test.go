@@ -151,3 +151,40 @@ func TestSaveSettingsRejectsAnUnknownCapabilityToggleValue(t *testing.T) {
 		t.Fatalf("saveSettings(%s, %q) = nil, want a refusal", key, bogus)
 	}
 }
+
+// depthAdapter declares punch and record Supported, punch destructive and made in steps, record with no depth.
+type depthAdapter struct{}
+
+func (depthAdapter) Kind() dawport.Kind { return dawport.KindAudacity }
+func (depthAdapter) Declares() map[dawport.Capability]dawport.Level {
+	return map[dawport.Capability]dawport.Level{dawport.CapPunch: dawport.Supported, dawport.CapRecord: dawport.Supported}
+}
+func (depthAdapter) Role(dawport.Capability) any { return nil }
+func (depthAdapter) Depth(c dawport.Capability) dawport.Depth {
+	if c == dawport.CapPunch {
+		return dawport.Depth{Destructive: true, Mode: dawport.ModeSteps}
+	}
+	return dawport.Depth{}
+}
+
+// TestDawCapabilitiesPayloadEmitsDepthOnlyWhenSet: destructive appears only when true and mode only when set, so a
+// declaration with no depth (every one today) leaves the payload, and the three capabilities goldens, unchanged.
+func TestDawCapabilitiesPayloadEmitsDepthOnlyWhenSet(t *testing.T) {
+	runtime := dawport.Runtime{Bridge: true, Reachable: true}
+	resolver := dawport.NewResolver(dawport.ResolverConfig{Adapter: depthAdapter{}, Runtime: func() dawport.Runtime { return runtime }})
+	capabilities := dawCapabilitiesPayload(resolver, runtime)["capabilities"].(map[string]any)
+
+	punch := capabilities[string(dawport.CapPunch)].(map[string]any)
+	if punch["destructive"] != true || punch["mode"] != "steps" {
+		t.Fatalf("punch = %v, want destructive true and mode steps", punch)
+	}
+	for _, c := range []dawport.Capability{dawport.CapRecord, dawport.CapMarkers} {
+		entry := capabilities[string(c)].(map[string]any)
+		if _, ok := entry["destructive"]; ok {
+			t.Errorf("%s = %v, want no destructive key", c, entry)
+		}
+		if _, ok := entry["mode"]; ok {
+			t.Errorf("%s = %v, want no mode key", c, entry)
+		}
+	}
+}

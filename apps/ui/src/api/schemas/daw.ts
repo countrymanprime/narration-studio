@@ -1,5 +1,15 @@
 import { z } from 'zod';
-import type { DawCapabilities, DawCapabilityLevel, DawCapabilityReason, DawCapabilitySupport, DawKind, DawTransport } from '../contracts/daw';
+import { DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
+import type {
+  DawCapabilities,
+  DawCapabilityLevel,
+  DawCapabilityMode,
+  DawCapabilityReason,
+  DawCapabilitySupport,
+  DawKind,
+  DawResult,
+  DawTransport,
+} from '../contracts/daw';
 import { optionalFromNull } from './base';
 
 const DAW_KINDS = ['REAPER', 'Audacity', 'none'] as const satisfies readonly DawKind[];
@@ -13,12 +23,15 @@ const DAW_CAPABILITY_REASONS = [
   'not_yet',
   'unsupported',
 ] as const satisfies readonly DawCapabilityReason[];
+const DAW_CAPABILITY_MODES = ['native', 'app', 'steps'] as const satisfies readonly DawCapabilityMode[];
 
 export const dawCapabilitySupportSchema = z.object({
   level: z.enum(DAW_CAPABILITY_LEVELS),
   available: z.boolean(),
   reason: optionalFromNull(z.enum(DAW_CAPABILITY_REASONS)),
   message: optionalFromNull(z.string()),
+  destructive: optionalFromNull(z.boolean()),
+  mode: optionalFromNull(z.enum(DAW_CAPABILITY_MODES)),
 }) satisfies z.ZodType<DawCapabilitySupport>;
 
 export const dawCapabilitiesSchema = z.object({
@@ -33,3 +46,13 @@ export const dawTransportSchema = z.object({
   recording: z.boolean(),
   position: optionalFromNull(z.number()),
 }) satisfies z.ZodType<DawTransport>;
+
+/** dawport.Result: refused and steps are absent unless set. */
+export const dawResultSchema = z.object({
+  ok: z.boolean(),
+  changed: z.boolean(),
+  message: z.string(),
+  undoSteps: z.number().int().min(0).max(DAW_RESULT_MAX_UNDO_STEPS),
+  refused: optionalFromNull(z.string()),
+  steps: optionalFromNull(z.array(z.string())),
+}) satisfies z.ZodType<DawResult>;

@@ -319,3 +319,66 @@ func TestAllowedWithNoAdapterIsStandalone(t *testing.T) {
 		t.Fatalf("Allowed with no adapter = %v, want a standalone refusal", err)
 	}
 }
+
+// deepAdapter is a stubAdapter that also declares each capability's Depth.
+type deepAdapter struct {
+	plainAdapter
+	depth map[Capability]Depth
+}
+
+func (d deepAdapter) Depth(c Capability) Depth { return d.depth[c] }
+
+// go-support-carries-the-new-fields: the resolver reports a declared Depth whether or not the capability is available now, and a
+// declaration without one reports neither field.
+func TestSupportCarriesTheDeclaredDepth(t *testing.T) {
+	declares := map[Capability]Level{CapPunch: Supported, CapRecord: Supported, CapMarkers: Supported}
+	adapter := deepAdapter{
+		plainAdapter: plainAdapter{stubAdapter{kind: KindAudacity, declares: declares}},
+		depth:        map[Capability]Depth{CapPunch: {Destructive: true, Mode: ModeSteps}, CapRecord: {Mode: ModeNative}},
+	}
+	for _, tc := range []struct {
+		name    string
+		runtime Runtime
+		toggles map[Capability]Toggle
+		cap     Capability
+		want    Support
+	}{
+		{"available", Runtime{Bridge: true, Reachable: true}, nil, CapPunch,
+			Support{Level: Supported, Available: true, Destructive: true, Mode: ModeSteps}},
+		{"mode only", Runtime{Bridge: true, Reachable: true}, nil, CapRecord,
+			Support{Level: Supported, Available: true, Mode: ModeNative}},
+		{"declares neither", Runtime{Bridge: true, Reachable: true}, nil, CapMarkers,
+			Support{Level: Supported, Available: true}},
+		{"not running keeps reason and message", Runtime{Bridge: true}, nil, CapPunch,
+			Support{Level: Supported, Reason: ReasonNotRunning, Message: "Audacity is not answering. Check that Audacity is open, then try again.",
+				Destructive: true, Mode: ModeSteps}},
+		{"turned off keeps reason and message", Runtime{Bridge: true, Reachable: true}, map[Capability]Toggle{CapPunch: ToggleOff}, CapPunch,
+			Support{Level: Supported, Reason: ReasonTurnedOff, Message: messageTurnedOff, Destructive: true, Mode: ModeSteps}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := NewResolver(ResolverConfig{
+				Adapter: adapter,
+				Runtime: func() Runtime { return tc.runtime },
+				Toggle:  togglesOf(tc.toggles),
+			})
+			if got := r.Support(tc.cap); got != tc.want {
+				t.Fatalf("Support(%s) = %+v, want %+v", tc.cap, got, tc.want)
+			}
+		})
+	}
+	var refusal *NotSupportedError
+	r := NewResolver(ResolverConfig{Adapter: adapter, Toggle: togglesOf(map[Capability]Toggle{CapPunch: ToggleOff})})
+	if err := r.Allowed(CapPunch); !errors.As(err, &refusal) || !refusal.Support.Destructive || refusal.Support.Mode != ModeSteps {
+		t.Fatalf("Allowed(punch) = %v, want a refusal that still carries the depth", err)
+	}
+}
+
+func TestSupportWithoutADescriberReportsNoDepth(t *testing.T) {
+	r := NewResolver(ResolverConfig{
+		Adapter: plainAdapter{stubAdapter{kind: KindREAPER, declares: map[Capability]Level{CapPunch: Supported}}},
+		Runtime: func() Runtime { return Runtime{Bridge: true, Reachable: true} },
+	})
+	if got := r.Support(CapPunch); got.Destructive || got.Mode != "" {
+		t.Fatalf("Support(punch) = %+v, want no depth from an adapter that declares none", got)
+	}
+}

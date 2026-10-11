@@ -53,3 +53,18 @@ func TestNotSupportedErrorSpeaksTheNarratorsMessage(t *testing.T) {
 		t.Fatal("an unrelated error with the same text must not match ErrNotSupported")
 	}
 }
+
+func TestModesAreTheWireValuesAndASupportCarriesItsDepth(t *testing.T) {
+	for mode, want := range map[Mode]string{ModeNative: "native", ModeApp: "app", ModeSteps: "steps"} {
+		if string(mode) != want {
+			t.Errorf("mode %q, want %q", mode, want)
+		}
+	}
+	s := Support{Level: Supported, Available: true, Destructive: true, Mode: ModeSteps}
+	if !s.Destructive || s.Mode != ModeSteps {
+		t.Fatalf("Support = %+v, want it to carry destructive and mode", s)
+	}
+	if (Support{}).Mode != "" || (Support{}).Destructive {
+		t.Fatal("a zero Support declares neither destructive nor a mode")
+	}
+}
