@@ -17,7 +17,7 @@ export function signal(id: string, state: StageSignal['state'], reason = 'Checke
 export function recommendation(overrides: Partial<StageChapterRecommendation> = {}): StageChapterRecommendation {
   return {
     chapterId: 'c4',
-    title: 'The Rabbit Sends in a Little Bill',
+    title: 'A chapter title',
     from: 'recording',
     target: 'editing',
     verdict: 'recommended',

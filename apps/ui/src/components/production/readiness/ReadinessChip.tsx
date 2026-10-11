@@ -12,6 +12,7 @@ export function ReadinessChip({ recommendation, onOpen }: { recommendation: Stag
   const verdict = verdictOf(recommendation);
   const stage = stageLabel(recommendation.from);
   const label = VERDICT_LABEL[verdict];
+  const colors = toneColors(VERDICT_TONE[verdict]);
   return (
     <TooltipTarget text={`${label} · ${stage}`}>
       <button
@@ -20,9 +21,9 @@ export function ReadinessChip({ recommendation, onOpen }: { recommendation: Stag
         data-verdict={verdict}
         aria-label={`Stage readiness: ${label}, ${stage}`}
         aria-haspopup="dialog"
-        // The mock's round 20 px mark: the tone's text colour filled, the glyph in the surface colour.
-        className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full border-0 p-0 text-[0.7rem] leading-none font-bold text-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-        style={{ background: toneColors(VERDICT_TONE[verdict]).text }}
+        // The mock's round 20 px mark, in the tone's soft fill and text colour (the pairs the palette guard already checks).
+        className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full border border-solid p-0 text-[0.7rem] leading-none font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        style={{ background: colors.fill, color: colors.text, borderColor: colors.line }}
         onClick={onOpen}
       >
         <span aria-hidden="true">{VERDICT_GLYPH[verdict]}</span>
