@@ -1,6 +1,6 @@
 // The `global` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { TOOLTIP_CLOSES_ON_RESIZE, FREEZES_THE_CLOCK } from './shared';
+import { TOOLTIP_CLOSES_ON_RESIZE, FREEZES_THE_CLOCK, LAYOUT_BANDS } from './shared';
 
 export const globalStates: StateEntry[] = [
   // Global overlays (captured once against the Production home, not per-page)
@@ -45,6 +45,7 @@ export const globalStates: StateEntry[] = [
       viewports: ['desktop'],
     },
     ...TOOLTIP_CLOSES_ON_RESIZE,
+    ...LAYOUT_BANDS,
   },
 
   // Theme smoke check (the Production home only, not the full page/state matrix - see

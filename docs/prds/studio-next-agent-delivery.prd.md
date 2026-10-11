@@ -239,7 +239,7 @@ Nothing here is application code. The changes are: a `slice.yml` issue form and 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Slice contract | Issue form, labels, header spec, `slice-lint`, templates for the worker `SLICE:` block | complete | 2 | SN0-1 | 0.8 | - |
 | 2 | Groomer | Prompt, rules for cutting slices, first grooming of SNF and SNS | pending | 1 | SN0-1 | 0.6 | - |
-| 3 | Train amendments | The accepted deviations in `agent-train.md` | pending | - | 1 | 0.6 | - |
+| 3 | Train amendments | The accepted deviations in `agent-train.md` | in progress (ADR 0865 proposed; train edit SN-A31) | - | 1 | 0.6 | - |
 | 4 | Decisions register | Register issue, seeding, polling rule in the worker template | pending | 1 | SN0-1 | 0.4 | - |
 | 5 | Status issue and reports | Status issue, daily and weekly extensions | pending | 4 | 1 | 0.5 | - |
 | 6 | Dry run | Run the train on SNF and SNS slices with `TARGET` 2 for a week; measure the metrics | pending | - | 1 to 5 | 1.0 | - |
