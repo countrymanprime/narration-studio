@@ -1,0 +1,123 @@
+name: Studio Next slice
+description: One slice of a Studio Next PRD, sized for one worker and one pull request. Normally opened by the groomer.
+title: 'SN-'
+labels: [slice, studio-next]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A slice is one worker, one PR, one session. The issue is the worker's spec. The Studio Next mock (`docs/research/mockups/studio-next/`) is the only UI spec.
+        Fill the title as `SN-<code><n> <verb phrase>`, for example `SN-F2 Icon vocabulary and Icon wrapper`. The header spec lives in the comment at the top of [`scripts/dev/slice-lint.mjs`](https://github.com/countrymanprime/narration-utils/blob/main/scripts/dev/slice-lint.mjs); paste the finished issue body into `node scripts/dev/slice-lint.mjs <file>` before you set `ready`.
+        Set the lane (`lane:<L>`), the PRD (`prd:<code>`) and `ready` labels once the slice is groomed.
+  - type: input
+    id: prd
+    attributes:
+      label: PRD and slice
+      description: The PRD file and its slice id, for example `studio-next-foundations.prd.md, slice SNF-2`.
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: Parent PRD issue
+      description: The PRD's tracking issue, for example `#996`. The slice is added to it as a sub-issue.
+    validations:
+      required: true
+  - type: input
+    id: lane
+    attributes:
+      label: Lane and model
+      description: One of K A B U C D X, then Sonnet, Opus or Haiku, for example `U / Sonnet`.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - spike
+        - adr
+        - seam
+        - page
+        - swap
+        - host
+        - lua
+        - docs
+    validations:
+      required: true
+  - type: input
+    id: depends
+    attributes:
+      label: Depends on and blocks
+      description: Issue numbers. `Depends on` gates the ready list; write `none` if empty.
+      placeholder: 'Depends on: #1001   Blocks: #1010'
+    validations:
+      required: true
+  - type: textarea
+    id: owns
+    attributes:
+      label: Owns and must not touch (globs)
+      description: Narrow globs; a swap slice also lists the old files it deletes. Split the slice rather than claim a wide glob.
+      placeholder: |
+        Owns (globs):
+          apps/ui/src/components/primitives/Icon/**
+        Must not touch (globs):
+          apps/desktop/**
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Spec and ruling rows
+      description: The mock page file and state under `studio-next/src/pages/`, plus the register rows that rule on it. For a slice with no UI, say `no UI` and name the PRD sections.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Acceptance tests (named, written first)
+      description: One line per test, by the name it will have.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Ports, contracts, verification, screenshots
+      description: Ports used, contract schemas and goldens, the verification commands, and the screenshot states by viewport (or `none`).
+    validations:
+      required: true
+  - type: textarea
+    id: owner-adrs
+    attributes:
+      label: Owner steps and ADRs
+      description: Anything only the owner can do (queued in #992), and the ADR labels and numbers this slice writes. `none` if empty.
+  - type: input
+    id: estimate
+    attributes:
+      label: Estimate (person-weeks)
+      description: 0.1 to 1. Session cap is 1 planned, 1 resume and 1 fixer; a slice that needs more is cut again.
+    validations:
+      required: true
+  - type: textarea
+    id: slice-meta
+    attributes:
+      label: slice-meta
+      description: The machine-readable header the coordinator reads. Keep the fence; every key is required.
+      value: |
+        ```slice-meta
+        id: SN-
+        lane:
+        kind:
+        depends: []
+        owns:
+          -
+        serial: []
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: handoff
+    attributes:
+      label: Handoff
+      description: Leave as is. The worker rewrites it at every checkpoint.
+      value: none yet
