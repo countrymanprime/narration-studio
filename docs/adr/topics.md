@@ -22,7 +22,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 27 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 45 |
 | [Persistence and project files](#persistence-and-project-files) | 8 |
-| [UI primitives and the design system](#ui-primitives-and-design-system) | 62 |
+| [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
 <a id="consent-and-safety"></a>
 
@@ -515,3 +515,5 @@ Primitives wrap vendor widgets, tokens, dialogs, tables, badges, buttons, themes
 | [0715](0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md) | Proof's book-level waveform card belongs to the chapter its selector names | Accepted |
 | [0725](0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | The rail draws a count badge only from a count the host reports, and the product is named Studio | Accepted |
 | [0750](0750-proofs-waveform-card-opens-on-the-last-chapter-looked-at-draws-a-placeholder-without-a-recording-and-filters-the-notes.md) | Proof's waveform card opens on the last chapter looked at, draws a placeholder without a recording, and filters the notes | Accepted |
+| [0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md) | The Studio Next mock is the only spec for every page it covers, tokens, primitive sizes and layouts included | Proposed |
+| [0761](0761-layout-rules-read-the-reported-width-the-icon-vocabulary-is-a-data-module-and-key-caps-are-pictures-in-a-new-keycap-leaf.md) | Layout rules read the reported width, the icon vocabulary is a data module, and key caps are pictures in a new KeyCap leaf | Proposed |
