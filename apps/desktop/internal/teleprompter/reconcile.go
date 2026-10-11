@@ -1,12 +1,12 @@
 package teleprompter
 
 // ResumeTolerance is how many script words apart the DAW word and the prompter's last word may be and still agree
-// (read-aloud-resume-from-daw PRD RD1 (c): within ten words, or in the same sentence). Locate is accurate to about
-// two words (ADR 0111), the tracker's last `read` lags speech by about one confirmed word, and a narrator often reads
-// a few words past where the recording stopped.
+// (within ten words, or in the same sentence). Locate is accurate to about two words (ADR 0111), the tracker's
+// last `read` lags speech by about one confirmed word, and a narrator often reads a few words past where the
+// recording stopped.
 const ResumeTolerance = 10
 
-// Verdict kinds: what the resume prompt shows (PRD Phase 3).
+// Verdict kinds: what the resume prompt shows.
 const (
 	// VerdictAgree: both sources are within the tolerance; Start reading is preset to Start, with a notice.
 	VerdictAgree = "agree"
@@ -18,7 +18,7 @@ const (
 	// VerdictDAWOnly: only the recording has a place (no reading stored); it is offered, never preset.
 	VerdictDAWOnly = "daw_only"
 	// VerdictPrompterOnly: only the last reading has a place (no track or nothing placed); it is offered, never
-	// preset, because reading is not recording (RD8).
+	// preset, because reading is not recording.
 	VerdictPrompterOnly = "prompter_only"
 	// VerdictNone: neither source has a place; nothing is shown and Start reading begins at the top.
 	VerdictNone = "none"
@@ -29,7 +29,7 @@ const (
 const ConfirmedByPrompter = "prompter"
 
 // DAWSourceSaved is a DAW place read from the saved .rpp ("as of the project's last save"); DAWSourceLive is one read from
-// REAPER's live answer ("in REAPER now", PRD Phase 4, ADR 0349), which the host sets on the place Reconcile returns.
+// REAPER's live answer ("in REAPER now", ADR 0349), which the host sets on the place Reconcile returns.
 const (
 	DAWSourceSaved = "saved"
 	DAWSourceLive  = "live"
@@ -46,7 +46,7 @@ type ResumePlace struct {
 	Source    string    `json:"source,omitempty"`
 }
 
-// ResumeVerdict is the host's one answer to "where does reading resume" (PRD Phase 3): the UI renders it and does
+// ResumeVerdict is the host's one answer to "where does reading resume": the UI renders it and does
 // no arithmetic. Start is set only for agree: the word Start reading begins at without a click. DAW and Prompter are
 // each source's place, when it has one; Tokens is the chapter's token count.
 type ResumeVerdict struct {
@@ -60,7 +60,7 @@ type ResumeVerdict struct {
 
 // Reconcile compares where the recording ends (daw, the tail locate over the saved project, ADR 0111) with where the
 // prompter last was (prompter, ADR 0205) in script. A source whose token count is not script's is ignored rather
-// than compared across two tokenisations. The DAW word wins when they agree (RD3): the recording is the truth, and
+// than compared across two tokenisations. The DAW word wins when they agree: the recording is the truth, and
 // the prompter may have read on without recording. A low-confidence DAW word never agrees by itself; within the
 // tolerance of the prompter's word it agrees, confirmed by the prompter.
 func Reconcile(daw *Located, prompter *Reading, script ChapterScript, tolerance int) ResumeVerdict {

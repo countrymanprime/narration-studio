@@ -1,13 +1,12 @@
-// Package productionreport builds the Production page's exported status report
-// (production tracking PRD Phase 5, delivered and deleted; ADR 0028): one model rendered twice, as JSON for tools and as a
-// self-contained HTML page for a reviewer without the app, mirroring internal/deliveryreport's own shape and
-// "not a certification" framing.
+// Package productionreport builds the Production page's exported status report: one model rendered twice, as JSON for
+// tools and as a self-contained HTML page for a reviewer without the app, mirroring internal/deliveryreport's own shape
+// and "not a certification" framing.
 //
-// The output is deterministic apart from GeneratedAt: every map is written in key order and every list keeps the
-// order its input already has (the same order the Production page reads). The contracted amount and the effective
-// rate, the one financial pair this report can hold, are written only when the narrator opts in
-// (Options.IncludeContractedAmount): a status report is often the one thing a narrator shares with someone they
-// would not otherwise tell their rate.
+// The output is deterministic apart from GeneratedAt: every map is written in key order and every list keeps the order
+// its input already has (the same order the Production page reads). The contracted amount and the effective rate, the
+// one financial pair this report can hold, are written only when the narrator opts in
+// (Options.IncludeContractedAmount): a status report is often the one thing a narrator shares with someone they would
+// not otherwise tell their rate.
 package productionreport
 
 import (

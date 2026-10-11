@@ -68,7 +68,7 @@ func TestCommittedManuscriptKeepsLineBreaksAndFormattingSpans(t *testing.T) {
 }
 
 // TestCommittedManuscriptCarriesSourceMetadataFromFrontMatter covers
-// credits-token-setup-and-front-matter-detection.prd.md Phase 4: a Markdown import's YAML front matter reaches
+// a Markdown import's YAML front matter reaches
 // manuscript.json as an additive sourceMetadata block, for internal/credits.Detect to read back.
 func TestCommittedManuscriptCarriesSourceMetadataFromFrontMatter(t *testing.T) {
 	project := t.TempDir()
@@ -287,8 +287,8 @@ func TestPreviewPayloadCarriesTheRepairsTheImporterMade(t *testing.T) {
 	}
 }
 
-// Findings are anchored to manuscript chapter and paragraph ids
-// (review-dashboard-and-findings-adoption.prd.md Q5): resetDerived, run on a
+// Findings are anchored to manuscript chapter and paragraph ids:
+// resetDerived, run on a
 // confirmed manuscript replace and on Clear, must clear them along with the
 // other derived, manuscript-anchored folders.
 func TestResetDerivedClearsTheFindingsDirectory(t *testing.T) {
@@ -317,10 +317,10 @@ func TestResetDerivedClearsTheFindingsDirectory(t *testing.T) {
 	}
 }
 
-// resetDerived clears everything a re-import or an explicit Clear invalidates. The analysis evidence ledger PRD's Q3
-// ("Add the directory to resetDerived") adds evidence.LedgerDir alongside the existing entries: a ledger record names
+// resetDerived clears everything a re-import or an explicit Clear invalidates. evidence.LedgerDir is
+// cleared alongside the existing entries: a ledger record names
 // fingerprints computed against the manuscript that produced its chapter IDs, so it must not survive a re-import that
-// assigns new ones (Q9), the same reasoning ManuscriptGuide and TranscriptCompare already follow here.
+// assigns new ones, the same reasoning ManuscriptGuide and TranscriptCompare already follow here.
 func TestResetDerivedClearsTheAnalysisLedgerDirectory(t *testing.T) {
 	project := t.TempDir()
 	ledgerDir := evidence.LedgerDir(project)
@@ -361,7 +361,7 @@ func TestResetDerivedClearsTheRecordingCoverageDirectory(t *testing.T) {
 }
 
 // The proofing signals' chapter-to-render choices are keyed by documentId and chapter id, which a re-import renumbers,
-// so resetDerived clears their folder (proofing-readiness-signals.prd.md Phase 4: "re-import clears the store").
+// so resetDerived clears their folder.
 func TestResetDerivedClearsTheProofingRenderChoices(t *testing.T) {
 	project := t.TempDir()
 	if err := os.MkdirAll(proofing.Dir(project), 0o755); err != nil {
@@ -379,7 +379,7 @@ func TestResetDerivedClearsTheProofingRenderChoices(t *testing.T) {
 	}
 }
 
-// A chapter's editing source choice (Q6, editing-readiness-analysis.prd.md Phase 8) is keyed by documentId and
+// A chapter's editing source choice is keyed by documentId and
 // chapter id, which a re-import renumbers, so resetDerived clears its folder the same way it clears proofing's own.
 func TestResetDerivedClearsTheEditingSourceChoices(t *testing.T) {
 	project := t.TempDir()
@@ -396,8 +396,7 @@ func TestResetDerivedClearsTheEditingSourceChoices(t *testing.T) {
 	}
 }
 
-// Stage decisions name chapter ids, which a re-import renumbers, so resetDerived clears them with the rest
-// (chapter-stage-recommendations.prd.md Q1 and Phase 2).
+// Stage decisions name chapter ids, which a re-import renumbers, so resetDerived clears them with the rest.
 func TestResetDerivedClearsTheStageDecisionsFile(t *testing.T) {
 	project := t.TempDir()
 	path := stages.DecisionsFile(project)
@@ -417,7 +416,7 @@ func TestResetDerivedClearsTheStageDecisionsFile(t *testing.T) {
 }
 
 // A reference names a region of the REAPER project accompanying one specific
-// manuscript (character-continuity-review.prd.md Q7), so resetDerived clears
+// manuscript, so resetDerived clears
 // it with the rest: a replaced manuscript's characters are not the ones a
 // stale reference was approved against.
 func TestResetDerivedClearsTheCharacterReferencesDirectory(t *testing.T) {
@@ -464,10 +463,10 @@ func TestClearRemovesTheAnalysisLedgerDirectoryAlongsideManuscriptData(t *testin
 	}
 }
 
-// The evidence ledger PRD's Phase 4 (Q5) adds the per-item result cache
+// resetDerived also clears the per-item result cache
 // directory alongside LedgerDir for the same reason: a cache entry's key
 // includes the source identity but not the chapter ID, yet its value was
-// produced for items under a chapter ID a re-import invalidates (Q9), so it
+// produced for items under a chapter ID a re-import invalidates, so it
 // must not survive either.
 func TestResetDerivedClearsTheAnalysisCacheDirectory(t *testing.T) {
 	project := t.TempDir()
@@ -513,7 +512,7 @@ func TestClearRemovesTheAnalysisCacheDirectoryAlongsideManuscriptData(t *testing
 	}
 }
 
-// The evidence ledger PRD's Phase 5 (Q6, Q9 option A) adds the confirmed
+// resetDerived also clears the confirmed
 // chapter-track mapping file alongside LedgerDir and CacheDir: a mapping
 // names a chapter ID a re-import invalidates, so it must not survive one
 // either. Unlike the ledger and cache, this is a single file, not a
@@ -536,9 +535,7 @@ func TestResetDerivedClearsTheChapterTrackMappingFile(t *testing.T) {
 	}
 }
 
-// A pinned preview names chapter and paragraph ids a re-import renumbers, so resetDerived clears it with the rest
-// (proofing-preview-suggestion.prd.md Phase 8, Q9: "cleared by resetDerived because chapter and paragraph ids
-// reset on re-import").
+// A pinned preview names chapter and paragraph ids a re-import renumbers, so resetDerived clears it with the rest.
 func TestResetDerivedClearsThePreviewPin(t *testing.T) {
 	project := t.TempDir()
 	store := preview.NewPinStore(project)

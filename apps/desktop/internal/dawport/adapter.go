@@ -1,4 +1,4 @@
-// Package dawport is the one way the host reaches an audio engine (ADR 0300, DAW port PRD). An adapter per engine declares a Level
+// Package dawport is the one way the host reaches an audio engine (ADR 0300). An adapter per engine declares a Level
 // for each Capability and returns one small role interface for each capability it has; the Resolver alone decides what is
 // available now, from that declaration, the runtime state and the narrator's per-capability settings; callers get a role through
 // Role[T] and never hold an adapter. Every adapter passes the conformance suite in dawporttest.
@@ -15,7 +15,7 @@ const (
 	KindNone Kind = iota
 	// KindREAPER is `--daw REAPER`, which NarrationUtils_Launcher.lua always passes.
 	KindREAPER
-	// KindAudacity is `--daw Audacity` (audacity-integration PRD, Phase 5).
+	// KindAudacity is `--daw Audacity` (ADR 0144).
 	KindAudacity
 )
 
@@ -45,9 +45,9 @@ func Classify(label string) Kind {
 }
 
 // IsREAPERLaunch reports whether daw (the launch's own `daw` fact) names a live REAPER launch. It is the one place outside this
-// package allowed to ask "is this REAPER" at all (DAW port PRD P6's boundary test): a caller with a narrower question asks the
-// resolver for a capability instead, but the launch's own identity (dawfacts.go's W18 case, app.go's unresolved-project-file
-// wording) is still Kind.
+// package allowed to ask "is this REAPER" at all (boundary_test.go enforces it): a caller with a narrower question asks the
+// resolver for a capability instead, but the launch's own identity (dawfacts.go's linked-launch case, app.go's
+// unresolved-project-file wording) is still Kind.
 func IsREAPERLaunch(daw string) bool {
 	return Classify(daw) == KindREAPER
 }

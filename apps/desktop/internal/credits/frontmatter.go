@@ -9,8 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-// Confidence is how sure a Candidate is (credits-token-setup-and-front-matter-detection.prd.md, Solution Detail's
-// confidence table): High when two sources agree or an explicit marker was seen ("by", "Title:", an EPUB role of
+// Confidence is how sure a Candidate is. High when two sources agree or an explicit marker was seen ("by", "Title:", an EPUB role of
 // "aut"); Medium for one pattern with a positional cue; Low for a descriptor-derived guess or a lone, unconfirmed
 // source.
 type Confidence string
@@ -255,7 +254,7 @@ func isShortTitleLine(line string) bool {
 }
 
 // titleCandidates joins the title block's lines, strips a "Title:" prefix, splits off a same-line ": Subtitle", and
-// recases an all-capitals block per CS3.
+// recases an all-capitals block to title case.
 func titleCandidates(titleLines []string) []Candidate {
 	joined := strings.Join(titleLines, " ")
 	if m := reTitlePrefix.FindStringSubmatch(joined); m != nil {

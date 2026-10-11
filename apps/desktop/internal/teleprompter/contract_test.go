@@ -42,7 +42,7 @@ func TestContractRunningStateFromTheSidecarsOwnEvents(t *testing.T) {
 	contractfile.Check(t, "teleprompter-state-running", service.Snapshot())
 }
 
-// The meter's stream (read-aloud-control-bar PRD Phase 4): every `level` the Python sidecar's own test pins
+// The meter's stream: every `level` the Python sidecar's own test pins
 // (teleprompter-level.json) passes the meter's filter unchanged, and the `meter_stopped` events the host adds when a meter
 // ends by request and on a failure are pinned for the UI's schema.
 func TestContractMeterRelaysTheSidecarsLevelsAndEndsWithMeterStopped(t *testing.T) {

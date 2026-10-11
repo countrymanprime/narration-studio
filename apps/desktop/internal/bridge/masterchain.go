@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// The mastering port's DAW row (ADR 0306, render-encode-master PRD Phase 9) reads the chain a render with FX would run before the
+// The mastering port's DAW row (ADR 0306) reads the chain a render with FX would run before the
 // narrator approves it: master_chain_read (integrations/reaper/narration_master_render.lua). The render itself, render_with_fx,
 // answers later through the client's fan-out (FX_RENDER_FILE, FX_RENDERED), so it is not one of Actions' requests.
 

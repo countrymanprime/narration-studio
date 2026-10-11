@@ -1,9 +1,8 @@
-// Package stages is the chapter stage recommendations core (Phase 1 of
-// chapter-stage-recommendations.prd.md, delivered and deleted; see docs/architecture/stage-recommendations.md): the signal contract the
-// recording, editing and proofing signal owners implement, the Provider
-// interface they plug in through, and a pure engine that turns a chapter's
-// required signals into a verdict. It only suggests: nothing here writes a
-// chapter status, stores a recommendation, or starts an analysis (D1). The
+// Package stages is the chapter stage recommendations core: the signal
+// contract the recording, editing and proofing signal owners implement, the
+// Provider interface they plug in through, and a pure engine that turns a
+// chapter's required signals into a verdict. It only suggests: nothing here writes a
+// chapter status, stores a recommendation, or starts an analysis. The
 // contract is described for implementers in
 // docs/architecture/stage-recommendations.md and decided in ADR 0160.
 package stages
@@ -17,7 +16,7 @@ import (
 // Stage is a chapter's production stage. The values are exactly the stored
 // ChapterStatus strings (apps/desktop/internal/manuscript/reader.go's
 // validChapterStatus, apps/ui/src/api/contracts/manuscript.ts): the status
-// is the stage (D3), and no new value is added (Q3).
+// is the stage, and no new value is added.
 type Stage string
 
 const (
@@ -28,9 +27,9 @@ const (
 	StageFinalized  Stage = "finalized"
 )
 
-// nextStage is the one-stage advance each narrator rule judges (D3). A stage
+// nextStage is the one-stage advance each narrator rule judges. A stage
 // missing from it (not_started, finalized, anything unknown) is never
-// evaluated (Q4).
+// evaluated.
 var nextStage = map[Stage]Stage{
 	StageRecording: StageEditing,
 	StageEditing:   StageProofing,
@@ -44,7 +43,7 @@ func (s Stage) Next() (Stage, bool) {
 	return next, ok
 }
 
-// SignalState is a signal's tri-state answer (D2). Only met can contribute to
+// SignalState is a signal's tri-state answer. Only met can contribute to
 // a recommendation; unknown is never read as met.
 type SignalState string
 
@@ -113,7 +112,7 @@ type Evidence struct {
 }
 
 // Basis is what a signal was computed from. The engine treats every field as
-// opaque (D6): LedgerRecordIDs are the analysis evidence ledger records read,
+// opaque: LedgerRecordIDs are the analysis evidence ledger records read,
 // Fingerprint is the chapter fingerprint they were compared at, and
 // ProjectFileModTime is the saved project's modified time, shown to the
 // narrator but excluded from the basis key.
@@ -124,7 +123,7 @@ type Basis struct {
 }
 
 // Signal is one required check's answer for one chapter. ID is
-// "<stage>.<name>" (owned by the signal's PRD), Stage is the chapter's
+// "<stage>.<name>" (owned by the package that implements the signal), Stage is the chapter's
 // current stage the signal judges as finished, Reason is a short human
 // string, and Cause is set only when State is unknown.
 type Signal struct {

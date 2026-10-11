@@ -36,7 +36,7 @@ func TestCatalogIsALiteralNotAFetch(t *testing.T) {
 
 // TestReaperEntryFieldsAreAllPopulated guards against a catalog entry that
 // silently ships with an empty field (an empty LicenseNote or Publisher
-// would leave the eventual UI panel, Phase 2, with nothing to show).
+// would leave the UI panel with nothing to show).
 func TestReaperEntryFieldsAreAllPopulated(t *testing.T) {
 	fields := map[string]string{
 		"ID":          REAPER.ID,
@@ -52,11 +52,10 @@ func TestReaperEntryFieldsAreAllPopulated(t *testing.T) {
 	}
 }
 
-// TestReaperEntryCopyDoesNotImplyAffiliation is a narrow, automatable slice
-// of the PRD's Phase 4 copy review (A5, "What We're NOT Building": no
-// implied affiliation, partnership or endorsement). It cannot catch every
-// wording problem — that is still a human sign-off in Phase 4 — but it does
-// catch the specific words the PRD calls out as off-limits.
+// TestReaperEntryCopyDoesNotImplyAffiliation is a narrow, automatable check
+// that the catalog copy implies no affiliation, partnership or endorsement.
+// It cannot catch every wording problem, only the specific words listed
+// below.
 func TestReaperEntryCopyDoesNotImplyAffiliation(t *testing.T) {
 	bannedWords := []string{"partner", "official partner", "endorsed", "endorsement", "affiliated", "sponsor"}
 	haystack := strings.ToLower(REAPER.Name + " " + REAPER.Publisher + " " + REAPER.LicenseNote)
@@ -67,9 +66,9 @@ func TestReaperEntryCopyDoesNotImplyAffiliation(t *testing.T) {
 	}
 }
 
-// TestCatalogEntryIDsAreUnique guards the lookup Phase 2's binding will do
-// by ID (the id, not a URL, crosses the Wails boundary per the PRD's
-// architecture notes) against a future duplicate entry silently shadowing
+// TestCatalogEntryIDsAreUnique guards the lookup the
+// DawCatalogOpenDownloadPage binding does by ID (the id, not a URL, crosses the
+// Wails boundary) against a future duplicate entry silently shadowing
 // another.
 func TestCatalogEntryIDsAreUnique(t *testing.T) {
 	seen := map[string]bool{}
@@ -81,9 +80,9 @@ func TestCatalogEntryIDsAreUnique(t *testing.T) {
 	}
 }
 
-// TestLookupFindsEveryCatalogEntryByIDAndRejectsUnknownOnes is Phase 2's own
-// seam: DawCatalogOpenDownloadPage resolves a narrator-chosen id through this
-// function alone, never a caller-supplied URL.
+// TestLookupFindsEveryCatalogEntryByIDAndRejectsUnknownOnes covers the lookup
+// DawCatalogOpenDownloadPage resolves a narrator-chosen id with, which never
+// takes a caller-supplied URL.
 func TestLookupFindsEveryCatalogEntryByIDAndRejectsUnknownOnes(t *testing.T) {
 	for _, want := range Catalog {
 		got, ok := Lookup(want.ID)
@@ -92,7 +91,7 @@ func TestLookupFindsEveryCatalogEntryByIDAndRejectsUnknownOnes(t *testing.T) {
 		}
 	}
 	if _, ok := Lookup("audacity"); ok {
-		t.Error(`Lookup("audacity") = true; Audacity is not in the catalog yet (Decisions Log)`)
+		t.Error(`Lookup("audacity") = true; Audacity is not in the catalog yet`)
 	}
 	if _, ok := Lookup(""); ok {
 		t.Error(`Lookup("") = true; want false`)

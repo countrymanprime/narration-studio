@@ -35,10 +35,9 @@ func TestNewDraftGivesContentsItsOwnGroupInsteadOfLeakingIntoPriorSection(t *tes
 	}
 }
 
-// TestNewDraftClassifiesACharactersHeadingAsReference pins ADR 0088 (import-structure-toc-and-characters Phase 2, S1/S2): a
+// TestNewDraftClassifiesACharactersHeadingAsReference pins ADR 0088: a
 // Characters section stays classified `reference` - it is not dropped and gets no special non-chapter kind - so the Story Bible
-// entries seeded from its candidates (Phase 3) are its readable form, and the reader can hide it the same way it will hide Contents
-// once manuscript-reader-search-and-controls Phase 5 lands.
+// entries seeded from its candidates are its readable form.
 func TestNewDraftClassifiesACharactersHeadingAsReference(t *testing.T) {
 	paragraphs := []Paragraph{
 		{Chapter: "Chapter One", Text: "Chapter one text.", SourceIndex: 0},
@@ -155,9 +154,9 @@ func candidateNamed(t *testing.T, draft Draft, name string) CharacterCandidate {
 	return CharacterCandidate{}
 }
 
-// TestCharacterBlockLabelledFactsBecomeOneCandidateWithThreeProperties is the PRD's own success metric for Phase 3 (S4, S5): a
+// TestCharacterBlockLabelledFactsBecomeOneCandidateWithThreeProperties covers a
 // Codename/Abilities/Dossier block, three lines under a bare name line, produces one candidate with three ordered properties -
-// not four spurious candidates named "Codename", "Abilities" and so on (the collision bug the PRD's Evidence traces by hand).
+// not four spurious candidates named "Codename", "Abilities" and so on (the collision bug).
 func TestCharacterBlockLabelledFactsBecomeOneCandidateWithThreeProperties(t *testing.T) {
 	paragraphs := []Paragraph{
 		{Chapter: "Characters", Text: "Wren", SourceIndex: 0},
@@ -227,7 +226,7 @@ func TestADuplicateLabelUnderOneCandidateKeepsTheFirstValue(t *testing.T) {
 	}
 }
 
-// TestWithNoCandidateOpenALabelledLineKeepsTheLegacyNameDescriptionBehavior covers S4's fallback: a "Name: description" line with
+// TestWithNoCandidateOpenALabelledLineKeepsTheLegacyNameDescriptionBehavior covers the fallback: a "Name: description" line with
 // no candidate already open still opens one, exactly as the pre-Phase-3 characterLine parsing did.
 func TestWithNoCandidateOpenALabelledLineKeepsTheLegacyNameDescriptionBehavior(t *testing.T) {
 	paragraphs := []Paragraph{

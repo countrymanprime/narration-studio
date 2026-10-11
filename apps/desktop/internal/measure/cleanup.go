@@ -8,14 +8,14 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// The silence cleanup analyzer (diagnostics PRD, Phase 9): candidates for cutting from a read, each classed as
-// silence (dead air past a hold at either side), a breath or a click, with a confidence and a split-plus-trim action
-// that only runs once the narrator approves it. Silences are the silence map's regions (silencemap.go), so cleanup and
-// the diagnostics agree on what is silent. Breaths and clicks come from 10 ms windows read in the same pass: a breath
-// is a quiet, noise-like stretch (many zero crossings) well below the read's speech level and of breath length; a
-// click is a burst of at most three windows standing high above the silence on both sides of it. The classes are
-// heuristics: a soft consonant can look like a breath, and a long pause may be meant. Nothing here is a verdict,
-// which is why every candidate waits for review.
+// The silence cleanup analyzer: candidates for cutting from a read, each classed as silence (dead air past a hold at
+// either side), a breath or a click, with a confidence and a split-plus-trim action that only runs once the narrator
+// approves it. Silences are the silence map's regions (silencemap.go), so cleanup and the diagnostics agree on what is
+// silent. Breaths and clicks come from 10 ms windows read in the same pass: a breath is a quiet, noise-like stretch
+// (many zero crossings) well below the read's speech level and of breath length; a click is a burst of at most three
+// windows standing high above the silence on both sides of it. The classes are heuristics: a soft consonant can look
+// like a breath, and a long pause may be meant. Nothing here is a verdict, which is why every candidate waits for
+// review.
 
 const (
 	// cleanupWindowSeconds is the resolution of the breath and click detectors.

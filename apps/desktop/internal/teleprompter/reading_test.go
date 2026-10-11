@@ -11,8 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The prompter's last position per chapter (read-aloud-resume-from-daw PRD
-// Phase 2, ADR 0205).
+// The prompter's last position per chapter (ADR 0205).
 
 const readingManuscript = `{"documentId":"doc-1","chapters":[{"id":"c1","title":"One"},{"id":"c2","title":"Two"}],
 "paragraphs":[{"id":"p1","chapterId":"c1","text":"Hello there old friend."},{"id":"p2","chapterId":"c2","text":"Another chapter."}]}`

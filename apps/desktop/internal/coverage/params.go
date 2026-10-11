@@ -18,8 +18,8 @@ const (
 	AnalyzerVersion = "1"
 	// wordsAnalyzerID and wordsVersion name the per-source words entries in the
 	// analysis evidence cache. The version is the sidecar's words file schema.
-	// Raised once, to 2, for the model cascade's `spans` field (Phase 3, PRD
-	// Architecture notes, coverage_mode.splice_window): a words file the sidecar
+	// Raised once, to 2, for the model cascade's `spans` field
+	// (coverage_mode.splice_window, ADR 0341): a words file the sidecar
 	// still reads without them, so this is a clean one-time invalidation, not a
 	// correctness fix.
 	wordsAnalyzerID = "recording-coverage-words"
@@ -30,7 +30,7 @@ const (
 )
 
 // AlignmentParams are the two settings that change which words count as read
-// (PRD Q3; the sidecar's --max-misread-run and --min-anchor-run). They are in
+// (Q3; the sidecar's --max-misread-run and --min-anchor-run). They are in
 // the record's parameter hash, so changing one makes a result stale (Q13 B).
 type AlignmentParams struct {
 	MaxMisreadRun int `json:"maxMisreadRun"`
@@ -96,10 +96,10 @@ func paramHash(params AlignmentParams, inputs projectInputs) string {
 
 // wordsParamHash is the words cache entry's parameter hash: everything that shapes a transcript of
 // the same audio, the model and language included. recheckModel is the model cascade's second-pass
-// model (model cascade PRD Phase 4), "" when a run never recheck's ("" here is the same cache
+// model, "" when a run never re-checks ("" here is the same cache
 // entry a plain single-model run of transcription.Model already uses): a cascade's spliced words
 // carry the re-check model in their own key, so they never seed a later plain check of the same
-// first-pass model with words a stronger model has already touched (the PRD's Architecture notes).
+// first-pass model with words a stronger model has already touched (ADR 0341).
 func wordsParamHash(transcription Transcription, recheckModel string, inputs projectInputs) string {
 	return hashParts("coverage-words", wordsVersion, transcription.Model, transcription.Language, recheckModel, inputs.HotwordsHash, vadFilter)
 }

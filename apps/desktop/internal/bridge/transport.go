@@ -7,8 +7,8 @@ import (
 )
 
 // Recording in REAPER for the Read Aloud control bar (arm_only, record_start and record_stop in
-// narration_transport.lua; read-aloud-control-bar PRD Phase 7, owner decision D28). All three are experimental
-// (actions.go) until the verification pass has confirmed them in a real REAPER.
+// narration_transport.lua). All three are experimental (actions.go) until the verification pass has confirmed them in
+// a real REAPER.
 
 // The refusals the control bar tells apart, in the script's own words (narration_transport.lua).
 var (

@@ -22,10 +22,9 @@ const (
 	SettingMinAnchorRun        = "min_anchor_run"
 )
 
-// The model cascade's own three settings (recording-check-model-cascade PRD Phase 5). MC1: opt-in, off by default.
+// The model cascade's own three settings. MC1: opt-in, off by default.
 // MC2: two independent models, not Transcript Compare's own model_size - the first pass's own, and the re-check's;
-// while the cascade is off, CoverageStart keeps reading Transcript Compare's model_size exactly as it did before
-// this phase.
+// while the cascade is off, CoverageStart keeps reading Transcript Compare's model_size.
 const (
 	SettingCascadeEnabled        = "cascade_enabled"
 	SettingCascadeFirstPassModel = "cascade_first_pass_model"
@@ -43,7 +42,7 @@ type Settings struct {
 // CascadeSettings is the model cascade's own settings (MC1, MC2).
 type CascadeSettings struct {
 	// Enabled turns the two-pass check on at all (MC1). Off by default: CoverageStart runs a plain, single-model
-	// check exactly as it did before Phase 5.
+	// check on Transcript Compare's model_size.
 	Enabled bool
 	// FirstPassModel and RecheckModel are Whisper model ids from the approved catalog (MC2), independent of
 	// Transcript Compare's own model_size. RecheckModel should not be smaller than FirstPassModel (MC2's

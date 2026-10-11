@@ -15,9 +15,9 @@ import (
 // exitCancelled is the sidecar's cancel exit code (ADR 0127).
 const exitCancelled = 2
 
-// stage is which sidecar invocation a job is running now (recording-check-model-cascade PRD
-// Phase 4). Only a first pass that reports regions, with a re-check model asked for, ever leaves
-// stageFirstPass; every other run stays a single-stage job exactly as before this phase.
+// stage is which sidecar invocation a job is running now. Only a first pass that reports
+// regions, with a re-check model asked for, ever leaves stageFirstPass; every other run stays a
+// single-stage job.
 type stage int
 
 const (
@@ -43,7 +43,7 @@ type job struct {
 	projectFile evidence.LedgerProjectFile
 	inputs      projectInputs
 	// manuscriptPath is the --manuscript argument every sidecar launch of this run uses: the real project manuscript
-	// for a manuscript chapter, or a credits row's synthetic stand-in (Phase 3, writeCreditsManuscript).
+	// for a manuscript chapter, or a credits row's synthetic stand-in (writeCreditsManuscript).
 	manuscriptPath string
 	words          wordsCache
 	seeded         int
@@ -56,7 +56,7 @@ type job struct {
 	// lastError is the message of an ERROR progress line, for the failure text.
 	lastError string
 
-	// stage, firstReport and recheck are the model cascade's own state (Phase 4): stage starts at
+	// stage, firstReport and recheck are the model cascade's own state: stage starts at
 	// its zero value, stageFirstPass, for every job.
 	stage       stage
 	firstReport Report
@@ -71,7 +71,7 @@ func (j *job) wordsDir() string     { return filepath.Join(j.dir, "words") }
 func (j *job) resultsPath() string  { return filepath.Join(j.dir, "coverage.txt") }
 func (j *job) windowsPath() string  { return filepath.Join(j.dir, "windows.json") }
 
-// label is the wire name of the stage (model cascade PRD Phase 5's State.Pass): what the dialog shows without
+// label is the wire name of the stage (State.Pass): what the dialog shows without
 // having to re-derive it from Stage's raw sidecar progress text.
 func (st stage) label() string {
 	switch st {
@@ -96,7 +96,7 @@ func (j *job) initialState() State {
 }
 
 // watch follows a run's progress file until its sidecar process exits, then either advances the
-// job to its next stage (the model cascade's second pass, PRD Phase 4) and keeps watching, or
+// job to its next stage (the model cascade's second pass) and keeps watching, or
 // finishes the run.
 func (s *Service) watch(running *job) {
 	defer close(running.done)
@@ -295,7 +295,7 @@ func (s *Service) inputsUnchanged(running *job) error {
 	return nil
 }
 
-// record is the run's ledger record (D7): scope, the fingerprint the saved
+// record is the run's ledger record: scope, the fingerprint the saved
 // project had when the run started, the parameter hash with model and language
 // left out (Q13), and counts only.
 func (s *Service) record(running *job, outcome evidence.LedgerOutcome, report Report, stored int) evidence.LedgerRecord {
@@ -352,7 +352,7 @@ func (s *Service) storedResult(running *job, recordID string, report Report) Sto
 	}
 }
 
-// recheckSummary is the model cascade's own label for storage (Phase 5, MC5): nil when no re-check was asked for or
+// recheckSummary is the model cascade's own label for storage (MC5): nil when no re-check was asked for or
 // needed ("no second pass when nothing is missing"), otherwise the re-check model, whether it ran windows or the
 // whole chapter, and how many windows or how many seconds of audio it covered. The whole-chapter case reads its
 // seconds from the final, realigned report - the sidecar's own count of what it played - rather than re-deriving it

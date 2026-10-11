@@ -5,19 +5,19 @@ import (
 	"sort"
 )
 
-// The model cascade's window planner (recording-check-model-cascade PRD Phase 4). It never runs
+// The model cascade's window planner. It never runs
 // anything and reads nothing from disk: given the first pass's report and the items it played, it
 // decides whether a second pass is wanted at all, and if so whether to re-check bounded windows of
-// specific items or the whole chapter, following MC1-MC3 (owner-adopted 2026-09-23).
+// specific items or the whole chapter, following MC1-MC3.
 const (
 	// windowsSchemaVersion is the sidecar's --recheck windows file version (coverage_mode.WINDOWS_SCHEMA_VERSION).
 	windowsSchemaVersion = 1
 	// windowEdgePadSeconds is padded past each matched-word bound so the stronger model's own
-	// decode never cuts off a word right at the edge the first pass matched (the PRD's
-	// Architecture notes: "Word times at a window edge disagree between models").
+	// decode never cuts off a word right at the edge the first pass matched: word times at a window edge
+	// disagree between models.
 	windowEdgePadSeconds = 3.0
 	// windowMinSeconds is the smallest window transcribed (MC3): Whisper's cost is per 30-second
-	// block (the PRD's Evidence benchmark), so a shorter window costs the same as this one.
+	// block, so a shorter window costs the same as this one.
 	windowMinSeconds = 25.0
 	// windowMergeGapSeconds (MC3): two windows of the same words file closer than this merge into
 	// one, since transcribing the gap between them costs no more than the gap between the calls.
@@ -51,9 +51,9 @@ type recheckPlan struct {
 func (p recheckPlan) needed() bool { return p.WholeChapter || len(p.Windows) > 0 }
 
 // planRecheck plans the second pass from the first pass's report and the items the run played.
-// recheckModel empty (Phase 5 has not turned the cascade on for this run) or a report with no
-// regions (the first pass called the chapter complete) both mean nothing to plan: the model
-// cascade PRD's "no second pass when nothing is missing".
+// recheckModel empty (the cascade is off for this run) or a report with no
+// regions (the first pass called the chapter complete) both mean nothing to plan: there is
+// no second pass when nothing is missing.
 func planRecheck(report Report, items []plannedItem, recheckModel string) recheckPlan {
 	if recheckModel == "" || len(report.Regions) == 0 {
 		return recheckPlan{}

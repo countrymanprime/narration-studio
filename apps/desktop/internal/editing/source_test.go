@@ -96,12 +96,9 @@ func TestResolveTypedReasons(t *testing.T) {
 	}
 }
 
-// TestResolveSectionSourceIsAnalyzable is the correction this package's PRD
-// task carried over the PRD document itself: the current tracks parser
-// already folds a <SOURCE SECTION> wrapper's own StartPos into
-// Take.SourceStart() (tracks.go), unlike the PRD's Evidence section, which
-// describes an older parser that dropped section offsets. A section source
-// must therefore be analyzable, not unsupported.
+// TestResolveSectionSourceIsAnalyzable pins that the tracks parser folds a
+// <SOURCE SECTION> wrapper's own StartPos into Take.SourceStart()
+// (tracks.go), so a section source is analyzable, not unsupported.
 func TestResolveSectionSourceIsAnalyzable(t *testing.T) {
 	item := itemWith(func(_ *tracks.Item, take *tracks.Take) {
 		take.SOFFS = 1

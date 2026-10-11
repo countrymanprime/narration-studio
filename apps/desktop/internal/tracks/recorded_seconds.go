@@ -3,8 +3,7 @@ package tracks
 import "sort"
 
 // RecordedSeconds is how much audio the track holds as of the .rpp's last
-// save (actual-recorded-column PRD Phase 2, AR2 A): the union of the project-
-// time intervals of its unmuted items, on playing lanes only for a track in
+// save: the union of the project-time intervals of its unmuted items, on playing lanes only for a track in
 // fixed-lane mode, with overlapping and touching items merged so a retake
 // stacked over another is counted once. It is project time, so an item's
 // PLAYRATE and SOFFS do not change it. A track with nothing audible is 0.

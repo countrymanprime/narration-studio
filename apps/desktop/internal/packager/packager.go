@@ -1,14 +1,13 @@
-// Package packager assembles one delivery profile's book checklist into a complete, correctly named package
-// (render-encode-master PRD Phase 4): the encoded per-chapter files, credits and retail sample the profile's book
-// rules ask for, copied - never moved, never touching a source file - into a narrator-chosen output folder (Q5),
-// with a checklist saying which book rule each item satisfies. It never encodes anything itself: every input is
-// already the Encoder port's own output (internal/encodeport); Assemble reads a deliveryprofile.Profile only to
-// know what a complete book needs, never a concrete adapter, so a profile change needs no code change here for the
-// rules it already recognizes.
+// Package packager assembles one delivery profile's book checklist into a complete, correctly named package: the
+// encoded per-chapter files, credits and retail sample the profile's book rules ask for, copied - never moved, never
+// touching a source file - into a narrator-chosen output folder, with a checklist saying which book rule each item
+// satisfies. It never encodes anything itself: every input is already the Encoder port's own output
+// (internal/encodeport); Assemble reads a deliveryprofile.Profile only to know what a complete book needs, never a
+// concrete adapter, so a profile change needs no code change here for the rules it already recognizes.
 //
 // Per-file tag embedding, when a row is registered for a file's format (encodeport.Packagers, still empty in
-// production - #509 D67: mock-first, a real row is a later swap), goes through that Packager port row; with none
-// registered, Assemble copies the file as encoded and says so in the manifest, rather than guessing at tags itself.
+// production), goes through that Packager port row; with none registered, Assemble copies the file as encoded and says
+// so in the manifest, rather than guessing at tags itself.
 package packager
 
 import (
@@ -59,16 +58,16 @@ type Request struct {
 	CreditsOpening *Item
 	CreditsClosing *Item
 	RetailSample   *Item
-	// OutputDir is where the package is written: a narrator-chosen folder (Q5), never inside a project's own
+	// OutputDir is where the package is written: a narrator-chosen folder, never inside a project's own
 	// narration-utils/ sidecar tree. Assemble creates it if it does not exist, and never overwrites a name already
 	// in it.
 	OutputDir string
 	// Tags, when a Packager row exists for a file's format, are embedded into every file Assemble writes (title,
 	// author, narrator, ...). Empty embeds none.
 	Tags encodeport.Tags
-	// Packagers is the registry Assemble asks for a row to embed Tags with, looked up by format, never by a
-	// hard-coded name. Nil (or one with no matching row) copies files as encoded, unmodified, and says so in the
-	// manifest (D67: mock-first; the registry is empty in production until a real row is added).
+	// Packagers is the registry Assemble asks for a row to embed Tags with, looked up by format, never by a hard-coded
+	// name. Nil (or one with no matching row) copies files as encoded, unmodified, and says so in the manifest. The
+	// registry is empty in production until a real row is added.
 	Packagers *port.Registry[encodeport.Packager]
 }
 
@@ -310,7 +309,7 @@ func writeItem(ctx context.Context, req Request, p plannedFile) (ManifestFile, e
 }
 
 // packagerFor is the first registered row that declares format, or false when none does (an empty or nil registry,
-// D67: production ships with none registered yet).
+// which is what production ships with today).
 func packagerFor(registry *port.Registry[encodeport.Packager], format string) (port.Entry[encodeport.Packager], bool) {
 	if registry == nil {
 		return port.Entry[encodeport.Packager]{}, false

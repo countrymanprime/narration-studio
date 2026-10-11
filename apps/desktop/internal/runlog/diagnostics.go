@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// DiagnosticsScope picks which records ExportDiagnostics gathers (PRD Q5: "last run" or "last 30 minutes").
+// DiagnosticsScope picks which records ExportDiagnostics gathers (one run, or a window back from now).
 type DiagnosticsScope struct {
 	// RunID, when set, keeps only this run's own records (and its stderr file, if one exists under logs/runs/).
 	// Empty means the Since window below applies instead.
@@ -52,7 +52,7 @@ func (l *Logger) LastRunID() (string, error) {
 
 // ExportDiagnostics writes destPath as one .jsonl file holding the run log's own records matching scope, plus (for a
 // RunID scope) that run's own logs/runs/<run-id>.stderr.jsonl if one exists — the host and sidecar records of one run
-// side by side, the way the PRD's user flow describes handing a run to an agent. It returns the number of lines
+// side by side, which is what handing a run to an agent needs. It returns the number of lines
 // written. A nil Logger writes nothing and returns (0, nil): there is no log to export from.
 func (l *Logger) ExportDiagnostics(scope DiagnosticsScope, destPath string) (int, error) {
 	if l == nil {

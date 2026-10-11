@@ -1,6 +1,6 @@
 // Package merriamwebster is the Merriam-Webster Collegiate Dictionary API adapter for the online pronunciation port
-// (pronunciationonline.Dictionary; ADR 0405 point 2, ADR 0356; prep-depth.prd.md Phase 9). It is the only package in the Go
-// host's pronunciation code that makes an HTTP request, and .golangci.yml's depguard rule allows net here for that alone.
+// (pronunciationonline.Dictionary; ADR 0405 point 2, ADR 0356). It is the only package in the Go host's
+// pronunciation code that makes an HTTP request, and .golangci.yml's depguard rule allows net here for that alone.
 //
 // A request goes to one fixed host and path, built here from the looked-up word and the narrator's key and nothing else:
 // no header of its own, no cookie, no body, no redirect followed (a redirect could carry the key to another host). The
@@ -8,8 +8,8 @@
 // rather than wrapped, because Go's *url.Error quotes the whole URL, key included.
 //
 // The endpoint, sign-up page and response shape are per Merriam-Webster's own developer documentation
-// (dictionaryapi.com), not re-read live: this session's egress proxy refuses dictionaryapi.com (Phase 0 note,
-// docs/research/merriam-webster-api.md). CI and tests never call it.
+// (dictionaryapi.com), not re-read live: this session's egress proxy refuses dictionaryapi.com
+// (docs/research/merriam-webster-api.md). CI and tests never call it.
 package merriamwebster
 
 import (

@@ -1,13 +1,13 @@
-// This file is Phase 4 of proofing-readiness-signals.prd.md (delivered and deleted; see ADR 0525): which
-// rendered file the delivery checks are about, and whether it is still the
-// current one (Q8, Q9 A, Q10 A). The narrator chooses a chapter's render and so
-// attests it was made from the chapter as it is; the association keeps the
-// render's fingerprint and the chapter items' fingerprint at that moment, and a
-// later change to either makes it stale. The association stores no
-// measurement: measuring the render (Master & QC's measurement job,
-// DX-1) writes an analysis evidence ledger record with the Report, keyed by the
-// render's fingerprint, and the narrator's limits are applied on read (Phase 5)
-// so changing a limit never forces a re-measure.
+// This file records which rendered file the delivery checks are about, and
+// whether it is still the current one (ADR 0525). The narrator chooses a
+// chapter's render and so attests it was made from the chapter as it is; the
+// association keeps the render's fingerprint and the chapter items'
+// fingerprint at that moment, and a later change to either makes it stale. The
+// association stores no measurement: measuring the render (the delivery
+// measurement job) writes an analysis evidence ledger record with the Report,
+// keyed by the render's fingerprint, and the narrator's limits are applied on
+// read (delivery.go) so changing a limit never forces a re-measure.
+
 package proofing
 
 import (
@@ -34,9 +34,9 @@ const AnalyzerRenderMeasurement = "proofing-render-measure"
 // AnalyzerVersion so a change in what a measured value means is visible.
 var renderMeasurementVersion = fmt.Sprintf("1+measure.%d", measure.AnalyzerVersion)
 
-// The formats a render is sniffed as. Only WAV is measured (measure reads WAV
-// samples; an MP3 has its headers read only, DX Q2), so any other format is
-// recorded as unsupported, never as a zero.
+// The formats a render is sniffed as. Only WAV is measured (the measurement job
+// reads WAV samples), so any other format is recorded as unsupported, never as
+// a zero.
 const (
 	FormatWAV   = "wav"
 	FormatMP3   = "mp3"
@@ -54,8 +54,9 @@ func Dir(project string) string { return filepath.Join(project, "narration-utils
 // RendersFile is the chapter-to-render association sidecar.
 func RendersFile(project string) string { return filepath.Join(Dir(project), "renders.json") }
 
-// RenderFingerprint is the render file's identity under EL's hash policy (Q1
-// C: size, modified time and a hash of its head, middle and tail blocks); Key
+// RenderFingerprint is the render file's identity under the evidence
+// package's hash policy (size, modified time and a hash of its head, middle and
+// tail blocks); Key
 // hashes Path, Size and PartialHash, never ModTime.
 type RenderFingerprint struct {
 	Path        string    `json:"path"`
@@ -195,8 +196,8 @@ func (s *RenderStore) read() (rendersFileShape, error) {
 }
 
 // Attest records renderPath as the chapter's render, made from the chapter as
-// the saved project in view has it now (Q9 A: the narrator's own statement is
-// the basis, not a guess from timestamps). It refuses a file it cannot read and
+// the saved project in view has it now (the narrator's own statement is the
+// basis, not a guess from timestamps). It refuses a file it cannot read and
 // a chapter without one confirmed track in the saved project.
 func Attest(store *RenderStore, chapter stages.ChapterContext, view stages.EvidenceView, renderPath string, now time.Time) (RenderAssociation, error) {
 	render, err := fingerprintRender(renderPath, view.ProjectFolder)

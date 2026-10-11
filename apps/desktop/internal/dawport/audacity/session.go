@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Session is the Audacity work the PRD's phases 6 to 8 need, over one pipe client: the port's navigate and markers roles, and the
+// Session is the Audacity work the review workflow needs, over one pipe client: the port's navigate and markers roles, and the
 // Audacity-only operations the port has no capability for yet (import findings as labels, read them, mark one reviewed, go to one,
 // export a chapter's audio, write the reviewed labels to a hand-off file). Every method is one narrator action and returns only
 // when Audacity has answered, so none may be called from a dawport Subscription's Handle.
@@ -231,7 +231,7 @@ type ImportResult struct {
 }
 
 // ImportFindings adds a label for each finding that has none yet, in order, and skips one that already has a label carrying its
-// identity (reviewed or not), so importing the same findings twice adds nothing the second time (PRD Phase 6). Every finding is
+// identity (reviewed or not), so importing the same findings twice adds nothing the second time. Every finding is
 // checked before the first label is written: an invalid ID or time refuses the whole import. The caller shows the narrator the
 // preview (PreviewImport) and imports only after approval.
 func (s *Session) ImportFindings(ctx context.Context, findings []Finding) (ImportResult, error) {
@@ -345,7 +345,7 @@ func (s *Session) labelFor(ctx context.Context, id string) (FindingLabel, error)
 }
 
 // GoToFinding selects the finding's label in Audacity (its time range, or the cursor at a point label), wherever the narrator has
-// moved it since the import (PRD Phase 7).
+// moved it since the import.
 func (s *Session) GoToFinding(ctx context.Context, id string) (FindingLabel, error) {
 	label, err := s.labelFor(ctx, id)
 	if err != nil {
@@ -357,8 +357,8 @@ func (s *Session) GoToFinding(ctx context.Context, id string) (FindingLabel, err
 	return label, s.client.SelectTime(ctx, label.Start, label.End)
 }
 
-// MarkReviewed rewrites the finding's label as reviewed, in place: its time and words are kept and no label is added (PRD
-// Phase 7). changed is false when it was already reviewed.
+// MarkReviewed rewrites the finding's label as reviewed, in place: its time and words are kept and no label is added.
+// changed is false when it was already reviewed.
 func (s *Session) MarkReviewed(ctx context.Context, id string) (changed bool, err error) {
 	label, err := s.labelFor(ctx, id)
 	if err != nil {
@@ -442,7 +442,7 @@ func (s *Session) ExportChapter(ctx context.Context, projectFolder, chapter stri
 }
 
 // WriteReviewedLabels writes the reviewed findings' labels to a new label file in ExportFolder(projectFolder), in Audacity's
-// label-file format, and returns its path and how many labels it holds (PRD Phase 8). The app writes the file itself: Audacity's
+// label-file format, and returns its path and how many labels it holds. The app writes the file itself: Audacity's
 // ExportLabels opens a dialog and takes no path. It is written to a temporary file and renamed into place.
 func (s *Session) WriteReviewedLabels(ctx context.Context, projectFolder string) (string, int, error) {
 	if !filepath.IsAbs(projectFolder) {

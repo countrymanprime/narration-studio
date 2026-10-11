@@ -6,7 +6,7 @@ import (
 )
 
 // The host's copy of the sidecar's chapter script (chapter_script.load_chapter_script) and sentence bounds
-// (locate.sentence_bounds), read-aloud-resume-from-daw PRD Phase 3.
+// (locate.sentence_bounds).
 
 const scriptManuscript = `{"documentId":"doc-1","chapters":[{"id":"c1","title":"Chapter One"},{"id":"c2","title":"Two"}],
 "paragraphs":[{"id":"p1","chapterId":"c1","text":"She ran.  The door opened! \"Who?\""},{"id":"p2","chapterId":"c2","text":"Elsewhere."},

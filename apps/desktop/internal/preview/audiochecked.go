@@ -1,16 +1,14 @@
 package preview
 
-// This file is Phase 7 of the proofing-preview-suggestion PRD
-// (see docs/architecture/preview-suggestion.md): saying which
-// candidates are "audio-checked" and what was checked, composing RC's coverage/currency signal, Phase 6's
-// paragraph mapping, DX-4's windowed findings and pace evidence the same tri-state way SR's own stages package
-// composes signals (met/not_met/unknown; unknown never counts as good - SR D2, ADR 0015). A DX-4 windowed
-// finding cannot be read from a real chapter today: see ADR 0327 (docs/adr/0327-...). WindowedFindings below is
-// wired and tested regardless, so the composition is already correct once that gap closes.
+// This file says which candidates are "audio-checked" and what was checked (see
+// docs/architecture/preview-suggestion.md), composing the recording-coverage signal, the paragraph mapping
+// (audiomapper.go), windowed audio-quality findings and pace evidence the same tri-state way the stages package
+// composes signals (met/not_met/unknown; unknown never counts as good - see docs/architecture/stage-recommendations.md
+// and ADR 0015). A windowed audio-quality finding cannot be read from a real chapter today: see ADR 0327.
+// WindowedFindings below is wired and tested regardless, so the composition is already correct once that gap closes.
 
-// AudioSignalState mirrors stages.SignalState's tri-state (met/not_met/unknown - SR D2) without importing that
-// package, the same "small read-only interfaces" decoupling Phase 5's OpenFinding already uses for the RD-1
-// store.
+// AudioSignalState mirrors stages.SignalState's tri-state (met/not_met/unknown) without importing that package, the
+// same small read-only decoupling OpenFinding uses for the findings store.
 type AudioSignalState string
 
 const (
@@ -25,9 +23,9 @@ type AudioSignal struct {
 	Reason string
 }
 
-// ParagraphFinding is one DX-4 windowed audio-quality finding, already resolved by the caller to a paragraph (or
-// left chapter-level when it could not be, the same "" convention Phase 5's OpenFinding uses) - see ADR 0327 for
-// why no real chapter has one of these to give today.
+// ParagraphFinding is one windowed audio-quality finding, already resolved by the caller to a paragraph (or left
+// chapter-level when it could not be, the same "" convention OpenFinding uses) - see ADR 0327 for why no real chapter
+// has one of these to give today.
 type ParagraphFinding struct {
 	ParagraphID string
 	Category    FindingCategory
@@ -35,41 +33,40 @@ type ParagraphFinding struct {
 	Reason      string
 }
 
-// ChapterAudioEvidence is everything Phase 7 needs about one chapter's audio, already resolved to plain values
-// by the caller (a host binding composing RC's coverage.Service, Phase 6's MapParagraphsToTime and, once ADR
-// 0327 is resolved, DX-4's own findings) - Architecture Notes: "each provider answers met/not_met/unknown with a
-// reason and action; the engine composes them".
+// ChapterAudioEvidence is everything the audio-checked rule needs about one chapter's audio, already resolved to plain
+// values by the caller (a host binding composing coverage.Service, MapParagraphsToTime and, once ADR 0327 is resolved,
+// windowed audio-quality findings). Each provider answers met/not_met/unknown with a reason; the engine composes them.
 type ChapterAudioEvidence struct {
-	// Coverage is RC's own signal for this chapter: met only when the mapped track's recording check is current
-	// and complete (coverage.Report.TextComplete). RC's own read already applies EL-6's staleness rule for its
-	// analyzer scope, so this one signal stands in for both "recorded" and "mapping current" (Architecture
-	// Notes' "confirmed track-to-chapter map" and "fingerprint" requirements) without a second EL-6 call.
+	// Coverage is the recording-coverage signal for this chapter: met only when the mapped track's recording check is
+	// current and complete (coverage.Report.TextComplete). The coverage read already applies the evidence staleness
+	// rule for its analyzer scope, so this one signal stands in for both "recorded" and "mapping current" (the
+	// confirmed track-to-chapter map and the fingerprint) without a second staleness check.
 	Coverage AudioSignal
-	// ParagraphTimes is Phase 6's own answer, keyed by paragraph id (MapParagraphsToTime's own return shape) -
+	// ParagraphTimes is MapParagraphsToTime's answer, keyed by paragraph id -
 	// mapped only where a stamped item names that paragraph at the manuscript's current source hash.
 	ParagraphTimes map[string]ParagraphMapping
-	// WindowedFindings are DX-4's own findings for this chapter, already resolved to a paragraph where possible
-	// (ADR 0327: none, in practice, until that gap closes).
+	// WindowedFindings are the windowed audio-quality findings for this chapter, already resolved to a paragraph where
+	// possible (ADR 0327: none, in practice, until that gap closes).
 	WindowedFindings []ParagraphFinding
-	// Pace is Q8 option C's own fallback evidence (ChapterPace), shown whenever available regardless of the
-	// audio-checked label - pace evidence, never a per-window audio-quality claim (PRD Q8).
+	// Pace is the fallback evidence (ChapterPace), shown whenever available regardless of the audio-checked label -
+	// pace evidence, never a per-window audio-quality claim.
 	Pace AudioSignal
 }
 
-// AudioCheckResult is Phase 7's own answer for one candidate.
+// AudioCheckResult is the audio-checked answer for one candidate.
 type AudioCheckResult struct {
-	// AudioChecked is true only when Coverage is met AND every paragraph in the candidate's window is Mapped AND
-	// no WindowedFinding falls inside it (Success Metrics: "0 candidates labelled audio-checked while a needed
-	// signal is stale, unmapped, partial, failed or unavailable" - not_met and unknown both fail the label).
+	// AudioChecked is true only when Coverage is met AND every paragraph in the candidate's window is Mapped AND no
+	// WindowedFinding falls inside it. A needed signal that is stale, unmapped, partial, failed or unavailable never
+	// earns the label: not_met and unknown both fail it.
 	AudioChecked bool
-	// Reasons is the positive evidence to show when AudioChecked (what was checked); Warnings is why it is not,
-	// or the pace evidence that applies either way - the same Candidate.Reasons/Warnings convention Phase 1 and
-	// Phase 5 already use, so this phase needs no new wire field either.
+	// Reasons is the positive evidence to show when AudioChecked (what was checked); Warnings is why it is not, or the
+	// pace evidence that applies either way - the same Candidate.Reasons/Warnings convention the rest of the package
+	// uses, so this needs no new wire field.
 	Reasons  []string
 	Warnings []string
 }
 
-// evaluateAudioChecked applies Phase 7's rule to one candidate's paragraph range.
+// evaluateAudioChecked applies the audio-checked rule to one candidate's paragraph range.
 func evaluateAudioChecked(evidence ChapterAudioEvidence, paragraphIDs []string) AudioCheckResult {
 	var result AudioCheckResult
 
@@ -115,9 +112,9 @@ func evaluateAudioChecked(evidence ChapterAudioEvidence, paragraphIDs []string) 
 		result.Reasons = append(result.Reasons, "Audio-checked: recording coverage and audio position are current, with no open audio-quality finding in this range.")
 	}
 
-	// A zero-value Pace (the caller never supplied any) is neither AudioMet nor AudioNotMet, so it adds nothing -
-	// the same "nothing known, nothing said" rule Phase 5's nil OpenFindings already follows, distinct from
-	// Coverage/mapping above, which are always-shown status labels (the PRD's own "otherwise it says text only").
+	// A zero-value Pace (the caller never supplied any) is neither AudioMet nor AudioNotMet, so it adds nothing - the
+	// same "nothing known, nothing said" rule a nil OpenFindings follows, distinct from Coverage/mapping above, which
+	// are always-shown status labels (otherwise the candidate says "Text only").
 	switch evidence.Pace.State {
 	case AudioMet:
 		result.Reasons = append(result.Reasons, "Pace: "+evidence.Pace.Reason)
@@ -128,11 +125,10 @@ func evaluateAudioChecked(evidence ChapterAudioEvidence, paragraphIDs []string) 
 	return result
 }
 
-// attachAudioChecked applies Phase 7's rule to candidate and returns the updated candidate: Reasons/Warnings
-// gain the evidence text (no new wire field - the Preview panel already renders arbitrary Reasons/Warnings
-// generically, the same choice Phase 5 made), and the private audioChecked field lets this package's own tests
-// assert the label directly rather than string-matching Reasons, the same convention findingsPenalty already
-// uses.
+// attachAudioChecked applies the audio-checked rule to candidate and returns the updated candidate: Reasons/Warnings
+// gain the evidence text (no new wire field - the Preview panel already renders arbitrary Reasons/Warnings generically,
+// the same choice findings made), and the private audioChecked field lets this package's own tests assert the label
+// directly rather than string-matching Reasons, the same convention findingsPenalty already uses.
 func attachAudioChecked(candidate Candidate, evidence ChapterAudioEvidence) Candidate {
 	result := evaluateAudioChecked(evidence, candidate.ParagraphIDs)
 	candidate.audioChecked = result.AudioChecked

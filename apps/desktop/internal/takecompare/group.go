@@ -1,9 +1,10 @@
-// Package takecompare compares the takes of one take-review group
-// (take-review-pickups-duplicates-take-intelligence.prd.md Phase 10): it checks every read of the group against the
-// saved project, aligns each one that is still there to the group's one manuscript span with the sidecar's
-// --take-divergence mode (ADR 0141), measures each with internal/measure's MeasureTake (ADR 0140), and saves the
-// result as one take_comparison finding. The finding holds evidence per take and per category, side by side; nothing
-// here adds categories up, orders the takes or names a best one (PRD Q9), and nothing changes the active take (Q8).
+// Package takecompare compares the takes of one take-review group: it checks
+// every read of the group against the saved project, aligns each one that is
+// still there to the group's one manuscript span with the sidecar's
+// --take-divergence mode (ADR 0141), measures each with internal/measure's
+// MeasureTake (ADR 0140), and saves the result as one take_comparison finding. The finding holds evidence per
+// take and per category, side by side; nothing here adds categories up, orders
+// the takes or names a best one, and nothing changes the active take.
 package takecompare
 
 import (
@@ -46,7 +47,7 @@ type Group struct {
 	Reads      []Read
 	Manuscript findings.Manuscript
 	// ByParagraph names the span by whole paragraphs (FirstParagraph..LastParagraph, in the chapter's order) instead of
-	// sentence units: a passage the workspace chose in the text (edit-and-proof-workspace.prd.md Phase 6), where only the
+	// sentence units: a passage the workspace chose in the text, where only the
 	// sidecar knows how the chapter splits into sentences.
 	ByParagraph    bool
 	FirstParagraph int

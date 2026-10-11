@@ -276,7 +276,7 @@ func TestDrainWithoutABridgeIsANoOp(t *testing.T) {
 	}
 }
 
-// The comparison's baseline for the "changed since comparison" label (follow-through PRD Phase 13): the change count
+// The comparison's baseline for the "changed since comparison" label: the change count
 // REAPER appends to COMPARE_PREPARED is kept in the state, and an older script's six-field answer leaves it null.
 func TestPreparedKeepsREAPERsChangeCountAsTheComparisonBaseline(t *testing.T) {
 	for _, c := range []struct {

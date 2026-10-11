@@ -30,8 +30,9 @@ func pin(t *testing.T, name string, value any) {
 	contractfile.Check(t, name, stable)
 }
 
-// What WorkspaceTakes sends (edit-and-proof-workspace.prd.md Phase 6, ADR 0700): a passage with a take from each of
-// EP6's three sources and a saved comparison covering some of them, then a passage nothing was heard on.
+// What WorkspaceTakes sends (ADR 0700): a passage with a take from each of the three sources (the item itself,
+// fixed-lane retakes and a take-review group) and a saved comparison covering some of them, then a passage nothing was
+// heard on.
 func TestContractWorkspaceTakes(t *testing.T) {
 	saved := findings.Finding{ID: "cmp-1", Analyzer: takecompare.AnalyzerName, Evidence: map[string]any{"members": []any{
 		map[string]any{"item_guid": guidB, "take_guid": take3, "compared": true, "fidelity": 0.75},

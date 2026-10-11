@@ -49,7 +49,7 @@ func TestToneStreamIsAWholeWAV(t *testing.T) {
 	}
 }
 
-// BenchmarkAnalyzeOneHourStereo48k is the throughput baseline the delivery PRD asks for (Phase 1): one hour of 24-bit
+// BenchmarkAnalyzeOneHourStereo48k is the throughput baseline: one hour of 24-bit
 // stereo at 48 kHz with every measurement at once. Run it with
 // go test ./internal/measure -run '^$' -bench OneHour -benchtime 1x
 func BenchmarkAnalyzeOneHourStereo48k(b *testing.B) {

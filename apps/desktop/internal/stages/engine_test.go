@@ -56,7 +56,7 @@ func combinations(n int) [][]SignalState {
 	return result
 }
 
-// expectedVerdict is the PRD's verdict rule stated directly: any not_met is
+// expectedVerdict is the verdict rule stated directly: any not_met is
 // not_ready, else any unknown is unknown, else recommended.
 func expectedVerdict(states []SignalState) Verdict {
 	if slices.Contains(states, SignalNotMet) {

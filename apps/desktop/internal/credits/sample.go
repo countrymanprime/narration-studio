@@ -9,11 +9,11 @@ import (
 // WORDS_PER_FINISHED_HOUR (apps/ui/src/state.ts); the host needs it only to hold a retail sample to its limit.
 const WordsPerFinishedHour = 9300
 
-// MaxRetailSampleSeconds is the longest retail sample ACX accepts, 5 minutes (PRD Open Question C10).
+// MaxRetailSampleSeconds is the longest retail sample ACX accepts, 5 minutes.
 const MaxRetailSampleSeconds = 300
 
-// RetailSample is the range of the book the narrator picked as the retail sample (C10, owner decision 2026-09-23: at most
-// 5 minutes, anywhere in the book). It is stored on the project manifest by paragraph id and is a marker only: it adds
+// RetailSample is the range of the book the narrator picked as the retail sample (at most 5 minutes, anywhere in the book).
+// It is stored on the project manifest by paragraph id and is a marker only: it adds
 // no time to the estimate (ADR 0152).
 type RetailSample struct {
 	StartParagraphID string `json:"startParagraphId"`

@@ -13,8 +13,8 @@ type AlignmentParagraph struct {
 }
 
 // AlignmentItem is one manifest item's current played range, joined by item
-// GUID against the saved project (tracks.Item's edit-and-proof-workspace PRD
-// Phase 1 fields: TakeGUID, SourceStart, PlayRate). Live is false when the
+// GUID against the saved project (tracks.Item's TakeGUID, SourceStart
+// and PlayRate). Live is false when the
 // saved project no longer has an item with this GUID (deleted, or the track
 // relinked): the workspace can still show the item's tokens, but cannot map
 // them to a played range or send a REAPER command for them any more.
@@ -29,14 +29,13 @@ type AlignmentItem struct {
 	Length      float64 `json:"length,omitempty"`
 }
 
-// AlignmentView is a chapter's stored word alignment (edit-and-proof-workspace
-// PRD Phase 1, ADR 0242) as the WorkspaceAlignment binding sends it: the same
+// AlignmentView is a chapter's stored word alignment (ADR 0242) as the WorkspaceAlignment binding sends it: the same
 // state, reasons and basis CoverageResult answers (an alignment is only ever
 // as current as the coverage result it was written with), the chapter's
 // paragraphs, the per-token alignment and extra runs, and each analyzed
 // item's current played range. NeedsAlignAgain is set when the newest current
-// or stale result has no stored alignment yet (align-again re-aligns from
-// cached words alone, EP3 C, without running the check again).
+// or stale result has no stored alignment yet; align-again re-aligns from
+// cached words alone, without running the check again (ADR 0242).
 type AlignmentView struct {
 	ChapterID       string                  `json:"chapterId"`
 	State           evidence.EvaluatorState `json:"state"`
@@ -126,8 +125,7 @@ func alignmentItems(items []ItemLine, project tracks.Project) []AlignmentItem {
 }
 
 // ChapterTrackGUID is the REAPER track the chapter's newest coverage run covered (its ledger record's scope), or "" when
-// the chapter was never checked. The workspace puts an FX chain on this track (edit-and-proof-workspace.prd.md Phase 9,
-// ADR 0234): the page never names a track, so it cannot be steered to another one.
+// the chapter was never checked. The workspace puts an FX chain on this track (ADR 0234): the page never names a track, so it cannot be steered to another one.
 func (s *Service) ChapterTrackGUID(chapterID string) string {
 	record, err := s.latestRecord(chapterID)
 	if err != nil || record == nil {

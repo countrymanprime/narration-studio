@@ -121,7 +121,7 @@ func TestAHashMismatchIsNeverLaunchable(t *testing.T) {
 }
 
 // The catalog schema mirrors internal/whisper's exactly, so the asset registry's generic assetProvider interface wraps it the same way and
-// no third bespoke binding family is needed (teleprompter-engines-and-input-devices.prd.md phase 5 "Depends" note).
+// no third bespoke binding family is needed.
 func TestRealCatalogLoadsAndEveryModelListsTheWordTimestampFile(t *testing.T) {
 	m, err := New(layout.RepoFile(layout.MoonshineCatalogFile), t.TempDir())
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-// The Diagnostics view runs Diagnose as a host job (diagnostics PRD Phase 6), so it reports progress the way
-// AnalyzeContext does: the audio bytes really read (ADR 0015), monotonic, ending at the total.
+// The Diagnostics view runs Diagnose as a host job, so it reports progress the way AnalyzeContext does: the audio bytes
+// really read (ADR 0015), monotonic, ending at the total.
 
 func TestDiagnoseReportsMonotonicProgressOverTheDataChunk(t *testing.T) {
 	samples, _ := cleanRead()

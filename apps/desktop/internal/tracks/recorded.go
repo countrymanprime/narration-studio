@@ -6,9 +6,8 @@ type Span struct {
 	End   float64
 }
 
-// RecordedEnd is where a track's recorded audio ends (teleprompter-manuscript-
-// integration PRD Phase 8, the resume pipeline's step 2), as of the .rpp's
-// last save: in project time, and in the source file the last item plays, so
+// RecordedEnd is where a track's recorded audio ends (the resume pipeline's second step, ADR 0111),
+// as of the .rpp's last save: in project time, and in the source file the last item plays, so
 // a later step can cut the audio just before it.
 type RecordedEnd struct {
 	// ProjectTime is the latest item end (POSITION + LENGTH).
@@ -20,7 +19,7 @@ type RecordedEnd struct {
 	// item ends: the SECTION start (when the source is a trimmed section) +
 	// SOFFS + LENGTH * PLAYRATE. SourceStart is where in it the item starts
 	// (the SECTION start + SOFFS), so a tail cut before SourceTime never
-	// reaches audio the narrator trimmed off the item (Phase 9).
+	// reaches audio the narrator trimmed off the item.
 	SourceFile      string  `json:"sourceFile"`
 	SourceStart     float64 `json:"sourceStart"`
 	SourceTime      float64 `json:"sourceTime"`

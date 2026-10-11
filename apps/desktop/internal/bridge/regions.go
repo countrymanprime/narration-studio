@@ -12,7 +12,7 @@ import (
 )
 
 // Region is one region the host asks REAPER for: a chapter or a credits row, in project seconds, named as the chapter
-// table names it (create_regions, narration_regions.lua; follow-through PRD Phase 7 and credits-in-chapter-table Phase 4).
+// table names it (create_regions, narration_regions.lua).
 type Region struct {
 	Start, End float64
 	Title      string

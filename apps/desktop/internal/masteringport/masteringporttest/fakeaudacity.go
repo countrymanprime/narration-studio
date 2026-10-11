@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
 )
 
-// FakeAudacity is the DAW the suite masters a macro_render row through (render-encode-master PRD Phase 10): a dawport.Adapter that
+// FakeAudacity is the DAW the suite masters a macro_render row through: a dawport.Adapter that
 // declares macro_render Experimental, with the narrator's settings allowing it. Its render refuses a request with no approval, an
 // approval it has seen before, or an output path that is not inside an empty run folder inside the project; otherwise it writes the
 // suite's tone to that path. Misbehave makes it answer wrongly on purpose, mirroring FakeDAW's own Misbehaviour values.

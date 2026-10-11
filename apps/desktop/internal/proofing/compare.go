@@ -1,6 +1,5 @@
-// This file is Phase 2 of proofing-readiness-signals.prd.md (delivered and deleted; see ADR 0525): a
-// Transcript Compare run's chapter identity and currency (Q4, Q5). When a
-// comparison finishes, ComparisonRecorder writes one analysis evidence ledger
+// This file records a Transcript Compare run's chapter identity and currency
+// (ADR 0525). When a comparison finishes, ComparisonRecorder writes one analysis evidence ledger
 // record from the run's own manifest_<run>.txt (source file, start offset and
 // played length per compared item, as narration_compare.lua writes them), the
 // chapter resolved from the run's chapter title, the manuscript's documentId,
@@ -8,6 +7,7 @@
 // that record against the chapter as the saved project has it now. No Lua,
 // Python or marker-protocol change: everything here is derived from files the
 // comparison already writes.
+
 package proofing
 
 import (
@@ -36,18 +36,18 @@ import (
 const ComparisonAnalyzerVersion = "1"
 
 // A run's outcome as the transcript service reports it. Anything else (a
-// cancelled run) writes no record (Phase 2 scope: "no record on cancel").
+// cancelled run) writes no record.
 const (
 	OutcomeComplete = "complete"
 	OutcomeFailed   = "failed"
 )
 
-// How a run's chapter title resolved against the manuscript (Q5).
+// How a run's chapter title resolved against the manuscript.
 const (
 	ResolutionResolved = "resolved"
 	// ResolutionAmbiguous: more than one chapter has the title. The record is
 	// written with no chapter id, so no chapter can count it, and each chapter
-	// with that title reads unknown until its titles are distinct (Q5).
+	// with that title reads unknown until its titles are distinct.
 	ResolutionAmbiguous = "ambiguous"
 )
 
@@ -201,7 +201,7 @@ func ParseManifest(path string) ([]ComparedItem, error) {
 	return items, nil
 }
 
-// ComparisonJudge is Transcript Compare's RunJudge (Q4 option A): current only
+// ComparisonJudge is Transcript Compare's RunJudge: current only
 // when the chapter's latest run is complete, attributable to this chapter, the
 // saved project is newer than the run, and every played item of the chapter's
 // confirmed track was in the compared set (extra compared items, such as muted

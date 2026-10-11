@@ -137,7 +137,7 @@ func findRecommendation(t *testing.T, all []stages.ChapterRecommendation, chapte
 }
 
 // TestStageRecommendationsOverTheCoverageCorpus is the stage recommendations
-// PRD's Phase 3 service test: each corpus case's real sidecar output is stored
+// service test: each corpus case's real sidecar output is stored
 // as a complete check, and the stages service, with the recording provider
 // and the shared evidence view, suggests editing for exactly the chapters
 // labelled text-complete. Every other chapter is not ready, and each
@@ -147,7 +147,7 @@ func TestStageRecommendationsOverTheCoverageCorpus(t *testing.T) {
 	settings := Settings{
 		Alignment:  AlignmentParams{MaxMisreadRun: corpus.Settings.MaxMisreadRun, MinAnchorRun: corpus.Settings.MinAnchorRun},
 		Thresholds: Thresholds{MinParagraphPresent: corpus.Settings.MinParagraphPresent, MaxMissingRun: corpus.Settings.MaxMissingRun},
-		// The corpus predates the model cascade (Phase 5): every case was made with it off, at its own defaults.
+		// The corpus predates the model cascade: every case was made with it off, at its own defaults.
 		Cascade: DefaultSettings.Cascade,
 	}
 	if settings != DefaultSettings {
@@ -185,7 +185,7 @@ func TestStageRecommendationsOverTheCoverageCorpus(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// The dialog's judgement is the stage signal's (recording-check-summary PRD Phase 2, ADR 0204).
+			// The dialog's judgement is the stage signal's (ADR 0204).
 			if judgement := result.View(c.ChapterID, settings.Thresholds).Judgement; judgement == nil || judgement.State != signal.State || judgement.Reason != signal.Reason {
 				t.Fatalf("judgement %+v, signal %s %q", judgement, signal.State, signal.Reason)
 			}

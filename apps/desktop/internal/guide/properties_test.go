@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// Properties are an ordered list of {key, value} facts on an entity (story bible entries PRD, phase 1). The host decodes the file to
+// Properties are an ordered list of {key, value} facts on an entity (a Story Bible entry's facts). The host decodes the file to
 // map[string]any and re-marshals it, so a list is what keeps the narrator's order; an object would come back with its keys sorted.
 func serviceWithRawGuide(t *testing.T, document string) *Service {
 	t.Helper()

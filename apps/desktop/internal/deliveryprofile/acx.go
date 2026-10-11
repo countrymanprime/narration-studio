@@ -1,11 +1,11 @@
 package deliveryprofile
 
-// The built-in ACX profile (docs/research/acx-delivery-requirements.md, Phase 0 of the PRD). Every rule cites ACX's
+// The built-in ACX profile (docs/research/acx-delivery-requirements.md). Every rule cites ACX's
 // Audio Submission Requirements page. The help site cannot be reached from the sessions that wrote this, so a rule is
 // "verified" only where the repository recorded a reading of ACX's own page, and its requirement is a paraphrase
 // (Quoted false) unless that reading kept ACX's words; everything else is "to verify" with what is left to check.
 // A new reading of ACX's page is a new version (a new function and ID version), never an edit of this one, so a
-// project keeps judging against the version it chose (PRD P5).
+// project keeps judging against the version it chose.
 
 // ACXID is the built-in ACX profile's id; findings carry it, not the version, so a finding keeps its ID across versions.
 const ACXID = "acx"
@@ -16,7 +16,7 @@ const ACXVersion = "2026-09"
 const (
 	acxTitle = "ACX Audio Submission Requirements"
 	acxURL   = "https://help.acx.com/s/article/what-are-the-acx-audio-submission-requirements"
-	// acxReadOn is the repository's recorded reading of ACX's page (audiobook-credits-templates.prd.md, Evidence).
+	// acxReadOn is the repository's recorded reading of ACX's page (docs/research/acx-delivery-requirements.md).
 	acxReadOn = "2026-09-20"
 	// acxLevelsReadOn is when docs/research/reaper-automation-surface.md recorded ACX's level and format numbers from
 	// the same page.
@@ -148,7 +148,7 @@ func BuiltIn(ref Ref) (Profile, bool) {
 	return Profile{}, false
 }
 
-// Default is the profile a project judges against when nothing is chosen (PRD P7): the newest ACX.
+// Default is the profile a project judges against when nothing is chosen: the newest ACX.
 func Default() Profile {
 	return ACX()
 }

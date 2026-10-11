@@ -187,7 +187,7 @@ func (s *Store) Delete(id string) error {
 	return s.writeLocked(file)
 }
 
-// MoveGlobalLimits moves the Global layer's old Delivery limits into a profile, once (ADR 0179, PRD P6): none set, or
+// MoveGlobalLimits moves the Global layer's old Delivery limits into a profile, once (ADR 0179): none set, or
 // the same numbers as ACX, leave the Global default as it is; any other set becomes the custom profile "Your limits",
 // made the Global default so every project that used them judges the same values the same way. It is a no-op after the
 // first run. It answers the profile made, if any.
@@ -343,7 +343,7 @@ var knownMetrics = map[string]bool{
 
 // withCurrentChecks gives each rule of a custom profile its built-in's current way of being checked: CheckedBy, the
 // reason it is not checked, and its advice. How a rule is checked is what this build of the app can do, not the
-// narrator's choice, so a copy saved before the app measured a rule (room tone at the edges, PRD Phase 5) is judged
+// narrator's choice, so a copy saved before the app measured a rule (room tone at the edges, ADR 0236) is judged
 // by the measurement now; the narrator's numbers and switches are kept.
 func withCurrentChecks(profile Profile) Profile {
 	for i := range profile.Rules {
@@ -356,7 +356,7 @@ func withCurrentChecks(profile Profile) Profile {
 			fresh := current.clone()
 			rule.CheckedBy, rule.NotCheckedWhy, rule.Advice = fresh.CheckedBy, fresh.NotCheckedWhy, fresh.Advice
 			if rule.Min == nil && rule.Max == nil && len(rule.OneOf) == 0 {
-				// A rule saved with no bound at all was one the app could not check (the MP3 format before Phase 6):
+				// A rule saved with no bound at all was one the app could not check (the MP3 format before ADR 0237):
 				// the narrator never had a number to change, so it takes the built-in's.
 				rule.Min, rule.Max, rule.OneOf, rule.Unit = fresh.Min, fresh.Max, fresh.OneOf, fresh.Unit
 			}

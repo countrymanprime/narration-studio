@@ -7,8 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// The dialog's pass or fail (ResultView.Judgement, recording-check-summary PRD
-// Phase 2, ADR 0204) is the stage signal's, by construction and by test.
+// The dialog's pass or fail (ResultView.Judgement, ADR 0204) is the stage signal's, by construction and by test.
 func TestTheViewSJudgementIsTheStageSignalS(t *testing.T) {
 	for name, report := range map[string]Report{"all read": allRead, "scattered drops": scatteredDrops, "skipped block": skippedBlock, "thin paragraph": thinParagraph} {
 		t.Run(name, func(t *testing.T) {

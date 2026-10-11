@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// labelTitles is the chapter list the auto-sync PRD measured the matcher against (Evidence, 2026-09-24).
+// labelTitles is the chapter list the matcher was measured against (ADR 0175).
 var labelTitles = []string{
 	"A Message from the Author", "PROLOGUE — The Last Good Applause",
 	"Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4", "Chapter 5", "Chapter 6", "Chapter 7", "Chapter 8",
@@ -14,9 +14,9 @@ var labelTitles = []string{
 
 const chapter6 = 7
 
-// Every track-name form in the PRD's Evidence table matches its right chapter confidently, or (a take or pickup
-// track, a credits track) is kept from ever being a confident match. "Chapter VI" no longer goes to Chapter 1, nor
-// "Chapter 6 v2" to Chapter 2 (daw-chapter-track-auto-sync PRD Phase 1).
+// Every track-name form seen on that book matches its right chapter confidently, or (a take or pickup track, a
+// credits track) is kept from ever being a confident match. "Chapter VI" no longer goes to Chapter 1, nor "Chapter 6
+// v2" to Chapter 2 (ADR 0175).
 func TestTheAutoSyncEvidenceNamesMatchTheirChapter(t *testing.T) {
 	cases := []struct {
 		name      string

@@ -38,7 +38,7 @@ func TestSettingsTogglesReadEachCapabilitysRow(t *testing.T) {
 	}))
 	for c, want := range map[Capability]Toggle{
 		CapPunch: ToggleOn, CapFXChains: ToggleOff, CapReview: ToggleAuto, CapRecord: ToggleOn,
-		// No row at all (a settings file from before P3) is auto.
+		// No row at all (a settings file from before the per-capability settings) is auto.
 		CapRegions: ToggleAuto,
 	} {
 		if got := toggles(c); got != want {
@@ -47,7 +47,7 @@ func TestSettingsTogglesReadEachCapabilitysRow(t *testing.T) {
 	}
 }
 
-// The old DAW.experimental_reaper_actions switch keeps working (PRD open question 1): while it is on, every Experimental capability
+// The old DAW.experimental_reaper_actions switch keeps working: while it is on, every Experimental capability
 // left on auto is on. Settings files hold it as text, and a hand-edited one as a boolean the store reads back as "true".
 func TestSettingsExperimentalReadsTheOldSwitch(t *testing.T) {
 	for value, want := range map[string]bool{"true": true, "True": true, "false": false, "": false, "yes": false} {
@@ -57,7 +57,7 @@ func TestSettingsExperimentalReadsTheOldSwitch(t *testing.T) {
 		}
 	}
 	if SettingsExperimental(settingsOf(nil))() {
-		t.Error("with no row the old switch is on; it defaults off (owner decision D38)")
+		t.Error("with no row the old switch is on; it defaults off")
 	}
 }
 
@@ -84,7 +84,7 @@ func TestSettingsInputsAreReadOnEveryCall(t *testing.T) {
 }
 
 // config/defaults.json has a DAW.capability.<name> row for every capability in the catalog, on auto, so a narrator on default
-// settings sees today's behaviour (PRD D4). The settings store's own test holds its built-in copy to the same file.
+// settings sees today's behaviour. The settings store's own test holds its built-in copy to the same file.
 func TestDefaultsHaveAnAutoRowForEveryCapability(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "config", "defaults.json"))
 	if err != nil {

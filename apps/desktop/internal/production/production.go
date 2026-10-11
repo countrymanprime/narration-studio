@@ -1,12 +1,12 @@
-// Package production implements Phases 1 to 3 of
-// the production tracking PRD (delivered and deleted; ADR 0028): a stage timer the narrator starts and
-// stops by hand, the project-scoped log of the sessions it records (Q2),
-// PFH and the effective rate over that log (pfh.go, ADR 0320), and the checks
-// on the deadline, amount and milestones kept on the manifest (plan.go).
-// A session exists only because the narrator started and stopped a timer:
-// nothing here starts one from REAPER activity or any other signal (Q1), and
-// nothing here reads or writes a chapter's status - the stage a session is
-// logged against is one of the five ChapterStatus values, never a new one.
+// Package production implements production tracking: a stage timer the narrator
+// starts and stops by hand, the project-scoped log of the sessions it records,
+// PFH and the effective rate over that log (pfh.go, ADR 0320), the checks on
+// the deadline, amount and milestones kept on the manifest (plan.go), and the
+// read model of the Production page (overview.go, burndown.go). A session
+// exists only because the narrator started and stopped a timer: nothing here
+// starts one from REAPER activity or any other signal, and nothing here reads
+// or writes a chapter's status - the stage a session is logged against is one
+// of the five ChapterStatus values, never a new one.
 package production
 
 import (
@@ -32,9 +32,9 @@ const sessionsSchemaVersion = 1
 // what names the file for the narrator in a persist notice.
 const what = "production time log"
 
-// SourceManual marks a session the narrator started and stopped by hand (Q1
-// A). It is the only source there is; the field exists so a later source is
-// told apart in the file rather than guessed from its shape.
+// SourceManual marks a session the narrator started and stopped by hand. It is
+// the only source there is; the field exists so a later source is told apart in
+// the file rather than guessed from its shape.
 const SourceManual = "manual"
 
 // ErrTimerRunning is returned by Start while another timer is running: the

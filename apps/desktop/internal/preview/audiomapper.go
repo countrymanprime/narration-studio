@@ -2,50 +2,44 @@ package preview
 
 import "strings"
 
-// This file is Phase 6 of the proofing-preview-suggestion PRD
-// (see docs/architecture/preview-suggestion.md): the spike's
-// answer to Q8 ("how does a paragraph get an audio time range") and the mapper it decided to build.
+// This file answers "how does a paragraph get an audio time range" (see docs/architecture/preview-suggestion.md) and is
+// the mapper built from that answer.
 //
-// The spike compared Q8's three options against the delivered codebase, not against the PRD's proposal text:
+// Three options were compared against the codebase:
 //
-//   - Option A (TR-3, persisted word timing): does not exist. Ruled out, per the PRD's own note.
-//   - Option B (the line-identity stamp reader, stamp_item_lines/read_line_ids): PROVEN buildable, not merely
-//     recommended-pending-a-spike. docs/research/reaper-spike-s0-item-extension-data.md settled (2026-09-21,
-//     against a real REAPER 7.80 and the owner's own Challenges_001 project) that a stamped item's line id and
-//     text round-trip through save and reload as plain <EXTI ...> lines in the saved .rpp, and
-//     internal/tracks/extension.go already decodes them into Item.Ext with no REAPER running and no Lua change
-//     (Item.Position/Item.Length give the same project-second time range Phase 7's windowed analyzers key off of).
-//     The line-id scheme (internal/lineidentity's ComposeLineID/ParseLineID) already supports a paragraph-level
-//     id ("p-000001@<source sha256>"), not only the chapter-level id the one shipped UI trigger (the audio engine panel's
-//     "Link chapters") stamps today. This file re-implements that same two-field parse locally (composeLineID/
-//     parseLineID below) rather than importing internal/lineidentity, which pulls in the live bridge, the
-//     manuscript service and a stateful run model this package has no business depending on for a pure, offline
-//     read of already-parsed item data (Architecture Notes: "small read-only interfaces").
-//   - Option C (coarse per-chapter pace, no per-window claim): pace.go's ChapterPace/EstimateErrorFraction. Kept
-//     as evidence Phase 7 always has, since no shipped UI stamps a paragraph yet (only a chapter) - MapParagraphsToTime
-//     below is correct and tested against a real REAPER-saved fixture today, but will answer "unmapped" for every
-//     paragraph in practice until a paragraph-stamping trigger exists to produce data for it. Building that
-//     trigger (a new UI action, wire binding) is its own feature, out of this phase's "spike, then build" scope.
+//   - Option A (persisted word timing): does not exist, so it is ruled out.
+//   - Option B (the line-identity stamp reader, stamp_item_lines/read_line_ids): proven buildable.
+//     docs/research/reaper-spike-s0-item-extension-data.md settled (2026-09-21, against a real REAPER 7.80 and the
+//     owner's own Challenges_001 project) that a stamped item's line id and text round-trip through save and reload as
+//     plain <EXTI ...> lines in the saved .rpp, and internal/tracks/extension.go already decodes them into Item.Ext with
+//     no REAPER running and no Lua change (Item.Position/Item.Length give the same project-second time range the
+//     windowed analyzers key off of). The line-id scheme (internal/lineidentity's ComposeLineID/ParseLineID) already
+//     supports a paragraph-level id ("p-000001@<source sha256>"), not only the chapter-level id the one shipped UI
+//     trigger (the audio engine panel's "Link chapters") stamps today. This file re-implements that same two-field
+//     parse locally (composeLineID/parseLineID below) rather than importing internal/lineidentity, which pulls in the
+//     live bridge, the manuscript service and a stateful run model this package has no business depending on for a
+//     pure, offline read of already-parsed item data.
+//   - Option C (coarse per-chapter pace, no per-window claim): pace.go's ChapterPace/EstimateErrorFraction. Kept as
+//     evidence audiochecked.go always has, since no shipped UI stamps a paragraph yet (only a chapter) -
+//     MapParagraphsToTime below is correct and tested against a real REAPER-saved fixture today, but will answer
+//     "unmapped" for every paragraph in practice until a paragraph-stamping trigger exists to produce data for it.
+//     Building that trigger (a new UI action, wire binding) is its own feature.
 //
-// Decision (recorded here rather than as a Proposed ADR: Q8 already names a recommendation, and the spike above
-// resolves the question further in the recommendation's own favour rather than raising one for the owner - D22):
-// build B now (it is proven, small, and testable against a real fixture), keep C as Phase 7's fallback evidence
-// (since B has no data yet in practice), and treat "add a paragraph-stamping UI trigger" as later, separately
-// scoped work, not part of this phase.
+// Decision: build B (it is proven, small, and testable against a real fixture), keep C as the fallback evidence (since
+// B has no data yet in practice), and treat "add a paragraph-stamping UI trigger" as later, separately scoped work.
 
-// StampedItem is one REAPER item's line-identity stamp and time range, already extracted from a saved project's
-// parsed Item.Ext (the caller's job - Phase 7's binding, reading tracks.Item the same way evidence/staleness.go
-// already does for its own fingerprints). This package takes plain values rather than a tracks.Item, so it stays
-// as free of REAPER's own chunk model as Phase 5's OpenFinding is of the RD-1 store's Finding record.
+// StampedItem is one REAPER item's line-identity stamp and time range, already extracted from a saved project's parsed
+// Item.Ext (the caller's job - the host binding, reading tracks.Item the same way evidence/staleness.go already does
+// for its own fingerprints). This package takes plain values rather than a tracks.Item, so it stays as free of REAPER's
+// own chunk model as OpenFinding is of the findings store's Finding record.
 type StampedItem struct {
 	ItemGUID string
 	// LineID is the item's raw narration_utils_line_id extension value, composeLineID's own "<entity id>@<source
 	// sha256>" format when the stamp is this scheme's; an older or foreign stamp (no "@", or from before this
 	// scheme existed) fails to parse and never resolves to any paragraph.
 	LineID string
-	// Position and Length are the item's own D_POSITION/D_LENGTH, in project seconds (SR D5's own basis: one
-	// mapped track, one project timeline - the same played range evidence/fingerprint.go already reads for its
-	// AnalysisKey).
+	// Position and Length are the item's own D_POSITION/D_LENGTH, in project seconds (one mapped track, one project
+	// timeline - the same played range evidence/fingerprint.go already reads for its AnalysisKey).
 	Position, Length float64
 }
 
@@ -70,8 +64,8 @@ type ParagraphTimeRange struct {
 	Start, Length float64
 }
 
-// ParagraphMapping is one paragraph's answer: Mapped true with a Range, or false with Reason naming why -
-// "unknown" in the PRD's own tri-state language (SR D2), never treated as a time range that happens to be zero.
+// ParagraphMapping is one paragraph's answer: Mapped true with a Range, or false with Reason naming why - "unknown" in
+// the tri-state sense used across the package, never treated as a time range that happens to be zero.
 type ParagraphMapping struct {
 	Mapped bool
 	Range  ParagraphTimeRange

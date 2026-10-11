@@ -7,11 +7,11 @@ import (
 
 // invalidNameChars are characters Windows refuses in a file or path segment name (control characters 0-31
 // are checked separately below), plus the two path separators, so a name can never smuggle in a path
-// segment of its own (PRD W7/W9: "illegal-character... errors shown inline").
+// segment of its own.
 const invalidNameChars = `<>:"/\|?*`
 
 // reservedNames are the Windows device names: reserved at any case and whether or not a name carries an
-// extension after them (Success Metrics: "reserved-name... errors shown inline").
+// extension after them.
 var reservedNames = map[string]bool{
 	"CON": true, "PRN": true, "AUX": true, "NUL": true,
 	"COM1": true, "COM2": true, "COM3": true, "COM4": true, "COM5": true, "COM6": true, "COM7": true, "COM8": true, "COM9": true,

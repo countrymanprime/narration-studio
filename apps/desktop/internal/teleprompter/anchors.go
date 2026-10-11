@@ -9,8 +9,8 @@ import (
 	"sort"
 )
 
-// Punch and roll's word-to-time anchors (teleprompter-manuscript-integration.prd.md Phase 12, ADR 0246, owner decision
-// 2026-09-23: live anchors first, offline alignment as the fallback, alignword.go and ADR 0560). While a live session reads a chapter, the host
+// Punch and roll's word-to-time anchors (ADR 0246: live anchors first,
+// offline alignment as the fallback, alignword.go and ADR 0560). While a live session reads a chapter, the host
 // polls REAPER's play position (bridge.Puncher.PlayPosition, from apps/desktop's own poll loop, never from this
 // DAW-agnostic package) and pairs it with the word the reader is on, appending an Anchor here. "Punch from here" on a
 // flag then asks ResolveWordTime for that word's project time before moving the cursor.
@@ -23,8 +23,8 @@ import (
 const anchorsSchemaVersion = 1
 
 // Anchor pairs a script word index (a position event's `read`/`committed` index space) with the REAPER project time,
-// in seconds, the host measured for it (bridge.PlayPosition.Heard, the position the narrator hears, per spike 1's
-// still-open choice of which play position to sample; see teleprompter-manuscript-integration.prd.md Phase 12).
+// in seconds, the host measured for it (bridge.PlayPosition.Heard, the position the narrator hears, the choice of which play
+// position to sample is still open).
 type Anchor struct {
 	Word     int     `json:"word"`
 	Position float64 `json:"position"`
@@ -127,8 +127,7 @@ func AppendAnchor(project, chapterID string, anchor Anchor) error {
 const maxAnchors = 400
 
 // DropAnchorsFrom removes every anchor at or after word: a punch to word is the narrator about to re-record from
-// there, so an anchor recorded during the take being replaced would misplace the next punch (teleprompter-manuscript-
-// integration.prd.md Phase 12, "anchors at or after word N dropped after a punch at N").
+// there, so an anchor recorded during the take being replaced would misplace the next punch.
 func DropAnchorsFrom(project, chapterID string, word int) error {
 	anchors, err := LoadAnchors(project, chapterID)
 	if err != nil {
@@ -143,8 +142,8 @@ func DropAnchorsFrom(project, chapterID string, word int) error {
 	return writeAnchors(project, chapterID, kept)
 }
 
-// A punch time's three sources, matching Phase 12's "resolved time, its source (anchor or alignment) and pre-roll" UI
-// requirement (ADR 0560): SourceAnchor is ResolveWordTime's exact or bracketed answer from the live anchors;
+// A punch time's three sources, as the UI shows them next to the resolved time and pre-roll
+// (ADR 0560): SourceAnchor is ResolveWordTime's exact or bracketed answer from the live anchors;
 // SourceAlignment is the offline word-time alignment over the recording (AlignWord, the fallback when no anchor
 // brackets the word); SourceEstimate is ResolveWordTime's extrapolation from the anchors' pace, the last resort when
 // the recording cannot be aligned (no model installed, nothing recorded yet, or the word not in the stretch decoded).

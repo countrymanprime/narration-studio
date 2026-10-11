@@ -1,4 +1,4 @@
-// Package audacity is the DAW port's Audacity adapter (ADR 0300; audacity-integration PRD phases 4 and 6 to 8; ADR 0355). It drives
+// Package audacity is the DAW port's Audacity adapter (ADR 0300, ADR 0355). It drives
 // Audacity over its scripting pipe (internal/audacitybridge), which only Audacity 3.x with mod-script-pipe enabled has: Audacity 4.0
 // has no scripting interface, so there every request reports that Audacity is not reachable.
 //
@@ -64,7 +64,7 @@ var declares = func() map[dawport.Capability]dawport.Level {
 
 // The sentences a refusal shows the narrator.
 const (
-	// messageNotConnected: the host does not open the pipe from any page yet (the dashboard is PRD Phase 9), so an Audacity
+	// messageNotConnected: the host does not open the pipe from any page yet, so an Audacity
 	// launch's resolver has no connection.
 	messageNotConnected = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested."
 	// messageNotReachable: the pipe is not there or not answering.

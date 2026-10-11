@@ -1,10 +1,10 @@
-// Package recording is the built-in recorder's host side (native-recording-suite PRD Phase 2, docs/adr/0455): the Booth's
+// Package recording is the built-in recorder's host side (docs/adr/0455): the Booth's
 // "Built-in recorder" picks an input device, meters it, records a take into the project's Recordings folder and lists the
 // takes for playback. It records through Engine, a port over one capture port row (internal/captureport): the sidecar
 // adapter (sidecar.go) runs that row in the teleprompter sidecar (`live_asr.py --record`, ADR 0357), and a test or the UI's
-// mock stands in for it without hardware (D67). Nothing here knows about WASAPI: the row does.
+// mock stands in for it without hardware. Nothing here knows about WASAPI: the row does.
 //
-// The rules the files keep (Q5, answered by D86):
+// The rules the files keep:
 //
 //   - A take is written to "Take NNN.partial.wav" and, once the engine says it finished, moved to "Take NNN.wav" by a
 //     hard link and the partial's removal, so the finished name only ever appears with a finished file and never replaces
@@ -13,7 +13,7 @@
 //   - The service never overwrites, edits or deletes a take. The one file it removes is a partial the engine reported
 //     holding no audio at all (0 frames), which is a header and nothing else.
 //   - It reads and writes only the project's Recordings folder, and opens only the local device the narrator chose.
-//     It sends nothing anywhere (D72).
+//     It sends nothing anywhere.
 package recording
 
 import (

@@ -17,7 +17,7 @@ type Paragraph struct {
 	SourceIndex     int     `json:"sourceIndex"`
 	// SubtitleReturnsToBody says the subtitle was a line of plain text under the heading (a two-line plain-text heading block), not
 	// part of the heading itself, so a narrator who says it is not a subtitle wants it back as the chapter's first paragraph rather
-	// than joined to the title (story-bible-and-import-ux-briefs PRD, Phase 5; case F3 of docs/research/import-heading-misreads.md).
+	// than joined to the title (case F3 of docs/research/import-heading-misreads.md).
 	// Set only on the first paragraph under that heading, which is where the line goes back, so a repeated heading loses no line.
 	// Never written to the canonical manuscript.
 	SubtitleReturnsToBody bool `json:"-"`
@@ -61,7 +61,7 @@ type Draft struct {
 	ChapterTitles       []string             `json:"chapterTitles"`
 	// SourceMetadata is structure the importer read straight from the source's own markup or front matter at import
 	// time - a Markdown YAML front matter block, or a DOCX Title/Subtitle paragraph style - as opposed to a later
-	// best-effort guess over plain text (credits-token-setup-and-front-matter-detection.prd.md, Phase 4). Nil when the
+	// best-effort guess over plain text. Nil when the
 	// source carried none of it.
 	SourceMetadata *SourceMetadata `json:"sourceMetadata,omitempty"`
 	// Notices are human-readable import-log lines about repairs the importer
@@ -70,8 +70,8 @@ type Draft struct {
 }
 
 // SourceMetadata is document-level title/subtitle/author/series structure read directly from the source's own
-// markup, never guessed from plain text. It becomes another candidate source for internal/credits.Detect
-// (credits-token-setup-and-front-matter-detection.prd.md, Phase 4); nothing here is ever written to a project's
+// markup, never guessed from plain text. It becomes another candidate source for internal/credits.Detect;
+// nothing here is ever written to a project's
 // credits values on its own (ADR 0019: detected is offered, not imported).
 type SourceMetadata struct {
 	Title    string `json:"title,omitempty"`
@@ -186,7 +186,7 @@ type characterCandidateScanner struct {
 	seen            map[string]bool
 	open            *CharacterCandidate
 	// opened is true once openWithName has been called at all, a duplicate name included. It gates the legacy "Name: description"
-	// fallback (S4): that reading is only for a block that never opened a candidate structurally at all. Without this, a labelled
+	// fallback: that reading is only for a block that never opened a candidate structurally at all. Without this, a labelled
 	// line found with nothing open right after a *duplicate* name closed one (openWithName leaves s.open nil either way) would be
 	// misread as a brand-new candidate opening from whatever short label happened to follow - a name-shaped label like "Notes" or
 	// "Age" would fabricate a phantom character (review finding on this phase).
@@ -308,7 +308,7 @@ func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string
 		charactersHeading := isCharacterHeading(group.title)
 		narrative := isNarrativeMarker(group.title)
 		level, hasLevel := headingLevels[group.title]
-		// endsCharacterScope bounds the Characters section to its own subheadings (S3): a heading whose level is as shallow as or
+		// endsCharacterScope bounds the Characters section to its own subheadings: a heading whose level is as shallow as or
 		// shallower than the Characters heading's own (a sibling chapter, or the book's Title) ends it, the same way a Contents
 		// heading does, since docx.go/markdown.go record its level too. A heading whose level cannot be determined (a synthetic
 		// group that never had its own heading paragraph) falls back to the narrative-marker check.

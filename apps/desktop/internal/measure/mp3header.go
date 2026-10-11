@@ -10,11 +10,11 @@ import (
 	"math"
 )
 
-// The MP3 container check (delivery profiles PRD, Phase 6): the frame headers of an MPEG audio Layer III file are read
-// for what a platform asks of the uploaded file (bitrate, constant bit rate, sample rate, channel mode and length).
-// The audio itself is never decoded, so no level is measured on an MP3 (diagnostics PRD, DX-2). The bytes are
-// untrusted: every read is bounded, a header found by searching is believed only when the next frame starts where it
-// says, and a file that is not a run of Layer III frames is refused with the reason.
+// The MP3 container check: the frame headers of an MPEG audio Layer III file are read for what a platform asks of the
+// uploaded file (bitrate, constant bit rate, sample rate, channel mode and length). The audio itself is never decoded,
+// so no level is measured on an MP3 by this check. The bytes are untrusted: every read is bounded, a header found by
+// searching is believed only when the next frame starts where it says, and a file that is not a run of Layer III frames
+// is refused with the reason.
 
 const (
 	// maxResyncBytes is how far the reader searches for a frame where the previous one did not lead (padding, a stray

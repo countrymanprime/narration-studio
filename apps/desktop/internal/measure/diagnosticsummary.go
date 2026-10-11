@@ -1,9 +1,8 @@
 package measure
 
-// DiagnosticSummary is what the windowed analyzers found in one file, as
-// counts, for a view that lists files before their findings (the
-// Diagnostics view, diagnostics PRD Phase 6). It carries no series: the
-// short-term loudness and the silence map stay in Diagnostics.
+// DiagnosticSummary is what the windowed analyzers found in one file, as counts, for a view that lists files before
+// their findings (the Diagnostics view). It carries no series: the short-term loudness and the silence map stay in
+// Diagnostics.
 type DiagnosticSummary struct {
 	DurationSeconds float64 `json:"duration_seconds"`
 	SampleRate      int     `json:"sample_rate"`

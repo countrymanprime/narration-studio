@@ -6,10 +6,10 @@ import (
 	"fmt"
 )
 
-// Punch and roll (teleprompter-manuscript-integration PRD Phase 12, ADR 0246; play_position and punch_to in
-// narration_punch.lua). play_position is read-only and is what the host polls during a live reading to anchor words
-// in project time; punch_to moves only the edit cursor. Both are experimental (actions.go) until the verification pass
-// has confirmed them in a real REAPER, and spike S4 decides which play position anchors a word.
+// Punch and roll (ADR 0246; play_position and punch_to in narration_punch.lua). play_position is read-only and is
+// what the host polls during a live reading to anchor words in project time; punch_to moves only the edit cursor.
+// Both are experimental (actions.go) until the verification pass has confirmed them in a real REAPER, and ADR 0246
+// leaves open which play position anchors a word until the owner's spike S4 has run.
 
 // MaxPreRoll is the longest pre-roll punch_to accepts, in seconds (the Teleprompter.punch_preroll_seconds range).
 const MaxPreRoll = 10

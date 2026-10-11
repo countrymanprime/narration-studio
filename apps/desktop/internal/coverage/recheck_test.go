@@ -6,8 +6,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// cascadeRequest is testRequest with the model cascade turned on (recording-check-model-cascade
-// PRD Phase 4): Phase 5 resolves this from settings; these tests build it directly.
+// cascadeRequest is testRequest with the model cascade turned on. The host resolves this from
+// settings; these tests build it directly.
 func cascadeRequest() Request {
 	request := testRequest()
 	request.Recheck = Transcription{Model: "large-v3-turbo"}

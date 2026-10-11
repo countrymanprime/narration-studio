@@ -427,10 +427,9 @@ func TestAnalyzeRefusesAnIncompleteConfig(t *testing.T) {
 	}
 }
 
-// TestThePackageImportsNoNetworkCode backs the PRD's privacy metric
-// ("the analyzer performs no network calls"): nothing here can open a
-// connection, so nothing about the narrator's voice can leave the machine
-// (D72).
+// TestThePackageImportsNoNetworkCode backs the analyzer's privacy rule (it performs no
+// network calls): nothing here can open a connection, so nothing about the
+// narrator's voice can leave the machine.
 func TestThePackageImportsNoNetworkCode(t *testing.T) {
 	files, err := filepath.Glob("*.go")
 	if err != nil {

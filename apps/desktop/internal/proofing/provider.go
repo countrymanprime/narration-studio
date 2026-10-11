@@ -12,11 +12,11 @@ import (
 
 // Config is what the proofing provider reads. Findings is the project's
 // findings store; Runs judges each tracked pickup source's latest run by
-// analyzer (Transcript Compare's is ComparisonJudge, Phase 2), and a source
-// with no judge is untracked. Renders is the chapter-to-render store (Phase
-// 4); Profile is the delivery profile the project is judged against now and
-// LengthTolerance the narrator's optional render length tolerance in seconds
-// (Phase 5); nil means none. Now stamps signals (nil is time.Now).
+// analyzer (Transcript Compare's is ComparisonJudge), and a source
+// with no judge is untracked. Renders is the chapter-to-render store;
+// Profile is the delivery profile the project is judged against now and
+// LengthTolerance the narrator's optional render length tolerance in seconds;
+// nil means none. Now stamps signals (nil is time.Now).
 type Config struct {
 	Findings        FindingsReader
 	Runs            map[string]RunJudge
@@ -27,7 +27,7 @@ type Config struct {
 }
 
 // SignalProvider is the proofing stage's stages.Provider. It reads stored
-// evidence only (Q12 of the stage recommendations PRD): the findings store,
+// evidence only: the findings store,
 // the ledger, the confirmed mapping, the render store, the render file's
 // identity and the saved project already parsed into the shared view. It never
 // starts a comparison, scan or measurement.
@@ -52,7 +52,7 @@ func (p *SignalProvider) SignalIDs() []string {
 }
 
 // FilterRequired drops from required the delivery checks that are not required
-// right now (Q7 B and the required-check validation: a check needs a limit): a
+// right now (a check needs a limit): a
 // metric check while the profile has no required measured rule for it turned
 // on, and the length check while no tolerance is set. Every other id is kept.
 func (p *SignalProvider) FilterRequired(required []string) []string {
@@ -140,7 +140,7 @@ func (p *SignalProvider) now() time.Time {
 	return time.Now().UTC()
 }
 
-// mappingProblem is the chapter's confirmed-track problem (D5), or nil when it
+// mappingProblem is the chapter's confirmed-track problem, or nil when it
 // has exactly one confirmed track present in the saved project. It is the
 // action the pickups signal shows when no source is current.
 func mappingProblem(chapter stages.ChapterContext, view stages.EvidenceView) *RunStatus {

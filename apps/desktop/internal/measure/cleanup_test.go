@@ -8,8 +8,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// The cleanup fixtures follow the PRD's success signals for Phase 9: a breath after a plosive, a click inside
-// silence, a long dramatic pause and a silence near the threshold, with ambiguous cases left at low confidence.
+// The cleanup fixtures cover a breath after a plosive, a click inside silence, a long dramatic pause and a silence near
+// the threshold, with ambiguous cases left at low confidence.
 
 const cleanupRate = 44100
 

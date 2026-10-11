@@ -1,4 +1,4 @@
-// Package reaper is the DAW port's REAPER adapter (ADR 0300, DAW port PRD P2). It wraps what exists and rewrites nothing: the
+// Package reaper is the DAW port's REAPER adapter (ADR 0300). It wraps what exists and rewrites nothing: the
 // synchronous roles are bridge.Navigator, bridge.Actions, bridge.CleanupClient, bridge.LevelMatchClient and
 // daw.Reachability as they are, the review session (review.go, ADR 0143) sends the bridge commands transcript.Service sent
 // before the extraction, the offline reader is tracks.Parse, and each asynchronous role writes the bridge command its service
@@ -26,7 +26,7 @@ func init() { dawport.Register(dawport.KindREAPER, Factory) }
 var ErrNoSession = errors.New("REAPER is not connected to this app: there is no REAPER session to talk to")
 
 // declares is the adapter's static declaration. Promoting a command once the owner's REAPER verification pass has confirmed it
-// (booth actions enablement PRD) is moving its capability from Experimental to Supported here, in the same PR that takes the
+// (ADR 0400) is moving its capability from Experimental to Supported here, in the same PR that takes the
 // command off bridge's experimentalCommands.
 var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapReview:       dawport.Supported,
@@ -53,7 +53,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	// Built, never wired to a binding, so never gated: Experimental keeps them off until they are verified.
 	dawport.CapSilenceTrim: dawport.Experimental,
 	dawport.CapItemGain:    dawport.Experimental,
-	// The mastering port's DAW row (ADR 0306, render-encode-master PRD Phase 9, masterrender.go): Experimental until the owner's
+	// The mastering port's DAW row (ADR 0306, masterrender.go): Experimental until the owner's
 	// REAPER pass. master_chain_read is one of bridge.Actions' gated commands; render_with_fx answers through the fan-out, and each
 	// request carries the narrator's approval for that one render, which the bridge uses up.
 	dawport.CapRenderWithFX:    dawport.Experimental,
@@ -99,8 +99,7 @@ func Gate(allowed func(dawport.Capability) error) bridge.Gate {
 }
 
 // Declaration is REAPER's declaration with no session behind it: an adapter whose Role is always nil. It exists only so the host can
-// build a resolver to gate the bridge.Actions it still makes itself, until the DAW port PRD's P5a moves those consumers onto this
-// package's roles. It is never registered and fails the conformance suite by design; Role[T] on it is a *dawport.RoleError.
+// build a resolver to gate the bridge.Actions it still makes itself, until those consumers move onto this package's roles. It is never registered and fails the conformance suite by design; Role[T] on it is a *dawport.RoleError.
 func Declaration() dawport.Adapter { return declaration{} }
 
 type declaration struct{}
@@ -221,8 +220,7 @@ func (a *Adapter) Explain(_ dawport.Capability, r dawport.Reason) string {
 }
 
 // ProjectReader reads a saved .rpp with REAPER closed. It needs no live session (project_read's Needs is NeedsNothing,
-// capability.go), so it is exported: a caller that only wants the offline read (DAW port PRD Phase 5d - tracks.go and its
-// neighbours) may use it directly, the same value New wires in as the resolver's role for CapProjectRead.
+// capability.go), so it is exported: a caller that only wants the offline read (tracks.go and its neighbours) may use it directly, the same value New wires in as the resolver's role for CapProjectRead.
 type ProjectReader struct{}
 
 func (ProjectReader) ReadProject(path string) (dawport.Project, error) { return tracks.Parse(path) }

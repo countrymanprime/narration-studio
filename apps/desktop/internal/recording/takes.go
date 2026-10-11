@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-// FolderName is the take folder inside a project (Q4, answered by D86: the `<project>/<Feature>/` convention, as
+// FolderName is the take folder inside a project (the `<project>/<Feature>/` convention, as
 // TranscriptCompare and ManuscriptGuide use), holding plain WAV takes a narrator can drag into a DAW.
 const FolderName = "Recordings"
 
@@ -39,9 +39,8 @@ type Take struct {
 	// from the folder's line-identity sidecar (identity.go), the native-take equivalent of a REAPER item's stamped
 	// P_EXT line id (docs/adr/0026).
 	LineID *string `json:"lineId"`
-	// Keeper marks this take the narrator's chosen read for its line (keeper.go, native-recording-suite PRD Phase 4,
-	// Q5): narrator-confirmed and always undoable, and never a REAPER active-take equivalent since a native take has
-	// no REAPER item.
+	// Keeper marks this take the narrator's chosen read for its line (keeper.go): narrator-confirmed
+	// and always undoable, and never a REAPER active-take equivalent since a native take has no REAPER item.
 	Keeper bool `json:"keeper"`
 	number int
 }

@@ -289,7 +289,7 @@ func TestASpecNoMP3CanHaveIsRefusedBeforeFFmpegRuns(t *testing.T) {
 	assertOnly(t, dir, "chapter.wav")
 }
 
-// The M4B/AAC tests below are render-encode-master Phase 2: fakeFFmpeg's m4b branch (further down this file) stands in for
+// The M4B/AAC tests below cover M4B output: fakeFFmpeg's m4b branch (further down this file) stands in for
 // FFmpeg's own "ipod" muxer, writing a minimal but structurally real chapter track (the same tref/chap-and-text-track shape a
 // real FFmpeg writes, verified against imageio-ffmpeg's Linux build of the pinned wheel family) so encodeport.ReadM4BChapters
 // reads it back the same way it would a real encode's output.
@@ -311,7 +311,7 @@ func TestEncodingWithNoChaptersWritesAPlainM4BWithNoChapterTrack(t *testing.T) {
 }
 
 func TestM4BChapterBoundariesMatchTheSamePerFileDurationsChaptertagsComputes(t *testing.T) {
-	// Phase 2's own test (the PRD's phase table): the fixture set is chaptertags' own testdata, and its timeline is
+	// The fixture set is chaptertags' own testdata, and its timeline is
 	// chaptertags.BuildTimeline's real output, cross-checked against ReadM4BChapters rather than re-derived here.
 	fixtures := []chaptertags.Chapter{
 		{Title: "Chapter 1", Path: filepath.Join("..", "chaptertags", "testdata", "chapter1.mp3")},
@@ -444,7 +444,7 @@ func TestAnM4BWhoseChaptersDoNotMatchWhatWasAskedIsRefusedAndRemoved(t *testing.
 	assertOnly(t, dir, "book.wav")
 }
 
-// The FLAC tests below are render-encode-master Phase 7 (Could, Q7): fakeFFmpeg's flac branch (further down this file) stands
+// The FLAC tests below cover FLAC output: fakeFFmpeg's flac branch (further down this file) stands
 // in for FFmpeg's own native "flac" encoder, writing a well-formed STREAMINFO block from the source WAV's own exact frame
 // count (via WAVReader.Skip, not an estimate) so checkFLAC reads it back the same way it would a real encode's output.
 
@@ -597,10 +597,10 @@ func TestASpecNoFLACCanHaveIsRefusedBeforeFFmpegRuns(t *testing.T) {
 	assertOnly(t, dir, "book.wav")
 }
 
-// TestTheRealFFmpegRoundTripsFLACLosslessly is Phase 7's own verification as a test, alongside Phase 0's and Phase 2's: run it
+// TestTheRealFFmpegRoundTripsFLACLosslessly is the real-binary check for FLAC, alongside the MP3 and M4B ones: run it
 // with NARRATION_UTILS_FFMPEG set to the catalogued ffmpeg.exe (or any FFmpeg with a native "flac" encoder) to prove the real
-// binary's FLAC output decodes back to the exact PCM samples it was given - the PRD's own "FLAC round-trips" test, run against
-// this encoder's own fixture rather than a platform profile that does not exist yet (Q7's recommendation is v1 has none).
+// binary's FLAC output decodes back to the exact PCM samples it was given - run against this encoder's own fixture rather than a
+// platform profile (v1 has none that asks for FLAC).
 func TestTheRealFFmpegRoundTripsFLACLosslessly(t *testing.T) {
 	executable := os.Getenv(realFFmpegEnv)
 	if executable == "" {
@@ -693,7 +693,7 @@ func TestWithNoFFmpegInstalledTheEncoderSaysSoAndWritesNothing(t *testing.T) {
 	assertOnly(t, dir, "chapter.wav")
 }
 
-// TestTheRealFFmpegWritesMP3sTheACXChecksAccept is Phase 0's verification as a test: run it with NARRATION_UTILS_FFMPEG set to
+// TestTheRealFFmpegWritesMP3sTheACXChecksAccept is the real-binary check for MP3: run it with NARRATION_UTILS_FFMPEG set to
 // the catalogued ffmpeg.exe (or any FFmpeg with libmp3lame) to prove the real binary's output against the app's own checks.
 func TestTheRealFFmpegWritesMP3sTheACXChecksAccept(t *testing.T) {
 	executable := os.Getenv(realFFmpegEnv)
@@ -729,7 +729,7 @@ func TestTheRealFFmpegWritesMP3sTheACXChecksAccept(t *testing.T) {
 	})
 }
 
-// TestTheRealFFmpegWritesM4BsWhoseChaptersReadMBack is Phase 2's own verification as a test, alongside Phase 0's: run it with
+// TestTheRealFFmpegWritesM4BsWhoseChaptersReadMBack is the real-binary check for M4B, alongside the MP3 one: run it with
 // NARRATION_UTILS_FFMPEG set to the catalogued ffmpeg.exe (or any FFmpeg with a native AAC encoder and an "ipod" muxer) to
 // prove the real binary's chapters, not just fakeM4B's stand-in for them, read back through ReadM4BChapters.
 func TestTheRealFFmpegWritesM4BsWhoseChaptersReadMBack(t *testing.T) {
@@ -1124,7 +1124,7 @@ func mp4box(typ string, parts ...[]byte) []byte {
 	return append(b, payload...)
 }
 
-// fakeFLAC stands in for FFmpeg's native "flac" encoder (render-encode-master Phase 7): it writes a minimal but well-formed
+// fakeFLAC stands in for FFmpeg's native "flac" encoder: it writes a minimal but well-formed
 // FLAC file (the "fLaC" marker plus a single STREAMINFO metadata block) whose sample rate, channel count and total sample
 // count encodeport.checkFLAC reads back, mirroring fakeM4B's own stand-in for the "ipod" muxer. format is the source WAV's
 // own (measure.Format), used when args left -ar/-ac open (matching checkFLAC's own fallback), and totalFrames is the source's

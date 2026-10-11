@@ -40,9 +40,9 @@ func TestEmptySpaceSignalNotMetWithOpenCandidate(t *testing.T) {
 	}
 }
 
-// TestEmptySpaceSignalCarriesTheProcessedAudioCaveat: chapter-stage-recommendations.prd.md Phase 7's own evidence
-// entry ("analysis of source audio; take FX not applied") is on every result, whatever the verdict - met, not_met
-// and every unknown cause alike.
+// TestEmptySpaceSignalCarriesTheProcessedAudioCaveat: the evidence entry
+// "analysis of source audio; take FX not applied" is on every result, whatever the verdict - met, not_met and every unknown
+// cause alike.
 func TestEmptySpaceSignalCarriesTheProcessedAudioCaveat(t *testing.T) {
 	hasCaveat := func(t *testing.T, signal stages.Signal) {
 		t.Helper()
@@ -62,8 +62,8 @@ func TestEmptySpaceSignalCarriesTheProcessedAudioCaveat(t *testing.T) {
 	hasCaveat(t, EmptySpaceSignal(unmapped))
 }
 
-// TestEmptySpaceSignalListsOpenCandidatesAsEvidence: Phase 7's "evidence lists remaining candidates" - a not_met
-// signal's evidence carries each open candidate's own entry, and a dismissed one's is left out.
+// TestEmptySpaceSignalListsOpenCandidatesAsEvidence: a not_met signal's evidence carries each open candidate's own entry, and a
+// dismissed one's is left out.
 func TestEmptySpaceSignalListsOpenCandidatesAsEvidence(t *testing.T) {
 	in := baseInput()
 	openEvidence := stages.Evidence{Kind: "candidate", Label: "Candidate", Value: "a gap"}
@@ -89,7 +89,7 @@ func TestEmptySpaceSignalMetWithOnlyDismissedCandidates(t *testing.T) {
 	in.Candidates = []CandidateStatus{{Open: false}, {Open: false}}
 	signal := EmptySpaceSignal(in)
 	if signal.State != stages.SignalMet {
-		t.Fatalf("State = %q, want %q (every candidate dismissed, D9)", signal.State, stages.SignalMet)
+		t.Fatalf("State = %q, want %q (every candidate dismissed)", signal.State, stages.SignalMet)
 	}
 }
 
@@ -155,8 +155,8 @@ func TestEmptySpaceSignalStaleEvenWithOpenCandidates(t *testing.T) {
 
 // TestShippedClassSignalsNeverMet: under the shipped detector versions and
 // the recorded validation runs, the click and breath signals are unknown even
-// on fully covered input with no candidate (Phase 4: both classes ship gated
-// off).
+// on fully covered input with no candidate (both classes ship gated off,
+// ADR 0510).
 func TestShippedClassSignalsNeverMet(t *testing.T) {
 	for _, class := range []struct{ id, analyzer, version string }{
 		{ClickSignalID, AnalyzerClick, ClickAnalyzerVersion},

@@ -22,7 +22,7 @@ func TestEveryRegisteredSourcePassesTheSuite(t *testing.T) {
 
 func TestTheFallbackOrderIsCmuThenWiktextractThenEspeak(t *testing.T) {
 	// The sidecar's build-time fallback (manuscript_guide.py's pronunciation()) tries CMU, then Wiktextract, then eSpeak,
-	// on every platform (D72/Q7, prep-depth Phase 8).
+	// on every platform (ADR 0405).
 	for _, platform := range port.Platforms {
 		if got, want := pronunciationport.FallbackOrder(platform), []string{"cmu", "wiktextract", "espeak"}; !reflect.DeepEqual(got, want) {
 			t.Errorf("FallbackOrder(%q) = %v, want %v", platform, got, want)
@@ -31,7 +31,8 @@ func TestTheFallbackOrderIsCmuThenWiktextractThenEspeak(t *testing.T) {
 }
 
 func TestNoSourceTakesTheBrowserRoleYet(t *testing.T) {
-	// Q5: the BrowserLookup role is declared with no implementation; the web lookup belongs to benchmark recommendation 6's PRD.
+	// The BrowserLookup role is declared with no implementation: the one-click web lookup pages are built by
+	// internal/pronunciationlookup instead (docs/architecture/provider-ports.md).
 	for _, platform := range port.Platforms {
 		if got := pronunciationport.Names(platform, pronunciationport.ModeBrowse); len(got) != 0 {
 			t.Errorf("Names(%q, browse) = %v, want none", platform, got)

@@ -31,7 +31,7 @@ func TestDetectSourcePrefersDocxOverMarkdown(t *testing.T) {
 	}
 }
 
-// TestDetectSourceFindsEpubAndTxt pins F2 (txt-and-epub-import PRD, Phase 4):
+// TestDetectSourceFindsEpubAndTxt pins that
 // a manuscript.epub or manuscript.txt sitting in the project folder is now
 // offered, the same as manuscript.docx/.md always were.
 func TestDetectSourceFindsEpubAndTxt(t *testing.T) {
@@ -44,8 +44,8 @@ func TestDetectSourceFindsEpubAndTxt(t *testing.T) {
 	}
 }
 
-// TestDetectSourcePreferenceOrder pins the full preference order from the PRD's
-// own recommendation (F2): .docx, .epub, .md, .markdown, .txt.
+// TestDetectSourcePreferenceOrder pins the full preference order:
+// .docx, .epub, .md, .markdown, .txt.
 func TestDetectSourcePreferenceOrder(t *testing.T) {
 	order := []string{".docx", ".epub", ".md", ".markdown", ".txt"}
 	for start := 0; start < len(order); start++ {

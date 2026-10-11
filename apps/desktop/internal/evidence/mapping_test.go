@@ -75,10 +75,9 @@ func TestConfirmAgainForTheSameTrackReplacesItsLink(t *testing.T) {
 }
 
 func TestTwoTracksMayConfirmTheSameChapter(t *testing.T) {
-	// D5's "several tracks per chapter, consumers treat that as unknown" is a
-	// consumer rule (SR), not a constraint this store enforces (Phase 5
-	// success signal: "two links to one chapter are reported as such for
-	// SR" - the store must let both exist so a consumer can detect it).
+	// "Several tracks per chapter, consumers treat that as unknown" is a
+	// consumer rule (stage recommendations), not a constraint this store
+	// enforces: the store must let both links exist so a consumer can detect it.
 	store := NewMappingStore(t.TempDir())
 	if _, err := store.Confirm("doc-1", "track-guid-a", "c-0001", "Chapter One"); err != nil {
 		t.Fatal(err)
@@ -157,7 +156,7 @@ func TestWritesOneFileAtTheDocumentedPath(t *testing.T) {
 	}
 }
 
-// --- Keyed by documentId (Q6) ---
+// --- Keyed by documentId ---
 
 func TestListForADifferentDocumentReadsAsEmptyNeverAsTheOtherDocumentSLinks(t *testing.T) {
 	store := NewMappingStore(t.TempDir())
@@ -181,7 +180,7 @@ func TestConfirmingForANewDocumentReplacesTheStaleDocumentSMappings(t *testing.T
 		t.Fatal(err)
 	}
 	// Simulates a re-import that produced a new documentId before resetDerived
-	// happened to run (Q6's keyed-by-documentId guard, not the normal path -
+	// happened to run (the keyed-by-documentId guard, not the normal path -
 	// resetDerived is the normal way this file is cleared, see the
 	// manuscript package's tests).
 	if _, err := store.Confirm("doc-2", "track-guid-b", "c-0001", "Chapter One"); err != nil {
@@ -233,7 +232,7 @@ func TestAFileWithANewerSchemaVersionReadsAsEmpty(t *testing.T) {
 	}
 }
 
-// --- Suggestion (Q9: re-suggestion from stored titles after a re-import) ---
+// --- Suggestion: re-suggestion from stored titles after a re-import ---
 
 func TestSuggestFromPreviousMatchesByTheStoredChapterTitle(t *testing.T) {
 	store := NewMappingStore(t.TempDir())
@@ -267,7 +266,7 @@ func TestSuggestFromPreviousMatchesByTheStoredChapterTitle(t *testing.T) {
 }
 
 func TestSuggestFromPreviousAfterTheStoreIsClearedStillMatchesByTitle(t *testing.T) {
-	// The full Q9 flow: confirm, snapshot, clear (what resetDerived does to
+	// The full flow: confirm, snapshot, clear (what resetDerived does to
 	// the file), then re-suggest from the snapshot against the post-reimport
 	// chapter list - the snapshot must have been taken before the clear, and
 	// suggesting must not need the store at all afterward.
@@ -375,7 +374,7 @@ func TestConfirmStampsConfirmedAtWithTheStoreSClock(t *testing.T) {
 	}
 }
 
-// --- SetChapter / ClearChapter: one track per chapter (chapter-track-link-control PRD Phase 1, TL3 A) ---
+// --- SetChapter / ClearChapter: one track per chapter ---
 
 func TestSetChapterReplacesTheChapterSOldLinkInsteadOfAddingASecond(t *testing.T) {
 	store := NewMappingStore(t.TempDir())

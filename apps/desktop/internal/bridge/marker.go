@@ -28,9 +28,9 @@ type MarkerResult struct {
 
 // AddMarker asks REAPER to add one take marker at the finding's source time, on its take (the active one when the
 // target names none), in one undo block (add_finding_marker in integrations/reaper/narration_navigation.lua;
-// review-dashboard PRD Phase 8, ADR 0123). It is found and refused the way Navigate is: a *StaleError when the item,
-// take or spot is gone, ErrRecording while REAPER records, and nothing is sent for a target with no item GUID or
-// source time, or a marker with no name.
+// ADR 0123). It is found and refused the way Navigate is: a *StaleError when the item, take or spot is gone,
+// ErrRecording while REAPER records, and nothing is sent for a target with no item GUID or source time, or a marker
+// with no name.
 func (n *Navigator) AddMarker(ctx context.Context, target Target, marker Marker) (MarkerResult, error) {
 	switch {
 	case target.ItemGUID == "":

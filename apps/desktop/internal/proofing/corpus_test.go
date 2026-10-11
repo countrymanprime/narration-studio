@@ -1,19 +1,17 @@
-// This file is Phase 9 of chapter-stage-recommendations.prd.md (delivered and deleted; see
-// docs/architecture/stage-recommendations.md)
-// ("Secondary surfaces and close-out"): an end-to-end validation of the SR
-// verdict for proofing->finalized, mirroring
-// apps/desktop/internal/coverage/corpus_test.go's architecture (a small
-// labeled corpus, the REAL stages.Service driving the REAL proofing
+// This file is an end-to-end validation of the stage recommendations verdict
+// (docs/architecture/stage-recommendations.md) for proofing->finalized,
+// mirroring apps/desktop/internal/coverage/corpus_test.go's architecture (a
+// small labeled corpus, the REAL stages.Service driving the REAL proofing
 // SignalProvider, an assertion the verdict agrees with the label) rather
-// than reusing its files, since proofing-readiness-signals.prd.md's own
-// real annotated pickup corpus still needs permissioned material nobody
-// has yet.
+// than reusing its files, since a real annotated pickup corpus still needs
+// permissioned material nobody has yet.
 //
-// PROVISIONAL (D70/D71, see docs/research/editing-and-proofing-corpus.md):
-// this is a synthetic, signal-level stand-in, not the real PS corpus. Only
+// PROVISIONAL (see docs/research/editing-and-proofing-corpus.md):
+// this is a synthetic, signal-level stand-in, not a real proofing corpus. Only
 // the underlying evidence sources are faked here (findings, a fake
 // Transcript Compare run judge, a stored render measurement) - never the
 // engine, the provider or the stages.Service.
+
 package proofing
 
 import (
@@ -40,7 +38,7 @@ type proofingCorpusCase struct {
 
 // proofingCorpusService wires the REAL stages.Service over the REAL
 // proofing.SignalProvider, with RequiredSignals narrowed by the provider's
-// OWN FilterRequired (Q7 B) exactly as production does it
+// OWN FilterRequired exactly as production does it
 // (apps/desktop/bindings_stages.go's filterRequired) - never a hand-picked
 // required set.
 func proofingCorpusService(dir string, provider *SignalProvider, view stages.EvidenceView) *stages.Service {
@@ -140,9 +138,9 @@ func proofingCorpusCases() []proofingCorpusCase {
 // TestStageRecommendationsOverTheProofingCorpus is the proofing-side twin
 // of coverage's TestStageRecommendationsOverTheCoverageCorpus: it drives the
 // REAL stages.Service, with the REAL proofing.SignalProvider, over a small
-// labeled corpus, and asserts the SR verdict agrees with the label. Every
+// labeled corpus, and asserts the stage verdict agrees with the label. Every
 // "true not done" case (not_ready or unknown) must NEVER read recommended -
-// the one invariant the whole PRD rests on.
+// the one invariant the whole feature rests on.
 func TestStageRecommendationsOverTheProofingCorpus(t *testing.T) {
 	cases := proofingCorpusCases()
 	agreed, falseRecommended := 0, 0

@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// Background recording checks (daw-chapter-track-auto-sync PRD Phase 7, S7, D27): the scheduler's decision alone, with
+// Background recording checks (ADR 0211): the scheduler's decision alone, with
 // every condition spelled out.
 
 var bgNow = time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)

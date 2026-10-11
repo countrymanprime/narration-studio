@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The input detection of teleprompter-manuscript-integration PRD Phase 11 (ADR 0250): REAPER's open input device, as
+// The input detection of ADR 0250: REAPER's open input device, as
 // GetAudioDeviceInfo("IDENT_IN") names it, against the names the teleprompter's dshow capture opens.
 func TestMatchInputDevice(t *testing.T) {
 	realtek := "Microphone Array (Realtek(R) Audio)"

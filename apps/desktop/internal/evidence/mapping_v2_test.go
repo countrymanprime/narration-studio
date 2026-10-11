@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Mapping store v2 (daw-chapter-track-auto-sync PRD Phase 2): every link says
+// Mapping store v2: every link says
 // where it came from, an undone auto-link is remembered so sync never makes it
 // again, and a re-import carries the old links forward for re-linking.
 

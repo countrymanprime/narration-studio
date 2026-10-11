@@ -403,7 +403,7 @@ func docxWithProgress(path string, progress Progress) (Draft, error) {
 	paragraphs := []Paragraph{}
 	titles := []string{}
 	notices := []string{}
-	// headingLevels records the outline depth newDraft needs to bound an active Characters section to its own subheadings (S3) -
+	// headingLevels records the outline depth newDraft needs to bound an active Characters section to its own subheadings -
 	// every heading-derived group's title, chapter or not, keyed by its exact text; the first occurrence wins.
 	headingLevels := map[string]int{}
 	recordLevel := func(title string, record paragraphRecord) {
@@ -415,7 +415,7 @@ func docxWithProgress(path string, progress Progress) (Draft, error) {
 		}
 	}
 	// bookmarkChapter maps a "_Toc" bookmark name to the chapter title of the heading it was opened inside, for matching a docx's
-	// own table of contents to the chapter list (S6, Phase 4): Word wraps a bookmarkStart/End of that name around a heading's own
+	// own table of contents to the chapter list: Word wraps a bookmarkStart/End of that name around a heading's own
 	// run content when it builds a TOC, and a TOC entry's hyperlink cites that name in its w:anchor.
 	bookmarkChapter := map[string]string{}
 	recordBookmarks := func(chapter string, record paragraphRecord) {
@@ -438,7 +438,7 @@ func docxWithProgress(path string, progress Progress) (Draft, error) {
 		}
 	}
 	// sourceMetadata captures the book's own Title-styled paragraph, and an immediately following Subtitle-styled
-	// one, as structure rather than a guess (credits-token-setup-and-front-matter-detection.prd.md, Phase 4). It is
+	// one, as structure rather than a guess. It is
 	// only ever read from the document's very first heading: a Subtitle-styled line under some other, later heading
 	// is that heading's own chapter subtitle (the existing F4 handling below), never the book's.
 	var sourceMetadata *SourceMetadata
@@ -511,7 +511,7 @@ func docxWithProgress(path string, progress Progress) (Draft, error) {
 		return draft, err
 	}
 	// The docx's own table of contents becomes the authoritative, ordered chapter list once enough of its entries match a real
-	// heading (S6): only the exposed chapterTitles list changes here, never Sections/grouping, so a document without a TOC (or
+	// heading: only the exposed chapterTitles list changes here, never Sections/grouping, so a document without a TOC (or
 	// whose TOC only weakly matches) is entirely unaffected. Title and Contents were never in `titles`, so they are naturally
 	// excluded whenever the TOC does not name them, without special-casing either.
 	notices = applyTableOfContents(&draft, notices, tocEntries, titles, bookmarkChapter)

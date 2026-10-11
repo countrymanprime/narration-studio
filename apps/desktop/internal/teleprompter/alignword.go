@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// Punch and roll's offline word-time alignment (teleprompter-manuscript-integration.prd.md Phase 12, ADR 0560, owner
-// decision 2026-09-23: live anchors first, offline alignment as the fallback). When no anchor brackets a flagged word
+// Punch and roll's offline word-time alignment (ADR 0560: live anchors first,
+// offline alignment as the fallback). When no anchor brackets a flagged word
 // (anchors.go), the host runs the sidecar's `--align-word` mode (align_word.py) once over a stretch of the chapter's
 // recorded audio: the tail-audio locate's own decode and placement (locate.go, ADR 0111) pointed at one word, which
 // answers when that word starts in the recording's source file. Mapping that onto the project timeline is the

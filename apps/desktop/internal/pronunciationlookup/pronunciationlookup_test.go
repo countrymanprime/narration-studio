@@ -25,7 +25,7 @@ func TestURLBuildsEachSitesTemplate(t *testing.T) {
 		{"merriam-webster, one word", MerriamWebster, "croquet", "https://www.merriam-webster.com/dictionary/croquet"},
 		{"merriam-webster, a space", MerriamWebster, "Mock Turtle", "https://www.merriam-webster.com/dictionary/Mock%20Turtle"},
 		{"merriam-webster, an accent", MerriamWebster, "café", "https://www.merriam-webster.com/dictionary/caf%C3%A9"},
-		// Howjsay (Phase 0 assumption, unverified): a space becomes a hyphen in its "how-to-pronounce-<word>" slug,
+		// Howjsay (an unverified assumption, docs/research/pronunciation-lookup-urls.md): a space becomes a hyphen in its "how-to-pronounce-<word>" slug,
 		// before path escaping the rest.
 		{"howjsay, one word", Howjsay, "croquet", "https://howjsay.com/how-to-pronounce-croquet"},
 		{"howjsay, a space becomes a hyphen", Howjsay, "Mock Turtle", "https://howjsay.com/how-to-pronounce-Mock-Turtle"},
@@ -74,10 +74,9 @@ func TestSourcesListsExactlyTheFourSites(t *testing.T) {
 	}
 }
 
-// The app never fetches, scrapes or caches a lookup site (PRD "What We're NOT Building"; Success Metrics: "No network
-// call from the app for a lookup"): this package never imports net/http, so it cannot construct an HTTP client no
-// matter what a future edit adds to it. A static import check, not a runtime one, so it holds even for a code path
-// this test never exercises.
+// The app never fetches, scrapes or caches a lookup site, so this package never imports net/http and cannot
+// construct an HTTP client no matter what a future edit adds to it. A static import check, not a runtime one, so it
+// holds even for a code path this test never exercises.
 func TestPackageNeverImportsNetHTTP(t *testing.T) {
 	dir, err := os.Getwd()
 	if err != nil {

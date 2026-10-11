@@ -15,10 +15,10 @@ import (
 
 // CreateTakeRequest is what the Lua create_take command (integrations/reaper/narration_take_review.lua) needs to
 // attach a narrator-approved candidate's source range as a new take on the target item: the finding it came from
-// (Q5/ADR 0098 provenance), the target item's own GUID (Q6's explicit, unstamped target identity - never
-// preselected on a weak match, per the PRD's MVP scope), the candidate's own item GUID when it has one (an extra
+// (provenance, ADR 0098), the target item's own GUID (an explicit, unstamped target identity, never
+// preselected on a weak match), the candidate's own item GUID when it has one (an extra
 // staleness check; empty skips it), the candidate's source file, and the matched span's range within that source
-// (SourceRangeStart becomes the new take's D_STARTOFFS, per the phase 1 spike).
+// (SourceRangeStart becomes the new take's D_STARTOFFS).
 type CreateTakeRequest struct {
 	FindingID         string
 	TargetItemGUID    string
@@ -29,9 +29,8 @@ type CreateTakeRequest struct {
 }
 
 // CreateTakeResult is what the bridge reports back once the take exists: the target item's own GUID (unchanged)
-// and the new take's GUID, both re-resolved by the Lua command after its Undo_EndBlock2 (the phase 1 spike's
-// warning that undo/redo - and, defensively, ending an undo block - replace REAPER's item/take Lua objects
-// project-wide).
+// and the new take's GUID, both re-resolved by the Lua command after its Undo_EndBlock2 (undo/redo - and,
+// defensively, ending an undo block - replaces REAPER's item/take Lua objects project-wide).
 type CreateTakeResult struct {
 	TargetItemGUID string `json:"targetItemGuid"`
 	NewTakeGUID    string `json:"newTakeGuid"`
@@ -47,7 +46,7 @@ var createTakeTimeout = 10 * time.Second
 var createTakePollInterval = 50 * time.Millisecond
 
 // CreateTake sends one create_take command to the REAPER bridge and waits for it to succeed, go stale, or fail.
-// client is the DAW port's take_create role (dawport.TakeCreator, DAW port PRD P5c); nil is a standalone launch or
+// client is the DAW port's take_create role (dawport.TakeCreator); nil is a standalone launch or
 // a DAW with no such role. sessionDir is where the request payload file is written (the same session directory the
 // bridge client itself uses); the wire protocol caps a command at a handful of positional fields
 // (narration_bridge_core.lua's split), so - like stamp_item_lines and create_chapter_regions before it - the

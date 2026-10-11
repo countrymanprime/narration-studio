@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 )
 
-// Decoding an MP3 for level measurement (delivery-platform-profiles PRD Phase 8, P11): internal/measure never links a
-// decoder itself (ADR 0025's "no third runtime" is about the measurement algorithms, which stay this package's own
-// hand-written meters), so it asks a Decoder, supplied by the caller, to turn the compressed file back into PCM once. A
-// production Decoder is the FFmpeg row render-encode-master's Encoder port already catalogues, run in reverse
-// (internal/encodeport, wired in by the host); a fake stands in for it in every test in this package. Once decoded, the
-// WAV audio is measured by this package's own analyze() unchanged, exactly as if it had been rendered as a WAV.
+// Decoding an MP3 for level measurement: internal/measure never links a decoder itself (ADR 0025's "no third runtime"
+// is about the measurement algorithms, which stay this package's own hand-written meters), so it asks a Decoder,
+// supplied by the caller, to turn the compressed file back into PCM once. A production Decoder is the FFmpeg row
+// render-encode-master's Encoder port already catalogues, run in reverse (internal/encodeport, wired in by the host); a
+// fake stands in for it in every test in this package. Once decoded, the WAV audio is measured by this package's own
+// analyze() unchanged, exactly as if it had been rendered as a WAV.
 
 // Decoder turns an MP3 file into WAV audio so its levels can be measured. It is a port in spirit even though it is not a
 // registered provider-port capability itself: MeasureFile depends on this interface, never on a concrete adapter.

@@ -9,9 +9,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// The edit-and-proof-workspace PRD Phase 5's peaks cache (EP12 A: "cached per source identity in the
-// evidence cache", ADR 0520). The cache always holds the WHOLE source's peaks, computed once from position
-// 0 (Q5 option A, evidence/cache.go): a request narrowed to one item's played range never invalidates
+// The peaks cache is keyed per source identity in the evidence cache (ADR 0520). It always holds the WHOLE
+// source's peaks, computed once from position 0: a request narrowed to one item's played range never invalidates
 // another item's entry for the same file, a trim only narrows or moves that range without changing the
 // cache key, and a retake sharing an earlier item's source file is answered instantly from disk.
 
@@ -19,7 +18,7 @@ const (
 	// peaksAnalyzerID and peaksVersion identify this package's entries in the evidence cache (evidence.CacheEntryKey).
 	peaksAnalyzerID = "peaks"
 	peaksVersion    = "1"
-	// peaksBlobVersion is the cache entry's own schema version (D8: the store never looks inside the blob).
+	// peaksBlobVersion is the cache entry's own schema version (the evidence store never looks inside the blob).
 	peaksBlobVersion = 1
 )
 

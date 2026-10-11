@@ -2,18 +2,16 @@
 // Transcript Compare sidecar (SPAN_GROUP/SPAN_MEMBER tagged lines, see
 // sidecars/transcript-compare/core/compare.py's find_repeated_spans) and
 // adapts it into findings.Finding records for the pickup and
-// duplicate_read categories, per Q1/Q2 of
-// take-review-pickups-duplicates-take-intelligence.prd.md.
+// duplicate_read categories (docs/utilities/take-review.md).
 //
 // This is a Go *adapter*, not a Go re-implementation of the detector:
 // tokenization, homophones, number-word merging and the manuscript diff
-// all stay in the Python sidecar, exactly as Q2 requires (a Go copy would
-// drift). This package only reads the sidecar's own tagged text output
-// and reshapes it into the findings contract
-// (apps/desktop/internal/findings). It intentionally does not read the
+// all stay in the Python sidecar, so a Go copy cannot drift from them. This
+// package only reads the sidecar's own tagged text output and reshapes it into
+// the findings contract (apps/desktop/internal/findings). It intentionally does not read the
 // project model, does not choose a scan scope, does not run the sidecar,
-// does not create takes, and is not wired into any findings store or
-// REAPER binding: those are later phases (4-6) of the PRD.
+// does not create takes, and does not write to a findings store: the
+// internal/takereview scan service does that.
 package repeats
 
 import (
@@ -55,7 +53,7 @@ type Group struct {
 // stays safe to call against any --out file the sidecar can produce: the
 // additive-lines guarantee this repo relies on elsewhere (the Go
 // transcript service only checks the NEED_CHAPTER prefix, and the Lua
-// bridge only reads SUMMARY and MARKER; see the PRD's Evidence section).
+// bridge only reads SUMMARY and MARKER).
 func ParseOutput(text string) ([]Group, error) {
 	byID := map[int]*Group{}
 	var order []int

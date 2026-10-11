@@ -1,4 +1,4 @@
-// Package coverage is the recording-coverage analysis PRD's Go service
+// Package coverage is the recording-coverage analysis Go service
 // (docs/utilities/recording-coverage.md, ADR 0128). For one
 // manuscript chapter and its narrator-confirmed track, it builds the list of
 // played items from the saved REAPER project only (never live REAPER state),
@@ -11,6 +11,9 @@
 // It never changes the project, the manuscript or a chapter status: it reads
 // the saved .rpp, the manuscript and the audio, and writes only under the
 // project's narration-utils/analysis folder.
+//
+// Comments here name decisions by their labels (D1, Q3, MC1 and so on); the table is
+// in docs/utilities/recording-coverage.md under Decisions.
 package coverage
 
 import (
@@ -33,7 +36,7 @@ type ChapterBasis struct {
 
 // chapterBasis reads chapterID out of a loaded canonical manuscript (the map
 // manuscript.Service.Load returns). A chapter that is missing, has no
-// paragraphs or is not narration (Q4: Front Matter and reference sections are
+// paragraphs or is not narration (Front Matter and reference sections are
 // not targets) is an UnknownError.
 func chapterBasis(data map[string]any, chapterID string) (ChapterBasis, error) {
 	documentID, _ := data["documentId"].(string)
@@ -86,8 +89,7 @@ func findChapter(data map[string]any, chapterID string) (map[string]any, bool) {
 }
 
 // CreditsChapterID is the id a credits row's check runs and reads under: "credits-opening" or "credits-closing",
-// matching the teleprompter's own credits script id (ADR 0150) and the row id the chapter table renders
-// (credits-in-chapter-table.prd.md Phase 2).
+// matching the teleprompter's own credits script id (ADR 0150) and the row id the chapter table renders.
 func CreditsChapterID(kind string) string { return "credits-" + kind }
 
 // CreditsKind reports the credits kind a chapterID names ("opening" or "closing"), and whether it is one at all - the
@@ -103,7 +105,7 @@ func CreditsKind(chapterID string) (kind string, ok bool) {
 	}
 }
 
-// creditsBasis is a credits row's basis (Phase 3's "the rendered text, not manuscript paragraphs"): title and text
+// creditsBasis is a credits row's basis, the rendered text rather than manuscript paragraphs: title and text
 // are the same first-of-kind template render the Home row and the teleprompter show (ADR 0093, ADR 0150), so a
 // template edit that changes either changes the hash and makes a stored result stale, exactly as an edited
 // manuscript paragraph does for chapterBasis. documentID is the current manuscript's own documentId, not a fixed

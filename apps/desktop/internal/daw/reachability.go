@@ -10,14 +10,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 )
 
-// heartbeatTimeout is how long since the last PROJECT_STATUS event still counts as "REAPER is running" (Phase 7,
-// W10). It only has to outlast one missed tick of both sides: narration_ui_bridge.lua's own heartbeat interval
+// heartbeatTimeout is how long since the last PROJECT_STATUS event still counts as "REAPER is running" (ADR 0092). It only has to outlast one missed tick of both sides: narration_ui_bridge.lua's own heartbeat interval
 // (M.HEARTBEAT_INTERVAL_SECONDS in narration_ui_bridge.lua, 1.5s) and the host's poll cadence
 // (transcriptLoop, 150ms). Five seconds gives generous margin for a slow tick without taking long to notice REAPER
 // closing.
 const heartbeatTimeout = 5 * time.Second
 
-// Reachability tracks the last PROJECT_STATUS heartbeat a REAPER bridge session broadcast (ADR 0092, W10): the
+// Reachability tracks the last PROJECT_STATUS heartbeat a REAPER bridge session broadcast (ADR 0092): the
 // events.log line narration_ui_bridge.lua's tick loop appends periodically with an empty run ID, delivered
 // through events.go's existing fan-out (a run-less event reaches every subscriber) rather than a second polled
 // file. It answers the three Bootstrap facts dawfacts.go needs: whether REAPER is reachable at all, and whether
@@ -35,7 +34,7 @@ type Reachability struct {
 	changeCount int
 	// +checklocks:mu
 	hasChangeCount bool
-	// transport is the heartbeat's optional fifth and sixth fields (DAW port PRD Phase 9, ADR 0305); hasTransport is false
+	// transport is the heartbeat's optional fifth and sixth fields (ADR 0305); hasTransport is false
 	// when the last heartbeat did not carry them (an older script).
 	// +checklocks:mu
 	transport Transport
@@ -69,7 +68,7 @@ func NewReachability(client *bridge.Client) *Reachability {
 // Record is the Subscription.Handle callback (exported so a test can deliver an event directly, without a real
 // bridge.Client): event.Fields is [tag, run, rpp, unsaved] once it has passed wire.go's table (CheckEvent), so
 // both trailing fields are always present, and a
-// fifth, the edit counter, may follow, then the transport's play state and play position (DAW port PRD Phase 9).
+// fifth, the edit counter, may follow, then the transport's play state and play position (ADR 0305).
 func (r *Reachability) Record(event bridge.Event) {
 	rpp, unsaved := "", false
 	if len(event.Fields) > 2 {
@@ -102,7 +101,7 @@ func (r *Reachability) Record(event bridge.Event) {
 }
 
 // Transport returns REAPER's transport from the last heartbeat, and whether it is known: the heartbeat must be fresh and
-// must have carried it (DAW port PRD Phase 9). A REAPER that stopped answering is not reported as still recording.
+// must have carried it (ADR 0305). A REAPER that stopped answering is not reported as still recording.
 func (r *Reachability) Transport() (Transport, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -113,7 +112,7 @@ func (r *Reachability) Transport() (Transport, bool) {
 }
 
 // ChangeCount returns REAPER's edit counter (GetProjectStateChangeCount) from the last heartbeat, and whether it is
-// known: the heartbeat must be fresh and must have carried one (DAW chapter-track auto-sync Phase 4). The counter
+// known: the heartbeat must be fresh and must have carried one (ADR 0211). The counter
 // rises on every edit in REAPER, saved or not, and starts again when a project is (re)opened, so a consumer compares
 // it only with a count read from the same open project.
 func (r *Reachability) ChangeCount() (int, bool) {
@@ -146,8 +145,7 @@ func (r *Reachability) CurrentProject() (rpp string, unsaved bool) {
 }
 
 // Matches reports whether the project REAPER has open right now (per the last, still-fresh heartbeat) is
-// linkedPath: normalized and compared case-insensitively (Windows paths), per the PRD's "Mismatch detection"
-// success metric. An unsaved project, a stale heartbeat, or an empty linkedPath never match.
+// linkedPath: normalized and compared case-insensitively (Windows paths). An unsaved project, a stale heartbeat, or an empty linkedPath never match.
 func (r *Reachability) Matches(linkedPath string) bool {
 	if linkedPath == "" {
 		return false

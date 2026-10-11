@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
 )
 
-// A finding's identity lives in its label's text (audacity-integration PRD Question 4, ADR 0355 point 5): `[nu:<id>] <words>`, or
+// A finding's identity lives in its label's text (ADR 0355 point 5): `[nu:<id>] <words>`, or
 // `[nu:<id> reviewed] <words>` once the narrator has reviewed it. Labels are matched by that identity, never by time: GetInfo
 // reports times to about six significant digits, and the narrator may move a label.
 const (

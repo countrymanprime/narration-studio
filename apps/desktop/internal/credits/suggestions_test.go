@@ -117,14 +117,13 @@ func TestStoredSourcePathRefusesAPathThatEscapesTheSourcesFolder(t *testing.T) {
 
 // realStoredPath is the shape commit() (apps/desktop/internal/manuscript/service.go) actually writes:
 // "narration-utils/manuscript/sources/<id>/<name>", relative to the project folder, not a bare file name under
-// "narration-utils/manuscript". A made-up bare name would hide the double-join defect (credits-token-setup-and-front-
-// matter-detection.prd.md Evidence).
+// "narration-utils/manuscript". A made-up bare name would hide the double-join defect.
 func realStoredPath(name string) string {
 	return filepath.Join("narration-utils", "manuscript", "sources", "src-0001", name)
 }
 
-// TestSuggestFromManuscriptPrefersFrontMatterOverDocPropsWhenBothArePresent pins CS6's precedence: the front matter
-// beats DOCX properties (this PRD amends the credits PRD's original "docProps wins" design).
+// TestSuggestFromManuscriptPrefersFrontMatterOverDocPropsWhenBothArePresent pins the precedence: the front matter
+// beats DOCX properties.
 func TestSuggestFromManuscriptPrefersFrontMatterOverDocPropsWhenBothArePresent(t *testing.T) {
 	project := t.TempDir()
 	stored := realStoredPath("book.docx")
@@ -146,7 +145,7 @@ func TestSuggestFromManuscriptPrefersFrontMatterOverDocPropsWhenBothArePresent(t
 	}
 }
 
-// TestSuggestFromManuscriptFallsBackToDocPropsWhenFrontMatterFindsNothing covers the other half of CS6: DOCX
+// TestSuggestFromManuscriptFallsBackToDocPropsWhenFrontMatterFindsNothing covers the other half of that precedence: DOCX
 // properties are used when the front matter has nothing for that token.
 func TestSuggestFromManuscriptFallsBackToDocPropsWhenFrontMatterFindsNothing(t *testing.T) {
 	project := t.TempDir()
@@ -168,7 +167,7 @@ func TestSuggestFromManuscriptFallsBackToDocPropsWhenFrontMatterFindsNothing(t *
 	}
 }
 
-// TestSuggestFromManuscriptIgnoresAMachineDefaultDocProperty covers CS6's other rule: a DOCX creator/title that looks
+// TestSuggestFromManuscriptIgnoresAMachineDefaultDocProperty covers the other rule: a DOCX creator/title that looks
 // like a machine default (Word's own placeholder, or the file's own name) is never offered, even as a fallback.
 func TestSuggestFromManuscriptIgnoresAMachineDefaultDocProperty(t *testing.T) {
 	project := t.TempDir()

@@ -1,9 +1,8 @@
 package credits
 
-// Chapter is what a chapter announcement needs from one narration chapter of manuscript.json (PRD Open Questions C2 and
-// C8: "[Chapter], [Chapter Title] computed from manuscript.json"): its heading as the manuscript names it ("Chapter 1",
-// "Prologue") fills [Chapter], and the subtitle the importer split from that heading ("Down the Rabbit-Hole"), if any,
-// fills [Chapter Title] (ADR 0151).
+// Chapter is what a chapter announcement needs from one narration chapter of manuscript.json (ADR 0151): its heading as the manuscript names it
+// ("Chapter 1", "Prologue") fills [Chapter], and the subtitle the importer split from that heading
+// ("Down the Rabbit-Hole"), if any, fills [Chapter Title].
 type Chapter struct {
 	ID       string
 	Heading  string

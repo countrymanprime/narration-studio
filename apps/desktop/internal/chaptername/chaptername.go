@@ -1,8 +1,7 @@
-// Package chaptername formats a chapter's name as plain text by the app's one rule (chapter-title-display-consistency
-// PRD, ADR 0191): the title and the subtitle join with " — " in the book's own casing. It mirrors
+// Package chaptername formats a chapter's name as plain text by the app's one rule (ADR 0191): the title and the subtitle join with " — " in the book's own casing. It mirrors
 // apps/ui/src/chapterName.ts and narration_common.chapter_names; tests/fixtures/chapter-names.json, written by this
 // package's test, pins all three to the same output. Plain-text outputs that a consumer may not take an em dash in
-// (file names, some tags) use the Plain form, " - " (owner decision D34).
+// (file names, some tags) use the Plain form, " - ".
 package chaptername
 
 import (

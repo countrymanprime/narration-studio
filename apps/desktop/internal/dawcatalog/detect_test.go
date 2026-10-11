@@ -26,10 +26,9 @@ func TestDetectReportsInstalledWhenTheDetectorFindsAPath(t *testing.T) {
 	}
 }
 
-// TestDetectReportsNotInstalledOnError covers the PRD's documented soft
-// false negative (Technical Risks: "Portable/non-installer REAPER installs
-// are invisible to registry detection ... accept 'not detected' as a soft
-// false negative"): any detector error, not just a specific sentinel, must
+// TestDetectReportsNotInstalledOnError covers the documented soft false
+// negative (a portable, non-installer REAPER install is invisible to registry
+// detection, and "not detected" is accepted): any detector error, not just a specific sentinel, must
 // resolve to Installed: false rather than the caller propagating an error a
 // narrator would see as a crash.
 func TestDetectReportsNotInstalledOnError(t *testing.T) {
@@ -67,7 +66,7 @@ func TestDetectReportsNotInstalledWhenPathIsEmptyButErrIsNil(t *testing.T) {
 
 func TestDetectReportsNotInstalledWhenDetectorIsNil(t *testing.T) {
 	// A future catalog entry with no working probe yet must not panic or
-	// falsely claim certainty (PRD: "a fact ... not a launchable path").
+	// falsely claim certainty (a result is a fact, not a launchable path).
 	entry := Entry{ID: "audacity"}
 
 	got := Detect(entry, nil)

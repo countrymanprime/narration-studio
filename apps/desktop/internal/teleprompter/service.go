@@ -46,8 +46,8 @@ func SupportsEngine(platform, engine string) bool {
 }
 
 // Config is what a Service is built with. Platform is the GOOS the host runs on (empty means this process's own); it
-// decides which engines can launch. EvalTiming is the Phase 8 evaluation aid (teleprompter-engines-and-input-devices
-// PRD): opting in (NARRATION_TELEPROMPTER_EVAL=1) launches every session with --timing and a --log file inside
+// decides which engines can launch. EvalTiming is the evaluation aid (docs/architecture/manuscript-teleprompter.md):
+// opting in (NARRATION_TELEPROMPTER_EVAL=1) launches every session with --timing and a --log file inside
 // SessionDir, so the A/B protocol's lag numbers come from a real host-launched session, live mic or --wav replay
 // alike. It is developer/evaluation-only and off by default; nothing in Settings or the UI turns it on.
 type Config struct {
@@ -156,8 +156,8 @@ func (s *Service) Busy() bool {
 }
 
 // CurrentWord is the manuscript chapter a live session is reading and the last word index it reported (a position
-// event's `read`), for the host's punch-anchor poll (teleprompter-manuscript-integration.prd.md Phase 12): nothing to
-// anchor while the session is not actively listening (not "running", or paused), for a Script/credits session (no
+// event's `read`), for the host's punch-anchor poll: nothing to anchor
+// while the session is not actively listening (not "running", or paused), for a Script/credits session (no
 // manuscript chapter to anchor against, the same exclusion recordReading makes for a Reading), or before the first
 // position event arrives.
 func (s *Service) CurrentWord() (chapterID string, word int, ok bool) {
@@ -182,8 +182,8 @@ func (s *Service) CurrentWord() (chapterID string, word int, ok bool) {
 }
 
 // CurrentChapter is the manuscript chapter a live session is reading, or was reading while it stops, for "Punch from
-// here" (teleprompter-manuscript-integration.prd.md Phase 12): a flag's own word index is punched against whichever
-// chapter is live, so a caller never needs to name it. false for a Script/credits session (no manuscript chapter to
+// here": a flag's own word index is punched against whichever chapter is
+// live, so a caller never needs to name it. false for a Script/credits session (no manuscript chapter to
 // anchor against, CurrentWord's own exclusion) or with no session running at all. Unlike CurrentWord, this does not
 // require "running" specifically or the session to be unpaused: a narrator reviewing a flag and confirming a punch
 // may have paused, or the session may already be winding down.
@@ -215,8 +215,8 @@ func option(options map[string]string, key, fallback string) string {
 }
 
 // Script is text to read that is not a manuscript chapter: the opening or closing credits the host renders
-// (audiobook-credits-templates.prd.md Phase 4, ADR 0150). ID names it in the `script` event and the state's `chapter`,
-// Title is its display name (never read aloud), and Text is exactly what the narrator reads. The service writes Text to a
+// (ADR 0150). ID names it in the `script` event and the state's `chapter`, Title is its display name
+// (never read aloud), and Text is exactly what the narrator reads. The service writes Text to a
 // file in the session directory for the sidecar's --script and removes it when the session ends.
 type Script struct{ ID, Title, Text string }
 
@@ -624,10 +624,10 @@ func (s *Service) Seek(word int) error {
 	return appendControl(controlFile, map[string]any{"cmd": "seek", "word": word})
 }
 
-// Pause stops (true) or restarts (false) a running session's listening without ending it (read-aloud-control-bar PRD
-// Phase 5, ADR 0248): a `pause` or `resume` line on the control file, where the sidecar keeps the device open but drops
-// what it hears and stands the tracker's clock still. The state keeps phase "running" and gains `paused`; flags are
-// kept only when the session ends, as before. A pending auto-stop is cancelled by a pause and armed again by a resume
+// Pause stops (true) or restarts (false) a running session's listening without ending it (ADR 0248): a `pause` or `resume` line on the control file,
+// where the sidecar keeps the device open but drops what it hears and stands
+// the tracker's clock still. The state keeps phase "running" and gains
+// `paused`; flags are kept only when the session ends, as before. A pending auto-stop is cancelled by a pause and armed again by a resume
 // at Done. Pausing a paused session (or resuming a listening one) changes nothing.
 func (s *Service) Pause(pause bool) error {
 	s.mu.RLock()

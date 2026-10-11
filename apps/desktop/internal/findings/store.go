@@ -1,6 +1,6 @@
-// Store persistence follows the layout in docs/architecture/findings-contract.md
-// and the review-dashboard PRD's Q5: one regenerated JSON file per analyzer
-// and scope (for example a chapter), plus a single append-only decision
+// Store persistence follows the layout in docs/architecture/findings-contract.md:
+// one regenerated JSON file per analyzer and scope (for example a chapter),
+// plus a single append-only decision
 // history shared by every analyzer. Only the Go host writes here; Lua and the
 // Python sidecars never touch this folder. Every write is
 // temp-file-then-rename, mirroring transcript.Service.SaveHints.
@@ -158,8 +158,7 @@ func (s *Store) mergeScope(analyzer, scope string, fresh []Finding, markAbsent b
 
 // applyDecision folds the narrator's latest call into a finding. Unchanged
 // evidence keeps the decision; a materially changed EvidenceVersion returns
-// the finding to unreviewed but keeps the earlier note (review-dashboard PRD
-// Q2 and Q3).
+// the finding to unreviewed but keeps the earlier note.
 func applyDecision(f Finding, decision *Decision) Finding {
 	if decision == nil {
 		return f

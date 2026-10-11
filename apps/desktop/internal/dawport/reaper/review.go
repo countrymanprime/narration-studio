@@ -5,7 +5,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// review is the REAPER adapter's ReviewSession (ADR 0143's dawadapter.Review before DAW port PRD P8 retired that package): each
+// review is the REAPER adapter's ReviewSession (ADR 0143's dawadapter.Review, before this package replaced it): each
 // operation is one bridge command, named as integrations/reaper/narration_ui_bridge.lua dispatches it, and events come from the
 // client's shared fan-out.
 type review struct{ client *bridge.Client }

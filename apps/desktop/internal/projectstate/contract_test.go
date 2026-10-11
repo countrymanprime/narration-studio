@@ -10,10 +10,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The ProjectStateState wire payloads apps/ui needs for its schema and mock (ADR 0069, reaper-automation-follow-
-// through PRD Phase 13): "project-state-idle" before any check, "project-state-checked" once REAPER answered a
-// change count for a saved project. runId is time-based and the project path a temp folder, so both are fixed here,
-// and the saved file's modification time is set.
+// The ProjectStateState wire payloads apps/ui needs for its schema and mock (ADR 0069): "project-state-idle"
+// before any check, "project-state-checked" once REAPER answered a change count for a saved project. runId is
+// time-based and the project path a temp folder, so both are fixed here, and the saved file's modification time is
+// set.
 func stable(t *testing.T, state map[string]any, folder string) any {
 	t.Helper()
 	if state["runId"] != nil {

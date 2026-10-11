@@ -1,12 +1,11 @@
-// This file is Phase 5 of proofing-readiness-signals.prd.md (delivered and deleted; see ADR 0525): one
-// tri-state signal per delivery check, from the stored measurement of the
-// chapter's chosen render (Phase 4) and the delivery profile the project is
-// judged against now (internal/deliveryprofile, ADR 0179; the PRD's
-// measure.Profile has since been superseded by it). Judging goes through
-// deliveryprofile.EvaluateFile rule by rule, never through findings alone,
-// because an empty findings list cannot tell "met" from "not evaluated"
-// (Architecture Notes). Limits are applied on read, so changing one never
+// This file holds one tri-state signal per delivery check (ADR 0525), from the
+// stored measurement of the chapter's chosen render (renders.go) and the
+// delivery profile the project is judged against now (internal/deliveryprofile,
+// ADR 0179). Judging goes through deliveryprofile.EvaluateFile rule by rule,
+// never through findings alone, because an empty findings list cannot tell
+// "met" from "not evaluated". Limits are applied on read, so changing one never
 // forces a re-measure.
+
 package proofing
 
 import (
@@ -24,7 +23,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// RenderLengthSignalID is Q9 C's cross-check between the render's length and
+// RenderLengthSignalID is the cross-check between the render's length and
 // the chapter's audio, required only while the narrator sets a tolerance.
 const RenderLengthSignalID = "proofing.delivery.render_length"
 
@@ -35,7 +34,7 @@ const (
 	EvidenceLength      = "length"
 	// EvidenceDeliveryScope is the pickups signal's line naming which delivery
 	// checks the profile requires, so a pass from pickups alone is visible as
-	// such (Q7).
+	// such.
 	EvidenceDeliveryScope = "delivery_scope"
 )
 
@@ -50,7 +49,7 @@ type DeliveryCheck struct {
 // deliveryMetrics are the file metrics measure reports for a WAV and
 // deliveryprofile can judge: every file rule a built-in or moved-over profile
 // measures, except mp3_format, which is a rule about the MP3 the narrator
-// uploads, not the WAV render proofing measures (Q10 A). A custom profile is a
+// uploads, not the WAV render proofing measures. A custom profile is a
 // copy of a built-in and cannot add a kind of rule, so this list is complete
 // for every profile the app can hold (pinned by a test).
 var deliveryMetrics = []struct{ metric, label string }{
@@ -92,9 +91,9 @@ func gatingRules(profile deliveryprofile.Profile, metric string) (gating, advice
 	return gating, advice
 }
 
-// Required reports whether the profile requires the check (Q7 B: a check is
-// required when the narrator's profile limits it; SR's own setting can still
-// ignore it).
+// Required reports whether the profile requires the check: a check is required
+// when the narrator's profile limits it, and the stage recommendations setting
+// can still ignore it.
 func (check DeliveryCheck) Required(profile deliveryprofile.Profile) bool {
 	gating, _ := gatingRules(profile, check.Metric)
 	return len(gating) > 0
@@ -171,7 +170,7 @@ type LengthInput struct {
 	ComputedAt         time.Time
 }
 
-// RenderLengthSignal is Q9 C: met when the render's measured length is within
+// RenderLengthSignal is met when the render's measured length is within
 // the narrator's tolerance of the chapter's played span; not required (and
 // unknown) when no tolerance is set, since no default is proposed until
 // render-versus-project lengths are measured on real renders.
@@ -326,7 +325,7 @@ func hashText(parts ...string) string {
 
 // deliveryScope is the pickups signal's evidence line naming what delivery
 // checks are required right now, including "none", so a pass from pickups
-// alone is visible as such (Q7).
+// alone is visible as such.
 func deliveryScope(profile deliveryprofile.Profile, tolerance *float64) stages.Evidence {
 	var required []string
 	for _, check := range DeliveryChecks() {

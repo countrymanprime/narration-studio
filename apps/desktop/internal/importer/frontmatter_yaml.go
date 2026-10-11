@@ -8,7 +8,7 @@ import "strings"
 const maxYAMLFrontMatterFenceLines = 200
 
 // extractYAMLFrontMatter reads a leading YAML front matter fence ("---" ... "---") from a Markdown file's content
-// (credits-token-setup-and-front-matter-detection.prd.md, Phase 4) and returns the title/author/series keys it
+// and returns the title/author/series keys it
 // recognizes plus the content with the whole fence removed. It returns a nil SourceMetadata, and the content
 // unchanged, when the file has no opening fence, the fence never closes within maxYAMLFrontMatterFenceLines, or the
 // fence contains none of the recognized keys - so a "---" horizontal rule or heading underline with no real front

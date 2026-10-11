@@ -9,9 +9,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The CleanupToolsState wire payloads apps/ui needs for its schema and mock (ADR 0069, reaper-automation-follow-
-// through PRD Phase 23). "cleanup-tools-idle" is the answer before any launch; "cleanup-tools-launched" is a
-// launch REAPER confirmed. runId is time-based (newRunID), so it is fixed here the way renderconfig's is.
+// The CleanupToolsState wire payloads apps/ui needs for its schema and mock (ADR 0069, ADR 0146). "cleanup-tools-idle" is the answer before
+// any launch; "cleanup-tools-launched" is a launch REAPER confirmed. runId is time-based (newRunID), so it is fixed here the way renderconfig's is.
 func stable(state map[string]any) map[string]any {
 	if state["runId"] != nil {
 		state["runId"] = "1790000000000000"

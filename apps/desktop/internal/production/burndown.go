@@ -5,13 +5,11 @@ import (
 	"time"
 )
 
-// This file is Phase 6 of the production tracking PRD (delivered and deleted; ADR 0028) (Could): a time series of the book's logged hours
-// over time, data only - no chart rendering here, for a future chart primitive to plot. It reads the same time log
-// as everything else in this package (Q2) and adds nothing to it.
+// This file builds a time series of the book's logged hours over time, data only - no chart rendering here, for a
+// future chart primitive to plot. It reads the same time log as everything else in this package and adds nothing to it.
 
 // BurndownPoint is one calendar date's running total: every hour logged by the end of that day, added up from every
-// earlier day. Only stopped sessions count (mirrors LoggedHours, PRD success metric "Timer honesty"): a running
-// timer has logged nothing yet.
+// earlier day. Only stopped sessions count (mirrors LoggedHours): a running timer has logged nothing yet.
 type BurndownPoint struct {
 	Date        string  `json:"date"`
 	HoursLogged float64 `json:"hoursLogged"`

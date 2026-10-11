@@ -1,9 +1,6 @@
-// Package project owns a project's own manifest, project.json: the narrator's own
-// project name, creation date and DAW project (.rpp) file link. It also holds the
-// Go-side projects-directory helpers (PRD project-workspace-and-daw-link.prd.md,
-// Phase 1 and Open Questions W1-W3, W7). It knows nothing about REAPER's file
-// format or the settings store; callers pass in whatever migration source
-// (Tracks.selectedRpp) they already have.
+// Package project owns a project's own manifest, project.json: the narrator's own project name, creation date and DAW
+// project (.rpp) file link. It also holds the Go-side projects-directory helpers. It knows nothing about REAPER's file
+// format or the settings store; callers pass in whatever migration source (Tracks.selectedRpp) they already have.
 package project
 
 import (
@@ -17,9 +14,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
-// Marker is the manifest's "this is a Narration Utils project" field (W1): its
-// presence and value, not just the file's existence, is what a later projects-
-// directory scan (Phase 2) checks before listing a folder as a project.
+// Marker is the manifest's "this is a Narration Utils project" field: its presence and value, not just the file's
+// existence, identify a folder as a project.
 const Marker = "narration-utils-project"
 
 const fileName = "project.json"
@@ -31,41 +27,36 @@ type Manifest struct {
 	Name           string    `json:"name"`
 	CreatedAt      time.Time `json:"createdAt"`
 	DawProjectFile *DawLink  `json:"dawProjectFile,omitempty"`
-	// Credits is this project's own audiobook credit token values (title,
-	// author, copyright, ...), added additively (PRD
-	// audiobook-credits-templates.prd.md, Open Question C12: use the project
-	// manifest directly now that it exists, rather than a separate file). Nil
-	// on a project that has never had its credit values saved.
+	// Credits is this project's own audiobook credit token values (title, author, copyright, ...), added additively to
+	// the manifest rather than kept in a separate file. Nil on a project that has never had its credit values saved.
 	Credits *credits.Values `json:"credits,omitempty"`
-	// RetailSample is the range the narrator picked as the retail sample (audiobook-credits-templates.prd.md, C10,
-	// ADR 0152), additive like Credits. Nil when none is picked.
+	// RetailSample is the range the narrator picked as the retail sample (ADR 0152), additive like Credits. Nil when
+	// none is picked.
 	RetailSample *credits.RetailSample `json:"retailSample,omitempty"`
 	// CreditsStatus is the chapter-table row status of the opening and closing credits ("opening"/"closing" keys, one
-	// of the five chapter statuses each), additive like Credits (credits-in-chapter-table.prd.md, CT2/CT3, ADR 0183).
-	// It lives here rather than in manuscript-notes.json (like a chapter's own status) so it survives Replace
-	// manuscript and Clear derived data the way the credits values themselves do. Nil or a missing key means
-	// "not_started", the same default a manuscript chapter with no note has.
+	// of the five chapter statuses each), additive like Credits (ADR 0183). It lives here rather than in
+	// manuscript-notes.json (like a chapter's own status) so it survives Replace manuscript and Clear derived data the
+	// way the credits values themselves do. Nil or a missing key means "not_started", the same default a manuscript
+	// chapter with no note has.
 	CreditsStatus map[string]string `json:"creditsStatus,omitempty"`
 	// CreditsSetup records that the narrator said "Don't ask" to the credits setup prompt for one imported manuscript
-	// (credits-token-setup-and-front-matter-detection.prd.md CS2, ADR 0208), additive like Credits. A Replace manuscript
-	// gives a new document id, so the prompt asks again. Nil: never dismissed.
+	// (ADR 0208), additive like Credits. A Replace manuscript gives a new document id, so the prompt asks again. Nil:
+	// never dismissed.
 	CreditsSetup *CreditsSetup `json:"creditsSetup,omitempty"`
-	// ChapterSync is the narrator's answer to "Sync chapters to tracks?" (daw-chapter-track-auto-sync.prd.md S1, S2,
-	// ADR 0209), additive like Credits. It lives on the manifest because it is a project decision that survives Replace
-	// manuscript. Nil: not asked yet.
+	// ChapterSync is the narrator's answer to "Sync chapters to tracks?" (ADR 0209), additive like Credits. It lives on
+	// the manifest because it is a project decision that survives Replace manuscript. Nil: not asked yet.
 	ChapterSync *ChapterSync `json:"chapterSync,omitempty"`
-	// DeliveryProfile is the delivery profile this project is judged against (delivery-platform-profiles.prd.md P1,
-	// ADR 0179), additive like Credits. Nil: the Global default.
+	// DeliveryProfile is the delivery profile this project is judged against (ADR 0179), additive like Credits. Nil:
+	// the Global default.
 	DeliveryProfile *DeliveryProfileRef `json:"deliveryProfile,omitempty"`
-	// Deadline is the book's delivery date, a calendar date "YYYY-MM-DD" (production-tracking.prd.md Phase 3, Q3,
-	// ADR 0323), additive like Credits so it survives Replace manuscript: it is a business fact about the book, not the
-	// imported text. Empty: none set.
+	// Deadline is the book's delivery date, a calendar date "YYYY-MM-DD" (ADR 0323), additive like Credits so it
+	// survives Replace manuscript: it is a business fact about the book, not the imported text. Empty: none set.
 	Deadline string `json:"deadline,omitempty"`
-	// ContractedAmount is what the book pays, a bare number in the narrator's own currency (production-tracking Q3,
-	// ADR 0320): the effective rate divides it by the hours logged. Nil: none set, so the rate is undefined.
+	// ContractedAmount is what the book pays, a bare number in the narrator's own currency (ADR 0320): the effective
+	// rate divides it by the hours logged. Nil: none set, so the rate is undefined.
 	ContractedAmount *float64 `json:"contractedAmount,omitempty"`
-	// Milestones are the narrator's own dated checkpoints (production-tracking Q5 A): a generic list, the ACX
-	// 15-minute checkpoint being one the narrator adds like any other. Additive like Credits.
+	// Milestones are the narrator's own dated checkpoints: a generic list, the ACX 15-minute checkpoint being one the
+	// narrator adds like any other. Additive like Credits.
 	Milestones []Milestone `json:"milestones,omitempty"`
 }
 

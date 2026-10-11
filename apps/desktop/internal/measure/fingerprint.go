@@ -21,7 +21,7 @@ var ErrFileChanged = errors.New("the file changed while it was being measured; m
 
 // Fingerprint identifies the exact bytes a measurement read: the file's size, its modified time (UTC, RFC 3339 with
 // nanoseconds) and the SHA-256 of its whole content. A finding records it as evidence, so a later render of the same
-// path is recognisably different audio (PRD open question 5, recommendation (b): the id stays stable).
+// path is recognisably different audio.
 type Fingerprint struct {
 	SizeBytes  int64  `json:"size_bytes"`
 	ModifiedAt string `json:"modified_at"`

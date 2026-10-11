@@ -6,11 +6,11 @@ import (
 )
 
 // DawLink is a project's link to its DAW (REAPER) project file, stored both as
-// an absolute path and as a path relative to the project folder (PRD W2:
-// "store both"). Either survives a move the other doesn't: the absolute path
-// survives the project folder itself moving while the rpp stays where it was
-// relative to it, and the relative path survives the whole project folder
-// (rpp included) being relocated as a unit.
+// an absolute path and as a path relative to the project folder (both are
+// kept). Either survives a move the other doesn't: the absolute path survives
+// the project folder itself moving while the rpp stays where it was relative to
+// it, and the relative path survives the whole project folder (rpp included)
+// being relocated as a unit.
 type DawLink struct {
 	Absolute string `json:"absolute"`
 	Relative string `json:"relative,omitempty"`
@@ -38,11 +38,11 @@ func isOutsideFolder(relative string) bool {
 }
 
 // Resolve returns the file this link points to, preferring whichever path
-// currently exists on disk (W2). The absolute path is tried first: it is
-// stable across a project folder move where the rpp itself did not move, and
-// is what today's Tracks.selectedRpp already stores. The relative path (joined
-// against projectFolder) is tried next, covering a project folder that moved
-// as a whole. ok is false when neither resolves to a file that exists.
+// currently exists on disk. The absolute path is tried first: it is stable
+// across a project folder move where the rpp itself did not move, and is what
+// today's Tracks.selectedRpp already stores. The relative path (joined against
+// projectFolder) is tried next, covering a project folder that moved as a
+// whole. ok is false when neither resolves to a file that exists.
 func (l DawLink) Resolve(projectFolder string) (path string, ok bool) {
 	if l.Absolute != "" && fileExists(l.Absolute) {
 		return l.Absolute, true

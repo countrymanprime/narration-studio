@@ -7,8 +7,7 @@ import (
 )
 
 // TrackState is one read of REAPER's transport and of one track (chapter_track_state, narration_track_state.lua): what
-// the resume prompt (read-aloud-resume PRD Phase 4), the Read Aloud control bar (Phase 6) and the teleprompter's input
-// detection (teleprompter PRD Phase 11) need. Times are seconds.
+// the resume prompt, the Read Aloud control bar and the teleprompter's input detection need. Times are seconds.
 type TrackState struct {
 	TrackGUID                  string // the track read, or "" when none was asked for
 	PlayState                  int    // GetPlayState's bit field: 1 playing, 2 paused, 4 recording
@@ -26,7 +25,7 @@ type TrackState struct {
 }
 
 // TrackItem is one item on the track with its active take ("" TakeGUID and SourceFile when it has none). Muted is nil
-// when the bridge script is older than the field (read-aloud-resume PRD Phase 4, ADR 0349).
+// when the bridge script is older than the field (ADR 0349).
 type TrackItem struct {
 	ItemGUID, TakeGUID                       string
 	Position, Length, SourceOffset, PlayRate float64

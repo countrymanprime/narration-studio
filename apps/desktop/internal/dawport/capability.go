@@ -28,11 +28,11 @@ const (
 	CapFXChains     Capability = "fx_chains"
 	CapSilenceTrim  Capability = "silence_trim"
 	CapItemGain     Capability = "item_gain"
-	// The mastering port's DAW row (ADR 0306, owner decision D86): declared, not yet built. render_with_fx is the one
+	// CapRenderWithFX is the mastering port's DAW row (ADR 0306), declared but not yet built. It is the one
 	// capability that makes the engine render, so each use needs the narrator's approval in the UI (threat model row 5o).
 	CapRenderWithFX    Capability = "render_with_fx"
 	CapMasterChainRead Capability = "master_chain_read"
-	// CapMacroRender is the mastering port's Audacity row (ADR 0306, render-encode-master PRD Phase 10, ADR 0460): applies the
+	// CapMacroRender is the mastering port's Audacity row (ADR 0306, ADR 0460): applies the
 	// narrator's chosen effect macro, then exports. Like render_with_fx it makes the engine act on the narrator's audio, so each
 	// use needs their approval (threat model row 14f).
 	CapMacroRender Capability = "macro_render"

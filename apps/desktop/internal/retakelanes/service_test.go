@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// picker builds the retake_lanes role a live REAPER adapter over client hands out (DAW port PRD P5c): the same
+// picker builds the retake_lanes role a live REAPER adapter over client hands out (ADR 0300): the same
 // wrapper configureLocked uses, so a test exercises the wiring the resolver hands the service, not a hand-rolled
 // fake.
 func picker(t *testing.T, client *bridge.Client) dawport.RetakeLanePicker {

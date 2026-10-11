@@ -44,8 +44,7 @@ func TestParseOutputParsesGroupsAndMembersInOrder(t *testing.T) {
 
 func TestParseOutputIgnoresOrdinaryCompareLines(t *testing.T) {
 	// The ordinary run() output (SUMMARY/DIFF/MARKER) and NEED_CHAPTER must
-	// be silently ignored, not error - additive lines are only ever added,
-	// per the PRD's Q2 evidence.
+	// be silently ignored, not error - additive lines are only ever added.
 	text := strings.Join([]string{
 		"SUMMARY|MATCH: 'Chapter One' (score 0.90) - 1 discrepancy marker(s)",
 		"DIFF|/tmp/diff.txt",

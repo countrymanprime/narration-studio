@@ -6,10 +6,10 @@ import "math"
 // of a file are timed: the diagnostics silence floor (ADR 0158), so room tone is what the silence map calls silence.
 const edgeFloordBFS = -50
 
-// edgeMeter times the room tone at a file's edges (delivery profiles PRD, Phase 5): from the start of the audio to the
-// first window at or above the edge floor (the head), and from the end of the last such window to the end of the
-// audio (the tail). It also counts, within each, the windows that are exactly zero: digital silence, which a platform
-// that asks for room tone does not accept as room tone. Windows are those of the silence map.
+// edgeMeter times the room tone at a file's edges from the start of the audio to the first window at or above the edge
+// floor (the head), and from the end of the last such window to the end of the audio (the tail). It also counts, within
+// each, the windows that are exactly zero: digital silence, which a platform that asks for room tone does not accept as
+// room tone. Windows are those of the silence map.
 type edgeMeter struct {
 	rate, channels int
 	windowFrames   int

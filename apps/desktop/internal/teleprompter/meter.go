@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 )
 
-// The level meter (read-aloud-control-bar PRD Phase 4, Q6 A): a second, separate sidecar child, `live_asr.py --meter`, that
+// The level meter: a second, separate sidecar child, `live_asr.py --meter`, that
 // opens the chosen microphone and prints only `level` events, with no model and no script, so the narrator can check the
 // microphone before Start. At most one runs; it is refused while a session runs, stopped when a session starts, when the UI
 // asks (the microphone popover closes) and on shutdown. Its levels go out on the session's own event channel, so the UI

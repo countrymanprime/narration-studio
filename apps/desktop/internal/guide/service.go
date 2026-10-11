@@ -35,8 +35,7 @@ type Service struct {
 	previewLocksMu sync.Mutex
 	// +checklocks:previewLocksMu
 	previewLocks map[string]*sync.Mutex
-	// findingsStore is nil until app.go opts in with SetFindings
-	// (review-dashboard-and-findings-adoption.prd.md Phase 3); every
+	// findingsStore is nil until app.go opts in with SetFindings; every
 	// existing caller, including every test in this package, leaves it nil
 	// and SaveFindings is then a no-op.
 	findingsStore atomic.Pointer[findings.Store]
@@ -56,19 +55,18 @@ func (s *Service) manuscript() string {
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
 // SetFindings opts this service into producing findings.Finding records for
-// entities that still need review (review-dashboard-and-findings-adoption.
-// prd.md Phase 3, Q7 option A). store persists them. Called once at service
+// entities that still need review. store persists them. Called once at service
 // construction, the same way SetPersist is; never called means
 // SaveFindings is a no-op.
 func (s *Service) SetFindings(store *findings.Store) { s.findingsStore.Store(store) }
 
 // SaveFindings reads the current Story Bible entities and saves the
-// findings BuildFindings derives from them (Q7's two conditions), replacing
+// findings BuildFindings derives from them, replacing
 // the analyzer's whole "entities" scope in one call so an entity that no
 // longer qualifies - because it became reviewed or locked - naturally drops
 // out of the fresh set findings.Store.SaveAnalyzerFindings is given, and its
 // finding is marked "not in latest run" rather than deleted (resolved
-// upstream, per Q7). It only reads the guide file (Entities); it never
+// upstream). It only reads the guide file (Entities); it never
 // calls a sidecar command that could change it. Best-effort: a problem here
 // is reported through the same channel as any other derived-data failure
 // (SetPersist's reporter) but never fails the caller (a build, an edit).
@@ -182,7 +180,7 @@ func normalizeEntity(entity map[string]any) error {
 	}
 	// properties is the narrator's ordered list of {key, value} facts. It is additive (a file written before it has none), so it reads as
 	// an empty list, and it stays a list: the host re-marshals this map, and an object would come back with its keys sorted.
-	// appearances (character-continuity-review PRD, phase 2) is additive the same way; nothing reads it yet.
+	// appearances is additive the same way; nothing reads it yet.
 	for _, key := range []string{"aliases", "occurrences", "personality_notes", "relationships", "properties", "appearances"} {
 		if entity[key] == nil {
 			entity[key] = []any{}
@@ -212,8 +210,7 @@ func normalizeEntity(entity map[string]any) error {
 }
 
 // DialogueCue is one entry of the guide file's dialogue_cues
-// (character-continuity-review.prd.md Phase 2, manuscript_guide.py
-// extract_dialogue_cues/merge_dialogue_cues): a quoted span with its
+// (written by manuscript_guide.py extract_dialogue_cues/merge_dialogue_cues): a quoted span with its
 // resolved (or unknown) speaker. It is a document-level list, a sibling of
 // "entities", not per-entity data.
 type DialogueCue struct {
@@ -239,9 +236,9 @@ type DialogueCueEvidence struct {
 	Tag         string `json:"tag"`
 }
 
-// DialogueCues returns the Story Bible's extracted dialogue cues (Phase 2),
+// DialogueCues returns the Story Bible's extracted dialogue cues,
 // each a quoted span with its resolved or unknown speaker. A guide file
-// written before Phase 2 has none, which reads as an empty list, the same
+// written before dialogue cues existed has none, which reads as an empty list, the same
 // way a missing "entities" list does.
 func (s *Service) DialogueCues() ([]DialogueCue, error) {
 	document, err := s.document()
@@ -395,7 +392,7 @@ func (s *Service) editArgs(id string, values map[string]string) []string {
 }
 
 // Pronounce sets the pronunciation of an entity's own name (aliasIndex nil) or one of its aliases from exactly the
-// named engine ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it (D13, B9-B11).
+// named engine ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it.
 // It is refused on a locked entity (ADR 0007, enforced by the sidecar) and when the chosen engine has nothing for the name.
 // Pronounce asks the named pronunciation source for the entity's (or one alias's) pronunciation. A source the pronunciation port
 // cannot ask for one is refused with its *port.NotSupportedError before the sidecar starts.
@@ -429,7 +426,7 @@ func pronunciationTarget(args []string, aliasIndex *int) []string {
 }
 
 // PronounceUser sets the narrator's own pronunciation (source "user") of the entity's name or one alias. It never asks a dictionary,
-// and the pronunciation it replaces is kept beside it as the alternate (Q2). The text goes as one --ipa=VALUE argument, so a value
+// and the pronunciation it replaces is kept beside it as the alternate. The text goes as one --ipa=VALUE argument, so a value
 // starting with "-" stays a value.
 func (s *Service) PronounceUser(id string, aliasIndex *int, ipa string) error {
 	text := strings.TrimSpace(ipa)
@@ -666,7 +663,7 @@ const (
 	previewTimeout = 2 * time.Minute
 	// previewCacheTag versions the cache key. Bump it when the key's inputs
 	// change so files rendered under the old key are never trusted again (v1
-	// ignored the voice id; v2 to v3 added the chosen pronunciation, Phase 10).
+	// ignored the voice id; v2 to v3 added the chosen pronunciation).
 	previewCacheTag = "narration-utils-tts-preview-v3"
 	// wavHeaderBytes is the size of a canonical WAV header. A file no larger
 	// than that holds no samples, so it is never a usable preview.
@@ -680,7 +677,7 @@ type PreviewVoice struct{ ID, Model, Provider, Version string }
 // previewFileName is the cache file for one voice speaking one text under one pronunciation choice.
 // pronunciationKey is the entry's chosen pronunciation's IPA, or "" when it speaks the plain text (spoken)
 // unchanged: two entries with the same spelled text but different chosen pronunciations (or the same text
-// before and after a pronunciation is chosen) must never share a cached render (Phase 10).
+// before and after a pronunciation is chosen) must never share a cached render.
 func previewFileName(voice PreviewVoice, spoken, pronunciationKey string) string {
 	key := strings.Join([]string{previewCacheTag, voice.ID, voice.Provider, voice.Version, spoken, pronunciationKey}, "\x00")
 	hash := sha256.Sum256([]byte(key))
@@ -711,7 +708,7 @@ func spokenName(entities []map[string]any, id string, alias *int) string {
 
 // chosenPronunciationKey returns the IPA a preview will actually speak for id/alias when the narrator chose a
 // pronunciation (pronounce()/pronounce_user() mark it "chosen"; render_audio then speaks it as phonemes instead
-// of the spelled name, Phase 10), or "" when nothing changes what the preview says. previewFileName folds this
+// of the spelled name), or "" when nothing changes what the preview says. previewFileName folds this
 // into the cache key so switching, or choosing, a pronunciation never reuses a stale plain-name render.
 func chosenPronunciationKey(entities []map[string]any, id string, alias *int) string {
 	for _, entity := range entities {

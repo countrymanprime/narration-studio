@@ -1,14 +1,12 @@
-// Package proofing is proofing-readiness-signals.prd.md (delivered and deleted; see ADR 0525): the
-// proofing stage's signals for the chapter stage recommendations engine
-// (apps/desktop/internal/stages). It computes, on read and from stored
-// evidence only, whether a chapter in the proofing stage has pickups left to
-// clear up (proofing.pickups, Phase 1) and whether its rendered file meets
-// each delivery check (proofing.delivery.<check>, Phase 5), and it keeps the
-// two records those answers need that nothing else supplies: a Transcript
-// Compare run's chapter identity and currency (Phase 2, compare.go) and the
-// narrator's chapter-to-render association (Phase 4, renders.go). Nothing here
-// changes a chapter status, audio or the manuscript, and no signal starts an
-// analysis (D1, Q12 of the stage recommendations PRD).
+// Package proofing holds the proofing stage's signals (ADR 0525) for the
+// chapter stage recommendations engine (apps/desktop/internal/stages). It
+// computes, on read and from stored evidence only, whether a chapter in the
+// proofing stage has pickups left to clear up (proofing.pickups) and whether
+// its rendered file meets each delivery check (proofing.delivery.<check>), and
+// it keeps the two records those answers need that nothing else supplies: a
+// Transcript Compare run's chapter identity and currency (compare.go) and the
+// narrator's chapter-to-render association (renders.go). Nothing here changes a
+// chapter status, audio or the manuscript, and no signal starts an analysis.
 package proofing
 
 import (
@@ -24,7 +22,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// PickupsSignalID is the always-required proofing signal (Proposed Solution 1).
+// PickupsSignalID is the always-required proofing signal.
 const PickupsSignalID = "proofing.pickups"
 
 // Evidence kinds this package's signals use (stages.Evidence.Kind).
@@ -44,7 +42,7 @@ const (
 	// RunNever: the source keeps run records and has none for this chapter.
 	RunNever RunState = "never"
 	// RunCurrent: the latest run is complete, covers every played item of the
-	// chapter's confirmed track, and the project was saved after it (Q4).
+	// chapter's confirmed track, and the project was saved after it.
 	RunCurrent RunState = "current"
 	// RunUnknown: the source ran but its result cannot vouch for the chapter
 	// now (stale, partial, failed, unmapped, ambiguous chapter, unreadable
@@ -67,8 +65,8 @@ type RunStatus struct {
 	At          time.Time
 }
 
-// PickupItem is one finding of a pickup category (Q1: transcript_discrepancy,
-// pickup, duplicate_read) for the chapter, with what the roll-up needs to
+// PickupItem is one finding of a pickup category (transcript_discrepancy,
+// pickup or duplicate_read) for the chapter, with what the roll-up needs to
 // decide whether it is open.
 type PickupItem struct {
 	FindingID string
@@ -78,8 +76,8 @@ type PickupItem struct {
 	// not reproduce the finding.
 	NotInLatestRun bool
 	// ResolvedByRun says the run that did not reproduce it was complete and
-	// covered its audio, so its absence is evidence it is gone (Architecture
-	// Notes' merge rule). An absent finding without it stays open.
+	// covered its audio, so its absence is evidence it is gone (the findings
+	// store's merge rule). An absent finding without it stays open.
 	ResolvedByRun bool
 	Text          string
 	File          string
@@ -87,7 +85,7 @@ type PickupItem struct {
 	ParagraphID   string
 }
 
-// Open is D9 (Q2): unreviewed, deferred and accepted are open, dismissed is
+// Open reports whether the item is open: unreviewed, deferred and accepted are open, dismissed is
 // not; a finding the latest run did not reproduce is resolved only when that
 // run covered it.
 func (item PickupItem) Open() bool {
@@ -131,8 +129,7 @@ var causePriority = []stages.UnknownCause{
 	stages.CauseNeverAnalyzed, stages.CauseProviderError,
 }
 
-// PickupsSignal is the pure roll-up (Architecture Notes, "Pickup roll-up
-// rule"): not_met when any source has an open item; otherwise unknown when any
+// PickupsSignal is the pure roll-up (ADR 0525): not_met when any source has an open item; otherwise unknown when any
 // source that ran cannot vouch for the chapter now, or when no source is
 // current; met only when some source is current and nothing is open. The same
 // input always gives the same signal.

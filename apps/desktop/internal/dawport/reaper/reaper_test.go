@@ -163,10 +163,10 @@ func experimentalCommandsInSource(t *testing.T) []string {
 	return commands
 }
 
-// The declaration is today's behaviour exactly (DAW port PRD P2): a capability is Experimental when bridge.Actions gates its
+// The declaration is today's behaviour exactly: a capability is Experimental when bridge.Actions gates its
 // commands behind the old switch, plus the two clients that were built but never wired; everything else is Supported. This is
-// also the guard booth actions enablement PRD P1 asks for: record, punch, regions, silence_trim and item_gain (plus
-// track_state, takes and fx_chains) cannot silently drift from bridge.Experimental before that PRD starts promoting them.
+// also the guard that keeps record, punch, regions, silence_trim and item_gain (plus track_state, takes and fx_chains) from
+// silently drifting from bridge.Experimental before any of them is promoted (ADR 0400).
 func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	inSource := experimentalCommandsInSource(t)
 	if mapped := slices.Sorted(maps.Keys(experimentalCapability)); !slices.Equal(inSource, mapped) {
@@ -197,10 +197,10 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	for _, c := range experimentalCapability {
 		want[c] = dawport.Experimental
 	}
-	// Built, never wired, so never gated: declared Experimental so they stay off by default (PRD P2).
+	// Built, never wired, so never gated: declared Experimental so they stay off by default.
 	want[dawport.CapSilenceTrim] = dawport.Experimental
 	want[dawport.CapItemGain] = dawport.Experimental
-	// The mastering port's DAW row (ADR 0306, render-encode-master PRD Phase 9): render_with_fx is not one of bridge.Actions'
+	// The mastering port's DAW row (ADR 0306): render_with_fx is not one of bridge.Actions'
 	// commands (it answers through the fan-out), so it is not gated by bridge.Actions; like every Experimental capability, the
 	// resolver hands its role out only when the narrator's settings allow it. master_chain_read is gated above.
 	want[dawport.CapRenderWithFX] = dawport.Experimental
@@ -240,7 +240,7 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 
 func typeName(v any) string { return fmt.Sprintf("%T", v) }
 
-// bridge.Actions' gating is the resolver's (DAW port PRD P3): with nothing allowed, an experimental command is refused before anything
+// bridge.Actions' gating is the resolver's (ADR 0304): with nothing allowed, an experimental command is refused before anything
 // is written, as it was behind the old switch.
 func TestActionsWithNothingAllowedWriteNothing(t *testing.T) {
 	adapter, dir := newAdapter(t, nil)
@@ -280,7 +280,7 @@ func commandsWritten(t *testing.T, dir string) int {
 	return len(entries)
 }
 
-// The PRD's hypothesis: turning punch on alone in Settings lets punch's commands out and nothing else.
+// Turning punch on alone in Settings lets punch's commands out and nothing else.
 func TestTurningPunchOnAloneSendsPunchAndNothingElse(t *testing.T) {
 	_, adapter, dir := resolverOver(t, map[string]string{"DAW.capability.punch": "on"})
 	fx := adapter.Role(dawport.CapFXChains).(dawport.FXManager)
@@ -343,7 +343,7 @@ func TestGateMapsEveryActionsCommandToItsCapability(t *testing.T) {
 	}
 }
 
-// Declaration is the same declaration and wording as the adapter, with no roles: the host gates with it until P5a.
+// Declaration is the same declaration and wording as the adapter, with no roles: the host gates with it until its consumers move onto the roles.
 func TestDeclarationIsTheAdaptersDeclarationWithNoRoles(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
 	d := Declaration()

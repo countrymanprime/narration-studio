@@ -6,7 +6,7 @@ import (
 )
 
 // The credits setup prompt asks only for the tokens the credits the app reads leave unresolved
-// (credits-token-setup-and-front-matter-detection PRD Phase 2, CS4 A).
+// (ADR 0208).
 
 var setupTemplates = []Template{
 	{ID: "o1", Kind: "opening", Body: "[Title], written by [Author], narrated by [Narrator]."},

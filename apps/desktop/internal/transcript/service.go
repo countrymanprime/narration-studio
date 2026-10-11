@@ -1,7 +1,7 @@
 // Package transcript owns the asynchronous Transcript Compare state machine.
 // It reaches the DAW only through dawport.ReviewSession (today the versioned
-// file bridge, DAW port PRD Phase 5d; ADR 0143's dawadapter.Review before
-// it, retired at Phase 8); browser polling and SSE are deliberately absent.
+// file bridge; ADR 0143's dawadapter.Review, which it
+// replaced); browser polling and SSE are deliberately absent.
 package transcript
 
 import (
@@ -46,7 +46,7 @@ type Service struct {
 	logAt int64
 	files atomic.Pointer[persist.Reporter]
 	// findingsStore and manuscriptLookup are nil until app.go opts in with
-	// SetFindings (review-dashboard-and-findings-adoption.prd.md Phase 2);
+	// SetFindings;
 	// every existing caller, including every test in this package, leaves
 	// them nil and saveFindings is then a no-op.
 	// +checklocks:mu
@@ -81,8 +81,7 @@ func NewWithReview(config Config, review dawport.ReviewSession, store *settings.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.files.Store(reporter) }
 
 // SetFindings opts this service into producing findings.Finding records on
-// every completed comparison (review-dashboard-and-findings-adoption.prd.md
-// Phase 2). store persists them; lookup resolves manuscript chapter and
+// every completed comparison. store persists them; lookup resolves manuscript chapter and
 // paragraph ids and may be nil (every finding then falls back to its raw
 // chapter title, flagged unresolved). Called once at service construction,
 // the same way SetPersist is; never called means findings are never built.
@@ -191,8 +190,8 @@ func (s *Service) Start(options map[string]string) error {
 	if s.bridge == nil {
 		return fmt.Errorf("the REAPER bridge is unavailable")
 	}
-	// The app's project folder, which need not hold the .rpp (project-workspace PRD Phase 5, W4): Start has just checked its
-	// manuscript, so REAPER reads that one and writes the diffs beside it.
+	// The app's project folder, which need not hold the .rpp: Start has just checked its
+	// manuscript in, so REAPER reads that one and writes the diffs beside it.
 	if err := s.bridge.PrepareReview(runID, s.config.Project); err != nil {
 		s.fail(err.Error())
 		return err
@@ -431,7 +430,7 @@ func (s *Service) Handle(fields []string) {
 			rows := s.state["rows"].([]map[string]any)
 			doc, audio := fields[5], fields[6]
 			row := map[string]any{"id": fields[2], "kind": fields[3], "name": fields[4], "docText": doc, "audioText": audio, "projectTime": floatAt(fields, 7), "itemIndex": intAt(fields, 8), "srcpos": floatAt(fields, 15), "chapter": textAt(fields, 9), "paragraph": intAt(fields, 10), "scriptContext": fallback(textAt(fields, 11), doc), "audioContext": fallback(textAt(fields, 12), audio), "markerState": fallback(textAt(fields, 13), "pending"), "existingMarkerName": textAt(fields, 14)}
-			// The REAPER identity a script from review-dashboard PRD Phase 6 on appends (empty from an older one). It feeds the
+			// The REAPER identity a current script appends (empty from an older one). It feeds the
 			// findings adapter and stays out of the snapshot (snapshotLocked), so the Transcript page's rows are unchanged.
 			row[rowItemGUID], row[rowTakeGUID], row[rowTrackGUID] = textAt(fields, 16), textAt(fields, 17), textAt(fields, 18)
 			s.state["rows"] = append(rows, row)
@@ -500,7 +499,7 @@ func (s *Service) Handle(fields []string) {
 }
 
 // saveFindings converts this run's rows into shared findings and persists
-// them (review-dashboard-and-findings-adoption.prd.md Phase 2). It is
+// them. It is
 // best-effort: a problem here is reported through the same channel as any
 // other derived-data failure (SetPersist's reporter) but never fails the
 // comparison the narrator is looking at, and it is a no-op until app.go
@@ -548,7 +547,7 @@ func (s *Service) saveFindings() {
 }
 
 // saveCleanRun records a complete comparison that found nothing as a full run
-// of its chapter (proofing-readiness-signals.prd.md Phase 2): the chapter's
+// of its chapter (the proofing readiness signals read it): the chapter's
 // earlier findings are kept, marked not_in_latest_run, exactly as a run with
 // rows does to the rows it did not reproduce. Readers that roll findings up
 // resolve such a finding only when the run covered its audio. A run whose
@@ -605,7 +604,7 @@ func (s *Service) handlePrepared(fields []string) {
 	s.state["manifest"], s.state["diffPath"], s.state["trackName"] = fields[2], fields[5], fields[4]
 	s.state["audioItemCount"] = intAt(fields, 6)
 	// REAPER's edit counter as the audio was listed: the baseline the "changed since comparison" label compares a later
-	// project_state count against (follow-through PRD Phase 13). An older script, or a REAPER without the call, sends none.
+	// project_state count against. An older script, or a REAPER without the call, sends none.
 	if len(fields) > 7 && fields[7] != "" {
 		s.state["projectChangeCount"] = intAt(fields, 7)
 	}

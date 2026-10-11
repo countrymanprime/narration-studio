@@ -22,7 +22,7 @@ func FuzzFindChapterByTrackName(f *testing.F) {
 		if (index < 0) != (score == 0) || score < 0 || score > 1 {
 			t.Fatalf("index %d with score %v", index, score)
 		}
-		// The label pre-pass (daw-chapter-track-auto-sync PRD Phase 1): a take or pickup match is never confident.
+		// The label pre-pass (ADR 0175): a take or pickup match is never confident.
 		if match := MatchTitle(titles, name); (match.Marker == MarkerTake || match.Marker == MarkerPickup) && match.Confident {
 			t.Fatalf("a %s match %+v is confident", match.Marker, match)
 		}

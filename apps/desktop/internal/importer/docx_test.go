@@ -245,8 +245,7 @@ func hasCandidate(draft Draft, name string) bool {
 	return false
 }
 
-// TestDocxTOCHeadingStyleIsRecognizedDespiteItsOutlineLvl9 covers PRD import-structure-toc-and-characters Phase 1 (S1/S6/S8):
-// Word's built-in "TOC Heading" style carries outlineLvl 9, which documentRecords otherwise reads as "not an outline heading", so the
+// TestDocxTOCHeadingStyleIsRecognizedDespiteItsOutlineLvl9 pins that Word's built-in "TOC Heading" style carries outlineLvl 9, which documentRecords otherwise reads as "not an outline heading", so the
 // paragraph fell through to plain body text and its entries leaked into whatever chapter preceded it.
 func TestDocxTOCHeadingStyleIsRecognizedDespiteItsOutlineLvl9(t *testing.T) {
 	draft := importDocx(t, wordParagraph("Heading1", wordRun("Chapter One"))+wordParagraph("", wordRun("Chapter one text."))+
@@ -268,7 +267,7 @@ func TestDocxTOCHeadingStyleIsRecognizedDespiteItsOutlineLvl9(t *testing.T) {
 	}
 }
 
-// TestDocxTOCBeforeFirstChapterWithNoTitleIsNotSweptIntoFrontMatter covers S1: a TOC before the first chapter heading, with no Title
+// TestDocxTOCBeforeFirstChapterWithNoTitleIsNotSweptIntoFrontMatter covers a TOC before the first chapter heading, with no Title
 // paragraph ahead of it, used to have both its own heading and its entries fall into the pre-heading Cover/Front-Matter heuristic.
 func TestDocxTOCBeforeFirstChapterWithNoTitleIsNotSweptIntoFrontMatter(t *testing.T) {
 	draft := importDocx(t, wordParagraphWithOutline("TOCHeading", "9", wordRun("Contents"))+
@@ -285,7 +284,7 @@ func TestDocxTOCBeforeFirstChapterWithNoTitleIsNotSweptIntoFrontMatter(t *testin
 	}
 }
 
-// TestDocxTOCAfterTitleIsNotAbsorbedIntoTheTitleChapter covers S1: a TOC heading right after a Title-styled paragraph used to leak
+// TestDocxTOCAfterTitleIsNotAbsorbedIntoTheTitleChapter covers a TOC heading right after a Title-styled paragraph used to leak
 // its entries into the "Title" group as narration, because nothing before it ended that group.
 func TestDocxTOCAfterTitleIsNotAbsorbedIntoTheTitleChapter(t *testing.T) {
 	draft := importDocx(t, wordParagraph("Title", wordRun("My Book"))+
@@ -301,7 +300,7 @@ func TestDocxTOCAfterTitleIsNotAbsorbedIntoTheTitleChapter(t *testing.T) {
 	}
 }
 
-// TestCharacterListActiveEndsAtAnySiblingHeadingNotOnlyANarrativeMarker covers S3: the old rule kept the Characters section "active"
+// TestCharacterListActiveEndsAtAnySiblingHeadingNotOnlyANarrativeMarker covers how the old rule kept the Characters section "active"
 // until a chapter/part/book/prologue/epilogue/afterword heading, so any other heading that followed (an "Appendix", a mistitled
 // Contents) was read as one more character candidate.
 func TestCharacterListActiveEndsAtAnySiblingHeadingNotOnlyANarrativeMarker(t *testing.T) {
@@ -322,7 +321,7 @@ func TestCharacterListActiveEndsAtAnySiblingHeadingNotOnlyANarrativeMarker(t *te
 	}
 }
 
-// TestCharacterSubheadingStaysInScopeButTheNextChapterEndsIt covers S3's "own subheadings" half: a per-character heading nested
+// TestCharacterSubheadingStaysInScopeButTheNextChapterEndsIt covers the "own subheadings" half of the Characters scope: a per-character heading nested
 // under Characters must still become a candidate, and the chapter that follows the Characters section must not.
 func TestCharacterSubheadingStaysInScopeButTheNextChapterEndsIt(t *testing.T) {
 	draft := importDocx(t, wordParagraph("Heading1", wordRun("Characters"))+
@@ -341,7 +340,7 @@ func TestCharacterSubheadingStaysInScopeButTheNextChapterEndsIt(t *testing.T) {
 	}
 }
 
-// TestNestedCastSubheadingDoesNotRebaselineTheCharactersScopeLevel covers a review finding on S3: a subheading that itself matches
+// TestNestedCastSubheadingDoesNotRebaselineTheCharactersScopeLevel covers a review finding on the Characters scope: a subheading that itself matches
 // isCharacterHeading (a "Cast" H2 nested under a "Characters" H1) must not move the level the scope compares later headings
 // against. If it did, a later, non-character H2 ("Notes") would wrongly end the scope early (since its level would no longer be
 // deeper than the rebaselined one), and an H3 nested under that H2 ("Tom") would never be reached as a candidate.
@@ -372,7 +371,7 @@ func TestNestedCastSubheadingDoesNotRebaselineTheCharactersScopeLevel(t *testing
 	}
 }
 
-// TestPerCharacterHeadingBodyBecomesDescriptionThenProperties covers import-structure-toc-and-characters Phase 3 (S4): a
+// TestPerCharacterHeadingBodyBecomesDescriptionThenProperties covers a
 // per-character heading's own body paragraphs are scanned the same way a flat cast list is - the first bare-text paragraph
 // becomes the description, and a later "Label: value" paragraph becomes a property - instead of the old uncapped-first-paragraph
 // description that stranded every labelled line after it in a reference chapter nothing structured read.
@@ -409,7 +408,7 @@ func TestAFlatCastHeadingFlushesACandidateLeftOpenByThePriorPerCharacterHeading(
 	}
 }
 
-// --- Phase 4: TOC as the chapter list (import-structure-toc-and-characters PRD, S6, S8) ---
+// --- TOC as the chapter list ---
 
 func wordBookmarkStart(name string) string {
 	return `<w:bookmarkStart w:id="0" w:name="` + name + `"/>`
@@ -446,7 +445,7 @@ func TestStripTOCPageNumber(t *testing.T) {
 	}
 }
 
-// TestDocxTOCWithBookmarksBecomesTheAuthoritativeChapterList covers Phase 4's Must (S6, S8): a docx whose own table of contents
+// TestDocxTOCWithBookmarksBecomesTheAuthoritativeChapterList covers a docx whose own table of contents
 // - a real field (inert begin/instrText/separate/end included), "TOC 1" styled entries, each a w:hyperlink citing a "_Toc"
 // bookmark Word opened around its target heading - names every real chapter and nothing else, in order. The proposed chapter
 // list becomes exactly the TOC's own order; Title and Contents, never in the heuristic titles list to begin with, stay excluded
@@ -507,7 +506,7 @@ func TestDocxAnOrdinaryCrossReferenceHyperlinkIsNotCountedAsATOCEntry(t *testing
 	}
 }
 
-// TestDocxTOCBelowThresholdFallsBackToHeuristicAndReportsAMismatch covers S6's fallback: a stale or hand-typed TOC whose entries
+// TestDocxTOCBelowThresholdFallsBackToHeuristicAndReportsAMismatch covers the fallback: a stale or hand-typed TOC whose entries
 // mostly do not match any real heading must not override the heading heuristic, but is still reported.
 func TestDocxTOCBelowThresholdFallsBackToHeuristicAndReportsAMismatch(t *testing.T) {
 	draft := importDocx(t, wordParagraph("TOCHeading", wordRun("Contents"))+
@@ -537,9 +536,8 @@ func TestDocxTOCBelowThresholdFallsBackToHeuristicAndReportsAMismatch(t *testing
 	}
 }
 
-// TestDocxTitleAndSubtitleStylesBecomeSourceMetadata covers credits-token-setup-and-front-matter-detection.prd.md
-// Phase 4: a book's own Title-styled paragraph, immediately followed by a Subtitle-styled one, is captured into
-// Draft.SourceMetadata - distinct from a chapter's own subtitle line (TestDocxSoftBreakSubtitleReachesTheSectionForTheReview
+// TestDocxTitleAndSubtitleStylesBecomeSourceMetadata covers a book's own Title-styled paragraph, immediately
+// followed by a Subtitle-styled one, being captured into Draft.SourceMetadata - distinct from a chapter's own subtitle line (TestDocxSoftBreakSubtitleReachesTheSectionForTheReview
 // and the F4 fixture below), which is not the book's title page.
 func TestDocxTitleAndSubtitleStylesBecomeSourceMetadata(t *testing.T) {
 	draft := importDocx(t, wordParagraph("Title", wordRun("After the Applause"))+
