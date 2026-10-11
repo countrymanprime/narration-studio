@@ -182,7 +182,6 @@ describe('no token is added without a reader (no-unused-token)', () => {
   // A token the mock needs and the repo's primitives do not read yet: Button.tsx and the other controls are outside this slice's
   // files (no component edit), so their consumers land with the primitive slices that swap them to the mock.
   const PENDING_CONSUMER: Record<string, string> = {
-    'line-strong': 'the control, segmented, chip and Kbd borders, read when SNF-4 and SNF-5 swap those primitives to the mock',
     'btn-line': 'the default .btn outline, read when SNF-5 swaps Button to the mock',
   };
 

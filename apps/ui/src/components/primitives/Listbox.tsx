@@ -40,7 +40,7 @@ export function Listbox({
   footer?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
+    <div className="flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
       {options.length > 0 ? (
         <div id={id} role="listbox" aria-label={label} className="flex flex-col">
           {options.map((option, index) => {
