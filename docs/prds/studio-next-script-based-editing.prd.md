@@ -138,7 +138,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADRs and audit | A9, A15; audit of the workspace's consumers | pending | - | SN0-1 | 0.6 | - |
-| 2 | Alignment port and model | `AlignmentPort`, ported pure model, tests | pending | - | 1, SNS-4 | 1.5 | - |
+| 2 | Alignment port and model | `AlignmentPort`, ported pure model, tests | partial: pure model in SN-E2 (#1059); `AlignmentPort` still pending | - | 1, SNS-4 | 1.5 | - |
 | 3 | Script document | `ScriptDoc`, words, selection, keys, provider menu | pending | - | 2, SNR-5 | 1.5 | - |
 | 4 | Ribbon, cards, bar | Ribbon, flag cards, floating toolbar, bar | pending | 5 | 3, SNF-5a | 1.2 | - |
 | 5 | Takes inline | Evidence, suggestion, hide, split duplicates, prep steps | pending | 4 | 3, SNQ-7 | 1.5 | - |
