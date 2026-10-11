@@ -1352,6 +1352,45 @@ describe('App shell mounts', () => {
     expect(undo.getAttribute('aria-disabled')).toBe('true');
   });
 
+  const renderWithJournal = (journal: ReturnType<typeof createJournal>) =>
+    render(
+      <ThemeProvider>
+        <ApiProvider api={createMockApi()}>
+          <CommandRouter>
+            <App journal={journal} />
+          </CommandRouter>
+        </ApiProvider>
+      </ThemeProvider>,
+    );
+  const newJournal = () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+
+  it('header-undo-follows-the-journal: Undo undoes the newest entry and says what it undid', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+  });
+
+  it('header-undo-follows-the-journal: a refusal shows the journal sentence as a toast', async () => {
+    const journal = newJournal();
+    await journal.act({
+      label: 'Renamed a chapter',
+      touches: ['chapters'],
+      run: async () => ({ ok: true, value: 1 }),
+      notUndoableReason: 'Renaming cannot be undone here.',
+    });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
+  });
+
   it('leave-guard-is-asked-before-navigating: a guard that asks shows the confirm; Cancel stays, Yes goes', async () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     render(

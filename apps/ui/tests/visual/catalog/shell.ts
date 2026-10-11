@@ -45,6 +45,8 @@ export const shellStates: StateEntry[] = [
     page: 'shell',
     state: 'jump-menu-open',
     description: 'The jump menu open from the header button: the field focused and one row per command group',
+    // The header's Jump button is reachable below `md` (high zoom), so its menu is captured there too (ADR 0465).
+    ...REFLOW,
   },
   {
     page: 'shell',
