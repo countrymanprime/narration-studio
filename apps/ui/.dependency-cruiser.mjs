@@ -61,6 +61,62 @@ export default {
       from: { path: '^(src|tests)/', pathNot: '^src/api/' },
       to: { path: 'node_modules/zod/' },
     },
+    {
+      // ADR 0770. The read-model store is a cache over host reads: it learns about the host through ports and schemas and is
+      // read by components, never the reverse, so it can be thrown away and tested with fakes and no page.
+      name: 'studio-does-not-import-components',
+      comment: 'src/studio/ imports ports and schemas, not components, the App or main (ADR 0770). Move what both need into src/studio/ or src/ports/.',
+      severity: 'error',
+      from: { path: '^src/studio/' },
+      to: { path: '^src/(components/|App\\.tsx$|main\\.tsx$)' },
+    },
+    {
+      // ADR 0770, the PRD's import rules. The bridge is wired once, at the composition root (main.tsx): everything else gets a
+      // port, so the mock backend and the fakes can stand in for the host. Scoped to the new folders because older components
+      // still call the API client directly; their ratchet is the ports slice's.
+      name: 'bridge-only-at-the-composition-root',
+      comment:
+        'src/studio/, src/ports/, src/fixtures/ and src/overlay/ never import src/api/wailsClient (ADR 0770). Take the host through a port the composition root supplies.',
+      severity: 'error',
+      from: { path: '^src/(studio|ports|fixtures|overlay)/' },
+      to: { path: '^src/api/wailsClient(\\.|/)' },
+    },
+    {
+      // ADR 0770. A selector is a pure function of state: it imports types and other selectors only (the type-only imports
+      // are compiled away, so they cost nothing at run time and keep a selector testable on its own). Covers the shared
+      // helpers in src/studio/selectors/ and the page selectors that live beside their pages (`*.selectors.ts`).
+      name: 'selectors-import-types-and-selectors-only',
+      comment:
+        'A selector imports types and other selectors only (ADR 0770): no store, port, component or API value. Take what it needs as part of its state argument.',
+      severity: 'error',
+      from: { path: '^src/(studio/selectors/|.*\\.selectors\\.tsx?$)', pathNot: '\\.(test|stories)\\.tsx?$' },
+      to: { path: '^src/', pathNot: '^src/(studio/selectors/|.*\\.selectors\\.tsx?$)', dependencyTypesNot: ['type-only'] },
+    },
+    {
+      // ADR 0770. Ports are the typed seam over the host and fixtures are plain builders and data: neither knows a page, and
+      // fixtures do not know the store either, so a builder can feed any adapter, the mock and the host alike.
+      name: 'ports-and-fixtures-are-below-components',
+      comment: 'src/ports/ and src/fixtures/ import no component, App or main (ADR 0770).',
+      severity: 'error',
+      from: { path: '^src/(ports|fixtures)/' },
+      to: { path: '^src/(components/|App\\.tsx$|main\\.tsx$)' },
+    },
+    {
+      name: 'fixtures-do-not-import-the-store',
+      comment: 'src/fixtures/ holds builders and data a port adapter can use; it never imports src/studio/ (ADR 0770).',
+      severity: 'error',
+      from: { path: '^src/fixtures/' },
+      to: { path: '^src/studio/' },
+    },
+    {
+      // ADR 0781. The overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the
+      // existing primitives; it is a leaf above them, so it takes the primitives and nothing else of the app.
+      name: 'overlay-imports-primitives-only',
+      comment: 'src/overlay/ imports components/primitives/ and nothing else in the app (ADR 0781).',
+      severity: 'error',
+      from: { path: '^src/overlay/' },
+      to: { path: '^src/', pathNot: '^src/(overlay|components/primitives)/' },
+    },
   ],
   options: {
     // Follow imports into wailsjs/ (rule 2 needs to see them) but never into packages.

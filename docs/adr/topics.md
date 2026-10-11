@@ -9,7 +9,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Consent and safety](#consent-and-safety) | 5 |
 | [Local-first and privacy](#local-first-and-privacy) | 6 |
 | [Verification and code health](#verification-and-code-health) | 7 |
-| [Wire contracts and host bindings](#wire-contracts-and-bindings) | 9 |
+| [Wire contracts and host bindings](#wire-contracts-and-bindings) | 10 |
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
@@ -86,6 +86,7 @@ What crosses between Go, Python, Lua and the UI is validated where it crosses; b
 | [0143](0143-the-review-workflow-calls-a-daw-through-dawadapter-and-the-event-vocabulary-is-part-of-the-contract.md) | The review workflow calls a DAW through `dawadapter.Review`, and the event vocabulary is part of the contract | Proposed |
 | [0770](0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) | The UI store caches host reads and journals commands, and the Go host stays the source of truth | Proposed |
 | [0771](0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md) | Undo is one in-memory journal that refuses with a reason and reaches the DAW only for its last action | Proposed |
+| [0810](0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md) | A DAW call answers one result object, and a capability reports whether it is destructive and its mode | Proposed |
 
 <a id="accessibility-and-interaction"></a>
 

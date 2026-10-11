@@ -69,7 +69,7 @@ func (r *Resolver) Support(c Capability) Support {
 	if spec.Needs == NeedsRunning && !rt.Reachable {
 		return r.refuse(c, level, ReasonNotRunning)
 	}
-	return Support{Level: level, Available: true}
+	return r.withDepth(c, Support{Level: level, Available: true})
 }
 
 // Allowed is nil when the engine's declaration and the narrator's settings permit c, whatever the runtime state, and otherwise the
@@ -122,7 +122,16 @@ func (r *Resolver) toggle(c Capability) Toggle {
 }
 
 func (r *Resolver) refuse(c Capability, level Level, reason Reason) Support {
-	return Support{Level: level, Reason: reason, Message: r.message(c, reason)}
+	return r.withDepth(c, Support{Level: level, Reason: reason, Message: r.message(c, reason)})
+}
+
+// withDepth copies the adapter's declared Depth for c into s, so a refusal still says what the capability would do.
+func (r *Resolver) withDepth(c Capability, s Support) Support {
+	if d, ok := r.cfg.Adapter.(Describer); ok {
+		depth := d.Depth(c)
+		s.Destructive, s.Mode = depth.Destructive, depth.Mode
+	}
+	return s
 }
 
 // The resolver's own wording, used when the adapter has none. Each is a whole sentence for the narrator.

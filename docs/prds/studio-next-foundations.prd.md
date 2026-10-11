@@ -154,7 +154,7 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
 | SNF-1 | Phase 1 | SN0-1 | yes | Docs link check; ADR index generated |
-| SNF-2 | Phase 2 | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
+| SNF-2 | Phase 2 (in review) | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
 | SNF-3 | Phase 3 | SNF-1 | yes | `Icon` tests; ratchet test; atlas |
 | SNF-4 | Phase 4 | SNF-1 | yes | Port of `studio-next/tests/d2-keycaps.test.tsx`; atlas; axe |
 | SNF-5a | Slider | SNF-2 | yes | Story, tests, atlas, a11y |

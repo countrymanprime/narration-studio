@@ -152,7 +152,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Spikes | SND-S1..S5 scripted, S6 pending hardware, S7 Audacity | pending | all | SN0-1 | 2.5 | - |
-| 2 | Result and capability wire | `Result`, `destructive`, `mode`, schemas, goldens, `DawClient` and mock setups | pending | 3 | SN0-1 | 2.0 | - |
+| 2 | Result and capability wire | `Result`, `destructive`, `mode`, schemas, goldens, `DawClient` and mock setups | in progress (wire half [#1034](https://github.com/countrymanprime/narration-utils/issues/1034); `DawClient` is SND-2b) | 3 | SN0-1 | 2.0 | - |
 | 3 | Catalogue and conformance | New capabilities, roles, `dawporttest` cases, declarations | pending | 2 | 2 | 1.5 | - |
 | 4 | Project state and stale | `DawProjectState`, `savedAt`, uniform `stale` refusal, pickup write-through | pending | - | 2 | 1.5 | - |
 | 5 | Take commands | `hide_takes`; `set_active_take` result mapping | pending | 6 | 3, S-results | 1.0 | - |
@@ -192,7 +192,7 @@ Phase 1 spikes run in parallel with Phase 2. Phases 5 to 8 are independent after
 | SND-1a..1e | Spikes S1 to S5 (one slice each) | SN0-1 | yes | Research note committed; script re-runnable |
 | SND-1f | Spike S6 play position | SN0-1, owner hardware | yes | Pending on #510; never blocks |
 | SND-1g | Spike S7 Audacity backups | SN0-1, owner pass | yes | Research note |
-| SND-2 | Result and capability wire | SN0-1 | yes | Goldens, `wireContracts.test.ts`, `DawClient` parity |
+| SND-2 | Result and capability wire: Go and wire half in [#1034](https://github.com/countrymanprime/narration-utils/issues/1034) (done in its PR), `DawClient` and mock setups in SND-2b | SN0-1 (SND-2b also SN-S4, SN-S5) | yes | Goldens, `wireContracts.test.ts`, `DawClient` parity |
 | SND-3 | Catalogue and conformance | SND-2 | yes | `dawporttest`, boundary test |
 | SND-4 | Project state, stale, pickup write-through | SND-2 | yes | Harness (existing pickups tests extended), goldens |
 | SND-5 | `hide_takes` | SND-3 | yes | Harness first, mutation, threat model |
