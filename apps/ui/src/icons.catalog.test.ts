@@ -123,3 +123,59 @@ describe('the catalogue follows the audit', () => {
     for (const key of Object.keys(CATALOG)) expect(key, key).not.toMatch(/^fa[A-Z]/);
   });
 });
+
+describe('the Script, Story Bible and extraction rows (SN-B60)', () => {
+  const keys = [
+    'bookmark',
+    'bookmarks',
+    'textSettings',
+    'openMenu',
+    'incomingRelationship',
+    'showExample',
+    'hideExample',
+    'recordHere',
+    'goToChapter',
+    'addWord',
+    'addMark',
+    'addRelationship',
+    'editBookmark',
+    'editMessage',
+    'editSuggestion',
+    'deleteBookmark',
+    'deleteNote',
+    'deleteMessage',
+    'deleteEntry',
+    'copyQuery',
+    'copyPrompt',
+    'copyExample',
+    'recordInBooth',
+    'addToStoryBible',
+    'accept',
+    'saveAndAccept',
+    'markReviewed',
+    'reject',
+    'dismiss',
+    'cancelEdit',
+    'cancelDownload',
+    'sourceAuto',
+    'sourceRules',
+    'sourceDictionary',
+    'sourceBookNlp',
+    'sourceOnline',
+    'sourceLocalModel',
+    'sourceManual',
+    'sourceImported',
+    'sourceGliner',
+    'scan',
+    'importFromFile',
+  ];
+
+  test.each(keys)('%s has a row', (key) => {
+    expect(Object.hasOwn(CATALOG, key)).toBe(true);
+  });
+
+  test('the new rows share no icon between meanings and wear no page icon as an action', () => {
+    expect(findSharedIconConflicts(CATALOG)).toEqual([]);
+    expect(findPageIconMisuse(CATALOG)).toEqual([]);
+  });
+});
