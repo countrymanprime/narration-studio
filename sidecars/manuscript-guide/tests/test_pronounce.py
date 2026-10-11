@@ -41,7 +41,7 @@ def _entity(path: Path) -> dict:
 class PronounceSourceTests(unittest.TestCase):
     def test_cmu_returns_the_dictionary_pronunciation(self):
         value = guide.pronounce_source("hello", None, "cmu")
-        self.assertEqual("CMU dictionary", value["source"])
+        self.assertEqual("cmu", value["source"])
         self.assertEqual("medium", value["confidence"])
         self.assertTrue(value["ipa"])
 
@@ -56,7 +56,7 @@ class PronounceSourceTests(unittest.TestCase):
     def test_espeak_returns_its_pronunciation_when_it_has_one(self):
         with patch("phonemizer.phonemize", return_value="n eɪ m"):
             value = guide.pronounce_source("Name", None, "espeak")
-        self.assertEqual({"ipa": "n eɪ m", "source": "Letter-to-sound guess (eSpeak NG)", "confidence": "low"}, value)
+        self.assertEqual({"ipa": "n eɪ m", "source": "espeak", "confidence": "low"}, value)
 
     def test_an_unknown_source_is_refused(self):
         with self.assertRaises(ValueError):
@@ -76,7 +76,7 @@ class PronounceCommandTests(unittest.TestCase):
             path = _guide_file(Path(temporary), canonical_name="hello")
             self._run(path)
             value = _entity(path)["pronunciation"]
-            self.assertEqual("CMU dictionary", value["source"])
+            self.assertEqual("cmu", value["source"])
             self.assertTrue(value["chosen"])
 
     def test_sets_an_alias_pronunciation_by_index_and_leaves_the_canonical_one_alone(self):
@@ -152,3 +152,53 @@ class ChosenPronunciationSurvivesRebuildTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CandidateCommandTests(unittest.TestCase):
+    def _run(self, word, source="cmu"):
+        import contextlib
+        import io
+
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            guide.candidate(argparse.Namespace(word=word, source=source, espeak_library="", wiktextract_index=""))
+        lines = out.getvalue().splitlines()
+        self.assertEqual(1, len(lines))
+        return json.loads(lines[0])
+
+    def test_a_hit_is_one_json_line_with_the_say_text(self):
+        result = self._run("hello")
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["say"])
+
+    def test_a_miss_is_a_sentence_naming_the_source_and_the_word(self):
+        result = self._run("Zzyzxqq")
+        self.assertFalse(result["ok"])
+        self.assertIn("CMU dictionary", result["reason"])
+        self.assertIn("Zzyzxqq", result["reason"])
+        self.assertNotIn("Traceback", result["reason"])
+
+    def test_it_writes_no_file_and_touches_no_entity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = _guide_file(Path(temporary), canonical_name="hello")
+            before = path.read_bytes()
+            self._run("hello")
+            self.assertEqual(before, path.read_bytes())
+            self.assertEqual(["manuscript_guide.json"], [p.name for p in path.parent.iterdir()])
+
+    def test_a_bad_word_is_refused_before_any_lookup(self):
+        for bad in ("x" * (guide.MAX_CANDIDATE_WORD + 1), "two\nlines", "nul\0", "   "):
+            with (
+                self.subTest(bad=bad[:6]),
+                patch.object(guide, "pronounce_source", side_effect=AssertionError("looked up")),
+                self.assertRaises(ValueError),
+            ):
+                self._run(bad)
+
+    def test_the_command_is_registered(self):
+        with patch("sys.argv", ["g", "candidate", "--word", "hello", "--source", "cmu"]), patch.object(guide, "candidate") as run:
+            guide.main()
+        run.assert_called_once()
+
+    def test_an_automatic_build_records_the_registry_name_it_used(self):
+        self.assertEqual("cmu", guide.pronunciation("hello", None)["source"])

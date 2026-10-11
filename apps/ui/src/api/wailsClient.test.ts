@@ -52,6 +52,22 @@ afterEach(() => {
 });
 
 describe('wailsClient', () => {
+  it('lists the recording check engines and sends a named model as the model option', async () => {
+    const engines = { engines: [{ id: 'small', label: 'Small', family: 'whisper', installState: 'installed' }], default: 'small' };
+    const start = vi.fn().mockResolvedValue(JSON.stringify({ status: 'refused', reason: 'busy', message: 'A check is already running.' }));
+    standInHost({ CoverageEngines: () => Promise.resolve(JSON.stringify(engines)), CoverageStart: start });
+
+    await expect(wailsClient.coverageEngines()).resolves.toEqual(engines);
+    await wailsClient.coverageStart('c-1', { model: 'base' });
+    await wailsClient.coverageStart('c-1', { skipRecheck: true, model: 'small' });
+    await wailsClient.coverageStart('c-1');
+    expect(start.mock.calls).toEqual([
+      ['c-1', { model: 'base' }],
+      ['c-1', { skipRecheck: 'true', model: 'small' }],
+      ['c-1', {}],
+    ]);
+  });
+
   it('uses generated Wails methods rather than an operation-string transport', async () => {
     const select = vi.fn().mockResolvedValue(JSON.stringify({ selected: true, jobId: 'import-1' }));
     standInHost({ Ready: () => Promise.resolve({ apiVersion: 1, diagnosticId: 'native' }), ManuscriptSelectFile: select });

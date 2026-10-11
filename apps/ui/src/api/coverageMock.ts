@@ -11,6 +11,7 @@ import type {
   CoverageReport,
   CoverageJudgement,
   CoverageResult,
+  CoverageEngines,
   CoverageStartOptions,
   CoverageStartResult,
   CoverageState,
@@ -62,6 +63,8 @@ export type CoverageSeed = {
 type Deps = {
   chapters: () => ManuscriptChapter[];
   assetRequired: () => AssetRequired | undefined;
+  /** The engines a check can run: the mock's approved Whisper catalog (ADR 0841). */
+  engines: () => CoverageEngines;
   endJob: (event: JobEnded) => void;
   seed?: CoverageSeed;
 };
@@ -363,11 +366,15 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       delete unmeasured.recordedFraction;
       return unmeasured;
     },
+    coverageEngines: async () => deps.engines(),
     coverageStart: async (chapterId, options?: CoverageStartOptions) => {
+      if (options?.model && !deps.engines().engines.some((engine) => engine.id === options.model)) {
+        throw new Error('the selected Whisper model is not in the approved catalog');
+      }
       if (deps.seed?.refusal) return refuse(deps.seed.refusal);
       const required = deps.assetRequired();
       if (required) return required;
-      if (deps.seed?.recheckAssetRequired && !options?.skipRecheck) {
+      if (deps.seed?.recheckAssetRequired && !options?.skipRecheck && !options?.model) {
         return {
           status: 'recheck_asset_required',
           model: mockRecheckModelIdentity,

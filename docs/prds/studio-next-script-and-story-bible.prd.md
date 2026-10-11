@@ -128,11 +128,11 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADR and audit | A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | in review (ADR 0792; audit: docs/sn-b1-script-bible-audit) | - | SN0-1 | 0.5 | - |
-| 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | pending | 3 | 1 | 1.5 | - |
+| 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | in progress ([#1156](https://github.com/countrymanprime/narration-utils/issues/1156): sidecar and host half, `manual` source, status ignored on read, `candidate`; bindings wait for SN-B212) | 3 | 1 | 1.5 | - |
 | 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | in progress ([#1084](https://github.com/countrymanprime/narration-utils/issues/1084): drafts, sort, alias counts; needs-review filter and mark reviewed wait for SNX-4) | 2 | 1 | 1.0 | - |
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | pending | 2, 3 | 1 | 0.8 | - |
 | 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | in review (ADR 0820; PR #1113) | 2 | 1 | 1.0 | - |
-| 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | pending | - | 5, SNR-4, SNF-3 | 1.2 | - |
+| 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | in progress ([#1325](https://github.com/countrymanprime/narration-utils/issues/1325): the model, jump commands, search source and keys; ribbon, editor and tab wait for SN-B62) | - | 5, SNR-4, SNF-3 | 1.2 | - |
 | 7 | Script migrations | Search sources, context providers, key hints for Script | pending | - | SNR-4, SNR-5 | 0.7 | - |
 | 8 | Swap and close-out | Swap the Story Bible and Script routes; delete the old pages, queries page, query CSV export and import and open-queries badge; visual rows, guide pages, doc screenshots | pending | - | 2 to 7 | 0.3 | - |
 

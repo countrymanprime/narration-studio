@@ -18,7 +18,7 @@ const ORIGIN = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: './tests/visual',
   // The pixel-match tool's spec has a config of its own (playwright.mock-match.config.ts): it measures, it is not this gate.
-  testIgnore: 'mock-match/**',
+  testIgnore: ['mock-match/**', '**/*.test.ts'],
   globalSetup: './tests/visual/global-setup.ts',
   fullyParallel: true,
   // One shared static server, and Chromium is CPU-bound: 4 workers matches a CI runner's 4 vCPUs.

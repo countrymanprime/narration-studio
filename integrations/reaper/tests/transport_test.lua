@@ -85,6 +85,110 @@ H.test('record_start records when the one armed track is the named one, and says
   H.eq(s.fake.play_state, 5)
 end)
 
+H.test('record_start without the start rule records from the cursor', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake:add_item(chapter, { position = 10, length = 30 })
+  s.fake.cursor = 5
+  s:send('record_start', 'r1', chapter.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', chapter.guid, '5.000000' } })
+  H.eq(s.fake.cursor, 5)
+end)
+
+H.test('record_start with end moves the cursor to the end of the last item and records there', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake:add_item(chapter, { position = 10, length = 30 })
+  s.fake:add_item(chapter, { position = 80, length = 15 })
+  s.fake.cursor = 5
+  s:send('record_start', 'r1', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', chapter.guid, '95.000000' } })
+  H.eq(s.fake.cursor, 95)
+  H.eq(calls_named(s, 'CSurf_OnRecord'), 1)
+end)
+
+H.test('record_start with end reads only the named track and uses item end, not start', function()
+  local s, chapter, other = new_session()
+  chapter.armed = true
+  s.fake:add_item(chapter, { position = 10, length = 30 })
+  s.fake:add_item(other, { position = 200, length = 50 })
+  s:send('record_start', 'r1', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', chapter.guid, '40.000000' } })
+end)
+
+H.test('record_start with end on an empty track starts at the project start', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor = 12
+  s:send('record_start', 'r1', chapter.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', chapter.guid, '0.000000' } })
+  H.eq(s.fake.cursor, 0)
+end)
+
+H.test('a refused record_start with end leaves the cursor where it was', function()
+  local cases = {
+    {
+      name = 'playing',
+      setup = function(s, chapter)
+        chapter.armed = true
+        s.fake.play_state = 1
+      end,
+    },
+    {
+      name = 'recording',
+      setup = function(s, chapter)
+        chapter.armed = true
+        s.fake.play_state = 5
+      end,
+    },
+    { name = 'none armed', setup = function() end },
+    {
+      name = 'another armed',
+      setup = function(s)
+        s.fake.tracks[2].armed = true
+      end,
+    },
+    {
+      name = 'several armed',
+      setup = function(s, chapter)
+        chapter.armed = true
+        s.fake.tracks[2].armed = true
+      end,
+    },
+  }
+  for _, case in ipairs(cases) do
+    local s, chapter = new_session()
+    s.fake:add_item(chapter, { position = 10, length = 30 })
+    case.setup(s, chapter)
+    s.fake.cursor = 7
+    s:send('record_start', 'r1', chapter.guid, 'end')
+    H.eq(s.fake.cursor, 7, case.name)
+    H.eq(calls_named(s, 'CSurf_OnRecord'), 0, case.name)
+  end
+end)
+
+H.test('the cursor move of record_start end adds no undo point and scrolls the view', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake:add_item(chapter, { position = 10, length = 30 })
+  s:send('record_start', 'r1', chapter.guid, 'end')
+  H.eq(#s.fake.undo, 0)
+  H.eq(s.fake.open_undo_blocks, 0)
+  H.eq(s.fake.cursor_moveview, true)
+  H.eq(s.fake.cursor_seekplay, false)
+end)
+
+H.test('an unknown start rule is an error and changes nothing', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake:add_item(chapter, { position = 10, length = 30 })
+  s.fake.cursor = 3
+  s:send('record_start', 'r1', chapter.guid, 'start')
+  H.eq(s:events(), { { 'ERROR', 'r1', 'Unknown start rule: start.' } })
+  H.eq(s.fake.cursor, 3)
+  H.eq(calls_named(s, 'CSurf_OnRecord'), 0)
+end)
+
 H.test('record_start refuses unless exactly the named track is armed', function()
   local cases = {
     { armed = {}, message = 'No track is armed.' },

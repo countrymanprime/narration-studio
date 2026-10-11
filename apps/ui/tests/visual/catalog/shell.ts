@@ -1,6 +1,6 @@
 // The `shell` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { REFLOW } from './shared';
+import { LAYOUT_BANDS, REFLOW } from './shared';
 
 export const shellStates: StateEntry[] = [
   // The header's page history: the default states
@@ -51,17 +51,19 @@ export const shellStates: StateEntry[] = [
     state: 'jump-menu-open',
     description: 'The jump menu open from the header button: the field focused and one row per command group',
     // The header's Jump button is reachable below `md` (high zoom), so its menu is captured there too (ADR 0465).
-    ...REFLOW,
+    extraViewports: [...REFLOW.extraViewports, ...LAYOUT_BANDS.extraViewports],
   },
   {
     page: 'shell',
     state: 'context-menu-open',
     description: 'The menu on empty space in the page: Go to, the zoom steps, the theme, then the jump menu and Find',
     pointer: 'keep',
+    ...LAYOUT_BANDS,
   },
   {
     page: 'shell',
     state: 'history-panel-open',
     description: 'The undo history slide-over from the header History button, with an empty journal',
+    ...LAYOUT_BANDS,
   },
 ];

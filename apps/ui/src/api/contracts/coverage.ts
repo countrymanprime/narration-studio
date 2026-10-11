@@ -92,8 +92,15 @@ export type CoverageStartResult =
   | ({ status: 'recheck_asset_required' } & ModelAssetRequired);
 
 /** CoverageStart's own options: skipRecheck starts a cascade-enabled chapter with the first pass alone -
- * "Check with tiny only" - regardless of what the re-check settings or its install state are. */
-export type CoverageStartOptions = { skipRecheck?: boolean };
+ * "Check with tiny only" - regardless of what the re-check settings or its install state are. model names one of
+ * the engines coverageEngines lists to run alone, replacing the cascade for that run (ADR 0841). */
+export type CoverageStartOptions = { skipRecheck?: boolean; model?: string };
+
+/** One engine a recording check can run: an approved Whisper model (ADR 0841). Moonshine is the Booth's, not offered. */
+export type CoverageEngine = { id: string; label: string; family: 'whisper'; installState: WhisperInstallState };
+
+/** The engines a recording check can run, in catalog order, and the id a start naming none would use (always listed). */
+export type CoverageEngines = { engines: CoverageEngine[]; default: string };
 
 export type CoverageAlignment = { maxMisreadRun: number; minAnchorRun: number };
 
@@ -210,6 +217,8 @@ export interface CoverageApi {
   /** Starts a recording check of one chapter: the narrator's Transcript Compare model, or, with the model cascade on,
    * its own two models - unless options.skipRecheck asks for the first pass alone. */
   coverageStart(chapterId: string, options?: CoverageStartOptions): Promise<CoverageStartResult>;
+  /** The engines a recording check can run and the one a start naming none would use; needs no project. */
+  coverageEngines(): Promise<CoverageEngines>;
   coverageState(): Promise<CoverageState>;
   /** Asks a running check to stop; the items it finished stay cached. */
   coverageCancel(): Promise<void>;

@@ -1,6 +1,6 @@
 // The golden payloads for recording coverage: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import { z } from 'zod';
-import { coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from '../schemas/coverage';
+import { coverageEnginesSchema, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from '../schemas/coverage';
 
 export const coverageGoldens: Record<string, z.ZodType> = {
   'coverage-result-current.json': coverageResultSchema,
@@ -9,6 +9,7 @@ export const coverageGoldens: Record<string, z.ZodType> = {
   'coverage-result-unmapped.json': coverageResultSchema,
   // The model cascade's own result (Phase 5, MC5): result.recheck names the re-check model and its windows.
   'coverage-result-cascade.json': coverageResultSchema,
+  'coverage-engines.json': coverageEnginesSchema,
   'coverage-start-started.json': coverageStartResultSchema,
   'coverage-start-refused.json': coverageStartResultSchema,
   'coverage-state-idle.json': coverageStateSchema,
