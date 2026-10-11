@@ -1,5 +1,5 @@
-// How to reach each `engine` state in STATE_CATALOG (see app.drivers.ts): the engine panel, opened from the header's engine chip
-// (stage-navigation-and-page-replacement.prd.md Phase 6), and the REAPER tools' dialogs opened from it.
+// How to reach each `engine` state in STATE_CATALOG (see app.drivers.ts): the engine panel, opened from the header's engine chip,
+// and the REAPER tools' dialogs opened from it.
 import { settlePage } from '../helpers/settle';
 import { type Driver, clickVisible, openEditingCheckFromEngine, openEnginePanel } from './shared';
 

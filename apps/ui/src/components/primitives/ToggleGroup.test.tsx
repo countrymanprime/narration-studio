@@ -74,7 +74,7 @@ describe('ToggleGroup', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Normal' }));
   });
 
-  // The segmented look (mock-fidelity-primitives-and-components.prd.md Phase 5, the Master platform switch): one container,
+  // The segmented look (the Master platform switch): one container,
   // still a named group of pressed chips underneath.
   it('is the same group and chips in the segmented look', async () => {
     const onChange = vi.fn();

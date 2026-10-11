@@ -1,4 +1,4 @@
-// The browser mock's chapter stage recommendations (chapter-stage-recommendations.prd.md Phase 4, deleted; see
+// The browser mock's chapter stage recommendations (the PRD was deleted; see
 // docs/architecture/stage-recommendations.md). It answers what
 // the host answers with only the recording signal wired: a chapter in recording is judged by its recording check (from its
 // recordedFraction unless seeded: all read is met, part read is not met, never checked is unknown), a chapter in editing or
@@ -32,7 +32,7 @@ type StageRecordingScenario = 'met' | 'not_met' | { unknown: StageUnknownCause }
  * cannot vouch for is never `met`, seeded or not. */
 type StageEditingScenario = 'met' | 'not_met' | { unknown: StageUnknownCause; reason?: string };
 
-/** The proofing pickups roll-up (proofing-readiness-signals.prd.md Phase 1), the only signal this mock seeds for the
+/** The proofing pickups roll-up, the only signal this mock seeds for the
  * proofing stage: the delivery checks (Phase 5) are never required by the default delivery profile, so they are left
  * out of every chapter's required set the same way the real engine's `FilterRequired` drops them (bindings_stages.go). */
 type StageProofingScenario = 'met' | 'not_met' | { unknown: StageUnknownCause; reason?: string };
@@ -185,7 +185,7 @@ function emptySpaceSignal(chapter: ManuscriptChapter, scenario: StageEditingScen
   };
 }
 
-/** The proofing pickups roll-up (proofing-readiness-signals.prd.md Phase 1, apps/desktop/internal/proofing/pickups.go):
+/** The proofing pickups roll-up (apps/desktop/internal/proofing/pickups.go):
  * one "source" evidence line summarizing Transcript Compare's open, dismissed and resolved counts, plus one "pickup"
  * evidence entry per open item on `not_met`. The delivery checks (Phase 5) are not in this signal: they are simply
  * left out of the chapter's required set (see `StagesSeed.proofing`'s comment), the same shape the real engine gives

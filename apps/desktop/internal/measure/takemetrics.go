@@ -12,7 +12,7 @@ import (
 
 // Take metrics are per-category evidence about one take (ADR 0140): each
 // category is measured or unavailable with a reason, and nothing combines
-// the categories into one number (take-review PRD, Q9). A category that
+// the categories into one number. A category that
 // cannot be measured carries no figures and lowers Coverage; it is never a
 // penalty and never a guessed value (ADR 0025).
 

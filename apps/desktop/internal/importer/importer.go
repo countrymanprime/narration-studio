@@ -24,7 +24,7 @@ func BuildDraft(path string, markdownHeadingLevel int) (Draft, error) {
 }
 
 // BuildDraftProgress is BuildDraft with stage reporting. The format switch
-// itself lives in formats.go's list (txt-and-epub-import PRD, Phase 1): a new
+// itself lives in formats.go's list: a new
 // format is a one-line addition there instead of a new case here.
 func BuildDraftProgress(path string, markdownHeadingLevel int, progress Progress) (Draft, error) {
 	extension := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))

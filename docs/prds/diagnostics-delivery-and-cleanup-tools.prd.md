@@ -41,7 +41,7 @@ Per docs (not verified in code):
 - The tracks doc states the track/item enumeration part of DAW Project Scan is delivered, by reading the `.rpp` directly and not through a new REAPER bridge action; chapter matching, measured duration and transcript/waveform are not (`docs/utilities/tracks.md`; the original DAW Project Scan brief is superseded by this PRD). Its planned "enumerate via a new bridge action" is deliberately not carried: the static parser already does it and works standalone.
 - Published guidance on ACX room-tone lengths disagrees (research doc section 5.3), which is why no distributor profile ships.
 
-Assumption - needs validation through observation: how narrators currently verify chapter readiness (which tools, how long, how often they re-check after re-rendering). No baseline exists. Method: watch the user run their real handoff check on two chapters before Phase 5 acceptance.
+Assumption - needs validation through observation: how narrators verify chapter readiness (which tools, how long, how often they re-check after re-rendering). No baseline exists. Method: watch the user run their real handoff check on two chapters before Phase 5 acceptance.
 
 ## Proposed Solution
 

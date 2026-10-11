@@ -1,5 +1,5 @@
 // The interaction feedback rows for the Pickups call sites (see interactionFeedback.catalog.ts for what a row says): the
-// Pickups page (stage-navigation-and-page-replacement.prd.md Phase 7, the Tracks page's Pickups dialog until then) and the
+// Pickups page (the Tracks page's Pickups dialog until then) and the
 // pickups state it shares with the Booth companion's Pickups section.
 import { type FeedbackRow, row, subscription } from './row';
 

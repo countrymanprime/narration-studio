@@ -661,7 +661,7 @@ describe('BoothPage credits', () => {
   });
 });
 
-// stage-navigation-and-page-replacement.prd.md Phase 4: what the Booth reads is in its address, so a Script card's
+// What the Booth reads is in its address, so a Script card's
 // "Record in Booth", a bookmark and Back all land on the same chapter or credits.
 describe('BoothPage address', () => {
   const chapterPicker = () => screen.getByLabelText('Chapter') as HTMLSelectElement;

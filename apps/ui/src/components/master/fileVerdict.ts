@@ -1,4 +1,4 @@
-// A measured file's verdict and why (stage-navigation-and-page-replacement.prd.md Phase 8, mock 05's "PASS / FAIL" column and
+// A measured file's verdict and why (mock 05's "PASS / FAIL" column and
 // "Why it fails"). The verdict reads only the host's own judgement of the file (MeasureFileResult.rules, ADR 0179): a file fails
 // when any rule is not met; it has no verdict when a value it should have could not be measured (a silent render) or nothing was
 // judged at all; it passes otherwise. A rule the app does not check is never counted as met; the row says how many are left.

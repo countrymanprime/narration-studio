@@ -31,7 +31,7 @@ Verified in code (main, d5cc994):
 - The review actions a live flag might reuse do not fit as written. Transcript Compare's result row offers "Jump to manuscript", "Play recorded audio" (its tooltip says "Play heard audio", but `transcriptJump` only moves the REAPER edit cursor; nothing plays) and "Add pronunciation equivalence" (`Results.tsx:150-185`; `TranscriptAddEquivalence(id)` at `apps/desktop/bindings.go:456` takes a Compare result id and is enabled only for single-word misreads). There is no "Open in review" button, and a live flag has no result id, so those actions need their own binding or stay out of the first cut. The older brief's statement that `Results.tsx` plays back heard audio is wrong.
 - The tracker's matching window is 40 script words back and 30 ahead of the anchor (`BACK_WORDS`, `AHEAD_WORDS`, `script_tracker.py:35-36,107`), not "the current paragraph plus the next" as the older brief describes it, and word matching is its own `difflib` ratio check, not the word-diff of `InlineDiffRow.tsx` or `compare.py`. `ReaderText` gives the current paragraph no background tint (only the `Cursor` fill, dimming and the dotted skipped underline, `ReaderText.tsx:19-38`). Transcript Compare's mismatch colors already exist as `KIND_STYLES` (`InlineDiffRow.tsx:3-7`: MISREAD `--review`, SKIPPED `--warn`, EXTRA `--info`).
 - The modal primitive cannot host a full-screen reader: `Dialog` caps width at `max-w-[70vw]` and height at `80dvh` (`primitives/Dialog.tsx:20-24`, ADR 0001), and it has no Escape, focus trap or initial focus (when this was written `Dialog.tsx` had no key handling: the retired UI-defects register's defect 2, fixed since by the Base UI dialog, [ADR 0048](../adr/0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md)).
-- Host API version lives in three places, all currently 5: `apps/desktop/app.go:33`, `apps/ui/src/hostApi.ts:2`, `apps/desktop/app_test.go:40`.
+- Host API version lives in three places, all 5 when this was written (2026-09-23): `hostAPIVersion` in `apps/desktop/app.go`, `DESKTOP_HOST_API_VERSION` in `apps/ui/src/hostApi.ts`, and `apps/desktop/app_test.go`.
 - The next free ADR number is whatever is free at merge time (0027 at d5cc994; `docs/adr/` ended at 0026); PR #35 warns numbers can collide with open PRs, so re-check before numbering and never hard-code one in a phase.
 
 Per docs (not verified in code):
@@ -40,7 +40,7 @@ Per docs (not verified in code):
 - REAPER automation research is Medium confidence on behavior and marks `GetPlayPosition` versus `GetPlayPosition2` as an open spike, and whether `GetAudioDeviceInfo` exposes the input device name as unverified (`docs/research/reaper-automation-surface.md` sections 2, 10).
 - PromptVO markets live misread detection but documents no DAW mechanism (research doc section 7). Hard evidence that "losing place after a flub" is a top narrator pain point was not found; only marketing claims (research doc section 8).
 
-Assumption - needs validation through a timed manual run: how long the narrator currently spends finding the resume place or the punch-in point per session. No baseline exists. Method: stopwatch the user doing it by hand on two real chapters before Phase 10.
+Assumption - needs validation through a timed manual run: how long the narrator spends finding the resume place or the punch-in point per session. No baseline exists. Method: stopwatch the user doing it by hand on two real chapters before Phase 10.
 
 ## Proposed Solution
 

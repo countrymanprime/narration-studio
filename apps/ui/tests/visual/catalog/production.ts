@@ -3,7 +3,7 @@ import type { StateEntry } from '../lib/types';
 import { TOOLTIP_CLOSES_ON_RESIZE, KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT } from './shared';
 
 export const productionStates: StateEntry[] = [
-  // The Production home at `/` (production-tracking.prd.md Phase 4, stage-navigation-and-page-replacement.prd.md Phase 2, mock 01)
+  // The Production home at `/` (stage-navigation-and-page-replacement.prd.md Phase 2, mock 01)
   {
     page: 'production',
     state: 'no-data',
@@ -36,7 +36,7 @@ export const productionStates: StateEntry[] = [
       "Production's Delivery plan panel (?mockProduction=on-pace) with the ACX 15-minute checkpoint added from its template and not saved yet - the delivery date and contracted amount the figures use, each milestone's name, due date and note with Remove, and the template button off once the checkpoint is listed",
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Status report export (production-tracking.prd.md Phase 5)
+  // Status report export
   {
     page: 'production',
     state: 'status-report',
@@ -45,7 +45,7 @@ export const productionStates: StateEntry[] = [
     ...KEEPS_DESKTOP_SCROLL,
   },
 
-  // Home's surfaces, opened from the board (stage-navigation-and-page-replacement.prd.md Phase 2)
+  // Home's surfaces, opened from the board
   {
     page: 'production',
     state: 'no-manuscript',
@@ -248,7 +248,7 @@ export const productionStates: StateEntry[] = [
     description:
       'Production, a recording check whose re-check model needs downloading first (?mockCoverage=recheck-required, Phase 5, MC4): the same first-use question as the first-pass model, with "Check with tiny only" beside the download',
   },
-  // Stage suggestions (chapter-stage-recommendations.prd.md Phase 5, deleted, ADR 0160 and 0161), on `?mockStages=mixed`: Chapter 4 read in
+  // Stage suggestions (ADR 0160 and 0161), on `?mockStages=mixed`: Chapter 4 read in
   // full (suggested), Chapter 5 with no track linked (can't tell), Chapter 6 short (not ready), Chapter 7 confirmed into Editing and since
   // found short (evidence changed), Chapter 8 confirmed on evidence that still holds.
   {

@@ -314,8 +314,7 @@ func epubChapterStarts(entries []epubTOCEntry, blocks []epubBlock, fileBlockRang
 // epubWithProgress builds a Draft from an EPUB manuscript: container, OPF,
 // spine order, its own table of contents (nav for EPUB 3, NCX for EPUB 2,
 // falling back to headings), and XHTML content turned into the same
-// paragraph/span shape every other importer produces (txt-and-epub-import
-// PRD, Phase 2).
+// paragraph/span shape every other importer produces.
 func epubWithProgress(filePath string, progress Progress) (Draft, error) {
 	progress.report(5, "Opening EPUB %s", filepath.Base(filePath))
 	info, err := os.Stat(filePath)

@@ -54,7 +54,7 @@ import { PronunciationQueries } from '../storybible/PronunciationQueries';
 import { ScriptChapterList, SCRIPT_SECTION_LABEL } from './ScriptChapterList';
 import { ScriptRail } from './ScriptRail';
 
-// The Booth (stage-navigation-and-page-replacement.prd.md Phase 4) reads narration chapters only, so only they link to it.
+// The Booth reads narration chapters only, so only they link to it.
 const isNarrationChapter = (chapter: Pick<ManuscriptChapter, 'contentKind'>) => (chapter.contentKind ?? 'narration') === 'narration';
 
 const TEXT_SIZES = ['small', 'medium', 'large'] as const;
@@ -74,7 +74,7 @@ const defaultState: ReaderState = { expandedChapters: [], bookmarks: [] };
 const escapeSelector = (value: string) =>
   typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(value) : value.replace(/(["\\])/g, '\\$1');
 
-// The Script page (stage-navigation-and-page-replacement.prd.md Phase 3, mock 02), which replaced the Manuscript page: the
+// The Script page (mock 02), which replaced the Manuscript page: the
 // chapter list with each chapter's prep status, the reader, and a rail of Pronunciations, Characters and Queries. The list is a
 // column from `xl` and the rail from 1440 px (mock 02's own three-column capture width - D85 on issue #509, ADR 0393,
 // superseding ADR 0392's `2xl`); below those widths the list is the Chapters & Search panel and the rail opens as a panel
@@ -226,7 +226,7 @@ export function ScriptPage({
 
   const [loadError, setLoadError] = useState<string>();
   const [loadAttempt, setLoadAttempt] = useState(0);
-  // The nav's "Suggested: <stage>" marker (chapter-stage-recommendations.prd.md Phase 9, Q6): read-only here, so
+  // The nav's "Suggested: <stage>" marker (Q6): read-only here, so
   // onStatus is a no-op - the marker never confirms, dismisses or reverts. Refreshed whenever chapters reload
   // (loadAttempt), the same trigger the page's own chapter list already uses.
   const stages = useStageRecommendations({ refreshKey: String(loadAttempt), notify, onStatus: () => {} });

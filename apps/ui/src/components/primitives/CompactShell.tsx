@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-// The narrow companion-panel layout (the DAW companion mock, studio-ui-primitives.prd.md phase 10): a header naming
+// The narrow companion-panel layout (the DAW companion mock): a header naming
 // the panel, its live status and the one action back to the full app, above a stack of sections. Narrow (320-480 px),
 // always-on-top and the window itself are the host's (ADR 0360); this primitive only lays out what goes inside it, and
 // is judged at the atlas's narrow (390 px) viewport. Unlike `FocusShell`'s four regions, the companion mock keeps only

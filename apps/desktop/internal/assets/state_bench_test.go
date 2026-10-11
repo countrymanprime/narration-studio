@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// The catalog of Whisper models lists five sizes; listing them used to read every installed byte (5.3 GB for all five). This measures the
+// The catalog of Whisper models lists five sizes; listing them without a manifest reads every installed byte (5.3 GB for all five). This measures the
 // listing with the manifest against reading everything, at the real sizes:
 //
 //	go test ./internal/assets -run '^$' -bench State -benchtime 3x

@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-// A closed set of meanings, not one tone per stage name (studio-ui-primitives.prd.md Q6, ADR 0360): stage names change,
+// A closed set of meanings, not one tone per stage name (ADR 0360): stage names change,
 // meanings do not, so a caller maps its own status onto one of these (see src/chapterStatus.ts's STATUS_TONE). `accent`
 // (the proofer, a query, "Author ✓") and `org` (the Proof PACING tag) are the two the benchmark mocks add
-// (mock-fidelity-primitives-and-components.prd.md Phase 2, ADR 0600).
+// (ADR 0600).
 export type StatusTone = 'neutral' | 'info' | 'progress' | 'accent' | 'success' | 'warning' | 'danger' | 'org' | 'experimental';
 
 /**

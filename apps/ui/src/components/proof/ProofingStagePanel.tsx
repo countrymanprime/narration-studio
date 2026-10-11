@@ -9,7 +9,7 @@ import type { Notify } from '../primitives/Toast';
 import { RenderAssociationSection } from './RenderAssociationSection';
 
 /**
- * This chapter's proofing readiness (proofing-readiness-signals.prd.md Phase 6, in the Proof chapter view per D79):
+ * This chapter's proofing readiness (in the Proof chapter view per D79):
  * the pickup roll-up and delivery-check suggestion (`StageSuggestion`, the same one the Production board uses),
  * SR's evidence popover for "why", and the chapter's chosen rendered file with Choose, Clear and Measure
  * (`RenderAssociationSection`). Shown only while the chapter is in Proofing status, the same gate the pre-D79

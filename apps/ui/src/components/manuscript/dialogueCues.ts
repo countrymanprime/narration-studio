@@ -1,12 +1,9 @@
 import type { GuideEntity, ManuscriptParagraph } from '../../types';
 
-// The shape Character Continuity Review's own dialogue-cue extractor writes
-// (sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`,
-// character-continuity-review.prd.md Phase 2): one entry per quoted span. That extractor is not yet exposed
-// through any binding (that PRD's own Phase 6 - see PR #770's description), so the reader below builds
-// against a recorded fixture of this same shape instead of a second extractor (prep-depth.prd.md Phase 4,
-// Q1 option C, "What We're NOT Building"). Swapping to the real output later is only a change to where the
-// `DialogueCue[]` comes from, never to `speakerLabelForParagraph` or the components that call it.
+// The shape Character Continuity Review's dialogue-cue extractor writes
+// (sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`): one entry per
+// quoted span, served by the host's `GuideDialogueCues` binding. `recordedDemoDialogueCues` builds the same shape from a
+// recorded fixture, so the reader below can run without a second extractor (prep-depth.prd.md Phase 4).
 type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'unknown' | 'correction';
 
 export type DialogueCue = {

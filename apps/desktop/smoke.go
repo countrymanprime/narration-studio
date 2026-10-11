@@ -38,7 +38,7 @@ import (
 //   - every bundled sidecar exists and starts (`--help` exits 0);
 //   - the frozen Story Bible sidecar can start its espeak-ng phonemizer and read the CMU dictionary (`self-check`), which is what a freeze
 //     silently loses; with --piper-model it also speaks one word;
-//   - on Windows, the frozen Teleprompter sidecar can load Moonshine's native library (`--check-moonshine`), which PyInstaller cannot
+//   - on Windows, the frozen Teleprompter sidecar can load Moonshine's native library (`--capabilities --verify`), which PyInstaller cannot
 //     see it needs; no model is loaded and nothing is downloaded;
 //   - the frozen Teleprompter sidecar's own `--capabilities` report names every ASR and capture row Go's own registries declare for
 //     this platform (sidecar-capabilities-flag PRD Phase 1: registration only, not the Moonshine check's native-library load);
@@ -346,8 +346,7 @@ type capabilitiesReport struct {
 // own registries declare for options.Platform to be one this process actually registered (sidecar-capabilities-flag PRD, generalizing
 // the single hardcoded Moonshine comparison the retired checkFrozenMoonshine made into a loop over every registered provider row
 // instead). With options.Moonshine (Windows, the one platform moonshine-voice is pinned for), it also asks for --verify and requires
-// the moonshine row to report loadable=true - the same guarantee --check-moonshine made alone before Phase 3 folded it into this
-// generic flag and retired the bespoke one (sidecar-capabilities-flag PRD Phase 3, ADR 0403). Every other row stays
+// the moonshine row to report loadable=true - the native library actually loads (ADR 0403). Every other row stays
 // registration-only (loadable: null) until a future phase gives it its own verify hook.
 func checkCapabilities(ctx context.Context, options smokeOptions, root string) (string, error) {
 	executable := sidecarPath(root, "manuscript-teleprompter")

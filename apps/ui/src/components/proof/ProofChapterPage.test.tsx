@@ -266,7 +266,7 @@ describe('ProofChapterPage findings in the text (Phase 4)', () => {
 // Phase 3 (input-commands-and-pedals.prd.md): the workspace's shortcuts moved off a hand-written `window` `keydown`
 // listener onto `workspace.*` page-scope commands, registered through `useCommand`. This page had zero keyboard
 // coverage before this phase (the PRD's Evidence), so every one of the old listener's keys gets a test here for the
-// first time. `renderWorkspace` now wraps in a real `<CommandRouter>` with the real catalog and default keymap, and
+// first time. `renderWorkspace` wraps in a real `<CommandRouter>` with the real catalog and default keymap, and
 // dispatches through the real `KeyboardSource` (`userEvent.keyboard`, which bubbles to `document`), so these tests
 // exercise the actual router, not a mock of it.
 describe('ProofChapterPage keyboard commands (input-commands-and-pedals.prd.md Phase 3)', () => {
@@ -336,9 +336,8 @@ describe('ProofChapterPage keyboard commands (input-commands-and-pedals.prd.md P
   });
 
   it('does not fire workspace.play when a modifier is held (exact-modifier match)', async () => {
-    // Behaviour change from the old listener (which ignored modifiers): the registry's default gesture for
-    // workspace.play is a bare Space, so Alt+Space no longer toggles play here (App.tsx's Alt+ArrowLeft nav.back
-    // stops double-firing workspace.word.prev the same way, once that migration lands).
+    // The registry's default gesture for workspace.play is a bare Space (modifiers must match exactly), so Alt+Space
+    // does not toggle play here.
     renderWorkspace();
     await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
     await screen.findByRole('button', { name: 'Play' });
@@ -349,8 +348,8 @@ describe('ProofChapterPage keyboard commands (input-commands-and-pedals.prd.md P
   });
 });
 
-// stage-navigation-and-page-replacement.prd.md Phase 5: the Proofing page's run and results fold into the chapter view. A finished
-// run's discrepancies for this chapter are flags, with the inline diff and the old results row's actions in the flag detail.
+// The compare run and its results are in the chapter view. A finished
+// run's discrepancies for this chapter are flags, with the inline diff and the results row's actions in the flag detail.
 describe('ProofChapterPage compare results (stage navigation Phase 5)', () => {
   const success = { ...WIRE_TRANSCRIPT, phase: 'success' as const, rows: WIRE_DISCREPANCIES };
   const flagsPanel = async () => {

@@ -39,7 +39,7 @@ if (guideDataMissing.length) {
 }
 // The Windows Teleprompter sidecar carries the Moonshine engine (moonshine-voice is pinned for Windows only in pyproject.toml). Its
 // package loads moonshine.dll, and the onnxruntime.dll beside it, with ctypes from its own folder, which PyInstaller cannot see:
-// prepare-resources.py collects them by hand. `narration-utils --smoke` proves they load (`--check-moonshine`); this proves they are
+// prepare-resources.py collects them by hand. `narration-utils --smoke` proves they load (`manuscript-teleprompter --capabilities --verify`); this proves they are
 // in the tree before it is embedded.
 if (process.platform === 'win32') {
   const moonshineDir = resolve(runtime, 'manuscript-teleprompter', '_internal', 'moonshine_voice');

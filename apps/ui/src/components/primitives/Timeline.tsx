@@ -33,7 +33,7 @@ function formatTime(seconds: number): string {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
-// A time axis for a proof pass or a session recap (studio-ui-primitives.prd.md mock 04): a `duration`-second ruler, an
+// A time axis for a proof pass or a session recap (mock 04): a `duration`-second ruler, an
 // optional `playhead` line, and the caller's `TimelineLane`s stacked under it. `backdrop` is a decorative visual the
 // feature draws under the lanes (a waveform); the primitive itself draws no audio and marks the backdrop `aria-hidden`
 // (Q5). Every position is a percentage of the ruler's width, so a long recording never causes sideways overflow.

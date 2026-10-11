@@ -1,7 +1,7 @@
 import type { MeasureReport } from './measure';
 import type { StageUnknownCause } from './stages';
 
-// A chapter's chosen rendered file (proofing-readiness-signals.prd.md Phase 6, apps/desktop/bindings_proofing_render.go,
+// A chapter's chosen rendered file (apps/desktop/bindings_proofing_render.go,
 // apps/desktop/internal/proofing/renders.go): what the proofing delivery-check signals (`proofing.delivery.*`,
 // `proofing.delivery.render_length`) on StageRecommendations are about, and whether it is still current. This PRD adds
 // only the bindings to change the choice (choose, clear); the checks themselves are read through StageRecommendations

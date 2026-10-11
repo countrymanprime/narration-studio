@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The Proof chapter view's readiness panel (proofing-readiness-signals.prd.md Phase 6): this one chapter's pickup
+// The Proof chapter view's readiness panel: this one chapter's pickup
 // roll-up and delivery-check suggestion, SR's evidence popover, and its chosen rendered file.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

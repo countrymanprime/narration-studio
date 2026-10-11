@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0640 (mock-fidelity-primitives-and-components.prd.md Phase 4): a card is a `Panel`, a card inside a card an
+// ADR 0640: a card is a `Panel`, a card inside a card an
 // `InsetCard`, an eyebrow a `SectionLabel` and a page title a `Heading`, so each looks one way. This scan counts the copies
 // written outside `components/primitives/`, per file, and a file's count may only go down: a ceiling higher than the real
 // count fails, so the entry is lowered (or deleted at zero) in the same change, and a file with no entry may have none.

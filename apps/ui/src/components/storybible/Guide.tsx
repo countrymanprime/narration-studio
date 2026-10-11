@@ -103,7 +103,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
     [api, notify],
   );
   // Follows a running rebuild (ADR 0015). A success reloads the rows before the dialog goes, so the page never briefly renders on stale
-  // (pre-build) rows - that render used to trip the route ErrorBoundary once, which looked exactly like the build itself had failed. The
+  // (pre-build) rows - that render trips the route ErrorBoundary, which looks exactly like the build itself had failed. The
   // app says the build is done: the host's job-end event is the one place that does (ADR 0076).
   const [buildJob, setBuildJob] = useWorkJob({ poll: () => api.guideBuildState(), onSuccess: () => load() });
   const modelInstall = useAssetInstall({

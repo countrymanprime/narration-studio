@@ -50,7 +50,7 @@ func markdownWithProgress(path string, headingLevel int, progress Progress) (Dra
 	titles, pending := []string{}, []markdownLine{}
 	// headingLevels records the outline depth newDraft needs to bound an active Characters section (S3): every group-starting
 	// heading (level == headingLevel) sits at the same depth, chapter or not, so any later one - not only a "Chapter N"-shaped
-	// title - now ends the section instead of leaking every later short heading in as a candidate.
+	// title - ends the section instead of leaking every later short heading in as a candidate.
 	headingLevels := map[string]int{}
 	notices := []string{}
 	// toc collects the manuscript's own table of contents; slugs gives each heading the anchor a TOC link names, and

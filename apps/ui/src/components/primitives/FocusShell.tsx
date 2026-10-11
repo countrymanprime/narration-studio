@@ -17,7 +17,7 @@ export type FocusShellProps = {
   children: ReactNode;
   className?: string;
   // The main region's own background and padding (the Booth's darker reading surface, mock-fidelity-primitives-and-
-  // components.prd.md Phase 13, mock 03 Q6): a composed style, not a second look this primitive owns, since every other
+  // mock 03 Q6): a composed style, not a second look this primitive owns, since every other
   // host draws the shell's own `--bg`.
   contentClassName?: string;
   // False when the host page already has its own `<main>` that stays in the accessibility tree while this shell is
@@ -28,7 +28,7 @@ export type FocusShellProps = {
   asMain?: boolean;
 };
 
-// The full-screen booth layout (studio-ui-primitives.prd.md Phase 9): a status bar, an optional side rail, the main
+// The full-screen booth layout: a status bar, an optional side rail, the main
 // region and a command bar, each a named landmark so a screen reader can jump straight to any of them. It draws with the
 // active app theme, light or dark, like every other surface: the theme is one global setting and no surface forces it
 // (ADR 0365, superseding ADR 0360 Q1's forced-dark booth block).

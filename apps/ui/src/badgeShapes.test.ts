@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// Every pill is THE pill (mock-fidelity-primitives-and-components.prd.md Phase 2, ADR 0600): a status pill, a type tag, a
+// Every pill is THE pill (ADR 0600): a status pill, a type tag, a
 // speaker tag, a summary chip and a status dot are drawn by `StatusBadge`/`Badge`/`Dot` (primitives/StatusBadge.tsx),
 // `SpeakerTag` or `Pill`, never by pasting the classes. The owner saw pills of 18 to 26 px side by side because each page
 // drew its own. The header's chips are `HeaderChip` (Phase 8, ADR 0635). This scan reads every class string outside the primitives and counts the three shapes a copy leaves
@@ -17,8 +17,8 @@ type Shape = 'chip' | 'dot' | 'tag';
 
 const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {
   // The Booth's control-bar chip (the start-point chip: a quoted sentence fragment with a nested clear button, which
-  // `Badge`'s label/icon-only API has no room for). Phase 8's header chips (EngineChip, TimerChip) and BuiltinRecorder's
-  // chip are fully migrated to `HeaderChip`/primitives now, so their entries are gone, not just lowered.
+  // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip) and BuiltinRecorder's
+  // chip use `HeaderChip`/primitives and have no entry.
   'src/components/booth/ReadingControlBar.tsx': { chip: 1, owner: 'Phase 13' },
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
   // reuses this exact maroon (ADR 0656).

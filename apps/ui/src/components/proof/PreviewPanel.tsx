@@ -16,7 +16,7 @@ import type { Notify } from '../primitives/Toast';
 type Phase = 'loading' | 'ready' | 'error';
 
 /**
- * The Proofing page's preview suggestion (proofing-preview-suggestion.prd.md Phase 3): up to three candidate
+ * The Proofing page's preview suggestion: up to three candidate
  * five-minute excerpts, computed fresh on every read (SR D1 - nothing here is applied, exported or stored; opening a
  * candidate in the reader or copying its range starts nothing either).
  */

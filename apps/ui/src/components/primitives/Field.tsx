@@ -1,12 +1,11 @@
 import { Field as BaseField } from '@base-ui/react/field';
 import type { ReactNode } from 'react';
 
-// The look every field label shares: ~14px, Plex Sans 500, --text-muted (mock-fidelity-primitives-and-components.prd.md
-// Phase 6). A control with no visible `Field` wrapper (a raw `<label>` beside a `Select`, a read-only value's caption)
+// The look every field label shares: ~14px, Plex Sans 500, --text-muted. A control with no visible `Field` wrapper (a raw `<label>` beside a `Select`, a read-only value's caption)
 // imports this instead of pasting its own copy, so a size fix here reaches every consumer.
 export const FIELD_LABEL_CLASSES = 'block text-[0.88rem] font-medium text-[var(--text-muted)]';
 
-// mt-2 (8px) is the mocks' label-to-control gap (mock-fidelity-primitives-and-components.prd.md Phase 6).
+// mt-2 (8px) is the mocks' label-to-control gap.
 const CONTROL_CLASSES =
   'mt-2 w-full rounded-[var(--control-radius)] font-medium border border-[var(--border)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)] data-[invalid]:border-[var(--danger)]';
 

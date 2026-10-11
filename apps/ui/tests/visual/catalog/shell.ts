@@ -14,7 +14,7 @@ export const shellStates: StateEntry[] = [
     ...REFLOW,
   },
   { page: 'shell', state: 'history-forward', description: 'Header, after a Back: both Back and Forward enabled', ...REFLOW },
-  // The engine chip (stage-navigation-and-page-replacement.prd.md Phase 1, Q7), replacing the REAPER pill: its three
+  // The engine chip, replacing the REAPER pill: its three
   // REAPER states are the existing default/`daw-not-linked`/mismatch captures of other pages' headers, so only the
   // two states nothing else reaches get their own row here.
   {

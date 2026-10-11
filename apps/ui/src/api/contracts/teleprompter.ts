@@ -178,7 +178,7 @@ export type TeleprompterLocated = {
  * or confident track (the narrator picks one from `match`); `no_recording` has nothing audible on the track; `source_missing`
  * and `source_unsupported` cannot read the last item's source file.
  */
-/** `recording`: REAPER is recording onto the chapter's track now, so nothing is located (read-aloud-resume-from-daw PRD Phase 4). */
+/** `recording`: REAPER is recording onto the chapter's track now, so nothing is located. */
 export type TeleprompterLocateStatus =
   'found' | 'low_confidence' | 'not_found' | 'no_track' | 'no_recording' | 'source_missing' | 'source_unsupported' | 'recording';
 
@@ -209,10 +209,10 @@ export type TeleprompterLocateResult =
       located: TeleprompterLocated | null;
       /** Where the prompter last stopped in this chapter, or null (none stored, or the chapter's text changed since). */
       lastReading: TeleprompterReading | null;
-      /** The host's reconciliation of `located` with `lastReading` (read-aloud-resume-from-daw PRD Phase 3): render it, never recompute it. */
+      /** The host's reconciliation of `located` with `lastReading`: render it, never recompute it. */
       verdict: TeleprompterResumeVerdict;
       /**
-       * Where `recordedEnd` came from (read-aloud-resume-from-daw PRD Phase 4, ADR 0349): `live` is REAPER's answer ("in REAPER
+       * Where `recordedEnd` came from (ADR 0349): `live` is REAPER's answer ("in REAPER
        * now"), `saved` the saved project ("as of the project's last save"). Absent when no track was read.
        */
       dawSource?: TeleprompterDawSource;
@@ -224,7 +224,7 @@ export type TeleprompterLocateResult =
 export type TeleprompterDawSource = 'saved' | 'live';
 
 /**
- * What the resume prompt shows (read-aloud-resume-from-daw PRD Phase 3, `teleprompter.Reconcile`):
+ * What the resume prompt shows (`teleprompter.Reconcile`):
  * - `agree`: REAPER and the last reading are within ten words or in the same sentence; Start reading is preset to `start`
  *   and a one-line notice says so (with Change and Start from the top).
  * - `disagree`: both places are known and far apart; the narrator picks `daw` or `prompter` (or the top, or a word).
@@ -266,7 +266,7 @@ export type TeleprompterLocateOptions = {
 };
 
 /** One input device the sidecar's `--list-devices` reported, by the exact name its capture path opens it under. */
-/** Where the prompter last was in a chapter (read-aloud-resume-from-daw PRD Phase 2, ADR 0205): the host writes it when a
+/** Where the prompter last was in a chapter (ADR 0205): the host writes it when a
  * chapter session ends and reads it back only while the chapter's text is unchanged (`scriptHash`). `read` is the index
  * space of a position event's `read` and of locate's `word`. Phase 3 carries it on the locate result as `lastReading`. */
 export type TeleprompterReading = {
@@ -360,7 +360,7 @@ export type TeleprompterPunchResult = {
 };
 
 /**
- * `TeleprompterResumeFollow` / `TeleprompterResumeUnfollow` (read-aloud-resume-from-daw PRD Phase 5, ADR 0353): whether the
+ * `TeleprompterResumeFollow` / `TeleprompterResumeUnfollow` (ADR 0353): whether the
  * host now follows REAPER for the resume prompt; not with no track to follow (`no_track`) or no way to ask REAPER
  * (`unavailable`: no DAW, REAPER not reachable, or track state switched off).
  */

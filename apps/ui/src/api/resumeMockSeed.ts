@@ -8,7 +8,7 @@ import type { TeleprompterLocateResult, TeleprompterModelRequired, TeleprompterR
  * (Chapter 1 found, Chapter 2's source missing, the last chapter no track) and no last reading is stored, so the verdict is
  * `daw_only`. `agree` and `disagree` add a last reading near to or far from the recording; `prompter_only` has no track and
  * a last reading. `disagree_live` is `disagree` read from REAPER's live edit cursor ("in REAPER now"), and `recording` is
- * REAPER recording onto the chapter's track (read-aloud-resume-from-daw.prd.md Phase 4).
+ * REAPER recording onto the chapter's track.
  */
 export type MockResumeSeed =
   | 'agree'

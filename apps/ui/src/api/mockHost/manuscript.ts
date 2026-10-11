@@ -123,7 +123,7 @@ export function createManuscriptMock(
     // small local seed fixture, not the real manuscript text just loaded
     // above, so they'd point at the wrong line ("go to line" landing
     // nowhere near the actual occurrence) - recompute them against the
-    // paragraphs that are now actually in the reader.
+    // paragraphs actually in the reader.
     const evidenceFor = (term: string): GuideEvidence[] =>
       s.paragraphs
         .filter((paragraph) => paragraph.text.includes(term))

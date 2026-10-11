@@ -35,7 +35,7 @@ read the docs here in `docs/` meanwhile.
 narration-utils/
   apps/
     desktop/                   Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
-                               cmd/ (seed-assets, manuscript-import), build/ (icons, the Windows setup program definition)
+                               cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys), build/ (icons, the Windows setup program definition)
     ui/                        React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
   sidecars/                    Python programs frozen into the app and run on demand
     manuscript-guide/          core/ CLI backend, tests/
@@ -45,7 +45,7 @@ narration-utils/
     python/narration_common/   DAW-agnostic helpers shared by the sidecars
   integrations/
     reaper/                    REAPER launcher and Lua bridge
-    audacity/                  placeholder notes for a future Audacity driver
+    audacity/                  Audacity notes only; the driver is in apps/desktop/internal/
   config/                      shipped JSON: defaults, asset catalogs, roadmap
   tests/fixtures/              manuscripts used by tests across projects
   tools/docs-site/             the public docs site: MkDocs config, include list and hooks (reads docs/, holds no content)
@@ -65,10 +65,11 @@ The layout and its test rule are recorded in
 - **Reaper** — supported. Load `integrations/reaper/NarrationUtils_Launcher.lua` as
   the one action; it opens the centered Narration Studio workspace with every tool (Proof,
   Story Bible, Teleprompter, Tracks and the manuscript reader) and their global/project settings.
-- **Audacity** — planned, not yet implemented. Audacity's scripting model
-  (mod-script-pipe, label tracks instead of take markers, no ExtState-equivalent settings
-  store) is different enough from Reaper's that it needs its own driver design rather than a
-  port of the Reaper one. Placeholder notes live under `integrations/audacity/`.
+- **Audacity 3.x** — adapter built from the published `mod-script-pipe` spec and tested against a fake pipe server; the
+  owner's check in a running Audacity is pending ([verification pass](docs/operations/audacity-verification-pass.md)). The
+  pipe client and adapter are in `apps/desktop/internal/audacitybridge` and `apps/desktop/internal/dawport/audacity`;
+  `integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
+  ([DAW reference](docs/reference/daw/README.md)).
 
 ## Supported platforms
 

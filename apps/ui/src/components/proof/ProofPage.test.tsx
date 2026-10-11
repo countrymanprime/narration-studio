@@ -66,7 +66,7 @@ const openFinding = async (user: ReturnType<typeof userEvent.setup>, text: RegEx
   await user.click(row);
 };
 
-// Mock 04 draws no filter row (mock-fidelity-primitives-and-components.prd.md Phase 12): the filters sit behind this button.
+// Mock 04 draws no filter row: the filters sit behind this button.
 const openFilters = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(await screen.findByRole('button', { name: /^Filters/ }));
   await screen.findByRole('group', { name: 'Filter findings' });

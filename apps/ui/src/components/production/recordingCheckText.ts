@@ -82,8 +82,7 @@ export function creditsCheckKind(chapterId: string): CreditsKind | undefined {
 }
 
 /**
- * The synthetic `ManuscriptChapter` a credits row's Check button opens `RecordingCheck` with (ADR 0333, credits-in-
- * chapter-table.prd.md Phase 3): `RecordingCheck` treats `chapter.id` as an opaque key for every host call, so this
+ * The synthetic `ManuscriptChapter` a credits row's Check button opens `RecordingCheck` with (ADR 0333): `RecordingCheck` treats `chapter.id` as an opaque key for every host call, so this
  * needs nothing beyond a title and the one paragraph id the host's synthetic check manuscript gives the credits kind
  * (`coverage.creditsParagraphID`, `"<chapterId>-p0"`), so a reported gap numbers as "paragraph 1" the same way a real
  * chapter's first paragraph would. Never inserted into the real chapters array (ADR 0150: credits are not manuscript
@@ -135,7 +134,7 @@ export function verdict(report: CoverageReport, judgement?: CoverageJudgement): 
   };
 }
 
-/** RS2 A (recording-check-summary.prd.md): an unread start or end is unfinished recording, not a pickup - stated in the
+/** RS2 A: an unread start or end is unfinished recording, not a pickup - stated in the
  * summary as "Recorded to paragraph N of M" or "Start not read: paragraphs 1 to K", never listed with the interior
  * gaps (skip, short_read, different_text). undefined when the chapter has no head or tail region (every gap, if any,
  * is interior). A tail wins over a head if somehow both are present (a chapter this sparse needs the "unfinished"

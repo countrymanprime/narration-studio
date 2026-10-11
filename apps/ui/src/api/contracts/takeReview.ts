@@ -1,4 +1,4 @@
-// Take review (take-review-pickups-duplicates-take-intelligence.prd.md). Its pickup and duplicate_read findings are
+// Take review. Its pickup and duplicate_read findings are
 // ordinary findings, read and decided through the Review page's generic bindings (FindingsApi, ADR 0120); what is its
 // own is the reads a finding groups (its `evidence`, decoded on the page with takeReviewEvidenceSchema), the scan job
 // that finds them, and the take-creation action. Evidence field names are the wire's own snake_case

@@ -33,8 +33,7 @@ export type CreditsRow = {
 };
 
 /**
- * The Production board's Opening/Closing credits rows (credits-in-chapter-table.prd.md Phase 2, moved from Home by
- * stage-navigation-and-page-replacement.prd.md Phase 2). Reads the first template of each kind (ADR 0093), each rendered
+ * The Production board's Opening/Closing credits rows (credits-in-chapter-table.prd.md Phase 2). Reads the first template of each kind (ADR 0093), each rendered
  * with its own room tone (CT9) and status from the project manifest (CT2, CT3). `template` is undefined when the library
  * has none of that kind (CT5: the row still renders, as "Not set up"). Undefined while loading or on any failure: a
  * credits problem leaves the rows out rather than toasting.

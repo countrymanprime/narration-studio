@@ -215,7 +215,7 @@ export const productionDrivers: Record<string, Driver> = {
     const dialog = await openRecordingCheck(page, 'Chapter 1');
     await dialog.getByText('Passes the check').waitFor();
   },
-  // RS2 A (recording-check-summary.prd.md): a chapter that is simply unfinished states it in the summary
+  // RS2 A: a chapter that is simply unfinished states it in the summary
   // ("Recorded to paragraph N of M") rather than listing its unread end as a pickup.
   'recording-check-incomplete': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 4');

@@ -8,7 +8,7 @@ CONNECT step (`403`, "gateway answered 403 to CONNECT (policy denial or upstream
 `/root/.ccr/__agentproxy/status`), which `/root/.ccr/README.md` identifies as an organization
 policy denial to report rather than retry or work around - none of that README's documented
 fixes (certificate trust, proxy misconfiguration, a client ignoring `HTTPS_PROXY`) applies to a
-`403` policy denial. See `../character-continuity-acoustic-trial.md#corpus-route` for the full
+`403` policy denial. See [the write-up](../../../docs/research/character-continuity-acoustic-trial.md#corpus-route) for the full
 account.
 
 Per the owner's stated fallback, the trial corpus is entirely synthetic: no LibriVox recording,
@@ -47,4 +47,4 @@ be replaced with:
 Every generated WAV file, `manifest.json`, and `results.json` this trial produces is scratch
 data written outside this repository (the session's scratch directory, never a path under
 `narration-utils/`). Nothing audio- or output-shaped is committed; only these scripts, this
-sources file, and the write-up in `../character-continuity-acoustic-trial.md` are.
+sources file, and [the write-up](../../../docs/research/character-continuity-acoustic-trial.md) are.

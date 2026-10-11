@@ -179,9 +179,9 @@ test('the note on reference material reached by keyboard also takes the first Es
   await expect(dialog).toHaveCount(0);
 });
 
-// The evidence view of a stage suggestion hands over to the recording check (chapter-stage-recommendations.prd.md Phase 5): the slide-over
+// The evidence view of a stage suggestion hands over to the recording check: the slide-over
 // closes and the dialog opens with focus inside it, not on the board cell the closing slide-over returns focus to. Escape on the
-// slide-over alone returns focus to the chapter's current-stage cell (stage-navigation-and-page-replacement.prd.md Phase 2).
+// slide-over alone returns focus to the chapter's current-stage cell.
 test('Open recording check in a stage suggestion moves focus into the recording check dialog', async ({ page }) => {
   await openApp(page, DESKTOP, ['production', 'stage-evidence-unknown']);
   await page

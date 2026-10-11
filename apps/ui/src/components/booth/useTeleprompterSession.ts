@@ -106,10 +106,9 @@ export type UseTeleprompterSessionOptions = {
 
 /**
  * The reading session: host subscription, device and model choice, model-download prompt, start/stop and the rows the
- * reader shows. Extracted from the old Teleprompter page (teleprompter-manuscript-integration.prd.md Phase 2); `BoothSession`
- * is now its one caller (stage-navigation-and-page-replacement.prd.md Phase 4). Chapter *choice* stays
+ * reader shows. `BoothSession` is its one caller. Chapter *choice* stays
  * with each caller (the page has a picker; the modal is opened already pointed at one chapter) - callers pass `reset()`
- * after changing `chapterId` themselves, matching the page's existing behavior.
+ * after changing `chapterId` themselves.
  */
 export function useTeleprompterSession({ chapterId, chapter, credits, migrateLegacyDevice = true }: UseTeleprompterSessionOptions) {
   const api = useApi();

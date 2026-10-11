@@ -1,4 +1,4 @@
-// The look Table and StageGrid share (mock-fidelity-primitives-and-components.prd.md Phase 3, ADR 0605), measured on
+// The look Table and StageGrid share (ADR 0605), measured on
 // benchmark mocks 01 and 05: a 31 px header row and 34 px body rows (the size tokens, rule and divider included), the
 // label type over the columns, 10 px side padding and content in the middle of the row. A cell's `height` is the row's
 // least height in a table, so a cell holding two lines, or a pill, still grows its row.

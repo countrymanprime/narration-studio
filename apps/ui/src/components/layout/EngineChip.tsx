@@ -1,10 +1,10 @@
 import { HeaderChip } from '../primitives/HeaderChip';
 import { TooltipTarget } from '../primitives/Tooltip';
 
-// The header's audio-engine indicator (stage-navigation-and-page-replacement.prd.md Phase 1, ADR 0407 item 4),
+// The header's audio-engine indicator (ADR 0407 item 4),
 // replacing the REAPER link pill in place: same styled button, same three REAPER states, plus a fourth the UI can draw
 // but that nothing selects yet ('builtin', Q7) - the native recording suite's own binding chooses it later. A click
-// opens the engine panel (Phase 6, Q3 A), which holds the link and relink action the chip used to run itself.
+// opens the engine panel (Phase 6, Q3 A), which holds the link and relink action.
 export type EngineState = 'daw' | 'builtin';
 
 export function EngineChip({

@@ -1,6 +1,6 @@
 // The `master` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Master & QC
-// (stage-navigation-and-page-replacement.prd.md Phase 8, mock 05) replaces the Delivery page; each `delivery/*` state is re-keyed
-// here, and `delivery/master-qc-empty` went (it was this page's `empty`, now one page).
+// (mock 05) replaces the Delivery page; each former `delivery/*` state is
+// re-keyed here.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL } from './shared';
 

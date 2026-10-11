@@ -38,7 +38,7 @@ function headerCounts(summary: FindingsSummary | undefined, accepted: readonly F
 }
 
 /**
- * Proof, the book level (stage-navigation-and-page-replacement.prd.md Phase 5, mock 04; the Review page of
+ * Proof, the book level (mock 04; the Review page of
  * review-dashboard-and-findings-adoption.prd.md at its new address): every analyzer's notes in one queue, filtered
  * and sorted by the host, drawn as mock 04's notes table, with a note's evidence and the narrator's decision beside
  * it. A chapter opens its chapter view (`/proof/:chapterId`), where the recording plays against the script and

@@ -70,14 +70,14 @@
   --warn-text: #755507;
   --info-text: color-mix(in srgb, var(--info) 90%, var(--text));
   --ok-text: color-mix(in srgb, var(--ok) 70%, var(--text));
-  /* The fifth status meaning (studio-ui-primitives.prd.md Phase 1, ADR 0360 Q6): a capability the host reports as
+  /* The fifth status meaning (ADR 0360 Q6): a capability the host reports as
      experimental (ADR 0300), distinct from every other kind and status hue. */
   --experimental: #1f7a7a;
   --experimental-text: color-mix(in srgb, var(--experimental) 85%, var(--text));
   --bookmark: #3b6fc4;
   /* Alternating reader rows: a touch darker than --surface, like banded table rows. */
   --row-alt: color-mix(in srgb, var(--surface) 94%, var(--text));
-  /* LevelMeter's zones (studio-ui-primitives.prd.md Phase 1): named for their role rather than duplicating the status
+  /* LevelMeter's zones: named for their role rather than duplicating the status
      hues, but the same colours. A derived alias, like --row-alt above: it needs no dark override of its own,
      since it resolves through whichever theme's --non-text/--ok/--warn/--danger are active. */
   --meter-floor: var(--non-text);
@@ -90,7 +90,7 @@
      has no soft token. The ok, warn and info tints went with StatusBadge's move (Phase 2). */
   --badge-danger-fill: color-mix(in srgb, var(--danger) 14%, transparent);
   --badge-experimental-fill: color-mix(in srgb, var(--experimental) 14%, transparent);
-  /* The mock fidelity token batch (mock-fidelity-primitives-and-components.prd.md Phase 0b, ADR 0590), measured on the
+  /* The mock fidelity token batch (ADR 0590), measured on the
      benchmark mocks. No primitive draws these yet: phases 1-15 move onto them. The status soft fills are opaque, like the
      entity -soft fills the mocks paint pills and board cells with (Q3), and alias them where one already has the value;
      warn has no entity twin, so it is the warn colour at 18% over the surface (mock 04 measures #f2ead6). */
@@ -153,7 +153,7 @@
   --font-size-xs: 0.72rem;
   --font-size-sm: 0.82rem;
   --font-size-base: 0.88rem;
-  /* The booth's script size (booth-mode-and-companion-panel.prd.md). The booth follows the app theme like every other
+  /* The booth's script size. The booth follows the app theme like every other
      surface (ADR 0365, superseding ADR 0360 Q1's forced-dark booth block), so this is its only booth-only token: a size,
      declared once here, the same in light and dark. */
   --font-size-booth-script: 1.625rem;

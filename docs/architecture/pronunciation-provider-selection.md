@@ -37,9 +37,9 @@ starts (`Pronounce`'s `CheckPronounce`).
   when it has nothing for the name, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
   never silently replaces it (`merge_locked`). The narrator's own typed pronunciation
   (`PronunciationWork`, prep-depth Phase 1, [ADR 0346](../adr/0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md))
-  and the kept alternate work the same way for an alias as for the entity — every one of `GuidePronounce`,
-  `GuidePronounceUser`, `GuidePronunciationUseAlternate` and `GuidePronunciationSetStatus` has always taken an
-  optional alias index end to end; phase 11 only wired the aliases table to controls that were already alias-aware.
+  and the kept alternate work the same way for an alias as for the entity — `GuidePronounce`,
+  `GuidePronounceUser`, `GuidePronunciationUseAlternate` and `GuidePronunciationSetStatus` each take an
+  optional alias index.
 - **Spoken by the preview:** [ADR 0680](../adr/0680-the-story-bible-preview-speaks-a-chosen-pronunciation-through-pipers-raw-phoneme-block.md)
   changed `render_audio` to speak a **chosen** pronunciation as a Piper raw-phoneme block (`"[[ipa]]"`) instead of the
   spelled name; an unchosen (freshly auto-generated) pronunciation never changes what the preview says, since

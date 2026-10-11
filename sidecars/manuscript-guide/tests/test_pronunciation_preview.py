@@ -1,8 +1,7 @@
 """The Story Bible preview speaks a chosen pronunciation (story bible and import UX briefs PRD, phase 10, ADR 0680).
 
-`render_audio` used to always speak the spelled name: Piper's own espeak-based grapheme-to-phoneme step ran on
-`canonical_name`/alias text every time, so an edited pronunciation had no audible effect (the gap ADR 0091 recorded).
-Every pronunciation source now stores IPA (`providers.py`'s `arpabet_to_ipa` normalizes the CMU dictionary's ARPABET
+Piper's own espeak-based grapheme-to-phoneme step would otherwise run on `canonical_name`/alias text, so an edited
+pronunciation would have no audible effect (the gap ADR 0091 recorded). Every pronunciation source now stores IPA (`providers.py`'s `arpabet_to_ipa` normalizes the CMU dictionary's ARPABET
 before it is ever saved), so a `chosen` pronunciation can be handed to Piper directly through its own inline raw-phoneme
 escape (`"[[ ... ]]"`, `piper.voice.PiperVoice.phonemize`), skipping its text-to-phoneme guess entirely. An unrecognized
 phoneme symbol degrades instead of failing: `piper.phoneme_ids.phonemes_to_ids` silently skips one it doesn't know.

@@ -26,7 +26,7 @@ export function useMasteringProviders(): { providers?: MasteringProviders; probl
 }
 
 /**
- * The mastering chain the book masters with (stage-navigation-and-page-replacement.prd.md Phase 8, mock 05; the mastering port,
+ * The mastering chain the book masters with (mock 05; the mastering port,
  * ADR 0306): the project's row from internal/masteringport, its fixed steps in order as a row of chips, and why the project's
  * choice is not the row it masters with, when it is not. Read-only: the built-in chain is fixed and takes its numbers from the
  * platform's rules (ADR 0321), so mock 05's "Edit chain" is not drawn, and neither is "A/B raw ↔ mastered", which needs a player
@@ -55,7 +55,7 @@ export function MasteringChain({ providers, problem }: { providers?: MasteringPr
             <ol aria-label="Mastering steps" className="flex flex-wrap items-center gap-2">
               {row.chain.map((step, index) => {
                 // The chain's last step is the platform's own gain target, not one of the book's fixed steps (mock 05:
-                // its chip alone is --accent-soft, mock-fidelity-primitives-and-components.prd.md Phase 14).
+                // its chip alone is --accent-soft).
                 const last = index === row.chain.length - 1;
                 return (
                   <Fragment key={step.name}>

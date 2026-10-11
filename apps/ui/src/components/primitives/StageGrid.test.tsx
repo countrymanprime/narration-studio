@@ -136,7 +136,7 @@ describe('StageGrid', () => {
     await user.tab();
     await expect(user.keyboard('{Enter}')).resolves.not.toThrow();
   });
-  // It shares Table's header and row look (mock-fidelity-primitives-and-components.prd.md Phase 3).
+  // It shares Table's header and row look.
   it('sizes its header and rows from the row tokens, as Table does, with the cells in the middle of the row', () => {
     render(grid());
     const header = screen.getByRole('columnheader', { name: 'Prep' }).className;

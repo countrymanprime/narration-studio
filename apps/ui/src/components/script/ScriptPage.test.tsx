@@ -809,7 +809,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 4 (Q9): the cards' Read aloud, Booth and Companion buttons became one
+  //  (Q9): the cards' Read aloud, Booth and Companion buttons became one
   // "Record in Booth" link to the Booth page; the Read aloud dialog is gone (ADR 0407).
   describe('Record in Booth', () => {
     it('opens the Booth on a narration chapter, with no dialog of its own', async () => {

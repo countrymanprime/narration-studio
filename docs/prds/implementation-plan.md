@@ -4,7 +4,7 @@
 
 **Source:** owner instruction of 2026-09-20: turn every PRD into a phased plan, answer the open questions first, use a dev-team style review of the cross-PRD conflicts, deliver each PRD as stacked pull requests without pausing, open an ADR (Status: Proposed) for anything that needs the owner and keep going, and replace each PRD with steady-state documentation when its work is done.
 
-It covers the 37 PRDs in this folder. It does not replace them: each PRD still holds its problem, evidence and phase detail. This plan holds what no single PRD can: the owner's answers to the open questions, the order the PRDs run in, and the rules every stack follows.
+It covers the PRDs in this folder (36 on 2026-10-11). It does not replace them: each PRD still holds its problem, evidence and phase detail. This plan holds what no single PRD can: the owner's answers to the open questions, the order the PRDs run in, and the rules every stack follows.
 
 ## 1. Owner decisions (2026-09-20)
 

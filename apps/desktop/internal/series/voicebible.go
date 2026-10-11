@@ -60,7 +60,7 @@ type VoiceBible struct {
 }
 
 // VoiceBibleConfig is what BuildVoiceBible needs. CurrentReferences and CurrentNames are nil-safe: a project with
-// no character.Service or guide.Service configured (host wiring predates a project being attached) simply
+// no character.Service or guide.Service configured simply
 // contributes no own-project clips or names, rather than erroring the whole view.
 type VoiceBibleConfig struct {
 	SeriesStore       *Store

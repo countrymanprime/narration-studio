@@ -79,7 +79,7 @@ describe('Compare takes on the Review page', () => {
     await user.click(within(progress).getByRole('button', { name: 'Close' }));
 
     const comparison = await screen.findByRole('region', { name: 'Takes side by side' });
-    // Mock 04 draws no filter row (mock-fidelity-primitives-and-components.prd.md Phase 12): open the popover to check it.
+    // Mock 04 draws no filter row: open the popover to check it.
     await user.click(screen.getByRole('button', { name: /^Filters/ }));
     expect(await screen.findByRole('combobox', { name: 'Check' })).toHaveProperty('value', 'take-comparison');
     expect((await rows())[0].textContent).toMatch(/2 reads of sentences 4–8, side by side/);

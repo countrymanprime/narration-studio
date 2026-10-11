@@ -202,7 +202,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Suggest from manuscript');
     await page.locator('[data-tone]').first().waitFor();
   },
-  // The vocabulary hints box (proofing-vocabulary-hints.prd.md Phase 2): the pills box is the input, so a half-typed draft sits
+  // The vocabulary hints box: the pills box is the input, so a half-typed draft sits
   // inline after the last pill, not in a separate row.
   'compare-hints-typing': async (page) => {
     await openCompare(page);

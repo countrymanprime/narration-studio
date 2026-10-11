@@ -63,9 +63,9 @@ const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.valu
  * PRD Phase 13): a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
 const PROJECT_STATE_POLL_MS = 30_000;
 
-/** Whether "Start comparison" can run, and why not (stage-navigation-and-page-replacement.prd.md Phase 5): the run
- * needs a linked REAPER project file (PRD W16, as the Proofing page did) and the DAW port's `review` capability
- * (dawport.ReviewSession, ADR 0300), which the Proofing nav item used to gate before the page folded in here. */
+/** Whether "Start comparison" can run, and why not: the run
+ * needs a linked REAPER project file (PRD W16) and the DAW port's `review` capability
+ * (dawport.ReviewSession, ADR 0300). */
 function startCapability(dawFileLinked: boolean, review: CapabilityEntry): CapabilityEntry {
   if (!dawFileLinked) return { level: 'supported', available: false, message: 'Link a REAPER project (.rpp) file to start a comparison.' };
   const gate = dawCapabilityGate({ manuscript: false, dawFile: false }, review);
@@ -73,7 +73,7 @@ function startCapability(dawFileLinked: boolean, review: CapabilityEntry): Capab
 }
 
 /**
- * The chapter view's compare run (stage-navigation-and-page-replacement.prd.md Phase 5): Transcript Compare's setup
+ * The chapter view's compare run: Transcript Compare's setup
  * (model, chunk length, workers, vocabulary hints), its live progress and the first-use Whisper download, moved here
  * from the retired Proofing page and run against this chapter. Its results are not a table of their own: each
  * discrepancy is a flag in the text and the Flags panel (compareFlags.ts), with its inline diff in the flag detail;
@@ -293,7 +293,7 @@ export function CompareRun({
     <Panel
       title="Compare the recording with the script"
       actions={
-        // The step strip (mock-fidelity-primitives-and-components.prd.md Phase 5): the segmented look of ToggleGroup. It
+        // The step strip: the segmented look of ToggleGroup. It
         // reports the phase, not a choice — the phase advances on its own, so a click of a step is a no-op (not `disabled`,
         // which would also dim the current step's fill). This gives the strip real semantics: nothing named which step was
         // current before (a background tint only).

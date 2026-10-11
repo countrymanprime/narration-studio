@@ -68,7 +68,7 @@ We believe a `coreaudio` row, implemented as a PyAV `avfoundation` adapter mirro
 
 **Primary User**: a narrator on macOS who opens the Manuscript Teleprompter's live reading mode and expects the microphone to work, the same as it does on Windows.
 **Current behavior**: `iter_microphone_chunks`/`list_devices` resolve through `BACKENDS`, find no `darwin` row, and the narrator gets the port's `NotSupportedError` message ("There is no capture backend for darwin.") instead of a device list.
-**Trigger**: starting a live teleprompter session, or opening the (currently narrator-invisible) device list, on macOS.
+**Trigger**: starting a live teleprompter session, or opening the (narrator-invisible while the app is Windows-only) device list, on macOS.
 **Success state**: the narrator sees their microphones listed, picks one, and live transcription starts — identical experience to Windows, with no code path aware a different demuxer is underneath.
 **Job to Be Done**: When I use the teleprompter on my Mac, I want the same microphone support Windows narrators get, so switching platforms doesn't mean losing a feature.
 **Non-Users**: Linux narrators (no capture row exists there either, and this PRD does not add one — out of scope, no evidence of demand); narrators who only ever use REAPER/Audacity for capture and never open the teleprompter's live mode.
@@ -85,7 +85,7 @@ We believe a `coreaudio` row, implemented as a PyAV `avfoundation` adapter mirro
 | Should | A soak/duration check (chapter-length live session, no dropouts) comparable to what a future native-recording-suite spike would need anyway | 2 |
 | Won't | Any UI, any device picker, any file-writing capture, any change to `dshow` | - |
 
-**User flow (target, Must-scope only):** narrator on macOS opens the teleprompter's live session, picks their microphone from the same list mechanism Windows narrators use (no new UI — the existing, currently Windows-only, device-list plumbing just returns real rows on macOS instead of an empty/error list), reads, and gets the same live transcription behavior.
+**User flow (target, Must-scope only):** narrator on macOS opens the teleprompter's live session, picks their microphone from the same list mechanism Windows narrators use (no new UI — the existing Windows-only device-list plumbing just returns real rows on macOS instead of an empty/error list), reads, and gets the same live transcription behavior.
 
 ## Technical Approach
 

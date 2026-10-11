@@ -30,7 +30,7 @@ export type PreviewResult = {
   candidates: PreviewCandidate[];
 };
 
-/** Why a pinned window is stale (proofing-preview-suggestion.prd.md Phase 8, Q9): `text_changed` when every
+/** Why a pinned window is stale: `text_changed` when every
  * paragraph it names is still in the chapter but at least one no longer reads the way it did when pinned or last
  * adjusted; `paragraph_missing` when at least one is no longer in the manuscript at all (a re-import renumbered or
  * dropped it) - in that case `candidate` is omitted, since there is nothing left to recompute evidence for. */

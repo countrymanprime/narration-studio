@@ -38,7 +38,7 @@ type DraftSection struct {
 
 // Property is one labelled fact captured from a character candidate's source lines ("Codename": "Wren"), in the order the
 // manuscript gave them. It mirrors guide.Property so bindings.go can hand it straight to Service.CreateFull with no conversion
-// beyond the package boundary itself (import-structure-toc-and-characters PRD, Phase 3, S5).
+// beyond the package boundary itself.
 type Property struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
@@ -176,12 +176,10 @@ func splitLabel(value string) (left, right string, found bool) {
 	return value, "", false
 }
 
-// characterCandidateScanner turns a manuscript's cast lines into candidates using the structural rule (S4 of the
-// import-structure-toc-and-characters PRD, Phase 3): a bare name line or heading opens a candidate; a "Label: value" line that
+// characterCandidateScanner turns a manuscript's cast lines into candidates using the structural rule: a bare name line or heading opens a candidate; a "Label: value" line that
 // follows attaches as an ordered property to the open candidate; with no candidate open, "Name: description" keeps the legacy
-// behavior of opening one from a labelled line whose label looks like a name. This replaces the old per-line, stateless
-// characterLine check, which read every "Label: value" as its own candidate (the "Codename" collision bug the PRD's Evidence
-// traces by hand): "Codename: X" no longer opens a candidate named "Codename" once a real name line has opened one already.
+// behavior of opening one from a labelled line whose label looks like a name. A per-line, stateless check would read every
+// "Label: value" as its own candidate (the "Codename" collision): here "Codename: X" does not open a candidate named "Codename" once a real name line has opened one already.
 type characterCandidateScanner struct {
 	sourceSectionID string
 	candidates      []CharacterCandidate
@@ -271,8 +269,7 @@ func firstSubtitle(paragraphs []Paragraph, indexes []int) string {
 // heading-derived title the caller saw - chapter headings and non-chapter ones like "Contents" alike - keyed by its exact text; a
 // title absent from the map (a synthetic group such as "Front Matter" that never had its own heading paragraph) has no known level.
 // kindOverrides forces a group's contentKind by its exact title, taking precedence over every text-based rule below (EPUB's
-// epub:type is authoritative and does not always share a recognizable title, e.g. a dedication page titled "For My Mother" -
-// txt-and-epub-import PRD, Phase 3, "Classification"; ADR 0102). Callers with no such signal (DOCX, Markdown, TXT) pass nil.
+// epub:type is authoritative and does not always share a recognizable title, e.g. a dedication page titled "For My Mother"; ADR 0102). Callers with no such signal (DOCX, Markdown, TXT) pass nil.
 func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string, headingLevels map[string]int, kindOverrides map[string]string) (Draft, error) {
 	if len(paragraphs) == 0 {
 		return Draft{}, &Error{"The manuscript has no readable text paragraphs."}
@@ -313,8 +310,8 @@ func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string
 		level, hasLevel := headingLevels[group.title]
 		// endsCharacterScope bounds the Characters section to its own subheadings (S3): a heading whose level is as shallow as or
 		// shallower than the Characters heading's own (a sibling chapter, or the book's Title) ends it, the same way a Contents
-		// heading now does since docx.go/markdown.go record its level too. A heading whose level cannot be determined (a synthetic
-		// group that never had its own heading paragraph) falls back to the old narrative-marker check.
+		// heading does, since docx.go/markdown.go record its level too. A heading whose level cannot be determined (a synthetic
+		// group that never had its own heading paragraph) falls back to the narrative-marker check.
 		endsCharacterScope := characterListActive && ((hasLevel && level <= charactersLevel) || (!hasLevel && narrative))
 		contentKind := "narration"
 		if normalizedHeading(group.title) == "cover" || normalizedHeading(group.title) == "opening pages" || normalizedHeading(group.title) == "front matter" {
@@ -358,8 +355,8 @@ func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string
 		} else if characterListActive && contentKind == "reference" && looksLikeName(group.title) {
 			// A per-character heading (docx: each character gets its own heading under Characters) opens its candidate from the
 			// heading text itself, then scans its own paragraphs the same way a flat list would: the first bare line becomes the
-			// description and any "Label: value" line becomes a property, instead of the old uncapped-first-paragraph description
-			// that left every labelled line after it stranded in a reference chapter nothing structured read.
+			// description and any "Label: value" line becomes a property, rather than leaving every labelled line after an uncapped first paragraph stranded in a reference chapter nothing
+			// structured read.
 			scanner.sourceSectionID = id
 			scanner.openWithName(group.title)
 			for _, paragraphIndex := range group.indexes {
