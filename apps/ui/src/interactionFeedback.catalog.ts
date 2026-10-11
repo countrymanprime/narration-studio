@@ -72,6 +72,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Seeds useDawKind's kind before the next daw_capabilities_changed event; a failed seed just leaves the kind unknown a moment longer, the same as before the first answer, so a caller gating on 'Audacity' keeps today's REAPER-shaped behaviour rather than guessing.",
   // useZoom's three call sites, none of which has anywhere better to send a failure -
   // the header's readout is the only surface, and every one leaves the level exactly where it was, corrected by the next resize.
+  'src/input/useUserKeymap.ts#1':
+    "A malformed Keymap.overrides document falls back to the catalogue defaults, so the keys shown and fired are the defaults; Settings' Keyboard panel is where the narrator sees and resets them.",
+  'src/input/useUserKeymap.ts#2':
+    "Reads the narrator's remaps for the sheet and the router; unreadable, the defaults stay, and Settings reports the real error.",
   'src/hooks/useZoom.ts#1': 'The initial read on mount; a failure just leaves the readout at its 100% default until the next resize re-reads it.',
   'src/hooks/useZoom.ts#2':
     'A button/shortcut set (zoomIn, zoomOut, reset); a failure leaves the readout at the level before the click, which the narrator can see and try again.',
