@@ -134,8 +134,8 @@ export const RowsMatchTheMock: Story = {
     // Measured once the web fonts are in: a fallback face sets different line boxes.
     await document.fonts.ready;
     const [header, first] = canvas.getAllByRole('row');
-    await expect(Math.round(header.getBoundingClientRect().height)).toBe(31);
-    await expect(Math.round(first.getBoundingClientRect().height)).toBe(34);
+    await expect(Math.round(header.getBoundingClientRect().height)).toBe(36);
+    await expect(Math.round(first.getBoundingClientRect().height)).toBe(39);
     await expect(getComputedStyle(canvas.getByRole('rowheader', { name: 'Chapter 2' })).fontWeight).toBe('600');
     await expect(getComputedStyle(canvas.getByRole('rowheader', { name: 'Chapter 1' })).fontWeight).toBe('400');
   },

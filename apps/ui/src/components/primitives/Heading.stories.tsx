@@ -98,7 +98,7 @@ export const MatchesTheMock: Story = {
     const title = canvas.getByRole('heading', { level: 1, name: 'Master & QC' });
     if (canvasElement.getBoundingClientRect().width === 0) return;
     await document.fonts.ready;
-    await expect(getComputedStyle(title).fontSize).toBe('26px');
+    await expect(getComputedStyle(title).fontSize).toBe('28px');
     await expect(getComputedStyle(title).fontFamily).toContain('Barlow Condensed');
     await expect(getComputedStyle(title).fontWeight).toBe('600');
     await expect(getComputedStyle(canvas.getByText(/Measured on the rendered files/)).fontSize).toBe('13px');

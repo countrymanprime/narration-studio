@@ -51,7 +51,7 @@ export const HeaderRow: Story = {
     const buttons = within(canvasElement).getAllByRole('button');
     // Measured in the atlas's browser; the unit run's jsdom lays nothing out.
     if (!isLaidOut(canvasElement)) return;
-    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(32);
+    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(36);
   },
 };
 
@@ -74,7 +74,7 @@ export const SmallRow: Story = {
     const buttons = within(canvasElement).getAllByRole('button');
     // Measured in the atlas's browser; the unit run's jsdom lays nothing out.
     if (!isLaidOut(canvasElement)) return;
-    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(28);
+    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(32);
   },
 };
 

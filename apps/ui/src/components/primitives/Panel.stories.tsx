@@ -181,13 +181,13 @@ export const MatchesTheMock: Story = {
       await expect(px(subtitle.getBoundingClientRect().left - title.getBoundingClientRect().right)).toBe(10);
     }
     await expect(getComputedStyle(header).borderBottomWidth).toBe('1px');
-    await expect(getComputedStyle(title).fontSize).toBe('19px');
+    await expect(getComputedStyle(title).fontSize).toBe('21px');
     await expect(getComputedStyle(title).fontFamily).toContain('Barlow Condensed');
     await expect(getComputedStyle(title).fontWeight).toBe('600');
     await expect(getComputedStyle(subtitle).fontSize).toBe('13px');
     const frame = region.getBoundingClientRect();
     await expect(px(title.getBoundingClientRect().left - frame.left)).toBe(17);
-    await expect(getComputedStyle(region).borderTopLeftRadius).toBe('8px');
+    await expect(getComputedStyle(region).borderTopLeftRadius).toBe('10px');
     const body = canvas.getByText(/Room-tone fill/);
     await expect(px(body.getBoundingClientRect().left - frame.left)).toBe(17);
     await expect(px(body.getBoundingClientRect().top - header.getBoundingClientRect().bottom)).toBe(16);

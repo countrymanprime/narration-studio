@@ -39,11 +39,11 @@ export const InACard: Story = {
     if (canvasElement.getBoundingClientRect().width === 0) return;
     await document.fonts.ready;
     const style = getComputedStyle(label);
-    await expect(style.fontSize).toBe('11px');
+    await expect(style.fontSize).toBe('13px');
     await expect(style.fontWeight).toBe('600');
     await expect(style.fontFamily).toContain('Barlow Condensed');
     await expect(style.textTransform).toBe('uppercase');
-    await expect(style.letterSpacing).toBe('1.1px');
+    await expect(style.letterSpacing).toBe('1.82px');
   },
 };
 

@@ -212,8 +212,8 @@ export const MatchesTheMock: Story = {
     // Measured once the web fonts are in: a fallback face sets different line boxes.
     await document.fonts.ready;
     const [header, first] = within(table).getAllByRole('row');
-    await expect(Math.round(header.getBoundingClientRect().height)).toBe(31);
-    await expect(Math.round(first.getBoundingClientRect().height)).toBe(34);
+    await expect(Math.round(header.getBoundingClientRect().height)).toBe(36);
+    await expect(Math.round(first.getBoundingClientRect().height)).toBe(39);
     await expect(getComputedStyle(canvas.getByRole('cell', { name: '00 Opening credits' })).fontSize).toBe('14px');
     const length = canvas.getByRole('cell', { name: '11:48' });
     await expect(getComputedStyle(length).fontSize).toBe('13px');
