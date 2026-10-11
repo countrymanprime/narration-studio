@@ -22,7 +22,7 @@ function Words({ words, mark }: { words: EvidenceWord[]; mark: 'del' | 'ins' }) 
  */
 export function EvidenceChangedBanner({ change, onUseNewEvidence }: { change: EvidenceChange; onUseNewEvidence: () => void }) {
   return (
-    <div role="alert" className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--accent-soft)] p-3 text-sm">
+    <div role="alert" className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--warn-soft)] p-3 text-sm">
       <b>The evidence changed</b>
       <div className="flex flex-col gap-1">
         <SectionLabel>Before</SectionLabel>
