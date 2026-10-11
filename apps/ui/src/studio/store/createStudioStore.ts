@@ -74,28 +74,36 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     emit();
   };
 
-  async function load(name: keyof R & string): Promise<void> {
+  // Reads one slot and settles with the failure, if any, after recording and reporting it. It never rejects, so an event or
+  // focus reload with no caller to hear a rejection needs no catch.
+  async function attempt(name: keyof R & string): Promise<Error | undefined> {
     const config = registry[name];
-    if (!config) throw new Error(`studio: no slot named ${name}`);
+    if (!config) return new Error(`studio: no slot named ${name}`);
     const myEpoch = epoch;
     const request = (requests.get(name) ?? 0) + 1;
     requests.set(name, request);
     // A reset or a newer load of the same slot makes this answer stale: it writes nothing, not even its failure.
     const current = () => myEpoch === epoch && requests.get(name) === request;
+    let value: unknown;
     try {
-      const value = parseWire(config.schema, await config.load(), { boundary: 'studio store', payload: name });
-      if (current()) setSlot(name, value);
+      value = parseWire(config.schema, await config.load(), { boundary: 'studio store', payload: name });
     } catch (e) {
-      if (!current()) return;
+      if (!current()) return undefined;
       const error = toError(e);
       setError(name, error);
       onError(name, error);
-      throw error;
+      return error;
     }
+    if (current()) setSlot(name, value);
+    return undefined;
   }
 
-  // Event and focus reloads have no caller to hear a rejection: the failure is already recorded and reported by `load`.
-  const refresh = (name: keyof R & string) => void load(name).catch(() => undefined);
+  async function load(name: keyof R & string): Promise<void> {
+    const error = await attempt(name);
+    if (error) throw error;
+  }
+
+  const refresh = (name: keyof R & string) => void attempt(name);
 
   return {
     getState: () => state,
