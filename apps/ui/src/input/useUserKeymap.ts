@@ -42,7 +42,7 @@ function subscribe(listener: () => void): () => void {
  * through the API's `settingsForScope`, and the defaults stand until that returns or if it fails.
  */
 export function useUserKeymap(documentText?: string, catalog: readonly CommandDescriptor[] = COMMAND_CATALOG): Keymap {
-  const system = usePort('system');
+  const api = usePort('system');
   const readRevision = useSyncExternalStore(
     subscribe,
     () => revision,
@@ -55,7 +55,7 @@ export function useUserKeymap(documentText?: string, catalog: readonly CommandDe
     let live = true;
     void (async () => {
       try {
-        const settings = await system.settingsForScope('global');
+        const settings = await api.settingsForScope('global');
         if (live) setFetched(settings.Keymap?.find((field) => field.key === 'overrides')?.effectiveValue);
       } catch {
         // Keeps the defaults.
@@ -64,7 +64,7 @@ export function useUserKeymap(documentText?: string, catalog: readonly CommandDe
     return () => {
       live = false;
     };
-  }, [system, documentText, readRevision]);
+  }, [api, documentText, readRevision]);
 
   const text = documentText ?? fetched;
   return useMemo(() => keymapFromOverridesText(text, catalog), [text, catalog]);
