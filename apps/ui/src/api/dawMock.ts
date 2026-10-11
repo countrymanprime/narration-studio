@@ -3,7 +3,16 @@
 // refusal order (declaration, then toggle, then runtime) as apps/desktop/internal/dawport/resolver.go. It has no
 // action of its own to trigger a live update from - it always answers the seeded picture - so subscribeDawCapabilities
 // only emits once, on subscribe, like every other subscribe-based mock that has nothing pending.
-import type { DawCapabilities, DawCapabilityKey, DawCapabilityLevel, DawCapabilitySupport, DawCapabilitiesApi, DawKind, DawTransport } from './contracts/daw';
+import type {
+  DawCapabilities,
+  DawCapabilityKey,
+  DawCapabilityLevel,
+  DawCapabilityMode,
+  DawCapabilitySupport,
+  DawCapabilitiesApi,
+  DawKind,
+  DawTransport,
+} from './contracts/daw';
 import { DAW_CAPABILITIES } from './contracts/daw';
 import { wireClone } from './mockFixtures';
 
@@ -99,6 +108,9 @@ export type DawMockSeed = {
   toggles?: Partial<Record<DawCapabilityKey, DawToggle>>;
   /** The old DAW.experimental_reaper_actions switch: while true, every Experimental capability left on 'auto' is on. */
   experimentalOn?: boolean;
+  /** What the adapter declares about how a capability acts (dawport.Describer), by key; reported on every answer for the
+   * key, available or not. No declaration today sets one, so the default seeds match the host goldens. */
+  depth?: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>>;
   /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
   transport?: DawTransport;
@@ -157,12 +169,17 @@ function supportFor(daw: DawKind, key: DawCapabilityKey, seed: DawMockSeed, conn
   return { level, available: true };
 }
 
+/** Like the host's payload, `destructive` only when true and `mode` only when set. */
+function withDepth(support: DawCapabilitySupport, depth: { destructive?: boolean; mode?: DawCapabilityMode } | undefined): DawCapabilitySupport {
+  return { ...support, ...(depth?.destructive ? { destructive: true } : {}), ...(depth?.mode ? { mode: depth.mode } : {}) };
+}
+
 function currentCapabilities(seed: DawMockSeed): DawCapabilities {
   const daw = seed.daw ?? 'REAPER';
   const connected = daw === 'REAPER' && (seed.connected ?? true);
   const reachable = connected && (seed.reachable ?? true);
   const capabilities: Record<string, DawCapabilitySupport> = {};
-  for (const { key } of DAW_CAPABILITIES) capabilities[key] = supportFor(daw, key, seed, connected, reachable);
+  for (const { key } of DAW_CAPABILITIES) capabilities[key] = withDepth(supportFor(daw, key, seed, connected, reachable), seed.depth?.[key]);
   return { daw, reachable, capabilities };
 }
 

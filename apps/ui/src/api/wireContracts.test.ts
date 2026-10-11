@@ -131,7 +131,7 @@ import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schema
 import { pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
-import { dawCapabilitiesSchema, dawTransportSchema } from './schemas/daw';
+import { dawCapabilitiesSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -1523,6 +1523,31 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(masterOn.capabilities.punch).toMatchObject({ available: true });
     const turnedOff = await createMockApi({}, { daw: { experimentalOn: true, toggles: { punch: 'off' } } }).dawCapabilities();
     expect(turnedOff.capabilities.punch).toMatchObject({ available: false, reason: 'turned_off' });
+  });
+
+  // SN-D2 (ADR 0810): the call result and the capability depth fields.
+  it('dawResult parses the host goldens and rejects an undo count outside 0..12', () => {
+    expectMatches(dawResultSchema, readGolden('daw-result-ok.json'), 'daw-result-ok.json');
+    expectMatches(dawResultSchema, readGolden('daw-result-refused-stale.json'), 'daw-result-refused-stale.json');
+    expectMatches(dawResultSchema, readGolden('daw-result-multi-step.json'), 'daw-result-multi-step.json');
+    const ok = { ok: true, changed: true, message: 'Marker added.', undoSteps: 1 };
+    expect(dawResultSchema.safeParse({ ...ok, undoSteps: -1 }).success).toBe(false);
+    expect(dawResultSchema.safeParse({ ...ok, undoSteps: 13 }).success).toBe(false);
+    expect(dawResultSchema.safeParse({ ...ok, undoSteps: 1.5 }).success).toBe(false);
+  });
+
+  it('dawCapabilities carries destructive and mode only where the declaration sets them, and rejects an unknown mode', async () => {
+    const api = createMockApi({}, { daw: { toggles: { punch: 'off' }, depth: { punch: { destructive: true, mode: 'steps' }, record: { mode: 'native' } } } });
+    const state = await api.dawCapabilities();
+    expectMatches(dawCapabilitiesSchema, state, 'mock daw capabilities (with depth)');
+    expect(state.capabilities.punch).toMatchObject({ available: false, reason: 'turned_off', destructive: true, mode: 'steps' });
+    expect(state.capabilities.record).toMatchObject({ mode: 'native' });
+    expect(state.capabilities.record).not.toHaveProperty('destructive');
+    expect(state.capabilities.markers).not.toHaveProperty('mode');
+    const golden = dawCapabilitiesSchema.parse(readGolden('daw-capabilities-reaper.json'));
+    const withMode = (mode: string) => ({ ...golden, capabilities: { ...golden.capabilities, punch: { ...golden.capabilities.punch, mode } } });
+    expect(dawCapabilitiesSchema.safeParse(withMode('steps')).success).toBe(true);
+    expect(dawCapabilitiesSchema.safeParse(withMode('other')).success).toBe(false);
   });
 
   it('providerCapabilities matches the host goldens on Windows and on the Linux development host', async () => {
