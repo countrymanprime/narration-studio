@@ -79,7 +79,7 @@ runs:
       # The CLI only renders files, generates bindings and resources; it needs no webview, so it is built without cgo on every runner.
       env:
         CGO_ENABLED: '0'
-      run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.25
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
     # golangci-lint is built here with the job's Go toolchain (`go install`), not downloaded as a release
     # binary: a prebuilt binary is compiled with one Go version and refuses to lint a module that targets a newer one.
     - if: inputs.need-golangci-lint == 'true'
