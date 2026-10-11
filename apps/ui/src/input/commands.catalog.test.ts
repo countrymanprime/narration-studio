@@ -112,3 +112,17 @@ describe('the Booth rows', () => {
     }
   });
 });
+
+describe('the bookmark rows', () => {
+  it('keys-are-catalogue-rows: B, Alt+] and Alt+[ are page rows with the three labels and no conflict', () => {
+    const rows = [findCommand('bookmark.here'), findCommand('bookmark.next'), findCommand('bookmark.prev')];
+    expect(rows.map((row) => row?.label)).toEqual(['Bookmark here', 'Next bookmark', 'Previous bookmark']);
+    expect(rows.map((row) => row?.scope)).toEqual(['page', 'page', 'page']);
+    expect(rows.map((row) => row?.defaults.map((gesture) => [...gesture.modifiers, gesture.code].join('+')))).toEqual([
+      ['KeyB'],
+      ['Alt+BracketRight'],
+      ['Alt+BracketLeft'],
+    ]);
+    expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
+  });
+});
