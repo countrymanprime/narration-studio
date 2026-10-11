@@ -16,7 +16,7 @@ type Located = Exclude<TeleprompterLocateResult, { status: 'asset_required' }>;
 const MUTED = { color: 'var(--text-muted)' };
 const FROM_THE_TOP = 'reading starts from the top.';
 
-/** A plain, underlined text-link action (read-aloud-resume-from-daw.prd.md Phase 3 mockups: Change, Start from the top,
+/** A plain, underlined text-link action (Change, Start from the top,
  * Pick a word and Continue there are links beside the compact notices, not pill buttons). */
 function TextLink({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
@@ -97,12 +97,12 @@ function savedLabel(savedAt: string): string {
 
 const LIVE_LABEL = 'in REAPER now';
 
-/** When the track was read (read-aloud-resume-from-daw.prd.md Phase 4, ADR 0349): REAPER's live answer, or the saved project. */
+/** When the track was read (ADR 0349): REAPER's live answer, or the saved project. */
 function dawLabel(result: Located): string {
   return result.dawSource === 'live' ? LIVE_LABEL : savedLabel(result.match.savedAt);
 }
 
-/** One source's quote (read-aloud-resume-from-daw.prd.md Phase 3): the full sentence holding its word, with that word in
+/** One source's quote: the full sentence holding its word, with that word in
  * bold, matching `ResumeSentence`'s emphasis but inline rather than in a blockquote (the agreement notice, the disagree
  * choice and the prompter-only notice all quote inline). */
 function PlaceQuote({ place }: { place: TeleprompterResumePlace }) {
@@ -253,7 +253,7 @@ function PrompterOnlyNotice({ prompter, onChoose }: { prompter: TeleprompterResu
 }
 
 /** One line naming a confirmed track's problem (renamed, missing, or linked twice), with a link to fix it on the Tracks page
- * instead of showing (or asking to change) the link here (read-aloud-resume-from-daw.prd.md Phase 1, "What We're NOT
+ * instead of showing (or asking to change) the link here ("What We're NOT
  * Building": track linking stays Chapter Track Link Control's job). */
 function TrackProblem({ match, trackName }: { match: ChapterTrackMatch; trackName?: string }) {
   if (match.warnings.length === 0) return null;
@@ -381,7 +381,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
 
   const point = located?.word != null ? { word: located.word, sentence: located.sentence } : null;
 
-  // The host's reconciliation (read-aloud-resume-from-daw.prd.md Phase 3, teleprompter.Reconcile) replaces the Phase 1
+  // The host's reconciliation (teleprompter.Reconcile) replaces the Phase 1
   // UI-side "complete" computation (word >= tokens): render its verdict, never recompute it.
   if (verdict.kind === 'agree' && verdict.daw && verdict.prompter)
     return <AgreeOrChanged daw={verdict.daw} prompter={verdict.prompter} match={match} lastReading={lastReading} onChoose={onChoose} />;
@@ -474,8 +474,7 @@ function unreadableText(result: Located): string {
 }
 
 /**
- * The read-aloud dialog's resume prompt (read-aloud-resume-from-daw.prd.md Phase 1, amending
- * teleprompter-manuscript-integration.prd.md Phase 10 and superseding ADR 0112 decisions 5 and 6): a compact one-line
+ * The read-aloud dialog's resume prompt (superseding ADR 0112 decisions 5 and 6): a compact one-line
  * notice, or a compact choice with the matched sentence, for where the chapter's recording ends (`TeleprompterLocate`,
  * ADR 0111). It never starts reading by itself: a choice only sets where Start begins.
  *
@@ -494,7 +493,7 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   const shown = !settled && !active;
   const preset = useRef(false);
 
-  // REAPER starting to play or record makes the prompt go away (read-aloud-resume-from-daw.prd.md Phase 5, RD7, ADR 0353):
+  // REAPER starting to play or record makes the prompt go away (RD7, ADR 0353):
   // the narrator is working in REAPER. The heartbeat's transport push (ADR 0305) says so within a tick, with no request;
   // the host's follow below says so too when that push is not there (an older bridge script). Nothing is chosen, so Start
   // reading keeps whatever it had.

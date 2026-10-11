@@ -1,5 +1,5 @@
-// The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Booth page
-// (stage-navigation-and-page-replacement.prd.md Phase 4), which replaced the Teleprompter page's `teleprompter/*` rows and the
+// The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Booth page,
+// which replaced the Teleprompter page's `teleprompter/*` rows and the
 // Manuscript's read-aloud, booth and companion dialog rows (`manuscript/read-aloud-*`, `booth-*`, `companion-*`).
 import type { StateEntry } from '../lib/types';
 import { COMPANION, FREEZES_THE_CLOCK, REFLOW } from './shared';

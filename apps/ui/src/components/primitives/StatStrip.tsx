@@ -13,9 +13,8 @@ export type StatStripItem = {
 };
 
 /**
- * The benchmark's one-card KPI row (mock-fidelity-primitives-and-components.prd.md Phase 9, mock B01): Production's six
- * figures used to sit in six separate cards (`ProductionPage.tsx`'s `Figures`, one `<li>` per tile, each its own bordered
- * surface); the mock draws one card, its tiles divided by a 1 px `--border` rule instead. `StatStrip` is that one card:
+ * The benchmark's one-card KPI row (mock B01): The mock draws
+ * one card, its tiles divided by a 1 px `--border` rule, not one bordered card per figure. `StatStrip` is that one card:
  * a labelled list of `StatTile`s, ≈195 px each with 16 px padding, whichever consumer supplies the figures.
  *
  * It wraps into full rows by the width its card has (ADR 0645): every tile in one row from 64 rem, half of them a row from

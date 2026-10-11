@@ -1,3 +1,6 @@
+// Package tts owns the catalog of approved Piper voices and their install
+// lifecycle (install, verify, repair, remove) under one cache root. Downloads
+// and verification are delegated to internal/assets; synthesis is not here.
 package tts
 
 import (
@@ -11,7 +14,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 )
 
+// File is one downloadable file of a voice, as internal/assets describes it.
 type File = assets.File
+
+// Voice is one catalog entry: its identity, licence and provenance, and the files that make it up.
 type Voice struct {
 	ID            string `json:"id"`
 	Provider      string `json:"provider"`
@@ -26,15 +32,20 @@ type Voice struct {
 	Attribution   string `json:"attribution"`
 	Files         []File `json:"files"`
 }
+
+// Catalog is the approved-voice catalog file as stored on disk.
 type Catalog struct {
 	Version int     `json:"catalogVersion"`
 	Voices  []Voice `json:"voices"`
 }
+
+// Manager installs and inspects the voices of one catalog under one cache root.
 type Manager struct {
 	catalog Catalog
 	root    string
 }
 
+// New reads the catalog at catalogPath; voices install under root.
 func New(catalogPath, root string) (*Manager, error) {
 	bytes, err := os.ReadFile(catalogPath)
 	if err != nil {
@@ -46,6 +57,8 @@ func New(catalogPath, root string) (*Manager, error) {
 	}
 	return &Manager{catalog: c, root: root}, nil
 }
+
+// Catalog is the catalog as the UI reads it: each voice with its download size and install state.
 func (m *Manager) Catalog() map[string]any {
 	voices := make([]map[string]any, 0, len(m.catalog.Voices))
 	for _, v := range m.catalog.Voices {
@@ -67,6 +80,7 @@ func (m *Manager) InstallDir(id string) string {
 	return assets.Dir(m.root, v.Provider, v.ID, v.Version)
 }
 
+// Voice looks a voice up by id.
 func (m *Manager) Voice(id string) (Voice, bool) {
 	for _, v := range m.catalog.Voices {
 		if v.ID == id {
@@ -75,6 +89,8 @@ func (m *Manager) Voice(id string) (Voice, bool) {
 	}
 	return Voice{}, false
 }
+
+// Paths returns the model and config file paths of an installed voice, or an error when it is unknown, not installed or incomplete.
 func (m *Manager) Paths(id string) (string, string, error) {
 	v, ok := m.Voice(id)
 	if !ok {
@@ -98,6 +114,8 @@ func (m *Manager) Paths(id string) (string, string, error) {
 	}
 	return model, config, nil
 }
+
+// State reports a voice's install state, as assets.State names it.
 func (m *Manager) State(v Voice) string {
 	return assets.State(m.root, v.Provider, v.ID, v.Version, v.Files)
 }
@@ -143,6 +161,8 @@ func withDefaults(options assets.Options) assets.Options {
 	}
 	return options
 }
+
+// Remove deletes an installed voice.
 func (m *Manager) Remove(id string) error {
 	v, ok := m.Voice(id)
 	if !ok {

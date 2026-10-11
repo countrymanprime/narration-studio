@@ -1,5 +1,5 @@
 // The `engine` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the engine panel, a slide-over from
-// the header's engine chip that replaced the Tracks page (stage-navigation-and-page-replacement.prd.md Phase 6, ADR 0407). Each
+// the header's engine chip that replaced the Tracks page (ADR 0407). Each
 // state is the panel, or one of its REAPER tools' dialogs opened from it, over the Production home. The Tracks page's player states
 // (`default`'s transport, `playing`, `skipped-forward`, `last-track-selected`, `unplayable-track-selected`) went with the player:
 // a chapter is heard in its Proof chapter view. `tracks/sync-consent` went too: the same dialog over the Production home is

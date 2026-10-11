@@ -185,12 +185,11 @@ def main() -> None:
         # One of its dependencies is excluded: google_crc32c, an optional speed-up of its downloader's
         # checksum, which the frozen sidecar never runs (moonshine_engine.py).
         # sounddevice (PortAudio) is the built-in recorder's engine, the capture port's wasapi row
-        # (capture_wasapi.py, ADR 0357), so since native-recording Phase 2 it is in the build: its DLL
+        # (capture_wasapi.py, ADR 0357), so it is in the build: its DLL
         # (_sounddevice_data/portaudio-binaries, about 2 MB) is loaded with ctypes, and PyInstaller's own
         # sounddevice hook (pyinstaller-hooks-contrib) collects it. verify-installable.mjs checks all three
         # DLLs are in the tree, and `narration-utils --smoke` runs `manuscript-teleprompter --capabilities --verify`
-        # to prove Moonshine's load (sidecar-capabilities-flag PRD Phase 3 folded the old `--check-moonshine` flag
-        # into this one).
+        # to prove Moonshine's load.
         Sidecar(
             "manuscript-teleprompter",
             sidecars_root / "manuscript-teleprompter" / "core" / "live_asr.py",

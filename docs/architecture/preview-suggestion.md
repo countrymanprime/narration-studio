@@ -45,9 +45,9 @@ Two optional layers compose onto a candidate before it is ranked:
   audio position (`MapParagraphsToTime`, built and tested against a real REAPER-saved fixture -
   `internal/tracks/testdata/reaper/line-identity.rpp`), and no windowed audio-quality finding falls inside it.
   Unknown never counts as good (SR D2, [ADR 0015](../adr/0015-real-progress-only.md)); a DX-4 windowed finding
-  cannot be read from a real chapter today for reasons unrelated to this package
+  cannot be read from a real chapter (as of 2026-09-27) for reasons unrelated to this package
   ([ADR 0327](../adr/0327-dx-4-windowed-findings-need-a-chapter-and-paragraph-anchor-and-a-store-scope-before-a-consumer-can-gate-on-them.md)),
-  so every candidate today reports pace evidence (Q8 option C, `ChapterPace`/`EstimateErrorFraction`) but never the
+  so every candidate reports pace evidence (Q8 option C, `ChapterPace`/`EstimateErrorFraction`) but never the
   audio-checked label in production.
 
 ## The narrator's pin

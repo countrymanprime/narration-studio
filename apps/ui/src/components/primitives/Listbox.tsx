@@ -14,7 +14,7 @@ export type ListboxOption = {
 /** The DOM id of one option, for the combobox's `aria-activedescendant`. */
 export const listboxOptionId = (listId: string, optionId: string) => `${listId}-option-${optionId}`;
 
-// A list of choices drawn on the popover surface (mock-fidelity-primitives-and-components.prd.md Phase 7): the frame, radius and
+// A list of choices drawn on the popover surface: the frame, radius and
 // shadow of Popover, undivided rows, the active row on `--surface-2` and the chosen one marked with an `--accent` check
 // (read-aloud-control-bar/03). It is the popup of a combobox: focus stays in the text box that drives it, which moves the active
 // row with the arrow keys and names it with `aria-activedescendant`, so the options are not in the Tab order; a press picks one.

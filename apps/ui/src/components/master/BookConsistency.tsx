@@ -1,6 +1,6 @@
 // The book-wide spread (docs/prds/delivery-platform-profiles.prd.md Phase 10, mockup 11 "Book consistency"): below the
 // per-file table, one strip per numeric per-file level rule (RMS, peak, noise floor) showing the measured book's min,
-// median and max, and where each judged file falls between them. No new chart primitive (studio-ui-primitives.prd.md
+// median and max, and where each judged file falls between them. No new chart primitive (
 // keeps charts feature-local): a plain track built from the page's own design tokens, so it reads correctly in light and
 // dark without forcing either (dark mode is a global theme only, D69 on #509).
 import { useId } from 'react';
@@ -12,8 +12,7 @@ const MUTED = { color: 'var(--text-muted)' };
 
 const clampPct = (fraction: number) => Math.min(100, Math.max(0, fraction * 100));
 
-/** A rule's spread as a horizontal band (mock 05's "Book consistency · RMS by chapter", mock-fidelity-primitives-and-
- * components.prd.md Phase 14): the rule's own min-max bound shaded as its target zone (the new `--ok-zone` token,
+/** A rule's spread as a horizontal band (mock 05's "Book consistency · RMS by chapter", ): the rule's own min-max bound shaded as its target zone (the new `--ok-zone` token,
  * dashed edges), and one accent tick per judged file. The scale spans the rule's bound when it has one on that side,
  * and the book's own values otherwise (a boundless rule, or a bound the book's values sit outside of). */
 function SpreadTrack({ rule, values, stat }: { rule: DeliveryRule; values: readonly number[]; stat: BookSpreadStat }) {

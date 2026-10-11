@@ -29,7 +29,7 @@ function anchorToken(row: Discrepancy, tokens: readonly WorkspaceToken[], paragr
 
 /**
  * Folds a Transcript Compare run's discrepancies for this chapter into the chapter view's flags
- * (stage-navigation-and-page-replacement.prd.md Phase 5: the Proofing page's results become the chapter's misread
+ * (the Proofing page's results become the chapter's misread
  * flags, with the inline diff in the flag detail). A misread or skip whose word the recording check already flagged
  * attaches to that flag (`discrepancy` is set on it, nothing is duplicated); every other discrepancy is its own flag,
  * placed on its word when it can be found in its paragraph and first otherwise. Flags come back in text order.

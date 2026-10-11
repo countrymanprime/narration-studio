@@ -1,6 +1,6 @@
 import { Kbd, type KbdSize } from './Kbd';
 
-// A key cap with its action spelled out beside it (mock-fidelity-primitives-and-components.prd.md Phase 10, mock 03's
+// A key cap with its action spelled out beside it (mock 03's
 // command bar): the cap, 10 px, then the action in Plex Sans, muted. `Kbd` already names itself for a screen reader
 // (its `keys`, or `spokenLabel` for a symbol), so the visible `action` text beside it needs no extra wrapper role.
 export function KeyHint({

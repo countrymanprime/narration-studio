@@ -1,10 +1,10 @@
 # Manuscript line identity in the REAPER project
 
-**Status: Lua commands implemented, tested in the harness and verified in a scripted REAPER 7.80 run. `stamp_item_lines` and `read_line_ids` are now driven from the app** (`apps/desktop/internal/lineidentity`, the "Link chapters" dialog in the audio engine panel, `apps/ui/src/components/engine/LinkChaptersDialog.tsx`) **; `create_chapter_regions` is not yet.** Two steps of the checklist below need the owner (a real paste of a stamped item, and Transcript Compare through the app); the rest is recorded in the [verification record](#verification-record). The narrator maps each chapter to a REAPER track by hand in the Link chapters dialog; the shared chapter-to-track matcher (`apps/desktop/internal/chaptermatch`, `teleprompter-manuscript-integration.prd.md` Phase 8, ADR 0110) exists but the dialog does not use it yet (`reaper-automation-follow-through.prd.md` Phase 7).
+**Status: Lua commands implemented, tested in the harness and verified in a scripted REAPER 7.80 run.** `stamp_item_lines` and `read_line_ids` are driven from the app (`apps/desktop/internal/lineidentity`, the "Link chapters" dialog in the audio engine panel, `apps/ui/src/components/engine/LinkChaptersDialog.tsx`), and `create_regions` from `apps/ui/src/components/engine/CreateChapterRegionsDialog.tsx`. Two steps of the checklist below need the owner (a real paste of a stamped item, and Transcript Compare through the app); the rest is recorded in the [verification record](#verification-record). The shared chapter-to-track matcher is `apps/desktop/internal/chaptermatch` (ADR 0110), used by `apps/desktop/chapterlinks.go`.
 
 ## Why
 
-The features that follow from the [REAPER automation research](../research/reaper-automation-surface.md) (anchoring live teleprompter flags to takes, pickup lists, per-chapter render and export) all need one thing the project does not have today: a durable link between a manuscript line and the REAPER item that records it. Storing that link in the `.rpp` itself, keyed by item GUID, means it survives moves, splits, and copies, and needs no sidecar to stay in sync.
+The features that follow from the [REAPER automation research](../research/reaper-automation-surface.md) (anchoring live teleprompter flags to takes, pickup lists, per-chapter render and export) all need a durable link between a manuscript line and the REAPER item that records it. Storing that link in the `.rpp` itself, keyed by item GUID, means it survives moves, splits, and copies, and needs no sidecar to stay in sync.
 
 ## What exists
 
@@ -22,7 +22,7 @@ Behaviour that is deliberate:
 - Items are found by GUID only. A GUID that no longer resolves is reported as stale and no neighbouring item is used instead.
 - An item that already carries a different line ID is a conflict and is left alone unless the narrator explicitly overwrites.
 - Each write command is one undo step, and nothing is written (and no undo point created) when there is nothing to change. Re-running with the same payload is a no-op.
-- `read_line_ids` reads through the REAPER API, so the host does not depend on how the `.rpp` file happens to serialise extension data. That format is now known (spike S0: an `<EXTI` block per item, see [the result](../research/reaper-spike-s0-item-extension-data.md)) and a static read is possible later.
+- `read_line_ids` reads through the REAPER API, so the host does not depend on how the `.rpp` file happens to serialise extension data. That format is known (spike S0: an `<EXTI` block per item, see [the result](../research/reaper-spike-s0-item-extension-data.md)) and a static read is possible later.
 
 ## Verification record
 
@@ -41,7 +41,7 @@ The commands' logic is pinned by the bridge harness (`integrations/reaper/tests`
 | 9 Regions | Scripted | One coloured region; again `...\|0\|1\|0`; a malformed row counted invalid |
 | 10 Transcript Compare | Scripted for the bridge, **not in the app** | `prepare_compare`, `inspect_compare_results`, `export_compare_markers` (with its undo entry) and `jump_to_compare_marker` work against a hand-made results file. Starting a comparison from the app, with the launcher, is for the owner |
 
-The run also found that `reaper.EnumerateFiles` caches the commands folder listing; the bridge now clears it on every tick (see [the REAPER bridge](reaper-bridge.md)).
+`reaper.EnumerateFiles` caches the commands folder listing, so the bridge clears it on every tick (see [the REAPER bridge](reaper-bridge.md)).
 
 ## Manual verification checklist
 
@@ -55,14 +55,14 @@ Run steps 6 (the paste part) and 10 by hand, in REAPER with the app open; the re
 6. **Survives editing.** Move and split a stamped item, then `read_line_ids`. Confirm both halves still report the ID (split items copy extension data) or note which does not.
 7. **Survives save and reload.** Save, close, reopen the project, run `read_line_ids`. The stamp must still be there. This also confirms extension data persists in the `.rpp`.
 8. **Untouched fields.** Confirm the item's notes and take name are unchanged.
-9. **Regions.** Payload `0|30|Chapter 1`, command `1|create_regions|t2|<payload path>|FF8800|0` (named `create_chapter_regions` when this checklist ran). Expect one coloured region and `REGIONS_CREATED|t2|1|0|0|0|0|0`. Send again: `...|0|1|0|0|0|0`. Add a malformed line: it is counted as invalid.
+9. **Regions.** Payload `0|30|Chapter 1`, command `1|create_regions|t2|<payload path>|FF8800|0` (the checklist ran when the command was named `create_chapter_regions`). Expect one coloured region and `REGIONS_CREATED|t2|1|0|0|0|0|0`. Send again: `...|0|1|0|0|0|0`. Add a malformed line: it is counted as invalid.
 10. Confirm Transcript Compare still starts (the bridge loads and existing commands are unaffected).
 
 ## Later phases
 
 1. **Go client.** Done for `stamp_item_lines` and `read_line_ids` (`apps/desktop/internal/lineidentity`, tests mirroring `transcript/service_test.go`) and its UI trigger, the audio engine panel's "Link chapters" dialog. Line IDs are chapter-level (Open Question 3 of the reaper-automation-follow-through PRD, answered (a)): the manuscript entity ID (a chapter ID, or a paragraph ID once that granularity is built) plus the manuscript's source SHA-256 (Open Question 4, answered (a)), not the item-to-manuscript-span alignment. `REGIONS_CREATED` is answered to `bridge.Actions.CreateRegions`.
-2. **Chapter regions from the manuscript.** The Lua command is `create_regions` (experimental until the [verification pass](../operations/reaper-verification-pass.md); `bridge.Actions.CreateRegions` is its Go client); the host plans its rows (`apps/desktop/chapterregions.go`, [ADR 0245](../adr/0245-chapter-and-credits-regions-are-planned-by-the-host-from-confirmed-links-and-the-saved-project.md)): one region per chapter with one confirmed track link, spanning that track's items in the saved `.rpp`, plus the opening and closing credits. The bindings are `ChapterRegionsPreview` and `ChapterRegionsCreate`; the dialog that calls them is not built yet.
+2. **Chapter regions from the manuscript.** The Lua command is `create_regions` (experimental until the [verification pass](../operations/reaper-verification-pass.md); `bridge.Actions.CreateRegions` is its Go client); the host plans its rows (`apps/desktop/chapterregions.go`, [ADR 0245](../adr/0245-chapter-and-credits-regions-are-planned-by-the-host-from-confirmed-links-and-the-saved-project.md)): one region per chapter with one confirmed track link, spanning that track's items in the saved `.rpp`, plus the opening and closing credits. The bindings are `ChapterRegionsPreview` and `ChapterRegionsCreate`.
 3. **Static read (optional).** Spike S0 checked how item `P_EXT` appears in a REAPER-saved `.rpp` ([the result](../research/reaper-spike-s0-item-extension-data.md)): an `<EXTI` block of `key value` lines per item, stable across save, reload, split and duplicate, so `tracks` could read line IDs without a running REAPER (a chunk reader that handles the four value forms, and `IGUID` for the item GUID). The fixtures are under `apps/desktop/internal/tracks/testdata/reaper/`. Until then use `read_line_ids`.
 4. **Lua test harness.** Done ([ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)): the commands above have harness tests, and new ones come with theirs.
 5. **Retakes on fixed lanes.** Done for choosing a lane (reaper-automation-follow-through Phase 25, [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md)). On a lane track every retake of a line carries the same line id, so a line id no longer names one item there: `pick_retake_lane` and `apps/desktop/internal/retakelanes` name a retake by line id plus item GUID, and "the retake that plays" is the item whose lane plays. Anything else that goes from a line id to one item has to make the same choice before it runs on a lane track.
-6. **Consumers.** Timeline-anchored live flags and the punch-and-roll navigator (research items 1 and 2) now that the live ASR sidecar and its Go event relay are on main.
+6. **Consumers.** Timeline-anchored live flags and the punch-and-roll navigator (research items 1 and 2) can build on the live ASR sidecar and its Go event relay.

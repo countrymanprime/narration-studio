@@ -1,10 +1,8 @@
 name: Pages
-# PAUSED (owner decision D75, 2026-09-27; narrowed further 2026-09-27, ADR 0415): nothing is published until the main
-# app's development is done and the site is reworked, and this workflow no longer runs on a pull request either (it
-# used to be the docs link check, but `Docs / Links (offline)` in .github/workflows/docs.yml already checks every
-# Markdown link and heading anchor on every pull request with lychee, and `Docs / Markdown lint (changed files)` in
-# the same workflow now catches Markdown style issues; neither needs the site built). Only `workflow_dispatch` starts
-# this workflow now: a manual run builds, and deploys only when its `publish` input is ticked on main.
+# PAUSED (owner decision D75, 2026-09-27; ADR 0415): nothing is published until the main app's development is done and
+# the site is reworked. The workflow does not run on a pull request (`Docs / Links (offline)` and `Docs / Markdown lint
+# (changed files)` in .github/workflows/docs.yml check links and style without building the site). Only
+# `workflow_dispatch` starts it: a manual run builds, and deploys only when its `publish` input is ticked on main.
 #
 # Publishes the public site to GitHub Pages, by hand: the docs (tools/docs-site, ADR 0083, built from docs/ by MkDocs)
 # at the root, the Storybook component atlas (apps/ui) under /storybook/, and a browser-runnable demo of the app

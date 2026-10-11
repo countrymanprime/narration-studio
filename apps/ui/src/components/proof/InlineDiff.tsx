@@ -21,8 +21,7 @@ function diffWords(script: string, heard: string) {
 
 /**
  * A Transcript Compare discrepancy's script and heard text side by side, the words that differ marked in the
- * discrepancy's colour (the Proofing page's expanded results row, moved into the Proof chapter view's flag detail by
- * stage-navigation-and-page-replacement.prd.md Phase 5). Uses the wider context when the host sent it.
+ * discrepancy's colour (shown in the Proof chapter view's flag detail). Uses the wider context when the host sent it.
  */
 export function InlineDiff({ row }: { row: Discrepancy }) {
   const style = KIND_STYLES[row.kind] ?? KIND_STYLES.MISREAD;

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseThemes } from './tokenContrast';
 
-// The mock fidelity token batch (mock-fidelity-primitives-and-components.prd.md Phase 0b, ADR 0590). The sizes and type were
+// The mock fidelity token batch (ADR 0590). The sizes and type were
 // measured on the benchmark mocks at 1440 px, and phases 1-15 build the primitives on them, so a value that drifts from the
 // measurement moves every consumer away from the mocks at once. The colours are held by paletteContrast.test.ts.
 const THEMES = parseThemes(readFileSync(join(__dirname, 'styles.css'), 'utf8'));

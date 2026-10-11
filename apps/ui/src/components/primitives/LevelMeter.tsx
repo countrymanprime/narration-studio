@@ -37,7 +37,7 @@ const SIZE_HEIGHT: Record<'compact' | 'regular' | 'booth', string> = {
   booth: 'h-4',
 };
 
-// The LED-ladder segment pitch per size (mock-fidelity-primitives-and-components.prd.md Phase 9, mock B03: "231 x 10 px,
+// The LED-ladder segment pitch per size (mock B03: "231 x 10 px,
 // segmented ok/warn/danger"). The mock gives the bar's own size, not a segment count, since a bar's width is the
 // caller's; these keep segments roughly square at each height, scaling with it.
 const SIZE_SEGMENT: Record<'compact' | 'regular' | 'booth', { segment: number; gap: number }> = {
@@ -52,7 +52,7 @@ function segmentMask(size: keyof typeof SIZE_SEGMENT): string {
 }
 
 /**
- * A peak/RMS audio level meter with safe, hot and clipped zones (studio-ui-primitives.prd.md Phase 5, ADR 0360 Q2),
+ * A peak/RMS audio level meter with safe, hot and clipped zones (ADR 0360 Q2),
  * replacing the teleprompter-local `InputLevelMeter`. `floor` and `ceiling` default to ACX's noise floor and peak
  * ceiling but are props, since Q2 leaves both "to verify" and other delivery platforms may differ. The RMS fill's
  * colour and the peak-hold tick's position both move through the zones from `src/levelMeter.ts`, shared with

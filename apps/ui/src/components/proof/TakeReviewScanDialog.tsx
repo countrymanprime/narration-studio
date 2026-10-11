@@ -31,7 +31,7 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * Find pickups and duplicates (take-review-pickups-duplicates-take-intelligence.prd.md Phase 5, user flow step 1): the narrator
+ * Find pickups and duplicates (user flow step 1): the narrator
  * chooses the track to scan and, at most, one pickup addition, a pickup track or a stretch of the timeline (Q3), offered from
  * the project's saved TakeReview settings; then the scan runs as a host job with its real progress and Cancel (ADR 0015), and
  * may be left running in the background, since the app says when it ends (ADR 0076). A scan already running when the dialog

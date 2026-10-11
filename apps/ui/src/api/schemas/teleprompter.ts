@@ -179,7 +179,7 @@ const teleprompterResumePlaceSchema = z.object({
   source: z.enum(['saved', 'live']).optional(),
 }) satisfies z.ZodType<TeleprompterResumePlace>;
 
-/** `teleprompter.Reconcile`'s verdict on the locate result (read-aloud-resume-from-daw PRD Phase 3). */
+/** `teleprompter.Reconcile`'s verdict on the locate result. */
 const teleprompterResumeVerdictSchema = z
   .object({
     kind: z.enum(['agree', 'disagree', 'complete', 'daw_only', 'prompter_only', 'none']),

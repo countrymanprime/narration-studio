@@ -16,8 +16,8 @@ const SKIP_SECONDS = 30;
  * Each item's played range (`sourceStart` to `sourceStart + length * playRate`) is honoured through the same
  * `buildPlaylist` the chapter workspace's `useChapterPlayback` uses (edit-and-proof-workspace.prd.md Phase 2, "The
  * player"): playback starts at the item's trim point and stops there, instead of playing its source file from 0 to
- * its own end regardless of the trim. `currentTime`/`duration` stay relative to the item (0 at its start), same as
- * before the fix, but now bounded to the shorter of the item's declared span and the source file's real length -
+ * its own end regardless of the trim. `currentTime`/`duration` are relative to the item (0 at its start), bounded to the shorter of the item's
+ * declared span and the source file's real length -
  * a file trimmed to less than its declared span (unexpected, but not impossible) still can't play past its own end.
  */
 export function useTrackPlayback(tracks: Track[], trackIndex: number, onTrackIndexChange: (index: number) => void, mediaUrl: (sourceFile: string) => string) {

@@ -14,7 +14,7 @@ function renderChip(props: Partial<Parameters<typeof EngineChip>[0]> = {}) {
   );
 }
 
-// The chip replaces the REAPER pill in place (stage-navigation-and-page-replacement.prd.md Phase 1, ADR 0407 item
+// The chip replaces the REAPER pill in place (ADR 0407 item
 // 4): its three REAPER states are unchanged from the pill it replaces; since Phase 6 a click opens the engine panel, which holds
 // the link action the pill ran itself.
 describe('EngineChip REAPER states (unchanged from the pill)', () => {

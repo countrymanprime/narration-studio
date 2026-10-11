@@ -1,4 +1,4 @@
-// The golden payloads for a chapter's render association (proofing-readiness-signals.prd.md Phase 6): which schema
+// The golden payloads for a chapter's render association: which schema
 // owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { proofingChooseRenderResultSchema, proofingRenderSchema } from '../schemas/proofingRender';

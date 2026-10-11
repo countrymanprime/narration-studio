@@ -27,7 +27,7 @@ func (r *Run) Level() string {
 }
 
 // StderrWriter appends everything written to it to this run's own file, logs/runs/<run-id>.stderr.jsonl — the sidecar
-// stderr internal/process now keeps instead of discarding. A nil Run, or one with no runs folder, discards silently:
+// stderr that internal/process writes here. A nil Run, or one with no runs folder, discards silently:
 // a run only exists to log, never to block whatever launched it.
 func (r *Run) StderrWriter() io.WriteCloser {
 	if r == nil || r.runsDir == "" {

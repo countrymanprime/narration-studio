@@ -10,8 +10,7 @@ import { countRootRules, forcedThemeRules, parseThemes, resolveContrast, rootRul
 // sits on, measured over every surface it can appear on and composited the way the browser paints it (a `color-mix(...
 // transparent)` tint is laid over the surface first, so a highlight on a banded reader row is judged on the darker row).
 //
-// KNOWN_FAILURES is the explicit ratchet of pairs that fail: it held the 26 that failed on the day this test landed, each
-// recolouring phase fixed its pairs and deleted their entries, and it is empty now. An entry whose pair now passes fails
+// KNOWN_FAILURES is the explicit ratchet of pairs that fail: it is empty (2026-10-11). An entry whose pair passes fails
 // this test until it is deleted, so the list can only shrink, and adding one needs the same review as an `A11Y_DEBT` entry.
 
 const CSS = readFileSync(join(__dirname, 'styles.css'), 'utf8');
@@ -154,7 +153,7 @@ const PAIRS: PairSpec[] = [
     ['surface'],
     'var(--badge-experimental-fill)',
   ),
-  // The mock fidelity token batch (mock-fidelity-primitives-and-components.prd.md Phase 0b, ADR 0590). The status soft fills
+  // The mock fidelity token batch (ADR 0590). The status soft fills
   // are opaque, so a pill in a selected row is measured there as well as on the card.
   ...(
     [

@@ -24,7 +24,7 @@ export async function freezeClock(page: Page): Promise<void> {
 }
 
 // Opens the Booth (after a reload with a mock seam, when one is given) on its default chapter, Chapter 1, once the text is
-// on screen (stage-navigation-and-page-replacement.prd.md Phase 4).
+// on screen.
 export async function openBooth(page: Page, query = ''): Promise<void> {
   if (query) {
     await page.goto(`/${query}`);
@@ -33,7 +33,7 @@ export async function openBooth(page: Page, query = ''): Promise<void> {
   await goToPage(page, 'Booth');
 }
 
-// Opens the Booth and waits for its resume prompt to have answered (read-aloud-resume-from-daw.prd.md Phase 1, wording
+// Opens the Booth and waits for its resume prompt to have answered (wording
 // updated by Phase 3): the lookup's "Checking..." line is gone.
 export async function openResumePrompt(page: Page, query = ''): Promise<void> {
   await openBooth(page, query);
@@ -155,8 +155,8 @@ export async function openProof(page: Page): Promise<void> {
   await waitForFindingRows(page, 4);
 }
 
-// Opens a chapter's Proof view the way a narrator does with no track linked: Proof's chapter picker, then Open chapter
-// (stage-navigation-and-page-replacement.prd.md Phase 5). The picker lists chapters by their full name, so the option is
+// Opens a chapter's Proof view the way a narrator does with no track linked: Proof's chapter picker, then Open chapter.
+// The picker lists chapters by their full name, so the option is
 // the one whose name starts with `chapterTitle` followed by the " — " subtitle separator or nothing.
 export async function openProofChapter(page: Page, chapterTitle = 'Chapter 1'): Promise<void> {
   await goToPage(page, 'Proof');
@@ -389,7 +389,7 @@ async function clickBoardCell(page: Page, chapter: string, column: keyof typeof 
   await boardRow(page, chapter).getByRole('gridcell').nth(BOARD_COLUMN[column]).click();
 }
 
-// Opens a chapter's stage slide-over from its current-stage cell (stage-navigation-and-page-replacement.prd.md Phase 2), whichever
+// Opens a chapter's stage slide-over from its current-stage cell, whichever
 // column that is for the chapter's status. Returns the slide-over.
 async function openStageSlideOver(page: Page, chapter: string) {
   const cells = boardRow(page, chapter).getByRole('gridcell');
@@ -459,7 +459,7 @@ export async function openTrackPanel(page: Page, chapter: string, seed: string) 
 }
 
 // The Production home booted with a stage suggestions seed (`?mockStages=`, main.tsx), once the first read has answered: the chips
-// above the board (`mixed`) or its error chip (`error`) are on screen (chapter-stage-recommendations.prd.md Phase 5).
+// above the board (`mixed`) or its error chip (`error`) are on screen.
 export async function openStageSuggestions(page: Page, seed: 'mixed' | 'error') {
   await page.goto(`/?mockStages=${seed}`);
   await settlePage(page);
@@ -490,7 +490,7 @@ export async function openEditingCheck(page: Page, query: string) {
   return panel;
 }
 
-/** Opens the engine panel (stage-navigation-and-page-replacement.prd.md Phase 6) from the header's engine chip, whatever state
+/** Opens the engine panel from the header's engine chip, whatever state
  * the chip is in, and waits for the panel to have read its REAPER project. Returns the panel. */
 export async function openEnginePanel(page: Page): Promise<Locator> {
   await page

@@ -6,9 +6,9 @@ import (
 )
 
 // The events the Lua bridge appends to events.log, as a table (ADR 0069). Lua is imported into REAPER by the narrator, so it can
-// be older or newer than the host: a line that is too short, or whose numbers are not numbers, used to be read by index with
-// helpers that turned every parse error into 0 and produced a zero-filled row. Each event is now checked against this table
-// before any consumer sees it, and an event that fails is reported (see Client.Dispatch) and never delivered as data.
+// be older or newer than the host: a line that is too short, or whose numbers are not numbers, must not become a zero-filled
+// row. Each event is checked against this table before any consumer sees it, and an event that fails is reported
+// (see Client.Dispatch) and never delivered as data.
 //
 // The table lists the fields after the tag, in order. Required fields must be present and, for numbers, non-empty and numeric.
 // Optional fields (the tail of a marker, which an older script does not send) may be absent or empty, and are checked only when they
@@ -97,7 +97,7 @@ var eventSpecs = map[string]eventSpec{
 	"GAIN_STALE":   {required: []fieldSpec{text("run"), text("findingId"), text("guid"), text("reason")}},
 	"GAIN_ITEM":    {required: []fieldSpec{text("run"), text("guid"), number("before"), number("after")}},
 	"GAIN_APPLIED": {required: []fieldSpec{text("run"), count("applied")}},
-	// Phase 25 (reaper-automation-follow-through PRD, ADR 0147): the narrator's retake now plays alone. lineId and
+	// ADR 0147: the narrator's retake plays alone. lineId and
 	// itemGuid name the retake (a line id alone names several items on a lane track); lane is the 0-based lane REAPER
 	// read from the item when the pick ran.
 	"RETAKE_LANE_PICKED": {required: []fieldSpec{text("run"), text("lineId"), text("itemGuid"), count("lane")}},

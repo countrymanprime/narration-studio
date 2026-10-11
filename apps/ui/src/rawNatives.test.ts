@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 // not from the native element, so every control looks and behaves one way. This scan counts the native elements written in
 // JSX outside `components/primitives/`, per file, and a file's count may only go down: a ceiling that is higher than the real
 // count fails, so the entry is lowered (or deleted at zero) in the same change, and a file with no entry may have none. The
-// controls the primitives now cover have no entry left: `Select`, `TextField`, `Field` and `Table`.
+// controls the primitives cover have no entry: `Select`, `TextField`, `Field` and `Table`.
 // No file outside the primitives may paste the icon-button look either (`size-8` with `rounded-md`).
 //
 // Buttons stay a ratchet rather than a ban ([ui-primitives PRD L10]: text buttons already have `Button`, and the bare ones
@@ -22,11 +22,11 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
   button: {
     'src/components/manuscript/ChapterNav.tsx': 4,
     // The card's bookmark toggle and its whole-header toggle (manuscript-credits-card-parity.prd.md). `CreditsEntry.tsx`
-    // now renders through this and has no raw button of its own (its old toggle button is gone, ceiling 0 below).
+    // renders through this and has no raw button of its own (ceiling 0 below).
     'src/components/manuscript/ReaderCard.tsx': 2,
     // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button (ADR 0595).
     'src/components/project/ProjectPicker.tsx': 1,
-    // The Script page's chapter list (stage-navigation-and-page-replacement.prd.md Phase 3, mock 02): a list row naming the
+    // The Script page's chapter list (mock 02): a list row naming the
     // chapter with its current state, the same shape as ChapterNav's rows, which Button's padded, uppercase chrome does not
     // fit. One JSX `<button>`, written once inside the chapters `.map()`.
     'src/components/script/ScriptChapterList.tsx': 1,
@@ -47,7 +47,7 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // bible entries above (two lines of text and a current state), which Button's padded, uppercase chrome does not fit. One
     // JSX `<button>`, written once inside the flags `.map()`.
     'src/components/booth/ReaderFlagsPanel.tsx': 1,
-    // The engine panel (stage-navigation-and-page-replacement.prd.md Phase 6) took the Tracks page's two: its .rpp picker's
+    // The engine panel took the Tracks page's two: its .rpp picker's
     // full-width path rows (a mono file path, which Button's uppercase chrome would mangle) stay one JSX `<button>` inside the
     // candidates `.map()`; the track rows' selection buttons went with the player.
     'src/components/engine/EnginePanel.tsx': 1,
@@ -58,7 +58,7 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     'src/components/proof/ScriptView.tsx': 1,
     // read-aloud-resume-from-daw.prd.md Phase 3: the disagree choice's own card ("a card that is a button" - two places, REAPER
     // and Last reading - written once as `card()`, called twice): `Button`'s uppercase chrome does not fit a card naming a
-    // source, a time and a quoted sentence. (Its text links are `Button variant="link"` now, ADR 0595, like every underlined
+    // source, a time and a quoted sentence. (Its text links are `Button variant="link"`, ADR 0595, like every underlined
     // text action inside a sentence.)
     'src/components/booth/ResumePrompt.tsx': 1,
   },

@@ -735,7 +735,7 @@ def test_capabilities_report_verify_leaves_a_row_with_no_verify_hook_unloaded():
 
 def test_capabilities_report_verifies_the_moonshine_row_when_asked(monkeypatch):
     # sidecar-capabilities-flag PRD Phase 3: --capabilities --verify folds moonshine_engine.self_check()'s guarantee
-    # (the one --check-moonshine used to make alone) into the generic report, through _VERIFY_HOOKS[("asr", "moonshine")].
+    # into the generic report, through _VERIFY_HOOKS[("asr", "moonshine")].
     from narration_common.ports.asr import AsrDescriptor
 
     monkeypatch.setitem(

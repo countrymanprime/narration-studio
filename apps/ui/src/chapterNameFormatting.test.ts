@@ -26,19 +26,18 @@ const ALLOW_LIST = new Set([
 // Manuscript and Chapters & Search onto TitleSubtitle (lowering these); Phase 3 moves the rest, including the Read
 // aloud heading and the Teleprompter select, and the ceiling reaches zero.
 const CEILING: Record<string, number> = {
-  // The Production board (stage-navigation-and-page-replacement.prd.md Phase 2): its rows go through chapterName(); the one
+  // The Production board: its rows go through chapterName(); the one
   // read is the ChapterTrackPanel call's prop handoff (`subtitle={...?.subtitle}`), so the slide-over title can draw the
   // chapter's full name through chapterName(..., context('Track')) (chapter title display P3).
   [join('src', 'components', 'production', 'ChapterBoard.tsx')]: 1,
-  // Phase 2: the joined-title row now goes through chapterName()/TitleSubtitle; one read left is the prop handoff to
+  // The joined-title row goes through chapterName()/TitleSubtitle; one read is the prop handoff to
   // TitleSubtitle (`subtitle={heading.subtitle}`), and one is the Subtitle checkbox's own accessible-name suffix
   // ("Subtitle — {section.subtitle}"), which shows the raw second line, not a formatted chapter name.
   [join('src', 'components', 'production', 'ImportReview.tsx')]: 2,
-  // Phase 2: the row now goes through TitleSubtitle; the one read left is the prop handoff (`subtitle={chapter.subtitle}`).
+  // The row goes through TitleSubtitle; the one read is the prop handoff (`subtitle={chapter.subtitle}`).
   [join('src', 'components', 'manuscript', 'ChapterNav.tsx')]: 1,
-  // The chapter card moved into ReaderCard.tsx (manuscript-credits-card-parity.prd.md, Phase 1's first commit); this
-  // is now only the prop handoff (`subtitle={chapter.subtitle}`), since ReaderCard reads the plain `subtitle` prop,
-  // not `.subtitle`.
+  // The chapter card is ReaderCard.tsx (manuscript-credits-card-parity.prd.md); the one read is the prop
+  // handoff (`subtitle={chapter.subtitle}`), since ReaderCard reads the plain `subtitle` prop.
   [join('src', 'components', 'script', 'ScriptPage.tsx')]: 1,
 };
 

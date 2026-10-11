@@ -172,7 +172,7 @@ describe('CompanionShell (booth-mode-and-companion-panel.prd.md Phase 7)', () =>
     expect(within(section).queryByRole('button')).toBeNull();
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 7: the section reads the Pickups page's list, read-only.
+  // The section reads the Pickups page's list, read-only.
   it("reads the Pickups page's list: what is left and the pickup last jumped to, with no actions of its own", async () => {
     renderCompanion({}, { pickupsState: async () => WIRE_PICKUPS_NEXT_SUCCESS, pickupsCount: async () => ({ status: 'started' }) });
     const section = screen.getByRole('region', { name: 'Pickups' });

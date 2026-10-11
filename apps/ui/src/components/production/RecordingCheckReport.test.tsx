@@ -9,8 +9,7 @@ import { RecordingCheckReport } from './RecordingCheckReport';
 
 afterEach(cleanup);
 
-// The four figures the report draws through StatTile (recording-check-summary.prd.md Phase 1; studio-ui-primitives.prd.md
-// Phase 4 moved them onto the shared primitive with no visible change): text present, paragraphs, audio checked and pace.
+// The four figures the report draws through StatTile: text present, paragraphs, audio checked and pace.
 const chapter: ManuscriptChapter = {
   id: 'c-1',
   title: 'Chapter 1',

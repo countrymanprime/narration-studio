@@ -53,11 +53,11 @@ export function ChapterNav({
   lineNumbers: Map<number, number>;
   select: (id: string, paragraph?: number) => void;
   removeBookmark: (id: string) => void;
-  // Chapter stage recommendations (chapter-stage-recommendations.prd.md Phase 9, Q6): read-only, keyed by
+  // Chapter stage recommendations (Q6): read-only, keyed by
   // chapter id. Absent chapters and every verdict but `recommended` render no marker - the nav row stays
   // dense, and Confirm/Dismiss/evidence stay on Home and the Proofing panel (Q6 option B).
   stageSuggestions?: ReadonlyMap<string, StageChapterRecommendation>;
-  // The Script page's prep status (stage-navigation-and-page-replacement.prd.md Phase 3, ADR 0392): by chapter id, the names first heard
+  // The Script page's prep status (ADR 0392): by chapter id, the names first heard
   // in it that the author has not confirmed. A chapter with none shows nothing.
   toConfirm?: ReadonlyMap<string, number>;
 }) {

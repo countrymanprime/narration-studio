@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { faHouse } from '@fortawesome/free-solid-svg-icons';
 import { TooltipTarget } from './Tooltip';
 
-// The nav item as mock 01 draws it (mock-fidelity-primitives-and-components.prd.md Phase 8, ADR 0635), measured at 1440 px:
+// The nav item as mock 01 draws it (ADR 0635), measured at 1440 px:
 // 34 px tall on a 37 px pitch (the rail's group puts 3 px between items), radius 7; a 12 px icon centred at x 26 of the rail
 // and the label from x 45 (the rail's 8 px inset, 10 px, the icon's fixed-width box, 11 px); the label Barlow Condensed 600
 // at 13 px, tracked 0.11 em, in capitals. The current page is `--accent-soft` with its label in `--accent-strong`.

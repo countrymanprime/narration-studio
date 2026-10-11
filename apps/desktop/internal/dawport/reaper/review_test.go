@@ -23,9 +23,9 @@ func onlyCommand(t *testing.T, session string) string {
 	return string(bytes)
 }
 
-// The review session is a behaviour-preserving extraction (ADR 0143's dawadapter.Reaper before DAW port PRD P8 retired that
-// package): every review operation must put the exact line on the bridge that transcript.Service used to send by hand (the Lua
-// harness in integrations/reaper/tests pins what REAPER does with it).
+// The review session is a behaviour-preserving extraction (ADR 0143): every review operation must put the exact line on the
+// bridge that transcript.Service sent before the extraction (the Lua harness in integrations/reaper/tests pins what REAPER does
+// with it).
 func TestReviewSendsTheExactBridgeCommandForEachOperation(t *testing.T) {
 	cases := []struct {
 		name string

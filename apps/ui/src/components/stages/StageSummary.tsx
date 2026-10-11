@@ -6,8 +6,7 @@ import { plural, summarize } from './stageText';
 // A chip is THE pill made a button (StatusBadge, ADR 0600); its tone says what it counts.
 
 /**
- * The estimate card's summary of the stage suggestions (chapter-stage-recommendations.prd.md Phase 5, deleted; see
- * docs/architecture/stage-recommendations.md), seen while the breakdown is
+ * The estimate card's summary of the stage suggestions (docs/architecture/stage-recommendations.md), seen while the breakdown is
  * still collapsed: how many chapters have a suggestion, how many have evidence that changed since they were confirmed, or that they could
  * not be checked. Each chip opens the breakdown, where the rows are. Nothing shows while the first read runs or when there is nothing to say.
  */

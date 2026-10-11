@@ -27,7 +27,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// The booth mock's command bar (studio-ui-primitives.prd.md mock 03): Space, R, ⌫, F and P, each a `Kbd`-labelled button.
+// The booth mock's command bar (mock 03): Space, R, ⌫, F and P, each a `Kbd`-labelled button.
 export const BoothCommandBar: Story = {
   render: (args) => (
     <Toolbar {...args}>

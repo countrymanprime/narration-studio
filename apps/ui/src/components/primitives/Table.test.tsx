@@ -133,7 +133,7 @@ describe('Table', () => {
     renderTable();
     expect(screen.getByRole('columnheader', { name: 'Actions' }).className).toContain('relative');
   });
-  // The mock fidelity spec (mock-fidelity-primitives-and-components.prd.md Phase 3, measured on benchmark mocks 01 and 05):
+  // The mock fidelity spec (measured on benchmark mocks 01 and 05):
   // a 31 px header and 34 px rows, taken from the size tokens, with the label type the mocks draw.
   it('sizes the header row and the body rows from the row tokens', () => {
     renderTable();

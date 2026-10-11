@@ -307,7 +307,7 @@ type Choices struct {
 	// SectionKinds is the kind each section is written as (narration, opening or reference).
 	SectionKinds map[string]string
 	// SubtitleOverrides says, for a section with a subtitle, whether it is one; false joins it to the title or returns it to the body
-	// (importer.ApplySubtitleOverrides; story-bible-and-import-ux-briefs PRD, Phase 5).
+	// (importer.ApplySubtitleOverrides).
 	SubtitleOverrides map[string]bool
 }
 

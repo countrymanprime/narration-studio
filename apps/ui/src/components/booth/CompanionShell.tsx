@@ -126,11 +126,11 @@ function Section({ title, badge, children, first = false }: { title: string; bad
 }
 
 /**
- * Companion mode's layout (booth-mode-and-companion-panel.prd.md Phase 7): `CompactShell` in the app's own window, narrowed
+ * Companion mode's layout: `CompactShell` in the app's own window, narrowed
  * and pinned beside the DAW (Phase 6's bindings). It is the same teleprompter session the Read aloud dialog and the booth
  * show (`BoothSession` renders this in place of `BoothView`), re-laid out for a 380 px column: REAPER's playhead in the
  * header, then the script, the note at the playhead (reserved for the closed-loop proofing PRD - an honest "Coming soon"
- * until then, D3), the Pickups page's list (stage-navigation-and-page-replacement.prd.md Phase 7), and the gestures that work here.
+ * until then, D3), the Pickups page's list, and the gestures that work here.
  *
  * Play/Pause and Stop repeat `BoothView`'s few lines on the same handlers rather than share a hook with it: each surface
  * is mounted alone (one `reading.toggle` registration at a time), and those files belong to other phases in flight.

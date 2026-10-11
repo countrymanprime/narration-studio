@@ -67,10 +67,10 @@ function markedEntities(marks: Map<string, ReaderMark[]>): GuideEntity[] {
 const byReadingOrder = (a: ManuscriptNote, b: ManuscriptNote): number => a.paragraph - b.paragraph || (a.anchorStart ?? 0) - (b.anchorStart ?? 0);
 
 /**
- * One reading session in the Booth (stage-navigation-and-page-replacement.prd.md Phase 4, replacing the Read aloud
+ * One reading session in the Booth (replacing the Read aloud
  * dialog, its booth layout and the Teleprompter page): the one `useTeleprompterSession` mount (booth mode's risk: never
  * two subscriptions), the rail and its marks, the suspected flags and keeping them as findings (`useKeptFlags`, ADR
- * 0117), the resume prompt (read-aloud-resume-from-daw.prd.md) and Record in REAPER (read-aloud-control-bar.prd.md Phase
+ * 0117), the resume prompt and Record in REAPER (read-aloud-control-bar.prd.md Phase
  * 7). `BoothPage` mounts it keyed by what it reads, so a new chapter starts a clean session state.
  *
  * It is laid out by `BoothView` (mock 03) or, in companion mode (entered from the Booth's header, ADR 0401), by
@@ -153,7 +153,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
 
   // A session that ends while the Booth is open (Stop, the sidecar stopping, auto-stop at Done) keeps its flags then: by the
   // time the host reports it stopped, the sidecar's last flags have arrived. It also resets the start word to the top
-  // (read-aloud-resume-from-daw.prd.md Phase 1, ADR 0112): the resume prompt does not come back to ask again, so the next
+  // (ADR 0112): the resume prompt does not come back to ask again, so the next
   // Start must not silently reuse a stale choice from the session that just ended.
   const wasActive = useRef(session.active);
   const { keep } = keepFlags;
@@ -242,7 +242,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
       }}
     />
   );
-  // The resume prompt (read-aloud-resume-from-daw.prd.md Phase 1) sits in the text column's header slot, mounted for this
+  // The resume prompt sits in the text column's header slot, mounted for this
   // session's whole life so it settles once (on a choice or a session starting) and stays gone. Credits (MC9) have no
   // chapter to look up a track for, so the C6 warning takes this slot instead - and only while a token is unresolved.
   const header =

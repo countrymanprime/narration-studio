@@ -183,7 +183,7 @@ function useElapsedSeconds(since: number | undefined): number | undefined {
  * and nothing starts. Stop always stops listening, then stops a recording this app started.
  *
  * The bar composes the `Toolbar`/`ToolbarButton` primitives for its roving-tabindex toolbar semantics
- * (mock-fidelity-primitives-and-components.prd.md Phase 13, mock 03's command bar) rather than a hand-rolled
+ * (mock 03's command bar) rather than a hand-rolled
  * `role="toolbar"`, and gives Play/Pause's real Space shortcut a `KeyHint` (23 px cap) so it reads the way the mock's
  * key-cap-plus-label pairs do; BO10's other labelled actions (Punch & roll, Back one sentence, Flag, Mark pickup) stay out
  * because they have no bound command yet (booth-actions-enablement/input-commands own that).

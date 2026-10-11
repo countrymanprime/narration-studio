@@ -119,7 +119,7 @@ export const proofStates: StateEntry[] = [
     description: 'Proof, the approved marker confirmed - the take marker REAPER added is announced by name under the REAPER controls',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Pickups and duplicates on Proof (take-review-pickups-duplicates-take-intelligence.prd.md Phase 5)
+  // Pickups and duplicates on Proof
   {
     page: 'proof',
     state: 'take-review-scan-form',
@@ -162,7 +162,7 @@ export const proofStates: StateEntry[] = [
     description:
       'Proof, a pickup group accepted and Add as take pressed - the confirm with the target item and the candidate read chosen by the narrator, never preselected (Q4/Q8)',
   },
-  // Take comparison on Proof (take-review-pickups-duplicates-take-intelligence.prd.md Phase 10)
+  // Take comparison on Proof
   {
     page: 'proof',
     state: 'take-comparison-progress',

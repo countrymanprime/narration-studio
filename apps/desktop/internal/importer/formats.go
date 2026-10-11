@@ -8,8 +8,7 @@ import "strings"
 // format switch and error message, the file-picker filter (bindings.go) and
 // the standalone CLI (which already delegates to BuildDraft with no format
 // restriction of its own beyond the quarantined pdf case, so it needs no
-// separate edit) - replacing the PRD's Evidence finding of six hard-coded
-// places ("txt-and-epub-import" PRD, Phase 1, "One accepted-formats list").
+// separate edit).
 //
 // pdf is deliberately absent: it stays a quarantined, build-tag-gated
 // candidate (see the switch in importer.go) that the picker and CLI never

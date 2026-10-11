@@ -27,8 +27,7 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
   render(
     <ThemeProvider>
       <ApiProvider api={api}>
-        {/* Matches main.tsx's tree (input-commands-and-pedals.prd.md Phase 2): App now calls useCommand for
-            nav.back/nav.forward, which throws outside a <CommandRouter>. */}
+        {/* Matches main.tsx's tree: App calls useCommand for nav.back/nav.forward, which throws outside a <CommandRouter>. */}
         <CommandRouter>
           <App />
         </CommandRouter>
@@ -298,7 +297,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     );
     expect(within(screen.getByRole('alert')).getByText('The comparison could not read the REAPER audio.')).toBeTruthy();
 
-    // Recording stops: the queued success toast now appears.
+    // Recording stops: the queued success toast appears.
     act(() => emitTransport?.({ playing: false, recording: false }));
     expect(screen.getByText('Story Bible rebuild complete.')).toBeTruthy();
   });

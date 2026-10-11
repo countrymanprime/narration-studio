@@ -11,7 +11,7 @@ const MINIMUM_RUNNING_PERCENT = 4;
 export type ProgressBarTone = 'accent' | 'ok' | 'warn';
 
 // The default 16 px bar keeps its original look (accent fill on --surface-3); 'thin' is the benchmark's 8 px bar
-// under a StatTile and its "this week" rows (mock-fidelity-primitives-and-components.prd.md Phase 9, mocks B01/B05),
+// under a StatTile and its "this week" rows (mocks B01/B05),
 // which sit on the lighter --surface-2 track instead.
 const SIZE_HEIGHT: Record<'default' | 'thin', string> = { default: 'h-4', thin: 'h-2' };
 const SIZE_TRACK: Record<'default' | 'thin', string> = { default: 'bg-[var(--surface-3)]', thin: 'bg-[var(--surface-2)]' };

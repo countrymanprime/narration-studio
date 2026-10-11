@@ -11,7 +11,7 @@ const POLL_MS = 500;
 const ANOTHER_GROUP = 'the takes of another group are being compared. Wait until that comparison ends, then compare these.';
 
 /**
- * Compare takes (take-review-pickups-duplicates-take-intelligence.prd.md Phase 10, user flow step 5): opening it starts the
+ * Compare takes (user flow step 5): opening it starts the
  * comparison of one take-review group as a host job, which transcribes each read of the group again and measures it, so it
  * shows its real progress with Cancel (ADR 0015) and may be left running in the background, since the app says when it ends
  * (ADR 0076). A comparison already running (of this group or another) is shown as it is rather than started again. A refusal

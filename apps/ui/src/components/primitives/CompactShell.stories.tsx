@@ -24,7 +24,7 @@ export const TitleOnly: Story = {
   },
 };
 
-// The DAW companion mock (studio-ui-primitives.prd.md #07): a status chip beside the title, "Full app" as the one
+// The DAW companion mock (#07): a status chip beside the title, "Full app" as the one
 // action, and the mock's stacked sections (script, note at playhead, pickups, hotkeys, this chapter) built from
 // existing primitives (`Panel`) rather than anything CompactShell itself renders.
 export const WithStatusAndAction: Story = {

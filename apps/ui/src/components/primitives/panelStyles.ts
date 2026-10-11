@@ -1,4 +1,4 @@
-// The card look Panel draws (mock-fidelity-primitives-and-components.prd.md Phase 4, ADR 0640), measured on benchmark mock
+// The card look Panel draws (ADR 0640), measured on benchmark mock
 // 05: a 1 px `--border` frame at the card radius with `--shadow` on `--surface`; a header row 50 px tall with its divider
 // (55 px when it holds a 32 px button, 11 px above and below it), its content 16 px in from the frame; and a 16 px body.
 // A surface that is not a `section` (a TabPanel drawn as a card) takes these from here rather than copying them.

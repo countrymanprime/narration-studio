@@ -109,7 +109,7 @@ function FlagDecision({ flag, onDecide }: { flag: Flag; onDecide: (status: Findi
   );
 }
 
-/** The Proofing page's per-row actions for a compare discrepancy, now under its flag's diff. */
+/** The Proofing page's per-row actions for a compare discrepancy, under its flag's diff. */
 function CompareActions({ row, actions }: { row: Discrepancy; actions: CompareFlagActions }) {
   const eligible = canAddEquivalence(row);
   const marker = row.markerState ?? 'pending';

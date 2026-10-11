@@ -11,8 +11,8 @@ import { ENGINE_LABELS, type TeleprompterSession } from './useTeleprompterSessio
 type Props = {
   session: TeleprompterSession;
   /**
-   * Following for the shared reader (engines-and-input-devices.prd.md Phase 10): computed by the caller and shared with
-   * `ReadingControlBar`'s Follow button (read-aloud-control-bar.prd.md Phase 3), which now lives outside this view (the
+   * Following for the shared reader: computed by the caller and shared with
+   * `ReadingControlBar`'s Follow button (read-aloud-control-bar.prd.md Phase 3), which lives outside this view (the
    * dialog's non-scrolling footer, or the standalone page's own sticky bar).
    */
   follow: FollowCursor;
@@ -30,7 +30,7 @@ type Props = {
    */
   aside?: ReactNode;
   /**
-   * Booth mode (booth-mode-and-companion-panel.prd.md Phase 1): the rail lives in `FocusShell`'s own landmark instead
+   * Booth mode: the rail lives in `FocusShell`'s own landmark instead
    * of this view's grid (so `aside` stays unset, keeping this view to its bare `main` column), but the inline `ReaderKey`
    * above the text must still give way to the rail's own Key tab, the same as it does when `aside` is set.
    */
@@ -48,7 +48,7 @@ type Props = {
 
 /**
  * The reader text, status line and model-download prompt - everything a reading session shows once a chapter is chosen.
- * Mounted by `BoothView` (the Booth, stage-navigation-and-page-replacement.prd.md Phase 4, which replaced the Teleprompter page
+ * Mounted by `BoothView` (the Booth, which replaced the Teleprompter page
  * and the Read aloud dialog that shared it) and by `CompanionShell`. Chapter choice is not this component's job, and neither -
  * since read-aloud-control-bar.prd.md Phase 3 - is Start/Stop, the microphone or the engine/model choice: those moved
  * into `ReadingControlBar`, which the caller renders outside this view (a `Dialog` footer, or the page's own sticky bar).

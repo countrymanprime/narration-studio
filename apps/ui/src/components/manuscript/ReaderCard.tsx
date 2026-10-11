@@ -17,8 +17,7 @@ const STAT_BLOCK_CLASS = 'min-w-[6.5rem] tabular-nums';
 // The action slot (manuscript-chapter-header-alignment.prd.md, Q1 A / Technical Approach): a fixed-width box rendered
 // on every row, empty when the chapter has no actions, so the stat block still lines up beside it. Its content is
 // right-aligned (not left-aligned), so both edges - the cluster's start and end - stay put whether or not a Retail
-// sample tag widens the cluster to its left. Sized for "Record in Booth" (stage-navigation-and-page-replacement.prd.md
-// Phase 4, Q9, which replaced the Read aloud, Booth and Companion buttons) and the icon-only Workspace entry beside it
+// sample tag widens the cluster to its left. Sized for "Record in Booth" (Q9, which replaced the Read aloud, Booth and Companion buttons) and the icon-only Workspace entry beside it
 // (edit-and-proof-workspace.prd.md Phase 4).
 const ACTION_SLOT_CLASS = 'flex w-52 flex-none justify-end gap-1';
 
@@ -65,7 +64,7 @@ export function ReaderCard({
   bookmarked?: boolean;
   onToggleBookmark?: () => void;
   showRetailSample?: boolean;
-  /** "Record in Booth" (stage-navigation-and-page-replacement.prd.md Phase 4, Q9): the Booth page on this chapter or
+  /** "Record in Booth" (Q9): the Booth page on this chapter or
    * credits. Omitted where there is nothing to read aloud (a reference chapter, empty credits); the slot stays either way. */
   onRecordInBooth?: () => void;
   /** The chapter-header "Open workspace" entry point (edit-and-proof-workspace.prd.md Phase 4, page inventory

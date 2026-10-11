@@ -47,7 +47,7 @@ A worker never regenerates `docs/images/ui/` ([worker template](../../../docs/op
    entry, delete its `docs/images/ui/<docName>.webp`, and remove or replace its section in the
    guide — don't leave a broken image reference or a description of a feature that no longer
    exists.
-5. If the UI change is significant enough to warrant showing a *new* state that isn't currently
+5. If the UI change is significant enough to warrant showing a *new* state that isn't
    documented, add an entry to `doc-screenshots.json` (validated automatically by
    `src/docScreenshots.test.ts` against `STATE_CATALOG` — it must already exist there, so run
    `visual-catalog-sync` first if it doesn't), then follow step 2 and add a section to the guide.

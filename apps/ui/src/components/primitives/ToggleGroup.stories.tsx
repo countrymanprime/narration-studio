@@ -60,7 +60,7 @@ export const DisabledChipIsNotChosen: Story = {
   },
 };
 
-// The segmented look (the Master platform switch, mock-fidelity-primitives-and-components.prd.md Phase 5): one bordered
+// The segmented look (the Master platform switch): one bordered
 // container, the chosen segment filled `--accent`, the label in its own case (title case here, not uppercase).
 export const Segmented: Story = {
   args: {

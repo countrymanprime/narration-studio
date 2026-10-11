@@ -179,7 +179,7 @@ Every phase: plan, `change-impact-scan` (render config, chaptertags, the deliver
 
 ### Parallelism notes
 
-Phase 0 gates Phases 1 and 2 but not Phase 3 (mastering has no encoder dependency; it operates on WAV throughout). Phases 1 and 2 can run in parallel once Phase 0 settles the encoder choice. Phase 4 needs both encoder phases and the delivery-profiles book checklist (Phase 7 of that PRD); if that phase has not landed yet, Phase 4 degrades to the profiles' currently-`not_yet`/`listen` book rules exactly as that PRD's own Phase 7 already does, and tightens automatically once it lands.
+Phase 0 gates Phases 1 and 2 but not Phase 3 (mastering has no encoder dependency; it operates on WAV throughout). Phases 1 and 2 can run in parallel once Phase 0 settles the encoder choice. Phase 4 needs both encoder phases and the delivery-profiles book checklist (Phase 7 of that PRD); if that phase has not landed yet, Phase 4 degrades to the profiles' `not_yet`/`listen` book rules exactly as that PRD's own Phase 7 already does, and tightens automatically once it lands.
 
 ### Parallel-session compatibility
 

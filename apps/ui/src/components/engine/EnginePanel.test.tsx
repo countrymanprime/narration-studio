@@ -27,7 +27,7 @@ function renderPanel(overrides: Partial<NarrationApi> = {}, initial: Parameters<
 
 const trackTable = () => screen.findByRole('table', { name: 'Tracks' });
 
-// stage-navigation-and-page-replacement.prd.md Phase 6 (Q3 A): what the Tracks page held that is about REAPER, in a slide-over.
+//  (Q3 A): what the Tracks page held that is about REAPER, in a slide-over.
 describe('EnginePanel', () => {
   it('is a named slide-over holding the linked project, the REAPER tools, the tracks and the chapter links', async () => {
     renderPanel();
@@ -41,7 +41,7 @@ describe('EnginePanel', () => {
         .map((button) => button.textContent),
     ).toEqual(['Link chapters…', 'Prepare chapter render…', 'Create chapter regions…', 'Embed chapter tags…', 'Cleanup tools…', 'Retakes on lanes…']);
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
-    // No player: a chapter is heard in its Proof chapter view now.
+    // No player: a chapter is heard in its Proof chapter view.
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();
   });
 
