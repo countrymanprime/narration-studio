@@ -7,7 +7,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
+import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
+import { overlay } from '../../overlay/overlayService';
 import { ENTRY_SORT_STORAGE_KEY } from './entryList';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';
@@ -187,5 +189,166 @@ describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () =
     const list = within(screen.getByRole('table', { name: 'Story Bible entries' }));
     expect(list.queryByRole('columnheader', { name: /Occurrences|Mentions|Lines/ })).toBeNull();
     expect(list.getByRole('columnheader', { name: 'Chapters' })).toBeTruthy();
+  });
+});
+
+// SNB-3b: the "Needs review" chip beside the category tabs, and the pill on a row. The mock host flags nothing to start with; its
+// suggestions put 2 to verify on White Rabbit and none on the other entries.
+describe('needs-review-chip-and-row-pill', () => {
+  const chip = () => screen.queryByRole('button', { name: /^Needs review · \d+$/ });
+  async function renderBible(prepare: (api: ReturnType<typeof createMockApi>) => Promise<void> | void = () => undefined) {
+    window.localStorage.clear();
+    const api = createMockApi();
+    await prepare(api);
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    await screen.findAllByText('Alice');
+    return api;
+  }
+  const noSuggestions = (api: ReturnType<typeof createMockApi>) => void vi.spyOn(api, 'extractionList').mockResolvedValue([] as ExtractionSuggestion[]);
+  const flagHatter = (api: ReturnType<typeof createMockApi>) => api.guideFlagReview('mad-hatter');
+  const rowFor = (name: string) => entryRows().find((row) => row.querySelector('.truncate')?.textContent === name)!;
+
+  it('chip-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
+    await renderBible(flagHatter);
+    const button = await screen.findByRole('button', { name: 'Needs review · 2' });
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(rowNames().length).toBeGreaterThan(3);
+    fireEvent.click(button);
+    expect(screen.getByRole('button', { name: 'Needs review · 2' }).getAttribute('aria-pressed')).toBe('true');
+    expect([...rowNames()].sort()).toEqual(['Hatter', 'White Rabbit']);
+    fireEvent.click(screen.getByRole('button', { name: 'Needs review · 2' }));
+    expect(rowNames().length).toBeGreaterThan(3);
+  });
+
+  it('the chip is absent at 0 unless the filter is on', async () => {
+    await renderBible(noSuggestions);
+    expect(chip()).toBeNull();
+    cleanup();
+    await renderBible(async (api) => {
+      noSuggestions(api);
+      await flagHatter(api);
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    expect(rowNames()).toEqual(['Hatter']);
+    fireEvent.click(rowFor('Hatter'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
+    const stays = await screen.findByRole('button', { name: 'Needs review · 0' });
+    expect(stays.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('No matching entries.')).toBeTruthy();
+    fireEvent.click(stays);
+    await waitFor(() => expect(chip()).toBeNull());
+  });
+
+  it('row-pill-says-verify-or-review', async () => {
+    await renderBible(flagHatter);
+    expect(within(rowFor('White Rabbit')).getByText('Verify · 2')).toBeTruthy();
+    expect(within(rowFor('Alice')).queryByText(/Review|Verify/)).toBeNull();
+    expect(within(rowFor('Hatter')).getByText('Review')).toBeTruthy();
+    expect(within(rowFor('Caterpillar')).queryByText(/Review|Verify/)).toBeNull();
+  });
+
+  it('a flagged entry with something to verify says Verify, and Review once nothing is left', async () => {
+    const api = await renderBible(async (host) => void (await host.guideFlagReview('white-rabbit')));
+    expect(within(rowFor('White Rabbit')).getByText('Verify · 2')).toBeTruthy();
+    const open = await api.extractionList();
+    await Promise.all(open.filter((s) => s.entryId === 'white-rabbit' && s.status === 'needs-verification').map((s) => api.extractionReject(s.id)));
+    cleanup();
+    vi.spyOn(api, 'extractionList');
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    await screen.findAllByText('Alice');
+    expect(within(rowFor('White Rabbit')).getByText('Review')).toBeTruthy();
+  });
+
+  it('mark-reviewed-clears-the-entry-and-its-names: the count follows', async () => {
+    const api = await renderBible(async (host) => {
+      noSuggestions(host);
+      await flagHatter(host);
+      await host.guideFlagReview('caterpillar');
+    });
+    await screen.findByRole('button', { name: 'Needs review · 2' });
+    fireEvent.click(rowFor('Hatter'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
+    await screen.findByRole('button', { name: 'Needs review · 1' });
+    expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review).toEqual({ entry: false, aliases: [] });
+    expect(within(rowFor('Hatter')).queryByText('Review')).toBeNull();
+  });
+
+  it('blocked-while-anything-needs-verification: White Rabbit cannot be marked reviewed until its suggestions are decided', async () => {
+    const api = await renderBible(async (host) => void (await host.guideFlagReview('white-rabbit')));
+    const mark = vi.spyOn(api, 'guideMarkReviewed');
+    fireEvent.click(rowFor('White Rabbit'));
+    const button = (await screen.findByRole('button', { name: 'Mark reviewed' })) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(screen.getByRole('group', { name: 'Verify or reject its suggestions first.' })).toBeTruthy();
+    fireEvent.click(button);
+    expect(mark).not.toHaveBeenCalled();
+  });
+
+  it('mark-reviewed-can-be-undone: Undo flags the entry again and the chip counts it', async () => {
+    const toast = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const api = await renderBible(async (host) => {
+      noSuggestions(host);
+      await flagHatter(host);
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    fireEvent.click(rowFor('Hatter'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
+    await screen.findByRole('button', { name: 'Needs review · 0' });
+    await toast.mock.calls[0][1]();
+    await screen.findByRole('button', { name: 'Needs review · 1' });
+    expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review?.entry).toBe(true);
+    toast.mockRestore();
+  });
+
+  it('editor-shows-the-flags: Cancel of an edit does not bring a cleared flag back', async () => {
+    const api = await renderBible(async (host) => {
+      noSuggestions(host);
+      await host.guideFlagReview('white-rabbit', 0);
+    });
+    fireEvent.click(rowFor('White Rabbit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark Rabbit reviewed' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Mark Rabbit reviewed' })).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    expect(screen.queryByRole('button', { name: 'Mark Rabbit reviewed' })).toBeNull();
+    expect((await api.guideEntities()).find((row) => row.id === 'white-rabbit')?.review?.aliases).toEqual([]);
+  });
+
+  it('merge-keeps-both-flags-visible: the result shows what the host sends, and the client merges nothing', async () => {
+    let flag!: ReturnType<typeof vi.spyOn>;
+    let mark!: ReturnType<typeof vi.spyOn>;
+    await renderBible(async (api) => {
+      noSuggestions(api);
+      const rows = await api.guideEntities();
+      // What the host answers after a merge: the target carries the union of both entries' flags.
+      vi.spyOn(api, 'guideEntities').mockResolvedValue(rows.map((row) => (row.id === 'alice' ? { ...row, review: { entry: true, aliases: [] } } : row)));
+      flag = vi.spyOn(api, 'guideFlagReview');
+      mark = vi.spyOn(api, 'guideMarkReviewed');
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    expect(rowNames()).toEqual(['Alice']);
+    expect(within(screen.getByRole('table', { name: 'Story Bible entries' })).getByText('Review')).toBeTruthy();
+    expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
+  });
+
+  it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
+    await renderBible(flagHatter);
+    const tab = screen.getByRole('tab', { name: /^Needs Review · \d+$/ });
+    fireEvent.click(tab);
+    const names = rowNames();
+    expect(names).toEqual(['March Hare']);
+    expect(screen.getByRole('button', { name: /^Needs review · \d+$/ })).toBeTruthy();
   });
 });

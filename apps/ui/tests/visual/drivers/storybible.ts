@@ -1,8 +1,27 @@
 // How to reach each `storybible` state in STATE_CATALOG (see app.drivers.ts).
+import { WIRE_ENTITIES } from '../../../src/api/mockFixtures';
 import { settlePage } from '../helpers/settle';
 import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveOnlineDictionaryKey } from './shared';
 
 export const storybibleDrivers: Record<string, Driver> = {
+  'review-filter': async (page) => {
+    // The mock host flags nothing, so the entries it lists are sent with White Rabbit (the entry and its name "Rabbit") and Hatter flagged,
+    // the way the host sends them; its suggestions leave two to verify on White Rabbit.
+    const flagged = WIRE_ENTITIES.map((entity) => {
+      if (entity.id === 'white-rabbit') return { ...entity, review_state: 'needs review', review: { entry: true, aliases: ['Rabbit'] } };
+      if (entity.id === 'mad-hatter') return { ...entity, review_state: 'needs review', review: { entry: true, aliases: [] } };
+      return entity;
+    });
+    await page.addInitScript((entities) => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = { guideEntities: async () => entities };
+    }, flagged);
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Story Bible');
+    await clickVisible(page, 'button', /^Needs review · \d+$/);
+    await page.locator('tr[data-row]', { hasText: 'White Rabbit' }).click();
+    await page.getByRole('button', { name: 'Mark Rabbit reviewed' }).waitFor();
+  },
   'entry-saving': async (page) => {
     await page.goto('/?mockHoldEdits=1');
     await settlePage(page);

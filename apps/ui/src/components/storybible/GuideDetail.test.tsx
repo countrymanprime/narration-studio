@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
+import type { GuideEntity } from '../../types';
+import { overlay } from '../../overlay/overlayService';
+import type { Notify } from '../primitives/Toast';
 import { GuideDetail } from './GuideDetail';
 
 afterEach(() => {
@@ -374,5 +377,127 @@ describe('speaker colour field in the entry', () => {
       </ApiProvider>,
     );
     expect(screen.queryByRole('combobox', { name: 'Speaker colour' })).toBeNull();
+  });
+});
+
+// SNB-3b: the flags in the detail, Mark reviewed for the entry and for one name, and the block while a suggestion is still to be verified.
+describe('mark-reviewed-in-the-detail', () => {
+  const rabbit = (over: Partial<GuideEntity> = {}): GuideEntity => ({
+    ...WIRE_ENTITIES.find((row) => row.id === 'white-rabbit')!,
+    review: { entry: true, aliases: ['Rabbit'] },
+    ...over,
+  });
+  function renderReview(entity: GuideEntity, { toVerify = 0, notify = vi.fn<Notify>() }: { toVerify?: number; notify?: Notify } = {}) {
+    const api = createMockApi();
+    const calls = { mark: vi.spyOn(api, 'guideMarkReviewed'), flag: vi.spyOn(api, 'guideFlagReview') };
+    const reload = vi.fn().mockResolvedValue(undefined);
+    const toast = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    render(
+      <ApiProvider api={api}>
+        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={reload} notify={notify} goToManuscript={vi.fn()} toVerify={toVerify} />
+      </ApiProvider>,
+    );
+    return { ...calls, reload, toast, notify };
+  }
+
+  it('mark-reviewed-clears-the-entry-and-its-names: the button calls guideMarkReviewed(id) and the list reloads', async () => {
+    const { mark, reload } = renderReview(rabbit());
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(reload).toHaveBeenCalledWith('white-rabbit'));
+    expect(mark.mock.calls).toEqual([['white-rabbit']]);
+  });
+
+  it("a name's own button calls guideMarkReviewed with the alias index", async () => {
+    const { mark, reload } = renderReview(rabbit());
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Rabbit reviewed' }));
+    await waitFor(() => expect(reload).toHaveBeenCalled());
+    expect(mark.mock.calls).toEqual([['white-rabbit', 0]]);
+  });
+
+  it('editor-shows-the-flags: the entry and each flagged name show Needs review, and a clean name has no button', () => {
+    renderReview(rabbit({ review: { entry: true, aliases: ['Rabbit'] } }));
+    expect(screen.getAllByText('Needs review')).toHaveLength(2);
+    expect(within(screen.getByRole('table', { name: 'Aliases' })).getAllByText('Needs review')).toHaveLength(1);
+    cleanup();
+    renderReview(rabbit({ review: { entry: true, aliases: [] } }));
+    expect(screen.queryByRole('button', { name: 'Mark Rabbit reviewed' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Mark reviewed' })).toBeTruthy();
+  });
+
+  it('shows neither a flag nor a button on an entry that needs nothing', () => {
+    renderReview(rabbit({ review: { entry: false, aliases: [] }, review_state: 'reviewed' }));
+    expect(screen.queryByText('Needs review')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mark reviewed' })).toBeNull();
+  });
+
+  it('blocked-while-anything-needs-verification: the button is off with the reason and no call is made', () => {
+    const { mark } = renderReview(rabbit(), { toVerify: 2 });
+    const button = screen.getByRole('button', { name: 'Mark reviewed' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(screen.getByRole('group', { name: 'Verify or reject its suggestions first.' })).toBeTruthy();
+    fireEvent.click(button);
+    expect(mark).not.toHaveBeenCalled();
+  });
+
+  it('an entry with only suggestions to verify shows the flag but no Mark reviewed button', () => {
+    renderReview(rabbit({ review: { entry: false, aliases: [] }, review_state: 'reviewed' }), { toVerify: 1 });
+    expect(screen.getAllByText('Needs review').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Mark reviewed' })).toBeNull();
+  });
+
+  it('mark-reviewed-can-be-undone: Undo in the toast calls guideFlagReview to put the same flags back', async () => {
+    const { toast, flag } = renderReview(rabbit());
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    expect(toast.mock.calls[0][0]).toBe('“White Rabbit” reviewed.');
+    expect(flag).not.toHaveBeenCalled();
+    await expect(toast.mock.calls[0][1]()).resolves.toEqual({ ok: true });
+    expect(flag.mock.calls).toEqual([['white-rabbit'], ['white-rabbit', 0]]);
+  });
+
+  it('undoing a name puts that name back and nothing else', async () => {
+    const { toast, flag, reload } = renderReview(rabbit());
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Rabbit reviewed' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    expect(toast.mock.calls[0][0]).toBe('“Rabbit” reviewed.');
+    reload.mockClear();
+    await toast.mock.calls[0][1]();
+    expect(flag.mock.calls).toEqual([['white-rabbit', 0]]);
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('undo puts back only the flags the entry had: a name-only flag does not flag the entry', async () => {
+    const { toast, flag } = renderReview(rabbit({ review: { entry: false, aliases: ['Rabbit'] } }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    await toast.mock.calls[0][1]();
+    expect(flag.mock.calls).toEqual([['white-rabbit', 0]]);
+  });
+
+  it('a refused undo answers the host sentence for the toast', async () => {
+    const { toast, flag } = renderReview(rabbit());
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    flag.mockRejectedValueOnce(new Error('This entity is locked. Unlock it before editing.'));
+    await expect(toast.mock.calls[0][1]()).resolves.toEqual({ ok: false, refusal: { reason: 'This entity is locked. Unlock it before editing.' } });
+  });
+
+  it('a refusal is the host sentence in a toast, with no Undo offered', async () => {
+    const { notify, toast, mark } = renderReview(rabbit());
+    mark.mockRejectedValueOnce(new Error('This entity is locked. Unlock it before editing.'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Error: This entity is locked. Unlock it before editing.', 'error'));
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('one name at a time: the pressed button is busy while the call runs', async () => {
+    const { mark } = renderReview(rabbit());
+    let finish!: () => void;
+    mark.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Rabbit reviewed' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Mark Rabbit reviewed' }).getAttribute('aria-busy')).toBe('true'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    expect(mark).toHaveBeenCalledTimes(1);
+    finish();
   });
 });
