@@ -1,4 +1,4 @@
-import { toneColors, badgeClass, badgeStyle } from '../../primitives/StatusBadge';
+import { toneColors } from '../../primitives/StatusBadge';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { StageChapterRecommendation } from '../../../types';
 import { stageLabel } from '../../stages/stageText';
@@ -20,8 +20,9 @@ export function ReadinessChip({ recommendation, onOpen }: { recommendation: Stag
         data-verdict={verdict}
         aria-label={`Stage readiness: ${label}, ${stage}`}
         aria-haspopup="dialog"
-        className={`${badgeClass('cell')} min-w-0 cursor-pointer px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]`}
-        style={badgeStyle(toneColors(VERDICT_TONE[verdict]))}
+        // The mock's round 20 px mark: the tone's text colour filled, the glyph in the surface colour.
+        className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full border-0 p-0 text-[0.7rem] leading-none font-bold text-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        style={{ background: toneColors(VERDICT_TONE[verdict]).text }}
         onClick={onOpen}
       >
         <span aria-hidden="true">{VERDICT_GLYPH[verdict]}</span>

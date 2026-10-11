@@ -157,7 +157,7 @@ export function readinessOf(recommendation: StageChapterRecommendation, seen?: S
     stage: stageLabel(recommendation.from),
     headline,
     sub,
-    boxLabel: verdict === 'confirmed' ? 'Decision' : 'Suggestion',
+    boxLabel: verdict === 'confirmed' || !!recommendation.contradiction ? 'Decision' : 'Suggestion',
     items: evidenceRows(recommendation),
     changes: changesOf(recommendation, seen),
     changedSince: recommendation.contradiction ? confirmation?.at : seen?.signals[0]?.computedAt,

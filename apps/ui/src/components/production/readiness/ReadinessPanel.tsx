@@ -4,7 +4,7 @@ import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
-import type { StageDecision, StagesState } from '../../stages/useStageRecommendations';
+import type { StageDecision } from '../../stages/useStageRecommendations';
 import { formatWhen } from '../recordingCheckText';
 import { readinessOf, VERDICT_GLYPH, VERDICT_LABEL, VERDICT_TONE, type EvidenceRow } from './verdict';
 
@@ -12,7 +12,7 @@ type Props = {
   recommendation?: StageChapterRecommendation;
   /** The suggestion as the narrator read it when the panel opened; a basis that moved since reads "evidence changed". */
   seen?: StageChapterRecommendation;
-  phase: StagesState['phase'];
+  phase: 'loading' | 'ready' | 'error';
   error: string;
   isPending: (decision: StageDecision) => boolean;
   busy: boolean;
@@ -20,12 +20,15 @@ type Props = {
   onCheckNow: () => void;
 };
 
-const MARK: Record<EvidenceRow['state'], string> = { met: '✓', unmet: '✕' };
+// `partial` is a row whose evidence moved since the suggestion: neither met nor unmet, as in the mock.
+const MARK = { met: '✓', unmet: '✕', partial: '◐' } as const;
+const MARK_COLOR = { met: 'var(--ok-text)', unmet: 'var(--danger-text)', partial: 'var(--warn-text)' } as const;
+type RowView = Omit<EvidenceRow, 'state'> & { state: keyof typeof MARK };
 
-function Evidence({ row }: { row: EvidenceRow }) {
+function Evidence({ row }: { row: RowView }) {
   return (
     <li data-item={row.id} className="flex items-start gap-2 border-b border-[var(--border)] py-2 last:border-b-0">
-      <span aria-hidden="true" className="w-4 flex-none text-center" style={{ color: row.state === 'met' ? 'var(--ok-text)' : 'var(--danger-text)' }}>
+      <span aria-hidden="true" className="w-4 flex-none text-center" style={{ color: MARK_COLOR[row.state] }}>
         {MARK[row.state]}
       </span>
       <span className="min-w-0 flex-1">
@@ -107,7 +110,10 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
             {model.items.map((row) => {
               const change = changes.get(row.id);
               return (
-                <Evidence key={row.id} row={change ? { ...row, note: `was ${change.was} at the suggestion`, value: `${change.was} → ${change.now}` } : row} />
+                <Evidence
+                  key={row.id}
+                  row={change ? { ...row, state: 'partial', note: `was ${change.was} at the suggestion`, value: `${change.was} → ${change.now}` } : row}
+                />
               );
             })}
           </ul>
