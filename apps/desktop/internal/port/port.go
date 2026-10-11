@@ -51,6 +51,7 @@ const (
 // Mode is how a change that needs several edits is made. The values are the wire's.
 type Mode string
 
+// The modes a provider may declare for a capability.
 const (
 	ModeNative Mode = "native" // the DAW does it itself, as one undo step
 	ModeApp    Mode = "app"    // the app makes it; the DAW keeps no project of its own

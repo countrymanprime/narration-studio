@@ -110,6 +110,7 @@ func SpecOf(c Capability) (Spec, bool) {
 // Mode is how a change that needs several edits is made. See port.Mode for each value.
 type Mode = port.Mode
 
+// The modes an adapter may declare, aliased from port.
 const (
 	ModeNative = port.ModeNative
 	ModeApp    = port.ModeApp
