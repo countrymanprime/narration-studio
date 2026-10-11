@@ -35,3 +35,13 @@ describe('COMMAND_CATALOG metadata', () => {
     }
   });
 });
+
+describe('the jump menu row', () => {
+  it('jump-open-row: Mod+K and Mod+F, global, on help and settings, not in the jump menu', () => {
+    const row = findCommand('jump.open');
+    expect(row?.scope).toBe('global');
+    expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+KeyK', 'Mod+KeyF']);
+    expect(row?.surfaces).toEqual(['help', 'settings']);
+    expect(row?.surfaces).not.toContain('jumpMenu');
+  });
+});

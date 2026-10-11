@@ -179,4 +179,17 @@ describe('the import-graph rules (ADR 0062)', () => {
     expect(await violations('src/overlay/ok.ts')).toEqual([]);
     expect(await violations('src/overlay/leaky.ts')).toEqual(['overlay-imports-primitives-only: src/overlay/leaky.ts -> src/components/home/Home.ts']);
   });
+  test('registries-rule-fires: a registry may import primitives, input and itself, and no feature component', async () => {
+    write('src/components/home/Home.ts', 'export const Home = 1;\n');
+    write('src/components/primitives/Types.ts', 'export type Option = { id: string };\n');
+    write('src/input/keys.ts', 'export const keys = 1;\n');
+    write('src/registries/other.ts', 'export const other = 1;\n');
+    write(
+      'src/registries/ok.ts',
+      "import type { Option } from '../components/primitives/Types';\nimport { keys } from '../input/keys';\nimport { other } from './other';\nexport const ok: Option = { id: String(keys + other) };\n",
+    );
+    write('src/registries/leaky.ts', "import { Home } from '../components/home/Home';\nexport const leaky = Home;\n");
+    expect(await violations('src/registries/ok.ts')).toEqual([]);
+    expect(await violations('src/registries/leaky.ts')).toEqual(['registries-import-no-feature: src/registries/leaky.ts -> src/components/home/Home.ts']);
+  });
 });

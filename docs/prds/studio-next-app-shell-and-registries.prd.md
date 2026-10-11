@@ -128,7 +128,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | ADRs | A3 and A4 as Proposed | in review (ADR 0780, ADR 0781) | - | SN0-1 | 0.4 | - |
 | 2 | Catalogue extension | Descriptor fields, provider API, surface tests | in review (#1032) | 3 | 1 | 1.0 | - |
 | 3 | Overlay service | `overlay.*` over primitives, tests | in review (#1033) | 2 | 1 | 1.0 | - |
-| 4 | Jump menu and search sources | `JumpMenu`, sources registry, first sources (chapters, pages) | pending | 5 | 2, 3, SNF-4 | 1.5 | - |
+| 4 | Jump menu and search sources | `JumpMenu`, sources registry, first sources (chapters, pages) | in review (#1052) | 5 | 2, 3, SNF-4 | 1.5 | - |
 | 5 | Context menu host | Provider registry, `ContextMenuHost`, keyboard open | pending | 4 | 3 | 1.2 | - |
 | 6 | Help as data | Sheet, Settings list and footers from catalogue and hint specs | pending | 7 | 2, SNF-4 | 1.0 | - |
 | 7 | History panel | Slide-over over the journal | pending | 6 | 3, SNS-3 | 0.8 | - |
