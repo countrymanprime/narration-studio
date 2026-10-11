@@ -457,19 +457,21 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
     """
     engine = SOURCES.lookup(source)
     engine.espeak_library = espeak_library
-    return engine.pronounce(name)
+    # The value names its source by the registry name (ADR 0792), not the adapter's display label.
+    return {**engine.pronounce(name), "source": source}
 
 
-# The narrator's own pronunciation (ADR 0346). It is a provenance label, not a registered source: it is never looked
-# up, so it is not in SOURCES and the pronounce command does not offer it.
-USER_SOURCE = "user"
+# The narrator's own pronunciation (ADR 0346, ADR 0792). It is a provenance id, not a registered source: it is never looked
+# up, so it is not in SOURCES and the pronounce command does not offer it. A file written before ADR 0792 says ``user``.
+MANUAL_SOURCE = "manual"
+LEGACY_MANUAL_SOURCE = "user"
 # Where the narrator is with a pronunciation: looked up (the default, and what an entry written before status existed reads as),
 # asked of the author, or confirmed by the author.
 PRONUNCIATION_STATUSES = ("researched", "query_sent", "author_confirmed")
 DEFAULT_PRONUNCIATION_STATUS = "researched"
 MAX_USER_PRONUNCIATION = 200
 MAX_PRONUNCIATION_NOTE = 1000
-# The fields that are the pronunciation itself; status, note and the alternate are about the name and travel with it.
+# The fields that are the pronunciation itself; the note and the alternate are about the name and travel with it.
 _PRONUNCIATION_VALUE_FIELDS = ("ipa", "source", "confidence")
 
 
@@ -479,8 +481,18 @@ def pronunciation_status_of(value: dict[str, Any] | None) -> str:
     return status if status in PRONUNCIATION_STATUSES else DEFAULT_PRONUNCIATION_STATUS
 
 
-def _is_user(value: dict[str, Any] | None) -> bool:
-    return (value or {}).get("source") == USER_SOURCE
+def read_pronunciation_source(value: dict[str, Any]) -> dict[str, Any]:
+    """``value`` with a legacy ``user`` source read as ``manual``, in the value and in its alternate; nothing else changes."""
+    out = dict(value)
+    if out.get("source") == LEGACY_MANUAL_SOURCE:
+        out["source"] = MANUAL_SOURCE
+    if isinstance(out.get("alternate"), dict):
+        out["alternate"] = read_pronunciation_source(out["alternate"])
+    return out
+
+
+def _is_manual(value: dict[str, Any] | None) -> bool:
+    return read_pronunciation_source(value or {}).get("source") == MANUAL_SOURCE
 
 
 def _pronunciation_core(value: dict[str, Any]) -> dict[str, Any]:
@@ -488,18 +500,12 @@ def _pronunciation_core(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def carry_pronunciation_work(prior: dict[str, Any] | None, fresh: dict[str, Any]) -> dict[str, Any]:
-    """``fresh`` with the narrator's status, note and alternate from ``prior``, the pronunciation it replaces.
+    """``fresh`` with the narrator's note and alternate from ``prior``, the pronunciation it replaces.
 
-    An ``author_confirmed`` status confirmed the old IPA, not the new one, so it is withdrawn to ``researched`` when the IPA in use
-    changes; ``query_sent`` stays, because the question is still out. Nothing is added to a value that had none of these.
+    A stored ``status`` is ignored (ADR 0792): it is neither carried nor written. Nothing is added to a value that had none of these.
     """
     prior = prior or {}
     value = dict(fresh)
-    if "status" in prior:
-        status = pronunciation_status_of(prior)
-        if status == "author_confirmed" and prior.get("ipa", "") != value.get("ipa", ""):
-            status = DEFAULT_PRONUNCIATION_STATUS
-        value["status"] = status
     if prior.get("note"):
         value["note"] = prior["note"]
     if prior.get("alternate") and "alternate" not in value:
@@ -517,7 +523,7 @@ def set_pronunciation(prior: dict[str, Any] | None, new: dict[str, Any]) -> dict
     prior = prior or {}
     value = carry_pronunciation_work(prior, new)
     value.pop("alternate", None)
-    if prior.get("ipa") and _is_user(prior) != _is_user(new):
+    if prior.get("ipa") and _is_manual(prior) != _is_manual(new):
         value["alternate"] = _pronunciation_core(prior)
     elif prior.get("alternate"):
         value["alternate"] = prior["alternate"]
@@ -533,7 +539,7 @@ def user_pronunciation(ipa: str) -> dict[str, Any]:
         raise ValueError("A pronunciation is one line.")
     if len(text) > MAX_USER_PRONUNCIATION:
         raise ValueError(f"A pronunciation is at most {MAX_USER_PRONUNCIATION} characters.")
-    return {"ipa": text, "source": USER_SOURCE, "confidence": "narrator"}
+    return {"ipa": text, "source": MANUAL_SOURCE, "confidence": "narrator"}
 
 
 def pronunciation(name: str, espeak_library: str | None, default_source: str | None = None) -> dict[str, str]:
@@ -800,6 +806,9 @@ def load_json(path: str) -> dict[str, Any] | None:
         aliases = entity.get("aliases")
         if isinstance(aliases, list):
             entity["aliases"] = [alias if isinstance(alias, dict) else {"text": alias, "pronunciation": {}, "occurrences": []} for alias in aliases]
+        for holder in [entity, *(alias for alias in entity.get("aliases") or [] if isinstance(alias, dict))]:
+            if isinstance(holder.get("pronunciation"), dict):
+                holder["pronunciation"] = read_pronunciation_source(holder["pronunciation"])
     return data
 
 
@@ -877,7 +886,7 @@ def merge_locked(generated: list[dict[str, Any]], old: dict[str, Any] | None) ->
             entity["properties"] = entity_properties(prior)
             # A pronunciation the narrator explicitly chose (pronounce(), marked "chosen") survives a rebuild too,
             # the same as a locked entity's - only an auto-generated one is replaced by the fresh build (B11).
-            # Otherwise the narrator's status, note and alternate carry over to the fresh one.
+            # Otherwise the narrator's note and alternate carry over to the fresh one.
             if (prior.get("pronunciation") or {}).get("chosen"):
                 entity["pronunciation"] = prior["pronunciation"]
             elif prior.get("pronunciation"):
@@ -1185,15 +1194,37 @@ def pronounce(args: argparse.Namespace) -> None:
     print(f"PRONOUNCED|{args.entity_id}|{value['source']}")
 
 
+MAX_CANDIDATE_WORD = 80
+
+
+def candidate(args: argparse.Namespace) -> None:
+    """Prints one JSON line for one word from one source: ``{"ok": true, "say": ...}`` or ``{"ok": false, "reason": ...}``.
+
+    Stateless: it reads no guide and writes no file, so trying a source on a word changes nothing. A miss is a sentence naming the
+    source and the word. A word that is blank, longer than ``MAX_CANDIDATE_WORD`` characters or holds a newline or NUL is refused
+    before any lookup.
+    """
+    word = (args.word or "").strip()
+    if not word or len(word) > MAX_CANDIDATE_WORD or any(char in word for char in "\r\n\0"):
+        raise ValueError(f"A word to try is one line of 1 to {MAX_CANDIDATE_WORD} characters.")
+    try:
+        say = pronounce_source(word, args.espeak_library or None, args.source)["ipa"]
+    except Exception as exc:  # noqa: BLE001
+        result: dict[str, Any] = {"ok": False, "reason": f'{SOURCES.lookup(args.source).descriptor.label} has no pronunciation for "{word}": {exc}'}
+    else:
+        result = {"ok": True, "say": say}
+    print(json.dumps(result, ensure_ascii=False))
+
+
 def pronounce_user(args: argparse.Namespace) -> None:
-    """Sets the narrator's own pronunciation (source ``user``) beside the dictionary's, which is kept as the alternate."""
+    """Sets the narrator's own pronunciation (source ``manual``) beside the dictionary's, which is kept as the alternate."""
     value = user_pronunciation(args.ipa)
     guide = _load_guide_for_edit(args.guide)
     holder, _ = _pronunciation_holder(guide, args.entity_id, args.alias_index)
     value["chosen"] = True
     holder["pronunciation"] = set_pronunciation(holder.get("pronunciation"), value)
     write_json(args.guide, guide)
-    print(f"PRONOUNCED|{args.entity_id}|{USER_SOURCE}")
+    print(f"PRONOUNCED|{args.entity_id}|{MANUAL_SOURCE}")
 
 
 def pronunciation_use_alternate(args: argparse.Namespace) -> None:
@@ -1803,6 +1834,11 @@ def main() -> None:
     pronounce_parser.add_argument("--wiktextract-index", default="")
     # The narrator's own pronunciation and the note are free text: pass them as --ipa=VALUE / --note=VALUE so one that starts with
     # "-" is still a value, not another option (the host always does).
+    candidate_parser = command.add_parser("candidate")
+    candidate_parser.add_argument("--word", required=True)
+    candidate_parser.add_argument("--source", required=True, choices=sorted(PRONUNCIATION_SOURCES))
+    candidate_parser.add_argument("--espeak-library", default="")
+    candidate_parser.add_argument("--wiktextract-index", default="")
     user_parser = command.add_parser("pronounce-user")
     user_parser.add_argument("--guide", required=True)
     user_parser.add_argument("--entity-id", required=True)
@@ -1888,6 +1924,7 @@ def main() -> None:
             "edit": edit,
             "rescan": rescan,
             "pronounce": pronounce,
+            "candidate": candidate,
             "pronounce-user": pronounce_user,
             "pronunciation-use-alternate": pronunciation_use_alternate,
             "pronunciation-status": pronunciation_status,
