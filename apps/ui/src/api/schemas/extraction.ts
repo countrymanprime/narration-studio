@@ -14,12 +14,12 @@ import {
 
 const text = z.string().min(1);
 
-export const suggestionEvidenceSchema = z
+const suggestionEvidenceSchema = z
   .object({ paragraphId: text, start: z.number().int().nonnegative(), end: z.number().int().nonnegative(), text: z.string() })
   .strict()
   .refine((evidence) => evidence.start < evidence.end, 'a quote starts before it ends') satisfies z.ZodType<SuggestionEvidence>;
 
-export const suggestionPayloadSchema = z.discriminatedUnion('kind', [
+const suggestionPayloadSchema = z.discriminatedUnion('kind', [
   z
     .object({
       kind: z.literal('entry'),
@@ -37,7 +37,7 @@ export const suggestionPayloadSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('speaker'), quote: text, speaker: text }).strict(),
 ]) satisfies z.ZodType<SuggestionPayload>;
 
-export const suggestionAppliedSchema = z
+const suggestionAppliedSchema = z
   .object({
     entryId: z.string().optional(),
     created: z.boolean().optional(),
