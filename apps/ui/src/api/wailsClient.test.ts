@@ -370,6 +370,18 @@ describe('wailsClient', () => {
     await expect(wailsClient.productionStatusReportPreview(false)).rejects.toBeInstanceOf(WireError);
   });
 
+  it('sets the schedule basis through the plan schema and refuses an unknown one in the reply', async () => {
+    const plan = { deadline: null, contractedAmount: null, payment: 'none', rateBasis: 'own', milestones: [] };
+    const productionSetRateBasis = vi.fn().mockResolvedValue(JSON.stringify(plan));
+    standInHost({ ProductionSetRateBasis: productionSetRateBasis });
+
+    await expect(wailsClient.setProductionRateBasis('own')).resolves.toEqual(plan);
+    expect(productionSetRateBasis).toHaveBeenCalledWith('own');
+
+    standInHost({ ProductionSetRateBasis: vi.fn().mockResolvedValue(JSON.stringify({ ...plan, rateBasis: 'fast' })) });
+    await expect(wailsClient.setProductionRateBasis('own')).rejects.toBeInstanceOf(WireError);
+  });
+
   it('lists recent projects from the native binding', async () => {
     const recents = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z' }];
     const projectRecents = vi.fn().mockResolvedValue(JSON.stringify(recents));

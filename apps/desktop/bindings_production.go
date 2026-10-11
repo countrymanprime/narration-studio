@@ -76,6 +76,20 @@ func (h *Host) ProductionSetPayment(payment string) (string, error) {
 	})
 }
 
+// ProductionSetRateBasis sets the schedule basis: "standard" or "own" (the narrator's own pace). It stores the choice
+// only; it never reads the take log or the chapter lengths, so falling back to the standard rate while nothing is
+// measured is the UI's. An unknown basis is refused and nothing is written.
+func (h *Host) ProductionSetRateBasis(basis string) (string, error) {
+	checked, err := production.CheckRateBasis(basis)
+	if err != nil {
+		return "", err
+	}
+	return h.saveProductionPlan("the schedule basis", func(manifest *project.Manifest) error {
+		manifest.RateBasis = checked
+		return nil
+	})
+}
+
 // ProductionSaveMilestones replaces the book's milestones with milestones, in the narrator's order. Each needs a name
 // and a real date ("YYYY-MM-DD"); a note, a measure, an estimate, the done flag and a template id are optional
 // (production.CleanMilestones). A list with any invalid milestone is refused whole and nothing is written.
