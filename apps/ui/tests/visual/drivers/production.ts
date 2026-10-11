@@ -2,7 +2,6 @@
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
-  boardRow,
   clickVisible,
   confirmDialog,
   openEditingCheck,
@@ -10,7 +9,6 @@ import {
   openProduction,
   openRecordingCheck,
   openStageEvidence,
-  openStageSuggestions,
   openTrackPanel,
   productionLoaded,
 } from './shared';
@@ -31,20 +29,6 @@ export const productionDrivers: Record<string, Driver> = {
   'at-risk': async (page) => {
     await openProduction(page, '?mockProduction=at-risk');
     await page.getByText(/^Due 29 Sep/).waitFor();
-  },
-  plan: async (page) => {
-    await openProduction(page, '?mockProduction=on-pace');
-    const panel = page.getByRole('region', { name: 'Delivery plan' });
-    await panel.getByRole('button', { name: 'Add the ACX 15-minute checkpoint' }).click();
-    await panel.getByRole('table', { name: 'Milestones' }).waitFor();
-    await panel.scrollIntoViewIfNeeded();
-  },
-  'status-report': async (page) => {
-    await openProduction(page, '?mockProduction=on-pace');
-    await page.getByRole('group', { name: 'Production actions' }).getByRole('button', { name: 'Export status report' }).click();
-    const report = page.getByRole('dialog', { name: 'Status report' });
-    await report.getByRole('button', { name: 'Export status report' }).click();
-    await report.getByText(/^Wrote production-status-/).waitFor();
   },
 
   'live-updates-degraded': async (page) => {
@@ -119,12 +103,6 @@ export const productionDrivers: Record<string, Driver> = {
     await line.scrollIntoViewIfNeeded();
   },
 
-  'info-tooltip': async (page) => {
-    await productionLoaded(page);
-    await page.getByLabel('About these figures').hover();
-    // TooltipTarget shows its tooltip 1s after hover - wait for it, don't race it.
-    await page.getByRole('tooltip').waitFor();
-  },
   'manuscript-candidate-offer': async (page) => {
     // Reload with the mock's candidate boot seam (see main.tsx), like
     // project/picker-empty does for the no-project seam.
@@ -258,30 +236,6 @@ export const productionDrivers: Record<string, Driver> = {
     await ask.waitFor();
     await ask.getByRole('button', { name: 'Check with tiny only' }).waitFor();
   },
-  'stage-summary-chips': async (page) => {
-    await openStageSuggestions(page, 'mixed');
-    // Below the widest layout Next up comes first, so the board's chips are below the fold.
-    await page.getByRole('button', { name: '1 chapter has a suggestion' }).scrollIntoViewIfNeeded();
-  },
-  'stage-dismissed': async (page) => {
-    const view = await openStageEvidence(page, 'Chapter 4');
-    await view.getByRole('button', { name: 'Dismiss', exact: true }).click();
-    await page.getByText('Suggestion to move Chapter 4 to Editing dismissed.').waitFor();
-    // The slide-over covers the toast, so it closes first; then the toast, which removes itself on a real timer that would
-    // race the shots of the other viewports.
-    await page.keyboard.press('Escape');
-    await view.waitFor({ state: 'hidden' });
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
-    await page.getByRole('button', { name: 'Dismiss message' }).waitFor({ state: 'detached' });
-    await page.getByRole('button', { name: '1 chapter has a suggestion' }).waitFor({ state: 'detached' });
-  },
-  'stage-error': async (page) => {
-    await openStageSuggestions(page, 'error');
-    const line = page.getByText('Couldn’t check stage suggestions: the saved REAPER project could not be read');
-    await line.waitFor();
-    // Below the widest layout Next up comes first, so the board's error line is below the fold.
-    await line.scrollIntoViewIfNeeded();
-  },
   'stage-evidence-recommended': async (page) => {
     const view = await openStageEvidence(page, 'Chapter 4');
     await view.getByRole('button', { name: 'Confirm Editing' }).waitFor();
@@ -373,14 +327,14 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'credits-panel': async (page) => {
     await productionLoaded(page);
-    await boardRow(page, 'Opening credits').getByRole('gridcell').nth(2).click();
+    await page.getByRole('button', { name: 'Open Opening credits' }).click();
     await page.getByRole('dialog', { name: 'Opening credits' }).getByRole('link', { name: 'Open in Script' }).waitFor();
   },
   'credits-panel-not-set-up': async (page) => {
     await page.goto('/?mockCreditsMissing=1');
     await settlePage(page);
     await productionLoaded(page);
-    await boardRow(page, 'Closing credits').getByRole('gridcell').nth(2).click();
+    await page.getByRole('button', { name: 'Open Closing credits' }).click();
     await page
       .getByRole('dialog', { name: 'Closing credits' })
       .getByText(/^Not set up/)

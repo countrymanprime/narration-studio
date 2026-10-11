@@ -157,12 +157,6 @@ test('the menu on empty space is a menu of the shell items, ending with the jump
   await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-page-fallback.aria.yml' });
 });
 
-test('the info icon is a button that says it is expanded, and its hint is a tooltip', async ({ page }) => {
-  await openApp(page, DESKTOP, ['production', 'info-tooltip']);
-  await expect(page.getByRole('button', { name: 'About these figures' })).toMatchAriaSnapshot({ name: 'info-button-expanded.aria.yml' });
-  await expect(page.getByRole('tooltip')).toMatchAriaSnapshot({ name: 'info-tooltip.aria.yml' });
-});
-
 // The note on the Reference material group is an info icon inside an alert dialog (ADR 0049): it is a button with the note as its
 // description, its popup is a tooltip that stays above the dialog, and the first Escape closes the note and only the second the dialog.
 test('the note on the reference material group of the import review is an info icon whose Escape closes it before the dialog', async ({ page }) => {

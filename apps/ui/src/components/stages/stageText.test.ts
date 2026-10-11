@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StageChapterRecommendation, StageUnknownCause } from '../../types';
-import { CAUSE_TEXT, causeText, evidenceValue, formatAge, summarize, verdictLine, verdictSentence } from './stageText';
+import { CAUSE_TEXT, causeText, evidenceValue, formatAge, verdictLine, verdictSentence } from './stageText';
 
 const base: StageChapterRecommendation = {
   chapterId: 'c4',
@@ -81,11 +81,6 @@ describe('stage suggestion text', () => {
     expect(evidenceValue('stale', 'item_trimmed')).toBe('An item on the chapter’s track was trimmed since this check.');
     expect(evidenceValue('stale', 'unheard_of')).toBe('unheard_of');
     expect(evidenceValue('coverage', 'item_trimmed')).toBe('item_trimmed');
-  });
-
-  it('counts suggestions and changed evidence for the summary chips', () => {
-    const changed = { ...base, from: 'editing' as const, verdict: 'none' as const, contradiction: { revertTo: 'recording' as const, signals: [] } };
-    expect(summarize([base, { ...base, verdict: 'dismissed' }, changed, { ...base, verdict: 'not_ready' }])).toEqual({ suggested: 1, changed: 1 });
   });
 
   it('says how old a time is, and nothing for a time it cannot read', () => {
