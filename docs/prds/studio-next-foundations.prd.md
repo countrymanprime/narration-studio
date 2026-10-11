@@ -119,7 +119,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Base ADRs | A1 and A16 as Proposed (A1 needs no owner answer); token and primitive diff note in `docs/research/` | in review | 2 | SN0-1 | 0.5 | - |
-| 2 | Token batch | Add missing tokens, `PAIRS` rows, dark values; runs alone | pending | - | 1 | 0.8 | - |
+| 2 | Token batch | Add missing tokens, `PAIRS` rows, dark values; runs alone | in review | - | 1 | 0.8 | - |
 | 3 | Icon wrapper and catalogue | `Icon`, `icons.catalog.ts`, ratchet test, stories | pending | 4, 5 | 1 | 0.9 | - |
 | 4 | Key caps and hints | `KeyCap`, `KeyChord`, `KeyHints` footer, stories | in review | 3, 5 | 1 | 0.8 | - |
 | 5 | Form primitives | `Slider`, `NumberInput`, `Swatch` (three parallel slices) | pending | 3, 4 | 2 | 1.5 | - |
@@ -154,7 +154,7 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
 | SNF-1 | Phase 1 | SN0-1 | yes | Docs link check; ADR index generated |
-| SNF-2 | Phase 2 | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
+| SNF-2 | Phase 2 (in review) | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
 | SNF-3 | Phase 3 | SNF-1 | yes | `Icon` tests; ratchet test; atlas |
 | SNF-4 | Phase 4 | SNF-1 | yes | Port of `studio-next/tests/d2-keycaps.test.tsx`; atlas; axe |
 | SNF-5a | Slider | SNF-2 | yes | Story, tests, atlas, a11y |

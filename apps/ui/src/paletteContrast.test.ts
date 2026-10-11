@@ -83,10 +83,10 @@ const PAIRS: PairSpec[] = [
   text('warn', 'the warn text in Settings and the Teleprompter status: the text-safe warn colour', 'var(--warn-text)', PAGE_SURFACES),
   text(
     'warn-on-tint',
-    'Results badge: warn text on an 18% warn tint (a hovered or selected row is surface-2)',
+    'UnresolvedCreditsWarning: warn text on its 10% warn tint over the surface',
     'var(--warn-text)',
-    ['surface', 'surface-2'],
-    tint('warn', 18),
+    ['surface'],
+    'color-mix(in srgb, var(--warn) 10%, var(--surface))',
   ),
   text('warn-on-accent-soft', 'SKIPPED word in the inline diff: warn text on accent-soft', 'var(--warn-text)', ['surface-2'], 'var(--accent-soft)'),
   text('info', 'the text-safe info colour on the page', 'var(--info-text)', PAGE_SURFACES),
@@ -153,7 +153,7 @@ const PAIRS: PairSpec[] = [
     ['surface'],
     'var(--badge-experimental-fill)',
   ),
-  // The mock fidelity token batch (ADR 0590). The status soft fills
+  // The status soft fills (Studio Next token batch, ADR 0760)
   // are opaque, so a pill in a selected row is measured there as well as on the card.
   ...(
     [
@@ -167,10 +167,15 @@ const PAIRS: PairSpec[] = [
       `${tone}-soft`,
       `status pill and board cell (${name}): ${tone} text on the opaque ${tone} soft fill`,
       `var(--${tone}-text)`,
-      ['surface', 'row-selected'],
+      ['surface', 'surface-2', 'row-selected'],
       `var(--${tone}-soft)`,
     ),
   ),
+  // The Studio Next token batch (SN-F2, ADR 0760): the pairs the new tokens create. The soft status fills are measured above
+  // (`<tone>-soft`); these are the two border weights and the focus ring, which are marks, not text.
+  mark('line-strong', 'the control, segmented-group, chip and kbd border on the card', 'var(--line-strong)', ['surface']),
+  mark('btn-line', 'the default button outline on the card', 'var(--btn-line)', ['surface']),
+  mark('focus', 'the keyboard focus ring (:focus-visible) on the page, the card and a raised surface', 'var(--focus)', PAGE_SURFACES),
   text('booth-script', "the booth's script and its muted past paragraphs on the reading surface", 'var(--text-muted)', ['reading-bg']),
   text('rec', "the booth's REC pill: rec text on the rec fill", 'var(--rec-text)', ['surface'], 'var(--rec-fill)'),
   text('toast-tokens', 'Toast: the inverted pair', 'var(--toast-text)', ['surface'], 'var(--toast-bg)'),

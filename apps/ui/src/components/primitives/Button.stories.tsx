@@ -17,7 +17,7 @@ export default meta;
 const isLaidOut = (element: HTMLElement) => element.getBoundingClientRect().width > 0;
 type Story = StoryObj<typeof meta>;
 
-// The measured spec (ADR 0595): 32 px (`md`, the default) or 28 px (`sm`), 12 px each side, Barlow Condensed at `--font-size-sm`,
+// The measured spec (ADR 0595): 36 px (`md`, the default) or 32 px (`sm`), 12 px each side, Barlow Condensed at `--font-size-sm`,
 // uppercase, tracked 0.06 em. Primary is filled `--accent`; secondary is outlined and filled `--surface`.
 export const Primary: Story = { args: { variant: 'primary' } };
 export const Secondary: Story = { args: { variant: 'secondary' } };
@@ -39,7 +39,7 @@ export const Link: Story = {
   ),
 };
 
-// The mocks' header row: a secondary and a primary button side by side, 8 px apart, each 32 px tall.
+// The mocks' header row: a secondary and a primary button side by side, 8 px apart, each 36 px tall (the mock's Round 12 size).
 export const HeaderRow: Story = {
   render: () => (
     <div className="flex items-center gap-2">
@@ -51,11 +51,11 @@ export const HeaderRow: Story = {
     const buttons = within(canvasElement).getAllByRole('button');
     // Measured in the atlas's browser; the unit run's jsdom lays nothing out.
     if (!isLaidOut(canvasElement)) return;
-    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(32);
+    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(36);
   },
 };
 
-// The companion's row of small buttons, 28 px tall.
+// The companion's row of small buttons, 32 px tall.
 export const SmallRow: Story = {
   render: () => (
     <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export const SmallRow: Story = {
     const buttons = within(canvasElement).getAllByRole('button');
     // Measured in the atlas's browser; the unit run's jsdom lays nothing out.
     if (!isLaidOut(canvasElement)) return;
-    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(28);
+    for (const button of buttons) await expect(button.getBoundingClientRect().height).toBe(32);
   },
 };
 

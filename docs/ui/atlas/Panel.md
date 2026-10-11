@@ -51,6 +51,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/production/ProductionPage.tsx`
 - `src/components/production/RemovedFromRecordingList.tsx`
 - `src/components/project/ProjectPicker.tsx`
+- `src/components/proof/ChapterWaveformCard.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/FindingDetail.tsx`
 - `src/components/proof/FlagsPanel.tsx`
@@ -62,6 +63,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/proof/ProofingStagePanel.tsx`
 - `src/components/proof/RecordingCheckCard.tsx`
 - `src/components/proof/ScriptView.tsx`
+- `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/TransportBar.tsx`
 - `src/components/settings/Settings.tsx`
 - `src/components/storybible/Guide.tsx`

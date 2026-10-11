@@ -9,23 +9,23 @@ Every colour pair the app draws meets WCAG 2.x AA in **both themes**, on **every
 - **text** is 4.5:1 or more (SC 1.4.3): everything a person reads, including placeholders, labels, counts and empty states;
 - **marks** (what is seen and not read: icons, status dots, meter segments, the highlight underline) are 3:1 or more (SC 1.4.11).
 
-Not covered: the contrast of component borders (`--border` is 1.56:1 on white; ADR 0059 leaves it undecided), disabled controls (WCAG exempts them), and a colour a user chooses in Settings.
+Not covered: the contrast of the hairline `--border` (1.38:1 on `--surface`; ADR 0059 leaves it undecided; the stronger control border `--line-strong` is held to 3:1), disabled controls (WCAG exempts them), and a colour a user chooses in Settings.
 
 ## The tokens
 
 | Token | Light | Dark | Contrast, worst to best surface (light) | (dark) |
 | --- | --- | --- | --- | --- |
-| `--text` | `#211e17` | `#f1ece1` | 11.68 to 16.63 | 11.11 to 15.58 |
-| `--text-muted` | `#625e52` | `#b0a891` | 4.55 to 6.48 | 5.52 to 7.74 |
-| `--non-text` | `#7e796a` | `#817966` | 3.05 to 4.35 | 3.03 to 4.25 |
-| `--accent-strong` | `#96490f` | `#f2a75a` | 4.53 to 6.45 | 6.52 to 9.14 |
-| `--danger-text` | `--danger` darkened 15% toward `--text` | `--danger` | 4.98 or more | 4.87 or more |
-| `--warn-text` | `#755507` | `--warn` | 4.62 or more | 5.29 or more |
-| `--info-text` | `--info` darkened 10% toward `--text` | `--info` | 4.66 or more | 5.30 or more |
-| `--ok-text` | `--ok` darkened 30% toward `--text` | `--ok` | 4.5 or more | 4.5 or more |
+| `--text` | `#23201B` | `#EDE8DE` | 11.40 to 15.55 | 10.72 to 15.32 |
+| `--text-muted` | `#5C564B` | `#B0A797` | 5.11 to 6.97 | 5.50 to 7.86 |
+| `--non-text` | `#766F60` | `#968D7D` | 3.50 to 4.78 | 3.99 to 5.70 |
+| `--accent-strong` | `#8F3F0F` | `#F0A06A` | 5.11 to 6.97 | 6.20 to 8.86 |
+| `--danger-text` | `--danger` | `--danger` | 5.95 or more | 6.81 or more |
+| `--warn-text` | `--warn` | `--warn` | 5.06 or more | 7.97 or more |
+| `--info-text` | `--info` | `--info` | 6.03 or more | 7.82 or more |
+| `--ok-text` | `--ok` | `--ok` | 5.45 or more | 7.36 or more |
 | `--experimental-text` | `--experimental` darkened 15% toward `--text` | `--experimental` | 5.29 or more | 6.18 or more |
 
-The surfaces are `--bg`, `--surface`, `--surface-2`, `--surface-3` and `--row-alt` (a reader row, a touch darker than `--surface`). The status companions are measured on the page surfaces (`--bg`, `--surface`, `--surface-2`) and on the soft fills they sit on (`--review-soft`, a warn tint, `--accent-soft`, `--place-soft`); the other tokens on all five. There are two text levels, not three: `--text-faint` was deleted, because it carried real labels at 2.2 to 3.7:1. The step between prose and a label is carried by size, weight, case and typeface. `--non-text` is never the colour of text.
+The surfaces are `--bg`, `--surface`, `--surface-2`, `--surface-3` and `--row-alt` (a reader row, a touch darker than `--surface`). The status companions are measured on the page surfaces (`--bg`, `--surface`, `--surface-2`) and on the soft fills they sit on (the four `--<tone>-soft` fills, `--accent-soft`, `--place-soft`, `--review-soft`); the other tokens on all five. There are two text levels, not three: `--text-faint` was deleted, because it carried real labels at 2.2 to 3.7:1. The step between prose and a label is carried by size, weight, case and typeface. `--non-text` is never the colour of text.
 
 ## Studio primitives token batch
 
@@ -45,21 +45,31 @@ The surfaces are `--bg`, `--surface`, `--surface-2`, `--surface-3` and `--row-al
 - **Two call sites, one derivation:** `primitives/SpeakerTag.tsx` (the Script reader's chip) reads `speakerColorToken` directly; `primitives/Highlight.tsx`'s `colorToken` prop overrides a mark's own kind colour with it, so the Booth's "Voices in scene" tags stay the same `Highlight kind="Character"` mark (data attribute, activation, keyboard support) with only their colour source changed.
 - **Known limitation:** hashing by name, not a persistent id, means two speakers who share a display name draw identically, and with only seven buckets a modest cast collides more often than not (the birthday paradox) — accepted for now per ADR 0367 rather than inventing new hues, which would need a second round of hand-tuned contrast.
 
+## Studio Next token batch
+
+The Studio Next mock (`docs/research/mockups/studio-next/src/styles/app.css`) is the only spec for tokens (A1, [ADR 0760](../adr/0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md)), so SN-F2 set every colour and shadow token the mock names to the mock's value in both themes (`mockFidelityTokens.test.ts` reads the mock file and compares), added `--line-strong`, `--btn-line` and `--focus`, and drew `:focus-visible` as the mock does: a 2 px `--focus` outline at a 2 px offset. Four values differ from the mock because the mock's fails the guard: `--line-strong` (1.93:1 and 1.96:1 on `--surface`, now `#969083` and `#6d6659` for 3:1), light `--accent-soft` (warn text on it was 4.49:1, now `#F2DECA`), and the derived `--<kind>-text` mix (43%, not 45%, because the mock's lighter dark violet drove review and event text nested in an organization tint to 4.43:1). The mock sets status text in the status colour itself and each passes 4.5:1 on its own soft fill, so `--danger-text`, `--warn-text`, `--info-text` and `--ok-text` are aliases of the status colour; the names stay while components read them.
+
+| Token | Light | Dark | Pair and worst ratio (light / dark) |
+| --- | --- | --- | --- |
+| `--line-strong` | `#969083` | `#6d6659` | on `--surface`: 3.04 / 3.05 |
+| `--btn-line` | `#2B2723` | `#7A7060` | on `--surface`: 14.20 / 3.56 |
+| `--focus` | `#1F5FBF` | `#7FB0FF` | on the page, card and raised surfaces: 5.20 / 7.08 |
+
 ## Mock fidelity token batch
 
 The mock fidelity work ([ADR 0590](../adr/0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md)) added the colours the benchmark mocks draw that no token named. Each one was measured on the mocks, and every primitive now draws them: the `-soft` fills by `StatusBadge` and `Pill`, `--row-selected` by `Table` and `StageGrid`, `--reading-bg` and `--rec-fill`/`--rec-text` by the Booth, `--toast-bg`/`--toast-text` by `Toast`, `--waveform` by Proof's waveform card and `--ok-zone` by Master's book-consistency band. A colour a later mock needs is a follow-up token batch with its own `paletteContrast.test.ts` rows, never a value written into a component.
 
 | Token | Light | Dark | Pair and worst ratio (light / dark) |
 | --- | --- | --- | --- |
-| `--ok-soft` | `--character-soft` | `--character-soft` | `--ok-text` on it: 5.26 / 6.69 |
-| `--warn-soft` | `--warn` 18% over `--surface` | the same recipe | `--warn-text` on it: 5.69 / 5.90 |
-| `--info-soft` | `--place-soft` | `--place-soft` | `--info-text` on it: 4.73 / 5.30 |
-| `--danger-soft` | `--review-soft` | `--review-soft` | `--danger-text` on it: 4.98 / 4.87 |
-| `--row-selected` | `--accent` 8% over `--surface` | the same recipe | a surface: `--text` 15.01 / 12.69, `--text-muted` 5.85 / 6.31, `--danger-text` 5.77 / 5.00 |
-| `--reading-bg` | `--surface` | `#0e0d09` | a reading surface: `--text-muted` 6.48 / 8.20 |
-| `--rec-fill` / `--rec-text` | `--review-soft` / `--danger-text` | `#5e1d16` / `#f9b8af` | 4.98 / 7.52 |
-| `--toast-bg` / `--toast-text` | `--text` / `--bg` | the same | 14.47 / 15.58 |
-| `--waveform` | `--accent` 76% over `--surface` | the same recipe | a mark on the card: 3.06 / 4.41 |
+| `--ok-soft` | `#D9EAD9` | `#1E3324` | `--ok-text` on it: 5.08 / 6.29 |
+| `--warn-soft` | `#F5E6BF` | `#3A2D10` | `--warn-text` on it: 4.78 / 6.78 |
+| `--info-soft` | `#D8E5F2` | `#1B2F42` | `--info-text` on it: 5.52 / 6.78 |
+| `--danger-soft` | `#F4D6D2` | `#40201D` | `--danger-text` on it: 5.11 / 6.27 |
+| `--row-selected` | `--accent` 8% over `--surface` | the same recipe | a surface: `--text` 13.92 / 12.75, `--text-muted` 6.24 / 6.54, `--danger-text` 5.98 / 6.71 |
+| `--reading-bg` | `--surface` | `#0e0d09` | a reading surface: `--text-muted` 6.97 / 8.17 |
+| `--rec-fill` / `--rec-text` | `--review-soft` / `--danger-text` | `#5e1d16` / `#f9b8af` | 5.43 / 7.52 |
+| `--toast-bg` / `--toast-text` | `--text` / `--bg` | the same | 13.86 / 15.32 |
+| `--waveform` | `--accent` 76% over `--surface` | the same recipe | a mark on the card: 3.30 / 3.95 |
 | `--ok-zone` | `--ok` 16% over `--surface-2` | the same recipe | the `--accent` tick on it, a mark: 3.05 / 4.40 |
 
 - **The status soft fills are opaque.** A pill draws the same colour on a card and in a selected row. Each is measured over both. They replace `StatusBadge`'s 14% `--badge-*-fill` tints (ADR 0362's badge-fill clause). `StatusBadge` now uses them ([ADR 0600](../adr/0600-every-pill-tag-and-status-dot-is-one-badge-primitive-with-a-pill-a-tag-and-a-booth-shape.md)) and deleted the ok, warn and info tints.
@@ -83,7 +93,7 @@ The mock fidelity work ([ADR 0590](../adr/0590-the-mock-fidelity-token-batch-fil
 
 `--character`, `--place`, `--org`, `--review`, `--lore`, `--item`, `--event` and `--note` are the kind colours, each with a light value in `:root` and a dark value in `:root[data-theme='dark']`. The dark ones sit at about the same lightness (0.69 in OKLCH), so the eight read as one family. As a mark (the underline, the dots) each holds 4.09:1 or more in light and 5.03:1 or more in dark.
 
-`Highlight` and the entity badges draw their text in `--<kind>-text`, which is 45% of the kind colour and 55% of `--text` (one definition for both themes; it follows an override of the kind colour). The tint (20% for a highlight, 18% for a badge) and the 1.5px underline stay the pure kind colour. A note keeps `--text` on its tint (ADR 0016). Highlights nest where annotations overlap, so the tints add up: the guard checks every kind over every other kind's tint (two stacked tints, 4.59:1 in dark at worst); a third stacked tint is not covered (issue #139).
+`Highlight` and the entity badges draw their text in `--<kind>-text`, which is 43% of the kind colour and 57% of `--text` (one definition for both themes; it follows an override of the kind colour). The tint (20% for a highlight, 18% for a badge) and the 1.5px underline stay the pure kind colour. A note keeps `--text` on its tint (ADR 0016). Highlights nest where annotations overlap, so the tints add up: the guard checks every kind over every other kind's tint (two stacked tints, 4.59:1 in dark at worst); a third stacked tint is not covered (issue #139).
 
 In the shipped app only the note colour is a user setting (`color_note`, written inline on `<html>`, where it beats the theme blocks, so the dark `--note` is a fallback: issue #138). The entity colours are not settings, and the mock backend must offer no colour setting the host does not (`mockFixtures.test.ts`): it once did, and every dark screenshot then showed the light colours.
 

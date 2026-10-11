@@ -21,5 +21,6 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/master/MasterQcPage.tsx`
 - `src/components/proof/CompareRun.tsx`
+- `src/components/proof/TakesPanel.tsx`
 - `src/components/script/ScriptPage.tsx`
 - `src/components/settings/Settings.tsx`

@@ -156,7 +156,7 @@ async function laidOut(canvasElement: HTMLElement) {
 const px = (value: number) => Math.round(value);
 
 // Benchmark mock 05's "Per-file checks" and "Mastering chain" cards: a 50 px header row (its divider included) with a
-// Barlow 19 px title and a 13 px muted subtitle 10 px after it on the same line; the body 16 px in from the frame; an
+// Barlow 21 px title and a 13 px muted subtitle 10 px after it on the same line; the body 16 px in from the frame; an
 // 8 px radius.
 export const MatchesTheMock: Story = {
   render: () => (
@@ -181,13 +181,13 @@ export const MatchesTheMock: Story = {
       await expect(px(subtitle.getBoundingClientRect().left - title.getBoundingClientRect().right)).toBe(10);
     }
     await expect(getComputedStyle(header).borderBottomWidth).toBe('1px');
-    await expect(getComputedStyle(title).fontSize).toBe('19px');
+    await expect(getComputedStyle(title).fontSize).toBe('21px');
     await expect(getComputedStyle(title).fontFamily).toContain('Barlow Condensed');
     await expect(getComputedStyle(title).fontWeight).toBe('600');
     await expect(getComputedStyle(subtitle).fontSize).toBe('13px');
     const frame = region.getBoundingClientRect();
     await expect(px(title.getBoundingClientRect().left - frame.left)).toBe(17);
-    await expect(getComputedStyle(region).borderTopLeftRadius).toBe('8px');
+    await expect(getComputedStyle(region).borderTopLeftRadius).toBe('10px');
     const body = canvas.getByText(/Room-tone fill/);
     await expect(px(body.getBoundingClientRect().left - frame.left)).toBe(17);
     await expect(px(body.getBoundingClientRect().top - header.getBoundingClientRect().bottom)).toBe(16);

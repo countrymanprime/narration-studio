@@ -19,24 +19,31 @@
 }
 
 :root {
-  --bg: #f1efea;
-  --surface: #fff;
-  --surface-2: #e7e4dc;
+  --bg: #efede7;
+  --surface: #fbfaf7;
+  --surface-2: #f4f2ec;
   --surface-3: #dcd8cd;
-  --border: #d3cfc3;
-  --text: #211e17;
-  --text-muted: #625e52;
-  --non-text: #7e796a;
-  --accent: #b85c1e;
-  --accent-strong: #96490f;
-  --accent-soft: #f1dcc4;
-  --accent-contrast: #fff;
+  --border: #dcd7cb;
+  /* The mock's second line weight: controls, segmented groups, chips and kbd (--line is --border). Darker than the mock's #BDB6A6
+     (1.93:1 on --surface) to hold 3:1 for a control boundary (SC 1.4.11). */
+  --line-strong: #969083;
+  /* The near-black outline of the mock's default button. */
+  --btn-line: #2b2723;
+  --text: #23201b;
+  --text-muted: #5c564b;
+  --non-text: #766f60;
+  --accent: #b04f17;
+  --accent-strong: #8f3f0f;
+  --accent-soft: #f2deca; /* the mock's #F1DDC9, one step lighter: warn text on it was 4.49:1 (SKIPPED word) */
+  --accent-contrast: #ffffff;
+  /* The mock's keyboard focus ring (2 px outline, 2 px offset): blue, not the accent, so it reads on an accent fill. */
+  --focus: #1f5fbf;
   --character: #3c7a5c;
   --character-soft: #dcede3;
   --place: #3f6ea6;
   --place-soft: #dce7f3;
-  --org: #7a5cae;
-  --org-soft: #e7def4;
+  --org: #6b4c9a;
+  --org-soft: #e6ddf3;
   --review: #b5473c;
   --review-soft: #f5dedb;
   --lore: #9a6b34;
@@ -46,30 +53,30 @@
   /* The manuscript search match highlight: a dedicated kind, a
      true yellow distinct from --warn/--lore's amber-brown and every other kind hue. */
   --search: #8a7500;
-  /* Text on a tint of the kind's own colour (highlights, entity badges): 45% of the kind colour and 55% of the text colour,
-     so the hue survives and 4.5:1 holds (ADR 0059), including where one highlight is nested in another and the tints add up
+  /* Text on a tint of the kind's own colour (highlights, entity badges): 43% of the kind colour and 57% of the text colour,
+     so the hue survives and 4.5:1 holds (ADR 0059; 45% fell to 4.4:1 for review and event nested in the mock's lighter dark violet), including where one highlight is nested in another and the tints add up
      (at 50% the dark theme fell to 4.4:1 there). Defined once for both themes: it resolves against the theme's own --text,
      and it follows a user override of the kind colour. The tint and the underline stay the pure kind colour. */
-  --character-text: color-mix(in srgb, var(--character) 45%, var(--text));
-  --place-text: color-mix(in srgb, var(--place) 45%, var(--text));
-  --org-text: color-mix(in srgb, var(--org) 45%, var(--text));
-  --review-text: color-mix(in srgb, var(--review) 45%, var(--text));
-  --lore-text: color-mix(in srgb, var(--lore) 45%, var(--text));
-  --item-text: color-mix(in srgb, var(--item) 45%, var(--text));
-  --event-text: color-mix(in srgb, var(--event) 45%, var(--text));
-  --search-text: color-mix(in srgb, var(--search) 45%, var(--text));
-  --danger: #b5473c;
-  --warn: #b5871e;
-  --info: #3f6ea6;
+  --character-text: color-mix(in srgb, var(--character) 43%, var(--text));
+  --place-text: color-mix(in srgb, var(--place) 43%, var(--text));
+  --org-text: color-mix(in srgb, var(--org) 43%, var(--text));
+  --review-text: color-mix(in srgb, var(--review) 43%, var(--text));
+  --lore-text: color-mix(in srgb, var(--lore) 43%, var(--text));
+  --item-text: color-mix(in srgb, var(--item) 43%, var(--text));
+  --event-text: color-mix(in srgb, var(--event) 43%, var(--text));
+  --search-text: color-mix(in srgb, var(--search) 43%, var(--text));
+  --danger: #a3302a;
+  --warn: #8a5a00;
+  --info: #2a5c86;
   /* A requirement met (the Delivery page's rule results, ADR 0179): the fourth status colour beside danger, warn and info. */
-  --ok: #3d8a50;
-  /* Text-safe companions of the status colours, for text on the page and on their soft fills (ADR 0059): --danger, --warn and
-     --info stay for borders, dots and fills. Light darkens the colour: danger and info toward --text, warn to an explicit dark
-     amber (a mix toward the olive text desaturated it to a grey-brown); in dark the fill colour already passes. */
-  --danger-text: color-mix(in srgb, var(--danger) 85%, var(--text));
-  --warn-text: #755507;
-  --info-text: color-mix(in srgb, var(--info) 90%, var(--text));
-  --ok-text: color-mix(in srgb, var(--ok) 70%, var(--text));
+  --ok: #2f6b3e;
+  /* Text on the status colours' soft fills. The mock sets that text in the status colour itself (its `.pill.ok` rule), and
+     each of the four holds 4.5:1 on its own --<tone>-soft in both themes (paletteContrast.test.ts), so the -text names are aliases
+     that carry no value of their own. The names stay because components read them; they go when the primitive slices swap those reads. */
+  --danger-text: var(--danger);
+  --warn-text: var(--warn);
+  --info-text: var(--info);
+  --ok-text: var(--ok);
   /* The fifth status meaning (ADR 0360): a capability the host reports as
      experimental (ADR 0300), distinct from every other kind and status hue. */
   --experimental: #1f7a7a;
@@ -90,14 +97,12 @@
      has no soft token. */
   --badge-danger-fill: color-mix(in srgb, var(--danger) 14%, transparent);
   --badge-experimental-fill: color-mix(in srgb, var(--experimental) 14%, transparent);
-  /* The mock fidelity token batch (ADR 0590), measured on the
-     benchmark mocks. The status soft fills are opaque, like the
-     entity -soft fills the mocks paint pills and board cells with, and alias them where one already has the value;
-     warn has no entity twin, so it is the warn colour at 18% over the surface (mock 04 measures #f2ead6). */
-  --ok-soft: var(--character-soft);
-  --warn-soft: color-mix(in srgb, var(--warn) 18%, var(--surface));
-  --info-soft: var(--place-soft);
-  --danger-soft: var(--review-soft);
+  /* The status soft fills are the mock's own opaque values (Studio Next, ADR 0760), no longer aliases of the entity fills or a
+     mix of the warn colour, so the entity and status fills no longer move together. */
+  --ok-soft: #d9ead9;
+  --warn-soft: #f5e6bf;
+  --info-soft: #d8e5f2;
+  --danger-soft: #f4d6d2;
   /* A selected or highlighted table row (mocks 04 and 05 measure #faf1ed): the accent at 8% over the surface. */
   --row-selected: color-mix(in srgb, var(--accent) 8%, var(--surface));
   /* The booth's reading surface: the card surface in light; dark sets its own, darker than --bg. */
@@ -136,7 +141,7 @@
   --speaker-7-text: var(--event-text);
   --backdrop: rgba(20, 17, 12, 0.42);
   --shadow: 0 1px 2px rgba(30, 26, 16, 0.06), 0 1px 1px rgba(30, 26, 16, 0.04);
-  --shadow-lg: 0 4px 16px rgba(30, 26, 16, 0.14), 0 2px 6px rgba(30, 26, 16, 0.08);
+  --shadow-lg: 0 1px 2px rgba(36, 33, 28, 0.08), 0 10px 28px rgba(36, 33, 28, 0.14);
   --control-radius: 0.45rem;
   --control-height: 2.55rem;
   --z-tooltip: 1000;
@@ -152,26 +157,26 @@
   --font-size-2xs: 0.68rem;
   --font-size-xs: 0.72rem;
   --font-size-sm: 0.82rem;
-  --font-size-base: 0.88rem;
+  --font-size-base: 0.9375rem; /* 15, the mock's body */
   /* The booth's script size. The booth follows the app theme like every other
      surface (ADR 0365, superseding ADR 0360's forced-dark booth block), so this is its only booth-only token: a size,
      declared once here, the same in light and dark. */
   --font-size-booth-script: 1.625rem;
   --line-height-booth-script: 1.85;
-  /* The mock fidelity sizes and type (ADR 0590), measured on the benchmark mocks at 1440 px: the same in both
-     themes. The comment gives each in px at the default root size. */
+  /* The sizes the Studio Next mock's cascade resolves to, "Round 12: roomier controls" (docs/research/studio-next-token-and-primitive-diff.md
+     section 3): the same in both themes. The comment gives each in px at the default root size. */
   --radius-button: 0.375rem; /* 6 */
-  --radius-card: 0.5rem; /* 8 */
+  --radius-card: 0.625rem; /* 10, .panel */
   --radius-tag: 0.1875rem; /* 3 */
-  --button-height: 2rem; /* 32, border included */
-  --button-height-sm: 1.75rem; /* 28, the companion and dense rows */
-  --row-height: 2.125rem; /* 34, divider included */
-  --header-row-height: 1.9375rem; /* 31, rule included */
-  --font-size-page-title: 1.625rem; /* 26, Barlow Condensed */
-  --font-size-card-title: 1.1875rem; /* 19, Barlow Condensed */
-  --font-size-label: 0.6875rem; /* 11, the eyebrow, table header and tag label */
-  --tracking-label: 0.1em;
-  --tracking-button: 0.06em;
+  --button-height: 2.25rem; /* 36, .btn */
+  --button-height-sm: 2rem; /* 32, .btn.sm */
+  --row-height: 2.4375rem; /* 39, 15 px body line plus 8 px padding each side and the rule */
+  --header-row-height: 2.25rem; /* 36, th: 13 px line plus 8 px padding each side and the rule */
+  --font-size-page-title: 1.75rem; /* 28, h1 */
+  --font-size-card-title: 1.3125rem; /* 21, h2 */
+  --font-size-label: 0.8125rem; /* 13, .label and th */
+  --tracking-label: 0.14em;
+  --tracking-button: 0.09em;
   color-scheme: light;
 }
 /* Single source of truth for dark values - set via ThemeProvider
@@ -183,24 +188,27 @@
    below, so dialogs/panels kept light-mode shadows under an explicit dark
    preference. */
 :root[data-theme='dark'] {
-  --bg: #171410;
-  --surface: #201c16;
-  --surface-2: #2a251c;
+  --bg: #14120e;
+  --surface: #1d1a15;
+  --surface-2: #26221c;
   --surface-3: #363023;
-  --border: #3c3527;
-  --text: #f1ece1;
-  --text-muted: #b0a891;
-  --non-text: #817966;
-  --accent: #e2903f;
-  --accent-strong: #f2a75a;
-  --accent-soft: #3a2a16;
-  --accent-contrast: #1a1408;
+  --border: #38332a;
+  --line-strong: #6d6659; /* the mock's #51493C is 1.96:1 on --surface; 3:1 needed */
+  --btn-line: #7a7060;
+  --text: #ede8de;
+  --text-muted: #b0a797;
+  --non-text: #968d7d;
+  --accent: #d9803f;
+  --accent-strong: #f0a06a;
+  --accent-soft: #3a2617;
+  --focus: #7fb0ff;
+  --accent-contrast: #1a0f05;
   --character: #5fae85;
   --character-soft: #1d2e24;
   --place: #6e9fdb;
   --place-soft: #1c2a3b;
-  --org: #ad8de0;
-  --org-soft: #2a2138;
+  --org: #b79de0;
+  --org-soft: #2e2545;
   --review: #db7a6e;
   --review-soft: #3a2320;
   --lore: #c49056;
@@ -208,14 +216,14 @@
   --event: #d37e9b;
   --note: #d4865a;
   --search: #e2c53c;
-  --danger: #db7a6e;
-  --warn: #e0b255;
-  --info: #6e9fdb;
-  --ok: #74c28a;
-  --danger-text: var(--danger);
-  --warn-text: var(--warn);
-  --info-text: var(--info);
-  --ok-text: var(--ok);
+  --danger: #f09088;
+  --warn: #e3b04f;
+  --info: #8dbbe6;
+  --ok: #7dc08a;
+  --ok-soft: #1e3324;
+  --warn-soft: #3a2d10;
+  --info-soft: #1b2f42;
+  --danger-soft: #40201d;
   --experimental: #4fbdbd;
   --experimental-text: var(--experimental);
   --bookmark: #6e9fdb;
@@ -224,7 +232,7 @@
   --rec-fill: #5e1d16;
   --rec-text: #f9b8af;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 @layer base {

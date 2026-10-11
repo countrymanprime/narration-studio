@@ -16,9 +16,10 @@ label.field-label {
   font-weight: 500;
   color: var(--text-muted);
 }
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+/* The mock's keyboard focus ring (Studio Next app.css): a 2 px outline in --focus, offset 2 px, on whatever takes focus. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 .progressbar {
   height: 1rem;

@@ -33,6 +33,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/layout/EngineChip.tsx`
 - `src/components/manuscript/EntitySummary.tsx`
 - `src/components/manuscript/ReaderCard.tsx`
+- `src/components/master/MasterQcPage.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/NavButton.tsx`
 - `src/components/primitives/Pill.tsx`
@@ -51,6 +52,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/proof/ReaperControls.tsx`
 - `src/components/proof/TakeComparisonView.tsx`
 - `src/components/proof/TakeReviewReads.tsx`
+- `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/TransportBar.tsx`
 - `src/components/script/ScriptPage.tsx`
 - `src/components/settings/ScopedSetting.tsx`

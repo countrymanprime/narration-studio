@@ -34,6 +34,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ProofPage.tsx`
+- `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/TransportBar.tsx`
 - `src/components/script/ScriptPage.tsx`
 - `src/components/storybible/Guide.tsx`
