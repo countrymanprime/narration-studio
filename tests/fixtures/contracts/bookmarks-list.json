@@ -1,0 +1,36 @@
+[
+  {
+    "chapterId": "c-0001",
+    "createdAt": "2026-09-21T10:00:00Z",
+    "id": "id-1",
+    "label": "The Queen",
+    "note": "Shout, but do not clip the end.",
+    "offset": 21,
+    "paragraph": 0,
+    "paragraphId": "p-000001",
+    "stale": false
+  },
+  {
+    "chapterId": "c-0001",
+    "createdAt": "2026-09-21T10:00:00Z",
+    "id": "id-2",
+    "label": "",
+    "note": "",
+    "offset": 20,
+    "paragraph": 1,
+    "paragraphId": "p-000002",
+    "stale": true,
+    "staleReason": "offset_out_of_range"
+  },
+  {
+    "chapterId": "c-0002",
+    "createdAt": "2026-09-21T10:00:00Z",
+    "id": "id-3",
+    "label": "",
+    "note": "",
+    "offset": 0,
+    "paragraph": 2,
+    "paragraphId": "p-000003",
+    "stale": false
+  }
+]
