@@ -56,6 +56,12 @@ especially welcome:
   a file or a label or note that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used
   without being validated, or a bookmark moved to a guessed place instead of reported stale, is in scope; one that only changes where
   the narrator's own bookmarks point is the documented residual risk (threat model row 6u).
+- The Booth's passage map (`narration-utils/passagemap.json` in the project,
+  [the passage map](docs/architecture/manuscript-teleprompter.md#the-passage-map)):
+  a file or a mark that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
+  being validated, a DAW id taken from the page instead of read by the host, or a mark moved to a guessed place instead of reported
+  stale, is in scope; one that only changes where the narrator's own takes are said to begin is the documented residual risk (threat
+  model row 6y).
 - The narrator's accepted words (`narration-utils/editing/accepted.json` in the project,
   [ADR 0856](docs/adr/0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
   a file or a key that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without

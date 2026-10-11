@@ -608,6 +608,38 @@ REAPER's own behaviour of the live read (an unsaved take's file, a
 `SECTION` source's file name, a take still recording) is checked by the owner in
 REAPER (#510).
 
+## The passage map
+
+The Booth writes a passage map while it records, so Editing can list a Booth-recorded chapter's passages without aligning
+the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_passagemap.go`,
+`apps/desktop/internal/passagemap`; host API 95).
+
+- **The file.** `<project>/narration-utils/passagemap.json`: `{ "schemaVersion": 1, "marks": [...] }`. Each mark is
+  `{ id, run, chapterId, pid, word, sec, kind, prev?, itemGuid, takeGuid }`; `kind` is `start`, `roll` or `stop`, and a
+  roll or a stop's `prev` is where the take before it ended. A run is one Record to Stop of one chapter: a start, any
+  rolls, a stop. Run ids are `<chapterId>.<n>` in the order the chapter's runs were recorded, mark ids `<run>.<index>`.
+- **Who writes what.** When a recording stops, the UI sends the run's marks (paragraph id, word index, seconds, kind,
+  `prev`). The host refuses the whole run, with a sentence and nothing saved, when the chapter is not in the manuscript, a
+  paragraph is not in that chapter, a word is past the paragraph's word count (runs of non-space characters), seconds are
+  negative, not finite or over a day, a roll or stop has no `prev` (or a start has one), the kinds are not start, rolls,
+  stop, or the marks are out of time order.
+- **Limits.** At most 1000 marks a run and 200 runs a chapter; chapter and paragraph ids at most 64 bytes with no control
+  characters. Every field is a number, an id or a kind, never a path or free text.
+- **Stamping.** The UI never sends an id the DAW gave. When the run is stored, the host reads them: with the built-in
+  recorder, the take's name (`Take 004`) for the item and every take; with the DAW, the chapter's one linked track through
+  the track state role (as Read Aloud does), its last item's GUID on every mark and that item's active take GUID. Mark `i`
+  gets the `i`th take GUID the stamp lists, the last one covering the rest; the bridge reports only each item's active
+  take, so today every mark of a run shares one take GUID. A chapter with no link, a DAW that does not answer within 3 s,
+  or an id that breaks the limits leaves the run stored unstamped (`""`).
+- **Read back.** The file is read through `persist` as narrator data: a corrupt file, or one holding a mark that breaks a
+  rule, is kept aside as `passagemap.json.corrupt-<time>` and an empty map starts; a newer `schemaVersion` is refused and
+  never overwritten. Writes are a temporary file and a rename.
+- **Stale, never moved.** Every list checks each mark against the current manuscript. A mark whose paragraph, or whose
+  `prev` paragraph, is gone from its chapter comes back `stale` with `paragraph_missing`; one whose word is past the
+  paragraph's word count, `word_out_of_range`. Its stored place is never changed.
+- **Cleared on replace.** A confirmed manuscript replace and Clear project data remove the file (`resetDerived`); a
+  re-import without a reset keeps it, and the stale rule covers what it changed.
+
 ## Third-party license note
 
 Porting WhisperLive's streaming-inference logic is permitted: WhisperLive

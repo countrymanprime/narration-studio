@@ -140,7 +140,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | ADRs and audit | A9, A15; audit of the workspace's consumers | pending | - | SN0-1 | 0.6 | - |
 | 2 | Alignment port and model | `AlignmentPort`, ported pure model, tests | partial: pure model in SN-E2 (#1059); `AlignmentPort` still pending | - | 1, SNS-4 | 1.5 | - |
 | 3 | Script document | `ScriptDoc`, words, selection, keys, provider menu | pending | - | 2, SNR-5 | 1.5 | - |
-| 4 | Ribbon, cards, bar | Ribbon, flag cards, floating toolbar, bar | in progress (accepted words host store: [#1245](https://github.com/countrymanprime/narration-utils/issues/1245), ADR 0856); partial: bar and floating toolbar in SN-E43 (#1263) | 5 | 3, SNF-5a | 1.2 | - |
+| 4 | Ribbon, cards, bar | Ribbon, flag cards, floating toolbar, bar | in progress (accepted words host store: [#1245](https://github.com/countrymanprime/narration-utils/issues/1245), ADR 0856); partial: bar and floating toolbar in SN-E43 (#1263); flag cards and legend in SN-E42 (#1261) | 5 | 3, SNF-5a | 1.2 | - |
 | 5 | Takes inline | Evidence, suggestion, hide, split duplicates, prep steps | partial: take evidence binding and `TakesPort` in SNE-5a (#1266); the chip, sub-lines, suggestion, Keep and T keys as components with no route (#1269) | 4 | 3, SNQ-7 | 1.5 | - |
 | 6 | Delete and FX on a range | Dialogs, journal, markers | in progress (cuts host store: [#1282](https://github.com/countrymanprime/narration-utils/issues/1282), ADR 0856) | - | 3, SND-6b, SND-6c | 1.5 | - |
 | 7 | Stacking | Dialog, plan, un-stack | pending | 6 | 5, SND-7 | 1.0 | - |

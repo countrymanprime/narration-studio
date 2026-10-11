@@ -32,6 +32,7 @@ import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createPrepMarkupMock } from './prepMarkupMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createPassageMapMock } from './passageMapMock';
 import { createEditLogMock } from './editLogMock';
 import { createEditCutsMock } from './editCutsMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
@@ -278,6 +279,11 @@ export function createMockApi(
       () => s.paragraphs,
     ),
     ...createEditCutsMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
+    ...createPassageMapMock(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,

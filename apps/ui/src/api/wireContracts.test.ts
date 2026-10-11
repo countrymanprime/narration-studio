@@ -10,6 +10,7 @@ import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRA
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
@@ -3013,6 +3014,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksAdd',
       'bookmarksUpdate',
       'bookmarksRemove',
+      'passageMapRecordRun',
+      'passageMapList',
       'editingAcceptedList',
       'editingAccept',
       'editingUnaccept',
@@ -3588,6 +3591,89 @@ describe('the bookmarks bindings', () => {
     expect(spotBookmarkSchema.safeParse({ ...bookmark, label: 'a'.repeat(61) }).success).toBe(false);
     expect(spotBookmarkSchema.safeParse({ ...bookmark, staleReason: 'moved' }).success).toBe(false);
     expect(bookmarksSchema.safeParse([{ ...bookmark, offset: 1.5 }]).success).toBe(false);
+  });
+});
+
+// The Booth's passage map (docs/architecture/manuscript-teleprompter.md#the-passage-map): the mock answers through the same
+// schema as the host's goldens, refuses what the host refuses, and the schema refuses what the host never sends.
+describe('the passage map bindings', () => {
+  const runOn = (pid: string, words: number) => [
+    { pid, word: 0, sec: 0, kind: 'start' as const },
+    { pid, word: 1, sec: 2.5, kind: 'roll' as const, prev: { pid, word: 2 } },
+    { pid, word: words, sec: 6, kind: 'stop' as const, prev: { pid, word: words } },
+  ];
+
+  it('the mock answers PassageMapRecordRun and PassageMapList through their schema, recordings in order', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
+    const words = (line?.text.match(/\S+/g) ?? []).length;
+    expectMatches(passageMapSchema, await api.passageMapList(chapter?.id ?? ''), 'mock passage map list (empty)');
+    const first = await api.passageMapRecordRun(chapter?.id ?? '', runOn(line?.id ?? '', words));
+    expectMatches(passageMapSchema, first, 'mock passage map record');
+    expect(first.map((mark) => mark.kind)).toEqual(['start', 'roll', 'stop']);
+    expect(first.every((mark) => mark.itemGuid !== '' && mark.takeGuid === mark.itemGuid && !mark.stale)).toBe(true);
+    const second = await api.passageMapRecordRun(chapter?.id ?? '', runOn(line?.id ?? '', words));
+    const listed = await api.passageMapList(chapter?.id ?? '');
+    expectMatches(passageMapSchema, listed, 'mock passage map list');
+    expect(listed.map((mark) => mark.run)).toEqual([...first, ...second].map((mark) => mark.run));
+    expect(new Set(listed.map((mark) => mark.run)).size).toBe(2);
+  });
+
+  it('the mock refuses what the host refuses, and keeps nothing of a refused run', async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
+    const otherLine = (await api.manuscriptParagraphs(other?.id ?? ''))[0];
+    const words = (line?.text.match(/\S+/g) ?? []).length;
+    const id = chapter?.id ?? '';
+    const pid = line?.id ?? '';
+    const run = () => runOn(pid, words);
+    await expect(api.passageMapRecordRun('no-such-chapter', run())).rejects.toThrow('not in the manuscript');
+    await expect(api.passageMapRecordRun(id, runOn(otherLine?.id ?? '', 0))).rejects.toThrow('not in this chapter');
+    await expect(api.passageMapRecordRun(id, runOn(pid, words + 1))).rejects.toThrow('not in the paragraph');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 1 ? { ...mark, sec: -1 } : mark)),
+      ),
+    ).rejects.toThrow('seconds');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 1 ? { ...mark, sec: Number.NaN } : mark)),
+      ),
+    ).rejects.toThrow('seconds');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 1 ? { ...mark, sec: 9 } : mark)),
+      ),
+    ).rejects.toThrow('time order');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 2 ? { pid, word: 0, sec: 6, kind: 'stop' as const } : mark)),
+      ),
+    ).rejects.toThrow('where the take before');
+    await expect(api.passageMapRecordRun(id, run().slice(1))).rejects.toThrow('begins with a start');
+    await expect(api.passageMapRecordRun(id, run().slice(0, 1))).rejects.toThrow('a start and a stop');
+    await expect(api.passageMapRecordRun('c'.repeat(65), run())).rejects.toThrow('chapter id');
+    await expect(api.passageMapRecordRun(id, runOn('p\u0007', 0))).rejects.toThrow('paragraph id');
+    expect(await api.passageMapList(id)).toEqual([]);
+  });
+
+  it('the schema reads the goldens, a stale mark among them, and refuses a negative word, an unknown kind or key', () => {
+    const listed = parseWire(passageMapSchema, readGolden('passagemap-list.json'), ctx('passage map list'));
+    expect(listed.map((mark) => mark.staleReason ?? null)).toEqual(['paragraph_missing', 'paragraph_missing', null]);
+    const [mark] = parseWire(passageMapSchema, readGolden('passagemap-record.json'), ctx('passage map record'));
+    expect(passageMarkSchema.safeParse(mark).success).toBe(true);
+    expect(passageMarkSchema.safeParse({ ...mark, word: -1 }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, word: 1.5 }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, kind: 'pause' }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, path: '/etc/passwd' }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, staleReason: 'moved' }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, prev: { pid: 'p', word: 0, extra: 1 } }).success).toBe(false);
   });
 });
 
