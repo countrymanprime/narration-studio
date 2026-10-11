@@ -125,7 +125,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADRs | A3 and A4 as Proposed | pending | - | SN0-1 | 0.4 | - |
+| 1 | ADRs | A3 and A4 as Proposed | in review (ADR 0780, ADR 0781) | - | SN0-1 | 0.4 | - |
 | 2 | Catalogue extension | Descriptor fields, provider API, surface tests | pending | 3 | 1 | 1.0 | - |
 | 3 | Overlay service | `overlay.*` over primitives, tests | pending | 2 | 1 | 1.0 | - |
 | 4 | Jump menu and search sources | `JumpMenu`, sources registry, first sources (chapters, pages) | pending | 5 | 2, 3, SNF-4 | 1.5 | - |
