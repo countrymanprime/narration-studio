@@ -649,6 +649,21 @@ describe('wailsClient', () => {
     expect(addMarker).toHaveBeenCalledWith('f1');
   });
 
+  it('sends Reopen with the pickup position and List markers with nothing, and decodes the started answer of each', async () => {
+    const reopen = vi.fn().mockResolvedValue(JSON.stringify({ status: 'started' }));
+    const list = vi.fn().mockResolvedValue(JSON.stringify({ status: 'started' }));
+    standInHost({ PickupsReopen: reopen, PickupsListMarkers: list });
+    await expect(wailsClient.pickupsReopen(9.25)).resolves.toEqual({ status: 'started' });
+    await expect(wailsClient.pickupsListMarkers()).resolves.toEqual({ status: 'started' });
+    expect(reopen).toHaveBeenCalledWith(9.25);
+    expect(list).toHaveBeenCalledWith();
+  });
+
+  it('rejects a pickups start answer the host never sends', async () => {
+    standInHost({ PickupsReopen: vi.fn().mockResolvedValue(JSON.stringify({ status: 'reopened' })) });
+    await expect(wailsClient.pickupsReopen(1)).rejects.toBeInstanceOf(WireError);
+  });
+
   it('rejects a marker answer the host never sends', async () => {
     standInHost({ FindingsAddMarker: vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'added', name: 'x' })) });
     await expect(wailsClient.findingsAddMarker('f1')).rejects.toBeInstanceOf(WireError);

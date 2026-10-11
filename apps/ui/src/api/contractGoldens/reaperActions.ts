@@ -13,6 +13,7 @@ export const reaperActionsGoldens: Record<string, z.ZodType> = {
   'line-identity-read-success.json': lineIdentityStateSchema,
   'pickups-idle.json': pickupsStateSchema,
   'pickups-import-success.json': pickupsStateSchema,
+  'pickups-markers-listed.json': pickupsStateSchema,
   'pickups-punch-results.json': z.record(z.string(), pickupsPunchResultSchema),
   'render-config-idle.json': renderConfigStateSchema,
   'render-config-success.json': renderConfigStateSchema,

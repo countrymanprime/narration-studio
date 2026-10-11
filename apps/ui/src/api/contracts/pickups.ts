@@ -1,9 +1,22 @@
 // The pickup list: import a proofer's CSV, jump to the next open
-// pickup, resolve it, export the remaining list. Mirrors apps/desktop/internal/pickups.Service.Snapshot() exactly:
-// one run (import, export, jump or resolve or count) at a time, reported by phase, with remaining/total surviving
+// pickup, resolve or reopen it, list every pickup marker, export the remaining list. Mirrors apps/desktop/internal/pickups.Service.Snapshot() exactly:
+// one run (import, export, jump, resolve, reopen, list or count) at a time, reported by phase, with remaining/total surviving
 // between runs so the count does not flash back to zero while a different action is in flight.
 
-export type PickupsPhase = 'idle' | 'importing' | 'exporting' | 'jumping' | 'resolving' | 'counting' | 'success' | 'error';
+export type PickupsPhase = 'idle' | 'importing' | 'exporting' | 'jumping' | 'resolving' | 'reopening' | 'listing' | 'counting' | 'success' | 'error';
+
+/** Whether a pickup marker in the DAW is still to record (`PICKUP:`) or done (`PICKUP_DONE:`). */
+export const PICKUP_MARKER_STATES = ['open', 'done'] as const;
+export type PickupMarkerState = (typeof PICKUP_MARKER_STATES)[number];
+
+/** One pickup marker as the DAW holds it (SN-D44): its project time in seconds, open or done, its optional tag, and its note.
+ * The DAW's marker name is the truth for whether a pickup is done. */
+export type PickupMarker = {
+  start: number;
+  state: PickupMarkerState;
+  tag: string;
+  note: string;
+};
 
 /** One pickup the narrator jumped to, or resolved: the marker's project time in seconds, its optional tag, and its note. */
 export type PickupsMoment = {
@@ -38,6 +51,10 @@ export type PickupsState = {
   /** The remaining pickups, as CSV text (header start,note,tag); set after a successful Export, ready to
    * offer as a download with no second round trip. */
   csv: string;
+  /** Every pickup marker in the DAW, open and done, in position order; set after a successful ListMarkers, empty otherwise.
+   * The host always sends it and the schema requires it; it is optional here only so a state the UI builds itself (the
+   * Pickups page's own idle state) needs no edit. */
+  markers?: PickupMarker[];
 };
 
 /** PickupsImport's answer: the run has started, plus every CSV row Go could not use (line number and why),
@@ -70,6 +87,10 @@ export interface PickupsApi {
   pickupsNext(): Promise<PickupsStartResult>;
   /** Marks the open pickup nearest position (seconds) as done. */
   pickupsResolve(position: number): Promise<PickupsStartResult>;
+  /** Puts the resolved pickup nearest position (seconds) back to open. A negative or non-finite position is refused. */
+  pickupsReopen(position: number): Promise<PickupsStartResult>;
+  /** Asks REAPER for every pickup marker, open or done; read-only. The markers arrive in the state's `markers`. */
+  pickupsListMarkers(): Promise<PickupsStartResult>;
   /** Asks REAPER how many pickups remain versus the total; read-only. */
   pickupsCount(): Promise<PickupsStartResult>;
   pickupsState(): Promise<PickupsState>;

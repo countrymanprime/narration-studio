@@ -1067,6 +1067,7 @@ export const WIRE_PICKUPS_IDLE: PickupsState = {
   remaining: 0,
   total: 0,
   csv: '',
+  markers: [],
 };
 
 /** A completed Import (mirrors tests/fixtures/contracts/pickups-import-success.json). */
@@ -1078,6 +1079,7 @@ export const WIRE_PICKUPS_IMPORT_SUCCESS: PickupsState = {
   total: 2,
   importReport: { added: 2, existing: 0, invalid: 0 },
   csv: '',
+  markers: [],
 };
 
 /** A completed Next, so the "jump to the next pickup" state can be seen without a real REAPER. */
@@ -1089,6 +1091,7 @@ export const WIRE_PICKUPS_NEXT_SUCCESS: PickupsState = {
   total: 2,
   next: { position: 9.25, tag: 'narrator', note: 'Mispronounced "labyrinthine"' },
   csv: '',
+  markers: [],
 };
 
 /** A completed Export, with CSV text ready to offer as a download. */
@@ -1099,6 +1102,7 @@ export const WIRE_PICKUPS_EXPORT_SUCCESS: PickupsState = {
   remaining: 2,
   total: 2,
   csv: 'start,note,tag\n9.250000,Mispronounced "labyrinthine",narrator\n42.000000,Dog barked in the background,\n',
+  markers: [],
 };
 
 /** REAPER reported a problem importing, exporting, jumping, resolving or counting pickups. */
@@ -1110,6 +1114,7 @@ export const WIRE_PICKUPS_ERROR: PickupsState = {
   remaining: 0,
   total: 0,
   csv: '',
+  markers: [],
 };
 
 /** The Go host's RenderConfigState answer before any run (mirrors tests/fixtures/contracts/render-config-idle.json). */
