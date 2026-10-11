@@ -66,7 +66,7 @@ export function SpotTakes({
                 : undefined;
           const on = playing(take);
           return (
-            <li key={take.id} className={`flex flex-col gap-0.5 ${take.hidden ? 'opacity-70' : ''}`}>
+            <li key={take.id} className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2 text-sm">
                 <IconButton
                   size="sm"

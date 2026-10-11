@@ -39,7 +39,14 @@ export function StudioProvider({
   const nameRef = useRef('the DAW');
   nameRef.current = daw ? dawShortName(daw) : 'the DAW';
   const [created] = useState(() => createJournal({ dawName: () => nameRef.current, dawLastAction: async () => 'unknown' }));
-  const [createdStore] = useState(() => createStudioStore({ registry: createSlots(manuscript, bookmarks), subscribe: createHostEvents(system) }));
+  const [createdStore] = useState(() =>
+    createStudioStore({
+      registry: createSlots(manuscript, bookmarks),
+      subscribe: createHostEvents(system),
+      // The failure is recorded in the slot's `errors` for the page that reads it; a warning, because a slot that cannot be read is handled, not a crash.
+      onError: (slot, error) => console.warn(`studio slot ${slot}:`, error),
+    }),
+  );
   const journal = provided ?? created;
   const store = providedStore ?? createdStore;
   useEffect(() => store.start(), [store]);

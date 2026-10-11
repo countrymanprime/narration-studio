@@ -98,8 +98,12 @@ export const Stacked: Story = {
   args: { passage: three, playingId: null, onPlay: () => undefined, chapterId: '5' },
   render: () => frame(1440, strip(three)),
   play: async ({ canvasElement }) => {
-    const lefts = [...canvasElement.querySelectorAll('[data-lane^="t-"] span.absolute')].map((e) => (e as HTMLElement).style.left);
-    await expect(new Set(lefts).size).toBe(1);
+    // The lanes are drawn once the peaks have been read.
+    await waitFor(() => {
+      const lefts = [...canvasElement.querySelectorAll('[data-lane^="t-"] span.absolute')].map((e) => (e as HTMLElement).style.left);
+      expect(lefts.length).toBeGreaterThan(0);
+      expect(new Set(lefts).size).toBe(1);
+    });
   },
 };
 

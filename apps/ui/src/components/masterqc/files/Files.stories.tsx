@@ -34,7 +34,7 @@ export const TwoFail: Story = {
   args: { files: [passing('Chapter 01.wav'), failingTwo('Chapter 04.wav')] },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('grid', { name: 'Per-file checks' })).toBeTruthy();
+    await expect(await canvas.findByRole('grid', { name: 'Per-file checks' })).toBeTruthy();
     await expect(canvas.getByRole('row', { name: /Chapter 04/ }).getAttribute('aria-selected')).toBe('true');
     await expect(await canvas.findByText(/· Why it fails/)).toBeTruthy();
   },

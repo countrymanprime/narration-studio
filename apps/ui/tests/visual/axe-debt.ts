@@ -12,10 +12,9 @@ import type { AxeDebt } from './lib/validators';
 // Kept apart from the capture machinery under lib/, and reached by the capture through `axeDebt` in app.drivers.ts.
 
 const PORTALLED_POPUP = 'The popup is portalled to <body>, outside the landmarks, so axe cannot place it (#157)';
-const FOCUS_GUARDS = "Base UI's own focus guards are focusable inside an aria-hidden wrapper, and the fix is upstream or a portal container (#157)";
 export const AXE_DEBT: AxeDebt[] = [
   { page: 'script', state: 'selection-popup', rules: ['region'], reason: PORTALLED_POPUP },
-  { page: 'global', state: 'tooltip', rules: ['aria-hidden-focus', 'region'], reason: `${FOCUS_GUARDS}; and ${PORTALLED_POPUP}` },
+  { page: 'global', state: 'tooltip', rules: ['region'], reason: PORTALLED_POPUP },
   // The rail shows labels at the desktop width, so the hint only exists (and is only reported) below it.
   { page: 'shell', state: 'history-enabled', rules: ['region'], reason: PORTALLED_POPUP },
 ];

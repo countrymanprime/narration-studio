@@ -79,7 +79,11 @@ export const scriptStates: StateEntry[] = [
   },
   { page: 'script', state: 'formatted-text-and-line-breaks', description: 'Script, paragraphs with preserved bold/italic/underline and a line break' },
   { page: 'script', state: 'chapter-bookmarked', description: 'Script, a chapter bookmarked (blue bookmark icon)' },
-  { page: 'script', state: 'go-to-line-highlight', description: 'Script, arrived via Story Bible "Go to line" with the target line highlighted' },
+  {
+    page: 'script',
+    state: 'go-to-line-highlight',
+    description: 'Script, arrived via the Story Bible Review entry overlay "Go to line in Script" with the target line highlighted',
+  },
   { page: 'script', state: 'reader-dark', description: 'Script, reader in the Dark theme (readable active controls, opaque sticky header)' },
   {
     page: 'script',

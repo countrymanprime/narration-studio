@@ -27,7 +27,7 @@ export function SpeakerColourField({ entity, onChange, disabled }: Props) {
   const hues = Array.from({ length: SPEAKER_COLOR_COUNT }, (_, at) => ({ value: String(at + 1), label: HUE_NAMES[at] }));
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="speaker-colour" className="text-[0.82rem] font-semibold text-[var(--muted)]">
+      <label htmlFor="speaker-colour" className="text-[0.82rem] font-semibold text-[var(--text-muted)]">
         Speaker colour
       </label>
       <Swatch colour={`speaker-${chosen}` as SwatchColour} />

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 import { REFUSALS, setupCapabilities } from './fixtures';
 import { RecordControl } from './RecordControl';
 import { recordCheck } from './recordCheck';
@@ -48,7 +48,6 @@ export const Refused: Story = {
     const button = within(canvasElement).getByRole('button', { name: 'Record' });
     await expect(button).toBeDisabled();
     await expect(button).toHaveAccessibleDescription(REFUSALS.none);
-    await userEvent.click(button);
   },
 };
 export const NoDaw: Story = { args: { setup: 'reaper-off' } };

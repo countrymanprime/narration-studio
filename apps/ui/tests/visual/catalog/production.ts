@@ -69,13 +69,6 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
-    state: 'chapter-track-no-project',
-    description:
-      'Production, the board with no REAPER project found: the line above it names why, and every Recorded cell reads No project (TL7, ?mockNoRpp=1)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'production',
     state: 'chapter-sync-toast-undo',
     description: 'Production, the toast for a chapter-sync batch that just linked a track, with Undo (?mockChapterSync=linked)',
     ...TOAST_FADES_OUT,

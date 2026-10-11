@@ -1,7 +1,6 @@
 // Shared by the page's tests and stories: the host's own measure payload reshaped into the cases the Master & QC page draws.
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { ReactNode } from 'react';
+import measureSuccess from '../../../../../../tests/fixtures/contracts/measure-success.json';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { measureJobSchema } from '../../../api/schemas/measure';
@@ -14,9 +13,8 @@ import { ALL_PASS, TWO_FAIL, failingTwo, passing } from '../files/testFiles';
 
 export { ALL_PASS, TWO_FAIL, failingTwo, passing };
 
-const success = measureJobSchema.parse(
-  JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', 'measure-success.json'), 'utf8')),
-);
+// Imported, not read from disk: the stories run in the browser, where there is no `fs`.
+const success = measureJobSchema.parse(measureSuccess);
 export const acx: DeliveryProfile = success.profile!;
 
 /** A profile with no file rules on, as "Other / none": nothing here is ACX's. */

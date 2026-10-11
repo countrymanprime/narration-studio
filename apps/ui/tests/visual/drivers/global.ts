@@ -3,7 +3,10 @@ import { type Driver, clickSettingsCategory, clickVisible, compareRun, confirmDi
 
 export const globalDrivers: Record<string, Driver> = {
   tooltip: async (page) => {
-    // The first KPI tile of the Production home carries a tooltip (what the figure counts).
+    // The first KPI tile of the Production home carries a tooltip (what the figure counts). Below 1360 px the rail opens over the page
+    // while the pointer is on it, so park the pointer mid-page first or the rail covers the tile.
+    const viewport = page.viewportSize();
+    if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
     await page.getByRole('list', { name: 'Production figures' }).getByRole('button').first().hover();
     // TooltipTarget shows its tooltip 1s after hover - wait for it, don't race it.
     await page.getByRole('tooltip').waitFor();

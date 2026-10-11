@@ -1,23 +1,21 @@
-# The stage suggestion evidence is a modal drawer: a named dialog, the only thing in <body> besides the two empty toast live regions.
-# Inside, the match is partial: the verdict's actions, the heading of the checks, each check a region named for what it checked with its
-# state, and Check now. The times are left out (the basis is a date, and its age depends on the day the suite runs).
+# The stage readiness is a modal drawer: a named dialog, the only thing in <body> besides the header's zoom group and the empty toast live regions.
+# Inside, the match is partial: the chapter, the stage and its verdict, the suggestion, the evidence the app measured as a list, and Confirm
+# and Dismiss. The times are left out (the basis is a date, and its age depends on the day the suite runs).
 - /children: equal
 - main:
+  - group "Zoom"
   - alert
   - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
 - alert
 - status
 - status
-- 'dialog "Stage suggestion: Chapter 4 — The Rabbit Sends in a Little Bill"':
-  - 'heading "Stage suggestion: Chapter 4 — The Rabbit Sends in a Little Bill" [level=3]'
+- dialog "Stage readiness":
+  - heading "Stage readiness" [level=3]
   - button "Close"
-  - button "Confirm Editing"
+  - heading "Chapter 4" [level=4]
+  - heading "Ready to move to Editing" [level=5]
+  - list:
+    - listitem: /^Every paragraph of the chapter’s text is in the recording, in order Text present:/
   - button "Dismiss"
-  - heading "What was checked" [level=4]
-  - region "Every paragraph of the chapter’s text is in the recording, in order":
-    - paragraph: /^Met\. /
-    - list:
-      - listitem: /^Text present:/
-    - paragraph: /^Based on the saved REAPER project, file modified /
-  - button "Check now"
+  - button "Confirm"

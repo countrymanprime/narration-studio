@@ -50,7 +50,7 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'slide-over-word-lookup.aria.yml',
   },
   {
-    name: 'the stage suggestion evidence is a modal slide-over named for the chapter, each check a named region, with Confirm, Dismiss and Check now',
+    name: 'the stage readiness is a modal slide-over: the verdict, the evidence the app measured, and Confirm and Dismiss',
     state: ['production', 'stage-evidence-recommended'],
     snapshot: 'slide-over-stage-evidence.aria.yml',
   },
@@ -189,28 +189,14 @@ test('the note on reference material reached by keyboard also takes the first Es
   await expect(dialog).toHaveCount(0);
 });
 
-// The evidence view of a stage suggestion hands over to the recording check: the slide-over
-// closes and the dialog opens with focus inside it, not on the board cell the closing slide-over returns focus to. Escape on the
-// slide-over alone returns focus to the chapter's current-stage cell.
-test('Open recording check in a stage suggestion moves focus into the recording check dialog', async ({ page }) => {
-  await openApp(page, DESKTOP, ['production', 'stage-evidence-unknown']);
-  await page
-    .getByRole('dialog', { name: 'Stage suggestion: Chapter 5 — Advice from a Caterpillar' })
-    .getByRole('button', { name: 'Open recording check' })
-    .click();
-  const check = page.getByRole('dialog', { name: 'Recording check: Chapter 5 — Advice from a Caterpillar' });
-  await expect(check).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'Stage suggestion: Chapter 5 — Advice from a Caterpillar' })).toHaveCount(0);
-  await expect.poll(() => check.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
-});
-
-test('Escape closes a stage suggestion’s evidence and returns focus to the board cell that opened it', async ({ page }) => {
+// Escape on the readiness slide-over returns focus to the chip on the chapter's row that opened it.
+test('Escape closes a stage suggestion’s evidence and returns focus to the readiness chip that opened it', async ({ page }) => {
   await openApp(page, DESKTOP, ['production', 'stage-evidence-recommended']);
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: 'Stage suggestion: Chapter 4 — The Rabbit Sends in a Little Bill' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Stage readiness' })).toHaveCount(0);
   const row = page
-    .getByRole('grid', { name: 'Chapter pipeline' })
+    .getByRole('table', { name: 'Chapter pipeline' })
     .getByRole('row')
-    .filter({ has: page.getByRole('rowheader', { name: /^Chapter 4\b/ }) });
-  await expect(row.getByRole('gridcell', { name: 'Ready' })).toBeFocused();
+    .filter({ has: page.getByRole('cell', { name: /^Chapter 4\b/ }) });
+  await expect(row.getByRole('button', { name: /^Stage readiness: / })).toBeFocused();
 });

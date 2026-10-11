@@ -173,10 +173,13 @@ export const scriptDrivers: Record<string, Driver> = {
   'go-to-line-highlight': async (page) => {
     await goToPage(page, 'Story Bible');
     await page.locator('tr[data-row]').first().click();
-    await page
-      .getByRole('button', { name: /Go to line/ })
-      .first()
-      .click();
+    // The entry's Appears in list goes to a chapter; a line is reached from the Review entry overlay of a match found in the alias box.
+    await page.getByRole('button', { name: 'Edit this entry' }).click();
+    const aliasBox = page.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
+    await aliasBox.fill('White Rabbit');
+    await aliasBox.press('Enter');
+    await page.getByRole('button', { name: 'Review entry' }).click();
+    await page.getByRole('button', { name: 'Go to line in Script' }).first().click();
     await page.locator('[data-jump-target]').first().waitFor();
   },
   'reader-dark': async (page) => {
