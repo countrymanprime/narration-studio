@@ -138,6 +138,31 @@ export type CoverageRegion = {
  * region surviving realignment was seen by both models. */
 export type CoverageRecheck = { model: string; wholeChapter: boolean; windows: number; seconds: number };
 
+/** What a gap in the recording is (ADR 0830): script not said, words said that are not in the script, other words in
+ * place of the script's, or a region kind this app does not know yet. */
+export type CoverageGapKind = 'missing' | 'extra' | 'misread' | 'other';
+
+/** A line to redo inside the read part of a chapter. `confidence` is a number or null; it is null with a `confReason`
+ * ('no_word_scores') until the words file carries Whisper word probabilities (ADR 0830). */
+export type CoverageGap = {
+  id: string;
+  kind: CoverageGapKind;
+  paragraphIds: string[];
+  tokenCount: number;
+  firstWord: string;
+  lastWord: string;
+  /** The extra words heard; only on an `extra` gap. */
+  text?: string;
+  position?: CoverageRegionPosition;
+  before?: CoverageRegionPosition;
+  after?: CoverageRegionPosition;
+  confidence: number | null;
+  confReason: string;
+};
+
+/** Paragraphs not read at the start and at the end of the chapter: unfinished recording, not pickups. */
+export type CoverageUnfinished = { start: number; end: number };
+
 /** A stored report: counts, never a verdict (the thresholds are applied on read). */
 export type CoverageReport = {
   model: string;
@@ -152,6 +177,9 @@ export type CoverageReport = {
   items: CoverageItem[];
   paragraphs: CoverageParagraph[];
   regions: CoverageRegion[];
+  /** The lines to redo inside the read part (ADR 0830); the host always sends both (an empty list and zeros for a result stored before the taxonomy); optional so a report built by hand need not. */
+  gaps?: CoverageGap[];
+  unfinished?: CoverageUnfinished;
   recheck?: CoverageRecheck;
 };
 

@@ -70,6 +70,10 @@ type ReportView struct {
 	Items             []ItemLine      `json:"items"`
 	Paragraphs        []ParagraphLine `json:"paragraphs"`
 	Regions           []RegionLine    `json:"regions"`
+	// Gaps are the lines to redo inside the read part and Unfinished the unread start and end, derived from the
+	// stored report (ClassifyGaps, ADR 0830); both are additive.
+	Gaps       []GapLine  `json:"gaps"`
+	Unfinished Unfinished `json:"unfinished"`
 	// Recheck is the model cascade's second pass (Phase 5), straight from the stored result; nil for a plain check.
 	Recheck *Recheck `json:"recheck,omitempty"`
 }
@@ -88,13 +92,14 @@ func (r ChapterResult) View(chapterID string, thresholds Thresholds) ResultView 
 	}
 	if r.Result != nil {
 		report := r.Result.Report
+		gaps, unfinished := ClassifyGaps(report)
 		view.Result = &ReportView{
 			Model: r.Result.Model, Language: r.Result.Language, Alignment: r.Result.Alignment,
 			BodyTokens: report.Summary.BodyTokens, PresentTokens: report.Summary.PresentTokens,
 			MissingTokens: report.Summary.MissingTokens, ExtraTokens: report.Summary.ExtraTokens,
 			LongestMissingRun: report.Summary.LongestMissingRun, PlayedSeconds: report.Summary.Items.PlayedSeconds,
 			Items: nonNil(report.Items), Paragraphs: nonNil(report.Paragraphs), Regions: regionViews(report.Regions),
-			Recheck: r.Result.Recheck,
+			Gaps: gaps, Unfinished: unfinished, Recheck: r.Result.Recheck,
 		}
 	}
 	if r.Current() {

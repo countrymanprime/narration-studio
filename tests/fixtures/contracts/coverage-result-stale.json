@@ -29,6 +29,7 @@
     },
     "bodyTokens": 10,
     "extraTokens": 0,
+    "gaps": [],
     "items": [
       {
         "index": 0,
@@ -85,7 +86,11 @@
         },
         "tokenCount": 2
       }
-    ]
+    ],
+    "unfinished": {
+      "end": 0,
+      "start": 0
+    }
   },
   "state": "stale"
 }

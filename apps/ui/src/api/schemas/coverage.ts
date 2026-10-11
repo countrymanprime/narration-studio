@@ -3,6 +3,7 @@ import type {
   CoverageEvaluatorReason,
   CoverageItem,
   CoverageRefusalReason,
+  CoverageGap,
   CoverageRegion,
   CoverageReport,
   CoverageResult,
@@ -114,6 +115,22 @@ const regionSchema = z.object({
   after: optionalFromNull(regionPositionSchema),
 }) satisfies z.ZodType<CoverageRegion>;
 
+const gapSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['missing', 'extra', 'misread', 'other']),
+  paragraphIds: listFromNull(z.string()),
+  tokenCount: z.number(),
+  firstWord: z.string(),
+  lastWord: z.string(),
+  text: z.string().optional(),
+  position: optionalFromNull(regionPositionSchema),
+  before: optionalFromNull(regionPositionSchema),
+  after: optionalFromNull(regionPositionSchema),
+  // A number or null, and always with the reason (ADR 0830): a score without one is not accepted.
+  confidence: z.number().min(0).max(1).nullable(),
+  confReason: z.string().min(1),
+}) satisfies z.ZodType<CoverageGap>;
+
 const recheckSchema = z.object({ model: z.string(), wholeChapter: z.boolean(), windows: z.number(), seconds: z.number() });
 
 const reportSchema = z.object({
@@ -129,6 +146,9 @@ const reportSchema = z.object({
   items: listFromNull(itemSchema),
   paragraphs: listFromNull(z.object({ id: z.string(), tokens: z.number(), present: z.number(), longestMissingRun: z.number() })),
   regions: listFromNull(regionSchema),
+  // Absent from a result stored before the taxonomy (ADR 0830): no gaps, nothing unfinished.
+  gaps: listFromNull(gapSchema),
+  unfinished: z.object({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() }).default({ start: 0, end: 0 }),
   recheck: optionalFromNull(recheckSchema),
 }) satisfies z.ZodType<CoverageReport>;
 

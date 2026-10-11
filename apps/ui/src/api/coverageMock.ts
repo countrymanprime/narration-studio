@@ -5,6 +5,8 @@
 // start with that reason. Nothing runs on its own.
 import type {
   CoverageApi,
+  CoverageGap,
+  CoverageUnfinished,
   CoverageRefusalReason,
   CoverageReport,
   CoverageJudgement,
@@ -110,6 +112,11 @@ const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${
 
 /** A report of a chapter read with `fraction` of its words present; what is missing is its tail. */
 function reportFor(chapter: ManuscriptChapter, fraction: number): CoverageReport {
+  const report = baseReportFor(chapter, fraction);
+  return { ...report, ...classifyMock(report) };
+}
+
+function baseReportFor(chapter: ManuscriptChapter, fraction: number): Omit<CoverageReport, 'gaps' | 'unfinished'> {
   const bodyTokens = chapter.wordCount;
   const presentTokens = Math.round(bodyTokens * fraction);
   const missingTokens = bodyTokens - presentTokens;
@@ -153,6 +160,11 @@ function reportFor(chapter: ManuscriptChapter, fraction: number): CoverageReport
  * to" line and Pickups list can all be seen together. Built from the
  * same proportional paragraph split as reportFor, so it stays sane for whichever chapter is seeded. */
 function pickupsReportFor(chapter: ManuscriptChapter): CoverageReport {
+  const report = basePickupsReportFor(chapter);
+  return { ...report, ...classifyMock(report) };
+}
+
+function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 'gaps' | 'unfinished'> {
   const bodyTokens = chapter.wordCount;
   const paragraphs = (chapter.paragraphIds ?? [{ id: `${chapter.id}-p1`, index: 0 }]).map(({ id }) => id);
   const share = Math.floor(bodyTokens / paragraphs.length);
@@ -216,6 +228,23 @@ function pickupsReportFor(chapter: ManuscriptChapter): CoverageReport {
     paragraphs: paragraphs.map((id, index) => ({ id, tokens: sizes[index], present: sizes[index] - missingIn[index], longestMissingRun: missingIn[index] })),
     regions,
   };
+}
+
+/** The host's `coverage.ClassifyGaps` for a mock report (ADR 0830): a skip is missing, a short read is misread, an
+ * unread start or end is unfinished and never a gap, and confidence is null with its reason. */
+function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
+  const read = report.paragraphs.map((paragraph) => paragraph.present > 0);
+  const first = read.indexOf(true);
+  const last = read.lastIndexOf(true);
+  if (first < 0) return { gaps: [], unfinished: { start: report.paragraphs.length, end: 0 } };
+  const kinds: Record<string, CoverageGap['kind']> = { skip: 'missing', short_read: 'misread', different_text: 'misread' };
+  const gaps = report.regions.flatMap((region): CoverageGap[] => {
+    const kind = kinds[region.kind];
+    const indexes = region.paragraphIds.map((id) => report.paragraphs.findIndex((paragraph) => paragraph.id === id));
+    if (!kind || indexes.some((index) => index < first || index > last)) return [];
+    return [{ ...region, id: `${kind}:${region.paragraphIds[0] ?? ''}:${indexes[0] ?? 0}`, kind, confidence: null, confReason: 'no_word_scores' }];
+  });
+  return { gaps, unfinished: { start: first, end: report.paragraphs.length - 1 - last } };
 }
 
 /** The host's `coverage.Judge` (ADR 0204), so the mock's headline reads as the real one: met when every paragraph passes
