@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { chapterName } from '../../chapterName';
+import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Disclosure } from '../primitives/Disclosure';
@@ -87,6 +88,8 @@ type ImportReviewProps = {
   // checkbox when it is handed one, so the state and the chained build live with the caller and nothing here changes. When a caller passes
   // nothing, nothing is shown that does nothing.
   buildStoryBible?: { checked: boolean; onChange: (checked: boolean) => void };
+  // The delivery profile, asked for only on a first import of a project with none chosen (SNM-Q1). Nothing is drawn when a caller passes nothing.
+  deliveryProfile?: { value: string; onChange: (profile: string) => void };
 };
 
 // The body of the "Import <file>" review dialog: the choices the narrator can change before the import is written, grouped by what each
@@ -101,6 +104,7 @@ export function ImportReview({
   groupOpen,
   onGroupOpenChange,
   buildStoryBible,
+  deliveryProfile,
 }: ImportReviewProps) {
   const candidates = preview.characterCandidates ?? [];
   const sections = preview.sections ?? [];
@@ -187,7 +191,7 @@ export function ImportReview({
   const subtitleChoices = hasSubtitleChoices(preview);
   return (
     <div ref={root}>
-      {(preview.format === 'markdown' || buildStoryBible || subtitleChoices) && (
+      {(preview.format === 'markdown' || buildStoryBible || subtitleChoices || deliveryProfile) && (
         <fieldset className="mt-4 min-w-0 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
           <SectionLabel as="legend" className="px-1">
             Import options
@@ -214,6 +218,7 @@ export function ImportReview({
                 Read a heading's second line as its subtitle
               </Checkbox>
             )}
+            {deliveryProfile && <ImportProfileField value={deliveryProfile.value} onChange={deliveryProfile.onChange} />}
             {buildStoryBible && (
               <Checkbox checked={buildStoryBible.checked} onChange={buildStoryBible.onChange}>
                 Build the Story Bible after import
