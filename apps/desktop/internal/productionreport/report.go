@@ -70,6 +70,25 @@ func (r Report) JSON() ([]byte, error) {
 	return append(encoded, '\n'), nil
 }
 
+// Rendered is the two files one report is written as: the export writes exactly these bytes, and the preview answers them.
+type Rendered struct {
+	HTML []byte
+	JSON []byte
+}
+
+// Render renders the report both ways, so a preview and an export of one Report cannot differ.
+func (r Report) Render() (Rendered, error) {
+	encoded, err := r.JSON()
+	if err != nil {
+		return Rendered{}, err
+	}
+	page, err := r.HTML()
+	if err != nil {
+		return Rendered{}, err
+	}
+	return Rendered{HTML: page, JSON: encoded}, nil
+}
+
 func bookOf(overview production.Overview) BookSummary {
 	byStage := map[string]float64{}
 	for stage, hours := range overview.Totals.HoursByStage {

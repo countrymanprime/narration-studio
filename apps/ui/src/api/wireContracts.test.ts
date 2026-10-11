@@ -67,6 +67,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
@@ -2974,6 +2975,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStopTimer',
       'prepCompletenessSummary',
       'productionStatusReport',
+      'productionStatusReportPreview',
       'productionBurndown',
       'takeComparisonStart',
       'takeComparisonState',
@@ -3206,6 +3208,20 @@ describe('the production tracking mock', () => {
     expectMatches(productionReportExportSchema, included, 'mock production status report, opted in');
     expect(included.contractedAmountIncluded).toBe(true);
     expect(included.jsonFile).not.toBe(left.jsonFile);
+  });
+
+  it('the status report preview parses the golden, rejects an unknown key, and the mock gives a document the schema parses', async () => {
+    const pinned = productionReportPreviewSchema.parse(readGolden('production-status-report-preview.json'));
+    expect(() => productionReportPreviewSchema.parse({ ...pinned, extra: 1 })).toThrow();
+    const api = createMockApi();
+    const left = await api.productionStatusReportPreview(false);
+    expectMatches(productionReportPreviewSchema, left, 'mock production status report preview, default');
+    expect(left).toMatchObject({ folder: pinned.folder, contractedAmountIncluded: false });
+    expect(left.html).not.toMatch(/<script/i);
+    expect(left.json).toContain('Not available');
+    const included = await api.productionStatusReportPreview(true);
+    expectMatches(productionReportPreviewSchema, included, 'mock production status report preview, opted in');
+    expect(included.contractedAmountIncluded).toBe(true);
   });
 
   it('the burndown is empty with nothing logged, and cumulative by day once a seed logs some', async () => {
