@@ -170,8 +170,8 @@
   {
     "name": "resolve_pickup can resolve an already-resolved pickup",
     "file": "narration_pickups.lua",
-    "find": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) == 'PICKUP' then\n      local gap = math.abs(marker.pos - target)",
-    "replace": "for _, marker in ipairs(project_markers()) do\n    if marker_kind(marker.name) ~= '' then\n      local gap = math.abs(marker.pos - target)"
+    "find": "    if marker_kind(marker.name) == kind then\n      local gap",
+    "replace": "    if marker_kind(marker.name) ~= '' then\n      local gap"
   },
   {
     "name": "configure_chapter_render accepts an empty output folder",
@@ -880,5 +880,35 @@
     "file": "narration_transport.lua",
     "find": "  local last = 0\n  for index = 0, reaper.CountTrackMediaItems(track) - 1 do\n    local item = reaper.GetTrackMediaItem(track, index)",
     "replace": "  local last = 0\n  for index = 0, reaper.CountMediaItems(0) - 1 do\n    local item = reaper.GetMediaItem(0, index)"
+  },
+  {
+    "name": "resolve matches a done marker",
+    "file": "narration_pickups.lua",
+    "find": "    from = 'PICKUP',\n    to = 'PICKUP_DONE',",
+    "replace": "    from = 'PICKUP_DONE',\n    to = 'PICKUP_DONE',"
+  },
+  {
+    "name": "reopen matches outside the tolerance",
+    "file": "narration_pickups.lua",
+    "find": "if marker_kind(marker.name) == kind then\n      local gap = math.abs(marker.pos - target)\n      if gap <= PICKUP_TOLERANCE and",
+    "replace": "if marker_kind(marker.name) == kind then\n      local gap = math.abs(marker.pos - target)\n      if true and"
+  },
+  {
+    "name": "an undo block is opened with nothing changed",
+    "file": "narration_pickups.lua",
+    "find": "  local best = nearest_marker(spec.from, target)\n  if not best then",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, spec.undo, -1)\n  local best = nearest_marker(spec.from, target)\n  if not best then"
+  },
+  {
+    "name": "list writes the wrong state word",
+    "file": "narration_pickups.lua",
+    "find": "kind == 'PICKUP' and 'open' or 'done'",
+    "replace": "kind == 'PICKUP' and 'done' or 'open'"
+  },
+  {
+    "name": "list opens an undo block",
+    "file": "narration_pickups.lua",
+    "find": "  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'Narration Utils: list pickups', -1)\n  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or"
   }
 ]
