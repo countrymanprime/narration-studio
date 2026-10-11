@@ -12,6 +12,7 @@
     "assets:seed": "go -C apps/desktop run ./cmd/seed-assets",
     "check": "node scripts/quality.mjs check",
     "check:fast": "node scripts/quality.mjs staged",
+    "eval:skills": "node scripts/ci/skill-evals.mjs",
     "knip": "knip",
     "lint:md": "node scripts/ci/lint-markdown-changed.mjs",
     "lint:md:fix": "node scripts/ci/lint-markdown-changed.mjs --fix",
