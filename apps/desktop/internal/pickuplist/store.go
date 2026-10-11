@@ -122,6 +122,7 @@ func (s *Service) write(file listFile) error {
 // FixKindValue is what a decided note asks for: a pickup (record it again) or an edit.
 type FixKindValue string
 
+// The two fixes a decided note can ask for.
 const (
 	FixPickup FixKindValue = "pickup"
 	FixEdit   FixKindValue = "edit"

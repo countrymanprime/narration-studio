@@ -38,6 +38,7 @@ import (
 // Source is where a pickup came from.
 type Source string
 
+// The four sources, as the mock's PickupSource names them.
 const (
 	SourceSpeech Source = "speech"
 	SourceProof  Source = "proof"
@@ -335,7 +336,8 @@ func (s *Service) change(id string, removedOK bool, edit func(*listFile)) (List,
 		return List{}, err
 	}
 	removed := slices.Contains(file.Removed, id)
-	if !(removed && removedOK) && (removed || !slices.ContainsFunc(list.Pickups, func(p Pickup) bool { return p.ID == id })) {
+	listed := slices.ContainsFunc(list.Pickups, func(p Pickup) bool { return p.ID == id })
+	if removed && !removedOK || !removed && !listed {
 		return List{}, ErrUnknownPickup
 	}
 	edit(&file)
