@@ -1545,7 +1545,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(state.capabilities.record).not.toHaveProperty('destructive');
     expect(state.capabilities.markers).not.toHaveProperty('mode');
     const golden = dawCapabilitiesSchema.parse(readGolden('daw-capabilities-reaper.json'));
-    const withMode = (mode: string) => ({ ...golden, capabilities: { ...golden.capabilities, punch: { ...golden.capabilities.punch, mode } } });
+    const withMode = (mode: string) => ({
+      ...golden,
+      capabilities: { ...golden.capabilities, punch: { ...golden.capabilities.punch, destructive: true, mode } },
+    });
     expect(dawCapabilitiesSchema.safeParse(withMode('steps')).success).toBe(true);
     expect(dawCapabilitiesSchema.safeParse(withMode('other')).success).toBe(false);
   });
