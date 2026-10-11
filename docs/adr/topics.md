@@ -14,10 +14,10 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
 | [Documentation and process](#docs-and-process) | 8 |
-| [Ports and providers](#ports-and-providers) | 12 |
+| [Ports and providers](#ports-and-providers) | 13 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 8 |
-| [Mastering, delivery and production](#mastering-delivery-and-production) | 22 |
+| [Mastering, delivery and production](#mastering-delivery-and-production) | 23 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 49 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 27 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 45 |
@@ -193,6 +193,7 @@ Small interfaces with registries and capability descriptors for engines and prov
 | [0361](0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) | App commands go through one registry, and keyboard, MIDI and HID are input sources bound by a remappable keymap | Accepted |
 | [0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md) | CoreAudio capture is a PyAV `avfoundation` sidecar backend, addressed by device name | Superseded |
 | [0403](0403-the-capabilities-flag-reports-what-registered-not-what-loads.md) | The `--capabilities` flag reports what registered, not what loads, by default | Accepted |
+| [0780](0780-the-jump-menu-context-menus-and-help-are-derived-from-the-static-command-catalogue-and-dynamic-commands-come-from-providers.md) | The jump menu, context menus and help are derived from the static command catalogue, and dynamic commands come from providers | Proposed |
 
 <a id="daw-integration"></a>
 
@@ -281,6 +282,7 @@ Measurement, delivery profiles and findings, mastering, encoding and export, and
 | [0440](0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md) | Master & QC's platform tabs are the project's delivery profile, and the page draws only what the host measures | Proposed |
 | [0480](0480-multi-platform-export-is-a-separate-checkbox-list-encoding-once-per-differing-format-built-sequentially.md) | Multi-platform export is a separate checkbox list, encoding once per differing format, built sequentially | Proposed |
 | [0666](0666-the-book-consistency-band-draws-the-rule-s-bound-as-a-dashed-target-zone-with-one-accent-tick-per-file.md) | The book-consistency band draws the rule's bound as a dashed target zone, with one accent tick per file | Proposed |
+| [0781](0781-an-overlay-service-opens-dialogs-confirms-toasts-and-announcements-imperatively-and-renders-them-in-the-existing-primitives.md) | An overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the existing primitives | Proposed |
 
 <a id="recording-check-and-takes"></a>
 
