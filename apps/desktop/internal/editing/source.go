@@ -22,29 +22,29 @@ import (
 type UnknownReason string
 
 const (
-	// ReasonPlayRateNotOne: the played take's rate is not 1 (the WAV-only
+	// ReasonPlayRateNotOne means the played take's rate is not 1 (the WAV-only
 	// decoder and this analyzer's timeline math both assume playback at the
 	// source's own rate, so this case always reads unknown).
 	ReasonPlayRateNotOne UnknownReason = "playrate_not_one"
-	// ReasonStretchMarkers: the take has one or more stretch markers, which
+	// ReasonStretchMarkers means the take has one or more stretch markers, which
 	// bend the mapping from source time to timeline time in a way this
 	// analyzer does not model (tracks.Take.StretchMarkerCount is evidence
 	// only, per its own doc comment - "not full stretch-marker semantics").
 	ReasonStretchMarkers UnknownReason = "stretch_markers"
-	// ReasonUnsupportedFormat: the source is not a WAV (MP3, FLAC, OGG, AIFF and WavPack are all "Supported" by the tracks
+	// ReasonUnsupportedFormat means the source is not a WAV (MP3, FLAC, OGG, AIFF and WavPack are all "Supported" by the tracks
 	// parser but none of them decodes through measure.NewWAVReader).
 	ReasonUnsupportedFormat UnknownReason = "format_not_analyzable"
-	// ReasonMultiChannel: the source has more than two channels; measure's
+	// ReasonMultiChannel means the source has more than two channels; measure's
 	// WAV reader refuses it (wav.go: "only mono and stereo are supported").
 	ReasonMultiChannel UnknownReason = "multi_channel"
-	// ReasonMissingFile: the take's source file is not available on disk
+	// ReasonMissingFile means the take's source file is not available on disk
 	// (tracks.Take.SourceAvailable is false, or the path is empty).
 	ReasonMissingFile UnknownReason = "missing_file"
-	// ReasonUnreadable: the source file could not be decoded for a reason
+	// ReasonUnreadable means the source file could not be decoded for a reason
 	// other than the ones above (a truncated or corrupt WAV header, for
 	// example) - measure.NewWAVReader's own error, quoted in the evidence.
 	ReasonUnreadable UnknownReason = "unreadable"
-	// ReasonNoPlayedRange: the item's played range is empty or negative (a
+	// ReasonNoPlayedRange means the item's played range is empty or negative (a
 	// zero-length item, or a malformed SOFFS/LENGTH pairing) - nothing to
 	// decode.
 	ReasonNoPlayedRange UnknownReason = "no_played_range"

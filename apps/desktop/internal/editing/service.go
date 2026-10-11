@@ -47,7 +47,7 @@ const (
 	ReasonNoProjectFile      Reason = "no_project_file"
 	ReasonProjectUnreadable  Reason = "project_unreadable"
 	ReasonBusy               Reason = "busy"
-	// ReasonNoRender: the chapter's source choice is SourceRender
+	// ReasonNoRender means the chapter's source choice is SourceRender
 	// but no render is associated with it at all (proofing.RenderNone) - the
 	// only render-choice case that refuses to start, mirroring "an unconfirmed
 	// mapping refuses to start" for the item path (render_service.go's own
