@@ -25,4 +25,4 @@ Production, Schedule, Script, Story Bible, Booth, Editing (script-based audio ed
 
 ## Status
 
-Design reference only. Lifecycle: this folder is deleted when the real app matches it (CLAUDE.md, "Which mocks are the spec"). Items deliberately left out or deferred are listed in the decisions file (time tracking, the Companion, proofer CSV, FX chains on whole takes, Audacity 4, redo).
+Design reference only. Lifecycle: this folder is deleted when the real app matches it (`.claude/rules/ui-spec-and-screenshots.md`, "Which mocks are the spec"). Items deliberately left out or deferred are listed in the decisions file (time tracking, the Companion, proofer CSV, FX chains on whole takes, Audacity 4, redo).

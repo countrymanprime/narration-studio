@@ -1,6 +1,6 @@
 # Studio Next Cutover: Parity Audit, Ratchets, Deleting the Mock and the Steady-State Docs
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and CLAUDE.md "Which mocks are the spec".
+**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and the "Which mocks are the spec" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
 
 **Builds on:** [Which mocks are the spec](../operations/agent-train.md#which-mocks-are-the-spec), [ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) (planned work is deleted when built), [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
 
@@ -14,7 +14,7 @@
 
 - The mock's rulings file is the seed; its tests (`studio-next/tests/`) are named by batch and page, not by ruling.
 - The repo already checks contract coverage by test (`apps/ui/src/api/wireContracts.test.ts` fails on an unmapped binding) and has ratchets (`apps/ui/src/rawNatives.test.ts`, Knip at zero, atlas coverage); there is no ruling index.
-- The mock folder is referenced by CLAUDE.md, `docs/operations/agent-train.md`, the PRD README and `docs/research/mockups/`.
+- The mock folder is named by the PRD README, `knip.jsonc` (an `ignore` entry) and `tools/docs-site/mkdocs.yml` (an `exclude_docs` entry), and the rule file above is path-scoped to `docs/research/mockups/**`.
 - PRDs are deleted by the PR that completes their last phase ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md)); the series has 15 PRDs and a cross-reference web that must not dangle.
 
 ## Proposed Solution
@@ -23,7 +23,7 @@
 2. **Parity audit per page.** For each page the mock's tests (`studio-next/tests/*`) are mapped to real tests; an unported test needs a reason (not applicable: mock-only, or covered by X).
 3. **Owner QA list on #510.** The steps only the owner can do: Shift+F10 in the WebView, REAPER undo behaviour of each new command, a real record with the pedal, Audacity backups, extraction on a real manuscript, the carried-over verification passes.
 4. **Final ratchets.** `rawNatives` ceilings for series pages at zero; direct `FontAwesomeIcon` imports outside `Icon` at zero for migrated pages; every port has a contract suite; no `registerKeys`-style handlers; no bridge imports outside adapters.
-5. **Delete the mock.** Remove `docs/research/mockups/studio-next/`, its mention in CLAUDE.md and the train's mock-spec section (to be replaced by whatever the owner rules in SN0-Q1), the screenshots helper, and any `mock-match` entries for it.
+5. **Delete the mock.** Remove `docs/research/mockups/studio-next/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "Which mocks are the spec" section of the rule file and the train's mock-spec section (to be replaced by whatever the owner rules in SN0-Q1), the screenshots helper, and any `mock-match` entries for it.
 6. **Steady-state docs.** New or updated: `docs/architecture/` (shell and registries; UI state and the command journal; DAW capabilities and results; extraction tiers), `docs/design/design-system.md` (new primitives, icon vocabulary, layout rules), `docs/guides/using-the-app/*` (each page), `docs/architecture/threat-model.md` and `SECURITY.md` rows, diagrams naming moved files, and the ADRs that landed.
 7. **Delete the series PRDs** in the PR that completes the last phase of each, then this one; update the PRD index.
 
@@ -121,7 +121,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | `docs/research/`, `scripts/ci/` | none |
 | 4 | `rawNatives.test.ts`, ratchet tests | Page swaps (mechanical) |
 | 5 | `docs/**` | Page swaps' guide edits |
-| 6 | `docs/research/mockups/studio-next/`, CLAUDE.md, train | Everything; runs alone (owner approval for CLAUDE.md and the train) |
+| 6 | `docs/research/mockups/studio-next/`, `.claude/rules/ui-spec-and-screenshots.md`, `knip.jsonc`, `mkdocs.yml`, train | Everything; runs alone (owner approval for the rule file and the train) |
 
 ### Slices
 
@@ -143,7 +143,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock README and rulings file, CLAUDE.md "Which mocks are the spec", the PRD README lifecycle, `prd-references.mjs`. Not done: the ruling count is an estimate from the file's length, not a counted index.
+Read: the mock README and rulings file, `.claude/rules/ui-spec-and-screenshots.md`, the PRD README lifecycle, `prd-references.mjs`. Not done: the ruling count is an estimate from the file's length, not a counted index.
 
 ## Visual Spec
 

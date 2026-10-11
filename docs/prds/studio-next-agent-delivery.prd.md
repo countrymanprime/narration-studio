@@ -27,7 +27,7 @@ What the train already gives (all cited from `docs/operations/agent-train.md`):
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../operations/agent-train.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
 | Worker protocol | Push after every green step; checkpoints; pause or yield; own PRs until merged (D82); `send_later` check-ins ([The worker protocol](../operations/agent-train.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
 | Templates | Worker, resume and fixer templates ([Templates](../operations/agent-train.md#templates)) | Name the benchmark mocks only; no slice fields |
-| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 mock comparison; the Screenshots rule | CLAUDE.md asks for `pnpm check` before "done"; the train allows targeted checks per phase. This series keeps the train's rule |
+| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 mock comparison; the Screenshots rule | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
 | Mock-first | D67: build against a mock that passes the schema; swap behind the port | Exactly the series' provider principle; used as is |
 | Issue forms | `.github/ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml`; blank issues off | No slice form |
 
@@ -142,7 +142,7 @@ The train's pass is unchanged: switches, usage, reconcile, merge, launch, housek
 The train's worker template ([Worker template](../operations/agent-train.md#worker-template)) with these fixed steps:
 
 1. Plan; find the slice issue and branch from latest `main`.
-2. `change-impact-scan` of every consumer of what the slice edits, and for Lua the harness tests per command (CLAUDE.md step 2).
+2. `change-impact-scan` of every consumer of what the slice edits, and for Lua the harness tests per command (CLAUDE.md step 2, [`.claude/rules/reaper-bridge.md`](../../.claude/rules/reaper-bridge.md)).
 3. Tests first, named in the issue; mock-first behind the port (D67).
 4. Targeted checks per D43; `full-verification-gate` when the slice ends the stream (D44); look at every viewport's PNG; atlas for primitives; aria for dialogs.
 5. `design-spec-guard`, `feature-cleanup` (threat model and diagrams where a boundary moved).
@@ -182,7 +182,7 @@ Each ratchet is a test that fails when a slice regresses it, so continuous mergi
 
 - Contract tests: every provider port runs one suite against the mock and the real adapter; a port without both fails.
 - Wire contracts: new binding without schema, golden, row and passing mock fails `wireContracts.test.ts`.
-- Visual suite, atlas, axe-debt, aria snapshots, collapsed-control and overflow checks as in CLAUDE.md.
+- Visual suite, atlas, axe-debt, aria snapshots, collapsed-control and overflow checks as in [`.claude/rules/ui-visual-verification.md`](../../.claude/rules/ui-visual-verification.md).
 - Lua harness with mutation entries; a command without a harness test fails the registry test.
 - `rawNatives.test.ts` ceilings only fall; `knip` at zero dead code; architecture and import-boundary tests.
 - A ruling-index test (Cutover) that fails when a ruling in the decisions seed has no test mapped.

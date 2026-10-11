@@ -132,7 +132,7 @@ Further per-PRD questions are in each PRD; none blocks another PRD's spikes.
 ## Users & Context
 
 - **The narrator-owner** wants the app to behave as the mock does, with screenshots to judge it and no surprise regressions.
-- **Worker sessions** (Sonnet by default, Opus for contracts, new Lua commands and semantic fixers) read `CLAUDE.md`, this series and their slice issue, and nothing else. A slice must be buildable from the repo alone.
+- **Worker sessions** (Sonnet by default, Opus for contracts, new Lua commands and semantic fixers) read `CLAUDE.md` (and the `.claude/rules/` files that load for the paths they touch), this series and their slice issue, and nothing else. A slice must be buildable from the repo alone.
 - **The coordinator session** runs one pass every 30 minutes ([The coordinator's pass](../operations/agent-train.md#the-coordinators-pass)) and needs a ready list it can compute from the phase and slice tables.
 - **Reviewers** (the owner, code-owner review) see small PRs with evidence.
 
@@ -218,7 +218,7 @@ None of these is overridden here. Each is a proposal; the owning PRD authors it 
 
 | # | Conflict | Existing decision | Proposed ADR (owner PRD) |
 | --- | --- | --- | --- |
-| A1 | Which mock is the spec | D96 in agent-train: only the benchmark folder counts | Spec precedence, amends the rule (SNF/SNC) |
+| A1 | Which mock is the spec | D96, now in `.claude/rules/ui-spec-and-screenshots.md`: only the benchmark folder counts | Spec precedence, amends the rule (SNF/SNC) |
 | A2 | Page replaced behind a flag | [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md): same-PR replacement, no coexistence | Time-boxed flag for Editing only, if SN0-Q2 (B) (SNE) |
 | A3 | Register keys with page handlers (`registerKeys`) | [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md): features never listen to `keydown`; static catalogue | Jump menu, context providers and help derived from the catalogue (SNR) |
 | A4 | Imperative overlays | [ADR 0048](../adr/0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md), [ADR 0172](../adr/0172-popover-is-an-interactive-layer-above-the-dialog-and-escape-defers-to-the-topmost-one.md), [ADR 0630](../adr/0630-overlays-keep-the-mocks-frame-a-nested-dialog-dims-the-page-and-a-combobox-popup-is-a-listbox-not-a-popover.md) | Overlay service renders the existing primitives (SNR) |
@@ -372,7 +372,7 @@ The app stays shippable because every slice leaves `pnpm check` green on its own
 - **Ruling tests.** Each agreed ruling gets a test named for it, carried over from the mock's test where one exists (`studio-next/tests/`), indexed in a table the cutover checks.
 - **Visual evidence.** Visual suite rows per state at the suite's viewports, looked at by the worker; atlas and axe for primitives; aria snapshots for dialogs and slide-overs; the Screenshots section against the Studio Next mock ([UI PRs show their screenshots](../operations/agent-train.md#ui-prs-show-their-screenshots)).
 - **REAPER.** Harness test first for every new or changed command, mutation entries for guards, a spike script run in REAPER on a copy of a project with an isolated `-cfgfile` where behaviour is unverified; anything needing the owner is marked pending on #510 ([ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md), CLAUDE.md step 4).
-- **Gates.** The worker contract is CLAUDE.md's: plan, `change-impact-scan`, TDD, `full-verification-gate`, `design-spec-guard`, `feature-cleanup`. The train's D43 and D44 allow targeted checks per slice and the full gate once at the end of a stream; this series keeps that and does not change it.
+- **Gates.** The worker contract is CLAUDE.md's: plan, `change-impact-scan`, TDD, `full-verification-gate`, `design-spec-guard`, `feature-cleanup`. CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what a slice changed and let the PR pipeline be the full gate; this series keeps that and does not change it. The path-scoped rules in `.claude/rules/` load when a worker edits a file under their `paths:`.
 
 ### Unverified behaviours that must be spikes
 
@@ -512,7 +512,7 @@ Pass 1 of `solid-design-review` and `design-principles` for the whole series, wr
 | 6. Precision over recall | Items under 75% confidence must be verified; claims are capped at 0.74 (SNX) | Met |
 | 7. Identity, not position | Takes and pickups carry stable ids and a stale target is refused (SND, SNQ) | Met |
 | 8. Ports for engines and providers | Every engine sits behind a provider with a mock implementation (SNS, SND) | Met |
-| 9. Boundaries are contracts | Each new payload brings its schema, golden file and contract row, in the slice that adds the payload (see Wire contracts in `CLAUDE.md`) | At risk: no schema exists yet; each slice closes its own |
+| 9. Boundaries are contracts | Each new payload brings its schema, golden file and contract row, in the slice that adds the payload (see [`.claude/rules/wire-contracts.md`](../../.claude/rules/wire-contracts.md)) | At risk: no schema exists yet; each slice closes its own |
 | 12. Acknowledge within 100 ms | Long work is a job with real progress; the booth and delivery jobs need the existing job events (SNO, SNM) | At risk: confirm in each slice |
 | 13. Primitives own the look; the benchmark is the spec | The mock and the benchmark disagree today; SN0-Q1 picks the spec per page before a page slice starts | At risk until SN0-Q1 is answered |
 | 14. Accessibility is tested | Each page slice runs axe and the ARIA snapshots | Met |
