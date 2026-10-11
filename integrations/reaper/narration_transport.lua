@@ -12,7 +12,8 @@
 -- record_start records only when REAPER is stopped and exactly one track is armed, the named one. record_stop stops
 -- only the recording this bridge started (RECORD_NOT_OURS otherwise). Neither calls Main_OnCommand: recording starts
 -- with CSurf_OnRecord, pressed once after REAPER was seen stopped, since it is a toggle; RECORD_STARTED follows once
--- GetPlayState reports recording, which may be a few defer cycles later.
+-- GetPlayState reports recording, which may be a few defer cycles later. An optional third argument `end` first moves
+-- the edit cursor to the end of the last item on the named track (0 when empty), once every check has passed.
 
 local core = ...
 local event = core.event
@@ -179,7 +180,21 @@ local function watch(session_dir, state, record)
   reaper.defer(tick)
 end
 
-local function record_start(session_dir, state, run_id, guid_text)
+-- The end of the latest item on the track, or 0 when it has none: D_POSITION + D_LENGTH, so nothing on it is overwritten.
+local function track_end(track)
+  local last = 0
+  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+    local item = reaper.GetTrackMediaItem(track, index)
+    last = math.max(last, reaper.GetMediaItemInfo_Value(item, 'D_POSITION') + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH'))
+  end
+  return last
+end
+
+local function record_start(session_dir, state, run_id, guid_text, start_rule)
+  if start_rule ~= '' and start_rule ~= 'end' then
+    event(session_dir, 'ERROR', run_id, 'Unknown start rule: ' .. start_rule .. '.')
+    return
+  end
   if not reaper.APIExists('CSurf_OnRecord') or not reaper.APIExists('CountTracks') then
     event(session_dir, 'ERROR', run_id, 'This REAPER version cannot start recording.')
     return
@@ -213,6 +228,10 @@ local function record_start(session_dir, state, run_id, guid_text)
     event(session_dir, 'ERROR', run_id, 'Another track is armed.')
     return
   end
+  if start_rule == 'end' then
+    -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block.
+    reaper.SetEditCurPos(track_end(target), true, false)
+  end
   local record = { run_id = run_id, track = track_guid(target), position = reaper.GetCursorPosition(), waited = 0 }
   reaper.CSurf_OnRecord()
   state.recording = record
@@ -245,7 +264,7 @@ return function(registry)
     arm_only(ctx.session_dir, state, args[1] or '', args[2] or '')
   end)
   registry.register('record_start', function(ctx, args)
-    record_start(ctx.session_dir, state, args[1] or '', args[2] or '')
+    record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '')
   end)
   registry.register('record_stop', function(ctx, args)
     record_stop(ctx.session_dir, state, args[1] or '')

@@ -862,5 +862,23 @@
     "file": "narration_master_render.lua",
     "find": "  list(reaper.GetMasterTrack(0), 'master', 'MASTER')\n",
     "replace": "\n"
+  },
+  {
+    "name": "record_start end moves the cursor before the refusal checks",
+    "file": "narration_transport.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is already recording.')",
+    "replace": "  if start_rule == 'end' then\n    reaper.SetEditCurPos(track_end(find_track(guid_text) or reaper.GetTrack(0, 0)), true, false)\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is already recording.')"
+  },
+  {
+    "name": "record_start end uses the item start instead of its end",
+    "file": "narration_transport.lua",
+    "find": "reaper.GetMediaItemInfo_Value(item, 'D_POSITION') + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')",
+    "replace": "reaper.GetMediaItemInfo_Value(item, 'D_POSITION')"
+  },
+  {
+    "name": "record_start end counts other tracks' items",
+    "file": "narration_transport.lua",
+    "find": "  local last = 0\n  for index = 0, reaper.CountTrackMediaItems(track) - 1 do\n    local item = reaper.GetTrackMediaItem(track, index)",
+    "replace": "  local last = 0\n  for index = 0, reaper.CountMediaItems(0) - 1 do\n    local item = reaper.GetMediaItem(0, index)"
   }
 ]
