@@ -17,14 +17,19 @@ import { useTheme } from '../../theme/ThemeContext';
 import type { ThemePreference } from '../../theme/theme';
 import { AboutPanel } from './AboutPanel';
 import { CreditsPanel } from './CreditsPanel';
+import { CapabilitySection } from './CapabilitySection';
 import { DawCatalogPanel } from './DawCatalogPanel';
 import { DeliveryProfilesPanel } from './DeliveryProfilesPanel';
 import { KeyboardPanel } from './KeyboardPanel';
 import { OnlineDictionaryPanel } from './OnlineDictionaryPanel';
 import { RecordingCheckSummary } from './RecordingCheckSummary';
 import { ScopedSetting } from './ScopedSetting';
+import { registerSettingsSection, settingsSectionsFor } from './sections';
 import { UpdatesPanel } from './UpdatesPanel';
 import type { Notify } from '../primitives/Toast';
+
+// The one hand-written line per section: later sections register from their own files (SNM-2, SNM-3) and are rendered below.
+registerSettingsSection('Daw', 'capabilities', CapabilitySection, 10);
 type SettingsCategory = { key: string; label: string; tool?: string; scopes: Scope[]; filter?: (field: ScopedSettingField) => boolean };
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { key: 'General', label: 'General', tool: 'General', scopes: ['global'] },
@@ -330,6 +335,9 @@ export function Settings({
                       />
                     ))}
                   </div>
+                  {settingsSectionsFor(category).map(({ id, component: Section }) => (
+                    <Section key={id} />
+                  ))}
                   <div className="mt-5 flex items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
                     <span className="text-xs" style={{ color: 'var(--warn-text)' }}>
                       {dirty && 'Unsaved changes'}

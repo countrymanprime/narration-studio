@@ -72,6 +72,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'global-daw-capabilities',
+    description:
+      "Settings, Global scope / DAW Integration category, the capability section below the per-capability toggles: each capability with its level as a word and a glyph, the host's reason sentence when unavailable, the destructive warning chip and the mode phrase",
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'global-daw-not-detected',
     description:
       'Settings, Global scope / DAW Integration category with REAPER not detected (?mockDawNotDetected=1, docs/architecture/daw-integration.md): the not-detected dot and the "Get REAPER" button that opens the vendor\'s download page',
