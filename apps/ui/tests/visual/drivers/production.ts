@@ -78,7 +78,7 @@ export const productionDrivers: Record<string, Driver> = {
       .getByRole('status')
       .getByText(/^Linked /)
       .waitFor();
-    await page.getByRole('button', { name: 'Undo' }).waitFor();
+    await page.getByRole('status').getByRole('button', { name: 'Undo' }).waitFor();
   },
   'chapter-track-panel-linked': async (page) => {
     const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=confirmed');

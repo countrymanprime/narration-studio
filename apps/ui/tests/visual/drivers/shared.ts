@@ -137,6 +137,10 @@ export async function clickNav(page: Page, name: AppPage): Promise<void> {
     .first()
     .getByRole('button', { name: navItemName(name) })
     .click();
+  // Below 1360 px the icon rail widens over the page while the pointer rests on it (ADR 0761), so a later click on the
+  // page would hit the rail: park the pointer in the middle of the page the way a user's hand leaves the nav.
+  const size = page.viewportSize();
+  if (size) await page.mouse.move(size.width * 0.75, size.height / 2);
 }
 
 // Navigates through the nav and waits until the destination has arrived (its heading, and its content where that is the
