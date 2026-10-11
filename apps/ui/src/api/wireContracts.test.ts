@@ -48,7 +48,14 @@ import {
   takeReviewEvidenceSchema,
   takeReviewScanJobSchema,
 } from './schemas/takeReview';
-import { COVERAGE_EVALUATOR_REASONS, COVERAGE_REFUSAL_REASONS, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from './schemas/coverage';
+import {
+  COVERAGE_EVALUATOR_REASONS,
+  COVERAGE_REFUSAL_REASONS,
+  coverageEnginesSchema,
+  coverageResultSchema,
+  coverageStartResultSchema,
+  coverageStateSchema,
+} from './schemas/coverage';
 import {
   workspaceAlignmentResultSchema,
   workspaceFXChainsResultSchema,
@@ -184,6 +191,26 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const declared = z.object({ refusal: z.array(z.string()), evaluator: z.array(z.string()) }).parse(readGolden('coverage-reasons.json'));
     expect([...COVERAGE_REFUSAL_REASONS]).toEqual(declared.refusal);
     expect([...COVERAGE_EVALUATOR_REASONS]).toEqual(declared.evaluator);
+  });
+
+  it('the recording check engines: the golden parses, the mock answers the same engines and refuses the same unknown model (ADR 0841)', async () => {
+    const golden = readGolden('coverage-engines.json');
+    const parsed = parseWire(coverageEnginesSchema, golden, ctx('coverage engines'));
+    expect(parsed.engines.map((engine) => engine.id)).toContain(parsed.default);
+    expect(parsed.engines.every((engine) => engine.family === 'whisper')).toBe(true);
+    expect(() => parseWire(coverageEnginesSchema, { ...parsed, extra: 1 }, ctx('coverage engines'))).toThrow();
+    expect(() => parseWire(coverageEnginesSchema, { ...parsed, engines: [{ ...parsed.engines[0], family: 'moonshine' }] }, ctx('coverage engines'))).toThrow();
+    expect(() => parseWire(coverageEnginesSchema, { ...parsed, engines: [{ ...parsed.engines[0], extra: 1 }] }, ctx('coverage engines'))).toThrow();
+
+    const api = createMockApi();
+    const mocked = await api.coverageEngines();
+    expectMatches(coverageEnginesSchema, mocked, 'mock coverage engines');
+    expect(mocked.engines.map((engine) => engine.id)).toContain(mocked.default);
+    await expect(api.coverageStart('any-chapter', { model: 'moonshine-tiny' })).rejects.toThrow('not in the approved catalog');
+    const chapters = await api.manuscriptChapters();
+    const chapter = chapters.find((item) => item.recordedFraction !== undefined);
+    if (!chapter) throw new Error('the mock chapters carry a measured recordedFraction');
+    expect((await api.coverageStart(chapter.id, { model: mocked.default })).status).toBe('started');
   });
 
   it('a coverage region keeps its bounds, and a missing bound reads as absent (ADR 0168)', () => {
@@ -2849,6 +2876,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
+      'coverageEngines',
       'exportPickFiles',
       'exportStart',
       'exportState',

@@ -328,6 +328,16 @@ export function CoverageCancel(): $CancellablePromise<string> {
 }
 
 /**
+ * CoverageEngines lists the engines a recording check can run: the approved Whisper models, in catalog order, each with
+ * its install state, and the id of the one a start that names none would use (SN-Q62, ADR 0841). It reads the catalog
+ * and the settings, not a project, so the Check recordings dialog can offer the list before one is open. A start
+ * may name any listed id in options["model"] (CoverageStart).
+ */
+export function CoverageEngines(): $CancellablePromise<string> {
+    return $Call.ByID(2398170927);
+}
+
+/**
  * CoverageResult reads a chapter's newest complete check back and says whether it is current, stale or never, with
  * reasons (coverage.ResultView). It never runs anything (Q14).
  */
@@ -339,7 +349,9 @@ export function CoverageResult(chapterID: string): $CancellablePromise<string> {
  * CoverageStart starts a recording check of one chapter. With the model cascade off (Q7 A, the default, MC1) it uses
  * the narrator's Transcript Compare model; with it on, the two cascade settings (MC2). options["skipRecheck"] ==
  * "true" starts a cascade-enabled chapter with the first pass alone - the narrator's "Check with tiny only" choice
- * (MC4) when the re-check model is not installed; nil or without that key is the ordinary start. It answers
+ * (MC4) when the re-check model is not installed; nil or without that key is the ordinary start. options["model"] names
+ * an approved Whisper model (CoverageEngines lists them) to run alone, replacing the cascade for this run (ADR 0841);
+ * an unknown id is an error and nothing starts. It answers
  * {status: "started", state}; {status: "refused", reason, message} when the chapter cannot be measured as the saved
  * project stands (nothing was run or written); {status: "asset_required", ...} when the first-pass model is not
  * installed yet (the first-use gate TranscriptStart has); or {status: "recheck_asset_required", ...} when the

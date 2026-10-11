@@ -1,0 +1,23 @@
+{
+  "default": "small",
+  "engines": [
+    {
+      "family": "whisper",
+      "id": "large-v3-turbo",
+      "installState": "not_installed",
+      "label": "large-v3-turbo"
+    },
+    {
+      "family": "whisper",
+      "id": "small",
+      "installState": "installed",
+      "label": "small"
+    },
+    {
+      "family": "whisper",
+      "id": "tiny",
+      "installState": "installed",
+      "label": "tiny"
+    }
+  ]
+}
