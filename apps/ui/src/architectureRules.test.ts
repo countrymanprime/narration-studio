@@ -107,4 +107,76 @@ describe('the import-graph rules (ADR 0062)', () => {
     expect(found).toHaveLength(1);
     expect(found[0]).toMatch(/^zod-only-in-api: src\/components\/settings\/Validate\.ts -> .*node_modules\/zod\//);
   });
+
+  // The rules below are ADR 0770's (and ADR 0781's for the overlay). `src/ports/`, `src/fixtures/` and `src/overlay/` do not
+  // exist yet: a rule about a folder with no files must still pass on the real tree, and these cases prove it fires once there are.
+  test('the store may not import the bridge, a component, the App or main (ADR 0770)', async () => {
+    write('src/api/wailsClient.ts', 'export const wailsClient = {};\n');
+    write('src/components/home/Home.ts', 'export const Home = 1;\n');
+    write('src/App.tsx', 'export const App = 1;\n');
+    write('src/main.tsx', 'export const main = 1;\n');
+    write('src/api/wire/parseWire.ts', 'export const parseWire = 1;\n');
+    write('src/studio/store/ok.ts', "import { parseWire } from '../../api/wire/parseWire';\nexport const ok = parseWire;\n");
+    write('src/studio/store/bridge.ts', "import { wailsClient } from '../../api/wailsClient';\nexport const bridge = wailsClient;\n");
+    write('src/studio/store/page.ts', "import { Home } from '../../components/home/Home';\nexport const page = Home;\n");
+    write('src/studio/store/app.ts', "import { App } from '../../App';\nimport { main } from '../../main';\nexport const both = [App, main];\n");
+    expect(await violations('src/studio/store/ok.ts')).toEqual([]);
+    expect(await violations('src/studio/store/bridge.ts')).toEqual([
+      'bridge-only-at-the-composition-root: src/studio/store/bridge.ts -> src/api/wailsClient.ts',
+    ]);
+    expect(await violations('src/studio/store/page.ts')).toEqual([
+      'studio-does-not-import-components: src/studio/store/page.ts -> src/components/home/Home.ts',
+    ]);
+    expect(await violations('src/studio/store/app.ts')).toEqual([
+      'studio-does-not-import-components: src/studio/store/app.ts -> src/App.tsx',
+      'studio-does-not-import-components: src/studio/store/app.ts -> src/main.tsx',
+    ]);
+  });
+
+  test('a selector imports types and other selectors only, in the shared folder and beside a page', async () => {
+    write('src/studio/store/store.ts', 'export const store = 1;\nexport type Store = { n: number };\n');
+    write('src/studio/selectors/base.ts', 'export const base = 1;\n');
+    write(
+      'src/studio/selectors/ok.ts',
+      "import type { Store } from '../store/store';\nimport { base } from './base';\nexport const ok = (s: Store) => s.n + base;\n",
+    );
+    write('src/studio/selectors/leaky.ts', "import { store } from '../store/store';\nexport const leaky = store;\n");
+    write('src/components/home/home.selectors.ts', "import { store } from '../../studio/store/store';\nexport const homeSelector = store;\n");
+    write('src/components/home/okPage.selectors.ts', "import { base } from '../../studio/selectors/base';\nexport const okPage = base;\n");
+    expect(await violations('src/studio/selectors/ok.ts')).toEqual([]);
+    expect(await violations('src/components/home/okPage.selectors.ts')).toEqual([]);
+    expect(await violations('src/studio/selectors/leaky.ts')).toEqual([
+      'selectors-import-types-and-selectors-only: src/studio/selectors/leaky.ts -> src/studio/store/store.ts',
+    ]);
+    expect(await violations('src/components/home/home.selectors.ts')).toEqual([
+      'selectors-import-types-and-selectors-only: src/components/home/home.selectors.ts -> src/studio/store/store.ts',
+    ]);
+  });
+
+  test('ports, fixtures and the overlay keep to their side of the graph', async () => {
+    write('src/api/wailsClient.ts', 'export const wailsClient = {};\n');
+    write('src/components/home/Home.ts', 'export const Home = 1;\n');
+    write('src/components/primitives/Button.ts', 'export const Button = 1;\n');
+    write('src/studio/store/store.ts', 'export const store = 1;\n');
+    write(
+      'src/ports/usePort.ts',
+      "import { wailsClient } from '../api/wailsClient';\nimport { Home } from '../components/home/Home';\nexport const p = [wailsClient, Home];\n",
+    );
+    write(
+      'src/fixtures/book.ts',
+      "import { store } from '../studio/store/store';\nimport { wailsClient } from '../api/wailsClient';\nexport const f = [store, wailsClient];\n",
+    );
+    write('src/overlay/ok.ts', "import { Button } from '../components/primitives/Button';\nexport const ok = Button;\n");
+    write('src/overlay/leaky.ts', "import { Home } from '../components/home/Home';\nexport const leaky = Home;\n");
+    expect((await violations('src/ports/usePort.ts')).map((v) => v.split(':')[0])).toEqual([
+      'bridge-only-at-the-composition-root',
+      'ports-and-fixtures-are-below-components',
+    ]);
+    expect((await violations('src/fixtures/book.ts')).map((v) => v.split(':')[0])).toEqual([
+      'bridge-only-at-the-composition-root',
+      'fixtures-do-not-import-the-store',
+    ]);
+    expect(await violations('src/overlay/ok.ts')).toEqual([]);
+    expect(await violations('src/overlay/leaky.ts')).toEqual(['overlay-imports-primitives-only: src/overlay/leaky.ts -> src/components/home/Home.ts']);
+  });
 });

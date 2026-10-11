@@ -12,13 +12,36 @@ export type DawCapabilityLevel = 'unsupported' | 'not_yet_available' | 'experime
 /** Why a capability is unavailable now (port.Reason in Go); absent when it is available. */
 export type DawCapabilityReason = 'standalone' | 'not_running' | 'experimental_off' | 'failed' | 'turned_off' | 'not_yet' | 'unsupported';
 
+/** How a change that needs several edits is made (port.Mode in Go): `native` (the DAW does it itself, one undo step), `app`
+ * (the app makes it; the DAW keeps no project of its own) or `steps` (the app performs the edits one after another). */
+export type DawCapabilityMode = 'native' | 'app' | 'steps';
+
 /** One capability's answer. `reason` and `message` are set only when `available` is false; `message` is a whole sentence
- * for the narrator, worded by the resolver or the adapter (dawport.Explainer), never by the UI. */
+ * for the narrator, worded by the resolver or the adapter (dawport.Explainer), never by the UI. `destructive` (sent only
+ * when true: using it replaces audio that cannot be brought back, so ask first) and `mode` are what the adapter declares
+ * (dawport.Describer), sent whether or not the capability is available now (ADR 0810). */
 export type DawCapabilitySupport = {
   level: DawCapabilityLevel;
   available: boolean;
   reason?: DawCapabilityReason;
   message?: string;
+  destructive?: boolean;
+  mode?: DawCapabilityMode;
+};
+
+/** The most undo points one DawResult reports (dawport.MaxUndoSteps in Go). */
+export const DAW_RESULT_MAX_UNDO_STEPS = 12;
+
+/** What one call to the DAW answered (dawport.Result in Go, ADR 0810). A refused call changed nothing: `refused` holds the
+ * reason and `message` repeats it. `undoSteps` is 0 for a cursor move and 1 for one command; `steps` lists, in order, the
+ * edits a multi-step change made. */
+export type DawResult = {
+  ok: boolean;
+  changed: boolean;
+  message: string;
+  undoSteps: number;
+  refused?: string;
+  steps?: string[];
 };
 
 /** The DAW port's capability names (dawport.Capability in Go). New ones may appear later (a new adapter capability);

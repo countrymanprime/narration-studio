@@ -1,0 +1,11 @@
+{
+  "changed": true,
+  "message": "Pickup rolled in.",
+  "ok": true,
+  "steps": [
+    "Split the item at the pickup",
+    "Delete the old take",
+    "Paste the pickup"
+  ],
+  "undoSteps": 3
+}
