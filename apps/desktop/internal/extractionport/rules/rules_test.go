@@ -20,16 +20,20 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 )
 
-// The test binary doubles as the sidecar: run with fakeEnv set, TestFakeSidecar prints what its mode says and exits.
+// The test binary doubles as the sidecar: started with fakeEnv set, TestMain runs fakeSidecar instead of the tests.
 const fakeEnv = "RULES_FAKE_SIDECAR"
 
-func TestFakeSidecar(t *testing.T) {
-	mode := os.Getenv(fakeEnv)
-	if mode == "" {
-		t.Skip("only runs as the fake sidecar")
+func TestMain(m *testing.M) {
+	if mode := os.Getenv(fakeEnv); mode != "" {
+		fakeSidecar(mode)
 	}
-	args := os.Args[slices.Index(os.Args, "--")+1:]
-	if !slices.Equal(args[:1], []string{"suggest"}) || !slices.Contains(args, "--manuscript") || !slices.Contains(args, "--guide") {
+	os.Exit(m.Run())
+}
+
+// fakeSidecar prints what mode says, as `suggest` would, and exits.
+func fakeSidecar(mode string) {
+	args := os.Args[1:]
+	if len(args) == 0 || args[0] != "suggest" || !slices.Contains(args, "--manuscript") || !slices.Contains(args, "--guide") {
 		fmt.Fprintf(os.Stderr, "unexpected arguments %q\n", args)
 		os.Exit(3)
 	}
@@ -82,7 +86,7 @@ func fake(t *testing.T, mode string) (Source, *[]string) {
 	return Source{
 		Supervisor: supervisor,
 		Command: func() (Command, error) {
-			return Command{Program: os.Args[0], Args: []string{"-test.run=^TestFakeSidecar$", "--"}, Manuscript: "m.json", Guide: "g.json"}, nil
+			return Command{Program: os.Args[0], Manuscript: "m.json", Guide: "g.json"}, nil
 		},
 		Log: func(s string) { mu.Lock(); logged = append(logged, s); mu.Unlock() },
 	}, &logged
