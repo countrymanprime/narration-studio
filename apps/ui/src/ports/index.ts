@@ -50,6 +50,9 @@ import type { PronunciationOnlineApi } from '../api/contracts/pronunciationOnlin
 import type { ProofingRenderApi } from '../api/contracts/proofingRender';
 import type { PrepCompletenessApi } from '../api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from '../api/contracts/renderEncodeMaster';
+import type { DawClient } from './daw';
+
+export type { DawClient };
 
 export type {
   SystemApi,
@@ -154,4 +157,12 @@ export interface PortMap {
   renderEncodeMaster: RenderEncodeMasterApi;
 }
 
-export type PortName = keyof PortMap;
+/** Ports that are not a `NarrationApi` interface but a client built over it (or over a mock), so a page sees one result type per call. */
+export interface ClientPortMap {
+  daw: DawClient;
+}
+
+export type PortName = keyof PortMap | keyof ClientPortMap;
+
+/** What `usePort(name)` returns: the domain interface, or the client for a client port. */
+export type PortOf<N extends PortName> = N extends keyof ClientPortMap ? ClientPortMap[N] : N extends keyof PortMap ? PortMap[N] : never;
