@@ -83,3 +83,16 @@ func TestPreservesLayerPrecedenceAndProjectReset(t *testing.T) {
 		t.Fatalf("%q %q", value, source)
 	}
 }
+
+// The edit capabilities (SND-3) each have a DAW.capability.<name> row, on auto, in the built-in copy as in defaults.json.
+func TestTheEditCapabilityRowsDefaultToAuto(t *testing.T) {
+	store := New(t.TempDir(), "")
+	for _, name := range []string{"cut_range", "fx_range", "stack_takes", "backups"} {
+		if got := builtinDefaults["DAW"]["capability."+name]; got != "auto" {
+			t.Errorf("builtinDefaults DAW.capability.%s = %q, want auto", name, got)
+		}
+		if value, _ := store.Effective("DAW", "capability."+name, ""); value != "auto" {
+			t.Errorf("Effective DAW.capability.%s = %q, want auto", name, value)
+		}
+	}
+}

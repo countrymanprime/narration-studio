@@ -314,3 +314,110 @@ type MasterChainReader interface {
 type MacroRenderer interface {
 	RenderWithMacro(ctx context.Context, request MacroRender) (MacroRendered, error)
 }
+
+// The edit roles (SND-3) change the audio of the project the engine has open. Their requests are dawport's own values: no bridge
+// command takes them yet, and the command slices adapt them to their arguments. A request names items, takes and times as the app
+// last read them, never a file. Each method answers a Result (ADR 0810): a refusal (an item that changed since the app read it, an
+// engine that cannot make the edit) is a refused Result that changed nothing; the error is only a call that never reached the engine.
+
+// CutMode is what happens to the time a cut leaves behind.
+type CutMode string
+
+const (
+	// CutClose moves the audio after the cut up to close the gap.
+	CutClose CutMode = "close"
+	// CutGap keeps the length, filling the cut with room tone.
+	CutGap CutMode = "gap"
+)
+
+// RangeRequest is a stretch of words in a chapter's recording: the audio from Start to End seconds (snapped to a zero crossing) of
+// the item the words sit in.
+type RangeRequest struct {
+	ChapterID string
+	// ItemKey is the passage the words sit in, or with none the chapter's track.
+	ItemKey string
+	// ItemGUID is the item's id as the app last read it; the engine refuses a request whose id no longer matches.
+	ItemGUID string
+	Start    float64
+	End      float64
+	// Words is how many words the range holds, for the undo point's name.
+	Words int
+}
+
+// DeleteRangeRequest cuts a range's words and audio.
+type DeleteRangeRequest struct {
+	RangeRequest
+	Mode   CutMode
+	FadeMs int
+}
+
+// FXRangeRequest puts one of the engine's own saved chains, effects or macros on a range. ChainID and ChainName are as the engine
+// listed them; the host never sends a chain the engine did not offer.
+type FXRangeRequest struct {
+	RangeRequest
+	ChainID   string
+	ChainName string
+	FadeMs    int
+}
+
+// StackMove is one take a stack (or unstack) moves: where it began and where it begins afterwards, seconds into the chapter's
+// recording, and its length.
+type StackMove struct {
+	TakeID string
+	From   float64
+	To     float64
+	Len    float64
+}
+
+// StackGroup is the takes of one passage a stack moves onto the base read's spot. ItemGUID is the item as the app last read it; the
+// engine refuses a request whose id no longer matches.
+type StackGroup struct {
+	PassageID string
+	ItemGUID  string
+	Base      string
+	Moves     []StackMove
+}
+
+// StackRequest stacks (or unstacks) the retries of a chapter's passages. Shift is how far the audio that follows moves, summed over
+// the groups (negative: earlier).
+type StackRequest struct {
+	ChapterID string
+	Groups    []StackGroup
+	Shift     float64
+}
+
+// BackupRequest asks the engine to clone the audio from Start to End seconds of a chapter's track before it is changed. GUID is the
+// track or item the audio sits in, as the app last read it.
+type BackupRequest struct {
+	GUID      string
+	ChapterID string
+	Start     float64
+	End       float64
+}
+
+// RangeCutter cuts words and their audio: split the item at both ends and take the middle piece out. One undo point where the engine
+// can make it as one action; the Result says how many it added, and the Steps it performed when it had to make it in several.
+type RangeCutter interface {
+	DeleteRange(ctx context.Context, request DeleteRangeRequest) (Result, error)
+}
+
+// RangeFXApplier puts one of the engine's own saved chains on the middle piece of a range, and takes it off again (the piece is
+// joined back). The same refusals and undo rule as RangeCutter.
+type RangeFXApplier interface {
+	ApplyFXToRange(ctx context.Context, request FXRangeRequest) (Result, error)
+	RemoveFXFromRange(ctx context.Context, itemGUID, chainName string) (Result, error)
+}
+
+// TakeStacker puts the later reads of a passage on the first read's spot as takes, and moves them back. Refused when an item changed
+// since the app read it, and where the engine cannot stack.
+type TakeStacker interface {
+	StackTakes(ctx context.Context, request StackRequest) (Result, error)
+	UnstackTakes(ctx context.Context, request StackRequest) (Result, error)
+}
+
+// BackupKeeper clones the audio around an edit before it is made, so it can be put back, for an engine that keeps no takes of its
+// own. RestoreBackup is refused when the engine has no backup with that id.
+type BackupKeeper interface {
+	BackupAround(ctx context.Context, request BackupRequest) (Result, error)
+	RestoreBackup(ctx context.Context, backupGUID string) (Result, error)
+}

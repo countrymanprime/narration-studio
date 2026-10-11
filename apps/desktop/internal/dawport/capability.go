@@ -40,6 +40,12 @@ const (
 	// narrator's chosen effect macro, then exports. Like render_with_fx it makes the engine act on the narrator's audio, so each
 	// use needs their approval (threat model row 14f).
 	CapMacroRender Capability = "macro_render"
+	// The edit rows (SND-3): cutting words with their audio, an effect on words, stacking retries as takes, and cloning the audio
+	// around an edit so it can be put back. Each engine declares them NotYetAvailable until its command lands.
+	CapCutRange   Capability = "cut_range"
+	CapFXRange    Capability = "fx_range"
+	CapStackTakes Capability = "stack_takes"
+	CapBackups    Capability = "backups"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -90,6 +96,10 @@ var specs = []Spec{
 	{CapRenderWithFX, "Mastering with the project's FX", NeedsRunning, reflect.TypeFor[FXRenderer]()},
 	{CapMasterChainRead, "Master and track FX listing", NeedsRunning, reflect.TypeFor[MasterChainReader]()},
 	{CapMacroRender, "Mastering with an effect macro", NeedsRunning, reflect.TypeFor[MacroRenderer]()},
+	{CapCutRange, "Cut words and audio", NeedsRunning, reflect.TypeFor[RangeCutter]()},
+	{CapFXRange, "Add an effect to words", NeedsRunning, reflect.TypeFor[RangeFXApplier]()},
+	{CapStackTakes, "Stack takes", NeedsRunning, reflect.TypeFor[TakeStacker]()},
+	{CapBackups, "Audio backups", NeedsRunning, reflect.TypeFor[BackupKeeper]()},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.
