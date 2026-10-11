@@ -83,3 +83,13 @@ func TestContractProductionPlanMilestoneMeasure(t *testing.T) {
 	}
 	checkBindingContract(t, "production-plan-milestone-measure", plan)
 }
+
+// ProductionSetRateBasis's answer for the narrator's own pace: the plan with rateBasis "own".
+func TestContractProductionPlanRateBasis(t *testing.T) {
+	host := hostWithCredits(t)
+	plan, err := host.ProductionSetRateBasis("own")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "production-plan-rate-basis", plan)
+}

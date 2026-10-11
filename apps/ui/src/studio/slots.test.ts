@@ -6,7 +6,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('slots-registry-has-chapters', () => {
   it('reads chapters through the port, is stale on job:ended and reloads on focus', async () => {
     const manuscriptChapters = vi.fn().mockResolvedValue([]);
-    const { chapters } = createSlots({ manuscriptChapters });
+    const { chapters } = createSlots({ manuscriptChapters }, { bookmarksList: vi.fn() });
     expect(chapters.events).toEqual(['job:ended']);
     expect(chapters.refreshOnFocus).toBe(true);
     await chapters.load();
@@ -37,5 +37,17 @@ describe('host-events-adapter', () => {
     expect(subscribe('nope', () => undefined)()).toBeUndefined();
     subscribe('nope', () => undefined);
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('slots-registry-has-bookmarks', () => {
+  it('reads the bookmark list through the port and reloads on focus, not on a host event', async () => {
+    const bookmarksList = vi.fn().mockResolvedValue([]);
+    const { bookmarks } = createSlots({ manuscriptChapters: vi.fn() }, { bookmarksList });
+    expect(bookmarks.refreshOnFocus).toBe(true);
+    expect('events' in bookmarks).toBe(false);
+    await bookmarks.load();
+    expect(bookmarksList).toHaveBeenCalledOnce();
+    expect(bookmarks.schema['~standard'].validate([])).toMatchObject({ value: [] });
   });
 });

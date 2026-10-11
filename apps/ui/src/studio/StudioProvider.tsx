@@ -34,11 +34,12 @@ export function StudioProvider({
 }) {
   const daw = useDawKind();
   const manuscript = usePort('manuscript');
+  const bookmarks = usePort('bookmarks');
   const system = usePort('system');
   const nameRef = useRef('the DAW');
   nameRef.current = daw ? dawShortName(daw) : 'the DAW';
   const [created] = useState(() => createJournal({ dawName: () => nameRef.current, dawLastAction: async () => 'unknown' }));
-  const [createdStore] = useState(() => createStudioStore({ registry: createSlots(manuscript), subscribe: createHostEvents(system) }));
+  const [createdStore] = useState(() => createStudioStore({ registry: createSlots(manuscript, bookmarks), subscribe: createHostEvents(system) }));
   const journal = provided ?? created;
   const store = providedStore ?? createdStore;
   useEffect(() => store.start(), [store]);

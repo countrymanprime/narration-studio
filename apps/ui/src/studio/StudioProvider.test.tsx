@@ -104,7 +104,10 @@ function projectRig(lists: Record<string, ManuscriptChapter[]>) {
 describe('provider-creates-and-starts-the-store', () => {
   it('starts the store on mount and stops it on unmount, using a store a test passes', () => {
     const stop = vi.fn();
-    const store = createStudioStore({ registry: createSlots({ manuscriptChapters: async () => [] }), subscribe: () => () => undefined });
+    const store = createStudioStore({
+      registry: createSlots({ manuscriptChapters: async () => [] }, { bookmarksList: async () => [] }),
+      subscribe: () => () => undefined,
+    });
     const start = vi.spyOn(store, 'start').mockReturnValue(stop);
     const view = render(
       <ApiProvider api={createMockApi({}, {})}>
@@ -165,7 +168,11 @@ describe('createHostEvents wired by the provider', () => {
     let ended: () => void = () => undefined;
     const load = vi.fn().mockResolvedValue([]);
     const subscribe = createHostEvents({ subscribeJobEnded: (cb: () => void) => ((ended = cb), () => undefined) } as never);
-    const store = createStudioStore({ registry: createSlots({ manuscriptChapters: load }), subscribe, subscribeFocus: () => () => undefined });
+    const store = createStudioStore({
+      registry: createSlots({ manuscriptChapters: load }, { bookmarksList: async () => [] }),
+      subscribe,
+      subscribeFocus: () => () => undefined,
+    });
     store.start();
     ended();
     await Promise.resolve();

@@ -110,7 +110,38 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'workspace.flag.next', label: 'Next flag', scope: 'page', defaults: [key('BracketRight')], group: 'Workspace', surfaces: ['help', 'settings'] },
   // Not noisy: it starts or pauses the live listening/transcription session (`useTeleprompterSession`), which plays
   // no audio of its own - unlike `workspace.play`, a recorded-audio player (ADR 0361 decision 7).
-  { id: 'reading.toggle', label: 'Play or pause reading', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // The Booth's keys (mock `Booth.tsx` `registerKeys('booth')`). They act on the open page, so they list in the sheet and Settings
+  // and not the jump menu. Handlers come from `useCommand` in the Booth; until then these rows are inert. There is no F or P
+  // binding (nothing is flagged or sent to Pickups from the Booth) and no Ctrl or Meta default, so a modified press is never theirs.
+  // Space stays the one record action: a pedal's only default is Space. "+" is Shift+Equal, which would also fire while typing, so
+  // the larger-text keys are Equal and the numpad plus.
+  { id: 'reading.toggle', label: 'Record or stop', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.phrase.next', label: 'Next phrase', scope: 'booth', defaults: [key('ArrowDown')], group: 'Booth', surfaces: ['help', 'settings'] },
+  {
+    id: 'booth.phrase.prev',
+    label: 'Previous phrase',
+    scope: 'booth',
+    defaults: [key('ArrowUp'), key('Backspace')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'booth.word.next', label: 'Next word in the booth', scope: 'booth', defaults: [key('ArrowRight')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.word.prev', label: 'Previous word in the booth', scope: 'booth', defaults: [key('ArrowLeft')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.text.larger', label: 'Larger text', scope: 'booth', defaults: [key('Equal'), key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
+  {
+    id: 'booth.text.smaller',
+    label: 'Smaller text',
+    scope: 'booth',
+    defaults: [key('Minus'), key('NumpadSubtract')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'booth.exit', label: 'Leave the Booth', scope: 'booth', defaults: [key('Escape')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.pickup.next', label: 'Next pickup', scope: 'booth', defaults: [key('KeyN')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.pickup.prev', label: 'Previous pickup', scope: 'booth', defaults: [key('KeyN', ['Shift'])], group: 'Booth', surfaces: ['help', 'settings'] },
   // Mock 03 fills the whole window (owner call, 2026-09-29): F11 also takes the window fullscreen, the platform's own key for it.
   { id: 'booth.fullscreen', label: 'Toggle full screen', scope: 'booth', defaults: [key('F11')], group: 'Booth', surfaces: ['help', 'settings'] },
   // "?" is Shift+Slash on a US layout (gestures are bound by physical key, so ShortcutSheet.tsx labels it back from

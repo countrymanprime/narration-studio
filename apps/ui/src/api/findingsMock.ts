@@ -18,7 +18,7 @@ import type {
   FindingSortKey,
   ReaperStatus,
 } from '../types';
-import { FINDING_CATEGORIES, MAX_REVIEW_NOTE_LENGTH } from './contracts/findings';
+import { defaultFindingNoteType, FINDING_CATEGORIES, FINDING_NOTE_TYPES, MAX_REVIEW_NOTE_LENGTH } from './contracts/findings';
 import { wireClone } from './mockFixtures';
 
 // The reads of a finding that groups several, whichever analyzer wrote it (a take-review group or a take comparison of one),
@@ -111,7 +111,11 @@ function summarize(all: Finding[]): FindingsSummary {
 
 /** The analyzer "runs again" once: every finding gets a new evidence version, as a re-run with changed evidence does. */
 const rerun = (findings: Finding[]): Finding[] =>
-  findings.map((finding) => ({ ...finding, evidence_version: `${finding.evidence_version ?? ''}-rerun`, review: { ...finding.review, status: 'unreviewed' } }));
+  findings.map((finding) => ({
+    ...finding,
+    evidence_version: `${finding.evidence_version ?? ''}-rerun`,
+    review: { ...finding.review, status: 'unreviewed', type: undefined },
+  }));
 
 /**
  * What the mock's REAPER is doing: connected, not there at all, or connected and refusing every Go to and
@@ -312,6 +316,20 @@ export function createFindingsMock(
       const decided: Finding = { ...current, review: note ? { status, note, timestamp } : { status, timestamp } };
       store = store.map((finding) => (finding.id === id ? decided : finding));
       return wireClone(decided);
+    },
+    findingsSetType: async (id, evidenceVersion, type) => {
+      foldLazySeed();
+      if (!id) throw new Error('a finding id is required');
+      if (!FINDING_NOTE_TYPES.includes(type)) throw new Error(`"${type}" is not one of the finding types (${FINDING_NOTE_TYPES.join(', ')})`);
+      const current = find(id);
+      if ((current.evidence_version ?? '') !== evidenceVersion) {
+        throw new Error('this finding changed since it was shown (its analyzer ran again); look at it again before deciding');
+      }
+      const review = { ...current.review };
+      delete review.type;
+      const retyped: Finding = { ...current, review: type === defaultFindingNoteType(current) ? review : { ...review, type } };
+      store = store.map((finding) => (finding.id === id ? retyped : finding));
+      return wireClone(retyped);
     },
     findingsSummary: async () => {
       foldLazySeed();

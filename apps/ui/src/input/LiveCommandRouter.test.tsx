@@ -5,11 +5,12 @@ import { ApiProvider } from '../api/ApiContext';
 import { createDawMock } from '../api/dawMock';
 import type { DawTransport } from '../api/contracts/daw';
 import type { NarrationApi } from '../types';
-import type { CommandDescriptor } from './commands.catalog';
+import { COMMAND_CATALOG, type CommandDescriptor } from './commands.catalog';
 import { gesture } from './gestures';
 import type { GestureEvent, InputSource } from './InputSource';
-import type { Keymap } from './keymap';
+import { defaultKeymap, type Keymap } from './keymap';
 import { LiveCommandRouter } from './LiveCommandRouter';
+import { CommandScope } from './router';
 import { useCommand } from './useCommand';
 
 function fakeSource(): InputSource & { emit: (event: Partial<GestureEvent> & Pick<GestureEvent, 'gesture'>) => void } {
@@ -104,5 +105,32 @@ describe('LiveCommandRouter', () => {
     });
     act(() => source.emit({ gesture: gesture('keyboard', 'KeyP') }));
     expect(onFire).toHaveBeenCalledTimes(1);
+  });
+
+  it('typing-and-ctrl-are-ignored: a Booth key does not fire from a focused field or with Ctrl held', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const base = createDawMock({ daw: 'REAPER', transport: { playing: false, recording: false } });
+    const api = { subscribeDawTransport: base.subscribeDawTransport, settingsForScope: async () => ({}) };
+    const input = document.createElement('input');
+    document.body.append(input);
+
+    render(
+      <ApiProvider api={api as unknown as NarrationApi}>
+        <LiveCommandRouter source={source} keymap={defaultKeymap(COMMAND_CATALOG, false)}>
+          <CommandScope kind="booth">
+            <Registrar id="booth.phrase.next" onFire={onFire} />
+          </CommandScope>
+        </LiveCommandRouter>
+      </ApiProvider>,
+    );
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'ArrowDown'), target: input }));
+    act(() => source.emit({ gesture: gesture('keyboard', 'ArrowDown', ['Ctrl']) }));
+    expect(onFire).not.toHaveBeenCalled();
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'ArrowDown') }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+    input.remove();
   });
 });
