@@ -3229,7 +3229,8 @@ describe('the bookmarks bindings', () => {
 
   it('the schemas read a stale bookmark and refuse a negative offset, an unknown key or a label over the limit', () => {
     const golden = parseWire(bookmarksSchema, readGolden('bookmarks-list.json'), ctx('bookmarks list'));
-    expect(golden.filter((bookmark) => bookmark.stale).map((bookmark) => bookmark.staleReason)).toEqual(['offset_out_of_range']);
+    expect(golden.at(-1)?.paragraph).toBeNull();
+    expect(golden.filter((bookmark) => bookmark.stale).map((bookmark) => bookmark.staleReason)).toEqual(['offset_out_of_range', 'paragraph_missing']);
     const bookmark = parseWire(spotBookmarkSchema, readGolden('bookmarks-add.json'), ctx('bookmarks add'));
     expect(spotBookmarkSchema.safeParse({ ...bookmark, offset: -1 }).success).toBe(false);
     expect(spotBookmarkSchema.safeParse({ ...bookmark, path: '/etc/passwd' }).success).toBe(false);

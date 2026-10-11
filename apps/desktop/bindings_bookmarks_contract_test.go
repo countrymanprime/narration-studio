@@ -28,13 +28,15 @@ func TestBookmarksContractGoldens(t *testing.T) {
 	soldiers := decodeBookmark(t)(host.BookmarksAdd("c-0001", "p-000002", 20))
 	decodeBookmark(t)(host.BookmarksAdd("c-0002", "p-000003", 0))
 
-	// The narrator re-imports a manuscript where the soldiers' line is shorter: that bookmark is stale, never moved.
+	// The narrator re-imports a manuscript where the soldiers' line is shorter and Alice's line is gone: both bookmarks are
+	// stale, never moved, and the one whose line is gone goes last.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "Silence.", 1)
+	edited = strings.Replace(edited, `,{"id":"p-000003","chapterId":"c-0002","index":2,"text":"Alice was not a bit hurt."}`, "", 1)
 	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), edited)
 	payload, err = host.BookmarksList()
 	checkBindingContract(t, "bookmarks-list", payload)
 	list := decodeBookmarks(t)(payload, err)
-	if len(list) != 3 || list[1].ID != soldiers.ID || !list[1].Stale || list[0].Stale || list[2].Stale {
+	if len(list) != 3 || list[0].Stale || list[1].ID != soldiers.ID || list[1].StaleReason != "offset_out_of_range" || list[2].StaleReason != "paragraph_missing" || list[2].Paragraph != nil {
 		t.Fatalf("list = %s", payload)
 	}
 

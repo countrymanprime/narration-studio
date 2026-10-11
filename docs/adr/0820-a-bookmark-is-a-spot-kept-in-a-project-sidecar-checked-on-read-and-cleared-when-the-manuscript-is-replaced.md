@@ -18,7 +18,7 @@ The repo already has reader bookmarks (`chapter`, `line` and `note` kinds in the
 4. **The stale rule.** Every read checks each bookmark against the current manuscript. One whose paragraph is no longer in its chapter comes back `stale` with `staleReason` `paragraph_missing` and `paragraph` null; one whose offset no longer fits its line comes back `stale` with `offset_out_of_range`. A stale bookmark keeps its stored offset and is never moved to a guess; it can still be labelled and removed. Stale is never stored.
 5. **Reading order.** `BookmarksList` and `BookmarksRemove` (which answers the bookmarks left) give the bookmarks in the manuscript's order of lines, then by offset; one whose line is gone goes last.
 6. **Clearing on replace.** Replacing the manuscript (`ManuscriptImportCommit` with `confirmedReset`) and Clear project data remove the file (`resetDerived` in `apps/desktop/internal/manuscript/service.go`). An import that resets nothing keeps it.
-7. **The wire.** `Bookmark` and `BookmarksApi` (`apps/ui/src/api/contracts/bookmarks.ts`), `bookmarkSchema` and `bookmarksSchema` (strict, `apps/ui/src/api/schemas/bookmarks.ts`), the goldens `bookmarks-*.json` written by `bindings_bookmarks_contract_test.go`, and host API 86.
+7. **The wire.** `Bookmark` and `BookmarksApi` (`apps/ui/src/api/contracts/bookmarks.ts`), `bookmarkSchema` and `bookmarksSchema` (strict, `apps/ui/src/api/schemas/bookmarks.ts`), the goldens `bookmarks-*.json` written by `bindings_bookmarks_contract_test.go`, and host API 86. The mock's `pid` and `at` are `paragraphId` and `createdAt` on the wire, the names the markup layer's spans use, and the wire adds the derived `paragraph`, `stale` and `staleReason`.
 
 ## Consequences
 

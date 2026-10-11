@@ -29,8 +29,9 @@
     "label": "",
     "note": "",
     "offset": 0,
-    "paragraph": 2,
+    "paragraph": null,
     "paragraphId": "p-000003",
-    "stale": false
+    "stale": true,
+    "staleReason": "paragraph_missing"
   }
 ]
