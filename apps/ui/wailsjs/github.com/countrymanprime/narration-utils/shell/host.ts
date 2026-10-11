@@ -1451,6 +1451,14 @@ export function PassageMapRecordRun(chapterID: string, run: $models.PassageMapMa
     return $Call.ByID(1060330002, chapterID, run);
 }
 
+/**
+ * PickupsAdd adds a line by hand to a chapter, at a time in seconds into the chapter's recording. The paragraph whose
+ * text starts like the line is found; the same line twice is one pickup.
+ */
+export function PickupsAdd(chapterID: string, time: number, line: string): $CancellablePromise<string> {
+    return $Call.ByID(4104188998, chapterID, time, line);
+}
+
 export function PickupsCount(): $CancellablePromise<string> {
     return $Call.ByID(3462748130);
 }
@@ -1466,6 +1474,13 @@ export function PickupsExport(): $CancellablePromise<string> {
  */
 export function PickupsImport(csvText: string): $CancellablePromise<string> {
     return $Call.ByID(2264841114, csvText);
+}
+
+/**
+ * PickupsList answers the merged list and the chapters whose recording check added nothing, and why.
+ */
+export function PickupsList(): $CancellablePromise<string> {
+    return $Call.ByID(3860190859);
 }
 
 /**
@@ -1488,6 +1503,13 @@ export function PickupsPunch(position: number): $CancellablePromise<string> {
 }
 
 /**
+ * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
+ */
+export function PickupsRemove(id: string): $CancellablePromise<string> {
+    return $Call.ByID(4054473327, id);
+}
+
+/**
  * PickupsReopen puts the resolved pickup nearest position (seconds) back to open, the inverse of PickupsResolve (SN-D44). A
  * position that is not a finite number of seconds, zero or more, is refused before anything is sent.
  */
@@ -1497,6 +1519,21 @@ export function PickupsReopen(position: number): $CancellablePromise<string> {
 
 export function PickupsResolve(position: number): $CancellablePromise<string> {
     return $Call.ByID(695766573, position);
+}
+
+/**
+ * PickupsSetDone marks a pickup done or open: through its DAW marker when REAPER holds it (a refusal is the answer),
+ * otherwise kept in the list file until the marker can be written.
+ */
+export function PickupsSetDone(id: string, done: boolean): $CancellablePromise<string> {
+    return $Call.ByID(3407374573, id, done);
+}
+
+/**
+ * PickupsSetIncluded puts a pickup in or leaves it out of the next pickup session.
+ */
+export function PickupsSetIncluded(id: string, included: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1817006549, id, included);
 }
 
 export function PickupsState(): $CancellablePromise<string> {
