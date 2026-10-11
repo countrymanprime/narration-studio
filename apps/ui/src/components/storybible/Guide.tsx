@@ -290,7 +290,9 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
                           <Dot color={CAT_DOT_BG[categoryCssName(row.category)]} />
                           <span className="truncate text-sm font-medium">{row.canonical_name}</span>
                           {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
-                          {reviewPill(row, suggestions) && <StatusBadge tone="warning" label={reviewPill(row, suggestions)!} className="ml-auto" />}
+                          {reviewPill(row, suggestions) && (
+                            <StatusBadge tone="warning" label={reviewPill(row, suggestions)!} className="ml-auto shrink-0 whitespace-nowrap" />
+                          )}
                         </div>
                         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
                           {categoryLabel(row.category)}
