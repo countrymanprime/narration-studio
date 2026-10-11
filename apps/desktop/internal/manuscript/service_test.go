@@ -18,6 +18,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
 	"github.com/countrymanprime/narration-utils/shell/internal/marks"
 	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-utils/shell/internal/pickuplist"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
@@ -725,6 +726,48 @@ func TestReplaceAndClearRemoveTheGapReviewsFile(t *testing.T) {
 	}
 	if _, err := os.Stat(gapreview.File(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the gap reviews behind: %v", err)
+	}
+}
+
+// The pickup list names chapter and paragraph ids and pickup ids made from them (ADR 0840), so replacing the manuscript and
+// Clear project data remove it. An import that resets nothing keeps it.
+func TestReplaceAndClearRemoveThePickupList(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := service.Commit(job.ID, confirmedReset, Choices{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeList := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(pickuplist.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(pickuplist.File(project), []byte(`{"schemaVersion":1,"added":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeList()
+	importAlice(false)
+	if _, err := os.Stat(pickuplist.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the pickup list: %v", err)
+	}
+	importAlice(true)
+	if _, err := os.Stat(pickuplist.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the pickup list behind: %v", err)
+	}
+	writeList()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(pickuplist.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the pickup list behind: %v", err)
 	}
 }
 
