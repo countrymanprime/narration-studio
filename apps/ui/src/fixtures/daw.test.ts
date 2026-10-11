@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
-import { dawCapabilitiesSchema } from '../api/schemas/daw';
+import { dawCapabilitiesSchema, dawProjectStateSchema } from '../api/schemas/daw';
 import { parseWire } from '../api/wire/parseWire';
-import { DAW_SETUPS, type DawSetupId } from './daw';
+import { DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId } from './daw';
 
 const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity', 'audacity-backups'];
 
@@ -37,6 +37,16 @@ describe('the mock DAW setups', () => {
       .filter(([, s]) => s.available)
       .map(([name]) => name);
     expect(stillAvailable).toEqual(['project_read']);
+  });
+
+  it.each(SETUP_IDS)('no-saved-project-is-null: %s has a project state the schema accepts', (id) => {
+    expect(parseWire(dawProjectStateSchema, DAW_PROJECT_STATES[id], { boundary: 'fixtures', payload: id })).toEqual(DAW_PROJECT_STATES[id]);
+  });
+
+  it('no-saved-project-is-null: only a reachable REAPER has a saved time, and the built-in recorder never has unsaved changes', () => {
+    expect(DAW_PROJECT_STATES.reaper.savedAt).toBe('2026-09-26T08:40');
+    for (const id of SETUP_IDS.filter((setup) => setup !== 'reaper')) expect(DAW_PROJECT_STATES[id].savedAt, id).toBeNull();
+    expect(DAW_PROJECT_STATES.builtin.unsavedChanges).toBe(false);
   });
 
   it('mock-setups-are-data: a roll in Audacity is destructive only without backups', () => {

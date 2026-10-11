@@ -154,7 +154,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | Spikes | SND-S1..S5 scripted, S6 pending hardware, S7 Audacity | pending | all | SN0-1 | 2.5 | - |
 | 2 | Result and capability wire | `Result`, `destructive`, `mode`, schemas, goldens, `DawClient` and mock setups | done (wire half [#1034](https://github.com/countrymanprime/narration-utils/issues/1034); `DawClient` is SND-2b, [#1062](https://github.com/countrymanprime/narration-utils/issues/1062)) | 3 | SN0-1 | 2.0 | - |
 | 3 | Catalogue and conformance | New capabilities, roles, `dawporttest` cases, declarations | done ([#1147](https://github.com/countrymanprime/narration-utils/issues/1147)) | 2 | 2 | 1.5 | - |
-| 4 | Project state and stale | `DawProjectState`, `savedAt`, uniform `stale` refusal, pickup write-through | pending | - | 2 | 1.5 | - |
+| 4 | Project state and stale | `DawProjectState`, `savedAt`, uniform `stale` refusal, pickup write-through | in progress (`DawProjectState` is SND-4a, [#1163](https://github.com/countrymanprime/narration-utils/issues/1163), done in its PR) | - | 2 | 1.5 | - |
 | 5 | Take commands | `hide_takes`; `set_active_take` result mapping | pending | 6 | 3, S-results | 1.0 | - |
 | 6 | Roll and range commands | `roll`, `delete_range`, `apply_fx_range` | pending | 5 | 3, S1..S3 | 2.5 | - |
 | 7 | Stacking | `stack_takes`, `unstack_takes` | pending | 6 | 3, S4 | 1.0 | - |
@@ -194,7 +194,7 @@ Phase 1 spikes run in parallel with Phase 2. Phases 5 to 8 are independent after
 | SND-1g | Spike S7 Audacity backups | SN0-1, owner pass | yes | Research note |
 | SND-2 | Result and capability wire: Go and wire half in [#1034](https://github.com/countrymanprime/narration-utils/issues/1034) (done in its PR), `DawClient` and mock setups in SND-2b ([#1062](https://github.com/countrymanprime/narration-utils/issues/1062), done in its PR) | SN0-1 (SND-2b also SN-S4, SN-S5) | yes | Goldens, `wireContracts.test.ts`, `DawClient` parity |
 | SND-3 | Catalogue and conformance | SND-2 | yes | `dawporttest`, boundary test |
-| SND-4 | Project state, stale, pickup write-through | SND-2 | yes | Harness (existing pickups tests extended), goldens |
+| SND-4 | Project state, stale, pickup write-through: `DawProjectState` binding and event in SND-4a ([#1163](https://github.com/countrymanprime/narration-utils/issues/1163), done in its PR) | SND-2 | yes | Harness (existing pickups tests extended), goldens |
 | SND-5 | `hide_takes` | SND-3 | yes | Harness first, mutation, threat model |
 | SND-6a | `roll` | SND-3, SND-1a | yes | Harness first, mutation, REAPER scripted run |
 | SND-6b | `delete_range` | SND-3, SND-1b | yes | Same |

@@ -1115,6 +1115,33 @@ describe('the marks bindings', () => {
   });
 });
 
+describe('the DAW project state binding and event', () => {
+  const state = { savedAt: '2026-09-26T08:40', unsavedChanges: true, playState: 'playing', playPosition: 12.5 } as const;
+
+  it('decodes DawProjectState and refuses an answer its schema does not accept', async () => {
+    standInHost({ DawProjectState: () => Promise.resolve(JSON.stringify(state)) });
+    await expect(wailsClient.dawProjectState()).resolves.toEqual(state);
+    standInHost({ DawProjectState: () => Promise.resolve(JSON.stringify({ ...state, playState: 'paused' })) });
+    await expect(wailsClient.dawProjectState()).rejects.toBeInstanceOf(WireError);
+  });
+
+  it('subscribes to daw_project_state_changed and passes on a payload its schema accepts', () => {
+    let callback: ((payload: unknown) => void) | undefined;
+    const eventsOn = vi.fn((_event: string, listener: (payload: unknown) => void) => {
+      callback = listener;
+      return () => {};
+    });
+    standInEvents(eventsOn);
+    const update = vi.fn();
+
+    wailsClient.subscribeDawProjectState(update);
+    callback?.(state);
+
+    expect(eventsOn).toHaveBeenCalledWith('daw_project_state_changed', expect.any(Function));
+    expect(update).toHaveBeenCalledWith(state);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {

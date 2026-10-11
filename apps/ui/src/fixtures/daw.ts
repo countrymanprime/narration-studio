@@ -1,4 +1,4 @@
-import type { DawCapabilities, DawCapabilityKey, DawCapabilitySupport } from '../api/contracts/daw';
+import type { DawCapabilities, DawCapabilityKey, DawCapabilitySupport, DawProjectState } from '../api/contracts/daw';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
@@ -111,6 +111,26 @@ export const DAW_SETUPS: Readonly<Record<DawSetupId, DawCapabilities>> = {
   audacity: { daw: 'Audacity', reachable: true, capabilities: audacityCapabilities(false) },
   'audacity-backups': { daw: 'Audacity', reachable: true, capabilities: audacityCapabilities(true) },
 };
+
+const IDLE_PROJECT_STATE: DawProjectState = { savedAt: null, unsavedChanges: false, playState: 'stopped', playPosition: 0 };
+
+/** Each setup's project state as the host answers it (tests/fixtures/contracts/daw-project-state-*.json). REAPER has the
+ * Studio Next mock's saved time (SAVED_PROJECT) and is stopped with nothing unsaved. The built-in recorder keeps no saved
+ * project. Audacity is idle too: the mock gives it a saved time, but the host has no heartbeat from Audacity to read one from
+ * yet. REAPER off is idle, as the host is with no heartbeat. */
+export const DAW_PROJECT_STATES: Readonly<Record<DawSetupId, DawProjectState>> = {
+  reaper: { savedAt: '2026-09-26T08:40', unsavedChanges: false, playState: 'stopped', playPosition: 0 },
+  'reaper-off': IDLE_PROJECT_STATE,
+  builtin: IDLE_PROJECT_STATE,
+  audacity: IDLE_PROJECT_STATE,
+  'audacity-backups': IDLE_PROJECT_STATE,
+};
+
+/** The project state of one of DAW_SETUPS, or the idle one for a setup a test built itself. */
+export function projectStateOf(setup: DawCapabilities): DawProjectState {
+  const id = (Object.keys(DAW_SETUPS) as DawSetupId[]).find((key) => DAW_SETUPS[key] === setup);
+  return id ? DAW_PROJECT_STATES[id] : IDLE_PROJECT_STATE;
+}
 
 /** The part of the sample project a call can name: which chapters have a track, which takes are still where the app read them, which findings exist. */
 export type DawProject = {
