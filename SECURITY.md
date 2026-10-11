@@ -87,6 +87,11 @@ especially welcome:
   a file or a quote, note or payload text that makes the app run, open, fetch or write anything else, that is used as a path, that puts markup
   into the page, or that is used without being validated, is in scope; one that only changes which suggestions the narrator is asked to
   verify is the documented residual risk (threat model row 6v).
+- The Story Bible import (`ExtractionImportPreview`, `ExtractionImportCommit`; the
+  [storybible-import format](docs/architecture/storybible-import-format.md)): the page sends the text of a file the narrator chose. A file
+  that makes the host open a path, fetch a URL, evaluate a formula or run anything, that gets past the size, UTF-8 or NUL checks, or that
+  makes a commit store rows the preview of the same text did not show, is in scope; a file that only offers wrong suggestions is the
+  documented residual risk (threat model row 6zb).
 - The delivery profiles the app reads back to judge the rendered files (the user-level `delivery-profiles.json` beside
   `credit-templates.json`, and the project's choice in `project.json`,
   [ADR 0180](docs/adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md)): a file that makes the app
