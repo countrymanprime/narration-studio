@@ -114,7 +114,7 @@ func TestPreflightIsAskedWhatIsStillToDownloadAndCanRefuse(t *testing.T) {
 	if !errors.Is(err, refuse) || asked != 4096 {
 		t.Fatalf("err = %v, asked %d: the whole file is still to come and the refusal stops the install", err, asked)
 	}
-	if server.requests != 0 {
+	if _, _, requests := server.snapshot(); requests != 0 {
 		t.Fatal("a refused preflight must not touch the network")
 	}
 	// With half of it already in the staging folder, only the other half needs room.
