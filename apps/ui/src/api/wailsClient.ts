@@ -132,6 +132,7 @@ import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schema
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { passageMapSchema } from './schemas/passageMap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
@@ -406,6 +407,8 @@ export const wailsClient: NarrationApi = {
   bookmarksAdd: (chapterId, paragraphId, offset) => decode(spotBookmarkSchema, 'BookmarksAdd', host.BookmarksAdd(chapterId, paragraphId, offset)),
   bookmarksUpdate: (id, label, note) => decode(spotBookmarkSchema, 'BookmarksUpdate', host.BookmarksUpdate(id, label, note)),
   bookmarksRemove: (id) => decode(bookmarksSchema, 'BookmarksRemove', host.BookmarksRemove(id)),
+  passageMapRecordRun: (chapterId, run) => decode(passageMapSchema, 'PassageMapRecordRun', host.PassageMapRecordRun(chapterId, run)),
+  passageMapList: (chapterId) => decode(passageMapSchema, 'PassageMapList', host.PassageMapList(chapterId)),
   subscribeTranscript: (onUpdate) => subscribeChecked('transcript:state', transcriptStateSchema, onUpdate),
   coverageStart: (chapterId, options) =>
     decode(

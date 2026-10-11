@@ -1,0 +1,48 @@
+[
+  {
+    "chapterId": "c-0001",
+    "id": "c-0001.1.0",
+    "itemGuid": "Take 001",
+    "kind": "start",
+    "pid": "p-000001",
+    "run": "c-0001.1",
+    "sec": 0,
+    "stale": true,
+    "staleReason": "paragraph_missing",
+    "takeGuid": "Take 001",
+    "word": 0
+  },
+  {
+    "chapterId": "c-0001",
+    "id": "c-0001.1.1",
+    "itemGuid": "Take 001",
+    "kind": "roll",
+    "pid": "p-000002",
+    "prev": {
+      "pid": "p-000001",
+      "word": 5
+    },
+    "run": "c-0001.1",
+    "sec": 6.5,
+    "stale": true,
+    "staleReason": "paragraph_missing",
+    "takeGuid": "Take 001",
+    "word": 0
+  },
+  {
+    "chapterId": "c-0001",
+    "id": "c-0001.1.2",
+    "itemGuid": "Take 001",
+    "kind": "stop",
+    "pid": "p-000002",
+    "prev": {
+      "pid": "p-000002",
+      "word": 9
+    },
+    "run": "c-0001.1",
+    "sec": 11.25,
+    "stale": false,
+    "takeGuid": "Take 001",
+    "word": 9
+  }
+]

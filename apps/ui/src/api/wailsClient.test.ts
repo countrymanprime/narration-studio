@@ -927,6 +927,38 @@ describe('the bookmarks bindings', () => {
   });
 });
 
+describe('the passage map bindings', () => {
+  const run = [
+    { pid: 'p-000001', word: 0, sec: 0, kind: 'start' as const },
+    { pid: 'p-000002', word: 9, sec: 11.25, kind: 'stop' as const, prev: { pid: 'p-000002', word: 9 } },
+  ];
+  const marks = run.map((mark, index) => ({
+    ...mark,
+    id: `c-0001.1.${index}`,
+    run: 'c-0001.1',
+    chapterId: 'c-0001',
+    itemGuid: 'Take 001',
+    takeGuid: 'Take 001',
+    stale: false,
+  }));
+
+  it('calls both host methods with their arguments and decodes each answer', async () => {
+    const record = vi.fn().mockResolvedValue(JSON.stringify(marks));
+    const list = vi.fn().mockResolvedValue(JSON.stringify(marks));
+    standInHost({ PassageMapRecordRun: record, PassageMapList: list });
+
+    await expect(wailsClient.passageMapRecordRun('c-0001', run)).resolves.toEqual(marks);
+    expect(record).toHaveBeenCalledWith('c-0001', run);
+    await expect(wailsClient.passageMapList('c-0001')).resolves.toEqual(marks);
+    expect(list).toHaveBeenCalledWith('c-0001');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ PassageMapList: () => Promise.resolve(JSON.stringify([{ ...marks[0], kind: 'pause' }])) });
+    await expect(wailsClient.passageMapList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {
