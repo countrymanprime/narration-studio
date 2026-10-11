@@ -19,6 +19,7 @@ import { masterFeedback } from './interactionFeedback/master';
 import { productionFeedback } from './interactionFeedback/production';
 import { creditsFeedback } from './interactionFeedback/credits';
 import { recordingFeedback } from './interactionFeedback/recording';
+import { dawFeedback } from './interactionFeedback/daw';
 
 export type { FeedbackRow } from './interactionFeedback/row';
 
@@ -39,6 +40,7 @@ const AREAS: Array<Record<string, FeedbackRow>> = [
   productionFeedback,
   creditsFeedback,
   recordingFeedback,
+  dawFeedback,
 ];
 
 export const FEEDBACK_CATALOG: Record<string, FeedbackRow> = {};
