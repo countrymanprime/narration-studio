@@ -28,6 +28,14 @@ if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
 fi
 export GOTOOLCHAIN="go${go_version}" UV_PYTHON=3.12
 
+# The image's standalone gofmt is older than the pin and rewraps files the pinned one accepts, which fails the gofmt
+# step of lint. The pinned toolchain's own gofmt goes first on PATH.
+goroot="$(go env GOROOT)"
+if [[ -n "${CLAUDE_ENV_FILE:-}" && -x "${goroot}/bin/gofmt" ]]; then
+  echo "export PATH=\"${goroot}/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
+fi
+export PATH="${goroot}/bin:$PATH"
+
 # uv: the lockfile needs the pinned version.
 if ! uv --version 2>/dev/null | grep -q "^uv ${uv_version}"; then
   log "uv -> ${uv_version}"
