@@ -1,0 +1,93 @@
+{
+  "marks": [
+    {
+      "chapterId": "c-0001",
+      "createdAt": "2026-09-21T10:00:00Z",
+      "end": 30,
+      "id": "id-1",
+      "paragraph": 0,
+      "paragraphId": "p-000001",
+      "quote": "the Queen",
+      "stale": false,
+      "start": 21,
+      "status": "open",
+      "text": "Shrill, or just loud?",
+      "thread": [],
+      "type": "ask"
+    },
+    {
+      "chapterId": "c-0001",
+      "createdAt": "2026-09-21T10:00:00Z",
+      "end": 12,
+      "id": "id-2",
+      "paragraph": 1,
+      "paragraphId": "p-000002",
+      "quote": "soldiers",
+      "stale": true,
+      "staleReason": "text_changed",
+      "start": 4,
+      "text": "",
+      "thread": [],
+      "type": "stress"
+    },
+    {
+      "chapterId": "c-0002",
+      "createdAt": "2026-09-21T10:00:00Z",
+      "end": 5,
+      "id": "id-3",
+      "paragraph": null,
+      "paragraphId": "p-000003",
+      "quote": "Alice",
+      "stale": true,
+      "staleReason": "paragraph_missing",
+      "start": 0,
+      "text": "Lighter here.\nShe is not hurt.",
+      "thread": [],
+      "type": "note"
+    }
+  ],
+  "types": [
+    {
+      "asks": false,
+      "colour": "copper",
+      "key": "stress",
+      "name": "Word stress",
+      "style": "highlight"
+    },
+    {
+      "asks": false,
+      "colour": "info",
+      "key": "breath",
+      "name": "Breath / pause",
+      "style": "dotted"
+    },
+    {
+      "asks": false,
+      "colour": "ok",
+      "key": "pace",
+      "name": "Pace",
+      "style": "wavy"
+    },
+    {
+      "asks": false,
+      "colour": "bad",
+      "key": "emo",
+      "name": "Emotion",
+      "style": "underline"
+    },
+    {
+      "asks": false,
+      "colour": "violet",
+      "key": "note",
+      "name": "Note",
+      "style": "double"
+    },
+    {
+      "asks": true,
+      "colour": "warn",
+      "key": "ask",
+      "name": "Query for author",
+      "style": "highlight"
+    }
+  ]
+}

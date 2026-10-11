@@ -1,0 +1,15 @@
+{
+  "chapterId": "c-0001",
+  "createdAt": "2026-09-21T10:00:00Z",
+  "end": 30,
+  "id": "id-1",
+  "paragraph": 0,
+  "paragraphId": "p-000001",
+  "quote": "the Queen",
+  "stale": false,
+  "start": 21,
+  "status": "open",
+  "text": "Shrill, or just loud?",
+  "thread": [],
+  "type": "ask"
+}

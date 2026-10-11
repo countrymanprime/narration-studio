@@ -13,6 +13,7 @@ import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
+import { markSchema, markTypeSchema, marksSchema } from './schemas/marks';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -3026,6 +3027,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingCutsList',
       'editingCutRecord',
       'editingCutRemove',
+      'marksList',
+      'marksAdd',
+      'marksRemove',
+      'marksSaveTypes',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -3819,5 +3824,73 @@ describe('the cuts bindings', () => {
     expect(editCutSchema.safeParse({ ...cut, path: '/etc/passwd' }).success).toBe(false);
     expect(editCutSchema.safeParse({ ...cut, words: ['one'] }).success).toBe(false);
     expect(editCutsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+  });
+});
+
+// The Script page's marks: the mock answers through the same schemas as the host's goldens, refuses what the host refuses, and
+// the schemas refuse what the host never sends.
+describe('the marks bindings', () => {
+  const firstLine = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.length >= 12) ?? { id: '', text: '', index: 0 };
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line };
+  };
+
+  it('the mock answers MarksList, Add, Remove and SaveTypes through their schemas, in reading order', async () => {
+    const { api, chapterId, line } = await firstLine();
+    const empty = await api.marksList();
+    expectMatches(marksSchema, empty, 'mock marks list (empty)');
+    expect(empty.types.map((type) => type.key)).toEqual(['stress', 'breath', 'pace', 'emo', 'note', 'ask']);
+    const later = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
+    const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', '  Is this right?  ');
+    expectMatches(markSchema, question, 'mock marks add');
+    expect(question).toMatchObject({ quote: line.text.slice(0, 4), text: 'Is this right?', status: 'open', thread: [], stale: false, paragraph: line.index });
+    const listed = await api.marksList();
+    expectMatches(marksSchema, listed, 'mock marks list');
+    expect(listed.marks.map((mark) => mark.id)).toEqual([question.id, later.id]);
+    const removed = await api.marksRemove(question.id);
+    expectMatches(marksSchema, removed, 'mock marks remove');
+    expect(removed.marks.map((mark) => mark.id)).toEqual([later.id]);
+    const withoutStress = removed.types.filter((type) => type.key !== 'stress');
+    await expect(api.marksSaveTypes(withoutStress, false)).rejects.toThrow('1 mark uses');
+    const saved = await api.marksSaveTypes([...withoutStress, { key: '', name: 'Accent', colour: 'info', style: 'box', asks: false }], true);
+    expectMatches(marksSchema, saved, 'mock marks types');
+    expect(saved.marks).toEqual([]);
+    expect(saved.types.at(-1)?.key).not.toBe('');
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstLine();
+    await expect(api.marksAdd('no-such-chapter', line.id, 0, 3, 'stress', '')).rejects.toThrow('not in the manuscript');
+    await expect(api.marksAdd(otherId, line.id, 0, 3, 'stress', '')).rejects.toThrow('not in this chapter');
+    await expect(api.marksAdd(chapterId, line.id, 3, 3, 'stress', '')).rejects.toThrow('choose some words');
+    await expect(api.marksAdd(chapterId, line.id, 0, line.text.length + 1, 'stress', '')).rejects.toThrow('not in the line');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'ask', ' ')).rejects.toThrow('write the question');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'nope', '')).rejects.toThrow('no longer there');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'note', 'bell\u0007')).rejects.toThrow('only text');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'note', 'x'.repeat(2001))).rejects.toThrow('at most 2000');
+    await expect(api.marksSaveTypes([], true)).rejects.toThrow('at least one');
+    expect((await api.marksList()).marks).toEqual([]);
+  });
+
+  it('the schemas read stale marks and refuse an unknown colour, style, key or stale reason', () => {
+    const list = parseWire(marksSchema, readGolden('marks-list.json'), ctx('marks list'));
+    expect(list.marks.map((mark) => mark.staleReason ?? null)).toEqual([null, 'text_changed', 'paragraph_missing']);
+    const added = parseWire(markSchema, readGolden('marks-add.json'), ctx('marks add'));
+    expect(added).toMatchObject({ status: 'open', thread: [] });
+    expect(parseWire(marksSchema, readGolden('marks-remove.json'), ctx('marks remove')).marks).toHaveLength(2);
+    expect(parseWire(marksSchema, readGolden('marks-types.json'), ctx('marks types')).types.at(-1)?.key).toBe('accent');
+    const type = list.types[0];
+    expect(markTypeSchema.safeParse({ ...type, colour: 'pink' }).success).toBe(false);
+    expect(markTypeSchema.safeParse({ ...type, style: 'zigzag' }).success).toBe(false);
+    expect(markTypeSchema.safeParse({ ...type, key: '../x' }).success).toBe(false);
+    expect(markTypeSchema.safeParse({ ...type, extra: true }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, path: '/etc/passwd' }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, staleReason: 'moved' }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, start: 9, end: 2 }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, status: 'closed' }).success).toBe(false);
+    expect(marksSchema.safeParse({ ...list, types: [] }).success).toBe(false);
   });
 });

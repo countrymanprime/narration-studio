@@ -19,6 +19,9 @@ import * as editlog$0 from "./internal/editlog/models.js";
 import * as liveflags$0 from "./internal/liveflags/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as marks$0 from "./internal/marks/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as project$0 from "./internal/project/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -1157,6 +1160,37 @@ export function ManuscriptSetChapterKind(chapterID: string, kind: string): $Canc
 
 export function ManuscriptSetChapterStatus(chapter: string, status: string): $CancellablePromise<string> {
     return $Call.ByID(2496889981, chapter, status);
+}
+
+/**
+ * MarksAdd marks a range of one line: start and end are UTF-16 units into the line's text, start before end. A type that
+ * asks needs text (its question), and its mark starts open.
+ */
+export function MarksAdd(chapterID: string, paragraphID: string, start: number, end: number, typeKey: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(2254080295, chapterID, paragraphID, start, end, typeKey, text);
+}
+
+/**
+ * MarksList returns the mark types in the narrator's order and every mark in reading order, each checked against the
+ * current manuscript. The first read of a project with no marks file brings the reader's old notes across once.
+ */
+export function MarksList(): $CancellablePromise<string> {
+    return $Call.ByID(4070620708);
+}
+
+/**
+ * MarksRemove deletes a mark by id and returns the types and the marks left.
+ */
+export function MarksRemove(id: string): $CancellablePromise<string> {
+    return $Call.ByID(2233717324, id);
+}
+
+/**
+ * MarksSaveTypes replaces the mark types, in the narrator's order; a type with no key is new. At least one is kept, and
+ * removing a type that marks use is refused with the count unless removeUses is set, which removes those marks too.
+ */
+export function MarksSaveTypes(types: marks$0.MarkType[], removeUses: boolean): $CancellablePromise<string> {
+    return $Call.ByID(2927622342, types, removeUses);
 }
 
 /**

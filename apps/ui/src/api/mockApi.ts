@@ -34,6 +34,7 @@ import { createPrepMarkupMock } from './prepMarkupMock';
 import { createBookmarksMock } from './bookmarksMock';
 import { createPassageMapMock } from './passageMapMock';
 import { createEditLogMock } from './editLogMock';
+import { createMarksMock } from './marksMock';
 import { createEditCutsMock } from './editCutsMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
@@ -274,6 +275,11 @@ export function createMockApi(
       () => s.paragraphs,
     ),
     ...createEditLogMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
+    ...createMarksMock(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,

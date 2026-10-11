@@ -133,7 +133,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | in progress ([#1314](https://github.com/countrymanprime/narration-utils/issues/1314): Appears in lists chapters with a go-to button and drops line counts; [#1162](https://github.com/countrymanprime/narration-utils/issues/1162): `speaker_color` and `GuideSetSpeakerColor`, host half; SN-B42: the speaker colour field in the entry, `speakerColorIndex(id, override)`) | 2, 3 | 1 | 0.8 | - |
 | 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | in review (ADR 0820; PR #1113) | 2 | 1 | 1.0 | - |
 | 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | in progress ([#1325](https://github.com/countrymanprime/narration-utils/issues/1325): the model, jump commands, search source and keys; the ribbon, editor popover and tab are built and unmounted, [#1327](https://github.com/countrymanprime/narration-utils/issues/1327); the Script route mounts them with SN-B77) | - | 5, SNR-4, SNF-3 | 1.2 | - |
-| 7 | Script migrations | Search sources, context providers, key hints for Script | pending | - | SNR-4, SNR-5 | 0.7 | - |
+| 7 | Script migrations | Search sources, context providers, key hints for Script | in progress ([#1173](https://github.com/countrymanprime/narration-utils/issues/1173): the marks host, `marks.json`, `MarksList`, `MarksAdd`, `MarksRemove`, `MarksSaveTypes`, goldens and mock, the reader's notes brought across once; [Script marks](../architecture/script-marks.md)) | - | SNR-4, SNR-5 | 0.7 | - |
 | 8 | Swap and close-out | Swap the Story Bible and Script routes; delete the old pages, queries page, query CSV export and import and open-queries badge; visual rows, guide pages, doc screenshots | pending | - | 2 to 7 | 0.3 | - |
 
 ### Phase Details
@@ -166,7 +166,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNB-4 | Phase 4 | SNB-1 | yes | Ported tests |
 | SNB-5 | Phase 5 | SNB-1 | yes | Go tests; goldens `bookmarks-*.json`; wire rows; threat model row 6u; ADR 0820 |
 | SNB-6 | Phase 6 | SNB-5, SNR-4, SNF-3 | yes | Ported `bookmarks.test.tsx`; visual; aria |
-| SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests |
+| SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests; marks host (SN-B721): Go tests, goldens `marks-*.json`, wire rows, threat model row 6y |
 | SNB-8 | Phase 8 | SNB-2..7 | no (page swap) | Full visual suite for the two pages; Screenshots against the mock pages; deleted code gone from Knip |
 
 ## Decisions Log
