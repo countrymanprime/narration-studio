@@ -127,7 +127,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADR and audit | A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | pending | - | SN0-1 | 0.5 | - |
+| 1 | ADR and audit | A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | in review (ADR 0792; audit: docs/sn-b1-script-bible-audit) | - | SN0-1 | 0.5 | - |
 | 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | pending | 3 | 1 | 1.5 | - |
 | 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | pending | 2 | 1 | 1.0 | - |
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | pending | 2, 3 | 1 | 0.8 | - |
@@ -160,7 +160,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
-| SNB-1 | Phase 1 | SN0-1 | yes | Audit comment; ADR index |
+| SNB-1 | Phase 1 | SN0-1 | yes | Audit note `docs/research/studio-next-script-bible-audit.md`; ADR index |
 | SNB-2 | Phase 2 | SNB-1 | yes | Sidecar and Go tests; ported bible tests; visual row |
 | SNB-3 | Phase 3 | SNB-1 | yes | Ported tests; visual rows |
 | SNB-4 | Phase 4 | SNB-1 | yes | Ported tests |
