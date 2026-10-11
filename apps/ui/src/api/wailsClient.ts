@@ -136,6 +136,7 @@ import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, marksSchema } from './schemas/marks';
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
+import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
@@ -425,6 +426,9 @@ export const wailsClient: NarrationApi = {
   editingCutsList: (chapterId) => decode(editCutsSchema, 'EditingCutsList', host.EditingCutsList(chapterId)),
   editingCutRecord: (chapterId, cut) => decode(editCutsChangeSchema, 'EditingCutRecord', host.EditingCutRecord(chapterId, cut)),
   editingCutRemove: (chapterId, id) => decode(editCutsChangeSchema, 'EditingCutRemove', host.EditingCutRemove(chapterId, id)),
+  editingWordFxList: (chapterId) => decode(wordFxListSchema, 'EditingWordFxList', host.EditingWordFxList(chapterId)),
+  editingWordFxRecord: (chapterId, fx) => decode(wordFxChangeSchema, 'EditingWordFxRecord', host.EditingWordFxRecord(chapterId, fx)),
+  editingWordFxRemove: (chapterId, id) => decode(wordFxChangeSchema, 'EditingWordFxRemove', host.EditingWordFxRemove(chapterId, id)),
   subscribeTranscript: (onUpdate) => subscribeChecked('transcript:state', transcriptStateSchema, onUpdate),
   coverageStart: (chapterId, options) =>
     decode(
