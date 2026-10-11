@@ -12,7 +12,11 @@ import { sampleSpeakers } from './fixtures/speakers';
 // string literals that equal a sample chapter title, chapter subtitle or speaker name those two places hold. A file's count
 // may only go down, in the style of rawNatives.test.ts (ADR 0053): a ceiling above the real count fails, so the entry is
 // lowered (deleted at zero) in the same change, and a file with a literal and no entry fails. The scan reports; it edits nothing.
-const CEILING: Record<string, number> = {};
+const CEILING: Record<string, number> = {
+  // Test and story data that SN-O62 (#1346) and SN-Q41 (#1324) wrote as component-side fixtures; they move to src/fixtures/ with #1119.
+  'src/components/booth/reading/fixture.ts': 3,
+  'src/components/proof/notes/testNotes.ts': 5,
+};
 
 const uiRoot = join(__dirname, '..');
 const SCANNED_DIRS = [join('src', 'components'), join('src', 'hooks')];

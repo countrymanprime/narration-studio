@@ -179,4 +179,10 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/ResumePrompt.tsx::subscribeTeleprompterResumeFollow#1': subscription('The bounded REAPER follow\'s live events while the prompt shows for a matched track (ADR 0353): a cursor move retries the lookup, and REAPER playing or recording settles the prompt.'),
   'src/components/booth/ResumePrompt.tsx::teleprompterResumeFollow#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Starts the bounded REAPER follow for the matched track while the prompt shows (ADR 0353); a failure to start just means the poll never begins (SILENT_CATCHES).'),
   'src/components/booth/ResumePrompt.tsx::teleprompterResumeUnfollow#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Stops the follow on cleanup; a failure here is unobservable and harmless (SILENT_CATCHES).'),
+
+  // Suspected lines and the resume offer.
+  'src/components/booth/resume/useResumeOffer.ts::teleprompterLocate#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Asks the host where the chapter\'s recording ends, once per chapter; a failure drops the resume offer and the narrator starts the chapter from the top as before.'),
+  'src/components/booth/suspected/SuspectedLines.tsx::teleprompterSaveFlags#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Stores the suspected lines as findings when they appear, and again on Dismiss; a failure shows as a toast.'),
+  'src/components/booth/suspected/SuspectedLines.tsx::teleprompterSaveFlags#2': row('click', 'file-io', 'na', 'na', 'toast', 'toast', 'na', 'ok', 'Inside the Dismissed toast\'s Undo: reloads the stored finding so the Undo reaches its current version; a failure is the Undo\'s refusal sentence.'),
+  'src/components/booth/suspected/SuspectedLines.tsx::findingsReview#1': row('click', 'file-io', 'na', 'na', 'toast', 'toast', 'na', 'ok', 'The Dismissed toast\'s Undo puts the finding back to unreviewed; a failure is the Undo\'s refusal sentence.'),
 };

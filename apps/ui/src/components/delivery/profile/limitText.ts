@@ -8,7 +8,7 @@ import { formatBound } from '../../master/deliveryProfile';
 const FILE_FORMAT_METRICS = new Set(['mp3_format', 'sample_rate', 'channels', 'duration_seconds']);
 
 /** A rule the narrator can move: a measured per-file rule with a lowest or highest and no fixed set of values. */
-export const isAdjustable = (rule: DeliveryRule): boolean =>
+const isAdjustable = (rule: DeliveryRule): boolean =>
   rule.scope === 'file' && rule.checkedBy === 'measured' && (rule.min !== null || rule.max !== null) && rule.oneOf.length === 0;
 
 /** The per-file rules that read as a limit with a lowest and a highest. */

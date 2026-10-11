@@ -63,7 +63,7 @@ type UnitProps = {
   seekWord: (unit: BoothUnit, word: number) => number;
 };
 
-const MODE_TONE: Record<Mode, string> = { done: 'text-[var(--non-text)]', cur: 'text-[var(--text)]', next: 'text-[var(--text-muted)]' };
+const MODE_TONE: Record<Mode, string> = { done: 'text-[var(--text-muted)]', cur: 'text-[var(--text)]', next: 'text-[var(--text-muted)]' };
 
 // One sentence. A click on a word seeks to it; a click between words seeks to the sentence's first word.
 const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragraph, from, speakers, colour, onSeek, onSetSpeaker, seekWord }: UnitProps) {
@@ -101,7 +101,7 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
                     ...(token.mark ? { '--mcb': `var(${token.mark.colour})` } : {}),
                   } as CSSProperties
                 }
-                className={`relative rounded-[0.12em] transition-colors ${tint} ${mark} ${said ? 'text-[var(--non-text)]' : ''} ${
+                className={`relative rounded-[0.12em] transition-colors ${tint} ${mark} ${said ? 'text-[var(--text-muted)]' : ''} ${
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''

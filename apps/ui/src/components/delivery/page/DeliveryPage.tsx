@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
+import { Heading } from '../../primitives/Heading';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
 import { chapterStates, readiness } from './chapterStates';
@@ -48,10 +49,8 @@ export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript:
 
   if (!hasManuscript) {
     return (
-      <section aria-labelledby="delivery-need-manuscript" className="flex flex-col gap-1 p-4">
-        <h1 id="delivery-need-manuscript" className="text-lg font-semibold">
-          Delivery
-        </h1>
+      <section aria-label="Delivery" className="flex flex-col gap-1 p-4">
+        <Heading title="Delivery" />
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Add the manuscript first. Delivery checks every chapter against the profile.
         </p>
