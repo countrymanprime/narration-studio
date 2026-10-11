@@ -118,7 +118,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Spikes | Licences and provenance for GLiNER and BookNLP; quality on fixtures; calibration protocol | pending | 2 | SN0-1 | 1.2 | - |
+| 1 | Spikes | Licences and provenance for GLiNER and BookNLP; quality on fixtures; calibration protocol | in progress (calibration protocol SN-X13 [#1143](https://github.com/countrymanprime/narration-utils/issues/1143), [note](../research/studio-next-extraction-calibration-protocol.md)) | 2 | SN0-1 | 1.2 | - |
 | 2 | ADR and schema | A14; suggestion contract, store, rule, evidence verification | in progress (rule, evidence check and fingerprint SNX-2a [#1080](https://github.com/countrymanprime/narration-utils/issues/1080); store, schema, golden and binding SNX-2b) | 1 | SN0-1 | 1.5 | - |
 | 3 | Rules tier into suggestions | Sidecar adapter emits suggestions | pending | 4 | 2 | 1.0 | - |
 | 4 | Suggested UI | Rows, chips, accept, reject, review, needs-verification | pending | 3 | 2, SNB-3 | 1.3 | - |
@@ -154,6 +154,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- | --- | --- |
 | SNX-1a | Spike GLiNER | SN0-1 | yes | Research note |
 | SNX-1b | Spike BookNLP | SN0-1 | yes | Research note |
+| SNX-1c | Calibration protocol ([note](../research/studio-next-extraction-calibration-protocol.md)) | SN0-1 | yes | Research note |
 | SNX-2 | ADR, schema, store, rule, evidence | SN0-1 | yes | Go tests; golden; wire row |
 | SNX-3 | Rules tier adapter | SNX-2 | yes | Sidecar tests; conformance |
 | SNX-4 | Suggested UI | SNX-2, SNB-3 | yes | Ported tests; visual; aria |
