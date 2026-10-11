@@ -17,6 +17,9 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/primitives/Tooltip.tsx': { note: 'Escape closes the tooltip (WCAG 1.4.13), a widget key owned by the primitive, not a command' },
   'src/components/manuscript/SelectionMenu.tsx': { note: 'Escape closes the selection menu, a widget key owned by the primitive, not a command' },
   'src/components/booth/side/BoothSidePanel.tsx': { note: 'Escape closes the side panel when it is a drawer, a widget key owned by the panel, not a command' },
+  'src/components/recordingcheck/CheckRecordingsDialog.tsx': {
+    note: 'Escape while a check runs asks to stop it, a widget key owned by the dialog, not a command',
+  },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll (ADR 0119), not a command' },
 };
 

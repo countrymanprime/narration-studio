@@ -60,6 +60,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/proof/checkcard/CheckCard.tsx#1':
+    'Seeds the card with the run in progress; a failed seed leaves the card on the stored result until the next coverage:state event.',
   'src/components/production/ChapterTrackPanel.tsx#1':
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',

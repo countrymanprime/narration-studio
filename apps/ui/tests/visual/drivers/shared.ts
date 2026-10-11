@@ -371,7 +371,7 @@ export async function productionLoaded(page: Page): Promise<void> {
 
 // A chapter's row in the Production pipeline. A prefix match on the Chapter cell ("Chapter 1" and "Chapter 1 — Down the Rabbit-Hole"),
 // with a word boundary so "Chapter 1" never matches "Chapter 10".
-export function boardRow(page: Page, chapter: string): Locator {
+function boardRow(page: Page, chapter: string): Locator {
   return page
     .getByRole('table', { name: 'Chapter pipeline' })
     .getByRole('row')
@@ -437,7 +437,7 @@ export async function openTrackPanel(page: Page, chapter: string, seed: string) 
 
 // The Production home booted with a stage suggestions seed (`?mockStages=`, main.tsx), once the first read has answered: the chips
 // above the board (`mixed`) or its error chip (`error`) are on screen.
-export async function openStageSuggestions(page: Page, seed: 'mixed' | 'error') {
+async function openStageSuggestions(page: Page, seed: 'mixed' | 'error') {
   await page.goto(`/?mockStages=${seed}`);
   await settlePage(page);
   await productionLoaded(page);
