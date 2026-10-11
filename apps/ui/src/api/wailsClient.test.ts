@@ -552,6 +552,25 @@ describe('wailsClient', () => {
     await expect(wailsClient.findingsReaperStatus()).resolves.toEqual({ connection: 'connected', loopingFindingId: 'f1' });
   });
 
+  it('sends a cut to WorkspaceSnap as ids and a time and decodes the snapped answer', async () => {
+    const snap = vi
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify({ chapterId: 'c1', itemGuid: '{I}', sourceTime: 1.0013, outcome: 'snapped', time: 1.00225, moved: 0.00095 }))
+      .mockResolvedValueOnce(JSON.stringify({ chapterId: 'c1', itemGuid: '{I}', sourceTime: 1, outcome: 'snapped', time: 1, moved: 0, path: '/x.wav' }));
+    standInHost({ WorkspaceSnap: snap });
+    await expect(wailsClient.workspaceSnap('c1', '{I}', 1.0013)).resolves.toEqual({
+      chapterId: 'c1',
+      itemGuid: '{I}',
+      sourceTime: 1.0013,
+      outcome: 'snapped',
+      time: 1.00225,
+      moved: 0.00095,
+    });
+    expect(snap).toHaveBeenCalledWith('c1', '{I}', 1.0013);
+    // A key the host never sends is drift, not something to pass on.
+    await expect(wailsClient.workspaceSnap('c1', '{I}', 1)).rejects.toBeInstanceOf(WireError);
+  });
+
   it('sends Add marker for a finding to the host and decodes what REAPER added', async () => {
     const addMarker = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'added', name: "MISREAD: 'a' as 'b'", sourceTime: 12.5 }));
     standInHost({ FindingsAddMarker: addMarker });

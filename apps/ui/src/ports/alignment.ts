@@ -1,10 +1,13 @@
 import type { CoverageReason } from '../api/contracts/coverage';
 import type { WorkspaceAlignmentResult, WorkspaceWordTiming } from '../api/contracts/workspace';
+import type { WorkspaceSnapRefusal, WorkspaceSnapResult } from '../api/contracts/workspaceSnap';
+import { mockSnapTime } from '../api/workspaceSnapMock';
 import type { NarrationApi } from '../types';
 
 // The alignment port (ADR 0855): what the recording sounds like, word by word, read from the chapter's stored alignment
 // (ADR 0242). It never runs an alignment or a check: a chapter with nothing transcribed answers null with the reason.
 // The page asks this for words and never knows the recogniser; a later source replaces the adapter and no caller changes.
+// `snap` moves a cut point to the nearest zero crossing within 2 ms, computed by the host from the item's audio.
 
 /** One word heard, in seconds of its item's source. A word of the script carries its paragraph and ordinal; an added
  * word (said, not in the script) carries neither, and `timing` says how its times were found. */
@@ -35,12 +38,24 @@ export interface Heard {
 /** What was heard, or null with why nothing was. */
 export type HeardAnswer = { heard: Heard } | { heard: null; reason: string; reasons: CoverageReason[] };
 
+/** A cut point on the nearest zero crossing, or left where it was with why. `time` is in seconds of the item's source;
+ * `moved` is `time` minus the asked time (within 2 ms; 0 when it stayed). */
+export type SnapResult = { time: number; moved: number } & ({ snapped: true } | { snapped: false; reason: WorkspaceSnapRefusal; message: string });
+
 export interface AlignmentPort {
   heard(chapterId: string): Promise<HeardAnswer>;
+  /** `sourceTime` (seconds of `itemGuid`'s source) moved to the nearest zero crossing within 2 ms. */
+  snap(chapterId: string, itemGuid: string, sourceTime: number): Promise<SnapResult>;
 }
 
-/** The `NarrationApi` method the host adapter calls: no new binding. */
-export type AlignmentHostApi = Pick<NarrationApi, 'workspaceAlignment'>;
+/** The `NarrationApi` methods the host adapter calls. */
+export type AlignmentHostApi = Pick<NarrationApi, 'workspaceAlignment' | 'workspaceSnap'>;
+
+/** The port's answer for a WorkspaceSnap result. */
+export function snapFrom(result: WorkspaceSnapResult): SnapResult {
+  if (result.outcome === 'refused') return { snapped: false, time: result.time, moved: 0, reason: result.reason, message: result.message };
+  return { snapped: true, time: result.time, moved: result.moved };
+}
 
 const NEVER = 'Nothing has been transcribed yet: run the check on this chapter.';
 const ALIGN_AGAIN = 'The check ran before words were aligned: align the chapter again to read what was heard.';
@@ -86,9 +101,12 @@ export function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
   return { heard: { engine: result.engine, words } };
 }
 
-/** Reads `workspaceAlignment`. */
+/** Reads `workspaceAlignment` and `workspaceSnap`. */
 export function createHostAlignment(api: AlignmentHostApi): AlignmentPort {
-  return { heard: async (chapterId) => heardFrom(await api.workspaceAlignment(chapterId)) };
+  return {
+    heard: async (chapterId) => heardFrom(await api.workspaceAlignment(chapterId)),
+    snap: async (chapterId, itemGuid, sourceTime) => snapFrom(await api.workspaceSnap(chapterId, itemGuid, sourceTime)),
+  };
 }
 
 const MOCK_ENGINE = { id: 'whisper:small', name: 'Whisper small' };
@@ -114,7 +132,8 @@ export type MockAlignmentOptions = {
   words?: readonly HeardWord[];
 };
 
-/** The mock: answers the sample words for any chapter not listed as untranscribed. It never runs anything. */
+/** The mock: answers the sample words for any chapter not listed as untranscribed, and snaps a cut by a stable offset
+ * within 2 ms (no audio). It never runs anything. */
 export function createMockAlignment(options: MockAlignmentOptions = {}): AlignmentPort {
   const { none = false, untranscribed = [], words = SAMPLE_WORDS } = options;
   return {
@@ -124,5 +143,9 @@ export function createMockAlignment(options: MockAlignmentOptions = {}): Alignme
           ? { heard: null, reason: NEVER, reasons: [] }
           : { heard: { engine: { ...MOCK_ENGINE }, words: words.map((word) => ({ ...word })) } },
       ),
+    snap: (_chapterId, _itemGuid, sourceTime) => {
+      const time = mockSnapTime(sourceTime);
+      return Promise.resolve({ snapped: true, time, moved: time - sourceTime });
+    },
   };
 }

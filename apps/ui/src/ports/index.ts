@@ -51,6 +51,7 @@ import type { PronunciationOnlineApi } from '../api/contracts/pronunciationOnlin
 import type { ProofingRenderApi } from '../api/contracts/proofingRender';
 import type { PrepCompletenessApi } from '../api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from '../api/contracts/renderEncodeMaster';
+import type { WorkspaceSnapApi } from '../api/contracts/workspaceSnap';
 import type { DawClient } from './daw';
 import type { MeasurementsPort } from './measurements';
 import type { AlignmentPort } from './alignment';
@@ -107,6 +108,7 @@ export type {
   ProofingRenderApi,
   PrepCompletenessApi,
   RenderEncodeMasterApi,
+  WorkspaceSnapApi,
 };
 
 /** Every port name and the interface it returns; one entry per interface in `NarrationApi`'s `extends` list. */
@@ -160,6 +162,7 @@ export interface PortMap {
   proofingRender: ProofingRenderApi;
   prepCompleteness: PrepCompletenessApi;
   renderEncodeMaster: RenderEncodeMasterApi;
+  workspaceSnap: WorkspaceSnapApi;
 }
 
 /** Ports that are not a `NarrationApi` interface but a client built over it (or over a mock), so a page sees one result type per call. */
