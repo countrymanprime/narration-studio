@@ -24,7 +24,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Flip to true in SNC-4: an agreed row must then name a test. */
-export const ENFORCE_TEST_NAMES = false;
+const ENFORCE_TEST_NAMES = false;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SOURCE = 'docs/research/mockups/studio-next/research/repo-compare-decisions.md';
@@ -44,7 +44,7 @@ const H3_STATUS = [
   [/^not clear/, 'unclear'],
 ];
 // `##` headings: the code that prefixes ids and, for a section whose lines sit directly under it, their status.
-export const H2_SECTIONS = [
+const H2_SECTIONS = [
   [/^owner rulings from the repo comparison$/, 'TOP', null],
   [/^repo comparison: owner rulings/, 'SB', 'agreed'],
   [/^production page rulings/, 'PR', null],
