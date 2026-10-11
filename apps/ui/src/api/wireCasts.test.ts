@@ -69,6 +69,11 @@ const ALLOWED: Array<{ file: string; text: string; reason: string }> = [
     text: 'as readonly string[]',
     reason: 'widens a literal tuple of the mock to ask whether a string is one of its members; not a host payload',
   })),
+  {
+    file: 'scriptPrepMock.ts',
+    text: 'as readonly string[]',
+    reason: 'widens a literal tuple of the mock to ask whether a string is one of its members; not a host payload',
+  },
 ];
 
 const relativeName = (path: string) => relative(apiRoot, path).split(sep).join('/');

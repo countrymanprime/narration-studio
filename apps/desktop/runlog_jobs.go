@@ -68,4 +68,5 @@ var jobKindBeginSites = map[string][]string{
 	jobKindRenderExport:       {"startExport"},
 	jobKindRenderPackage:      {"startPackage"},
 	jobKindRenderPackageMulti: {"startMultiPackage"},
+	jobKindExtractionScan:     {"startExtractionScan"},
 }

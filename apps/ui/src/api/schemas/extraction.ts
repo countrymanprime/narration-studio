@@ -6,6 +6,8 @@ import {
   SUGGESTION_SOURCES,
   SUGGESTION_STATUSES,
   type ExtractionDecision,
+  type ExtractionScanJob,
+  type ExtractionSource,
   type ExtractionSuggestion,
   type SuggestionApplied,
   type SuggestionEvidence,
@@ -14,12 +16,12 @@ import {
 
 const text = z.string().min(1);
 
-export const suggestionEvidenceSchema = z
+const suggestionEvidenceSchema = z
   .object({ paragraphId: text, start: z.number().int().nonnegative(), end: z.number().int().nonnegative(), text: z.string() })
   .strict()
   .refine((evidence) => evidence.start < evidence.end, 'a quote starts before it ends') satisfies z.ZodType<SuggestionEvidence>;
 
-export const suggestionPayloadSchema = z.discriminatedUnion('kind', [
+const suggestionPayloadSchema = z.discriminatedUnion('kind', [
   z
     .object({
       kind: z.literal('entry'),
@@ -37,7 +39,7 @@ export const suggestionPayloadSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('speaker'), quote: text, speaker: text }).strict(),
 ]) satisfies z.ZodType<SuggestionPayload>;
 
-export const suggestionAppliedSchema = z
+const suggestionAppliedSchema = z
   .object({
     entryId: z.string().optional(),
     created: z.boolean().optional(),
@@ -74,3 +76,36 @@ export const extractionSuggestionsSchema = z.array(extractionSuggestionSchema) s
 export const extractionDecisionSchema = z
   .object({ suggestion: extractionSuggestionSchema, settled: z.array(extractionSuggestionSchema), entryIds: z.array(text) })
   .strict() satisfies z.ZodType<ExtractionDecision>;
+
+export const extractionSourceSchema = z
+  .object({
+    id: z.enum(SUGGESTION_SOURCES),
+    label: text,
+    icon: text,
+    runs: z.boolean(),
+    available: z.boolean(),
+    reason: z.string().min(1).optional(),
+  })
+  .strict()
+  .refine((source) => source.available || source.reason !== undefined, 'a source that cannot run says why') satisfies z.ZodType<ExtractionSource>;
+
+export const extractionSourcesSchema = z.array(extractionSourceSchema) satisfies z.ZodType<ExtractionSource[]>;
+
+const count = z.number().int().nonnegative();
+
+export const extractionScanJobSchema = z
+  .object({
+    id: z.string().min(1).nullable(),
+    kind: z.literal('extraction_scan'),
+    phase: z.enum(['idle', 'running', 'success', 'cancelled', 'error']),
+    message: z.string(),
+    percent: z.number().int().min(0).max(100),
+    logs: listFromNull(z.string()),
+    elapsed: z.number().nonnegative(),
+    error: z.string().optional(),
+    sources: listFromNull(z.enum(SUGGESTION_SOURCES)),
+    added: count,
+    skipped: count,
+  })
+  .strict()
+  .refine((job) => job.percent < 100 || job.phase === 'success', 'a scan reads 100 only once it has ended') satisfies z.ZodType<ExtractionScanJob>;

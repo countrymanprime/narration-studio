@@ -875,6 +875,36 @@ export function ExtractionReview(id: string): $CancellablePromise<string> {
 }
 
 /**
+ * ExtractionScan starts a scan of the manuscript: the rules, then each of sourceIds that can run, in the registry's
+ * order; one that cannot is skipped with its reason in the job's messages. While a scan runs it returns that scan and
+ * starts no other. An id that is not a source a scan can start is refused before anything starts.
+ */
+export function ExtractionScan(sourceIds: string[]): $CancellablePromise<string> {
+    return $Call.ByID(3094866598, sourceIds);
+}
+
+/**
+ * ExtractionScanCancel stops the running scan and the source it is running. What the sources that finished added is kept.
+ */
+export function ExtractionScanCancel(): $CancellablePromise<string> {
+    return $Call.ByID(567792956);
+}
+
+/**
+ * ExtractionScanState returns the running or last scan, or an idle one.
+ */
+export function ExtractionScanState(): $CancellablePromise<string> {
+    return $Call.ByID(158708443);
+}
+
+/**
+ * ExtractionSources returns every extraction source in the registry's order, rules first, with whether it can run now.
+ */
+export function ExtractionSources(): $CancellablePromise<string> {
+    return $Call.ByID(1031376715);
+}
+
+/**
  * FindingsAddMarker adds one take marker in REAPER at an accepted finding's spot, on its take, named like the marker
  * Transcript Compare's export adds (approvedMarker). A finding not accepted, one with no item or no time in its audio,
  * and a REAPER that is not listening are refused before anything is sent.
@@ -1981,6 +2011,44 @@ export function RetakeLanesPick(lineID: string, itemGUID: string): $CancellableP
  */
 export function RetakeLanesState(): $CancellablePromise<string> {
     return $Call.ByID(523795916);
+}
+
+/**
+ * ScriptPrepList returns every manuscript chapter with its prep state (none when never set) and every flagged word with its
+ * status, in reading order of its first flag.
+ */
+export function ScriptPrepList(): $CancellablePromise<string> {
+    return $Call.ByID(3735153582);
+}
+
+/**
+ * ScriptPrepSetChapter stores one chapter's prep state: none, progress or prepped. A chapter the manuscript lacks is refused.
+ */
+export function ScriptPrepSetChapter(chapterID: string, state: string): $CancellablePromise<string> {
+    return $Call.ByID(1526545883, chapterID, state);
+}
+
+/**
+ * ScriptWordFlag flags a range of one line for pronunciation: start and end are UTF-16 units into the line's text, start before
+ * end. The word is the line's own text for the range, lower-cased as its key. It returns the word with all its flags.
+ */
+export function ScriptWordFlag(chapterID: string, paragraphID: string, start: number, end: number): $CancellablePromise<string> {
+    return $Call.ByID(2540312751, chapterID, paragraphID, start, end);
+}
+
+/**
+ * ScriptWordSay stores how a flagged word is said and the id of the pronunciation source the value came from; an empty source
+ * means the narrator typed it, and an empty say clears the value and keeps the word flagged.
+ */
+export function ScriptWordSay(word: string, say: string, source: string): $CancellablePromise<string> {
+    return $Call.ByID(1125216296, word, say, source);
+}
+
+/**
+ * ScriptWordUnflag removes one flag and returns its word. The say-value is dropped with the word's last flag.
+ */
+export function ScriptWordUnflag(flagID: string): $CancellablePromise<string> {
+    return $Call.ByID(2287209164, flagID);
 }
 
 /**

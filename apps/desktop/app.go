@@ -24,7 +24,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
+	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/guide"
 	"github.com/countrymanprime/narration-utils/shell/internal/hostlog"
@@ -33,6 +35,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 	"github.com/countrymanprime/narration-utils/shell/internal/pickups"
+	"github.com/countrymanprime/narration-utils/shell/internal/port"
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 	"github.com/countrymanprime/narration-utils/shell/internal/production"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
@@ -63,7 +66,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 102
+const hostAPIVersion = 104
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -116,6 +119,8 @@ type Host struct {
 	guideJob *workJob
 	// takeReviewJob is the Review page's pickup and duplicate scan (takereview_job.go); h.mu guards the pointer, the job its fields.
 	takeReviewJob *takeReviewScanJob
+	// extractionJob is the Story Bible's scan for suggestions (extraction_job.go); h.mu guards the pointer, the job its fields.
+	extractionJob *extractionScanJob
 	// takeComparisonJob compares the takes of one take-review group (takecompare_job.go); h.mu guards the pointer.
 	takeComparisonJob *takeComparisonJob
 	// measureJob measures the narrator's picked audio files (measure_job.go); measurePicked is every path the picker
@@ -239,6 +244,11 @@ type Host struct {
 	pronunciationOnline *pronunciationonline.Service
 	// extractionBible is a seam for tests (bindings_extraction.go): nil means the Story Bible of h.guide.
 	extractionBible apply.Bible
+	// extractionSources, extractionParagraphs and extractionInstalled are seams for tests (extraction_job.go): nil means
+	// the scan's own registry, the open manuscript's paragraphs and the installed assets.
+	extractionSources    *port.Registry[extractionport.Source]
+	extractionParagraphs func() ([]extraction.Paragraph, error)
+	extractionInstalled  func() []string
 	// pickRenderFile is a seam for tests (bindings_proofing_render.go): nil means the operating system's single-file
 	// picker for a chapter's rendered file.
 	pickRenderFile func() (string, error)
@@ -1223,6 +1233,9 @@ func (h *Host) idleLocked() bool {
 		}
 	}
 	if h.takeReviewJob != nil && h.takeReviewJob.running() {
+		return false
+	}
+	if h.extractionJob != nil && h.extractionJob.running() {
 		return false
 	}
 	if h.takeComparisonJob != nil && h.takeComparisonJob.running() {
