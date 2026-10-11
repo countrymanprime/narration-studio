@@ -98,9 +98,9 @@ The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×
 
 ## Gate stamp
 
-`scripts/ci/gate-stamp.mjs` ties "the full gate passed" to an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `--hook` is written as a `Stop` and `SubagentStop` hook: it exits 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match the tree. It lets a stop through when `stop_hook_active` is set, and when the last message says `Gate: skipped — <reason>` (an agent-train worker runs the targeted set its template names, not the full gate).
+`scripts/ci/gate-stamp.mjs` ties "the full gate passed" to an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `pnpm check` runs `record` as its last step, and `--hook` runs as a `Stop` and `SubagentStop` hook (`.claude/settings.json`): it exits 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match the tree. It lets a stop through when `stop_hook_active` is set, and when the last message says `Gate: skipped — <reason>` (an agent-train worker runs the targeted set its template names, not the full gate).
 
-The script is not wired in yet: `.claude/settings.json` does not register the hook, and `pnpm check` does not call `record`, so nothing is blocked today.
+The hook only reads the stamp; it never runs the gate.
 
 ## Reading a run
 
