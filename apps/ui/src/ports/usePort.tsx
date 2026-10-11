@@ -4,12 +4,14 @@ import type { NarrationApi } from '../types';
 import { createHostDawClient } from './daw';
 import { createHostMeasurements } from './measurements';
 import { createHostAlignment } from './alignment';
+import { createHostTakes } from './takes';
 import type { ClientPortMap, PortName, PortOf } from './index';
 
 const CLIENT_BUILDERS: { [N in keyof ClientPortMap]: (api: NarrationApi) => ClientPortMap[N] } = {
   daw: createHostDawClient,
   measurements: createHostMeasurements,
   alignment: createHostAlignment,
+  takes: createHostTakes,
 };
 
 const isClientPort = (name: PortName): name is keyof ClientPortMap => Object.hasOwn(CLIENT_BUILDERS, name);
