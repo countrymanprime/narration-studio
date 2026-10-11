@@ -68,6 +68,35 @@ describe('wailsClient', () => {
     ]);
   });
 
+  it('accepts, ignores and reads the reviews of a recording check gap by ids only', async () => {
+    const finding = {
+      schema_version: 1,
+      id: 'f-1',
+      analyzer: 'recording-check',
+      project: {},
+      source: {},
+      category: 'pickup',
+      severity: 'info',
+      confidence: null,
+      confidence_reason: 'no_word_scores',
+      review: { status: 'accepted' },
+    };
+    const accept = vi.fn().mockResolvedValue(JSON.stringify(finding));
+    const ignore = vi.fn().mockResolvedValue('null');
+    const reviews = vi.fn().mockResolvedValue(JSON.stringify({ 'missing:p-1:3': 'accepted', 'extra:p-1:9': 'ignored' }));
+    standInHost({ CoverageGapAccept: accept, CoverageGapIgnore: ignore, CoverageGapReviews: reviews });
+
+    await expect(wailsClient.coverageGapAccept('c-1', 'missing:p-1:3')).resolves.toMatchObject({ id: 'f-1', category: 'pickup' });
+    await expect(wailsClient.coverageGapIgnore('c-1', 'extra:p-1:9')).resolves.toBeUndefined();
+    await expect(wailsClient.coverageGapReviews('c-1')).resolves.toEqual({ 'missing:p-1:3': 'accepted', 'extra:p-1:9': 'ignored' });
+    expect(accept).toHaveBeenCalledWith('c-1', 'missing:p-1:3');
+    expect(ignore).toHaveBeenCalledWith('c-1', 'extra:p-1:9');
+    expect(reviews).toHaveBeenCalledWith('c-1');
+
+    reviews.mockResolvedValueOnce(JSON.stringify({ gap: 'dismissed' }));
+    await expect(wailsClient.coverageGapReviews('c-1')).rejects.toThrow();
+  });
+
   it('uses generated Wails methods rather than an operation-string transport', async () => {
     const select = vi.fn().mockResolvedValue(JSON.stringify({ selected: true, jobId: 'import-1' }));
     standInHost({ Ready: () => Promise.resolve({ apiVersion: 1, diagnosticId: 'native' }), ManuscriptSelectFile: select });
