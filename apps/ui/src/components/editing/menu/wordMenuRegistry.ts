@@ -39,7 +39,7 @@ export function registerWordMenuSection(section: WordMenuSection): () => void {
   };
 }
 
-export const headingFor = (count: number): string => `${count} ${count === 1 ? 'word' : 'words'} selected`;
+const headingFor = (count: number): string => `${count} ${count === 1 ? 'word' : 'words'} selected`;
 
 /** The heading and the non-empty sections for a selection. A section that throws is dropped and logged; the rest still show. */
 export function buildWordMenu(selection: WordMenuSelection): WordMenu {
