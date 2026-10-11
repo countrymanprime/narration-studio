@@ -2,12 +2,12 @@
 
 How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt only says "read `docs/operations/agent-train.md` on `main` and run one pass", so changing the procedure is a normal pull request.
 
-It replaces the scheduling rules of the implementation plan's section 8 (deleted PRD `implementation-plan`) (the lane train of 2026-09-24):
+It replaces the scheduling rules of the lane train of 2026-09-24:
 
-- **Kept:** D40 (the coordinator merges), D43 (the light merge gate), D44 (the visual suite and atlas run in full once, at the end) and D46 (built UI is compared with its mock, amended by D97), plus the older D1–D39.
+- **Kept:** D40 (the coordinator merges), D43 (the light merge gate), D44 (the visual suite and atlas run in full once, at the end) and D46 (built UI is compared with its mock, amended by D97); all are in [Owner standing rules](#owner-standing-rules).
 - **Replaced:** D41 (three lanes) and D45 (hold on credits), by [Lanes](#lanes) and [Usage and autoscaling](#usage-and-autoscaling) below.
 
-The work it schedules comes from the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md), and then the older PRDs' remaining phases as filler.
+The work it schedules comes from the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md), and then the PRDs in `docs/prds/`.
 
 ## Where state lives
 
@@ -78,7 +78,7 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 3. the stream whose PRD phases unblock the most other phases;
 4. leaf features;
 5. documentation;
-6. filler from the older PRDs.
+6. filler: any pending phase of a PRD in `docs/prds/` that collides with nothing running.
 
 ## Safety net
 
@@ -159,7 +159,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 Owner ruling, 2026-09-29, after workers kept building towards old mocks.
 
 - **The spec is one folder: `docs/research/mockups/audiobook-studio-benchmark/`,** the seven benchmark mocks (01 Production, 02 Script, 03 Booth, 04 Proof, 05 Master & QC, 06 Series voice bible, 07 companion). They are light except the Booth (03) and the companion (07). `apps/ui/tests/visual/mock-match/mocks.ts` lists them and the state each is scored against.
-- **Every other mock is deleted (D96, 2026-09-29).** The deleted per-PRD sets that lived under `docs/prds/mockups/` (`read-aloud-control-bar`, `edit-and-proof-workspace`, `delivery-platform-profiles`, `home-combined`, `manuscript-*` and the rest), the `*-concept.webp` copies of the benchmark mocks and the deleted evidence crops in `docs/research/mock-fidelity/` and `visual-audit/` were drawn before the redesign, so they are gone, together with the visual mockup divergence audit and every link to them. Don't recreate them from `git log`: they are not a spec.
+- **Every other mock is deleted (D96, 2026-09-29).** The per-PRD mock sets (`read-aloud-control-bar`, `edit-and-proof-workspace`, `delivery-platform-profiles`, `home-combined`, `manuscript-*` and the rest), the `*-concept.webp` copies of the benchmark mocks and the deleted evidence crops in `docs/research/mock-fidelity/` and `visual-audit/` were drawn before the redesign, so they are gone, together with the visual mockup divergence audit and every link to them. Don't recreate them from `git log`: they are not a spec.
 - **Only work being built now has a mock beside the benchmark.** The repo keeps three kinds of image: the seven benchmark mocks, the current-state screenshots in `docs/images/ui/`, and a new mock for a phase being built right now. A new mock goes in `docs/prds/mockups/<prd>/`, is listed in its PRD's Visual Spec, and is deleted in the PR that merges the work (the PRD's close-out PR checks this). A PRD never copies a benchmark mock; it links the research file.
 - **Theme is one app-wide setting.** Capture a state in the theme its mock is drawn in and compare like with like: light against light, dark against dark. The dark equivalents of the light mocks are worked out later; until then a light mock is not compared with a dark capture.
 - **Layout and style are the spec, not the sample data.** Don't seed demo data to make a score higher, and don't change a real title or subtitle to the mock's wording.
@@ -186,7 +186,7 @@ Decisions the owner made while the train ran (logged on #509). They bind the coo
 | **D65** | Owner-only, hardware and REAPER checks are flagged on #510 and marked pending. They never block a merge or a launch |
 | **D66** | Check the lane count on every pass, including passes spent mostly on merges or fixers, and launch before babysitting in-flight PRs |
 | **D67** | Mock-first behind every port. A feature builds against a mock that passes the schema; going to production is a swap behind the port; the mocks stay for the demo build and the tests. A UI phase blocked only by an unbuilt backend phase is ready once that contract is pinned. Serial points, nav entries among them, still land one at a time |
-| **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. This settles the conflict between the wave-0 writer rule and D61 |
+| **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. |
 | **D69** | The audiobook studio benchmark's concept mocks are owner-approved as the build spec. **Dark mode is one app-wide theme,** on or off: no page or surface forces light or dark, and a dark mock shows the dark theme, not a per-page look. This supersedes ADR 0360 Q1's forced-dark booth surface |
 | **D70** | Features still in development use public-domain or synthetic data instead of waiting for the owner's recordings. Results calibrated on it are **provisional**, and a re-run on the owner's own material goes on #510 as a QA item before it ships to users |
 | **D71** | **LibriVox** is the default source for real speech audio: public domain, many readers, and solo readings where one reader voices several characters. Record the source URL, reader, book and the public-domain statement; keep the audio out of git as ignored local data. Synthetic audio is the fallback |
@@ -288,7 +288,7 @@ Fill in the `<>` fields.
 ```text
 You are worker stream <ID> (lane <L>: <lane name>) in the narration-utils agent train. Repo countrymanprime/narration-utils.
 No human is watching live; never wait for answers. Where a PRD leaves a question open, take its stated recommendation
-(implementation plan D22) and record anything that truly needs the owner as a Proposed ADR, plus a comment on #510.
+and record anything that truly needs the owner as a Proposed ADR, plus a comment on #510.
 
 READ FIRST: CLAUDE.md; docs/operations/agent-train.md ("The worker protocol", "Serial points", "Lanes"); then each PRD in
 scope, in full.
@@ -302,7 +302,7 @@ a diagnostic, not a gate (D97): it ignores words and sample data, so build the f
 the number. No reasons to write, no region tables, no Mockup check table. New primitives and tokens are in scope; existing styles are not a reason: when a
 primitive, token or style doesn't draw what the mock shows, change the primitive (its <Name>.stories.tsx too, with
 design-spec-guard and an ADR for a changed design decision), don't restyle it locally on the page. The spec per
-primitive is docs/design/design-system.md (the PRD it came from was deleted at its close-out).
+primitive is docs/design/design-system.md.
 YOUR FILES: <the phases' rows from the PRD's Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
 a running stream on #509. If you need another lane's change, comment on #509.
 ADR BLOCK: <block>. Check docs/adr/ for the next free number inside it, at write time and again before your last push.
@@ -358,25 +358,9 @@ comment with a blank line, "---", then "_Generated by [Claude Code](https://clau
 
 Waves order the work, and the coordinator doesn't start a wave until everything it depends on has merged. Inside a wave, the ready-list rules above decide.
 
-| Wave | Streams |
-| --- | --- |
-| **0** | See the table below |
-| **1: contracts** | DAW port (PRD deleted, delivered) P1–P4 in lane K, one after another: N-K1 = P1 + P2, N-K2 = P3 + P4. [Provider ports](../architecture/provider-ports.md) phases after N-K1 (lane K, then B). Studio UI primitives (PRD deleted, delivered) token batch (alone), then `CapabilityGate` (lane U). Input commands and pedals (deleted PRD `input-commands-and-pedals`) registry core (lane U) |
-| **2: fan out** | DAW port P5a–P5d at the same time (lane B, four workers); the remaining primitives, file-disjoint (lane U, two workers); provider-port migrations (lane B); input sources and migrations (lane U); DAW port P6 and P7 |
-| **3: features** | The wave-0 PRDs, in benchmark order: booth actions enablement, booth mode and companion panel, closed-loop proofing, delivery profiles (extended), production tracking |
-| **4** | Prep depth, series voice bible, render, encode and master, native recording on the DAW port, Audacity 4. Then the final sweep (D43, D44, D46): the full `pnpm check`, visual suite, atlas, aria, a mockup pass, doc screenshots regenerated once |
-| **Filler** | Any lane with a free slot and nothing ready takes the next pending phase of the older PRDs in `docs/prds/`, if it collides with nothing running. The old queue's order (implementation plan §8) sets priority |
+The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md)) and the Studio Next series in `docs/prds/` is the plan. The series' dependency order is the graph in [Studio Next Rebuild](../prds/studio-next-rebuild.prd.md#technical-approach); no wave has been accepted for it yet.
 
-**Wave 0.** These streams can run together, since their files are disjoint.
-
-| ID | Lane | Model | Scope |
-| --- | --- | --- | --- |
-| N-D1 | D | Sonnet | Write PRDs from the benchmark's recommendations 1–3: **booth-actions-enablement** (reconciles read-aloud control bar P7, REAPER automation follow-through and the teleprompter integration's punch phases; promotes each verified command by declaration on the DAW port), **booth-mode-and-companion-panel**, **closed-loop-proofing** |
-| N-D2 | D | Sonnet | Write **production-tracking**, **prep-depth** and **render-encode-master**. Extend **delivery-platform-profiles** (recommendation 4: MP3 levels, delivery findings on the Review page, a book-wide spread), **character-continuity-review** (recommendation 8: a series bible) and **audacity-integration** (recommendation 9: re-scope for 4.x) |
-| N-X1 | X | Opus | Conflict-reduction refactor with no behaviour change: split `api/mockApi.ts`, the golden-to-schema rows of `wireContracts.test.ts`, `tests/visual/state-catalog.ts` and `app.drivers.ts`, and `interactionFeedback.catalog.ts` into per-domain or per-page files; generate the ADR index table in `docs/adr/README.md` from the ADR files, with a check in `pnpm check`; add `scripts/dev/bump-host-api.mjs` (bump the three files, regenerate `Host.*`) |
-| N-K1 | K | Opus | DAW port P1 + P2. New packages only, so it can start in wave 0 |
-
-**Rules for the wave-0 PRD writers (N-D1, N-D2):**
+**Rules for PRD writers:**
 - Use the template in `docs/prds/README.md`.
 - Add a **Ports used** column to the phase table, naming the capabilities and roles of the DAW port, the provider ports and the UI primitives each phase needs. That column is how the coordinator knows when a phase is unblocked.
 - Link the benchmark mocks the PRD uses from `docs/research/mockups/audiobook-studio-benchmark/`; don't copy them into the PRD (D96). A PRD that needs a mock the benchmark lacks adds it under `docs/prds/mockups/<prd>/` only for work being built now, and it is deleted when that work merges.

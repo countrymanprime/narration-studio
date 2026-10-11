@@ -1,15 +1,15 @@
 # 0402. CoreAudio capture is a PyAV `avfoundation` sidecar backend, addressed by device name
 
-**Status:** Superseded by ADR-0412 (Windows only for now, D74; the backend can be restored from commit `bf9f0093`)
+**Status:** Superseded by ADR-0412 (Windows only for now; the backend can be restored from commit `bf9f0093`)
 **Date:** 2026-09-27
 
 ## Context
 
 The capture port (ADR 0301) has one registered row, `dshow`, declaring `platforms: ("windows",)` (`libs/python/narration_common/ports/capture.py:40-45`). It is implemented entirely in the Python sidecar (`sidecars/manuscript-teleprompter/core/capture_dshow.py`), wrapping PyAV's `dshow` demuxer; the Go side (`apps/desktop/internal/captureport/captureport.go`) only declares the row's name and platforms and never opens a device itself (`captureport.go:10-11`: "Nothing calls this yet except the provider capabilities binding").
 
-Native Recording Suite (deleted PRD `native-recording-suite`) (still draft, unscheduled) separately asked, in its own Q3, whether a *future* recording product's capture engine should be a CGo/WASAPI binding in Go, a dedicated Go audio package, or a Python sidecar — and flagged CGo/cross-compilation as a real risk to "the existing pure-Go Wails build pipeline" (`native-recording-suite.prd.md:108`). That question was never answered for its own (different, record-to-file) use case. But Provider Ports P10/P11 already answered the narrower question of *where the teleprompter's existing, already-shipping microphone path lives*: in the Python sidecar, behind a port whose Go half only declares data.
+A separate, unbuilt record-to-file recorder raised a related question: whether a *future* recording product's capture engine should be a CGo/WASAPI binding in Go, a dedicated Go audio package, or a Python sidecar, with CGo and cross-compilation a real risk to the pure-Go Wails build pipeline. That question is not answered here, for that different use case. But [ADR 0301](0301-providers-sit-behind-small-ports-with-a-registry-and-a-capability-descriptor.md) already answered the narrower question of *where the teleprompter's existing, already-shipping microphone path lives*: in the Python sidecar, behind a port whose Go half only declares data.
 
-CoreAudio Capture (deleted PRD `coreaudio-capture`) extends that same teleprompter capture path to macOS by adding a `coreaudio` row. Three shapes were available: a native binding to `AVAudioEngine` (Swift/Objective-C), a native binding to the Core Audio HAL (C), or PyAV's `avfoundation` demuxer — the FFmpeg-provided, macOS-native-API-backed input device that plays the same role for macOS that `dshow` plays for Windows.
+This ADR extends that same teleprompter capture path to macOS by adding a `coreaudio` row. Three shapes were available: a native binding to `AVAudioEngine` (Swift/Objective-C), a native binding to the Core Audio HAL (C), or PyAV's `avfoundation` demuxer — the FFmpeg-provided, macOS-native-API-backed input device that plays the same role for macOS that `dshow` plays for Windows.
 
 `avfoundation` addresses input devices by index (`av.open(file=":0", format="avfoundation")`), not by name, unlike `dshow` (`av.open(file=f"audio={device}", format="dshow")`). The capture port's `CaptureBackend.chunks(device: str, ...)` and `InputDevice.name` assume the name a device is listed under is the name that opens it (`capture.py`'s module docstring, `capture.py:10-12`).
 
@@ -23,7 +23,7 @@ Because `avfoundation` addresses devices by index rather than name, `CoreAudioBa
 
 ## Consequences
 
-- No new dependency, no CGo, no new sidecar language, no change to the Go host's build pipeline — the risk Native Recording Suite (deleted PRD `native-recording-suite`)'s own Technical Risks table flagged for a different capture problem is avoided here by construction, not by mitigation.
+- No new dependency, no CGo, no new sidecar language, no change to the Go host's build pipeline — the CGo build risk a record-to-file recorder would face is avoided here by construction, not by mitigation.
 - `teleprompter`'s live session and level-meter callers (`live_asr.py`) need no change to gain macOS support: they already resolve backends generically through the registry.
-- The name→index translation is a real, if small, extra responsibility `dshow`'s adapter doesn't carry. If real-hardware verification (unavailable while this ADR was written — see CoreAudio Capture (deleted PRD `coreaudio-capture`) Q2, Q3) shows `avfoundation` device indices are unstable across hot-plug or reboot in a way that breaks this translation, this decision should be revisited with a new ADR, not silently patched.
-- This decision says nothing about Native Recording Suite (deleted PRD `native-recording-suite`)'s own, separate, still-unanswered Q3 (a record-to-file product's capture engine choice) — that PRD is unscheduled and this ADR does not resolve it, though a future spike there may find this ADR's reasoning (PyAV avoids CGo risk) relevant precedent.
+- The name→index translation is a real, if small, extra responsibility `dshow`'s adapter doesn't carry. If real-hardware verification (unavailable while this ADR was written) shows `avfoundation` device indices are unstable across hot-plug or reboot in a way that breaks this translation, this decision should be revisited with a new ADR, not silently patched.
+- This decision says nothing about a record-to-file product's capture engine choice; it is a separate question, though that choice may find this ADR's reasoning (PyAV avoids CGo risk) relevant precedent.

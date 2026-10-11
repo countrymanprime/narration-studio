@@ -5,7 +5,7 @@
 
 ## Context
 
-The host judges every measured file against the project's delivery profile each time the measurement is read ([ADR 0179](0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)). The `delivery_qc` findings that judgement raises were shown only on the Delivery page and in the exported report, which already reads decisions from the findings store by finding id. They never reached that store, so the Review page could not list or decide them. Delivery Platform Profiles (deleted PRD `delivery-platform-profiles`) Phase 9 (P12, option A) puts them on the Review page: "go to" opens the Delivery page on the file and rule, and accept, dismiss and defer behave as they do for every other category. A delivery finding has no manuscript position and no REAPER item. A measurement covers only the files the narrator picked. The project's profile can change without a new measurement.
+The host judges every measured file against the project's delivery profile each time the measurement is read ([ADR 0179](0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)). The `delivery_qc` findings that judgement raises were shown only on the Delivery page and in the exported report, which already reads decisions from the findings store by finding id. They never reached that store, so the Review page could not list or decide them. This ADR puts them on the Review page: "go to" opens the Delivery page on the file and rule, and accept, dismiss and defer behave as they do for every other category. A delivery finding has no manuscript position and no REAPER item. A measurement covers only the files the narrator picked. The project's profile can change without a new measurement.
 
 ## Decision
 
@@ -23,4 +23,4 @@ The host judges every measured file against the project's delivery profile each 
 - Delivery findings sort first by chapter, like any finding with no chapter id (`findings.Query`). Filter by the Delivery check category or the Delivery measurement check to see them alone.
 - The last measurement is held only for the app's session. After a restart, Open in Delivery finds no file until it is measured again, and the page says so.
 - `resetDerived` removes delivery findings with every other finding when the manuscript is replaced or cleared. The next measurement saves them again.
-- The Delivery page does not yet mark the finding's own rule inside the file's rule-by-rule table. That table belongs to the page's per-file components, which Phase 10 is changing now, so marking the rule is left for a later change.
+- The Delivery page does not yet mark the finding's own rule inside the file's rule-by-rule table. That table belongs to the page's per-file components, which were being changed when this was decided, so marking the rule is left for a later change.

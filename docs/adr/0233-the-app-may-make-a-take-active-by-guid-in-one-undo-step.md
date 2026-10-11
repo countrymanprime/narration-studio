@@ -5,7 +5,7 @@
 
 ## Context
 
-Take review decided that the app never sets the active take and left an explicit, confirmed "Make active" for later ([take review](../utilities/take-review.md), Decisions). The edit and proof workspace (deleted PRD `edit-and-proof-workspace`) asks for it (EP7, recommendation A, adopted by owner decision D39): "Use this take" makes the chosen take the item's active take in REAPER.
+Take review decided that the app never sets the active take and left an explicit, confirmed "Make active" for later ([take review](../utilities/take-review.md), Decisions). The Proof workspace needs it: "Use this take" makes the chosen take the item's active take in REAPER.
 
 ## Decision
 

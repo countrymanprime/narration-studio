@@ -5,7 +5,7 @@
 
 ## Context
 
-Three PRDs asked for a live read of REAPER over the bridge: Read Aloud Resume from the DAW (PRD deleted, delivered; steady state in [the teleprompter architecture](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was)) Phase 4 (the edit cursor and the chapter track's items, to find where the narrator stopped), Read Aloud Control Bar (deleted PRD `read-aloud-control-bar`) Phase 6 (which tracks are armed and whether REAPER records), and Teleprompter Manuscript Integration (deleted PRD `teleprompter-manuscript-integration`) Phase 11 (the input REAPER records from). Each PRD's risk table asked for one command, not three, and the resume PRD specified its shape. DAW Chapter-Track Auto-Sync (deleted PRD `daw-chapter-track-auto-sync`) Phase 4 asked for REAPER's edit counter on the heartbeat. None of this has been checked in a real REAPER ([the calls and what is open](../research/reaper-api-for-planned-commands.md)).
+Four features need a live read of REAPER over the bridge: resuming a read-aloud where REAPER is (the edit cursor and the chapter track's items, to find where the narrator stopped; see [the teleprompter architecture](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was)), the read-aloud control bar (which tracks are armed and whether REAPER records), the teleprompter's microphone choice (the input REAPER records from), and chapter-track auto-sync (REAPER's edit counter on the heartbeat). One command serves all four, not four. None of this has been checked in a real REAPER ([the calls and what is open](../research/reaper-api-for-planned-commands.md)).
 
 ## Decision
 

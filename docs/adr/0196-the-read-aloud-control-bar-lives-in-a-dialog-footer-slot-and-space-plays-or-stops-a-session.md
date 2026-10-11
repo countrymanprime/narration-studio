@@ -6,12 +6,12 @@
 
 ## Context
 
-Read Aloud Control Bar (deleted PRD `read-aloud-control-bar`) Phase 3 replaces the read-aloud dialog's configuration
+The read-aloud control bar replaces the read-aloud dialog's configuration
 card - Microphone, Engine, Model and Start reading, a `Panel` that scrolls with the rest of the dialog body and is
 sticky only once a session is active (`ReadAlongView.tsx`) - with a compact always-visible media bar, because the
-owner reported losing the Start button while reading down a long chapter. Phase 1 already gave the reading panel a
-full-height column and moved the resume prompt into the text column's own axis; Phase 2 added `Popover` as an
-interactive layer above the dialog. This phase is the bar itself: where it lives in the dialog shell, what it puts in
+owner reported losing the Start button while reading down a long chapter. The reading panel already had a
+full-height column with the resume prompt in the text column's own axis, and `Popover` already existed as an
+interactive layer above the dialog. This decision is the bar itself: where it lives in the dialog shell, what it puts in
 front of a popover instead of inline, and how Space reaches it without also scrolling the page.
 
 ## Decision
@@ -25,16 +25,16 @@ front of a popover instead of inline, and how Space reaches it without also scro
 2. **`ReadingControlBar`** (`apps/ui/src/components/teleprompter/ReadingControlBar.tsx`) is a `toolbar` named "Reading
    controls", rendered in that footer slot by `ReadAloudDialog` (and, since it shares `ReadAlongView` with the
    standalone page, `sticky bottom-0` at the bottom of `TeleprompterPage`'s own column, which has no dialog shell of
-   its own - Q11 A). Left to right: **Play** (renamed from "Start reading"; disabled while a session is active, since
-   Pause is a later phase - there is no Pause button tonight) and **Stop reading** (always rendered, disabled while
+   its own). Left to right: **Play** (renamed from "Start reading"; disabled while a session is active, since
+   Pause is not built - there is no Pause button yet) and **Stop reading** (always rendered, disabled while
    idle, unlike the old card which hid it entirely); the status text and word count, with "Following paused…" folded
-   into the same region; the start-point chip while idle (the sibling PRD's resume prompt, via a `label`/`onClear`
+   into the same region; the start-point chip while idle (the resume prompt, via a `label`/`onClear`
    pair `ReadAloudDialog` derives from the chosen sentence); **Follow**, always shown during a session, enabled only
    while paused (unchanged from the old card); a **microphone** button named `Microphone: <device>` opening a
-   `Popover` with the existing `MicrophoneField` (its device list and Refresh - no level meter, which is Phase 4);
+   `Popover` with the existing `MicrophoneField` (its device list and Refresh - no level meter yet);
    and a **Settings** `IconButton` opening a `Popover` with Engine (only when the host offers more than one) and
    Model as `ToggleGroup`s, both disabled while a session runs, and a "More in Settings" link to `/settings#teleprompter`.
-   No "Record in REAPER" toggle (Phases 6-7, not built here).
+   No "Record in REAPER" toggle yet.
 3. **`useFollowCursor` moves up a level.** `ReadAlongView` no longer calls it: the bar's Follow button needs the same
    `following`/`resume` state the reader text does, and the bar now renders outside `ReadAlongView` (the dialog's
    footer is a sibling of the body, not a descendant), so `ReadAloudDialog` and `TeleprompterPage` each call
@@ -52,18 +52,17 @@ front of a popover instead of inline, and how Space reaches it without also scro
 
 ## Consequences
 
-- The control bar is visible in every dialog state, idle or active, at any scroll position, which is metrics rows 1
-  and 2 of the PRD: the narrator never loses Play, Stop or the microphone by scrolling down a long chapter.
+- The control bar is visible in every dialog state, idle or active, at any scroll position, so the narrator never loses Play, Stop or the microphone by scrolling down a long chapter.
 - `Dialog`'s footer slot is a second `flex-none` region alongside `actions`; a future dialog that wants a persistent
   toolbar reuses it instead of inventing another one-off layout, and a change to what the slot means should supersede
   this ADR (the same posture ADR 0094 took for `size`).
 - Engine, Model and the microphone move from always-visible fields to popovers: one more click to change them, traded
-  for the bar staying compact at every width (metrics row 2, `read-aloud-mic-popover` and `read-aloud-settings-popover`
-  visual rows). The standalone Teleprompter page gets the same bar for free (Q11 A) without a REAPER toggle, since it
+  for the bar staying compact at every width (`read-aloud-mic-popover` and `read-aloud-settings-popover`
+  visual rows). The standalone Teleprompter page gets the same bar for free without a REAPER toggle, since it
   has no fixed chapter until one is chosen.
 - Space no longer scrolls the page inside this dialog outside of a field or widget; a narrator who relied on Space to
   page down the reader text while idle (unusual - the reader tracks the cursor for them during a session) now plays
-  or stops the session instead. This is the PRD's Q10 A, the recommended answer the owner's mockups already assume.
+  or stops the session instead. The owner's mockups already assume this.
 - Pause, the level meter, REAPER's live transport state and "Record in REAPER" are unbuilt: Play is simply disabled
   during a session rather than becoming a Pause toggle, and the bar's mic popover and Settings popover show no meter
-  and no REAPER row. Phases 4-7 extend this same bar; they should not need to change its layout, only add to it.
+  and no REAPER row. Later work extends this same bar; it should not need to change its layout, only add to it.

@@ -19,7 +19,7 @@ The suite helps a narrator find and review issues faster. It may analyze local m
 
 ### 1. Dashboard foundation
 
-**Status: built; checks in REAPER pending with the owner.** [Proof](guides/using-the-app/proof.md) lists the findings of Transcript Compare and the Story Bible, records decisions in the project sidecar, and goes to, loops and marks a finding in REAPER (review dashboard PRD (deleted) Phases 1 to 8). The owner's checks in REAPER are in [the checklist](architecture/reaper-navigation.md#manual-verification-checklist).
+**Status: built; checks in REAPER pending with the owner.** [Proof](guides/using-the-app/proof.md) lists the findings of Transcript Compare and the Story Bible, records decisions in the project sidecar, and goes to, loops and marks a finding in REAPER. The owner's checks in REAPER are in [the checklist](architecture/reaper-navigation.md#manual-verification-checklist).
 
 - Adapt Manuscript Guide and Transcript Compare outputs into structured findings.
 - Add a review page in the app with filters and review decisions; REAPER only carries out its navigate, loop and marker actions.
@@ -53,10 +53,9 @@ developer bootstrap script, downloads no optional model at startup, and offers e
 Story Bible language model for download only when the narrator uses it, after a confirmation. Delivered: the asset manager,
 registry and Settings > Local assets page, the spaCy language model, the no-download-at-startup test, the legacy-cache policy,
 the packaged smoke test and a per-user Windows setup program built in CI, beside the in-app update. Still open: run the
-setup program on a clean Windows machine, publish the component atlas and the docs site (phases 9 to 11), and a first stable rehearsal (the owner runs Promote); signing is deferred. The first stable release is Windows-only and unsigned (owner decision D7); no model is bundled.
+setup program on a clean Windows machine and a first stable rehearsal (the owner runs Promote); signing is deferred. Publishing the docs site and the component atlas is paused ([ADR 0415](adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)). The first stable release is Windows-only and unsigned; no model is bundled.
 See the [first-use dependency provisioning rules](architecture/first-use-dependency-provisioning.md) for the required
-catalog, integrity, UX, migration, and acceptance criteria and the
-release readiness PRD (deleted) for the phases.
+catalog, integrity, UX, migration, and acceptance criteria.
 
 ### Deferred work
 
@@ -64,11 +63,11 @@ release readiness PRD (deleted) for the phases.
 - Languages beyond US English.
 - Team collaboration, cloud analysis, or shared project services.
 - Manuscript Teleprompter beyond what has shipped (listening on a chosen microphone with a local Whisper model, or Moonshine on Windows, word highlighting, and reviewable suspected misreads, skips, extra words and restarts in the Booth): a default engine chosen by evaluating both, following live REAPER state, and punch-in from a word; it never edits text or audio automatically. See the [Manuscript Teleprompter brief](architecture/manuscript-teleprompter.md) for the resolved design questions.
-- The rest of the benchmark mocks' pixel gap (owner decision D91; only `docs/research/mockups/audiobook-studio-benchmark/` is the spec, see [Verification tooling](operations/verification-tooling.md#mock-match)): Production's missing features (pace pill, burndown chart, This week, the Pickups, Master and QC columns); the Booth filling the whole shell window with F11 full screen, its Room, Mic and DAW chips and mock 07's sections; Proof's per-chapter waveform with a chapter selector; a search tab in Script's right panel; and the app's name in the nav ("Studio"). Pages the mocks draw that the app doesn't have yet (Schedule, a Delivery page, Character Continuity review, a redesigned Story Bible) each need their own PRD and mocks first.
+- The rest of the benchmark mocks' pixel gap (owner decision D96; only `docs/research/mockups/audiobook-studio-benchmark/` is the spec, see [Verification tooling](operations/verification-tooling.md#mock-match)): Production's missing features (pace pill, burndown chart, This week, the Pickups, Master and QC columns); the Booth filling the whole shell window with F11 full screen, its Room, Mic and DAW chips and mock 07's sections; Proof's per-chapter waveform with a chapter selector; a search tab in Script's right panel; and the app's name in the nav ("Studio"). Pages the mocks draw that the app doesn't have yet (Schedule, a Delivery page, Character Continuity review, a redesigned Story Bible) each need their own PRD and mocks first.
 
 ## Audacity adapter
 
-Unscheduled on this roadmap, like the chapter stage recommendations set (owner decision D9 of the implementation plan (deleted PRD `implementation-plan`)), but no longer deferred behind the REAPER workflow (owner decision D23): it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See the Audacity integration PRD (deleted) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
+Unscheduled on this roadmap, like the chapter stage recommendations set, but no longer deferred behind the REAPER workflow: it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See [ADR 0355](adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
 
 ## Dependency rules
 

@@ -6,13 +6,13 @@
 
 ## Context
 
-DAW Chapter-Track Auto-Sync (deleted PRD `daw-chapter-track-auto-sync`) measured the matcher of [ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md)
+Work on automatic chapter-to-track linking measured the matcher of [ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md)
 against real track-name habits. "Ch. 6", "Ch6", "CH06", "06" and "Sixth Chapter" matched nothing; "Chapter 06",
 "Chapter6" and "Chap 6" matched only as fuzzy guesses that can never link; and two names matched the wrong chapter:
 "Chapter VI" went to Chapter 1 and "Chapter 6 v2" to Chapter 2. A pickup or take track ("Chapter 6 (pickups)",
-"Chapter 6 - take 2") matched nothing at all. Automatic linking (the PRD's later phases) needs every conventional name
-to match its chapter or nothing, never a wrong one. S5 lists the forms; S9 asks that Transcript Compare, which has the
-same gaps, keep parity.
+"Chapter 6 - take 2") matched nothing at all. Automatic linking needs every conventional name
+to match its chapter or nothing, never a wrong one. Transcript Compare has the
+same gaps and must keep parity.
 
 ## Decision
 
@@ -32,15 +32,15 @@ same gaps, keep parity.
    "Chapter 6 pickups" track stays 0.1 behind "Chapter 6" (no tie) and a lone "Chapter 6 v2" is only a candidate the
    narrator confirms. "Opening/Intro/Closing/End Credits" is reported as `credits` and matches no chapter (ADR 0150).
 3. **A pickup track is never a link candidate.** `ForChapter` and `ForTrack` leave out a track or region whose match
-   carries the pickup marker, because a pickup track is not the chapter's own recording (the PRD's S11 records it as a
-   separate, typed link in a later phase). A take track stays a candidate.
-4. **Parity.** `tests/fixtures/chapter-track-match/parity-cases.json` gains `labelTokens` cases and the Evidence
-   table's names as `matches` cases, with the Python matcher's answers; both suites read them. The fuzz target checks
+   carries the pickup marker, because a pickup track is not the chapter's own recording (a later change may record it as a
+   separate, typed link). A take track stays a candidate.
+4. **Parity.** `tests/fixtures/chapter-track-match/parity-cases.json` gains `labelTokens` cases and the track names listed in the Context
+   as `matches` cases, with the Python matcher's answers; both suites read them. The fuzz target checks
    that a take or pickup match is never confident.
 
 ## Consequences
 
-- Every conventionally named track in the PRD's Evidence table now matches its right chapter, confidently where the
+- Every conventionally named track listed in the Context now matches its right chapter, confidently where the
   name is the chapter's own, and "Chapter VI" and "Chapter 6 v2" can no longer land on Chapter 1 or 2.
 - Transcript Compare's track-name lookup gains the same forms, so a "Ch. 6" track in REAPER compares against
   Chapter 6 instead of asking for a chapter.

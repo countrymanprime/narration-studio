@@ -1,16 +1,16 @@
 # Going to and looping a finding in REAPER
 
-**Status: implemented end to end: bridge commands, Go client, host bindings and the Review page's Go to, Loop, Stop and Add marker buttons** (the review dashboard PRD (deleted PRD `review-dashboard-and-findings-adoption`)), tested in the harness, in Go, in the UI and the visual suite. Go to, Loop and Stop were also checked in a scripted REAPER 7.80 run. Hearing the loop, three other steps, a run of the checklist from the page, and the approved marker in a real REAPER are pending (scripted run and owner); see the [manual checklist](#manual-verification-checklist). The chapter workspace's Go to and Loop reuse the same commands over two host bindings (`WorkspaceGoTo`, `WorkspaceLoop`, no new Lua); see [From the workspace](#from-the-workspace). Decisions: [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md), [ADR 0123](../adr/0123-the-approved-marker-is-one-take-marker-for-an-accepted-finding-named-like-transcript-compares-in-one-undo-point.md) (the approved marker).
+**Status: implemented end to end: bridge commands, Go client, host bindings and the Review page's Go to, Loop, Stop and Add marker buttons**, tested in the harness, in Go, in the UI and the visual suite. Go to, Loop and Stop were also checked in a scripted REAPER 7.80 run. Hearing the loop, three other steps, a run of the checklist from the page, and the approved marker in a real REAPER are pending (scripted run and owner); see the [manual checklist](#manual-verification-checklist). The chapter workspace's Go to and Loop reuse the same commands over two host bindings (`WorkspaceGoTo`, `WorkspaceLoop`, no new Lua); see [From the workspace](#from-the-workspace). Decisions: [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md), [ADR 0123](../adr/0123-the-approved-marker-is-one-take-marker-for-an-accepted-finding-named-like-transcript-compares-in-one-undo-point.md) (the approved marker).
 
 ## What it does
 
 A finding carries its REAPER identity in `source` (`item_guid`, `take_guid`, `track_guid`) and its time inside that take's audio in `time_range.source_start` and `source_end` ([findings contract](findings-contract.md)). The host asks REAPER, over [the file bridge](reaper-bridge.md), to:
 
 - **go to** it: select only its item and put the edit cursor on its spot (`navigate_item`);
-- **loop** it: set the time selection and the loop points to a window around it, turn repeat on and play (`loop_context`, the owner's answer to Q6);
+- **loop** it: set the time selection and the loop points to a window around it, turn repeat on and play (`loop_context`);
 - **stop** the loop: stop the transport and put back the time selection, loop points and repeat the narrator had (`stop_loop`);
 - say whether the script is there and knows these commands (`ping`);
-- **add one approved marker** for a finding the narrator accepted: a take marker at its spot, in one undo point (`add_finding_marker`, Phase 8).
+- **add one approved marker** for a finding the narrator accepted: a take marker at its spot, in one undo point (`add_finding_marker`).
 
 The commands live in `integrations/reaper/narration_navigation.lua`; the host side is `bridge.Navigator` in `apps/desktop/internal/bridge/navigation.go`.
 
@@ -44,7 +44,7 @@ None of the four commands makes an undo point or changes the project's content (
 
 ## Adding the approved marker
 
-`add_finding_marker` (the owner's answer to Q8 of the review dashboard PRD (deleted PRD `review-dashboard-and-findings-adoption`)) adds one take marker for one finding the narrator accepted. It is found like `navigate_item`: the item by GUID, the named take or the active one, the source time mapped through the take's offset and rate, and `FINDING_STALE` with `item`, `take` or `range` when any of them is gone. It changes nothing while REAPER is recording (`ERROR ... REAPER is recording`).
+`add_finding_marker` adds one take marker for one finding the narrator accepted. It is found like `navigate_item`: the item by GUID, the named take or the active one, the source time mapped through the take's offset and rate, and `FINDING_STALE` with `item`, `take` or `range` when any of them is gone. It changes nothing while REAPER is recording (`ERROR ... REAPER is recording`).
 
 The marker is a **take marker at the source time**, so it follows the item when the item moves, like the markers Transcript Compare's **Export markers** adds. The host names and colours it like them: the finding's kind (or its category), then what the script says and what was recorded, eight words at most each (`MISREAD: 'pink eyes' as 'pale eyes'`), in the Transcript Compare colour for that kind. Before adding, the script asks `existing_take_marker` (`narration_bridge_core.lua`, the rule the export uses): is there already a marker with the same issue prefix within 0.15 s on that take? If so, it answers `existing` with that marker's name and changes nothing, so the command is safe to send twice and the export later skips the row. Otherwise it adds the marker inside one `Undo_BeginBlock2`/`Undo_EndBlock2` block labelled "Narration Utils: add approved marker", so one Undo in REAPER takes it away. It moves no selection, cursor or transport.
 
@@ -86,7 +86,7 @@ The Navigator sits behind host bindings (`apps/desktop/bindings_navigation.go`) 
 | `FindingsGoTo(id)` | `navigate_item` | `navigated` with `projectTime`, or `refused` |
 | `FindingsLoop(id)` | `loop_context` | `looping` with `loopStart` and `loopEnd`, or `refused` |
 | `FindingsStopLoop()` | `stop_loop` | `stopped` with `restored` and `kept`, or `refused` |
-| `FindingsGoToRead(id, read)`, `FindingsLoopRead(id, read)` | `navigate_item`, `loop_context` | as Go to and Loop, for one read of a grouped finding: `evidence.members[read]`'s own item and take GUIDs and its range in its source (a take-review group, or a take comparison of one, Phase 10) ([ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md)); a read the finding does not have is an error |
+| `FindingsGoToRead(id, read)`, `FindingsLoopRead(id, read)` | `navigate_item`, `loop_context` | as Go to and Loop, for one read of a grouped finding: `evidence.members[read]`'s own item and take GUIDs and its range in its source (a take-review group, or a take comparison of one) ([ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md)); a read the finding does not have is an error |
 | `FindingsAddMarker(id)` | `add_finding_marker` | `added` or `existing` with the marker's `name` and `sourceTime`, or `refused` (see [adding the approved marker](#adding-the-approved-marker)) |
 
 The page sends only the finding's id; the host reads its item and take GUIDs and source times from the project's findings store. The status is read from `daw.Reachability` (the heartbeat REAPER's script sends every 1.5 s), so the page polls it every 3 s at no cost to REAPER: `standalone` when there is no bridge client, `not_running` when the heartbeat is stale. Go to and Loop are disabled with the reason under them until it is `connected`, and for a finding without an item GUID (or, for Loop, without a source time); Stop loop appears while `loopingFindingId` is set, on every finding.
@@ -129,7 +129,7 @@ REAPER's own behaviour was checked on 2026-09-23 in REAPER 7.80/x64 by `integrat
 | Go to | Scripted | Only the finding's item selected, cursor at 11.5 s, no undo point; after moving the item to 30 s, 31.5 s |
 | Compare GUIDs | Scripted | `COMPARE_MARKER` ends with the item, take and track GUIDs; `navigate_item` with them lands on the marker |
 | Hearing the loop, REAPER's Stop button, ping after a restart, ending the script mid-loop | **Pending, owner** | Need audio hardware or the owner (below) |
-| `add_finding_marker` in REAPER: the marker at the source time on the named take, one "Narration Utils: add approved marker" undo point that Undo removes, a second send answering `existing` with no new undo point, stale and recording refusals | **Pending, scripted run** | Not pre-approved for Phase 8, so not run. To run on a copy of a project with an isolated `-cfgfile`, like the Phase 6 check (steps 10 and 11 below) |
+| `add_finding_marker` in REAPER: the marker at the source time on the named take, one "Narration Utils: add approved marker" undo point that Undo removes, a second send answering `existing` with no new undo point, stale and recording refusals | **Pending, scripted run** | Not pre-approved, so not run. Run steps 10 and 11 below on a copy of a project with an isolated `-cfgfile`, as the Go to and Loop check was |
 | The marker from the Review page, seen in REAPER, and Export markers on the Proofing page skipping it | **Pending, owner** | Step 11 below |
 
 The first run of the check also saw `SelectAllMediaItems` leave an "Unselect all items" undo point; the second run's probe did not reproduce it, and `SetMediaItemSelected`, which the bridge now uses, left none in either.

@@ -10,7 +10,7 @@ The app has been Windows first since [ADR 0030](0030-the-app-starts-without-a-pr
 
 - `build-macos.yml` and `build-linux.yml` built and attached an unsmoked, installer-less asset after every Windows release, through a second signing workflow, `_attach-platform.yml`.
 - The release scripts, the update manifest and the docs carried both platforms.
-- The CoreAudio capture backend ([ADR 0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md), CoreAudio Capture (deleted PRD `coreaudio-capture`)) added a macOS-only row to the capture port. Nobody could verify it on Apple hardware, and its registry row made the sidecar capabilities test depend on which rows loaded on the machine running it (the `{'coreaudio', 'dshow'}` flake of `test_live_asr.py`).
+- The CoreAudio capture backend ([ADR 0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md)) added a macOS-only row to the capture port. Nobody could verify it on Apple hardware, and its registry row made the sidecar capabilities test depend on which rows loaded on the machine running it (the `{'coreaudio', 'dshow'}` flake of `test_live_asr.py`).
 
 Nobody uses the app on macOS or Linux. On 2026-09-27 the owner decided (D74, on [#509](https://github.com/countrymanprime/narration-utils/issues/509), recorded under "Owner standing rules" in the [agent train](../operations/agent-train.md)): Windows only, for now. Linux and macOS support is removed until the app is in a steadier state or someone uses those systems, because it slows the project down. `Build (Windows)` stays the build gate.
 
@@ -21,7 +21,7 @@ Nobody uses the app on macOS or Linux. On 2026-09-27 the owner decided (D74, on 
 Removed:
 
 - **The release pipeline's other platforms:** `build-macos.yml`, `build-linux.yml` and the reusable `_attach-platform.yml`. Also removed: the `Windows release` job's step that started them, with its `actions: write`; the `macos-arm64` and `linux-x64` rows of `scripts/release/assets.mjs`, whose `PLATFORMS` table now holds only `windows-x64`; and the macOS `.app` bundle step of `scripts/release/wails-build.mjs`. Promote verifies the Windows files only.
-- **The macOS-only feature, the CoreAudio capture backend:** the sidecar adapter (`capture_avfoundation.py`, `devices_avfoundation.py`), its tests and registry entry, and the Go `coreaudio` row of `internal/captureport`. It can be restored from commit `bf9f0093` (#720) and ADR 0402, which this ADR supersedes. Its PRD stays, marked deferred by D74.
+- **The macOS-only feature, the CoreAudio capture backend:** the sidecar adapter (`capture_avfoundation.py`, `devices_avfoundation.py`), its tests and registry entry, and the Go `coreaudio` row of `internal/captureport`. It can be restored from commit `bf9f0093` (#720) and ADR 0402, which this ADR supersedes. The feature is deferred.
 - **The other platforms' update and packaging paths:** the `macos-arm64` and `linux-x64` keys of `internal/update`'s `PlatformFor`. On any platform but Windows x64, the app reports that it does not update itself.
 - **Every "macOS and Linux are previews" statement,** in the README, `SECURITY.md`, the threat model, the operations and architecture docs and the PRDs. Each one now says Windows only and points here.
 

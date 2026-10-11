@@ -14,10 +14,10 @@ updates:
       tooling:
         update-types: [minor, patch]
     ignore:
-      # Phase 1 of the deleted typescript-7-and-typed-linting PRD moved `typescript` to the 6.0.x line, which
-      # typescript-eslint's peer range (<6.1.0) accepts, so Dependabot may propose 6.x updates again. TypeScript 7
-      # still ships no JS API and breaks typescript-eslint and two guard tests, so 7.x stays ignored until phase 2
-      # adds the `@typescript/native` + `@typescript/typescript6` split.
+      # apps/ui/package.json keeps `typescript` on the 6.x line (an alias of `@typescript/typescript6`), which
+      # typescript-eslint accepts, so Dependabot may propose 6.x updates. TypeScript 7 ships no JS API that
+      # typescript-eslint can use, so it is installed beside it as `@typescript/native` (an alias of `typescript@7`)
+      # and a 7.x proposal for `typescript` itself stays ignored.
       - dependency-name: typescript
         versions: [">=7.0.0"]
   - package-ecosystem: uv
