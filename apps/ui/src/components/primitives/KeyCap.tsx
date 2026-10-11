@@ -98,7 +98,7 @@ export const glyphOf = (key: string): Glyph | undefined => KEY_GLYPHS[canonicalK
 export const keyName = (key: string): string => glyphOf(key)?.name ?? key;
 
 const GLYPH_CAP_CLASSES =
-  'box-border inline-flex min-w-[1.375rem] items-center justify-center rounded-[0.25rem] border border-b-2 border-[var(--border)] bg-[var(--surface-2)] text-[0.6875rem] leading-none text-[var(--text)] [&>svg]:block [&>svg]:flex-none';
+  'box-border inline-flex min-w-[1.375rem] items-center justify-center rounded-[0.25rem] border border-b-2 border-[var(--line-strong)] bg-[var(--surface-2)] text-[0.6875rem] leading-none text-[var(--text)] [&>svg]:block [&>svg]:flex-none';
 
 /** One key: a drawn cap, named for a screen reader and given a tooltip, when the key has a glyph; otherwise the text `Kbd`. */
 export function KeyCap({ k, size = 'sm' }: { k: string; size?: KbdSize }) {
