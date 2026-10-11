@@ -49,14 +49,14 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
   return (
     <Table label="Milestones" flush>
       <TableHead>
-        <tr>
+        <TableRow>
           <TableHeader hiddenLabel="Done" />
           <TableHeader>Milestone</TableHeader>
           <TableHeader>Measures</TableHeader>
           <TableHeader>Due</TableHeader>
           <TableHeader>Status</TableHeader>
           <TableHeader hiddenLabel="Actions" />
-        </tr>
+        </TableRow>
       </TableHead>
       <TableBody>
         {rows.map(({ m, index }) => (

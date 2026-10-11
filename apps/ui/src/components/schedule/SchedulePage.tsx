@@ -6,6 +6,7 @@ import { usePort } from '../../ports/usePort';
 import type { Command, Journal } from '../../studio/journal/createJournal';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
+import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { ContractPanel } from './ContractPanel';
 import { fmtD, isIsoDate, parseIso } from './dates';
@@ -19,7 +20,7 @@ import { VerdictPill } from './VerdictPill';
 import { WorkedOut } from './WorkedOut';
 
 /** What the page needs of the command journal: run a change as one entry, and take an entry back. */
-export type ScheduleJournal = Pick<Journal, 'act' | 'undo'>;
+type ScheduleJournal = Pick<Journal, 'act' | 'undo'>;
 
 export type SchedulePageProps = {
   journal: ScheduleJournal;
@@ -161,15 +162,7 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
         />
         <WorkedOut k={k} />
       </div>
-      <Panel
-        title="Milestones"
-        flush
-        actions={
-          <Button variant="secondary" size="sm" onClick={() => edit(null)}>
-            Add milestone
-          </Button>
-        }
-      >
+      <Panel title="Milestones" flush actions={<IconButton action="add" label="Add milestone" onClick={() => edit(null)} />}>
         <MilestoneTable
           milestones={plan.milestones}
           chapters={chapters}
