@@ -2,6 +2,11 @@ package main
 
 import (
 	"context"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
@@ -18,8 +23,12 @@ type fakeRecorder struct {
 	armErr  error
 
 	startGUID string
+	startOpts dawport.RecordOptions
 	started   bridge.RecordStarted
 	startErr  error
+
+	// calls is every command in the order it was sent: "ArmOnly", "RecordStart", "RecordStop".
+	calls []string
 
 	stopCalls int
 	stopped   bridge.RecordStopped
@@ -31,6 +40,7 @@ type fakeRecorder struct {
 var _ dawport.Recorder = (*fakeRecorder)(nil)
 
 func (f *fakeRecorder) ArmOnly(_ context.Context, guid string) (bridge.Armed, error) {
+	f.calls = append(f.calls, "ArmOnly")
 	f.armGUID = guid
 	if f.armErr != nil {
 		return bridge.Armed{}, f.armErr
@@ -40,8 +50,9 @@ func (f *fakeRecorder) ArmOnly(_ context.Context, guid string) (bridge.Armed, er
 	return armed, nil
 }
 
-func (f *fakeRecorder) RecordStart(_ context.Context, guid string) (bridge.RecordStarted, error) {
-	f.startGUID = guid
+func (f *fakeRecorder) RecordStart(_ context.Context, guid string, opts dawport.RecordOptions) (bridge.RecordStarted, error) {
+	f.calls = append(f.calls, "RecordStart")
+	f.startGUID, f.startOpts = guid, opts
 	if f.startErr != nil {
 		return bridge.RecordStarted{}, f.startErr
 	}
@@ -51,6 +62,7 @@ func (f *fakeRecorder) RecordStart(_ context.Context, guid string) (bridge.Recor
 }
 
 func (f *fakeRecorder) RecordStop(context.Context) (bridge.RecordStopped, error) {
+	f.calls = append(f.calls, "RecordStop")
 	f.stopCalls++
 	return f.stopped, f.stopErr
 }
@@ -132,20 +144,110 @@ func TestReadAloudArmOnlyIsStandaloneWithoutAReaperSession(t *testing.T) {
 	}
 }
 
-func TestReadAloudRecordStartStartsOnTheArmedTrack(t *testing.T) {
-	host, ids := newReadAloudReaperHost(t)
-	fake := &fakeRecorder{started: bridge.RecordStarted{Position: 12.5}}
-
-	result, err := readAloudRecordStartIn(context.Background(), host.services(), fake, ids[0])
+// recordStart runs Record with state as the track state the preconditions read; nil state means no reader.
+func recordStart(t *testing.T, host *Host, recorder dawport.Recorder, state *bridge.TrackState, chapterID string) ReadAloudRecording {
+	t.Helper()
+	var reader trackStateReader
+	if state != nil {
+		reader = &fakeTrackStates{state: *state}
+	}
+	result, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, reader, chapterID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fake.startGUID != readAloudTrack {
-		t.Fatalf("started on %q, want %q", fake.startGUID, readAloudTrack)
+	return result
+}
+
+func TestReadAloudRecordStartArmsThenRecordsFromTheEnd(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	fake := &fakeRecorder{started: bridge.RecordStarted{Position: 12.5}}
+
+	result := recordStart(t, host, fake, &bridge.TrackState{}, ids[0])
+
+	if got := strings.Join(fake.calls, ","); got != "ArmOnly,RecordStart" {
+		t.Fatalf("calls = %s, want ArmOnly then RecordStart", got)
+	}
+	if fake.armGUID != readAloudTrack || fake.startGUID != readAloudTrack || fake.startOpts.Start != bridge.AtEnd {
+		t.Fatalf("armed %q, started on %q with %+v; want the chapter's track %q from the end", fake.armGUID, fake.startGUID, fake.startOpts, readAloudTrack)
 	}
 	if result.Outcome != "started" || result.TrackGUID != readAloudTrack || result.Position == nil || *result.Position != 12.5 {
 		t.Fatalf("result = %+v", result)
 	}
+}
+
+// Other tracks being armed is no longer a refusal: ArmOnly disarms them (the DAW remembers them) and RecordStop puts
+// them back (ADR 0232).
+func TestReadAloudRecordStartWithOtherTracksArmedArmsOnlyTheChapters(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}}
+
+	result := recordStart(t, host, fake, &bridge.TrackState{ArmedCount: 3}, ids[0])
+
+	if result.Outcome != "started" {
+		t.Fatalf("result = %+v, want started with other tracks armed", result)
+	}
+	if fake.stopCalls != 0 {
+		t.Fatalf("stopCalls = %d, want 0: a good start restores nothing until Stop", fake.stopCalls)
+	}
+}
+
+func TestReadAloudRecordStartPreconditionsStillRefuseAndChangeNothing(t *testing.T) {
+	for name, tc := range map[string]struct {
+		state  bridge.TrackState
+		reason string
+	}{
+		"playing":           {bridge.TrackState{Playing: true}, "playing"},
+		"already recording": {bridge.TrackState{Recording: true}, "already_recording"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			host, ids := newReadAloudReaperHost(t)
+			fake := &fakeRecorder{}
+			result := recordStart(t, host, fake, &tc.state, ids[0])
+			if result.Outcome != "refused" || result.Reason != tc.reason || result.Message == "" || len(fake.calls) != 0 {
+				t.Fatalf("result = %+v, calls = %v, want a %q refusal with nothing sent", result, fake.calls, tc.reason)
+			}
+		})
+	}
+	t.Run("no link", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{}
+		if result := recordStart(t, host, fake, &bridge.TrackState{}, ids[1]); result.Reason != readAloudUnlinked || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("several links", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		if _, err := host.ChapterTrackMapConfirm("{00000000-0000-4000-8000-0000000000AA}", ids[0]); err != nil {
+			t.Fatal(err)
+		}
+		fake := &fakeRecorder{}
+		if result := recordStart(t, host, fake, &bridge.TrackState{}, ids[0]); result.Reason != readAloudSeveralLinks || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("track missing", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{}
+		reader := &fakeTrackStates{err: &bridge.TrackStaleError{GUID: readAloudTrack}}
+		result, err := readAloudRecordStartIn(context.Background(), host.services(), fake, reader, ids[0])
+		if err != nil || result.Reason != readAloudTrackMissing || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, %v, calls = %v", result, err, fake.calls)
+		}
+	})
+	t.Run("not connected", func(t *testing.T) {
+		host, ids := newTestHostForChapterMatch(t)
+		linkChapter(t, host, ids[0], readAloudTrack)
+		fake := &fakeRecorder{}
+		if result := recordStart(t, host, fake, nil, ids[0]); result.Reason != reaperStandalone || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("experimental off", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		if result := recordStart(t, host, nil, nil, ids[0]); result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
+			t.Fatalf("result = %+v", result)
+		}
+	})
 }
 
 func TestReadAloudRecordStartRefusals(t *testing.T) {
@@ -153,9 +255,6 @@ func TestReadAloudRecordStartRefusals(t *testing.T) {
 		err    error
 		reason string
 	}{
-		"no track armed":        {bridge.ErrNoTrackArmed, "not_armed"},
-		"several tracks armed":  {bridge.ErrSeveralTracksArmed, "several_armed"},
-		"another track armed":   {bridge.ErrOtherTrackArmed, "other_armed"},
 		"REAPER is playing":     {bridge.ErrPlaying, "playing"},
 		"already recording":     {bridge.ErrAlreadyRecording, "already_recording"},
 		"did not start":         {bridge.ErrRecordingDidNotStart, "did_not_start"},
@@ -167,10 +266,7 @@ func TestReadAloudRecordStartRefusals(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			host, ids := newReadAloudReaperHost(t)
 			fake := &fakeRecorder{startErr: tc.err}
-			result, err := readAloudRecordStartIn(context.Background(), host.services(), fake, ids[0])
-			if err != nil {
-				t.Fatal(err)
-			}
+			result := recordStart(t, host, fake, nil, ids[0])
 			if result.Outcome != "refused" || result.Reason != tc.reason {
 				t.Fatalf("result = %+v, want reason %q", result, tc.reason)
 			}
@@ -178,12 +274,60 @@ func TestReadAloudRecordStartRefusals(t *testing.T) {
 	}
 }
 
+// A start the DAW refuses after the arms changed asks for them back before answering. The Lua record_stop restores
+// only while a recording runs, so the in-DAW effect is the owner's check (see the PR's Handoff); this pins the call.
+func TestReadAloudRecordStartThatFailsPutsTheArmsBack(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}, startErr: bridge.ErrRecordingDidNotStart}
+
+	result := recordStart(t, host, fake, nil, ids[0])
+
+	if result.Reason != "did_not_start" || strings.Join(fake.calls, ",") != "ArmOnly,RecordStart,RecordStop" {
+		t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+	}
+	unchanged := &fakeRecorder{startErr: bridge.ErrRecordingDidNotStart}
+	recordStart(t, host, unchanged, nil, ids[0])
+	if unchanged.stopCalls != 0 {
+		t.Fatalf("stopCalls = %d when ArmOnly changed nothing, want 0", unchanged.stopCalls)
+	}
+}
+
+func TestRecordRefusalsNameTheAdapterNotReaper(t *testing.T) {
+	err := bridge.ErrAlreadyRecording
+	if got := readAloudRecordRefusal("Audacity", err); !strings.Contains(got.Message, "Audacity") || strings.Contains(got.Message, "REAPER") {
+		t.Fatalf("message = %q, want it to name Audacity", got.Message)
+	}
+	if got := readAloudConnectionRefusal("Audacity", reaperStandalone); strings.Contains(got.Message, "REAPER") {
+		t.Fatalf("message = %q", got.Message)
+	}
+	if got := readAloudExperimentalOffRefusal("Audacity"); strings.Contains(got.Message, "REAPER") {
+		t.Fatalf("message = %q", got.Message)
+	}
+	// No string literal in this file spells REAPER outside the adapter-name helper (comments are free to).
+	fset := token.NewFileSet()
+	file, parseErr := parser.ParseFile(fset, "bindings_readaloud_record.go", nil, 0)
+	if parseErr != nil {
+		t.Fatal(parseErr)
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Name.Name == "readAloudAdapterName" {
+			continue
+		}
+		ast.Inspect(fn, func(n ast.Node) bool {
+			if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				if text, _ := strconv.Unquote(lit.Value); strings.Contains(text, "REAPER") {
+					t.Errorf("%s: literal %q names REAPER; word it from the adapter's name", fn.Name.Name, text)
+				}
+			}
+			return true
+		})
+	}
+}
+
 func TestReadAloudRecordStartWithNoRecorderIsExperimentalOff(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
-	result, err := readAloudRecordStartIn(context.Background(), host.services(), nil, ids[0])
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := recordStart(t, host, nil, nil, ids[0])
 	if result.Outcome != "refused" || result.Reason != readAloudExperimentalOff {
 		t.Fatalf("result = %+v", result)
 	}
@@ -191,7 +335,7 @@ func TestReadAloudRecordStartWithNoRecorderIsExperimentalOff(t *testing.T) {
 
 func TestReadAloudRecordStopStopsAndRestoresArms(t *testing.T) {
 	fake := &fakeRecorder{stopped: bridge.RecordStopped{Restored: 2, Kept: 1}}
-	result, err := readAloudRecordStopIn(context.Background(), fake)
+	result, err := readAloudRecordStopIn(context.Background(), "REAPER", fake)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +349,7 @@ func TestReadAloudRecordStopStopsAndRestoresArms(t *testing.T) {
 
 func TestReadAloudRecordStopLeavesARecordingItDidNotStartAlone(t *testing.T) {
 	fake := &fakeRecorder{stopErr: bridge.ErrNotOurRecording}
-	result, err := readAloudRecordStopIn(context.Background(), fake)
+	result, err := readAloudRecordStopIn(context.Background(), "REAPER", fake)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +359,7 @@ func TestReadAloudRecordStopLeavesARecordingItDidNotStartAlone(t *testing.T) {
 }
 
 func TestReadAloudRecordStopWithNoRecorderIsExperimentalOff(t *testing.T) {
-	result, err := readAloudRecordStopIn(context.Background(), nil)
+	result, err := readAloudRecordStopIn(context.Background(), "REAPER", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +452,8 @@ func TestRecorderFromIsNilWithoutAResolver(t *testing.T) {
 	}
 }
 
-// The binding's answers, pinned for the UI's schema (ADR 0069): one arm, record start and record stop per REAPER
+// The binding's answers, pinned for the UI's schema (ADR 0069); other_armed and several_armed now start, since Record
+// disarms the others (ADR 0791): one arm, record start and record stop per REAPER
 // state the mock (`?mockReaper=`) can put a chapter in, plus the stale-track and no-link cases only the host can
 // reach. wireContracts.test.ts cross-checks every mock seed but "unavailable" (its own reason, standalone, differs
 // from experimental_off's here on purpose - the read-aloud-reaper-states golden the same way).
@@ -328,21 +473,21 @@ func TestContractReadAloudRecordings(t *testing.T) {
 			t.Fatal(err)
 		}
 		answers[name+".arm"] = armed
-		started, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, chapterID)
+		started, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, nil, chapterID)
 		if err != nil {
 			t.Fatal(err)
 		}
 		answers[name+".start"] = started
-		stopped, err := readAloudRecordStopIn(context.Background(), recorder)
+		stopped, err := readAloudRecordStopIn(context.Background(), "REAPER", recorder)
 		if err != nil {
 			t.Fatal(err)
 		}
 		answers[name+".stop"] = stopped
 	}
 	record("ready", &fakeRecorder{started: bridge.RecordStarted{Position: 0}}, ids[0])
-	record("not_armed", &fakeRecorder{startErr: bridge.ErrNoTrackArmed}, ids[0])
-	record("other_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}, startErr: bridge.ErrOtherTrackArmed}, ids[0])
-	record("several_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}, startErr: bridge.ErrSeveralTracksArmed}, ids[0])
+	record("not_armed", &fakeRecorder{startErr: bridge.ErrNoTrackArmed}, ids[0]) // a start the DAW still refuses for this reason
+	record("other_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}}, ids[0])
+	record("several_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}}, ids[0])
 	record("recording_elsewhere", &fakeRecorder{armErr: bridge.ErrAlreadyRecording, startErr: bridge.ErrAlreadyRecording}, ids[0])
 	record("track_missing", &fakeRecorder{armErr: &bridge.TrackStaleError{GUID: readAloudTrack}, startErr: &bridge.TrackStaleError{GUID: readAloudTrack}}, ids[0])
 	record("experimental_off", nil, ids[0])

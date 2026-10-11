@@ -235,10 +235,10 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
       return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };
     case 'not_armed':
       return { outcome: 'refused', reason: 'not_armed', message: 'No track is armed in REAPER.' };
+    // Record arms the chapter's track alone before it starts (ADR 0791), so the other arms are no reason to refuse.
     case 'other_armed':
-      return { outcome: 'refused', reason: 'other_armed', message: "Another track than this chapter's is armed in REAPER." };
     case 'several_armed':
-      return { outcome: 'refused', reason: 'several_armed', message: 'More than one track is armed in REAPER.' };
+      return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };
     case 'recording_elsewhere':
       return { outcome: 'refused', reason: 'already_recording', message: 'REAPER is already recording.' };
     default:

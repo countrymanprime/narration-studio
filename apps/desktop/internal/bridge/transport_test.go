@@ -14,7 +14,7 @@ func TestTheTransportCommandsAreExperimentalAndRefusedWhileTheSettingIsOff(t *te
 	if _, err := actions.ArmOnly(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
 		t.Fatalf("ArmOnly: %v", err)
 	}
-	if _, err := actions.RecordStart(context.Background(), testTrack); !errors.Is(err, ErrExperimentalOff) {
+	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{}); !errors.Is(err, ErrExperimentalOff) {
 		t.Fatalf("RecordStart: %v", err)
 	}
 	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrExperimentalOff) {
@@ -75,7 +75,7 @@ func TestRecordStartAnswersWhereRecordingBeganAndTellsTheRefusalsApart(t *testin
 		defer mu.Unlock()
 		return reply(command)
 	})
-	got, err := actions.RecordStart(context.Background(), testTrack)
+	got, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{})
 	if err != nil || got != (RecordStarted{TrackGUID: testTrack, Position: 42.5}) {
 		t.Fatalf("got %+v, %v", got, err)
 	}
@@ -90,9 +90,31 @@ func TestRecordStartAnswersWhereRecordingBeganAndTellsTheRefusalsApart(t *testin
 		mu.Lock()
 		reply = func(command []string) [][]string { return [][]string{{"ERROR", run(command), message}} }
 		mu.Unlock()
-		if _, err := actions.RecordStart(context.Background(), testTrack); !errors.Is(err, want) {
+		if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{}); !errors.Is(err, want) {
 			t.Errorf("%q: err = %v, want %v", message, err, want)
 		}
+	}
+}
+
+func TestRecordStartAtEndSendsTheStartRuleAndNothingWithoutIt(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	var sent [][]string
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		mu.Lock()
+		defer mu.Unlock()
+		sent = append(sent, command)
+		return [][]string{{"RECORD_STARTED", run(command), testTrack, "9.000000"}}
+	})
+	for _, opts := range []RecordOptions{{Start: AtEnd}, {}} {
+		if _, err := actions.RecordStart(context.Background(), testTrack, opts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(sent) != 2 || len(sent[0]) != len(sent[1])+1 || sent[0][len(sent[0])-1] != "end" {
+		t.Fatalf("sent = %v, want the AtEnd start to carry a trailing \"end\" argument and the plain one not", sent)
 	}
 }
 
@@ -101,7 +123,7 @@ func TestRecordStartRefusesAnAnswerForAnotherTrack(t *testing.T) {
 	startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"RECORD_STARTED", run(command), "{00000002-0000-4000-8000-000000000002}", "0.000000"}}
 	})
-	if _, err := actions.RecordStart(context.Background(), testTrack); err == nil {
+	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{}); err == nil {
 		t.Fatal("a recording on another track must be an error")
 	}
 }
@@ -142,7 +164,7 @@ func TestARecordingTheNarratorStopsInREAPERIsReportedToTheHandler(t *testing.T) 
 		startRun = run(command)
 		return [][]string{{"RECORD_STARTED", run(command), testTrack, "1.000000"}}
 	})
-	if _, err := actions.RecordStart(context.Background(), testTrack); err != nil {
+	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	mu.Lock()

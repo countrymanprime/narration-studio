@@ -10,6 +10,7 @@ import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMar
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
+import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
@@ -54,6 +55,7 @@ import {
   COVERAGE_EVALUATOR_REASONS,
   COVERAGE_REFUSAL_REASONS,
   coverageEnginesSchema,
+  coverageGapReviewsSchema,
   coverageResultSchema,
   coverageStartResultSchema,
   coverageStateSchema,
@@ -214,6 +216,53 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const chapter = chapters.find((item) => item.recordedFraction !== undefined);
     if (!chapter) throw new Error('the mock chapters carry a measured recordedFraction');
     expect((await api.coverageStart(chapter.id, { model: mocked.default })).status).toBe('started');
+  });
+
+  it('a recording check gap review: the goldens parse, the mock answers the same shapes and refuses what the host refuses (ADR 0842)', async () => {
+    const note = parseWire(findingSchema, readGolden('coverage-gap-review-accepted.json'), ctx('accepted gap'));
+    expect(note).toMatchObject({ analyzer: 'recording-check', category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    const reviews = parseWire(coverageGapReviewsSchema, readGolden('coverage-gap-review-reviews.json'), ctx('gap reviews'));
+    expect(Object.values(reviews)).toEqual(['accepted']);
+    expect(() => parseWire(coverageGapReviewsSchema, { a: 'dismissed' }, ctx('gap reviews'))).toThrow();
+    expect(() => parseWire(coverageGapReviewsSchema, { a: 1 }, ctx('gap reviews'))).toThrow();
+
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    const chapterId = measured.id;
+    const api = createMockApi({}, { coverage: { pickups: [chapterId] } });
+    const checked = await api.coverageResult(chapterId);
+    const gaps = checked.result?.gaps ?? [];
+    expect(checked.state).toBe('current');
+    expect(gaps.length).toBeGreaterThan(1);
+    const [first, second] = gaps;
+    if (!first || !second) throw new Error('the mock check has two gaps');
+    expect(await api.coverageGapReviews(chapterId)).toEqual({});
+
+    const before = (await api.findingsSummary()).total;
+    const accepted = await api.coverageGapAccept(chapterId, first.id);
+    expectMatches(findingSchema, accepted, 'mock accepted gap');
+    expect(accepted).toMatchObject({ category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+    expect(await api.coverageGapAccept(chapterId, first.id)).toEqual(accepted);
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+
+    await api.coverageGapIgnore(chapterId, second.id);
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+    const read = await api.coverageGapReviews(chapterId);
+    expectMatches(coverageGapReviewsSchema, read, 'mock gap reviews');
+    expect(read).toEqual({ [first.id]: 'accepted', [second.id]: 'ignored' });
+
+    await expect(api.coverageGapAccept(chapterId, 'missing:nope:1')).rejects.toThrow('not in this chapter');
+    await expect(api.coverageGapIgnore(chapterId, '../../x')).rejects.toThrow('not in this chapter');
+    await expect(api.coverageGapAccept(chapterId, second.id)).rejects.toThrow('stays ignored');
+    await expect(api.coverageGapIgnore(chapterId, first.id)).rejects.toThrow('already a note');
+    await expect(api.coverageGapAccept('never-checked', first.id)).rejects.toThrow('out of date or was never run');
+
+    // A new check is a new evidence key: the old reviews no longer match, the accepted note stays a note.
+    expect((await api.coverageStart(chapterId)).status).toBe('started');
+    await vi.waitFor(async () => expect((await api.coverageState()).phase).toBe('complete'), { timeout: 5000 });
+    expect(await api.coverageGapReviews(chapterId)).toEqual({});
+    expect((await api.findingsSummary()).total).toBe(before + 1);
   });
 
   it('a coverage region keeps its bounds, and a missing bound reads as absent (ADR 0168)', () => {
@@ -2374,6 +2423,23 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(mock.extras.flatMap((extra) => extra.words ?? []).length).toBeGreaterThan(0);
   });
 
+  it('the workspace snap moves a cut within 2 ms, the same for the same time, and the schema refuses what the host never sends', async () => {
+    const api = createMockApi();
+    for (const t of [0, 12.3456, 166.5, 200]) {
+      const first = await api.workspaceSnap('chapter-1', '{MOCK-ITEM}', t);
+      expectMatches(workspaceSnapResultSchema, first, 'mock workspace snap');
+      expect(Math.abs(first.time - t)).toBeLessThanOrEqual(0.002 + 1e-9);
+      expect(await api.workspaceSnap('chapter-1', '{MOCK-ITEM}', t)).toEqual(first);
+    }
+    const snapped = { chapterId: 'c', itemGuid: '{I}', sourceTime: 1, outcome: 'snapped', time: 1, moved: 0 };
+    expect(workspaceSnapResultSchema.safeParse(snapped).success).toBe(true);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, sourceTime: -1 }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, time: -0.001 }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, moved: 0.01 }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, path: '/x.wav' }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, outcome: 'refused', reason: 'silent', message: 'x', moved: 0.001 }).success).toBe(false);
+  });
+
   it("the workspace peaks answer the live item's waveform, deterministically", async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
@@ -2880,6 +2946,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
       'coverageEngines',
+      'coverageGapAccept',
+      'coverageGapIgnore',
+      'coverageGapReviews',
       'exportPickFiles',
       'exportStart',
       'exportState',
@@ -3039,6 +3108,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePeaks',
+      'workspaceSnap',
       'previewCandidates',
       'previewPin',
       'previewPinSet',

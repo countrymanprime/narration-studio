@@ -3,6 +3,8 @@ import type {
   CoverageEngine,
   CoverageEngines,
   CoverageEvaluatorReason,
+  CoverageGapReview,
+  CoverageGapReviews,
   CoverageItem,
   CoverageRefusalReason,
   CoverageGap,
@@ -90,6 +92,13 @@ export const coverageEnginesSchema = z.strictObject({
   engines: listFromNull(coverageEngineSchema),
   default: z.string(),
 }) satisfies z.ZodType<CoverageEngines>;
+
+/** The reviews of a chapter's current check by gap id (ADR 0842); the golden is tests/fixtures/contracts/coverage-gap-review-reviews.json.
+ * The answer of an accept is a Finding (findingSchema; its golden is coverage-gap-review-accepted.json). */
+export const coverageGapReviewsSchema = z.record(
+  z.string(),
+  z.enum(['accepted', 'ignored']) satisfies z.ZodType<CoverageGapReview>,
+) satisfies z.ZodType<CoverageGapReviews>;
 
 export const coverageStartResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('started'), state: coverageStateSchema }),

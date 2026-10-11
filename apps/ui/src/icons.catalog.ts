@@ -52,6 +52,9 @@ import {
   faMoon,
   faPen,
   faPlay,
+  faPause,
+  faAngleLeft,
+  faAngleRight,
   faPlus,
   faRotate,
   faRotateLeft,
@@ -119,6 +122,7 @@ export const TOOLTIP_VERBS = [
   'Manage',
   'Mark',
   'Open',
+  'Pause',
   'Pin',
   'Play',
   'Record',
@@ -185,6 +189,9 @@ export const CATALOG = {
 
   // Audio.
   play: action(faPlay, 'play', 'Play', 'Space'),
+  pause: action(faPause, 'pause', 'Pause', 'Space'),
+  previousWord: action(faAngleLeft, 'previous word', 'Go to the previous word', 'Left'),
+  nextWord: action(faAngleRight, 'next word', 'Go to the next word', 'Right'),
   stop: action(faStop, 'stop', 'Stop'),
   hear: action(faVolumeHigh, 'hear a reference', 'Hear the reference clip'),
   record: action(faCircle, 'record', 'Record my own clip'),

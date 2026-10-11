@@ -68,6 +68,35 @@ describe('wailsClient', () => {
     ]);
   });
 
+  it('accepts, ignores and reads the reviews of a recording check gap by ids only', async () => {
+    const finding = {
+      schema_version: 1,
+      id: 'f-1',
+      analyzer: 'recording-check',
+      project: {},
+      source: {},
+      category: 'pickup',
+      severity: 'info',
+      confidence: null,
+      confidence_reason: 'no_word_scores',
+      review: { status: 'accepted' },
+    };
+    const accept = vi.fn().mockResolvedValue(JSON.stringify(finding));
+    const ignore = vi.fn().mockResolvedValue('null');
+    const reviews = vi.fn().mockResolvedValue(JSON.stringify({ 'missing:p-1:3': 'accepted', 'extra:p-1:9': 'ignored' }));
+    standInHost({ CoverageGapAccept: accept, CoverageGapIgnore: ignore, CoverageGapReviews: reviews });
+
+    await expect(wailsClient.coverageGapAccept('c-1', 'missing:p-1:3')).resolves.toMatchObject({ id: 'f-1', category: 'pickup' });
+    await expect(wailsClient.coverageGapIgnore('c-1', 'extra:p-1:9')).resolves.toBeUndefined();
+    await expect(wailsClient.coverageGapReviews('c-1')).resolves.toEqual({ 'missing:p-1:3': 'accepted', 'extra:p-1:9': 'ignored' });
+    expect(accept).toHaveBeenCalledWith('c-1', 'missing:p-1:3');
+    expect(ignore).toHaveBeenCalledWith('c-1', 'extra:p-1:9');
+    expect(reviews).toHaveBeenCalledWith('c-1');
+
+    reviews.mockResolvedValueOnce(JSON.stringify({ gap: 'dismissed' }));
+    await expect(wailsClient.coverageGapReviews('c-1')).rejects.toThrow();
+  });
+
   it('uses generated Wails methods rather than an operation-string transport', async () => {
     const select = vi.fn().mockResolvedValue(JSON.stringify({ selected: true, jobId: 'import-1' }));
     standInHost({ Ready: () => Promise.resolve({ apiVersion: 1, diagnosticId: 'native' }), ManuscriptSelectFile: select });
@@ -566,6 +595,25 @@ describe('wailsClient', () => {
     expect(loop).toHaveBeenCalledWith('f1');
     await expect(wailsClient.findingsStopLoop()).resolves.toEqual({ outcome: 'stopped', restored: 2, kept: 1 });
     await expect(wailsClient.findingsReaperStatus()).resolves.toEqual({ connection: 'connected', loopingFindingId: 'f1' });
+  });
+
+  it('sends a cut to WorkspaceSnap as ids and a time and decodes the snapped answer', async () => {
+    const snap = vi
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify({ chapterId: 'c1', itemGuid: '{I}', sourceTime: 1.0013, outcome: 'snapped', time: 1.00225, moved: 0.00095 }))
+      .mockResolvedValueOnce(JSON.stringify({ chapterId: 'c1', itemGuid: '{I}', sourceTime: 1, outcome: 'snapped', time: 1, moved: 0, path: '/x.wav' }));
+    standInHost({ WorkspaceSnap: snap });
+    await expect(wailsClient.workspaceSnap('c1', '{I}', 1.0013)).resolves.toEqual({
+      chapterId: 'c1',
+      itemGuid: '{I}',
+      sourceTime: 1.0013,
+      outcome: 'snapped',
+      time: 1.00225,
+      moved: 0.00095,
+    });
+    expect(snap).toHaveBeenCalledWith('c1', '{I}', 1.0013);
+    // A key the host never sends is drift, not something to pass on.
+    await expect(wailsClient.workspaceSnap('c1', '{I}', 1)).rejects.toBeInstanceOf(WireError);
   });
 
   it('sends Add marker for a finding to the host and decodes what REAPER added', async () => {
