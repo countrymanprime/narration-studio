@@ -32,6 +32,7 @@ const (
 	jobKindRenderExport       = "render_export"
 	jobKindRenderPackage      = "render_package"
 	jobKindRenderPackageMulti = "render_package_multi"
+	jobKindExtractionScan     = "extraction_scan"
 )
 
 // How a job ended. A job that was cancelled is reported too, so a listener can tell the narrator's own Cancel from a failure.

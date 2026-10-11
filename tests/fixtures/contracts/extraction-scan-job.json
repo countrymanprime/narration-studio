@@ -1,0 +1,21 @@
+{
+  "added": 3,
+  "elapsed": 0,
+  "id": "extraction-scan-1",
+  "kind": "extraction_scan",
+  "logs": [
+    "Scanning the manuscript.",
+    "Scanning with Rules (1 of 2).",
+    "Rules offered 3 suggestions.",
+    "Skipped Local model: No local model is installed.",
+    "3 suggestions added."
+  ],
+  "message": "3 suggestions added.",
+  "percent": 100,
+  "phase": "success",
+  "skipped": 0,
+  "sources": [
+    "rules",
+    "local-model"
+  ]
+}

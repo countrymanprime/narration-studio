@@ -1187,6 +1187,44 @@ describe('the extraction bindings', () => {
   });
 });
 
+describe('the extraction scan bindings', () => {
+  const source = { id: 'rules', label: 'Rules', icon: 'auto', runs: true, available: true };
+  const job = {
+    id: 'extraction-scan-1',
+    kind: 'extraction_scan',
+    phase: 'running',
+    message: 'Scanning with Rules (1 of 2).',
+    percent: 0,
+    logs: ['Scanning the manuscript.'],
+    elapsed: 0.2,
+    sources: ['rules', 'gliner'],
+    added: 0,
+    skipped: 0,
+  };
+
+  it('calls the four host methods with their arguments and decodes each answer', async () => {
+    const sources = vi.fn().mockResolvedValue(JSON.stringify([source]));
+    const scan = vi.fn().mockResolvedValue(JSON.stringify(job));
+    const state = vi.fn().mockResolvedValue(JSON.stringify(job));
+    const cancel = vi.fn().mockResolvedValue(JSON.stringify({ ...job, phase: 'cancelled' }));
+    standInHost({ ExtractionSources: sources, ExtractionScan: scan, ExtractionScanState: state, ExtractionScanCancel: cancel });
+
+    await expect(wailsClient.extractionSources()).resolves.toEqual([source]);
+    await expect(wailsClient.extractionScan(['gliner'])).resolves.toEqual(job);
+    expect(scan).toHaveBeenCalledWith(['gliner']);
+    await expect(wailsClient.extractionScanState()).resolves.toEqual(job);
+    await expect(wailsClient.extractionScanCancel()).resolves.toMatchObject({ phase: 'cancelled' });
+    expect(cancel).toHaveBeenCalledWith();
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ ExtractionSources: () => Promise.resolve(JSON.stringify([{ ...source, available: false }])) });
+    await expect(wailsClient.extractionSources()).rejects.toBeInstanceOf(WireError);
+    standInHost({ ExtractionScanState: () => Promise.resolve(JSON.stringify({ ...job, percent: 100 })) });
+    await expect(wailsClient.extractionScanState()).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the DAW project state binding and event', () => {
   const state = { savedAt: '2026-09-26T08:40', unsavedChanges: true, playState: 'playing', playPosition: 12.5 } as const;
 

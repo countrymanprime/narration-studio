@@ -292,7 +292,7 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    ...createExtractionMock(),
+    ...createExtractionMock(endJob),
     ...createEditCutsMock(
       manuscriptReady,
       () => s.chapters,
