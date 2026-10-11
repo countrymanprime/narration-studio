@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { workspaceAlignmentResultSchema } from '../api/schemas/workspace';
+import { workspaceSnapResultSchema } from '../api/schemas/workspaceSnap';
 import { parseWire } from '../api/wire/parseWire';
 import { createHostAlignment, createMockAlignment, type AlignmentHostApi, type AlignmentPort, type HeardWord } from './alignment';
 import { describeProviderContract, type Goldens } from './providerContract';
@@ -17,13 +18,26 @@ const CHAPTERS = {
   'c-align-again': 'workspace-alignment-needs-align-again.json',
 } as const;
 const UNTRANSCRIBED = ['c-never', 'c-align-again'];
-const goldens: Goldens = Object.fromEntries(Object.values(CHAPTERS).map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
+const SNAPS = ['workspace-snap-moved.json', 'workspace-snap-refused.json'];
+const goldens: Goldens = Object.fromEntries(
+  [...Object.values(CHAPTERS), ...SNAPS].map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]),
+);
+// The host adapter's snap answers the golden whose item and time were asked, and the moved golden moved to any other
+// time by the same offset: what the host sent, for the times the contract asks about.
+const snapGolden = (file: string) => parseWire(workspaceSnapResultSchema, goldens[file], { boundary: 'alignment contract', payload: file });
 
 const hostApi = (calls: string[] = []): AlignmentHostApi => ({
   workspaceAlignment: (chapterId) => {
     calls.push(chapterId);
     const file = CHAPTERS[chapterId as keyof typeof CHAPTERS] ?? 'workspace-alignment-never.json';
     return Promise.resolve(parseWire(workspaceAlignmentResultSchema, goldens[file], { boundary: 'alignment contract', payload: file }));
+  },
+  workspaceSnap: (chapterId, itemGuid, sourceTime) => {
+    calls.push(`snap ${chapterId} ${itemGuid} ${sourceTime}`);
+    const refused = snapGolden('workspace-snap-refused.json');
+    if (itemGuid === refused.itemGuid) return Promise.resolve({ ...refused, chapterId, sourceTime, time: sourceTime });
+    const moved = snapGolden('workspace-snap-moved.json');
+    return Promise.resolve({ ...moved, chapterId, itemGuid, sourceTime, time: sourceTime + moved.moved });
   },
 });
 
@@ -63,6 +77,19 @@ const cases = [
     },
   },
   {
+    name: 'port-snap-matches-the-mock: a cut moves at most 2 ms, the same way for the same time',
+    check: async (port: AlignmentPort) => {
+      for (const t of [0.5, 12.3456, 166.5, 200]) {
+        const first = await port.snap('c-current', '{ITEM-1}', t);
+        expect(first.snapped).toBe(true);
+        expect(Math.abs(first.time - t)).toBeLessThanOrEqual(0.002 + 1e-9);
+        expect(first.moved).toBeCloseTo(first.time - t, 12);
+        expect(first.time).toBeGreaterThanOrEqual(0);
+        expect(await port.snap('c-current', '{ITEM-1}', t)).toEqual(first);
+      }
+    },
+  },
+  {
     name: 'an-engine-names-who-heard',
     check: async (port: AlignmentPort) => {
       const answer = await port.heard('c-current');
@@ -96,6 +123,19 @@ describe('the host adapter', () => {
     expect(words[0]).toMatchObject({ added: true, timing: 'spread', item: 0, off0: 4, conf: null, confReason: 'no_word_scores' });
     expect(words[7]).toMatchObject({ added: true, timing: 'unplaced', off0: 6.3, off1: 6.3 });
     expect(words[4]).toMatchObject({ paragraphId: 'p-000001', ordinal: 2, item: 0, off0: 5.5, off1: 6 });
+  });
+});
+
+describe('the host adapter snap', () => {
+  it('port-snap-matches-the-mock: carries the host time and a refusal with the time unchanged', async () => {
+    const calls: string[] = [];
+    const port = createHostAlignment(hostApi(calls));
+    const moved = snapGolden('workspace-snap-moved.json');
+    expect(await port.snap(moved.chapterId, moved.itemGuid, moved.sourceTime)).toEqual({ snapped: true, time: moved.time, moved: moved.moved });
+    const refused = await port.snap('c-current', '{ITEM-GONE}', 3.25);
+    expect(refused).toMatchObject({ snapped: false, time: 3.25, moved: 0, reason: 'stale' });
+    expect(refused.snapped === false && refused.message).toMatch(/\S/);
+    expect(calls).toEqual([`snap ${moved.chapterId} ${moved.itemGuid} ${moved.sourceTime}`, 'snap c-current {ITEM-GONE} 3.25']);
   });
 });
 

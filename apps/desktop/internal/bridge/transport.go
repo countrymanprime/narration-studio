@@ -37,6 +37,21 @@ type Armed struct {
 	Changed   bool
 }
 
+// StartRule says where recording begins. StartHere leaves the edit cursor where it is; AtEnd first moves it to the end
+// of the last item on the track (the third argument of record_start in narration_transport.lua), so a take never
+// overwrites what the track already holds.
+type StartRule string
+
+const (
+	StartHere StartRule = ""
+	AtEnd     StartRule = "end"
+)
+
+// RecordOptions is what RecordStart is asked besides the track.
+type RecordOptions struct {
+	Start StartRule
+}
+
 // RecordStarted is the track REAPER records on and the edit cursor where recording began, in seconds.
 type RecordStarted struct {
 	TrackGUID string
@@ -72,11 +87,15 @@ func (a *Actions) ArmOnly(ctx context.Context, trackGUID string) (Armed, error) 
 	return Armed{TrackGUID: event.Fields[2], Disarmed: int(numberAt(event.Fields, 3)), Changed: event.Fields[4] == "1"}, nil
 }
 
-// RecordStart asks REAPER to record on trackGUID, which must be the one armed track, while REAPER is stopped. It
-// returns once REAPER reports recording. The refusals are ErrNoTrackArmed, ErrSeveralTracksArmed, ErrOtherTrackArmed,
+// RecordStart asks REAPER to record on trackGUID, which must be the one armed track, while REAPER is stopped, from
+// where opts.Start says. It returns once REAPER reports recording, with the edit cursor where recording began. The refusals are ErrNoTrackArmed, ErrSeveralTracksArmed, ErrOtherTrackArmed,
 // ErrPlaying, ErrAlreadyRecording and ErrRecordingDidNotStart.
-func (a *Actions) RecordStart(ctx context.Context, trackGUID string) (RecordStarted, error) {
-	events, err := a.request(ctx, "record_start", []string{"RECORD_STARTED", "TRACK_STALE"}, trackGUID)
+func (a *Actions) RecordStart(ctx context.Context, trackGUID string, opts RecordOptions) (RecordStarted, error) {
+	args := []string{trackGUID}
+	if opts.Start != StartHere {
+		args = append(args, string(opts.Start))
+	}
+	events, err := a.request(ctx, "record_start", []string{"RECORD_STARTED", "TRACK_STALE"}, args...)
 	if err != nil {
 		return RecordStarted{}, err
 	}

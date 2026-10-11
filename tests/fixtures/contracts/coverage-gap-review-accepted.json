@@ -1,0 +1,31 @@
+{
+  "analyzer": "recording-check",
+  "category": "pickup",
+  "confidence": null,
+  "confidence_reason": "no_word_scores",
+  "evidence": {
+    "evidence_key": "record-1",
+    "first_word": "the",
+    "gap_id": "missing:p-000001:-1",
+    "kind": "missing",
+    "last_word": "door",
+    "token_count": 2
+  },
+  "evidence_version": "20af42ad79077ba1",
+  "id": "gap-finding-1",
+  "manuscript": {
+    "chapter_id": "c-0001",
+    "expected": "the … door",
+    "span": {
+      "paragraph_id": "p-000001"
+    }
+  },
+  "project": {},
+  "review": {
+    "status": "accepted",
+    "timestamp": "2026-09-21T10:00:00Z"
+  },
+  "schema_version": 1,
+  "severity": "info",
+  "source": {}
+}

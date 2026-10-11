@@ -50,6 +50,7 @@ import { createSystemMock, invalidPayloadOverrides } from './mockHost/system';
 import { createPronunciationLookupMock } from './mockHost/pronunciationLookup';
 import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommonsAudio';
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
+import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -112,6 +113,7 @@ export function createMockApi(
     chapters: () => s.chapters,
     assetRequired: assets.whisperAssetRequired,
     engines: assets.coverageEngines,
+    saveFinding: (finding) => saveFinding(finding),
     // A finished check changes its chapter's status row, so chaptersync:state goes out again.
     endJob: (event) => {
       endJob(event);
@@ -312,6 +314,7 @@ export function createMockApi(
     ...createPronunciationLookupMock(),
     ...createPronunciationCommonsAudioMock(),
     ...createPronunciationOnlineMock(),
+    ...createWorkspaceSnapMock(),
     ...createPronunciationSourcesMock(),
   };
   const api = initial.invalidPayload ? { ...base, ...invalidPayloadOverrides(initial.invalidPayload, base) } : base;
