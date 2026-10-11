@@ -199,4 +199,11 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The chapter's findings for the text overlay: not a narrator action to retry, and not swallowed silently since the check-derived flags still show with nothing lost - a failure here just leaves the overlay's extra flags and review-in-place off this load, and the book's notes on Proof (which read the same store) still work.",
   'src/components/proof/ProofChapterPage.tsx#3':
     "The waveform strip's peaks (ADR 0520), loaded alongside the alignment: not a narrator action to retry, and nothing to guard - a failure here just leaves the strip showing nothing this load, while the text, transport and flags (which do not depend on it) still work.",
+  'src/components/booth/companion/CompanionHost.tsx#1':
+    'Keeps the suspected-line flags as the session ends; a failed save leaves them to be found again by the next check.',
+  'src/components/booth/companion/CompanionPage.tsx#1': 'The last-read chapter only picks the default chapter; the first chapter is used without it.',
+  'src/components/booth/companion/CompanionPage.tsx#2': 'The running session only picks the default chapter; the last-read chapter is used without it.',
+  'src/components/booth/companion/CompanionPage.tsx#3': 'The credits templates only decide whether the credits panel shows; with none, it stays absent.',
+  'src/components/booth/frame/useLevels.ts#1':
+    'Releases the meter-only child on cleanup; nothing is left mounted to tell, and the next start works either way.',
 };

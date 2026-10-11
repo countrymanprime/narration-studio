@@ -15,6 +15,9 @@ import { sampleSpeakers } from './fixtures/speakers';
 const CEILING: Record<string, number> = {
   // Test and story data that SN-O62 (#1346) and SN-Q41 (#1324) wrote as component-side fixtures; they move to src/fixtures/ with #1119.
   'src/components/booth/reading/fixture.ts': 3,
+  // Component-side fixtures of the side panel (SN-O63/SN-O64) and the script document (SN-E3); they move to src/fixtures/ with #1119.
+  'src/components/booth/side/fixture.ts': 2,
+  'src/components/editing/script/scriptFixtures.ts': 1,
   'src/components/proof/notes/testNotes.ts': 5,
 };
 

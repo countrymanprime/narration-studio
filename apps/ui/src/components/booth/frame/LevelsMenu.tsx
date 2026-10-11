@@ -97,7 +97,7 @@ export function LevelsInline({ level, roomTone, roomToneOk }: { level: InputLeve
       <div className="w-28">
         <LevelMeter label="Input level" peak={level?.peak ?? null} rms={level?.rms ?? null} size="compact" />
       </div>
-      <span className={`text-xs ${roomToneOk ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]'}`}>{roomTone}</span>
+      <span className={`text-xs ${roomToneOk ? 'text-[var(--ok-text)]' : 'text-[var(--text-muted)]'}`}>{roomTone}</span>
     </div>
   );
 }

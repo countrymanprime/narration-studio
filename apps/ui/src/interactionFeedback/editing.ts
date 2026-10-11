@@ -25,4 +25,5 @@ export const editingFeedback: Record<string, FeedbackRow> = {
   'src/components/editing/CleanupAction.tsx::levelMatchPreview#1': row('click', 'file-io', 'pending', 'pending', 'dialog', 'toast', 'na', 'ok', 'Match levels… is busy while the host measures the chapter\'s linked track; a refusal (nothing to match, the bridge unavailable) or a failure is a toast, otherwise the ConfirmDialog opens with the candidate count.'),
   'src/components/editing/CleanupAction.tsx::levelMatchApply#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'The ConfirmDialog\'s Match is busy until apply_item_gain answers (re-measuring, never the preview\'s own numbers); either way the dialog closes and a toast says how many items changed, or why not.'),
 
+  'src/components/editing/script/useEditingDoc.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s paragraphs for the script document with the heard words; a failure puts the document in its error state with the message.'),
 };
