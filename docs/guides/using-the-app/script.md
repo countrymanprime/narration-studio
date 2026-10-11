@@ -124,7 +124,7 @@ highlighted; choosing one clears the search box, closes the panel, and jumps to 
 clear (×) icon empties the box and returns focus to it; Escape clears the box first, then closes
 the panel on a second press.
 
-A chapter with a live "Suggested: Editing/Proofing/Finalized" recommendation ([Production](production.md#stage-suggestions)'s
+A chapter with a live "Suggested: Editing/Proofing/Finalized" recommendation ([Production](production.md#stage-readiness)'s
 stage suggestions) shows that same wording under its title here too, so it is visible
 while browsing chapters without opening the board. It is read-only in this list -
 Confirm, Dismiss and the evidence view stay on Production and, for a chapter in Proofing, on that chapter's

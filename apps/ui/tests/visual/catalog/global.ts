@@ -9,7 +9,6 @@ export const globalStates: StateEntry[] = [
     state: 'tooltip',
     description: 'Global tooltip overlay',
     pointer: 'keep',
-    sameAs: { of: 'production/info-tooltip', reason: 'The global overlay is captured by hovering the same Production info icon.' },
     ...TOOLTIP_CLOSES_ON_RESIZE,
   },
   {

@@ -90,7 +90,7 @@ export const PAGE_HEADING: Record<AppPage, string> = {
 // Settings) show different content per state, so their drivers wait for their own.
 const PAGE_CONTENT: Partial<Record<AppPage, (page: Page) => Locator>> = {
   // The chapter pipeline is drawn once the production overview has answered.
-  Production: (page) => page.getByRole('grid', { name: 'Chapter pipeline' }),
+  Production: (page) => page.getByRole('table', { name: 'Chapter pipeline' }),
   Script: (page) => page.locator('[data-paragraph-text]'),
   // The chapter's text, whatever the session is doing (credits states pick theirs afterwards).
   Booth: (page) => page.getByRole('region', { name: 'Chapter text' }),
@@ -246,7 +246,7 @@ export async function openProduction(page: Page, query = ''): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
   await page.getByRole('heading', { level: 1, name: PAGE_HEADING.Production, exact: true }).waitFor();
-  await page.getByRole('grid', { name: 'Chapter pipeline' }).waitFor();
+  await page.getByRole('table', { name: 'Chapter pipeline' }).waitFor();
 }
 
 // Opens Master & QC and checks the mock picker's three files (two WAVs, one of them silent, and an MP3). The mock reads a quarter
@@ -369,38 +369,19 @@ export async function productionLoaded(page: Page): Promise<void> {
   await PAGE_CONTENT.Production?.(page).first().waitFor();
 }
 
-// The board's columns, in order (components/production/productionFormat.ts BOARD_COLUMNS).
-const BOARD_COLUMN = { Recorded: 0, Prep: 1, Record: 2, Edit: 3, Proof: 4, Delivery: 5 } as const;
-// A passed stage's glyph (productionFormat.ts boardCell): a row's current stage, the one cell that opens its stage suggestion, is
-// its first Record, Edit or Proof cell not marked passed (a chapter not started yet reads a dash under Record).
-const PASSED = '✓';
-
-// A chapter's row on the Production board. A prefix match on the row header ("Chapter 1" and "Chapter 1 — Down the Rabbit-Hole"),
+// A chapter's row in the Production pipeline. A prefix match on the Chapter cell ("Chapter 1" and "Chapter 1 — Down the Rabbit-Hole"),
 // with a word boundary so "Chapter 1" never matches "Chapter 10".
 export function boardRow(page: Page, chapter: string): Locator {
   return page
-    .getByRole('grid', { name: 'Chapter pipeline' })
+    .getByRole('table', { name: 'Chapter pipeline' })
     .getByRole('row')
-    .filter({ has: page.getByRole('rowheader', { name: new RegExp(`^${chapter}\\b`) }) });
+    .filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapter}\\b`) }) });
 }
 
-// Clicks one of a chapter's board cells by its column's name.
-async function clickBoardCell(page: Page, chapter: string, column: keyof typeof BOARD_COLUMN): Promise<void> {
-  await boardRow(page, chapter).getByRole('gridcell').nth(BOARD_COLUMN[column]).click();
-}
-
-// Opens a chapter's stage slide-over from its current-stage cell, whichever
-// column that is for the chapter's status. Returns the slide-over.
-async function openStageSlideOver(page: Page, chapter: string) {
-  const cells = boardRow(page, chapter).getByRole('gridcell');
-  const count = await cells.count();
-  for (let index = BOARD_COLUMN.Record; index <= Math.min(BOARD_COLUMN.Proof, count - 1); index += 1) {
-    if (((await cells.nth(index).textContent()) ?? '').trim() !== PASSED) {
-      await cells.nth(index).click();
-      return page.getByRole('dialog', { name: new RegExp(`^Stage suggestion: ${chapter}\\b`) });
-    }
-  }
-  throw new Error(`no current-stage cell on the board for ${chapter}`);
+// Opens a pipeline row's menu (the mock's row menu, useChapterTools) and picks one of its items: a right click on the row's Chapter cell.
+async function rowMenu(page: Page, chapter: string, item: string): Promise<void> {
+  await boardRow(page, chapter).getByRole('cell').first().click({ button: 'right' });
+  await page.getByRole('menuitem', { name: item }).click();
 }
 
 // ConfirmDialog is an alertdialog (Base UI AlertDialog, ADR 0048) and every other dialog is a role="dialog". Wait for
@@ -432,13 +413,10 @@ export async function openRecordingCheck(page: Page, chapter: string, seed?: str
     await settlePage(page);
   }
   await productionLoaded(page);
-  await clickBoardCell(page, chapter, 'Record');
-  const stage = page.getByRole('dialog', { name: new RegExp(`^Stage suggestion: ${chapter}\\b`) });
+  await rowMenu(page, chapter, 'Recording check…');
   // A prefix match: the panel's full name also carries the chapter's subtitle when it has one,
   // which this helper's callers do not all pass.
   const dialog = page.getByRole('dialog', { name: new RegExp(`^Recording check: ${chapter}\\b`) });
-  await stage.or(dialog).first().waitFor();
-  if (await stage.isVisible()) await stage.getByRole('button', { name: 'Recording check', exact: true }).click();
   await dialog.getByRole('button', { name: /^Check (recording|again)$/ }).waitFor();
   await dialog.getByText('Reading the last check…').waitFor({ state: 'detached' });
   return dialog;
@@ -450,7 +428,7 @@ export async function openTrackPanel(page: Page, chapter: string, seed: string) 
   await page.goto(`/?${seed}`);
   await settlePage(page);
   await productionLoaded(page);
-  await clickBoardCell(page, chapter, 'Recorded');
+  await rowMenu(page, chapter, 'Chapter track…');
   // The slide-over's name carries the chapter's subtitle after " — ".
   const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}( — |$)`) });
   await dialog.getByText('Reading the saved project…').waitFor({ state: 'detached' });
@@ -463,13 +441,16 @@ export async function openStageSuggestions(page: Page, seed: 'mixed' | 'error') 
   await page.goto(`/?mockStages=${seed}`);
   await settlePage(page);
   await productionLoaded(page);
-  await page.getByRole('button', { name: seed === 'mixed' ? '1 chapter has a suggestion' : 'Couldn’t check stage suggestions' }).waitFor();
 }
 
 // A chapter's stage slide-over on the `mixed` seed. Returns the slide-over.
 export async function openStageEvidence(page: Page, chapter: string) {
   await openStageSuggestions(page, 'mixed');
-  const view = await openStageSlideOver(page, chapter);
+  // The readiness chip on the chapter's current-stage cell opens the readiness slide-over (SN-P8; the old stage slide-over is gone).
+  await boardRow(page, chapter)
+    .getByRole('button', { name: /^Stage readiness: / })
+    .click();
+  const view = page.getByRole('dialog', { name: 'Stage readiness' });
   await view.getByRole('button', { name: 'Check now' }).waitFor();
   return view;
 }
@@ -482,8 +463,7 @@ export async function openEditingCheck(page: Page, query: string) {
   await page.goto(`/?${query}`);
   await settlePage(page);
   await productionLoaded(page);
-  const stage = await openStageSlideOver(page, 'Chapter 7');
-  await stage.getByRole('button', { name: 'Editing check', exact: true }).click();
+  await rowMenu(page, 'Chapter 7', 'Editing check…');
   const panel = page.getByRole('dialog', { name: /^Editing check: Chapter 7\b/ });
   await panel.getByRole('button', { name: /^Check editing|Check again$/ }).waitFor();
   return panel;

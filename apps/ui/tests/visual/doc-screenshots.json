@@ -106,13 +106,6 @@
   },
   {
     "page": "production",
-    "state": "stage-summary-chips",
-    "viewport": "desktop",
-    "docName": "production-stage-suggestions",
-    "caption": "Production - the stage suggestion chips above the board, and the current-stage cells that read Ready and Evidence changed"
-  },
-  {
-    "page": "production",
     "state": "stage-evidence-recommended",
     "viewport": "desktop",
     "docName": "production-stage-evidence",
