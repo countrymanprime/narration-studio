@@ -53,6 +53,7 @@ apps/desktop/build/windows/installer/*
 .tmp-hub-probe/
 release-notes.md
 target/
+!apps/ui/src/components/production/target/
 .tools/
 .cache/
 apps/ui/storybook-static/
