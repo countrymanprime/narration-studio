@@ -32,10 +32,6 @@ Any change under `apps/desktop` that calls into `github.com/wailsapp/wails/v3`, 
 13. **Build and run:** `pnpm --dir apps/desktop run build` runs `scripts/release/wails-build.mjs` (no Taskfile). There is no hot reload; use `pnpm --dir apps/ui dev:mock` for UI work and `pnpm --dir apps/desktop dev` to run the app. Windows is the only supported platform ([ADR 0412](../../../docs/adr/0412-windows-is-the-only-supported-platform-for-now.md)).
 14. `full-verification-gate`, then `feature-cleanup`.
 
-## Known drift to resolve
-
-As of 2026-10-11, `apps/desktop/go.mod` requires `v3.0.0-beta.26` (Dependabot, #919) while ADR 0200, `@wailsio/runtime` and the `wails3` CLI in `.github/actions/setup-toolchain` are all at `beta.25`. Check `git log -- apps/desktop/go.mod` and the three pins before relying on either number, and settle it with a pin change or an ADR note.
-
 ## What this skill is not
 
 It is not a copy of the Wails docs. Read the pinned module source for signatures. It does not choose a Wails version; ADR 0200 and the owner do.
