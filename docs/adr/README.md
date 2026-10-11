@@ -389,5 +389,4 @@ The table is generated from each ADR's heading and Status line ([ADR 0410](0410-
 | [0846](0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md) | Extraction suggestions are kept in a project file beside the Story Bible, and a rejected one stays as a tombstone | Proposed |
 | [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
 | [0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md) | The take suggestion is evidence first, and its confidence is null with a reason until the takes are comparable | Proposed |
-| [0865](0865-the-studio-next-program-has-a-daily-cap-on-slices-launched-and-an-unanswered-register-question-takes-its-recommendation-after-seven-days.md) | The Studio Next program has a daily cap on slices launched, and an unanswered register question takes its recommendation after seven days | Proposed |
 <!-- adr-index:end -->
