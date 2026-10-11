@@ -58,6 +58,10 @@ export type MockApiSeed = {
   projectFolder?: string;
   tracksCandidates?: string[];
   noManuscript?: boolean;
+  /** Replaces the Alice chapters at boot (fixtures/scenario.ts); the bundled manuscript then does not load over them. */
+  chapters?: ManuscriptChapter[];
+  /** Replaces the Alice paragraphs at boot; seed it with `chapters`. */
+  paragraphs?: ManuscriptParagraph[];
   manuscriptCandidate?: { path: string; name: string };
   teleprompter?: TeleprompterSeed;
   /** The project's own credits values at boot (the credits on the teleprompter with every token resolved). */
@@ -285,8 +289,8 @@ export function createMockState(initial: MockApiSeed): MockState {
   const jobEndListeners = new Set<(event: JobEnded) => void>();
   return {
     entities: wireClone(WIRE_ENTITIES),
-    chapters: withSeededStatuses(wireClone(WIRE_CHAPTERS), initial),
-    paragraphs: wireClone(WIRE_PARAGRAPHS),
+    chapters: withSeededStatuses(wireClone(initial.chapters ?? WIRE_CHAPTERS), initial),
+    paragraphs: wireClone(initial.paragraphs ?? WIRE_PARAGRAPHS),
     nextId: 1,
     tracksDiscovery: { candidates: tracksCandidates, selected: tracksCandidates.length === 1 ? tracksCandidates[0] : '' },
     // A seed built before links had an origin (ADR 0202) reads as the narrator's own link, as the host reads a v1 file.
