@@ -24,6 +24,8 @@ export type GuideProperty = { key: string; value: string };
 /** One (chapter, scene) pair an entry's evidence touches. A scene restarts at 0 for each new chapter; a scene-break paragraph (e.g. "* * *") starts the next one. */
 export type GuideAppearance = { chapterId: string; chapter: string; sceneIndex: number };
 export type GuideAlias = { text: string; pronunciation: GuidePronunciation; occurrences: GuideEvidence[] };
+/** What still needs the narrator's look: the entry itself, and the alias texts. The host reads it from `review_state` for a file written before it. */
+export type GuideReview = { entry: boolean; aliases: string[] };
 export type GuideEntity = {
   id: string;
   canonical_name: string;
@@ -42,6 +44,10 @@ export type GuideEntity = {
   context?: string;
   /** Which chapters and scenes this entry's evidence touches (see `GuideDialogueCue`). Absent on a file written before it existed. */
   appearances?: GuideAppearance[];
+  /** The review flags (SNB-3b). Absent only from an older host. */
+  review?: GuideReview;
+  /** The narrator's speaker colour, 1..7 (`--speaker-N`, ADR 0367), which wins over the stable pick; absent means automatic. */
+  speaker_color?: number;
 };
 
 /**
@@ -166,4 +172,10 @@ export interface StoryBibleApi {
    * the cue back to unknown. A rebuild never overwrites a correction (mirroring the entity lock guard, ADR 0007).
    */
   guideCorrectCue(cueId: string, speakerEntityId: string): Promise<void>;
+  /** Clears the review flags of the entry and every name (`aliasIndex` omitted), or of one name; the entry is reviewed when nothing is left. Refused on a locked entry. */
+  guideMarkReviewed(id: string, aliasIndex?: number): Promise<void>;
+  /** Flags the entry (`aliasIndex` omitted), or one name, as needing review: the undo of `guideMarkReviewed`. A set flag stays as it is. Refused on a locked entry. */
+  guideFlagReview(id: string, aliasIndex?: number): Promise<void>;
+  /** Sets a character's speaker colour, 1..7; null or 0 puts it back to automatic. Refused outside 0..7, on a locked entry and for a category that cannot speak. */
+  guideSetSpeakerColor(id: string, index: number | null): Promise<void>;
 }

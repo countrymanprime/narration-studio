@@ -199,6 +199,7 @@ func normalizeEntity(entity map[string]any, keepStatus bool) error {
 		}
 	}
 	if aliases, ok := entity["aliases"].([]any); ok {
+		readReview(entity, aliases)
 		for _, raw := range aliases {
 			alias, ok := raw.(map[string]any)
 			if !ok {
@@ -216,6 +217,37 @@ func normalizeEntity(entity map[string]any, keepStatus bool) error {
 		}
 	}
 	return nil
+}
+
+// readReview fills the entry's review flags (SNB-3b): {entry, aliases}, the entry itself and the alias texts still to look at. A file
+// written before them has none, and its entry flag is review_state "needs review". A stored name the entry no longer has is dropped,
+// and a speaker colour outside 1..7 reads as automatic (no speaker_color).
+func readReview(entity map[string]any, aliases []any) {
+	if color, ok := entity["speaker_color"].(float64); !ok || color < 1 || color > SpeakerColors || color != float64(int(color)) {
+		delete(entity, "speaker_color")
+	}
+	stored, ok := entity["review"].(map[string]any)
+	if !ok {
+		entity["review"] = map[string]any{"entry": entity["review_state"] == "needs review", "aliases": []any{}}
+		return
+	}
+	names := map[string]bool{}
+	for _, raw := range aliases {
+		if alias, ok := raw.(map[string]any); ok {
+			if text, ok := alias["text"].(string); ok {
+				names[text] = true
+			}
+		}
+	}
+	flagged := []any{}
+	list, _ := stored["aliases"].([]any)
+	for _, raw := range list {
+		if text, ok := raw.(string); ok && names[text] && !slices.Contains(flagged, any(text)) {
+			flagged = append(flagged, text)
+		}
+	}
+	entry, _ := stored["entry"].(bool)
+	entity["review"] = map[string]any{"entry": entry, "aliases": flagged}
 }
 
 // readPronunciation reads a stored pronunciation the way ADR 0792 says: a stored status is ignored, and the legacy source "user" reads as
@@ -516,6 +548,37 @@ func (s *Service) SetPronunciationStatus(id string, aliasIndex *int, status stri
 		args = append(args, "--note="+text)
 	}
 	_, err := s.Run(pronunciationTarget(args, aliasIndex)...)
+	return err
+}
+
+// MarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when nothing
+// is left. Refused on a locked entry (ADR 0007, enforced by the sidecar).
+func (s *Service) MarkReviewed(id string, aliasIndex *int) error {
+	_, err := s.Run(pronunciationTarget([]string{"mark-reviewed", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
+	return err
+}
+
+// FlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of MarkReviewed, and what an accepted automatic
+// suggestion sets. A flag that is set already changes nothing. Refused on a locked entry.
+func (s *Service) FlagReview(id string, aliasIndex *int) error {
+	_, err := s.Run(pronunciationTarget([]string{"review-flag", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
+	return err
+}
+
+// SpeakerColors is how many speaker colours there are: the seven hues of ADR 0367, --speaker-1 to --speaker-7.
+const SpeakerColors = 7
+
+// SetSpeakerColor stores a character's speaker colour, 1..SpeakerColors, which wins over the stable pick; nil or 0 puts it back to
+// automatic. A value outside that is refused before the sidecar starts; the sidecar refuses a locked entry and one that cannot speak.
+func (s *Service) SetSpeakerColor(id string, index *int) error {
+	value := 0
+	if index != nil {
+		value = *index
+	}
+	if value < 0 || value > SpeakerColors {
+		return fmt.Errorf("a speaker colour is 1 to %d, or 0 for automatic", SpeakerColors)
+	}
+	_, err := s.Run("speaker-color", "--guide", s.guidePath(), "--entity-id", id, "--index", fmt.Sprint(value))
 	return err
 }
 

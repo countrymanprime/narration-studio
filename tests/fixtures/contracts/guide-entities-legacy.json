@@ -22,6 +22,10 @@
     "pronunciation": {},
     "properties": [],
     "relationships": [],
+    "review": {
+      "aliases": [],
+      "entry": false
+    },
     "review_state": "generated"
   }
 ]

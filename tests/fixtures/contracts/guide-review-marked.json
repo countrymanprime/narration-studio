@@ -1,0 +1,37 @@
+[
+  {
+    "aliases": [
+      {
+        "occurrences": [],
+        "pronunciation": {},
+        "text": "the Sparrow"
+      },
+      {
+        "occurrences": [],
+        "pronunciation": {},
+        "text": "Jenny"
+      }
+    ],
+    "appearances": [],
+    "canonical_name": "Wren",
+    "category": "Character",
+    "description": {
+      "evidence": {},
+      "text": ""
+    },
+    "id": "entity-wren",
+    "locked": false,
+    "manual": false,
+    "occurrence_count": 0,
+    "occurrences": [],
+    "personality_notes": [],
+    "pronunciation": {},
+    "properties": [],
+    "relationships": [],
+    "review": {
+      "aliases": [],
+      "entry": false
+    },
+    "review_state": "reviewed"
+  }
+]

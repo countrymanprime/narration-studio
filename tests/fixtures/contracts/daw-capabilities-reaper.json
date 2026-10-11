@@ -1,16 +1,34 @@
 {
   "capabilities": {
+    "backups": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Audio backups is not available with REAPER yet.",
+      "reason": "not_yet"
+    },
     "cleanup_tools": {
       "available": false,
       "level": "supported",
       "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
       "reason": "standalone"
     },
+    "cut_range": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Cut words and audio is not available with REAPER yet.",
+      "reason": "not_yet"
+    },
     "fx_chains": {
       "available": false,
       "level": "experimental",
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
+    },
+    "fx_range": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Add an effect to words is not available with REAPER yet.",
+      "reason": "not_yet"
     },
     "heartbeat": {
       "available": false,
@@ -117,6 +135,12 @@
       "level": "experimental",
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
+    },
+    "stack_takes": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Stack takes is not available with REAPER yet.",
+      "reason": "not_yet"
     },
     "take_create": {
       "available": false,

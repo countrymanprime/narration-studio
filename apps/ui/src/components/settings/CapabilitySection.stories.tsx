@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ReactNode } from 'react';
 import { expect, within } from 'storybook/test';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { CapabilityList } from './CapabilitySection';
 
 // Settings draws this list on the panel surface; axe measures the badge tints against it.
@@ -52,6 +53,26 @@ export const EveryLevelAndMode: Story = {
     await expect(canvas.getAllByRole('listitem')).toHaveLength(6);
     await expect(canvas.getByText('Replaces audio that cannot be brought back')).toBeTruthy();
     await expect(canvas.getByText('newer_capability')).toBeTruthy();
+  },
+};
+
+// The edit rows (SND-3) as REAPER reports them today: in the catalogue, not yet available, each with the host's sentence.
+const EDIT_ROWS = ['cut_range', 'fx_range', 'stack_takes', 'backups'] as const;
+
+export const EditCapabilitiesNotYetAvailable: Story = {
+  args: {
+    report: {
+      daw: 'REAPER',
+      reachable: true,
+      capabilities: Object.fromEntries(EDIT_ROWS.map((key) => [key, DAW_SETUPS.reaper.capabilities[key]])),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByRole('listitem')).toHaveLength(4);
+    for (const label of ['Cut words and audio', 'Add an effect to words', 'Stack takes', 'Audio backups']) {
+      await expect(canvas.getByText(`${label} is not available with REAPER yet.`)).toBeTruthy();
+    }
   },
 };
 

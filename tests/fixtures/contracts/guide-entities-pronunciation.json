@@ -37,6 +37,10 @@
     },
     "properties": [],
     "relationships": [],
+    "review": {
+      "aliases": [],
+      "entry": false
+    },
     "review_state": "reviewed"
   }
 ]

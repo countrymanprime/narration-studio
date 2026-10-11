@@ -38,6 +38,9 @@ import type { NavCounts } from './useNavCounts';
 // The Production stage's page: the Production home at `/`, which replaced Home.
 // Not gated: with no manuscript it is where the import is.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse, requiresManuscript: false, requiresDaw: false };
+// The Schedule (the Studio Next mock's rail, ADR 0802): the due date, how the book pays and the milestones. Not gated: with no
+// manuscript the page asks for one.
+const SCHEDULE = { name: 'Schedule', path: '/schedule', icon: iconFor('calendar'), requiresManuscript: false, requiresDaw: false };
 const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines, requiresManuscript: true, requiresDaw: false };
 const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpen, requiresManuscript: true, requiresDaw: false };
 // The Record stage's one page: it replaced the Teleprompter page. Its
@@ -60,7 +63,7 @@ const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, req
 type NavItem = typeof PRODUCTION;
 const NAV_COUNT_KEYS: Record<string, keyof NavCounts> = { 'Story Bible': 'storyBible', Proof: 'proof', Pickups: 'pickups' };
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
-  { label: 'Production', items: [PRODUCTION] },
+  { label: 'Production', items: [PRODUCTION, SCHEDULE] },
   { label: 'Prep', items: [SCRIPT, STORY_BIBLE] },
   { label: 'Record', items: [BOOTH] },
   { label: 'Review', items: [PROOF, PICKUPS] },
@@ -177,9 +180,7 @@ export function AppShell({
         {NAV_GROUPS.map((group) => (
           <div key={group.label} role="group" aria-labelledby={groupHeadingId(group.label)} className="flex flex-col gap-[0.1875rem]">
             {/* Every group is headed (ADR 0407): 10 px capitals at x 19, 29 px deep with the gap above the group's first
-                item, so a heading sits 32 px between two items as the benchmark mock spaces it. The mock draws no heading over its first group,
-                but that group also holds a Schedule item the app has no page for (ADR 0407); the drawn heading takes most of
-                that item's place, so every later item sits within 8 px of where the benchmark mocks draw it (ADR 0636). */}
+                item, so a heading sits 32 px between two items. */}
             <div
               id={groupHeadingId(group.label)}
               className="section-label px-[0.625rem] pt-[0.6875rem] pb-[0.375rem] text-[0.625rem] leading-[0.75rem] tracking-[0.1em]"

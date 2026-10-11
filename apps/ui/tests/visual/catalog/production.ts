@@ -1,6 +1,6 @@
 // The `production` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { TOOLTIP_CLOSES_ON_RESIZE, KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT } from './shared';
+import { KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT } from './shared';
 
 export const productionStates: StateEntry[] = [
   // The Production home at `/` (mock 01)
@@ -28,21 +28,6 @@ export const productionStates: StateEntry[] = [
     state: 'at-risk',
     description:
       'Production 3 days from its delivery date with chapters unfinished (?mockProduction=at-risk) - the delivery date as a warning, a higher PFH from more hours logged, and Next up led by the chapters whose stage is held back',
-  },
-  {
-    page: 'production',
-    state: 'plan',
-    description:
-      "Production's Delivery plan panel (?mockProduction=on-pace) with the ACX 15-minute checkpoint added from its template and not saved yet - the delivery date and contracted amount the figures use, each milestone's name, due date and note with Remove, and the template button off once the checkpoint is listed",
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Status report export
-  {
-    page: 'production',
-    state: 'status-report',
-    description:
-      'Production (?mockProduction=on-pace) after Export status report - the HTML and JSON file names written to narration-utils/production/reports, and that the contracted amount and effective rate were left out (scrolled to the Status report panel)',
-    ...KEEPS_DESKTOP_SCROLL,
   },
 
   // Home's surfaces, opened from the board
@@ -94,13 +79,6 @@ export const productionStates: StateEntry[] = [
     state: 'chapter-sync-toast-undo',
     description: 'Production, the toast for a chapter-sync batch that just linked a track, with Undo (?mockChapterSync=linked)',
     ...TOAST_FADES_OUT,
-  },
-  {
-    page: 'production',
-    state: 'info-tooltip',
-    description: 'Production, "About these figures" beside the subtitle: time is logged only while a timer runs, and every figure is measured or logged',
-    pointer: 'keep',
-    ...TOOLTIP_CLOSES_ON_RESIZE,
   },
   { page: 'production', state: 'manuscript-candidate-offer', description: 'Production, offer to import a manuscript file found in the project folder' },
   {
@@ -249,25 +227,6 @@ export const productionStates: StateEntry[] = [
   // Stage suggestions (ADR 0160 and 0161), on `?mockStages=mixed`: Chapter 4 read in
   // full (suggested), Chapter 5 with no track linked (can't tell), Chapter 6 short (not ready), Chapter 7 confirmed into Editing and since
   // found short (evidence changed), Chapter 8 confirmed on evidence that still holds.
-  {
-    page: 'production',
-    state: 'stage-summary-chips',
-    description:
-      "Production, the board with its stage suggestion chips (?mockStages=mixed): one chapter has a suggestion, one chapter’s evidence changed, and those chapters' current-stage cells read Ready and Changed",
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'production',
-    state: 'stage-dismissed',
-    description:
-      "Production, the board after Dismiss on Chapter 4's stage slide-over: its Edit cell no longer reads Ready, its status unchanged, and the suggestion chip is gone",
-  },
-  {
-    page: 'production',
-    state: 'stage-error',
-    description: 'Production, the stage suggestions could not be read (?mockStages=error): the error chip and the reason above the board with Try again',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
   {
     page: 'production',
     state: 'stage-evidence-recommended',

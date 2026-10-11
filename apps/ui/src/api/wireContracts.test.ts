@@ -883,6 +883,28 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
   });
 
+  it('the Story Bible review flags and speaker colour', async () => {
+    const api = createMockApi();
+    const entity = (await api.guideEntities()).find((row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked);
+    if (!entity) throw new Error('the mock has no unlocked character with an alias');
+    const read = async () => (await api.guideEntities()).find((row) => row.id === entity.id);
+    await api.guideFlagReview(entity.id);
+    await api.guideFlagReview(entity.id, 0);
+    expect((await read())?.review).toEqual({ entry: true, aliases: [entity.aliases[0].text] });
+    await api.guideMarkReviewed(entity.id, 0);
+    expect((await read())?.review).toEqual({ entry: true, aliases: [] });
+    await api.guideMarkReviewed(entity.id);
+    expect(await read()).toMatchObject({ review: { entry: false, aliases: [] }, review_state: 'reviewed' });
+    await api.guideSetSpeakerColor(entity.id, 3);
+    expect((await read())?.speaker_color).toBe(3);
+    await api.guideSetSpeakerColor(entity.id, null);
+    expect((await read())?.speaker_color).toBeUndefined();
+    await expect(api.guideSetSpeakerColor(entity.id, 8)).rejects.toThrow('1 to 7');
+    const place = (await api.guideEntities()).find((row) => row.category !== 'Character' && !row.locked);
+    if (place) await expect(api.guideSetSpeakerColor(place.id, 2)).rejects.toThrow('Only a character speaks');
+    expectMatches(guideEntitiesSchema, await api.guideEntities(), 'mock entities after review and colour');
+  });
+
   it('the character bible: regions, approving a reference, revoking it and removing every reference', async () => {
     const api = createMockApi();
     const regions = await api.characterListRegions();
@@ -3231,6 +3253,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideRelate',
       'guideUnrelate',
       'guideCorrectCue',
+      'guideMarkReviewed',
+      'guideFlagReview',
+      'guideSetSpeakerColor',
       'characterRevoke',
       'characterRemoveVoiceData',
       'seriesDelete',

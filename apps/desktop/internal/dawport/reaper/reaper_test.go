@@ -207,6 +207,10 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so it is Unsupported,
 	// not Supported like everything else this loop defaults to.
 	want[dawport.CapMacroRender] = dawport.Unsupported
+	// The edit rows (SND-3) have no bridge command yet: NotYetAvailable, with no role, until each command slice flips its own.
+	for _, c := range []dawport.Capability{dawport.CapCutRange, dawport.CapFXRange, dawport.CapStackTakes, dawport.CapBackups} {
+		want[c] = dawport.NotYetAvailable
+	}
 	if !maps.Equal(declared, want) {
 		t.Errorf("Declares() = %v, want %v", declared, want)
 	}

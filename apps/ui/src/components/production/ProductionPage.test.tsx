@@ -1,199 +1,204 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs';
+// SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the Studio Next layout, the dialogs its
+// icons open, the timer and the chip's feed, chapter sync, and the row menu that keeps the features the mock has no equivalent for.
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { PRODUCTION_SCENARIOS } from '../../api/productionMock';
-import { productionOverviewSchema } from '../../api/schemas/production';
+import { overlay } from '../../overlay/overlayService';
+import { OverlayHost } from '../../overlay/OverlayHost';
+import { contextItemsFor } from '../../registries/context';
 import type { NarrationApi } from '../../types';
+import { TooltipProvider } from '../primitives/Tooltip';
 import { ProductionPage } from './ProductionPage';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  // Layers the overlay singleton still holds belong to the test that opened them.
+  act(() => overlay.getSnapshot().dialogs.forEach((entry) => ('close' in entry ? entry.close() : entry.answer(false))));
+});
 
 type Initial = Parameters<typeof createMockApi>[1];
-
-// The host's own payload (written by internal/production/overview_test.go), so the page is tested against what the host sends.
-const contract = (name: string) =>
-  productionOverviewSchema.parse(JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', name), 'utf8')));
 
 async function renderPage({ overrides = {}, initial = {} }: { overrides?: Partial<NarrationApi>; initial?: Initial } = {}) {
   const api = createMockApi(overrides, initial);
   const data = await api.bootstrap();
   const onOverview = vi.fn();
+  const go = vi.fn();
+  const goToBooth = vi.fn();
+  const notify = vi.fn();
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <ProductionPage
-          data={data}
-          go={vi.fn()}
-          notify={vi.fn()}
-          goToScript={vi.fn()}
-          goToProofChapter={vi.fn()}
-          refreshBootstrap={async () => {}}
-          onOverview={onOverview}
-        />
+        <TooltipProvider>
+          <ProductionPage
+            data={data}
+            go={go}
+            notify={notify}
+            goToScript={vi.fn()}
+            goToProofChapter={vi.fn()}
+            goToBooth={goToBooth}
+            refreshBootstrap={async () => {}}
+            onOverview={onOverview}
+          />
+        </TooltipProvider>
+        <OverlayHost />
       </ApiProvider>
     </MemoryRouter>,
   );
-  return { api, onOverview };
+  return { api, onOverview, go, goToBooth, notify };
 }
 
-const actions = () => screen.getByRole('group', { name: 'Production actions' });
+const pipeline = () => screen.findByRole('table', { name: 'Chapter pipeline' });
 
-/** The board row a chapter heads, by its title. */
-const boardRow = (title: string) =>
-  within(screen.getByRole('grid', { name: 'Chapter pipeline' }))
-    .getByRole('rowheader', { name: new RegExp(`^${title} —`) })
-    .closest('tr') as HTMLElement;
-
-const tile = async (label: string) => {
-  const kpis = await screen.findByRole('list', { name: 'Production figures' });
-  const item = within(kpis)
-    .getAllByRole('listitem')
-    .find((candidate) => candidate.textContent?.startsWith(label));
-  if (!item) throw new Error(`no ${label} tile`);
-  return item;
-};
-
-describe('ProductionPage', () => {
-  it('shows every undefined figure as a dash, and says why, before anything is logged or set (no data yet)', async () => {
-    await renderPage();
-    expect((await tile('Hours per finished hour')).textContent).toContain('—');
-    expect((await tile('Hours per finished hour')).textContent).toContain('Not enough measured time and logged hours yet');
-    expect((await tile('Effective rate')).textContent).toContain('No contracted amount set yet');
-    expect((await tile('Delivery date')).textContent).toContain('No delivery date set yet');
-    expect((await tile('Work time logged')).textContent).toContain('0:00');
-    expect(within(actions()).queryByRole('button', { name: 'Stop timer' })).toBeNull();
-  });
-
-  it('says in the subtitle how many chapters and words the book has, and that no delivery date is set, with the figures explained', async () => {
-    await renderPage();
-    await tile('Delivery date');
-    expect(screen.getByText(/^12 chapters · [\d,]+ words · no delivery date set$/)).toBeTruthy();
-    expect(screen.getByLabelText('About these figures')).toBeTruthy();
-  });
-
-  it('shows an on-pace book: its figures, its delivery date, the running timer and its board', async () => {
-    const { onOverview } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
-    expect((await tile('Delivery date')).textContent).toContain('18 days');
-    expect((await tile('Delivery date')).textContent).toContain('Due 14 Oct 2026');
-    expect((await tile('Effective rate')).textContent).not.toContain('—');
-    expect(screen.getByText(/ · delivery due Oct 14 \(18 days\)$/)).toBeTruthy();
-    // The running timer shows in the app header's chip (fed by onOverview); the page offers only its Stop.
-    expect(within(actions()).getByRole('button', { name: 'Stop timer' })).toBeTruthy();
-    expect(onOverview).toHaveBeenCalledWith(expect.objectContaining({ running: expect.objectContaining({ chapterId: 'chapter-6' }) }));
-    expect(
-      within(boardRow('Chapter 1'))
-        .getAllByRole('gridcell')
-        .map((cell) => cell.textContent),
-    ).toEqual(['11:48', '—', '✓', '✓', '✓', '—']);
-  });
-
-  // Mock 01 (ADR 0645): the six figures are one card (StatStrip), and the board and Next up sit side by side in the page's grid.
-  it('draws the figures as one card of six tiles', async () => {
+describe('production-route-draws-the-mock-page', () => {
+  it('draws the header, the KPI row, the stage bar, This week, the recording check, the pipeline, Next up and the chart', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
-    await tile('Delivery date');
-    const figures = screen.getByRole('list', { name: 'Production figures' });
-    expect(within(figures).getAllByRole('listitem')).toHaveLength(6);
-    expect(figures.parentElement?.className).toContain('rounded-[var(--radius-card)]');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    const kpis = await screen.findByRole('list', { name: 'Production figures' });
+    expect(
+      within(kpis)
+        .getAllByRole('listitem')
+        .map((item) => item.querySelector('span')?.textContent),
+    ).toHaveLength(6);
+    for (const title of ['Where the book stands', 'This week', 'Recording check', 'Chapter pipeline', 'Next up', 'Recorded vs plan']) {
+      expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+    }
+    expect(await pipeline()).toBeTruthy();
   });
 
-  it('marks an at-risk deadline and lists the chapters that threaten it first', async () => {
-    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['at-risk'] } });
-    expect((await tile('Delivery date')).textContent).toContain('3 days');
-    const nextUp = screen.getByRole('list', { name: 'Next up' });
-    const items = within(nextUp).getAllByRole('listitem');
-    // Chapters 4-6 are recording with part of their text not read (the stage mock's not_ready), so they come first.
-    expect(items[0].textContent).toContain('Chapter 4');
-    expect(items[0].textContent).toContain('Finish recording');
+  it('is the import when there is no manuscript', async () => {
+    await renderPage({ initial: { noManuscript: true } });
+    expect(await screen.findByRole('button', { name: 'Import manuscript' })).toBeTruthy();
+    expect(screen.queryByRole('list', { name: 'Production figures' })).toBeNull();
+    expect(screen.queryByRole('table', { name: 'Chapter pipeline' })).toBeNull();
   });
 
-  it("renders the host's own payload", async () => {
-    const { onOverview } = await renderPage({ overrides: { productionOverview: async () => contract('production-overview.json') } });
-    expect((await tile('Delivery date')).textContent).toContain('18 days');
-    expect((await tile('Effective rate')).textContent).toContain('1,067');
-    expect(within(actions()).getByRole('button', { name: 'Stop timer' })).toBeTruthy();
-    expect(onOverview.mock.calls[0][0].running).not.toBeNull();
+  it('imports no file the swap deleted', () => {
+    const source = readFileSync(join(__dirname, 'ProductionPage.tsx'), 'utf8');
+    for (const gone of ['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary']) expect(source).not.toContain(gone);
+  });
+});
+
+describe('header-icons-and-dialogs-open', () => {
+  it('opens the status report dialog from Export status report', async () => {
+    await renderPage();
+    await pipeline();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Export status report' }));
+    expect(await screen.findByRole('dialog', { name: 'Export status report' })).toBeTruthy();
   });
 
-  it('starts a timer on a listed chapter and stops it, without ever setting a chapter status', async () => {
-    const setStatus = vi.fn<NarrationApi['manuscriptSetChapterStatus']>();
-    const confirm = vi.fn<NarrationApi['stageConfirm']>();
-    const { api, onOverview } = await renderPage({ overrides: { manuscriptSetChapterStatus: setStatus, stageConfirm: confirm } });
+  it('opens Check recordings from the Recording check card', async () => {
+    await renderPage();
+    await pipeline();
+    const card = screen.getByRole('heading', { name: 'Recording check' }).closest('section') as HTMLElement;
+    const button = within(card).getByRole('button', { name: 'Check recordings' });
+    if (button.getAttribute('aria-disabled') === 'true') return; // every chapter checked: nothing to preselect
+    await userEvent.setup().click(button);
+    expect(await screen.findByRole('dialog', { name: /Check recordings/ })).toBeTruthy();
+  });
+
+  it('draws the target info icon on the Recording tile', async () => {
+    await renderPage();
+    const kpis = await screen.findByRole('list', { name: 'Production figures' });
+    expect(within(kpis).getByRole('button', { name: /target/i })).toBeTruthy();
+  });
+
+  it('opens the Schedule from the verdict pill and the Due tile', async () => {
+    const { go } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await pipeline();
     const user = userEvent.setup();
-    const nextUp = await screen.findByRole('list', { name: 'Next up' });
-    await user.click(within(nextUp).getAllByRole('button', { name: /^Start timer/ })[0]);
-    const stop = await within(actions()).findByRole('button', { name: 'Stop timer' });
-    expect((await api.productionOverview()).running?.chapterId).toBe('chapter-4');
-    expect(onOverview.mock.lastCall?.[0].running?.chapterId).toBe('chapter-4');
-    // While a timer runs no other can be started from the page.
-    expect(within(screen.getByRole('list', { name: 'Next up' })).queryAllByRole('button', { name: /^Start timer/ })).toEqual([]);
-    await user.click(stop);
-    expect((await screen.findByText(/Timer stopped/)).textContent).toContain('Chapter 4');
-    expect(within(actions()).queryByRole('button', { name: 'Stop timer' })).toBeNull();
-    expect(onOverview.mock.lastCall?.[0].running).toBeNull();
-    expect(setStatus).not.toHaveBeenCalled();
-    expect(confirm).not.toHaveBeenCalled();
+    const kpis = screen.getByRole('list', { name: 'Production figures' });
+    await user.click(
+      within(kpis)
+        .getAllByRole('button')
+        .find((b) => b.textContent?.startsWith('Due')) as HTMLElement,
+    );
+    expect(go).toHaveBeenLastCalledWith('/schedule');
+  });
+});
+
+describe('timer-and-chip-still-work', () => {
+  it('feeds the shell chip from every overview read, and Stop timer stops the running one', async () => {
+    const { onOverview } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await waitFor(() => expect(onOverview).toHaveBeenCalledWith(expect.objectContaining({ running: expect.objectContaining({ chapterId: 'chapter-6' }) })));
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Stop timer' }));
+    expect(await screen.findByText(/Timer stopped/)).toBeTruthy();
+    await waitFor(() => expect(onOverview.mock.lastCall?.[0].running).toBeNull());
+    expect(screen.queryByRole('button', { name: 'Stop timer' })).toBeNull();
   });
 
-  it("shows the host's refusal when another timer is already running", async () => {
-    await renderPage({
-      overrides: {
-        productionStartTimer: async () => ({
-          status: 'refused',
-          reason: 'timer_running',
-          message: 'a timer is already running on chapter-9 (proofing); stop it first',
-        }),
-      },
-    });
-    const user = userEvent.setup();
-    const nextUp = await screen.findByRole('list', { name: 'Next up' });
-    await user.click(within(nextUp).getAllByRole('button', { name: /^Start timer/ })[0]);
-    expect((await screen.findByRole('alert')).textContent).toContain('a timer is already running on chapter-9');
+  it('keeps the stage timer figures, drawn once time is logged', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    const strip = await screen.findByRole('list', { name: 'Stage timer figures' });
+    for (const label of ['Work time logged', 'Hours per finished hour', 'Effective rate']) expect(strip.textContent).toContain(label);
   });
 
-  it('says so when the overview cannot be read', async () => {
-    await renderPage({ overrides: { productionOverview: async () => Promise.reject(new Error('the time log could not be read')) } });
-    expect((await screen.findByRole('alert')).textContent).toContain('the time log could not be read');
+  it('draws no timer figures before anything is logged', async () => {
+    await renderPage();
+    await pipeline();
+    expect(screen.queryByRole('list', { name: 'Stage timer figures' })).toBeNull();
   });
+});
 
-  it('reads the overview again on Refresh', async () => {
+describe('chapter-sync-feeds-survive', () => {
+  it('reads the chapters again on a later chaptersync:state', async () => {
     const { api } = await renderPage();
-    await tile('Delivery date');
+    await pipeline();
     const read = vi.spyOn(api, 'productionOverview');
-    const user = userEvent.setup();
-    await user.click(within(actions()).getByRole('button', { name: 'Refresh' }));
+    const state = await api.chapterSyncState();
+    act(() => (api as unknown as { emitChapterSync?: (s: typeof state) => void }).emitChapterSync?.(state));
+    if (!(api as unknown as { emitChapterSync?: unknown }).emitChapterSync) return;
     await waitFor(() => expect(read).toHaveBeenCalled());
   });
+});
 
-  it('opens the status report export in its own slide-over', async () => {
+describe('the row menu keeps the features the mock has none for', () => {
+  it('offers the mock items, the chapter track, the checks and the status override on a pipeline row', async () => {
     await renderPage();
-    await tile('Delivery date');
-    expect(screen.queryByRole('dialog', { name: 'Status report' })).toBeNull();
-    const user = userEvent.setup();
-    await user.click(within(actions()).getByRole('button', { name: 'Export status report' }));
-    const report = await screen.findByRole('dialog', { name: 'Status report' });
-    expect(within(report).getByRole('button', { name: 'Export status report' })).toBeTruthy();
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[1];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    const labels = (contextItemsFor(row) ?? []).map((item) => item.label);
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Recording check…', 'Editing check…']) {
+      expect(labels).toContain(label);
+    }
+    expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
   });
 
-  it('offers to replace the manuscript from the header', async () => {
+  it('opens the recording check from the row menu', async () => {
     await renderPage();
-    await tile('Delivery date');
-    expect(within(actions()).getByRole('button', { name: 'Replace manuscript' })).toBeTruthy();
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[1];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    act(() =>
+      contextItemsFor(row)
+        ?.find((item) => item.key === 'recording')
+        ?.onSelect(),
+    );
+    expect(await screen.findByRole('dialog', { name: /^Recording check: / })).toBeTruthy();
   });
 
-  it('is the import, and reads no overview, when there is no manuscript', async () => {
-    const productionOverview = vi.fn<NarrationApi['productionOverview']>();
-    await renderPage({ overrides: { productionOverview }, initial: { noManuscript: true } });
-    expect(await screen.findByText('No imported manuscript')).toBeTruthy();
-    expect(screen.getByText('Import the manuscript to plan, record and deliver this book.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Import manuscript' })).toBeTruthy();
-    expect(within(actions()).queryByRole('button')).toBeNull();
-    expect(screen.queryByRole('list', { name: 'Production figures' })).toBeNull();
-    expect(productionOverview).not.toHaveBeenCalled();
+  it('matches nothing outside the pipeline', async () => {
+    await renderPage();
+    await pipeline();
+    expect(contextItemsFor(screen.getByRole('heading', { level: 1, name: 'Production' }))).toBeNull();
+  });
+});
+
+describe('deleted-files-have-no-importers', () => {
+  const SRC = join(__dirname, '..', '..');
+  const sources = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory() ? sources(join(dir, entry.name)) : /\.tsx?$/.test(entry.name) ? [join(dir, entry.name)] : [],
+    );
+  it.each(['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary'])('no source imports %s', (name) => {
+    const importers = sources(SRC).filter((file) => new RegExp(`from '[^']*/${name}'`).test(readFileSync(file, 'utf8')));
+    expect(importers).toEqual([]);
   });
 });

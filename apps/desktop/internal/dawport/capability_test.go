@@ -83,3 +83,68 @@ func TestReasonsKeepTodaysWireValues(t *testing.T) {
 		}
 	}
 }
+
+func TestCatalogueHasTheFourEditRowsInOrderAfterMacroRender(t *testing.T) {
+	// SND-3: cutting, an effect on a range, stacking takes and backups follow macro_render, each its own role whose methods
+	// answer a Result (ADR 0810).
+	want := []struct {
+		c       Capability
+		label   string
+		role    reflect.Type
+		methods []string
+	}{
+		{CapCutRange, "Cut words and audio", reflect.TypeFor[RangeCutter](), []string{"DeleteRange"}},
+		{CapFXRange, "Add an effect to words", reflect.TypeFor[RangeFXApplier](), []string{"ApplyFXToRange", "RemoveFXFromRange"}},
+		{CapStackTakes, "Stack takes", reflect.TypeFor[TakeStacker](), []string{"StackTakes", "UnstackTakes"}},
+		{CapBackups, "Audio backups", reflect.TypeFor[BackupKeeper](), []string{"BackupAround", "RestoreBackup"}},
+	}
+	all := Capabilities()
+	at := -1
+	for i, spec := range all {
+		if spec.Capability == CapMacroRender {
+			at = i
+		}
+	}
+	if at < 0 || at+len(want) >= len(all) {
+		t.Fatalf("macro_render at %d of %d", at, len(all))
+	}
+	result := reflect.TypeFor[Result]()
+	errType := reflect.TypeFor[error]()
+	for i, w := range want {
+		spec := all[at+1+i]
+		if spec.Capability != w.c || spec.Label != w.label || spec.Role != w.role || spec.Needs != NeedsRunning {
+			t.Errorf("row %d = %+v, want %s %q %v", at+1+i, spec, w.c, w.label, w.role)
+		}
+		if w.role.NumMethod() != len(w.methods) {
+			t.Errorf("%v has %d methods, want %v", w.role, w.role.NumMethod(), w.methods)
+		}
+		for _, name := range w.methods {
+			m, ok := w.role.MethodByName(name)
+			if !ok {
+				t.Errorf("%v has no %s", w.role, name)
+				continue
+			}
+			if m.Type.NumOut() != 2 || m.Type.Out(0) != result || m.Type.Out(1) != errType {
+				t.Errorf("%v.%s returns %v, want (Result, error)", w.role, name, m.Type)
+			}
+		}
+	}
+}
+
+func TestEditRequestsCarryNoPath(t *testing.T) {
+	// The four edit roles act on the project the engine has open; a request names items, takes and times, never a file.
+	for _, typ := range []reflect.Type{
+		reflect.TypeFor[RangeRequest](), reflect.TypeFor[DeleteRangeRequest](), reflect.TypeFor[FXRangeRequest](),
+		reflect.TypeFor[StackRequest](), reflect.TypeFor[StackGroup](), reflect.TypeFor[StackMove](), reflect.TypeFor[BackupRequest](),
+	} {
+		for i := range typ.NumField() {
+			name := typ.Field(i).Name
+			if regexp.MustCompile(`(?i)path|file|folder|dir`).MatchString(name) {
+				t.Errorf("%v.%s looks like a path", typ, name)
+			}
+		}
+	}
+	if CutClose != "close" || CutGap != "gap" {
+		t.Errorf("cut modes %q, %q; the mock's are close and gap", CutClose, CutGap)
+	}
+}

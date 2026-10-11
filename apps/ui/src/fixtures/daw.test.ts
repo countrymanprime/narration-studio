@@ -41,4 +41,35 @@ describe('the mock DAW setups', () => {
     expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBe(true);
     expect(DAW_SETUPS['audacity-backups'].capabilities.punch.destructive).toBeUndefined();
   });
+
+  it('ui-mirror-names-exactly-the-go-catalogue: the four edit capabilities follow macro_render, in Go order', () => {
+    const keys = DAW_CAPABILITIES.map((c) => c.key);
+    const at = keys.indexOf('macro_render');
+    expect(keys.slice(at + 1, at + 5)).toEqual(['cut_range', 'fx_range', 'stack_takes', 'backups']);
+    expect(DAW_CAPABILITIES.slice(at + 1, at + 5).map((c) => c.label)).toEqual([
+      'Cut words and audio',
+      'Add an effect to words',
+      'Stack takes',
+      'Audio backups',
+    ]);
+  });
+
+  it.each(['reaper', 'reaper-off'] as const)(
+    'ui-mirror-names-exactly-the-go-catalogue: %s declares the edit capabilities not yet available with the host sentence',
+    (id) => {
+      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['cut_range', 'fx_range', 'stack_takes', 'backups'].includes(c.key))) {
+        expect(DAW_SETUPS[id].capabilities[key], key).toEqual({
+          level: 'not_yet_available',
+          available: false,
+          reason: 'not_yet',
+          message: `${label} is not available with REAPER yet.`,
+        });
+      }
+    },
+  );
+
+  it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {
+    expect(DAW_SETUPS['audacity-backups'].capabilities.backups).toEqual(DAW_SETUPS.audacity.capabilities.backups);
+    expect(DAW_SETUPS['audacity-backups'].capabilities.backups.level).toBe('not_yet_available');
+  });
 });
