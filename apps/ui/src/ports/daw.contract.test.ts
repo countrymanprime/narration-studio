@@ -2,15 +2,17 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import type { DawResult } from '../api/contracts/daw';
+import type { DawCapabilities, DawResult } from '../api/contracts/daw';
+import type { PickupMarker, PickupsState } from '../api/contracts/pickups';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
 import { findingMarkerSchema } from '../api/schemas/findings';
+import { pickupsStateSchema } from '../api/schemas/pickups';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
 import { workspaceUseTakeResultSchema } from '../api/schemas/workspace';
 import { parseWire } from '../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../api/wire/standardSchema';
-import { DAW_ANSWERS, DAW_PROJECT, DAW_PROJECT_STATES, DAW_SETUPS } from '../fixtures/daw';
-import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi } from './daw';
+import { DAW_ANSWERS, DAW_PROJECT, DAW_PROJECT_STATES, DAW_SETUPS, pickupMarkersReadAnswer, pickupsImportedAnswer } from '../fixtures/daw';
+import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi, type DawPickupItem, NOTHING_TO_CHANGE } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
 // One suite over both adapters: the mock on the REAPER setup, and the host adapter fed by the goldens the Go host wrote. The
@@ -30,6 +32,9 @@ const GOLDEN_FILES = [
   'findings-add-marker.json',
   'findings-add-marker-existing.json',
   'findings-add-marker-stale.json',
+  'pickups-idle.json',
+  'pickups-import-success.json',
+  'pickups-markers-listed.json',
 ] as const;
 const goldens: Goldens = Object.fromEntries(GOLDEN_FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 
@@ -39,9 +44,74 @@ const read = <S extends StandardSchemaV1>(file: string, schema: S): InferOutput<
 const recording = (key: string): InferOutput<typeof readAloudRecordingSchema> =>
   parseWire(readAloudRecordingSchema, (goldens['read-aloud-recordings.json'] as Record<string, unknown>)[key], { boundary: 'daw contract', payload: key });
 
+/** The host's pickups bindings as internal/pickups.Service answers them: each starts a run, emits it, and finishes it as
+ * `pickups:state` once the DAW answers, with the service's sentences. Markers within 0.15 s are one pickup, as in the Lua. */
+function pickupsHost(capabilities: DawCapabilities = DAW_SETUPS.reaper) {
+  let state: PickupsState = read('pickups-idle.json', pickupsStateSchema);
+  let markers: PickupMarker[] = [];
+  let run = 0;
+  const calls: string[] = [];
+  const listeners = new Set<(next: PickupsState) => void>();
+  const emit = () => listeners.forEach((listener) => listener(structuredClone(state)));
+  const near = (start: number, wanted?: PickupMarker['state']) =>
+    markers.find((marker) => Math.abs(marker.start - start) <= 0.15 && (wanted === undefined || marker.state === wanted));
+  const begin = (call: string, phase: PickupsState['phase'], finish: () => Partial<PickupsState>) => {
+    calls.push(call);
+    run += 1;
+    state = { ...read('pickups-idle.json', pickupsStateSchema), runId: String(run), phase, message: '…' };
+    emit();
+    setTimeout(() => {
+      state = { ...state, phase: 'success', ...finish() };
+      emit();
+    }, 0);
+    return Promise.resolve({ status: 'started' as const });
+  };
+  const rename = (from: PickupMarker['state'], to: PickupMarker['state'], position: number, notFound: string, renamed: string) => () => {
+    const marker = near(position, from);
+    if (!marker) return { phase: 'error' as const, message: notFound };
+    marker.state = to;
+    return { message: renamed };
+  };
+  const api: Pick<
+    DawHostApi,
+    'dawCapabilities' | 'pickupsImport' | 'pickupsResolve' | 'pickupsReopen' | 'pickupsListMarkers' | 'pickupsState' | 'subscribePickups'
+  > = {
+    dawCapabilities: () => Promise.resolve(capabilities),
+    pickupsImport: (csvText) => {
+      const rows = csvText
+        .trim()
+        .split('\n')
+        .slice(1)
+        .map((line) => line.split(','));
+      return begin('import', 'importing', () => {
+        const fresh = rows.filter(([start]) => !near(Number(start)));
+        markers = [...markers, ...fresh.map(([start, note, tag]) => ({ start: Number(start), state: 'open' as const, tag: tag ?? '', note: note ?? '' }))];
+        const existing = rows.length - fresh.length;
+        return { importReport: { added: fresh.length, existing, invalid: 0 }, message: pickupsImportedAnswer(fresh.length, existing) };
+      }).then(() => ({ status: 'started' as const, rowErrors: [] }));
+    },
+    pickupsResolve: (position) => begin('resolve', 'resolving', rename('open', 'done', position, DAW_ANSWERS.noOpenPickup, DAW_ANSWERS.pickupResolved)),
+    pickupsReopen: (position) => begin('reopen', 'reopening', rename('done', 'open', position, DAW_ANSWERS.noResolvedPickup, DAW_ANSWERS.pickupReopened)),
+    pickupsListMarkers: () =>
+      begin('list', 'listing', () => {
+        const listed = [...markers].sort((a, b) => a.start - b.start).map((marker) => ({ ...marker }));
+        const open = listed.filter((marker) => marker.state === 'open').length;
+        return { markers: listed, message: pickupMarkersReadAnswer(open, listed.length - open) };
+      }),
+    pickupsState: () => Promise.resolve(structuredClone(state)),
+    subscribePickups: (onUpdate) => {
+      listeners.add(onUpdate);
+      onUpdate(structuredClone(state));
+      return () => listeners.delete(onUpdate);
+    },
+  };
+  return { api, calls };
+}
+
 function hostApi(): DawHostApi {
   const known = DAW_PROJECT;
   return {
+    ...pickupsHost(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)).api,
     dawCapabilities: () => Promise.resolve(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)),
     dawProjectState: () => Promise.resolve(read('daw-project-state-saved.json', dawProjectStateSchema)),
     readAloudRecordStart: (chapterId) => Promise.resolve(recording(known.chapterIds.includes(chapterId) ? 'ready.start' : 'track_missing.start')),
@@ -70,6 +140,11 @@ function expectWellFormed(result: unknown): void {
   expect(parsed.undoSteps).toBe(0);
   expect(parsed.message).toBe(parsed.refused);
 }
+
+const PICKUPS: readonly DawPickupItem[] = [
+  { ref: 'pickup-1', start: 1.5, tag: 'narrator', note: 'Mispronounced' },
+  { ref: 'pickup-2', start: 9.25, tag: '', note: 'Second pickup' },
+];
 
 const cases: ReadonlyArray<ContractCase<DawClient>> = [
   {
@@ -128,9 +203,57 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
+  {
+    name: 'dawclient-pickup-methods: add, mark done, read back and open again, each a well-formed result',
+    check: async (daw) => {
+      const added = await daw.addPickupMarkers(PICKUPS);
+      expectWellFormed(added);
+      expect(added).toEqual({ ok: true, changed: true, message: 'Imported 2 pickups.', undoSteps: 1 });
+      expect(await daw.setPickupMarkerDone('pickup-1', true)).toEqual({ ok: true, changed: true, message: DAW_ANSWERS.pickupResolved, undoSteps: 1 });
+      const read = await daw.readPickupMarkers();
+      expectWellFormed(read);
+      expect(read.markers).toEqual([
+        { ref: 'pickup-1', start: 1.5, state: 'done', tag: 'narrator', note: 'Mispronounced' },
+        { ref: 'pickup-2', start: 9.25, state: 'open', tag: '', note: 'Second pickup' },
+      ]);
+      expect(await daw.setPickupMarkerDone('pickup-1', false)).toEqual({ ok: true, changed: true, message: DAW_ANSWERS.pickupReopened, undoSteps: 1 });
+    },
+  },
+  {
+    name: 'adding-pickups-twice-adds-nothing-alike',
+    observe: async (daw) => [await daw.addPickupMarkers(PICKUPS), await daw.addPickupMarkers(PICKUPS)],
+  },
+  {
+    name: 'an-unknown-pickup-ref-is-nothing-to-change-alike',
+    observe: async (daw) => [await daw.setPickupMarkerDone('never-marked', true), await daw.setPickupMarkerDone('never-marked', false)],
+  },
+  {
+    name: 'a-pickup-already-in-that-state-is-nothing-to-change-alike',
+    observe: async (daw) => {
+      await daw.addPickupMarkers(PICKUPS);
+      return [
+        await daw.setPickupMarkerDone('pickup-2', false),
+        await daw.setPickupMarkerDone('pickup-2', true),
+        await daw.setPickupMarkerDone('pickup-2', true),
+      ];
+    },
+  },
+  {
+    name: 'pickup-markers-are-read-alike',
+    observe: async (daw) => {
+      const empty = await daw.readPickupMarkers();
+      await daw.addPickupMarkers(PICKUPS);
+      await daw.setPickupMarkerDone('pickup-2', true);
+      return [empty, await daw.readPickupMarkers()];
+    },
+  },
 ];
 
-describeProviderContract<DawClient>('daw', { mock: () => createMockDawClient(DAW_SETUPS.reaper), host: () => createHostDawClient(hostApi()) }, cases, {
+// The REAPER golden is the host with no heartbeat, so its pickups capability is unavailable; the pickup cases run over the
+// declaration of a REAPER that answers (DAW_SETUPS.reaper), as the mock does.
+const reachableHost = (): DawClient => createHostDawClient({ ...hostApi(), ...pickupsHost().api });
+
+describeProviderContract<DawClient>('daw', { mock: () => createMockDawClient(DAW_SETUPS.reaper), host: reachableHost }, cases, {
   goldens,
 });
 
@@ -232,5 +355,87 @@ describe('the port never names a DAW', () => {
       .join('\n');
     expect(source).not.toMatch(/reaper|audacity|built-?in|standalone/i);
     expect(source).not.toMatch(/\.daw\b|\bkind\b|capabilit(y|ies)\.daw/);
+  });
+});
+
+describe("pickup markers are the DAW's truth", () => {
+  const away = DAW_SETUPS['reaper-off'];
+  const awaySentence = away.capabilities.pickups.message;
+
+  it('away-writes-are-the-pages-to-queue: a DAW that does not answer refuses each call with the pickups capability sentence and sends nothing', async () => {
+    expect(awaySentence).toBeTruthy();
+    const host = pickupsHost(away);
+    const refusal = { ok: false, changed: false, message: awaySentence, undoSteps: 0, refused: awaySentence };
+    for (const daw of [createHostDawClient({ ...hostApi(), ...host.api }), createMockDawClient(away)]) {
+      expect(await daw.addPickupMarkers(PICKUPS)).toEqual(refusal);
+      expect(await daw.setPickupMarkerDone('pickup-1', true)).toEqual(refusal);
+      expect(await daw.readPickupMarkers()).toEqual({ ...refusal, markers: [] });
+    }
+    expect(host.calls).toEqual([]);
+  });
+
+  it("away-writes-are-the-pages-to-queue: the host's own capabilities golden refuses with the resolver's sentence for its reason", async () => {
+    const golden = read('daw-capabilities-reaper.json', dawCapabilitiesSchema);
+    const support = golden.capabilities.pickups;
+    expect(support).toMatchObject({ available: false, reason: 'standalone' });
+    const daw = createHostDawClient(hostApi());
+    expect(await daw.addPickupMarkers(PICKUPS)).toMatchObject({ ok: false, changed: false, refused: support?.message });
+  });
+
+  it('away-writes-are-the-pages-to-queue: the refusal is the sentence the resolver sent, not one the client words', async () => {
+    const sentence = 'A sentence only the resolver knows.';
+    const capabilities: DawCapabilities = {
+      ...away,
+      capabilities: { ...away.capabilities, pickups: { level: 'supported', available: false, reason: 'not_running', message: sentence } },
+    };
+    const host = pickupsHost(capabilities);
+    const daw = createHostDawClient({ ...hostApi(), ...host.api });
+    expect((await daw.setPickupMarkerDone('pickup-1', false)).refused).toBe(sentence);
+    expect((await createMockDawClient(capabilities).addPickupMarkers(PICKUPS)).refused).toBe(sentence);
+    expect(host.calls).toEqual([]);
+  });
+
+  it('the DAW refusing a rename is its own sentence, and the client does not try again', async () => {
+    const host = pickupsHost();
+    const daw = createHostDawClient({ ...hostApi(), ...host.api });
+    await daw.addPickupMarkers(PICKUPS);
+    // Another client marked pickup-1 done behind this one's back: this client still thinks it open, so it sends and the DAW refuses.
+    const other = createHostDawClient({ ...hostApi(), ...host.api });
+    await other.addPickupMarkers(PICKUPS.slice(0, 1));
+    expect(await other.setPickupMarkerDone('pickup-1', true)).toMatchObject({ ok: true, changed: true });
+    expect(await daw.setPickupMarkerDone('pickup-1', true)).toEqual({
+      ok: false,
+      changed: false,
+      message: DAW_ANSWERS.noOpenPickup,
+      undoSteps: 0,
+      refused: DAW_ANSWERS.noOpenPickup,
+    });
+    expect(host.calls.filter((call) => call === 'resolve')).toHaveLength(2);
+  });
+
+  it('a later session learns each pickup time by adding again: nothing is added and the ids map to the markers', async () => {
+    const host = pickupsHost();
+    await createHostDawClient({ ...hostApi(), ...host.api }).addPickupMarkers(PICKUPS);
+    const later = createHostDawClient({ ...hostApi(), ...host.api });
+    expect(await later.setPickupMarkerDone('pickup-2', true)).toEqual({ ok: true, changed: false, message: NOTHING_TO_CHANGE, undoSteps: 0 });
+    expect(await later.addPickupMarkers(PICKUPS)).toEqual({ ok: true, changed: false, message: pickupsImportedAnswer(0, 2), undoSteps: 0 });
+    expect(await later.setPickupMarkerDone('pickup-2', true)).toMatchObject({ ok: true, changed: true, undoSteps: 1 });
+    const read = await later.readPickupMarkers();
+    expect(read.markers.map((marker) => [marker.ref, marker.state])).toEqual([
+      ['pickup-1', 'open'],
+      ['pickup-2', 'done'],
+    ]);
+  });
+
+  it('a marker this session never marked is read without an id', async () => {
+    const host = pickupsHost();
+    await createHostDawClient({ ...hostApi(), ...host.api }).addPickupMarkers(PICKUPS.slice(1));
+    const read = await createHostDawClient({ ...hostApi(), ...host.api }).readPickupMarkers();
+    expect(read.markers).toEqual([{ start: 9.25, state: 'open', tag: '', note: 'Second pickup' }]);
+  });
+
+  it("the host's own sentences: the import and the read answers match the goldens internal/pickups wrote", () => {
+    expect(pickupsImportedAnswer(2, 0)).toBe(read('pickups-import-success.json', pickupsStateSchema).message);
+    expect(pickupMarkersReadAnswer(1, 1)).toBe(read('pickups-markers-listed.json', pickupsStateSchema).message);
   });
 });

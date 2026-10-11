@@ -1,11 +1,28 @@
 import type { DawCapabilities, DawProjectState, DawResult } from '../api/contracts/daw';
-import { DAW_ANSWERS, DAW_PROJECT, type DawProject, projectStateOf } from '../fixtures/daw';
+import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
+import { DAW_ANSWERS, DAW_PROJECT, type DawProject, pickupMarkersReadAnswer, pickupsImportedAnswer, projectStateOf } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
 // The DAW port (ADR 0770, ADR 0810): what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
 // carries the capability's or the host's own sentence in `refused` and `message`; this file never words one for the DAW and
 // never branches on which DAW it is talking to, so behaviour differs only through the capability fields. A later DAW slice
 // adds its method here together with its command (ISP).
+//
+// Pickup markers (SN-D44) are the DAW's truth for whether a pickup is done. The DAW addresses a marker by its time, not by the
+// app's id, so each client keeps, for its own session, the time of every pickup it marked or read (`PickupRefs`). The client
+// never queues a write the DAW refused: a page that wants a write to wait for the DAW keeps its own queue.
+
+/** A pickup the app asks the DAW to mark: the app's own id, its project time in seconds, its optional tag and its note. */
+export type DawPickupItem = { ref: string; start: number; tag: string; note: string };
+
+/** A pickup marker as the DAW holds it, with the app's id when this session marked it or read it at that time before. */
+export type DawPickupMarker = PickupMarker & { ref?: string };
+
+/** `readPickupMarkers`' answer: the result, and every pickup marker in time order (none when refused). */
+export type DawPickupMarkersRead = DawResult & { markers: DawPickupMarker[] };
+
+/** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
+export const NOTHING_TO_CHANGE = 'Nothing to change.';
 
 export interface DawClient {
   /** What the launch's DAW can do now, as the host or the mock setup reports it. */
@@ -20,13 +37,95 @@ export interface DawClient {
   useTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<DawResult>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
+  /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
+  addPickupMarkers(items: readonly DawPickupItem[]): Promise<DawResult>;
+  /** Mark the pickup `ref` done, or open again, by renaming its marker. `ref` is an id this session marked or read. */
+  setPickupMarkerDone(ref: string, done: boolean): Promise<DawResult>;
+  /** Every pickup marker the DAW holds, open and done; the DAW's names win over what the app thought. */
+  readPickupMarkers(): Promise<DawPickupMarkersRead>;
 }
 
 /** The `NarrationApi` methods the host adapter calls. */
 export type DawHostApi = Pick<
   NarrationApi,
-  'dawCapabilities' | 'dawProjectState' | 'readAloudRecordStart' | 'readAloudRecordStop' | 'workspaceUseTake' | 'findingsAddMarker'
+  | 'dawCapabilities'
+  | 'dawProjectState'
+  | 'readAloudRecordStart'
+  | 'readAloudRecordStop'
+  | 'workspaceUseTake'
+  | 'findingsAddMarker'
+  | 'pickupsImport'
+  | 'pickupsResolve'
+  | 'pickupsReopen'
+  | 'pickupsListMarkers'
+  | 'pickupsState'
+  | 'subscribePickups'
 >;
+
+/** How far apart a pickup's time and its marker's may be and still be the same pickup (narration_pickups.lua's tolerance). */
+const PICKUP_TOLERANCE = 0.15;
+
+/** The time of each pickup this session marked or read, and its state when the session knows it. */
+class PickupRefs {
+  private readonly known = new Map<string, { start: number; state?: PickupMarkerState }>();
+
+  get(ref: string): { start: number; state?: PickupMarkerState } | undefined {
+    return this.known.get(ref);
+  }
+
+  /** After an import: each item is at its time; its state is known only when none was already there (`allNew`). */
+  marked(items: readonly DawPickupItem[], allNew: boolean): void {
+    for (const item of items) this.known.set(item.ref, { start: item.start, state: allNew ? 'open' : this.known.get(item.ref)?.state });
+  }
+
+  set(ref: string, state: PickupMarkerState): void {
+    const entry = this.known.get(ref);
+    if (entry) this.known.set(ref, { ...entry, state });
+  }
+
+  /** Each marker with the id of the nearest known pickup within the tolerance, whose state becomes the marker's. */
+  read(markers: readonly PickupMarker[]): DawPickupMarker[] {
+    return markers.map((marker) => {
+      let nearest: { ref: string; gap: number } | undefined;
+      for (const [ref, { start }] of this.known) {
+        const gap = Math.abs(start - marker.start);
+        if (gap <= PICKUP_TOLERANCE && (!nearest || gap < nearest.gap)) nearest = { ref, gap };
+      }
+      if (!nearest) return { ...marker };
+      this.set(nearest.ref, marker.state);
+      return { ...marker, ref: nearest.ref };
+    });
+  }
+}
+
+/** One pickups run: subscribe, start it, and answer the first finished state of a run other than the one before. A start that
+ * throws (no pickups service, a bad position) rejects, as the other host calls do. */
+async function settledPickupsRun(api: DawHostApi, start: () => Promise<unknown>): Promise<PickupsState> {
+  const before = (await api.pickupsState()).runId;
+  return new Promise<PickupsState>((resolve, reject) => {
+    let finished = false;
+    // The settle waits a microtask, so `unsubscribe` is assigned even when a state arrives while subscribing.
+    const finish = (settle: () => void) => {
+      if (finished) return;
+      finished = true;
+      queueMicrotask(() => {
+        unsubscribe();
+        settle();
+      });
+    };
+    const unsubscribe = api.subscribePickups((state) => {
+      if (state.runId === undefined || state.runId === before || (state.phase !== 'success' && state.phase !== 'error')) return;
+      finish(() => resolve(state));
+    });
+    start().catch((error: unknown) => finish(() => reject(error)));
+  });
+}
+
+/** CSV text in the columns `pickupsImport` reads (start,note,tag), each cell quoted when it needs to be. */
+function pickupsCsv(items: readonly DawPickupItem[]): string {
+  const cell = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value);
+  return ['start,note,tag', ...items.map((item) => [String(item.start), cell(item.note), cell(item.tag)].join(','))].join('\n') + '\n';
+}
 
 /** A refused call changed nothing; `refused` holds the sentence and `message` repeats it. `stale` adds the one code (ADR 0861). */
 function refused(sentence: string | undefined, call: string, stale = false): DawResult {
@@ -37,6 +136,42 @@ function refused(sentence: string | undefined, call: string, stale = false): Daw
 
 /** The host sends no sentence with a plain success, so `message` is empty then rather than worded here. */
 const done = (changed: boolean, undoSteps: number, message = ''): DawResult => ({ ok: true, changed, message, undoSteps });
+
+/** The three pickup marker calls over the host's pickups bindings, each refused first with the `pickups` capability's own sentence. */
+function hostPickupMarkers(api: DawHostApi): Pick<DawClient, 'addPickupMarkers' | 'setPickupMarkerDone' | 'readPickupMarkers'> {
+  const refs = new PickupRefs();
+  const unavailableNow = async (call: string) => unavailable(await api.dawCapabilities(), 'pickups', call);
+  return {
+    async addPickupMarkers(items) {
+      const sentence = await unavailableNow('addPickupMarkers');
+      if (sentence) return refused(sentence, 'addPickupMarkers');
+      if (items.length === 0) return done(false, 0);
+      const state = await settledPickupsRun(api, () => api.pickupsImport(pickupsCsv(items)));
+      if (state.phase === 'error') return refused(state.message, 'addPickupMarkers');
+      const added = state.importReport?.added ?? 0;
+      refs.marked(items, (state.importReport?.existing ?? 0) === 0);
+      return done(added > 0, added > 0 ? 1 : 0, state.message);
+    },
+    async setPickupMarkerDone(ref, isDone) {
+      const sentence = await unavailableNow('setPickupMarkerDone');
+      if (sentence) return refused(sentence, 'setPickupMarkerDone');
+      const known = refs.get(ref);
+      const want: PickupMarkerState = isDone ? 'done' : 'open';
+      if (!known || known.state === want) return done(false, 0, NOTHING_TO_CHANGE);
+      const state = await settledPickupsRun(api, () => (isDone ? api.pickupsResolve(known.start) : api.pickupsReopen(known.start)));
+      if (state.phase === 'error') return refused(state.message, 'setPickupMarkerDone');
+      refs.set(ref, want);
+      return done(true, 1, state.message);
+    },
+    async readPickupMarkers() {
+      const sentence = await unavailableNow('readPickupMarkers');
+      if (sentence) return { ...refused(sentence, 'readPickupMarkers'), markers: [] };
+      const state = await settledPickupsRun(api, () => api.pickupsListMarkers());
+      if (state.phase === 'error') return { ...refused(state.message, 'readPickupMarkers'), markers: [] };
+      return { ...done(false, 0, state.message), markers: refs.read(state.markers ?? []) };
+    },
+  };
+}
 
 /** Maps today's host results to `DawResult`. A record start or stop is a transport action, not an edit, so it adds no undo point.
  * A host refusal whose `reason` is `stale` (or, for a record start, `track_missing`: the linked track is gone) answers code
@@ -63,6 +198,7 @@ export function createHostDawClient(api: DawHostApi): DawClient {
       if (result.outcome === 'refused') return refused(result.message, 'addMarker', result.reason === 'stale');
       return result.outcome === 'added' ? done(true, 1) : done(false, 0);
     },
+    ...hostPickupMarkers(api),
   };
 }
 
@@ -105,6 +241,47 @@ export function createMockDawClient(
       if (sentence) return refused(sentence, 'addMarker');
       if (!project.findingIds.includes(findingId)) throw new Error(`no finding ${findingId} in the project`);
       return done(true, 1);
+    },
+    ...mockPickupMarkers(setup),
+  };
+}
+
+/** The pickup marker calls over a marker list the mock keeps as the DAW would, answering with the host's sentences. */
+function mockPickupMarkers(setup: DawCapabilities): Pick<DawClient, 'addPickupMarkers' | 'setPickupMarkerDone' | 'readPickupMarkers'> {
+  const refs = new PickupRefs();
+  let markers: PickupMarker[] = [];
+  const near = (start: number, state?: PickupMarkerState) =>
+    markers
+      .filter((marker) => Math.abs(marker.start - start) <= PICKUP_TOLERANCE && (state === undefined || marker.state === state))
+      .sort((a, b) => Math.abs(a.start - start) - Math.abs(b.start - start))[0];
+  return {
+    async addPickupMarkers(items) {
+      const sentence = unavailable(setup, 'pickups', 'addPickupMarkers');
+      if (sentence) return refused(sentence, 'addPickupMarkers');
+      if (items.length === 0) return done(false, 0);
+      const fresh = items.filter((item) => !near(item.start));
+      markers = [...markers, ...fresh.map((item) => ({ start: item.start, state: 'open' as const, tag: item.tag, note: item.note }))];
+      refs.marked(items, fresh.length === items.length);
+      return done(fresh.length > 0, fresh.length > 0 ? 1 : 0, pickupsImportedAnswer(fresh.length, items.length - fresh.length));
+    },
+    async setPickupMarkerDone(ref, isDone) {
+      const sentence = unavailable(setup, 'pickups', 'setPickupMarkerDone');
+      if (sentence) return refused(sentence, 'setPickupMarkerDone');
+      const known = refs.get(ref);
+      const want: PickupMarkerState = isDone ? 'done' : 'open';
+      if (!known || known.state === want) return done(false, 0, NOTHING_TO_CHANGE);
+      const marker = near(known.start, isDone ? 'open' : 'done');
+      if (!marker) return refused(isDone ? DAW_ANSWERS.noOpenPickup : DAW_ANSWERS.noResolvedPickup, 'setPickupMarkerDone');
+      markers = markers.map((each) => (each === marker ? { ...each, state: want } : each));
+      refs.set(ref, want);
+      return done(true, 1, isDone ? DAW_ANSWERS.pickupResolved : DAW_ANSWERS.pickupReopened);
+    },
+    async readPickupMarkers() {
+      const sentence = unavailable(setup, 'pickups', 'readPickupMarkers');
+      if (sentence) return { ...refused(sentence, 'readPickupMarkers'), markers: [] };
+      const listed = [...markers].sort((a, b) => a.start - b.start);
+      const open = listed.filter((marker) => marker.state === 'open').length;
+      return { ...done(false, 0, pickupMarkersReadAnswer(open, listed.length - open)), markers: refs.read(listed) };
     },
   };
 }

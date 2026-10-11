@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import { dawCapabilitiesSchema, dawProjectStateSchema } from '../api/schemas/daw';
 import { parseWire } from '../api/wire/parseWire';
-import { DAW_ANSWERS, DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId } from './daw';
+import { DAW_ANSWERS, DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId, pickupMarkersReadAnswer, pickupsImportedAnswer } from './daw';
 
 const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity', 'audacity-backups'];
 
@@ -105,5 +105,18 @@ describe('the mock DAW setups', () => {
       JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
     expect(golden('workspace-use-take-refused.json')).toMatchObject({ reason: 'stale', message: DAW_ANSWERS.staleTake });
     expect(golden('read-aloud-recordings.json')['track_missing.start']).toMatchObject({ reason: 'track_missing', message: DAW_ANSWERS.noTrack });
+  });
+
+  it("mock-pickup-answers-are-the-host's: the rename sentences are the Go service's and the Lua's, word for word", () => {
+    const source = (path: string) => readFileSync(fileURLToPath(new URL(`../../../../${path}`, import.meta.url)), 'utf8');
+    const service = source('apps/desktop/internal/pickups/service.go');
+    const lua = source('integrations/reaper/narration_pickups.lua');
+    expect(service).toContain(`"${DAW_ANSWERS.pickupResolved}"`);
+    expect(service).toContain(`"${DAW_ANSWERS.pickupReopened}"`);
+    expect(lua).toContain(`'${DAW_ANSWERS.noOpenPickup}'`);
+    expect(lua).toContain(`'${DAW_ANSWERS.noResolvedPickup}'`);
+    expect(pickupsImportedAnswer(1, 0)).toBe('Imported 1 pickup.');
+    expect(pickupsImportedAnswer(0, 2)).toBe('Imported 0 pickups, 2 already there.');
+    expect(pickupMarkersReadAnswer(0, 1)).toBe('Read 1 pickup marker: 0 open, 1 done.');
   });
 });

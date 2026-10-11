@@ -152,4 +152,22 @@ export const DAW_ANSWERS = {
   staleTake: "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now.",
   takeUsed:
     'Made that take active in REAPER, in one undo step: Undo in REAPER puts the previous take back. Save the project in REAPER to bring the check up to date.',
+  /** internal/pickups.Service and narration_pickups.lua (SN-D44): a pickup marker renamed, or no marker to rename near that time. */
+  pickupResolved: 'Marked this pickup done.',
+  pickupReopened: 'Marked this pickup open again.',
+  noOpenPickup: 'No open pickup was found at that position.',
+  noResolvedPickup: 'No resolved pickup was found at that position.',
 } as const;
+
+const plural = (count: number): string => (count === 1 ? '' : 's');
+
+/** internal/pickups' importSummary: what an import of pickup markers added, and how many were already there. */
+export function pickupsImportedAnswer(added: number, existing: number): string {
+  return `Imported ${added} pickup${plural(added)}${existing > 0 ? `, ${existing} already there` : ''}.`;
+}
+
+/** internal/pickups' markersSummary: what a read of the pickup markers found. */
+export function pickupMarkersReadAnswer(open: number, done: number): string {
+  const total = open + done;
+  return `Read ${total} pickup marker${plural(total)}: ${open} open, ${done} done.`;
+}
