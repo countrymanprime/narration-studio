@@ -20,7 +20,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 53 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
-| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 48 |
+| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 49 |
 | [Persistence and project files](#persistence-and-project-files) | 8 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
@@ -445,6 +445,7 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) | A pronunciation records the source it came from, and there is no query status, query CSV or open-queries badge | Accepted |
 | [0803](0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md) | An extraction suggestion at 75 percent or more is applied and flagged Review, and one under 75 percent needs verification | Accepted |
 | [0820](0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | A bookmark is a spot kept in a project sidecar, checked on read and cleared when the manuscript is replaced | Proposed |
+| [0846](0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md) | Extraction suggestions are kept in a project file beside the Story Bible, and a rejected one stays as a tombstone | Proposed |
 
 <a id="persistence-and-project-files"></a>
 

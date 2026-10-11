@@ -1,12 +1,13 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useWorkJob } from '../../hooks/useWorkJob';
-import type { CreditsSetupState, ManuscriptImportSelection, WorkJob } from '../../types';
+import type { CreditsSetupState, DeliveryProfilesState, ManuscriptImportSelection, WorkJob } from '../../types';
 import type { Bootstrap } from '../../types';
 import { CreditsSetupBanner } from '../credits/CreditsSetupBanner';
 import { CreditsSetupDialog } from '../credits/CreditsSetupDialog';
+import { NEUTRAL_PROFILE, PLATFORM_PROFILES } from '../schedule/profiles';
 import { Button } from '../primitives/Button';
 import { ImportReview, ImportSummary } from './ImportReview';
 import { subtitleOverridesToCommit, type ReviewGroupKey, type ReviewGroupOpen } from './importReviewModel';
@@ -66,6 +67,12 @@ export function useManuscriptImport({
   // toast (ADR 0076), so this dialog does not also announce it.
   const [buildAfterImportJob, setBuildAfterImportJob] = useWorkJob({ poll: () => api.guideBuildState(), onSuccess: () => undefined });
   const buildStarted = useRef(false);
+  // The delivery profile is asked for on a first import of a project with none chosen, never on a replace (SNM-Q1). The host's profile
+  // state is read when a review opens; `profileToSave` holds the choice from the commit until the import has succeeded.
+  const [profiles, setProfiles] = useState<DeliveryProfilesState>();
+  const [profileChoice, setProfileChoice] = useState(NEUTRAL_PROFILE);
+  const profileToSave = useRef<string | null>(null);
+  const asksProfile = !found && profiles !== undefined && profiles.projectChoice === null;
   useEffect(() => {
     void api
       .settingsForScope('global')
@@ -75,6 +82,18 @@ export function useManuscriptImport({
       })
       .catch(() => {});
   }, [api]);
+  const reviewing = importJob?.phase === 'ready';
+  useEffect(() => {
+    if (!reviewing || found) return;
+    void api
+      .deliveryProfiles()
+      .then((state) => {
+        setProfiles(state);
+        // Starts on the Global default when the table lists it, else on none: always a value, so the review can be committed.
+        setProfileChoice(PLATFORM_PROFILES.some((profile) => profile.id === state.globalDefault.id) ? state.globalDefault.id : NEUTRAL_PROFILE);
+      })
+      .catch(() => setProfiles(undefined));
+  }, [api, reviewing, found]);
   const candidate = data.manuscriptCandidate;
   const offerCandidate = !found && candidate && !declinedCandidates.has(candidate.path) && !importJob;
   // The "Set up the credits" prompt: CreditsSetupState
@@ -97,9 +116,23 @@ export function useManuscriptImport({
   // which is already written and reported). The import dialog closes itself (like a successful Story Bible rebuild
   // already does, ADR 0076) and a second WorkDialog picks up the build's own progress, its own toast on the app's job:ended
   // subscriber included.
+  // The choice is saved once, after the import is written; a refusal is said in the host's words and never undoes the import.
+  const saveProfile = useCallback(async () => {
+    const id = profileToSave.current;
+    profileToSave.current = null;
+    // A platform the host has no profile for ("Other / none") leaves the project on the Global default.
+    const profile = id === null ? undefined : profiles?.profiles.find((candidate) => candidate.id === id);
+    if (!profile) return;
+    try {
+      await api.deliverySelectProfile('project', profile.id, profile.builtIn ? profile.version : '');
+    } catch (error) {
+      notify(`Manuscript imported. The delivery profile was not saved: ${apiErrorMessage(error)}`, 'error');
+    }
+  }, [api, notify, profiles]);
   useEffect(() => {
     if (importJob?.phase !== 'success') return;
     void refreshBootstrap();
+    void saveProfile();
     if (!buildAfterImport || buildStarted.current) return;
     buildStarted.current = true;
     notify('Manuscript imported.');
@@ -114,7 +147,7 @@ export function useManuscriptImport({
         if (result.job.phase !== 'success') setBuildAfterImportJob(result.job);
       })
       .catch((error) => notify(`Manuscript imported. Story Bible build failed: ${apiErrorMessage(error)}`, 'error'));
-  }, [importJob?.phase, buildAfterImport, api, notify, refreshBootstrap, setImportJob, setBuildAfterImportJob]);
+  }, [importJob?.phase, buildAfterImport, api, notify, refreshBootstrap, saveProfile, setImportJob, setBuildAfterImportJob]);
   const beginImportPreview = async (jobId: string) => {
     setHeadingLevel(1);
     setImportSelection({});
@@ -140,6 +173,7 @@ export function useManuscriptImport({
   };
   const commitImport = async () => {
     if (!importJob?.id) return;
+    profileToSave.current = asksProfile ? profileChoice : null;
     try {
       const selectedCharacterCandidateIds =
         importSelection.characterCandidateIds ?? importJob.preview?.characterCandidates?.map((candidate) => candidate.id) ?? [];
@@ -232,6 +266,7 @@ export function useManuscriptImport({
             groupOpen={groupOpen}
             onGroupOpenChange={(group: ReviewGroupKey, open: boolean) => setGroupOpen((current) => ({ ...current, [group]: open }))}
             buildStoryBible={{ checked: buildAfterImport, onChange: setBuildAfterImport }}
+            deliveryProfile={asksProfile ? { value: profileChoice, onChange: setProfileChoice } : undefined}
           />
         </ConfirmDialog>
       )}
