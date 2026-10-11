@@ -30,6 +30,7 @@ import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createPrepMarkupMock } from './prepMarkupMock';
+import { createBookmarksMock } from './bookmarksMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
 import { createUpdateMock } from './mockHost/update';
@@ -259,6 +260,11 @@ export function createMockApi(
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
     ...prepMarkup,
+    ...createBookmarksMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
     // Read the same two calls the real host reads (the pronunciation queries and each chapter's markup), never a third
     // mock store.
     prepCompletenessSummary: async () => {

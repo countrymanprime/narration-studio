@@ -716,6 +716,41 @@ describe('live events (ADR 0069: dropped and counted, never thrown inside the ca
   });
 });
 
+describe('the bookmarks bindings', () => {
+  const bookmark = {
+    id: 'b1',
+    chapterId: 'c-0001',
+    paragraphId: 'p-000001',
+    paragraph: 0,
+    offset: 21,
+    label: '',
+    note: '',
+    createdAt: '2026-10-11T10:00:00Z',
+    stale: false,
+  };
+
+  it('calls the four host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify([bookmark]));
+    const add = vi.fn().mockResolvedValue(JSON.stringify(bookmark));
+    const update = vi.fn().mockResolvedValue(JSON.stringify({ ...bookmark, label: 'The Queen' }));
+    const remove = vi.fn().mockResolvedValue('[]');
+    standInHost({ BookmarksList: list, BookmarksAdd: add, BookmarksUpdate: update, BookmarksRemove: remove });
+
+    await expect(wailsClient.bookmarksList()).resolves.toEqual([bookmark]);
+    await expect(wailsClient.bookmarksAdd('c-0001', 'p-000001', 21)).resolves.toEqual(bookmark);
+    expect(add).toHaveBeenCalledWith('c-0001', 'p-000001', 21);
+    await expect(wailsClient.bookmarksUpdate('b1', 'The Queen', '')).resolves.toMatchObject({ label: 'The Queen' });
+    expect(update).toHaveBeenCalledWith('b1', 'The Queen', '');
+    await expect(wailsClient.bookmarksRemove('b1')).resolves.toEqual([]);
+    expect(remove).toHaveBeenCalledWith('b1');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ BookmarksList: () => Promise.resolve(JSON.stringify([{ ...bookmark, offset: -1 }])) });
+    await expect(wailsClient.bookmarksList()).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {

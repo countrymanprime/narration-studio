@@ -126,6 +126,8 @@ import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSug
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
+// The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
+import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
@@ -396,6 +398,10 @@ export const wailsClient: NarrationApi = {
   prepMarkupSave: (chapterId, paragraphId, start, end, kind, value) =>
     decode(prepMarkupSpanSchema, 'PrepMarkupSave', host.PrepMarkupSave(chapterId, paragraphId, start, end, kind, value)),
   prepMarkupDelete: (chapterId, id) => decode(voidResult, 'PrepMarkupDelete', host.PrepMarkupDelete(chapterId, id)),
+  bookmarksList: () => decode(bookmarksSchema, 'BookmarksList', host.BookmarksList()),
+  bookmarksAdd: (chapterId, paragraphId, offset) => decode(spotBookmarkSchema, 'BookmarksAdd', host.BookmarksAdd(chapterId, paragraphId, offset)),
+  bookmarksUpdate: (id, label, note) => decode(spotBookmarkSchema, 'BookmarksUpdate', host.BookmarksUpdate(id, label, note)),
+  bookmarksRemove: (id) => decode(bookmarksSchema, 'BookmarksRemove', host.BookmarksRemove(id)),
   subscribeTranscript: (onUpdate) => subscribeChecked('transcript:state', transcriptStateSchema, onUpdate),
   coverageStart: (chapterId, options) =>
     decode(coverageStartResultSchema, 'CoverageStart', host.CoverageStart(chapterId, options?.skipRecheck ? { skipRecheck: 'true' } : {})),
