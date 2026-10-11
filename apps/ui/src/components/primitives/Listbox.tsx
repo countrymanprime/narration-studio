@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 export type ListboxOption = {
   id: string;
@@ -9,6 +9,10 @@ export type ListboxOption = {
   description?: ReactNode;
   // A glyph or dot before the label.
   leading?: ReactNode;
+  // At the right of the row: a muted count or a key cap.
+  trailing?: ReactNode;
+  // A heading is drawn before the first option of each run of one group. Absent on every option: no headings.
+  group?: string;
 };
 
 /** The DOM id of one option, for the combobox's `aria-activedescendant`. */
@@ -28,6 +32,7 @@ export function Listbox({
   onPick,
   empty,
   footer,
+  flush = false,
 }: {
   id: string;
   label: string;
@@ -38,38 +43,50 @@ export function Listbox({
   // Shown instead of the list when there are no options.
   empty?: ReactNode;
   footer?: ReactNode;
+  // Drops the frame, radius and shadow, for a list that sits inside a surface that already has them (the jump menu's dialog).
+  flush?: boolean;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
+    <div
+      className={`flex flex-col overflow-hidden bg-[var(--surface)] ${flush ? '' : 'rounded-[var(--radius-card)] border border-[var(--line-strong)] shadow-[var(--shadow-lg)]'}`}
+    >
       {options.length > 0 ? (
         <div id={id} role="listbox" aria-label={label} className="flex flex-col">
           {options.map((option, index) => {
             const active = index === activeIndex;
             const selected = option.id === selectedId;
+            const heading = option.group !== undefined && option.group !== options[index - 1]?.group;
             return (
-              <button
-                key={option.id}
-                id={listboxOptionId(id, option.id)}
-                type="button"
-                role="option"
-                tabIndex={-1}
-                aria-selected={selectedId === undefined ? active : selected}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}
-                // A press picks without taking focus from the text box that drives the list.
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => onPick(option.id)}
-              >
-                {selectedId !== undefined && (
-                  <span className="w-3.5 flex-none text-[var(--accent)]" aria-hidden="true">
-                    {selected && <FontAwesomeIcon icon={faCheck} />}
-                  </span>
+              <Fragment key={option.id}>
+                {heading && (
+                  <div role="presentation" className="px-3 pt-2 pb-1 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">
+                    {option.group}
+                  </div>
                 )}
-                {option.leading}
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold">{option.label}</span>
-                  {option.description && <span className="block text-xs text-[var(--text-muted)]">{option.description}</span>}
-                </span>
-              </button>
+                <button
+                  id={listboxOptionId(id, option.id)}
+                  type="button"
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={selectedId === undefined ? active : selected}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}
+                  // A press picks without taking focus from the text box that drives the list.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => onPick(option.id)}
+                >
+                  {selectedId !== undefined && (
+                    <span className="w-3.5 flex-none text-[var(--accent)]" aria-hidden="true">
+                      {selected && <FontAwesomeIcon icon={faCheck} />}
+                    </span>
+                  )}
+                  {option.leading}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{option.label}</span>
+                    {option.description && <span className="block text-xs text-[var(--text-muted)]">{option.description}</span>}
+                  </span>
+                  {option.trailing && <span className="flex-none text-xs text-[var(--text-muted)]">{option.trailing}</span>}
+                </button>
+              </Fragment>
             );
           })}
         </div>

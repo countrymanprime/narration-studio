@@ -5,8 +5,9 @@ import ts from 'typescript';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { ApiProvider } from '../api/ApiContext';
 import { createMockApi } from '../api/mockApi';
-import type { FindingsApi, ProductionApi } from './index';
-import { usePort } from './usePort';
+import type { FindingsApi, MeasurementsPort, ProductionApi } from './index';
+import { createMockMeasurements } from './measurements';
+import { PortOverrides, usePort } from './usePort';
 
 const read = (path: string): ts.SourceFile => ts.createSourceFile(path, readFileSync(new URL(path, import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
 
@@ -82,5 +83,38 @@ describe('usePort', () => {
     );
     expect(seen[0]).toBe(first);
     expect(seen.at(-1)).toBe(second);
+  });
+
+  it('use-port-resolves-measurements: builds the port once per api and lets PortOverrides replace it', async () => {
+    const api = createMockApi();
+    const seen: MeasurementsPort[] = [];
+    function Probe() {
+      const measurements = usePort('measurements');
+      expectTypeOf(measurements).toEqualTypeOf<MeasurementsPort>();
+      seen.push(measurements);
+      return null;
+    }
+    const { rerender } = render(
+      <ApiProvider api={api}>
+        <Probe />
+      </ApiProvider>,
+    );
+    rerender(
+      <ApiProvider api={api}>
+        <Probe />
+      </ApiProvider>,
+    );
+    expect(seen.at(-1)).toBe(seen[0]);
+    expect((await seen[0].roomTone('USB microphone')).ok).toBe(false);
+
+    const mock = createMockMeasurements();
+    render(
+      <ApiProvider api={api}>
+        <PortOverrides clients={{ measurements: mock }}>
+          <Probe />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    expect(seen.at(-1)).toBe(mock);
   });
 });

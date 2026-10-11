@@ -11,6 +11,12 @@ import { describe, expect, test } from 'vitest';
 // controls the primitives cover have no entry: `Select`, `TextField`, `Field` and `Table`.
 // No file outside the primitives may paste the icon-button look either (`size-8` with `rounded-md`).
 //
+// The escape is a comment: a native element with `native-control-ok: <why>` (at least 12 characters) in a comment on its first
+// line or on the line directly above is not counted, whatever its tag. A marker with no native element there is stale and
+// fails. `ZERO_DIRS` lists the Studio Next folders built to the mock: nothing in them may carry a ceiling or an unmarked native
+// element. A page swap adds its new folder to `ZERO_DIRS` in the PR that creates it and deletes the old page's `CEILING`
+// entries in the same PR (the stale check fails otherwise).
+//
 // Buttons stay a ratchet rather than a ban (text buttons already have `Button`, and the bare ones
 // left are a toast's dismiss, a card that is a button, a list row). A new file with a raw `<button>` needs an entry, which is
 // a review-visible decision: prefer `Button`, `IconButton` or a new primitive.
@@ -85,6 +91,12 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
   td: {},
 };
 
+// Folders built to the mock: no ceiling, no unmarked native element.
+const ZERO_DIRS = ['src/components/schedule/', 'src/components/production/readiness/'];
+
+const MARKER = 'native-control-ok:';
+const MIN_REASON = 12;
+
 const uiRoot = join(__dirname, '..');
 const srcRoot = join(uiRoot, 'src');
 const primitivesDir = join('src', 'components', 'primitives');
@@ -99,17 +111,50 @@ function tsxFiles(dir: string): string[] {
   });
 }
 
-type Found = { tags: Record<string, number>; pastedIconButtonLook: number };
+type Found = { tags: Record<string, number>; pastedIconButtonLook: number; problems: string[] };
+
+type Marker = { line: number; reason: string };
+
+// Every comment the parser sees, found through the tokens' trivia so a string or JSX text that only looks like one is skipped.
+function commentsOf(file: ts.SourceFile): ts.CommentRange[] {
+  const seen = new Map<number, ts.CommentRange>();
+  const text = file.text;
+  const walk = (node: ts.Node): void => {
+    if (node.kind === ts.SyntaxKind.JsxText) return;
+    for (const range of [...(ts.getLeadingCommentRanges(text, node.pos) ?? []), ...(ts.getTrailingCommentRanges(text, node.end) ?? [])])
+      seen.set(range.pos, range);
+    for (const child of node.getChildren(file)) walk(child);
+  };
+  walk(file);
+  return [...seen.values()];
+}
+
+function markersOf(file: ts.SourceFile): Marker[] {
+  const markers: Marker[] = [];
+  for (const range of commentsOf(file)) {
+    const comment = file.text.slice(range.pos, range.end);
+    const at = comment.indexOf(MARKER);
+    if (at < 0) continue;
+    const reason = comment
+      .slice(at + MARKER.length)
+      .split('\n')[0]
+      .replace(/\*\/\s*$/, '')
+      .trim();
+    markers.push({ line: file.getLineAndCharacterOfPosition(range.pos + at).line + 1, reason });
+  }
+  return markers;
+}
 
 // A tag counts once per element, whether it opens with children or is self-closing. Read with the TypeScript parser, so a
 // comment or a string that only mentions `<select>` is fine, and a component named `Select` is not the native `select`.
+// A native element with a `native-control-ok: <why>` comment on its line or the line above is left out of the count.
 function scan(source: string, fileName = 'probe.tsx'): Found {
   const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const found: Found = { tags: {}, pastedIconButtonLook: 0 };
+  const found: Found = { tags: {}, pastedIconButtonLook: 0, problems: [] };
+  const elements: { name: string; line: number }[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-      const name = node.tagName.getText(file);
-      found.tags[name] = (found.tags[name] ?? 0) + 1;
+      elements.push({ name: node.tagName.getText(file), line: file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1 });
     }
     if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
       const tokens = node.text.split(/\s+/);
@@ -118,6 +163,17 @@ function scan(source: string, fileName = 'probe.tsx'): Found {
     ts.forEachChild(node, visit);
   };
   visit(file);
+  const covered = new Set<(typeof elements)[number]>();
+  for (const marker of markersOf(file)) {
+    const targets = elements.filter((el) => (NATIVE_TAGS as readonly string[]).includes(el.name) && (el.line === marker.line || el.line === marker.line + 1));
+    if (targets.length === 0) {
+      found.problems.push(`${fileName}:${marker.line}: stale ${MARKER} marker: no native element on this line or the next; delete the marker with its control`);
+    } else if (marker.reason.length < MIN_REASON) {
+      found.problems.push(`${fileName}:${marker.line}: ${MARKER} needs a reason of at least ${MIN_REASON} characters saying why no primitive fits`);
+    }
+    for (const el of targets) covered.add(el);
+  }
+  for (const el of elements) if (!covered.has(el)) found.tags[el.name] = (found.tags[el.name] ?? 0) + 1;
   return found;
 }
 
@@ -144,6 +200,33 @@ describe('native controls stay inside the primitives (ADR 0053)', () => {
     expect(stale, `a page lost a native <${tag}>: lower its ceiling (delete the entry at zero)`).toEqual([]);
   });
 
+  test('every native-control-ok marker has a reason and a native element (tests 2 and 3)', () => {
+    expect(scans.flatMap(([, found]) => found.problems)).toEqual([]);
+  });
+
+  test('zero-dirs-allow-no-unmarked-native: a Studio Next folder has no ceiling and no unmarked native element', () => {
+    const under = (file: string) => ZERO_DIRS.some((dir) => file.startsWith(dir));
+    const unmarked = scans.filter(([file, found]) => under(file) && Object.keys(found.tags).some((tag) => (NATIVE_TAGS as readonly string[]).includes(tag)));
+    expect(
+      unmarked.map(([file]) => file),
+      'a native element in a ZERO_DIRS folder needs `native-control-ok: <why>` or a primitive',
+    ).toEqual([]);
+    const ceilings = NATIVE_TAGS.flatMap((tag) =>
+      Object.keys(CEILING[tag])
+        .filter(under)
+        .map((file) => `${tag}: ${file}`),
+    );
+    expect(ceilings, 'a ZERO_DIRS folder starts at zero: mark the element with `native-control-ok: <why>` instead of a ceiling').toEqual([]);
+  });
+
+  test('zero-dirs-must-exist: every ZERO_DIRS path has a file under it', () => {
+    const files = scans.map(([file]) => file);
+    expect(
+      ZERO_DIRS.filter((dir) => !files.some((file) => file.startsWith(dir))),
+      'a deleted folder takes its ZERO_DIRS line with it',
+    ).toEqual([]);
+  });
+
   test('no page pastes the icon-button look', () => {
     const offenders = scans.filter(([, found]) => found.pastedIconButtonLook > 0).map(([file]) => file);
     expect(offenders, 'use <IconButton label="...">').toEqual([]);
@@ -163,5 +246,45 @@ describe('native controls stay inside the primitives (ADR 0053)', () => {
     expect(scan('const a = <Select label="x" />;').tags).toEqual({ Select: 1 });
     expect(scan('// <select> is banned\nconst a = "<input />";').tags).toEqual({});
     expect(scan('const a = <div className="size-8" />;').pastedIconButtonLook).toBe(0);
+  });
+
+  describe('native-control-ok fixtures', () => {
+    test('marker-allows-a-native-tag: on the line above, on the first line, for any tag', () => {
+      for (const tag of NATIVE_TAGS) {
+        const above = scan(`const a = (\n  // native-control-ok: a reason that is long enough\n  <${tag} />\n);`);
+        expect(above.tags).toEqual({});
+        expect(above.problems).toEqual([]);
+      }
+      expect(scan('const a = <input /> /* native-control-ok: hidden file picker */;').tags).toEqual({});
+      expect(scan('const a = (\n  <div>\n    {/* native-control-ok: the verdict mark needs its own name */}\n    <button />\n  </div>\n);').tags).toEqual({
+        div: 1,
+      });
+    });
+
+    test('marker-needs-a-reason: empty or under 12 characters fails with file and line', () => {
+      for (const reason of ['', ' ', ' too short']) {
+        const bad = scan(`const a = (\n  // native-control-ok:${reason}\n  <input />\n);`, 'src/x.tsx');
+        expect(bad.problems).toHaveLength(1);
+        expect(bad.problems[0]).toContain('src/x.tsx:2');
+        expect(bad.problems[0]).toContain('reason');
+      }
+    });
+
+    test('marker-must-sit-on-a-native-tag: a marker with no native element on its line or the next is stale', () => {
+      const stale = scan('// native-control-ok: the control was deleted\nconst a = <Select />;', 'src/y.tsx');
+      expect(stale.problems).toHaveLength(1);
+      expect(stale.problems[0]).toContain('src/y.tsx:1');
+      expect(stale.problems[0]).toContain('stale');
+      expect(scan('// native-control-ok: two lines too far away\n\n<input />;').problems).toHaveLength(1);
+    });
+
+    test('marker-in-a-string-is-ignored: the text inside a string or template is not a marker', () => {
+      expect(scan('const s = "native-control-ok: a reason that is long enough";\nconst a = <input />;')).toMatchObject({ tags: { input: 1 }, problems: [] });
+      expect(scan('const s = `native-control-ok: a reason that is long enough`;\nconst a = <input />;')).toMatchObject({ tags: { input: 1 }, problems: [] });
+      expect(scan('const a = <p>native-control-ok: a reason that is long enough</p>;\nconst b = <input />;')).toMatchObject({
+        tags: { input: 1 },
+        problems: [],
+      });
+    });
   });
 });

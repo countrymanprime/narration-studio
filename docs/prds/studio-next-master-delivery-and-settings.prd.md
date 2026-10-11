@@ -125,7 +125,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 2 | Manuscript and keys | Replace in Settings only; key list from catalogue | pending | 1 | SNR-6 | 0.7 | - |
 | 3 | Backups and analysis tools | Backups settings; tools section | pending | - | 1, SND-8, SNX-6 | 0.8 | - |
 | 4 | Delivery lookup and page | `platformHas`, profile on first import, Master wording from capabilities, Delivery page components (no route) | pending | - | SNP-3 | 1.0 | - |
-| 5 | Swap and close-out | Swap Settings, Master & QC and Delivery routes and the Delivery rail item; delete the old pages and equivalents; visual rows incl. reflow; guides; carried-over owner validation | pending | - | 1 to 4 | 0.7 | - |
+| 5 | Swap and close-out | Swap Settings, Master & QC and Delivery routes and the Delivery rail item; delete the old pages and equivalents; visual rows incl. reflow; guides; carried-over owner validation | in progress ([#1268](https://github.com/countrymanprime/narration-utils/issues/1268), the audit) | - | 1 to 4 | 0.7 | - |
 
 ### Phase Details
 

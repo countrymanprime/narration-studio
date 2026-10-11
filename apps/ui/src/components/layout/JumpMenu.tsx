@@ -79,28 +79,28 @@ function JumpMenu({ keymap, runCommand, close, initialTerm = '', catalog = COMMA
   const commandsOnly = raw.startsWith('>');
   const term = (commandsOnly ? raw.slice(1) : raw).trim().toLowerCase();
 
-  const { entries, searching } = useMemo(() => {
+  const { entries } = useMemo(() => {
     if (!term && !commandsOnly) {
       if (group) {
         const back: Entry = { id: 'back', group, title: '‹ All commands', keepOpen: true, run: () => {} };
-        return { entries: [back, ...commands.filter((entry) => entry.group === group)], searching: false };
+        return { entries: [back, ...commands.filter((entry) => entry.group === group)] };
       }
       const groups = [...new Set(commands.map((entry) => entry.group))];
       const rows = groups.map<Entry>((name) => ({
         id: `group-${name}`,
         group: 'Commands',
         title: name,
-        sub: `${commands.filter((entry) => entry.group === name).length} commands`,
+        sub: `${commands.filter((entry) => entry.group === name).length} ›`,
         keepOpen: true,
         run: () => {},
       }));
-      return { entries: rows, searching: false };
+      return { entries: rows };
     }
     const tokens = term.split(/\s+/).filter(Boolean);
     const hits = commandsOnly
       ? []
       : searchAll(term).map<Entry>((hit, index) => ({ id: `hit-${index}`, group: hit.group, title: hit.title, sub: hit.sub, run: hit.run }));
-    return { entries: [...hits, ...commands.filter((entry) => matches(entry, tokens))], searching: true };
+    return { entries: [...hits, ...commands.filter((entry) => matches(entry, tokens))] };
   }, [commands, commandsOnly, group, term]);
 
   const activeIndex = Math.min(active, Math.max(0, entries.length - 1));
@@ -125,52 +125,46 @@ function JumpMenu({ keymap, runCommand, close, initialTerm = '', catalog = COMMA
   };
 
   const options = entries.map<ListboxOption>((entry) => {
-    const note = (searching ? [entry.group, entry.hint, entry.sub] : [entry.hint, entry.sub]).filter(Boolean).join(' · ');
-    const label: ReactNode = entry.keys ? (
-      <span className="flex items-center justify-between gap-3">
-        <span>{entry.title}</span>
-        <KeyChord keys={entry.keys} />
-      </span>
-    ) : (
-      entry.title
-    );
-    return { id: entry.id, label, description: note || undefined };
+    const trailing: ReactNode = entry.keys ? <KeyChord keys={entry.keys} /> : entry.sub;
+    return { id: entry.id, label: entry.title, description: entry.hint, trailing, group: entry.group };
   });
 
   return (
-    <div className="flex flex-col gap-2">
-      <TextField
-        label="Jump menu"
-        autoFocus
-        autoComplete="off"
-        role="combobox"
-        aria-expanded
-        aria-autocomplete="list"
-        aria-controls={listId}
-        aria-activedescendant={activeOptionId}
-        placeholder="Search, or jump to a page or chapter. Type > for commands."
-        value={query}
-        onChange={(value) => {
-          setQuery(value);
-          setActive(0);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            setActive(Math.min(entries.length - 1, activeIndex + 1));
-          } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActive(Math.max(0, activeIndex - 1));
-          } else if (event.key === 'Enter') {
-            event.preventDefault();
-            choose(activeEntry);
-          } else if (event.key === 'Backspace' && !query && group) {
-            event.preventDefault();
-            setGroup(null);
+    <>
+      <div className="border-b border-[var(--line)] p-2">
+        <TextField
+          label="Jump menu"
+          autoFocus
+          autoComplete="off"
+          role="combobox"
+          aria-expanded
+          aria-autocomplete="list"
+          aria-controls={listId}
+          aria-activedescendant={activeOptionId}
+          placeholder="Search, or jump to a page or chapter. Type > for commands."
+          value={query}
+          onChange={(value) => {
+            setQuery(value);
             setActive(0);
-          }
-        }}
-      />
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setActive(Math.min(entries.length - 1, activeIndex + 1));
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActive(Math.max(0, activeIndex - 1));
+            } else if (event.key === 'Enter') {
+              event.preventDefault();
+              choose(activeEntry);
+            } else if (event.key === 'Backspace' && !query && group) {
+              event.preventDefault();
+              setGroup(null);
+              setActive(0);
+            }
+          }}
+        />
+      </div>
       <Listbox
         id={listId}
         label="Jump menu results"
@@ -178,8 +172,9 @@ function JumpMenu({ keymap, runCommand, close, initialTerm = '', catalog = COMMA
         activeIndex={activeIndex}
         onPick={(id) => choose(entries.find((entry) => entry.id === id))}
         empty="Nothing matches"
+        flush
       />
-    </div>
+    </>
   );
 }
 
@@ -187,5 +182,5 @@ export type JumpMenuOptions = Omit<JumpMenuProps, 'close'> & { service?: Overlay
 
 /** Opens the jump menu in a dialog and returns the function that closes it. The first list is drawn in the same call. */
 export function openJumpMenu({ service = overlay, ...props }: JumpMenuOptions): () => void {
-  return service.open({ kind: 'dialog', title: 'Jump menu', render: ({ close }) => <JumpMenu {...props} close={close} /> });
+  return service.open({ kind: 'dialog', title: 'Jump menu', headerless: true, render: ({ close }) => <JumpMenu {...props} close={close} /> });
 }

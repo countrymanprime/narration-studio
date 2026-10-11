@@ -337,3 +337,43 @@ describe('Dialog backdrop', () => {
     expect(document.querySelector('[data-dialog-backdrop]')).not.toBeNull();
   });
 });
+
+describe('Dialog headerless', () => {
+  function Headerless() {
+    const [open, setOpen] = useState(false);
+    return (
+      <div>
+        <main tabIndex={-1}>
+          <button onClick={() => setOpen(true)}>Open palette</button>
+        </main>
+        {open && (
+          <Dialog title="Jump menu" headerless onClose={() => setOpen(false)} actions={null}>
+            <input aria-label="Field" autoFocus />
+          </Dialog>
+        )}
+      </div>
+    );
+  }
+
+  it('dialog-headerless-keeps-its-name: no visible header, still named by the hidden title, focus returns to the opener', async () => {
+    const user = userEvent.setup();
+    render(<Headerless />);
+    await user.click(screen.getByRole('button', { name: 'Open palette' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Jump menu' });
+    expect(within(dialog).getByText('Jump menu').className).toContain('sr-only');
+    await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole('textbox')));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Open palette' })));
+  });
+
+  it('dialog-headerless-has-no-close-button-and-escape-closes', async () => {
+    const user = userEvent.setup();
+    render(<Headerless />);
+    await user.click(screen.getByRole('button', { name: 'Open palette' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

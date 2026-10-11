@@ -15,6 +15,7 @@ export function ReadinessChip({ recommendation, onOpen }: { recommendation: Stag
   const colors = toneColors(VERDICT_TONE[verdict]);
   return (
     <TooltipTarget text={`${label} · ${stage}`}>
+      {/* native-control-ok: the verdict mark must carry aria-haspopup="dialog" and its own name, which Badge's button and HeaderChip do not take. */}
       <button
         type="button"
         data-rchip={recommendation.chapterId}

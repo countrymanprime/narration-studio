@@ -78,6 +78,7 @@ export const productionDrivers: Record<string, Driver> = {
       .getByRole('status')
       .getByText(/^Linked /)
       .waitFor();
+    // The header has an Undo button of its own (the journal's), so this scopes to the toast's.
     await page.getByRole('status').getByRole('button', { name: 'Undo' }).waitFor();
   },
   'chapter-track-panel-linked': async (page) => {

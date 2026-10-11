@@ -118,9 +118,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Spikes | Licences and provenance for GLiNER and BookNLP; quality on fixtures; calibration protocol | pending | 2 | SN0-1 | 1.2 | - |
-| 2 | ADR and schema | A14; suggestion contract, store, rule, evidence verification | in progress (rule, evidence check and fingerprint SNX-2a [#1080](https://github.com/countrymanprime/narration-utils/issues/1080); store, schema, golden and binding SNX-2b) | 1 | SN0-1 | 1.5 | - |
-| 3 | Rules tier into suggestions | Sidecar adapter emits suggestions | pending | 4 | 2 | 1.0 | - |
+| 1 | Spikes | Licences and provenance for GLiNER and BookNLP; quality on fixtures; calibration protocol | in progress (calibration protocol SN-X13 [#1143](https://github.com/countrymanprime/narration-utils/issues/1143), [note](../research/studio-next-extraction-calibration-protocol.md)) | 2 | SN0-1 | 1.2 | - |
+| 2 | ADR and schema | A14; suggestion contract, store, rule, evidence verification | in progress (rule, evidence check and fingerprint SNX-2a [#1080](https://github.com/countrymanprime/narration-utils/issues/1080); store and ingest SNX-2b, first part [#1155](https://github.com/countrymanprime/narration-utils/issues/1155) in review; apply, schema, golden and binding SNX-2b, rest) | 1 | SN0-1 | 1.5 | - |
+| 3 | Rules tier into suggestions | Sidecar adapter emits suggestions | in progress (extraction port, Go registry and Python mirror SNX-3a [#1189](https://github.com/countrymanprime/narration-utils/issues/1189); rules adapter and the scan job to come) | 4 | 2 | 1.0 | - |
 | 4 | Suggested UI | Rows, chips, accept, reject, review, needs-verification | pending | 3 | 2, SNB-3 | 1.3 | - |
 | 5 | Import and prompt | Host parser, preview, UI dialog, prompt template | in progress (parser, plan and prompt SNX-5a [#1086](https://github.com/countrymanprime/narration-utils/issues/1086); binding, dialog and threat-model row SNX-5b) | 4 | 2 | 1.2 | - |
 | 6 | Consent and registry rows | Consent screen, assets for the tools, Settings section, first-scan prompt | pending | 4 | 1 | 1.2 | - |
@@ -154,8 +154,10 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- | --- | --- |
 | SNX-1a | Spike GLiNER | SN0-1 | yes | Research note |
 | SNX-1b | Spike BookNLP | SN0-1 | yes | Research note |
+| SNX-1c | Calibration protocol ([note](../research/studio-next-extraction-calibration-protocol.md)) | SN0-1 | yes | Research note |
 | SNX-2 | ADR, schema, store, rule, evidence | SN0-1 | yes | Go tests; golden; wire row |
 | SNX-3 | Rules tier adapter | SNX-2 | yes | Sidecar tests; conformance |
+| SNX-3a | Extraction provider port: Go registry, Python mirror, conformance suites | SNX-2 | yes | Go and pytest conformance; docs table both read |
 | SNX-4 | Suggested UI | SNX-2, SNB-3 | yes | Ported tests; visual; aria |
 | SNX-5 | Import and prompt | SNX-2 | yes | Fuzz; ported tests; threat model |
 | SNX-6 | Consent and registry rows | SNX-1a | yes | Registry tests; consent test; visual |
