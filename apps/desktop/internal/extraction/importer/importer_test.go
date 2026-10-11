@@ -199,7 +199,7 @@ func TestDocumentedExamplesParseCleanInBothFormats(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc := string(b)
+	doc := strings.ReplaceAll(string(b), "\r\n", "\n") // a Windows checkout may give the doc CRLF line ends
 	j, c := fenced(t, doc, "json example"), fenced(t, doc, "csv example")
 	if j != ExampleJSON || c != ExampleCSV {
 		t.Fatal("the examples in the format doc differ from ExampleJSON and ExampleCSV")
