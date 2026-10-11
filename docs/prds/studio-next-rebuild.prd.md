@@ -489,6 +489,34 @@ Phases 1 and 4 start together. Phases 2 and 3 wait for Phase 1. Every other PRD'
 | SN0-4 | Phase 4 | SN0-1 | no (touches the train's procedure) | Docs link check and markdownlint; owner review |
 | SN0-5 | Phase 5 | all slices | no | Index row present; link check green |
 
+## Design check
+
+Pass 1 of `solid-design-review` and `design-principles` for the whole series, written before any code. Each slice repeats the rows it touches in its issue; a row marked **at risk** names the slice that closes it.
+
+| Principle | Where the series applies it | Status |
+| --- | --- | --- |
+| Single responsibility | One page folder per PRD (SNB, SNP, SNO, SNQ, SNE, SNM) with its own selectors and commands; the store core (SNS) holds no page logic | Met |
+| Open/closed | Commands, keys, context and search are registries (SNR); a provider is added by registering it, not by editing a switch | Met |
+| Liskov | A mock provider and the real one pass the same parity kit (SNS-4); a fake that behaves differently fails it | At risk until SNS-4 lands |
+| Interface segregation | DAW work is split into role interfaces with a capability descriptor (SND); no page takes the whole adapter | Met |
+| Dependency inversion | Pages depend on `apps/ui/src/api` and ports, never on Wails bindings or an adapter by name (SNS, SND) | Met |
+
+## Principles check
+
+| Principle (`design-principles`) | Series answer | Status |
+| --- | --- | --- |
+| 1. Findings suggest; the narrator decides | Extraction, speech flags and take suggestions are offered with evidence; nothing applies without a click (SNX, SNQ, SNE) | Met |
+| 2. No download or project change without a click | BookNLP and GLiNER are optional downloads, asked on first use or in Settings (SNX) | Met |
+| 4. Local-first | Rules baseline needs no network or LLM; every heavier tier is optional (SNX) | Met |
+| 5. Unknown stays unknown | Confidence is nullable with a reason; the recording check is stale after a change (SNP, SNQ) | Met |
+| 6. Precision over recall | Items under 75% confidence must be verified; claims are capped at 0.74 (SNX) | Met |
+| 7. Identity, not position | Takes and pickups carry stable ids and a stale target is refused (SND, SNQ) | Met |
+| 8. Ports for engines and providers | Every engine sits behind a provider with a mock implementation (SNS, SND) | Met |
+| 9. Boundaries are contracts | Each new payload brings its schema, golden file and contract row, in the slice that adds the payload (see Wire contracts in `CLAUDE.md`) | At risk: no schema exists yet; each slice closes its own |
+| 12. Acknowledge within 100 ms | Long work is a job with real progress; the booth and delivery jobs need the existing job events (SNO, SNM) | At risk: confirm in each slice |
+| 13. Primitives own the look; the benchmark is the spec | The mock and the benchmark disagree today; SN0-Q1 picks the spec per page before a page slice starts | At risk until SN0-Q1 is answered |
+| 14. Accessibility is tested | Each page slice runs axe and the ARIA snapshots | Met |
+
 ## Decisions Log
 
 | Decision | Choice | Alternatives | Rationale |
