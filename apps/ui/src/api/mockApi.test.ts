@@ -42,6 +42,16 @@ describe('createMockApi mockManuscript option', () => {
   });
 });
 
+describe('createMockApi chapters and paragraphs seed', () => {
+  it('answers the seeded book instead of the Alice fixture', async () => {
+    const chapters = [{ id: 'seeded-1', title: 'Seeded', index: 0, wordCount: 10, status: 'not_started' as const }];
+    const paragraphs = [{ id: 'sp-1', chapterId: 'seeded-1', chapter: 'Seeded', index: 0, sourceLine: 1, text: 'Hello.', entityIds: [] }];
+    const api = createMockApi({}, { chapters, paragraphs });
+    expect((await api.manuscriptChapters()).map((chapter) => chapter.id)).toEqual(['seeded-1']);
+    expect((await api.manuscriptParagraphs('seeded-1')).map((paragraph) => paragraph.id)).toEqual(['sp-1']);
+  });
+});
+
 describe('mockApi credits preview (renderMockCredits)', () => {
   it('keeps an optional {…} segment, with its own punctuation, when every token inside it resolves', async () => {
     const api = createMockApi();
