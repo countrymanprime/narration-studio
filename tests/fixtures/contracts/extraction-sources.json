@@ -1,0 +1,41 @@
+[
+  {
+    "available": true,
+    "icon": "auto",
+    "id": "rules",
+    "label": "Rules",
+    "runs": true
+  },
+  {
+    "available": false,
+    "icon": "import",
+    "id": "imported",
+    "label": "Imported file",
+    "reason": "Imported file is not available yet.",
+    "runs": false
+  },
+  {
+    "available": false,
+    "icon": "globe",
+    "id": "local-model",
+    "label": "Local model",
+    "reason": "No local model is installed.",
+    "runs": true
+  },
+  {
+    "available": false,
+    "icon": "locate",
+    "id": "gliner",
+    "label": "GLiNER",
+    "reason": "GLiNER is not downloaded.",
+    "runs": true
+  },
+  {
+    "available": false,
+    "icon": "dictionary",
+    "id": "booknlp",
+    "label": "BookNLP",
+    "reason": "BookNLP is not downloaded.",
+    "runs": true
+  }
+]

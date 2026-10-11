@@ -875,6 +875,36 @@ export function ExtractionReview(id: string): $CancellablePromise<string> {
 }
 
 /**
+ * ExtractionScan starts a scan of the manuscript: the rules, then each of sourceIds that can run, in the registry's
+ * order; one that cannot is skipped with its reason in the job's messages. While a scan runs it returns that scan and
+ * starts no other. An id that is not a source a scan can start is refused before anything starts.
+ */
+export function ExtractionScan(sourceIds: string[]): $CancellablePromise<string> {
+    return $Call.ByID(3094866598, sourceIds);
+}
+
+/**
+ * ExtractionScanCancel stops the running scan and the source it is running. What the sources that finished added is kept.
+ */
+export function ExtractionScanCancel(): $CancellablePromise<string> {
+    return $Call.ByID(567792956);
+}
+
+/**
+ * ExtractionScanState returns the running or last scan, or an idle one.
+ */
+export function ExtractionScanState(): $CancellablePromise<string> {
+    return $Call.ByID(158708443);
+}
+
+/**
+ * ExtractionSources returns every extraction source in the registry's order, rules first, with whether it can run now.
+ */
+export function ExtractionSources(): $CancellablePromise<string> {
+    return $Call.ByID(1031376715);
+}
+
+/**
  * FindingsAddMarker adds one take marker in REAPER at an accepted finding's spot, on its take, named like the marker
  * Transcript Compare's export adds (approvedMarker). A finding not accepted, one with no item or no time in its audio,
  * and a REAPER that is not listening are refused before anything is sent.
