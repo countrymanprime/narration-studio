@@ -8,7 +8,7 @@ import { TooltipTarget } from './Tooltip';
 type IconButtonVariant = 'default' | 'primary' | 'danger';
 
 const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
-  default: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]',
+  default: 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]',
   primary: 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[var(--accent-strong)]',
   danger: 'border-[var(--danger)] bg-[var(--surface)] text-[var(--danger-text)] hover:bg-[var(--review-soft)]',
 };

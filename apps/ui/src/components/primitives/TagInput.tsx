@@ -87,7 +87,10 @@ export function TagInput({
   };
   return (
     <div role="group" aria-label={label}>
-      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-md p-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+      <div
+        className="flex min-h-11 flex-wrap items-center gap-2 rounded-md p-2"
+        style={{ border: '1px solid var(--line-strong)', background: 'var(--surface-2)' }}
+      >
         {tags.map((tag) => (
           <span
             key={tag}
@@ -111,7 +114,7 @@ export function TagInput({
             <button
               type="button"
               aria-description={suggestionHint}
-              className={`inline-flex items-center gap-[0.35rem] rounded-full border border-dashed border-[var(--border)] bg-transparent px-[0.55rem] py-[0.3rem] ${TAG_FONT} text-[var(--text)]`}
+              className={`inline-flex items-center gap-[0.35rem] rounded-full border border-dashed border-[var(--line-strong)] bg-transparent px-[0.55rem] py-[0.3rem] ${TAG_FONT} text-[var(--text)]`}
               onClick={() => onAcceptSuggestion(term)}
             >
               + {term}

@@ -8,7 +8,7 @@ export type PillLook = 'chip' | 'segmented';
 
 const LOOK_CLASS: Record<PillLook, (active: boolean) => string> = {
   chip: (active) =>
-    `h-[var(--button-height)] rounded-[var(--radius-button)] border px-3 uppercase leading-none ${active ? 'active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]' : 'border-[var(--border)] text-[var(--text-muted)]'}`,
+    `h-[var(--button-height)] rounded-[var(--radius-button)] border px-3 uppercase leading-none ${active ? 'active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]' : 'border-[var(--line-strong)] text-[var(--text-muted)]'}`,
   segmented: (active) =>
     `h-full rounded-[0.28rem] border-0 px-3 leading-none ${active ? 'active bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text)]'}`,
 };

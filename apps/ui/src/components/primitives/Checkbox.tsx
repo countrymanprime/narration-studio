@@ -23,7 +23,7 @@ export function Checkbox({
         checked={checked}
         disabled={disabled}
         onCheckedChange={onChange}
-        className="mt-[0.2rem] inline-flex size-4 flex-none items-center justify-center rounded-[0.25rem] border border-[var(--border)] bg-[var(--surface)] text-[var(--accent-contrast)] data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[disabled]:opacity-40"
+        className="mt-[0.2rem] inline-flex size-4 flex-none items-center justify-center rounded-[0.25rem] border-2 border-[var(--btn-line)] bg-[var(--surface)] text-[var(--accent-contrast)] data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[disabled]:opacity-40"
       >
         <BaseCheckbox.Indicator className="inline-flex text-[0.6rem]">
           <FontAwesomeIcon icon={faCheck} />
