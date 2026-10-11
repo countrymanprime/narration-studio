@@ -730,3 +730,57 @@ func TestReplaceAndClearRemoveTheAcceptedWordsFile(t *testing.T) {
 		t.Fatalf("Clear project data left the accepted words behind: %v", err)
 	}
 }
+
+// Cuts name chapter and paragraph ids and word ordinals too, so replacing the manuscript and Clear project data remove
+// editing/cuts.json as well (ADR 0856); an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheCutsFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeCuts := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.CutsFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.CutsFile(project), []byte(`{"schemaVersion":1,"cuts":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeCuts()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the cuts: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the cuts: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the cuts behind: %v", err)
+	}
+	writeCuts()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the cuts behind: %v", err)
+	}
+}

@@ -142,7 +142,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 3 | Script document | `ScriptDoc`, words, selection, keys, provider menu | pending | - | 2, SNR-5 | 1.5 | - |
 | 4 | Ribbon, cards, bar | Ribbon, flag cards, floating toolbar, bar | in progress (accepted words host store: [#1245](https://github.com/countrymanprime/narration-utils/issues/1245), ADR 0856); partial: bar and floating toolbar in SN-E43 (#1263) | 5 | 3, SNF-5a | 1.2 | - |
 | 5 | Takes inline | Evidence, suggestion, hide, split duplicates, prep steps | partial: take evidence binding and `TakesPort` in SNE-5a (#1266); the chip, sub-lines, suggestion, Keep and T keys as components with no route (#1269) | 4 | 3, SNQ-7 | 1.5 | - |
-| 6 | Delete and FX on a range | Dialogs, journal, markers | pending | - | 3, SND-6b, SND-6c | 1.5 | - |
+| 6 | Delete and FX on a range | Dialogs, journal, markers | in progress (cuts host store: [#1282](https://github.com/countrymanprime/narration-utils/issues/1282), ADR 0856) | - | 3, SND-6b, SND-6c | 1.5 | - |
 | 7 | Stacking | Dialog, plan, un-stack | pending | 6 | 5, SND-7 | 1.0 | - |
 | 8 | Strip and drawer | Timeline strip, Clean up, Effects, Backups | partial: the timeline strip as a component with no route in SNE-8a (#1296); the drawer tabs pending | - | 4, SND-8 | 1.3 | - |
 | 9 | Swap | Route swap; delete the old workspace and its equivalents (script view, transport bar, waveform strip, takes panel, apply-FX dialog, editing check panel and cleanup launchers where the drawer replaces them); rows, guide, screenshots | pending | - | 4 to 8 | 0.6 | - |
