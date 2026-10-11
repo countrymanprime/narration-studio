@@ -20,6 +20,9 @@ type NativeTag = (typeof NATIVE_TAGS)[number];
 // Native elements written in JSX per file, outside the primitives, at the time of ADR 0053 (no native select, input, textarea or table part is left).
 const CEILING: Record<NativeTag, Record<string, number>> = {
   button: {
+    // The stage readiness chip (the mock's `rchip`): a 20 px verdict mark that must carry `aria-haspopup="dialog"` and its own name,
+    // which `Badge`'s button and `HeaderChip` do not take. One JSX `<button>`.
+    'src/components/production/readiness/ReadinessChip.tsx': 1,
     'src/components/manuscript/ChapterNav.tsx': 4,
     // The card's bookmark toggle and its whole-header toggle. `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).
