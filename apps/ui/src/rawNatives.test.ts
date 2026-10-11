@@ -26,6 +26,9 @@ type NativeTag = (typeof NATIVE_TAGS)[number];
 // Native elements written in JSX per file, outside the primitives, at the time of ADR 0053 (no native select, input, textarea or table part is left).
 const CEILING: Record<NativeTag, Record<string, number>> = {
   button: {
+    // The header's "Jump to or run…" field (the mock's top bar): a search-shaped trigger with a label and a key chord, which Button's
+    // padded, uppercase chrome and IconButton's square do not draw. One JSX `<button>`.
+    'src/components/layout/AppShell.tsx': 1,
     'src/components/manuscript/ChapterNav.tsx': 4,
     // The card's bookmark toggle and its whole-header toggle. `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).

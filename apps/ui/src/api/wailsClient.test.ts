@@ -352,6 +352,24 @@ describe('wailsClient', () => {
     expect(update).toHaveBeenCalledWith({ attached: false, reason: 'Busy' });
   });
 
+  it('reads the status report preview through its schema and passes the opt-in on', async () => {
+    const preview = {
+      html: '<p>x</p>',
+      json: '{}\n',
+      folder: 'narration-utils/production/reports',
+      stem: 'production-status-20260921-100000Z',
+      contractedAmountIncluded: true,
+    };
+    const productionStatusReportPreview = vi.fn().mockResolvedValue(JSON.stringify(preview));
+    standInHost({ ProductionStatusReportPreview: productionStatusReportPreview });
+
+    await expect(wailsClient.productionStatusReportPreview(true)).resolves.toEqual(preview);
+    expect(productionStatusReportPreview).toHaveBeenCalledWith(true);
+
+    standInHost({ ProductionStatusReportPreview: vi.fn().mockResolvedValue(JSON.stringify({ ...preview, extra: 1 })) });
+    await expect(wailsClient.productionStatusReportPreview(false)).rejects.toBeInstanceOf(WireError);
+  });
+
   it('lists recent projects from the native binding', async () => {
     const recents = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z' }];
     const projectRecents = vi.fn().mockResolvedValue(JSON.stringify(recents));
