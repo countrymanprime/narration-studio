@@ -45,9 +45,9 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 ### `pickups`
 
-- **Intent:** keep a list of lines to re-record, walk it, and resolve entries.
+- **Intent:** keep a list of lines to re-record, walk it, resolve entries and reopen them, and read every pickup marker back with its state.
 - **Role:** `PickupList`, asynchronous.
-- **Result:** `import_pickups` answers `PICKUPS_IMPORTED` with added, already-there and invalid counts. `export_pickups` answers `PICKUPS_EXPORTED` with the path and count. `next_pickup` answers `PICKUP_NEXT`, or an error when none remain. `resolve_pickup` answers `PICKUP_RESOLVED`. `count_pickups` answers `PICKUPS_COUNTED` with remaining and total.
+- **Result:** `import_pickups` answers `PICKUPS_IMPORTED` with added, already-there and invalid counts. `export_pickups` answers `PICKUPS_EXPORTED` with the path and count. `next_pickup` answers `PICKUP_NEXT`, or an error when none remain. `resolve_pickup` answers `PICKUP_RESOLVED` and `reopen_pickup` answers `PICKUP_REOPENED`. `list_pickup_markers` writes every pickup marker, `open` or `done`, to the file it names and answers `PICKUP_MARKERS_LISTED` with the path and both counts; the host reads back only the file it asked for. `count_pickups` answers `PICKUPS_COUNTED` with remaining and total.
 - **REAPER:** the commands of the same names ([the bridge](../../architecture/reaper-bridge.md#commands)).
 - **Audacity:** none. Take management has no direct Audacity equivalent ([DAW integration](../../architecture/daw-integration.md#audacity-boundary)).
 - **Checked:** REAPER, harness (`pickups_test.lua`).
