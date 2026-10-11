@@ -17,10 +17,10 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Ports and providers](#ports-and-providers) | 14 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 8 |
-| [Mastering, delivery and production](#mastering-delivery-and-production) | 23 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 50 |
+| [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 51 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
-| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 46 |
+| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 47 |
 | [Persistence and project files](#persistence-and-project-files) | 8 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
@@ -284,6 +284,9 @@ Measurement, delivery profiles and findings, mastering, encoding and export, and
 | [0480](0480-multi-platform-export-is-a-separate-checkbox-list-encoding-once-per-differing-format-built-sequentially.md) | Multi-platform export is a separate checkbox list, encoding once per differing format, built sequentially | Proposed |
 | [0666](0666-the-book-consistency-band-draws-the-rule-s-bound-as-a-dashed-target-zone-with-one-accent-tick-per-file.md) | The book-consistency band draws the rule's bound as a dashed target zone, with one accent tick per file | Proposed |
 | [0781](0781-an-overlay-service-opens-dialogs-confirms-toasts-and-announcements-imperatively-and-renders-them-in-the-existing-primitives.md) | An overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the existing primitives | Proposed |
+| [0800](0800-the-manifest-gains-a-payment-type-and-each-milestone-a-measure-an-estimate-and-a-done-flag.md) | The manifest gains a payment type, and each milestone a measure, an estimate and a done flag | Proposed |
+| [0801](0801-the-plan-chart-and-deadline-tone-come-from-fixed-inputs-and-the-projection-can-only-worsen-the-tone.md) | The plan chart and deadline tone come from fixed inputs, and the projection can only worsen the tone | Proposed |
+| [0802](0802-schedule-and-delivery-are-pages-with-their-own-rail-items.md) | Schedule and Delivery are pages with their own rail items | Proposed |
 
 <a id="recording-check-and-takes"></a>
 
@@ -343,6 +346,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0575](0575-the-librivox-signal-set-is-a-second-click-evaluation-split-by-pause-that-reports-and-never-opens-the-gate-alone.md) | The LibriVox signal set is a second click evaluation, split by pause, that reports and never opens the gate alone | Proposed |
 | [0700](0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md) | The Takes panel lists a passage's takes from the saved project and chooses one by an id the host offered | Accepted |
 | [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Proposed |
+| [0804](0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) | The Editing page replaces the workspace in Proof in one change | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 
@@ -435,6 +439,7 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0680](0680-the-story-bible-preview-speaks-a-chosen-pronunciation-through-pipers-raw-phoneme-block.md) | The Story Bible preview speaks a chosen pronunciation through Piper's raw-phoneme block | Accepted |
 | [0695](0695-alias-pronunciation-gets-the-entitys-own-control-and-a-default-source-only-reorders-the-automatic-fallback.md) | Alias pronunciation gets the entity's own control, and a default source only reorders the automatic fallback | Accepted |
 | [0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) | A pronunciation records the source it came from, and there is no query status, query CSV or open-queries badge | Proposed |
+| [0803](0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md) | An extraction suggestion at 75 percent or more is applied and flagged Review, and one under 75 percent needs verification | Proposed |
 
 <a id="persistence-and-project-files"></a>
 
