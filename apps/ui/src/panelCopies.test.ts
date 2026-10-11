@@ -36,12 +36,17 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/manuscript/ReaderCard.tsx': 1,
     // The waveform's frame, with its own tight padding round the drawing.
     'src/components/proof/WaveformStrip.tsx': 1,
+    // The bookmarks tab's list frame (SN-B62), to move onto Panel with #1119.
+    'src/components/script/bookmarks/ui/BookmarksTab.tsx': 1,
   },
   inset: {
     // Proof's finding detail.
     'src/components/proof/FindingDetail.tsx': 1,
     // The disagree choice's card, which is a button (the source and the sentence it names).
     'src/components/booth/ResumePrompt.tsx': 1,
+    // The editing ribbon's inset (SN-E7) and the bookmarks tab's row card (SN-B62), to move onto InsetCard with #1119.
+    'src/components/editing/ribbon/Ribbon.tsx': 1,
+    'src/components/script/bookmarks/ui/BookmarksTab.tsx': 1,
   },
   eyebrow: {
     // The shell's nav group headings and the header's Project label, and the three `.section-label` selectors of the collapsed rail's
