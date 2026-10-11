@@ -5,12 +5,14 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
 import type { ProjectStateState } from './contracts/projectstate';
+import type { EditCutRequest } from './contracts/editCuts';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
+import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -3021,6 +3023,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingAcceptedList',
       'editingAccept',
       'editingUnaccept',
+      'editingCutsList',
+      'editingCutRecord',
+      'editingCutRemove',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -3733,5 +3738,86 @@ describe('the accepted words bindings', () => {
     expect(acceptedWordSchema.safeParse({ ...word, key: '../x' }).success).toBe(false);
     expect(acceptedWordSchema.safeParse({ ...word, staleReason: 'moved' }).success).toBe(false);
     expect(acceptedWordsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+  });
+});
+
+// The narrator's cuts (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the host
+// refuses, and the schemas refuse what the host never sends.
+describe('the cuts bindings', () => {
+  const firstLine = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
+  };
+  const request = (pid: string, a: number, b: number): EditCutRequest => ({
+    pid,
+    takeId: 't-1',
+    keys: [`${pid}:1`, `${pid}:0`],
+    text: 'two words',
+    a,
+    b,
+    off0: 0,
+    off1: b - a,
+    mode: 'close',
+    fadeMs: 12,
+    daw: 'reaper',
+    guid: '{CUT}',
+    undoSteps: 1,
+  });
+
+  it('the mock answers EditingCutsList, Record and Remove through their schemas, in time order', async () => {
+    const { api, chapterId, line } = await firstLine();
+    expectMatches(editCutsSchema, await api.editingCutsList(chapterId), 'mock cuts list (empty)');
+    expectMatches(editCutsChangeSchema, await api.editingCutRecord(chapterId, { ...request(line.id, 20, 21), keys: [`${line.id}:2`] }), 'mock record');
+    const recorded = await api.editingCutRecord(chapterId, request(line.id, 12, 13.5));
+    expectMatches(editCutsChangeSchema, recorded, 'mock record');
+    expect(recorded.changed).toEqual(['cut2']);
+    expect(recorded.cuts.map((cut) => cut.id)).toEqual(['cut2', 'cut1']);
+    expect(recorded.cuts[0]).toMatchObject({
+      keys: [`${line.id}:0`, `${line.id}:1`],
+      words: line.text.split(/\s+/).filter(Boolean).slice(0, 2),
+      a: 12,
+      stale: false,
+    });
+    const removed = await api.editingCutRemove(chapterId, 'cut2');
+    expectMatches(editCutsChangeSchema, removed, 'mock remove');
+    expect(removed.changed).toEqual(['cut2']);
+    expect((await api.editingCutRemove(chapterId, 'cut2')).changed).toEqual([]);
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstLine();
+    const good = request(line.id, 12, 13);
+    await expect(api.editingCutRecord('no-such-chapter', good)).rejects.toThrow('not in the manuscript');
+    await expect(api.editingCutRecord(otherId, good)).rejects.toThrow('not in this chapter');
+    await expect(api.editingCutRecord(chapterId, { ...good, keys: ['../../etc/passwd:0'] })).rejects.toThrow('all be in its paragraph');
+    await expect(api.editingCutRecord(chapterId, { ...good, b: 12 })).rejects.toThrow('end after it starts');
+    await expect(api.editingCutRecord(chapterId, { ...good, a: -1 })).rejects.toThrow('seconds from the start');
+    await expect(api.editingCutRecord(chapterId, { ...good, mode: 'erase' as 'close' })).rejects.toThrow('closes the gap or leaves it');
+    await expect(api.editingCutRecord(chapterId, { ...good, fadeMs: 13 })).rejects.toThrow('crossfade');
+    await expect(api.editingCutRecord(chapterId, { ...good, guid: '' })).rejects.toThrow('after the DAW made it');
+    expect((await api.editingCutsList(chapterId)).cuts).toEqual([]);
+    await api.editingCutRecord(chapterId, good);
+    await expect(api.editingCutRecord(chapterId, { ...good, a: 12.5, b: 14 })).rejects.toThrow('cut1');
+  });
+
+  it('the schemas read the goldens and refuse a negative time, an unknown key or a fade the host never sends', () => {
+    const list = parseWire(editCutsSchema, readGolden('edit-cuts-list.json'), ctx('cuts list'));
+    expect(list.cuts.map((cut) => [cut.id, cut.stale, cut.staleReason])).toEqual([
+      ['cut2', false, undefined],
+      ['cut1', true, 'text_changed'],
+    ]);
+    const change = parseWire(editCutsChangeSchema, readGolden('edit-cuts-record.json'), ctx('cut record'));
+    expect(change.changed).toEqual(['cut2']);
+    expect(parseWire(editCutsChangeSchema, readGolden('edit-cuts-remove.json'), ctx('cut remove')).changed).toEqual(['cut2']);
+    const cut = change.cuts[0];
+    expect(editCutSchema.safeParse({ ...cut, a: -1 }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, b: cut.a }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, fadeMs: 13 }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, path: '/etc/passwd' }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, words: ['one'] }).success).toBe(false);
+    expect(editCutsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
   });
 });
