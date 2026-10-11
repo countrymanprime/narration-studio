@@ -56,6 +56,11 @@ especially welcome:
   a file or a label or note that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used
   without being validated, or a bookmark moved to a guessed place instead of reported stale, is in scope; one that only changes where
   the narrator's own bookmarks point is the documented residual risk (threat model row 6u).
+- The Story Bible extraction suggestions (`ManuscriptGuide/suggestions.json` in the project,
+  [ADR 0846](docs/adr/0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md)):
+  a file or a quote, note or payload text that makes the app run, open, fetch or write anything else, that is used as a path, that puts markup
+  into the page, or that is used without being validated, is in scope; one that only changes which suggestions the narrator is asked to
+  verify is the documented residual risk (threat model row 6v).
 - The delivery profiles the app reads back to judge the rendered files (the user-level `delivery-profiles.json` beside
   `credit-templates.json`, and the project's choice in `project.json`,
   [ADR 0180](docs/adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md)): a file that makes the app

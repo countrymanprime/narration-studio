@@ -52,7 +52,8 @@ describe('the import review dialog, as the narrator meets it', () => {
     expect(kinds('Characters')).toBe('reference');
     expect(kinds('Glossary')).toBe('reference');
     expect(kinds('Front Matter')).toBe('opening');
-    expect(dialog.getAllByRole('combobox')).toHaveLength(8);
+    // Eight sections, and the delivery profile a first import of a project with none chosen also asks for.
+    expect(dialog.getAllByRole('combobox')).toHaveLength(9);
   });
 
   it('offers the three kinds a section can be, by their names in the reader', async () => {
@@ -465,5 +466,89 @@ describe('the credits-setup banner, the way back after Not now', () => {
     );
     await screen.findByRole('button', { name: 'Replace manuscript' });
     expect(screen.queryByText(/The credits need/)).toBeNull();
+  });
+});
+
+describe('the delivery profile on the first import (SNM-4d)', () => {
+  const profileField = (dialog: ReturnType<typeof within>) => dialog.queryByRole('combobox', { name: 'Delivery profile' }) as HTMLSelectElement | null;
+
+  it('asks for it when the project has none chosen, offering ACX and Other / none', async () => {
+    const { dialog } = await openReview();
+    const field = await waitFor(() => {
+      const found = profileField(dialog);
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    expect(
+      within(field)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['ACX', 'Other / none']);
+    expect(field.value).toBeTruthy();
+  });
+
+  it('saves the choice once, after the import has been written', async () => {
+    let select: ReturnType<typeof vi.spyOn> | undefined;
+    const { api, dialog } = await openReview((host) => {
+      select = vi.spyOn(host, 'deliverySelectProfile');
+    });
+    await waitFor(() => expect(profileField(dialog)).toBeTruthy());
+    fireEvent.change(profileField(dialog)!, { target: { value: 'acx' } });
+    expect(select).not.toHaveBeenCalled();
+    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    await waitFor(() => expect(select).toHaveBeenCalledTimes(1));
+    expect(select).toHaveBeenCalledWith('project', 'acx', expect.any(String));
+    expect((await api.deliveryProfiles()).projectChoice?.id).toBe('acx');
+  });
+
+  it('says the host’s sentence when the save is refused, and the import stands', async () => {
+    const notify = vi.fn();
+    const api = createMockApi({}, { noManuscript: true, importPreview: 'docx' });
+    vi.spyOn(api, 'deliverySelectProfile').mockRejectedValue(new Error('profile store is read-only'));
+    const data = await api.bootstrap();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ImportHarness data={data} go={() => {}} notify={notify} refreshBootstrap={async () => {}} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
+    await waitFor(() => expect(profileField(dialog)).toBeTruthy());
+    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('profile store is read-only'), 'error'));
+    expect(notify).toHaveBeenCalledWith('Manuscript imported.');
+  });
+
+  it('never asks on a replace', async () => {
+    const api = createMockApi();
+    const data = await api.bootstrap();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ImportHarness data={data} go={() => {}} notify={() => {}} refreshBootstrap={async () => {}} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript' }));
+    const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
+    expect(profileField(dialog)).toBeNull();
+  });
+
+  it('does not ask when the project already has a profile', async () => {
+    const api = createMockApi({}, { noManuscript: true, importPreview: 'docx', deliveryProfile: 'custom' });
+    const data = await api.bootstrap();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ImportHarness data={data} go={() => {}} notify={() => {}} refreshBootstrap={async () => {}} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(profileField(dialog)).toBeNull();
   });
 });
