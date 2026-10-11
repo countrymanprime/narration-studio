@@ -5,6 +5,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from '../schemas/production';
@@ -26,6 +27,8 @@ export const productionGoldens: Record<string, z.ZodType> = {
   'production-timer-stop-none.json': productionStopResultSchema,
   // Phase 5: the status report export (ProductionStatusReport).
   'production-status-report.json': productionReportExportSchema,
+  // SN-P621: the preview of that report (ProductionStatusReportPreview).
+  'production-status-report-preview.json': productionReportPreviewSchema,
   // Phase 6: the burndown data (ProductionBurndown, Could).
   'production-burndown.json': productionBurndownSchema,
 };

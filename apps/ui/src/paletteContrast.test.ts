@@ -389,7 +389,7 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'chapterStatus.ts': { count: 1, what: 'the Not Started status colour: a dot and a meter segment, never text' },
   'components/production/ChapterTrackPanel.tsx': { count: 1, what: "the panel header's linked-track colour dot" },
   'components/layout/AppShell.tsx': { count: 1, what: 'the folder icon beside the project name' },
-  'components/layout/EngineChip.tsx': { count: 1, what: 'the header chip dot when no DAW file is linked' },
+  'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
   'components/manuscript/ChapterNav.tsx': { count: 1, what: 'a line-hit result row icon (faParagraph)' },
   'components/manuscript/ReaderCard.tsx': { count: 1, what: 'the idle chapter bookmark icon' },

@@ -20,6 +20,9 @@ type NativeTag = (typeof NATIVE_TAGS)[number];
 // Native elements written in JSX per file, outside the primitives, at the time of ADR 0053 (no native select, input, textarea or table part is left).
 const CEILING: Record<NativeTag, Record<string, number>> = {
   button: {
+    // The header's "Jump to or run…" field (the mock's top bar): a search-shaped trigger with a label and a key chord, which Button's
+    // padded, uppercase chrome and IconButton's square do not draw. One JSX `<button>`.
+    'src/components/layout/AppShell.tsx': 1,
     // The stage readiness chip (the mock's `rchip`): a 20 px verdict mark that must carry `aria-haspopup="dialog"` and its own name,
     // which `Badge`'s button and `HeaderChip` do not take. One JSX `<button>`.
     'src/components/production/readiness/ReadinessChip.tsx': 1,

@@ -87,7 +87,8 @@ export function createManuscriptMock(
   let notes = wireClone(WIRE_NOTES);
   let readerState: ReaderState = wireClone(WIRE_READER_STATE);
   const manuscriptReady = loadAliceManuscript(aliceChapterSeeds).then((loaded) => {
-    if (!loaded) return;
+    // A seeded book (fixtures/scenario.ts) is the manuscript; the bundled text does not replace it.
+    if (!loaded || initial.chapters) return;
     s.chapters = loaded.chapters;
     // The real text needs the same preserved formatting/line-break sample as
     // the seed fixture, so the reader shows both in either data source.
