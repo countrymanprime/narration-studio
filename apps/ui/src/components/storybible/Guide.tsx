@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClipboardQuestion, faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
 import type { GuideBuildResult, GuideEntity } from '../../types';
-import { categoryCssName, categoryLabel, sortEntities, STORY_BIBLE_TABS } from '../../state';
+import { categoryCssName, categoryLabel, STORY_BIBLE_TABS } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -18,6 +18,7 @@ import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { CAT_DOT_BG } from '../manuscript/EntitySummary';
 import { Dot } from '../primitives/StatusBadge';
+import { aliasCount, chapterCount, ENTRY_SORT_OPTIONS, loadEntrySort, saveEntrySort, sortEntries, type EntrySortKey } from './entryList';
 import { GuideDetail } from './GuideDetail';
 import { PronunciationQueries } from './PronunciationQueries';
 import { VoiceDataPanel } from './VoiceDataPanel';
@@ -25,11 +26,11 @@ import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { IconButton } from '../primitives/IconButton';
 import { SearchField } from '../primitives/SearchField';
+import { Select } from '../primitives/Select';
 import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import type { Notify } from '../primitives/Toast';
 
-type EntitySort = { key: 'name' | 'occurrences'; dir: 'asc' | 'desc' };
 const TAB_PLURAL: Record<string, string> = {
   Character: 'Characters',
   Location: 'Locations',
@@ -74,7 +75,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   const [tab, setTab] = useState('All');
   const [queriesOpen, setQueriesOpen] = useState(false);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
-  const [sort, setSort] = useState<EntitySort>({ key: 'name', dir: 'asc' });
+  const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
   // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild (ADR 0075).
   const starting = usePendingAction();
   // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
@@ -169,11 +170,13 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
     .filter((row) =>
       `${row.canonical_name} ${row.aliases.map((alias) => alias.text).join(' ')} ${categoryLabel(row.category)}`.toLowerCase().includes(query.toLowerCase()),
     );
-  const sorted = sortEntities(filtered, sort);
+  const sorted = sortEntries(filtered, sort);
   const selected = rows.find((row) => row.id === selectedId);
-  const toggleSort = (key: EntitySort['key']) =>
-    setSort((current) => (current.key === key ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'occurrences' ? 'desc' : 'asc' }));
-  const sortedState = (key: EntitySort['key']) => (sort.key !== key ? undefined : sort.dir === 'asc' ? ('ascending' as const) : ('descending' as const));
+  const chooseSort = (key: string) => {
+    const next = ENTRY_SORT_OPTIONS.find((option) => option.value === key)?.value ?? 'name';
+    setSort(next);
+    saveEntrySort(next);
+  };
 
   // No backend record is created here - see GuideDetail's isNewDraft prop.
   // Navigating away or picking a different row just discards this, matching
@@ -237,17 +240,17 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
           <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
             <div className="p-4 pb-2">
               <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Search entries…" />
+              <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span aria-hidden="true">Sort</span>
+                <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="flex-1" />
+              </div>
             </div>
             <div className="guide-list-scroll min-h-0 overflow-y-auto px-2 pb-2">
               <Table label="Story Bible entries">
                 <TableHead sticky>
                   <TableRow>
-                    <TableHeader sorted={sortedState('name')} onSort={() => toggleSort('name')}>
-                      Name
-                    </TableHeader>
-                    <TableHeader align="right" sorted={sortedState('occurrences')} onSort={() => toggleSort('occurrences')}>
-                      Occurrences
-                    </TableHeader>
+                    <TableHeader>Name</TableHeader>
+                    <TableHeader align="right">Chapters</TableHeader>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -261,10 +264,11 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
                         </div>
                         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
                           {categoryLabel(row.category)}
+                          {row.category !== 'Draft' && ` · ${aliasCount(row)} ${aliasCount(row) === 1 ? 'name' : 'names'}`}
                         </div>
                       </TableCell>
                       <TableCell numeric style={{ color: 'var(--text-muted)' }}>
-                        {row.occurrence_count}
+                        {chapterCount(row)}
                       </TableCell>
                     </TableRow>
                   ))}

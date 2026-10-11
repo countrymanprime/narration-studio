@@ -17,7 +17,6 @@ import {
   isTranscriptActive,
   readTimeLabel,
   selectDiscrepancy,
-  sortEntities,
   windowExcerpt,
 } from './state';
 import type { GuideAlias, GuideEntity } from './types';
@@ -313,16 +312,5 @@ describe('Credits time', () => {
     expect(roomToneSeconds(undefined)).toBe(0);
     expect(roomToneSeconds('loud')).toBe(0);
     expect(roomToneSeconds('-2')).toBe(0);
-  });
-});
-
-describe('Story Bible entity list sorting', () => {
-  const rows = [entity({ id: 'b', canonical_name: 'Bram', occurrence_count: 5 }), entity({ id: 'a', canonical_name: 'Aurelian', occurrence_count: 12 })];
-  it('sorts by name ascending or descending', () => {
-    expect(sortEntities(rows, { key: 'name', dir: 'asc' }).map((e) => e.id)).toEqual(['a', 'b']);
-    expect(sortEntities(rows, { key: 'name', dir: 'desc' }).map((e) => e.id)).toEqual(['b', 'a']);
-  });
-  it('sorts by occurrence count', () => {
-    expect(sortEntities(rows, { key: 'occurrences', dir: 'desc' }).map((e) => e.id)).toEqual(['a', 'b']);
   });
 });
