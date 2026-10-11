@@ -1892,6 +1892,13 @@ def capabilities(args: argparse.Namespace) -> None:
     print(json.dumps(capabilities_report()))
 
 
+def suggest(args: argparse.Namespace) -> None:
+    """`suggest`: the rules tier's suggestions as JSON lines; it writes nothing (extraction_rules.py, SN-X32)."""
+    import extraction_rules
+
+    extraction_rules.suggest(args)
+
+
 def use_utf8_stdio() -> None:
     """Writes UTF-8 to the pipes the host reads.
 
@@ -2021,6 +2028,9 @@ def main() -> None:
     color_parser.add_argument("--index", type=int, required=True)
     check_parser = command.add_parser("self-check", help="prove the dictionary and the espeak-ng data this program carries load (the packaged smoke test)")
     check_parser.add_argument("--piper-model", default="", help="also load this voice and speak one word")
+    suggest_parser = command.add_parser("suggest", help="print the rules' Story Bible suggestions, one JSON line each; writes nothing")
+    suggest_parser.add_argument("--manuscript", required=True)
+    suggest_parser.add_argument("--guide", required=True)
     command.add_parser(
         "capabilities",
         help="print every row this process has registered in ENGINES (voice engines) and SOURCES (pronunciation), by "
@@ -2063,6 +2073,7 @@ def main() -> None:
             "render-audio": render_audio,
             "self-check": self_check,
             "capabilities": capabilities,
+            "suggest": suggest,
         }[args.command](args)
     except Exception as exc:  # noqa: BLE001
         log(f"ERROR: {exc}")
