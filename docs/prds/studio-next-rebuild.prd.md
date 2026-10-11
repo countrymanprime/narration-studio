@@ -435,7 +435,7 @@ The phases of this overview are the program-level slices. Page and seam slices a
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Record the decisions | Enter the rulings of 2026-10-11 (SN0-Q1..Q9, DQ-1..DQ-18) in the decisions register (SNA-4) as decided; nothing is put to the owner | pending | SNA-1 | - | 0.2 | - |
 | 2 | ADR batch A | Write A1..A17 as Proposed ADRs, one per owning PRD, in their lanes' blocks | pending | 1 | 1 | 0.5 | - |
-| 3 | Mock capture kit | A script that runs the mock for a named state and viewport and writes a PNG for the PR's Screenshots row (SN0-Q8, decided) | pending | 2 | 1 | 0.3 | - |
+| 3 | Mock capture kit | A script that runs the mock for a named state and viewport and writes a PNG for the PR's Screenshots row (SN0-Q8, decided) | done | 2 | 1 | 0.3 | - |
 | 4 | Agent train amendments | The edits to `docs/operations/agent-train.md` that [Agent Delivery](studio-next-agent-delivery.prd.md) lists, accepted on 2026-10-11 | pending | - | 1 | 0.2 | - |
 | 5 | Program close-out | Status cells, the series index in `docs/prds/README.md`, hand-over to [Cutover](studio-next-cutover.prd.md) | pending | - | all | 0.3 | - |
 
