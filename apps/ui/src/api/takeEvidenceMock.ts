@@ -6,7 +6,7 @@ import type { TakeEvidence, TakeEvidenceApi, TakeEvidenceMeasure, TakeFigure } f
 import type { WorkspaceApi } from './contracts/workspace';
 
 // The host's sentences (evidence.go).
-export const TAKE_EVIDENCE_REASONS = {
+const TAKE_EVIDENCE_REASONS = {
   clarity: 'Not measured',
   notAligned: 'This take was not aligned to the script, so its words were not matched. Run the recording check with it playing.',
 } as const;

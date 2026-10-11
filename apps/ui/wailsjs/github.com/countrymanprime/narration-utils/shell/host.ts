@@ -1235,6 +1235,22 @@ export function PackageState(): $CancellablePromise<string> {
     return $Call.ByID(2792423179);
 }
 
+/**
+ * PassageMapList returns a chapter's marks, runs in the order they were recorded, each checked against the current
+ * manuscript: a mark whose paragraph is gone or whose word is past its end comes back stale, never moved.
+ */
+export function PassageMapList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1224168480, chapterID);
+}
+
+/**
+ * PassageMapRecordRun stores one recording's run of marks for chapterID (a start, any rolls and a stop, in time order) and
+ * returns the marks as stored, stamped with the DAW's ids. A run that breaks a rule is refused and nothing is saved.
+ */
+export function PassageMapRecordRun(chapterID: string, run: $models.PassageMapMarkInput[]): $CancellablePromise<string> {
+    return $Call.ByID(1060330002, chapterID, run);
+}
+
 export function PickupsCount(): $CancellablePromise<string> {
     return $Call.ByID(3462748130);
 }

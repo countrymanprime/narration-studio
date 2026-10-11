@@ -53,6 +53,7 @@ const PAIRS: PairSpec[] = [
   mark('non-text', 'icons, status dots, the info icon border and decorative glyphs: the one colour for what is seen and not read', 'var(--non-text)', SURFACES),
   mark('bookmark', 'the bookmark icon: chapter header, chapter row badge and line/note bookmark rows, all on one token', 'var(--bookmark)', SURFACES),
   text('toast', 'Toast: page colour on the text colour', 'var(--bg)', ['surface'], 'var(--text)'),
+  text('selection-toolbar', 'the selection toolbar: surface colour on the text colour', 'var(--surface)', ['surface'], 'var(--text)'),
   text('on-accent', 'primary button and logo: accent-contrast on accent', 'var(--accent-contrast)', ['surface'], 'var(--accent)'),
   text('on-accent-strong', 'primary button hover: accent-contrast on accent-strong', 'var(--accent-contrast)', ['surface'], 'var(--accent-strong)'),
   text('accent-link', 'the Reset link and other accent text on the page', 'var(--accent)', ['surface']),

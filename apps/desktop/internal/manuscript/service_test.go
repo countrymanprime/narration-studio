@@ -16,6 +16,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 	"github.com/countrymanprime/narration-utils/shell/internal/importer"
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
@@ -632,6 +633,54 @@ func TestReplaceAndClearRemoveTheBookmarksFile(t *testing.T) {
 	}
 	if _, err := os.Stat(bookmarks.File(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the bookmarks behind: %v", err)
+	}
+}
+
+// The passage map names chapter and paragraph ids and word indexes, so replacing the manuscript (a commit with a confirmed
+// reset) and Clear project data remove it; an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveThePassageMapFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeMap := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(passagemap.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(passagemap.File(project), []byte(`{"schemaVersion":1,"marks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeMap()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(passagemap.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the passage map: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(passagemap.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the passage map behind: %v", err)
+	}
+	writeMap()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(passagemap.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the passage map behind: %v", err)
 	}
 }
 
