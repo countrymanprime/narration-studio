@@ -92,6 +92,7 @@ import {
   productionStopResultSchema,
 } from './schemas/production';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
+import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema, reaperStatusSchema } from './schemas/findings';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
 import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
@@ -474,6 +475,7 @@ export const wailsClient: NarrationApi = {
   workspaceUseTake: (chapterId, firstToken, lastToken, candidateId) =>
     decode(workspaceUseTakeResultSchema, 'WorkspaceUseTake', host.WorkspaceUseTake(chapterId, firstToken, lastToken, candidateId)),
   workspacePeaks: (chapterId) => decode(workspacePeaksResultSchema, 'WorkspacePeaks', host.WorkspacePeaks(chapterId)),
+  workspaceSnap: (chapterId, itemGuid, sourceTime) => decode(workspaceSnapResultSchema, 'WorkspaceSnap', host.WorkspaceSnap(chapterId, itemGuid, sourceTime)),
   previewCandidates: () => decode(previewResultSchema, 'PreviewCandidates', host.PreviewCandidates()),
   previewPin: () => decode(pinnedPreviewSchema, 'PreviewPin', host.PreviewPin()),
   previewPinSet: (chapterId, paragraphIds) => decode(pinnedPreviewSchema, 'PreviewPinSet', host.PreviewPinSet(chapterId, paragraphIds)),

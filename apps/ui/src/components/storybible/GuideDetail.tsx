@@ -4,7 +4,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronDown,
   faCodeMerge,
-  faFileLines,
   faFloppyDisk,
   faLock,
   faLockOpen,
@@ -17,7 +16,7 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuidePronunciationStatus, TtsInstallJob } from '../../types';
-import { allEvidence, categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches, highlightTerms } from '../../state';
+import { categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -25,7 +24,6 @@ import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { CAT_DOT_BG, EntitySummary, entityBadgeColors } from '../manuscript/EntitySummary';
 import { Dot, badgeClass, badgeStyle } from '../primitives/StatusBadge';
-import { Highlight, highlightKind } from '../primitives/Highlight';
 import { SlideOver } from '../primitives/SlideOver';
 import { Button } from '../primitives/Button';
 import { Field } from '../primitives/Field';
@@ -38,6 +36,8 @@ import { PropertiesSection } from './PropertiesSection';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
 import { PronunciationWork } from './PronunciationWork';
+import { AppearsIn } from './AppearsIn';
+import type { ChapterRef } from './appearsIn';
 import { pronunciationSourceLabel } from './pronunciationStatus';
 import { draftFrom, propertiesFrom, propertyProblem, sameProperties, type DraftProperty } from './propertyDraft';
 import { IconButton } from '../primitives/IconButton';
@@ -83,7 +83,8 @@ export function GuideDetail({
   entities: GuideEntity[];
   reload: (selectId?: string) => Promise<void>;
   notify: Notify;
-  goToManuscript: (chapter: string, paragraph: number) => void;
+  // A method, so Guide's (chapter, paragraph) handler still fits; the Appears in list calls it with a chapter alone.
+  goToManuscript(chapter: string, paragraph?: number): void;
 }) {
   const api = useApi();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [] });
@@ -141,6 +142,17 @@ export function GuideDetail({
     notify,
   });
 
+  const [manuscriptChapters, setManuscriptChapters] = useState<ChapterRef[]>([]);
+  useEffect(() => {
+    let live = true;
+    api.manuscriptChapters().then(
+      (list) => live && setManuscriptChapters(list),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [api]);
   // Selecting a different entry always starts read-only; a reload of the same
   // entry (after Save, an alias change, ...) keeps its mode.
   useEffect(() => setEditing(false), [entity?.id]);
@@ -187,8 +199,6 @@ export function GuideDetail({
   const aliasMatches = aliasSelectedId ? [] : findAliasMatches(entities, aliasQuery, entity.id);
   const selectedAliasMatch = aliasSelectedId ? entities.find((row) => row.id === aliasSelectedId) : undefined;
   const reviewOverlayEntity = reviewOverlayId ? entities.find((row) => row.id === reviewOverlayId) : undefined;
-  const evidence = allEvidence(entity);
-  const highlightNames = [entity.canonical_name, ...entity.aliases.map((alias) => alias.text)];
   // Play is gated on a pronunciation existing (B8): the preview always speaks the name as spelled and ignores the IPA, so this is a
   // UI policy, not a technical limit - the reason says so.
   const canonicalPlayReason = entity.pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
@@ -399,9 +409,6 @@ export function GuideDetail({
       }
       actions={
         <>
-          <span className="mr-1 font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs" style={{ color: 'var(--text-muted)' }}>
-            {entity.occurrence_count} occurrences
-          </span>
           {/* Lock/Unlock is read-view only (ADR 0087): it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
           {!isNewDraft && !editing && (
             <TooltipTarget text={locked ? 'Unlock entry' : 'Lock entry'}>
@@ -551,7 +558,6 @@ export function GuideDetail({
               <TableRow>
                 <TableHeader>Alias</TableHeader>
                 <TableHeader style={{ minWidth: '9rem' }}>Pronunciation</TableHeader>
-                <TableHeader align="right">Occurrences</TableHeader>
                 <TableHeader hiddenLabel="Actions" />
               </TableRow>
             </TableHead>
@@ -624,7 +630,6 @@ export function GuideDetail({
                       onSaveStatus={(status, note) => void setPronunciationStatus(status, note, index)}
                     />
                   </TableCell>
-                  <TableCell numeric>{alias.occurrences.length}</TableCell>
                   <TableCell align="right">
                     <IconButton
                       label={`Remove alias ${alias.text}`}
@@ -694,7 +699,7 @@ export function GuideDetail({
                   options={aliasMatches.map((match) => ({
                     id: match.id,
                     label: match.canonical_name,
-                    description: `${categoryLabel(match.category)} · ${match.occurrence_count} occurrence${match.occurrence_count === 1 ? '' : 's'}`,
+                    description: categoryLabel(match.category),
                     leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
                   }))}
                   activeIndex={aliasActiveIndex}
@@ -871,51 +876,7 @@ export function GuideDetail({
           </div>
         </div>
 
-        <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">
-            Evidence{' '}
-            <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs" style={{ color: 'var(--text-muted)' }}>
-              ({evidence.length} shown)
-            </span>
-          </div>
-          {evidence.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              No occurrences found yet.
-            </p>
-          ) : (
-            evidence.map((item, index) => (
-              <div key={index} className="flex items-center justify-between gap-3 border-b py-3 last:border-0" style={{ borderColor: 'var(--border)' }}>
-                <div className="min-w-0 flex-1">
-                  <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {item.chapter}
-                    {item.alias ? (
-                      <>
-                        {' '}
-                        · <span className="font-['IBM_Plex_Mono',monospace] text-[var(--accent-strong)]">alias: {item.alias}</span>
-                      </>
-                    ) : null}
-                  </span>
-                  <p className="mt-1 text-sm break-words">
-                    {highlightTerms(item.excerpt, highlightNames).map((segment, i) =>
-                      segment.match ? (
-                        <Highlight key={i} kind={highlightKind(entity.category)}>
-                          {segment.text}
-                        </Highlight>
-                      ) : (
-                        <span key={i}>{segment.text}</span>
-                      ),
-                    )}
-                  </p>
-                </div>
-                <TooltipTarget text="Go to this line in Script">
-                  <IconButton label="Go to line in Script" className="flex-none" onClick={() => goToManuscript(item.chapter, item.paragraph)}>
-                    <FontAwesomeIcon icon={faFileLines} />
-                  </IconButton>
-                </TooltipTarget>
-              </div>
-            ))
-          )}
-        </div>
+        <AppearsIn entity={entity} manuscript={manuscriptChapters} onGo={(chapterId) => goToManuscript(chapterId)} />
         {ttsPrompt && (
           <AssetInstallPrompt
             ask={{

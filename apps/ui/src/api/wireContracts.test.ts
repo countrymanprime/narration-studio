@@ -11,6 +11,7 @@ import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMar
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
+import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
@@ -2423,6 +2424,23 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(mock.extras.flatMap((extra) => extra.words ?? []).length).toBeGreaterThan(0);
   });
 
+  it('the workspace snap moves a cut within 2 ms, the same for the same time, and the schema refuses what the host never sends', async () => {
+    const api = createMockApi();
+    for (const t of [0, 12.3456, 166.5, 200]) {
+      const first = await api.workspaceSnap('chapter-1', '{MOCK-ITEM}', t);
+      expectMatches(workspaceSnapResultSchema, first, 'mock workspace snap');
+      expect(Math.abs(first.time - t)).toBeLessThanOrEqual(0.002 + 1e-9);
+      expect(await api.workspaceSnap('chapter-1', '{MOCK-ITEM}', t)).toEqual(first);
+    }
+    const snapped = { chapterId: 'c', itemGuid: '{I}', sourceTime: 1, outcome: 'snapped', time: 1, moved: 0 };
+    expect(workspaceSnapResultSchema.safeParse(snapped).success).toBe(true);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, sourceTime: -1 }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, time: -0.001 }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, moved: 0.01 }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, path: '/x.wav' }).success).toBe(false);
+    expect(workspaceSnapResultSchema.safeParse({ ...snapped, outcome: 'refused', reason: 'silent', message: 'x', moved: 0.001 }).success).toBe(false);
+  });
+
   it("the workspace peaks answer the live item's waveform, deterministically", async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
@@ -3094,6 +3112,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePeaks',
+      'workspaceSnap',
       'previewCandidates',
       'previewPin',
       'previewPinSet',
