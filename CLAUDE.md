@@ -15,13 +15,13 @@ Task-specific skills, used alongside the steps above: `systematic-debugging` (a 
 
 ## Area rules
 
-Rules for one area live in `.claude/rules/` and load when Claude reads or edits a file under the paths in their `paths:` frontmatter. They bind the same work as before; they only stay out of context until the work reaches that area.
+Rules for one area live in `.claude/rules/` and load when Claude reads or edits a file under the `paths:` in their frontmatter.
 
-| Rule file | Applies to | Holds |
-| - | - | - |
-| `.claude/rules/ui-spec-and-screenshots.md` | `apps/ui/**`, `docs/research/mockups/**` | Which mocks are the spec; a UI change ships with screenshots of the change |
-| `.claude/rules/ui-visual-verification.md` | `apps/ui/**` | Visual bug fixes require screenshot verification; the atlas, axe, aria and visual-suite gate rules |
-| `.claude/rules/wire-contracts.md` | `apps/ui/src/api/**`, `apps/desktop/**`, `tests/fixtures/contracts/**`, `sidecars/**`, `integrations/reaper/**` | Wire contracts |
-| `.claude/rules/reaper-bridge.md` | `integrations/reaper/**` | The harness and in-REAPER checks for steps 2 and 4 |
+| Rule file | Holds |
+| - | - |
+| `.claude/rules/ui-spec-and-screenshots.md` | Which mocks are the spec; a UI change ships with screenshots of the change |
+| `.claude/rules/ui-visual-verification.md` | Visual bug fixes require screenshot verification; the atlas, axe, aria and visual-suite gate rules |
+| `.claude/rules/wire-contracts.md` | Wire contracts |
+| `.claude/rules/reaper-bridge.md` | The harness and in-REAPER checks for steps 2 and 4 |
 
-A rule loads on a Read, Write or Edit of a matching file, not on a `grep` or a PR description. So two rules stay in force from here for the whole task: a PR that changes what `apps/ui` draws needs a **Screenshots** section (mock, before and after, per changed state), or the owner rejects it; and anything crossing a Wails binding, live event, sidecar output, REAPER event or file the host reads back needs a Zod schema, a golden payload, a `wireContracts.test.ts` row and a passing mock. Read the rule file before writing the PR or the contract.
+A rule loads on a Read, Write or Edit of a matching file, not on a `grep` or a PR description. Read `ui-spec-and-screenshots.md` before writing a PR that changes what `apps/ui` draws (it needs a **Screenshots** section, or the owner rejects it) and `wire-contracts.md` before changing anything that crosses a binding, event, sidecar output or file the host reads back.

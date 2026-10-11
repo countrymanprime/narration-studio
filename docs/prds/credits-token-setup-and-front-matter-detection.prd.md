@@ -267,7 +267,7 @@ All three are prefilled in the prompt. Low confidence is marked "check this", an
   - Home runs it off the bootstrap after load and after an import commits (`Home.tsx:103-105`), in the same place as the ADR 0019 offer, so the two never stack: the manuscript offer comes first and the credits prompt follows the import.
   - A `CreditsSetupBanner` appears on Home and above `CreditsEntry` in `Manuscript.tsx`. The "Fill in" on `CreditsEntry` opens the same dialog.
   - Settings > Credits shows `detected` captions for every field.
-- **Wire contracts** (CLAUDE.md):
+- **Wire contracts** (`.claude/rules/wire-contracts.md`):
   - a Zod schema `creditsSetupStateSchema` in `apps/ui/src/api/schemas/credits.ts`, and the added `detected` on `creditsProjectValuesResultSchema`;
   - goldens `credits-setup-state-needed.json`, `credits-setup-state-dismissed.json` and an updated `credits-project-values-*.json`, written by Go tests with `UPDATE_CONTRACTS=1`;
   - `wireContracts.test.ts` rows;
