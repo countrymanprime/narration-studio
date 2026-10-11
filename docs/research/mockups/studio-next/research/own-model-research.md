@@ -53,7 +53,7 @@ The owner means two different things, and the answers differ.
 ### 2.3 What an extraction fine-tune needs (examples, not tokens)
 
 - LIMA showed ~1,000 curated examples can elicit instruction-following style from a strong base [knowledge: Zhou et al. 2023]. For narrow structured tasks, practitioners commonly report usable behaviour from a few hundred and diminishing returns past a few thousand examples [knowledge, no single source].
-- For this task, count *examples = (chapter window, gold JSON)*. Plan [estimate]: 300-800 windows for the first useful model (schema adherence, evidence habit), 2,000-5,000 for robust entity/alias/quote performance, with 100-200 of the windows gold (human-verified) and the rest silver. Quote attribution is the data-hungriest: PDNC alone gives ~36k labelled quotes.
+- For this task, count *examples = (chapter window, gold JSON)*. Plan [estimate]: 300-800 windows for the first useful model (schema adherence, evidence habit), 2,000-5,000 for entity/alias/quote performance, with 100-200 of the windows gold (human-verified) and the rest silver. Quote attribution is the data-hungriest: PDNC alone gives ~36k labelled quotes.
 - Label noise matters more than count: a few hundred verified examples beat thousands of unverified silver [knowledge].
 
 ### 2.4 Silver data and the terms-of-service problem

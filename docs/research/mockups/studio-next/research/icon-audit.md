@@ -341,7 +341,7 @@ K = keep, C = change (FA name, style), T = text/labelled control.
 | Edit | K pencil |
 | Add / New | K plus (never for zoom) |
 | Zoom in / out | C -> `magnifying-glass-plus` / `magnifying-glass-minus` solid |
-| Play audio | K play; while playing switch to `stop` (Proof +-3 s currently only changes the tooltip) |
+| Play audio | K play; while playing switch to `stop` (Proof +-3 s only changes the tooltip) |
 | Reference clip / pronunciation | C -> `volume-high` solid ("Hear ...") |
 | Record my own / record this line | C -> `circle` solid, red tint (`.rec`), tooltip "Record ..." |
 | Open in Booth | K microphone (link-to-page) |
