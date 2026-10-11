@@ -170,7 +170,7 @@ func TestWorkspaceFXWithNoRoleIsRefusedNotAnError(t *testing.T) {
 	}
 }
 
-// The wire contract (CLAUDE.md): read by apps/ui/src/api/wireContracts.test.ts against its Zod schemas.
+// The wire contract (`.claude/rules/wire-contracts.md`): read by apps/ui/src/api/wireContracts.test.ts against its Zod schemas.
 func TestWorkspaceListFXContract(t *testing.T) {
 	contractfile.Check(t, "workspace-fx-plugins", workspaceFXAnswer{Names: []string{"ReaComp (Cockos)", "ReaEQ (Cockos)"}, Truncated: false})
 }
