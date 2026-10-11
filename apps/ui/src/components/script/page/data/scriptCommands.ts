@@ -221,7 +221,7 @@ export async function setMarkStatus(env: ScriptCommandEnv, id: string, status: '
 const prepOf = async (env: ScriptCommandEnv, chapterId: string): Promise<PrepState> =>
   (await cached(env, 'prep'))?.chapters.find((row) => row.chapterId === chapterId)?.state ?? 'none';
 
-/** Sets a chapter's prep state and says "{chapter}: {state}". Undo sets the earlier state and says that. */
+/** Sets a chapter's prep state and says "{chapter}: {state}"; the state it already has journals nothing. Undo sets the earlier state and says that. */
 export async function setPrep(env: ScriptCommandEnv, chapter: ChapterNameInput & { id: string }, state: PrepState): Promise<Result<Done<PrepState>>> {
   const before = await prepOf(env, chapter.id);
   const said = (to: PrepState) => `${chapterName(chapter, 'short')}: ${PREP_LABELS[to]}`;
@@ -231,6 +231,7 @@ export async function setPrep(env: ScriptCommandEnv, chapter: ChapterNameInput &
     env.announce(said(to));
     return { ok: true, value: stored.value.state };
   };
+  if (state === before) return { ok: true, value: { value: before, entryId: null } };
   return journalled<PrepState>(env, ['prep'], { label: said(state), touches: [`scriptPrep/${chapter.id}`], run: () => set(state), undo: () => set(before) });
 }
 
@@ -276,6 +277,33 @@ export async function unflagWord(env: ScriptCommandEnv, flagId: string): Promise
       const flagged = await attempt(() => env.scriptPrep.scriptWordFlag(flag.chapterId, flag.paragraphId, flag.start, flag.end));
       if (!flagged.ok || !word.say || after.say) return flagged;
       return attempt(() => env.scriptPrep.scriptWordSay(word.word, word.say, word.source));
+    },
+  });
+}
+
+/**
+ * Removes a word from the list: every one of its flags. Undo flags each range again and gives back how the word was said. The host
+ * keeps a word only while it has a flag, so the mock's `addWord` (a word with no place in the text) has no host call and is not here.
+ */
+export async function removeWord(env: ScriptCommandEnv, key: string): Promise<Result<Done<null>>> {
+  const word = ((await cached(env, 'prep'))?.words ?? []).find((row) => row.word === key);
+  if (!word || word.flags.length === 0) return refuse('word-gone', 'That word is no longer flagged.');
+  return journalled<null>(env, ['prep'], {
+    label: 'Removed a flagged word',
+    touches: [`scriptPrep/words/${key}`],
+    async run() {
+      for (const flag of word.flags) {
+        const removed = await attempt(() => env.scriptPrep.scriptWordUnflag(flag.id));
+        if (!removed.ok) return removed;
+      }
+      return { ok: true, value: null };
+    },
+    async undo() {
+      for (const flag of word.flags) {
+        const flagged = await attempt(() => env.scriptPrep.scriptWordFlag(flag.chapterId, flag.paragraphId, flag.start, flag.end));
+        if (!flagged.ok) return flagged;
+      }
+      return word.say ? attempt(() => env.scriptPrep.scriptWordSay(word.word, word.say, word.source)) : { ok: true, value: null };
     },
   });
 }

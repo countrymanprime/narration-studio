@@ -290,6 +290,7 @@ export function useScriptCommands() {
       stepPrep: async (chapter: ChapterNameInput & { id: string }, delta: number) => said(await commands.stepPrep(env, chapter, delta)) !== null,
       flagWord: async (range: LineRange) => said(await commands.flagWord(env, range))?.value ?? null,
       unflagWord: async (flagId: string) => said(await commands.unflagWord(env, flagId)) !== null,
+      removeWord: async (word: string) => said(await commands.removeWord(env, word)) !== null,
       /** Saves how a word is said; with no source the narrator typed it. */
       saveSay: async (word: string, say: string, source?: string) => said(await commands.saveSay(env, word, say, source))?.value ?? null,
       confirmSpeaker: async (cueId: string, entryId: string) => said(await commands.confirmSpeaker(env, cueId, entryId)) !== null,

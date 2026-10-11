@@ -269,6 +269,7 @@ describe('prep-state-is-journalled-and-announced', () => {
 
     const step = (delta: number) => act(async () => void (await hook.result.current.commands.stepPrep(chapter, delta)));
     const entries = (await hook.result.current.journal.entries()).length;
+    await act(async () => void (await hook.result.current.commands.setPrep(chapter, 'none')));
     await step(-1);
     expect(await hook.result.current.journal.entries()).toHaveLength(entries);
     await step(1);
@@ -308,6 +309,13 @@ describe('words-follow-the-mock', () => {
     await undoLast(hook);
     expect(hook.result.current.prep.pronStatus(word)).toBe('set');
     expect(hook.result.current.prep.wordsInChapter('chapter-1').map((w) => w.word)).toEqual([word]);
+
+    await act(async () => void (await hook.result.current.commands.flagWord(await range(1, 5))));
+    await act(async () => void (await hook.result.current.commands.removeWord(word)));
+    expect(hook.result.current.prep.pronStatus(word)).toBe('not_flagged');
+    await undoLast(hook);
+    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
+    expect(hook.result.current.prep.pronOfWord(word).say).toBe('uh-LIS');
   });
 });
 
