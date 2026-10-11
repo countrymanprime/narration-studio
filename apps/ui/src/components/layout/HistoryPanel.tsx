@@ -3,6 +3,7 @@ import type { Journal } from '../../studio/journal/createJournal';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { OverlayService } from '../../overlay/overlayService';
 import { Button } from '../primitives/Button';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { useJournalEntries, type JournalRow } from './useJournalEntries';
 
 type HistoryJournal = Pick<Journal, 'entries' | 'subscribe' | 'undo'>;
@@ -43,9 +44,7 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
               <li key={row.id}>
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1">{row.label}</span>
-                  <span className="rounded-full border border-[var(--border)] px-2 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-                    {row.daw ? dawName : 'App'}
-                  </span>
+                  <StatusBadge tone={row.daw ? 'success' : 'neutral'} label={row.daw ? dawName : 'App'} />
                   <Button
                     variant="secondary"
                     size="sm"
