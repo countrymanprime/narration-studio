@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type {
   WorkspaceAlignmentResult,
   WorkspaceExtra,
+  WorkspaceExtraWord,
   WorkspaceFXChainsResult,
   WorkspaceFXPluginsResult,
   WorkspaceFXResult,
@@ -22,19 +23,41 @@ import { COVERAGE_EVALUATOR_REASONS, COVERAGE_REFUSAL_REASONS } from './coverage
 // CoverageResult uses (tests/fixtures/contracts/coverage-reasons.json already pins it against the host).
 const reasonSchema = z.union([z.enum(COVERAGE_REFUSAL_REASONS), z.enum(COVERAGE_EVALUATOR_REASONS)]);
 
-const tokenSchema = z.object({
-  i: z.number(),
-  p: optionalFromNull(z.string()),
-  w: z.number(),
-  text: z.string(),
-  status: z.enum(['read', 'misread', 'heading', 'head', 'tail', 'skip', 'short_read', 'different_text']),
-  heard: optionalFromNull(z.string()),
-  item: optionalFromNull(z.number()),
-  start: optionalFromNull(z.number()),
-  end: optionalFromNull(z.number()),
-}) satisfies z.ZodType<WorkspaceToken>;
+// A word score is a number with no reason, or null with one (ADR 0855); a payload from before it has neither.
+const scoredOrReasoned = (word: { conf?: number | null; confReason?: string }): boolean =>
+  word.conf === undefined ? word.confReason === undefined : (word.conf === null) === (word.confReason !== undefined);
+
+const tokenSchema = z
+  .object({
+    i: z.number(),
+    p: optionalFromNull(z.string()),
+    w: z.number(),
+    text: z.string(),
+    status: z.enum(['read', 'misread', 'heading', 'head', 'tail', 'skip', 'short_read', 'different_text']),
+    heard: optionalFromNull(z.string()),
+    item: optionalFromNull(z.number()),
+    start: optionalFromNull(z.number()),
+    end: optionalFromNull(z.number()),
+    conf: z.number().min(0).max(1).nullable().optional(),
+    confReason: optionalFromNull(z.string().min(1)),
+    added: z.never().optional(),
+  })
+  .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one (ADR 0855)' }) satisfies z.ZodType<WorkspaceToken>;
 
 const audioPositionSchema = z.object({ itemIndex: z.number(), itemGuid: z.string(), sourceTime: z.number() });
+
+const extraWordSchema = z
+  .object({
+    text: z.string(),
+    item: z.number(),
+    start: z.number(),
+    end: z.number(),
+    added: z.literal(true),
+    timing: z.enum(['spread', 'unplaced']),
+    conf: z.number().min(0).max(1).nullable(),
+    confReason: optionalFromNull(z.string().min(1)),
+  })
+  .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one (ADR 0855)' }) satisfies z.ZodType<WorkspaceExtraWord>;
 
 const extraSchema = z.object({
   text: z.string(),
@@ -42,6 +65,7 @@ const extraSchema = z.object({
   start: audioPositionSchema,
   end: audioPositionSchema,
   afterToken: optionalFromNull(z.number()),
+  words: listFromNull(extraWordSchema),
 }) satisfies z.ZodType<WorkspaceExtra>;
 
 const paragraphSchema = z.object({ id: z.string(), text: z.string() }) satisfies z.ZodType<WorkspaceParagraph>;
@@ -67,6 +91,7 @@ export const workspaceAlignmentResultSchema = z.object({
   tokens: listFromNull(tokenSchema),
   extras: listFromNull(extraSchema),
   items: listFromNull(itemSchema),
+  engine: optionalFromNull(z.object({ id: z.string().min(1), name: z.string().min(1) })),
 }) satisfies z.ZodType<WorkspaceAlignmentResult>;
 
 export const workspaceFXChainsResultSchema = z.object({

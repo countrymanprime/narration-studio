@@ -17,6 +17,8 @@ export const workspaceGoldens: Record<string, z.ZodType> = {
   'workspace-alignment-stale.json': workspaceAlignmentResultSchema,
   'workspace-alignment-never.json': workspaceAlignmentResultSchema,
   'workspace-alignment-needs-align-again.json': workspaceAlignmentResultSchema,
+  // ADR 0855: extra runs' added words (spread, and unplaced across two items) and the engine.
+  'workspace-alignment-added-words.json': workspaceAlignmentResultSchema,
   // WorkspaceGoTo and WorkspaceLoop reuse findingNavigationSchema: the same
   // shape as FindingsGoTo/FindingsLoop, sent by apps/desktop/bindings_workspace.go's encodeBinding(FindingNavigation).
   'workspace-go-to.json': findingNavigationSchema,

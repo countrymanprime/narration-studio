@@ -1,6 +1,9 @@
 package coverage
 
 import (
+	"encoding/json"
+	"strings"
+
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
@@ -35,7 +38,10 @@ type AlignmentItem struct {
 // paragraphs, the per-token alignment and extra runs, and each analyzed
 // item's current played range. NeedsAlignAgain is set when the newest current
 // or stale result has no stored alignment yet; align-again re-aligns from
-// cached words alone, without running the check again (ADR 0242).
+// cached words alone, without running the check again (ADR 0242). Engine names
+// the recogniser whose words the alignment came from, and is nil when there is
+// no alignment. On the wire each token also carries a score and each extra run
+// its words (MarshalJSON, ADR 0855).
 type AlignmentView struct {
 	ChapterID       string                  `json:"chapterId"`
 	State           evidence.EvaluatorState `json:"state"`
@@ -46,6 +52,117 @@ type AlignmentView struct {
 	Tokens          []TokenLine             `json:"tokens"`
 	Extras          []ExtraLine             `json:"extras"`
 	Items           []AlignmentItem         `json:"items"`
+	Engine          *AlignmentEngine        `json:"engine,omitempty"`
+}
+
+// AlignmentEngine is the recogniser that wrote a chapter's alignment: a stable
+// id and the name the page shows ("Flagged by Whisper small").
+type AlignmentEngine struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// How an added word's times were found (ADR 0855). A stored extra run keeps
+// only its two ends, so its words are spread evenly between them; a run whose
+// ends are on two items has no one source timeline, so its words sit at its
+// start with no duration.
+const (
+	TimingSpread   = "spread"
+	TimingUnplaced = "unplaced"
+)
+
+// HeardToken is a token as the wire sends it: the stored line plus its score.
+// Conf is always nil with ConfNoWordScores while the words file carries no
+// Whisper word probabilities (ADR 0830, ADR 0855).
+type HeardToken struct {
+	TokenLine
+	Conf       *float64 `json:"conf"`
+	ConfReason string   `json:"confReason,omitempty"`
+}
+
+// ExtraWord is one word of an extra run: said, and not in the script.
+type ExtraWord struct {
+	Text       string   `json:"text"`
+	Item       int      `json:"item"`
+	Start      float64  `json:"start"`
+	End        float64  `json:"end"`
+	Added      bool     `json:"added"`
+	Timing     string   `json:"timing"`
+	Conf       *float64 `json:"conf"`
+	ConfReason string   `json:"confReason,omitempty"`
+}
+
+// HeardExtra is an extra run as the wire sends it: the stored line plus its words.
+type HeardExtra struct {
+	ExtraLine
+	Words []ExtraWord `json:"words"`
+}
+
+// WireTokens is the view's tokens with their scores (nil for nil, so a view
+// that never read a report still sends null).
+func (v AlignmentView) WireTokens() []HeardToken {
+	if v.Tokens == nil {
+		return nil
+	}
+	out := make([]HeardToken, 0, len(v.Tokens))
+	for _, token := range v.Tokens {
+		out = append(out, HeardToken{TokenLine: token, ConfReason: ConfNoWordScores})
+	}
+	return out
+}
+
+// WireExtras is the view's extra runs with their words (nil for nil).
+func (v AlignmentView) WireExtras() []HeardExtra {
+	if v.Extras == nil {
+		return nil
+	}
+	out := make([]HeardExtra, 0, len(v.Extras))
+	for _, extra := range v.Extras {
+		out = append(out, HeardExtra{ExtraLine: extra, Words: extraWords(extra)})
+	}
+	return out
+}
+
+// extraWords splits an extra run into its words, spread evenly between the
+// run's ends when both are on one item (TimingSpread), else all at its start
+// (TimingUnplaced): nothing claims a recogniser time the stored run lacks.
+func extraWords(extra ExtraLine) []ExtraWord {
+	texts := strings.Fields(extra.Text)
+	words := make([]ExtraWord, 0, len(texts))
+	from, to := extra.Start.SourceTime, extra.End.SourceTime
+	timing := TimingSpread
+	if extra.Start.ItemIndex != extra.End.ItemIndex || to < from {
+		timing, to = TimingUnplaced, from
+	}
+	step := (to - from) / float64(max(len(texts), 1))
+	for i, text := range texts {
+		words = append(words, ExtraWord{
+			Text: text, Item: extra.Start.ItemIndex, Start: from + step*float64(i), End: from + step*float64(i+1),
+			Added: true, Timing: timing, ConfReason: ConfNoWordScores,
+		})
+	}
+	return words
+}
+
+// MarshalJSON sends the view with WireTokens and WireExtras in place of the
+// stored lines, so the Go callers keep reading plain TokenLine and ExtraLine.
+func (v AlignmentView) MarshalJSON() ([]byte, error) {
+	type plain AlignmentView
+	return json.Marshal(struct {
+		plain
+		Tokens []HeardToken `json:"tokens"`
+		Extras []HeardExtra `json:"extras"`
+	}{plain: plain(v), Tokens: v.WireTokens(), Extras: v.WireExtras()})
+}
+
+// engineOf names the recogniser of a report's first pass (Summary.Analysis.Model),
+// or nil when the report holds no alignment or names no model.
+func engineOf(report Report) *AlignmentEngine {
+	model := report.Summary.Analysis.Model
+	if !report.HasAlignment() || model == "" {
+		return nil
+	}
+	return &AlignmentEngine{ID: "whisper:" + model, Name: "Whisper " + model}
 }
 
 // Alignment reads a chapter's stored word alignment back and joins it with
@@ -69,6 +186,7 @@ func (s *Service) Alignment(chapterID string, alignment AlignmentParams) (Alignm
 	report := result.Result.Report
 	view.NeedsAlignAgain = !report.HasAlignment()
 	view.Tokens, view.Extras = nonNil(report.Tokens), nonNil(report.Extras)
+	view.Engine = engineOf(report)
 	paragraphs, err := s.chapterParagraphs(chapterID)
 	if err != nil {
 		return AlignmentView{}, err

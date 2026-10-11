@@ -18,7 +18,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 9 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 52 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 53 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 49 |
 | [Persistence and project files](#persistence-and-project-files) | 8 |
@@ -350,6 +350,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Accepted |
 | [0804](0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) | The Editing page replaces the workspace in Proof in one change | Accepted |
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
+| [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 
