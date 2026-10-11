@@ -122,7 +122,7 @@ export const Para = memo(function Para({
   const found: Layer[] = find.map((range, i) => ({ kind: 'find', start: range.start, end: range.end, current: i === findCurrent }));
   const pieces = composeLayers(paragraph.text, found.length ? [...layers, ...found] : layers);
   return (
-    <div data-para={paragraph.id} data-ch={paragraph.chapterId} className={`relative pl-8 ${flash ? 'flash motion-safe:animate-pulse' : ''}`}>
+    <div data-para={paragraph.id} data-ch={paragraph.chapterId} className={`relative pb-3 pl-8 ${flash ? 'flash motion-safe:animate-pulse' : ''}`}>
       <div data-gutter="" className="absolute inset-y-0 left-0 w-6">
         {renderGutter?.(paragraph)}
       </div>
