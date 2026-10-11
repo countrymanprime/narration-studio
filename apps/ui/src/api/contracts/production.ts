@@ -10,6 +10,10 @@ import type { StageVerdict } from './stages';
 /** How the book pays (ADR 0800). Only `per_finished_hour` carries a contracted amount; the other two are labels. */
 export type ProductionPayment = 'per_finished_hour' | 'royalty_share' | 'none';
 
+/** What the schedule runs on: the standard rate or the narrator's own pace. A choice, not a measurement: whether own pace
+ * is measured, and the fall-back to the standard rate while it is not, are the UI's. */
+export type ProductionRateBasis = 'standard' | 'own';
+
 /**
  * One dated checkpoint. `measure` is what it measures (`custom`, `rec`, `edit`, `proof`, `editproof`, `checkpoint`, `all`,
  * `ch<N>` or `min<N>`, the Studio Next mock's measures), `estimate` an estimated date a custom milestone never has, `done` set
@@ -32,6 +36,8 @@ export type ProductionPlan = {
   deadline: string | null;
   contractedAmount: number | null;
   payment?: ProductionPayment;
+  /** Absent reads as `standard`; the host omits it for the standard rate. */
+  rateBasis?: ProductionRateBasis;
   milestones: ProductionMilestone[];
 };
 
@@ -164,6 +170,9 @@ export interface ProductionApi {
   /** Sets how the book pays; royalty share and none clear the contracted amount. An unknown type is refused and nothing
    * is saved. Answers the whole plan. */
   setProductionPayment(payment: ProductionPayment): Promise<ProductionPlan>;
+  /** Stores the schedule basis the narrator chose, "standard" or "own"; answers the whole plan. Not an undo step. An unknown
+   * basis is refused and nothing is saved. */
+  setProductionRateBasis(basis: ProductionRateBasis): Promise<ProductionPlan>;
   /** Replaces the milestones, in this order; answers the whole plan. A milestone with no name, no real date, an unknown
    * measure, a bad estimate or template id refuses the whole list and nothing is saved. */
   saveProductionMilestones(milestones: ProductionMilestone[]): Promise<ProductionPlan>;

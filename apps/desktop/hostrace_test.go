@@ -108,6 +108,7 @@ var stressReaders = []stressReader{
 	{"CreditsSetupDismiss (unknown scope)", func(h *Host) { _, _ = h.CreditsSetupDismiss("forever") }},
 	{"CreditsSetStatus (unknown kind)", func(h *Host) { _, _ = h.CreditsSetStatus("missing", "finalized") }},
 	{"ProductionPlan", func(h *Host) { _, _ = h.ProductionPlan() }},
+	{"ProductionSetRateBasis (bad basis)", func(h *Host) { _, _ = h.ProductionSetRateBasis("nope") }},
 	{"ProductionSetDeadline (bad date)", func(h *Host) { _, _ = h.ProductionSetDeadline("not-a-date", nil) }},
 	{"ProductionSaveMilestones (no name)", func(h *Host) { _, _ = h.ProductionSaveMilestones([]project.Milestone{{DueDate: "2026-12-01"}}) }},
 	{"TeleprompterLocate", func(h *Host) { _, _ = h.TeleprompterLocate("c-0001", "", "") }},

@@ -1303,6 +1303,15 @@ export function ProductionSetPayment(payment: string): $CancellablePromise<strin
 }
 
 /**
+ * ProductionSetRateBasis sets the schedule basis: "standard" or "own" (the narrator's own pace). It stores the choice
+ * only; it never reads the take log or the chapter lengths, so falling back to the standard rate while nothing is
+ * measured is the UI's. An unknown basis is refused and nothing is written.
+ */
+export function ProductionSetRateBasis(basis: string): $CancellablePromise<string> {
+    return $Call.ByID(325936073, basis);
+}
+
+/**
  * ProductionStartTimer starts a timer on chapterID's stage. It answers {status: "started", session}, or
  * {status: "refused", reason: "timer_running", message} while another timer runs; any other failure is a rejected
  * promise.

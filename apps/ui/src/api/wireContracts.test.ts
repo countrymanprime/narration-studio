@@ -2795,6 +2795,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(productionPlanSchema.safeParse({ ...older, milestones: [{ name: 'M', dueDate: '2026-10-15', done: 'yes' }] }).success).toBe(false);
   });
 
+  it('the production plan schedule basis: own is stored, standard is the absent field, an unknown basis saves nothing', async () => {
+    const api = createMockApi();
+    expect(await api.productionPlan()).not.toHaveProperty('rateBasis');
+    const own = await api.setProductionRateBasis('own');
+    expectMatches(productionPlanSchema, own, 'mock production plan, own pace');
+    expect(own.rateBasis).toBe('own');
+    expect((await api.productionPlan()).rateBasis).toBe('own');
+    await expect(api.setProductionRateBasis('fast' as never)).rejects.toThrow('not a schedule basis');
+    expect((await api.productionPlan()).rateBasis).toBe('own');
+    expect(await api.setProductionRateBasis('standard')).not.toHaveProperty('rateBasis');
+    expect(productionPlanSchema.safeParse({ deadline: null, contractedAmount: null, milestones: [], rateBasis: 'fast' }).success).toBe(false);
+  });
+
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
@@ -2962,6 +2975,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionPlan',
       'setProductionDeadline',
       'setProductionPayment',
+      'setProductionRateBasis',
       'saveProductionMilestones',
       'stageRecommendations',
       'stageConfirm',
