@@ -92,7 +92,8 @@ func (h *Host) ExtractionImportPreview(text string, hint string) (string, error)
 
 // ExtractionImportCommit parses and plans text again and stores the rows that add or merge as suggestions from an imported file, in one
 // write: all of them or, when the write fails, none. The ones the 75% rule accepts are applied through the Story Bible's own commands
-// and flagged for Review. A file refused before parsing is refused with the importer's sentence.
+// and flagged for Review; if that fails, the error is returned and the stored suggestions wait for the next settle (a scan or a
+// decision), as a scan's do. A file refused before parsing is refused with the importer's sentence.
 func (h *Host) ExtractionImportCommit(text string, hint string) (string, error) {
 	format, err := importFormat(hint, true)
 	if err != nil {
