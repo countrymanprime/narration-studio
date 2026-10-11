@@ -52,10 +52,16 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
       const [plan, overview, profiles] = await Promise.all([
         production.productionPlan(),
         production.productionOverview(),
-        // The profile only decides which measures are offered; without it the neutral profile applies.
-        deliveryProfiles.deliveryProfiles().catch(() => undefined),
+        // The profile only decides which measures are offered; if it cannot be read the neutral profile applies.
+        Promise.allSettled([deliveryProfiles.deliveryProfiles()]),
       ]);
-      setState({ phase: 'ready', plan, chapters: scheduleChapters(overview.chapters), profileId: platformIdOf(profiles?.projectProfile) });
+      const read = profiles[0];
+      setState({
+        phase: 'ready',
+        plan,
+        chapters: scheduleChapters(overview.chapters),
+        profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
+      });
     } catch (error) {
       setState({ phase: 'error', message: `The schedule could not be read: ${apiErrorMessage(error)}` });
     }
