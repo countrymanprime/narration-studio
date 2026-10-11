@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// EPUBMetadata is the subset of an EPUB's OPF <metadata> block credits detection reads (docs/prds/credits-token-setup-and-front-matter-detection.prd.md,
+// EPUBMetadata is the subset of an EPUB's OPF <metadata> block credits detection reads (the deleted credits-token-setup-and-front-matter-detection PRD,
 // Phase 1): never an ISBN or other retailer metadata, and never written back
 // anywhere - like ReadCoreProps, this only offers a suggestion.
 type EPUBMetadata struct {
