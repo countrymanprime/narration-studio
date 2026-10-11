@@ -137,3 +137,24 @@ export interface DawCapabilitiesApi {
    * then only on a change, so a subscriber that joins later hears nothing until the next change. */
   subscribeDawTransport(onUpdate: (state: DawTransport) => void): () => void;
 }
+
+/** The DAW project as last saved against the live one (DawProjectState and daw_project_state_changed;
+ * apps/desktop/bindings_daw_projectstate.go). `savedAt` is the saved file's modification time, read by the host, as a local
+ * date and time to the minute (`2026-09-26T08:40`), null when the DAW keeps no saved project or this one was never saved.
+ * `unsavedChanges` is true when REAPER has edits its saved file does not have. `playPosition` is project seconds as of the
+ * last heartbeat, 0 while stopped: a display value, never an anchor for a word. With no DAW, a DAW not answering or the
+ * heartbeat capability off, it is stopped, 0, null, false. */
+export type DawProjectState = {
+  savedAt: string | null;
+  unsavedChanges: boolean;
+  playState: DawPlayState;
+  playPosition: number;
+};
+
+export type DawPlayState = 'stopped' | 'playing' | 'recording';
+
+export interface DawProjectStateApi {
+  dawProjectState(): Promise<DawProjectState>;
+  /** The host pushes the current project state on its first tick after launch and then only on a change. */
+  subscribeDawProjectState(onUpdate: (state: DawProjectState) => void): () => void;
+}

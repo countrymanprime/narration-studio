@@ -62,7 +62,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 99
+const hostAPIVersion = 100
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -84,6 +84,12 @@ type Host struct {
 	// the same way.
 	// +checklocks:mu
 	dawTransportSnapshot string
+	// dawProjectStateSnapshot is the last daw_project_state_changed payload (bindings_daw_projectstate.go), compared the
+	// same way, and dawUnsavedTracker the edit-counter baseline its unsavedChanges is read against.
+	// +checklocks:mu
+	dawProjectStateSnapshot string
+	// +checklocks:mu
+	dawUnsavedTracker dawport.UnsavedTracker
 	// readAloudRecordingChapter is the chapter id of a REAPER recording this app started with ReadAloudRecordStart and
 	// has not yet stopped (bindings_readaloud_record.go): empty when none, so
 	// ServiceShutdown knows whether to stop one before the app quits.
@@ -996,8 +1002,8 @@ func (h *Host) transcriptLoop(ctx context.Context) {
 
 // pollTranscript is one tick of transcriptLoop: drain and poll the current
 // project's transcript service, if it has one, and check whether the DAW
-// capabilities payload or the transport changed (bindings_daw.go's pollDawCapabilities,
-// bindings_daw_transport.go's pollDawTransport): this is the tick that notices a
+// capabilities payload, the transport or the project state changed (bindings_daw.go's pollDawCapabilities,
+// bindings_daw_transport.go's pollDawTransport, bindings_daw_projectstate.go's pollDawProjectState): this is the tick that notices a
 // heartbeat's reachability or transport change, or a project switch,
 // since neither has a callback of its own to emit from directly.
 func (h *Host) pollTranscript() {
@@ -1007,6 +1013,7 @@ func (h *Host) pollTranscript() {
 	}
 	h.pollDawCapabilities()
 	h.pollDawTransport()
+	h.pollDawProjectState()
 }
 
 // ServiceShutdown is Wails v3's stop hook for the Host service: the window is closing or the app was asked to quit.

@@ -11,6 +11,8 @@ import type {
   DawCapabilitySupport,
   DawCapabilitiesApi,
   DawKind,
+  DawProjectState,
+  DawProjectStateApi,
   DawTransport,
 } from './contracts/daw';
 import { DAW_CAPABILITIES } from './contracts/daw';
@@ -131,6 +133,11 @@ export type DawMockSeed = {
   /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
   transport?: DawTransport;
+  /** The saved project's time DawProjectState reports (a local date-time to the minute); defaults to null, never saved. Like
+   * the transport, only a connected, reachable REAPER with the heartbeat capability on reports it. */
+  savedAt?: string | null;
+  /** Whether REAPER has edits its saved file does not have; reported only with a `savedAt`, as the host's is. */
+  unsavedChanges?: boolean;
 };
 
 function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
@@ -219,9 +226,25 @@ function currentTransport(seed: DawMockSeed, capabilities: DawCapabilities): Daw
   return playing || recording ? { playing, recording, ...(position === undefined ? {} : { position }) } : { playing, recording };
 }
 
-export function createDawMock(seed: DawMockSeed = {}): DawCapabilitiesApi {
+/** Like the host's: idle without a heartbeat to read, and the position only while playing or recording. */
+function currentProjectState(seed: DawMockSeed, capabilities: DawCapabilities, transport: DawTransport): DawProjectState {
+  if (!capabilities.reachable || !capabilities.capabilities.heartbeat?.available) {
+    return { savedAt: null, unsavedChanges: false, playState: 'stopped', playPosition: 0 };
+  }
+  const savedAt = seed.savedAt ?? null;
+  const playState = transport.recording ? 'recording' : transport.playing ? 'playing' : 'stopped';
+  return {
+    savedAt,
+    unsavedChanges: savedAt !== null && (seed.unsavedChanges ?? false),
+    playState,
+    playPosition: playState === 'stopped' ? 0 : (transport.position ?? 0),
+  };
+}
+
+export function createDawMock(seed: DawMockSeed = {}): DawCapabilitiesApi & DawProjectStateApi {
   const current = currentCapabilities(seed);
   const transport = currentTransport(seed, current);
+  const projectState = currentProjectState(seed, current, transport);
   return {
     dawCapabilities: async () => wireClone(current),
     subscribeDawCapabilities: (onUpdate) => {
@@ -231,6 +254,12 @@ export function createDawMock(seed: DawMockSeed = {}): DawCapabilitiesApi {
     // Like the host's first tick after launch: the seeded transport once, on subscribe.
     subscribeDawTransport: (onUpdate) => {
       onUpdate(wireClone(transport));
+      return () => {};
+    },
+    dawProjectState: async () => wireClone(projectState),
+    // Like the host's first tick after launch: the seeded project state once, on subscribe.
+    subscribeDawProjectState: (onUpdate) => {
+      onUpdate(wireClone(projectState));
       return () => {};
     },
   };

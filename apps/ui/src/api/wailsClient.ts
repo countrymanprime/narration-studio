@@ -30,7 +30,7 @@ import {
   retailSampleAnswerSchema,
 } from './schemas/credits';
 import { dawCatalogListSchema } from './schemas/dawCatalog';
-import { dawCapabilitiesSchema, dawTransportSchema } from './schemas/daw';
+import { dawCapabilitiesSchema, dawProjectStateSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
@@ -615,6 +615,8 @@ export const wailsClient: NarrationApi = {
   subscribeRecorderState: (onUpdate) => subscribeChecked('recording:state', recorderStateSchema, onUpdate),
   subscribeRecorderLevel: (onLevel) => subscribeChecked('recording:level', recorderLevelSchema, onLevel),
   subscribeDawTransport: (onUpdate) => subscribeChecked('daw_transport_changed', dawTransportSchema, onUpdate),
+  dawProjectState: () => decode(dawProjectStateSchema, 'DawProjectState', host.DawProjectState()),
+  subscribeDawProjectState: (onUpdate) => subscribeChecked('daw_project_state_changed', dawProjectStateSchema, onUpdate),
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),

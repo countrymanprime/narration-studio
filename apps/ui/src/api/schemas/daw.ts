@@ -7,6 +7,8 @@ import type {
   DawCapabilityReason,
   DawCapabilitySupport,
   DawKind,
+  DawPlayState,
+  DawProjectState,
   DawResult,
   DawTransport,
 } from '../contracts/daw';
@@ -46,6 +48,19 @@ export const dawTransportSchema = z.object({
   recording: z.boolean(),
   position: optionalFromNull(z.number()),
 }) satisfies z.ZodType<DawTransport>;
+
+const DAW_PLAY_STATES = ['stopped', 'playing', 'recording'] as const satisfies readonly DawPlayState[];
+
+/** DawProjectState and daw_project_state_changed: every key always present, savedAt a local date-time to the minute or null. */
+export const dawProjectStateSchema = z.strictObject({
+  savedAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+    .nullable(),
+  unsavedChanges: z.boolean(),
+  playState: z.enum(DAW_PLAY_STATES),
+  playPosition: z.number().nonnegative(),
+}) satisfies z.ZodType<DawProjectState>;
 
 /** dawport.Result: refused and steps are absent unless set. */
 export const dawResultSchema = z.object({
