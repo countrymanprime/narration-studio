@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { REPO_ROOT, trackedFiles } from './layout.mjs';
-import { extractReferences, findMissing, isCheckedFile, makeExists } from './docs-references.mjs';
+import { extractReferences, findMissing, ignoredAmong, isCheckedFile, makeExists } from './docs-references.mjs';
 
 const TRACKED = ['apps/ui/src/App.tsx', 'apps/desktop/app.go', 'docs/architecture/reaper-bridge.md', 'README.md', 'scripts/ci/layout.json'];
 const exists = makeExists(TRACKED);
@@ -111,4 +111,11 @@ test('the tracked tree: makeExists resolves a real file and a real directory', (
   assert.equal(real('scripts/ci'), true);
   assert.equal(real('scripts/ci/nope.json'), false);
   assert.ok(REPO_ROOT);
+});
+
+test('ignoredAmong reports an ignored directory that is not on disk under the name the doc used', () => {
+  const ignored = ignoredAmong(['apps/ui/coverage', 'apps/ui/src']);
+
+  assert.ok(ignored.has('apps/ui/coverage'));
+  assert.ok(!ignored.has('apps/ui/src'));
 });

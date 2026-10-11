@@ -124,10 +124,11 @@ export function findMissing(refs, { exists, scripts }) {
 }
 
 /** Of these paths, the ones git ignores: build output the docs name and a clean checkout does not have. */
-function ignoredAmong(paths) {
+export function ignoredAmong(paths) {
   if (paths.length === 0) return new Set();
   const result = spawnSync('git', ['check-ignore', '--stdin', '-z'], { cwd: REPO_ROOT, input: paths.flatMap((path) => [path, `${path}/`]).join('\0'), encoding: 'utf8' });
-  return new Set((result.stdout ?? '').split('\0').filter(Boolean));
+  // A directory that does not exist yet matches only as `path/`; report it under the name the doc used.
+  return new Set((result.stdout ?? '').split('\0').filter(Boolean).map((path) => path.replace(/\/$/, '')));
 }
 
 function git(args) {
