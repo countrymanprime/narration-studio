@@ -35,6 +35,7 @@ export const LateAtRiskAndDone: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('img', { name: 'Done' })).toBeTruthy();
     await expect(canvas.getByRole('img', { name: /^Late by \d+ d/ })).toBeTruthy();
+    await expect(canvas.getByRole('img', { name: /^At risk/ })).toBeTruthy();
     await expect(canvas.getByRole('img', { name: 'Not estimated' })).toBeTruthy();
     await expect(canvas.getByRole('button', { name: 'Mark Contract signed complete' }).getAttribute('aria-pressed')).toBe('true');
     canvas.getByRole('button', { name: 'Mark All recorded complete' }).click();
