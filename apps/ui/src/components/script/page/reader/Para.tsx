@@ -1,5 +1,6 @@
 import { Fragment, memo, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
+import { Highlight } from '../../../primitives/Highlight';
 import { composeLayers, type Layer, type PhraseLayer } from './layers';
 import { markStyle } from './markStyles';
 
@@ -28,7 +29,7 @@ const speakerVars = (index: number): CSSProperties => ({ '--sp': `var(--speaker-
 
 const CHIP_LOOK: Record<PhraseLayer['state'], string> = {
   confirmed: 'bg-[var(--sp)] text-[var(--surface)]',
-  suggested: 'border border-dashed border-[var(--sp)] bg-transparent text-[var(--sp-text)]',
+  suggested: 'border border-dashed border-[var(--sp)] bg-transparent',
   unknown: 'border border-[var(--line-strong)] bg-transparent text-[var(--text-muted)]',
 };
 
@@ -51,7 +52,7 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
       aria-label={`Speaker: ${name}. Change speaker`}
       onClick={click}
       className={`mr-1 inline-block cursor-pointer rounded-sm px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${CHIP_LOOK[phrase.state]}`}
-      style={speakerVars(phrase.colourIndex)}
+      style={{ ...speakerVars(phrase.colourIndex), ...(phrase.state === 'suggested' ? { color: `var(--speaker-${phrase.colourIndex}-text)` } : null) }}
     />
   );
 }
@@ -94,12 +95,12 @@ function wrap(layer: Layer, node: ReactNode, activeMarkId: string | null | undef
         </span>
       );
     case 'find':
-      return (
-        <mark
-          className={`rounded-sm text-[var(--text)] ${layer.current ? 'a-find-cur bg-[color-mix(in_srgb,var(--search)_45%,transparent)] ring-2 ring-[var(--search)]' : 'bg-[color-mix(in_srgb,var(--search)_25%,transparent)]'}`}
-        >
-          {node}
-        </mark>
+      return layer.current ? (
+        <span className="a-find-cur rounded-sm ring-2 ring-[var(--search)]">
+          <Highlight kind="Search">{node}</Highlight>
+        </span>
+      ) : (
+        <Highlight kind="Search">{node}</Highlight>
       );
   }
 }

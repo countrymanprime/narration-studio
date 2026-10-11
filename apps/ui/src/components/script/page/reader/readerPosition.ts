@@ -19,10 +19,12 @@ export function loadReaderPosition(key: string = READER_POSITION_KEY): ReaderPos
   }
 }
 
-export function saveReaderPosition(position: ReaderPosition, key: string = READER_POSITION_KEY): void {
+/** Whether the position was kept; storage can be unavailable, and the position is only a convenience, so a failure is not an error. */
+export function saveReaderPosition(position: ReaderPosition, key: string = READER_POSITION_KEY): boolean {
   try {
     window.localStorage.setItem(key, JSON.stringify(position));
+    return true;
   } catch {
-    // Storage can be unavailable; the position is a convenience.
+    return false;
   }
 }
