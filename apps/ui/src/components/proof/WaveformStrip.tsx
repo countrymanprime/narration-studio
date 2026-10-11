@@ -11,13 +11,23 @@ const BACKDROP_HEIGHT = 56;
 const CARD_BACKDROP_HEIGHT = 52;
 
 /** The canvas `Timeline` draws behind its lanes (its own `backdrop` prop, `aria-hidden`): one bar per pixel column,
- * resampled from each segment's own buckets, coloured played (before the playhead) or not yet played. An item with
- * no peaks (Reason set: not live, no source, or not a WAV) draws as a flat muted line rather than a gap. */
+ * resampled from each segment's own buckets, coloured played (`--accent`, before the playhead) or not yet played
+ * (`--waveform`), both read from the computed style and read again when the theme changes. An item with no peaks
+ * (Reason set: not live, no source, or not a WAV) draws as a flat muted line rather than a gap. */
 function WaveformBackdrop({ segments, duration, elapsed, card }: { segments: WaveformSegment[]; duration: number; elapsed: number; card: boolean }) {
   const height = card ? CARD_BACKDROP_HEIGHT : BACKDROP_HEIGHT;
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
+  // Bumped when the root's `data-theme` changes, so the draw effect re-reads the colour tokens from the new theme.
+  const [themeVersion, setThemeVersion] = useState(0);
+
+  useEffect(() => {
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(() => setThemeVersion((version) => version + 1));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -41,8 +51,9 @@ function WaveformBackdrop({ segments, duration, elapsed, card }: { segments: Wav
     ctx.clearRect(0, 0, width, height);
 
     const styles = getComputedStyle(canvas);
-    const playedColor = styles.getPropertyValue('--accent').trim() || '#b85c1e';
-    const unplayedColor = styles.getPropertyValue(card ? '--waveform' : '--border').trim() || '#3c3527';
+    // A token that reads empty falls back to the canvas's own text colour (`currentColor`), never a literal.
+    const playedColor = styles.getPropertyValue('--accent').trim() || styles.color;
+    const unplayedColor = styles.getPropertyValue('--waveform').trim() || styles.color;
     const center = height / 2;
     const playheadX = (elapsed / duration) * width;
 
@@ -76,7 +87,7 @@ function WaveformBackdrop({ segments, duration, elapsed, card }: { segments: Wav
       ctx.lineTo(x0 + 0.5, height);
       ctx.stroke();
     }
-  }, [segments, width, elapsed, duration, height, card]);
+  }, [segments, width, elapsed, duration, height, card, themeVersion]);
 
   return (
     <div ref={containerRef}>
