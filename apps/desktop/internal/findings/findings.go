@@ -13,6 +13,7 @@ import (
 	"math"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 // SchemaVersion is the only record version this package reads or writes.
@@ -125,10 +126,70 @@ type SuggestedAction struct {
 	RequiresConfirmation bool           `json:"requires_confirmation"`
 }
 
+// NoteType is the kind of problem the narrator says a finding is (ADR 0844): one of the ten words of the
+// Proof Inspector's type select. It is not a decision and never changes Status.
+type NoteType string
+
+const (
+	NoteMisread NoteType = "misread"
+	NoteSkip    NoteType = "skip"
+	NoteMouth   NoteType = "mouth"
+	NotePron    NoteType = "pron"
+	NotePacing  NoteType = "pacing"
+	NoteRepeat  NoteType = "repeat"
+	NotePlosive NoteType = "plosive"
+	NoteNoise   NoteType = "noise"
+	NoteTakes   NoteType = "takes"
+	NoteBreath  NoteType = "breath"
+)
+
+// NoteTypes lists the ten words a narrator can retype a finding to, in the mock's order.
+func NoteTypes() []NoteType {
+	return []NoteType{NoteMisread, NoteSkip, NoteMouth, NotePron, NotePacing, NoteRepeat, NotePlosive, NoteNoise, NoteTakes, NoteBreath}
+}
+
+func validNoteType(t NoteType) bool { return slices.Contains(NoteTypes(), t) }
+
+// DefaultNoteType is the word shown for f while the narrator has not chosen one: its category, refined by
+// evidence.kind where the category covers more than one word (ADR 0844).
+func DefaultNoteType(f Finding) NoteType {
+	kind, _ := f.Evidence["kind"].(string)
+	switch f.Category {
+	case CategoryTranscriptDiscrepancy:
+		if strings.EqualFold(kind, "skipped") {
+			return NoteSkip
+		}
+		return NoteMisread
+	case CategoryPronunciation, CategoryEntity, CategoryCharacterContinuity:
+		return NotePron
+	case CategoryDuplicateRead:
+		return NoteRepeat
+	case CategoryTakeComparison:
+		return NoteTakes
+	case CategoryPacing, CategorySilenceCleanup:
+		return NotePacing
+	case CategoryAudioQuality:
+		switch strings.ToLower(kind) {
+		case "mouth_click", "mouth":
+			return NoteMouth
+		case "plosive":
+			return NotePlosive
+		case "breath":
+			return NoteBreath
+		}
+		return NoteNoise
+	case CategoryDeliveryQC, CategoryLevelConsistency:
+		return NoteNoise
+	}
+	return NoteMisread
+}
+
 type ReviewState struct {
 	Status    Status `json:"status"`
 	Note      string `json:"note,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
+	// Type is the narrator's chosen kind (ADR 0844); absent until chosen, then the analyzer's own word applies.
+	Type NoteType `json:"type,omitempty"`
 }
 
 type Finding struct {

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { approvedMarkerName, createFindingsMock, REAPER_MESSAGES } from './findingsMock';
 import { WIRE_FINDINGS } from './mockFixtures';
-import { FINDING_CATEGORIES } from './contracts/findings';
+import { defaultFindingNoteType, FINDING_CATEGORIES } from './contracts/findings';
 
 const ids = (findings: { id: string }[]) => findings.map((finding) => finding.id.slice(0, 2));
 
@@ -36,6 +36,23 @@ describe('the browser mock findings store follows the host rules', () => {
     expect(ids(paged.findings)).toEqual(['1a', '2b']);
     expect(paged.total).toBe(4);
     expect(ids((await api.findingsList({ chapterId: 'chapter-2', category: 'transcript_discrepancy', severity: 'info' })).findings)).toEqual(['3c']);
+  });
+
+  it('retypes a finding without deciding it, refuses what the host refuses, and clears the analyzer\u2019s own word', async () => {
+    const api = createFindingsMock(WIRE_FINDINGS);
+    const [first] = WIRE_FINDINGS;
+    const version = first.evidence_version ?? '';
+    const before = await api.findingsSummary();
+    await expect(api.findingsSetType(first.id, 'stale', 'pron')).rejects.toThrow('changed');
+    await expect(api.findingsSetType(first.id, version, 'loud' as never)).rejects.toThrow('not one of the finding types');
+    await expect(api.findingsSetType('', version, 'pron')).rejects.toThrow('id is required');
+    await expect(api.findingsSetType('missing', version, 'pron')).rejects.toThrow('no longer');
+    const retyped = await api.findingsSetType(first.id, version, 'pron');
+    expect(retyped.review).toMatchObject({ status: first.review.status, type: 'pron' });
+    expect(await api.findingsSummary()).toEqual(before);
+    const back = await api.findingsSetType(first.id, version, defaultFindingNoteType(first));
+    expect(back.review.type).toBeUndefined();
+    expect('type' in (await api.findingsGet(first.id)).review).toBe(false);
   });
 
   it('records a decision, refuses one on changed evidence, and says when a finding is gone', async () => {
