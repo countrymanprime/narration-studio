@@ -28,6 +28,7 @@
     },
     "bodyTokens": 10,
     "extraTokens": 0,
+    "gaps": [],
     "items": [
       {
         "index": 0,
@@ -69,7 +70,11 @@
       "wholeChapter": false,
       "windows": 1
     },
-    "regions": []
+    "regions": [],
+    "unfinished": {
+      "end": 0,
+      "start": 0
+    }
   },
   "state": "current"
 }

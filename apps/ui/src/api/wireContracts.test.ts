@@ -200,6 +200,36 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect([oldTail.before, oldTail.after]).toEqual([undefined, undefined]);
   });
 
+  it('a coverage report carries the gap taxonomy; a result stored before it reads as no gaps (ADR 0830)', () => {
+    for (const name of ['coverage-result-current.json', 'coverage-result-stale.json', 'coverage-result-cascade.json']) {
+      const report = parseWire(coverageResultSchema, readGolden(name), ctx('coverage result')).result;
+      expect(report?.gaps).toEqual([]);
+      expect(report?.unfinished).toEqual({ start: 0, end: 0 });
+    }
+    const golden = z.looseObject({ result: z.looseObject({}) }).parse(readGolden('coverage-result-current.json'));
+    const older = Object.fromEntries(Object.entries(golden.result).filter(([key]) => key !== 'gaps' && key !== 'unfinished'));
+    const parsed = parseWire(coverageResultSchema, { ...golden, result: older }, ctx('coverage result'));
+    expect([parsed.result?.gaps, parsed.result?.unfinished]).toEqual([[], { start: 0, end: 0 }]);
+  });
+
+  it('a gap has a known kind and a confidence that is null or comes with its reason (ADR 0830)', () => {
+    const golden = z.looseObject({ result: z.looseObject({}) }).parse(readGolden('coverage-result-current.json'));
+    const gap = {
+      id: 'missing:p-1:0',
+      kind: 'missing',
+      paragraphIds: ['p-1'],
+      tokenCount: 2,
+      firstWord: 'a',
+      lastWord: 'b',
+      confidence: null,
+      confReason: 'no_word_scores',
+    };
+    const withGap = (change: Record<string, unknown>) => ({ ...golden, result: { ...golden.result, gaps: [{ ...gap, ...change }] } });
+    expect(parseWire(coverageResultSchema, withGap({}), ctx('coverage result')).result?.gaps[0].confidence).toBeNull();
+    expect(() => parseWire(coverageResultSchema, withGap({ kind: 'bogus' }), ctx('coverage result'))).toThrow();
+    expect(() => parseWire(coverageResultSchema, withGap({ confidence: 0.9, confReason: undefined }), ctx('coverage result'))).toThrow();
+  });
+
   it("a coverage result carries the host's judgement, and the mock judges its reports by the same rule (ADR 0204)", () => {
     for (const name of ['coverage-result-current.json', 'coverage-result-stale.json']) {
       const golden = parseWire(coverageResultSchema, readGolden(name), ctx('coverage result'));

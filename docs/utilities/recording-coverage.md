@@ -134,6 +134,18 @@ flowchart LR
   `different_text` (a larger gap of other speech).
 - **Extra** speech, such as retakes, false starts and asides, is counted and never held against the narrator. A
   paragraph read only out of place, like a pickup recorded at the end, is missing where it belongs.
+- **Gaps** are derived on read from the stored report ([ADR 0830](../adr/0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md)),
+  as `gaps` and `unfinished` on the result. Only a gap between the first and last read paragraph is a line to redo.
+
+  | Region kind | Gap kind |
+  | --- | --- |
+  | `skip` | `missing` |
+  | `different_text`, `short_read` | `misread` |
+  | `head`, `tail` | none: `unfinished.start` and `unfinished.end` count the unread paragraphs, and unfinished is not a pickup |
+  | any other kind | `other` |
+
+  An extra run between the first and last read word is an `extra` gap. Every gap has `confidence: null` and
+  `confReason: "no_word_scores"`, since the check never reads Whisper word probabilities.
 - **A chapter is complete** when every paragraph has at least `min_paragraph_present` of its words present, and no run
   of missing words, counted across paragraph boundaries and including the head and tail, is longer than
   `max_missing_run`.
