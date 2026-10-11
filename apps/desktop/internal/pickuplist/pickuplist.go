@@ -48,6 +48,9 @@ const (
 // ConfAddedByHand is the confidence reason of a line the narrator added: nothing measured it.
 const ConfAddedByHand = "added_by_hand"
 
+// ReasonNotChecked is the left-out reason of a chapter whose recording was never checked and that has no other reason.
+const ReasonNotChecked = "not_checked"
+
 // MaxLineRunes bounds a line added by hand.
 const MaxLineRunes = 500
 
@@ -512,8 +515,8 @@ func (s *Service) build(file listFile) (List, error) {
 		}
 		if speech.State != "current" {
 			reasons := speech.Reasons
-			if reasons == nil {
-				reasons = []string{}
+			if len(reasons) == 0 {
+				reasons = []string{ReasonNotChecked}
 			}
 			list.LeftOut = append(list.LeftOut, LeftOutChapter{ChapterID: chapter.ID, State: speech.State, Reasons: reasons})
 			continue
