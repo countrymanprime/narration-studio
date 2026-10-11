@@ -1197,6 +1197,21 @@ export function MarksAdd(chapterID: string, paragraphID: string, start: number, 
 }
 
 /**
+ * MarksDeleteMessage removes the thread's message at index and returns {mark, message}: the mark as it now is and the
+ * message removed, for MarksRestoreMessage to put back.
+ */
+export function MarksDeleteMessage(id: string, index: number): $CancellablePromise<string> {
+    return $Call.ByID(3641817430, id, index);
+}
+
+/**
+ * MarksEditMessage replaces the text of the thread's message at index and returns the mark.
+ */
+export function MarksEditMessage(id: string, index: number, text: string): $CancellablePromise<string> {
+    return $Call.ByID(2522762815, id, index, text);
+}
+
+/**
  * MarksList returns the mark types in the narrator's order and every mark in reading order, each checked against the
  * current manuscript. The first read of a project with no marks file brings the reader's old notes across once.
  */
@@ -1212,11 +1227,33 @@ export function MarksRemove(id: string): $CancellablePromise<string> {
 }
 
 /**
+ * MarksReply adds a message to the end of a mark's thread and returns the mark. who is "you", "author" or "proofer"; an empty
+ * reply is refused.
+ */
+export function MarksReply(id: string, who: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(2924112552, id, who, text);
+}
+
+/**
+ * MarksRestoreMessage puts a deleted message back at index (0 to the thread's length) and returns the mark.
+ */
+export function MarksRestoreMessage(id: string, index: number, message: marks$0.Message): $CancellablePromise<string> {
+    return $Call.ByID(3946024165, id, index, message);
+}
+
+/**
  * MarksSaveTypes replaces the mark types, in the narrator's order; a type with no key is new. At least one is kept, and
  * removing a type that marks use is refused with the count unless removeUses is set, which removes those marks too.
  */
 export function MarksSaveTypes(types: marks$0.MarkType[], removeUses: boolean): $CancellablePromise<string> {
     return $Call.ByID(2927622342, types, removeUses);
+}
+
+/**
+ * MarksSetStatus resolves or reopens a question: status is "open" or "resolved", and a mark whose kind does not ask refuses.
+ */
+export function MarksSetStatus(id: string, status: string): $CancellablePromise<string> {
+    return $Call.ByID(4108478942, id, status);
 }
 
 /**

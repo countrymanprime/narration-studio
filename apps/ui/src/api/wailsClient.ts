@@ -134,7 +134,7 @@ import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMar
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
-import { markSchema, marksSchema } from './schemas/marks';
+import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -423,6 +423,11 @@ export const wailsClient: NarrationApi = {
   marksAdd: (chapterId, paragraphId, start, end, type, text) => decode(markSchema, 'MarksAdd', host.MarksAdd(chapterId, paragraphId, start, end, type, text)),
   marksRemove: (id) => decode(marksSchema, 'MarksRemove', host.MarksRemove(id)),
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),
+  marksReply: (id, who, text) => decode(markSchema, 'MarksReply', host.MarksReply(id, who, text)),
+  marksEditMessage: (id, index, text) => decode(markSchema, 'MarksEditMessage', host.MarksEditMessage(id, index, text)),
+  marksDeleteMessage: (id, index) => decode(markThreadDeletedSchema, 'MarksDeleteMessage', host.MarksDeleteMessage(id, index)),
+  marksRestoreMessage: (id, index, message) => decode(markSchema, 'MarksRestoreMessage', host.MarksRestoreMessage(id, index, message)),
+  marksSetStatus: (id, status) => decode(markSchema, 'MarksSetStatus', host.MarksSetStatus(id, status)),
   editingCutsList: (chapterId) => decode(editCutsSchema, 'EditingCutsList', host.EditingCutsList(chapterId)),
   editingCutRecord: (chapterId, cut) => decode(editCutsChangeSchema, 'EditingCutRecord', host.EditingCutRecord(chapterId, cut)),
   editingCutRemove: (chapterId, id) => decode(editCutsChangeSchema, 'EditingCutRemove', host.EditingCutRemove(chapterId, id)),
