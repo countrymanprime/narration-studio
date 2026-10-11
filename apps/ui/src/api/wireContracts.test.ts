@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
 import type { ProjectStateState } from './contracts/projectstate';
-import { WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
@@ -13,6 +13,7 @@ import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import { takeEvidenceResultSchema, takeFigureSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { WIRE_TAKE_COMPARISON_FINDING } from './takeComparisonMock';
 import { MOCK_MEASURE_PATHS } from './measureMock';
@@ -3056,6 +3057,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceApplyFXChain',
       'workspaceLoop',
       'workspaceTakes',
+      'workspaceTakeEvidence',
       'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePeaks',
@@ -3412,6 +3414,46 @@ describe('the pronunciation sources bindings', () => {
     for (const source of ['manual', 'user', 'cmu']) {
       expect(guidePronunciationSchema.parse(entity(source))).toMatchObject({ source, status: 'author_confirmed', note: 'n', alternate: { source: 'user' } });
     }
+  });
+});
+
+// The evidence of a passage's takes (SNE-5a, ADR 0140): the host's goldens parse, a figure is a value or a reason and never
+// both, the answer names no file or GUID field, and the mock answers through the same schema.
+describe('the take evidence binding', () => {
+  it('the schema parses the host goldens and refuses a figure that is both or neither, and a field the host never sends', () => {
+    const full = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-full.json'), ctx('take evidence full'));
+    const partial = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-partial.json'), ctx('take evidence partial'));
+    const none = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-none.json'), ctx('take evidence none'));
+    expect(full.takes.every((take) => take.measure.rms.ok && take.measure.nf.ok && take.matched.ok)).toBe(true);
+    expect(partial.takes.some((take) => !take.measure.rms.ok)).toBe(true);
+    expect(none.takes).toEqual([]);
+    expect(none.message).toMatch(/wasn't heard/);
+    for (const take of [...full.takes, ...partial.takes]) {
+      expect(take.measure.clarity).toEqual({ ok: false, reason: 'Not measured' });
+      expect(take.via).toBe('aligned');
+    }
+    expect(takeFigureSchema.safeParse({ ok: true, value: 1, reason: 'x' }).success).toBe(false);
+    expect(takeFigureSchema.safeParse({ ok: false, value: 1, reason: 'x' }).success).toBe(false);
+    expect(takeFigureSchema.safeParse({ ok: true }).success).toBe(false);
+    expect(takeEvidenceResultSchema.safeParse({ ...full, takes: [{ ...full.takes[0], sourceFile: 'a.wav' }] }).success).toBe(false);
+    expect(takeEvidenceResultSchema.safeParse({ ...full, takes: [{ ...full.takes[0], via: 'guessed' }] }).success).toBe(false);
+  });
+
+  it('the mock answers one entry per offered take through the schema, and refuses what workspaceTakes refuses', async () => {
+    const [chapter] = WIRE_CHAPTERS;
+    const [track] = WIRE_TRACKS_PROJECT.tracks;
+    const api = createMockApi(
+      {},
+      {
+        chapterTrackMappings: [
+          { trackGuid: track.guid, chapterId: chapter.id, chapterTitle: chapter.title, confirmedAt: '2026-10-11T09:00:00Z', origin: 'manual', match: null },
+        ],
+      },
+    );
+    const evidence = await api.workspaceTakeEvidence(chapter.id, 0, 1);
+    expectMatches(takeEvidenceResultSchema, evidence, 'mock take evidence');
+    expect(evidence.takes.map((take) => take.id)).toEqual((await api.workspaceTakes(chapter.id, 0, 1)).candidates.map((candidate) => candidate.id));
+    await expect(api.workspaceTakeEvidence(chapter.id, 0, 99999)).rejects.toThrow(/not in this chapter's alignment/);
   });
 });
 

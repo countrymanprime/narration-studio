@@ -114,6 +114,8 @@ type Resolved struct {
 	View    Alternates
 	choices map[string]Choice
 	reads   []takecompare.Read
+	// input is what the view was resolved from, for Evidence.
+	input Input
 }
 
 // Choice is the offered candidate named id, or false: nothing but an offered candidate can be chosen.
@@ -133,7 +135,7 @@ func Resolve(in Input) (Resolved, error) {
 		return Resolved{}, fmt.Errorf("tokens %d to %d are not in this chapter's alignment; reload the workspace", in.FirstToken, in.LastToken)
 	}
 	view := Alternates{ChapterID: in.ChapterID, FirstToken: in.FirstToken, LastToken: in.LastToken, Words: in.LastToken - in.FirstToken + 1, Candidates: []Candidate{}}
-	resolved := Resolved{View: view, choices: map[string]Choice{}}
+	resolved := Resolved{View: view, choices: map[string]Choice{}, input: in}
 
 	view.FirstParagraph, view.LastParagraph = paragraphSpan(in.View, in.FirstToken, in.LastToken)
 	itemIndex, heard := majorityItem(tokens[in.FirstToken : in.LastToken+1])

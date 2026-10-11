@@ -22,6 +22,7 @@ import { createFindingsMock } from './findingsMock';
 import { createTakeReviewScanMock } from './takeReviewMock';
 import { createTakeComparisonMock } from './takeComparisonMock';
 import { createWorkspaceTakesMock } from './workspaceTakesMock';
+import { createTakeEvidenceMock } from './takeEvidenceMock';
 import { createMeasureMock } from './measureMock';
 import { createRenderEncodeMasterMock } from './renderEncodeMasterMock';
 import { DELIVERY_REVIEW_ANALYZER, mockDeliveryReviewFindings, resavingAfterProfileChange } from './deliveryReviewMock';
@@ -287,6 +288,7 @@ export function createMockApi(
     ...coverage,
     ...workspace,
     ...workspaceTakes,
+    ...createTakeEvidenceMock(workspaceTakes),
     ...preview,
     ...stages,
     ...proofingRender,

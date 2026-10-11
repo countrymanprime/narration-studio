@@ -4,7 +4,7 @@
 import type { PronunciationCandidate, PronunciationSource, PronunciationSourceList, PronunciationSourcesApi } from './contracts/pronunciationSources';
 
 /** The longest word a candidate is asked for (the host's and the sidecar's limit). */
-export const PRONUNCIATION_CANDIDATE_MAX_WORD = 80;
+const PRONUNCIATION_CANDIDATE_MAX_WORD = 80;
 
 const SOURCES: PronunciationSource[] = [
   { id: 'cmu', label: 'CMU dictionary', kind: 'lookup', available: true },

@@ -33,7 +33,7 @@ interface Heard {
 }
 
 /** What was heard, or null with why nothing was. */
-type HeardAnswer = { heard: Heard } | { heard: null; reason: string; reasons: CoverageReason[] };
+export type HeardAnswer = { heard: Heard } | { heard: null; reason: string; reasons: CoverageReason[] };
 
 export interface AlignmentPort {
   heard(chapterId: string): Promise<HeardAnswer>;

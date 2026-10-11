@@ -33,6 +33,7 @@ import { dawCatalogListSchema } from './schemas/dawCatalog';
 import { dawCapabilitiesSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import { takeEvidenceResultSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -462,6 +463,8 @@ export const wailsClient: NarrationApi = {
   workspaceApplyFXChain: (chapterId, chain) => decode(workspaceFXResultSchema, 'WorkspaceApplyFXChain', host.WorkspaceApplyFXChain(chapterId, chain)),
   workspaceTakes: (chapterId, firstToken, lastToken) =>
     decode(workspaceTakesResultSchema, 'WorkspaceTakes', host.WorkspaceTakes(chapterId, firstToken, lastToken)),
+  workspaceTakeEvidence: (chapterId, firstToken, lastToken) =>
+    decode(takeEvidenceResultSchema, 'WorkspaceTakeEvidence', host.WorkspaceTakeEvidence(chapterId, firstToken, lastToken)),
   workspaceTakesCompareStart: (chapterId, firstToken, lastToken) =>
     decode(takeComparisonJobSchema, 'WorkspaceTakesCompareStart', host.WorkspaceTakesCompareStart(chapterId, firstToken, lastToken)),
   workspaceUseTake: (chapterId, firstToken, lastToken, candidateId) =>

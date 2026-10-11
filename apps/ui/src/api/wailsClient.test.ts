@@ -832,6 +832,44 @@ describe('the pronunciation sources bindings', () => {
   });
 });
 
+describe('the take evidence binding', () => {
+  const answer = {
+    chapterId: 'c-1',
+    firstToken: 0,
+    lastToken: 3,
+    firstParagraph: 0,
+    lastParagraph: 0,
+    takes: [
+      {
+        id: 'take:a:b',
+        matched: { ok: true, value: 75 },
+        measure: {
+          pause: { ok: true, value: 1.2 },
+          rms: { ok: true, value: -16.9 },
+          nf: { ok: false, reason: 'No 500 ms window of the take holds signal.' },
+          clarity: { ok: false, reason: 'Not measured' },
+          breaths: { ok: true, value: 0 },
+        },
+        via: 'aligned',
+      },
+    ],
+  };
+
+  it('calls WorkspaceTakeEvidence with the chapter and token range and decodes the answer', async () => {
+    const evidence = vi.fn().mockResolvedValue(JSON.stringify(answer));
+    standInHost({ WorkspaceTakeEvidence: evidence });
+    await expect(wailsClient.workspaceTakeEvidence('c-1', 0, 3)).resolves.toEqual(answer);
+    expect(evidence).toHaveBeenCalledWith('c-1', 0, 3);
+  });
+
+  it('refuses a figure that is both a value and a reason', async () => {
+    const both = structuredClone(answer);
+    Object.assign(both.takes[0].matched, { reason: 'x' });
+    standInHost({ WorkspaceTakeEvidence: () => Promise.resolve(JSON.stringify(both)) });
+    await expect(wailsClient.workspaceTakeEvidence('c-1', 0, 3)).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the bookmarks bindings', () => {
   const bookmark = {
     id: 'b1',

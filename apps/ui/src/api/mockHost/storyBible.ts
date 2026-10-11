@@ -519,7 +519,7 @@ export function createStoryBibleMock(
       const entity = editableEntity(id);
       if (entity.category !== 'Character') throw new Error('Only a character speaks, so only a character has a speaker colour.');
       updateEntity(id, (row) => {
-        const next = { ...row, speaker_color: value };
+        const next: GuideEntity = { ...row, speaker_color: value };
         if (!value) delete next.speaker_color;
         return next;
       });
