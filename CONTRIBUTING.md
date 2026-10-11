@@ -31,7 +31,11 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
 3. Open a pull request whose **title is a Conventional Commit** (`feat: …`, `fix(scope): …`). It becomes the squash
    commit and decides the next version. Put `Closes #<issue>` in the description and fill in the template.
 4. Update the docs your change owes. CI fails a change to mapped code that touches none of its docs, unless the description says `Docs: none — <reason>` ([Documentation gates](docs/operations/documentation-gates.md)).
-5. If you settled a real design decision, record it as an ADR in `docs/adr/`.
+   [Which document](docs/README.md#which-document) says where each kind of fact goes: a file the app writes and reads
+   back goes in [data files](docs/reference/data-files.md), a new way untrusted data reaches the app goes in the
+   [threat model](docs/architecture/threat-model.md).
+5. If you settled a decision that changes the structure, a dependency, an interface between parts or a platform and is
+   costly to reverse, record it as an ADR in `docs/adr/`.
 
 ## Licensing of contributions
 
