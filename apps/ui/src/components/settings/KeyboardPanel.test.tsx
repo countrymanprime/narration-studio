@@ -4,6 +4,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider, useApi } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import type { CommandDescriptor } from '../../input/commands.catalog';
+import { commandsFor } from '../../input/surfaces';
+import { COMMAND_CATALOG } from '../../input/commands.catalog';
 import type { NarrationApi, ScopedSettingField } from '../../types';
 import type { Notify } from '../primitives/Toast';
 import { KeyboardPanel } from './KeyboardPanel';
@@ -59,6 +62,21 @@ async function openRecorderFor(label: string) {
 }
 
 describe('KeyboardPanel', () => {
+  it('settings-list-is-the-settings-surface: lists exactly commandsFor("settings"), and a new settings row appears with no other edit', async () => {
+    const fake: CommandDescriptor = { id: 'test.fake', label: 'A fake settings row', scope: 'page', defaults: [], surfaces: ['settings'] };
+    const hidden: CommandDescriptor = { id: 'test.hidden', label: 'Not in Settings', scope: 'page', defaults: [], surfaces: ['help'] };
+    const catalog = [...COMMAND_CATALOG, fake, hidden];
+    const api = createMockApi();
+    render(
+      <ApiProvider api={api}>
+        <KeyboardPanel overridesField={undefined} notify={vi.fn()} reload={async () => {}} catalog={catalog} />
+      </ApiProvider>,
+    );
+    await screen.findByText('A fake settings row');
+    expect(screen.queryByText('Not in Settings')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Change' })).toHaveLength(commandsFor('settings', catalog).length);
+  });
+
   it('groups the catalog by scope, with each hint from the Visual Spec', async () => {
     renderPanel();
     expect(await screen.findByText('Global · anywhere, except while a dialog is open')).toBeTruthy();

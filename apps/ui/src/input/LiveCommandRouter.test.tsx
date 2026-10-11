@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../api/ApiContext';
 import { createDawMock } from '../api/dawMock';
@@ -77,5 +77,32 @@ describe('LiveCommandRouter', () => {
         </LiveCommandRouter>,
       ),
     ).toThrow('useApi() called outside an <ApiProvider>.');
+  });
+
+  it('router-gets-the-narrators-keymap: a command bound by an override fires on its new gesture and not on the old one', async () => {
+    const base = createDawMock({ daw: 'REAPER', transport: { playing: false, recording: false } });
+    const field = { key: 'overrides', label: '', kind: 'text', choices: [], value: '', isSet: true, effectiveSource: 'global' };
+    const api = {
+      subscribeDawTransport: base.subscribeDawTransport,
+      settingsForScope: async () => ({ Keymap: [{ ...field, effectiveValue: '{"version":1,"bindings":{"test.noisy":["KeyQ"]}}' }] }),
+    };
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const catalog: CommandDescriptor[] = [{ ...NOISY_COMMAND, defaults: [{ source: 'keyboard', code: 'KeyP', modifiers: [] }] }];
+
+    render(
+      <ApiProvider api={api as unknown as NarrationApi}>
+        <LiveCommandRouter source={source} catalog={catalog}>
+          <Registrar id={NOISY_COMMAND.id} onFire={onFire} />
+        </LiveCommandRouter>
+      </ApiProvider>,
+    );
+
+    await waitFor(() => {
+      act(() => source.emit({ gesture: gesture('keyboard', 'KeyQ') }));
+      expect(onFire).toHaveBeenCalledTimes(1);
+    });
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP') }));
+    expect(onFire).toHaveBeenCalledTimes(1);
   });
 });
