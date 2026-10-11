@@ -214,7 +214,8 @@ describe('ProofChapterPage findings in the text (Phase 4)', () => {
     await user.type(note, 'a'.repeat(2001));
     expect(await screen.findByText(/at most 2000 characters/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Pickup' }).hasAttribute('disabled')).toBe(true);
-  });
+    // user.type sends 2001 keystrokes, about 10 s alone and over the 15 s default when the gate runs other tasks in parallel.
+  }, 45_000);
 
   it('does not offer a decision on a flag with no backing finding', async () => {
     const user = userEvent.setup();
