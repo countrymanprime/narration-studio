@@ -153,3 +153,9 @@ func TestFullHashOnMissingFileReturnsError(t *testing.T) {
 		t.Fatal("want an error for a file that does not exist")
 	}
 }
+
+func TestFullHashOnADirectoryReturnsError(t *testing.T) {
+	if _, err := FullHash(t.TempDir()); err == nil {
+		t.Fatal("FullHash on a directory: want an error, got nil")
+	}
+}

@@ -207,3 +207,64 @@ func TestACreditsSessionWritesNothing(t *testing.T) {
 		t.Fatalf("files written: %v", entries)
 	}
 }
+
+func TestWriteReadingRefusesNoProjectAndOutOfRangeReads(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, readingManuscript)
+	cases := []struct {
+		name         string
+		project      string
+		read, tokens int
+	}{
+		{"no project", "", 1, 4},
+		{"no tokens", project, 0, 0},
+		{"negative read", project, -1, 4},
+		{"read past the tokens", project, 5, 4},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := WriteReading(tc.project, "c1", tc.read, tc.tokens, "listening", readingTime); err == nil {
+				t.Fatalf("WriteReading(%q, read %d of %d): want an error, got nil", tc.project, tc.read, tc.tokens)
+			}
+		})
+	}
+	if entries, _ := os.ReadDir(ReadingDir(project)); len(entries) != 0 {
+		t.Fatalf("files written for a refused reading: %v", entries)
+	}
+}
+
+func TestWriteReadingReportsAFolderItCannotCreate(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, readingManuscript)
+	// A plain file where the teleprompter folder belongs.
+	if err := os.WriteFile(ReadingDir(project), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteReading(project, "c1", 1, 4, "listening", readingTime); err == nil {
+		t.Fatal("WriteReading with a file in the teleprompter folder's place: want an error, got nil")
+	}
+}
+
+func TestWriteReadingReportsATemporaryFileItCannotWrite(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, readingManuscript)
+	// A folder where the temporary file goes makes writing it fail.
+	if err := os.MkdirAll(filepath.Join(ReadingDir(project), readingFileName("c1")+".tmp"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteReading(project, "c1", 1, 4, "listening", readingTime); err == nil {
+		t.Fatal("WriteReading with a folder in the temporary file's place: want an error, got nil")
+	}
+}
+
+func TestLoadReadingReportsAFileItCannotRead(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, readingManuscript)
+	// A folder where the reading file belongs: present, but not readable as a file.
+	if err := os.MkdirAll(filepath.Join(ReadingDir(project), readingFileName("c1")), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := LoadReading(project, "c1"); err == nil {
+		t.Fatalf("LoadReading on an unreadable file = %+v, want an error", got)
+	}
+}
