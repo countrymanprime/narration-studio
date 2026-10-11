@@ -11,8 +11,8 @@ type ButtonSize = 'md' | 'sm';
 
 const VARIANT_CLASSES: Record<Exclude<ButtonVariant, 'link'>, string> = {
   primary: 'border-transparent bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[var(--accent-strong)]',
-  secondary: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)]',
-  ghost: 'border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-[var(--surface-2)]',
+  secondary: 'border-[var(--btn-line)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)]',
+  ghost: 'border-[var(--line-strong)] bg-transparent text-[var(--text)] hover:bg-[var(--surface-2)]',
   danger: 'border-[var(--danger)] bg-transparent text-[var(--danger-text)] hover:bg-[var(--review-soft)]',
 };
 

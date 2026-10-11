@@ -113,7 +113,7 @@ export function Dialog({
               height: size === 'full' ? 'calc(100dvh - 2rem)' : undefined,
               maxHeight: size === 'full' ? 'calc(100dvh - 2rem)' : '80dvh',
               background: 'var(--surface)',
-              borderColor: 'var(--border)',
+              borderColor: 'var(--line-strong)',
               boxShadow: 'var(--shadow-lg)',
             }}
           >
