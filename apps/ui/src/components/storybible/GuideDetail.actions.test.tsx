@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Mode-based header actions (ADR 0087, story bible entries PRD phase 2): Lock/Unlock lives in the read view only, Delete lives in edit
+// Mode-based header actions (ADR 0087): Lock/Unlock lives in the read view only, Delete lives in edit
 // mode only, and an entry can never be locked while it is being edited (the hazard ADR 0018 left open).
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

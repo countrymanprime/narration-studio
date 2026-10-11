@@ -85,7 +85,7 @@ describe('ProofChapterPage', () => {
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
   });
 
-  it('goes to and loops the word at the playhead in REAPER, then stops the loop (Phase 3)', async () => {
+  it('goes to and loops the word at the playhead in REAPER, then stops the loop', async () => {
     const user = userEvent.setup();
     // The default mock REAPER (connected) and Chapter 1's alignment (every token 'read', per the alignment test
     // above): both Go to and Loop of the word at the playhead (token 0) succeed for real, through
@@ -172,10 +172,10 @@ describe('ProofChapterPage', () => {
   });
 });
 
-// Findings in the text (edit-and-proof-workspace.prd.md Phase 4): the mock seeds one transcript_discrepancy finding
+// Findings in the text: the mock seeds one transcript_discrepancy finding
 // at chapter-1's own deterministic misread token (mockApi.ts's workspaceOverlayFinding, built from the same position
 // workspaceMock.ts times it at), so it merges into that check-derived "Misread" flag rather than adding a second one.
-describe('ProofChapterPage findings in the text (Phase 4)', () => {
+describe('ProofChapterPage findings in the text', () => {
   it('merges the chapter’s finding into the misread flag rather than duplicating it, with where it came from', async () => {
     const user = userEvent.setup();
     renderWorkspace();
@@ -264,13 +264,11 @@ describe('ProofChapterPage findings in the text (Phase 4)', () => {
   });
 });
 
-// Phase 3 (input-commands-and-pedals.prd.md): the workspace's shortcuts moved off a hand-written `window` `keydown`
-// listener onto `workspace.*` page-scope commands, registered through `useCommand`. This page had zero keyboard
-// coverage before this phase (the PRD's Evidence), so every one of the old listener's keys gets a test here for the
-// first time. `renderWorkspace` wraps in a real `<CommandRouter>` with the real catalog and default keymap, and
+// The workspace's shortcuts are `workspace.*` page-scope commands, registered through `useCommand`, not a
+// hand-written `window` `keydown` listener. Every key the old listener handled has a test here. `renderWorkspace` wraps in a real `<CommandRouter>` with the real catalog and default keymap, and
 // dispatches through the real `KeyboardSource` (`userEvent.keyboard`, which bubbles to `document`), so these tests
 // exercise the actual router, not a mock of it.
-describe('ProofChapterPage keyboard commands (input-commands-and-pedals.prd.md Phase 3)', () => {
+describe('ProofChapterPage keyboard commands', () => {
   it('toggles play/pause on Space (workspace.play)', async () => {
     renderWorkspace();
     await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
@@ -283,7 +281,7 @@ describe('ProofChapterPage keyboard commands (input-commands-and-pedals.prd.md P
     expect(await screen.findByRole('button', { name: 'Play' })).toBeTruthy();
   });
 
-  // stepWord/stepParagraph seek with a 1-second pre-roll (EP5) ahead of the actual word/paragraph target, which - at
+  // stepWord/stepParagraph seek with a 1-second pre-roll ahead of the actual word/paragraph target, which - at
   // 155 words/minute - is worth more than two words: the DOM's karaoke highlight (`isCurrent`) lags the raw target by
   // that same amount and can stay pinned near a chapter's start across repeated presses. That pre-roll/highlight
   // interaction is stepWord/stepParagraph's own pre-existing behaviour (unit-untested before this phase, and out of
@@ -351,7 +349,7 @@ describe('ProofChapterPage keyboard commands (input-commands-and-pedals.prd.md P
 
 // The compare run and its results are in the chapter view. A finished
 // run's discrepancies for this chapter are flags, with the inline diff and the results row's actions in the flag detail.
-describe('ProofChapterPage compare results (stage navigation Phase 5)', () => {
+describe('ProofChapterPage compare results', () => {
   const success = { ...WIRE_TRANSCRIPT, phase: 'success' as const, rows: WIRE_DISCREPANCIES };
   const flagsPanel = async () => {
     await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
@@ -387,7 +385,7 @@ describe('ProofChapterPage compare results (stage navigation Phase 5)', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER is not running'), 'error'));
   });
 
-  it('reviews the last comparison with no linked DAW file, with Play recorded audio off (PRD W16)', async () => {
+  it('reviews the last comparison with no linked DAW file, with Play recorded audio off', async () => {
     const user = userEvent.setup();
     renderWorkspace({}, {}, { dawFileLinked: false });
     await user.click(await screen.findByRole('button', { name: /Last narrated take/ }));
@@ -398,9 +396,9 @@ describe('ProofChapterPage compare results (stage navigation Phase 5)', () => {
   });
 });
 
-// D85 #2 and #11 on #509 (ADR 0470): the chapter view leads with mock 04 - the notes strip, the chapter's notes table and a
-// note's detail - and edit-and-proof mock 01's recording-check card.
-describe('ProofChapterPage, mock 04 on the chapter view', () => {
+// ADR 0470: the chapter view leads with the notes strip, the chapter's notes table and a
+// note's detail, then the recording-check card.
+describe('ProofChapterPage, the notes on the chapter view', () => {
   it('lists the chapter’s notes with no Chapter column, under the notes header', async () => {
     renderWorkspace();
     const table = await screen.findByRole('table', { name: 'Notes' });

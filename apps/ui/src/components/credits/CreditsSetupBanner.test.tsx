@@ -35,7 +35,7 @@ function renderBanner(state: CreditsSetupState = STATE, overrides: Partial<Narra
   return { api, onDone, onFillIn, notify };
 }
 
-describe('CreditsSetupBanner (credits-token-setup-and-front-matter-detection.prd.md, Phase 3)', () => {
+describe('CreditsSetupBanner', () => {
   it('names the unresolved tokens and how they will read', () => {
     renderBanner();
     expect(screen.getByText('The credits need 3 values')).toBeTruthy();

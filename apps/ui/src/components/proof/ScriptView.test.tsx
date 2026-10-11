@@ -29,7 +29,7 @@ function renderScript(blocked?: string) {
 
 const word = (text: string) => screen.getByRole('button', { name: text });
 
-describe('ScriptView passage selection and effects (edit-and-proof-workspace PRD Phase 9)', () => {
+describe('ScriptView passage selection and effects', () => {
   it('a plain click seeks and selects nothing; Shift+click selects from the last word clicked', async () => {
     const user = userEvent.setup();
     const { onSeekToken } = renderScript();

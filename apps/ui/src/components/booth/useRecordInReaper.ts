@@ -17,7 +17,7 @@ export type RecordInReaperState = {
   /** The last arm, start or stop refusal's message, cleared at the start of the next attempt. */
   error?: string;
   armPending: boolean;
-  /** Turning the toggle on for the first time in this project asks first (Q9); every other change is immediate. */
+  /** Turning the toggle on for the first time in this project asks first; every other change is immediate. */
   confirmPending: boolean;
   toggle: () => void;
   confirm: () => void;
@@ -33,13 +33,12 @@ export type RecordInReaperState = {
 };
 
 /**
- * The Record-in-REAPER toggle's memory and orchestration (read-aloud-control-bar.prd.md Phase 7, Q7-Q9;
- * booth-actions-enablement.prd.md Phase 2): a per-project on/off (`ReadAloud.record_in_reaper`, reusing the generic
+ * The Record-in-REAPER toggle's memory and orchestration: a per-project on/off (`ReadAloud.record_in_reaper`, reusing the generic
  * settings mechanism the way `Keymap.overrides` does - no Settings category names this tool, so it never joins the
- * generic Settings page) with a first-time confirm (`record_confirmed`), "Arm `<chapter>` only" (Q7 A), and what Play
+ * generic Settings page) with a first-time confirm (`record_confirmed`), "Arm `<chapter>` only", and what Play
  * and Stop do while it is on: `ReadAloudRecordStart` before a session starts listening, `ReadAloudRecordStop` after it
- * stops (Q8). Reading with the toggle off, with the record capability unavailable, or with no chapter (credits mode)
- * never touches REAPER: `beforeStart` answers true at once, exactly like today, so a narrator whose REAPER access
+ * stops. Reading with the toggle off, with the record capability unavailable, or with no chapter (credits mode)
+ * never touches REAPER: `beforeStart` answers true at once, as before the toggle existed, so a narrator whose REAPER access
  * lapses can still just read.
  */
 export function useRecordInReaper(chapterId: string | undefined, capabilityAvailable: boolean): RecordInReaperState {
@@ -117,7 +116,7 @@ export function useRecordInReaper(chapterId: string | undefined, capabilityAvail
 
   const beforeStart = useCallback(async (): Promise<boolean> => {
     if (!enabled || !capabilityAvailable || !chapterId) return true;
-    // Reading finished while REAPER kept recording (Q8 Done B) and Play starts reading again: REAPER is already
+    // Reading finished while REAPER kept recording and Play starts reading again: REAPER is already
     // recording the take this app started, so asking it to start again would only be refused.
     if (recording) return true;
     setError(undefined);

@@ -239,7 +239,7 @@ describe('Dialog is a real modal', () => {
     await waitFor(() => expect(dialog.querySelector('[tabindex="0"]')).toBe(document.activeElement));
   });
 
-  // read-aloud-control-bar.prd.md Phase 3, amending ADR 0094: a region between the body and `actions` that never
+  // Amending ADR 0094: a region between the body and `actions` that never
   // scrolls with the body, for the read-aloud dialog's control bar.
   it('draws the footer outside the scrolling body and above actions, and draws nothing when it is absent', async () => {
     render(
@@ -264,7 +264,7 @@ describe('Dialog is a real modal', () => {
   });
 });
 
-// teleprompter-manuscript-integration.prd.md Phase 1: `size="full"` fills the viewport with a margin and scrolls its
+// `size="full"` fills the viewport with a margin and scrolls its
 // body, with no change to the modal contract (ADR 0048) that every other size shares.
 describe('Dialog size="full"', () => {
   it('defaults to the capped, content-sized popup', async () => {

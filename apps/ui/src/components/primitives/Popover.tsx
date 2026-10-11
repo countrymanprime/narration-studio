@@ -9,7 +9,7 @@ export const POPOVER_POPUP_ATTRIBUTE = 'data-popover-popup';
 export const POPOVER_POPUP_SELECTOR = `[${POPOVER_POPUP_ATTRIBUTE}]`;
 
 // An interactive popup over other content: a click opens it, focus moves into it, Escape closes it and returns focus to
-// the trigger, and a press outside closes it too (read-aloud-control-bar.prd.md's microphone device list and Settings
+// the trigger, and a press outside closes it too (the read-aloud dialog's microphone device list and Settings
 // panel; ADR 0047 wraps Base UI's Popover). Unlike the hint-style popup behind Tooltip's info icon (hover/focus,
 // read-only, focus never moves in), this one is for a control a person operates. Sits above the dialog layer
 // (z-[70], between Dialog's z-[60] and a hint's z-[1000]), so it works when opened from inside a full-size dialog.

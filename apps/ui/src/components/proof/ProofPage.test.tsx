@@ -76,7 +76,7 @@ describe('ProofPage', () => {
   it('lists the latest run with the counts by status, and asks the narrator to pick a finding', async () => {
     renderPage();
     expect(await rows()).toHaveLength(4);
-    // Mock 04's notes header (D85 #7): "Notes · N" and a chip per resolution that has notes.
+    // Mock 04's notes header: "Notes · N" and a chip per resolution that has notes.
     expect(await screen.findByRole('heading', { name: 'Notes · 4' })).toBeTruthy();
     expect(screen.getByText('3 to review')).toBeTruthy();
     expect(screen.getByText('1 waived')).toBeTruthy();
@@ -113,7 +113,7 @@ describe('ProofPage', () => {
     expect((await rows())[1].textContent).toContain('not in the latest run');
   });
 
-  describe('the waveform card and the chapter filter (ADR 0750, D100)', () => {
+  describe('the waveform card and the chapter filter (ADR 0750)', () => {
     const picker = () => screen.findByRole('combobox', { name: 'Chapter to open' });
 
     it('opens on the first narration chapter when the narrator has looked at none, with every note listed', async () => {
@@ -215,7 +215,7 @@ describe('ProofPage', () => {
     expect((await screen.findByRole('button', { name: 'Play ±3 s' })).hasAttribute('disabled')).toBe(true);
   });
 
-  it('offers the proofer’s sheet in and out on the notes header (D85 #8)', async () => {
+  it('offers the proofer’s sheet in and out on the notes header', async () => {
     renderPage();
     await rows();
     expect(screen.getByRole('button', { name: 'Import proofer sheet' })).toBeTruthy();
@@ -300,7 +300,7 @@ describe('ProofPage', () => {
     expect(goToStoryBible).toHaveBeenCalledWith('white-rabbit');
   });
 
-  // edit-and-proof-workspace.prd.md Phase 4: "Open in workspace" from a finding, deep-linking to it (?finding=<id>).
+  // "Open in workspace" from a finding, deep-linking to it (?finding=<id>).
   it('opens the chapter workspace on the finding when the caller has one', async () => {
     const user = userEvent.setup();
     const goToWorkspace = vi.fn();
@@ -368,7 +368,7 @@ describe('ProofPage', () => {
   });
 });
 
-// Go to, Loop and Stop in REAPER (review dashboard Phase 7), against the mock's REAPER.
+// Go to, Loop and Stop in REAPER, against the mock's REAPER.
 describe('ProofPage in REAPER', () => {
   const inReaper = () => within(screen.getByRole('heading', { name: 'In REAPER' }).parentElement!);
   const button = (name: string) => inReaper().getByRole('button', { name }) as HTMLButtonElement;
@@ -476,7 +476,7 @@ describe('ProofPage in REAPER', () => {
   });
 });
 
-// The approved marker (review dashboard Phase 8, ADR 0123): one take marker for an accepted finding, after a confirm.
+// The approved marker (ADR 0123): one take marker for an accepted finding, after a confirm.
 describe('ProofPage adds an approved marker in REAPER', () => {
   const inReaper = () => within(screen.getByRole('heading', { name: 'In REAPER' }).parentElement!);
   const addMarker = () => inReaper().getByRole('button', { name: 'Add marker in REAPER' }) as HTMLButtonElement;
@@ -587,7 +587,7 @@ describe('ProofPage adds an approved marker in REAPER', () => {
   });
 });
 
-// Dashboard integration (audacity-integration.prd.md Phase 9): take management has no Audacity analog, so REAPER's
+// Dashboard integration: take management has no Audacity analog, so REAPER's
 // Go to/Loop/Add marker and the take-review and take-comparison sections are left out entirely for an Audacity session,
 // not shown disabled - everything else about a finding (its evidence, its decision) works exactly as it does for REAPER.
 describe('ProofPage with Audacity', () => {

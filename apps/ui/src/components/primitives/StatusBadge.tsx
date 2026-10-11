@@ -12,8 +12,8 @@ export type StatusTone = 'neutral' | 'info' | 'progress' | 'accent' | 'success' 
  *   Barlow Condensed 600 at 11.5 px in the label's own case: the mocks write "Pickup", "6 need pickup", "Query sent".
  * - `tag`: the type badge (Proof's MISREAD, the Script's speaker, "Retail sample"). 16 px tall, the 3 px tag radius, 6 px
  *   each side, Barlow Condensed 600 at the 11 px label size in capitals.
- * - `booth`: the Booth's speaker tag beside the script (mock 03). A tag at 26 px, radius 4, 8 px each side.
- * - `cell`: a Production board cell (mock 01, ADR 0645). A flat 20 px block at least 58 px wide, on the tag radius, its
+ * - `booth`: the Booth's speaker tag beside the script (the benchmark's 03-booth mock). A tag at 26 px, radius 4, 8 px each side.
+ * - `cell`: a Production board cell (the benchmark's 01-production-home mock, ADR 0645). A flat 20 px block at least 58 px wide, on the tag radius, its
  *   label centred in Barlow Condensed 600 at the 11 px label size in its own case ("✓", "3 open", "PASS"), so every cell
  *   of a column lines up whatever it says. A label longer than the cell is clipped inside it: a board's caller keeps its
  *   labels short.
@@ -27,7 +27,7 @@ export type BadgeLook = 'soft' | 'outline';
 /** A badge's colours: `fill` behind the label, `text` for it (and a dot's mark), `line` for the outline look. */
 export type BadgeColors = { fill: string; text: string; line: string };
 
-// Each fill is the Phase 0b soft token (ADR 0590, Q3), opaque and checked against its `-text` by paletteContrast.test.ts;
+// Each fill is the soft token (ADR 0590), opaque and checked against its `-text` by paletteContrast.test.ts;
 // `neutral` and `progress`/`accent` reuse pairs that were already checked (`text-muted` on `surface-2`,
 // `accent-strong-on-soft`). `experimental` has no soft token, so it keeps ADR 0362's tint.
 const TONE_STYLE: Record<StatusTone, BadgeColors> = {
@@ -142,7 +142,7 @@ export function StatusBadge({
 }) {
   const colors = TONE_STYLE[tone];
 
-  // The dense-list dot (PRD "Could"): a mark, not text, so the label is its accessible name via `role="img"` rather than
+  // The dense-list dot: a mark, not text, so the label is its accessible name via `role="img"` rather than
   // visible content - a screen reader hears the label; a sighted user gets the colour only, by design. `text` already
   // clears 4.5:1, which clears the 3:1 a mark needs, so the dot needs no colour of its own.
   if (variant === 'dot') return <Dot color={colors.text} label={label} className={className} />;

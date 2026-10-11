@@ -29,7 +29,7 @@ function renderCard(overrides: Partial<Parameters<typeof ReaderCard>[0]> = {}) {
   return { onToggleExpand, onToggleBookmark, onRecordInBooth };
 }
 
-describe('ReaderCard (manuscript-credits-card-parity.prd.md, manuscript-chapter-header-alignment.prd.md)', () => {
+describe('ReaderCard', () => {
   it('reports aria-expanded and aria-controls naming the body, on the toggle whose accessible name is the title', () => {
     renderCard({ expanded: true });
     const toggle = screen.getByRole('button', { name: 'Chapter 2 — The Pool of Tears' });
@@ -78,7 +78,7 @@ describe('ReaderCard (manuscript-credits-card-parity.prd.md, manuscript-chapter-
     expect(onToggleExpand).not.toHaveBeenCalled();
   });
 
-  it('pressing Record in Booth opens the Booth, not the card (stage-navigation-and-page-replacement.prd.md Q9)', async () => {
+  it('pressing Record in Booth opens the Booth, not the card', async () => {
     const user = userEvent.setup();
     const { onRecordInBooth, onToggleExpand } = renderCard();
     await user.click(screen.getByRole('button', { name: 'Record Chapter 2 in Booth' }));
@@ -86,7 +86,7 @@ describe('ReaderCard (manuscript-credits-card-parity.prd.md, manuscript-chapter-
     expect(onToggleExpand).not.toHaveBeenCalled();
   });
 
-  it('shows the stat block before the action slot, and the chevron last, in DOM order (manuscript-chapter-header-alignment.prd.md)', () => {
+  it('shows the stat block before the action slot, and the chevron last, in DOM order', () => {
     renderCard();
     const header = document.querySelector('header')!;
     const wordsIndex = header.innerHTML.indexOf('3,182 words');
@@ -110,7 +110,7 @@ describe('ReaderCard (manuscript-credits-card-parity.prd.md, manuscript-chapter-
     expect(screen.queryByRole('button', { name: /Open (booth|companion) for/ })).toBeNull();
   });
 
-  // edit-and-proof-workspace.prd.md Phase 4: the chapter header's "Open workspace" entry, icon-only.
+  // The chapter header's "Open workspace" entry, icon-only.
   it('pressing Workspace opens the workspace, not the card', async () => {
     const user = userEvent.setup();
     const onWorkspace = vi.fn();
@@ -197,7 +197,7 @@ describe('ReaderCard (manuscript-credits-card-parity.prd.md, manuscript-chapter-
     expect(screen.getByText('~2 s read')).toBeTruthy();
   });
 
-  // D85 #3 on issue #509, ADR 0393 (superseding ADR 0392): the header's cluster-wrap decision keys off the card's own
+  // ADR 0393 (superseding ADR 0392): the header's cluster-wrap decision keys off the card's own
   // rendered width (a CSS container query), not the viewport (`md`), so it stays correct once a narrower card can exist
   // at a wide viewport (the Script page's mock-02 three columns). jsdom does not evaluate container queries - a real
   // browser check is Playwright's `chapter-header-columns` driver (script.ts) plus the retail-sample and markup-dialog

@@ -1,9 +1,9 @@
 import type { Scope, ScopedSettingField } from '../../types';
 
-// What the recording check's settings amount to (docs/utilities/recording-coverage.md Q3, ADR 0131). The values are
-// chosen on synthetic fixtures (ADR 0132) and stay Proposed and uncalibrated on real narration (Q15), and the page says so. The two
-// thresholds only change how a stored check is judged; the two alignment settings change which words count, so the host
-// reads earlier checks as out of date once one changes (Q13).
+// What the recording check's settings amount to (docs/utilities/recording-coverage.md, ADR 0131). The values are
+// chosen on synthetic fixtures (ADR 0132) and stay Proposed and uncalibrated on real narration, and the page says so. The
+// two thresholds only change how a stored check is judged; the two alignment settings change which words count, so the
+// host reads earlier checks as out of date once one changes.
 
 const effective = (fields: readonly ScopedSettingField[], key: string) => fields.find((field) => field.key === key)?.effectiveValue ?? '';
 
@@ -25,7 +25,7 @@ export function recordingRule(fields: readonly ScopedSettingField[]): string {
   return `A chapter counts as recorded when each paragraph has at least ${present} of its words read and no more than ${run} in a row are missing.`;
 }
 
-/** The model cascade's own sentence (recording-check-model-cascade PRD Phase 5, MC1/MC2): what the three cascade
+/** The model cascade's own sentence: what the three cascade
  * fields amount to, on or off. */
 export function cascadeRule(fields: readonly ScopedSettingField[]): string {
   const on = effective(fields, 'cascade_enabled') === 'true';

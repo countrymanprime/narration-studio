@@ -174,7 +174,7 @@ describe('BoothPage', () => {
     expect(((await screen.findByLabelText('Microphone', { selector: 'select' })) as HTMLSelectElement).value).toBe(OTHER_DEVICE_NAME);
   });
 
-  it('migrates a browser-storage device from before Phase 2, once, into the global settings', async () => {
+  it('migrates a browser-storage device, once, into the global settings', async () => {
     window.localStorage.setItem('narration.teleprompter.device', 'Legacy USB Mic');
 
     const { api } = renderPage();
@@ -212,7 +212,7 @@ describe('BoothPage', () => {
     expect(teleprompterStart).toHaveBeenCalledWith({ chapter: 'chapter-1', device: DEVICE_NAME, engine: 'whisper', model: 'tiny' });
   });
 
-  // Phase 7 ("Engine choice end to end"): the engines are the ones the host can launch here (its Teleprompter.engine
+  // The engines are the ones the host can launch here (its Teleprompter.engine
   // setting's choices), and the choice is a machine setting, remembered like the microphone.
   it('starts with the engine the narrator chose and remembers it in the global settings', async () => {
     const user = userEvent.setup();
@@ -274,7 +274,7 @@ describe('BoothPage', () => {
     });
   });
 
-  // Phase 3 ("Teleprompter settings section"): the page reads the Settings section's default model on load, so a
+  // The page reads the Settings section's default model on load, so a
   // session starts with whichever model the narrator set in Settings rather than always Tiny.
   it('reads the default model from the Teleprompter settings section', async () => {
     const user = userEvent.setup();
@@ -487,7 +487,7 @@ describe('BoothPage', () => {
   });
 });
 
-// Chapter from REAPER track name (teleprompter-engines-and-input-devices PRD Phase 11, ADR 0113).
+// Chapter from REAPER track name (ADR 0113).
 describe('BoothPage chapter suggestion from REAPER', () => {
   const [chapter1Track, chapter2Track] = WIRE_TRACKS_PROJECT.tracks;
   const chapterPicker = () => screen.getByLabelText('Chapter') as HTMLSelectElement;
@@ -589,7 +589,7 @@ describe('BoothPage chapter suggestion from REAPER', () => {
   });
 });
 
-// The credits on the teleprompter (audiobook-credits-templates.prd.md Phase 4, ADR 0150; C6: warn, never block).
+// The credits on the teleprompter (ADR 0150); an unresolved token warns and never blocks.
 describe('BoothPage credits', () => {
   const FILLED = { title: 'Alice’s Adventures in Wonderland', author: 'Lewis Carroll', narrator: 'Ada Finch' };
   const optionLabels = async () => Array.from(((await screen.findByLabelText('Chapter')) as HTMLSelectElement).options, (option) => option.textContent);

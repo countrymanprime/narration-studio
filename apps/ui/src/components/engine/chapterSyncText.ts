@@ -8,8 +8,8 @@ import type {
 } from '../../api/contracts/chapterSync';
 
 /**
- * Why a chapter is in Needs you, as the consent dialog says it (daw-chapter-track-auto-sync.prd.md Phase 3, mockup 01). The
- * engine panel's list says two of them its own way (mockup 02, `chapterSyncPanelReasonText`): D85 #13, the mocks win.
+ * Why a chapter is in Needs you, as the consent dialog says it. The
+ * engine panel's list says two of them its own way (`chapterSyncPanelReasonText`).
  */
 export function chapterSyncReasonText(item: ChapterSyncNeedsYou): string {
   switch (item.reason) {
@@ -30,7 +30,7 @@ export function chapterSyncReasonText(item: ChapterSyncNeedsYou): string {
   }
 }
 
-/** "Tracks that are not chapters" (mockup 02): unmatched track names plus any pickup tracks, with a note singling
+/** "Tracks that are not chapters": unmatched track names plus any pickup tracks, with a note singling
  * the pickup tracks out (they are kept for take review, never a chapter link). */
 export function chapterSyncNotChaptersText(unmatched: ChapterSyncTrackRef[], pickupTracks: ChapterSyncPickupTrack[]): { names: string; note: string } {
   const names = [...unmatched.map((track) => track.name), ...pickupTracks.map((pickup) => pickup.trackName)];
@@ -48,7 +48,7 @@ function quotedList(names: string[]): string {
   return quoted.length < 2 ? (quoted[0] ?? '') : `${quoted.slice(0, -1).join(', ')} and ${quoted[quoted.length - 1]}`;
 }
 
-/** Why a chapter is in the engine panel's Needs you (mockup 02): a tie and a guess in the mock's words, the rest as the dialog says them. */
+/** Why a chapter is in the engine panel's Needs you: a tie and a guess in the panel's own words, the rest as the dialog says them. */
 export function chapterSyncPanelReasonText(item: ChapterSyncNeedsYou): string {
   if (item.reason === 'ambiguous' && item.candidates.length >= 2) {
     const count = COUNT_WORDS[item.candidates.length] ?? String(item.candidates.length);
@@ -58,7 +58,7 @@ export function chapterSyncPanelReasonText(item: ChapterSyncNeedsYou): string {
   return chapterSyncReasonText(item);
 }
 
-/** The engine panel's "Tracks that are not chapters" line (mockup 02): "Room tone · Pickups · Chapter 3 (pickups), kept as Chapter 3’s pickup track". */
+/** The engine panel's "Tracks that are not chapters" line: "Room tone · Pickups · Chapter 3 (pickups), kept as Chapter 3’s pickup track". */
 export function chapterSyncPanelNotChaptersText(unmatched: ChapterSyncTrackRef[], pickupTracks: ChapterSyncPickupTrack[]): string {
   const names = [...unmatched.map((track) => track.name), ...pickupTracks.map((pickup) => pickup.trackName)].join(' · ');
   if (pickupTracks.length === 0) return names;
@@ -67,7 +67,7 @@ export function chapterSyncPanelNotChaptersText(unmatched: ChapterSyncTrackRef[]
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** When a sync ran, as mockup 02 dates its Sync activity: "10:42" today, "Yesterday", then "22 Sep" (with the year when it is not this one). */
+/** When a sync ran, as the Sync activity dates it: "10:42" today, "Yesterday", then "22 Sep" (with the year when it is not this one). */
 export function chapterSyncTimeLabel(iso: string, now: Date = new Date()): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return '';
@@ -86,7 +86,7 @@ function basename(path: string): string {
 const chapters = (count: number) => `${count} chapter${count === 1 ? '' : 's'}`;
 
 /**
- * Chapter sync's "on" line (mockup 02): "On · last synced 10:42 from the saved Alice.rpp · 8 chapters linked automatically, 1 by
+ * Chapter sync's "on" line: "On · last synced 10:42 from the saved Alice.rpp · 8 chapters linked automatically, 1 by
  * you". The split comes from the host's per-chapter rows (`origin`); before it has them (the saved .rpp unreadable) the plain
  * count of links stands in.
  */
@@ -110,7 +110,7 @@ export function chapterSyncSummaryText(
 }
 
 /**
- * Chapter sync's background-checks wait line (daw-chapter-track-auto-sync.prd.md Phase 7, ADR 0211): why a changed
+ * Chapter sync's background-checks wait line (ADR 0211): why a changed
  * chapter is not being re-checked on its own right now. '' when there is nothing worth telling the narrator: checks
  * are off, another check (the narrator's own or another background pick) is already running, or nothing has
  * changed since its last check.
@@ -130,7 +130,7 @@ export function chapterSyncBackgroundWaitText(background: { enabled: boolean; wa
 export type ChapterSyncActivityRow = { key: string; at: string; text: string; undoTrackGuid: string };
 
 /**
- * The Sync activity list (daw-chapter-track-auto-sync.prd.md Phase 4, mockup 02), newest first as the host keeps it: the first
+ * The Sync activity list newest first as the host keeps it: the first
  * sync as one line ("First sync: 8 chapters linked"), then a line per link a later sync made ("Linked “Ch. 11” to Chapter 11",
  * with Undo) and per new track that is not a chapter. A batch with neither (an Undo's own sync) adds no line.
  */

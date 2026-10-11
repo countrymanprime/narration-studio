@@ -23,7 +23,7 @@ export default {
     },
     {
       // The generated bindings are rewritten on every host API change, and everything that can be typed against the
-      // wire lives behind src/api/wailsClient.ts (ADR 0007, the boundary PRD). A component that calls the host reaches
+      // wire lives behind src/api/wailsClient.ts (ADR 0007). A component that calls the host reaches
       // it through the API client, which the mock replaces in tests and in the visual suite.
       name: 'wails-bindings-only-in-api',
       comment: 'Only src/api/ imports wailsjs/. Call the host through the API client so the mock backend covers it.',

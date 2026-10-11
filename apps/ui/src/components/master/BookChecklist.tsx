@@ -9,8 +9,7 @@ const MUTED = { color: 'var(--text-muted)' };
 
 /**
  * What the project already has for a book rule the app cannot check yet (`acx.credits`, `acx.retail_sample`): read
- * directly from the credits feature, since matching files to chapters (`credits-in-chapter-table.prd.md` Phase 3)
- * has not landed. Undefined while loading, or on any read failure - the row still shows the rule's own "not checked"
+ * directly from the project's credits templates and retail sample. Undefined while loading, or on any read failure - the row still shows the rule's own "not checked"
  * reason either way, this is only ever a bonus line under it.
  */
 function useBookFacts(): { credits?: string; retailSample?: string } {
@@ -63,8 +62,7 @@ const STATUS_WORDS: Record<DeliveryRuleResult['status'], string> = {
 };
 
 /**
- * The book-level rules (delivery-platform-profiles.prd.md Phase 7), drawn as mock 05's delivery package checklist (stage
- * navigation Phase 8): credits files, retail sample, one section per file and consistency (subjective, never automated) and
+ * The book-level rules, drawn as benchmark mock 05's delivery package checklist: credits files, retail sample, one section per file and consistency (subjective, never automated) and
  * channels the same across every measured file. Credits and the retail sample are read from the project as a whole, as a bonus
  * line under the rule's own "not checked by the app" reason, never as a pass. Each item says its result in words (for a screen
  * reader) as well as by its icon.

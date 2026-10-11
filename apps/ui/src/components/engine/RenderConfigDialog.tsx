@@ -8,10 +8,9 @@ import type { RenderConfigState } from '../../types';
 
 const IDLE: RenderConfigState = { phase: 'idle', message: '', folder: '', targets: [], count: 0 };
 
-/** Per-chapter render configuration (reaper-automation-follow-through PRD, Phase 11, Open Question 7 answered
- * (a)): configure only. Sets the render bounds to all regions, the naming pattern to the region name, and the
+/** Per-chapter render configuration: configure only. Sets the render bounds to all regions, the naming pattern to the region name, and the
  * output folder; this dialog never triggers a render itself. Reachable from the audio engine panel next to "Link
- * chapters…" (Phase 7), not a new nav item. */
+ * chapters…", not a new nav item. */
 export function RenderConfigDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
   const [state, setState] = useState<RenderConfigState>(IDLE);

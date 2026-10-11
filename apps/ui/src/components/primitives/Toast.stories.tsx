@@ -37,7 +37,7 @@ export const Queue: Story = {
 };
 
 // A toast can carry one action (for example Undo) before its dismiss button, and lead with the glyph of what it is about
-// (daw-chapter-track-auto-sync.prd.md Phase 3, S12: one toast per chapter-sync batch, with Undo; the mock is /03).
+// (the chapter-sync toast: one per batch, with Undo).
 export const WithAction: Story = {
   args: { messages: [{ ...info(1, 'Linked track “Ch. 11” to Chapter 11.'), action: { label: 'Undo', onAction: fn() }, icon: faLayerGroup }] },
   play: async ({ canvasElement, args }) => {

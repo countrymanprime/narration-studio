@@ -18,7 +18,7 @@ import { chaptersAtPosition, type PickupChapter } from './pickupChapters';
 import { usePickupsState } from './usePickupsState';
 
 // Triggers a browser "Save As" for csv, under name, without a native file-dialog binding: the WebView2 host
-// handles a download the same way a real browser does (Phase 9's "Export action").
+// handles a download the same way a real browser does.
 function downloadCSV(csv: string, name: string): void {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -72,8 +72,8 @@ function PickupChapterLinks({ matches }: { matches: PickupChapter[] | undefined 
 }
 
 /**
- * Pickups (mock 04's Review › Pickups): the book's pickup list
- * from the proofer's REAPER markers (reaper-automation-follow-through PRD Phase 9) - import a proofer's CSV, jump
+ * Pickups (benchmark mock 04's Review › Pickups): the book's pickup list
+ * from the proofer's REAPER markers - import a proofer's CSV, jump
  * through the remaining pickups, open one's chapter in Proof, punch or mark it done, export what is left - and the
  * pickup session slot closed-loop proofing fills. It replaces the Tracks page's Pickups dialog (ADR 0407).
  */
@@ -83,7 +83,7 @@ export function PickupsPage() {
   const state = usePickupsState();
   const [rowErrors, setRowErrors] = useState<string[]>([]);
   const [requestError, setRequestError] = useState('');
-  // "Punch from here" (booth-actions-enablement PRD Phase 3): the pickup's own position is already a project time, so
+  // "Punch from here": the pickup's own position is already a project time, so
   // there is nothing to preview - the button moves REAPER's edit cursor straight away, like Next pickup and Mark done.
   const [punching, setPunching] = useState(false);
   // A run that starts (Go's begin(), mirrored by the mock) clears `next`/`resolved` from state, so this survives
@@ -252,8 +252,8 @@ export function PickupsPage() {
             </p>
           )}
         </Panel>
-        {/* Mock 04's right panel: closed-loop proofing (its Phase 4, retargeted here) plans a chapter's session. Until then
-            the slot says so rather than drawing an empty plan (booth mode D3's precedent). */}
+        {/* Mock 04's right panel: closed-loop proofing plans a chapter's session. Until then
+            the slot says so rather than drawing an empty plan. */}
         <Panel title="Pickup session" actions={<StatusBadge tone="neutral" label="Coming soon" />}>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Planning a pickup session is not available yet. It will gather a chapter&apos;s pickups in script order, each with its line in context, ready to

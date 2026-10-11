@@ -14,9 +14,8 @@ const SKIP_SECONDS = 30;
  * with next/previous track are the same state, not two that can drift apart.
  *
  * Each item's played range (`sourceStart` to `sourceStart + length * playRate`) is honoured through the same
- * `buildPlaylist` the chapter workspace's `useChapterPlayback` uses (edit-and-proof-workspace.prd.md Phase 2, "The
- * player"): playback starts at the item's trim point and stops there, instead of playing its source file from 0 to
- * its own end regardless of the trim. `currentTime`/`duration` are relative to the item (0 at its start), bounded to the shorter of the item's
+ * `buildPlaylist` the chapter workspace's `useChapterPlayback` uses: playback starts at the item's trim point and stops there, instead of playing its source file
+ * from 0 to its own end regardless of the trim. `currentTime`/`duration` are relative to the item (0 at its start), bounded to the shorter of the item's
  * declared span and the source file's real length -
  * a file trimmed to less than its declared span (unexpected, but not impossible) still can't play past its own end.
  */

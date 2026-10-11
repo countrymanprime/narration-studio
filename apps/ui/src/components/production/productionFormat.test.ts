@@ -69,7 +69,7 @@ describe('production figures', () => {
 });
 
 describe('the board', () => {
-  it("marks the stages a chapter has passed as done and the ones ahead as not yet, as the mock's compact glyphs (PR10)", () => {
+  it("marks the stages a chapter has passed as done and the ones ahead as not yet, as the mock's compact glyphs", () => {
     const proofing = chapter({ status: 'proofing' });
     expect(boardCell(proofing, column('Record'))).toEqual({ tone: 'success', label: '✓' });
     expect(boardCell(proofing, column('Edit'))).toEqual({ tone: 'success', label: '✓' });
@@ -88,7 +88,7 @@ describe('the board', () => {
     expect(at(null)).toEqual({ tone: 'progress', label: 'In progress' });
   });
 
-  it('says a readiness column with no producer yet is not available (PRD risk table), as a dash (PR10)', () => {
+  it('says a readiness column with no producer yet is not available, as a dash', () => {
     for (const name of ['Prep', 'Delivery']) {
       expect(boardCell(chapter({ status: 'finalized' }), column(name))).toEqual({ tone: 'neutral', label: '—' });
     }
@@ -103,7 +103,7 @@ describe('the board', () => {
     expect(boardCell(chapter({ recordedUnavailable: 'no_project' }), column('Recorded'))).toEqual({ tone: 'neutral', label: 'No project' });
   });
 
-  it('shows a chapter not started yet as a dash on its Record stage, whatever its readiness (PR10)', () => {
+  it('shows a chapter not started yet as a dash on its Record stage, whatever its readiness', () => {
     const notStarted = chapter({ status: 'not_started', readiness: { verdict: 'recommended', reason: '' } });
     expect(boardCell(notStarted, column('Record'))).toEqual({ tone: 'neutral', label: '—' });
     expect(boardCell(notStarted, column('Edit'))).toEqual({ tone: 'neutral', label: '—' });
@@ -144,7 +144,7 @@ describe('a credits row on the board', () => {
     expect(creditsCell(row('finalized'), column('Proof'))).toEqual({ tone: 'success', label: '✓' });
   });
 
-  it('shows its own measured Recorded length, why it has none, or that the template is not set up (Phase 3)', () => {
+  it('shows its own measured Recorded length, why it has none, or that the template is not set up', () => {
     expect(creditsCell(row('recording'), column('Recorded'))).toEqual({ tone: 'neutral', label: 'No track' });
     expect(creditsCell({ ...row('recording'), recordedSeconds: 7 }, column('Recorded'))).toEqual({ tone: 'neutral', label: '0:07' });
     expect(creditsCell({ ...row('recording'), recordedUnavailable: 'track_missing' }, column('Recorded'))).toEqual({ tone: 'danger', label: 'Track missing' });

@@ -61,7 +61,7 @@ function ResultRow({ result }: { result: MultiPackageResult }) {
 }
 
 /**
- * One mastered/encoded source's packages for several platforms in one action (render-encode-master.prd.md Phase 6):
+ * One mastered/encoded source's packages for several platforms in one action:
  * a checkbox per profile the host lists (the same list Master & QC's platform tabs read, ADR 0480 - the tabs
  * themselves stay a single-select choice of the project's own judged profile, never repurposed here), a "Build N
  * packages" action once at least one is checked and the export job has files ready, a progress indicator and Cancel

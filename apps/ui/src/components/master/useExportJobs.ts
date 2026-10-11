@@ -13,7 +13,7 @@ export const fileName = (path: string): string => path.split(/[\\/]/).pop() ?? p
 const titleFromPath = (path: string): string => fileName(path).replace(/\.[^.]+$/, '');
 
 /**
- * Master & QC's export and package jobs (render-encode-master.prd.md Phase 5): the narrator picks rendered files, gives each a role
+ * Master & QC's export and package jobs: the narrator picks rendered files, gives each a role
  * and (for a chapter) a title, masters them to spec (internal/masteringport's chain, on by default: the mock's "Master all to
  * spec"), encodes them (internal/encodeport) and assembles one delivery profile's package (internal/packager). One hook, so the
  * files panel and the package panel beside it read the same jobs. The host keeps both jobs, so leaving the page and coming back

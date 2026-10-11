@@ -39,7 +39,7 @@ describe('RecordingCheckSummary', () => {
     expect(screen.getByText(/A value left blank here uses the Global one/)).toBeTruthy();
   });
 
-  // The model cascade's own sentence (recording-check-model-cascade PRD Phase 5, MC1/MC2).
+  // The model cascade's own sentence.
   it('says the two-pass check is off by default, and names its models once turned on', () => {
     expect(cascadeRule(fields())).toBe('The two-pass check is off: every check runs the Proof model above alone.');
     const on = fields().map((field) => (field.key === 'cascade_enabled' ? { ...field, effectiveValue: 'true' } : field));

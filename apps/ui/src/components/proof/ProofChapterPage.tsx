@@ -42,7 +42,7 @@ import { resolutionCounts } from './resolution';
 import { useReaperStatus } from './useReaperStatus';
 import { useDawKind } from '../../useDawKind';
 
-/** How long before a clicked word's start the app player starts, so the narrator hears it in context (EP5). */
+/** How long before a clicked word's start the app player starts, so the narrator hears it in context. */
 const PRE_ROLL_SECONDS = 1;
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
@@ -55,7 +55,7 @@ type ChapterViewProps = {
   notify: Notify;
   /** The app-wide Transcript Compare state (App's bootstrap plus the host's transcript event). */
   transcript: TranscriptState;
-  /** PRD project-workspace-and-daw-link.prd.md, W16: the compare run and its REAPER actions need a linked project file. */
+  /** The compare run and its REAPER actions need a linked project file. */
   dawFileLinked: boolean;
   goToManuscript: (chapter: string, paragraph?: number) => void;
   /** Opens a Story Bible entry, for a note about one (a note's detail, as on the book level). */
@@ -65,14 +65,14 @@ type ChapterViewProps = {
 };
 
 /**
- * Proof's chapter view, `/proof/:chapterId`, led by mock 04 (D85 #2 on #509, ADR 0470): the Sources line, a strip of the
+ * Proof's chapter view, `/proof/:chapterId`, led by the notes (ADR 0470): the Sources line, a strip of the
  * chapter's notes over its recording (NotesStrip), the chapter's notes table and a note's detail with Play ±3 s, and the
- * recording-check card (D85 #11). Under it: the chapter
- * workspace of edit-and-proof-workspace.prd.md, with the compare run folded in. It plays
+ * recording-check card. Under it: the chapter
+ * workspace, with the compare run folded in. It plays
  * the chapter's recorded audio in the app, honouring each item's played range, follows the script with a karaoke
- * highlight and auto-scroll, shows the check's flags inline, and seeks on a click (EP5), with Go to/Loop in REAPER
- * for the word at the playhead (Phase 3, `useWorkspaceReaper`). The chapter's stored findings are overlaid on the same
- * flags (Phase 4, `overlayFindings`) and reviewed in place through the same `findingsReview` binding the book's notes
+ * highlight and auto-scroll, shows the check's flags inline, and seeks on a click, with Go to/Loop in REAPER
+ * for the word at the playhead (`useWorkspaceReaper`). The chapter's stored findings are overlaid on the same
+ * flags (`overlayFindings`) and reviewed in place through the same `findingsReview` binding the book's notes
  * use, and `?finding=<id>` selects the flag that finding backs. Transcript Compare runs from here against this chapter
  * (CompareRun) and its discrepancies become flags too (`overlayDiscrepancies`), with the Preview and stage panels
  * beside it. One component per chapter (keyed by the id), so nothing selected on one chapter carries to the next.
@@ -87,7 +87,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const pickups = usePickupsState();
   const reaperStatus = useReaperStatus();
   const dawKind = useDawKind();
-  // The note open in mock 04's detail, by id, so a re-read of the chapter's findings shows its latest version.
+  // The note open in the notes detail, by id, so a re-read of the chapter's findings shows its latest version.
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [searchParams] = useSearchParams();
 
@@ -103,11 +103,11 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [findings, setFindings] = useState<Finding[]>([]);
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
-  // The effect the narrator is confirming for a passage or the chapter's track (edit-and-proof-workspace.prd.md Phase 9).
+  // The effect the narrator is confirming for a passage or the chapter's track.
   const [fxRequest, setFxRequest] = useState<FxRequest>();
   const [takesDetail, setTakesDetail] = useState<HTMLElement | null>(null);
 
-  // The last completed comparison, offered for review without running again (PRD W16: it needs no linked project file).
+  // The last completed comparison, offered for review without running again (it needs no linked project file).
   useEffect(() => {
     void api
       .transcriptLastCompleted()
@@ -122,7 +122,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       .workspaceAlignment(chapterId)
       .then(setAlignment)
       .catch((reason: unknown) => setLoadError(String(reason)));
-    // The waveform strip's peaks (edit-and-proof-workspace.prd.md Phase 5): loaded alongside the alignment, since a
+    // The waveform strip's peaks: loaded alongside the alignment, since a
     // re-check that changes the chapter's items should refresh both. A failure here never blocks the rest of the
     // page - the strip just shows nothing until it succeeds.
     api
@@ -131,9 +131,9 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       .catch(() => undefined);
   }, [api, chapterId]);
 
-  // Chapter findings for the text overlay (edit-and-proof-workspace.prd.md Phase 4): read fresh whenever the chapter
+  // Chapter findings for the text overlay: read fresh whenever the chapter
   // changes, or after a decision made here (below) so the flag it backs shows its new status straight away. A
-  // failure here never blocks the page - the check-derived flags (Phase 2) still show with nothing lost.
+  // failure here never blocks the page - the check-derived flags still show with nothing lost.
   const loadFindings = useCallback(() => {
     api
       .findingsList({ chapterId })
@@ -229,7 +229,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     [flags, alignment, seekToken],
   );
 
-  // ?finding=<id> (Navigation and deep links; "Open in workspace" from Proof's notes, the Production board and Script, Phase 4):
+  // ?finding=<id> ("Open in workspace" from Proof's notes, the Production board and Script):
   // selects the flag that finding backs and seeks the app player to it, once its flag exists - a finding whose
   // overlay flag isn't ready yet on the first render (findings and the alignment load separately) is retried on
   // every render until it is, then forgotten so a later selection by hand is never fought.
@@ -279,7 +279,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     [alignment?.paragraphs, alignment?.tokens, currentToken, seekToken],
   );
 
-  // A flag's decision (Phase 4): the same findingsReview binding the Review page uses, so a decision made here shows
+  // A flag's decision: the same findingsReview binding the Review page uses, so a decision made here shows
   // there too (and the other way round - loadFindings re-reads the store, picking up a decision made elsewhere since
   // this page was opened). The evidence version and finding id come from the flag itself (set by overlayFindings from
   // the finding it was built from), never guessed.
@@ -297,10 +297,10 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     [api, loadFindings],
   );
 
-  // workspace.* page commands (input-commands-and-pedals.prd.md Phase 3), replacing the old window `keydown`
+  // workspace.* page commands, replacing the old window `keydown`
   // listener: the registry (src/input/) applies the "not while typing" and modifier rules once, in one place,
   // instead of this page repeating them. `workspace.play` is `noisy: true` in the catalog (silenced while the DAW
-  // records, Phase 10 - not this phase's job to wire that up).
+  // records, by LiveCommandRouter).
   useCommand('workspace.play', () => player.togglePlay());
   useCommand('workspace.word.prev', () => stepWord(-1));
   useCommand('workspace.word.next', () => stepWord(1));

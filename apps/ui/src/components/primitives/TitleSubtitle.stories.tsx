@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { TitleSubtitle } from './TitleSubtitle';
 
-// TitleSubtitle draws a chapter's name one way everywhere it appears (chapter-title-display-consistency.prd.md): the
-// title semibold, the subtitle muted and regular, both in source casing. `inline` is one text run; `stacked` puts the
-// subtitle on its own line under the title.
+// TitleSubtitle draws a chapter's name one way everywhere it appears: the title semibold, the
+// subtitle muted and regular, both in source casing. `inline` is one text run; `stacked` puts the subtitle on its own
+// line under the title.
 const meta = {
   title: 'Primitives/TitleSubtitle',
   component: TitleSubtitle,

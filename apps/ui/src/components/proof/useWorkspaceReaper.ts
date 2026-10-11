@@ -39,7 +39,7 @@ export type WorkspaceReaperControls = {
 };
 
 /**
- * Go to and Loop in REAPER for the workspace's transport bar (edit-and-proof-workspace.prd.md Phase 3): the word
+ * Go to and Loop in REAPER for the workspace's transport bar: the word
  * currently at the playhead (`currentToken`, an index into `tokens`) is sent to `workspaceGoTo`/`workspaceLoop` as a
  * token index - the host resolves it to an item, take and source time from the chapter's stored alignment checked
  * against the saved project, never the page (`docs/architecture/reaper-navigation.md`, "From the workspace").

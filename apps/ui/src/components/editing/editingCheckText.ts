@@ -1,10 +1,10 @@
-// The words of the editing check panel (editing-readiness-analysis.prd.md Phase 7). Every reason the host gives is
+// The words of the editing check panel. Every reason the host gives is
 // already a plain sentence (StageSignal.reason, Finding.evidence.reason): this file only maps wire enums to labels
 // and picks candidates apart, so EditingCheckPanel and EditingCandidateRow stay layout only.
 import type { Finding } from '../../types';
 
 /** Evidence.class, as every editing finding's evidence carries it (apps/desktop/internal/editing/findings.go). Only
- * `silence` is produced today (Phase 4's click and breath detectors are not validated yet); the other two are read
+ * `silence` is produced today (the click and breath detectors are not validated yet); the other two are read
  * for the day they are. */
 export type EditingCandidateClass = 'silence' | 'click' | 'breath';
 

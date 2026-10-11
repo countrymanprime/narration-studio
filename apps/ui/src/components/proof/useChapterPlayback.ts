@@ -6,11 +6,11 @@ export const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 export type PlaybackSpeed = (typeof SPEED_OPTIONS)[number];
 
 /**
- * Plays a chapter's playlist (edit-and-proof-workspace.prd.md Phase 2, "The player"): one segment after another on
+ * Plays a chapter's playlist: one segment after another on
  * one `Audio` element, seeking to each segment's `sourceStart` on switch and stopping at its `sourceEnd` (via
  * `timeupdate`, since the browser's own `ended` only fires at the source file's own end - the same technique
  * `useRangePlayer` uses for a fixed range). Built on `useTrackPlayback`'s pattern (one ref-held `Audio`, native
- * events, `startPlayback`'s AbortError handling), extended to many segments and a narrator-chosen speed (EP17).
+ * events, `startPlayback`'s AbortError handling), extended to many segments and a narrator-chosen speed.
  */
 export function useChapterPlayback(playlist: PlaylistSegment[], mediaUrl: (sourceFile: string) => string) {
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
@@ -119,7 +119,7 @@ export function useChapterPlayback(playlist: PlaylistSegment[], mediaUrl: (sourc
 
   const togglePlay = useCallback(() => (isPlaying ? pause() : play()), [isPlaying, play, pause]);
 
-  /** Seeks to a point in the item named by itemGuid, at its own source time (already pre-rolled by the caller, EP5).
+  /** Seeks to a point in the item named by itemGuid, at its own source time (already pre-rolled by the caller).
    * Clamped to the item's played range. No-op for an item not on the current playlist (stale, or not this track). */
   const seekToSource = useCallback(
     (itemGuid: string, targetSourceTime: number) => {
@@ -154,7 +154,7 @@ export function useChapterPlayback(playlist: PlaylistSegment[], mediaUrl: (sourc
     setSpeedState(next);
     const audio = audioRef.current!;
     audio.playbackRate = next;
-    // Pitch-kept speed (EP17): the browser's own time-stretcher, not REAPER's - "the app plays raw sources".
+    // Pitch-kept speed: the browser's own time-stretcher, not REAPER's - "the app plays raw sources".
     (audio as HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean }).preservesPitch = true;
     (audio as HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean }).mozPreservesPitch = true;
   }, []);

@@ -12,7 +12,7 @@ const DANGER = { color: 'var(--danger-text)' };
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * The report export (diagnostics PRD Phase 7, user flow step 5): an explicit action that writes an HTML page a reviewer can open
+ * The report export: an explicit action that writes an HTML page a reviewer can open
  * without the app and a JSON file with the same finding IDs, covering the last measurement and diagnostics check, into the project's
  * sidecar folder. File locations stay out unless the narrator ticks the box. The host refuses while a job runs, without a project, or
  * with nothing measured; the page shows why.

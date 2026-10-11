@@ -28,8 +28,8 @@ import { EngineChip, type EngineState } from './EngineChip';
 import { TimerChip, type RunningTimer } from './TimerChip';
 import type { NavCounts } from './useNavCounts';
 
-// requiresManuscript/requiresDaw name what each nav item is gated on (PRD project-workspace-and-daw-link.prd.md, Open
-// Question W16): no item needs a linked DAW project file since Proof replaced Proofing (its compare run gates itself inside the chapter view). The requiresDaw field stays for the next item that needs one.
+// requiresManuscript/requiresDaw name what each nav item is gated on: no item needs a linked DAW project file since Proof replaced Proofing (its compare
+// run gates itself inside the chapter view). The requiresDaw field stays for the next item that needs one.
 // The Production stage's page: the Production home at `/`, which replaced Home.
 // Not gated: with no manuscript it is where the import is.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse, requiresManuscript: false, requiresDaw: false };
@@ -42,17 +42,16 @@ const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot, requiresManusc
 // replacing Review and Proofing. Not gated: take-review notes need no manuscript, the page says itself when there is nothing to
 // proof yet, and the compare run inside a chapter view gates itself on the DAW (CapabilityGate).
 const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare, requiresManuscript: false, requiresDaw: false };
-// Measuring rendered chapter files (diagnostics-delivery-and-cleanup-tools.prd.md Phase 5). Not gated: it reads files the narrator
+// Measuring rendered chapter files. Not gated: it reads files the narrator
 // picks, so it needs neither a manuscript nor a REAPER project.
 // Pickups: the proofer's pickup list, replacing the Tracks page's
 // Pickups dialog. Not gated: its import, export and jumps talk to REAPER and each says itself when REAPER is not there.
 const PICKUPS = { name: 'Pickups', path: '/pickups', icon: faRotateLeft, requiresManuscript: false, requiresDaw: false };
 const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, requiresManuscript: false, requiresDaw: false };
 
-// Grouped by production stage (ADR 0407 item 3): Production,
-// Prep, Record, Review, Finish, with Settings pinned at the foot (below, not a group). Phase 1 holds each existing
-// page under its current name in the group its job belongs to (D3/Q5): a page is renamed only in the phase that
-// ships its replacement. Phase 2 made the Production page the home at `/` (`/production` redirects there).
+// Grouped by production stage (ADR 0407): Production, Prep, Record, Review,
+// Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
+// replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
 const NAV_COUNT_KEYS: Record<string, keyof NavCounts> = { 'Story Bible': 'storyBible', Proof: 'proof', Pickups: 'pickups' };
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -86,23 +85,23 @@ export function AppShell({
   projectName: string;
   hasManuscript: boolean;
   dawFileLinked: boolean;
-  /** Whether a live REAPER heartbeat has been seen recently (Phase 7, ADR 0092); false also covers "unknown". */
+  /** Whether a live REAPER heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
   dawReachable?: boolean;
-  /** Whether that heartbeat's open project is the linked file (Phase 7); only meaningful when dawReachable is true. */
+  /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
   /** Opens the engine panel from the header's engine chip. */
   onOpenEnginePanel: () => void;
   /** True while the shared DAW-link binding is running for any of its three call sites (ADR 0075's ref guard). */
   linkingDawFile?: boolean;
-  /** Which engine the header's chip shows (Q7); UI-only until native recording picks 'builtin'. */
+  /** Which engine the header's chip shows; UI-only until native recording picks 'builtin'. */
   engine?: EngineState;
-  /** The production stage timer while it runs (Phase 2's timer chip); null hides the chip. */
+  /** The production stage timer while it runs; null hides the chip. */
   timer?: RunningTimer | null;
-  /** The rail's count badges (mock 05), from useNavCounts: a missing or zero count draws none. */
+  /** The rail's count badges, from useNavCounts: a missing or zero count draws none. */
   navCounts?: NavCounts;
-  /** Page-level Back/Forward (app-navigation-and-zoom-controls.prd.md Phase 1): already guarded and gated by App.tsx. */
+  /** Page-level Back/Forward: already guarded and gated by App.tsx. */
   history: { canGoBack: boolean; canGoForward: boolean; back: () => void; forward: () => void };
-  /** The header's zoom group (app-navigation-and-zoom-controls.prd.md Phase 2): `useZoom`'s own state and actions. */
+  /** The header's zoom group: `useZoom`'s own state and actions. */
   zoom: { percent: number; canZoomOut: boolean; canZoomIn: boolean; zoomIn: () => void; zoomOut: () => void; reset: () => void; announcement: string };
   children: ReactNode;
 }) {
@@ -123,18 +122,18 @@ export function AppShell({
   const requiredReason = (item: NavItem) => gateFor(item).reason;
   const backTooltip = history.canGoBack ? 'Back (Alt+Left)' : 'Back (Alt+Left): no earlier page in this project';
   const forwardTooltip = history.canGoForward ? 'Forward (Alt+Right)' : 'Forward (Alt+Right): no later page yet';
-  // The header's zoom group (Phase 2, Q1/Q9): the readout is always shown and is itself the reset button, disabled
-  // only at exactly 100% (Q9 A). The reset tooltip's wording is the approved mock's (04-tooltip-reset-zoom.webp).
+  // The header's zoom group: the readout is always shown and is itself the reset button, disabled
+  // only at exactly 100%.
   const zoomOutTooltip = 'Zoom out (Ctrl+-)';
   const zoomInTooltip = 'Zoom in (Ctrl+=)';
   const zoomResetTooltip = 'Reset zoom to 100% (Ctrl+0)';
   const zoomAtDefault = zoom.percent === 100;
-  // The wide rail's group heading (Q6): a visible `section-label`, referenced by the group's `aria-labelledby` so a
+  // The wide rail's group heading: a visible `section-label`, referenced by the group's `aria-labelledby` so a
   // screen reader hears the stage name once, not twice. Shared by the sidebar and the drawer, which render the same markup.
   const groupHeadingId = (label: string) => `nav-group-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const navigation = (
     <>
-      {/* The brand block (mock 01, Phase 8): 62 px and its rule; the 30 px mark at 16 px in, radius 6; the name Barlow
+      {/* The brand block: 62 px and its rule; the 30 px mark at 16 px in, radius 6; the name Barlow
           Condensed 700 at 13 px over a 10 px muted tagline, 10 px after the mark. */}
       <div className="flex h-[3.9375rem] flex-none items-center gap-[0.625rem] border-b border-[var(--border)] px-4">
         <span className="flex size-[1.875rem] flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[0.875rem] text-[var(--accent-contrast)]">
@@ -148,9 +147,9 @@ export function AppShell({
       <nav className="flex-1 px-2 pt-[0.5625rem] pb-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} role="group" aria-labelledby={groupHeadingId(group.label)} className="flex flex-col gap-[0.1875rem]">
-            {/* Every group is headed (ADR 0407 item 3): 10 px capitals at x 19, 29 px deep with the gap above the group's first
-                item, so a heading sits 32 px between two items as mock 01 spaces it. Mock 01 draws no heading over its first group,
-                but that group also holds a Schedule item the app has no page for (ADR 0407 item 5); the drawn heading takes most of
+            {/* Every group is headed (ADR 0407): 10 px capitals at x 19, 29 px deep with the gap above the group's first
+                item, so a heading sits 32 px between two items as the benchmark mock spaces it. The mock draws no heading over its first group,
+                but that group also holds a Schedule item the app has no page for (ADR 0407); the drawn heading takes most of
                 that item's place, so every later item sits within 8 px of where the benchmark mocks draw it (ADR 0636). */}
             <div
               id={groupHeadingId(group.label)}
@@ -174,7 +173,7 @@ export function AppShell({
           </div>
         ))}
       </nav>
-      {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above (mock 01). */}
+      {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above. */}
       <div className="flex-none border-t border-[var(--border)] px-3 py-[0.625rem]">
         <NavButton active={settingsActive} icon={faGear} onClick={() => go('/settings')}>
           Settings
@@ -182,7 +181,7 @@ export function AppShell({
       </div>
     </>
   );
-  // The Booth fills the whole window (mock 03, owner call BO2): no rail, no header, no drawer. Exit booth (or Escape) is the way
+  // The Booth fills the whole window: no rail, no header, no drawer. Exit booth (or Escape) is the way
   // out, and the page keeps its own `<main>` so the landmark stays.
   if (isActivePath(pathname, '/booth')) {
     return (
@@ -204,7 +203,7 @@ export function AppShell({
         >
           {NAV_GROUPS.map((group, index) => (
             <Fragment key={group.label}>
-              {/* Icon-only rail (Q6): a thin divider between groups, not a text heading; the group keeps its accessible
+              {/* Icon-only rail: a thin divider between groups, not a text heading; the group keeps its accessible
                   name via aria-label so a screen reader still hears the stage. The divider is decorative only. */}
               {index > 0 && <div aria-hidden="true" className="m-1 border-t border-[var(--border)]" />}
               <div role="group" aria-label={group.label} className="flex flex-col gap-1">
@@ -239,7 +238,7 @@ export function AppShell({
             <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="hidden max-md:inline-flex">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
-            {/* Page history (Phase 1, Q1 A): walks the app's own page moves only, through App.tsx's guards. */}
+            {/* Page history: walks the app's own page moves only, through App.tsx's guards. */}
             <div className="flex flex-none items-center gap-1" role="group" aria-label="Page history">
               <TooltipTarget text={backTooltip}>
                 <IconButton label="Back" disabledReason={history.canGoBack ? undefined : backTooltip} onClick={history.back}>
@@ -254,14 +253,14 @@ export function AppShell({
             </div>
             {/* Left-aligned after the history buttons, as the mocks draw it; it takes the free width and truncates first. */}
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              {/* Below `md` the two new history buttons leave less room (Phase 1, Q10 A): the label and
+              {/* Below `md` the two history buttons leave less room: the label and
                   folder icon drop first, and the project name is left to truncate on its own. */}
               <span className="section-label max-md:hidden">Project</span>
               <FontAwesomeIcon icon={faFolder} style={{ color: 'var(--non-text)' }} className="max-md:hidden" />
               <span className="truncate font-medium">{projectName}</span>
             </div>
             {timer && <TimerChip timer={timer} />}
-            {/* The zoom group (Phase 2, D79/ADR 0407): after a running timer chip, before the engine chip. */}
+            {/* The zoom group (ADR 0407): after a running timer chip, before the engine chip. */}
             <div className="flex flex-none items-center gap-1" role="group" aria-label="Zoom">
               <TooltipTarget text={zoomOutTooltip}>
                 <IconButton label="Zoom out" disabledReason={zoom.canZoomOut ? undefined : zoomOutTooltip} onClick={zoom.zoomOut}>

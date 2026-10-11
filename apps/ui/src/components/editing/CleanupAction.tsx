@@ -10,16 +10,15 @@ import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import type { Notify } from '../primitives/Toast';
 
 /**
- * Silence trim and item gain (booth-actions-enablement PRD Phase 5): the Editing view's own row for `bridge.CleanupClient`
+ * Silence trim and item gain: the Editing view's own row for `bridge.CleanupClient`
  * and `bridge.LevelMatchClient`, the first real callers of either (Evidence section, apps/desktop/internal/bridge/
  * {cleanup.go,levelnormalize.go}). Each action previews its candidates through the host before offering Apply in a
- * `ConfirmDialog` (Open Question 1's recommendation: a button here, no new page), and each is gated behind its own
+ * `ConfirmDialog` (a button here, no new page), and each is gated behind its own
  * `CapabilityGate` so the control is visible - disabled with the host's "Experimental" message - from day one and
- * switches live with no code change once the owner's verification pass promotes it (D1).
+ * switches live with no code change once the owner's verification pass promotes it.
  */
 
-/** The level-match target this action offers (Open Question 1's minimal scope: no per-narrator target setting exists
- * yet - DAW port PRD P4's per-capability Settings rows are a later phase). ACX's own RMS window is -23 to -18 dBFS;
+/** The level-match target this action offers (no per-narrator target setting exists yet). ACX's own RMS window is -23 to -18 dBFS;
  * the middle of that range is a reasonable default match target until a narrator can choose one. */
 const LEVEL_MATCH_METRIC = 'rms_dbfs' as const;
 const LEVEL_MATCH_TARGET_DB = -20;

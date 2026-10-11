@@ -38,7 +38,7 @@ describe('Highlight colours (ADR 0059)', () => {
     expect(mark.style.boxShadow).toBe('inset 0 -1.5px 0 var(--note)');
   });
 
-  // The read-aloud flag marks (teleprompter-manuscript-integration.prd.md Phase 7): a decoration in the Transcript Compare
+  // The read-aloud flag marks: a decoration in the Transcript Compare
   // colour of the same kind (KIND_STYLES), no tint and no text colour, so the words keep the text colour's contrast and a
   // flag inside a story bible name still shows the name's tint.
   it.each([
@@ -76,7 +76,7 @@ describe('Highlight colours (ADR 0059)', () => {
     expect(screen.getByText('other').getAttribute('role')).toBeNull();
   });
 
-  it('draws the Teleprompter cursor as an accent tint with a caret (mock-fidelity-primitives-and-components.prd.md Phase 13, ADR 0655)', () => {
+  it('draws the Teleprompter cursor as an accent tint with a caret, ADR 0655', () => {
     render(<Highlight kind="Cursor">word</Highlight>);
     const mark = screen.getByText('word');
     expect(mark.style.color).toBe('var(--accent-strong)');
@@ -84,7 +84,7 @@ describe('Highlight colours (ADR 0059)', () => {
     expect(mark.style.boxShadow).toContain('var(--accent)');
   });
 
-  // Per-speaker dialogue colours (D85 #6, ADR 0367): the Booth's "Voices in scene" tags override the kind's own
+  // Per-speaker dialogue colours (ADR 0367): the Booth's "Voices in scene" tags override the kind's own
   // colour with one of the seven declared speaker tokens (speakerColor.ts), keeping the Character kind and behaviour.
   it('draws with colorToken instead of the kind colour when given, keeping the kind for data-highlight', () => {
     render(

@@ -29,18 +29,17 @@ type SettingsCategory = { key: string; label: string; tool?: string; scopes: Sco
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { key: 'General', label: 'General', tool: 'General', scopes: ['global'] },
   { key: 'Appearance', label: 'Appearance', scopes: ['global'] },
-  // The Keyboard & pedals category (input-commands-and-pedals.prd.md Phase 6): its own panel, not the generic
-  // fields form, since `Keymap.overrides` (Phase 5) is one JSON document KeyboardPanel reads and writes itself
-  // (PRD Q2: "hidden from the generic rows" - achieved for free here by giving the category no `tool`).
+  // The Keyboard & pedals category: its own panel, not the generic
+  // fields form, since `Keymap.overrides` is one JSON document KeyboardPanel reads and writes itself (giving the
+  // category no `tool` keeps it out of the generic rows).
   { key: 'Keyboard', label: 'Keyboard & pedals', scopes: ['global'] },
   { key: 'Manuscript', label: 'Manuscript', tool: 'Manuscript', scopes: ['global', 'project'] },
   // The recording check's thresholds and alignment (docs/utilities/recording-coverage.md, ADR 0131), Proposed and uncalibrated.
   { key: 'RecordingCoverage', label: 'Recording check', tool: 'RecordingCoverage', scopes: ['global', 'project'] },
-  // The silence cleanup analyzer's own thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
-  // ADR 0238 decision 4): a saved preset is this set of values at a layer, like every other settings section.
+  // The silence cleanup analyzer's own thresholds (ADR 0238 decision 4): a saved preset is this set of values at a layer, like every other settings section.
   { key: 'Cleanup', label: 'Silence cleanup', tool: 'Cleanup', scopes: ['global', 'project'] },
   { key: 'TranscriptCompare', label: 'Proof', tool: 'TranscriptCompare', scopes: ['global', 'project'] },
-  // The preview suggestion's target, tolerance, preset and ending exclusion (delivered, PRD deleted; see
+  // The preview suggestion's target, tolerance, preset and ending exclusion (see
   // docs/architecture/preview-suggestion.md): the engine (PreviewCandidates) reads these on every call, layered project over global like every other tool.
   { key: 'Preview', label: 'Preview', tool: 'Preview', scopes: ['global', 'project'] },
   // Which signals must be met for a stage suggestion (docs/architecture/stage-recommendations.md):
@@ -51,12 +50,12 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { key: 'Delivery', label: 'Delivery', scopes: ['project', 'global'] },
   { key: 'Daw', label: 'DAW Integration', tool: 'DAW', scopes: ['global', 'project'] },
   { key: 'Piper', label: 'TTS', tool: 'Piper', scopes: ['global', 'project'] },
-  // The Booth's microphone, engine and model (Q11): named for the page that
+  // The Booth's microphone, engine and model: named for the page that
   // uses them; the key stays the settings tool's name, and App.tsx's `#booth` and old `#teleprompter` anchors both open it.
   { key: 'Teleprompter', label: 'Booth', tool: 'Teleprompter', scopes: ['global'] },
   { key: 'LocalAssets', label: 'Local assets', scopes: ['global'] },
   { key: 'ProjectData', label: 'Project data', scopes: ['project'] },
-  // Credit values are per-project (Open Question C2); the global narrator default lives in the General category.
+  // Credit values are per-project; the global narrator default lives in the General category.
   { key: 'Credits', label: 'Credits', scopes: ['project'] },
   { key: 'About', label: 'About & updates', tool: 'Updates', scopes: ['global'] },
 ];
@@ -94,11 +93,11 @@ export function Settings({
   onDirtyChange: (dirty: boolean) => void;
   registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => void;
   onProjectDataCleared: () => Promise<void>;
-  /** The shared "link a REAPER project file" action (PRD project-workspace-and-daw-link.prd.md, W19). */
+  /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;
   /**
-   * The category to open on (a deep link such as the teleprompter's "Fill them in Settings" for the credits,
-   * audiobook-credits-templates.prd.md Phase 4), in the first scope that has it. Absent: General, in the Global scope.
+   * The category to open on (a deep link such as the teleprompter's "Fill them in Settings" for the credits),
+   * in the first scope that has it. Absent: General, in the Global scope.
    */
   initialCategory?: string;
 }) {
@@ -208,7 +207,7 @@ export function Settings({
   const selectedTtsVoice = ttsCatalog?.voices.find((voice) => voice.id === ttsCatalog.voice.id);
   const selectedWhisperModel = whisperCatalog?.models.find((model) => model.id === whisperCatalog.model.id);
   const reaperLauncher = data.runtime.Reaper?.launcherPath;
-  // launchingDaw guards DawLaunch (Phase 8) against a second click firing a second REAPER process while the
+  // launchingDaw guards DawLaunch against a second click firing a second REAPER process while the
   // first is still starting (ADR 0075's fired-once rule).
   const [launchingDaw, setLaunchingDaw] = useState(false);
   const handleLaunchDaw = useCallback(async () => {
@@ -272,7 +271,7 @@ export function Settings({
                   <div className="flex items-center gap-3 rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
                     <Dot color={data.dawFileLinked ? 'var(--character)' : 'var(--non-text)'} />
                     <div>
-                      {/* Copy names only the one fact the host actually has (a stored link) - reachability is still unknown (PRD W15). */}
+                      {/* Copy names only the one fact the host actually has (a stored link) - reachability is still unknown. */}
                       <div className="font-medium">{data.dawFileLinked ? 'REAPER project linked' : 'No REAPER project linked'}</div>
                       <div style={{ color: 'var(--text-muted)' }}>
                         {data.dawFileLinked
@@ -297,8 +296,8 @@ export function Settings({
                       machine-wide detection fact, independent of any linked project, so it lives above the
                       project-scoped DAW connection facts below. */}
                   <DawCatalogPanel notify={notify} dawFileLinked={data.dawFileLinked} onLinkDawFile={onLinkDawFile} />
-                  {/* Truthful about what the host actually knows (PRD W15): reachability is a live heartbeat
-                      (Phase 7), not a permanent "Connected" claim. */}
+                  {/* Truthful about what the host actually knows: reachability is a live heartbeat,
+                      not a permanent "Connected" claim. */}
                   <div className="flex items-center gap-3 rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
                     <Dot color={data.dawReachable ? 'var(--character)' : 'var(--non-text)'} />
                     <div>

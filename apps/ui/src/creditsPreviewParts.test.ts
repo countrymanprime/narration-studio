@@ -24,7 +24,7 @@ describe('previewParts', () => {
 
   it('treats a resolved token that happens to share a name with an unresolved one correctly (only the unresolved occurrence becomes a chip)', () => {
     // Render never repeats a placeholder as literal text for a resolved token - this guards the regex construction
-    // itself (built only from result.unresolved, per PRD C6) rather than matching every "[Name]"-shaped substring.
+    // itself (built only from result.unresolved) rather than matching every "[Name]"-shaped substring.
     const result: CreditsRenderResult = { text: 'Copyright by [Copyright].', words: 3, unresolved: ['Copyright'] };
     expect(previewParts(result)).toEqual(['Copyright by ', { token: 'Copyright' }, '.']);
   });

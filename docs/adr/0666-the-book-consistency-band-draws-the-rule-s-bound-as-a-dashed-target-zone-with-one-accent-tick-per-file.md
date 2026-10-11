@@ -1,12 +1,12 @@
 # 0666. The book-consistency band draws the rule's bound as a dashed target zone, with one accent tick per file
 
-**Status:** Proposed (Phase 14 of the mock fidelity PRD, stream F-P14 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
 **Date:** 2026-09-28
-**Supersedes:** none (`BookConsistency.tsx`'s track had no ADR; delivery-platform-profiles.prd.md Phase 10 shipped it without one)
+**Supersedes:** none (`BookConsistency.tsx`'s track had no ADR when it shipped)
 
 ## Context
 
-`master/BookConsistency.tsx`'s `SpreadTrack` (delivery-platform-profiles PRD Phase 10, mockup 11 "Book consistency") shaded the **book's own measured min-to-max spread** in a 40%-tinted `--ok` band, with a small bordered circle per judged file and a separate accent tick for the median. Mock 05's "Book consistency · RMS by chapter" (mock fidelity PRD, D92) draws a different thing: a 371×26 band whose shaded region is the **rule's own pass/fail bound** (`min`/`max`, a fixed target zone the narrator is aiming for, not a summary of what was measured), filled with the Phase 0b `--ok-zone` token and dashed at its edges, with a plain 3×18 accent tick per file - no separate median mark.
+`master/BookConsistency.tsx`'s `SpreadTrack` shaded the **book's own measured min-to-max spread** in a 40%-tinted `--ok` band, with a small bordered circle per judged file and a separate accent tick for the median. Benchmark mock 05's "Book consistency · RMS by chapter" draws a different thing: a 371×26 band whose shaded region is the **rule's own pass/fail bound** (`min`/`max`, a fixed target zone the narrator is aiming for, not a summary of what was measured), filled with the `--ok-zone` token ([ADR 0590](0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md)) and dashed at its edges, with a plain 3×18 accent tick per file - no separate median mark.
 
 `DeliveryRule.min`/`.max` (`api/contracts/deliveryProfiles.ts`) are the rule's inclusive pass/fail bounds already, the same values the per-file `LevelCell`s judge against - so the mock's "target zone" is exactly that bound, not a new figure the host needs to add.
 

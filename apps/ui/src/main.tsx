@@ -23,8 +23,8 @@ import { hidSource } from './input/HidSource';
 import './fonts';
 import './styles.css';
 
-// Phase 9 (input-commands-and-pedals.prd.md): the router's one `source` slot carries KeyboardSource, MidiSource and
-// (Phase 11) HidSource. Built once, here, so `router.tsx` (Phase 10's file) never needs to know MIDI or HID exist.
+// ADR 0361: the router's one `source` slot carries KeyboardSource, MidiSource and HidSource. Built once, here, so
+// `router.tsx` never needs to know MIDI or HID exist.
 const commandInputSource = combineSources(createKeyboardSource(), midiSource, hidSource);
 
 // Mock mode runs the complete UI in a browser without the desktop host.
@@ -48,31 +48,31 @@ const mockNoProject = mockParams.has('mockNoProject');
 const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 // `?mockNoRpp=1` seeds zero candidates: the project folder has no .rpp file.
 const mockNoRpp = mockParams.has('mockNoRpp');
-// `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file (PRD project-workspace-and-daw-link.prd.md,
-// Phase 4): the header pill reads "No REAPER project linked", Proofing's nav item/Home card/Start are gated, and
+// `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
+// linked", Proofing's nav item/Home card/Start are gated, and
 // Tracks/Settings show their unlinked DAW-link controls. The mock otherwise defaults `dawFileLinked` to true so every
 // other capture (and App.test.tsx's default click into Proofing) keeps working without this param.
 const mockNoDaw = mockParams.has('mockNoDaw');
-// `?mockDawMismatch=1` simulates a live REAPER heartbeat whose open project disagrees with the linked file (Phase 7,
-// ADR 0092): the engine chip reads "Wrong REAPER project open".
+// `?mockDawMismatch=1` simulates a live REAPER heartbeat whose open project disagrees with the linked file (ADR 0092):
+// the engine chip reads "Wrong REAPER project open".
 const mockDawMismatch = mockParams.has('mockDawMismatch');
 // `?mockDawNotDetected=1` makes the DAW catalog panel (Settings > DAW Integration, docs/architecture/
 // daw-integration.md) report REAPER as not detected, so its "Get REAPER" button can be seen without a host.
 const mockDawNotDetected = mockParams.has('mockDawNotDetected');
 // `?mockDawExperimentalOn=1` turns every Experimental DAW capability on (the old `DAW.experimental_reaper_actions`
-// setting's own effect, DAW port PRD D3), so a `CapabilityGate('silence_trim')`/`('item_gain')` control's live,
+// setting's own effect), so a `CapabilityGate('silence_trim')`/`('item_gain')` control's live,
 // clickable state can be seen without a host - it still carries the "Experimental" badge.
 const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
-// `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER (audacity-integration.prd.md Phase 9): Proof's
-// finding detail leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
+// `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER: Proof's finding detail
+// leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
 const mockDawAudacity = mockParams.get('mockDaw') === 'Audacity';
-// `?mockMarkup=1` seeds script markup on Chapter 3's dialogue (prep-depth.prd.md Phase 5): stresses, a breath, a pause
-// and speaker tags drawn on their lines, a mark whose words changed (said beside its line) and one whose line is gone
+// `?mockMarkup=1` seeds script markup on Chapter 3's dialogue: stresses, a breath, a pause and
+// speaker tags drawn on their lines, a mark whose words changed (said beside its line) and one whose line is gone
 // (listed above the chapter), so every way a mark shows can be seen without a host.
 const mockMarkup = mockParams.has('mockMarkup');
-// `?mockCreditsMissing=1` drops the closing credit templates (credits-in-chapter-table.prd.md Phase 2, CT5): Home's
-// chapter table shows the Closing credits row as "Not set up" with a link to Settings > Credits.
+// `?mockCreditsMissing=1` drops the closing credit templates: Home's chapter table shows the
+// Closing credits row as "Not set up" with a link to Settings > Credits.
 const mockCreditsMissing = mockParams.has('mockCreditsMissing');
 // `?mockNoManuscript=1` boots a project with no manuscript imported yet, so
 // Home shows its manuscript-not-found banner and Proofing/Story Bible are locked.
@@ -81,38 +81,37 @@ const mockNoManuscript = mockParams.has('mockNoManuscript');
 // manuscript.docx in its folder, so Home shows the import offer.
 const mockManuscriptCandidate = mockParams.has('mockManuscriptCandidate');
 // `?mockManuscript=mixed` adds a buttonless Front Matter row and a 5-digit word count to the Manuscript page's chapter
-// list, so the header's aligned stat block and action slot can be seen across a mix of row shapes
-// (manuscript-chapter-header-alignment.prd.md), plus four of the owner's chapter-heading shapes - source capitals
+// list, so the header's aligned stat block and action slot can be seen across a mix of row shapes,
+// plus four of the owner's chapter-heading shapes - source capitals
 // with a subtitle, no subtitle, a long subtitle, and a title already ending in a colon - so a chapter's name reads
-// the same way everywhere it is drawn (chapter-title-display-consistency.prd.md).
+// the same way everywhere it is drawn.
 const mockManuscriptMixed = mockParams.get('mockManuscript') === 'mixed';
 // `?mockTeleprompter=listening|waiting|done|flagged` boots the teleprompter already part-way
 // through the first chapter, as a session the host kept running (`flagged`: further in, with suspected flags raised);
 // `ended` boots one that already stopped itself at the end of the chapter (the host's auto-stop).
 const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged'] as const).find((seed) => seed === mockParams.get('mockTeleprompter'));
 // `?mockLevel=-18` makes every microphone level the teleprompter mock sends that RMS in dBFS (-100 to 0), so the level meter
-// holds still for a capture (read-aloud-control-bar.prd.md Phase 4).
+// holds still for a capture.
 const mockLevelParam = Number(mockParams.get('mockLevel') ?? Number.NaN);
 const mockLevel = Number.isFinite(mockLevelParam) && mockLevelParam >= -100 && mockLevelParam <= 0 ? mockLevelParam : undefined;
-// `?mockZoom=125` boots the header's zoom group already at that percentage (app-navigation-and-zoom-controls.prd.md
-// Phase 2), so the visual suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
+// `?mockZoom=125` boots the header's zoom group already at that percentage, so the visual
+// suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;
 // `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_elsewhere|unavailable|experimental_off` makes
-// the read-aloud dialog's REAPER state (read-aloud-control-bar.prd.md Phase 6) answer that for every chapter.
+// the read-aloud dialog's REAPER state answer that for every chapter.
 const mockReaperState = MOCK_REAPER_SEEDS.find((seed) => seed === mockParams.get('mockReaperState'));
 // `?mockReaperInput=matched|uncertain|no_match|reaper_no_device|experimental_off` makes the microphone REAPER records from
-// (teleprompter-manuscript-integration.prd.md Phase 11) answer that.
+// answer that.
 const mockReaperInput = MOCK_REAPER_INPUT_SEEDS.find((seed) => seed === mockParams.get('mockReaperInput'));
 // `?mockResume=agree|disagree|prompter_only|low_confidence|complete|not_found|ambiguous|none|no_recording|source_missing|source_unsupported|error`
 // makes the read-aloud dialog's resume prompt show that state for any chapter,
 // so each can be seen without a REAPER project, a recording or a Whisper run.
 const mockResume = MOCK_RESUME_SEEDS.find((seed) => seed === mockParams.get('mockResume'));
-// `?mockRemoved=1`: the last narration chapter boots removed from recording (chapter-track-link-control.prd.md Phase 3).
+// `?mockRemoved=1`: the last narration chapter boots removed from recording.
 const mockRemoved = mockParams.get('mockRemoved') === '1';
 // `?mockChapterSync=ask|off|linked|unsaved|pickups|activity|background`: chapter sync's consent at boot
-// (daw-chapter-track-auto-sync.prd.md Phases 3, 4, 7 and 8; `unsaved` is REAPER holding unsaved edits, with a Sync
-// activity row; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is the engine
+// (`unsaved` is REAPER holding unsaved edits, with a Sync activity row; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is the engine
 // panel's Sync activity with an automatic and a manual link; `background` is a background check waiting because the
 // heartbeat says REAPER is recording, ADR 0211).
 const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'background'] as const).find(
@@ -122,40 +121,38 @@ const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activit
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
 const mockNoDevices = mockParams.has('mockNoDevices');
 // `?mockCredits=filled` boots the project with its credits values set (title, author, narrator), so the credits read on the
-// teleprompter with every token resolved can be seen without saving them in Settings first (credits PRD Phase 4).
+// teleprompter with every token resolved can be seen without saving them in Settings first.
 // `?mockCredits=extras` does that too and adds a chapter announcement template and a retail sample on lines 1-3 of
-// Chapter 3 (credits PRD Phase 5), so the announcement preview and the sample marker can be seen without picking them.
+// Chapter 3, so the announcement preview and the sample marker can be seen without picking them.
 const mockCreditsExtras = mockParams.get('mockCredits') === 'extras';
 const mockCreditsFilled = mockParams.get('mockCredits') === 'filled' || mockCreditsExtras;
 // `?mockCredits=detected` widens the manuscript-detected candidates past Title/Author to every token the front matter
 // parser can find - Year, Copyright holder, a low-confidence Publisher - so Settings > Credits' per-field source
-// caption can be seen on every field (credits-token-setup-and-front-matter-detection.prd.md Phase 1).
+// caption can be seen on every field.
 const mockCreditsDetected = mockParams.get('mockCredits') === 'detected';
-// `?mockCredits=setup`: the project has no credits values and its setup prompt has not been answered, so Home asks
-// (credits-token-setup-and-front-matter-detection.prd.md Phase 2).
+// `?mockCredits=setup`: the project has no credits values and its setup prompt has not been answered, so Home asks.
 const mockCreditsSetup = mockParams.get('mockCredits') === 'setup' || mockParams.get('mockCredits') === 'setup-narrator-default';
 // `?mockCredits=setup-narrator-default`: as `setup`, but the narrator token already has a value, so the prompt asks
-// for only Title and Author - the state a returning narrator with a saved default sees (CS7 B).
+// for only Title and Author - the state a returning narrator with a saved default sees.
 const mockCreditsSetupNarratorDefault = mockParams.get('mockCredits') === 'setup-narrator-default';
 // `?mockPreviewError=<text>` makes the Story Bible preview fail with that text once the
 // preview voice is installed, so the failure toast can be seen without a real host.
 const mockPreviewError = mockParams.get('mockPreviewError');
 // `?mockPreviewCandidates=no-manuscript|nothing-eligible|computing|shorter|warnings|pinned|pin-stale` forces the
-// Proof chapter view's Preview panel (moved there by stage-navigation
-// Phase 5) into a named state the unseeded demo book (the full Alice's Adventures in Wonderland text,
-// aliceManuscript.ts) wouldn't otherwise reach on its own - every chapter there is long enough to hit the target
+// Proof chapter view's Preview panel into a named state the unseeded
+// demo book (the full Alice's Adventures in Wonderland text, aliceManuscript.ts) wouldn't otherwise reach on its own - every chapter there is long enough to hit the target
 // length cleanly, so the plain default state has no warnings at all: `no-manuscript`/`nothing-eligible` force
 // PreviewApi's outcome directly (the route itself already redirects away with no manuscript at all, so this is
 // the only way to see that defensive state on the real page); `computing` never resolves the read; `shorter` and
 // `warnings` each seed one hand-built candidate (the engine's two warning texts, `preview.reasonsFor` and
 // `wholeChapterCandidate`) rather than a real short or unclassified chapter, so their paragraph ids are
 // illustrative only - opening one in the reader or copying its range lands on the chapter's first paragraph
-// rather than the exact seeded range. `pinned` and `pin-stale` (Phase 8) seed a narrator pin on the first
+// rather than the exact seeded range. `pinned` and `pin-stale` seed a narrator pin on the first
 // chapter's real paragraphs alongside the normal default candidates, the second with a `text_changed` staleness.
 const mockPreviewCandidatesParam = (['no-manuscript', 'nothing-eligible', 'computing', 'shorter', 'warnings', 'pinned', 'pin-stale'] as const).find(
   (seed) => seed === mockParams.get('mockPreviewCandidates'),
 );
-// `pinned` and `pin-stale` seed a narrator pin (Phase 8) on the demo book's first chapter alongside the normal
+// `pinned` and `pin-stale` seed a narrator pin on the demo book's first chapter alongside the normal
 // default candidates, so the pinned section can be captured with and without its stale banner.
 const MOCK_PREVIEW_PIN_CHAPTER = WIRE_CHAPTERS[0];
 const MOCK_PREVIEW_PIN_PARAGRAPH_IDS = (MOCK_PREVIEW_PIN_CHAPTER.paragraphIds ?? []).map((paragraph) => paragraph.id);
@@ -203,7 +200,7 @@ const mockUpdate = (
 const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'installing', 'checking', 'damaged'] as const).find(
   (seed) => seed === mockParams.get('mockAssets'),
 );
-// `?mockSeries=not-in-series|single-book` boots the Series tab (character-continuity-review.prd.md Phase 11) outside any
+// `?mockSeries=not-in-series|single-book` boots the Series tab outside any
 // series, or in one with no other book yet, so its honest empty state can be seen. Unset boots as a member of a two-book
 // series (WIRE_SERIES), matching the approved concept mock.
 const mockSeries = (['not-in-series', 'single-book'] as const).find((seed) => seed === mockParams.get('mockSeries'));
@@ -216,9 +213,9 @@ const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed ===
 const mockImportPreview = (['markdown', 'repaired', 'text'] as const).find((kind) => kind === mockParams.get('mockImportPreview'));
 // `?mockChapterLink=missing|ambiguous|confirmed` seeds the first chapter's mapping directly, so a track-link state
 // that would otherwise need a real REAPER round trip (or several link/relink clicks) can be seen on load: `missing`
-// confirms a track GUID that is not in the mock REAPER project (the audio engine panel's "Track missing" state, analysis
-// evidence ledger PRD Phase 7); `ambiguous` confirms it to two tracks at once (chapter-track-link-control.prd.md
-// Phase 2, TL6); `confirmed` links it to its own suggested "Chapter 1" track outright, without a Change/Confirm click.
+// confirms a track GUID that is not in the mock REAPER project (the audio engine panel's "Track missing" state);
+// `ambiguous` confirms it to two tracks at once; `confirmed` links it to its own suggested "Chapter 1" track outright,
+// without a Change/Confirm click.
 const mockChapterLink = (['missing', 'ambiguous', 'confirmed'] as const).find((seed) => seed === mockParams.get('mockChapterLink'));
 // `?mockLineIdentity=success|conflict|error` boots the audio engine panel's "Link chapters" dialog with LineIdentityState already at that
 // result, so its stale/conflict/drift and error states can be seen without a real REAPER round trip.
@@ -265,8 +262,8 @@ const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '
 // default tail-only split, and seeds a take-review pickup and two open project-wide pickups for the same chapter, so
 // the recording check summary's headline, "Recorded to" line and all three Pickups lines can be seen together.
 // `cascade` gives Chapter 4's result the model cascade's own
-// pickups and recheck label (recording-check-model-cascade PRD Phase 5, MC5); `recheck-required` answers the next
-// start with the re-check model's own missing-model gate, offering "Check with tiny only" beside the download (MC4).
+// pickups and recheck label; `recheck-required` answers the next
+// start with the re-check model's own missing-model gate, offering "Check with tiny only" beside the download.
 // `?mockCoverageRefusal=<reason>` answers every start with that refusal (docs/utilities/recording-coverage.md, ADR
 // 0130).
 const mockCoverage = (['hold', 'stale', 'pickups', 'cascade', 'recheck-required'] as const).find((seed) => seed === mockParams.get('mockCoverage'));
@@ -276,7 +273,7 @@ const mockCoverageRefusal = COVERAGE_REFUSAL_REASONS.find((reason) => reason ===
 // Chapter 6 as the fixture has it (not ready), Chapter 7 confirmed into Editing and since found short (evidence changed), Chapter 8
 // confirmed into Editing on evidence that still holds.
 const mockStages = (['mixed', 'error'] as const).find((seed) => seed === mockParams.get('mockStages'));
-// `?mockEditing=hold` holds a started editing check at its first item (editing-readiness-analysis.prd.md Phase 7), so the
+// `?mockEditing=hold` holds a started editing check at its first item, so the
 // running progress and Cancel (and the `partial` result a cancel leaves) can be seen. `?mockEditingRefusal=<reason>` answers
 // every start with that refusal (apps/desktop/internal/editing/service.go). `?mockEditingCandidates=1` seeds Chapter 7 with
 // two open empty-space candidates (in the shared findings store, same as any other finding) instead of the default clean
@@ -286,8 +283,8 @@ const mockEditingCandidates = mockParams.has('mockEditingCandidates');
 const mockEditingRefusal = EDITING_REFUSAL_REASONS.find((reason) => reason === mockParams.get('mockEditingRefusal'));
 // `?mockEditingSignal=never|stale|unsupported|settings-unset|met|not-met` seeds Chapter 7's (already in Editing status)
 // empty-space signal directly, so a signal state that needs no scan click - shown at once in SR's evidence popover
-// and the editing check panel alike - can be seen without a host. Click and breath are never seeded: Phase 4 has not
-// shipped, so this mock, like the real engine, always reports them `unknown` (stagesMock.ts).
+// and the editing check panel alike - can be seen without a host. Click and breath are never seeded: their corpus
+// validation has not shipped, so this mock, like the real engine, always reports them `unknown` (stagesMock.ts).
 const mockEditingSignal = (['never', 'stale', 'unsupported', 'settings-unset', 'met', 'not-met'] as const).find(
   (seed) => seed === mockParams.get('mockEditingSignal'),
 );
@@ -299,16 +296,16 @@ const MOCK_EDITING_SIGNAL_SEED: Record<NonNullable<typeof mockEditingSignal>, { 
   met: 'met',
   'not-met': 'not_met',
 };
-// `?mockProofingStages=mixed` seeds the Proofing page panel's two default proofing-stage chapters (chapter-stage-recommendations.prd.md
-// Phase 8, proofing-readiness-signals.prd.md Phase 1): Chapter 9's pickups read clear (Suggested: Finalized), Chapter 10 has one open
+// `?mockProofingStages=mixed` seeds the Proofing page panel's two default proofing-stage chapters:
+// Chapter 9's pickups read clear (Suggested: Finalized), Chapter 10 has one open
 // (Not ready), so the panel's summary and its evidence view can be seen without a host.
 const mockProofingStages = mockParams.get('mockProofingStages') === 'mixed';
 // `?mockProofingSignal=unmapped-track` seeds Chapter 9's pickups signal directly with an unknown cause that needs a track link, so
 // the evidence view's cause action ("Open Tracks", never "Open recording check" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
 // without a host.
 const mockProofingSignal = mockParams.get('mockProofingSignal') === 'unmapped-track';
-// `?mockProofingRender=chapter-9-stale` seeds Chapter 9's chosen render as stale (proofing-readiness-signals.prd.md
-// Phase 6), so the "Rendered file" section's stale state can be seen without choosing a file and then editing the
+// `?mockProofingRender=chapter-9-stale` seeds Chapter 9's chosen render as stale, so the "Rendered file" section's
+// stale state can be seen without choosing a file and then editing the
 // chapter to invalidate it.
 const mockProofingRenderStale = mockParams.get('mockProofingRender') === 'chapter-9-stale';
 const MOCK_STAGES_MEASURED = { [WIRE_CHAPTERS[3].id]: 1 };
@@ -323,8 +320,8 @@ const MOCK_STAGES_SEEDS = {
   },
   error: { unavailable: 'the saved REAPER project could not be read' },
 };
-// `?mockChapterSuggestion=matched|ambiguous` arms tracks in the mock .rpp (teleprompter-engines-and-input-devices PRD
-// Phase 11, ADR 0113): the "Chapter 2" track alone, so the Teleprompter preselects Chapter 2 from it, or both chapter
+// `?mockChapterSuggestion=matched|ambiguous` arms tracks in the mock .rpp (ADR 0113): the
+// "Chapter 2" track alone, so the Teleprompter preselects Chapter 2 from it, or both chapter
 // tracks, so it offers the two chapters as a choice instead.
 const MOCK_ARMED_TRACKS = {
   matched: [WIRE_TRACKS_PROJECT.tracks[1].guid],
@@ -334,28 +331,28 @@ const mockChapterSuggestion = (['matched', 'ambiguous'] as const).find((seed) =>
 // `?mockFindings=empty|changed` boots the Review page with no findings at all, or with an analyzer that runs again right after the page
 // lists its findings, so the empty queue and a decision refused on changed evidence (ADR 0120) can be seen without a host.
 const mockFindings = (['empty', 'changed'] as const).find((seed) => seed === mockParams.get('mockFindings'));
-// `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop
-// (review dashboard Phase 7): not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
+// `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop:
+// not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
 const mockReaper = (['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const).find((seed) => seed === mockParams.get('mockReaper'));
-// `?mockTakeReviewScan=running` holds a started pickup and duplicate scan part way through (take review Phase 5), so its real
+// `?mockTakeReviewScan=running` holds a started pickup and duplicate scan part way through, so its real
 // progress and Cancel can be seen; without it a mock scan runs to the end in a few polls.
 const mockTakeReviewScanHold = mockParams.get('mockTakeReviewScan') === 'running';
-// `?mockTakeComparison=running` does the same for a take comparison (take review Phase 10).
+// `?mockTakeComparison=running` does the same for a take comparison.
 const mockTakeComparisonHold = mockParams.get('mockTakeComparison') === 'running';
 // `?mockMeasure=running|fails` holds a started measurement part way through (so Master & QC's progress and Cancel can be seen),
-// or breaks it at its first poll (diagnostics-delivery-and-cleanup-tools.prd.md Phases 1 and 5). `?mockMeasure=spread` boots the
-// page with several already-measured chapters whose levels vary (delivery-platform-profiles.prd.md Phase 10's book-wide spread),
+// or breaks it at its first poll. `?mockMeasure=spread` boots the
+// page with several already-measured chapters whose levels vary (a book-wide spread),
 // so it can be seen without measuring several files by hand. `?mockDeliveryProfile=custom` boots the project judged against a
-// custom delivery profile (delivery-platform-profiles.prd.md), so the page judged by it can be seen without making one in
+// custom delivery profile, so the page judged by it can be seen without making one in
 // Settings first; ACX judges otherwise.
 const mockMeasure = (['running', 'fails', 'spread'] as const).find((seed) => seed === mockParams.get('mockMeasure'));
-// `?mockDiagnostics=running|fails` does the same for Master & QC's Diagnostics section (diagnostics PRD Phase 6).
+// `?mockDiagnostics=running|fails` does the same for Master & QC's Diagnostics section.
 const mockDiagnostics = (['running', 'fails'] as const).find((seed) => seed === mockParams.get('mockDiagnostics'));
-// `?mockRenderExport=running` does the same for Master & QC's export job (render-encode-master.prd.md Phase 5).
+// `?mockRenderExport=running` does the same for Master & QC's export job.
 const mockRenderExportHold = mockParams.get('mockRenderExport') === 'running';
 // `?mockPackageMulti=running` holds a started multi-platform package build part way through, separately from
 // `mockRenderExport` (which would also hold the export job itself mid-run, leaving no completed files to build
-// packages from) (render-encode-master.prd.md Phase 6).
+// packages from).
 const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 const mockDeliveryProfile = mockParams.get('mockDeliveryProfile') === 'custom' ? ('custom' as const) : undefined;
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
@@ -378,7 +375,7 @@ const MOCK_MARKUP_SEED: PrepMarkupSeed = [
   { chapter: 2, line: 7, words: 'I thought you did', kind: 'character_tag', value: 'Mouse', stale: { reason: 'paragraph_missing' } },
 ];
 // `?mockRecorder=recording|failed|empty|no-devices|start-fails|unavailable` seeds the Booth's built-in recorder
-// (native-recording-suite Phase 2, ADR 0455), with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
+// (ADR 0455), with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
 // its own; no takes yet; no input device listed; a device that will not open on Record; the wasapi row unavailable here.
 const MOCK_RECORDER_SEEDS: Record<string, RecordingMockSeed> = {
   recording: { recording: true },
@@ -554,9 +551,8 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <ApiProvider api={api}>
-        {/* input-commands-and-pedals.prd.md: the registry (Phase 1) with keyboard, MIDI (Phase 9) and HID
-            (Phase 11) as its input sources. Wired to the DAW port's live transport state (Phase 10), so a `noisy`
-            command (workspace.play) goes silent while REAPER reports recording (PRD Q5). */}
+        {/* ADR 0361: the command registry with keyboard, MIDI and HID as its input sources. Wired to the DAW port's
+            live transport state, so a `noisy` command (workspace.play) goes silent while REAPER reports recording. */}
         <LiveCommandRouter source={commandInputSource}>
           <App />
         </LiveCommandRouter>

@@ -38,7 +38,7 @@ function exportRowStatus(file: ExportJob['files'][number]): string {
 }
 
 /**
- * The files "Master all to spec…" picked (render-encode-master.prd.md Phase 5, on Master & QC since stage navigation Phase 8): each
+ * The files "Master all to spec…" picked: each
  * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
  * appears once files are picked or a job exists; before that the page's header action is the way in.
  */

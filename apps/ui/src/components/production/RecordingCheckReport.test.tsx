@@ -89,7 +89,7 @@ describe('RecordingCheckReport', () => {
     expect(screen.queryByText('Pace')).toBeNull();
   });
 
-  // edit-and-proof-workspace.prd.md Phase 4, page inventory "Home › recording check dialog": the dialog gets "Open workspace".
+  // The recording check dialog gets an "Open in Proof" button.
   it('shows an Open in Proof button when the caller has one, and calls it', () => {
     const openWorkspace = vi.fn();
     renderReport(openWorkspace);

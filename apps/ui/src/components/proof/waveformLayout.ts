@@ -3,7 +3,7 @@ import type { WorkspaceItem, WorkspacePeaksEntry, WorkspacePeaksResult, Workspac
 import type { Flag, FlagKind } from './flags';
 import type { TimelineMarker } from '../primitives/Timeline';
 
-/** One playlist segment's place on the waveform strip (edit-and-proof-workspace.prd.md Phase 5): start and end are
+/** One playlist segment's place on the waveform strip: start and end are
  * seconds on the app's own elapsed timeline (playlist.ts), the same coordinate space `Timeline`'s `duration` and
  * `playhead` use, so the segment lines up with the transport's elapsed readout without any further conversion. */
 export type WaveformSegment = {

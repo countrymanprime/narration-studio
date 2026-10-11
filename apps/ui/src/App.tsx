@@ -52,11 +52,10 @@ const SETTINGS_ANCHORS: Record<string, string> = { '#credits': 'Credits', '#deli
 
 const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not be read, so what you see may be out of date. Reopen the page to refresh it.';
 
-// `nav.back`/`nav.forward`'s dialog check (input-commands-and-pedals.prd.md Phase 2): nothing yet wraps an open
-// dialog's content in `<CommandScope kind="dialog">` (router.tsx reserves that for Phase 7's shortcut sheet, not
-// existing dialogs), so the `dialog` scope never actually goes active and the router's own scope resolution would
-// let Back/Forward fire over an open dialog. Kept as the same direct check the old listener made by hand until a
-// dialog claims the scope generically.
+// `nav.back`/`nav.forward`'s dialog check: only the shortcut sheet wraps its content in
+// `<CommandScope kind="dialog">` (ShortcutSheet.tsx), so for every other dialog the `dialog` scope never goes active and
+// the router's own scope resolution would let Back/Forward fire over an open dialog. Kept as a direct check until
+// dialogs claim the scope generically.
 const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'));
 
 export function App() {
@@ -73,7 +72,8 @@ export function App() {
 }
 
 // A pending guarded move, either a path (the nav, a "go to" link) or a Back/Forward delta; the two guards below
-// (unsaved Settings, leaving a Proof chapter view with a run) apply to both the same way (App.tsx:258-272, Phase 1).
+// (unsaved Settings, leaving a Proof chapter view with a run) apply to both the same way (`guardedNavigate` and
+// `attemptDelta` in `App`).
 type PendingMove = { kind: 'path'; path: string } | { kind: 'delta'; direction: 1 | -1 };
 
 function AppRoutes() {
@@ -93,7 +93,7 @@ function AppRoutes() {
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
   // an error stays until it is dismissed (ADR 0075). `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
   const { messages, notify: setNotice, dismiss: dismissMessage } = useToasts();
-  // Chapter sync's consent (daw-chapter-track-auto-sync.prd.md Phase 3): read here, once, so "Sync chapters to
+  // Chapter sync's consent: read here, once, so "Sync chapters to
   // tracks?" shows from every link path (the engine panel, an import, an attach) wherever the narrator happens to be.
   const chapterSync = useChapterSync(api);
   const [syncPreview, setSyncPreview] = useState<ChapterSyncPreview>();
@@ -175,8 +175,8 @@ function AppRoutes() {
   }, [api, setNotice]);
 
   // The one shared "link a REAPER project file" action behind the engine panel and Settings' DAW
-  // category (PRD project-workspace-and-daw-link.prd.md, Open Question W19). Cancelling the dialog does nothing; a
-  // folder mismatch is refused with its own message rather than silently re-pointing the project (W15). One
+  // category. Cancelling the dialog does nothing; a
+  // folder mismatch is refused with its own message rather than silently re-pointing the project. One
   // `usePendingAction` ref guards all three call sites at once (ADR 0075), since the host's file dialog is native
   // and modal - a second press from any of them while it is open is refused, not just the button that shows it.
   const dawLink = usePendingAction();
@@ -259,12 +259,11 @@ function AppRoutes() {
   }, [api, hasBootstrap, setNotice]);
 
   // A host job that ends is announced from here, so leaving the page that started it loses nothing (ADR 0076). The same
-  // event decides whether it is also worth an OS notification (N1-N4): document.hasFocus() is read fresh for each job,
+  // event decides whether it is also worth an OS notification (only while the window is unfocused): document.hasFocus() is read fresh for each job,
   // here, because it is the webview's to know, not the host's.
-  // booth-mode-and-companion-panel.prd.md Phase 5 (no-sound, no-notification rule): a toast that would fire while the
+  // No sound or toast interrupts a take: a toast that would fire while the
   // booth is recording queues here instead - `queuedAnnouncements` - and is shown once `boothRecording` clears
-  // (below), rather than interrupting a take. The OS notification above is untouched: silencing it is out of scope
-  // (the PRD's "What We're NOT Building" table) and it only ever fires while the window is unfocused anyway (N1).
+  // (below). The OS notification above is untouched; it only ever fires while the window is unfocused anyway.
   const navCounts = useNavCounts(location.pathname, Boolean(data?.manuscript));
   const boothRecording = useBoothRecording(location.pathname === '/booth');
   const boothRecordingRef = useRef(boothRecording);
@@ -313,7 +312,7 @@ function AppRoutes() {
   useEffect(() => {
     if (!hasBootstrap) return;
     return api.subscribeProjectAttach((state) => {
-      // Entries from the project that was open before this switch stay behind the new floor (Q8): they
+      // Entries from the project that was open before this switch stay behind the new floor: they
       // would open this project's pages with the previous project's data, so Back stops here.
       if (state.attached) {
         history.resetFloor();
@@ -345,9 +344,8 @@ function AppRoutes() {
       .catch(() => {});
   }, [api, hasBootstrap]);
 
-  // The mouse's back and forward buttons (Phase 1), unchanged and out of this PRD's scope (a PointerSource is a
-  // later Could): `mousedown` also calls `preventDefault` to stop WebView2 acting on the press itself (unverified
-  // until Phase 0 runs on Windows), `mouseup` is where the app actually moves, like a browser's own button-4/5
+  // The mouse's back and forward buttons: `mousedown` also calls `preventDefault` to stop WebView2 acting on the press
+  // itself (unverified on Windows), `mouseup` is where the app actually moves, like a browser's own button-4/5
   // handling. Nothing fires while a modal dialog or drawer is open (the page is inert behind it).
   useEffect(() => {
     const onMouseButton = (event: MouseEvent) => {
@@ -374,7 +372,7 @@ function AppRoutes() {
   useCommand('nav.forward', () => {
     if (!isModalOpen()) guardedForwardRef.current();
   });
-  // The header's zoom group (app-navigation-and-zoom-controls.prd.md Phase 2): Ctrl+=/-/0 (and the numpad
+  // The header's zoom group: Ctrl+=/-/0 (and the numpad
   // equivalents) run the same steps as the header's own buttons, and do nothing while a modal is open, like Back/Forward.
   useCommand('zoom.in', () => {
     if (!isModalOpen()) void zoom.zoomIn();
@@ -385,12 +383,12 @@ function AppRoutes() {
   useCommand('zoom.reset', () => {
     if (!isModalOpen()) void zoom.reset();
   });
-  // The "?" shortcut sheet (input-commands-and-pedals.prd.md Phase 7): a `global` command mounted here, alongside
+  // The "?" shortcut sheet: a `global` command mounted here, alongside
   // Back/Forward, since both are always-available app-level commands rather than a feature's own.
   useCommand('help.shortcuts', () => setShortcutsOpen(true));
 
-  // Recovery for a `popstate` the app did not start (Risk 3: a mouse-button gesture WebView2 acts on
-  // despite `preventDefault`, if Phase 0 finds that happens). The move already took effect; if it left
+  // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
+  // despite `preventDefault`, if that happens). The move already took effect; if it left
   // Settings dirty, push Settings back and ask, so the change is not lost silently. Leaving a Proof chapter view with
   // a run still resets the run either way.
   useEffect(() => {
@@ -441,11 +439,10 @@ function AppRoutes() {
   const goToScript = (chapter: string, paragraph?: number) =>
     guardedNavigate(`/script#${paragraph !== undefined ? `p${paragraph}` : `c${encodeURIComponent(chapter)}`}`);
   const goToStoryBible = (entityId: string) => guardedNavigate(`/story-bible#${encodeURIComponent(entityId)}`);
-  // A chapter's Proof view (stage-navigation-and-page-replacement.prd.md Phase 5; edit-and-proof-workspace.prd.md's
-  // "Open in workspace"): from Proof's notes, the Production board and Script. findingId is the deep link's ?finding=, so the
+  // A chapter's Proof view ("Open in workspace"): from Proof's notes, the Production board and Script. findingId is the deep link's ?finding=, so the
   // chapter view lands on the flag that finding backs (Navigation and deep links).
   const goToProofChapter = (chapterId: string, findingId?: string) => {
-    // Proof's book-level waveform card opens on the last chapter the narrator looked at (ADR 0750, D100).
+    // Proof's book-level waveform card opens on the last chapter the narrator looked at (ADR 0750).
     saveLastChapter(data.projectFolder, chapterId);
     guardedNavigate(`/proof/${encodeURIComponent(chapterId)}${findingId ? `?finding=${encodeURIComponent(findingId)}` : ''}`);
   };
@@ -470,7 +467,7 @@ function AppRoutes() {
     navigate(next);
   };
 
-  // Back and Forward run the same two guards as the nav (Phase 1): dirty Settings asks first, leaving
+  // Back and Forward run the same two guards as the nav: dirty Settings asks first, leaving
   // a Proof chapter view with a run resets the run. Each moves exactly one page, and does nothing where `useAppHistory` already
   // says there is nowhere to go (the buttons are disabled there too; this covers the shortcuts and mouse
   // buttons, which have no disabled state to rely on).

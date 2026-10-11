@@ -23,7 +23,7 @@ function renderSection(files: readonly MeasureFileResult[]) {
 
 const rowFor = (section: HTMLElement, name: string) => within(section).getByText(name, { exact: true }).closest('div')!.parentElement as HTMLElement;
 
-describe('Book consistency (delivery-platform-profiles.prd.md Phase 10, mock 05)', () => {
+describe('Book consistency (benchmark mock 05)', () => {
   it('shows before anything is measured, one row per numeric level rule, each reading "No measurements yet"', () => {
     const section = renderSection([]);
     expect(within(section).getByText('RMS')).toBeTruthy();

@@ -55,7 +55,7 @@ describe('createMidiSource', () => {
     vi.useRealTimers();
   });
 
-  it('does nothing when the platform has no requestMIDIAccess (Phase 8: WKWebView, WebKitGTK)', async () => {
+  it('does nothing when the platform has no requestMIDIAccess (WKWebView, WebKitGTK)', async () => {
     const source = createMidiSource({});
     const onGesture = vi.fn();
     const unsubscribe = source.subscribe(onGesture);
@@ -114,7 +114,7 @@ describe('createMidiSource', () => {
     expect(onGesture).not.toHaveBeenCalled();
   });
 
-  it('reports a CC message crossing the press threshold (value >= 64), serialised as PRD Q7 shows', async () => {
+  it('reports a CC message crossing the press threshold (value >= 64), serialised as `midi:cc/1/64`', async () => {
     const { input, send } = fakeInput();
     const { access } = fakeAccess([input]);
     const source = createMidiSource({ requestMIDIAccess: () => Promise.resolve(access) });
@@ -287,7 +287,7 @@ describe('createMidiSource', () => {
     const recorder = vi.fn((event: GestureEvent) => event.preventDefault());
     source.subscribe(router); // subscribes first, like the router mounted at the app root
     await flushMicrotasks();
-    source.subscribe(recorder); // subscribes later, like the Phase 6 recorder opening
+    source.subscribe(recorder); // subscribes later, like the gesture recorder opening
 
     send([NOTE_ON, 60, 100]);
 

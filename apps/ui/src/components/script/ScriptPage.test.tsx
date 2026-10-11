@@ -46,8 +46,8 @@ function renderScript(
   return { api, focusStoryBibleEntity, notify, goToBooth };
 }
 
-// A reference chapter (Contents) placed before the narration chapters, the shape Phase 5 hides
-// from the continuous reader (R13) - mirrors ChapterNav.test.tsx's fixture, plus paragraphIds so a
+// A reference chapter (Contents) placed before the narration chapters, the shape the continuous reader hides
+// - mirrors ChapterNav.test.tsx's fixture, plus paragraphIds so a
 // "#p" deep link can resolve into it.
 const referenceChapter = {
   id: 'contents',
@@ -126,7 +126,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     );
   });
 
-  describe('script markup (prep-depth PRD Phase 5)', () => {
+  describe('script markup', () => {
     it('marks up a selection: the mark is saved on that line and drawn on it', async () => {
       const { api, notify } = renderScript();
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
@@ -322,7 +322,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     await waitFor(async () => expect(await api.noteList()).not.toContainEqual(expect.objectContaining({ id: existingNote.id })));
   });
 
-  describe('the chapter list and the prep rail (stage navigation Phase 3, mock 02)', () => {
+  describe('the chapter list and the prep rail', () => {
     it('opens a chapter from the chapter list and marks it as the one being read', async () => {
       renderScript();
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
@@ -417,7 +417,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     fireEvent.click(screen.getByRole('button', { name: /Chapters & Search/ }));
     const input = screen.getByLabelText('Search Script');
     fireEvent.change(input, { target: { value: 'Rabbit' } });
-    fireEvent.keyDown(input, { key: 'Enter' }); // fires the search immediately, bypassing the debounce (R1)
+    fireEvent.keyDown(input, { key: 'Enter' }); // fires the search immediately, bypassing the debounce
 
     const [result] = await screen.findAllByRole('button', { name: /Search result in Chapter 1/ });
     expect(within(document.querySelector('[data-slide-over]')!).queryByRole('button', { name: /Chapter 3/ })).toBeNull();
@@ -438,7 +438,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
     fireEvent.click(screen.getByRole('button', { name: /Chapters & Search/ }));
     const input = screen.getByLabelText('Search Script');
-    // Each Enter fires immediately (R1), simulating two real requests racing - the debounce itself
+    // Each Enter fires immediately, simulating two real requests racing - the debounce itself
     // (see the dedicated debounce test below) would collapse two edits this close together into one.
     fireEvent.change(input, { target: { value: 'old' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -450,7 +450,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     await waitFor(() => expect(screen.queryByLabelText(/Search result in Chapter 1/)).toBeNull());
   });
 
-  it('debounces the line search 2s behind the last keystroke; chapter-title matches show at once and Enter fires immediately (R1, R2)', async () => {
+  it('debounces the line search 2s behind the last keystroke; chapter-title matches show at once and Enter fires immediately', async () => {
     const searchSpy = vi.fn(async () => []);
     renderScript({ manuscriptSearch: searchSpy });
     await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
@@ -460,7 +460,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     vi.useFakeTimers();
     fireEvent.change(input, { target: { value: 'Pool of Tears' } });
 
-    // The chapter-title/subtitle subset is client-side and never debounced (R2).
+    // The chapter-title/subtitle subset is client-side and never debounced.
     expect(screen.getAllByRole('button', { name: /Chapter 2/ }).length).toBeGreaterThan(0);
     expect(searchSpy).not.toHaveBeenCalled();
     expect(screen.getByText('Searching…')).toBeTruthy();
@@ -492,7 +492,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     expect(searchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('clears the query and results when a search result is selected (R8)', async () => {
+  it('clears the query and results when a search result is selected', async () => {
     renderScript();
     await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
     fireEvent.click(screen.getByRole('button', { name: /Chapters & Search/ }));
@@ -505,7 +505,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     expect(screen.queryByRole('button', { name: /Search result in/ })).toBeNull();
   });
 
-  it('Escape clears an in-progress search before it closes the panel (R8)', async () => {
+  it('Escape clears an in-progress search before it closes the panel', async () => {
     renderScript();
     await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
     fireEvent.click(screen.getByRole('button', { name: /Chapters & Search/ }));
@@ -524,7 +524,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     await waitFor(() => expect(document.querySelector('[data-slide-over]')).toBeNull());
   });
 
-  it('autofocuses the search input when the Chapters & Search panel opens (R8)', async () => {
+  it('autofocuses the search input when the Chapters & Search panel opens', async () => {
     renderScript();
     await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
     fireEvent.click(screen.getByRole('button', { name: /Chapters & Search/ }));
@@ -556,7 +556,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  describe('hides reference material from the continuous reader (R13, Phase 5)', () => {
+  describe('hides reference material from the continuous reader', () => {
     it('opens on the first recorded chapter even when a reference chapter sorts first', async () => {
       renderScript({ manuscriptChapters: async () => [referenceChapter, ...(await createMockApi().manuscriptChapters())] });
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
@@ -604,8 +604,8 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  describe('credits pseudo-entries (PRD audiobook-credits-templates.prd.md, Phase 3)', () => {
-    it('shows an Opening credits entry before the first chapter and a Closing credits entry after the last, both open by default (MC5)', async () => {
+  describe('credits pseudo-entries', () => {
+    it('shows an Opening credits entry before the first chapter and a Closing credits entry after the last, both open by default', async () => {
       renderScript();
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 12 — Alice’s Evidence' }));
@@ -617,12 +617,12 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
       expect(order[0]).toBe('opening');
       expect(order.at(-1)).toBe('closing');
 
-      // Open by default (MC5): the rendered preview and its unresolved-token count already show, with no click needed.
+      // Open by default: the rendered preview and its unresolved-token count already show, with no click needed.
       expect(await within(opening as HTMLElement).findByText(/unresolved token/)).toBeTruthy();
       expect(within(closing as HTMLElement).queryByText(/unresolved token/)).toBeTruthy();
     });
 
-    it('shows an unresolved-token chip, never silent empty text (C6)', async () => {
+    it('shows an unresolved-token chip, never silent empty text', async () => {
       renderScript();
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
       const opening = screen.getByRole('heading', { name: 'Opening credits' }).closest('[data-credits-entry]') as HTMLElement;
@@ -635,7 +635,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
       expect(within(opening).getByText(/3 unresolved tokens: Title, Author, Narrator/)).toBeTruthy();
     });
 
-    it('collapsing a credits card hides its preview, and remembers that per project across a reload (MC5 b)', async () => {
+    it('collapsing a credits card hides its preview, and remembers that per project across a reload', async () => {
       renderScript();
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
       const opening = () => screen.getByRole('heading', { name: 'Opening credits' }).closest('[data-credits-entry]') as HTMLElement;
@@ -687,8 +687,8 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
       expect(screen.queryByRole('heading', { name: 'Closing credits' })).toBeNull();
     });
 
-    it('a "#credits-opening"/"#credits-closing" deep link (Home\'s credits rows, credits-in-chapter-table.prd.md Phase 2, CT7) opens the matching entry', async () => {
-      // Both cards open by default (MC5), so start them collapsed: the hash alone must open the closing one.
+    it('a "#credits-opening"/"#credits-closing" deep link (Home\'s credits rows) opens the matching entry', async () => {
+      // Both cards open by default, so start them collapsed: the hash alone must open the closing one.
       saveCreditsExpanded('/projects/alice', { opening: false, closing: false });
       renderScript({}, vi.fn(), ['/script#credits-closing']);
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
@@ -700,7 +700,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  describe('the credits-setup banner and Fill in (credits-token-setup-and-front-matter-detection.prd.md, Phase 3)', () => {
+  describe('the credits-setup banner and Fill in', () => {
     it('shows the banner above the credits cards while setup is not dismissed at the project scope', async () => {
       renderScript({}, vi.fn(), ['/script'], { creditsSetup: true });
       await waitFor(() => screen.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole' }));
@@ -747,7 +747,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  describe('retail sample marker (PRD audiobook-credits-templates.prd.md, Phase 5, C10)', () => {
+  describe('retail sample marker', () => {
     const sampleOnChapterTwo = async () => {
       const chapter = (await createMockApi().manuscriptChapters())[1];
       const ids = chapter.paragraphIds ?? [];
@@ -791,7 +791,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  describe('Open workspace (edit-and-proof-workspace.prd.md Phase 4)', () => {
+  describe('Open workspace', () => {
     it('opens the chapter workspace for a narration chapter', async () => {
       const goToWorkspace = vi.fn();
       renderScript({}, vi.fn(), ['/script'], {}, goToWorkspace);
@@ -809,7 +809,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  //  (Q9): the cards' Read aloud, Booth and Companion buttons became one
+  // The cards' Read aloud, Booth and Companion buttons became one
   // "Record in Booth" link to the Booth page; the Read aloud dialog is gone (ADR 0407).
   describe('Record in Booth', () => {
     it('opens the Booth on a narration chapter, with no dialog of its own', async () => {
@@ -845,7 +845,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  // D85 #3 on issue #509, ADR 0393 (superseding ADR 0392): three columns show at the mock's own 1440px capture width, not
+  // ADR 0393 (superseding ADR 0392): three columns show at the benchmark mock's 1440px capture width, not
   // just from `2xl` (1536px) - jsdom does not lay out at a real width, so this only pins the class mechanism; the actual
   // rendered layout is checked by the visual suite (script/retail-sample, script/markup-dialog at desktop, 1440px).
   it('introduces the rail column at 1440px, not 2xl', async () => {
@@ -859,9 +859,9 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     expect(rail.className).not.toMatch(/(^|\s)2xl:flex/);
   });
 
-  // Audit row SC3: mock 02's "Markup layer" key describes the reader's
+  // The "Markup layer" key describes the reader's
   // own script marks, not the Story Bible's category colors.
-  describe('the markup layer key (SC3)', () => {
+  describe('the markup layer key', () => {
     it('is titled "Markup layer", not "Marks"', async () => {
       renderScript();
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy());
@@ -869,7 +869,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
       expect(screen.queryByText('Marks')).toBeNull();
     });
 
-    it('names the reader marks mock 02 draws, not the Story Bible categories', async () => {
+    it('names the reader marks the key draws, not the Story Bible categories', async () => {
       renderScript();
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy());
       // The `xl`+ aside key and the sub-`xl` band key both render the same entries; getAllByText covers either or both.

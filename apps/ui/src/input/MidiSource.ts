@@ -7,8 +7,8 @@ const CONTROL_CHANGE = 0xb;
 const PRESS_THRESHOLD = 64;
 
 /**
- * A press from a note-on (velocity > 0) or a CC crossing the switch threshold (value >= 64, PRD Phase 9 and Q7's
- * `midi:cc/1/64` example: the controller number becomes part of the gesture, not the filter - any CC a narrator's
+ * A press from a note-on (velocity > 0) or a CC crossing the switch threshold (value >= 64; as `midi:cc/1/64`
+ * shows, the controller number becomes part of the gesture, not the filter - any CC a narrator's
  * pedal happens to send can be learned). Every other message type (note-off, aftertouch, program change, pitch
  * bend, system messages) is not a press and returns `undefined`.
  *
@@ -48,9 +48,9 @@ type NavigatorLike = { requestMIDIAccess?: () => Promise<MidiAccessLike> };
 const realNavigator: NavigatorLike = typeof navigator === 'undefined' ? {} : (navigator as unknown as NavigatorLike);
 
 /**
- * The Should input source (Solution Detail, Phase 9): Web MIDI note-on and CC presses. Feature-detected
- * (`navigatorLike.requestMIDIAccess` absent, or its promise rejecting) so a platform without it - Phase 8's spike
- * found neither WKWebView (macOS) nor WebKitGTK 6.0 (Linux) ship it - simply contributes nothing, and
+ * The MIDI input source: Web MIDI note-on and CC presses. Feature-detected
+ * (`navigatorLike.requestMIDIAccess` absent, or its promise rejecting) so a platform without it - WKWebView (macOS)
+ * and WebKitGTK 6.0 (Linux) do not ship it - simply contributes nothing, and
  * `KeyboardSource` keeps covering a keyboard-type pedal everywhere. No `{ sysex: true }` is requested: this source
  * only ever reads note-on and CC, so it asks for the narrower permission (threat-model row 10).
  *
@@ -61,7 +61,7 @@ const realNavigator: NavigatorLike = typeof navigator === 'undefined' ? {} : (na
  * A gesture reaches every current subscriber, most recently subscribed first, and a subscriber that calls
  * `preventDefault()` stops it going to the rest (the same "consume so nothing else reacts" contract
  * `InputSource.ts`'s `GestureEvent` already documents, generalised here to more than one subscriber of one source).
- * This is how the Phase 6 recorder (`useGestureCapture.ts`) can learn a press without the router also running
+ * This is how the gesture recorder (`useGestureCapture.ts`) can learn a press without the router also running
  * whatever command that gesture already happens to be bound to: both subscribe to the same `midiSource` instance
  * below, the recorder's subscription starts later (only while it is open), so it is offered the press first.
  */
@@ -111,8 +111,8 @@ export function createMidiSource(navigatorLike: NavigatorLike = realNavigator): 
         access.onstatechange = attachToInputs;
       })
       .catch(() => {
-        // Denied, unsupported, or blocked by the webview host (Phase 8's research note: WebView2's permission
-        // plumbing for MIDI is unconfirmed). KeyboardSource still covers a keyboard-type pedal, so this source
+        // Denied, unsupported, or blocked by the webview host (whether WebView2's permission
+        // plumbing allows MIDI is unconfirmed). KeyboardSource still covers a keyboard-type pedal, so this source
         // simply contributes nothing rather than surfacing an error nobody in the booth can act on.
       });
   };
@@ -132,9 +132,8 @@ export function createMidiSource(navigatorLike: NavigatorLike = realNavigator): 
 }
 
 /**
- * Combines any number of sources into one `InputSource` (Solution Detail: "a new device is one new class"). Used to
- * give the router's single `source` slot both keyboard and MIDI (`main.tsx`) without `router.tsx` - Phase 10's
- * file - changing at all: it stays generic over `InputSource`, not MIDI-specific.
+ * Combines any number of sources into one `InputSource` so a new device is one new class. Used to
+ * give the router's single `source` slot both keyboard and MIDI (`main.tsx`) without `router.tsx` changing at all: it stays generic over `InputSource`, not MIDI-specific.
  */
 export function combineSources(...sources: InputSource[]): InputSource {
   return {

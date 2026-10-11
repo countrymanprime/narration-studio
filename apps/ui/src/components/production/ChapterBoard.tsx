@@ -39,15 +39,15 @@ type Row = { kind: 'chapter'; chapter: ProductionChapter } | { kind: 'credits'; 
 const isNarration = (chapter: { contentKind?: string }) => !chapter.contentKind || chapter.contentKind === 'narration';
 
 /**
- * The Production home's chapter pipeline (mock 01: "every cell opens that
- * stage for the chapter"). It replaces Home's chapter table: the rows are the book's narration chapters between its opening and
+ * The Production home's chapter pipeline (the benchmark's 01-production-home mock:
+ * "every cell opens that stage for the chapter"). It replaces Home's chapter table: the rows are the book's narration chapters between its opening and
  * closing credits, the columns the board's stages, and each cell opens the surface Home's row opened, with the same slide-overs:
  *
- * - Recorded opens the chapter's track slide-over (chapter-track-link-control.prd.md), where the length comes from.
+ * - Recorded opens the chapter's track slide-over, where the length comes from.
  * - The chapter's current stage (Record for a chapter not started yet) opens its stage suggestion, with the status override Home's
  *   row carried and the way into the recording and editing checks.
  * - Record opens the recording check, Edit the editing check, Proof the chapter's Proof view, and Prep the chapter on Script.
- * - A credits row opens its own slide-over (credits-in-chapter-table.prd.md), since credits are not assessed by the stage engine.
+ * - A credits row opens its own slide-over, since credits are not assessed by the stage engine.
  *
  * The figures come from the production overview the page already read (`overview`, read again through `onChanged` after anything
  * here changes a status, a link or a measurement); the slide-overs read the manuscript's own chapter list, as Home's did.
@@ -95,7 +95,7 @@ export function ChapterBoard({
   // The chapter whose stage suggestion is open; kept while the view slides shut, so its content does not vanish mid-animation.
   const [why, setWhy] = useState<{ chapterId: string; open: boolean }>();
 
-  // Chapter track links (chapter-track-link-control.prd.md Phase 2): one read of every chapter's link from a single .rpp parse.
+  // Chapter track links: one read of every chapter's link from a single .rpp parse.
   const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
   const [trackChapter, setTrackChapter] = useState<{ chapterId: string; open: boolean }>();
   const loadTrackLinks = useCallback(async () => {
@@ -112,7 +112,7 @@ export function ChapterBoard({
     void loadTrackLinks();
   }, [loadTrackLinks, refreshKey, measuredRun]);
 
-  // Chapter sync (daw-chapter-track-auto-sync.prd.md Phase 3, S12): one toast per batch that linked something. `lastBatchAt` guards
+  // Chapter sync: one toast per batch that linked something. `lastBatchAt` guards
   // against re-toasting the same batch on a re-render.
   const chapterSync = useChapterSync(api);
   const lastBatchAt = useRef<string>(undefined);
@@ -155,14 +155,14 @@ export function ChapterBoard({
     void loadChapters();
   }, [loadChapters, refreshKey, measuredRun]);
 
-  // home-stage-check-line.prd.md Phase 2 (Q2 A): the narrator saving the project in REAPER while the page stays open.
+  // Refresh when the window regains focus: the narrator saving the project in REAPER while the page stays open.
   useRefreshOnFocus(() => {
     void stages.refresh();
     void loadChapters();
     onChanged();
   }, stages.busy);
 
-  // Every `chaptersync:state` after the first (daw-chapter-track-auto-sync.prd.md Phase 6) may mean the saved project or a stored
+  // Every `chaptersync:state` after the first may mean the saved project or a stored
   // result changed.
   const sawChapterSync = useRef(false);
   useEffect(() => {
@@ -177,7 +177,7 @@ export function ChapterBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only chapterSync (a new object per event) should retrigger this
   }, [chapterSync]);
 
-  // Remove from recording / Restore (chapter-track-link-control.prd.md Phase 3): the chapter leaves or rejoins the board. Remove
+  // Remove from recording / Restore: the chapter leaves or rejoins the board. Remove
   // rethrows on failure so the slide-over's confirm stays open for a retry.
   const [restoringId, setRestoringId] = useState('');
   const reloadAfterKind = async () => {
@@ -289,11 +289,11 @@ export function ChapterBoard({
     return `${text.label}${text.detail ? ` · ${text.detail}` : ''}`;
   };
 
-  // Mock 01 bolds the chapter the work is on: the one a timer runs on.
+  // The benchmark mock bolds the chapter the work is on: the one a timer runs on.
   const currentRow = overview.running ? rows.findIndex((row) => row.kind === 'chapter' && row.chapter.id === overview.running?.chapterId) : -1;
 
   return (
-    // Mock 01's card (ADR 0645): the title with its subtitle in the header, the suggestion chips where the mock draws its filter,
+    // The benchmark mock's card (ADR 0645): the title with its subtitle in the header, the suggestion chips where the mock draws its filter,
     // and the board flush under the header's divider.
     <Panel
       title="Chapter pipeline"
@@ -350,7 +350,7 @@ export function ChapterBoard({
         {chapters && <RemovedFromRecordingList chapters={chapters} restoringId={restoringId} onRestore={(chapterId) => void restore(chapterId)} />}
         {checking &&
           (() => {
-            // A credits row's synthetic chapter (credits-in-chapter-table.prd.md Phase 3, ADR 0333) is never a Proof
+            // A credits row's synthetic chapter (ADR 0333) is never a Proof
             // workspace or a Script paragraph the way a real chapter's is: it opens the Manuscript credits entry instead,
             // the same anchor CreditsRowPanel's "Open in Script" link uses.
             const checkingCreditsKind = creditsCheckKind(checking.id);

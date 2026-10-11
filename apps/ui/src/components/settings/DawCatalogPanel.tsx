@@ -27,9 +27,9 @@ export function DawCatalogPanel({
   onLinkDawFile,
 }: {
   notify: Notify;
-  /** Whether a REAPER project is already linked (project-workspace-and-daw-link.prd.md); hides the handoff link once true, since it would have nothing left to offer. */
+  /** Whether a REAPER project is already linked; hides the handoff link once true, since it would have nothing left to offer. */
   dawFileLinked?: boolean;
-  /** The shared "link a REAPER project file" action (PRD W19), passed through from Settings. */
+  /** The shared "link a REAPER project file" action, passed through from Settings. */
   onLinkDawFile?: () => void;
 }) {
   const api = useApi();

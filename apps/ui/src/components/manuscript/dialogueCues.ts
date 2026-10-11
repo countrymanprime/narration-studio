@@ -3,7 +3,7 @@ import type { GuideEntity, ManuscriptParagraph } from '../../types';
 // The shape Character Continuity Review's dialogue-cue extractor writes
 // (sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`): one entry per
 // quoted span, served by the host's `GuideDialogueCues` binding. `recordedDemoDialogueCues` builds the same shape from a
-// recorded fixture, so the reader below can run without a second extractor (prep-depth.prd.md Phase 4).
+// recorded fixture, so the reader below can run without a second extractor.
 type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'unknown' | 'correction';
 
 export type DialogueCue = {
@@ -21,8 +21,7 @@ export type DialogueCue = {
 
 /** The speaker chip's label for one paragraph: the first cue on it whose speaker resolves to a known entity,
  * or `undefined` for no cue, an `unknown` cue, or one naming an entity id this reader does not have - never a
- * placeholder name (prep-depth.prd.md Success Metrics, "unknown renders as unattributed, never a fabricated
- * name"). */
+ * placeholder name: unknown renders as unattributed, never a fabricated name. */
 export function speakerLabelForParagraph(
   paragraph: Pick<ManuscriptParagraph, 'id'>,
   cues: DialogueCue[],
@@ -33,7 +32,7 @@ export function speakerLabelForParagraph(
   return entitiesById.get(cue.speaker_entity_id)?.canonical_name;
 }
 
-// A recorded fixture (prep-depth.prd.md Phase 4, Q1 option C), not a second extractor: it has no tag-parsing
+// A recorded fixture, not a second extractor: it has no tag-parsing
 // or continuation logic of its own, only a fixed table of exact quotes from the built-in Alice in Wonderland
 // demo text (apps/ui/src/api/fixtures/alice-in-wonderland.txt, Chapter 3, "A Caucus-Race and a Long Tale"),
 // matched by substring against whichever paragraphs are currently loaded, naming only an entity the demo data

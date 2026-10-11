@@ -44,7 +44,7 @@ function renderDialog(state: CreditsSetupState = STATE, overrides: Partial<Narra
   return { api, onDone, onMoreFields, notify };
 }
 
-describe('CreditsSetupDialog (credits-token-setup-and-front-matter-detection.prd.md, Phase 2)', () => {
+describe('CreditsSetupDialog', () => {
   it('prefills every field from its detected candidate and shows the source caption, recased where the manuscript line was all capitals', () => {
     renderDialog();
     expect(screen.getByRole('dialog', { name: 'Set up the credits' })).toBeTruthy();
@@ -73,7 +73,7 @@ describe('CreditsSetupDialog (credits-token-setup-and-front-matter-detection.prd
     expect(byText('From a line ending in "Publishers" (check this)')).toBeTruthy();
   });
 
-  it('names the detected-but-unasked candidates and links to Settings > Credits (CS4 "More fields")', () => {
+  it('names the detected-but-unasked candidates and links to Settings > Credits ("More fields")', () => {
     const { onMoreFields } = renderDialog();
     expect(
       screen.getByText(

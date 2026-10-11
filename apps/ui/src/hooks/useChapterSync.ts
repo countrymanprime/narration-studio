@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChapterSyncApi, ChapterSyncState } from '../api/contracts/chapterSync';
 
 /**
- * Chapter sync's live state (daw-chapter-track-auto-sync PRD Phase 3): read once with `chapterSyncState()`, then kept
+ * Chapter sync's live state: read once with `chapterSyncState()`, then kept
  * current by `chaptersync:state`, sent after every link path, sync and Undo. `undefined` until the first read
  * resolves. The Production board and Tracks each call this to drive their own display from the same one subscription shape.
  */

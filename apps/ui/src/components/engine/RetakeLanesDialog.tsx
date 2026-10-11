@@ -66,7 +66,7 @@ function EmptyList({ list }: { list: RetakeLanesList }) {
   );
 }
 
-/** Retakes as fixed lanes (reaper-automation-follow-through PRD, Phase 25, ADR 0147): lists each manuscript line's
+/** Retakes as fixed lanes (ADR 0147): lists each manuscript line's
  * retakes on fixed lanes, read from the saved project, and makes the narrator's pick the only lane playing on its
  * track in REAPER. That is the only change it makes, one undo step. Reachable from the audio engine panel next to the other
  * REAPER actions, not a new nav item. */

@@ -48,7 +48,7 @@ function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
 }
 
 /**
- * Settings > Delivery (delivery-platform-profiles.prd.md Phases 3 and 4, mockups 05 and 06): the profile this project is judged
+ * Settings > Delivery the profile this project is judged
  * against (or, in the Global scope, the default for every project that has not chosen one), and the profiles themselves. A
  * built-in cannot be changed; Duplicate makes a custom copy whose numbers can change and whose rules can be turned off. A
  * choice takes effect at once: Master & QC and the report judge against it the next time they are read.

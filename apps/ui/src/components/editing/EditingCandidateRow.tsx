@@ -21,12 +21,12 @@ const DECISIONS: Array<{ status: FindingReviewStatus; label: string; variant: 'p
 ];
 
 /**
- * One editing candidate (editing-readiness-analysis.prd.md Phase 7): its time range, class, confidence and reason,
+ * One editing candidate: its time range, class, confidence and reason,
  * a Hear control that plays its own source file around the candidate's source-relative range with a pre-roll
  * (`useRangePlayer`, the same range player the take-review audition dialog uses over `/media`), Accept, Dismiss and
- * Defer through RD-4's `findingsReview` (review-dashboard-and-findings-adoption.prd.md Phase 4, ADR 0120 - a
+ * Defer through `findingsReview` (ADR 0120 - a
  * decision refused because the check ran again since is shown as `STALE_MESSAGE`, not a bare error), and Go to /
- * Loop in REAPER (RD Phase 7) through the same `ReaperControls` the Review page uses, which is already off with its
+ * Loop in REAPER through the same `ReaperControls` the Review page uses, which is already off with its
  * own reason until a bridge is connected.
  */
 export function EditingCandidateRow({

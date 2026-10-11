@@ -109,7 +109,7 @@ function renderCompanion(overrides: Partial<Parameters<typeof CompanionShell>[0]
   return { ...view, api: mock, onFullApp, pushTransport: (state: DawTransport) => act(() => pushTransport(state)) };
 }
 
-describe('CompanionShell (booth-mode-and-companion-panel.prd.md Phase 7)', () => {
+describe('CompanionShell', () => {
   it('lays out CompactShell: the Companion heading, Full app, and the script, note, pickups, hotkeys and this-chapter sections in order', () => {
     renderCompanion();
     expect(screen.getByRole('heading', { level: 1, name: 'Companion' })).toBeTruthy();
@@ -143,7 +143,7 @@ describe('CompanionShell (booth-mode-and-companion-panel.prd.md Phase 7)', () =>
     expect(onFullApp).toHaveBeenCalledTimes(1);
   });
 
-  it('Escape once asks, Escape again returns to the full app (Open Question 5)', async () => {
+  it('Escape once asks, Escape again returns to the full app', async () => {
     const user = userEvent.setup();
     const { onFullApp } = renderCompanion();
     await user.keyboard('{Escape}');

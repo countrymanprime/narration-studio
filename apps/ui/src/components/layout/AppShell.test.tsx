@@ -35,7 +35,7 @@ function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: D
   );
 }
 
-describe('AppShell on the Booth (mock 03, owner call BO2)', () => {
+describe('AppShell on the Booth', () => {
   it('draws no rail, header or drawer on /booth, only the page in its own main', () => {
     renderShell({ pathname: '/booth' });
     expect(screen.queryByRole('navigation')).toBeNull();
@@ -52,7 +52,7 @@ describe('AppShell on the Booth (mock 03, owner call BO2)', () => {
   });
 });
 
-describe('AppShell nav gating (PRD project-workspace-and-daw-link.prd.md, W16/W17)', () => {
+describe('AppShell nav gating', () => {
   it('disables the manuscript pages, and only those, when there is no manuscript', () => {
     renderShell({ hasManuscript: false, dawFileLinked: false });
     for (const name of ['Script', 'Story Bible', 'Booth']) {
@@ -79,8 +79,8 @@ describe('AppShell nav gating (PRD project-workspace-and-daw-link.prd.md, W16/W1
   });
 });
 
-describe('AppShell header pill (PRD project-workspace-and-daw-link.prd.md, W15)', () => {
-  it('shows "No REAPER project linked" and opens the engine panel on click when nothing is linked (Phase 6)', () => {
+describe('AppShell header pill', () => {
+  it('shows "No REAPER project linked" and opens the engine panel on click when nothing is linked', () => {
     const onOpenEnginePanel = vi.fn();
     renderShell({ dawFileLinked: false, onOpenEnginePanel });
     const pill = screen.getByRole('button', { name: /No REAPER project linked/ });
@@ -98,9 +98,9 @@ describe('AppShell header pill (PRD project-workspace-and-daw-link.prd.md, W15)'
   });
 });
 
-// Phase 7 (PRD project-workspace-and-daw-link.prd.md, ADR 0092): the mismatch state only appears once a live
+// ADR 0092: the mismatch state only appears once a live
 // heartbeat disagrees with the linked file, never from a linked-but-unconfirmed state.
-describe('AppShell header pill mismatch state (Phase 7)', () => {
+describe('AppShell header pill mismatch state', () => {
   it('still reads "REAPER linked" when linked but not yet confirmed reachable', () => {
     renderShell({ dawFileLinked: true, dawReachable: false, dawProjectMatches: false });
     expect(screen.getByRole('button', { name: /REAPER linked/ })).toBeTruthy();
@@ -120,9 +120,8 @@ describe('AppShell header pill mismatch state (Phase 7)', () => {
   });
 });
 
-//  (ADR 0407 item 3, Q5, Q6): the nav is grouped by production
-// stage, each existing page held under its current name until the phase that replaces it; Phase 2 made Production the item at `/`.
-describe('AppShell grouped navigation (Phase 1)', () => {
+// ADR 0407: the nav is grouped by production stage, and Production is the item at `/`.
+describe('AppShell grouped navigation', () => {
   it('names every group (sidebar, rail and drawer all expose the same accessible name)', () => {
     renderShell();
     for (const label of ['Production', 'Prep', 'Record', 'Review', 'Finish']) {
@@ -142,7 +141,7 @@ describe('AppShell grouped navigation (Phase 1)', () => {
     }
   });
 
-  // Phase 2: the Production home replaced Home at `/`, as the Production group's one item, active on `/` and nowhere else.
+  // The Production home replaced Home at `/`, as the Production group's one item, active on `/` and nowhere else.
   it("has Production, not Home, as the Production group's item, active at /", () => {
     renderShell({ pathname: '/' });
     expect(screen.queryAllByRole('button', { name: 'Home' })).toHaveLength(0);
@@ -151,14 +150,14 @@ describe('AppShell grouped navigation (Phase 1)', () => {
     expect(button.getAttribute('aria-current')).toBe('page');
   });
 
-  it('lists every other page, with Production in place of Home (Phase 2), Proof in place of Proofing and Review (Phase 5) and Booth in place of the Teleprompter (Phase 4)', () => {
+  it('lists every other page, with Production in place of Home, Proof in place of Proofing and Review and Booth in place of the Teleprompter', () => {
     renderShell();
     for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Settings']) {
       expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
     }
   });
 
-  // Phase 6: the engine panel replaces the Tracks page, so the Review group is Proof and Pickups only.
+  // The engine panel replaces the Tracks page, so the Review group is Proof and Pickups only.
   it('has no Tracks item: the engine chip opens what it held', () => {
     renderShell();
     expect(screen.queryAllByRole('button', { name: 'Tracks' })).toHaveLength(0);
@@ -170,7 +169,7 @@ describe('AppShell grouped navigation (Phase 1)', () => {
     ).toEqual(['Proof', 'Pickups']);
   });
 
-  // Phase 7: Pickups replaces the Tracks page's Pickups dialog, as its own item right after Proof in the Review group.
+  // Pickups replaces the Tracks page's Pickups dialog, as its own item right after Proof in the Review group.
   it('lists Pickups in the Review group, after Proof', () => {
     renderShell();
     const review = screen.getAllByRole('group', { name: 'Review' })[0];
@@ -188,8 +187,8 @@ describe('AppShell grouped navigation (Phase 1)', () => {
   });
 });
 
-// Phase 1 (Q7): the engine chip replaces the REAPER pill, in place.
-describe('AppShell engine chip (Phase 1)', () => {
+// The engine chip replaces the REAPER pill, in place.
+describe('AppShell engine chip', () => {
   it('defaults to the REAPER pill states when no engine prop is given', () => {
     renderShell({ dawFileLinked: false });
     expect(screen.getByRole('button', { name: /No REAPER project linked/ })).toBeTruthy();
@@ -202,8 +201,8 @@ describe('AppShell engine chip (Phase 1)', () => {
   });
 });
 
-// Phase 1 (app-navigation-and-zoom-controls.prd.md, Q1 A, Q8): Back and Forward at the left of the header.
-describe('AppShell header history controls (Phase 1)', () => {
+// Back and Forward at the left of the header.
+describe('AppShell header history controls', () => {
   it('are disabled with a reason when there is nowhere to go', () => {
     renderShell({ history: noHistory });
     expect((screen.getByRole('button', { name: 'Back' }) as HTMLButtonElement).getAttribute('aria-disabled')).toBe('true');
@@ -228,9 +227,9 @@ describe('AppShell header history controls (Phase 1)', () => {
   });
 });
 
-// Phase 2 (app-navigation-and-zoom-controls.prd.md, Q1/Q9, ADR 0201): the zoom group, after a running timer chip and
+// ADR 0201: the zoom group, after a running timer chip and
 // before the engine chip.
-describe('AppShell header zoom group (Phase 2)', () => {
+describe('AppShell header zoom group', () => {
   it('is a "Zoom" group with the level readout between zoom out and zoom in', () => {
     renderShell({ zoom: { ...defaultZoom, percent: 125, canZoomOut: true } });
     const group = screen.getByRole('group', { name: 'Zoom' });
@@ -259,7 +258,7 @@ describe('AppShell header zoom group (Phase 2)', () => {
     expect(zoomOut).toHaveBeenCalledTimes(1);
   });
 
-  it('the readout is disabled at exactly 100% (Q9 A) and calls reset() when not', () => {
+  it('the readout is disabled at exactly 100% and calls reset() when not', () => {
     renderShell({ zoom: defaultZoom });
     const atDefault = screen.getByRole('button', { name: /Reset zoom to 100%/ });
     expect(atDefault.getAttribute('aria-disabled')).toBe('true');
@@ -279,8 +278,8 @@ describe('AppShell header zoom group (Phase 2)', () => {
   });
 });
 
-// Phase 2 (the header, item 4): the running-timer chip sits right-aligned before the engine chip, and only while a timer runs.
-describe('AppShell running-timer chip (Phase 2)', () => {
+// The running-timer chip sits right-aligned before the engine chip, and only while a timer runs.
+describe('AppShell running-timer chip', () => {
   it('shows no timer chip when no timer runs', () => {
     renderShell();
     expect(screen.queryByRole('timer')).toBeNull();
@@ -299,8 +298,8 @@ describe('AppShell running-timer chip (Phase 2)', () => {
   });
 });
 
-describe('AppShell rail (mock fidelity, N-B61)', () => {
-  // Mock 01-05 draw the product's name as "NARRATION / STUDIO" (owner ruling 2026-09-29); the app said "Console".
+describe('AppShell rail', () => {
+  // The mock draws the product's name as "NARRATION / STUDIO"; the app once said "Console".
   it('names the product Studio, not Console', () => {
     const { container } = renderShell();
     expect(container.textContent).toContain('Studio');

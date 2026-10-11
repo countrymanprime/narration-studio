@@ -11,13 +11,12 @@ type Props = {
   onCreated: (result: ProjectSwitchResult) => void;
 };
 
-// The "Visual Studio model" the PRD asks for (project-workspace-and-daw-link.prd.md, Phase 2, W9): a name and,
-// optionally, a chosen location, instead of browsing to a raw folder. An empty parent tells ProjectCreateIn to
-// default to the Phase 1 projects directory, so this dialog never needs to know that path itself.
+// The "Visual Studio model": a name and, optionally, a chosen location, instead of browsing to a raw folder.
+// An empty parent tells ProjectCreateIn to default to the projects directory, so this dialog never needs to know that path itself.
 export function NewProjectDialog({ onClose, onCreated }: Props) {
   const api = useApi();
   const [name, setName] = useState('');
-  // null: use the Phase 1 projects directory (the binding's own default for an empty parent).
+  // null: use the projects directory (the binding's own default for an empty parent).
   const [parent, setParent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');

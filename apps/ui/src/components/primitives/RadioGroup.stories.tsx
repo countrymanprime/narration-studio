@@ -36,7 +36,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// chapter-track-link-control.prd.md Phase 3's "Remove from recording?" confirm (mockup 06): both options and their
+// The "Remove from recording?" confirm: both options and their
 // help text are visible together, not one at a time behind a Select.
 export const Default: Story = {};
 

@@ -78,8 +78,8 @@ function renderBar(
   return render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        {/* The booth scope Phase 4 wraps the read-aloud dialog and the Teleprompter page in, so `reading.toggle` (Space)
-            resolves here the same as it does mounted there. */}
+        {/* The booth scope `BoothSession` wraps the Booth in, so `reading.toggle` (Space) resolves here the same as it does
+            mounted there. */}
         <CommandRouter>
           <CommandScope kind="booth">
             <ReadingControlBar
@@ -305,13 +305,13 @@ describe('ReadingControlBar', () => {
     expect(within(popup).getByRole('button', { name: 'Small' }).hasAttribute('disabled')).toBe(true);
   });
 
-  describe('REAPER state (Phase 6, read-only)', () => {
-    it('omits the REAPER indicator without a chapter id (credits mode, the standalone page)', () => {
+  describe('REAPER state (read-only)', () => {
+    it('omits the REAPER indicator without a chapter id (credits mode)', () => {
       renderBar(baseSession(), followCursor());
       expect(screen.queryByRole('button', { name: /Record in REAPER/ })).toBeNull();
     });
 
-    it("shows the chapter's armed state once asked, gated on the record capability (experimental and off by default, DAW port PRD Phase 7)", async () => {
+    it("shows the chapter's armed state once asked, gated on the record capability (experimental and off by default)", async () => {
       const readAloudReaperState = vi.fn(async () => reaperState({ status: 'ready' }));
       renderBar(baseSession(), followCursor(), { chapterId: 'chapter-3', apiOverrides: { readAloudReaperState } });
 
@@ -334,7 +334,7 @@ describe('ReadingControlBar', () => {
       await waitFor(() => expect(readAloudReaperState).toHaveBeenCalledTimes(2));
     });
 
-    it('is enabled and shows the chapter armed state once the record capability is turned on (DAW port PRD Phase 7)', async () => {
+    it('is enabled and shows the chapter armed state once the record capability is turned on', async () => {
       const readAloudReaperState = vi.fn(async () => reaperState({ status: 'ready' }));
       const daw: DawMockSeed = { toggles: { record: 'on' } };
       renderBar(baseSession(), followCursor(), { chapterId: 'chapter-3', apiOverrides: { readAloudReaperState }, daw });
@@ -345,7 +345,7 @@ describe('ReadingControlBar', () => {
     });
   });
 
-  describe('Record in REAPER (Phase 7)', () => {
+  describe('Record in REAPER', () => {
     const daw: DawMockSeed = { toggles: { record: 'on' } };
 
     it('clicking the toggle calls recording.toggle', async () => {
@@ -467,7 +467,7 @@ describe('ReadingControlBar', () => {
       expect(recording.afterStop).toHaveBeenCalled();
     });
 
-    it('Play and Stop orchestrate nothing on the standalone page, where no `recording` prop is passed (Q11 A)', async () => {
+    it('Play and Stop orchestrate nothing when no `recording` prop is passed', async () => {
       const user = userEvent.setup();
       const start = vi.fn();
       const session = baseSession({ device: 'Shure MV7', canStart: true, active: false, start });
@@ -479,7 +479,7 @@ describe('ReadingControlBar', () => {
     });
   });
 
-  describe('Space shortcut (Q10)', () => {
+  describe('Space shortcut', () => {
     it('toggles Play when focus is not in a field, button or other widget', async () => {
       const user = userEvent.setup();
       const start = vi.fn();
@@ -491,7 +491,7 @@ describe('ReadingControlBar', () => {
       expect(start).toHaveBeenCalled();
     });
 
-    it('pauses a listening session on Space (not Stop, Q3/Q10)', async () => {
+    it('pauses a listening session on Space (not Stop)', async () => {
       const user = userEvent.setup();
       const pause = vi.fn();
       renderBar(baseSession({ active: true, paused: false, pause }), followCursor());

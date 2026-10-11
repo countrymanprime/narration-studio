@@ -34,7 +34,7 @@ type Props = {
   onFullApp: () => void;
 };
 
-// How long a first Escape waits for the second (Open Question 5: "pressing Escape twice, once to confirm").
+// How long a first Escape waits for the second (Escape twice: once to ask, once to confirm).
 const ESCAPE_CONFIRM_MS = 3000;
 
 const SECTION_LABEL = "font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase";
@@ -47,7 +47,7 @@ function playheadTime(seconds: number): string {
   return `${minutes}:${rest.toFixed(1).padStart(4, '0')}`;
 }
 
-/** REAPER's transport from `daw_transport_changed` (DAW port PRD Phase 9). Pushed only: until the first push, stopped. */
+/** REAPER's transport from `daw_transport_changed` (ADR 0305). Pushed only: until the first push, stopped. */
 function useDawTransport(): DawTransport {
   const api = useApi();
   const [transport, setTransport] = useState<DawTransport>({ playing: false, recording: false });
@@ -127,13 +127,12 @@ function Section({ title, badge, children, first = false }: { title: string; bad
 
 /**
  * Companion mode's layout: `CompactShell` in the app's own window, narrowed
- * and pinned beside the DAW (Phase 6's bindings). It is the same teleprompter session the Read aloud dialog and the booth
- * show (`BoothSession` renders this in place of `BoothView`), re-laid out for a 380 px column: REAPER's playhead in the
- * header, then the script, the note at the playhead (reserved for the closed-loop proofing PRD - an honest "Coming soon"
- * until then, D3), the Pickups page's list, and the gestures that work here.
+ * and pinned beside the DAW (ADR 0401). It is the same teleprompter session the Booth
+ * shows (`BoothSession` renders this in place of `BoothView`), re-laid out for a 380 px column: REAPER's playhead in the
+ * header, then the script, the note at the playhead (not built yet, so an honest "Coming soon"), the Pickups page's list, and the gestures that work here.
  *
  * Play/Pause and Stop repeat `BoothView`'s few lines on the same handlers rather than share a hook with it: each surface
- * is mounted alone (one `reading.toggle` registration at a time), and those files belong to other phases in flight.
+ * is mounted alone (one `reading.toggle` registration at a time).
  */
 export function CompanionShell({ session: t, follow, chapterTitle, chapterId, recording, marks, onFullApp, onOpenMark, header }: Props) {
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
@@ -195,7 +194,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
         status={<StatusBadge tone={playhead.tone} label={playhead.label} />}
         action={
           // Mock 07 draws Full app at 26 px, slightly smaller than the companion's own 28 px controls; `sm` (28 px, `--button-height-sm`)
-          // is the closest fixed size without adding one the primitive does not have (mock-fidelity PRD Phase 13).
+          // is the closest fixed size without adding one the primitive does not have.
           <Button variant="secondary" size="sm" onClick={onFullApp}>
             <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} /> Full app
           </Button>

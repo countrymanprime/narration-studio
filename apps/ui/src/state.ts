@@ -92,16 +92,15 @@ export const highlightEntitiesInText = (text: string, entities: { name: string; 
 const WORDS_PER_FINISHED_HOUR = 9300;
 export const estimateFinishedHours = (wordCount: number): number => wordCount / WORDS_PER_FINISHED_HOUR;
 
-// Credits time (audiobook-credits-templates.prd.md, Phase 2, Open Question C9): the same 155 wpm figure as
-// estimateFinishedHours above ("Estimate constants disagree" is the PRD's own named risk, so this reuses
-// WORDS_PER_FINISHED_HOUR rather than a second 155/60 constant). Credits are read as separate files from the
-// narration chapters (ACX convention, Open Question C11), so each segment (an opening or closing template's
+// Credits time: the same 155 wpm figure as estimateFinishedHours above, so this reuses WORDS_PER_FINISHED_HOUR
+// rather than a second 155/60 constant that could drift from it. Credits are read as separate files from the
+// narration chapters (ACX convention), so each segment (an opening or closing template's
 // rendered text) is timed on its own and carries its own room-tone padding: the narrator's General >
-// "Room tone per credits file" setting (Phase 5, ADR 0151), which defaults to 0 seconds per file (C9).
+// "Room tone per credits file" setting (ADR 0151), which defaults to 0 seconds per file.
 export const CREDITS_ROOM_TONE_SECONDS_PER_FILE = 0;
 export const estimateCreditsSeconds = (segmentWordCounts: number[], roomToneSecondsPerFile = CREDITS_ROOM_TONE_SECONDS_PER_FILE): number =>
   segmentWordCounts.reduce((total, words) => total + (words / WORDS_PER_FINISHED_HOUR) * 3600 + roomToneSecondsPerFile, 0);
-// Chapter announcements (Phase 5, ADR 0151) are read at the head of each chapter's own file, not as files of their own,
+// Chapter announcements (ADR 0151) are read at the head of each chapter's own file, not as files of their own,
 // so they are timed at the same rate with no room tone.
 export const estimateAnnouncementSeconds = (announcementWordCounts: number[]): number => estimateCreditsSeconds(announcementWordCounts, 0);
 // A retail sample's length as the narrator reads it ("2m 05s"), the same rounding the host's refusal message uses.
@@ -115,7 +114,7 @@ export const roomToneSeconds = (value: string | undefined): number => {
   return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
 };
 
-// A chapter or credits card's read time (manuscript-credits-card-parity.prd.md, MC6): the same 200 words/minute figure
+// A chapter or credits card's read time: the same 200 words/minute figure
 // the chapter header uses, shared by every card so a short credits segment reads "~2 s read" instead of
 // rounding up to "~1 min read". Seconds under a minute (below 200 words); minutes at and above it, matching the old
 // chapter-only formula exactly there (the round trip through seconds cannot push a large word count's minutes off by one).
@@ -143,7 +142,7 @@ export const chapterLineNumbers = (paragraphs: ManuscriptParagraph[]): Map<numbe
 // The line number a search hit or bookmark should show for a global paragraph index, in a chapter
 // that may not be loaded (collapsed, never expanded). `chapter.paragraphIds` already carries each
 // paragraph's position within its own chapter as imported, so this needs no paragraph body to be
-// fetched (R5). Manuscripts imported before `paragraphIds` existed fall back to `loadedLineNumbers`
+// fetched. Manuscripts imported before `paragraphIds` existed fall back to `loadedLineNumbers`
 // (chapterLineNumbers of whatever chapters happen to be expanded), and finally to the raw global
 // paragraph index if neither source has it - never undefined, so a row always shows something.
 export const chapterLineNumber = (
@@ -156,7 +155,7 @@ export const chapterLineNumber = (
   return loadedLineNumbers.get(paragraphIndex) ?? paragraphIndex;
 };
 
-// The chapter-title/subtitle subset (R2): filtered client-side from the already-loaded `chapters`
+// The chapter-title/subtitle subset: filtered client-side from the already-loaded `chapters`
 // list, so it costs no request and updates on every keystroke - unlike the debounced line search,
 // which waits (SEARCH_DEBOUNCE_MS) and hits Go. Returns the matching chapter ids; a blank query
 // matches nothing (an empty search shows the plain chapter list, not "everything").
@@ -170,7 +169,7 @@ export const chapterTextMatches = (chapters: Pick<ManuscriptChapter, 'id' | 'tit
   );
 };
 
-// The result row's character budget (R3): measured from the panel's own layout, not a guess. The
+// The result row's character budget: measured from the panel's own layout, not a guess. The
 // panel is `w-[min(20rem,100vw)]` with `p-[1.1rem]` padding (SlideOver.tsx), leaving a hit row about
 // 220-230px wide at the row's 0.74rem font size - about 35-40 characters - so this is that measured
 // width, taken once rather than re-measured live (a ResizeObserver/canvas.measureText round trip)
@@ -180,7 +179,7 @@ const SEARCH_EXCERPT_BUDGET = 38;
 
 export type WindowedExcerpt = { text: string; matchStart: number; matchLength: number };
 
-// Windows a long excerpt around its match to fit a result row (R3). The match is never cut, except
+// Windows a long excerpt around its match to fit a result row. The match is never cut, except
 // when the match term alone is wider than the budget, which then truncates the term itself. When the
 // match already falls within the first `budget` characters, only the tail is cut (ellipsis on the
 // right - the common case, a match near the start of a paragraph). Otherwise the window shifts to

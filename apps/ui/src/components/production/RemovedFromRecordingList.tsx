@@ -6,7 +6,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 
 /**
- * "Removed from recording" (chapter-track-link-control.prd.md Phase 3, mockup 07): every chapter reclassified out of
+ * "Removed from recording" every chapter reclassified out of
  * narration, with Restore. `chapters` is the caller's full list, already carrying `removedFromRecording`; nothing
  * renders while none are removed.
  */

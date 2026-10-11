@@ -1,4 +1,4 @@
-/** Where a command can fire (Solution Detail, ADR 0361 decision 1). */
+/** Where a command can fire (ADR 0361 decision 1). */
 export type Scope = 'global' | 'page' | 'booth' | 'dialog';
 
 /**
@@ -15,8 +15,7 @@ const OVERLAPPING_PAIRS: ReadonlySet<string> = new Set(['booth+dialog', 'booth+g
  * narrator-visible conflict rather than one the router's own precedence already keeps apart.
  *
  * A screen has at most one "surface" scope - `dialog`, `booth` or `page` - plus `global`, unless a dialog is open
- * (`router.tsx`'s `activeScopes`, ADR 0361 decision 4). `booth` is the Booth page's (stage-navigation-and-page-
- * replacement.prd.md Phase 4, which replaced the Teleprompter page and the read-aloud dialog with it), and a confirm
+ * (`router.tsx`'s `activeScopes`, ADR 0361 decision 4). `booth` is the Booth page's (it replaced the Teleprompter page and the read-aloud dialog), and a confirm
  * or popover opened inside it can sit on top as a `dialog`, so it claims the surface the same way `dialog` does: on a
  * booth screen, `page` is never also active, exactly as `page` is never active while a dialog is open. That is the one
  * point past the ADR's literal "page overlaps booth": read that way, the default catalog could never pass "zero

@@ -42,7 +42,7 @@ describe('CreditsPanel', () => {
     expect(await screen.findByText(/Bad Ideas Look Great in Neon/)).toBeTruthy();
   });
 
-  it('offers a source-captioned detected value for every empty field with a candidate, and accepting one saves it (credits-token-setup-and-front-matter-detection.prd.md Phase 1)', async () => {
+  it('offers a source-captioned detected value for every empty field with a candidate, and accepting one saves it', async () => {
     renderPanel();
     const detected = await screen.findAllByText(/Detected from/);
     expect(detected.length).toBeGreaterThanOrEqual(2);
@@ -62,7 +62,7 @@ describe('CreditsPanel', () => {
     await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === '[Title], read by [Narrator].')).toBe(true));
   });
 
-  it('offers the chapter announcement kind and previews it for the first chapter, filling [Chapter] and [Chapter Title] (Phase 5)', async () => {
+  it('offers the chapter announcement kind and previews it for the first chapter, filling [Chapter] and [Chapter Title]', async () => {
     const { api } = renderPanel();
     await screen.findByRole('combobox', { name: 'Template' });
     fireEvent.click(screen.getByRole('button', { name: 'New' }));
@@ -75,7 +75,7 @@ describe('CreditsPanel', () => {
   });
 });
 
-describe('Retail sample (Phase 5, C10)', () => {
+describe('Retail sample', () => {
   const pick = (name: string, value: string) => fireEvent.change(screen.getByRole('combobox', { name }), { target: { value } });
 
   it('saves the range the narrator picks and shows its length, as a marker that adds no time', async () => {

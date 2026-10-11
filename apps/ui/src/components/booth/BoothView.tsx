@@ -31,10 +31,10 @@ type Props = {
   chapterTitle?: string;
   /** The chapter's short name, in the command bar's armed state ("Chapter 1 armed"). */
   chapterShortTitle?: string;
-  /** The Record-in-REAPER toggle's state (booth-actions-enablement.prd.md Phase 2), owned by `BoothSession`: the
+  /** The Record-in-REAPER toggle's state owned by `BoothSession`: the
    * command bar's toggle and the status bar's "REC · P&R" badge read the same one. */
   recording: RecordInReaperState;
-  /** The built-in recorder (native-recording-suite Phase 2, ADR 0455): with the project on "Built-in recorder" it takes
+  /** The built-in recorder (ADR 0455): with the project on "Built-in recorder" it takes
    * REAPER's place in the status line, the command bar and the rail. */
   recorder?: Recorder;
   /** The resume prompt's chosen start point, shown as the command bar's clearable chip while idle. */
@@ -48,16 +48,16 @@ type Props = {
   /** The `ReaderRail` element `BoothSession` builds: `FocusShell` gives it its own landmark. */
   rail: ReactNode;
   /** The Story Bible entries this chapter mentions, in the order they first appear (the same list the rail's Story
-   * bible tab shows); the characters among them are the "Voices in scene" section (Phase 3). Absent in credits mode,
+   * bible tab shows); the characters among them are the "Voices in scene" section. Absent in credits mode,
    * which has no chapter text to mark and so no section. */
   speakers?: GuideEntity[];
   /** Opens a speaker's Story Bible entry in the rail, the same as activating its mark in the text. */
   onOpenSpeaker?: (entity: GuideEntity) => void;
-  /** Speaker tags by row key, for the text's gutter (audit BO4). */
+  /** Speaker tags by row key, for the text's gutter. */
   speakerLabels?: Map<string, string>;
-  /** The next names ahead with a pronunciation, for the rail's "Coming up" (audit BO8). Absent in credits mode. */
+  /** The next names ahead with a pronunciation, for the rail's "Coming up". Absent in credits mode. */
   comingUp?: ComingUpName[];
-  /** Companion mode (ADR 0401), entered from the header (stage navigation Q9). */
+  /** Companion mode (ADR 0401), entered from the header. */
   onCompanion?: () => void;
   /** Exit booth (the header button, or Escape: `BoothSession` asks first while a session listens). */
   onExit: () => void;
@@ -69,7 +69,7 @@ const ROOM_QUIET_DB = -60;
 const CHIP_CLASS = 'hidden flex-none items-center gap-1.5 whitespace-nowrap min-[1180px]:inline-flex';
 
 /**
- * The status line's Room, Mic and DAW chips (mock 03, audit BO6/BO7, owner call BO2). Each says what the app really knows and
+ * The status line's Room, Mic and DAW chips (mock 03). Each says what the app really knows and
  * nothing the mock's sample data claims:
  * - Room is the last input level read while nothing was being read (the microphone popover's meter, or a level the host sent
  *   before Play): the room's noise floor, in dB. With no reading yet it says so.
@@ -102,7 +102,7 @@ function BoothChips({ device, roomDb, recording, recorder }: { device: string; r
 }
 
 /** The booth's status line (mock 03's top bar): recording/reading state, the chapter, progress ("¶ 38 of 71 · 41% · ~8:10
- * finished left", audit BO5) and the live input level. The microphone, engine and model choices and the REAPER toggle are the command bar's (`ReadingControlBar`),
+ * finished left") and the live input level. The microphone, engine and model choices and the REAPER toggle are the command bar's (`ReadingControlBar`),
  * so the status line only reads them. */
 function BoothStatus({
   session: t,
@@ -187,12 +187,12 @@ const SECTION_LABEL = "font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-
 /**
  * The rail's "Voices in scene" section: the chapter's Story Bible
  * characters as speaker tags, each opening its entry in the rail's Story bible tab. Each tag draws in its own
- * per-speaker colour (D85 #6, ADR 0367) via `Highlight`'s `colorToken` override, keyed by the same canonical name the
+ * per-speaker colour (ADR 0367) via `Highlight`'s `colorToken` override, keyed by the same canonical name the
  * Script reader's `SpeakerTag` hashes (manuscript/ParagraphView.tsx), so a speaker's colour matches on both pages -
  * still the `Highlight` primitive and its Character kind/behaviour, only the colour source changed. The
- * per-character voice reference clip the booth mock plays here is Character Continuity Review's work (PRD D3): until
- * it lands, the section says so honestly (Open Question 6) instead of leaving a gap, so the layout does not shift
- * when real clips arrive in this same slot.
+ * per-character voice reference clip the booth mock plays here does not exist yet: until it does, the section says so
+ * ("Reference clips coming soon") instead of leaving a gap, so the layout does not shift when real clips arrive in
+ * this same slot.
  */
 function BoothSpeakers({ speakers, onOpenSpeaker }: { speakers: GuideEntity[]; onOpenSpeaker?: (entity: GuideEntity) => void }) {
   const headingId = useId();
@@ -228,10 +228,10 @@ function BoothSpeakers({ speakers, onOpenSpeaker }: { speakers: GuideEntity[]; o
 }
 
 /**
- * The rail's "Coming up" (mock 03, audit BO8): the next few names the narrator will read that have a pronunciation in the
+ * The rail's "Coming up" (mock 03): the next few names the narrator will read that have a pronunciation in the
  * Story Bible (the same list Script's Pronunciations tab keeps), each with how to say it and where that stands - so a
- * name is checked before it is reached, not after. Nothing ahead with a pronunciation: the section is not drawn (booth
- * mode D3's precedent, nothing drawn empty).
+ * name is checked before it is reached, not after. Nothing ahead with a pronunciation: the section is not drawn, so
+ * nothing is drawn empty.
  */
 function BoothComingUp({ names, onOpen }: { names: ComingUpName[]; onOpen?: (entity: GuideEntity) => void }) {
   const headingId = useId();
@@ -311,8 +311,8 @@ export function BoothView({
   return (
     <FocusShell
       status={<BoothStatus session={t} chapterTitle={chapterTitle} recording={recording} recorder={recorder} onCompanion={onCompanion} onExit={onExit} />}
-      // Mock 03's reading surface is darker than the app's `--bg` (Q6): the token has a light-theme value too, so
-      // nothing is forced (D69).
+      // Mock 03's reading surface is darker than the app's `--bg`: the token has a light-theme value too, so
+      // nothing is forced.
       contentClassName="bg-[var(--reading-bg)] px-[1.375rem] py-7"
       rail={railBeside ? railContent : undefined}
       // A route inside AppShell, whose own `<main>` holds this page: a second one would duplicate the landmark.

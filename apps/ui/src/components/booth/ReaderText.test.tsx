@@ -18,7 +18,7 @@ const row = (overrides: Partial<ReaderRow> = {}): ReaderRow => ({
   ...overrides,
 });
 
-describe('ReaderText word-click seek (teleprompter-manuscript-integration.prd.md Phase 4)', () => {
+describe('ReaderText word-click seek', () => {
   it('renders no clickable words when onSeek is not given (no session, or a session not yet active)', () => {
     render(<ReaderText rows={[row()]} cursor={2} skipped={[]} follow={false} />);
     expect(screen.queryAllByRole('button')).toHaveLength(0);
@@ -66,7 +66,7 @@ const note = { id: 'n1', text: 'Slow down.', paragraph: 0 } as ManuscriptNote;
 const entityMark = (from: number, to: number): ReaderMark => ({ id: `entity-${from}`, from, to, value: { kind: 'entity', entity: alice } });
 const noteMark = (from: number, to: number): ReaderMark => ({ id: `note-${from}`, from, to, value: { kind: 'note', note } });
 
-describe('ReaderText story bible and note marks (teleprompter-manuscript-integration.prd.md Phase 5)', () => {
+describe('ReaderText story bible and note marks', () => {
   it('draws an entity in its Story Bible category colour and a note as a note, through Highlight', () => {
     const marks = new Map([['p1', [entityMark(0, 1), noteMark(3, 5)]]]);
     const { container } = render(<ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} marks={marks} />);
@@ -203,7 +203,7 @@ const flagMark = (from: number, to: number, kind: 'misread' | 'extra' | 'skipped
   value: { kind: 'flag', flag: { type: 'flag', id: from + 1, kind, start: from, end: to, heard } },
 });
 
-describe('ReaderText flag marks (teleprompter-manuscript-integration.prd.md Phase 7)', () => {
+describe('ReaderText flag marks', () => {
   it('draws each flag kind through Highlight, and a flag over a name keeps the name', () => {
     const marks = new Map([['p1', [entityMark(0, 1), flagMark(0, 1, 'misread', 'Alison'), flagMark(4, 6, 'skipped', '')]]]);
     const { container } = render(<ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} marks={marks} onOpenMark={vi.fn()} />);

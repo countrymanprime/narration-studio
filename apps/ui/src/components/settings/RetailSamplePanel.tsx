@@ -28,7 +28,7 @@ function LabelledSelect(props: { label: string; value: string; onChange: (value:
 const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
- * Settings > Credits > Retail sample (audiobook-credits-templates.prd.md Phase 5, Open Question C10, ADR 0152): the
+ * Settings > Credits > Retail sample (ADR 0152): the
  * narrator picks where the sample starts and ends, anywhere in the book, by chapter and the line numbers the Manuscript
  * reader shows. The host measures it and refuses a range over 5 minutes; it is a marker only and adds no time to the
  * estimate.

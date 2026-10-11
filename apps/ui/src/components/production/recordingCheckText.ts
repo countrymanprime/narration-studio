@@ -51,7 +51,7 @@ export const COVERAGE_REASON_TEXT: Record<CoverageReason, string> = {
 };
 
 /**
- * The reasons a narrator answers by linking the chapter to a track, right there in the dialog (analysis evidence ledger, Phase 7). Only a
+ * The reasons a narrator answers by linking the chapter to a track, right there in the dialog. Only a
  * chapter with no link at all: a link to a missing track has to be cleared first, or a new one would make two, so that one goes to Tracks.
  */
 export const LINK_REASONS: ReadonlySet<CoverageReason> = new Set(['unmapped']);
@@ -113,7 +113,7 @@ export function formatAudioTime(seconds: number): string {
 }
 
 /**
- * The report's headline. With a judgement (recording-check-summary PRD Phase 2, ADR 0204) it leads with the host's
+ * The report's headline. With a judgement (ADR 0204) it leads with the host's
  * pass/fail, the same rule the stage signal uses, so the dialog and the stage engine never disagree: a passing
  * chapter reads "Passes the check" with the judgement's own reason as a plain detail line below it; a failing one
  * folds the reason (the gap that fails first) straight into the headline itself - "Not complete: paragraph 14: 9
@@ -206,7 +206,7 @@ export function recheckLabel(report: CoverageReport): string | undefined {
 }
 
 /** The user flow's "First pass (tiny)", then "Re-checking 3 passages (large-v3-turbo)": a live check's current pass
- * in plain words, from the model cascade's own progress fields (Phase 5). undefined for a plain, single-model check
+ * in plain words, from the model cascade's own progress fields. undefined for a plain, single-model check
  * (state.pass is only ever set for one that asked for a re-check) or before the first live event of a new run. */
 export function passLabel(state: CoverageState): string | undefined {
   switch (state.pass) {

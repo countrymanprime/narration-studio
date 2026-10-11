@@ -90,14 +90,14 @@ function ExtraChip({ extra }: { extra: WorkspaceExtra }) {
 }
 
 /**
- * The chapter's script, one paragraph at a time (edit-and-proof-workspace.prd.md Phase 2): every token rendered
+ * The chapter's script, one paragraph at a time: every token rendered
  * inline, flagged ones marked in place (struck through, underlined, dimmed - see STATUS_CLASS), the currently
- * playing token highlighted, and a click on a timed token seeking the app player there (EP5). Auto-scrolls the
+ * playing token highlighted, and a click on a timed token seeking the app player there. Auto-scrolls the
  * current token into view while playing, and stops (scroll-lock) the moment the narrator scrolls the panel
- * themselves, with a "Resume following" control to re-engage - the mockup's "Following playback - scroll away to
- * stop following" status line. Shift+click selects a passage from the last word clicked (a right click selects the word
+ * themselves, with a "Resume following" control to re-engage, and a "Following playback" status line.
+ * Shift+click selects a passage from the last word clicked (a right click selects the word
  * under it), and the right-click menu offers to add an effect to the passage or put an FX chain on the chapter's track
- * (edit-and-proof-workspace.prd.md Phase 9, `effects`). Paragraphs get `content-visibility: auto` so the browser skips laying out and
+ * (`effects`). Paragraphs get `content-visibility: auto` so the browser skips laying out and
  * painting the (thousands of) words currently off-screen, a chapter's worth of virtualisation with no extra code.
  */
 export function ScriptView({
@@ -115,7 +115,7 @@ export function ScriptView({
   currentTokenIndex: number | undefined;
   isPlaying: boolean;
   onSeekToken: (token: WorkspaceToken) => void;
-  /** Effects on a passage (Phase 9): `blocked` is why REAPER cannot be asked now (not connected), or undefined; `onRequest`
+  /** Effects on a passage: `blocked` is why REAPER cannot be asked now (not connected), or undefined; `onRequest`
    * opens the confirm step. Absent, the script offers no menu. */
   effects?: { blocked: string | undefined; onRequest: (request: FxRequest) => void };
 }) {
@@ -155,7 +155,7 @@ export function ScriptView({
     const target = container?.querySelector(`[data-token-index="${currentTokenIndex}"]`);
     if (!container || !target) return;
     suppressScrollRef.current = true;
-    // Only the script's own box scrolls, never the page: the chapter view leads with mock 04's notes (ADR 0470), so a
+    // Only the script's own box scrolls, never the page: the chapter view leads with the notes (ADR 0470), so a
     // `scrollIntoView` here would drag the whole page down to the script on load and on every word.
     const box = container.getBoundingClientRect();
     const word = target.getBoundingClientRect();

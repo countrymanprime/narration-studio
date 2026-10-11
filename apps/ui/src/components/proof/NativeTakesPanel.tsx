@@ -52,12 +52,12 @@ function useTakePlayer() {
 }
 
 /**
- * Native takes (native-recording-suite PRD Phase 4, "take review integration"): the built-in recorder's takes
+ * Native takes: the built-in recorder's takes
  * already assigned to a line of this chapter, grouped by line, next to REAPER-sourced take review on the same Proof
- * page - one take-review experience whatever the source (Phase 4's goal). The narrator marks one take the "keeper" of
- * its line (Q5: narrator-confirmed, always undoable by marking it again or choosing a different take of the same
- * line) and can assign a not-yet-assigned take to one of this chapter's paragraphs (Phase 3's SetTakeLine, first
- * reachable from the UI here). No editing: this only organizes takes already on disk (D86, record-and-organize only).
+ * page - one take-review experience whatever the source. The narrator marks one take the "keeper" of
+ * its line (narrator-confirmed, always undoable by marking it again or choosing a different take of the same
+ * line) and can assign a not-yet-assigned take to one of this chapter's paragraphs (SetTakeLine, first
+ * reachable from the UI here). No editing: this only organizes takes already on disk.
  */
 export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
   const api = useApi();
@@ -85,8 +85,8 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
   const paragraphIds = chapter.paragraphIds ?? [];
   const chapterEntityIds = new Set([chapter.id, ...paragraphIds.map((paragraph) => paragraph.id)]);
   const assigned = state.takes.filter((take) => take.lineId !== null && chapterEntityIds.has(entityIdOf(take.lineId)));
-  // Offering not-yet-assigned takes for assignment is an active-recording-engine workflow (D67 mock-first behind
-  // every port carries the same spirit here): a REAPER-only project's chapters stay uncluttered by it, while a take
+  // Offering not-yet-assigned takes for assignment is an active-recording-engine workflow, so it is
+  // offered only when the built-in engine is current: a REAPER-only project's chapters stay uncluttered by it, while a take
   // already assigned and reviewed here (keeper marked or not) keeps showing regardless of which engine is current.
   const unassigned = state.engine === 'builtin' ? state.takes.filter((take) => take.lineId === null) : [];
 

@@ -33,13 +33,13 @@ const syncRow: ChapterSyncChapter = {
   pickupsChanged: false,
 };
 
-describe('chapterCheckStatus (daw-chapter-track-auto-sync.prd.md Phase 6, S14)', () => {
+describe('chapterCheckStatus', () => {
   it('shows checking, before anything else, when a check is running on this chapter', () => {
     expect(chapterCheckStatus(undefined, undefined, true, 42)).toEqual({ kind: 'checking', percent: 42 });
     expect(chapterCheckStatus({ ...link, status: 'confirmed', track }, syncRow, true)).toEqual({ kind: 'checking', percent: undefined });
   });
 
-  it('carries background (daw-chapter-track-auto-sync.prd.md Phase 7, ADR 0211): the host started this run, not the narrator', () => {
+  it('carries background (ADR 0211): the host started this run, not the narrator', () => {
     expect(chapterCheckStatus(undefined, undefined, true, 40, true)).toEqual({ kind: 'checking', percent: 40, background: true });
     expect(chapterCheckStatus(undefined, undefined, true, 40, false)).toEqual({ kind: 'checking', percent: 40, background: false });
   });
@@ -127,7 +127,7 @@ describe('chapterCheckStatusText', () => {
     expect(chapterCheckStatusText('Chapter 6', { kind: 'checking' }).label).toBe('Checking');
   });
 
-  it('marks a background check (daw-chapter-track-auto-sync.prd.md Phase 7): the host started it, not the narrator', () => {
+  it('marks a background check (ADR 0211): the host started it, not the narrator', () => {
     const text = chapterCheckStatusText('Chapter 6', { kind: 'checking', percent: 42.9, background: true });
     expect(text.label).toBe('Checking 42% (background)');
     expect(text.name).toBe('Checking 42% (background), recording of Chapter 6');

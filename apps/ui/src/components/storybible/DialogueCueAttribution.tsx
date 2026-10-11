@@ -11,7 +11,7 @@ const UNKNOWN_SPEAKER = 'unknown';
 
 /**
  * Dialogue cues attributed to this character, or left unknown, with a correction control
- * (character-continuity-review.prd.md Phase 6: "attribution correction", via the guide's correct_cue). A rebuild
+ * (attribution correction, via the guide's correct_cue). A rebuild
  * never overwrites a correction (ADR 0007's lock guard, applied to a cue). Self-fetching, like
  * VoiceReferencesSection - its own data source, independent of the entity edit form.
  */

@@ -26,9 +26,8 @@ const STATUS_COLOR: Record<LineIdentityRowStatus, string> = {
   unknown: 'var(--text-muted)',
 };
 
-/** One chapter mapped to a track: every one of the track's items will be stamped with this chapter's identity (Open Question 3,
- * chapter-level granularity). Building this mapping is this phase's stand-in for the chapter-to-track matcher planned for
- * teleprompter-manuscript-integration.prd.md Phase 8, which does not exist yet: see the PRD's Phase 7 row. */
+/** One chapter mapped to a track: every one of the track's items will be stamped with this chapter's identity
+ * (chapter-level granularity). The narrator picks each track by hand here; no automatic chapter-to-track matcher feeds it. */
 type ChapterMapping = Record<string, string>;
 
 function rowsFor(

@@ -1,5 +1,4 @@
-// The chapter track button's state (chapter-track-link-control.prd.md Phase 2, Solution Detail's "Button states"
-// table): one of seven states from a ChapterTrackLink, each with a distinct look and an accessible name that says
+// The chapter track button's state: one of seven states from a ChapterTrackLink, each with a distinct look and an accessible name that says
 // the state out loud, since colour is never the only signal (WCAG 1.4.1).
 import type { ChapterTrackLink } from '../../types';
 

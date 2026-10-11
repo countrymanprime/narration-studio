@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// chapter-title-display-consistency.prd.md: one formatter (chapterName.ts) and one component (primitives/TitleSubtitle)
+// ADR 0191: one formatter (chapterName.ts) and one component (primitives/TitleSubtitle)
 // draw a chapter's name everywhere. This ratchet (in the style of rawNatives.test.ts, ADR 0053) counts every other read
 // of `.subtitle` inside a JSX expression or a template literal in src/components/** - the two places text actually
 // reaches the screen - and fails when a file's count goes up. A file's count may only go down; lower its entry (or
@@ -15,20 +15,19 @@ const ALLOW_LIST = new Set([
   join('src', 'components', 'primitives', 'TitleSubtitle.tsx'),
   // Decides which subtitle survives the import review's own choices (join it, drop it, keep it) - not a display site.
   join('src', 'components', 'production', 'importReviewModel.ts'),
-  // Fits the sidecar's tracked title tokens - not a display site (chapter-title-display-consistency.prd.md, Q9).
+  // Fits the sidecar's tracked title tokens - not a display site.
   join('src', 'components', 'booth', 'readerModel.ts'),
-  // Renders the read-aloud heading's own stacked title/subtitle (Q9), the same visual convention TitleSubtitle.tsx
+  // Renders the read-aloud heading's own stacked title/subtitle, the same visual convention TitleSubtitle.tsx
   // uses - but cannot use that primitive itself, since the title here is per-word tracked markup, not a plain string.
   join('src', 'components', 'booth', 'ReaderText.tsx'),
 ]);
 
-// Phase 1's snapshot of today's count, one entry per file that still reads `.subtitle` directly. Phase 2 moves Home,
-// Manuscript and Chapters & Search onto TitleSubtitle (lowering these); Phase 3 moves the rest, including the Read
-// aloud heading and the Teleprompter select, and the ceiling reaches zero.
+// One entry per file that still reads `.subtitle` directly, with its count. Moving a site onto TitleSubtitle lowers
+// its entry; at zero the entry goes.
 const CEILING: Record<string, number> = {
   // The Production board: its rows go through chapterName(); the one
   // read is the ChapterTrackPanel call's prop handoff (`subtitle={...?.subtitle}`), so the slide-over title can draw the
-  // chapter's full name through chapterName(..., context('Track')) (chapter title display P3).
+  // chapter's full name through chapterName(..., context('Track')).
   [join('src', 'components', 'production', 'ChapterBoard.tsx')]: 1,
   // The joined-title row goes through chapterName()/TitleSubtitle; one read is the prop handoff to
   // TitleSubtitle (`subtitle={heading.subtitle}`), and one is the Subtitle checkbox's own accessible-name suffix
@@ -36,7 +35,7 @@ const CEILING: Record<string, number> = {
   [join('src', 'components', 'production', 'ImportReview.tsx')]: 2,
   // The row goes through TitleSubtitle; the one read is the prop handoff (`subtitle={chapter.subtitle}`).
   [join('src', 'components', 'manuscript', 'ChapterNav.tsx')]: 1,
-  // The chapter card is ReaderCard.tsx (manuscript-credits-card-parity.prd.md); the one read is the prop
+  // The chapter card is ReaderCard.tsx; the one read is the prop
   // handoff (`subtitle={chapter.subtitle}`), since ReaderCard reads the plain `subtitle` prop.
   [join('src', 'components', 'script', 'ScriptPage.tsx')]: 1,
 };

@@ -39,7 +39,7 @@ export const CAT_DOT_BG: Record<string, string> = {
 // for previewing an entity from the Manuscript without leaving the reader.
 // Editing (name, aliases, relationships, lock/delete) stays exclusive to
 // Story Bible - "Open in Story Bible" is the way in for that. Without `jumpToLine` the evidence has no "Go to line"
-// buttons: the read-aloud rail (teleprompter-manuscript-integration.prd.md Phase 5) shows the entry beside the text being
+// buttons: the read-aloud rail shows the entry beside the text being
 // read, where leaving for another line would abandon the reading.
 export function EntitySummary({ entity, jumpToLine }: { entity: GuideEntity; jumpToLine?: (chapter: string, paragraph: number) => void }) {
   const evidence = allEvidence(entity);

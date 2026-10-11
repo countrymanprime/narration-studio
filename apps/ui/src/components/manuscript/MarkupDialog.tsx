@@ -7,7 +7,7 @@ import { RadioGroup } from '../primitives/RadioGroup';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { markName, removeMarkLabel } from './markup';
 
-// Places a script mark on the selected words (prep-depth.prd.md Phase 5): stress, a breath or a pause after them, or who
+// Places a script mark on the selected words: stress, a breath or a pause after them, or who
 // speaks them. The marks already on these words are listed with their own Remove, which is how a mark is taken off: the
 // marks on the text are not controls (see MarkupMark).
 type Choice = 'stress' | 'breath' | 'pause' | 'speaker';

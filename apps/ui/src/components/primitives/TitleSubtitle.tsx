@@ -1,7 +1,7 @@
 import { chapterName } from '../../chapterName';
 import { TooltipTarget } from './Tooltip';
 
-// A chapter's title and subtitle, drawn one way everywhere (chapter-title-display-consistency.prd.md, ADR 0058's Heading
+// A chapter's title and subtitle, drawn one way everywhere (ADR 0058's Heading
 // precedent for a muted line): the title semibold, the subtitle `--text-muted` and regular, both in source casing and the
 // context's own font family. Generic on purpose - a book title or an import-section name can use it too.
 //

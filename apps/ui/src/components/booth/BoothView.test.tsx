@@ -99,7 +99,7 @@ function renderBooth(overrides: Partial<Parameters<typeof BoothView>[0]> = {}) {
   return render(boothElement(overrides));
 }
 
-describe('BoothView (booth-mode-and-companion-panel.prd.md Phases 1-2; stage-navigation-and-page-replacement.prd.md Phase 4)', () => {
+describe('BoothView', () => {
   it('lays out a named status region, the given rail as a complementary landmark, the script with no main landmark of its own, and a Booth commands region holding the reading controls', () => {
     renderBooth({ chapterTitle: 'Chapter 3' });
     expect(screen.getByRole('region', { name: 'Status' })).toBeTruthy();
@@ -131,7 +131,7 @@ describe('BoothView (booth-mode-and-companion-panel.prd.md Phases 1-2; stage-nav
     expect(within(status).getByText('Input')).toBeTruthy();
   });
 
-  describe('the Room, Mic and DAW chips (mock 03, audit BO6/BO7)', () => {
+  describe('the Room, Mic and DAW chips (mock 03)', () => {
     const chips = () => within(screen.getByRole('group', { name: 'Room, microphone and recorder' }));
 
     it('say only what the app knows: no room reading, no microphone chosen, REAPER not recording', () => {
@@ -191,7 +191,7 @@ describe('BoothView (booth-mode-and-companion-panel.prd.md Phases 1-2; stage-nav
     });
   });
 
-  it('draws the text full-bleed, with no bordered card (audit BO3), and a speaker tag in the gutter of each attributed paragraph (BO4)', () => {
+  it('draws the text full-bleed, with no bordered card, and a speaker tag in the gutter of each attributed paragraph', () => {
     const row = (key: string, text: string) => ({ key, kind: 'paragraph' as const, start: 0, words: null, gaps: null, text });
     const { container } = renderBooth({
       session: baseSession({ rows: [row('p1', 'Said the Mouse.'), row('p2', "'I beg your pardon,' said Alice.")] }),
@@ -204,7 +204,7 @@ describe('BoothView (booth-mode-and-companion-panel.prd.md Phases 1-2; stage-nav
     expect(tags[0].parentElement?.nextElementSibling?.textContent).toContain('I beg your pardon');
   });
 
-  it('lists what is coming up in the rail: each name, how to say it and its status, opening its Story Bible entry (audit BO8)', async () => {
+  it('lists what is coming up in the rail: each name, how to say it and its status, opening its Story Bible entry', async () => {
     const onOpenSpeaker = vi.fn();
     const hatter = { id: 'hatter', canonical_name: 'Hatter', aliases: [], category: 'Character' } as unknown as GuideEntity;
     renderBooth({
@@ -297,7 +297,7 @@ function speaker(id: string, canonical_name: string, category = 'Character'): Gu
   };
 }
 
-describe('BoothView speaker rail (booth-mode-and-companion-panel.prd.md Phase 3)', () => {
+describe('BoothView speaker rail', () => {
   it('lists the characters in this chapter as Highlight speaker tags, above the reading panel, skipping other categories', () => {
     renderBooth({ chapterId: 'chapter-1', speakers: [speaker('e1', 'Alice'), speaker('e2', 'Wonderland', 'Place'), speaker('e3', 'The Caterpillar')] });
     const rail = screen.getByRole('complementary', { name: 'Rail' });

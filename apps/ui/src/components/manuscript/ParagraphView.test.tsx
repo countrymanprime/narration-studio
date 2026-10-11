@@ -103,7 +103,7 @@ describe('ParagraphView', () => {
     expect(openNote).toHaveBeenCalledWith(overlappingNote);
   });
 
-  // Speaker attribution (prep-depth.prd.md Phase 4): a fixed cue against a recorded fixture, not the real
+  // Speaker attribution: a fixed cue against a recorded fixture, not the real
   // extractor - see dialogueCues.test.ts for the pure-function coverage of unknown/single-speaker/ambiguous cues.
   describe('speaker attribution', () => {
     const speaker = { id: 'queen-of-hearts', canonical_name: 'Queen of Hearts', aliases: [], category: 'Character' } as unknown as GuideEntity;

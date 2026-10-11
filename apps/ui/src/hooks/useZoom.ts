@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SystemApi } from '../api/contracts/system';
 import { useDebouncedValue } from './useDebouncedValue';
 
-// Mirrors apps/desktop/bindings_window.go's zoomSteps (Q6 A, ADR 0201): the header's buttons and Ctrl+=/-/0 step
+// Mirrors apps/desktop/bindings_window.go's zoomSteps (ADR 0201): the header's buttons and Ctrl+=/-/0 step
 // through these six levels; the host snaps and clamps to the same list defensively, so a value this file computes
 // from it is never rejected.
 const ZOOM_STEPS = [1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
@@ -21,19 +21,19 @@ function nearestStepIndex(level: number): number {
 }
 
 /**
- * The header's zoom group (app-navigation-and-zoom-controls.prd.md Phase 2, D29): reads and sets the window's real
- * webview zoom through the `windowZoom`/`windowSetZoom` binding. `zoomIn`/`zoomOut` step through Q6/ADR 0201's six
+ * The header's zoom group: reads and sets the window's real
+ * webview zoom through the `windowZoom`/`windowSetZoom` binding. `zoomIn`/`zoomOut` step through ADR 0201's six
  * levels from the current one's nearest step; `reset` always sets 100%, from any level.
  *
  * Ctrl+wheel and pinch move the level outside this hook entirely (they are WebView2's own, ADR 0201), so the only
  * signal that one of them changed anything is the `resize` a zoom change fires (it changes the CSS viewport); Wails
- * v3 surfaces no zoom-changed event on Windows (Technical Approach). A level found above the 200% ceiling that way is
+ * v3 surfaces no zoom-changed event on Windows (ADR 0201). A level found above the 200% ceiling that way is
  * set back to it; one under 100% is only shown, per ADR 0201 item 2 ("kept, because a smaller page cramps nothing").
  *
  * `announcement` is the debounced, polite text a run of wheel notches or clicks should announce once, at the level
- * the narrator settles on ("Solution Detail": "not on every wheel notch").
+ * the narrator settles on, not on every wheel notch.
  *
- * The settled level is also persisted (app-navigation-and-zoom-controls.prd.md Phase 3, Q4 A): `windowSaveZoom`,
+ * The settled level is also persisted: `windowSaveZoom`,
  * debounced by the same settle, so a run of wheel notches or clicks writes once, not on every step. The mount read's
  * own value is skipped, the same way it is never announced - it is already what is on disk (or what a fresh install
  * has never set), so saving it back would be a no-op write on every launch.

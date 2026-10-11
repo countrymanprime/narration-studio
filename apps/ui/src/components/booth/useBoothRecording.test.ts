@@ -23,7 +23,7 @@ function wrapper(api: NarrationApi) {
   return ({ children }: { children: ReactNode }) => createElement(ApiProvider, { api, children });
 }
 
-describe('useBoothRecording (booth-mode-and-companion-panel.prd.md Phase 5, keyed on the Booth route)', () => {
+describe('useBoothRecording (keyed on the Booth route)', () => {
   it('is false until both the Booth is showing and the DAW reports recording', () => {
     const { api, emit } = fakeApi();
     const { result, rerender } = renderHook(({ showing }) => useBoothRecording(showing), { wrapper: wrapper(api), initialProps: { showing: false } });

@@ -129,7 +129,7 @@ describe('Table', () => {
     expect(screen.getByRole('columnheader', { name: /^Script/ }).className).toContain('text-left');
   });
 
-  it('is its own containing block, so a hidden label cannot escape it (app-shell-vertical-overflow.prd.md)', () => {
+  it('is its own containing block, so a hidden label cannot escape it', () => {
     renderTable();
     expect(screen.getByRole('columnheader', { name: 'Actions' }).className).toContain('relative');
   });

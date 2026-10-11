@@ -33,7 +33,7 @@ function renderPanel(api: NarrationApi, forChapter: ManuscriptChapter = chapter)
   return render(<NativeTakesPanel chapter={forChapter} />, { wrapper: ({ children }) => <ApiProvider api={api}>{children}</ApiProvider> });
 }
 
-describe('native takes on the Proof chapter page (native-recording-suite PRD Phase 4, take review integration)', () => {
+describe('native takes on the Proof chapter page', () => {
   it('renders nothing when the project has no native takes', async () => {
     const api = mockApi({ takes: 'none' });
     renderPanel(api);

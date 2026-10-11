@@ -1,4 +1,4 @@
-// How the Review page words a delivery finding (delivery-platform-profiles.prd.md Phase 9): the rule a measured file missed,
+// How the Review page words a delivery finding: the rule a measured file missed,
 // what was measured and how it missed, from the evidence the host saves with it (deliveryprofile.ReviewFindings). The Review
 // page has no profile to look the rule up in, so the host names the rule, its requirement and the profile in the evidence.
 import { deliveryQcEvidenceSchema } from '../../api/schemas/measure';

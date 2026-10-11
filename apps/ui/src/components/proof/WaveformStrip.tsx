@@ -7,12 +7,12 @@ import { bucketAt, decodeMinMax } from './peaksDecode';
 import { buildFlagMarkers, buildWaveformSegments, type WaveformSegment } from './waveformLayout';
 
 const BACKDROP_HEIGHT = 56;
-/** Proof's book-level card (`bare`) draws a taller waveform in the `--waveform` ink, as mock 04's card does. */
+/** Proof's book-level card (`bare`) draws a taller waveform in the `--waveform` ink. */
 const CARD_BACKDROP_HEIGHT = 52;
 
 /** The canvas `Timeline` draws behind its lanes (its own `backdrop` prop, `aria-hidden`): one bar per pixel column,
  * resampled from each segment's own buckets, coloured played (before the playhead) or not yet played. An item with
- * no peaks (Reason set: not live, no source, or not a WAV, EP12 A) draws as a flat muted line rather than a gap. */
+ * no peaks (Reason set: not live, no source, or not a WAV) draws as a flat muted line rather than a gap. */
 function WaveformBackdrop({ segments, duration, elapsed, card }: { segments: WaveformSegment[]; duration: number; elapsed: number; card: boolean }) {
   const height = card ? CARD_BACKDROP_HEIGHT : BACKDROP_HEIGHT;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,7 +63,7 @@ function WaveformBackdrop({ segments, duration, elapsed, card }: { segments: Wav
           ctx.moveTo(x + 0.5, center - high * scale);
           ctx.lineTo(x + 0.5, center - low * scale);
         } else {
-          // No peaks (not live, no source, or not a WAV, EP12 A): a flat line, not a gap.
+          // No peaks (not live, no source, or not a WAV): a flat line, not a gap.
           ctx.moveTo(x + 0.5, center - 0.5);
           ctx.lineTo(x + 0.5, center + 0.5);
         }
@@ -101,12 +101,10 @@ export type WaveformStripProps = {
   bare?: boolean;
 };
 
-/** The chapter workspace's waveform strip (edit-and-proof-workspace.prd.md Phase 5, ADR 0520): `Timeline`'s own
- * ruler and playhead (its `backdrop` prop, reserved for exactly this,  mock 04) over
- * host-computed peaks (measure.ComputePeaks, EP12 A), with the check's flags marked on a `TimelineLane` so they
- * share NotesStrip.tsx's own accessible, keyboard-navigable markers rather than a second, bespoke implementation
- * (mockups/edit-and-proof-workspace/01-playing-follow.webp). Selection (Phase 9, an FX context menu over a
- * passage) is not built here - Phase 9 depends on it as its own step. */
+/** The chapter workspace's waveform strip (ADR 0520): `Timeline`'s own ruler and playhead (its `backdrop` prop,
+ * reserved for exactly this) over host-computed peaks (measure.ComputePeaks), with the check's flags marked on a
+ * `TimelineLane` so they share NotesStrip.tsx's own accessible, keyboard-navigable markers rather than a second,
+ * bespoke implementation. Selecting a passage is not part of the strip. */
 export function WaveformStrip({ playlist, alignmentItems, peaks, tokens, flags, elapsed, duration, onSelectFlag, bare = false }: WaveformStripProps) {
   const segments = buildWaveformSegments(playlist, alignmentItems, peaks);
   const markers = buildFlagMarkers(flags, tokens, alignmentItems, playlist);

@@ -57,8 +57,8 @@ export function useManuscriptImport({
   const [groupOpen, setGroupOpen] = useState<ReviewGroupOpen>({});
   const [headingLevel, setHeadingLevel] = useState(1);
   const [, setDeclineCount] = useState(0);
-  // B1-B3: "Build the Story Bible after import", pre-filled from Settings (ManuscriptGuide.build_after_import, on by
-  // default per owner decision D8) and changeable per import. buildStarted guards against starting the chained build
+  // "Build the Story Bible after import", pre-filled from Settings (ManuscriptGuide.build_after_import, on by
+  // default) and changeable per import. buildStarted guards against starting the chained build
   // twice for the same import job (the poller can report 'success' more than once before its interval is cleared).
   const [buildAfterImport, setBuildAfterImport] = useState(true);
   // The chained build is followed like the Story Bible page follows its own (the same hook), and its dialog clears the moment the host
@@ -77,12 +77,12 @@ export function useManuscriptImport({
   }, [api]);
   const candidate = data.manuscriptCandidate;
   const offerCandidate = !found && candidate && !declinedCandidates.has(candidate.path) && !importJob;
-  // The "Set up the credits" prompt (credits-token-setup-and-front-matter-detection.prd.md, Phase 2): CreditsSetupState
+  // The "Set up the credits" prompt: CreditsSetupState
   // is not part of Bootstrap, so it is read here, keyed on the same manuscript identity as the effect below - it is
   // re-read on first load, after an import commits (data.manuscript?.importedAt changes once refreshBootstrap runs) and
   // after Replace manuscript (a new documentId). Whether to show it (`needed`) is answered entirely by the host.
   const [creditsSetup, setCreditsSetup] = useState<CreditsSetupState>();
-  // "Fill in" on the banner (Phase 3) forces the dialog open even though `needed` is false (the narrator already said
+  // "Fill in" on the banner forces the dialog open even though `needed` is false (the narrator already said
   // "Not now" or "Don't ask", or only some tokens remain), independent of the auto-open condition below.
   const [fillingInCredits, setFillingInCredits] = useState(false);
   useEffect(() => {
@@ -261,7 +261,7 @@ export function useManuscriptImport({
           background={() => setBuildAfterImportJob(undefined)}
         />
       )}
-      {/* The manuscript offer comes first and the credits prompt follows the import (Solution Detail, Phase 2): held
+      {/* The manuscript offer comes first and the credits prompt follows the import: held
           back while that offer or an import is on screen, so the two dialogs never stack. */}
       {!offerCandidate && !importJob && creditsSetup && (creditsSetup.needed || fillingInCredits) && (
         <CreditsSetupDialog
@@ -278,7 +278,7 @@ export function useManuscriptImport({
   );
   const creditsBanner = (
     <>
-      {/* The way back (Phase 3): shown whenever the host says tokens are still unresolved and the narrator has not
+      {/* The way back: shown whenever the host says tokens are still unresolved and the narrator has not
           said "Don't ask" - never while the dialog above is already open, auto or by hand. */}
       {!offerCandidate && !importJob && creditsSetup?.banner && !creditsSetup.needed && !fillingInCredits && (
         <CreditsSetupBanner state={creditsSetup} notify={notify} onDone={setCreditsSetup} onFillIn={() => setFillingInCredits(true)} />

@@ -79,7 +79,7 @@ function statusText(host: TeleprompterState, session: Session): string {
   // The host says why a session stopped (the narrator pressed Stop, or it stopped itself at the end of the chapter, ADR 0106).
   if (host.phase === 'stopped') return host.message.trim() || 'Stopped';
   if (host.phase !== 'running') return '';
-  // Paused (Phase 5, ADR 0248): the tracker's clock is frozen, so it never reports `waiting` or `done` while paused.
+  // Paused (ADR 0248): the tracker's clock is frozen, so it never reports `waiting` or `done` while paused.
   if (host.paused) return 'Paused';
   if (session.position?.status === 'waiting') return 'Waiting for you to return to the script';
   if (session.position?.status === 'done')
@@ -94,7 +94,7 @@ export type UseTeleprompterSessionOptions = {
   chapterId: string;
   chapter: Pick<ManuscriptChapter, 'title' | 'subtitle'> | undefined;
   /**
-   * The opening or closing credits instead of a chapter (audiobook-credits-templates.prd.md Phase 4, ADR 0150), with the
+   * The opening or closing credits instead of a chapter (ADR 0150), with the
    * text the host's one renderer produced (`creditsPreview`); the host renders the same text again for the sidecar.
    */
   credits?: { kind: CreditsKind; text: string };
@@ -122,11 +122,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const [loaded, setLoaded] = useState<{ chapterId: string; paragraphs: ManuscriptParagraph[] }>();
   const [error, setError] = useState('');
   const [prompt, setPrompt] = useState<ModelPrompt>();
-  // Where the next Start begins (the read-aloud dialog's resume card, teleprompter-manuscript-integration.prd.md Phase 10):
-  // null is the top. Passed to the host as `startWord` (the Phase 3 seek channel's start-at-a-word), so a resumed session
+  // Where the next Start begins (the read-aloud dialog's resume card):
+  // null is the top. Passed to the host as `startWord` (start at a word), so a resumed session
   // never reads from the top first.
   const [startWord, setStartWord] = useState<number | null>(null);
-  // The model download: the shared install-poll hook (D4), through the generic asset bindings, since the missing model is either
+  // The model download: the shared install-poll hook, through the generic asset bindings, since the missing model is either
   // engine's (the gate's answer names the engine, which is also the asset kind). A session must not start on a view the narrator has
   // already left: the hook stops and never calls onSuccess once this hook's owner has unmounted.
   const modelInstall = useAssetInstall<AssetInstallJob>({
@@ -257,12 +257,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     }
   };
   const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));
-  // Pause (true) or resume (false) a running session's listening without ending it (read-aloud-control-bar.prd.md Phase 5,
-  // Q3, ADR 0248): the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
+  // Pause (true) or resume (false) a running session's listening without ending it (ADR 0248): the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
   // `host.paused` changes. Flags are kept on Stop only (ADR 0117 unchanged).
   const pause = (paused: boolean) => void api.teleprompterPause(paused).catch((reason) => setError(errorText(reason)));
-  // Moves a running tracker straight to a chosen script word ("Start here" / "Go back to here", wired to a word click by
-  // Phase 4 of teleprompter-manuscript-integration.prd.md via `ReaderText`'s `onSeek`). `useCallback` keeps this a stable
+  // Moves a running tracker straight to a chosen script word ("Start here" / "Go back to here", wired to a word click through
+  // `ReaderText`'s `onSeek`). `useCallback` keeps this a stable
   // reference across renders: `ReaderText` passes it into a `memo`-wrapped per-row component, and a fresh closure every
   // render would defeat that row-level memoization (see `ReaderText.tsx`).
   const seek = useCallback((word: number) => void api.teleprompterSeek(word).catch((reason) => setError(errorText(reason))), [api]);

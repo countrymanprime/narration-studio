@@ -167,7 +167,7 @@ export const DisabledButtonExplainsWhyOnFocus: Story = {
   },
 };
 
-// The inline mode (teleprompter-manuscript-integration.prd.md Phase 7): a hint on a mark inside running text. The trigger flows
+// The inline mode: a hint on a mark inside running text. The trigger flows
 // with the line, so a mark that wraps keeps its place in the sentence, and keyboard focus on the mark shows the hint at once.
 export const InlineInRunningText: Story = {
   render: () => (

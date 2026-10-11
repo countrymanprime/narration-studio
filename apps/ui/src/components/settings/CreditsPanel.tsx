@@ -23,7 +23,7 @@ const BODY_HINT: Record<string, string> = {
 const DEFAULT_BODY_HINT =
   'Bracketed tokens such as [Title], [Author] and [Narrator] are filled from the project values below. Wrap a part in { } to drop it when a token in it is empty.';
 
-/** The project's own credit token value fields (Open Questions C2/C4/C7): every one is optional and per-project except
+/** The project's own credit token value fields: every one is optional and per-project except
  * `narrator`, which overrides the global narrator default only for this project. */
 const VALUE_FIELDS: { key: keyof CreditValues; label: string }[] = [
   { key: 'title', label: 'Title' },
@@ -39,18 +39,18 @@ const VALUE_FIELDS: { key: keyof CreditValues; label: string }[] = [
 ];
 
 // A DetectedCandidate's token is a credits.Values Go field name ("Title", "CopyrightHolder"), not this panel's
-// lowerCamelCase key (credits-token-setup-and-front-matter-detection.prd.md Phase 1); every VALUE_FIELDS key maps to
-// its token by capitalizing the first letter, with no exceptions to keep track of as fields are added.
+// lowerCamelCase key; every VALUE_FIELDS key maps to its token by capitalizing the first letter, with no
+// exceptions to keep track of as fields are added.
 const detectedToken = (key: keyof CreditValues): string => key.charAt(0).toUpperCase() + key.slice(1);
 
 // previewParts (splitting an unresolved token out as its own chip marker) lives in ../../creditsPreviewParts,
-// shared with the Manuscript pseudo-entries (Phase 3) so both surfaces highlight an unresolved token the same way.
+// shared with the Manuscript pseudo-entries so both surfaces highlight an unresolved token the same way.
 
 /**
- * Settings > Credits (PRD audiobook-credits-templates.prd.md, Phase 1): the narrator's template library (shipped
- * defaults plus their own, add/duplicate/edit/delete), this project's own credit values with suggestions seeded from
- * the manuscript, and a live preview rendered by the same Go renderer the estimate and the teleprompter will use in
- * later phases. Saving values never blocks on an unresolved token (C6); this panel only shows the count and chip.
+ * Settings > Credits: the narrator's template library (shipped defaults
+ * plus their own, add/duplicate/edit/delete), this project's own credit values with suggestions seeded from the
+ * manuscript, and a live preview rendered by the same Go renderer the estimate and the teleprompter use.
+ * Saving values never blocks on an unresolved token; this panel only shows the count and chip.
  */
 export function CreditsPanel({ notify }: { notify: Notify }) {
   const api = useApi();
@@ -64,7 +64,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const [narratorGlobal, setNarratorGlobal] = useState('');
   const [detected, setDetected] = useState<DetectedCandidate[]>([]);
   const [preview, setPreview] = useState<CreditsRenderResult>();
-  // A chapter announcement previews for the first narration chapter (Phase 5): which one, out of how many, and why there
+  // A chapter announcement previews for the first narration chapter: which one, out of how many, and why there
   // is nothing to show when the project has no manuscript yet.
   const [previewScope, setPreviewScope] = useState<{ chapter: string; count: number }>();
   const [previewProblem, setPreviewProblem] = useState('');

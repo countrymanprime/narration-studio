@@ -20,7 +20,7 @@ describe('combinedRequiredReason', () => {
   });
 });
 
-describe('dawCapabilityGate (DAW port PRD Phase 7)', () => {
+describe('dawCapabilityGate', () => {
   const AVAILABLE: CapabilityEntry = { level: 'supported', available: true };
   const UNAVAILABLE: CapabilityEntry = { level: 'experimental', available: false, message: 'Experimental: switched off in Settings.' };
 

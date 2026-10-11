@@ -21,7 +21,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: 'min-h-[var(--button-height-sm)]',
 };
 
-// The measured spec (mock-fidelity PRD, Phase 1): the height includes the 1 px border, 12 px each side, the label Barlow Condensed
+// The measured spec: the height includes the 1 px border, 12 px each side, the label Barlow Condensed
 // at `--font-size-sm`, 600, uppercase, tracked `--tracking-button`, on one line (`leading-none`, centred by the flex box). A label
 // that wraps grows the button rather than spilling out of it. Disabled is drawn at 55%.
 const CHROME =

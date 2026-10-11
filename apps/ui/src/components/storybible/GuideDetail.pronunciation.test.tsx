@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-// Pronunciation controls (story bible entries PRD, phase 3, D13/B8-B11): Play is gated on a pronunciation existing, with a
-// keyboard-reachable reason; Generate (missing) and Replace (present) live in edit mode only, offer CMU and eSpeak
-// explicitly, and are blocked for locked entries.
+// Pronunciation controls: Play is gated on a pronunciation existing, with a keyboard-reachable reason;
+// Generate (missing) and Replace (present) live in edit mode only, offer CMU and eSpeak explicitly, and are blocked for locked entries.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +32,7 @@ function renderDetail(entity: GuideEntity, overrides: Record<string, unknown> = 
   return { guidePronounce };
 }
 
-describe('Play gating (B8)', () => {
+describe('Play gating', () => {
   it('is disabled with a reachable reason when there is no pronunciation, and reachable enabled when there is one', () => {
     renderDetail(withoutPronunciation);
     const play = screen.getByRole('button', { name: 'Play preview' });
@@ -64,7 +63,7 @@ describe('Play gating (B8)', () => {
   });
 });
 
-describe('Generate and Replace (D13, B9, B10)', () => {
+describe('Generate and Replace', () => {
   it('offers no Generate or Replace control in the read view', () => {
     renderDetail(withoutPronunciation);
     expect(screen.queryByRole('button', { name: 'Generate pronunciation' })).toBeNull();

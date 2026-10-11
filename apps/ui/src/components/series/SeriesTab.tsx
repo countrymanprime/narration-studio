@@ -11,13 +11,11 @@ import { TextField } from '../primitives/TextField';
 import type { Notify } from '../primitives/Toast';
 
 /**
- * The Series tab of the Story Bible (character-continuity-review.prd.md Phase 11, D79: a tab, no nav entry of its
- * own). Non-acoustic only (owner decision D87 on #509 benches the acoustic engine): characters shared across the
- * series' member projects, their approved reference clips and which book each came from - reusing Phase 6's
- * reference-versus-candidate clip listing (VoiceReferencesSection.tsx's `formatRegionTime`; there is no audition to
- * reuse yet, since no binding plays audio in-app and no drift comparison exists while the acoustic engine is
- * benched). Per-book drift evidence (Phase 10) has no data source while that engine is benched, so it is left out
- * here entirely - see the PRD's Phase 11 status cell.
+ * The Series tab of the Story Bible (a tab, with no navigation entry of its own). Non-acoustic only, because the
+ * acoustic engine is benched: characters shared across the series' member projects, their approved reference clips
+ * and which book each came from. It reuses VoiceReferencesSection.tsx's `formatRegionTime`; there is no audition to
+ * reuse, since no binding plays audio in-app and no drift comparison exists while the acoustic engine is benched.
+ * Per-book drift evidence has no data source while that engine is benched, so it is left out entirely.
  */
 export function SeriesTab({ notify }: { notify: Notify }) {
   const api = useApi();

@@ -8,15 +8,14 @@ type Props = {
 };
 
 /**
- * The first-time confirm turning Record in REAPER on for this project (read-aloud-control-bar.prd.md Phase 7, Q9;
- * booth-actions-enablement.prd.md Phase 2): shown once per project, the first time the toggle is turned on
+ * The first-time confirm turning Record in REAPER on for this project (ADR 0249): shown once per project, the first time the toggle is turned on
  * (`ReadAloud.record_confirmed`). It names the chapter, not a REAPER track name the host never sends, and says
  * exactly what Play and Stop do so a narrator never wonders whether REAPER is recording by surprise.
  */
 export function RecordInReaperConfirm({ chapterTitle, confirm, cancel }: Props) {
-  // The title and the "never stopped" and "asked once" sentences are read-aloud-control-bar mock 05's own words. The first
-  // sentence keeps to what Play and Stop do today: the mock's "Pause and Stop will stop that recording" waits for Pause
-  // to stop REAPER too (Q8 Pause A, still to be checked in REAPER's scripted run), so it is not promised here.
+  // The title and the "never stopped" and "asked once" sentences are the design's own words. The first
+  // sentence keeps to what Play and Stop do today: "Pause and Stop will stop that recording" would need Pause to stop
+  // REAPER too (still to be checked in REAPER's scripted run), so it is not promised here.
   return (
     <ConfirmDialog
       title="Record in REAPER when you press Play?"

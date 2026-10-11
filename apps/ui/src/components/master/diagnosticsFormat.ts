@@ -1,4 +1,4 @@
-// How the Diagnostics tab words a diagnostics finding (diagnostics PRD Phase 6). Every figure comes from the finding's own
+// How the Diagnostics tab words a diagnostics finding. Every figure comes from the finding's own
 // evidence (internal/measure/diagnosticfindings.go), including the threshold that raised it, so what is shown is what the
 // host measured against; a kind or key this page does not know is said to be undescribed rather than guessed at.
 import type { DiagnosticsCleanupThresholds, DiagnosticsSourceKind, DiagnosticsThresholds, Finding } from '../../types';

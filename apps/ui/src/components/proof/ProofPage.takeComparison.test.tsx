@@ -115,7 +115,7 @@ describe('Compare takes on the Review page', () => {
     expect(noise.textContent).toContain('-47.6 dBFS');
     expect(noise.textContent).toContain('-68.9 dBFS');
     expect(within(table).getByRole('row', { name: /Level/ }).textContent).toContain('Unavailable: no neighbouring item has a measurable integrated loudness');
-    // The narrator chooses: nothing says which read is better (Q9), and the app never makes a take active (Q8).
+    // The narrator chooses: nothing says which read is better, and the app never makes a take active.
     expect(comparison.textContent).not.toMatch(/\b(best|winner|rank|score|recommended)\b/i);
     expect(within(comparison).queryByRole('button', { name: /active/i })).toBeNull();
     expect(within(comparison).getByText(/choose the take you want in REAPER/)).toBeTruthy();
@@ -261,7 +261,7 @@ describe('how a take comparison is worded', () => {
   });
 });
 
-// audacity-integration.prd.md Phase 9: take comparison has no Audacity analog, so its whole section is left out.
+// Take comparison has no Audacity analog, so its whole section is left out.
 describe('Compare takes on the Review page, with Audacity', () => {
   it('has no Takes side by side section', async () => {
     const user = userEvent.setup();

@@ -152,7 +152,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getByText(/Desktop host API version 1 is incompatible/)).toBeTruthy();
   });
 
-  it("opens Settings > Credits from the Booth's unresolved-token warning (credits PRD Phase 4, C6)", async () => {
+  it("opens Settings > Credits from the Booth's unresolved-token warning", async () => {
     window.history.replaceState(null, '', '/booth');
     renderApp();
     const picker = (await screen.findByLabelText('Chapter')) as HTMLSelectElement;
@@ -262,7 +262,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByText('Manuscript imported.')).toBeNull();
   });
 
-  it('queues a job-end toast while the booth is recording, and shows it once recording stops (booth-mode-and-companion-panel.prd.md Phase 5)', async () => {
+  it('queues a job-end toast while the booth is recording, and shows it once recording stops (no sound or notification mid-take)', async () => {
     let announce: ((event: JobEnded) => void) | undefined;
     // Every subscriber hears the transport (the Booth page subscribes too, beside App's toast guard).
     const transportListeners = new Set<(transport: DawTransport) => void>();
@@ -283,7 +283,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(announce).toBeDefined());
     await waitFor(() => expect(emitTransport).toBeDefined());
 
-    // The Booth is showing (stage-navigation-and-page-replacement.prd.md Phase 4: its route, not a dialog flag).
+    // The Booth is showing (its route, not a dialog flag).
     fireEvent.click(screen.getAllByRole('button', { name: 'Booth' })[0]);
     await screen.findByRole('heading', { name: 'Booth' });
     act(() => emitTransport?.({ playing: true, recording: true }));
@@ -302,7 +302,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getByText('Story Bible rebuild complete.')).toBeTruthy();
   });
 
-  it('raises an OS notification for a slow job finishing while the window is unfocused, and not otherwise (N1-N4)', async () => {
+  it('raises an OS notification for a slow job finishing while the window is unfocused, and not otherwise', async () => {
     let announce: ((event: JobEnded) => void) | undefined;
     const systemNotify = vi.fn(async () => {});
     const hasFocus = vi.spyOn(document, 'hasFocus');
@@ -492,7 +492,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe('/');
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 4 (ADR 0407): the retired Teleprompter route lands on the Booth with its
+  // ADR 0407: the retired Teleprompter route lands on the Booth with its
   // query and hash, and replaces the entry so Back never returns to the redirect.
   it('redirects /teleprompter to /booth, keeping the query and hash', async () => {
     window.history.replaceState(null, '', '/teleprompter?chapter=chapter-2#x');
@@ -503,7 +503,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.hash).toBe('#x');
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 2 (ADR 0407): the Production page moved to `/`, so its old address lands there
+  // ADR 0407: the Production page moved to `/`, so its old address lands there
   // with its query and hash.
   it('redirects /production to the Production home at /, keeping the query and hash', async () => {
     window.history.replaceState(null, '', '/production?mockProduction=on-pace#plan');
@@ -514,14 +514,14 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.hash).toBe('#plan');
   });
 
-  // Phase 2's timer chip: the header shows a running production timer on every page, read once when the app opens.
+  // The header's timer chip shows a running production timer on every page, read once when the app opens.
   it('shows the running production timer in the header on any page', async () => {
     window.history.replaceState(null, '', '/settings');
     renderApp({}, { production: PRODUCTION_SCENARIOS['on-pace'] });
     expect(await screen.findByRole('timer', { name: /^Timer running on Chapter 6, Recording: 0:4\d:\d\d$/ })).toBeTruthy();
   });
 
-  it('opens Settings on the Booth category from #booth and from the old #teleprompter anchor (Q11)', async () => {
+  it('opens Settings on the Booth category from #booth and from the old #teleprompter anchor', async () => {
     for (const anchor of ['#booth', '#teleprompter']) {
       window.history.replaceState(null, '', `/settings${anchor}`);
       renderApp();
@@ -530,7 +530,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     }
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 6 (ADR 0407): the engine panel replaces the Tracks page. It opens from the
+  // ADR 0407: the engine panel replaces the Tracks page. It opens from the
   // header's engine chip on any page, with or without a manuscript, and lists the mock project's tracks.
   it('opens the engine panel from the engine chip, without a manuscript, with the project and its tracks', async () => {
     const source = createMockApi();
@@ -547,7 +547,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe('/');
   });
 
-  it('redirects /tracks to Proof, keeping its query and hash, and opens the engine panel over it (Q8 A)', async () => {
+  it('redirects /tracks to Proof, keeping its query and hash, and opens the engine panel over it', async () => {
     window.history.replaceState(null, '', '/tracks?from=bookmark#top');
     renderApp();
     await waitFor(() => expect(window.location.pathname).toBe('/proof'));
@@ -590,7 +590,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { name: 'Proof' });
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 5 (ADR 0407): the retired routes land on Proof, query and hash kept.
+  // ADR 0407: the retired routes land on Proof, query and hash kept.
   it.each([
     ['/review?from=bookmark#top', '/proof', '?from=bookmark', '#top'],
     ['/proofing', '/proof', '', ''],
@@ -603,7 +603,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.hash).toBe(hash);
   });
 
-  // Stage navigation Phase 8 (ADR 0407): Master & QC replaced Delivery, and a finding's old /delivery#file=… link still lands on it.
+  // ADR 0407: Master & QC replaced Delivery, and a finding's old /delivery#file=… link still lands on it.
   it('redirects /delivery to Master & QC, keeping the query and the file and rule anchor', async () => {
     window.history.replaceState(null, '', '/delivery?from=report#file=C%3A%2Fa.wav&rule=acx.rms');
     renderApp();
@@ -631,7 +631,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(idleReset).not.toHaveBeenCalled();
   });
 
-  // Stage navigation Phase 3 (ADR 0407): Script replaced the Manuscript page, and an old link still lands, hash and query included.
+  // ADR 0407: Script replaced the Manuscript page, and an old link still lands, hash and query included.
   it.each(['/manuscript', '/manuscript#p5', '/manuscript#credits-closing'])('redirects %s to the Script page, which handles its hash', async (from) => {
     window.history.replaceState(null, '', from);
     renderApp();
@@ -879,8 +879,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       manuscriptImportPreview: preview,
       manuscriptImportState: async () => hostJob,
       manuscriptChapters: async () => (imported ? importedChapters : []),
-      // This test is about the import dialog's own activity log and Home's refresh, not the B1-B3 chained build
-      // (default on, D8): turn it off so the import dialog stays open with a manual Close, as asserted below.
+      // This test is about the import dialog's own activity log and Home's refresh, not the chained build after an import
+      // (on by default): turn it off so the import dialog stays open with a manual Close, as asserted below.
       settingsForScope: async () => ({
         ManuscriptGuide: [
           { key: 'build_after_import', label: '', kind: 'bool', choices: [], value: 'false', isSet: true, effectiveValue: 'false', effectiveSource: 'project' },
@@ -986,8 +986,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByText('Open a project')).toBeNull();
   });
 
-  // Phase 8 (PRD project-workspace-and-daw-link.prd.md): the Settings DAW panel's launch action and its two new
-  // fields (reaper_path override, auto_start_launcher toggle, D10 default off).
+  // The Settings DAW panel's launch action and its two fields (reaper_path override, auto_start_launcher toggle,
+  // off by default).
   it('launches REAPER from the global Settings DAW panel', async () => {
     const launchDaw = vi.fn(createMockApi().launchDaw);
     renderApp({ launchDaw });
@@ -1061,7 +1061,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(dawCatalogList.mock.calls.length).toBeGreaterThan(calls));
   });
 
-  // Phase 3's "Could" item: a handoff into the DAW Link flow (project-workspace-and-daw-link.prd.md, W19) once a
+  // A handoff into the DAW Link flow once a
   // DAW is detected, reusing the same shared linkDawFile() action the audio engine panel and Settings already use.
   it('offers to link a REAPER project from the DAW catalog panel once REAPER is detected and nothing is linked yet', async () => {
     renderApp({}, { dawFileLinked: false });
@@ -1087,9 +1087,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 });
 
-// app-navigation-and-zoom-controls.prd.md Phase 1: page-level Back and Forward in the header, their
+// Page-level Back and Forward in the header, their
 // shortcuts, and the two guards they share with the nav (unsaved Settings, leaving Proofing).
-describe('App Back and Forward (Phase 1)', () => {
+describe('App Back and Forward', () => {
   it('are disabled on the first page and enable after moving, one page at a time', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -1117,7 +1117,7 @@ describe('App Back and Forward (Phase 1)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
 
-    // `code` is what the registry's KeyboardSource matches on (PRD Q1: the physical key, not the layout-dependent
+    // `code` is what the registry's KeyboardSource matches on (the physical key, not the layout-dependent
     // character); a real Alt+Left keydown carries both, so the fixture does too.
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -1175,8 +1175,8 @@ describe('App Back and Forward (Phase 1)', () => {
     expect(transcriptReset).toHaveBeenCalled();
   });
 
-  // input-commands-and-pedals.prd.md Phase 2: nav.back/nav.forward are now global commands, and nothing yet wraps an
-  // open dialog's content in <CommandScope kind="dialog"> (Phase 7 does that for its own sheet), so App.tsx keeps the
+  // nav.back/nav.forward are global commands, and only the shortcut sheet wraps its content in
+  // <CommandScope kind="dialog"> (ShortcutSheet.tsx), so App.tsx keeps the
   // direct `[role="dialog"]`/`[role="alertdialog"]` check the old listener made by hand instead of relying on scope
   // resolution for it. A plain probe element (rather than a real app dialog, which also marks the page behind it
   // inert and would make every other assertion here fail for an unrelated reason) isolates exactly that check.
@@ -1201,9 +1201,9 @@ describe('App Back and Forward (Phase 1)', () => {
   });
 });
 
-// input-commands-and-pedals.prd.md Phase 7: the "?" (Shift+Slash) shortcut sheet, mounted from App.tsx alongside the
+// The "?" (Shift+Slash) shortcut sheet, mounted from App.tsx alongside the
 // other app-level commands.
-describe('App shortcut sheet (Phase 7)', () => {
+describe('App shortcut sheet', () => {
   it('"?" opens the shortcut sheet from any page', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });

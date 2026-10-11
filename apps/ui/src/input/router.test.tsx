@@ -241,7 +241,7 @@ describe('CommandRouter', () => {
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 
-  it('posts "Not while recording." to its status region on a suppressed press, and announces a repeat press too (PRD Q5)', () => {
+  it('posts "Not while recording." to its status region on a suppressed press, and announces a repeat press too', () => {
     const source = fakeSource();
     const { container } = render(
       <CommandRouter source={source} catalog={[BOOTH_COMMAND]} keymap={keymapFor(BOOTH_COMMAND)} isRecording={() => true}>

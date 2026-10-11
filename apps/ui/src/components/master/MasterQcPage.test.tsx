@@ -367,7 +367,7 @@ describe('MasterQcPage', () => {
     expect(openSettings).toHaveBeenCalledTimes(1);
   });
 
-  // Delivery findings on Proof (delivery-platform-profiles.prd.md Phase 9): "Open in Master & QC" lands here on the file.
+  // Delivery findings on Proof: "Open in Master & QC" lands here on the file.
   it('opens on the file and rule a Proof finding names, rule by rule', async () => {
     const measured = contract('measure-success.json');
     renderPage({ overrides: { measureState: async () => measured }, focus: { file: 'C:/Renders/Chapter 01.wav', rule: 'acx.sample_rate' } });

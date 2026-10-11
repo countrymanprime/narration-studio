@@ -101,14 +101,14 @@ type TakesPanelProps = {
 };
 
 /**
- * The Takes panel (edit-and-proof-workspace.prd.md Phase 6, EP6 and EP7, ADR 0700; mock `04-takes-panel-ab`): for the paragraph at
+ * The Takes panel (ADR 0700): for the paragraph at
  * the playhead, every take the narrator has to choose from (the other takes of the item it was heard on, the other retakes of its
  * line on a fixed lane, and the reads Find pickups and duplicates set beside it), each with a play button. **One** plays a take at
  * a time; **A/B** puts two of them in slots and swaps between them at the same word (the compared word when both takes were
  * compared, the same distance into the passage otherwise), from the raw recordings and without REAPER. Each take says how it read
  * the passage once compared (never a score) or offers Compare, and Use this take makes it the one that plays in REAPER. The panel
  * sends the host a chapter and a range of words, and the id of a take the host listed: never a GUID, a file or a time. A read that
- * only exists on another item is added as a take and made active in one action the narrator confirms first (EP7); every other
+ * only exists on another item is added as a take and made active in one action the narrator confirms first; every other
  * choice is one undo step in REAPER, and each says what it did in the host's words.
  */
 export function TakesPanel({ chapterId, alignment, currentToken, findings, reaper, onReaperStatusChange, onFindingsChanged, detailTarget }: TakesPanelProps) {

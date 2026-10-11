@@ -38,7 +38,7 @@ describe('chapterSyncReasonText', () => {
   });
 });
 
-describe('chapterSyncBackgroundWaitText (daw-chapter-track-auto-sync.prd.md Phase 7, ADR 0211)', () => {
+describe('chapterSyncBackgroundWaitText (ADR 0211)', () => {
   it('says nothing while background checks are off, regardless of wait', () => {
     expect(chapterSyncBackgroundWaitText({ enabled: false, wait: 'recording' })).toBe('');
   });
@@ -85,7 +85,7 @@ describe('chapterSyncNotChaptersText', () => {
   });
 });
 
-describe('the engine panel wording (mockup 02, D85 #13: the panel keeps the mock’s own wording, not the dialog’s)', () => {
+describe('the engine panel wording (the panel keeps its own wording, not the consent dialog’s)', () => {
   const candidate2 = (trackGuid: string, trackName: string) => ({ trackGuid, trackName, trackIndex: 0, score: 1, source: 'track-name' as const, region: null });
 
   it('says two tracks match and that a chapter is checked from one', () => {

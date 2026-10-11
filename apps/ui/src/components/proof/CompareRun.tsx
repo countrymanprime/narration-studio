@@ -59,12 +59,11 @@ const CHUNK_LENGTH_TOOLTIP = [
 ].join(' ');
 const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
-/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown (reaper-automation-follow-through
- * PRD Phase 13): a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
+/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown: a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
 const PROJECT_STATE_POLL_MS = 30_000;
 
 /** Whether "Start comparison" can run, and why not: the run
- * needs a linked REAPER project file (PRD W16) and the DAW port's `review` capability
+ * needs a linked REAPER project file and the DAW port's `review` capability
  * (dawport.ReviewSession, ADR 0300). */
 function startCapability(dawFileLinked: boolean, review: CapabilityEntry): CapabilityEntry {
   if (!dawFileLinked) return { level: 'supported', available: false, message: 'Link a REAPER project (.rpp) file to start a comparison.' };
@@ -94,7 +93,7 @@ export function CompareRun({
   /** The app-wide Transcript Compare state (one run at a time, from the host's transcript event). */
   state: TranscriptState;
   notify: Notify;
-  /** PRD project-workspace-and-daw-link.prd.md, W16: starting a comparison and exporting markers need a linked DAW
+  /** Starting a comparison and exporting markers need a linked DAW
    * project file; reviewing an already-completed comparison does not. */
   dawFileLinked: boolean;
   lastCompleted?: TranscriptState;
@@ -117,7 +116,7 @@ export function CompareRun({
   hintsRef.current = { accepted: acceptedHints, pending: pendingHints };
   const [logVerbosity, setLogVerbosity] = useState<'Quiet' | 'Normal' | 'Verbose'>('Normal');
   const [whisperPrompt, setWhisperPrompt] = useState<Extract<TranscriptStartResult, { status: 'asset_required' }>>();
-  // The model download: the shared install-poll hook (D4). Success carries on with the comparison the narrator asked for.
+  // The model download: the shared install-poll hook. Success carries on with the comparison the narrator asked for.
   const whisperInstall = useAssetInstall<WhisperInstallJob>({
     start: () => {
       if (!whisperPrompt) return Promise.reject(new Error('Start a comparison first.'));
@@ -256,7 +255,7 @@ export function CompareRun({
     else void api.transcriptReset().catch((error) => notify(describeApiError(error), 'error'));
   };
 
-  // "Changed since comparison" (reaper-automation-follow-through PRD Phase 13): REAPER's own edit counter, checked on a
+  // "Changed since comparison": REAPER's own edit counter, checked on a
   // low-frequency background poll only while results are shown, against the count the comparison started from
   // (results.projectChangeCount). The counter is only meaningful within one REAPER session of the project — it resets
   // when the project is reopened — so this is worded as "may have changed", never certainty, and nothing here ever

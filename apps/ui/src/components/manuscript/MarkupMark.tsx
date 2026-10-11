@@ -5,7 +5,7 @@ import type { PrepMarkupSpan } from '../../types';
 import { Button } from '../primitives/Button';
 import { describeMark, markName, removeMarkLabel } from './markup';
 
-// A script mark on the reader's text (prep-depth.prd.md Phase 5, ADR 0382). Stress is a dotted accent underline under the
+// A script mark on the reader's text (ADR 0382). Stress is a dotted accent underline under the
 // words, a pause is one slash (a breath) or two (a pause) after them, and a character tag is a small name chip before
 // them, after benchmark mock 02. The slash and the chip are CSS
 // generated content, never text in the DOM: the selection offsets (useTextSelection) and every reader of the line's words
@@ -40,7 +40,7 @@ export function MarkupMark({ span, first, last, children }: { span: PrepMarkupSp
   );
 }
 
-// Where a mark no longer fits the text (Q6): said beside the line, never drawn on it, with a Remove that needs only the
+// Where a mark no longer fits the text (ADR 0382): said beside the line, never drawn on it, with a Remove that needs only the
 // mark's id. `gone` is the list above a chapter of marks whose line is no longer in it.
 export function StaleMarkupNotice({ spans, gone = false, remove }: { spans: PrepMarkupSpan[]; gone?: boolean; remove?: (span: PrepMarkupSpan) => void }) {
   if (!spans.length) return null;

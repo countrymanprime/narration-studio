@@ -85,7 +85,7 @@ describe('TextField', () => {
     expect(box.value).toBe('Alice');
   });
 
-  it('sizes a mono value at the Inputs spec (mock-fidelity-primitives-and-components.prd.md Phase 6): ~15px, not body text size', () => {
+  it('sizes a mono value at the Inputs spec: ~15px, not body text size', () => {
     render(<TextField label="Note colour" mono value="FFD54F" onChange={() => undefined} />);
     const box = screen.getByLabelText('Note colour');
     expect(box.className).toContain('text-[0.9375rem]');

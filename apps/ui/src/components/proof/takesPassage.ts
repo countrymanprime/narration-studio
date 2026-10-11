@@ -6,7 +6,7 @@ import type { AuditionSource } from './AuditionDialog';
 const EXCERPT_WORDS = 8;
 
 /**
- * The passage the Takes panel asks about (edit-and-proof-workspace.prd.md Phase 6): the whole paragraph of the word at
+ * The passage the Takes panel asks about (TakesPanel.tsx): the whole paragraph of the word at
  * the playhead, as the first and last of that paragraph's tokens (a paragraph's tokens are next to each other in the
  * chapter's alignment). With nothing playing it is the paragraph of the first heard word. A heading word has no
  * paragraph, and so no passage.

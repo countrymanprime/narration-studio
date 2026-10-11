@@ -27,8 +27,7 @@ export const CAUSE_TEXT: Record<StageUnknownCause, { short: string; action: stri
   provider_error: { short: 'the evidence could not be read', action: 'Check now to read it again.', resolve: 'check-now' },
 };
 
-/** The same causes, worded for the editing check instead of the recording check (editing-readiness-analysis.prd.md
- * Phase 7): the two signal providers share one cause vocabulary (apps/desktop/internal/editing/signals.go reuses
+/** The same causes, worded for the editing check instead of the recording check: the two signal providers share one cause vocabulary (apps/desktop/internal/editing/signals.go reuses
  * `stages.UnknownCause`), so a bare `CAUSE_TEXT` lookup would send an editing signal's "Open recording check" -
  * wrong dialog entirely. `causeText` picks this table instead whenever the signal's id is one of editing's three. */
 const EDITING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; action: string; resolve: StageCauseAction }>> = {
@@ -65,7 +64,7 @@ const PROOFING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; ac
 
 /** The delivery checks' own causes, including the render length check:
  * `never_analyzed`, `stale` and `measurement_unavailable` are all about the chosen render, resolved in the
- * "Rendered file" section of this same panel (Phase 6's Choose, Clear and Measure), so `resolve: 'check-now'` would
+ * "Rendered file" section of this same panel (Choose, Clear and Measure), so `resolve: 'check-now'` would
  * be misleading here - there is nothing to re-check until the render is chosen or measured. The mapping causes stay
  * `tracks`, same as the pickups roll-up. */
 const PROOFING_DELIVERY_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; action: string; resolve: StageCauseAction }>> = {
@@ -75,7 +74,7 @@ const PROOFING_DELIVERY_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: s
   measurement_unavailable: { short: 'cannot be checked here', action: 'See the Rendered file section below.', resolve: 'wait' },
 };
 
-/** True for the three signal ids the editing-readiness PRD's Phase 6 registers (apps/desktop/internal/editing/signals.go). */
+/** True for the three editing signal ids (apps/desktop/internal/editing/signals.go). */
 export const isEditingSignal = (signalId: string): boolean => signalId.startsWith('editing.');
 
 /** True for the proofing pickups roll-up (apps/desktop/internal/proofing/pickups.go), as opposed to a delivery check. */
@@ -83,7 +82,7 @@ const isProofingPickupsSignal = (signalId: string): boolean => signalId === 'pro
 
 /** True for a proofing delivery check, including the render length check (apps/desktop/internal/proofing/delivery.go,
  * renders.go): every one of them is about the chapter's chosen render, whose actions live in this panel's own
- * "Rendered file" section (Phase 6), not a dialog `StageEvidence` could open. */
+ * "Rendered file" section, not a dialog `StageEvidence` could open. */
 const isProofingDeliverySignal = (signalId: string): boolean => signalId.startsWith('proofing.delivery.');
 
 /** A signal's cause, worded for whichever check produced it: `stageText.ts`'s `CAUSE_TEXT` is shared by every

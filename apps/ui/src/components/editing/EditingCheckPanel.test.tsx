@@ -11,7 +11,7 @@ import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
 afterEach(cleanup);
 
 // Chapter 7 (WIRE_CHAPTERS[6]) is already in `editing` status in the fixture manuscript (mockFixtures.ts), the only
-// status the real engine (and this mock, apps/desktop/internal/stages D3) evaluates the editing signals for.
+// status the real engine (and this mock, apps/desktop/internal/stages) evaluates the editing signals for.
 const chapter = WIRE_CHAPTERS[6];
 
 type Initial = Parameters<typeof createMockApi>[1];
@@ -38,7 +38,7 @@ describe('EditingCheckPanel', () => {
     const dialog = await panel();
     expect(within(dialog).getByText(/Analysis of source audio; take FX, item gain and fades are not applied\./)).toBeTruthy();
     await waitFor(() => expect(within(dialog).getByText(/This chapter’s editing has not been checked yet\./)).toBeTruthy());
-    // Click and breath are always unknown until Phase 4 validates them, whatever the chapter's own history.
+    // Click and breath are always unknown until their detectors are validated, whatever the chapter's own history.
     expect(within(dialog).getAllByText(/Not yet validated on the corpus/)).toHaveLength(2);
     expect(within(dialog).getByRole('button', { name: 'Check editing' })).toBeTruthy();
   });
@@ -95,8 +95,8 @@ describe('EditingCheckPanel', () => {
     expect(within(row).getByRole('button', { name: 'No audio to hear for Empty space' })).toHaveProperty('disabled', true);
   });
 
-  // Q6 (editing-readiness-analysis.prd.md Phase 8): the per-chapter analysis-source choice.
-  describe('source choice (Q6)', () => {
+  // The per-chapter analysis-source choice.
+  describe('source choice', () => {
     it('shows items on this chapter’s track selected by default', async () => {
       renderPanel({ stages: { editing: { [chapter.id]: 'met' } } });
       const dialog = await panel();

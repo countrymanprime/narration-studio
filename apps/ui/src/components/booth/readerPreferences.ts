@@ -1,7 +1,6 @@
-// Per-viewer reading preferences of the read-aloud dialog (teleprompter-manuscript-integration.prd.md, Decisions Log,
-// "Per-viewer reading preferences", owner decision 2026-09-23): UI layout lives in browser storage, machine facts
+// Per-viewer reading preferences of the Booth (owner decision 2026-09-23): UI layout lives in browser storage, machine facts
 // (microphone, engine, model) in global settings. Storage can be missing, full or blocked (a private window, cleared
-// site data), so every access is guarded and the dialog renders with the defaults when it fails.
+// site data), so every access is guarded and the Booth renders with the defaults when it fails.
 
 import { DEFAULT_FLAG_VISIBILITY, FLAG_KINDS, type FlagVisibility } from './readerFlags';
 
@@ -36,7 +35,7 @@ export function saveRailState(state: RailState): void {
   }
 }
 
-// Which flag kinds show in the text (Phase 7): a per-viewer reading preference like the rail, starting from the owner's default.
+// Which flag kinds show in the text: a per-viewer reading preference like the rail, starting from the owner's default.
 export const FLAG_STORAGE_KEY = 'narration.readAloud.flags';
 
 /** The stored flag kinds to show; any kind stored as anything but a boolean takes its default. */

@@ -32,7 +32,7 @@ const itemFor = (list: HTMLElement, name: string) => {
   return item;
 };
 
-describe('Book checklist (delivery-platform-profiles.prd.md Phase 7, mock 05’s delivery package)', () => {
+describe('Book checklist (benchmark mock 05’s delivery package)', () => {
   it('lists every book-scope rule of the profile, judged against the host answer, its result said in words', () => {
     const list = renderList(contract('measure-success.json').bookRules);
     expect(itemFor(list, 'Channels').textContent).toContain(': Not met');

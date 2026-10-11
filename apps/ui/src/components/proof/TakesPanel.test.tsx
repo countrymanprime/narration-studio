@@ -104,7 +104,7 @@ async function renderPanel(options: { reaper?: ReaperStatus; initial?: Parameter
 
 const takesList = () => screen.findByRole('list', { name: 'Takes of this passage' });
 
-describe('the Takes panel (edit-and-proof-workspace PRD Phase 6, mock 04-takes-panel-ab)', () => {
+describe('the Takes panel ', () => {
   it('opens on the first paragraph heard and lists every take with where it came from and which one plays', async () => {
     const { api } = await renderPanel();
     const read = vi.spyOn(api, 'workspaceTakes');

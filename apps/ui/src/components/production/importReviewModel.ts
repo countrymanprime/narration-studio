@@ -28,7 +28,7 @@ export function effectiveKind(section: ManuscriptImportSection, selection: Manus
   return selection.sectionKinds?.[section.id] ?? section.contentKind;
 }
 
-/** A section whose heading has a second line the narrator can say is not its subtitle (story-bible-and-import-ux-briefs PRD, Phase 5). */
+/** A section whose heading has a second line the narrator can say is not its subtitle. */
 export function hasSubtitleChoice(section: ManuscriptImportSection): boolean {
   return Boolean(section.subtitle && section.subtitleOff);
 }

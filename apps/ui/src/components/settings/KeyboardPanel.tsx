@@ -18,7 +18,7 @@ import { type Scope } from '../../input/scopes';
 import { useGestureCapture } from '../../input/useGestureCapture';
 
 // Grouping and copy mirror the "?" sheet (ShortcutSheet.tsx), which lists the same catalog by the same scopes; the
-// PRD's Visual Spec section fixes this display order (Global, Page, Booth) and the "applies where" subtitle text.
+// display order (Global, Page, Booth, Dialog) and the "applies where" subtitle text follow it.
 const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };
 const SCOPE_APPLIES: Record<Scope, string> = {
@@ -27,7 +27,7 @@ const SCOPE_APPLIES: Record<Scope, string> = {
   booth: 'the Booth and its companion panel',
   dialog: 'while a dialog is open',
 };
-// The same phrase used mid-sentence ("No other command uses it ..."), Visual Spec mockup 02.
+// The same phrase used mid-sentence ("No other command uses it ...").
 const SCOPE_ACTIVE: Record<Scope, string> = {
   global: 'anywhere',
   page: "on a chapter's Proof view",
@@ -41,7 +41,7 @@ function groupByScope(catalog: readonly CommandDescriptor[]): Partial<Record<Sco
   return groups;
 }
 
-// A resolved keyboard gesture's `code` is the physical key (PRD Q1), not the character it types, so this reads
+// A resolved keyboard gesture's `code` is the physical key, not the character it types, so this reads
 // "Slash" rather than "?" - the same reasoning and the same table as ShortcutSheet.tsx's own `codeLabel`, kept as a
 // separate copy here since that one is exported only for its own unit tests (see its `@public` comment).
 const NAMED_CODES: Record<string, string> = {
@@ -127,9 +127,9 @@ type RecorderProps = {
   onResetOne: () => void;
 };
 
-// The recorder opens inline under its row, not in a dialog (Visual Spec): capturing, then a captured or a conflict
-// state (mockups 02 and 03). Its status line is a live region (Phase 6 scope: "a live region that announces the
-// captured gesture"), so a screen reader hears the result of a press without moving focus.
+// The recorder opens inline under its row, not in a dialog: capturing, then a captured or a conflict
+// state. Its status line is a live region that announces the captured gesture, so a screen reader hears the result
+// of a press without moving focus.
 function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCancel, onReplace, onAdd, onUnbind, onResetOne }: RecorderProps) {
   const [captured, setCaptured] = useState<Gesture>();
   useGestureCapture(!busy, setCaptured, onCancel);
@@ -198,9 +198,9 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
 }
 
 /**
- * Settings > Keyboard & pedals (input-commands-and-pedals.prd.md Phase 6): every command in the catalog, grouped by
+ * Settings > Keyboard & pedals every command in the catalog, grouped by
  * scope, remappable by pressing a key or a pedal. Self-contained like DeliveryProfilesPanel/CreditsPanel: it reads and
- * writes the `Keymap.overrides` row (Phase 5) directly rather than through Settings.tsx's generic dirty-tracking form,
+ * writes the `Keymap.overrides` row directly rather than through Settings.tsx's generic dirty-tracking form,
  * since that mechanism is for a page of independent fields with a shared Save button, and this is one JSON document a
  * narrator changes one command at a time (each action saves immediately, like LocalAssets' install actions).
  */
@@ -221,7 +221,7 @@ export function KeyboardPanel({
     try {
       return parseWireJson(keymapOverridesSchema, overridesField?.effectiveValue ?? '', { boundary: 'settings', payload: 'Keymap.overrides' });
     } catch {
-      // A malformed document falls back to the defaults (Phase 5's own rule) rather than failing the whole panel to load.
+      // A malformed document falls back to the defaults rather than failing the whole panel to load.
       return EMPTY_KEYMAP_OVERRIDES;
     }
   }, [overridesField?.effectiveValue]);

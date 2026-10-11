@@ -19,8 +19,7 @@ import {
 } from './chapterSyncText';
 
 /**
- * Chapter sync's own section of the engine panel (daw-chapter-track-auto-sync.prd.md Phases 3 and 4, mockup 02; stage navigation
- * Phase 6 moved it off the Tracks page): the on/off state and last-sync summary, the Needs you list with an inline Link
+ * Chapter sync's own section of the engine panel the on/off state and last-sync summary, the Needs you list with an inline Link
  * (chapterTrackSet, the same binding as Chapter links below), the tracks sync could not place, and the Sync activity with Undo
  * on a link sync made. Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
  * decision, not a second copy of it here.
