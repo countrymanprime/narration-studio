@@ -1,8 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
-import { EMPTY_KEYMAP_OVERRIDES, keymapOverridesSchema } from '../../api/schemas/keymap';
-import { parseWireJson } from '../../api/wire/parseWire';
 import type { ScopedSettingField } from '../../types';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
@@ -10,14 +8,17 @@ import { Kbd } from '../primitives/Kbd';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
 import type { Notify } from '../primitives/Toast';
-import { COMMAND_CATALOG, type CommandDescriptor, type CommandId } from '../../input/commands.catalog';
+import type { CommandDescriptor, CommandId } from '../../input/commands.catalog';
 import { findConflicts, type Conflict } from '../../input/findConflicts';
 import { serializeGesture, type Gesture } from '../../input/gestures';
-import { bindingsFromKeymap, defaultKeymap, keymapFromBindings, type Keymap } from '../../input/keymap';
+import { gestureKeys } from '../../input/hints';
+import { bindingsFromKeymap, defaultKeymap, type Keymap } from '../../input/keymap';
 import { type Scope } from '../../input/scopes';
+import { commandsFor } from '../../input/surfaces';
 import { useGestureCapture } from '../../input/useGestureCapture';
+import { refreshUserKeymap, useUserKeymap } from '../../input/useUserKeymap';
 
-// Grouping and copy mirror the "?" sheet (ShortcutSheet.tsx), which lists the same catalog by the same scopes; the
+// Grouping and copy mirror the "?" sheet (ShortcutSheet.tsx), which lists the same catalogue rows by the same scopes; the
 // display order (Global, Page, Booth, Dialog) and the "applies where" subtitle text follow it.
 const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };
@@ -39,37 +40,6 @@ function groupByScope(catalog: readonly CommandDescriptor[]): Partial<Record<Sco
   const groups: Partial<Record<Scope, CommandDescriptor[]>> = {};
   for (const command of catalog) (groups[command.scope] ??= []).push(command);
   return groups;
-}
-
-// A resolved keyboard gesture's `code` is the physical key, not the character it types, so this reads
-// "Slash" rather than "?" - the same reasoning and the same table as ShortcutSheet.tsx's own `codeLabel`, kept as a
-// separate copy here since that one is exported only for its own unit tests (see its `@public` comment).
-const NAMED_CODES: Record<string, string> = {
-  ArrowLeft: '←',
-  ArrowRight: '→',
-  ArrowUp: '↑',
-  ArrowDown: '↓',
-  BracketLeft: '[',
-  BracketRight: ']',
-  Slash: '/',
-  Space: 'Space',
-  BrowserBack: 'Browser Back',
-  BrowserForward: 'Browser Forward',
-  PageUp: 'Page Up',
-  PageDown: 'Page Down',
-};
-
-function codeLabel(code: string): string {
-  if (code.startsWith('Key')) return code.slice(3);
-  if (code.startsWith('Digit')) return code.slice(5);
-  return NAMED_CODES[code] ?? code;
-}
-
-/** The `Kbd` caps for one gesture, modifiers first; a MIDI or HID gesture (Phases 9, 11) falls back to its serialised
- * form, matching ShortcutSheet.tsx's own `gestureKeys`. */
-function gestureKeys(gesture: Gesture): string[] {
-  if (gesture.source !== 'keyboard') return [serializeGesture(gesture)];
-  return [...gesture.modifiers, codeLabel(gesture.code)];
 }
 
 function gestureLabel(gesture: Gesture): string {
@@ -198,7 +168,7 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
 }
 
 /**
- * Settings > Keyboard & pedals every command in the catalog, grouped by
+ * Settings > Keyboard & pedals every command the catalogue lists on `settings` (`commandsFor`), grouped by
  * scope, remappable by pressing a key or a pedal. Self-contained like DeliveryProfilesPanel/CreditsPanel: it reads and
  * writes the `Keymap.overrides` row directly rather than through Settings.tsx's generic dirty-tracking form,
  * since that mechanism is for a page of independent fields with a shared Save button, and this is one JSON document a
@@ -208,36 +178,34 @@ export function KeyboardPanel({
   overridesField,
   notify,
   reload,
+  catalog,
 }: {
   overridesField: ScopedSettingField | undefined;
   notify: Notify;
   reload: () => Promise<void>;
+  /** The catalogue to list from; a test's fake rows. Defaults to the real one. */
+  catalog?: readonly CommandDescriptor[];
 }) {
   const api = useApi();
   const [recordingId, setRecordingId] = useState<CommandId>();
   const [busy, setBusy] = useState(false);
 
-  const overrides = useMemo(() => {
-    try {
-      return parseWireJson(keymapOverridesSchema, overridesField?.effectiveValue ?? '', { boundary: 'settings', payload: 'Keymap.overrides' });
-    } catch {
-      // A malformed document falls back to the defaults rather than failing the whole panel to load.
-      return EMPTY_KEYMAP_OVERRIDES;
-    }
-  }, [overridesField?.effectiveValue]);
-  const keymap = useMemo(() => keymapFromBindings(overrides.bindings), [overrides]);
-  const defaults = useMemo(() => defaultKeymap(), []);
-  const groups = useMemo(() => groupByScope(COMMAND_CATALOG), []);
-  const anyChanged = COMMAND_CATALOG.some((command) => isChanged(keymap, defaults, command.id));
+  // Settings has already loaded the setting, so its text is handed to the shared hook rather than fetched again.
+  const keymap = useUserKeymap(overridesField?.effectiveValue, catalog);
+  const defaults = useMemo(() => defaultKeymap(catalog), [catalog]);
+  const commands = useMemo(() => commandsFor('settings', catalog), [catalog]);
+  const groups = useMemo(() => groupByScope(commands), [commands]);
+  const anyChanged = commands.some((command) => isChanged(keymap, defaults, command.id));
 
   const persist = useCallback(
     async (nextKeymap: Keymap) => {
       setBusy(true);
       try {
-        const bindings = bindingsFromKeymap(nextKeymap);
+        const bindings = bindingsFromKeymap(nextKeymap, catalog);
         await api.saveSettings('Keymap', 'global', { overrides: JSON.stringify({ version: 1 as const, bindings }) });
         setRecordingId(undefined);
         notify('Keyboard shortcut saved.');
+        refreshUserKeymap();
         await reload();
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -245,7 +213,7 @@ export function KeyboardPanel({
         setBusy(false);
       }
     },
-    [api, notify, reload],
+    [api, catalog, notify, reload],
   );
 
   return (
@@ -305,7 +273,7 @@ export function KeyboardPanel({
                       command={command}
                       currentGestures={gestures}
                       scope={scope}
-                      catalog={COMMAND_CATALOG}
+                      catalog={commands}
                       keymap={keymap}
                       busy={busy}
                       onCancel={() => setRecordingId(undefined)}

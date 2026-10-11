@@ -1,47 +1,38 @@
 // @vitest-environment jsdom
 import { useState } from 'react';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { codeLabel, gestureKeys, ShortcutSheet } from './ShortcutSheet';
-import { COMMAND_CATALOG } from '../../input/commands.catalog';
-import { gesture } from '../../input/gestures';
+import { readFileSync } from 'node:fs';
+import { ShortcutSheet } from './ShortcutSheet';
+import { ApiProvider } from '../../api/ApiContext';
+import { createMockApi } from '../../api/mockApi';
+import { COMMAND_CATALOG, type CommandDescriptor } from '../../input/commands.catalog';
+import { commandsFor } from '../../input/surfaces';
+import type { NarrationApi, ScopedSettingField } from '../../types';
 import { CommandRouter } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 
-describe('codeLabel', () => {
-  it('strips the Key/Digit prefix a letter or number code carries', () => {
-    expect(codeLabel('KeyR')).toBe('R');
-    expect(codeLabel('Digit7')).toBe('7');
-  });
-
-  it('names an arrow, bracket and browser-navigation code', () => {
-    expect(codeLabel('ArrowLeft')).toBe('←');
-    expect(codeLabel('BracketRight')).toBe(']');
-    expect(codeLabel('BrowserForward')).toBe('Browser Forward');
-  });
-
-  it('falls back to the raw code for one it does not know', () => {
-    expect(codeLabel('F13')).toBe('F13');
-  });
-});
-
-describe('gestureKeys', () => {
-  it("puts a keyboard gesture's modifiers before its key", () => {
-    expect(gestureKeys(gesture('keyboard', 'KeyS', ['Ctrl']))).toEqual(['Ctrl', 'S']);
-  });
-
-  it('falls back to the serialised gesture for a source with no key caps yet (MIDI, HID)', () => {
-    expect(gestureKeys(gesture('midi', 'cc/1/64'))).toEqual(['midi:cc/1/64']);
-  });
-});
-
 afterEach(cleanup);
 
-function renderSheet(onClose = vi.fn(), onShowAll = vi.fn()) {
+function overridesApi(bindings: Record<string, string[]>): NarrationApi {
+  const base = createMockApi();
+  return {
+    ...base,
+    settingsForScope: async (scope) => {
+      const all = await base.settingsForScope(scope);
+      const field = all.Keymap?.find((entry) => entry.key === 'overrides') as ScopedSettingField;
+      return { ...all, Keymap: [{ ...field, effectiveValue: JSON.stringify({ version: 1, bindings }) }] };
+    },
+  };
+}
+
+function renderSheet(onClose = vi.fn(), onShowAll = vi.fn(), options: { api?: NarrationApi; catalog?: readonly CommandDescriptor[] } = {}) {
   render(
-    <CommandRouter>
-      <ShortcutSheet onClose={onClose} onShowAll={onShowAll} />
-    </CommandRouter>,
+    <ApiProvider api={options.api ?? createMockApi()}>
+      <CommandRouter>
+        <ShortcutSheet onClose={onClose} onShowAll={onShowAll} catalog={options.catalog} />
+      </CommandRouter>
+    </ApiProvider>,
   );
   return { onClose, onShowAll };
 }
@@ -52,10 +43,52 @@ describe('ShortcutSheet', () => {
     expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
   });
 
-  it('lists every catalog command, discoverable the same way the Settings category will (Success Metrics)', () => {
+  it('sheet-lists-the-help-surface: lists exactly the rows of commandsFor("help"), and a new help row appears with no other edit', () => {
     renderSheet();
     const dialog = screen.getByRole('dialog', { name: 'Keyboard shortcuts' });
-    for (const command of COMMAND_CATALOG) expect(within(dialog).getByText(command.label)).toBeTruthy();
+    const labels = within(dialog)
+      .getAllByRole('listitem')
+      .map((item) => item.querySelector('span')!.textContent);
+    expect(labels.sort()).toEqual(
+      commandsFor('help')
+        .map((command) => command.label)
+        .sort(),
+    );
+    cleanup();
+
+    const fake: CommandDescriptor = {
+      id: 'test.fake',
+      label: 'A fake help row',
+      scope: 'page',
+      defaults: [{ source: 'keyboard', code: 'KeyQ', modifiers: [] }],
+      surfaces: ['help'],
+    };
+    const hidden: CommandDescriptor = { id: 'test.hidden', label: 'Not on the sheet', scope: 'page', defaults: [], surfaces: ['settings'] };
+    renderSheet(vi.fn(), vi.fn(), { catalog: [...COMMAND_CATALOG, fake, hidden] });
+    const again = screen.getByRole('dialog', { name: 'Keyboard shortcuts' });
+    expect(within(again).getByText('A fake help row')).toBeTruthy();
+    expect(within(again).queryByText('Not on the sheet')).toBeNull();
+  });
+
+  it('sheet-shows-the-remapped-keys: shows the override and not the default, and the default when there is none', async () => {
+    renderSheet(vi.fn(), vi.fn(), { api: overridesApi({ 'nav.back': ['Ctrl+KeyH'] }) });
+    const row = screen.getByText('Back').closest('li')!;
+    await waitFor(() => expect(within(row).getAllByRole('img', { name: 'Ctrl + H' }).length).toBeGreaterThan(0));
+    expect(within(row).queryAllByRole('img', { name: 'Browser Back' })).toHaveLength(0);
+    cleanup();
+
+    renderSheet();
+    const plain = screen.getByText('Back').closest('li')!;
+    expect(within(plain).getAllByRole('img', { name: 'Browser Back' }).length).toBeGreaterThan(0);
+  });
+
+  it('sheet-draws-caps: arrows, Space and Esc are glyph caps that keep their names for a screen reader', () => {
+    renderSheet();
+    const wordRow = screen.getByText('Previous word').closest('li')!;
+    expect(wordRow.querySelector('kbd[data-key="ArrowLeft"]')).not.toBeNull();
+    expect(within(wordRow).getByText('Left arrow')).toBeTruthy();
+    const readingRow = screen.getByText('Play or pause reading').closest('li')!;
+    expect(readingRow.querySelector('kbd[data-key="Space"]')).not.toBeNull();
   });
 
   it('groups commands under a heading per scope, skipping a scope with no commands', () => {
@@ -73,7 +106,8 @@ describe('ShortcutSheet', () => {
     const dialog = screen.getByRole('dialog', { name: 'Keyboard shortcuts' });
     const backRow = within(dialog).getByText('Back').closest('li')!;
     expect(within(backRow).getByRole('img', { name: 'Alt + ←' })).toBeTruthy();
-    expect(within(backRow).getByRole('img', { name: 'Browser Back' })).toBeTruthy();
+    // A text cap is a `Kbd` image inside the way's own image; a screen reader reads only the outer one.
+    expect(within(backRow).getAllByRole('img', { name: 'Browser Back' }).length).toBeGreaterThan(0);
     const readingRow = within(dialog).getByText('Play or pause reading').closest('li')!;
     expect(within(readingRow).getByRole('img', { name: 'Space' })).toBeTruthy();
   });
@@ -110,9 +144,11 @@ describe('ShortcutSheet', () => {
     }
     const backHandler = vi.fn();
     render(
-      <CommandRouter>
-        <Harness backHandler={backHandler} />
-      </CommandRouter>,
+      <ApiProvider api={createMockApi()}>
+        <CommandRouter>
+          <Harness backHandler={backHandler} />
+        </CommandRouter>
+      </ApiProvider>,
     );
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     expect(backHandler).not.toHaveBeenCalled();
@@ -120,5 +156,12 @@ describe('ShortcutSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     expect(backHandler).toHaveBeenCalledOnce();
+  });
+});
+
+describe('no-hand-written-list', () => {
+  it.each(['ShortcutSheet.tsx', '../settings/KeyboardPanel.tsx'])('%s reads commandsFor, not COMMAND_CATALOG', (file) => {
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    expect(source).not.toMatch(/\bCOMMAND_CATALOG\b/);
   });
 });

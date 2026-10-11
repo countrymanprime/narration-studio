@@ -1,62 +1,32 @@
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
-import { Kbd } from '../primitives/Kbd';
-import { COMMAND_CATALOG, type CommandDescriptor } from '../../input/commands.catalog';
-import { serializeGesture, type Gesture } from '../../input/gestures';
-import { defaultKeymap } from '../../input/keymap';
+import { KeyChord } from '../primitives/KeyCap';
+import type { CommandDescriptor } from '../../input/commands.catalog';
+import { gestureKeys } from '../../input/hints';
 import { CommandScope } from '../../input/router';
 import type { Scope } from '../../input/scopes';
+import { commandsFor } from '../../input/surfaces';
+import { useUserKeymap } from '../../input/useUserKeymap';
 
-// Every command is listed here, not only the ones active on the screen that opened the sheet, so every catalog command
-// is discoverable in both Settings and the '?' sheet. Grouped the same way the Keyboard & pedals Settings category
-// groups them. This order is display-only, unrelated to
+// Grouped the same way the Keyboard & pedals Settings category groups them. This order is display-only, unrelated to
 // `SCOPE_PRIORITY` (router.tsx), which orders scopes by specificity for gesture lookup, not for reading.
 const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };
 
-// A resolved keyboard gesture's `code` is the physical key, not the character it types, so it reads "Slash"
-// rather than "?"; this is the one place in the app that turns a code back into a cap a narrator recognises.
-const NAMED_CODES: Record<string, string> = {
-  ArrowLeft: '←',
-  ArrowRight: '→',
-  ArrowUp: '↑',
-  ArrowDown: '↓',
-  BracketLeft: '[',
-  BracketRight: ']',
-  Slash: '/',
-  Space: 'Space',
-  BrowserBack: 'Browser Back',
-  BrowserForward: 'Browser Forward',
-};
-
-// @public: exported only for direct unit tests (ShortcutSheet.test.tsx); not used outside this file otherwise.
-export function codeLabel(code: string): string {
-  if (code.startsWith('Key')) return code.slice(3);
-  if (code.startsWith('Digit')) return code.slice(5);
-  return NAMED_CODES[code] ?? code;
-}
-
-// The Kbd caps for one gesture, modifiers first. A MIDI or HID gesture (Phases 9, 11) has no key caps to draw yet, so
-// it falls back to its serialised form rather than pretending to be a keyboard chord. @public: see `codeLabel`.
-export function gestureKeys(gesture: Gesture): string[] {
-  if (gesture.source !== 'keyboard') return [serializeGesture(gesture)];
-  return [...gesture.modifiers, codeLabel(gesture.code)];
-}
-
-function groupByScope(catalog: readonly CommandDescriptor[]): Partial<Record<Scope, CommandDescriptor[]>> {
+function groupByScope(commands: readonly CommandDescriptor[]): Partial<Record<Scope, CommandDescriptor[]>> {
   const groups: Partial<Record<Scope, CommandDescriptor[]>> = {};
-  for (const command of catalog) (groups[command.scope] ??= []).push(command);
+  for (const command of commands) (groups[command.scope] ??= []).push(command);
   return groups;
 }
 
-// The "?" (Shift+Slash) shortcut sheet: every command in the catalog,
-// grouped by scope, each with its bound gestures as Kbd chips. Its content claims the router's `dialog` scope
-// (ADR 0361 decision 4), the first feature to do so - while it is open, a `global` command like Back/Forward no
-// longer matches (`activeScopes`, router.tsx), the same way any other open dialog already stops them through
-// `App.tsx`'s own `isModalOpen` check.
-export function ShortcutSheet({ onClose, onShowAll }: { onClose: () => void; onShowAll: () => void }) {
-  const keymap = defaultKeymap();
-  const groups = groupByScope(COMMAND_CATALOG);
+// The "?" (Shift+Slash) shortcut sheet: the rows of the catalogue that list on `help` (`commandsFor`), grouped by scope,
+// each with the narrator's gestures for it (their remaps over the defaults) drawn as key caps, the ways told apart by
+// "or" (the mock's `help.tsx`). Its content claims the router's `dialog` scope (ADR 0361 decision 4): while it is open, a
+// `global` command like Back/Forward no longer matches (`activeScopes`, router.tsx), the same way any other open dialog
+// already stops them through `App.tsx`'s own `isModalOpen` check. `catalog` is for a test's fake rows.
+export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => void; onShowAll: () => void; catalog?: readonly CommandDescriptor[] }) {
+  const keymap = useUserKeymap(undefined, catalog);
+  const groups = groupByScope(commandsFor('help', catalog));
 
   return (
     <CommandScope kind="dialog">
@@ -69,10 +39,22 @@ export function ShortcutSheet({ onClose, onShowAll }: { onClose: () => void; onS
                 {groups[scope]!.map((command) => (
                   <li key={command.id} className="flex items-center justify-between gap-4">
                     <span>{command.label}</span>
-                    <span className="flex items-center gap-2">
-                      {(keymap[command.id] ?? []).map((gesture, index) => (
-                        <Kbd key={index} keys={gestureKeys(gesture)} />
-                      ))}
+                    <span className="flex flex-wrap items-center justify-end gap-x-1 gap-y-0.5 text-xs text-[var(--text-muted)]">
+                      {(keymap[command.id] ?? []).map((gesture, index) => {
+                        const keys = gestureKeys(gesture);
+                        return (
+                          <span key={index} className="inline-flex items-center gap-1">
+                            {index > 0 && (
+                              <span className="mx-0.5" aria-hidden="true">
+                                or
+                              </span>
+                            )}
+                            <span role="img" aria-label={keys.join(' + ')}>
+                              <KeyChord keys={keys} />
+                            </span>
+                          </span>
+                        );
+                      })}
                     </span>
                   </li>
                 ))}
