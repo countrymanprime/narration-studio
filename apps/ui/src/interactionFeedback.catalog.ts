@@ -88,10 +88,12 @@ export const SILENT_CATCHES: Record<string, string> = {
   // the debounced persistence write, added after the three above.
   'src/hooks/useZoom.ts#4':
     'The debounced persist of the settled level; a failure just leaves the next launch opening at the last successfully saved level, and the narrator sees no error from a header control that already did what they asked.',
-  'src/App.tsx#6': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',
-  'src/App.tsx#7':
+  'src/App.tsx#6':
+    "The jump menu's chapter list (the store's chapters slot): a failed read keeps the last list, every page still shows, and the pages that need the chapters report the real error.",
+  'src/App.tsx#7': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',
+  'src/App.tsx#8':
     'Best effort when leaving a Proof chapter view with a compare run through the nav: a reset that fails leaves the finished results in place, which is harmless.',
-  'src/App.tsx#8': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
+  'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/production/ManuscriptImport.tsx#1':
     'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
   'src/components/script/ScriptPage.tsx#1':

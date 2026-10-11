@@ -34,7 +34,7 @@ const RUNBOOKS = {
 const LINK_BASE = 'https://github.com/countrymanprime/narration-utils/blob/main/';
 
 /** Steps the PRDs name that a slice line may not carry. Where a runbook holds the commands, `run` links its section. */
-export const BASELINE = [
+const BASELINE = [
   { code: 'SNR', area: 'app', step: 'Shift+F10 and the Menu key open the context menu in the Wails WebView of the built app (it may differ from Chromium).', run: 'Build the app, focus a row with a context menu, press Shift+F10, then the Menu key.' },
   { code: 'SND-6a', area: 'reaper', step: 'REAPER undo of the roll command: one Ctrl+Z reverts one roll.', run: `[Spike 1a](${LINK_BASE}${RUNBOOKS.spikes}) and [the REAPER pass](${LINK_BASE}${RUNBOOKS.reaper}).` },
   { code: 'SND-6b', area: 'reaper', step: 'REAPER undo of delete range.', run: `[Spike 1b](${LINK_BASE}${RUNBOOKS.spikes}).` },
