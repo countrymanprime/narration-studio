@@ -6,10 +6,10 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "av==19.0.1",
   "ctranslate2==4.8.2",
-  "fastapi==0.142.2",
+  "fastapi==0.142.4",
   "faster-whisper==1.2.1",
   "httpx==0.28.1",
-  "hypothesis==6.168.3",
+  "hypothesis==6.168.5",
   "moonshine-voice==0.1.5 ; sys_platform == 'win32'",
   "numpy==2.5.3",
   "phonemizer>=3.3",
