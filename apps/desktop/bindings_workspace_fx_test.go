@@ -56,7 +56,7 @@ func TestWorkspaceListFXChainsGoesThroughTheResolvedRoleAndNeverReturnsANilNames
 	}
 }
 
-// The wire contract (CLAUDE.md): the answer shape WorkspaceListFXChains sends, read by
+// The wire contract (`.claude/rules/wire-contracts.md`): the answer shape WorkspaceListFXChains sends, read by
 // apps/ui/src/api/wireContracts.test.ts against its Zod schema.
 func TestWorkspaceListFXChainsContract(t *testing.T) {
 	contractfile.Check(t, "workspace-fx-chains", workspaceFXChainsAnswer{
