@@ -8,7 +8,7 @@ import { openHistoryPanel } from './components/layout/HistoryPanel';
 import { useGoToCommands } from './components/layout/useGoToCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
-import { dawShortName, StudioProvider, useJournal } from './studio/StudioProvider';
+import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
 import type { Journal } from './studio/journal/createJournal';
 import type { ContextMenuItem } from './components/primitives/ContextMenu';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
@@ -61,6 +61,8 @@ import { useRecordingEngine } from './components/booth/useRecorder';
 // `#teleprompter` is kept as an alias of `#booth` so links from before the Booth replaced the Teleprompter page still land;
 // the category's key stays its settings tool's name.
 const SETTINGS_ANCHORS: Record<string, string> = { '#credits': 'Credits', '#delivery': 'Delivery', '#booth': 'Teleprompter', '#teleprompter': 'Teleprompter' };
+
+const NO_CHAPTERS: ManuscriptChapter[] = [];
 
 const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not be read, so what you see may be out of date. Reopen the page to refresh it.';
 
@@ -415,23 +417,16 @@ function AppRoutes() {
   // Back/Forward, since both are always-available app-level commands rather than a feature's own.
   useCommand('help.shortcuts', () => setShortcutsOpen(true));
 
-  // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>" (ADR 0780). The chapters come from the manuscript, read again when
-  // a manuscript arrives; a failed read leaves the list empty, as the menu still has every page.
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>" (ADR 0780). The chapters are the store's `chapters` slot (ADR 0770):
+  // loaded when a manuscript arrives or the project changes, stale on `job:ended`, and a failed read keeps the last list ("a failure never
+  // replaces a cached value"), where the local state emptied it.
+  const studio = useStoreHandle();
+  const projectFolder = data?.projectFolder;
   useEffect(() => {
-    if (!hasManuscript) {
-      setChapters([]);
-      return;
-    }
-    let live = true;
-    api
-      .manuscriptChapters()
-      .then((list) => live && setChapters(list))
-      .catch(() => live && setChapters([]));
-    return () => {
-      live = false;
-    };
-  }, [api, hasManuscript]);
+    if (hasManuscript) void studio.load('chapters').catch(() => {});
+  }, [studio, hasManuscript, projectFolder]);
+  const slotChapters = useStudio((state) => state.slots.chapters);
+  const chapters = hasManuscript ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string) => void>(() => {});
   const goToScriptRef = useRef<(chapter: string) => void>(() => {});
   useGoToCommands({

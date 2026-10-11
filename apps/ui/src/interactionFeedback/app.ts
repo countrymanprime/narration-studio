@@ -17,6 +17,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::subscribeUpdate#1': subscription('The update check finding a newer release becomes one toast.'),
   'src/App.tsx::subscribeLiveUpdateHealth#1': subscription('Degraded live updates become one toast.'),
   'src/App.tsx::subscribeProjectAttach#1': subscription('A project attach refreshes the bootstrap or shows why it was refused.'),
+  'src/App.tsx::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The jump menu\'s "Go to <chapter>" list, read again when a manuscript arrives: a failed read leaves the chapter rows out while every page still shows, and the pages that need the chapters report the real error.'),
   // components/layout/useNavCounts.ts
   'src/components/layout/useNavCounts.ts::guidePronunciationQueries#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The rail\'s Story Bible badge: cosmetic, read on every page move; a failed read draws no badge (never a made-up number) and the Story Bible page reports the real error.'),
   'src/components/layout/useNavCounts.ts::findingsSummary#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The rail\'s Proof badge: cosmetic, read on every page move; a failed read draws no badge and the Proof page reports the real error.'),

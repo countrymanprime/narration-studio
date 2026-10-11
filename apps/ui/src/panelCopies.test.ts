@@ -44,8 +44,9 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/booth/ResumePrompt.tsx': 1,
   },
   eyebrow: {
-    // The shell's nav group headings and the header's Project label.
-    'src/components/layout/AppShell.tsx': 3,
+    // The shell's nav group headings and the header's Project label, and the three `.section-label` selectors of the collapsed rail's
+    // class string (they style the label, they do not draw one).
+    'src/components/layout/AppShell.tsx': 6,
     // Page components not yet on the primitives: the Booth, Master and Script.
     'src/components/booth/BoothView.tsx': 1,
     'src/components/booth/CompanionShell.tsx': 1,

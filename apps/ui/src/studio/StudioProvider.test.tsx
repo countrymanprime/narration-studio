@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../api/ApiContext';
 import { createMockApi } from '../api/mockApi';
-import { dawShortName, StudioProvider, useJournal } from './StudioProvider';
+import type { ManuscriptChapter } from '../api/contracts/manuscript';
+import type { ProjectAttachState } from '../api/contracts/system';
+import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './StudioProvider';
+import { createHostEvents, createSlots } from './slots';
+import { createStudioStore } from './store/createStudioStore';
 
 afterEach(cleanup);
 
@@ -72,5 +77,98 @@ describe('StudioProvider', () => {
       </ApiProvider>,
     );
     expect(screen.getByText('inside')).toBeTruthy();
+  });
+});
+
+const chapter = (id: string) => ({ id, title: id, number: 1, index: 1, wordCount: 10, status: 'not_started' }) as unknown as ManuscriptChapter;
+
+function projectRig(lists: Record<string, ManuscriptChapter[]>) {
+  let folder = 'A';
+  let attach: (state: ProjectAttachState) => void = () => undefined;
+  const api = createMockApi({
+    manuscriptChapters: async () => lists[folder] ?? [],
+    subscribeProjectAttach: (cb) => {
+      attach = cb;
+      return () => undefined;
+    },
+  });
+  return {
+    api,
+    switchTo: (next: string) => {
+      folder = next;
+      attach({ attached: true });
+    },
+  };
+}
+
+describe('provider-creates-and-starts-the-store', () => {
+  it('starts the store on mount and stops it on unmount, using a store a test passes', () => {
+    const stop = vi.fn();
+    const store = createStudioStore({ registry: createSlots({ manuscriptChapters: async () => [] }), subscribe: () => () => undefined });
+    const start = vi.spyOn(store, 'start').mockReturnValue(stop);
+    const view = render(
+      <ApiProvider api={createMockApi({}, {})}>
+        <StudioProvider store={store}>
+          <p>x</p>
+        </StudioProvider>
+      </ApiProvider>,
+    );
+    expect(start).toHaveBeenCalledOnce();
+    view.unmount();
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
+  it('exposes one store to every consumer and useStudio reads its slots', async () => {
+    const { api } = projectRig({ A: [chapter('c1')] });
+    const { result } = renderHook(() => ({ store: useStoreHandle(), again: useStoreHandle(), chapters: useStudio((s) => s.slots.chapters) }), {
+      wrapper: ({ children }) => (
+        <ApiProvider api={api}>
+          <StudioProvider>{children}</StudioProvider>
+        </ApiProvider>
+      ),
+    });
+    expect(result.current.store).toBe(result.current.again);
+    expect(result.current.chapters).toBeUndefined();
+    await act(() => result.current.store.load('chapters'));
+    expect(result.current.chapters).toHaveLength(1);
+  });
+});
+
+describe('project-switch-clears-both', () => {
+  it('empties the slots and the journal, loads again for B, and drops an A load that lands late', async () => {
+    const rig = projectRig({ A: [chapter('a1')], B: [chapter('b1'), chapter('b2')] });
+    let release: (list: ManuscriptChapter[]) => void = () => undefined;
+    const slow = new Promise<ManuscriptChapter[]>((resolve) => (release = resolve));
+    const api = { ...rig.api, manuscriptChapters: vi.fn().mockReturnValueOnce(slow).mockImplementation(rig.api.manuscriptChapters) };
+    const { result } = renderHook(() => ({ store: useStoreHandle(), journal: useJournal(), chapters: useStudio((s) => s.slots.chapters) }), {
+      wrapper: ({ children }) => (
+        <ApiProvider api={api}>
+          <StudioProvider>{children}</StudioProvider>
+        </ApiProvider>
+      ),
+    });
+    // A's load is still in flight when the project switches.
+    const inFlight = result.current.store.load('chapters');
+    await result.current.journal.act({ label: 'Edit', touches: ['x'], run: async () => ({ ok: true, value: 1 }), undo: async () => ({ ok: true, value: 1 }) });
+    act(() => rig.switchTo('B'));
+    expect(await result.current.journal.entries()).toEqual([]);
+    release([chapter('a1')]);
+    await act(() => inFlight);
+    expect(result.current.chapters).toBeUndefined();
+    await act(() => result.current.store.load('chapters'));
+    expect(result.current.chapters?.map((c) => c.id)).toEqual(['b1', 'b2']);
+  });
+});
+
+describe('createHostEvents wired by the provider', () => {
+  it('reloads the chapters slot when a job ends', async () => {
+    let ended: () => void = () => undefined;
+    const load = vi.fn().mockResolvedValue([]);
+    const subscribe = createHostEvents({ subscribeJobEnded: (cb: () => void) => ((ended = cb), () => undefined) } as never);
+    const store = createStudioStore({ registry: createSlots({ manuscriptChapters: load }), subscribe, subscribeFocus: () => () => undefined });
+    store.start();
+    ended();
+    await Promise.resolve();
+    expect(load).toHaveBeenCalledOnce();
   });
 });
