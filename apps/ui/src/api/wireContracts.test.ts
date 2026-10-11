@@ -2666,7 +2666,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     const empty = await api.productionPlan();
     expectMatches(productionPlanSchema, empty, 'mock production plan, empty');
-    expect(empty).toEqual({ deadline: null, contractedAmount: null, milestones: [] });
+    expect(empty).toEqual({ deadline: null, contractedAmount: null, payment: 'none', milestones: [] });
 
     const set = await api.setProductionDeadline(' 2026-12-01 ', 2400);
     expectMatches(productionPlanSchema, set, 'mock production plan, deadline set');
@@ -2690,6 +2690,57 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const cleared = await api.setProductionDeadline('', null);
     expectMatches(productionPlanSchema, cleared, 'mock production plan, cleared');
     expect(cleared).toMatchObject({ deadline: null, contractedAmount: null });
+  });
+
+  it('the production plan payment type: royalty share and none clear the amount and refuse one; an unknown type saves nothing', async () => {
+    const api = createMockApi();
+    const set = await api.setProductionDeadline('2026-12-01', 2400);
+    expect(set.payment).toBe('per_finished_hour');
+    for (const payment of ['royalty_share', 'none'] as const) {
+      const chosen = await api.setProductionPayment(payment);
+      expectMatches(productionPlanSchema, chosen, `mock production plan, ${payment}`);
+      expect(chosen).toMatchObject({ deadline: '2026-12-01', contractedAmount: null, payment });
+      await expect(api.setProductionDeadline('2026-12-01', 2400)).rejects.toThrow('per finished hour');
+      expect((await api.productionOverview()).totals).toMatchObject({ contractedAmount: null, effectiveRate: null });
+    }
+    const before = await api.productionPlan();
+    await expect(api.setProductionPayment('royalty' as never)).rejects.toThrow('not a payment type');
+    expect(await api.productionPlan()).toEqual(before);
+    const back = await api.setProductionPayment('per_finished_hour');
+    expectMatches(productionPlanSchema, back, 'mock production plan, per finished hour');
+    expect(await api.setProductionDeadline('2026-12-01', 2400)).toMatchObject({ payment: 'per_finished_hour', contractedAmount: 2400 });
+  });
+
+  it('the production milestones keep a measure, an estimate, done and a template, and a bad one refuses the whole list', async () => {
+    const api = createMockApi();
+    const saved = await api.saveProductionMilestones([
+      { name: 'ACX 15-minute checkpoint', dueDate: '2026-10-15', measure: ' checkpoint ', estimate: '2026-10-12', template: 'checkpoint15' },
+      { name: 'First 4 chapters', dueDate: '2026-10-20', measure: 'ch4', done: true },
+      { name: 'Cover art', dueDate: '2026-11-01', measure: 'custom', done: false },
+    ]);
+    expectMatches(productionPlanSchema, saved, 'mock production plan, measured milestones');
+    expect(saved.milestones).toEqual([
+      { name: 'ACX 15-minute checkpoint', dueDate: '2026-10-15', measure: 'checkpoint', estimate: '2026-10-12', template: 'checkpoint15' },
+      { name: 'First 4 chapters', dueDate: '2026-10-20', measure: 'ch4', done: true },
+      { name: 'Cover art', dueDate: '2026-11-01', measure: 'custom' },
+    ]);
+    const refused = [
+      { name: 'M', dueDate: '2026-10-15', measure: 'everything' },
+      { name: 'M', dueDate: '2026-10-15', measure: 'custom', estimate: '2026-10-10' },
+      { name: 'M', dueDate: '2026-10-15', measure: 'rec', estimate: 'soon' },
+      { name: 'M', dueDate: '2026-10-15', template: 'has spaces' },
+    ];
+    for (const bad of refused) {
+      await expect(api.saveProductionMilestones([{ name: 'Fine', dueDate: '2026-10-01' }, bad])).rejects.toThrow('milestone 2');
+    }
+    expect(await api.productionPlan()).toEqual(saved);
+  });
+
+  it('the production plan schema reads an older host without the new fields and refuses an unknown payment type', () => {
+    const older = { deadline: '2026-12-01', contractedAmount: 2400, milestones: [{ name: 'Final delivery', dueDate: '2026-12-01', note: 'n' }] };
+    expectMatches(productionPlanSchema, older, 'production plan from an older host');
+    expect(productionPlanSchema.safeParse({ ...older, payment: 'royalty' }).success).toBe(false);
+    expect(productionPlanSchema.safeParse({ ...older, milestones: [{ name: 'M', dueDate: '2026-10-15', done: 'yes' }] }).success).toBe(false);
   });
 
   it('every method of the API is either checked in this file, void, or not a request', () => {
@@ -2854,6 +2905,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'previewPinClear',
       'productionPlan',
       'setProductionDeadline',
+      'setProductionPayment',
       'saveProductionMilestones',
       'stageRecommendations',
       'stageConfirm',
