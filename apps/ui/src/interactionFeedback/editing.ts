@@ -28,4 +28,5 @@ export const editingFeedback: Record<string, FeedbackRow> = {
   'src/components/editing/script/useEditingDoc.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s paragraphs for the script document with the heard words; a failure puts the document in its error state with the message.'),
   // Editing ribbon
   'src/components/editing/ribbon/useRibbonPeaks.ts::workspacePeaks#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'The chapter\'s peaks for the ribbon; a refused or failed read is a state (the ribbon says there is no audio), not an error to retry.'),
+  'src/components/editing/bar/useScriptPlayback.ts::mediaUrl#1': row('click', 'instant', 'na', 'na', 'ui', 'na', 'na', 'exempt', "Builds the media URL of a recorded file (a string, no host call); Play starts the audio on it, and a file that will not load is the audio element's own error, which the bar reports."),
 };

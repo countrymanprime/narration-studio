@@ -198,4 +198,5 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/frame/useLevels.ts::subscribeTeleprompterEvent#1': subscription('The meter-only child\'s level and meter_stopped events: the popover draws the level and shows the child\'s error.'),
   'src/components/booth/frame/useLevels.ts::teleprompterMeterStart#1': row('effect', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Starts the meter-only child while the popover is open; a refusal is shown as the meter\'s error.'),
   'src/components/booth/frame/useLevels.ts::teleprompterMeterStop#1': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Releases the meter-only child when the popover closes or the device changes; nothing is left mounted to tell, and the next start works either way (SILENT_CATCHES).'),
+  'src/components/booth/record/useRecordControl.ts::readAloudReaperState#1': row('effect', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads which tracks the chapter has in the DAW so Record can say what it will do; a failed read leaves the tracks unknown, and Record says so in its own reason.'),
 };

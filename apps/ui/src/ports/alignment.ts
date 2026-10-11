@@ -40,7 +40,7 @@ export type HeardAnswer = { heard: Heard } | { heard: null; reason: string; reas
 
 /** A cut point on the nearest zero crossing, or left where it was with why. `time` is in seconds of the item's source;
  * `moved` is `time` minus the asked time (within 2 ms; 0 when it stayed). */
-export type SnapResult = { time: number; moved: number } & ({ snapped: true } | { snapped: false; reason: WorkspaceSnapRefusal; message: string });
+type SnapResult = { time: number; moved: number } & ({ snapped: true } | { snapped: false; reason: WorkspaceSnapRefusal; message: string });
 
 export interface AlignmentPort {
   heard(chapterId: string): Promise<HeardAnswer>;
@@ -52,7 +52,7 @@ export interface AlignmentPort {
 export type AlignmentHostApi = Pick<NarrationApi, 'workspaceAlignment' | 'workspaceSnap'>;
 
 /** The port's answer for a WorkspaceSnap result. */
-export function snapFrom(result: WorkspaceSnapResult): SnapResult {
+function snapFrom(result: WorkspaceSnapResult): SnapResult {
   if (result.outcome === 'refused') return { snapped: false, time: result.time, moved: 0, reason: result.reason, message: result.message };
   return { snapped: true, time: result.time, moved: result.moved };
 }
