@@ -16,9 +16,9 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Documentation and process](#docs-and-process) | 8 |
 | [Ports and providers](#ports-and-providers) | 14 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
-| [Assets, models and downloads](#assets-and-downloads) | 8 |
+| [Assets, models and downloads](#assets-and-downloads) | 9 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 52 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 53 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 48 |
 | [Persistence and project files](#persistence-and-project-files) | 8 |
@@ -253,6 +253,7 @@ First-use downloads, the asset registry, models and licences, and what ships ins
 | [0097](0097-the-manuscript-reader-word-lookup-uses-the-open-english-wordnet-as-a-downloadable-asset.md) | The manuscript reader's word lookup uses the Open English WordNet as a downloadable asset | Accepted |
 | [0107](0107-moonshine-ships-inside-the-windows-teleprompter-sidecar-and-runs-only-from-a-verified-catalog-install.md) | Moonshine ships inside the Windows Teleprompter sidecar and runs only from a verified catalog install | Proposed |
 | [0136](0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md) | An asset may keep only a file built at install from its verified archive | Proposed |
+| [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
 
 <a id="mastering-delivery-and-production"></a>
 
@@ -349,6 +350,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Accepted |
 | [0804](0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) | The Editing page replaces the workspace in Proof in one change | Accepted |
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
+| [0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md) | The take suggestion is evidence first, and its confidence is null with a reason until the takes are comparable | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 
