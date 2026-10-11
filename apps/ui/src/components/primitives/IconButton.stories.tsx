@@ -15,6 +15,24 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+// From a catalogue action (ADR 0761): the name, the hint and the icon come from `icons.catalog.ts`, so "markDone" reads the same
+// on every page. A shortcut in the row shows in the hint.
+export const FromAction: Story = {
+  render: () => (
+    <div className="flex gap-2">
+      <IconButton action="markDone" />
+      <IconButton action="undo" />
+      <IconButton action="delete" variant="danger" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Mark done' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Undo' })).toHaveAttribute('aria-keyshortcuts', 'Ctrl+Z');
+    await expect(canvas.getByRole('button', { name: 'Delete' }).querySelector('svg')).toHaveAttribute('data-icon', 'trash-can');
+  },
+};
 export const Primary: Story = { args: { variant: 'primary', label: 'Save changes' } };
 export const Danger: Story = { args: { variant: 'danger', label: 'Delete entity', children: <FontAwesomeIcon icon={faTrash} /> } };
 // 28 px, beside a small Button in a dense row.
