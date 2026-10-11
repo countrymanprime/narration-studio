@@ -384,4 +384,5 @@ The table is generated from each ADR's heading and Status line ([ADR 0410](0410-
 | [0820](0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | A bookmark is a spot kept in a project sidecar, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
 | [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
+| [0846](0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md) | Extraction suggestions are kept in a project file beside the Story Bible, and a rejected one stays as a tombstone | Proposed |
 <!-- adr-index:end -->
