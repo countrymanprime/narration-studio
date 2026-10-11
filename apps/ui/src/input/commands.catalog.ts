@@ -158,6 +158,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'booth.pickup.prev', label: 'Previous pickup', scope: 'booth', defaults: [key('KeyN', ['Shift'])], group: 'Booth', surfaces: ['help', 'settings'] },
   // Mock 03 fills the whole window (owner call, 2026-09-29): F11 also takes the window fullscreen, the platform's own key for it.
   { id: 'booth.fullscreen', label: 'Toggle full screen', scope: 'booth', defaults: [key('F11')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // SNO-10a: the Companion has its own route, opened from the jump menu (no rail item; Mod+Alt+C is its only key). The app shell runs it.
+  {
+    id: 'companion.open',
+    label: 'Open Companion',
+    scope: 'global',
+    defaults: [key('KeyC', ['Mod', 'Alt'])],
+    group: 'Booth',
+    surfaces: ['jumpMenu', 'help', 'settings'],
+  },
   // "?" is Shift+Slash on a US layout (gestures are bound by physical key, so ShortcutSheet.tsx labels it back from
   // `code` for display). `global` so it opens from any screen; `findConflicts.test.ts`'s zero-conflicts
   // check over the real catalog covers it against every other command.

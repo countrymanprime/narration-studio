@@ -34,6 +34,7 @@ import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { Settings } from './components/settings/Settings';
 import { BoothPage, boothQuery } from './components/booth/BoothPage';
+import { CompanionPage } from './components/booth/companion/CompanionPage';
 import type { CreditsKind } from './components/booth/readerModel';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
@@ -446,6 +447,7 @@ function AppRoutes() {
     'zoom.reset': () => void zoom.reset(),
     'help.shortcuts': () => setShortcutsOpen(true),
     'history.open': openHistory,
+    'companion.open': () => guardedNavigateRef.current('/companion'),
   };
   const openJump = (initialTerm?: string) => void openJumpMenu({ keymap, runCommand: (id) => shellCommands.current[id]?.(), initialTerm, service: overlay });
   useCommand('jump.open', () => {
@@ -692,6 +694,10 @@ function AppRoutes() {
                       <Navigate to="/" replace />
                     )
                   }
+                />
+                <Route
+                  path="/companion"
+                  element={data.manuscript ? <CompanionPage onFixCredits={() => guardedNavigate('/settings#credits')} /> : <Navigate to="/" replace />}
                 />
                 <Route path="/teleprompter" element={<RedirectKeepingLocation to="/booth" />} />
                 <Route

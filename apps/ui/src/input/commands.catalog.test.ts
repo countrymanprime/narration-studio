@@ -113,6 +113,17 @@ describe('the Booth rows', () => {
   });
 });
 
+describe('the Companion row', () => {
+  it('the-entry-is-a-jump-menu-command: companion.open is a global Booth-group row on the jump menu, with no rail item', () => {
+    const row = findCommand('companion.open');
+    expect(row?.label).toBe('Open Companion');
+    expect(row?.scope).toBe('global');
+    expect(row?.group).toBe('Booth');
+    expect(row?.surfaces).toContain('jumpMenu');
+    expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
+  });
+});
+
 describe('the bookmark rows', () => {
   it('keys-are-catalogue-rows: B, Alt+] and Alt+[ are page rows with the three labels and no conflict', () => {
     const rows = [findCommand('bookmark.here'), findCommand('bookmark.next'), findCommand('bookmark.prev')];
