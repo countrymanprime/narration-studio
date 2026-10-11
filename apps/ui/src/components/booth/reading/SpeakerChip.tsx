@@ -34,12 +34,14 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
     return [...confirm, ...found];
   }, [query, speakers, confirmed, unknown, speaker]);
 
-  const style = colour ? ({ '--spk-c': `var(${colour})`, '--spk-soft': `color-mix(in srgb, var(${colour}) 20%, transparent)` } as CSSProperties) : undefined;
+  const style = colour
+    ? ({ '--spk-c': `var(${colour})`, '--spk-t': `var(${colour}-text)`, '--spk-soft': `color-mix(in srgb, var(${colour}) 20%, transparent)` } as CSSProperties)
+    : undefined;
   const tone = unknown
     ? 'border-dashed border-[var(--danger)] bg-transparent text-[var(--danger-text)]'
     : confirmed
-      ? 'border-solid border-[var(--spk-soft,var(--border))] bg-[var(--spk-soft,var(--surface-2))] text-[var(--spk-c,var(--text-muted))]'
-      : 'border-dashed border-current bg-transparent text-[var(--spk-c,var(--text-muted))]';
+      ? 'border-solid border-[var(--spk-soft,var(--border))] bg-[var(--spk-soft,var(--surface-2))] text-[var(--spk-t,var(--text-muted))]'
+      : 'border-dashed border-current bg-transparent text-[var(--spk-t,var(--text-muted))]';
 
   const trigger = (
     <span

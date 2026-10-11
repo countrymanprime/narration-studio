@@ -70,11 +70,12 @@ export async function clickVisible(page: Page, role: Parameters<Page['getByRole'
     .click();
 }
 
-type AppPage = 'Production' | 'Script' | 'Story Bible' | 'Booth' | 'Proof' | 'Pickups' | 'Master & QC' | 'Settings';
+type AppPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Booth' | 'Proof' | 'Pickups' | 'Master & QC' | 'Settings';
 
 // Every page opens with the shared `Heading` primitive, an <h1>: it is what proves the page has arrived.
 export const PAGE_HEADING: Record<AppPage, string> = {
   Production: 'Production',
+  Schedule: 'Schedule',
   Script: 'Script',
   'Story Bible': 'Story Bible',
   // A visually hidden <h1>: the Booth's own status line names the chapter (benchmark mock 03).
@@ -367,6 +368,10 @@ export async function showReaperControls(page: Page, shown: Locator): Promise<vo
 // heading) is there before a state that adds nothing of its own is photographed.
 export async function productionLoaded(page: Page): Promise<void> {
   await PAGE_CONTENT.Production?.(page).first().waitFor();
+  // A fresh page has its pointer at 0,0, on the rail, which opens over the board's first column below 1360 px (ADR 0761) and then
+  // intercepts the click on a row's Chapter cell. Park the pointer mid-page.
+  const viewport = page.viewportSize();
+  if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
 }
 
 // A chapter's row in the Production pipeline. A prefix match on the Chapter cell ("Chapter 1" and "Chapter 1 — Down the Rabbit-Hole"),
@@ -390,6 +395,14 @@ export function confirmDialog(page: Page, name: string | RegExp) {
   return page.getByRole('dialog', { name }).or(page.getByRole('alertdialog', { name }));
 }
 
+// Replace manuscript has one place, Settings > Global > Manuscript (SNM-2): the Production page no longer carries it.
+export async function clickReplaceManuscript(page: Page): Promise<void> {
+  await goToPage(page, 'Settings');
+  await clickVisible(page, 'tab', 'Global');
+  await clickSettingsCategory(page, 'Manuscript');
+  await clickVisible(page, 'button', 'Replace manuscript');
+}
+
 // Opens the import review dialog with the mock's own preview (`?mockImportPreview=`, main.tsx): "Replace manuscript" begins the same
 // select, preview and confirm flow as "Import manuscript". Returns the dialog, so a driver can work inside it.
 export async function openImportReview(page: Page, preview?: 'markdown' | 'repaired' | 'text') {
@@ -397,7 +410,7 @@ export async function openImportReview(page: Page, preview?: 'markdown' | 'repai
     await page.goto(`/?mockImportPreview=${preview}`);
     await settlePage(page);
   }
-  await clickVisible(page, 'button', 'Replace manuscript');
+  await clickReplaceManuscript(page);
   const extension = preview === 'markdown' ? 'md' : preview === 'text' ? 'txt' : 'docx';
   const dialog = confirmDialog(page, `Import Alice.${extension}`);
   await dialog.waitFor();
@@ -451,7 +464,7 @@ export async function openStageEvidence(page: Page, chapter: string) {
     .getByRole('button', { name: /^Stage readiness: / })
     .click();
   const view = page.getByRole('dialog', { name: 'Stage readiness' });
-  await view.getByRole('button', { name: 'Check now' }).waitFor();
+  await view.locator('[data-verdict-pill]').waitFor();
   return view;
 }
 

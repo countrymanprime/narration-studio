@@ -59,6 +59,16 @@ const ALLOWED: Array<{ file: string; text: string; reason: string }> = [
   { file: 'schemas/strictness.ts', text: 'as Record<string, unknown>', reason: 'test tooling that reads the schema definition; it never sees a payload' },
   { file: 'schemas/strictness.ts', text: 'as unknown[]', reason: 'test tooling that reads the schema definition; it never sees a payload' },
   { file: 'schemas/strictness.ts', text: 'as Array<z.ZodType>', reason: 'test tooling that reads the schema definition; it never sees a payload' },
+  {
+    file: 'editCutsMock.ts',
+    text: 'as { undoSteps?: unknown }',
+    reason: 'the mock reads an optional field of a cut the UI itself recorded; it is not a host payload',
+  },
+  ...Array.from({ length: 4 }, () => ({
+    file: 'marksMock.ts',
+    text: 'as readonly string[]',
+    reason: 'widens a literal tuple of the mock to ask whether a string is one of its members; not a host payload',
+  })),
 ];
 
 const relativeName = (path: string) => relative(apiRoot, path).split(sep).join('/');

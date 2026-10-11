@@ -1,7 +1,6 @@
 // Shared by the tests and the stories: the host's own measure-success fixture, reshaped into the cases the files table draws.
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { useState, type ReactNode } from 'react';
+import measureSuccess from '../../../../../../tests/fixtures/contracts/measure-success.json';
 import { measureJobSchema } from '../../../api/schemas/measure';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
@@ -14,9 +13,8 @@ import type { FileActions } from './FileActions';
 import { FilesTable } from './FilesTable';
 import { buildRows } from './rows';
 
-const job = measureJobSchema.parse(
-  JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', 'measure-success.json'), 'utf8')),
-);
+// Imported, not read from disk: the stories run in the browser, where there is no `fs`.
+const job = measureJobSchema.parse(measureSuccess);
 export const profile = job.profile!;
 const base = job.files.find((file) => file.status === 'measured' && file.rules.some((r) => r.ruleId === 'acx.rms'))!;
 

@@ -271,6 +271,10 @@ export const WIRE_ENTITIES: GuideEntity[] = [
     ],
     occurrences: [occurrence(0, 0), occurrence(4, 1), occurrence(11, 2)],
     occurrence_count: 3,
+    appearances: [
+      { chapterId: 'chapter-1', chapter: 'Down the Rabbit-Hole', sceneIndex: 0 },
+      { chapterId: 'chapter-2', chapter: 'The Pool of Tears', sceneIndex: 0 },
+    ],
   },
   {
     id: 'white-rabbit',

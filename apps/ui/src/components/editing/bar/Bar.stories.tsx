@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import type { PageAction } from '../script/scriptState';
 import { marksDoc } from '../script/scriptFixtures';
@@ -120,7 +120,8 @@ export const Selection: Story = {
   args: { playback: idle, end: 843 },
   render: () => frame(selection, false, true),
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getAllByRole('toolbar')).toHaveLength(2);
+    // The selection is dispatched after the first paint, and the floating toolbar is placed once the words have a position.
+    await waitFor(() => expect(within(canvasElement).getAllByRole('toolbar')).toHaveLength(2));
     await expect(canvasElement.textContent).toMatch(/3 words/);
   },
 };
@@ -140,7 +141,7 @@ export const AllCut: Story = {
   args: { playback: idle, end: 843 },
   render: () => frame([{ type: 'select', anchor: 'p-1:0', head: 'p-1:1' }], false, true),
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getAllByRole('button', { name: 'Restore these words' }).length).toBeGreaterThan(0);
+    await waitFor(() => expect(within(canvasElement).getAllByRole('button', { name: 'Restore these words' }).length).toBeGreaterThan(0));
     await expect(canvasElement.textContent).toMatch(/Cut/);
   },
 };

@@ -25,7 +25,7 @@ export function BoothTop({
   paused = false,
   panelOpen,
   onTogglePanel,
-  panelId = 'brail',
+  panelId,
   pickupsOpen,
 }: {
   chapter?: ReactNode;
@@ -36,6 +36,7 @@ export function BoothTop({
   paused?: boolean;
   panelOpen: boolean;
   onTogglePanel: () => void;
+  /** The id of the side panel this button opens; absent while no panel is mounted, so the button names nothing it does not control. */
   panelId?: string;
   /** Open pickups, in a pickup session; null or absent outside one. */
   pickupsOpen?: number | null;

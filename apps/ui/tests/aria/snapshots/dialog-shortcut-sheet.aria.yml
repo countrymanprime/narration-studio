@@ -4,6 +4,7 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-add-note.aria.yml).
 - main:
+  - group "Zoom"
   - alert
   - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
@@ -54,6 +55,6 @@
   - heading "Booth" [level=3]
   - list:
     - listitem:
-      - text: Play or pause reading
+      - text: Record or stop
       - img "Space"
   - button "Show all shortcuts"

@@ -38,7 +38,7 @@ const platformIdOf = (projectProfile: string | undefined): string | undefined =>
 
 /**
  * The Schedule page body (the mock's Schedule): the verdict for the due date, how the book pays, the work left and how it is worked out, and
- * the milestones. It has no route and no rail item until the Production swap adds them. Every change is one journalled command, so one
+ * the milestones. Every change is one journalled command, so one
  * undo step; a refusal from the host is shown as its own sentence and nothing is changed.
  */
 export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {

@@ -11,6 +11,7 @@
       - /children: equal
       - text: Production
       - button "Production"
+      - button "Schedule"
     - group "Prep":
       - /children: equal
       - text: Prep

@@ -5,6 +5,7 @@ import {
   clickVisible,
   confirmDialog,
   openEditingCheck,
+  clickReplaceManuscript,
   openImportReview,
   openProduction,
   openRecordingCheck,
@@ -96,15 +97,6 @@ export const productionDrivers: Record<string, Driver> = {
     // The list's last control, so the whole list is on screen whether or not its heading already was.
     await page.getByRole('button', { name: /^Restore/ }).scrollIntoViewIfNeeded();
   },
-  'chapter-track-no-project': async (page) => {
-    await page.goto('/?mockNoRpp=1');
-    await settlePage(page);
-    await productionLoaded(page);
-    const line = page.getByText('No REAPER project (.rpp) file was found in this project folder.');
-    await line.waitFor();
-    // Below the widest layout Next up comes first, so the board and its line are below the fold.
-    await line.scrollIntoViewIfNeeded();
-  },
 
   'manuscript-candidate-offer': async (page) => {
     // Reload with the mock's candidate boot seam (see main.tsx), like
@@ -132,7 +124,7 @@ export const productionDrivers: Record<string, Driver> = {
     await page.getByText(/The credits need 3 values/).waitFor();
   },
   'import-activity-log': async (page) => {
-    await clickVisible(page, 'button', 'Replace manuscript');
+    await clickReplaceManuscript(page);
     // This state is about the import dialog's own activity log, not the chained Story Bible build (B1-B3, on by
     // default): uncheck it so the import dialog stays open with "Manuscript imported" instead of closing itself
     // into a second dialog.
@@ -144,7 +136,7 @@ export const productionDrivers: Record<string, Driver> = {
     // The mock's build seam (see main.tsx): the chained build starts and stays at 30 percent.
     await page.goto('/?mockBuild=hold');
     await settlePage(page);
-    await clickVisible(page, 'button', 'Replace manuscript');
+    await clickReplaceManuscript(page);
     await clickVisible(page, 'button', 'Import');
     await page.getByRole('dialog', { name: 'Build the Story Bible' }).getByText('Extracting names and terms').first().waitFor();
   },
@@ -152,7 +144,7 @@ export const productionDrivers: Record<string, Driver> = {
     // The chained build starts and the host reports it failed at the first poll; the import was already written and said so.
     await page.goto('/?mockBuild=fails');
     await settlePage(page);
-    await clickVisible(page, 'button', 'Replace manuscript');
+    await clickReplaceManuscript(page);
     await clickVisible(page, 'button', 'Import');
     await page
       .getByRole('dialog', { name: 'Build the Story Bible' })
@@ -165,7 +157,7 @@ export const productionDrivers: Record<string, Driver> = {
     // The default mock state already has a manuscript loaded, so "Import
     // manuscript" isn't visible - "Replace manuscript" drives the same
     // selectManuscript -> preview -> confirm dialog flow.
-    await clickVisible(page, 'button', 'Replace manuscript');
+    await clickReplaceManuscript(page);
     // The progress dialog that precedes it is titled "Import manuscript"; the confirm names the file.
     await confirmDialog(page, 'Import Alice.docx').waitFor();
   },
@@ -241,19 +233,19 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'stage-evidence-recommended': async (page) => {
     const view = await openStageEvidence(page, 'Chapter 4');
-    await view.getByRole('button', { name: 'Confirm Editing' }).waitFor();
+    await view.getByRole('button', { name: 'Confirm', exact: true }).waitFor();
   },
   'stage-evidence-not-ready': async (page) => {
     const view = await openStageEvidence(page, 'Chapter 6');
-    await view.getByText('Not met.').waitFor();
+    await view.getByText('Not met', { exact: true }).first().waitFor();
   },
   'stage-evidence-unknown': async (page) => {
     const view = await openStageEvidence(page, 'Chapter 5');
-    await view.getByRole('button', { name: 'Open recording check' }).waitFor();
+    await view.locator('[data-verdict-pill="notchecked"]').waitFor();
   },
   'stage-evidence-changed': async (page) => {
     const view = await openStageEvidence(page, 'Chapter 7');
-    await view.getByRole('button', { name: 'Revert to Recording' }).waitFor();
+    await view.getByRole('button', { name: 'Revert', exact: true }).waitFor();
   },
   'editing-check-never-checked': async (page) => {
     await openEditingCheck(page, 'mockEditingSignal=never');
@@ -325,7 +317,7 @@ export const productionDrivers: Record<string, Driver> = {
     // The mock's Markdown seam (see main.tsx): the same book as a .md file, which is the one with the heading level choice.
     await page.goto('/?mockImportPreview=markdown');
     await settlePage(page);
-    await clickVisible(page, 'button', 'Replace manuscript');
+    await clickReplaceManuscript(page);
     await confirmDialog(page, 'Import Alice.md').waitFor();
   },
   'credits-panel': async (page) => {

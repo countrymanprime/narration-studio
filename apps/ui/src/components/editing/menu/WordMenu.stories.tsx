@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useEffect } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import { EditingPageProvider } from '../script/EditingPageState';
 import { ScriptDoc } from '../script/ScriptDoc';
@@ -45,9 +45,15 @@ export const TwoSections: Story = {
     </main>
   ),
   play: async ({ canvasElement }) => {
-    await userEvent.pointer({ keys: '[MouseRight]', target: canvasElement.querySelector('[data-k="p-1:0"]')! });
     const menu = within(canvasElement.ownerDocument.body);
-    await expect(await menu.findByRole('menuitem', { name: /Play selection/ })).toBeTruthy();
+    // The sections register after the first paint, so a click before that opens an empty menu: click again until the menu has them.
+    await waitFor(
+      async () => {
+        await userEvent.pointer({ keys: '[MouseRight]', target: canvasElement.querySelector('[data-k="p-1:0"]')! });
+        await expect(await menu.findByRole('menuitem', { name: /Play selection/ }, { timeout: 500 })).toBeTruthy();
+      },
+      { timeout: 5000 },
+    );
     await expect(menu.getByRole('menuitem', { name: /Delete words and audio/ }).getAttribute('aria-disabled')).toBe('true');
     await expect(menu.getByRole('menuitem', { name: 'Copy words' })).toBeTruthy();
   },

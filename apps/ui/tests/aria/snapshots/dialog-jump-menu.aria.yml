@@ -9,10 +9,11 @@
 - status
 - dialog "Jump menu":
   - heading "Jump menu" [level=2]
-  - button "Close"
   - combobox "Jump menu" [expanded]
   - listbox "Jump menu results":
-    - option /Go to \d+ commands/ [selected]
-    - option "Zoom 3 commands"
-    - option "View 2 commands"
-    - option /Chapters \d+ commands/
+    - text: Commands
+    - option /Go to \d+ ›/ [selected]
+    - option "Zoom 3 ›"
+    - option "Booth 1 ›"
+    - option "View 2 ›"
+    - option /Chapters \d+ ›/

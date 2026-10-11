@@ -100,9 +100,9 @@ const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this app yet
 /** What the Audacity adapter builds, Experimental until the owner's verification pass (ADR 0355); the rest is not_yet_available. */
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['navigate', 'markers', 'macro_render']);
 /** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
-export const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
-export const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
-export const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
+const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
+const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
+const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
 /** What the built-in recorder declares (dawport/builtin): record and takes Experimental until the owner's pass, punch and the
  * edits the app will make itself not yet available, everything else unsupported. */
 const BUILTIN_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes']);

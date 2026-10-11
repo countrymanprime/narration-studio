@@ -15,7 +15,7 @@ const MAX_SECONDS = 7 * 24 * 3600;
 const MAX_FADE_MS = 1000;
 
 /** The host's ErrBadChainName. */
-export const BAD_CHAIN_NAME = 'that is not the name of an effect chain the DAW lists, so nothing was saved';
+const BAD_CHAIN_NAME = 'that is not the name of an effect chain the DAW lists, so nothing was saved';
 
 const wordsOf = (text: string): string[] => text.split(/\s+/).filter(Boolean);
 const finiteTime = (seconds: number) => Number.isFinite(seconds) && seconds >= 0 && seconds <= MAX_SECONDS;
