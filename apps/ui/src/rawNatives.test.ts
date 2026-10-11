@@ -89,7 +89,12 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
 };
 
 // Folders built to the mock: no ceiling, no unmarked native element.
-const ZERO_DIRS = ['src/components/schedule/', 'src/components/production/readiness/', 'src/components/production/pipeline/'];
+const ZERO_DIRS = [
+  'src/components/schedule/',
+  'src/components/production/readiness/',
+  'src/components/production/pipeline/',
+  'src/components/production/overview/',
+];
 
 const MARKER = 'native-control-ok:';
 const MIN_REASON = 12;
