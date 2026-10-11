@@ -110,7 +110,7 @@ test('globToRegExp follows the owns glob rules', () => {
   assert.ok(m('apps/ui/src/*.tsx', 'apps/ui/src/App.tsx'));
   assert.ok(!m('apps/ui/src/*.tsx', 'apps/ui/src/pages/Tracks.tsx'));
   assert.ok(m('**/*.md', 'README.md'));
-  assert.ok(m('docs/{prds,adr}/*.md', 'docs/prds/a.md'));
+  assert.ok(m('src/{a,b}/*.md', 'src/a/x.md'));
   assert.ok(m('a/file?.txt', 'a/file1.txt'));
   assert.ok(m('a/[ab].txt', 'a/b.txt'));
   assert.ok(!m('a.b', 'aXb'));
