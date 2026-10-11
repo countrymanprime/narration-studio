@@ -1,0 +1,62 @@
+{
+  "chapterId": "c-0001",
+  "cuts": [
+    {
+      "a": 12,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 13.5,
+      "chapterId": "c-0001",
+      "daw": "reaper",
+      "fadeMs": 12,
+      "guid": "{CUT-1}",
+      "id": "cut2",
+      "keys": [
+        "p-000001:4",
+        "p-000001:5",
+        "p-000001:6"
+      ],
+      "mode": "close",
+      "off0": 2,
+      "off1": 3.5,
+      "paragraph": 0,
+      "pid": "p-000001",
+      "stale": false,
+      "takeId": "t-1",
+      "text": "the Queen shouted.",
+      "undoSteps": 1,
+      "words": [
+        "the",
+        "Queen",
+        "shouted."
+      ]
+    },
+    {
+      "a": 20,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 21,
+      "chapterId": "c-0001",
+      "daw": "reaper",
+      "fadeMs": 0,
+      "guid": "{CUT-2}",
+      "id": "cut1",
+      "keys": [
+        "p-000002:2",
+        "p-000002:3"
+      ],
+      "mode": "gap",
+      "off0": 10,
+      "off1": 11,
+      "paragraph": 1,
+      "pid": "p-000002",
+      "stale": true,
+      "staleReason": "text_changed",
+      "takeId": "t-1",
+      "text": "were silent.",
+      "undoSteps": 2,
+      "words": [
+        "were",
+        "silent."
+      ]
+    }
+  ]
+}

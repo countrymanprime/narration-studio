@@ -1,6 +1,6 @@
 # Script marks
 
-**Status: host store, bindings, schemas and mock implemented (SN-B721, host API 95). No page reads them yet: the Script page's marks UI is SN-B741 and SN-B742, threads are SN-B722.**
+**Status: host store, bindings, schemas and mock implemented (SN-B721, host API 97). No page reads them yet: the Script page's marks UI is SN-B741 and SN-B742, threads are SN-B722.**
 
 A mark is a range of one paragraph of the manuscript, marked with one of the narrator's mark types, with an optional note, or a question when the type asks. It is the Studio Next mock's `Annotation` of type `mark` (`docs/research/mockups/studio-next/src/domain/schemas.ts`); pronunciation flags (`pron`) are not marks and belong to SN-B73. The store is `apps/desktop/internal/marks`, the bindings `apps/desktop/bindings_marks.go`, and the UI contract `apps/ui/src/api/contracts/marks.ts`.
 

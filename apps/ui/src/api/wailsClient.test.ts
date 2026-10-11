@@ -1017,6 +1017,63 @@ describe('the accepted words bindings', () => {
   });
 });
 
+describe('the cuts bindings', () => {
+  const cut = {
+    id: 'cut1',
+    chapterId: 'c-0001',
+    pid: 'p-000001',
+    keys: ['p-000001:5'],
+    words: ['Queen'],
+    text: 'Queen',
+    a: 12,
+    b: 13,
+    off0: 2,
+    off1: 3,
+    mode: 'close',
+    fadeMs: 12,
+    daw: 'reaper',
+    guid: '{CUT-1}',
+    undoSteps: 1,
+    at: '2026-10-11T10:00:00Z',
+    paragraph: 0,
+    stale: false,
+  } as const;
+  const cuts = { chapterId: 'c-0001', cuts: [cut] };
+  const request = {
+    pid: 'p-000001',
+    keys: ['p-000001:5'],
+    text: 'Queen',
+    a: 12,
+    b: 13,
+    off0: 2,
+    off1: 3,
+    mode: 'close',
+    fadeMs: 12,
+    daw: 'reaper',
+    guid: '{CUT-1}',
+    undoSteps: 1,
+  } as const;
+
+  it('calls the three host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(cuts));
+    const record = vi.fn().mockResolvedValue(JSON.stringify({ ...cuts, changed: ['cut1'] }));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', cuts: [], changed: ['cut1'] }));
+    standInHost({ EditingCutsList: list, EditingCutRecord: record, EditingCutRemove: remove });
+
+    await expect(wailsClient.editingCutsList('c-0001')).resolves.toEqual(cuts);
+    expect(list).toHaveBeenCalledWith('c-0001');
+    await expect(wailsClient.editingCutRecord('c-0001', { ...request, keys: [...request.keys] })).resolves.toMatchObject({ changed: ['cut1'] });
+    expect(record).toHaveBeenCalledWith('c-0001', request);
+    await expect(wailsClient.editingCutRemove('c-0001', 'cut1')).resolves.toMatchObject({ cuts: [] });
+    expect(remove).toHaveBeenCalledWith('c-0001', 'cut1');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ EditingCutsList: () => Promise.resolve(JSON.stringify({ ...cuts, cuts: [{ ...cut, a: -1 }] })) });
+    await expect(wailsClient.editingCutsList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the marks bindings', () => {
   const type = { key: 'ask', name: 'Query for author', colour: 'warn', style: 'highlight', asks: true } as const;
   const mark = {

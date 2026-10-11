@@ -41,6 +41,7 @@ import type { BookmarksApi } from '../api/contracts/bookmarks';
 import type { PassageMapApi } from '../api/contracts/passageMap';
 import type { EditLogApi } from '../api/contracts/editLog';
 import type { MarksApi } from '../api/contracts/marks';
+import type { EditCutsApi } from '../api/contracts/editCuts';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
 import type { DawCapabilitiesApi } from '../api/contracts/daw';
@@ -104,6 +105,7 @@ export type {
   PassageMapApi,
   EditLogApi,
   MarksApi,
+  EditCutsApi,
   WorkspaceApi,
   PreviewApi,
   DawCapabilitiesApi,
@@ -163,6 +165,7 @@ export interface PortMap {
   passageMap: PassageMapApi;
   editLog: EditLogApi;
   marks: MarksApi;
+  editCuts: EditCutsApi;
   workspace: WorkspaceApi;
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;
