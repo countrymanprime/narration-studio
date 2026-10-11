@@ -1,14 +1,14 @@
 # Studio Next Script and Story Bible: Pronunciation Sources, Merge, Review, Appears-In, Speaker Colours and Bookmarks
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Story Bible and Script rulings and the bookmark ruling in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Bible.tsx`, `studio-next/src/pages/bible/`, `studio-next/src/pages/script/`.
+**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Story Bible and Script rulings and the bookmark ruling in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Bible.tsx`, `studio-next/src/pages/bible/`, `studio-next/src/pages/script/`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** the delivered Story Bible, pronunciation and prep work ([pronunciation sources](../architecture/pronunciation-provider-selection.md), [ADR 0091](../adr/0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md), [ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md), [ADR 0680](../adr/0680-the-story-bible-preview-speaks-a-chosen-pronunciation-through-pipers-raw-phoneme-block.md), [ADR 0695](../adr/0695-alias-pronunciation-gets-the-entitys-own-control-and-a-default-source-only-reorders-the-automatic-fallback.md), [ADR 0345](../adr/0345-a-story-bible-entity-keeps-its-id-by-name-overlap-and-dialogue-cues-are-precision-first-rules.md), [ADR 0367](../adr/0367-per-speaker-colours-alias-the-seven-entity-kind-hues-and-hash-by-speaker-name.md), [ADR 0382](../adr/0382-script-markup-is-a-chapter-keyed-sidecar-of-line-offsets-checked-on-read-and-drawn-without-changing-the-text.md)); the Script page ([ADR 0392](../adr/0392-the-script-pages-prep-status-is-the-names-still-to-confirm-and-its-rail-is-a-panel-below-2xl.md), [ADR 0393](../adr/0393-the-script-pages-three-columns-show-from-1440px-and-the-reader-card-header-keys-off-its-own-width.md)). Extraction suggestions, import and analysis tools are the separate [Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md).
 
-**Status (2026-10-10):** draft.
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Story Bible and Script.
 
 ## Problem Statement
 
-The owner agreed a set of Story Bible and Script behaviours: pronunciation with a source and no query workflow, merge when an alias collides, drafts dropped on Cancel, a sortable list with alias counts, a needs-review flow for imported items, "appears in" as chapters with a go-to button, per-speaker colours, and chapter bookmarks with notes. Some exist in other forms (merge, a Needs Review category, speaker colours, `appearances` by chapter and scene), pronunciation still carries the query workflow the owner rejected, and bookmarks do not exist.
+The owner agreed a set of Story Bible and Script behaviours: pronunciation with a source and no query workflow, merge when an alias collides, drafts dropped on Cancel, a sortable list with alias counts, a needs-review flow for imported items, "appears in" as chapters with a go-to button, per-speaker colours, and chapter bookmarks with notes. Some exist in other forms (merge, a Needs Review category, speaker colours, `appearances` by chapter and scene), pronunciation still carries the query workflow the owner rejected (status, query CSV export and import, the queries page and the rail badge for open queries), and bookmarks do not exist.
 
 ## Evidence
 
@@ -28,13 +28,14 @@ The owner agreed a set of Story Bible and Script behaviours: pronunciation with 
 
 ## Proposed Solution
 
-1. **Pronunciation provenance, not workflow.** Each pronunciation stores its text and the id of its source (a registered source or `manual`); the UI shows the source's icon and name and lets the narrator switch source or type it. Existing `status` and `note` stay readable (migrated into a note where present); the queries page and query export retire in the slice that lands the superseding ADR; the rail badge for Story Bible counts needs-review entries instead of open queries (DQ-11).
+1. **Pronunciation provenance, not workflow.** Each pronunciation stores its text and the id of its source (a registered source or `manual`); the UI shows the source's icon and name and lets the narrator switch source or type it. There is no query/confirmed workflow (DQ-11). In the Story Bible swap slice the query status, the queries page, the author query CSV export and import and the rail badge that counts open queries are removed (the mock's rail has no Story Bible count); old `note` text stays readable as a note.
 2. **Merge, drafts, sort, counts.** Verify and complete merge (aliases combined, relationships re-pointed by id, appears-in union, one undo step); an unsaved new entry is dropped on Cancel; list sort (name, type, chapter count) remembered in preferences; alias count per row.
 3. **Needs review.** A filter and a count for imported or extracted items; "Mark reviewed" blocked while any item needs verification (the same flag the extraction suggestions use).
 4. **Appears in.** Chapters only: the count of chapters and a button per chapter that opens it in Script; remove line and mention counts from the Story Bible UI.
 5. **Speaker colours.** Keep the seven-hue scheme; add an optional per-entry colour override that wins over the stable pick.
 6. **Bookmarks.** Host-persisted per project (`bookmarks` sidecar: id, chapter, paragraph and character offset, optional label and note, created time); a Script gutter ribbon, a Bookmarks tab in the side panel, Booth ribbons in [Booth](studio-next-booth.prd.md), jump-menu commands "Bookmark: ..." and next and previous, keys B, `[` and `]`; each add, edit and remove is one journal entry.
 7. **Script keeps.** Threaded notes, Ctrl+F, text settings, speaker picker, manual prep state and headers, markup types, context menus, and the custom markup; no stale anchors, no query and confirm, no repo markup.
+8. **Swap.** The mock's Story Bible and Script pages replace the existing ones in one PR (SNB-8), which deletes the old pages and their equivalents. The Series tab has no equivalent in the mock and stays exactly as built (DQ-12).
 
 ## Key Hypothesis
 
@@ -44,7 +45,7 @@ If pronunciation is "a value and where it came from", every source (dictionary, 
 
 - Query and confirm for names and aliases; the author query CSV; stale-anchor detection; repo stress, breath and pause markup; evidence excerpts; derived prep completeness or progress; chapter results in Find; the speaker coverage strip; prep sheet export.
 - Additional LLM-parsed properties (research only), click-through counts, live selectors, a shared name-row component (maybe list).
-- A Series tab (kept as is, DQ-12), chapter bookmarks per line (line bookmarks were removed earlier).
+- Any change to the Series tab or the series voice bible (no equivalent in the mock; untouched, DQ-12), chapter bookmarks per line (line bookmarks were removed earlier).
 
 ## Success Metrics
 
@@ -55,13 +56,20 @@ If pronunciation is "a value and where it came from", every source (dictionary, 
 | Raw controls on migrated pages | 0 | `rawNatives.test.ts` |
 | Appears-in counts | chapters only | Ported `studio-next/tests/bible-batch-a.test.tsx` |
 
-## Open Questions
+## Decisions
 
-- [ ] **SNB-Q1 (DQ-11).** Query data migration and the rail badge source. Recommendation: keep status and note readable; badge counts needs-review.
-- [ ] **SNB-Q2.** Which sources are listed and which is default? Recommendation: the host reports them (CMU, eSpeak, Wiktextract, Merriam-Webster when keyed); default per the existing registry ([ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md)).
-- [ ] **SNB-Q3.** Bookmark storage: project sidecar or manifest? Recommendation: sidecar file `bookmarks.json` like markup ([ADR 0382](../adr/0382-script-markup-is-a-chapter-keyed-sidecar-of-line-offsets-checked-on-read-and-drawn-without-changing-the-text.md)), validated on read.
-- [ ] **SNB-Q4.** A bookmark on replaced manuscript text? Recommendation: replacing the manuscript clears bookmarks (the mock's `finishImport`), with the standard replace confirmation listing it.
-- [ ] **SNB-Q5.** Chapter-level bookmark or spot? Recommendation: spot (paragraph and offset) as the mock; a chapter is just a spot at its start.
+Owner rulings of 2026-10-11; none is open.
+
+| Id | Ruling | Consequence here |
+| --- | --- | --- |
+| SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | ADR 0392, ADR 0393 and ADR 0670 apply only where the mock shows the same layout |
+| SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNB-8 swaps the routes and deletes the old pages |
+| DQ-11 | No query/confirmed workflow; pronunciation has a source | The query status, query CSV export and import and the open-queries rail badge are removed with the swap; ADRs 0346, 0347, 0352 and 0725 are superseded to that extent |
+| DQ-12 / SN0-Q5 | Series voice bible and Series tab: no equivalent in the mock | Untouched; not extended, removed or re-skinned |
+| SNB-Q2 | The host reports the sources (CMU, eSpeak, Wiktextract, Merriam-Webster when keyed); the default stays per [ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md) (default taken, standing instruction) | `PronunciationPort.sources()` |
+| SNB-Q3 | Bookmarks are a project sidecar `bookmarks.json`, validated on read, like markup ([ADR 0382](../adr/0382-script-markup-is-a-chapter-keyed-sidecar-of-line-offsets-checked-on-read-and-drawn-without-changing-the-text.md)) (default taken) | `internal/bookmarks` |
+| SNB-Q4 | Replacing the manuscript clears bookmarks, as the mock's `finishImport` does, and the replace confirmation lists them (default taken) | Host test |
+| SNB-Q5 | A bookmark is a spot (paragraph and offset), as in the mock; a chapter is a spot at its start (default taken) | `bookmarkSchema` |
 
 ## Users & Context
 
@@ -87,15 +95,15 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0346](../adr/0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md), [ADR 0347](../adr/0347-the-pronunciation-query-export-is-csv-with-its-ids-last-and-a-formula-guard-and-is-a-download.md), [ADR 0352](../adr/0352-a-re-imported-query-answer-is-matched-by-entry-id-and-alias-index-and-a-blank-note-column-leaves-the-note-alone.md) | SUPERSEDE, DISCUSS (DQ-11) | Pronunciation provenance without a query workflow (A11) |
-| [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | EXTEND | Story Bible badge source |
+| [ADR 0346](../adr/0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md), [ADR 0347](../adr/0347-the-pronunciation-query-export-is-csv-with-its-ids-last-and-a-formula-guard-and-is-a-download.md), [ADR 0352](../adr/0352-a-re-imported-query-answer-is-matched-by-entry-id-and-alias-index-and-a-blank-note-column-leaves-the-note-alone.md) | SUPERSEDE (DQ-11) | Pronunciation provenance without a query workflow (A11) |
+| [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | SUPERSEDE (DQ-11) | The open-queries badge is removed; the other rail counts are the shell PRD's |
 | [ADR 0091](../adr/0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md), [ADR 0680](../adr/0680-the-story-bible-preview-speaks-a-chosen-pronunciation-through-pipers-raw-phoneme-block.md), [ADR 0695](../adr/0695-alias-pronunciation-gets-the-entitys-own-control-and-a-default-source-only-reorders-the-automatic-fallback.md), [ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md) | KEEP / EXTEND | Edited value, phoneme block, default source, local first |
 | [ADR 0007](../adr/0007-story-bible-locked-entry-enforcement.md), [ADR 0018](../adr/0018-story-bible-entries-read-only-until-edit.md), [ADR 0036](../adr/0036-story-bible-read-only-view-is-the-disabled-form-not-entitysummary.md), [ADR 0087](../adr/0087-story-bible-header-actions-are-mode-based-and-lock-cannot-happen-mid-edit.md) | KEEP / EXTEND | Locked and read-only; drafts add a cancel rule |
 | [ADR 0367](../adr/0367-per-speaker-colours-alias-the-seven-entity-kind-hues-and-hash-by-speaker-name.md) | EXTEND | Entry colour override |
 | [ADR 0345](../adr/0345-a-story-bible-entity-keeps-its-id-by-name-overlap-and-dialogue-cues-are-precision-first-rules.md) | KEEP | Stable ids; appearances |
 | [ADR 0382](../adr/0382-script-markup-is-a-chapter-keyed-sidecar-of-line-offsets-checked-on-read-and-drawn-without-changing-the-text.md), [ADR 0383](../adr/0383-the-preview-pin-is-one-per-book-stale-by-anchor-text-and-never-re-ranked.md) | KEEP | Markup and pin sidecars; bookmarks follow the same pattern |
-| [ADR 0450](../adr/0450-series-storage-is-a-per-user-file-and-cross-project-reference-reads-never-write-into-a-sibling-project.md), [ADR 0565](../adr/0565-the-series-voice-bible-pools-reference-clips-by-character-id-and-shows-no-books-until-a-second-book-has-data.md) to [ADR 0568](../adr/0568-a-sibling-books-character-names-are-read-through-a-new-plain-never-quarantining-guide-readonlynames.md) | DISCUSS (DQ-12) | Series untouched |
-| [ADR 0392](../adr/0392-the-script-pages-prep-status-is-the-names-still-to-confirm-and-its-rail-is-a-panel-below-2xl.md), [ADR 0393](../adr/0393-the-script-pages-three-columns-show-from-1440px-and-the-reader-card-header-keys-off-its-own-width.md), [ADR 0670](../adr/0670-scripts-chapter-list-keeps-its-to-confirm-count-and-shows-no-checkmark-or-percentage-until-prep-depths-rollup-lands.md) | KEEP, DQ-1 | Script layout |
+| [ADR 0450](../adr/0450-series-storage-is-a-per-user-file-and-cross-project-reference-reads-never-write-into-a-sibling-project.md), [ADR 0565](../adr/0565-the-series-voice-bible-pools-reference-clips-by-character-id-and-shows-no-books-until-a-second-book-has-data.md) to [ADR 0568](../adr/0568-a-sibling-books-character-names-are-read-through-a-new-plain-never-quarantining-guide-readonlynames.md) | KEEP (DQ-12) | Series untouched; no equivalent in the mock |
+| [ADR 0392](../adr/0392-the-script-pages-prep-status-is-the-names-still-to-confirm-and-its-rail-is-a-panel-below-2xl.md), [ADR 0393](../adr/0393-the-script-pages-three-columns-show-from-1440px-and-the-reader-card-header-keys-off-its-own-width.md), [ADR 0670](../adr/0670-scripts-chapter-list-keeps-its-to-confirm-count-and-shows-no-checkmark-or-percentage-until-prep-depths-rollup-lands.md) | SUPERSEDE where the mock differs (DQ-1) | Script layout follows `studio-next/src/pages/script/` |
 
 ## Technical Approach
 
@@ -107,32 +115,33 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Test plan.** Port the mock's tests; Go tests for the bookmarks store (corrupt file path, `persist` class "narrator data"); sidecar test for pronunciation migration; visual rows (Story Bible list with sort and counts, entry with appears-in, Script with a bookmark ribbon, bookmarks tab) at all viewports; aria for any dialog.
 
-**Rollout.** Layer by layer; the queries page retires in the migration slice together with its rows, guide page and doc screenshots ([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) rule 1 applies); no flag.
+**Rollout.** Seams, ports and components land first with no route. SNB-8 swaps the Story Bible and Script routes and deletes the old pages, the queries page, the query CSV export and import (binding, schema, golden, wire row, `hostAPIVersion` bump), the open-queries badge, and their rows, guide pages and doc screenshots ([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) decision 1). No flag.
 
 **ADRs.** A11 pronunciation provenance; bookmarks need a short ADR (sidecar format and clearing on replace).
 
 **Trust boundary.** The bookmarks file is a new file the app reads: `docs/architecture/threat-model.md` row and `SECURITY.md` check (CLAUDE.md step 6).
 
-**Risks.** Migration of query data (mitigation: read-only note); Story Bible is large (mitigation: slices of one behaviour each).
+**Risks.** Existing query data on disk (mitigation: the note stays readable; status is ignored on read); Story Bible is large (mitigation: slices of one behaviour each).
 
 ## Implementation Phases
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Decisions and ADR | DQ-11, DQ-12; A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | pending | - | SN0-1 | 0.5 | - |
-| 2 | Pronunciation provenance | Port, host mapping, UI, query retirement | pending | 3 | 1 | 1.5 | - |
+| 1 | ADR and audit | A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | pending | - | SN0-1 | 0.5 | - |
+| 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | pending | 3 | 1 | 1.5 | - |
 | 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | pending | 2 | 1 | 1.0 | - |
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | pending | 2, 3 | 1 | 0.8 | - |
 | 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | pending | 2 | 1 | 1.0 | - |
 | 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | pending | - | 5, SNR-4, SNF-3 | 1.2 | - |
 | 7 | Script migrations | Search sources, context providers, key hints for Script | pending | - | SNR-4, SNR-5 | 0.7 | - |
-| 8 | Close-out | Visual rows, guide pages, doc screenshots | pending | - | 2 to 7 | 0.3 | - |
+| 8 | Swap and close-out | Swap the Story Bible and Script routes; delete the old pages, queries page, query CSV export and import and open-queries badge; visual rows, guide pages, doc screenshots | pending | - | 2 to 7 | 0.3 | - |
 
 ### Phase Details
 
 - **Phase 1.** The audit lists, for each ruling, "present / partial / absent" with file and test references; it is a comment on the PRD issue, not a document.
-- **Phase 2.** Removing the queries UI deletes its page, route, rows and guide text in the same pull request.
-- **Phase 6.** The Booth side of bookmarks is in the Booth PRD (SNO-11) and depends on this phase.
+- **Phase 2.** Builds the provenance components and host mapping; the old queries UI keeps working until Phase 8 deletes it with the swap.
+- **Phase 8.** The change-impact scan lists every consumer of the deleted query code (`PronunciationQueries.tsx`, `pronunciationStatus.ts`, the CSV export and import bindings, the badge count).
+- **Phase 6.** The Booth side of bookmarks is in the Booth PRD (SNO-8) and depends on this phase.
 
 ### Parallelism Notes
 
@@ -158,15 +167,15 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNB-5 | Phase 5 | SNB-1 | yes | Go tests; golden; wire row; threat model |
 | SNB-6 | Phase 6 | SNB-5, SNR-4, SNF-3 | yes | Ported `bookmarks.test.tsx`; visual; aria |
 | SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests |
-| SNB-8 | Phase 8 | SNB-2..7 | no | Full visual suite for the two pages; Screenshots |
+| SNB-8 | Phase 8 | SNB-2..7 | no (page swap) | Full visual suite for the two pages; Screenshots against the mock pages; deleted code gone from Knip |
 
 ## Decisions Log
 
 | Decision | Choice | Alternatives | Rationale |
 | --- | --- | --- | --- |
-| Source, not status (owner) | Provenance field | Keep the workflow | Owner ruling |
+| Source, not status (owner, DQ-11) | Provenance field | Keep the workflow | Owner ruling of 2026-10-11 |
 | Bookmarks are the narrator's own (mock) | No threads, no discussion | Notes anchored to lines | Maybe-list pass: bookmarks YES, with a note |
-| Sidecar file (proposed) | `bookmarks.json` | Manifest field | Same pattern as markup |
+| Sidecar file (SNB-Q3) | `bookmarks.json` | Manifest field | Same pattern as markup |
 
 ## Research Summary
 
@@ -174,4 +183,4 @@ Read: the mock's bible, script, bookmark and speaker sources and tests, the ruli
 
 ## Visual Spec
 
-Mock pages: Story Bible (`studio-next/src/pages/Bible.tsx`), Script (`studio-next/src/pages/script/ScriptPage.tsx`) with the Bookmarks tab; light and dark per DQ-1.
+Mock pages: Story Bible (`studio-next/src/pages/Bible.tsx`), Script (`studio-next/src/pages/script/ScriptPage.tsx`) with the Bookmarks tab; light and dark.

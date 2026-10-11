@@ -50,7 +50,8 @@ If every DAW call answers one result shape and every capability says why and how
 
 - Audacity 4 (no scripting there; revisit when it exists, `docs/research/audacity-4-scripting-spec.md`).
 - Redo; app undo that drives the DAW's own history (spike SND-S5; the owner's QA step).
-- Deleting audio in any DAW ("hide, never delete"); a delete is the DAW's job.
+- Deleting audio in any DAW ("hide, never delete", DQ-8); a delete is the DAW's job.
+- Anything the mock's DAW model does not show ("if it is not in the mock it doesn't get built").
 - Multi-item range edits (one item per request, as [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md)).
 - Regions beyond what exists ("regions (later)" in the rulings).
 - A DAW-neutral rewrite of value types (the aliases of [ADR 0302](../adr/0302-dawport-roles-exchange-the-bridges-own-types-through-aliases-and-an-asynchronous-role-is-one-method-per-command.md) stay).
@@ -66,14 +67,16 @@ If every DAW call answers one result shape and every capability says why and how
 | Unverified behaviours with a committed spike result | 100% before their implementation slice | `docs/research/` notes |
 | Pending owner REAPER steps | Listed on #510; none blocking | #510 |
 
-## Open Questions
+## Decisions
 
-- [ ] **SND-Q1. App undo reaching the DAW (owner ruling 13: "not explicitly ruled").** Recommendation: spike first; ship a toast that says "Use Edit > Undo in REAPER" for DAW entries beyond the last, as the mock does.
-- [ ] **SND-Q2. Dropping `removeTakes` for hide or mute.** Recommendation: hide only; no delete anywhere.
-- [ ] **SND-Q3. Roll when REAPER is the DAW.** The ruling says REAPER can create a take automatically. Recommendation: confirm in the spike which record mode gives that; if it needs a user preference, the command refuses with that reason instead of changing preferences.
-- [ ] **SND-Q4. Capability names.** Recommendation: snake case `cut_range`, `fx_range`, `stack_takes`, `backups`; `roll` stays under `punch`.
-- [ ] **SND-Q5. `DawKind` for the built-in recorder.** Recommendation: `Built-in` added to the union with the adapter slice, not before.
-- [ ] **SND-Q6. Backup window and retention defaults.** The mock: about two minutes either side, retention days as a setting. Recommendation: 2 minutes, 7 days, both settings.
+Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner. This PRD has no page; the mock (`studio-next/src/state/daw.ts` and the files in Source) is the spec for the port.
+
+- **SN0-Q1 / DQ-1.** Where the mock's DAW model and an older ADR differ, the mock wins and the ADR is superseded.
+- **DQ-5.** Record arms only the chapter's track and starts at the end of the last item; a failed precondition shows the capability's refusal reason. [ADR 0380](../adr/0380-record-in-reaper-is-a-project-scope-setting-and-arming-is-a-separate-click-from-play.md) is superseded to that extent (the Booth PRD builds it).
+- **DQ-7.** Stacking follows the mock (later reads move onto the first read, the chapter shifts, the plan is shown first); [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md) is superseded to that extent.
+- **DQ-8.** Never delete: `hide_takes` mutes, trims go to the muted Cuts track as `delete_range` does, deletion is the DAW's job; `removeTakes` is dropped; [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) is superseded.
+- **DQ-18.** Capability-driven take management for Audacity, as in the mock; [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) is superseded to that extent.
+- **Process defaults, taken as recommended (2026-10-11).** Capability names are snake case `cut_range`, `fx_range`, `stack_takes`, `backups`, with roll under `punch`. The built-in recorder joins `DawKind` as `Built-in` with its adapter slice (SND-9). Backups default to the mock's about two minutes either side and seven days of retention, both settings. App undo: a toast saying "Use Edit > Undo in REAPER" for entries beyond the last, as the mock does; SND-S5 only checks whether more is safe. SND-S1 settles which REAPER record mode makes a roll keep the earlier audio; if it needs a changed preference, the command refuses with that reason and never changes preferences.
 
 ## Users & Context
 
@@ -122,10 +125,11 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [ADR 0300](../adr/0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md) to [ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md) | KEEP / EXTEND | Same port; [ADR 0302](../adr/0302-dawport-roles-exchange-the-bridges-own-types-through-aliases-and-an-asynchronous-role-is-one-method-per-command.md) wire shapes extended (A7) |
 | [ADR 0246](../adr/0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md) | SUPERSEDE (roll) | Roll as one command (A8) after SND-S1 |
 | [ADR 0234](../adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md), [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md) | SUPERSEDE (range part) | FX on a range (A9) after SND-S3 |
-| [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md) | DISCUSS (DQ-7) | Stacking |
-| [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) | DISCUSS (DQ-8) | Cleanup trims |
-| [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) | SUPERSEDE, DISCUSS (DQ-18) | Capability-driven Audacity takes |
+| [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md) | SUPERSEDE (DQ-7) | Stacking follows the mock |
+| [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) | SUPERSEDE (DQ-8) | Trims hide or mute; nothing is deleted |
+| [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) | SUPERSEDE (DQ-18) | Capability-driven Audacity takes |
 | [ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md), [ADR 0400](../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md) | KEEP | Every new command is Experimental first |
+| [ADR 0380](../adr/0380-record-in-reaper-is-a-project-scope-setting-and-arming-is-a-separate-click-from-play.md) | SUPERSEDE (DQ-5) | Record arms only the chapter's track; refusals from the capability |
 | [ADR 0232](../adr/0232-arming-for-a-recording-remembers-the-narrators-arms-makes-no-undo-point-and-the-app-stops-only-the-recording-it-started.md), [ADR 0233](../adr/0233-the-app-may-make-a-take-active-by-guid-in-one-undo-step.md) | EXTEND / KEEP | Arms and active take |
 | [ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md) | KEEP | Windows only |
 

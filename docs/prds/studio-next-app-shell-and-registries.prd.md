@@ -1,10 +1,10 @@
 # Studio Next App Shell and Registries: Commands, Keys, Jump Menu, Context Menus, Help and Overlays as Data
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's registries and shell: `studio-next/src/app/`, `studio-next/ARCHITECTURE.md` ("Wire into the shared systems").
+**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's registries and shell: `studio-next/src/app/`, `studio-next/ARCHITECTURE.md` ("Wire into the shared systems"); the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on / extends:** Input Commands and Pedals (old PRD `input-commands-and-pedals.prd.md`, recoverable from git history) and [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) (the command registry and keymap, delivered in part), [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md) (`ContextMenu`), [ADR 0048](../adr/0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md), [ADR 0172](../adr/0172-popover-is-an-interactive-layer-above-the-dialog-and-escape-defers-to-the-topmost-one.md), [ADR 0630](../adr/0630-overlays-keep-the-mocks-frame-a-nested-dialog-dims-the-page-and-a-combobox-popup-is-a-listbox-not-a-popover.md) (overlays), [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) (navigation groups), [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) (rail counts). It does not replace them; it adds the layers the mock proves and the repo lacks.
 
-**Status (2026-10-10):** draft.
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for the shell, rail and registries.
 
 ## Problem Statement
 
@@ -26,7 +26,7 @@ In the mock, a page adds a command, a key, a right-click menu, a search source o
 5. **Help as data.** `ShortcutSheet`, the Settings key list and the Booth, Proof and Editing key-hint footers read one structured table derived from the catalogue plus per-surface "hint specs" (which keys a footer shows, in which order).
 6. **Overlay service.** `overlay.confirm`, `overlay.toast`, `overlay.toastUndo`, `overlay.announce`, `overlay.open(dialog spec)` as a thin imperative API that renders the existing declarative primitives (`ConfirmDialog`, `Toast`, `Dialog`, `SlideOver`, `Popover`), so a command can open one without being a component, and stacking and focus return stay the primitives' ([ADR 0172](../adr/0172-popover-is-an-interactive-layer-above-the-dialog-and-escape-defers-to-the-topmost-one.md), [ADR 0630](../adr/0630-overlays-keep-the-mocks-frame-a-nested-dialog-dims-the-page-and-a-combobox-popup-is-a-listbox-not-a-popover.md)).
 7. **History panel.** A slide-over listing undoable entries (label, whether it touched the DAW, undo refusal reason), backed by the journal in [Domain, State and Wire Contracts](studio-next-domain-state-and-contracts.prd.md), opened from the jump menu and the shell.
-8. **Shell.** Rail groups and counts stay as [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) and [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) say; the header gains the Undo and History affordances and the engine chip carries the DAW label from capabilities.
+8. **Shell.** The rail follows `studio-next/src/app/Shell.tsx`: Production, Schedule, then Prep (Script, Story Bible), Record (Booth), Edit (Editing), Review (Proof, Pickups), Finish (Master & QC, Delivery), with counts only on Proof, Pickups and Master & QC, each from a host-reported count ([ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) rule kept). The rail collapses below 1360 CSS px as the mock does. The open-queries badge on Story Bible is not in the mock and goes with the Story Bible swap. The header gains the Undo and History affordances and the engine chip carries the DAW label from capabilities. Schedule and Delivery rail items are added by their page swaps, not here.
 
 ## Key Hypothesis
 
@@ -49,13 +49,22 @@ If commands, search, context items and hints are data that a page registers, the
 | Keydown listeners outside `src/input/` | 0 beyond the reasoned allowlist | Existing scan test |
 | Jump menu | Opens in under 100 ms (ADR 0075 acknowledgement rule) and finds a chapter, an entry, a mark and a bookmark | Component tests, ported `studio-next/tests/palette.test.tsx` |
 
-## Open Questions
+## Decisions
 
-- [ ] **SNR-Q1. Is Ctrl+F the manuscript find or the jump menu?** The mock: Find in Script, jump menu elsewhere. Recommendation: same; add `find.open`.
-- [ ] **SNR-Q2. Does the jump menu replace the nav on small widths?** Recommendation: no; the drawer stays.
-- [ ] **SNR-Q3. Providers or static rows for chapters?** Recommendation: providers (data-driven), with the catalogue test only covering static rows.
-- [ ] **SNR-Q4. Is a toast's Undo allowed to undo a DAW change?** See A6; recommendation: allowed only for the last entry, as in `studio-next/src/state/store.ts` `undoEntry`.
-- [ ] **SNR-Q5. Where is the history panel opened from?** Recommendation: header button and `history.open`.
+Owner rulings of 2026-10-11; none is open.
+
+| Id | Ruling | Consequence here |
+| --- | --- | --- |
+| SN0-Q1 / DQ-1 | Studio Next is the spec | The rail, header and overlays follow the mock; ADR 0407 decision 5 and the Story Bible badge of ADR 0725 are superseded (DQ-11, DQ-14) |
+| SN0-Q2 / DQ-2 | Replace, one PR, no flag | Registries land first with no route; each migration of a `ContextMenu` or footer is its own slice |
+| SN0-Q3 | The store is a read-model cache plus a command journal; the Go host stays the source of truth | The History panel reads the journal in the Domain PRD |
+| DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | Their rail items arrive with their swaps (SNP-8, SNM-5) |
+| SN0-Q7 | The mock's breakpoints apply at the mock's widths | The rail collapses below 1360 |
+| SNR-Q1 | Ctrl+F is Find in Script and the jump menu elsewhere, as `studio-next/src/app/keys.ts`; add `find.open` | SNR-4 |
+| SNR-Q2 | The jump menu does not replace navigation | The collapsed rail opens over the page on hover, as the mock does |
+| SNR-Q3 | Chapters come from providers; the catalogue test covers static rows only (default taken, standing instruction) | SNR-2 |
+| SNR-Q4 | A toast's Undo may undo a DAW change only when it is the last entry, as `undoEntry` in `studio-next/src/state/store.ts` | SNR-3, SNS-3 |
+| SNR-Q5 | The History panel opens from a header button and `history.open` | SNR-7, SNR-8 |
 
 ## Users & Context
 
@@ -93,8 +102,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) | EXTEND | Jump menu, providers and help derived from the catalogue (A3); the mock's `registerKeys` is not adopted |
 | [ADR 0048](../adr/0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md), [ADR 0172](../adr/0172-popover-is-an-interactive-layer-above-the-dialog-and-escape-defers-to-the-topmost-one.md), [ADR 0630](../adr/0630-overlays-keep-the-mocks-frame-a-nested-dialog-dims-the-page-and-a-combobox-popup-is-a-listbox-not-a-popover.md) | EXTEND | Overlay service renders these primitives (A4) |
 | [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md) | EXTEND | Context provider registry and host over `ContextMenu` |
-| [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) | DISCUSS (DQ-2, DQ-14) | Navigation serial point; no new page here |
-| [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | EXTEND | Rail counts keep the host-reported rule |
+| [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) | KEEP decision 1, SUPERSEDE decision 5 (DQ-2, DQ-14) | Navigation serial point; no new page here; Schedule and Delivery are pages with rail items |
+| [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | EXTEND, SUPERSEDE the open-queries badge (DQ-11) | Rail counts keep the host-reported rule and the mock's three counts |
 | [ADR 0075](../adr/0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md) | KEEP | Acknowledge within 100 ms applies to the jump menu |
 | [ADR 0430](../adr/0430-the-engine-panel-is-a-wide-slide-over-from-the-engine-chip-and-every-pointer-to-the-tracks-page-opens-it.md) | EXTEND | Engine chip label from capabilities |
 
@@ -123,7 +132,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 5 | Context menu host | Provider registry, `ContextMenuHost`, keyboard open | pending | 4 | 3 | 1.2 | - |
 | 6 | Help as data | Sheet, Settings list and footers from catalogue and hint specs | pending | 7 | 2, SNF-4 | 1.0 | - |
 | 7 | History panel | Slide-over over the journal | pending | 6 | 3, SNS-3 | 0.8 | - |
-| 8 | Shell | Header Undo and History, engine chip label, nav counts audit | pending | - | 4, 7 | 1.1 | - |
+| 8 | Shell | Header Undo and History, engine chip label, rail groups and counts as the mock, collapse below 1360 | pending | - | 4, 7 | 1.1 | - |
 
 ### Phase Details
 

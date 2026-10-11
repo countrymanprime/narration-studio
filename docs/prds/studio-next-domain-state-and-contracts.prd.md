@@ -1,14 +1,14 @@
 # Studio Next Domain, State and Wire Contracts: A Typed Store with Undo, Selectors, Schemas and a Mock-versus-Real Parity Kit
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`.
+**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** [ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`apps/ui/src/types.ts`) and the mock host (`apps/ui/src/api/mockApi.ts`), [ADR 0067](../adr/0067-bridge-commands-are-registered-by-name-and-each-feature-lives-in-its-own-lua-file.md).
 
-**Status (2026-10-10):** draft. Two ADRs here (A5, A6) are the decisions most likely to change the series; they are the first slices.
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The store is a read-model cache plus a command journal (SN0-Q3); A5 and A6 record that and the undo rules, and are the first slices.
 
 ## Problem Statement
 
-The mock has one place where every change goes (`act`), one history of undoable changes, selectors that derive every number a page shows, and fixtures that hold every sample value. The real app has none of that on the UI side: pages hold their own state, derive numbers inline, and undo is whatever each feature built (a toast button, a host undo block, a REAPER undo step). The owner's rulings need things only a shared model gives: one undo history across pages (with refusals that name why), numbers computed once (the same "decided and cleared" on Proof, Production and the rail), and mock data that cannot drift from the host. But the mock's way of getting there (the whole book held in the browser and patched with immer) would give the app a second source of truth next to the Go host.
+The mock has one place where every change goes (`act`), one history of undoable changes, selectors that derive every number a page shows, and fixtures that hold every sample value. The real app has none of that on the UI side: pages hold their own state, derive numbers inline, and undo is whatever each feature built (a toast button, a host undo block, a REAPER undo step). The owner's rulings need things only a shared model gives: one undo history across pages (with refusals that name why), numbers computed once (the same "decided and cleared" on Proof, Production and the rail), and mock data that cannot drift from the host. The mock defines how the UI behaves, not who owns the data: holding the whole book in the browser and patching it with immer would give the app a second source of truth next to the Go host.
 
 ## Evidence
 
@@ -35,8 +35,8 @@ If derived numbers come from selectors over read models and every change goes th
 
 - A client-side copy of the whole book or an immer patch history over host data.
 - Persistence of the journal across restarts; redo; undo across projects.
-- Undo that reaches into the DAW's own history (spike, A6; owner QA).
-- A state library dependency (no Redux, Zustand, immer) unless A5 chooses one.
+- Undo that reaches into the DAW's own history; as in the mock, a refused DAW undo says to use the DAW's own Edit > Undo.
+- A state library dependency (no Redux, Zustand, immer).
 - Replacing the host's persistence or the findings store's audit history.
 
 ## Success Metrics
@@ -49,13 +49,18 @@ If derived numbers come from selectors over read models and every change goes th
 | Contract rows | Each new binding has schema, golden, row, mock | `wireContracts.test.ts` |
 | Fixtures in components | 0 literals | Scan test |
 
-## Open Questions
+## Decisions
 
-- [ ] **SNS-Q1 (gate, = SN0-Q3). Read-model store or whole-book store?** Recommendation: read-model store.
-- [ ] **SNS-Q2. Immer?** The mock uses it. Recommendation: do not add it; journal entries hold inverse commands, and UI-only slices use small copy-on-write helpers. If the owner prefers patches for UI-only state, A5 allows immer for `ui` slices only.
-- [ ] **SNS-Q3. What is the journal's size and scope?** Mock: 40 entries, all pages. Recommendation: 40, in memory, cleared on project switch.
-- [ ] **SNS-Q4. Which commands are undoable?** Recommendation: the mock's `act` list is the starting set; host commands whose inverse is not safe (a REAPER cut that moved audio) are marked non-undoable in-app and say "Use Edit > Undo in REAPER" as the mock does (`studio-next/src/state/store.ts`).
-- [ ] **SNS-Q5. Where do golden payloads for the UI-only schemas come from?** Recommendation: UI-only schemas have no golden; anything the host reads back does.
+Owner rulings of 2026-10-11; none is open.
+
+| Id | Ruling | Consequence here |
+| --- | --- | --- |
+| SN0-Q3 | The UI store is a read-model cache plus a command journal; the Go host stays the source of truth ([ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md)) | A5 records it; the mock's whole-book store is not adopted |
+| SN0-Q2 / DQ-2 | Replace, one PR, no flag | The store lands unused; pages adopt it in their swap slices |
+| SNS-Q2 | No immer; journal entries hold inverse host commands and UI-only slices use small copy-on-write helpers (default taken, standing instruction) | A5 |
+| SNS-Q3 | The journal holds 40 entries in memory, as the mock, and is cleared on project switch (default taken) | SNS-3 |
+| SNS-Q4 | The mock's `act` list is the starting set; a host command with no safe inverse is marked non-undoable in-app and the refusal says to use the DAW's own Edit > Undo, as `studio-next/src/state/store.ts` does | SNS-1 mapping table |
+| SNS-Q5 | UI-only schemas have no golden; anything the host reads back does (default taken) | SNS-4 |
 
 ## Users & Context
 
@@ -94,7 +99,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [ADR 0062](../adr/0062-ui-import-rules-are-a-dependency-cruiser-config-and-a-mark-scan-that-name-their-adr.md), [ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md) | EXTEND | Import rules for `studio/`, `ports/`, `fixtures/` |
 | [ADR 0202](../adr/0202-a-confident-two-way-match-is-a-real-link-labelled-auto-undoable-and-never-over-a-manual-one.md), [ADR 0120](../adr/0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md), [ADR 0233](../adr/0233-the-app-may-make-a-take-active-by-guid-in-one-undo-step.md) | KEEP | Existing undo and audit mechanisms are journal targets, not replaced |
 | [ADR 0044](../adr/0044-property-and-fuzz-tests-are-deterministic-in-the-gate.md) | KEEP | Deterministic property tests |
-| Undo across the DAW | DISCUSS-adjacent | Not ruled; spike, A6 |
+| Undo across the DAW | KEEP | A DAW entry is undoable only when it is the last entry and the DAW reports it is still its last action; otherwise the refusal names the DAW's own Edit > Undo (A6) |
 
 ## Technical Approach
 
@@ -106,7 +111,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Rollout.** Layer strangling: the store lands unused; the first adopters are chapter selection and preferences, then history for bookmarks (Script), then page-by-page. No flag.
 
-**ADRs.** A5 (read-model store and command journal, immer decision), A6 (undo scope: UI, host, DAW; refusal rules; DAW undo spike outcome).
+**ADRs.** A5 (read-model store and command journal, immer decision), A6 (undo scope: UI, host, DAW; refusal rules).
 
 **Risks.** The journal can lie if the host changes behind it (mitigation: hydrate on events and treat a stale inverse as a refusal); read models can go stale (mitigation: events plus refetch on focus, as `useStageRecommendations` does with `useRefreshOnFocus`); over-use of the store for local component state (mitigation: only cross-page state belongs in it, reviewed per slice).
 
@@ -158,8 +163,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Decision | Choice | Alternatives | Rationale |
 | --- | --- | --- | --- |
-| Host is the truth (proposed) | Read models plus a command journal | Whole-book store | [ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md); one persistence path |
-| No immer by default (proposed) | Inverse commands | Patches | Patches over host data have no inverse |
+| Host is the truth (owner, SN0-Q3) | Read models plus a command journal | Whole-book store | [ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md); one persistence path |
+| No immer (SNS-Q2) | Inverse commands | Patches | Patches over host data have no inverse |
 | ISP at the feature (proposed) | `usePort` | Keep the facade | Enforceable and testable |
 | Parity kit (proposed) | One suite, two adapters | Separate mock and real tests | Liskov: a mock may not be more permissive than the host |
 

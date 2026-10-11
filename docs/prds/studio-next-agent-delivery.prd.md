@@ -4,7 +4,7 @@
 
 **Builds on:** [The agent train](../operations/agent-train.md) (the coordinator's procedure, switches, lanes, serial points, owner standing rules, worker protocol and templates), [Tracking work on GitHub](../operations/github-workflow.md), [CLAUDE.md](../../CLAUDE.md), and the implementation plan (deleted PRD `implementation-plan`) sections 3 and 8. It does not replace the train; it fits the series into it and lists every place it would extend or change it.
 
-**Status (2026-10-10):** draft. Every extension or deviation is a proposal in the table "Deviations from the agent train"; none is in force until the owner accepts it and the change lands in `docs/operations/agent-train.md` (SNA-3) with an ADR where it settles a decision. Until then the train runs as written.
+**Status (2026-10-11):** draft; every owner question is decided (see Decisions). The extensions and deviations in the table "Deviations from the agent train" are accepted by the owner's standing instruction to take reasonable defaults, but none is in force until the change lands in `docs/operations/agent-train.md` (SNA-3), with an ADR where it settles a decision. Until then the train runs as written.
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ The train already runs continuously, but it is tuned for PRDs whose phases are 1
 
 1. **Work units are not sized or specified for a cold session.** A "phase" can be a week of work. A worker that dies on a usage limit loses context, and the next session has only a draft PR's `## Resume notes`.
 2. **Collisions are checked by reading PRD tables.** The coordinator "doesn't read the codebase" ([The coordinator's pass](../operations/agent-train.md#the-coordinators-pass)), so file ownership has to be a machine-readable fact, not a judgement.
-3. **Owner decisions arrive in chat.** The train logs them as `D<n>` rows after the fact. This series has about 40 open questions; agents need to poll one place and to know the default when the owner has not answered.
+3. **Owner decisions arrive in chat.** The train logs them as `D<n>` rows after the fact. The owner ruled on this series' questions on 2026-10-11, but new ones will come; agents need one place to poll and to know the default when the owner has not answered.
 
 ## Evidence
 
@@ -26,8 +26,8 @@ What the train already gives (all cited from `docs/operations/agent-train.md`):
 | Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](../operations/agent-train.md#serial-points)) | Fine; slices must name which they touch |
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../operations/agent-train.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
 | Worker protocol | Push after every green step; checkpoints; pause or yield; own PRs until merged (D82); `send_later` check-ins ([The worker protocol](../operations/agent-train.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
-| Templates | Worker, resume and fixer templates ([Templates](../operations/agent-train.md#templates)) | Name the benchmark mocks only; no slice fields |
-| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 mock comparison; the Screenshots rule | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
+| Templates | Worker, resume and fixer templates ([Templates](../operations/agent-train.md#templates)) | No slice fields (the mock reference in the worker template now names the Studio Next page, D98) |
+| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the Studio Next mock page); the Screenshots rule | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
 | Mock-first | D67: build against a mock that passes the schema; swap behind the port | Exactly the series' provider principle; used as is |
 | Issue forms | `.github/ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml`; blank issues off | No slice form |
 
@@ -39,7 +39,7 @@ Keep the train and add four things: a **slice** (the unit of work), a **groomer*
 2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph ([Studio Next Rebuild](studio-next-rebuild.prd.md)) fixes the serial spine; the rest fans out.
 3. **A coordinator that never idles.** The existing pass (merge, reconcile, launch) plus a groomer launch whenever the ready queue is shallower than twice `TARGET`, and a stall rule.
 4. **Workers that can be replaced mid-slice.** A slice issue carries a `## Handoff` comment the worker updates at every checkpoint, so a fresh session resumes from the repo and the issue alone.
-5. **Owner decisions by register.** One issue holds each question with options, recommendation and default date; agents poll it at checkpoints; a default applies after seven days.
+5. **Decisions by register.** One issue holds each decision: the rulings of 2026-10-11 as decided, and any new question with options, recommendation and default date; agents poll it at checkpoints; a non-ADR question takes its default after seven days.
 
 ## Key Hypothesis
 
@@ -66,15 +66,19 @@ If every unit of work is sized for one session, specified in a machine-readable 
 | Red `main` | 0 merges that turn `main` red; if one occurs, `HOLD` within one pass | #509 log |
 | Decision latency | Questions answered or defaulted within 7 days | Decisions register |
 
-## Open Questions
+## Decisions
 
-- [ ] **SNA-Q1 (gate). One issue per slice, or per PRD?** The train uses one per PRD (`Part of #<n>`). (A) One per slice plus the PRD issue as parent (sub-issues, `mcp__github__sub_issue_write`). (B) Per PRD only. Recommendation: (A), as the owner asked.
-- [ ] **SNA-Q2. May the groomer be a session type?** Mockup-design sessions are the precedent ([Mockup gates](../operations/agent-train.md#mockup-gates)). Recommendation: yes; it reads the code, so the coordinator does not.
-- [ ] **SNA-Q3. Daily cap.** A cap on slices launched per day (default 12) in addition to `TARGET`. Recommendation: yes, switchable, because a bad template would otherwise spend a week's allowance in a day.
-- [ ] **SNA-Q4. Lane U territory.** Add `apps/ui/src/studio/**`, `ports/**`, `overlay/**` to lane U? Recommendation: yes.
-- [ ] **SNA-Q5. Default after seven days.** Is applying a recommended default after 7 days silent acceptable for non-ADR questions? Recommendation: yes for questions that do not change an accepted ADR; no for A1..A17 of the overview, which stay Proposed until the owner accepts.
-- [ ] **SNA-Q6. Session cap per slice.** Planned 1, plus 1 resume and 1 fixer, then escalate. Recommendation: as stated.
-- [ ] **SNA-Q7. Who captures Studio Next screenshots** when a worker has no network for `npm ci`? See SN0-Q8. Recommendation: the slice is not blocked; the PR lists the missing mock image and the owner supplies it from #510.
+The owner ruled on 2026-10-11 (see [Studio Next Rebuild](studio-next-rebuild.prd.md#decisions)). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
+
+| Id | Decision | Consequence |
+| --- | --- | --- |
+| SNA-Q1 | One GitHub issue per slice, with the PRD issue as parent (sub-issues, `mcp__github__sub_issue_write`). | D-1; `Closes #<slice>` on each PR. |
+| SNA-Q2 | The groomer is a session type. Mockup-design sessions are the precedent ([Mockup gates](../operations/agent-train.md#mockup-gates)). | D-2; it reads the code, so the coordinator does not. |
+| SNA-Q3 | A daily cap of slices launched per day, default 12, switchable (`SN_DAILY_CAP`). | D-4. |
+| SNA-Q4 | Lane U territory adds `apps/ui/src/studio/**`, `ports/**` and `overlay/**`. | D-7. |
+| SNA-Q5 | A recommended default applies silently after 7 days for questions that do not change an accepted ADR. Superseding ADRs (A1..A17 of the overview) stay Proposed until the owner accepts them. | D-8. |
+| SNA-Q6 | Session cap per slice: 1 planned, 1 resume, 1 fixer, then escalate. | D-6. |
+| SNA-Q7 | Screenshots are compared against the Studio Next mock page (SN0-Q8). A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR lists the missing image and the owner supplies it from #510. The slice is not blocked. | D-10 and the PR template. |
 
 ## Users & Context
 
@@ -102,7 +106,7 @@ PRD: studio-next-<name>.prd.md, slice SN-<code><n>   Parent: #<PRD issue>
 Lane / model: <K|A|B|U|C|D|X> / <Sonnet|Opus|Haiku>   Kind: <spike|adr|seam|page|swap|host|lua|docs>
 Depends on: #<issues>      Blocks: #<issues>      Serial points used: <hostAPIVersion|ADR number|nav|...>
 Owns (globs):          Must not touch (globs):
-Spec: <mock page file and state in studio-next/>; ruling rows: <repo-compare-decisions.md bullets>
+Spec: <the Studio Next mock page file and state under studio-next/src/pages/, the only spec>; ruling rows: <repo-compare-decisions.md bullets, register DQ rows>
 Acceptance tests (named, written first):
 Ports used: <DawClient, Pronunciation, ...>      Contracts: <schema names, golden files, wire.go rows>
 Verification commands:          Screenshots: <none | states x viewports>
@@ -110,7 +114,7 @@ Owner steps (to #510):          ADRs: <labels A1..A17 and numbers>
 Estimate (pw): <0.1-1>   Session cap: 1 + 1 resume + 1 fixer
 ```
 
-The coordinator reads only this block and the labels. A fenced block `slice-meta` (YAML: `id`, `lane`, `kind`, `depends`, `owns`, `serial`) at the top lets it compute collisions without opening code.
+A swap slice lists under `Owns` the old files it deletes (the old page and every old equivalent of what the mock page covers). The coordinator reads only this block and the labels. A fenced block `slice-meta` (YAML: `id`, `lane`, `kind`, `depends`, `owns`, `serial`) at the top lets it compute collisions without opening code.
 
 ### Lanes, graph and the serial spine
 
@@ -131,7 +135,7 @@ The train's pass is unchanged: switches, usage, reconcile, merge, launch, housek
 
 1. **Pick.** The ready list is computed from labels: `slice` and `ready`, every `depends` closed by a merged PR, no open slice whose `owns` overlaps (glob intersection), no unanswered `owner-decision` blocker, the program's wave reached. Order: the train's order (contracts first, resumes, unblockers, leaf features, docs, filler).
 2. **Spawn.** `create_session` exactly as step 5.3 of the pass, with the worker template plus a `SLICE:` block that holds the issue number and says "the issue is the spec; read its Handoff comment first". Title `"N-<lane><n> SN-<code><n> <scope>"`, tags `["agent-train", "lane-<L>", "studio-next"]`.
-3. **Monitor.** `get_session` buckets as in step 3. New: a session in `working` with no push, no issue comment and no PR event for 3 hours is stalled (proposal D-3).
+3. **Monitor.** `get_session` buckets as in step 3. New: a session in `working` with no push, no issue comment and no PR event for 3 hours is stalled (D-3).
 4. **Merge and queue.** The train's merge rules unchanged (not draft, mergeable, `Build (Windows)` and `ui-dist` green, no 🔴 thread, Screenshots present for UI, squash with `expectedHeadSha`). After a merge the coordinator immediately re-checks the slices that depended on it (D62) and launches in the same pass.
 5. **Stalls and failures.** Stalled: `interrupt_session`, then a resume session from the Handoff comment (resume template). Failed on usage: the train's pause path. Three failed CI rounds (the train's rule): draft PR, label `blocked`, one Opus fixer; a second failure goes to #510 with the failure pasted. A slice that exhausts its session cap is relabelled `blocked` and re-groomed (it was too big: split it).
 6. **Groom.** If fewer than `2 x TARGET` ready slices exist and a PRD has slices in the table without an issue, launch a groomer: it opens the issues from the PRD's table, fills the header from the code (it may read it), marks `ready` those whose dependencies are merged, and ends.
@@ -159,9 +163,9 @@ Per D82 the worker babysits its own PR. The coordinator covers the cases the wor
 | --- | --- | --- |
 | Concurrency | `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET` | Existing |
 | Usage bands | GREEN, AMBER-5H, AMBER-7D, RED | Existing |
-| Program pause | `SN_HOLD`: stop launching studio-next slices only | Proposal D-5 |
-| Daily cap | `SN_DAILY_CAP` slices launched per day, default 12 | Proposal D-4 |
-| Per-slice budget | Session cap 1 + 1 resume + 1 fixer; a `spike` or `adr` slice 1 session | Proposal D-6 |
+| Program pause | `SN_HOLD`: stop launching studio-next slices only | D-5 |
+| Daily cap | `SN_DAILY_CAP` slices launched per day, default 12 | D-4 |
+| Per-slice budget | Session cap 1 + 1 resume + 1 fixer; a `spike` or `adr` slice 1 session | D-6 |
 | Model spend | Sonnet by default; Opus for lane K, new Lua commands, semantic fixers | Existing |
 | Kill | `HOLD` (existing) and `DRAIN`; `SN_HOLD` for the program | Existing and D-5 |
 
@@ -195,23 +199,23 @@ Each ratchet is a test that fails when a slice regresses it, so continuous mergi
 
 ### Owner decisions arriving
 
-A **decisions register** issue ("Studio Next decisions"), one comment per question: id (for example SN0-Q2), the options, the recommendation, the default date, and the slices it gates. The owner answers by replying `decided: A` or with text. Agents read it at every checkpoint (as they read #509). `repo-compare-decisions.md` is the seed: its rulings are indexed once into the Cutover ruling table and are not re-asked. After seven days an unanswered question takes its recommendation, unless it is one of A1..A17; the coordinator comments the default and unblocks the slices. An answer that contradicts work already merged becomes a new slice, not a revert by an agent.
+A **decisions register** issue ("Studio Next decisions"), one comment per decision: id (for example SN0-Q2), the ruling, the date and the slices it affects. It is seeded with the rulings of 2026-10-11 as decided and with `repo-compare-decisions.md`, whose rulings are indexed once into the Cutover ruling table and are not re-asked. A question that arises later is a comment with the options, the recommendation and the default date; the owner answers by replying `decided: A` or with text, and agents read it at every checkpoint (as they read #509). After seven days an unanswered question takes its recommendation, unless it would change an accepted ADR or is one of A1..A17; the coordinator comments the default and unblocks the slices. An answer that contradicts work already merged becomes a new slice, not a revert by an agent.
 
 ### Deviations from the agent train
 
 | # | Deviation or extension | Why | Needs |
 | --- | --- | --- | --- |
-| D-1 | One issue per slice under the PRD issue; `Closes #<slice>` on each PR (the train: `Part of`, last PR closes) | Owner request; makes the ready list computable | Owner and a note in the train |
-| D-2 | A groomer session type | The coordinator does not read code; slices need file-level headers | Owner; precedent: mockup sessions |
-| D-3 | Stall rule: 3 hours without push, comment or PR event | The train handles failure and pause, not silent stalls | Owner |
-| D-4 | `SN_DAILY_CAP` switch | A bad template should not spend a week in a day | Owner; ADR if kept |
-| D-5 | `SN_HOLD` switch | Pause one program | Owner |
-| D-6 | Session cap per slice | There is no per-slice token API | Owner |
-| D-7 | Lane U territory adds `studio/`, `ports/`, `overlay/` | New directories have no lane | Owner; train edit |
-| D-8 | Decisions register issue and 7-day defaults | About 40 open questions | Owner; ADR for the default rule |
-| D-9 | Status issue | 150 slices do not fit #509 | Owner |
-| D-10 | Worker template names Studio Next mock files as the spec (SN0-Q1) | The template names only the benchmark | Owner ruling on A1 |
-| D-11 | A `slice` issue form and labels in `.github/` | Slice header must be uniform | Owner; `.github` is serial |
+| D-1 | One issue per slice under the PRD issue; `Closes #<slice>` on each PR (the train: `Part of`, last PR closes) | Owner request; makes the ready list computable | Accepted (SNA-Q1); a note in the train |
+| D-2 | A groomer session type | The coordinator does not read code; slices need file-level headers | Accepted (SNA-Q2); precedent: mockup sessions |
+| D-3 | Stall rule: 3 hours without push, comment or PR event | The train handles failure and pause, not silent stalls | Accepted 2026-10-11 |
+| D-4 | `SN_DAILY_CAP` switch | A bad template should not spend a week in a day | Accepted (SNA-Q3); ADR if kept |
+| D-5 | `SN_HOLD` switch | Pause one program | Accepted 2026-10-11 |
+| D-6 | Session cap per slice | There is no per-slice token API | Accepted 2026-10-11 |
+| D-7 | Lane U territory adds `studio/`, `ports/`, `overlay/` | New directories have no lane | Accepted (SNA-Q4); train edit |
+| D-8 | Decisions register issue and 7-day defaults | Later questions need one place and a default | Accepted (SNA-Q5); ADR for the default rule |
+| D-9 | Status issue | 150 slices do not fit #509 | Accepted 2026-10-11 |
+| D-10 | The worker template names the Studio Next mock page file as the spec and no longer tells workers the benchmark is the spec (SN0-Q1, decided) | The template names only the benchmark; the owner ruled the Studio Next mock is the only spec for pages it covers, and the benchmark stays only for the Series voice bible and Companion, which no slice touches | Train edit in SNA-3 |
+| D-11 | A `slice` issue form and labels in `.github/` | Slice header must be uniform | Accepted 2026-10-11; `.github` is serial |
 
 ### Supersedes / depends on ADRs
 
@@ -235,7 +239,7 @@ Nothing here is application code. The changes are: a `slice.yml` issue form and 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Slice contract | Issue form, labels, header spec, `slice-lint`, templates for the worker `SLICE:` block | pending | 2 | SN0-1 | 0.8 | - |
 | 2 | Groomer | Prompt, rules for cutting slices, first grooming of SNF and SNS | pending | 1 | SN0-1 | 0.6 | - |
-| 3 | Train amendments | The accepted deviations in `agent-train.md` | pending | - | 1, owner | 0.6 | - |
+| 3 | Train amendments | The accepted deviations in `agent-train.md` | pending | - | 1 | 0.6 | - |
 | 4 | Decisions register | Register issue, seeding, polling rule in the worker template | pending | 1 | SN0-1 | 0.4 | - |
 | 5 | Status issue and reports | Status issue, daily and weekly extensions | pending | 4 | 1 | 0.5 | - |
 | 6 | Dry run | Run the train on SNF and SNS slices with `TARGET` 2 for a week; measure the metrics | pending | - | 1 to 5 | 1.0 | - |
@@ -250,7 +254,7 @@ Nothing here is application code. The changes are: a `slice.yml` issue form and 
 
 ### Parallelism Notes
 
-Phases 1, 2 and 4 are docs and `.github` work in different files; Phase 3 waits for the owner. Phase 6 needs real slices from SNF and SNS.
+Phases 1, 2 and 4 are docs and `.github` work in different files; Phase 3 waits for Phase 1. Phase 6 needs real slices from SNF and SNS.
 
 ### Parallel-session compatibility
 
@@ -267,7 +271,7 @@ Phases 1, 2 and 4 are docs and `.github` work in different files; Phase 3 waits 
 | --- | --- | --- | --- | --- |
 | SNA-1 | Phase 1 | SN0-1 | yes | `slice-lint` tests; markdownlint; form renders |
 | SNA-2 | Phase 2 | SN0-1 | yes | A groomed issue passes `slice-lint` |
-| SNA-3 | Phase 3 | SNA-1, owner | no | Docs link check; owner review |
+| SNA-3 | Phase 3 | SNA-1 | no | Docs link check; owner review |
 | SNA-4 | Phase 4 | SN0-1 | yes | Register issue has every SN0 and SNA question |
 | SNA-5 | Phase 5 | SNA-1 | yes | Status issue renders counts for SNF |
 | SNA-6 | Phase 6 | SNA-1..5, SNF-1 | no | Metrics table filled from the dry run |

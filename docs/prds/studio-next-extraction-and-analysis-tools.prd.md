@@ -1,10 +1,10 @@
 # Studio Next Extraction and Analysis Tools: Suggestions, the 75% Rule, Optional Downloads and Bring-Your-Own LLM
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Story Bible extraction (owner direction)" and "Extraction tools: distribution decision (owner)" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/story-bible-extraction-research.md`, `studio-next/research/local-llm-research.md` and `studio-next/research/own-model-research.md`.
+**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Story Bible extraction (owner direction)" and "Extraction tools: distribution decision (owner)" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/story-bible-extraction-research.md`, `studio-next/research/local-llm-research.md` and `studio-next/research/own-model-research.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** the delivered Story Bible build ([ADR 0020](../adr/0020-entity-extraction-precision-over-recall.md), [ADR 0042](../adr/0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md), [ADR 0345](../adr/0345-a-story-bible-entity-keeps-its-id-by-name-overlap-and-dialogue-cues-are-precision-first-rules.md), `sidecars/manuscript-guide`, `apps/desktop/internal/spacy`), the asset registry ([ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md), [ADR 0081](../adr/0081-local-assets-is-a-settings-list-built-from-the-registry-whose-rows-own-their-download-verify-and-remove.md), [ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md), [ADR 0078](../adr/0078-asset-state-comes-from-the-manifest-an-asset-is-read-in-full-once-per-session-and-a-failed-download-resumes.md), [ADR 0136](../adr/0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md)), [model provenance](../architecture/model-provenance.md), the provider ports ([ADR 0301](../adr/0301-providers-sit-behind-small-ports-with-a-registry-and-a-capability-descriptor.md)), the threat model and D72/D70 in [Owner standing rules](../operations/agent-train.md#owner-standing-rules). UI list and review behaviours are in [Script and Story Bible](studio-next-script-and-story-bible.prd.md).
 
-**Status (2026-10-10):** draft. Licence and quality spikes come first; nothing is downloaded or bundled before the owner accepts the consent flow.
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for the suggestion list, import and consent screens. Licence and quality spikes come first; nothing is downloaded or bundled before the owner accepts the consent flow.
 
 ## Problem Statement
 
@@ -19,7 +19,7 @@ The owner wants the Story Bible to fill itself with varying success: anything un
 ## Proposed Solution
 
 1. **A suggestion layer.** `ExtractionSuggestion` as a wire contract (Go store beside the Story Bible file, Zod schema, golden). Kinds: entry, alias, property, relationship, claim (talk, act, know), speaker. Status: `accepted-auto`, `needs-verification`, `accepted`, `rejected`.
-2. **The rule in one place.** Needs verification when confidence is null or under 0.75, the quote is not found in the text, a property, claim or speaker has no quote, or the entry is not in the Story Bible. Otherwise accepted-auto: applied and flagged Review, still listed under Suggested. A rejected suggestion stays as a tombstone so it is not offered again (fingerprint).
+2. **The rule in one place** (DQ-10; `reasonsOf` and `autoStatus` in `studio-next/src/selectors/extraction.ts`). Needs verification when confidence is null or under 0.75, the quote is not found in the text, a property, claim or speaker has no quote, or the entry is not in the Story Bible. Otherwise accepted-auto: applied and flagged Review, still listed under Suggested. A rejected suggestion stays as a tombstone so it is not offered again (fingerprint).
 3. **Evidence verification** in Go (`verifyEvidence`: curly and straight quotes match; offsets computed), so a quote that is not in the text is never accepted.
 4. **Sources as providers.** `ExtractionProvider` port with registered sources: rules (existing sidecar), imported, GLiNER, BookNLP, local model (unavailable with a reason). Each source has its own label and icon in the UI.
 5. **Import** of a CSV or a JSON (`storybible-import` v1) with per-row errors and a preview worked out on a copy (add, merge, skip); a copyable prompt template filled from the format so a narrator can use any LLM.
@@ -28,7 +28,7 @@ The owner wants the Story Bible to fill itself with varying success: anything un
 
 ## Key Hypothesis
 
-If every suggestion carries a verbatim quote and a stated confidence, and everything under 75% is verified by the narrator, a weak extractor costs the narrator review time but never puts an invented fact in the Story Bible. We are wrong if the calibration on real manuscripts shows confident wrong entries above a few percent (DQ-10).
+If every suggestion carries a verbatim quote and a stated confidence, and everything under 75% is verified by the narrator, a weak extractor costs the narrator review time but never puts an invented fact in the Story Bible. We are wrong if the calibration on real manuscripts shows confident wrong entries above a few percent; the 75% value is configured in one place, so a calibration result changes one value, not the rule.
 
 ## What We're NOT Building
 
@@ -49,14 +49,20 @@ If every suggestion carries a verbatim quote and a stated confidence, and everyt
 | Import errors | Reported per row, none silent | Ported import tests |
 | Calibration | A table of confidence versus correctness on at least two real or public-domain books before any default changes | `docs/research/` note |
 
-## Open Questions
+## Decisions
 
-- [ ] **SNX-Q1 (DQ-10).** Auto-apply entries only? Recommendation: yes; properties, claims and speakers always verified.
-- [ ] **SNX-Q2.** Where does import parse? (A) In Go with size and row limits (untrusted file). (B) In the UI as the mock does. Recommendation: (A); the UI shows the preview the host returns.
-- [ ] **SNX-Q3.** Is BookNLP's weight licence acceptable to ship as an optional download? The owner said not a blocker; the spike records the licence and the provenance row.
-- [ ] **SNX-Q4.** Which Python runtime hosts GLiNER and BookNLP? Recommendation: the existing `manuscript-guide` sidecar's environment as separate optional wheels, fetched through the registry.
-- [ ] **SNX-Q5.** Default tier when nothing is installed. Recommendation: rules baseline, suggestions marked source "rules".
-- [ ] **SNX-Q6.** Disk and memory limits to advertise. Recommendation: provisional until measured; the consent screen shows the free-disk check as the mock does (`HOST_FREE_DISK_MB`).
+Owner rulings of 2026-10-11; none is open.
+
+| Id | Ruling | Consequence here |
+| --- | --- | --- |
+| DQ-10 | The mock's rule is the spec: suggestions at 75% or more are applied and flagged Review; under 75% need verification | ADR 0020 and ADR 0042 are superseded to that extent; a kind is applied only if it also has a quote (property, claim, speaker) and its entry exists, as the mock does |
+| SN0-Q1 / DQ-1 | Studio Next is the spec | The Suggested list, import dialog and consent screen follow `studio-next/src/pages/bible/` and `studio-next/src/ui/ComponentConsent.tsx` |
+| SN0-Q2 / DQ-2 | Replace, one PR, no flag | The suggestion UI lands as components with no route and appears with the Story Bible swap (SNB-8) |
+| SNX-Q2 | The mock defines the import's parse rules and preview; the host runs them with size and row limits, because the file is untrusted (default taken, standing instruction) | The UI shows the preview the host returns |
+| SNX-Q3 | BookNLP's weight licence is not a blocker (owner); the spike records the licence and the provenance row | SNX-1b |
+| SNX-Q4 | GLiNER and BookNLP run in the existing `manuscript-guide` sidecar's environment as separate optional wheels fetched through the registry (default taken) | SNX-7a, SNX-7b |
+| SNX-Q5 | With nothing installed the rules baseline runs and its suggestions carry source "rules" (default taken) | SNX-3 |
+| SNX-Q6 | Disk and memory limits are provisional until measured; the consent screen shows the free-disk check as the mock does (`HOST_FREE_DISK_MB`) | SNX-6 |
 
 ## Users & Context
 
@@ -82,7 +88,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0020](../adr/0020-entity-extraction-precision-over-recall.md), [ADR 0042](../adr/0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md) | DISCUSS (DQ-10) | Auto-accept at 75% versus precision over recall |
+| [ADR 0020](../adr/0020-entity-extraction-precision-over-recall.md), [ADR 0042](../adr/0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md) | SUPERSEDE (DQ-10) | Applied and flagged Review at 75% or more; needs verification under 75% |
 | [ADR 0345](../adr/0345-a-story-bible-entity-keeps-its-id-by-name-overlap-and-dialogue-cues-are-precision-first-rules.md) | KEEP | Ids and cues |
 | [ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md), [ADR 0081](../adr/0081-local-assets-is-a-settings-list-built-from-the-registry-whose-rows-own-their-download-verify-and-remove.md), [ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md), [ADR 0078](../adr/0078-asset-state-comes-from-the-manifest-an-asset-is-read-in-full-once-per-session-and-a-failed-download-resumes.md), [ADR 0136](../adr/0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md) | EXTEND | Tools are registry assets; no second installer |
 | [ADR 0080](../adr/0080-the-story-bible-language-model-is-a-catalog-asset-unpacked-at-install-and-the-build-asks-before-it-downloads.md) | EXTEND | The language model asset becomes a tier |
@@ -106,7 +112,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Trust boundaries.** Downloads (host, hash, size, verified archive), a file the app opens (import), sidecar arguments (tool selection), and the threat-model "what the app sends off the machine" statement (unchanged: nothing is sent): rows re-read and updated in the slices that add each ([threat model](../architecture/threat-model.md)).
 
-**Risks.** Licence of weights; model quality on fiction beyond the trial; memory on a laptop; a long scan blocking the UI (it is a job with cancel, [ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md)); a confident wrong entry (DQ-10, mitigation above).
+**Risks.** Licence of weights; model quality on fiction beyond the trial; memory on a laptop; a long scan blocking the UI (it is a job with cancel, [ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md)); a confident wrong entry (mitigation: the calibration table and the single threshold).
 
 ## Implementation Phases
 

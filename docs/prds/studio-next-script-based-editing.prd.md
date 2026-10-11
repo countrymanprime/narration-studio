@@ -2,9 +2,9 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Editing page: script-based audio editing (owner ruling)", the takes and Audacity follow-ups and the "FX exception" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/editing-page-research.md` and `studio-next/research/editing-fx-research.md`; the mock's `studio-next/src/pages/Editing.tsx` and `studio-next/src/pages/editing/`.
 
-**Builds on / replaces:** the delivered workspace inside the Proof chapter page (word-level player, flags, takes panel, FX on a passage: [ADR 0212](../adr/0212-the-workspace-alignment-reuses-the-coverage-results-store-and-joins-played-ranges-from-the-saved-project-on-read.md), [ADR 0242](../adr/0242-the-recording-check-writes-the-chapters-word-alignment-as-additive-lines-and-align-again-never-transcribes.md), [ADR 0265](../adr/0265-the-workspace-highlights-by-binary-search-over-timed-tokens-and-groups-consecutive-flagged-tokens-into-one-flag.md), [ADR 0700](../adr/0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md), [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md), [ADR 0520](../adr/0520-the-peaks-cache-holds-one-whole-source-entry-and-the-strip-reuses-timelines-backdrop.md)), the editing readiness work ([ADR 0266](../adr/0266-the-editing-check-panel-reads-its-per-class-state-from-srs-stage-signals-and-keeps-progress-inline-so-candidates-stay-visible-while-it-runs.md), [ADR 0238](../adr/0238-silence-cleanup-candidates-are-classed-in-the-diagnostics-pass-and-raised-apart-from-the-diagnostics-findings.md)) and the DAW commands of [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md). The old Edit and Proof Workspace PRD is superseded in its remaining parts here (follow REAPER, takes panel, consolidation); see the overview's carried-over table.
+**Builds on / replaces (the old workspace is deleted in the swap, SNE-9):** the delivered workspace inside the Proof chapter page (word-level player, flags, takes panel, FX on a passage: [ADR 0212](../adr/0212-the-workspace-alignment-reuses-the-coverage-results-store-and-joins-played-ranges-from-the-saved-project-on-read.md), [ADR 0242](../adr/0242-the-recording-check-writes-the-chapters-word-alignment-as-additive-lines-and-align-again-never-transcribes.md), [ADR 0265](../adr/0265-the-workspace-highlights-by-binary-search-over-timed-tokens-and-groups-consecutive-flagged-tokens-into-one-flag.md), [ADR 0700](../adr/0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md), [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md), [ADR 0520](../adr/0520-the-peaks-cache-holds-one-whole-source-entry-and-the-strip-reuses-timelines-backdrop.md)), the editing readiness work ([ADR 0266](../adr/0266-the-editing-check-panel-reads-its-per-class-state-from-srs-stage-signals-and-keeps-progress-inline-so-candidates-stay-visible-while-it-runs.md), [ADR 0238](../adr/0238-silence-cleanup-candidates-are-classed-in-the-diagnostics-pass-and-raised-apart-from-the-diagnostics-findings.md)) and the DAW commands of [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md). The old Edit and Proof Workspace PRD is superseded in its remaining parts here (follow REAPER, takes panel, consolidation); see the overview's carried-over table.
 
-**Status (2026-10-10):** draft. The largest PRD of the series (12 people-weeks); it waits for the DAW range commands and for the take lanes of [Proof and Pickups](studio-next-proof-and-pickups.prd.md).
+**Status (2026-10-10):** draft. The largest PRD of the series (12 people-weeks); its swap waits for the DAW range commands and for the take lanes of [Proof and Pickups](studio-next-proof-and-pickups.prd.md).
 
 ## Problem Statement
 
@@ -31,14 +31,14 @@ The owner chose design E: the chapter's own text is the editor. Words are read-o
 
 1. **Page and model.** A new Editing page (rail group Review, [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)) whose model is ported as pure TypeScript: `alignToScript` (matches, misreads paired by look-alike, not read, extra words), `ChapterDoc` with stable keys, cut list and effects applied, the selection model, `summarize`. Words come from an `AlignmentPort`: per-word offsets, confidence and `added` flag from the stored workspace alignment ([ADR 0212](../adr/0212-the-workspace-alignment-reuses-the-coverage-results-store-and-joins-played-ranges-from-the-saved-project-on-read.md)); `snap` moves a cut to a zero crossing host-side.
 2. **Keys and menus** through the catalogue and providers: word arrows, Shift selects, Ctrl phrase, Del, M mute, F FX, T and Shift+T takes, Enter play, H hide, `[` `]` flags, S, Esc, Ctrl+Shift+C, chapter step Alt+Up/Down (`studio-next/src/pages/Editing.tsx` `registerKeys` becomes catalogue rows).
-3. **Takes inline** (`TakeParts`): each take a sub-line with evidence (words matched, longest pause, level against neighbours, noise floor, clarity, breaths) from the measure ranges ([ADR 0140](../adr/0140-take-metrics-are-per-category-evidence-over-a-takes-source-range.md)); a **suggested take** with an honest confidence, null with a reason until takes are level-comparable and rising as prep steps are applied; shown as a chip with its evidence, never preselected, never applied (DQ-15).
+3. **Takes inline** (`TakeParts`): each take a sub-line with evidence (words matched, longest pause, level against neighbours, noise floor, clarity, breaths) from the measure ranges ([ADR 0140](../adr/0140-take-metrics-are-per-category-evidence-over-a-takes-source-range.md)); a **suggested take** with an honest confidence, null with a reason until takes are level-comparable and rising as prep steps are applied; shown as a chip with its evidence, never preselected, never applied (DQ-15; [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) superseded to that extent).
 4. **Prep steps** (trim white space, trim breaths, normalise) are offered, never run by themselves, and re-score the suggestion.
 5. **Hide other takes** (mute, one undo) replaces removal; nothing is ever deleted.
 6. **Duplicate reads** (a take that reads the line twice) are found and split into takes, in the DAW when the `takes` capability allows, else the built-in recorder.
-7. **Stacking** (confirmation with the plan, default leave, REAPER first; DQ-7).
-8. **Delete words and audio** and **Add FX to a range** through `DawClient.deleteRange` and `applyFxToRange`, behind `cut_range` and `fx_range`, always confirmed with a preview, one undo step, struck words kept, an underline and an FX marker with a way to remove, the DAW's own saved chains listed from the DAW (`studio-next/src/providers/fxchains.ts`).
-9. **Strip and drawer.** The timeline strip of take lanes at the width rule of [Foundations](studio-next-foundations.prd.md) (the mock: 1360); the drawer with Clean up, Effects and Backups (and Timeline where the strip does not fit); Backups tab only for DAWs with the capability.
-10. **Cleanup placement.** Editing owns cleanup plus take prep, take suggestion and backups (owner: "confirmed"); cleanup trims use the Cuts-track mechanism (DQ-8).
+7. **Stacking** as the mock does it (`studio-next/src/selectors/stacking.ts`, `StackDialog.tsx`): the plan is shown first, later reads move onto the first read, the chapter shifts; un-stack restores by offsets (DQ-7).
+8. **Delete words and audio** and **Add FX to a range** through `DawClient.deleteRange` and `applyFxToRange`, behind `cut_range` and `fx_range`, always confirmed with a preview, one undo step, never deleting (a trim hides or mutes; it goes to the muted Cuts track as `delete_range` does, DQ-8), struck words kept, an underline and an FX marker with a way to remove, the DAW's own saved chains listed from the DAW (`studio-next/src/providers/fxchains.ts`).
+9. **Strip and drawer.** The timeline strip of take lanes at the mock's width rule (1360 px and wider, implemented as the container query of [Foundations](studio-next-foundations.prd.md), SN0-Q7); the drawer with Clean up, Effects and Backups (and Timeline where the strip does not fit); Backups tab only for DAWs with the capability.
+10. **Cleanup placement.** Editing owns cleanup plus take prep, take suggestion and backups (owner: "confirmed"); cleanup trims use the Cuts-track mechanism: they hide or mute, deletion is the DAW's job (DQ-8; [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) superseded).
 11. **Carried over** from the old workspace PRD: follow REAPER's transport (Could, depends on the play-position spike) and the clause split that ADR 0252 deferred for lack of persisted word times (Could).
 
 ## Key Hypothesis
@@ -51,7 +51,8 @@ If the word model and the DAW range commands are separate seams, the page is onl
 - Deleting audio in any DAW (hide or move to a muted Cuts track); redo; Audacity 4 clip-takes beyond the backups table.
 - Multi-item range edits; auto-applied suggestions, prep or cleanup; a ranked "best take" without evidence.
 - A second alignment run: Editing reads the stored alignment; the Booth's passage map is used where it exists.
-- A time-boxed flag unless the owner chooses it (DQ-2).
+- A feature flag or a period with two Editing pages: the swap is atomic like every other page (DQ-2).
+- Anything the mock does not show ("if it is not in the mock it doesn't get built").
 
 ## Success Metrics
 
@@ -63,14 +64,18 @@ If the word model and the DAW range commands are separate seams, the page is onl
 | Overflow at 1440, 1024, 768 | 0 | Visual suite; ported `studio-next/tests/e-strip-narrow.test.tsx` |
 | Words rendered smoothly on a 10,000-word chapter | Interactions under 100 ms | Performance test on a synthetic chapter; the old workspace's open perf question (thousands of spans in WebView2) answered |
 
-## Open Questions
+## Decisions
 
-- [ ] **SNE-Q1 (DQ-2).** Flag for the swap or atomic? Recommendation: atomic; a dev-only flag if the owner wants early review.
-- [ ] **SNE-Q2 (DQ-7).** Stacking scope. Recommendation: REAPER only first, refusal when other tracks or markers sit in the moved span.
-- [ ] **SNE-Q3 (DQ-8).** Cleanup trims onto the Cuts track. Recommendation: yes.
-- [ ] **SNE-Q4 (DQ-15).** Wording of the suggested take. Recommendation: a chip with evidence first.
-- [ ] **SNE-Q5.** Where does the old workspace go? Recommendation: deleted in the swap slice, including its route redirect, rows, guide and screenshots ([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)); the Proof page keeps notes and the takes-at-a-spot lanes.
-- [ ] **SNE-Q6.** Strip width. Recommendation: the Foundations width rule, not 1360 literally.
+Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner.
+
+- **SN0-Q1 / DQ-1.** The Studio Next Editing page (`studio-next/src/pages/Editing.tsx`) is the spec, including layout, sizes and the strip width.
+- **SN0-Q2 / DQ-2.** Replace, for Editing as for every page. No flag, no period with two versions. The model and components land with no route; one PR (SNE-9) swaps the route and deletes the old workspace, including its route redirect, rows, guide and screenshots ([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) decision 1 stays). Proof keeps notes and the takes-at-a-spot lanes.
+- **DQ-7.** Stacking follows the mock; [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md) is superseded to that extent.
+- **DQ-8.** Never delete: trims hide or mute and go to the muted Cuts track; [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) is superseded.
+- **DQ-15.** Evidence first, a suggested take with an honest (possibly null) confidence, never auto-applied; [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) is superseded to that extent.
+- **DQ-18.** Capability-driven take management for Audacity, as in the mock; [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) is superseded to that extent.
+- **SN0-Q7.** The strip and drawer follow the mock's breakpoints as container queries at the mock's widths.
+- **SN0-Q8.** Screenshots are compared against the Studio Next Editing page.
 
 ## Users & Context
 
@@ -98,17 +103,17 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | ADR | Class | Note |
 | --- | --- | --- |
 | [ADR 0234](../adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md), [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md) | SUPERSEDE (range part) | FX on a range of words (A9) |
-| [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) | DISCUSS (DQ-2) | Editing replaces the workspace in Proof (A15) |
+| [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) | KEEP decision 1 (DQ-2) | Editing replaces the workspace in Proof, atomically (A15) |
 | [ADR 0470](../adr/0470-proof-follows-mock-04-pickup-edit-waived-are-words-over-the-stored-status-and-the-chapter-view-leads-with-its-notes.md) | EXTEND | Proof keeps notes |
-| [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md) | DISCUSS (DQ-7) | Stacking |
-| [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) | SUPERSEDE, DISCUSS (DQ-15) | Suggestion |
+| [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md) | SUPERSEDE (DQ-7) | Stacking follows the mock |
+| [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) | SUPERSEDE (DQ-15) | Suggestion |
 | [ADR 0140](../adr/0140-take-metrics-are-per-category-evidence-over-a-takes-source-range.md) | EXTEND | Per-take measurements |
-| [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) | DISCUSS (DQ-8) | Cleanup trims |
+| [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md) | SUPERSEDE (DQ-8) | Trims hide or mute; nothing is deleted |
 | [ADR 0252](../adr/0252-level-normalize-ships-without-clause-split-because-word-timing-is-not-persisted-anywhere.md) | EXTEND | Clause split using persisted word times |
 | [ADR 0032](../adr/0032-analyzers-report-findings-and-never-change-audio-or-manuscript-on-their-own.md) | KEEP | Narrator-triggered, one undo step, nothing auto-applied |
 | [ADR 0212](../adr/0212-the-workspace-alignment-reuses-the-coverage-results-store-and-joins-played-ranges-from-the-saved-project-on-read.md), [ADR 0242](../adr/0242-the-recording-check-writes-the-chapters-word-alignment-as-additive-lines-and-align-again-never-transcribes.md), [ADR 0265](../adr/0265-the-workspace-highlights-by-binary-search-over-timed-tokens-and-groups-consecutive-flagged-tokens-into-one-flag.md), [ADR 0520](../adr/0520-the-peaks-cache-holds-one-whole-source-entry-and-the-strip-reuses-timelines-backdrop.md) | KEEP / EXTEND | Alignment, highlighting, peaks reused |
-| [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) | SUPERSEDE, DISCUSS (DQ-18) | Audacity takes through backups |
-| [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0740](../adr/0740-mock-match-is-text-blind-and-a-diagnostic-and-only-the-benchmark-mocks-are-kept.md) | DISCUSS (DQ-1) | No benchmark mock exists for Editing |
+| [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) | SUPERSEDE (DQ-18) | Audacity takes through backups |
+| [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0740](../adr/0740-mock-match-is-text-blind-and-a-diagnostic-and-only-the-benchmark-mocks-are-kept.md) | SUPERSEDE (DQ-1) | The Studio Next mock is the only spec; no benchmark mock exists for Editing |
 
 ## Technical Approach
 
@@ -120,7 +125,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Test plan.** Port the mock's ten editing tests; model tests with property tests for cut time arithmetic (`studio-next/src/selectors/cuts.ts` is pure); harness tests are in the DAW PRD; visual rows for default, selection toolbar, take expansion, delete dialog, FX dialog, stack dialog, strip, drawer tabs at all viewports; aria for dialogs and the drawer; axe; a performance test.
 
-**Rollout.** Build in the dark (model, then components with stories), then the atomic swap; the escape hatch only under SNE-Q1.
+**Rollout.** Build with no route (model, then components with stories), then one atomic swap PR (SNE-9) that adds the route and deletes the old workspace. No flag, no `studioNext` setting.
 
 **ADRs.** A9 (with SND), A15, take suggestion, backups table.
 
@@ -132,7 +137,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Decisions, ADRs, audit | DQ-2, 7, 8, 15; A9, A15; audit of the workspace's consumers | pending | - | SN0-1 | 0.6 | - |
+| 1 | ADRs and audit | A9, A15; audit of the workspace's consumers | pending | - | SN0-1 | 0.6 | - |
 | 2 | Alignment port and model | `AlignmentPort`, ported pure model, tests | pending | - | 1, SNS-4 | 1.5 | - |
 | 3 | Script document | `ScriptDoc`, words, selection, keys, provider menu | pending | - | 2, SNR-5 | 1.5 | - |
 | 4 | Ribbon, cards, bar | Ribbon, flag cards, floating toolbar, bar | pending | 5 | 3, SNF-5a | 1.2 | - |
@@ -140,7 +145,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 6 | Delete and FX on a range | Dialogs, journal, markers | pending | - | 3, SND-6b, SND-6c | 1.5 | - |
 | 7 | Stacking | Dialog, plan, un-stack | pending | 6 | 5, SND-7 | 1.0 | - |
 | 8 | Strip and drawer | Timeline strip, Clean up, Effects, Backups | pending | - | 4, SND-8 | 1.3 | - |
-| 9 | Swap | Page replaces the workspace; delete old; rows, guide, screenshots | pending | - | 4 to 8 | 0.6 | - |
+| 9 | Swap | Route swap; delete the old workspace and its equivalents (script view, transport bar, waveform strip, takes panel, apply-FX dialog, editing check panel and cleanup launchers where the drawer replaces them); rows, guide, screenshots | pending | - | 4 to 8 | 0.6 | - |
 | 10 | Carried over (Could) | Follow REAPER; clause split | pending | - | 9, SND-1f | 0.8 | - |
 
 ### Phase Details
@@ -148,7 +153,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 - **Phase 1.** The audit lists every consumer of `ProofChapterPage` workspace parts so the swap deletes nothing still used (CLAUDE.md step 2).
 - **Phase 2.** The model is moved with its tests first; nothing is rendered yet.
 - **Phase 6.** Needs the two DAW commands; against the mock `DawClient` it can be built earlier but not marked complete.
-- **Phase 9.** The swap PR carries the Screenshots against the mock for every changed state and the redirect from the old path.
+- **Phase 9.** The swap PR carries the Screenshots against the Studio Next Editing page for every changed state and the redirect from the old path.
 
 ### Parallelism Notes
 
@@ -168,7 +173,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
-| SNE-1 | Phase 1 | SN0-1 | yes | ADRs; audit comment |
+| SNE-1 | Phase 1 | SN0-1 | yes | ADRs; audit comment listing each old file's consumers |
 | SNE-2 | Phase 2 | SNE-1, SNS-4 | yes | Ported model tests; property tests |
 | SNE-3 | Phase 3 | SNE-2, SNR-5 | yes | Ported selection and key tests |
 | SNE-4 | Phase 4 | SNE-3, SNF-5a | yes | Component tests; atlas for any primitive |
@@ -180,7 +185,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNE-7 | Phase 7 | SNE-5a, SND-7 | yes | Ported stacking tests |
 | SNE-8a | Strip | SNE-4 | yes | Ported strip tests; visual |
 | SNE-8b | Drawer tabs | SNE-4, SND-8 | yes | Visual; aria |
-| SNE-9 | Phase 9 | SNE-4..8 | no (serial: nav) | Full visual suite for the page; Screenshots |
+| SNE-9 | Phase 9 (swap; deletes the old workspace) | SNE-4..8 | no (serial: nav) | Full visual suite for the page; Screenshots |
 | SNE-10 | Phase 10 (Could) | SNE-9, SND-1f | yes | Tests |
 
 ## Decisions Log
@@ -198,4 +203,4 @@ Read: the mock's editing sources and tests, the owner's rulings, the real proof 
 
 ## Visual Spec
 
-Mock page: Editing (`studio-next/src/pages/Editing.tsx`). There is no benchmark mock for it; the Studio Next mock is the only spec (DQ-1 does not apply). States: default, selection, takes expanded, delete dialog, FX dialog, stack dialog, strip, each drawer tab.
+Mock page: Editing (`studio-next/src/pages/Editing.tsx`). There is no benchmark mock for it; the Studio Next mock is the only spec. States: default, selection, takes expanded, delete dialog, FX dialog, stack dialog, strip, each drawer tab.
