@@ -132,7 +132,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | in progress ([#1084](https://github.com/countrymanprime/narration-utils/issues/1084): drafts, sort, alias counts; needs-review filter and mark reviewed wait for SNX-4) | 2 | 1 | 1.0 | - |
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | pending | 2, 3 | 1 | 0.8 | - |
 | 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | in review (ADR 0820; PR #1113) | 2 | 1 | 1.0 | - |
-| 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | in progress ([#1325](https://github.com/countrymanprime/narration-utils/issues/1325): the model, jump commands, search source and keys; ribbon, editor and tab wait for SN-B62) | - | 5, SNR-4, SNF-3 | 1.2 | - |
+| 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | in progress ([#1325](https://github.com/countrymanprime/narration-utils/issues/1325): the model, jump commands, search source and keys; the ribbon, editor popover and tab are built and unmounted, [#1327](https://github.com/countrymanprime/narration-utils/issues/1327); the Script route mounts them with SN-B77) | - | 5, SNR-4, SNF-3 | 1.2 | - |
 | 7 | Script migrations | Search sources, context providers, key hints for Script | pending | - | SNR-4, SNR-5 | 0.7 | - |
 | 8 | Swap and close-out | Swap the Story Bible and Script routes; delete the old pages, queries page, query CSV export and import and open-queries badge; visual rows, guide pages, doc screenshots | pending | - | 2 to 7 | 0.3 | - |
 
