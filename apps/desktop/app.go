@@ -26,6 +26,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-utils/shell/internal/extraction/importer"
 	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/guide"
@@ -249,6 +250,8 @@ type Host struct {
 	extractionSources    *port.Registry[extractionport.Source]
 	extractionParagraphs func() ([]extraction.Paragraph, error)
 	extractionInstalled  func() []string
+	// extractionChapters is a seam for tests (bindings_extraction_import.go): nil means the open manuscript's chapters.
+	extractionChapters func() ([]importer.Chapter, error)
 	// pickRenderFile is a seam for tests (bindings_proofing_render.go): nil means the operating system's single-file
 	// picker for a chapter's rendered file.
 	pickRenderFile func() (string, error)
