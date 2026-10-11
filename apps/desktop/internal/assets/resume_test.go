@@ -69,6 +69,14 @@ func newRangeServer(t *testing.T, body []byte, dropAfter int, honourRange bool) 
 	return s
 }
 
+// snapshot returns what the handler has recorded so far. The handler writes these fields under mu, from its own goroutine,
+// so a test must read them the same way; a bare read of server.sent races with the handler's last update.
+func (s *rangeServer) snapshot() (ranges []string, sent int64, requests int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.ranges...), s.sent, s.requests
+}
+
 func stagingDir(root string) string { return Dir(root, "p", "id", "1") + ".installing" }
 
 func TestAnInterruptedDownloadResumesFromWhatArrivedAndIsNotFetchedAgain(t *testing.T) {
@@ -96,11 +104,13 @@ func TestAnInterruptedDownloadResumesFromWhatArrivedAndIsNotFetchedAgain(t *test
 	if State(root, "p", "id", "1", files) != "installed" {
 		t.Fatal("the resumed download must install")
 	}
-	if want := "bytes=" + strconv.FormatInt(part.Size(), 10) + "-"; server.ranges[1] != want {
-		t.Fatalf("second request Range = %q, want %q", server.ranges[1], want)
+	server.Close() // waits for the handlers, so the byte count below is final and not just race-free
+	ranges, sent, _ := server.snapshot()
+	if want := "bytes=" + strconv.FormatInt(part.Size(), 10) + "-"; ranges[1] != want {
+		t.Fatalf("second request Range = %q, want %q", ranges[1], want)
 	}
-	if server.sent >= 2*int64(len(body)) || server.sent > int64(len(body))+part.Size() {
-		t.Fatalf("the server sent %d bytes in all: the body is %d and %d had arrived, so nothing may be fetched twice", server.sent, len(body), part.Size())
+	if sent >= 2*int64(len(body)) || sent > int64(len(body))+part.Size() {
+		t.Fatalf("the server sent %d bytes in all: the body is %d and %d had arrived, so nothing may be fetched twice", sent, len(body), part.Size())
 	}
 	if len(reported) == 0 || reported[0] < part.Size() || reported[len(reported)-1] != int64(len(body)) {
 		t.Fatalf("progress %v: it starts from what was already there and ends at the whole file", reported)
@@ -170,8 +180,9 @@ func TestAResumedFileThatFailsItsHashIsFetchedAgainFromTheTop(t *testing.T) {
 	if State(root, "p", "id", "1", files) != "installed" {
 		t.Fatal("not installed")
 	}
-	if server.ranges[0] != "bytes=1000-" || server.ranges[1] != "" {
-		t.Fatalf("requests asked for %q: the resume first, then the whole file", server.ranges)
+	ranges, _, _ := server.snapshot()
+	if len(ranges) < 2 || ranges[0] != "bytes=1000-" || ranges[1] != "" {
+		t.Fatalf("requests asked for %q: the resume first, then the whole file", ranges)
 	}
 }
 
@@ -206,8 +217,8 @@ func TestACompletePartFileIsCheckedAndUsedWithoutAnotherDownload(t *testing.T) {
 	if err := Install(context.Background(), root, "p", "id", "1", files); err != nil {
 		t.Fatal(err)
 	}
-	if server.requests != 0 {
-		t.Fatalf("%d requests: a complete part file needs none", server.requests)
+	if _, _, requests := server.snapshot(); requests != 0 {
+		t.Fatalf("%d requests: a complete part file needs none", requests)
 	}
 }
 
