@@ -52,7 +52,7 @@ runs:
     - if: inputs.need-go == 'true' || inputs.need-wails-tools == 'true' || inputs.need-golangci-lint == 'true'
       uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
       with:
-        go-version: '1.27.1'
+        go-version: '1.27.2'
         cache-dependency-path: apps/desktop/go.sum
     - if: inputs.need-python == 'true'
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -91,7 +91,7 @@ runs:
     - if: inputs.need-golangci-lint == 'true' && steps.golangci-lint-cache.outputs.cache-hit != 'true'
       name: Install pinned golangci-lint
       shell: bash
-      run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+      run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
     # gVisor's lock checker, run as its own binary by the lint target (scripts/quality.mjs go-lint). It has no releases; the
     # pseudo-version pins a commit of gVisor's `go` branch.
     - if: inputs.need-golangci-lint == 'true'

@@ -28,8 +28,10 @@ jobs:
           # changes and only warns when a licence is undetected, so `scripts/licenses/tests/test_dependency_review.py` holds the
           # list to what the release ships. OFL-1.1 is the SIL Open Font License of the bundled typefaces (@fontsource/*, #238),
           # read and accepted by the owner: the fonts may be bundled and redistributed with the licence text, not sold alone.
+          # LicenseRef-scancode-google-patent-license-golang is the Go project's patent grant (its PATENTS file) that
+          # golang.org/x/* modules carry beside BSD-3-Clause; x/net v0.60.0 is the first to report it (owner accepted, #964).
           allow-licenses: >-
             0BSD, Apache-2.0, BSD-2-Clause, BSD-3-Clause, BlueOak-1.0.0, CC-BY-4.0, CC0-1.0, ISC, MIT, MIT-0, MPL-2.0, OFL-1.1,
-            PSF-2.0, Python-2.0, Unlicense, Zlib,
+            PSF-2.0, Python-2.0, Unlicense, Zlib, LicenseRef-scancode-google-patent-license-golang,
             AGPL-3.0-only, AGPL-3.0-or-later, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later,
             LGPL-2.1-only, LGPL-2.1-or-later, LGPL-3.0-only, LGPL-3.0-or-later
