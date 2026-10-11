@@ -63,13 +63,13 @@ func TestCoverageEnginesDefaultIsTheModelACheckWouldUse(t *testing.T) {
 	models := whisperCatalog(t, map[string]bool{"tiny": true, "small": true, "large-v3-turbo": true})
 	host := coverageHostWithModels(t, coverageProject(t), models, fakeCoverageSidecar(10))
 
-	engines, chosen := engineList(t, host)
+	_, chosen := engineList(t, host)
 	if chosen != "small" {
 		t.Fatalf("default = %q, want TranscriptCompare.model_size (small) with the cascade off", chosen)
 	}
 
 	enableCascade(t, host)
-	engines, chosen = engineList(t, host)
+	engines, chosen := engineList(t, host)
 	if chosen != "tiny" {
 		t.Fatalf("default = %q, want the cascade's first-pass model (tiny)", chosen)
 	}

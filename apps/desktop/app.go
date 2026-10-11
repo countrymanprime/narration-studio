@@ -1254,6 +1254,7 @@ func (h *Host) idleLocked() bool {
 // isReadAloudRecordingLocked reports whether a REAPER take this app started is still recording. A switch or an update swap would
 // drop the only handle that can stop it (ADR 0232 decision 4); a take REAPER records on its own is not counted, the app cannot stop
 // it. The caller holds h.mu.
+// +checklocksignore: idleLocked and its callers hold h.mu but carry no annotation for checklocks to follow.
 func (h *Host) isReadAloudRecordingLocked() bool {
 	return h.readAloudRecordingChapter != ""
 }
