@@ -3,6 +3,7 @@ import type { NarrationApi } from '../../types';
 import { createTeleprompterMock } from '../teleprompterMock';
 import { createInstallMock, installSeedFor, LOCAL_ASSETS_SEEDS } from '../assetInstallMock';
 import type { AssetInstallState } from '../contracts/assets';
+import type { CoverageEngines } from '../contracts/coverage';
 import { MOCK_DICTIONARY, MOCK_DICTIONARY_DISK_SIZE, MOCK_DICTIONARY_DOWNLOAD_SIZE } from '../dictionaryMock';
 import type { MockApiSeed } from './state';
 
@@ -311,6 +312,10 @@ export function createAssetsMock(initial: MockApiSeed) {
     whisperInstalled: () => whisperInstalled,
     dictionaryState: () => dictionaryState,
     whisperAssetRequired,
+    coverageEngines: (): CoverageEngines => ({
+      engines: [{ id: mockWhisperIdentity.id, label: mockWhisperIdentity.displayName, family: 'whisper', installState: whisperState() }],
+      default: mockWhisperIdentity.id,
+    }),
     teleprompterAssetRequired,
     mockVoiceIdentity,
     mockVoice,
