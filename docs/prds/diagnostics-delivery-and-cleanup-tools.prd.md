@@ -80,7 +80,7 @@ We believe a local, profile-neutral measurement page with reproducible report ex
 | Throughput | TBD - baseline measured in Phase 1: about 90 s per hour of 24-bit stereo 48 kHz (AMD Ryzen 9 9955HX, `BenchmarkAnalyzeOneHourStereo48k`, three runs 89 to 92 s); the true-peak oversampler takes about 80% of it | Benchmark recorded in the PR; target set afterward |
 | Progress honesty | Job progress is monotonic and reflects bytes read (ADR 0015) | Go test like `TestImportJobReportsRealProgressAndLogs` |
 | New Go coverage | At least 80% on new packages and functions | `go test -cover` |
-| UI verification | Every new state reviewed as PNG at desktop, small-desktop, tablet and mobile | `apps/ui/screenshots/app/<page>/<state>/<viewport>.png` per CLAUDE.md |
+| UI verification | Every new state reviewed as PNG at desktop, small-desktop, tablet and mobile | `apps/ui/screenshots/app/<page>/<state>/<viewport>.png` per `.claude/rules/ui-visual-verification.md` |
 | Home shows measured hours | Recorded hours for a scanned project equal the sum of matched item lengths, not an estimate | Go and UI tests on the fixture `.rpp` (Phase 8) |
 
 ## Open Questions

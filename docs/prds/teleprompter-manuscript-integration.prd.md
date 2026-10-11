@@ -77,7 +77,7 @@ We believe a Manuscript-embedded reading mode with flags, seek, DAW-aware resume
 | No unreviewed edits | Zero code paths that write manuscript, audio, notes or take names; exactly one REAPER mutation (edit cursor and view) | Code review of Lua commands plus the manual REAPER checklist |
 | Existing page unaffected until Phase 13 | All current Teleprompter tests and visual states pass unchanged | `pnpm check`; Playwright suite (`ui-visual` CI job) |
 | Reading invariants hold in the modal (carried from the shipped design record) | The view advances only in response to recognized speech, never a timer; a pause, ad-lib or restart never blocks the view or demands an exact retry; every flagged word is reviewable and none is auto-corrected; the batch sidecars (Manuscript Guide, Transcript Compare) behave unchanged | Modal tests over `?mockTeleprompter=` states; sidecar and Go service tests; `pnpm check` |
-| Visual verification | Every new state reviewed as PNG at desktop, small-desktop, tablet, mobile | `apps/ui/screenshots/app/<page>/<state>/<viewport>.png`, per CLAUDE.md |
+| Visual verification | Every new state reviewed as PNG at desktop, small-desktop, tablet, mobile | `apps/ui/screenshots/app/<page>/<state>/<viewport>.png`, per `.claude/rules/ui-visual-verification.md` |
 
 ## Open Questions
 

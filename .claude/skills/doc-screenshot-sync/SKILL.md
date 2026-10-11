@@ -9,7 +9,7 @@ description: After the Playwright visual suite output changes, refresh docs/imag
 
 `docs/guides/using-the-app/*.md` embeds screenshots of the real UI so users don't have to imagine
 what a page looks like. Those screenshots are copies, not live references — `apps/ui/screenshots/`
-is gitignored scratch output (see `CLAUDE.md`), so committed doc images in `docs/images/ui/` only
+is gitignored scratch output (see `.claude/rules/ui-visual-verification.md`), so committed doc images in `docs/images/ui/` only
 stay accurate if something re-copies them after the UI changes. Without this skill, the natural
 failure mode is: the UI changes, `pnpm check` still passes, and the docs keep showing last month's
 screenshot with nobody noticing until a user asks why it doesn't match.

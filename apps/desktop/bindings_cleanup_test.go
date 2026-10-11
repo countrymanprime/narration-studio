@@ -246,7 +246,7 @@ func TestLevelMatchPreviewAndApplyGoThroughTheResolvedRole(t *testing.T) {
 	}
 }
 
-// The wire contracts (CLAUDE.md): one golden per answer shape, pinning the exact payload CleanupPreview, CleanupApply,
+// The wire contracts (`.claude/rules/wire-contracts.md`): one golden per answer shape, pinning the exact payload CleanupPreview, CleanupApply,
 // LevelMatchPreview and LevelMatchApply send, read by apps/ui/src/api/wireContracts.test.ts against their Zod schemas.
 
 func TestCleanupPreviewContract(t *testing.T) {

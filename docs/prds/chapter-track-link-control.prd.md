@@ -223,7 +223,7 @@ Next, they notice "PART TWO" (212 words) listed as a chapter. They open its slid
   - `ChapterTrackMapConfirm` and `Clear` stay for their callers.
   - `ChapterLinksTable` Change and Clear switch to the new bindings. That fixes the double-link defect at its source.
 - **One read for the whole table (Phase 1).** `ChapterTrackLinks()` returns, for every narration chapter, the `chaptermatch.ForChapter` result plus a track summary: name, index, colour, muted, soloed, item count, playable count, missing-source count, span, and `recordedEnd`. It also returns `projectFile`, `savedAt`, and a `project` state (`ready`, `none`, `choose`, `error` with a message). It makes one `matchInputs` call and one parse, not one `ChapterTrackMatch` per row (each would re-read the `.rpp`).
-  - Wire contract per `CLAUDE.md`: a Zod schema in `apps/ui/src/api/schemas/chapterTrackMap.ts`; goldens `tests/fixtures/contracts/chapter-track-links-{ready,no-project,conflict}.json` written by a Go test (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; a mock that passes the schema.
+  - Wire contract per `.claude/rules/wire-contracts.md`: a Zod schema in `apps/ui/src/api/schemas/chapterTrackMap.ts`; goldens `tests/fixtures/contracts/chapter-track-links-{ready,no-project,conflict}.json` written by a Go test (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; a mock that passes the schema.
   - Bump `hostAPIVersion` (47 today, `apps/desktop/app.go:52`, re-checked at merge) and regenerate `Host.{js,d.ts}`.
 - **Re-read triggers.** The panel reads links when the breakdown opens, after a link change, after an import (`refreshKey`), and after a completed check. If the stage check line PRD's focus re-read (its Q2) lands, the same trigger re-reads links.
 - **UI (Phase 2).**
