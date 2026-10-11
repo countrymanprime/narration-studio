@@ -70,6 +70,22 @@ alone), never as a note that clears it. The binding is `GuidePronunciationImport
 takes the file's text (the UI reads whatever file the narrator picks) and answers `{applied, issues}`; the panel's Import
 answers button shows the count and lists any row it could not use.
 
+## Rules suggestions
+
+`suggest --manuscript M --guide G` is the rules tier of the extraction port (SN-X32, `core/extraction_rules.py`). It reads
+the manuscript and the Story Bible, writes nothing, and prints one JSON line per suggestion: an `entry` for a name the
+build's rules accept that no entry answers to, or one held only as Needs Review; an `alias` for a spelling the rules
+group with a known entry that the entry lacks; a `speaker` for a quote a speech tag resolves to a Character, unless the
+Story Bible already attributes that cue or the narrator corrected it. A locked entry gets nothing (ADR 0007). Each quote
+is a slice of the paragraph it names. Each confidence comes from `RULE_CONFIDENCE`, which is provisional until SN-X8:
+`speech-tag` is 0.96 (the [cue evaluation](../research/character-continuity-cue-extraction-eval/RESULTS.md)), and the
+other rules give `null` with the note "The rules give no score for this." The `build` is unchanged.
+
+The host runs it through `apps/desktop/internal/extractionport/rules`, which caps the output (8 MB), each line (64 KB)
+and each field (8 KB), refuses an unknown field or a kind other than entry, alias or speaker, drops a suggestion whose
+quote `extraction.VerifyEvidence` does not find in its paragraph, and kills the sidecar when the run is cancelled. The
+line format is pinned by `rules/testdata/suggest-lines.json`, which the sidecar's contract test writes.
+
 ## Target workflow
 
 Run the guide after manuscript selection; review uncertain candidates; lock narrator-authored pronunciation and notes; export approved vocabulary for transcription; consult chapter/scene and dialogue information during recording.
