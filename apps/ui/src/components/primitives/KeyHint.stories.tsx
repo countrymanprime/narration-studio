@@ -46,3 +46,14 @@ export const SpokenLabelOverridesTheCapsName: Story = {
     await expect(canvas.getByText('Erase')).toBeVisible();
   },
 };
+
+// A glyph key is drawn by KeyCap, a text key by Kbd (ADR 0761).
+export const GlyphKeys: Story = {
+  render: () => (
+    <div className="flex items-center gap-6">
+      <KeyHint keys={['Enter']} action="Keep" />
+      <KeyHint keys={['Ctrl', '←']} action="Word" />
+      <KeyHint keys={['Esc']} action="Close" size="md" />
+    </div>
+  ),
+};

@@ -28,3 +28,19 @@ describe('KeyHint', () => {
     expect(screen.getByRole('img').querySelector('kbd')?.className).toContain('h-[1.125rem]');
   });
 });
+
+describe('KeyHint composes the cap', () => {
+  it('keyhint-composes-the-cap: a glyph key draws a KeyCap, any other key the text Kbd', () => {
+    const { container, rerender } = render(<KeyHint keys={['Enter']} action="Keep" />);
+    expect(container.querySelector('kbd[data-key="Enter"] svg')).not.toBeNull();
+    expect(screen.getByRole('img', { name: 'Enter' })).toBeTruthy();
+    rerender(<KeyHint keys={['R']} action="Record" />);
+    expect(container.querySelector('kbd[data-key]')).toBeNull();
+    expect(screen.getByRole('img', { name: 'R' })).toBeTruthy();
+  });
+
+  it('names a mixed chord by every key', () => {
+    render(<KeyHint keys={['Ctrl', '←']} action="Word" />);
+    expect(screen.getByRole('img', { name: 'Ctrl + Left arrow' })).toBeTruthy();
+  });
+});
