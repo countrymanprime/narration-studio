@@ -32,6 +32,8 @@ import {
 import { dawCatalogListSchema } from './schemas/dawCatalog';
 import { dawCapabilitiesSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
+import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import { takeEvidenceResultSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -66,7 +68,7 @@ import { takeComparisonJobSchema, takeReviewCreateTakeResultSchema, takeReviewSc
 import { deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
-import { coverageEnginesSchema, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from './schemas/coverage';
+import { coverageEnginesSchema, coverageGapReviewsSchema, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from './schemas/coverage';
 import { editingCandidatesSchema, editingSourceChoiceSchema, editingStartResultSchema, editingStateSchema } from './schemas/editing';
 import {
   workspaceAlignmentResultSchema,
@@ -411,6 +413,9 @@ export const wailsClient: NarrationApi = {
       'CoverageStart',
       host.CoverageStart(chapterId, { ...(options?.skipRecheck ? { skipRecheck: 'true' } : {}), ...(options?.model ? { model: options.model } : {}) }),
     ),
+  coverageGapAccept: (chapterId, gapId) => decode(findingSchema, 'CoverageGapAccept', host.CoverageGapAccept(chapterId, gapId)),
+  coverageGapIgnore: (chapterId, gapId) => decode(voidResult, 'CoverageGapIgnore', host.CoverageGapIgnore(chapterId, gapId)),
+  coverageGapReviews: (chapterId) => decode(coverageGapReviewsSchema, 'CoverageGapReviews', host.CoverageGapReviews(chapterId)),
   coverageEngines: () => decode(coverageEnginesSchema, 'CoverageEngines', host.CoverageEngines()),
   coverageState: () => decode(coverageStateSchema, 'CoverageState', host.CoverageState()),
   coverageCancel: () => decode(voidResult, 'CoverageCancel', host.CoverageCancel()),
@@ -459,6 +464,8 @@ export const wailsClient: NarrationApi = {
   workspaceApplyFXChain: (chapterId, chain) => decode(workspaceFXResultSchema, 'WorkspaceApplyFXChain', host.WorkspaceApplyFXChain(chapterId, chain)),
   workspaceTakes: (chapterId, firstToken, lastToken) =>
     decode(workspaceTakesResultSchema, 'WorkspaceTakes', host.WorkspaceTakes(chapterId, firstToken, lastToken)),
+  workspaceTakeEvidence: (chapterId, firstToken, lastToken) =>
+    decode(takeEvidenceResultSchema, 'WorkspaceTakeEvidence', host.WorkspaceTakeEvidence(chapterId, firstToken, lastToken)),
   workspaceTakesCompareStart: (chapterId, firstToken, lastToken) =>
     decode(takeComparisonJobSchema, 'WorkspaceTakesCompareStart', host.WorkspaceTakesCompareStart(chapterId, firstToken, lastToken)),
   workspaceUseTake: (chapterId, firstToken, lastToken, candidateId) =>
@@ -559,6 +566,8 @@ export const wailsClient: NarrationApi = {
   pronunciationOnlineKeyClear: () => decode(pronunciationOnlineKeyStatusSchema, 'PronunciationOnlineKeyClear', host.PronunciationOnlineKeyClear()),
   pronunciationOnlineSignUpOpen: () => decode(voidResult, 'PronunciationOnlineSignUpOpen', host.PronunciationOnlineSignUpOpen()),
   pronunciationOnlineLookup: (word) => decode(pronunciationOnlineResultSchema, 'PronunciationOnlineLookup', host.PronunciationOnlineLookup(word)),
+  pronunciationSources: () => decode(pronunciationSourcesSchema, 'PronunciationSources', host.PronunciationSources()),
+  pronunciationCandidate: (word, source) => decode(pronunciationCandidateSchema, 'PronunciationCandidate', host.PronunciationCandidate(word, source)),
   pronunciationOnlineLookupBatch: (words, confirmedCount) =>
     decode(pronunciationOnlineBatchResultSchema, 'PronunciationOnlineLookupBatch', host.PronunciationOnlineLookupBatch(words, confirmedCount)),
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),

@@ -113,6 +113,17 @@ describe('the Booth rows', () => {
   });
 });
 
+describe('the Companion row', () => {
+  it('the-entry-is-a-jump-menu-command: companion.open is a global Booth-group row on the jump menu, with no rail item', () => {
+    const row = findCommand('companion.open');
+    expect(row?.label).toBe('Open Companion');
+    expect(row?.scope).toBe('global');
+    expect(row?.group).toBe('Booth');
+    expect(row?.surfaces).toContain('jumpMenu');
+    expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
+  });
+});
+
 describe('the bookmark rows', () => {
   it('keys-are-catalogue-rows: B, Alt+] and Alt+[ are page rows with the three labels and no conflict', () => {
     const rows = [findCommand('bookmark.here'), findCommand('bookmark.next'), findCommand('bookmark.prev')];
@@ -124,5 +135,71 @@ describe('the bookmark rows', () => {
       ['Alt+BracketLeft'],
     ]);
     expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
+  });
+});
+
+describe('the Editing rows', () => {
+  const codes = (id: string) => findCommand(id)?.defaults.map((gesture) => [...gesture.modifiers, gesture.code].join('+'));
+  const SAVED = [
+    'workspace.play',
+    'workspace.word.prev',
+    'workspace.word.next',
+    'workspace.paragraph.prev',
+    'workspace.paragraph.next',
+    'workspace.flag.prev',
+    'workspace.flag.next',
+  ];
+  const NEW: Record<string, string[]> = {
+    'editing.word.extend.prev': ['Shift+ArrowLeft'],
+    'editing.word.extend.next': ['Shift+ArrowRight'],
+    'editing.phrase.prev': ['Mod+ArrowLeft'],
+    'editing.phrase.next': ['Mod+ArrowRight'],
+    'editing.delete': ['Delete', 'Backspace'],
+    'editing.mute': ['KeyM'],
+    'editing.fx': ['KeyF'],
+    'editing.takes.next': ['KeyT'],
+    'editing.takes.prev': ['Shift+KeyT'],
+    'editing.keep': ['Enter'],
+    'editing.hide-others': ['KeyH'],
+    'editing.strip': ['KeyS'],
+    'editing.drawer': ['Mod+Shift+KeyC'],
+    'editing.escape': ['Escape'],
+    'editing.menu': ['Shift+F10'],
+    'editing.chapter.next': ['Alt+ArrowDown'],
+    'editing.chapter.prev': ['Alt+ArrowUp'],
+  };
+
+  it('existing-ids-keep-their-saved-bindings: the seven workspace rows keep id, scope and default', () => {
+    const expected: Record<string, string[]> = {
+      'workspace.play': ['Space'],
+      'workspace.word.prev': ['ArrowLeft'],
+      'workspace.word.next': ['ArrowRight'],
+      'workspace.paragraph.prev': ['ArrowUp'],
+      'workspace.paragraph.next': ['ArrowDown'],
+      'workspace.flag.prev': ['BracketLeft'],
+      'workspace.flag.next': ['BracketRight'],
+    };
+    expect(Object.keys(expected)).toEqual(SAVED);
+    for (const id of SAVED) {
+      expect(findCommand(id)?.scope, id).toBe('page');
+      expect(codes(id), id).toEqual(expected[id]);
+    }
+  });
+
+  it('new-rows-are-page-scope-and-conflict-free: each is an Editing row on help and settings, and the catalogue has zero conflicts', () => {
+    for (const [id, keys] of Object.entries(NEW)) {
+      const row = findCommand(id);
+      expect(row?.scope, id).toBe('page');
+      expect(row?.group, id).toBe('Editing');
+      expect(row?.surfaces, id).toEqual(['help', 'settings']);
+      expect(codes(id), id).toEqual(keys);
+    }
+    for (const isMac of [false, true]) expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, isMac))).toEqual([]);
+  });
+
+  it('a new row repeats no default gesture of an existing page row', () => {
+    const existing = COMMAND_CATALOG.filter((row) => row.scope === 'page' && !(row.id in NEW));
+    const taken = new Set(existing.flatMap((row) => codes(row.id) ?? []));
+    for (const [id, keys] of Object.entries(NEW)) for (const k of keys) expect(taken.has(k), `${id} ${k}`).toBe(false);
   });
 });

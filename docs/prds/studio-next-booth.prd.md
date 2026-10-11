@@ -120,7 +120,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Architecture.** `components/booth/*` consume ports and selectors; no component names a DAW; capability gating through `CapabilityGate`.
 
-**Test plan.** Ported mock tests; host tests for the passage map and the stop-on-leave path with a fake recorder (`recordingtest.Fake`); visual rows for Record refusal, leave dialog, roll confirm, resume prompt, bookmarks ribbon, footer; aria for dialogs; owner steps pending on #510 (microphone check, REAPER recording, pedal).
+**Test plan.** Ported mock tests; host tests for the passage map and the stop-on-leave path with a fake recorder (`recordingtest.Fake`); visual rows for Record refusal, leave dialog, roll confirm, resume prompt, bookmarks ribbon, footer; aria for dialogs; owner steps pending on #992 (microphone check, REAPER recording, pedal).
 
 **Rollout.** Seams, ports and components land first with no route. One PR (SNO-10) swaps the Booth route and deletes the old Booth (`BoothPage`, `BoothView`, `ResumePrompt`, `RecordInReaperConfirm`, the record-in-REAPER hook and their stories and rows); files the frozen Companion still imports stay (SNO-1 lists them). No flag, no period with two Booths.
 
@@ -149,7 +149,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 - **Phase 1.** The audit decides which rows of the evidence table are already true and lists the Booth files the Companion imports, which the swap keeps.
 - **Phase 4.** Blocked until the roll spike result and command exist; the confirm UI can be built against the mock.
-- **Phase 10.** The carried-over owner checks (microphone, REAPER recording, pedal) are listed on #510.
+- **Phase 10.** The carried-over owner checks (microphone, REAPER recording, pedal) are listed on #992.
 
 ### Parallelism Notes
 

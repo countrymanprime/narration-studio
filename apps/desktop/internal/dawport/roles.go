@@ -28,6 +28,8 @@ type (
 	SelectedTrack = bridge.SelectedTrack
 	Armed         = bridge.Armed
 	RecordStarted = bridge.RecordStarted
+	RecordOptions = bridge.RecordOptions
+	StartRule     = bridge.StartRule
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
 	PlayPosition  = bridge.PlayPosition
@@ -260,7 +262,7 @@ type TrackSelector interface {
 // Recorder arms a track, starts and stops recording, and reports a recording the narrator stopped in the engine.
 type Recorder interface {
 	ArmOnly(ctx context.Context, trackGUID string) (Armed, error)
-	RecordStart(ctx context.Context, trackGUID string) (RecordStarted, error)
+	RecordStart(ctx context.Context, trackGUID string, opts RecordOptions) (RecordStarted, error)
 	RecordStop(ctx context.Context) (RecordStopped, error)
 	OnRecordEnded(handler func(RecordEnded))
 }

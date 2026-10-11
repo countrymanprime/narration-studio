@@ -338,6 +338,29 @@ export function CoverageEngines(): $CancellablePromise<string> {
 }
 
 /**
+ * CoverageGapAccept turns one gap of the chapter's current check into a note with the accepted decision, and answers
+ * that finding. The same gap again answers the same finding and writes nothing.
+ */
+export function CoverageGapAccept(chapterID: string, gapID: string): $CancellablePromise<string> {
+    return $Call.ByID(699765656, chapterID, gapID);
+}
+
+/**
+ * CoverageGapIgnore remembers that the narrator passed on one gap of the chapter's current check. It makes no note.
+ */
+export function CoverageGapIgnore(chapterID: string, gapID: string): $CancellablePromise<string> {
+    return $Call.ByID(3260799698, chapterID, gapID);
+}
+
+/**
+ * CoverageGapReviews answers {gapId: "accepted" | "ignored"} for the gaps of the chapter's current check that have a
+ * review. A stale or absent result, and a gap without a review, are not in it.
+ */
+export function CoverageGapReviews(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2961454629, chapterID);
+}
+
+/**
  * CoverageResult reads a chapter's newest complete check back and says whether it is current, stale or never, with
  * reasons (coverage.ResultView). It never runs anything (Q14).
  */
@@ -1446,6 +1469,15 @@ export function ProjectSwitch(path: string, name: string): $CancellablePromise<s
 }
 
 /**
+ * PronunciationCandidate asks one source how it would say word, changing nothing. Every outcome is a result: a source that is not
+ * registered, not available or has nothing for the word, manual, and a word that is empty or too long are {ok:false, reason}
+ * with a sentence, never a thrown error. The online source is asked only here, for the one word, on the narrator's key.
+ */
+export function PronunciationCandidate(word: string, source: string): $CancellablePromise<string> {
+    return $Call.ByID(3380990236, word, source);
+}
+
+/**
  * PronunciationCommonsAudioOpen opens the Wikimedia Commons recording that Wiktextract's own offline pronunciation
  * data (#782) names for word, in the narrator's default browser or media player: the same
  * "open externally" host path PronunciationLookupOpen and PronunciationOnlineSignUpOpen already use, never
@@ -1517,6 +1549,14 @@ export function PronunciationOnlineLookupBatch(words: string[], confirmedCount: 
  */
 export function PronunciationOnlineSignUpOpen(): $CancellablePromise<string> {
     return $Call.ByID(1086970160);
+}
+
+/**
+ * PronunciationSources lists the sources and the default. The default is the narrator's setting when that source is available,
+ * otherwise the first available source in registry order (ADR 0405); never an unavailable one, and never manual.
+ */
+export function PronunciationSources(): $CancellablePromise<string> {
+    return $Call.ByID(3097763591);
 }
 
 /**
@@ -2295,6 +2335,17 @@ export function WorkspacePeaks(chapterID: string): $CancellablePromise<string> {
  */
 export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: number): $CancellablePromise<string> {
     return $Call.ByID(4178291727, chapterID, itemGUID, sourceTime);
+}
+
+/**
+ * WorkspaceTakeEvidence answers, for each take WorkspaceTakes offers for the same passage and in the same order, the
+ * share of the passage's script words it read as written (from the stored alignment of its range), what its own
+ * source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
+ * measured) and where its place came from ("aligned"; ADR 0140). It reads only and starts no job; a take whose file
+ * cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
+ */
+export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
+    return $Call.ByID(610226217, chapterID, firstToken, lastToken);
 }
 
 /**

@@ -145,7 +145,7 @@ Facts about REAPER and Audacity are copied from the pages linked in each section
 ### `record`
 
 - **Intent:** arm one track, start and stop recording on it, and learn when the narrator stops it in the engine.
-- **Role:** `Recorder`, synchronous, with an `OnRecordEnded` callback.
+- **Role:** `Recorder`, synchronous, with an `OnRecordEnded` callback. `RecordStart(ctx, guid, opts)` takes a start rule: `AtEnd` first moves the cursor to the end of the track's last item, the default leaves it. The host's Record arms the chapter's track alone and then starts with `AtEnd`.
 - **Result:** `ARMED` with how many other tracks were disarmed, `RECORD_STARTED` with the position once the engine reports recording, `RECORD_STOPPED`, or `RECORD_NOT_OURS` when no recording this bridge started is running. If the narrator stops it in the engine, `RECORD_ENDED` follows. Recording is refused with two tracks armed, with a different track armed, and while playing. Arming makes no "Narration Utils" undo point.
 - **REAPER:** `arm_only`, `record_start`, `record_stop`.
 - **Audacity:** not built.

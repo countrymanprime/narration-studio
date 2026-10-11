@@ -86,4 +86,6 @@ export const appFeedback: Record<string, FeedbackRow> = {
   // exempt like every other subscribe-based hook.
   'src/input/useDawRecording.ts::subscribeDawTransport#1': subscription('The DAW port\'s live transport state (daw_transport_changed): every gesture the router resolves reads this one subscription\'s current value.'),
 
+  // Studio bookmarks (ADR 0771, ADR 0820): the commands return the host's sentence as a refusal; no screen calls them yet.
+  'src/studio/slots.ts::bookmarksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'na', 'na', 'exempt', 'The bookmarks slot load, on focus and after each command; the store records a failed load and the change that was made stands.'),
 };

@@ -26,6 +26,11 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   // The Proof notes header's sources line and the legend's dots.
   'src/components/proof/NotesHeader.tsx': { chip: 1, owner: 'sources line' },
   'src/components/proof/NotesStrip.tsx': { dot: 1, owner: 'legend dots' },
+  // The Booth side panel's reference category chip and speaker alias chip (SN-O63): both are text-only, so they migrate onto `Badge`.
+  'src/components/booth/side/Reference.tsx': { chip: 1, owner: 'category chip, #1119' },
+  'src/components/booth/side/VoicesNearby.tsx': { chip: 1, owner: 'alias chip, #1119' },
+  // The script document's inline insertion marker (SN-E3): a mono pill drawn inside running text, which `Badge` has no inline form for.
+  'src/components/editing/script/Word.tsx': { chip: 1, owner: 'inline marker, #1119' },
   // Not a copy to migrate: the script mark's character tag is CSS generated content (`before:`), never an element, so the
   // selection offsets see only the manuscript's text (ADR 0382); it is sized in em to ride the reading text.
   'src/components/manuscript/MarkupMark.tsx': { tag: 1, owner: 'none: generated content, ADR 0382' },

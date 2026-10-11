@@ -80,7 +80,7 @@ Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has 
 
 ## Users & Context
 
-Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorder; the page workers who consume `DawClient`; the owner running scripted REAPER checks on a copy of a project (isolated `-cfgfile`, never touching the `Challenges_001` folder, D3 in the plan (deleted PRD `implementation-plan`)). Hardware steps are pending on #510.
+Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorder; the page workers who consume `DawClient`; the owner running scripted REAPER checks on a copy of a project (isolated `-cfgfile`, never touching the `Challenges_001` folder, D3 in the plan (deleted PRD `implementation-plan`)). Hardware steps are pending on #992.
 
 ## Solution Detail
 
@@ -137,7 +137,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Architecture.** All new behaviour sits behind `internal/dawport` roles; `internal/bridge` keeps command names ([ADR 0302](../adr/0302-dawport-roles-exchange-the-bridges-own-types-through-aliases-and-an-asynchronous-role-is-one-method-per-command.md)); a new Lua file per feature registered in `FEATURE_FILES` ([ADR 0067](../adr/0067-bridge-commands-are-registered-by-name-and-each-feature-lives-in-its-own-lua-file.md)) (`narration_takes.lua`, `narration_range.lua`); Audacity backups are in `dawport/audacity` with a project-sidecar table (threat-model row: a file the app writes under the project folder); the host never accepts a path or action name from the page for FX (names from the listing only, [ADR 0234](../adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md)).
 
-**Test plan.** Harness test first for each command (fake REAPER in `integrations/reaper/tests/fake_reaper.lua`: stale GUID, recording refusal, unknown chain name, one undo block, no spurious undo point), mutation entries; `dawporttest.Run` extended per new role; Go golden tests for `DawResult` and `DawProjectState` (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; `DawClient` parity suite; scripted REAPER runs recorded in `docs/research/`; owner steps on #510.
+**Test plan.** Harness test first for each command (fake REAPER in `integrations/reaper/tests/fake_reaper.lua`: stale GUID, recording refusal, unknown chain name, one undo block, no spurious undo point), mutation entries; `dawporttest.Run` extended per new role; Go golden tests for `DawResult` and `DawProjectState` (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; `DawClient` parity suite; scripted REAPER runs recorded in `docs/research/`; owner steps on #992.
 
 **Rollout.** Every command Experimental; promotion is a one-line declaration change after the verification pass ([ADR 0400](../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md)). Settings shows each capability with its reason, destructive flag and mode ([Master, Delivery and Settings](studio-next-master-delivery-and-settings.prd.md)).
 

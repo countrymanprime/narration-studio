@@ -3,12 +3,12 @@ import { Select } from '../../primitives/Select';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 
 /** Built-ins first, each marked "(built in)"; a custom profile by its name. */
-export const orderedProfiles = (profiles: readonly DeliveryProfile[]): DeliveryProfile[] => [
+const orderedProfiles = (profiles: readonly DeliveryProfile[]): DeliveryProfile[] => [
   ...profiles.filter((profile) => profile.builtIn),
   ...profiles.filter((profile) => !profile.builtIn),
 ];
 
-export const profileMenuLabel = (profile: DeliveryProfile): string => (profile.builtIn ? `${profile.name} (built in)` : profile.name);
+const profileMenuLabel = (profile: DeliveryProfile): string => (profile.builtIn ? `${profile.name} (built in)` : profile.name);
 
 /** The profile menu (`#dprof` in the mock). Choosing one reports it; the card saves the choice. */
 export function ProfileMenu({

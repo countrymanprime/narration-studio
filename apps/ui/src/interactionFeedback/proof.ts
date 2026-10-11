@@ -123,4 +123,11 @@ export const proofFeedback: Record<string, FeedbackRow> = {
   'src/components/proof/ProofChapterPage.tsx::transcriptLastCompleted#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only offers to review the last run; without it the offer is absent.'),
   // The book level's chapter picker (ProofPage.tsx).
   'src/components/proof/ProofPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Fills the chapter picker; a failed read is a toast and the picker is left out, while the notes (read separately) still show.'),
+
+  // Notes list, frame peaks and the alignment port.
+  'src/components/proof/frame/useChapterPeaks.ts::workspacePeaks#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The chapter\'s peaks for the frame\'s waveform window; not a narrator action to retry, and a failure leaves the window empty while the rest of the frame works (SILENT_CATCHES).'),
+  'src/components/proof/notes/NotesList.tsx::findingsList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The notes list, asked again on each sort or chapter change; an answer for an older ask is dropped and a failure shows as an alert above the list.'),
+  'src/ports/alignment.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'The heard words of the alignment port; a rejection reaches the caller, and the first screen to read the port shows it.', '#1119'),
+  'src/components/proof/spot/useSpotTakes.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The alignment that places each note in the script for its take counts; a failed read drops the cached promise so the next pass asks again, and the notes show without counts.'),
+  'src/components/proof/spot/useSpotTakes.ts::workspaceTakes#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The takes under a note\'s passage; a refusal is kept per note as its refusal text and the cache entry is dropped so the next pass asks again.'),
 };

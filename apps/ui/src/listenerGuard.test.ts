@@ -16,12 +16,17 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/primitives/inputModality.ts': { note: 'tracks the last input modality (keyboard vs pointer), not a command' },
   'src/components/primitives/Tooltip.tsx': { note: 'Escape closes the tooltip (WCAG 1.4.13), a widget key owned by the primitive, not a command' },
   'src/components/manuscript/SelectionMenu.tsx': { note: 'Escape closes the selection menu, a widget key owned by the primitive, not a command' },
+  'src/components/booth/side/BoothSidePanel.tsx': { note: 'Escape closes the side panel when it is a drawer, a widget key owned by the panel, not a command' },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll (ADR 0119), not a command' },
 };
 
 // Temporary: a command listener not yet migrated onto `useCommand`. Each entry names what migrates it and is
-// deleted in the pull request that migrates it. Empty (2026-10-11).
-const TEMPORARY: Record<string, Reason> = {};
+// deleted in the pull request that migrates it.
+const TEMPORARY: Record<string, Reason> = {
+  'src/components/proof/notes/NotesPanel.tsx': {
+    note: "Ctrl+F opens the notes find row (SN-Q41, #1324); migrates to a page-scoped catalog command once the notes list owns a find command next to the Script page's, #1119",
+  },
+};
 
 const ALLOWLIST: Record<string, Reason> = { ...PERMANENT, ...TEMPORARY };
 

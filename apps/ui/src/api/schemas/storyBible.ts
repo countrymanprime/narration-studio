@@ -37,13 +37,14 @@ const evidenceSchema = z.object({
 // shape, which replaces the hand-written normalizeGuideEntity and fixes the empty-object case it never handled.
 const pronunciationStatusSchema = z.enum(['researched', 'query_sent', 'author_confirmed']) satisfies z.ZodType<GuidePronunciationStatus>;
 
+// `source` is a registered source id, `manual` for the narrator's own, or `user` in a file written before ADR 0792: any string parses.
 const pronunciationValueSchema = z.object({
   ipa: z.string().default(''),
   source: z.string().default(''),
   confidence: z.string().default(''),
 }) satisfies z.ZodType<GuidePronunciationValue>;
 
-const pronunciationSchema = z
+export const guidePronunciationSchema = z
   .object({
     ipa: z.string().default(''),
     source: z.string().default(''),
@@ -67,7 +68,7 @@ const noteSchema = z.object({ text: z.string().default(''), evidence: noteEviden
 
 const aliasSchema = z.object({
   text: z.string(),
-  pronunciation: pronunciationSchema,
+  pronunciation: guidePronunciationSchema,
   occurrences: listFromNull(evidenceSchema),
 }) satisfies z.ZodType<GuideAlias>;
 
@@ -87,7 +88,7 @@ const guideEntitySchema = z.object({
   category: z.string(),
   occurrences: listFromNull(evidenceSchema),
   occurrence_count: z.number(),
-  pronunciation: pronunciationSchema,
+  pronunciation: guidePronunciationSchema,
   description: noteSchema.nullish().transform((value): GuideNote => value ?? { text: '', evidence: {} }),
   personality_notes: listFromNull(noteSchema),
   relationships: listFromNull(relationshipSchema),

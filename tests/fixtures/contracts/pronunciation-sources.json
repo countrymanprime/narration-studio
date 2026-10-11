@@ -1,0 +1,38 @@
+{
+  "default": "cmu",
+  "sources": [
+    {
+      "available": true,
+      "id": "cmu",
+      "kind": "lookup",
+      "label": "CMU dictionary"
+    },
+    {
+      "available": false,
+      "id": "wiktextract",
+      "kind": "lookup",
+      "label": "Wiktionary (via Wiktextract)",
+      "needs": "localDictionary",
+      "reason": "Wiktionary (via Wiktextract) is not installed yet: install it in Settings first."
+    },
+    {
+      "available": true,
+      "id": "espeak",
+      "kind": "generated",
+      "label": "eSpeak NG"
+    },
+    {
+      "available": true,
+      "id": "merriam_webster",
+      "kind": "lookup",
+      "label": "Merriam-Webster",
+      "needs": "network"
+    },
+    {
+      "available": true,
+      "id": "manual",
+      "kind": "manual",
+      "label": "Entered by me"
+    }
+  ]
+}

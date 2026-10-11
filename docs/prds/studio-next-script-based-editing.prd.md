@@ -131,7 +131,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Trust boundaries.** New sidecar files (`cuts`, `wordfx`, `backups`) the app reads back; the bridge commands (DAW PRD); threat model rows 5 and the Audacity row.
 
-**Risks.** Size (mitigation: 16 small slices, model first); cut arithmetic bugs (mitigation: property tests and the cut list kept in the original recording's time); owner QA of real REAPER edits (pending on #510).
+**Risks.** Size (mitigation: 16 small slices, model first); cut arithmetic bugs (mitigation: property tests and the cut list kept in the original recording's time); owner QA of real REAPER edits (pending on #992).
 
 ## Implementation Phases
 
@@ -141,7 +141,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 2 | Alignment port and model | `AlignmentPort`, ported pure model, tests | partial: pure model in SN-E2 (#1059); `AlignmentPort` still pending | - | 1, SNS-4 | 1.5 | - |
 | 3 | Script document | `ScriptDoc`, words, selection, keys, provider menu | pending | - | 2, SNR-5 | 1.5 | - |
 | 4 | Ribbon, cards, bar | Ribbon, flag cards, floating toolbar, bar | pending | 5 | 3, SNF-5a | 1.2 | - |
-| 5 | Takes inline | Evidence, suggestion, hide, split duplicates, prep steps | pending | 4 | 3, SNQ-7 | 1.5 | - |
+| 5 | Takes inline | Evidence, suggestion, hide, split duplicates, prep steps | partial: take evidence binding and `TakesPort` in SNE-5a (#1266) | 4 | 3, SNQ-7 | 1.5 | - |
 | 6 | Delete and FX on a range | Dialogs, journal, markers | pending | - | 3, SND-6b, SND-6c | 1.5 | - |
 | 7 | Stacking | Dialog, plan, un-stack | pending | 6 | 5, SND-7 | 1.0 | - |
 | 8 | Strip and drawer | Timeline strip, Clean up, Effects, Backups | pending | - | 4, SND-8 | 1.3 | - |

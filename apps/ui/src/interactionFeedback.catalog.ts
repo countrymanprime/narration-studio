@@ -92,6 +92,13 @@ export const SILENT_CATCHES: Record<string, string> = {
   // the debounced persistence write, added after the three above.
   'src/hooks/useZoom.ts#4':
     'The debounced persist of the settled level; a failure just leaves the next launch opening at the last successfully saved level, and the narrator sees no error from a header control that already did what they asked.',
+  'src/components/production/report/ReportDialog.tsx#1':
+    'Only decides whether the dialog offers the amount line; without the plan the line is left off and the report itself reports its own errors.',
+  'src/components/proof/frame/WaveformWindow.tsx#1':
+    'Pointer capture is not available in every environment; the overview still follows the pointer events it gets without it.',
+  'src/components/proof/frame/WaveformWindow.tsx#2':
+    'Pointer capture is not available in every environment; the edge handle still follows the pointer events it gets without it.',
+  'src/studio/commands/bookmarks.ts#1': 'Reloads the bookmarks slot after a change; the store records a failed load and the change that was made stands.',
   'src/App.tsx#6':
     "The jump menu's chapter list (the store's chapters slot): a failed read keeps the last list, every page still shows, and the pages that need the chapters report the real error.",
   'src/App.tsx#7': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',
@@ -192,4 +199,11 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The chapter's findings for the text overlay: not a narrator action to retry, and not swallowed silently since the check-derived flags still show with nothing lost - a failure here just leaves the overlay's extra flags and review-in-place off this load, and the book's notes on Proof (which read the same store) still work.",
   'src/components/proof/ProofChapterPage.tsx#3':
     "The waveform strip's peaks (ADR 0520), loaded alongside the alignment: not a narrator action to retry, and nothing to guard - a failure here just leaves the strip showing nothing this load, while the text, transport and flags (which do not depend on it) still work.",
+  'src/components/booth/companion/CompanionHost.tsx#1':
+    'Keeps the suspected-line flags as the session ends; a failed save leaves them to be found again by the next check.',
+  'src/components/booth/companion/CompanionPage.tsx#1': 'The last-read chapter only picks the default chapter; the first chapter is used without it.',
+  'src/components/booth/companion/CompanionPage.tsx#2': 'The running session only picks the default chapter; the last-read chapter is used without it.',
+  'src/components/booth/companion/CompanionPage.tsx#3': 'The credits templates only decide whether the credits panel shows; with none, it stays absent.',
+  'src/components/booth/frame/useLevels.ts#1':
+    'Releases the meter-only child on cleanup; nothing is left mounted to tell, and the next start works either way.',
 };

@@ -64,3 +64,41 @@ func TestWorkspaceUseTakeRefusesATakeItDidNotOffer(t *testing.T) {
 		t.Fatalf("answer = %v", answer)
 	}
 }
+
+func TestWorkspaceTakeEvidenceRefusesWhatWorkspaceTakesRefuses(t *testing.T) {
+	if _, err := NewHost().WorkspaceTakeEvidence("c-0001", 0, 0); err == nil {
+		t.Error("no project: no error")
+	}
+	host := coverageHost(t, coverageProject(t), true, fakeAlignedCoverageSidecarWithSkip())
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+
+	for _, args := range []struct {
+		chapter     string
+		first, last int
+	}{{"c-0001", 0, 9}, {"c-9999", 0, 0}} {
+		_, takesErr := host.WorkspaceTakes(args.chapter, args.first, args.last)
+		payload, err := host.WorkspaceTakeEvidence(args.chapter, args.first, args.last)
+		if err == nil || takesErr == nil || err.Error() != takesErr.Error() || payload != "" {
+			t.Errorf("%v: evidence %q, %v; takes %v", args, payload, err, takesErr)
+		}
+	}
+}
+
+func TestWorkspaceTakeEvidenceListsTheTakesWorkspaceTakesOffers(t *testing.T) {
+	host := coverageHost(t, coverageProject(t), true, fakeAlignedCoverageSidecarWithSkip())
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+
+	takes := decodeAnswer(t)(host.WorkspaceTakes("c-0001", 0, 0))
+	evidence := decodeAnswer(t)(host.WorkspaceTakeEvidence("c-0001", 0, 0))
+	candidates, _ := takes["candidates"].([]any)
+	list, ok := evidence["takes"].([]any)
+	if !ok || len(list) != len(candidates) || evidence["chapterId"] != "c-0001" {
+		t.Fatalf("evidence = %v, takes = %v", evidence, takes)
+	}
+}

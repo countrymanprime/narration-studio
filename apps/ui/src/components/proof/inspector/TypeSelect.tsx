@@ -6,7 +6,7 @@ import { Select } from '../../primitives/Select';
 const OPTIONS = FINDING_NOTE_TYPES.map((type) => ({ value: type, label: type }));
 
 /** The type a note shows: the narrator's choice, else the analyzer's mapped word (ADR 0844). */
-export function shownNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
+function shownNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
   return finding.review.type ?? defaultFindingNoteType(finding);
 }
 

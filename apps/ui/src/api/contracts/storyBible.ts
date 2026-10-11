@@ -9,7 +9,7 @@ export type GuidePronunciationStatus = 'researched' | 'query_sent' | 'author_con
 /** The pronunciation itself, without the narrator's bookkeeping about it. */
 export type GuidePronunciationValue = { ipa: string; source: string; confidence: string };
 /**
- * A name's pronunciation. `source` is `user` for one the narrator typed. `alternate` is the one of the other kind (the narrator's own
+ * A name's pronunciation. `source` is `manual` for one the narrator typed (ADR 0792; a file written before it says `user`, which still parses). `alternate` is the one of the other kind (the narrator's own
  * or a dictionary's) kept beside it, so switching back is lossless. The schema fills `status` (`researched` on an entry written before it).
  */
 export type GuidePronunciation = GuidePronunciationValue & {
@@ -137,11 +137,11 @@ export interface StoryBibleApi {
   guidePreview(id: string, aliasIndex?: number): Promise<GuidePreview>;
   /**
    * Sets the pronunciation of the entry's own name (`aliasIndex` omitted) or one of its aliases from exactly `source`
-   * ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it. Refused
+   * (a registered source id: "cmu", "wiktextract" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it. Refused
    * on a locked entity, and when the chosen engine has nothing for the name.
    */
-  guidePronounce(id: string, source: 'cmu' | 'espeak', aliasIndex?: number): Promise<void>;
-  /** Sets the narrator's own pronunciation (source `user`); the one it replaces is kept as the alternate. Never asks a dictionary. */
+  guidePronounce(id: string, source: string, aliasIndex?: number): Promise<void>;
+  /** Sets the narrator's own pronunciation (source `manual`); the one it replaces is kept as the alternate. Never asks a dictionary. */
   guidePronounceUser(id: string, ipa: string, aliasIndex?: number): Promise<void>;
   /** Puts the kept alternate back in use, keeping the one it replaces: lossless both ways. */
   guidePronunciationUseAlternate(id: string, aliasIndex?: number): Promise<void>;
