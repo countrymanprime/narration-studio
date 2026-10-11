@@ -22,11 +22,12 @@ apps/ui/coverage/
 *.tsbuildinfo
 logs/
 # Local Claude Code state stays out; the shared settings (plugin marketplaces for cloud sessions) and the
-# project skills and agents (so cloud sessions and worktrees get them) are tracked.
+# project skills, agents and path-scoped rules (so cloud sessions and worktrees get them) are tracked.
 .claude/*
 !.claude/settings.json
 !.claude/skills/
 !.claude/agents/
+!.claude/rules/
 apps/desktop/cmd/narration-utils/frontend/dist/*
 !apps/desktop/cmd/narration-utils/frontend/dist/.gitkeep
 apps/desktop/cmd/narration-utils/frontend/wailsjs/
