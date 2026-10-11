@@ -13,6 +13,10 @@ description: The one gate that must pass before any feature or fix is called don
 
 Before reporting any feature, bugfix, or refactor as complete — always, not just for large changes. Run it again after any fix made in response to its own findings.
 
+## In an agent-train worker stream
+
+A worker started from the [worker template](../../../docs/operations/agent-train.md#worker-template) runs the targeted set, not the full runs in the steps below (owner rules D43 and D44): Go tests of the changed packages plus `go vet`, the Lua harness for Lua, Vitest of the changed UI, pytest of the changed sidecars, lint and typecheck of the touched projects, and the visual states of the pages it changed, looking at every viewport's PNG. It does not run the full `pnpm check`, the full visual suite, the atlas (a primitive's own atlas story is fine) or `aria`: the final sweep runs those once. The PR body lists the checks run and says the full gate is deferred to the sweep. Everything else here still holds: a red targeted check is not done, and a manual step that is outstanding is named as pending. A session that is not a worker stream runs the full gate.
+
 ## What to do
 
 1. Run the full gate, not the staged one:

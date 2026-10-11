@@ -12,7 +12,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Wire contracts and host bindings](#wire-contracts-and-bindings) | 7 |
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
-| [Release, CI and supply chain](#release-ci-and-supply-chain) | 18 |
+| [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
 | [Documentation and process](#docs-and-process) | 7 |
 | [Ports and providers](#ports-and-providers) | 12 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
@@ -152,6 +152,7 @@ Windows build, installer, in-app update, provenance, pinned actions, notices, li
 | [0412](0412-windows-is-the-only-supported-platform-for-now.md) | Windows is the only supported platform for now | Accepted |
 | [0413](0413-what-stays-of-the-other-platforms-when-windows-is-the-only-one.md) | What stays of the other platforms when Windows is the only one | Proposed |
 | [0755](0755-the-product-is-named-narration-studio-to-the-user-and-narration-utils-stays-on-every-name-a-file-a-key-or-reaper-holds.md) | The product is named Narration Studio to the user, and `narration-utils` stays on every name a file, a key or REAPER holds | Accepted |
+| [0757](0757-the-daw-reference-is-reference-docs-pinned-to-the-ports-declarations-by-a-generated-matrix-and-a-section-test.md) | The DAW reference is reference docs pinned to the port's declarations by a generated matrix and a section test | Proposed |
 
 <a id="docs-and-process"></a>
 

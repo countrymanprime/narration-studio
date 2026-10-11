@@ -11,9 +11,13 @@ When a decision has just been made and applied to the code (a plan was approved 
 
 Do not use this for a decision that's only proposed/being discussed — write it after the code change lands, not before. Proposals for future (not-yet-built) work belong in `docs/architecture/*.md` instead.
 
+## In an agent-train worker stream
+
+No human is watching, so a question a PRD leaves open is not left unwritten: take the PRD's stated recommendation, write the ADR with `**Status:** Proposed`, and comment on [#510](https://github.com/countrymanprime/narration-utils/issues/510) so the owner can accept or change it. This is the one case where a decision is recorded before the owner has settled it; the Decision section still states what the code does, not what is hoped. Accepted ADRs follow the rest of this skill.
+
 ## Creating a new ADR
 
-1. Read `docs/adr/README.md`'s index table to find the next available number (zero-padded, four digits, sequential — do not reuse or skip numbers).
+1. Read `docs/adr/README.md`'s index table to find the next available number (zero-padded, four digits, sequential — do not reuse or skip numbers). In an agent-train worker stream, take the number from your lane's ADR block instead (see the Lanes table in [the agent train](../../../docs/operations/agent-train.md#lanes)), check `docs/adr/` for the next free number inside it at write time and again before your last push, and renumber inside the block on a clash.
 2. Read `docs/adr/template.md` for the section structure.
 3. Write the new file at `docs/adr/NNNN-short-kebab-title.md` using that structure. The Context section states what was actually observed (a bug, a user request, a constraint hit during implementation) — link to it if there's a source. The Decision section names concrete files/components, not just the abstract principle. The Consequences section is honest about tradeoffs, not just upside.
 4. Add a row to the index table in `docs/adr/README.md`, in numeric order. Run `node scripts/ci/adr-index.mjs --write` and `node scripts/ci/adr-topics.mjs --write`; if the topics check says no topic claims the ADR, add a title pattern or a pin in `scripts/ci/adr-topics.json`.

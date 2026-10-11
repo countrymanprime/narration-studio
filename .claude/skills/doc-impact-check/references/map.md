@@ -5,6 +5,7 @@ Paths are repo-relative. A change can match several rows. Add a row when a new a
 | Changed path | Docs to check or update |
 | --- | --- |
 | `integrations/reaper/**` | `docs/architecture/reaper-bridge.md` (command table, harness), `docs/architecture/reaper-navigation.md` (go to, loop, marker), `docs/architecture/daw-integration.md`, `docs/operations/reaper-verification-pass.md` |
+| `apps/desktop/internal/dawport/**` (a capability, role or declared level) | `docs/reference/daw/capabilities.md` (a section per capability), `docs/reference/daw/matrix.md` (generated: `UPDATE_DAW_DOCS=1`), the engine page it touches, `docs/architecture/daw-integration.md` |
 | `apps/desktop/internal/bridge/**` (`wire.go`) | `docs/architecture/reaper-bridge.md`, `docs/architecture/wire-contracts.md` |
 | `apps/ui/src/api/schemas/**`, `tests/fixtures/contracts/**`, `apps/ui/src/api/wireContracts.test.ts` | `docs/architecture/wire-contracts.md` (only when the rule changes) |
 | `apps/ui/src/components/primitives/**`, `apps/ui/src/styles.css` | `docs/design/design-system.md`, `docs/design/colour-and-contrast.md`, `docs/design/motion-and-animation.md`; regenerate `docs/ui/` with `pnpm --dir apps/ui docs:atlas`; run `design-spec-guard` |

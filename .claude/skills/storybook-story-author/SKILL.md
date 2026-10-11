@@ -62,7 +62,7 @@ pnpm exec vitest run src/stories.test.tsx src/atlasCoverage.test.ts
 pnpm run atlas
 ```
 
-`atlas` builds Storybook and runs every story in four variants. Open the PNGs it writes under `apps/ui/screenshots/atlas/<title>/` and look at the light and dark, wide and narrow renders of the story you changed. Then regenerate `docs/ui/` with `pnpm run docs:atlas` and commit what changes.
+`atlas` builds Storybook and runs every story in four variants. Open the PNGs it writes under `apps/ui/screenshots/atlas/<title>/` and look at the light and dark, wide and narrow renders of the story you changed. Then regenerate `docs/ui/` with `pnpm run docs:atlas` and commit what changes. In an agent-train worker stream, run the vitest line and the atlas for your own story, and leave `docs/ui/` alone: the final sweep regenerates it once ([agent train](../../../docs/operations/agent-train.md#worker-template)).
 
 When a primitive or `src/styles.css` changed, `design-spec-guard` and `full-verification-gate` still apply; this skill does not replace them.
 
