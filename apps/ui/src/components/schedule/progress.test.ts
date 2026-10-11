@@ -127,3 +127,21 @@ describe('a milestone status', () => {
     expect(ok.sentence).toMatch(/^On track \(est\./);
   });
 });
+
+describe('calc-follows-the-basis', () => {
+  it('a faster own rate shrinks the work left and a slower one grows it; no argument is the standard', () => {
+    const chapters = [ch('not_started', WPH * 2)];
+    const base = calc(chapters, TODAY, day(10));
+    expect(calc(chapters, TODAY, day(10), 0, WPH)).toEqual(base);
+    const fast = calc(chapters, TODAY, day(10), 0, WPH * 2);
+    expect(fast.remain).toBeCloseTo(base.remain / 2);
+    expect(fast.days).toBeLessThan(base.days);
+    expect(calc(chapters, TODAY, day(10), 0, WPH / 2).remain).toBeCloseTo(base.remain * 2);
+  });
+
+  it('changes the verdict', () => {
+    const chapters = [ch('not_started', WPH * 3)];
+    expect(calc(chapters, TODAY, day(10)).verdict).toBe('behind');
+    expect(calc(chapters, TODAY, day(10), 0, WPH * 4).verdict).toBe('ok');
+  });
+});
