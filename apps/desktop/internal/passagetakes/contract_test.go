@@ -3,6 +3,7 @@ package passagetakes
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"testing"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
@@ -61,4 +62,26 @@ func TestContractWorkspaceUseTake(t *testing.T) {
 	pin(t, "workspace-use-take-started", Use(context.Background(), fake.actors(), choiceFor(t, SourceLaneRetake, nil)))
 	stale := &fakeActors{setErr: errStale()}
 	pin(t, "workspace-use-take-refused", Use(context.Background(), stale.actors(), choiceFor(t, SourceItemTake, nil)))
+}
+
+// What WorkspaceTakeEvidence sends (SNE-5a): every figure measured on two readable takes, some figures as reasons (a
+// take never aligned, a lane retake whose file is gone, the take review's read of a file never written), and a passage
+// nothing was heard on.
+func TestContractWorkspaceTakeEvidence(t *testing.T) {
+	dir := t.TempDir()
+	cache := NewMeasureCache(MeasureRange)
+	full := evidenceOf(t, cache, fourWords, recorded(t, dir), func(in *Input) {
+		in.View.Items = append(in.View.Items, coverage.AlignmentItem{Index: 1, ItemGUID: guidA, Live: true, TakeGUID: take2})
+		in.View.Tokens[3].Item = intptr(1)
+		in.View.Tokens[0].Item = intptr(1)
+	})
+	pin(t, "workspace-take-evidence-full", full)
+
+	partial := evidenceOf(t, cache, fourWords, recorded(t, dir), func(in *Input) {
+		in.Groups = []findings.Finding{group("g-1", member(guidA, take1, "read-1.wav", 0), member(guidD, take5, filepath.Join(dir, "never.wav"), 3))}
+	})
+	pin(t, "workspace-take-evidence-partial", partial)
+
+	none := evidenceOf(t, cache, func(in *Input) { in.FirstToken, in.LastToken = 5, 5 })
+	pin(t, "workspace-take-evidence-none", none)
 }

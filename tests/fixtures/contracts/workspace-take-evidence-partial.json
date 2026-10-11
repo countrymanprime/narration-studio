@@ -1,0 +1,99 @@
+{
+  "chapterId": "ch-1",
+  "firstParagraph": 0,
+  "firstToken": 0,
+  "lastParagraph": 0,
+  "lastToken": 3,
+  "takes": [
+    {
+      "id": "take:{AAAAAAAA-0000-0000-0000-000000000001}:{11111111-0000-0000-0000-000000000001}",
+      "matched": {
+        "ok": true,
+        "value": 75
+      },
+      "measure": {
+        "breaths": {
+          "ok": true,
+          "value": 0
+        },
+        "clarity": {
+          "ok": false,
+          "reason": "Not measured"
+        },
+        "nf": {
+          "ok": true,
+          "value": -65
+        },
+        "pause": {
+          "ok": true,
+          "value": 1.2
+        },
+        "rms": {
+          "ok": true,
+          "value": -16.9
+        }
+      },
+      "via": "aligned"
+    },
+    {
+      "id": "take:{AAAAAAAA-0000-0000-0000-000000000001}:{22222222-0000-0000-0000-000000000002}",
+      "matched": {
+        "ok": false,
+        "reason": "This take was not aligned to the script, so its words were not matched. Run the recording check with it playing."
+      },
+      "measure": {
+        "breaths": {
+          "ok": true,
+          "value": 0
+        },
+        "clarity": {
+          "ok": false,
+          "reason": "Not measured"
+        },
+        "nf": {
+          "ok": true,
+          "value": -65
+        },
+        "pause": {
+          "ok": true,
+          "value": 1.2
+        },
+        "rms": {
+          "ok": true,
+          "value": -20.9
+        }
+      },
+      "via": "aligned"
+    },
+    {
+      "id": "read:g-1:1",
+      "matched": {
+        "ok": false,
+        "reason": "This take was not aligned to the script, so its words were not matched. Run the recording check with it playing."
+      },
+      "measure": {
+        "breaths": {
+          "ok": false,
+          "reason": "This read's take plays a different file now than when the chapter was scanned. Scan the chapter again."
+        },
+        "clarity": {
+          "ok": false,
+          "reason": "Not measured"
+        },
+        "nf": {
+          "ok": false,
+          "reason": "This read's take plays a different file now than when the chapter was scanned. Scan the chapter again."
+        },
+        "pause": {
+          "ok": false,
+          "reason": "This read's take plays a different file now than when the chapter was scanned. Scan the chapter again."
+        },
+        "rms": {
+          "ok": false,
+          "reason": "This read's take plays a different file now than when the chapter was scanned. Scan the chapter again."
+        }
+      },
+      "via": "aligned"
+    }
+  ]
+}
