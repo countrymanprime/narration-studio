@@ -14,13 +14,13 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
 | [Documentation and process](#docs-and-process) | 8 |
-| [Ports and providers](#ports-and-providers) | 13 |
+| [Ports and providers](#ports-and-providers) | 14 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 8 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 23 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 49 |
-| [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 27 |
-| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 45 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 50 |
+| [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
+| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 46 |
 | [Persistence and project files](#persistence-and-project-files) | 8 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
@@ -194,6 +194,7 @@ Small interfaces with registries and capability descriptors for engines and prov
 | [0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md) | CoreAudio capture is a PyAV `avfoundation` sidecar backend, addressed by device name | Superseded |
 | [0403](0403-the-capabilities-flag-reports-what-registered-not-what-loads.md) | The `--capabilities` flag reports what registered, not what loads, by default | Accepted |
 | [0780](0780-the-jump-menu-context-menus-and-help-are-derived-from-the-static-command-catalogue-and-dynamic-commands-come-from-providers.md) | The jump menu, context menus and help are derived from the static command catalogue, and dynamic commands come from providers | Proposed |
+| [0791](0791-record-arms-only-the-chapters-track-and-starts-at-the-end-of-its-last-item-and-a-failed-precondition-shows-the-capabilitys-refusal-reason.md) | Record arms only the chapter's track and starts at the end of its last item, and a failed precondition shows the capability's refusal reason | Proposed |
 
 <a id="daw-integration"></a>
 
@@ -341,6 +342,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0550](0550-editings-render-source-is-a-second-whole-file-scan-the-narrator-picks-per-chapter-never-a-silent-replacement.md) | Editing's render source is a second, whole-file scan the narrator picks per chapter, never a silent replacement | Proposed |
 | [0575](0575-the-librivox-signal-set-is-a-second-click-evaluation-split-by-pause-that-reports-and-never-opens-the-gate-alone.md) | The LibriVox signal set is a second click evaluation, split by pause, that reports and never opens the gate alone | Proposed |
 | [0700](0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md) | The Takes panel lists a passage's takes from the saved project and chooses one by an id the host offered | Accepted |
+| [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 
@@ -377,6 +379,7 @@ Live speech following, engines, the resume point, flags raised while reading, an
 | [0414](0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md) | The teleprompter default engine stays Whisper tiny until a real-time A/B evaluation runs | Proposed |
 | [0455](0455-the-built-in-recorder-records-each-take-to-a-partial-file-in-the-projects-recordings-folder-and-links-it-to-its-take-name.md) | The built-in recorder records each take to a partial file in the project's Recordings folder and links it to its take name | Proposed |
 | [0720](0720-the-booth-fills-the-whole-window-and-f11-takes-the-window-fullscreen.md) | The Booth fills the whole window and F11 takes the window fullscreen | Accepted |
+| [0790](0790-leaving-the-booth-while-recording-asks-to-stop-the-recording-the-app-started-and-a-reading-only-session-keeps-running.md) | Leaving the Booth while recording asks to stop the recording the app started, and a reading-only session keeps running | Proposed |
 
 <a id="manuscript-import-and-story-bible"></a>
 
@@ -431,6 +434,7 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0568](0568-a-sibling-books-character-names-are-read-through-a-new-plain-never-quarantining-guide-readonlynames.md) | A sibling book's character names are read through a new, plain, never-quarantining `guide.ReadOnlyNames` | Accepted |
 | [0680](0680-the-story-bible-preview-speaks-a-chosen-pronunciation-through-pipers-raw-phoneme-block.md) | The Story Bible preview speaks a chosen pronunciation through Piper's raw-phoneme block | Accepted |
 | [0695](0695-alias-pronunciation-gets-the-entitys-own-control-and-a-default-source-only-reorders-the-automatic-fallback.md) | Alias pronunciation gets the entity's own control, and a default source only reorders the automatic fallback | Accepted |
+| [0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) | A pronunciation records the source it came from, and there is no query status, query CSV or open-queries badge | Proposed |
 
 <a id="persistence-and-project-files"></a>
 
