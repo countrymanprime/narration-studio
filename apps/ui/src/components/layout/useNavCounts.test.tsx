@@ -13,12 +13,12 @@ const wrap = (api: Api) =>
   };
 
 describe('useNavCounts (rail badges, N-B61)', () => {
-  it('reads the open pronunciation queries, the notes to review and the pickups remaining from the host', async () => {
+  it('reads the open pronunciation queries, the notes still open (not cleared, not just unreviewed) and the pickups remaining from the host', async () => {
     const base = createMockApi({}, {});
     const api: Api = {
       ...base,
       guidePronunciationQueries: async () => [{ status: 'open' }, { status: 'open' }, { status: 'open' }] as never,
-      findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 14 }),
+      findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 3, total: 20, decided: 17, cleared: 6 }),
       pickupsState: async () => ({ phase: 'counted', message: '', remaining: 9, total: 12, csv: '' }) as never,
     };
     const { result } = renderHook(() => useNavCounts('/', true), { wrapper: wrap(api) });
@@ -32,7 +32,7 @@ describe('useNavCounts (rail badges, N-B61)', () => {
       guidePronunciationQueries: async () => {
         throw new Error('no manuscript');
       },
-      findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 2 }),
+      findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 2, total: 5, decided: 3, cleared: 3 }),
       pickupsState: async () => {
         throw new Error('no reaper');
       },
@@ -41,6 +41,19 @@ describe('useNavCounts (rail badges, N-B61)', () => {
     await waitFor(() => expect(result.current.proof).toBe(2));
     expect(result.current.storyBible).toBeUndefined();
     expect(result.current.pickups).toBeUndefined();
+  });
+
+  it('draws no Proof badge when the summary call fails', async () => {
+    const base = createMockApi({}, {});
+    const api: Api = {
+      ...base,
+      findingsSummary: async () => {
+        throw new Error('no project');
+      },
+    };
+    const { result } = renderHook(() => useNavCounts('/', true), { wrapper: wrap(api) });
+    await waitFor(() => expect(result.current.pickups).toBeDefined());
+    expect(result.current.proof).toBeUndefined();
   });
 
   it('does not ask the Story Bible before there is a manuscript', async () => {

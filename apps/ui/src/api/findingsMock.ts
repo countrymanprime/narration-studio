@@ -100,6 +100,8 @@ function summarize(all: Finding[]): FindingsSummary {
     accepted: count('accepted'),
     dismissed: count('dismissed'),
     deferred: count('deferred'),
+    decided: latest.filter((finding) => finding.review.status !== 'unreviewed').length,
+    cleared: count('dismissed'),
     notInLatestRun: all.length - latest.length,
     analyzers: [...new Set(all.map((finding) => finding.analyzer))].sort(compareText),
     categories: [...new Set(all.map((finding) => finding.category))].sort(compareText),

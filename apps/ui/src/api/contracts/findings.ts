@@ -145,6 +145,10 @@ export type FindingsSummary = {
   accepted: number;
   dismissed: number;
   deferred: number;
+  /** Notes with a resolution (accepted, dismissed, deferred) in the latest run. */
+  decided: number;
+  /** Notes closed (ADR 0793): dismissed, which includes "waived". An accepted or deferred note is decided and still open. */
+  cleared: number;
   notInLatestRun: number;
   analyzers: string[];
   categories: string[];

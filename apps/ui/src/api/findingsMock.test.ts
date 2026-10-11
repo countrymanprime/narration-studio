@@ -59,6 +59,8 @@ describe('the browser mock findings store follows the host rules', () => {
       accepted: 0,
       dismissed: 1,
       deferred: 0,
+      decided: 1,
+      cleared: 1,
       notInLatestRun: 1,
       analyzers: ['story-bible', 'transcript-compare'],
       categories: ['entity', 'pronunciation', 'transcript_discrepancy'],
