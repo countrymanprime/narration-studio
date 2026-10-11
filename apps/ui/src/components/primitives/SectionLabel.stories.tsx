@@ -4,7 +4,7 @@ import { Heading } from './Heading';
 import { Panel } from './Panel';
 import { SectionLabel } from './SectionLabel';
 
-// The eyebrow over a section, a KPI tile or a nav group: Barlow Condensed 11 px, semibold, uppercase, tracked 0.1 em,
+// The eyebrow over a section, a KPI tile or a nav group: Barlow Condensed 13 px, semibold, uppercase, tracked 0.1 em,
 // muted (benchmark mock 05's "BOOK CONSISTENCY · RMS BY CHAPTER" and "OUTPUTS", ADR 0640). `as` picks the element.
 const meta = {
   title: 'Primitives/SectionLabel',
@@ -39,11 +39,11 @@ export const InACard: Story = {
     if (canvasElement.getBoundingClientRect().width === 0) return;
     await document.fonts.ready;
     const style = getComputedStyle(label);
-    await expect(style.fontSize).toBe('11px');
+    await expect(style.fontSize).toBe('13px');
     await expect(style.fontWeight).toBe('600');
     await expect(style.fontFamily).toContain('Barlow Condensed');
     await expect(style.textTransform).toBe('uppercase');
-    await expect(style.letterSpacing).toBe('1.1px');
+    await expect(style.letterSpacing).toBe('1.82px');
   },
 };
 

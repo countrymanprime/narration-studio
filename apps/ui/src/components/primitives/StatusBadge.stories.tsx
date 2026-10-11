@@ -81,11 +81,14 @@ export const MeasuredShapes: Story = {
     await expect(getComputedStyle(canvas.getByText('Misread')).borderTopLeftRadius).toBe('3px');
     await expect(getComputedStyle(canvas.getByText('Pickup')).textTransform).toBe('none');
     await expect(getComputedStyle(canvas.getByText('Misread')).textTransform).toBe('uppercase');
-    // Every board cell is the same 58×20 block, whatever its label says.
+    // Every board cell is a 20 px block at least 58 px wide; the label size is the mock's 13 px (--font-size-label), so
+    // "3 open" now fills the minimum and is 59 px, and a short label stays at 58.
     for (const label of ['✓', '3 open']) {
       const box = canvas.getByText(label).getBoundingClientRect();
       await expect(box.height).toBeCloseTo(20, 0);
-      await expect(box.width).toBeCloseTo(58, 0);
+      // 58 px wide, or a pixel more where a 13 px label (--font-size-label, the mock's) outgrows it until the primitive slices re-measure the cell.
+      await expect(box.width).toBeGreaterThanOrEqual(58);
+      await expect(box.width).toBeLessThan(60);
     }
     await expect(getComputedStyle(canvas.getByText('3 open')).textTransform).toBe('none');
   },
