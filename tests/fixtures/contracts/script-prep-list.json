@@ -1,0 +1,72 @@
+{
+  "chapters": [
+    {
+      "chapterId": "c-0001",
+      "state": "progress"
+    },
+    {
+      "chapterId": "c-0002",
+      "state": "none"
+    }
+  ],
+  "words": [
+    {
+      "flags": [
+        {
+          "chapterId": "c-0001",
+          "createdAt": "2026-09-21T10:00:00Z",
+          "end": 30,
+          "id": "id-1",
+          "paragraph": 0,
+          "paragraphId": "p-000001",
+          "quote": "Queen",
+          "stale": false,
+          "start": 25
+        }
+      ],
+      "say": "kween",
+      "source": "cmu",
+      "status": "set",
+      "word": "queen"
+    },
+    {
+      "flags": [
+        {
+          "chapterId": "c-0001",
+          "createdAt": "2026-09-21T10:00:00Z",
+          "end": 12,
+          "id": "id-2",
+          "paragraph": 1,
+          "paragraphId": "p-000002",
+          "quote": "soldiers",
+          "stale": true,
+          "staleReason": "text_changed",
+          "start": 4
+        }
+      ],
+      "say": "",
+      "source": "",
+      "status": "not_set",
+      "word": "soldiers"
+    },
+    {
+      "flags": [
+        {
+          "chapterId": "c-0002",
+          "createdAt": "2026-09-21T10:00:00Z",
+          "end": 5,
+          "id": "id-3",
+          "paragraph": 2,
+          "paragraphId": "p-000003",
+          "quote": "Alice",
+          "stale": false,
+          "start": 0
+        }
+      ],
+      "say": "",
+      "source": "",
+      "status": "not_set",
+      "word": "alice"
+    }
+  ]
+}

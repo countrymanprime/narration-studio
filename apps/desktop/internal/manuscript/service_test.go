@@ -20,6 +20,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
+	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
@@ -934,5 +935,53 @@ func TestReplaceAndClearRemoveTheWordFxFile(t *testing.T) {
 	}
 	if _, err := os.Stat(editlog.WordFxFile(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the word effects behind: %v", err)
+	}
+}
+
+// The script prep names chapter and line ids and UTF-16 ranges in them, so a confirmed replace and Clear project data remove the
+// file; an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writePrep := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(scriptprep.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writePrep()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(scriptprep.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the script prep: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the script prep behind: %v", err)
+	}
+	writePrep()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the script prep behind: %v", err)
 	}
 }

@@ -1256,6 +1256,47 @@ describe('the word effects bindings', () => {
   });
 });
 
+describe('the script prep bindings', () => {
+  const flag = {
+    id: 'f1',
+    chapterId: 'c-0001',
+    paragraphId: 'p-000001',
+    paragraph: 0,
+    start: 25,
+    end: 30,
+    quote: 'Queen',
+    createdAt: '2026-10-11T10:00:00Z',
+    stale: false,
+  };
+  const word = { word: 'queen', say: 'kween', source: 'cmu', status: 'set', flags: [flag] };
+  const chapter = { chapterId: 'c-0001', state: 'prepped' };
+  const prep = { chapters: [chapter], words: [word] };
+
+  it('calls the five host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(prep));
+    const setChapter = vi.fn().mockResolvedValue(JSON.stringify(chapter));
+    const flagWord = vi.fn().mockResolvedValue(JSON.stringify({ ...word, say: '', source: '', status: 'not_set' }));
+    const say = vi.fn().mockResolvedValue(JSON.stringify(word));
+    const unflag = vi.fn().mockResolvedValue(JSON.stringify({ word: 'queen', say: '', source: '', status: 'not_flagged', flags: [] }));
+    standInHost({ ScriptPrepList: list, ScriptPrepSetChapter: setChapter, ScriptWordFlag: flagWord, ScriptWordSay: say, ScriptWordUnflag: unflag });
+
+    await expect(wailsClient.scriptPrepList()).resolves.toEqual(prep);
+    await expect(wailsClient.scriptPrepSetChapter('c-0001', 'prepped')).resolves.toEqual(chapter);
+    expect(setChapter).toHaveBeenCalledWith('c-0001', 'prepped');
+    await expect(wailsClient.scriptWordFlag('c-0001', 'p-000001', 25, 30)).resolves.toMatchObject({ status: 'not_set' });
+    expect(flagWord).toHaveBeenCalledWith('c-0001', 'p-000001', 25, 30);
+    await expect(wailsClient.scriptWordSay('Queen', 'kween', 'cmu')).resolves.toEqual(word);
+    expect(say).toHaveBeenCalledWith('Queen', 'kween', 'cmu');
+    await expect(wailsClient.scriptWordUnflag('f1')).resolves.toMatchObject({ status: 'not_flagged', flags: [] });
+    expect(unflag).toHaveBeenCalledWith('f1');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ ScriptPrepList: () => Promise.resolve(JSON.stringify({ ...prep, chapters: [{ ...chapter, state: 'done' }] })) });
+    await expect(wailsClient.scriptPrepList()).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {
