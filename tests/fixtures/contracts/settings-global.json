@@ -683,6 +683,19 @@
     },
     {
       "choices": [
+        "ask",
+        "basic"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "ask",
+      "isSet": false,
+      "key": "analysis_prompt",
+      "kind": "choice",
+      "label": "Offer better analysis tools",
+      "value": ""
+    },
+    {
+      "choices": [
         "",
         "cmu",
         "wiktextract",
