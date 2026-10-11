@@ -1,0 +1,28 @@
+name: Train health
+# Watches the agent train from outside it (docs/operations/agent-train.md, "Safety net"). The coordinator rewrites a
+# `Last pass:` line on issue #509 at the end of every pass; this job warns on #510 when that line is more than two hours
+# old, so a stopped Routine (a spent credit, a failed session, a deleted trigger) is noticed the same day instead of
+# after eleven. One warning per stall. Needs no checkout beyond the script and no secret beyond the run's own token.
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch: {}
+permissions: {}
+concurrency:
+  group: train-health
+  cancel-in-progress: false
+jobs:
+  heartbeat:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the script
+      issues: write # to comment on #510
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/ci/train-health.mjs heartbeat
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}

@@ -102,6 +102,14 @@ The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×
 
 The hook only reads the stamp; it never runs the gate.
 
+## Agent-train safety checks
+
+Four scripts in `scripts/ci/` keep the unattended [agent train](agent-train.md#safety-net) honest. Each exports pure functions with a `node --test` file beside it, and the two that gate a pull request run from the base branch in CI, so a pull request cannot edit its own check.
+
+- `train-health.mjs heartbeat` reads `Last pass:` from #509's body and comments once per stall on #510 when it is over two hours old and `HOLD` is not ticked. `train-health.mjs hold <reason>` ticks `HOLD` on #509 and says why. Both need `gh` and a token with `issues: write`.
+- `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any. Run it locally before pushing a test change.
+- `pr-risk.mjs <path>...` prints `high` or `normal` and the boundary each path touches. The list is in the script; `--json` reads paths from stdin.
+
 ## Reading a run
 
 Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\narration-utils\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text, [ADR 0251](../adr/0251-tool-runs-are-logged-as-json-lines-through-slog-with-a-run-id-and-content-is-never-logged.md)), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).

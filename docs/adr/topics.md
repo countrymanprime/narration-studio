@@ -13,7 +13,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
-| [Documentation and process](#docs-and-process) | 7 |
+| [Documentation and process](#docs-and-process) | 8 |
 | [Ports and providers](#ports-and-providers) | 12 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 8 |
@@ -169,6 +169,7 @@ How planned work, decisions and documentation are kept: PRDs, ADRs, GitHub track
 | [0410](0410-the-adr-index-is-generated-from-each-adrs-heading-and-status-line-and-a-stale-index-fails-the-gate.md) | The ADR index is generated from each ADR's heading and Status line, and a stale index fails the gate | Proposed |
 | [0415](0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md) | While Pages is paused, docs are checked by lychee and a changed-file markdownlint, not by building the site | Accepted |
 | [0756](0756-documentation-is-kept-current-by-path-and-text-checks-on-every-pull-request-and-agent-stop-with-judgment-left-to-two-skills.md) | Documentation is kept current by path and text checks on every pull request and agent stop, with judgment left to two skills | Accepted |
+| [0758](0758-the-agent-train-is-watched-from-outside-and-gated-by-checks-a-worker-cannot-edit.md) | The agent train is watched from outside and gated by checks a worker cannot edit | Accepted |
 
 <a id="ports-and-providers"></a>
 

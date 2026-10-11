@@ -22,5 +22,7 @@
   { "name": "area:docs", "color": "0052cc", "description": "docs/, ADRs, and top-level Markdown" },
   { "name": "needs-triage", "color": "fbca04", "description": "Not yet reviewed by a maintainer" },
   { "name": "blocked", "color": "b60205", "description": "Waiting on something else before it can proceed" },
-  { "name": "security", "color": "ee0701", "description": "Security-relevant change or report" }
+  { "name": "security", "color": "ee0701", "description": "Security-relevant change or report" },
+  { "name": "risk:high", "color": "b60205", "description": "Touches a trust boundary or the agent-train safety net; not merged without the owner" },
+  { "name": "ratchet-approved", "color": "0e8a16", "description": "Owner approval for a change that weakens a test or lowers a coverage floor" }
 ]

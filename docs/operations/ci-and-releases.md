@@ -93,10 +93,14 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
 | `pages.yml` (`Pages`) | paused (D75, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
+| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old ([the agent train's safety net](agent-train.md#safety-net)) | not a pull request check |
+| `main-health.yml` (`Main health`) | nightly (07:37 UTC), manual | the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
+| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; the agent-train coordinator reads it |
+| `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; the coordinator does not merge a `risk:high` pull request without the owner |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
 The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / quick-ubuntu`. Nothing runs on a schedule except
-CodeQL, the security scan and the online link check. There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
+CodeQL, the security scan, the online link check, and the two agent-train health checks (`train-health.yml`, `main-health.yml`). There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
 request runs (see [Nx projects and the quality gate](#nx-projects-and-the-quality-gate)).
 
 Issues, labels, milestones, and the project board are covered in
