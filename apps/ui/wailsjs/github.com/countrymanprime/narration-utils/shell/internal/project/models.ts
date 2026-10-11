@@ -6,13 +6,19 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * Milestone is one dated checkpoint: a name, a calendar date "YYYY-MM-DD" and an optional note. Nothing beyond the
- * shape is validated here; internal/production checks a milestone before it is saved.
+ * Milestone is one dated checkpoint: a name, a calendar date "YYYY-MM-DD" and an optional note, plus what it measures,
+ * an estimated date, whether it is done and the template it came from (ADR 0800; each empty or false on a milestone
+ * saved before them). Nothing beyond the shape is validated here; internal/production checks a milestone before it is
+ * saved.
  */
 export class Milestone {
     "name": string;
     "dueDate": string;
     "note"?: string;
+    "measure"?: string;
+    "estimate"?: string;
+    "done"?: boolean;
+    "template"?: string;
 
     /** Creates a new Milestone instance. */
     constructor($$source: Partial<Milestone> = {}) {

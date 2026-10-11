@@ -1,0 +1,27 @@
+{
+  "contractedAmount": null,
+  "deadline": null,
+  "milestones": [
+    {
+      "dueDate": "2026-10-15",
+      "estimate": "2026-10-12",
+      "measure": "checkpoint",
+      "name": "ACX 15-minute checkpoint",
+      "template": "checkpoint15"
+    },
+    {
+      "done": true,
+      "dueDate": "2026-10-20",
+      "estimate": "2026-10-19",
+      "measure": "ch4",
+      "name": "First 4 chapters"
+    },
+    {
+      "dueDate": "2026-11-01",
+      "measure": "custom",
+      "name": "Cover art approved",
+      "note": "Ask the publisher."
+    }
+  ],
+  "payment": "per_finished_hour"
+}

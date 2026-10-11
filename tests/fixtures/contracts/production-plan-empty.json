@@ -1,5 +1,6 @@
 {
   "contractedAmount": null,
   "deadline": null,
-  "milestones": []
+  "milestones": [],
+  "payment": "none"
 }

@@ -282,7 +282,7 @@ export class ProfileSelection {
 
 /**
  * TakeReviewScanScope is what the narrator chose to scan: a chapter track, and at most one pickup addition, a pickup
- * track or a time range in project seconds (Q3). The idle job carries the project's saved pickup addition (the
+ * track or a time range in project seconds. The idle job carries the project's saved pickup addition (the
  * TakeReview settings) with no chapter track, for the dialog to offer.
  */
 export class TakeReviewScanScope {

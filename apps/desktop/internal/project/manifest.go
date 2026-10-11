@@ -55,17 +55,26 @@ type Manifest struct {
 	// ContractedAmount is what the book pays, a bare number in the narrator's own currency (ADR 0320): the effective
 	// rate divides it by the hours logged. Nil: none set, so the rate is undefined.
 	ContractedAmount *float64 `json:"contractedAmount,omitempty"`
+	// Payment is how the book pays: "per_finished_hour", "royalty_share" or "none" (ADR 0800), additive like Credits.
+	// Empty: written before the payment type existed; internal/production reads it from ContractedAmount.
+	Payment string `json:"payment,omitempty"`
 	// Milestones are the narrator's own dated checkpoints: a generic list, the ACX 15-minute checkpoint being one the
 	// narrator adds like any other. Additive like Credits.
 	Milestones []Milestone `json:"milestones,omitempty"`
 }
 
-// Milestone is one dated checkpoint: a name, a calendar date "YYYY-MM-DD" and an optional note. Nothing beyond the
-// shape is validated here; internal/production checks a milestone before it is saved.
+// Milestone is one dated checkpoint: a name, a calendar date "YYYY-MM-DD" and an optional note, plus what it measures,
+// an estimated date, whether it is done and the template it came from (ADR 0800; each empty or false on a milestone
+// saved before them). Nothing beyond the shape is validated here; internal/production checks a milestone before it is
+// saved.
 type Milestone struct {
-	Name    string `json:"name"`
-	DueDate string `json:"dueDate"`
-	Note    string `json:"note,omitempty"`
+	Name     string `json:"name"`
+	DueDate  string `json:"dueDate"`
+	Note     string `json:"note,omitempty"`
+	Measure  string `json:"measure,omitempty"`
+	Estimate string `json:"estimate,omitempty"`
+	Done     bool   `json:"done,omitempty"`
+	Template string `json:"template,omitempty"`
 }
 
 // CreditsSetup is the stored "Don't ask for this project": the manuscript document id it was said for, and when.
