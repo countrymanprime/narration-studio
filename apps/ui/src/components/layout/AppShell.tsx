@@ -5,7 +5,6 @@ import {
   faArrowRight,
   faBars,
   faBookOpen,
-  faClockRotateLeft,
   faCircleDot,
   faFileLines,
   faFolder,
@@ -13,14 +12,12 @@ import {
   faGear,
   faHouse,
   faMicrophone,
-  faMagnifyingGlass,
   faMinus,
-  faMoon,
   faPlus,
   faRotateLeft,
-  faSun,
   faWaveSquare,
 } from '@fortawesome/free-solid-svg-icons';
+import { iconFor } from '../../icons.catalog';
 import { ContextMenuHost } from './ContextMenuHost';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import { NavButton } from '../primitives/NavButton';
@@ -208,7 +205,7 @@ export function AppShell({
       {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above. */}
       <div className="flex flex-none flex-col gap-[0.1875rem] border-t border-[var(--border)] px-3 py-[0.625rem]">
         {theme && (
-          <NavButton active={false} icon={theme.dark ? faSun : faMoon} onClick={theme.toggle}>
+          <NavButton active={false} icon={iconFor(theme.dark ? 'themeLight' : 'themeDark')} onClick={theme.toggle}>
             {theme.dark ? 'Light theme' : 'Dark theme'}
           </NavButton>
         )}
@@ -280,7 +277,7 @@ export function AppShell({
                 aria-keyshortcuts="Control+K"
                 className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-md:size-8 max-md:justify-center max-md:px-0"
               >
-                <FontAwesomeIcon icon={faMagnifyingGlass} />
+                <FontAwesomeIcon icon={iconFor('jumpTo')} />
                 <span className="max-md:hidden">Jump to or run…</span>
                 <span className="max-lg:hidden">
                   <KeyChord keys={['Ctrl', 'K']} />
@@ -297,7 +294,7 @@ export function AppShell({
               </TooltipTarget>
               <TooltipTarget text="History: every change you can undo (Ctrl+Shift+H)">
                 <IconButton label="History" aria-keyshortcuts="Control+Shift+H" onClick={onOpenHistory}>
-                  <FontAwesomeIcon icon={faClockRotateLeft} />
+                  <FontAwesomeIcon icon={iconFor('history')} />
                 </IconButton>
               </TooltipTarget>
             </div>
