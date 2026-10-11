@@ -95,12 +95,7 @@ export function Badge({ label, colors, shape = 'pill', look = 'soft', icon, onCl
   const classes = `${badgeClass(shape)} ${className}`.trim();
   if (onClick)
     return (
-      <button
-        type="button"
-        className={`${classes} cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]`}
-        style={badgeStyle(colors, look)}
-        onClick={onClick}
-      >
+      <button type="button" className={`${classes} cursor-pointer text-left`} style={badgeStyle(colors, look)} onClick={onClick}>
         {content}
       </button>
     );

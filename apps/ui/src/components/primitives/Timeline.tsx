@@ -130,7 +130,7 @@ export function TimelineLane({
           }}
           onFocus={() => setActiveId(marker.id)}
           onKeyDown={(event) => onKeyDown(event, index)}
-          className={`absolute top-1/2 size-3 -translate-1/2 rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${TONE_DOT[marker.tone]}`}
+          className={`absolute top-1/2 size-3 -translate-1/2 rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${TONE_DOT[marker.tone]}`}
           style={{ left: `${toPercent(marker.at, duration)}%` }}
         />
       ))}

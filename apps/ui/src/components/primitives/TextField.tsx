@@ -6,10 +6,9 @@ import type { ControlNaming } from './controlNaming';
 // The size is set separately (SANS_CLASSES/MONO_CLASSES): a `text-*` utility can't be layered safely, since two of them in one
 // className race for the same CSS property.
 const BASE_CLASSES =
-  'box-border min-h-[var(--control-height)] w-full rounded-[var(--control-radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-[0.6rem] leading-[1.35] text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]';
+  'box-border min-h-[var(--control-height)] w-full rounded-[var(--control-radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-[0.6rem] leading-[1.35] text-[var(--text)]';
 // A colour swatch is a small square, not a field.
-const COLOR_CLASSES =
-  'size-[2.35rem] rounded-[0.35rem] border border-[var(--border)] bg-[var(--surface)] p-[0.2rem] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]';
+const COLOR_CLASSES = 'size-[2.35rem] rounded-[0.35rem] border border-[var(--border)] bg-[var(--surface)] p-[0.2rem]';
 const SANS_CLASSES = 'text-[0.88rem]';
 // Values that are code, not prose - a hex colour, an id, a number - read a touch larger than body text (~15px on the mocks' numeric fields).
 const MONO_CLASSES = "text-[0.9375rem] font-['IBM_Plex_Mono',ui-monospace,monospace]";

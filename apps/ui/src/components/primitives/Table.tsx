@@ -80,7 +80,7 @@ export function TableRow({
       aria-selected={selected}
       onClick={onClick}
       onKeyDown={onKeyDown}
-      className={`cursor-pointer hover:*:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)] ${selected ? 'bg-[var(--row-selected)]' : ''} ${emphasisClass} ${className}`}
+      className={`cursor-pointer hover:*:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${selected ? 'bg-[var(--row-selected)]' : ''} ${emphasisClass} ${className}`}
       style={style}
     >
       {children}

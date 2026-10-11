@@ -64,7 +64,7 @@ export function HeaderChip({
         onClick={onClick}
         aria-label={ariaLabel}
         aria-busy={ariaBusy || undefined}
-        className={`${classes} cursor-pointer outline-offset-2 hover:shadow-[inset_0_0_0_1px_var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
+        className={`${classes} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
         style={TONE[tone]}
       >
         {content}

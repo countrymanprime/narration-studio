@@ -31,7 +31,7 @@ export function Disclosure({
   return (
     <BaseCollapsible.Root open={open} onOpenChange={onOpenChange} className={className}>
       <div className="flex items-center gap-1">
-        <BaseCollapsible.Trigger className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]">
+        <BaseCollapsible.Trigger className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-left">
           <FontAwesomeIcon
             icon={faChevronRight}
             className="size-3 flex-none text-[var(--text-muted)] group-data-[panel-open]:rotate-90 motion-safe:transition-transform"

@@ -155,7 +155,7 @@ export function StageGrid({
                   onKeyDown={(event) => onKeyDown(event, row, col)}
                   onClick={() => onCellClick(row, col)}
                   onFocus={() => setActive({ row, col })}
-                  className={`${TABLE_CELL_CLASS} align-middle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)] ${pad(col)} whitespace-nowrap ${onActivate ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
+                  className={`${TABLE_CELL_CLASS} align-middle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pad(col)} whitespace-nowrap ${onActivate ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
                 >
                   {look === 'text' ? <span className={TEXT_CELL_CLASS}>{cellLabel}</span> : <StatusBadge tone={tone} label={cellLabel} shape="cell" />}
                 </td>
