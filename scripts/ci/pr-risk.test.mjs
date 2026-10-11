@@ -4,7 +4,7 @@ import test from 'node:test';
 import { classify, HIGH_RISK_LABEL } from './pr-risk.mjs';
 
 test('a UI-only change is normal risk', () => {
-  assert.deepEqual(classify(['apps/ui/src/components/booth/Booth.tsx', 'docs/prds/x.prd.md']), { risk: 'normal', reasons: [] });
+  assert.deepEqual(classify(['apps/ui/src/components/booth/Booth.tsx', 'docs/guides/x.md']), { risk: 'normal', reasons: [] });
 });
 
 test('an empty change is normal risk', () => {
