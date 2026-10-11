@@ -120,7 +120,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADRs | A5 and A6 as Proposed, with the mock-command to inverse-command table | in review (ADR 0770, ADR 0771) | - | SN0-1 | 0.8 | - |
-| 2 | Store core | `studio/` store, selectors helpers, hydration by events | pending | 3 | 1 | 1.5 | - |
+| 2 | Store core | `studio/` store, selectors helpers, hydration by events | in review (feat/sn-s2-store-core) | 3 | 1 | 1.5 | - |
 | 3 | Journal and undo | `act`, `undo`, refusals, leave guard, tests | pending | 2 | 1 | 1.5 | - |
 | 4 | Contract kit | `describeProviderContract`, `Refusal`, `Measured`, registration test | pending | 5 | 1 | 1.0 | - |
 | 5 | Ports and fixtures | `ports/`, `usePort`, ratchet on whole-facade `useApi()`, `fixtures/` builders, scan test | pending | 4 | 1 | 1.0 | - |
