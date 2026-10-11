@@ -9,7 +9,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Consent and safety](#consent-and-safety) | 5 |
 | [Local-first and privacy](#local-first-and-privacy) | 6 |
 | [Verification and code health](#verification-and-code-health) | 7 |
-| [Wire contracts and host bindings](#wire-contracts-and-bindings) | 7 |
+| [Wire contracts and host bindings](#wire-contracts-and-bindings) | 9 |
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
@@ -84,6 +84,8 @@ What crosses between Go, Python, Lua and the UI is validated where it crosses; b
 | [0069](0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) | Payloads are validated with Zod behind `parseWire`, and a wrong shape fails loudly | Accepted |
 | [0120](0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md) | Findings are read and decided through four generic bindings, and a decision carries the evidence version it was made against | Proposed |
 | [0143](0143-the-review-workflow-calls-a-daw-through-dawadapter-and-the-event-vocabulary-is-part-of-the-contract.md) | The review workflow calls a DAW through `dawadapter.Review`, and the event vocabulary is part of the contract | Proposed |
+| [0770](0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) | The UI store caches host reads and journals commands, and the Go host stays the source of truth | Proposed |
+| [0771](0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md) | Undo is one in-memory journal that refuses with a reason and reaches the DAW only for its last action | Proposed |
 
 <a id="accessibility-and-interaction"></a>
 
