@@ -35,7 +35,7 @@ const pronunciationConfirmed = "author_confirmed"
 // once, in reading order: by the first paragraph that uses it, a name that never occurs last, ties by name. A status that is
 // missing or unknown reads as researched. No Story Bible yet is an empty list.
 func (s *Service) PronunciationQueries() ([]PronunciationQuery, error) {
-	entities, err := s.Entities()
+	entities, err := s.entitiesWithStatus()
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func QueriesCSV(queries []PronunciationQuery) string {
 			aliasIndex = strconv.Itoa(*query.AliasIndex)
 		}
 		source := query.Source
-		if source == "user" {
+		if source == "user" || source == ManualSource {
 			source = "Yours"
 		}
 		row := []string{query.Name, query.Entry, query.Category, query.Chapter, query.Excerpt, query.IPA, source, query.Status, query.Note, query.EntityID, aliasIndex}
@@ -269,7 +269,7 @@ func MatchQueryAnswers(entities []map[string]any, answers []QueryAnswer) (matche
 // applied is reported with its line and never silently dropped, sorted the way the file itself reads.
 func (s *Service) ImportQueriesCSV(text string) (applied int, issues []string, err error) {
 	answers, rowIssues := ParseQueriesCSV(text)
-	entities, err := s.Entities()
+	entities, err := s.entitiesWithStatus()
 	if err != nil {
 		return 0, nil, err
 	}

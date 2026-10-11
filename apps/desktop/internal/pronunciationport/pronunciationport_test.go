@@ -101,3 +101,46 @@ func TestANewSourceIsOneRowAndPassesTheSuiteWithNoOtherEdit(t *testing.T) {
 		t.Errorf("registering on a new registry changed the program's: %v", got)
 	}
 }
+
+func TestSourceFactsComeFromTheRegistryRows(t *testing.T) {
+	want := []pronunciationport.Facts{
+		{ID: "cmu", Label: "CMU dictionary", Kind: "lookup"},
+		{ID: "wiktextract", Label: "Wiktionary (via Wiktextract)", Kind: "lookup", NeedsLocalDictionary: true},
+		{ID: "espeak", Label: "eSpeak NG", Kind: "generated"},
+	}
+	if got := pronunciationport.SourceFacts(""); !reflect.DeepEqual(got, want) {
+		t.Fatalf("SourceFacts = %+v, want %+v", got, want)
+	}
+}
+
+type networkedFake struct{ pronunciationporttest.Fake }
+
+func (networkedFake) Kind() string               { return pronunciationport.KindGenerated }
+func (networkedFake) NeedsLocalDictionary() bool { return false }
+func (networkedFake) NeedsNetwork() bool         { return true }
+
+func TestSourceFactsReadAnyRegisteredRowWithoutComparingNames(t *testing.T) {
+	r := pronunciationport.NewRegistry()
+	r.Register(port.Entry[pronunciationport.Source]{
+		Name:       "zz-not-a-known-name",
+		Descriptor: port.Descriptor{Label: "Zed", Modes: []string{pronunciationport.ModePronounce}},
+		New: func() pronunciationport.Source {
+			return networkedFake{pronunciationporttest.NewFake("zz-not-a-known-name", "")}
+		},
+	})
+	r.Register(port.Entry[pronunciationport.Source]{
+		Name:       "plain",
+		Descriptor: port.Descriptor{Label: "Plain", Modes: []string{pronunciationport.ModePronounce}},
+		New:        func() pronunciationport.Source { return pronunciationporttest.NewFake("plain", "") },
+	})
+	facts := pronunciationport.FactsIn(r, "")
+	if len(facts) != 5 {
+		t.Fatalf("facts = %+v", facts)
+	}
+	if got := facts[3]; got != (pronunciationport.Facts{ID: "zz-not-a-known-name", Label: "Zed", Kind: "generated", NeedsNetwork: true}) {
+		t.Errorf("fake row = %+v", got)
+	}
+	if got := facts[4]; got != (pronunciationport.Facts{ID: "plain", Label: "Plain", Kind: "lookup"}) {
+		t.Errorf("row without facts = %+v", got)
+	}
+}
