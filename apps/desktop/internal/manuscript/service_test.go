@@ -11,6 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/character"
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
+	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 	"github.com/countrymanprime/narration-utils/shell/internal/importer"
@@ -673,5 +674,59 @@ func TestReplaceAndClearRemoveTheGapReviewsFile(t *testing.T) {
 	}
 	if _, err := os.Stat(gapreview.File(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the gap reviews behind: %v", err)
+	}
+}
+
+// Accepted words name chapter and paragraph ids and word ordinals, so replacing the manuscript (a commit with a confirmed
+// reset) and Clear project data remove them (ADR 0856). An import that resets nothing keeps them.
+func TestReplaceAndClearRemoveTheAcceptedWordsFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeAccepted := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.AcceptedFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.AcceptedFile(project), []byte(`{"schemaVersion":1,"words":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeAccepted()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.AcceptedFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the accepted words: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.AcceptedFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the accepted words: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.AcceptedFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the accepted words behind: %v", err)
+	}
+	writeAccepted()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.AcceptedFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the accepted words behind: %v", err)
 	}
 }

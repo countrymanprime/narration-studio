@@ -953,6 +953,38 @@ describe('the bookmarks bindings', () => {
   });
 });
 
+describe('the accepted words bindings', () => {
+  const word = {
+    key: 'p-000001:5',
+    paragraphId: 'p-000001',
+    ordinal: 5,
+    text: 'Queen',
+    acceptedAt: '2026-10-11T10:00:00Z',
+    paragraph: 0,
+    stale: false,
+  };
+  const words = { chapterId: 'c-0001', words: [word] };
+
+  it('calls the three host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(words));
+    const accept = vi.fn().mockResolvedValue(JSON.stringify({ ...words, changed: ['p-000001:5'] }));
+    const unaccept = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', words: [], changed: ['p-000001:5'] }));
+    standInHost({ EditingAcceptedList: list, EditingAccept: accept, EditingUnaccept: unaccept });
+
+    await expect(wailsClient.editingAcceptedList('c-0001')).resolves.toEqual(words);
+    expect(list).toHaveBeenCalledWith('c-0001');
+    await expect(wailsClient.editingAccept('c-0001', ['p-000001:5'])).resolves.toMatchObject({ changed: ['p-000001:5'] });
+    expect(accept).toHaveBeenCalledWith('c-0001', ['p-000001:5']);
+    await expect(wailsClient.editingUnaccept('c-0001', ['p-000001:5'])).resolves.toMatchObject({ words: [] });
+    expect(unaccept).toHaveBeenCalledWith('c-0001', ['p-000001:5']);
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ EditingAcceptedList: () => Promise.resolve(JSON.stringify({ ...words, words: [{ ...word, ordinal: -1 }] })) });
+    await expect(wailsClient.editingAcceptedList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {

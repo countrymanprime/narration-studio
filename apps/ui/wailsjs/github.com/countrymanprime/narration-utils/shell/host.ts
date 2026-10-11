@@ -659,6 +659,21 @@ export function DiagnosticsState(): $CancellablePromise<string> {
 }
 
 /**
+ * EditingAccept records words of a chapter as accepted, so they are no longer flagged. Every key must name a word of the
+ * chapter's current text, or nothing is saved; a word already accepted is not recorded twice.
+ */
+export function EditingAccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
+    return $Call.ByID(2697825286, chapterID, keys);
+}
+
+/**
+ * EditingAcceptedList returns a chapter's accepted words (flagged words the narrator kept as read) in reading order.
+ */
+export function EditingAcceptedList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2965962927, chapterID);
+}
+
+/**
  * EditingCancel asks a running check to stop after its current item; the
  * items it already finished stay cached and ledgered. With nothing running
  * it does nothing.
@@ -716,6 +731,13 @@ export function EditingStart(documentID: string, chapterID: string, chapterTitle
  */
 export function EditingState(): $CancellablePromise<string> {
     return $Call.ByID(2969112107);
+}
+
+/**
+ * EditingUnaccept removes words of a chapter from the accepted list, so their flags show again (Undo of an accept).
+ */
+export function EditingUnaccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
+    return $Call.ByID(4156351737, chapterID, keys);
 }
 
 /**
