@@ -318,7 +318,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'editing-check-complete-clean': async (page) => {
     const panel = await openEditingCheck(page, 'mockEditingSignal=met');
-    await panel.getByText('Met.').waitFor();
+    await panel.getByText('Met.', { exact: true }).waitFor();
   },
   'editing-check-cleanup-confirm': async (page) => {
     const panel = await openEditingCheck(page, 'mockEditingCandidates=1&mockEditingSignal=not-met&mockDawExperimentalOn=1');
