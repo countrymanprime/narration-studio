@@ -2,9 +2,21 @@
 // small Story Bible kept in memory. It decides the way apps/desktop/bindings_extraction.go does: accept applies (an edited text trimmed and
 // applied as given), reject takes back and keeps a tombstone, review makes an automatic acceptance the narrator's, reopen puts a decided
 // suggestion back to the status the rule gave it, and a refusal (an unknown id, a locked entry, a name another entry owns) rejects with the
-// host's sentence and changes nothing. Offline: nothing is scanned and nothing is fetched.
+// host's sentence and changes nothing. A scan paces the sources one per poll the way apps/desktop/extraction_job.go runs them, offering
+// SCAN_OFFERS as the rules; scanning again offers nothing twice. Offline: nothing is read and nothing is fetched.
 import { SUGGESTION_TEXT_MAX_BYTES } from './contracts/extraction';
-import type { ExtractionApi, ExtractionDecision, ExtractionSuggestion, SuggestionKind, SuggestionPayload, SuggestionStatus } from './contracts/extraction';
+import type {
+  ExtractionApi,
+  ExtractionDecision,
+  ExtractionScanJob,
+  ExtractionSource,
+  ExtractionSuggestion,
+  SuggestionKind,
+  SuggestionPayload,
+  SuggestionSource,
+  SuggestionStatus,
+} from './contracts/extraction';
+import type { JobEnded } from './contracts/system';
 import { wireClone } from './mockFixtures';
 
 type MockEntry = { id: string; name: string; aliases: string[]; locked: boolean; flagged: boolean };
@@ -145,6 +157,48 @@ const SEEDS: Seed[] = [
   },
 ];
 
+/** The sources of a fresh install, as the host's extraction-sources golden has them. */
+const SOURCES: ExtractionSource[] = [
+  { id: 'rules', label: 'Rules', icon: 'auto', runs: true, available: true },
+  { id: 'imported', label: 'Imported file', icon: 'import', runs: false, available: false, reason: 'Imported file is not available yet.' },
+  { id: 'local-model', label: 'Local model', icon: 'globe', runs: true, available: false, reason: 'No local model is installed.' },
+  { id: 'gliner', label: 'GLiNER', icon: 'locate', runs: true, available: false, reason: 'GLiNER is not downloaded.' },
+  { id: 'booknlp', label: 'BookNLP', icon: 'dictionary', runs: true, available: false, reason: 'BookNLP is not downloaded.' },
+];
+
+/** What the rules offer on a scan: one new entry the rule accepts, one it is unsure of, and one already stored. */
+const SCAN_OFFERS: Seed[] = [
+  {
+    payload: { kind: 'entry', name: 'The Mock Turtle', type: 'Character' },
+    confidence: 0.84,
+    status: 'accepted-auto',
+    quote: ['8-12', 'smiling at everything that was said'],
+  },
+  {
+    payload: { kind: 'alias', entry: 'Caterpillar', alias: 'the hookah smoker' },
+    confidence: 0.55,
+    status: 'needs-verification',
+    entryId: 'caterpillar',
+    reason: 'Confidence is under the threshold.',
+  },
+  { payload: { kind: 'entry', name: 'The Mouse', type: 'Character' }, confidence: 0.62, status: 'needs-verification' },
+];
+
+const idleScan = (): ExtractionScanJob => ({
+  id: null,
+  kind: 'extraction_scan',
+  phase: 'idle',
+  message: 'Ready to scan the manuscript.',
+  percent: 0,
+  logs: [],
+  elapsed: 0,
+  sources: [],
+  added: 0,
+  skipped: 0,
+});
+
+const plural = (n: number) => (n === 1 ? '1 suggestion' : `${n} suggestions`);
+
 type Ruled = { status: SuggestionStatus; reason?: string };
 
 /** The seeds as stored, and the status the 75% rule gives each, which reopen puts back. */
@@ -193,7 +247,7 @@ function withText(p: SuggestionPayload, text: string): SuggestionPayload {
   }
 }
 
-export function createExtractionMock(): ExtractionApi {
+export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined): ExtractionApi {
   const seeds = seeded();
   let suggestions = seeds.suggestions;
   let entries = wireClone(ENTRIES);
@@ -265,7 +319,100 @@ export function createExtractionMock(): ExtractionApi {
     }
   }
 
+  let scan = idleScan();
+  let step = 0;
+  let scans = 0;
+
+  const endScan = (phase: 'success' | 'cancelled', message: string) => {
+    scan = { ...scan, phase, message, percent: phase === 'success' ? 100 : scan.percent, logs: [...scan.logs, message] };
+    publish({ id: scan.id ?? '', kind: 'extraction_scan', outcome: phase, message, durationMs: Math.round(scan.elapsed * 1000) });
+  };
+
+  /** The rules' offers, dropped by fingerprint when stored already; the ones the rule accepts are applied, or held with the reason. */
+  const ingest = (): [number, number] => {
+    let added = 0;
+    for (const seed of SCAN_OFFERS) {
+      const print = fp(seed.payload);
+      if (suggestions.some((s) => s.fp === print)) continue;
+      const { quote, ...rest } = seed;
+      const s: ExtractionSuggestion = {
+        id: 's' + (suggestions.length + 1),
+        kind: seed.payload.kind,
+        entryId: null,
+        evidence: quote ? evidence(quote[0], quote[1]) : [],
+        fp: print,
+        source: 'rules',
+        createdAt: '2026-10-11T09:00:00Z',
+        ...rest,
+      };
+      if (s.status === 'accepted-auto') {
+        try {
+          s.entryId = applyOne(s, true);
+        } catch (error) {
+          s.status = 'needs-verification';
+          s.reason = error instanceof Error ? error.message : String(error);
+        }
+      }
+      suggestions.push(s);
+      seeds.ruled.set(s.id, s.status === 'needs-verification' ? { status: s.status, reason: s.reason } : { status: s.status });
+      added += 1;
+    }
+    return [added, SCAN_OFFERS.length - added];
+  };
+
+  // One poll is one source done: the next source, then the end.
+  const advance = () => {
+    if (scan.phase !== 'running') return;
+    if (step >= scan.sources.length) {
+      endScan('success', scan.skipped ? `${plural(scan.added)} added; ${scan.skipped} already offered or rejected before.` : `${plural(scan.added)} added.`);
+      return;
+    }
+    const source = SOURCES.find((s) => s.id === scan.sources[step]) ?? SOURCES[0];
+    step += 1;
+    let { added, skipped } = scan;
+    const logs = [...scan.logs];
+    if (!source.available) {
+      logs.push(`Skipped ${source.label}: ${source.reason ?? ''}`);
+    } else {
+      logs.push(`Scanning with ${source.label} (${step} of ${scan.sources.length}).`);
+      const [more, dropped] = ingest();
+      logs.push(`${source.label} offered ${plural(more)}.`);
+      added += more;
+      skipped += dropped;
+    }
+    const percent = Math.min(99, Math.floor((step * 100) / scan.sources.length));
+    scan = { ...scan, percent, logs, message: logs[logs.length - 1], added, skipped, elapsed: scan.elapsed + 1 };
+  };
+
   return {
+    extractionSources: () => Promise.resolve(wireClone(SOURCES)),
+    extractionScan: (sourceIds) => {
+      const runnable = SOURCES.filter((s) => s.runs).map((s) => s.id);
+      const refused = sourceIds.find((id) => !runnable.includes(id));
+      if (sourceIds.length > 16) return Promise.reject(new Error('That is more sources than there are.'));
+      if (refused !== undefined) return Promise.reject(new Error(`"${refused}" is not a source a scan can run.`));
+      if (scan.phase === 'running') return Promise.resolve(wireClone(scan));
+      const sources: SuggestionSource[] = runnable.filter((id) => id === 'rules' || sourceIds.includes(id));
+      scans += 1;
+      step = 0;
+      scan = {
+        ...idleScan(),
+        id: `extraction-scan-${scans}`,
+        phase: 'running',
+        message: 'Scanning the manuscript.',
+        logs: ['Scanning the manuscript.'],
+        sources,
+      };
+      return Promise.resolve(wireClone(scan));
+    },
+    extractionScanState: () => {
+      advance();
+      return Promise.resolve(wireClone(scan));
+    },
+    extractionScanCancel: () => {
+      if (scan.phase === 'running') endScan('cancelled', `Scan cancelled. Kept ${plural(scan.added)} from the sources that finished.`);
+      return Promise.resolve(wireClone(scan));
+    },
     extractionList: () => Promise.resolve(wireClone([...suggestions].sort((a, b) => ORDER[a.kind] - ORDER[b.kind]))),
     extractionAccept: (id, text) =>
       decide(id, (s) => {

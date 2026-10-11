@@ -136,7 +136,7 @@ import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from './schemas/scriptPrep';
-import { extractionDecisionSchema, extractionSuggestionsSchema } from './schemas/extraction';
+import { extractionDecisionSchema, extractionScanJobSchema, extractionSourcesSchema, extractionSuggestionsSchema } from './schemas/extraction';
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -435,6 +435,10 @@ export const wailsClient: NarrationApi = {
   extractionReject: (id) => decode(extractionDecisionSchema, 'ExtractionReject', host.ExtractionReject(id)),
   extractionReview: (id) => decode(extractionDecisionSchema, 'ExtractionReview', host.ExtractionReview(id)),
   extractionReopen: (id) => decode(extractionDecisionSchema, 'ExtractionReopen', host.ExtractionReopen(id)),
+  extractionSources: () => decode(extractionSourcesSchema, 'ExtractionSources', host.ExtractionSources()),
+  extractionScan: (sourceIds) => decode(extractionScanJobSchema, 'ExtractionScan', host.ExtractionScan(sourceIds)),
+  extractionScanState: () => decode(extractionScanJobSchema, 'ExtractionScanState', host.ExtractionScanState()),
+  extractionScanCancel: () => decode(extractionScanJobSchema, 'ExtractionScanCancel', host.ExtractionScanCancel()),
   marksReply: (id, who, text) => decode(markSchema, 'MarksReply', host.MarksReply(id, who, text)),
   marksEditMessage: (id, index, text) => decode(markSchema, 'MarksEditMessage', host.MarksEditMessage(id, index, text)),
   marksDeleteMessage: (id, index) => decode(markThreadDeletedSchema, 'MarksDeleteMessage', host.MarksDeleteMessage(id, index)),

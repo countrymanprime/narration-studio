@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
+import { createExtractionMock } from './extractionMock';
+import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
@@ -17,7 +19,14 @@ import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/e
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordFlagSchema, scriptWordSchema } from './schemas/scriptPrep';
-import { extractionDecisionSchema, extractionSuggestionSchema, extractionSuggestionsSchema } from './schemas/extraction';
+import {
+  extractionDecisionSchema,
+  extractionScanJobSchema,
+  extractionSourceSchema,
+  extractionSourcesSchema,
+  extractionSuggestionSchema,
+  extractionSuggestionsSchema,
+} from './schemas/extraction';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -3109,6 +3118,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'extractionReject',
       'extractionReview',
       'extractionReopen',
+      'extractionSources',
+      'extractionScan',
+      'extractionScanState',
+      'extractionScanCancel',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -4039,6 +4052,69 @@ describe('the marks bindings', () => {
 
 // The Story Bible's extraction suggestions: the host's goldens parse, the schemas refuse what the host never sends, and the mock decides
 // through the same schemas, refusing what the host refuses with nothing changed.
+// The Story Bible's scan: the host's goldens parse, the schemas refuse what the host never sends, and the mock paces a scan from fixture
+// data, offline, through the same schemas (apps/desktop/bindings_extraction_scan.go).
+describe('the extraction scan bindings', () => {
+  it('the sources and scan goldens parse', () => {
+    const sources = parseWire(extractionSourcesSchema, readGolden('extraction-sources.json'), ctx('extraction sources'));
+    expect(sources.map((s) => s.id)).toEqual(['rules', 'imported', 'local-model', 'gliner', 'booknlp']);
+    expect(sources.filter((s) => !s.available).every((s) => s.reason)).toBe(true);
+    const job = parseWire(extractionScanJobSchema, readGolden('extraction-scan-job.json'), ctx('extraction scan job'));
+    expect(job).toMatchObject({ kind: 'extraction_scan', phase: 'success', percent: 100, sources: ['rules', 'local-model'] });
+  });
+
+  it('the schemas refuse what the host never sends', () => {
+    const [rules] = readGolden('extraction-sources.json') as Array<Record<string, unknown>>;
+    expect(extractionSourceSchema.safeParse(rules).success).toBe(true);
+    expect(extractionSourceSchema.safeParse({ ...rules, path: '/usr/bin/python' }).success).toBe(false);
+    expect(extractionSourceSchema.safeParse({ ...rules, id: 'web' }).success).toBe(false);
+    expect(extractionSourceSchema.safeParse({ ...rules, available: false }).success).toBe(false);
+    const job = readGolden('extraction-scan-job.json') as Record<string, unknown>;
+    expect(extractionScanJobSchema.safeParse({ ...job, extra: 1 }).success).toBe(false);
+    expect(extractionScanJobSchema.safeParse({ ...job, kind: 'story_bible' }).success).toBe(false);
+    expect(extractionScanJobSchema.safeParse({ ...job, phase: 'running' }).success).toBe(false);
+    expect(extractionScanJobSchema.safeParse({ ...job, sources: ['web'] }).success).toBe(false);
+    expect(extractionScanJobSchema.safeParse({ ...job, added: -1 }).success).toBe(false);
+  });
+
+  it('the mock paces a scan one source per poll, ends once, and scanning again adds nothing', async () => {
+    const ended: JobEnded[] = [];
+    const api = createExtractionMock((event) => ended.push(event));
+    expectMatches(extractionSourcesSchema, await api.extractionSources(), 'mock extraction sources');
+    expectMatches(extractionScanJobSchema, await api.extractionScanState(), 'mock extraction scan idle');
+    await expect(api.extractionScan(['imported'])).rejects.toThrow('is not a source a scan can run.');
+
+    const before = (await api.extractionList()).length;
+    const started = await api.extractionScan(['booknlp']);
+    expectMatches(extractionScanJobSchema, started, 'mock extraction scan started');
+    expect(started).toMatchObject({ phase: 'running', percent: 0, sources: ['rules', 'booknlp'] });
+    expect((await api.extractionScan([])).id).toBe(started.id);
+    const half = await api.extractionScanState();
+    expect(half).toMatchObject({ percent: 50, added: 2, skipped: 1 });
+    const skipped = await api.extractionScanState();
+    expect(skipped.percent).toBe(99);
+    expect(skipped.logs).toContain('Skipped BookNLP: BookNLP is not downloaded.');
+    const done = await api.extractionScanState();
+    expectMatches(extractionScanJobSchema, done, 'mock extraction scan done');
+    expect(done).toMatchObject({ phase: 'success', percent: 100, message: '2 suggestions added; 1 already offered or rejected before.' });
+    expect(ended).toEqual([expect.objectContaining({ id: started.id, kind: 'extraction_scan', outcome: 'success' })]);
+    const list = await api.extractionList();
+    expect(list).toHaveLength(before + 2);
+    expect(list.find((s) => JSON.stringify(s.payload).includes('The Mock Turtle'))).toMatchObject({ status: 'accepted-auto', applied: { created: true } });
+
+    await api.extractionScan([]);
+    await api.extractionScanState();
+    expect((await api.extractionScanState()).added).toBe(0);
+    expect(await api.extractionList()).toHaveLength(before + 2);
+
+    await api.extractionScan([]);
+    const cancelled = await api.extractionScanCancel();
+    expectMatches(extractionScanJobSchema, cancelled, 'mock extraction scan cancelled');
+    expect(cancelled).toMatchObject({ phase: 'cancelled', added: 0 });
+    expect(ended).toHaveLength(3);
+  });
+});
+
 describe('the extraction bindings', () => {
   it('the schemas read the goldens: one of each kind and status, the empty list and an accept', () => {
     const list = parseWire(extractionSuggestionsSchema, readGolden('extraction-list.json'), ctx('extraction list'));

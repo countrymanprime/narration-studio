@@ -64,6 +64,27 @@ export type ExtractionDecision = {
   entryIds: string[];
 };
 
+/** One extraction source as the scan sees it, in the registry's order (rules first). `runs` is false for a source the narrator does not
+ * start (an imported file); `reason`, when it is not available, is a sentence that says why ("GLiNER is not downloaded."). */
+export type ExtractionSource = { id: SuggestionSource; label: string; icon: string; runs: boolean; available: boolean; reason?: string };
+
+/** The scan as a host job, in the shape of the other host jobs (`WorkJob`): `percent` is the sources done over the sources it runs and
+ * reads 100 only once it has ended (ADR 0015); `sources` are the ones it runs, rules first; `added` and `skipped` count the suggestions
+ * stored and the ones dropped as offered or rejected before. It ends with one `job:ended` event of kind `extraction_scan` (ADR 0076). */
+export type ExtractionScanJob = {
+  id: string | null;
+  kind: 'extraction_scan';
+  phase: 'idle' | 'running' | 'success' | 'cancelled' | 'error';
+  message: string;
+  percent: number;
+  logs: string[];
+  elapsed: number;
+  error?: string;
+  sources: SuggestionSource[];
+  added: number;
+  skipped: number;
+};
+
 /** A refusal (a locked entry, a name another entry owns, an unknown id) rejects with the sentence and changes nothing. */
 export interface ExtractionApi {
   /** Every suggestion, rejected ones included: entries first, then names, relationships, properties and claims, speakers. */
@@ -78,4 +99,13 @@ export interface ExtractionApi {
   /** The undo of accept, reject and review: back to the status the rule gives it now, an automatic acceptance applied and flagged
    * Review, one that needs verification with what the decision applied taken back. An edited text stays as edited. */
   extractionReopen(id: string): Promise<ExtractionDecision>;
+  /** Every extraction source, rules first, with whether it can run now and why not. */
+  extractionSources(): Promise<ExtractionSource[]>;
+  /** Starts a scan: the rules, then each of `sourceIds` in the registry's order; one that cannot run is skipped with its reason in the
+   * job's logs. While a scan runs this returns that scan. An id that is not a source a scan can start is refused before anything starts. */
+  extractionScan(sourceIds: SuggestionSource[]): Promise<ExtractionScanJob>;
+  /** The running or last scan, or an idle one. */
+  extractionScanState(): Promise<ExtractionScanJob>;
+  /** Stops the running scan and the source it is running; what the sources that finished added is kept. */
+  extractionScanCancel(): Promise<ExtractionScanJob>;
 }
