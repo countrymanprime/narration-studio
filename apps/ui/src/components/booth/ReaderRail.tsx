@@ -13,7 +13,7 @@ import type { ReaderMarkTarget } from './readerModel';
 import type { RailState, RailTab } from './readerPreferences';
 
 const SECTION_LABEL = "font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase";
-// Mock 03's right rail: 37 px rows, 13 px text (mock-fidelity-primitives-and-components.prd.md Phase 13).
+// Mock 03's right rail: 37 px rows, 13 px text.
 const NOTE_ITEM =
   'min-h-[2.3125rem] rounded-[0.35rem] border border-transparent px-2 py-1.5 text-[0.8125rem] aria-[current=true]:border-[var(--accent)] aria-[current=true]:bg-[var(--surface-2)]';
 const LIST_BUTTON =
@@ -35,7 +35,7 @@ type Props = {
   /** The Flags tab (Phase 7): the session's suspected flags, which kinds show, dismissal and the save status. */
   flagPanel: Omit<ComponentProps<typeof ReaderFlagsPanel>, 'selected' | 'onSelect'>;
   /** Fill the column it is given instead of sizing itself: booth mode's `FocusShell` rail already has its own width, which
-   * the normal dialog's fixed 19-20rem would overflow (booth-mode-and-companion-panel.prd.md Phase 3). */
+   * the normal dialog's fixed 19-20rem would overflow. */
   fill?: boolean;
 };
 

@@ -39,13 +39,13 @@ type Row = { kind: 'chapter'; chapter: ProductionChapter } | { kind: 'credits'; 
 const isNarration = (chapter: { contentKind?: string }) => !chapter.contentKind || chapter.contentKind === 'narration';
 
 /**
- * The Production home's chapter pipeline (stage-navigation-and-page-replacement.prd.md Phase 2, mock 01: "every cell opens that
+ * The Production home's chapter pipeline (mock 01: "every cell opens that
  * stage for the chapter"). It replaces Home's chapter table: the rows are the book's narration chapters between its opening and
  * closing credits, the columns the board's stages, and each cell opens the surface Home's row opened, with the same slide-overs:
  *
  * - Recorded opens the chapter's track slide-over (chapter-track-link-control.prd.md), where the length comes from.
  * - The chapter's current stage (Record for a chapter not started yet) opens its stage suggestion, with the status override Home's
- *   row carried and the way into the recording and editing checks (chapter-stage-recommendations.prd.md).
+ *   row carried and the way into the recording and editing checks.
  * - Record opens the recording check, Edit the editing check, Proof the chapter's Proof view, and Prep the chapter on Script.
  * - A credits row opens its own slide-over (credits-in-chapter-table.prd.md), since credits are not assessed by the stage engine.
  *
@@ -64,7 +64,7 @@ export function ChapterBoard({
   notify: Notify;
   /** Opens the manuscript at a chapter, or at a paragraph (its index in the whole manuscript) when one is given. */
   goToScript: (chapter: string, paragraph?: number) => void;
-  /** Opens a chapter's Proof view (stage-navigation-and-page-replacement.prd.md Phase 5). */
+  /** Opens a chapter's Proof view. */
   goToProofChapter: (chapterId: string) => void;
   /** Changes after a manuscript import or replacement, so the chapter list is read again. */
   refreshKey?: string;
@@ -258,7 +258,7 @@ export function ChapterBoard({
     return { ...base, onActivate: () => goToProofChapter(chapter.id) };
   };
 
-  // The summary chips (chapter-stage-recommendations.prd.md Phase 5) open the first chapter they count.
+  // The summary chips open the first chapter they count.
   const showFirstSuggestion = () => {
     if (stages.state.phase === 'error') {
       void stages.refresh();

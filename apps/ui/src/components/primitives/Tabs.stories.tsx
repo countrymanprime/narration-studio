@@ -96,7 +96,7 @@ export const AutomaticActivationFollowsFocus: Story = {
   },
 };
 
-// Measured on the benchmark mocks (mock-fidelity-primitives-and-components.prd.md Phase 5, ADR 0625): the selected
+// Measured on the benchmark mocks (ADR 0625): the selected
 // underline tab's text is `--accent-strong`, distinct from an unselected tab's `--text-muted`, with a 2 px underline.
 export const MeasuredShapes: Story = {
   play: async ({ canvasElement }) => {

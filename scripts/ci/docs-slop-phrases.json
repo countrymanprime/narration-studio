@@ -1,0 +1,132 @@
+{
+  "_comment": "Phrases scripts/ci/docs-slop.mjs looks for in the prose of changed Markdown (issue #943). `error` fails the run: only phrases with near-zero legitimate use in technical writing. `warn` is printed and never fails: words with real technical uses. `pattern` is a case-insensitive regular expression. Code, links, quotations and the files in `ignore` are skipped. Lists of these phrases (doc-unslop, docs-style, the research report) are in `ignore`. Tune this file from the output of `node scripts/ci/docs-slop.mjs --all`.",
+  "ignore": [
+    ".claude/skills/doc-unslop/**",
+    ".claude/skills/docs-style/**",
+    "docs/research/documentation-practice-and-agent-gating.md",
+    "CHANGELOG.md",
+    "tests/fixtures/**"
+  ],
+  "phrases": [
+    {
+      "id": "delve",
+      "level": "error",
+      "pattern": "\\bdelv(e|es|ed|ing)\\b",
+      "reason": "AI vocabulary that says nothing; name the thing"
+    },
+    {
+      "id": "tapestry",
+      "level": "error",
+      "pattern": "\\b(rich )?tapestry\\b",
+      "reason": "inflated metaphor"
+    },
+    {
+      "id": "testament",
+      "level": "error",
+      "pattern": "\\b(a|is|are|stands as|serves as) (a )?testament to\\b",
+      "reason": "claims significance instead of showing it"
+    },
+    {
+      "id": "pivotal-role",
+      "level": "error",
+      "pattern": "\\bplays? an? (crucial|key|vital|pivotal|important|significant) role\\b",
+      "reason": "claims importance with no evidence; say what it does"
+    },
+    {
+      "id": "worth-noting",
+      "level": "error",
+      "pattern": "\\bit(’|')?s (worth|important to) not(e|ing)\\b|\\bit is (worth|important to) not(e|ing)\\b",
+      "reason": "filler that delays the point; state the point"
+    },
+    {
+      "id": "in-conclusion",
+      "level": "error",
+      "pattern": "^\\s*(in conclusion|in summary|to summari[sz]e)\\b",
+      "reason": "restates what was just said"
+    },
+    {
+      "id": "staged-opening",
+      "level": "error",
+      "pattern": "\\bin today(’|')?s (fast-paced |digital |modern )?(world|landscape|era)\\b|\\bin the ever-(evolving|changing)\\b",
+      "reason": "a run-up before the content"
+    },
+    {
+      "id": "chat-residue",
+      "level": "error",
+      "pattern": "\\b(i hope this helps|great question|as an ai\\b|as of my knowledge cutoff|let me know if you)",
+      "reason": "chat text left in a document"
+    },
+    {
+      "id": "sales-seamless",
+      "level": "error",
+      "pattern": "\\bseamless(ly)?\\b|\\bcutting-edge\\b|\\bgame-chang(er|ing)\\b|\\bstate-of-the-art\\b|\\bworld-class\\b",
+      "reason": "sales language that cannot be verified"
+    },
+    {
+      "id": "unlock-power",
+      "level": "error",
+      "pattern": "\\bunlock(s|ed|ing)? the (full )?(power|potential)\\b|\\bnavigat(e|es|ing) the complexities\\b|\\bat the end of the day\\b",
+      "reason": "empty phrase"
+    },
+    {
+      "id": "robust",
+      "level": "warn",
+      "pattern": "\\brobust(ly|ness)?\\b",
+      "reason": "unverifiable unless a test or spec backs it; name that"
+    },
+    {
+      "id": "leverage-utilize",
+      "level": "warn",
+      "pattern": "\\b(leverag(e|es|ed|ing)|utili[sz](e|es|ed|ing))\\b",
+      "reason": "use \"use\""
+    },
+    {
+      "id": "comprehensive-powerful",
+      "level": "warn",
+      "pattern": "\\b(comprehensive|powerful|holistic)\\b",
+      "reason": "sales word; say what it covers"
+    },
+    {
+      "id": "serves-as",
+      "level": "warn",
+      "pattern": "\\b(serves|stands) as an?\\b",
+      "reason": "usually just \"is\""
+    },
+    {
+      "id": "not-just-but",
+      "level": "warn",
+      "pattern": "\\bnot (just|only|merely)\\b[^.]{0,80}\\bbut (also )?\\b",
+      "reason": "staged contrast; state the fact"
+    },
+    {
+      "id": "ensures-that",
+      "level": "warn",
+      "pattern": "\\b(ensures?|guarantees?) (that )?\\b",
+      "reason": "name the test or check that makes it true"
+    },
+    {
+      "id": "crucial-vital",
+      "level": "warn",
+      "pattern": "\\b(crucial|vital|pivotal|paramount)\\b",
+      "reason": "claims importance; show the consequence"
+    },
+    {
+      "id": "time-claim",
+      "level": "warn",
+      "pattern": "\\b(currently|recently|at the moment|as of now)\\b",
+      "reason": "a time claim with no date or version goes stale"
+    },
+    {
+      "id": "overall-closer",
+      "level": "warn",
+      "pattern": "^\\s*overall,",
+      "reason": "restates what was just said"
+    },
+    {
+      "id": "streamline",
+      "level": "warn",
+      "pattern": "\\bstreamlin(e|es|ed|ing)\\b",
+      "reason": "say what step is removed"
+    }
+  ]
+}

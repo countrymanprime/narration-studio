@@ -28,7 +28,7 @@ export const CompanionSize: Story = { args: { keys: ['R'], size: 'sm' } };
 // The booth command bar's size (mock 03): 23 px.
 export const BoothSize: Story = { args: { keys: ['R'], size: 'md' } };
 
-// The booth toolbar's row (mock-fidelity-primitives-and-components.prd.md Phase 10, mock 03): Space, R, ⌫, F, P, and Esc to exit.
+// The booth toolbar's row (mock 03): Space, R, ⌫, F, P, and Esc to exit.
 export const BoothToolbarRow: Story = {
   render: () => (
     <div className="flex items-center gap-3">

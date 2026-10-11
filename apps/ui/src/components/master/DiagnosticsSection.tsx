@@ -107,7 +107,7 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
 }
 
 /**
- * Master & QC's Diagnostics section, formerly the Delivery page's tab (the deleted diagnostics-delivery-and-cleanup-tools PRD Phase 6): the windowed analyzers
+ * Master & QC's Diagnostics section (docs/prds/diagnostics-delivery-and-cleanup-tools.prd.md Phase 6): the windowed analyzers
  * (ADR 0158) over files picked for measuring, as a host job with real progress and Cancel (ADR 0015). Each finding shows its time in
  * the file, what was measured, the threshold that raised it and whether the audio is a raw recording or a rendered chapter, never a
  * grade. It is read-only: nothing is saved, played or sent to REAPER, so every finding stays unreviewed (PRD Open Question 4), and

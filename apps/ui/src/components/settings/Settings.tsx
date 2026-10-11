@@ -43,8 +43,7 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   // The preview suggestion's target, tolerance, preset and ending exclusion (delivered, PRD deleted; see
   // docs/architecture/preview-suggestion.md): the engine (PreviewCandidates) reads these on every call, layered project over global like every other tool.
   { key: 'Preview', label: 'Preview', tool: 'Preview', scopes: ['global', 'project'] },
-  // Which signals must be met for a stage suggestion (chapter-stage-recommendations.prd.md Phase 6, Q8, deleted; see
-  // docs/architecture/stage-recommendations.md):
+  // Which signals must be met for a stage suggestion (docs/architecture/stage-recommendations.md):
   // one choice field per signal id a provider declares, plus the master switch.
   { key: 'StageRecommendations', label: 'Stage suggestions', tool: 'StageRecommendations', scopes: ['global', 'project'] },
   { key: 'ManuscriptGuide', label: 'Story Bible', tool: 'ManuscriptGuide', scopes: ['global', 'project'] },
@@ -52,7 +51,7 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { key: 'Delivery', label: 'Delivery', scopes: ['project', 'global'] },
   { key: 'Daw', label: 'DAW Integration', tool: 'DAW', scopes: ['global', 'project'] },
   { key: 'Piper', label: 'TTS', tool: 'Piper', scopes: ['global', 'project'] },
-  // The Booth's microphone, engine and model (stage-navigation-and-page-replacement.prd.md Q11): named for the page that
+  // The Booth's microphone, engine and model (Q11): named for the page that
   // uses them; the key stays the settings tool's name, and App.tsx's `#booth` and old `#teleprompter` anchors both open it.
   { key: 'Teleprompter', label: 'Booth', tool: 'Teleprompter', scopes: ['global'] },
   { key: 'LocalAssets', label: 'Local assets', scopes: ['global'] },
@@ -298,8 +297,8 @@ export function Settings({
                       machine-wide detection fact, independent of any linked project, so it lives above the
                       project-scoped DAW connection facts below. */}
                   <DawCatalogPanel notify={notify} dawFileLinked={data.dawFileLinked} onLinkDawFile={onLinkDawFile} />
-                  {/* Truthful about what the host actually knows (PRD W15): reachability is a real Phase 7 fact now
-                      (a live heartbeat), not the permanent "Connected" claim Phase 3 shipped. */}
+                  {/* Truthful about what the host actually knows (PRD W15): reachability is a live heartbeat
+                      (Phase 7), not a permanent "Connected" claim. */}
                   <div className="flex items-center gap-3 rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
                     <Dot color={data.dawReachable ? 'var(--character)' : 'var(--non-text)'} />
                     <div>
@@ -349,7 +348,7 @@ export function Settings({
                     <div className="rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
                       <div className="font-medium">REAPER launcher</div>
                       <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
-                        Import this action once in REAPER. If Narration Utils is moved or updated, re-import this path when prompted; the app never changes
+                        Import this action once in REAPER. If Narration Studio is moved or updated, re-import this path when prompted; the app never changes
                         REAPER for you.
                       </p>
                       <code className="mt-2 block rounded p-2 text-xs break-all" style={{ background: 'var(--surface)' }}>

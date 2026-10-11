@@ -57,7 +57,7 @@ const TOOLTIP: Record<string, string> = {
   model: 'Which model size the live engine loads. Tiny keeps up on most computers; Small is more accurate but needs a faster one.',
   reaper_path: 'Leave blank to auto-detect reaper.exe. Set this only when auto-detect finds the wrong install or none at all.',
   auto_start_launcher:
-    'When Narration Utils starts REAPER, also pass the Narration Utils action as a startup script, so the bridge is live immediately. Off by default: REAPER is never changed automatically.',
+    'When Narration Studio starts REAPER, also pass the Narration Utils action as a startup script, so the bridge is live immediately. Off by default: REAPER is never changed automatically.',
   suggestions_enabled: 'Turns every stage suggestion on the Production board off at once, without changing which signals are required below.',
   'recording.text_present':
     'Whether every paragraph present in order, as the recording check measures it, must be met before the Production board suggests moving a chapter from Recording to Editing.',
@@ -81,7 +81,7 @@ const optionTip = (field: ScopedSettingField, value: string) =>
     : `${proofingChoiceLabel(field.key, value)} is the selected ${field.label.toLowerCase()} option.`;
 
 // A native color input can only show a full #rrggbb value. An empty or invalid
-// setting used to be zero-padded to #000000, so every unset color looked like a
+// setting is not zero-padded to #000000, which would look like a
 // deliberate black; show a neutral gray instead and let the text field say
 // "Not set".
 const NEUTRAL_PICKER_COLOR = '#808080';
@@ -91,8 +91,8 @@ const pickerColor = (value: string) => {
 };
 
 // One setting: the label above its control below `md`, the label beside it from `md` (Tailwind's 48rem, the app's own layout
-// breakpoint). The two-column template used to apply at every width, and a grid gives a fixed-range track (the label's
-// minmax(12rem,16rem)) its full maximum before a flexible one gets any, so at a 390 px window the control column was 45 px.
+// breakpoint). The two-column template does not apply below `md`: a grid gives a fixed-range track (the label's
+// minmax(12rem,16rem)) its full maximum before a flexible one gets any, which left the control column 45 px at a 390 px window.
 // Between `md` and `lg` the settings panel is narrow (the category list stands beside it) so the label takes its 12rem
 // minimum and the control the rest (191 px at 768 px, not 127); from `lg` the label may grow to 16rem again.
 const ROW_CLASSES =

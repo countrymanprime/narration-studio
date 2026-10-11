@@ -119,3 +119,35 @@ func TestCheckReportsAPayloadThatCannotBeMarshalled(t *testing.T) {
 		t.Fatalf("failure = %q", failure)
 	}
 }
+
+// inFilesystemRoot moves the test into the root of the current volume, which has no workspace file above it. A temp
+// folder cannot be used: the gate points TMP inside the repository.
+func inFilesystemRoot(t *testing.T) {
+	t.Helper()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.VolumeName(wd) + string(os.PathSeparator))
+}
+
+func TestDirFailsWhenNoWorkspaceFileIsAbove(t *testing.T) {
+	inFilesystemRoot(t)
+	if dir, err := Dir(); err == nil {
+		t.Fatalf("Dir() = %q, want an error outside a workspace", dir)
+	}
+}
+
+func TestCheckReportsAMissingContractFolder(t *testing.T) {
+	inFilesystemRoot(t)
+	fake := &fakeT{TB: t}
+	defer func() {
+		if recovered := recover(); recovered != fake {
+			t.Fatalf("expected Check to fail outside a workspace, got %v", recovered)
+		}
+		if !strings.HasPrefix(fake.failed, "contract folder") {
+			t.Fatalf("failure = %q, want it to name the contract folder", fake.failed)
+		}
+	}()
+	Check(fake, "anything", map[string]any{})
+}

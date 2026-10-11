@@ -6,7 +6,7 @@ import { StatusBadge, toneColors, type StatusTone, type BadgeLook } from '../pri
 
 // The small status marks of Master & QC (the deleted delivery-platform-profiles PRD, mockups 01 to 04): a rule's result,
 // how its requirement was verified, and the profile's counts. The words carry the meaning; the colour and icon repeat it.
-// `Mark` draws through StatusBadge, the one badge primitive (mock-fidelity-primitives-and-components.prd.md Phase 14, ADR
+// `Mark` draws through StatusBadge, the one badge primitive (ADR
 // 0600): a tone that was already a fill (`ok`, `danger`, `info`) stays soft; one that was outline-only (`warn`, `muted`)
 // keeps that look, so DeliveryProfilesPanel's "Built in"/"Custom" tags and DeliveryProfileEditor's marks are unchanged.
 
@@ -58,7 +58,7 @@ export function VerificationMark({ verification }: { verification: DeliveryVerif
   );
 }
 
-// 16 px, the mocks' round checklist icon (mock-fidelity-primitives-and-components.prd.md Phase 14, mock 05).
+// 16 px, the mocks' round checklist icon (mock 05).
 /** How a value stands in a table cell: an icon in the result's colour, beside the value in words. */
 export function ResultIcon({ status }: { status: DeliveryRuleStatus }) {
   const { tone, icon } = RESULT[status];

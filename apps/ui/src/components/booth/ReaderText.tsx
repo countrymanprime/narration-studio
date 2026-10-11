@@ -261,7 +261,7 @@ export function ReaderText({
   }, [container, cursor, follow]);
 
   const gutter = Boolean(speakers?.size);
-  // The Booth's type is the measured spec (mock-fidelity-primitives-and-components.prd.md Phase 13, mock 03 Q6):
+  // The Booth's type is the measured spec (mock 03 Q6):
   // `--font-size-booth-script` (26 px), never below WCAG's large text at any width. With no card, a read word's muted
   // colour on a single mark's tint sits over the reading surface, which still clears large-text contrast.
   const typeClass = dense

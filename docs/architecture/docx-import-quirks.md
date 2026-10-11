@@ -34,7 +34,7 @@ Code: `apps/desktop/internal/importer/` (`docx.go`, `markdown.go`, `markdown_inl
 | Things that look like markers | `snake_case_name`, `2 * 3 * 4`, escaped `\*` | Left literal | `TestMarkdownIntrawordUnderscoresAndLoneAsterisksStayLiteral`, `TestMarkdownEscapedMarkersStayLiteral` |
 | Subtitle in a heading | `# **CHAPTER ONE**<br>Bad Ideas…` | Markers stripped, `<br>` splits title/subtitle | `TestMarkdownHeadingBrSplitsSubtitleAndStripsMarkers` |
 | Byte-order mark | leading `EF BB BF` | Stripped | `TestMarkdownByteOrderMarkIsStripped` |
-| Number and title glued in one heading line | `# CHAPTER ONEBad Ideas…` (no separator at all) | `splitGluedHeading` repairs it, same as docx, and the split is now reported in `Draft.Notices` (previously discarded) | `TestMarkdownGluedHeadingSplitIsReportedAsANotice` |
+| Number and title glued in one heading line | `# CHAPTER ONEBad Ideas…` (no separator at all) | `splitGluedHeading` repairs it, same as docx, and the split is reported in `Draft.Notices` | `TestMarkdownGluedHeadingSplitIsReportedAsANotice` |
 
 ## TXT
 
@@ -59,7 +59,7 @@ Code: `apps/desktop/internal/importer/` (`docx.go`, `markdown.go`, `markdown_inl
 | No usable TOC | Missing nav and NCX, or neither matches any spine document | Each spine document starting with its own `h1`/`h2` becomes a chapter instead, with a notice | `TestEPUBSpineFallbackWhenTOCIsMissing` |
 | No chapter markup at all | No TOC and no headings | One `narration` chapter titled from the file name, with a notice - same T4 divergence as TXT | `TestEPUBNoTOCAndNoHeadingsBecomesOneChapter` |
 | `epub:type` on a spine document's `<body>` | `cover`/`titlepage`/`frontmatter`/`dedication`/`epigraph`/`copyright-page`, `toc`/`acknowledgments`/`glossary`/`index`/`bibliography`/`endnotes`/`footnotes`/`backmatter`, `bodymatter`/`chapter`/`prologue`/`epilogue` | Forces the section's `contentKind` to `opening`/`reference`/`narration` respectively, overriding the title-text classifier (ADR 0102) | `TestEPUBBodyEpubTypeClassifiesDedicationAsOpening`, `TestEPUBBodyEpubTypeClassifiesEndnotesAsReference` |
-| Glued heading | Same shape as DOCX/Markdown/TXT | `splitGluedHeading` repairs it and now reports the split in `Notices` (previously discarded) | `TestEPUBGluedHeadingIsSplitAndReported` |
+| Glued heading | Same shape as DOCX/Markdown/TXT | `splitGluedHeading` repairs it and reports the split in `Notices` | `TestEPUBGluedHeadingIsSplitAndReported` |
 | Non-linear spine items | `<itemref linear="no">` | Skipped, counted in a `Notices` line | `TestEPUBNonLinearItemIsSkippedAndReported` |
 | Footnote reference markers | An inline `epub:type="noteref"` element | Its own text is dropped ("the end.1" reads "the end."); a note *body* is classified `reference` only when it occupies its own whole spine document | `TestEPUBNoteReferenceMarkerIsDropped` |
 | Emphasis carried by a CSS class | `<span class="italic">` styled from an inline `<style>` or a linked stylesheet | A single-class, single-declaration `font-style`/`font-weight` rule maps to an italic/bold span, the same as `<em>`/`<strong>`; anything else counted, unstyled, in `Notices` | `TestEPUBCSSClassEmphasisFromInlineStyle`, `TestEPUBCSSClassEmphasisFromLinkedStylesheet`, `TestEPUBUnresolvedCSSClassIsCountedInNotices` |
@@ -68,7 +68,7 @@ Code: `apps/desktop/internal/importer/` (`docx.go`, `markdown.go`, `markdown_inl
 
 ## Where the subtitle shows
 
-A heading's subtitle is kept on every paragraph under it (`Paragraph.ChapterSubtitle`), and the import review lists it after the title ("Chapter One — Bad Ideas Look Great in Neon") so the narrator can confirm the split before anything is written. `DraftSection.Subtitle` is the subtitle of the first paragraph of the section, which is exactly what the written chapter gets (`manuscript.canonicalize` reads the paragraph that starts the chapter), so a repeated title (merged into one section) shows its first heading's subtitle and a heading with no text has none. Tests: `TestNewDraftSectionSubtitleIsTheFirstParagraphsSubtitleAsTheCommitReadsIt`, `TestDocxSoftBreakSubtitleReachesTheSectionForTheReview`, `TestMarkdownHeadingSubtitleReachesTheSectionForTheReview` and, across the host service, `TestPreviewSectionSubtitlesAreTheSubtitlesTheWrittenChaptersGet`. The field is additive (`subtitle`, omitted when empty), so `hostAPIVersion` is unchanged. A wrong split is corrected in the review: turning a subtitle off joins its line to the title, or, for a plain-text heading's second line, returns it to the text ([ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md); `ApplySubtitleOverrides`, `apps/desktop/internal/importer/subtitle_override.go`). The review is described in [the import review](import-review.md).
+A heading's subtitle is kept on every paragraph under it (`Paragraph.ChapterSubtitle`), and the import review lists it after the title ("Chapter One — Bad Ideas Look Great in Neon") so the narrator can confirm the split before anything is written. `DraftSection.Subtitle` is the subtitle of the first paragraph of the section, which is exactly what the written chapter gets (`manuscript.canonicalize` reads the paragraph that starts the chapter), so a repeated title (merged into one section) shows its first heading's subtitle and a heading with no text has none. Tests: `TestNewDraftSectionSubtitleIsTheFirstParagraphsSubtitleAsTheCommitReadsIt`, `TestDocxSoftBreakSubtitleReachesTheSectionForTheReview`, `TestMarkdownHeadingSubtitleReachesTheSectionForTheReview` and, across the host service, `TestPreviewSectionSubtitlesAreTheSubtitlesTheWrittenChaptersGet`. The field is additive (`subtitle`, omitted when empty), so it needs no `hostAPIVersion` bump. A wrong split is corrected in the review: turning a subtitle off joins its line to the title, or, for a plain-text heading's second line, returns it to the text ([ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md); `ApplySubtitleOverrides`, `apps/desktop/internal/importer/subtitle_override.go`). The review is described in [the import review](import-review.md).
 
 ## Table of contents authority
 
@@ -79,7 +79,7 @@ bookmark its own `w:hyperlink` cites, then by normalised heading text, then by p
 once **80%** or more of the TOC's own entries matched something does it win - and only the exposed `chapterTitles` changes when it
 does; `Sections`/paragraph grouping are computed exactly as before and are never touched. Below the threshold, the heuristic's
 chapter list is kept, and a notice ("The table of contents listed N entries; M matched a chapter in the manuscript.") is added
-whenever the counts differ either way. No real user manuscript with a Word TOC field was available when this shipped; it is
+whenever the counts differ either way. No real user manuscript with a Word TOC field has been tried (as of 2026-09-21); it is
 verified against a hand-built OOXML fixture with real `_Toc` bookmarks (`docx_test.go`), not a real one - treat it as **awaiting a
 real manuscript**. Markdown reads its own table of contents the same way ([ADR 0240](../adr/0240-a-markdown-table-of-contents-is-the-first-list-of-in-file-heading-links-matched-as-a-docx-one-is.md),
 `markdown_toc.go`). The TOC is the first list of two or more items that are each one link to an in-file anchor
@@ -91,7 +91,7 @@ same notice and the same "only `chapterTitles` changes" apply, through the one s
 - a deeper heading met before any of the chapter's text, when it is the only heading of its level in the chapter and the chapter heading is level 1 or deeper, not a Part or Book heading and not a reference section;
 - Word's own "Subtitle" paragraph style, or an EPUB `class="subtitle"` block.
 
-Turned off in the review, such a subtitle returns to the text. An EPUB heading that starts no chapter and is not a subtitle is kept as text (it used to be dropped). The glued-heading repair also splits a two-word number ("Twenty OneThe Storm") and a one-letter "A"/"I" glued to a number written in words ("TwoA Night"), never a lone letter after a roman numeral.
+Turned off in the review, such a subtitle returns to the text. An EPUB heading that starts no chapter and is not a subtitle is kept as text. The glued-heading repair also splits a two-word number ("Twenty OneThe Storm") and a one-letter "A"/"I" glued to a number written in words ("TwoA Night"), never a lone letter after a roman numeral.
 
 ## Adding a quirk
 

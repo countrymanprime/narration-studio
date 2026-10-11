@@ -1052,7 +1052,7 @@ func (h *Host) ServiceShutdown() error {
 
 // attachBusyReason is what the UI is told when an attach is refused because
 // in-flight work would be displaced.
-const attachBusyReason = "Narration Utils is busy, so the current project was left unchanged."
+const attachBusyReason = "Narration Studio is busy, so the current project was left unchanged."
 
 // canAttach reports, under a read lock, whether a project switch would be
 // accepted right now. It is only a pre-check: attachProjectLocked asks again
@@ -1194,9 +1194,9 @@ func unresolvedLaunchReason(next config) (string, bool) {
 
 func startupProjectFileReason(projectFile string) string {
 	if projectFile == "" {
-		return "This REAPER project has not been saved yet, so it has no file to link. Save it in REAPER, or choose or create a Narration Utils project."
+		return "This REAPER project has not been saved yet, so it has no file to link. Save it in REAPER, or choose or create a Narration Studio project."
 	}
-	return "This REAPER project isn't linked to a Narration Utils project yet. Choose or create one to link it."
+	return "This REAPER project isn't linked to a Narration Studio project yet. Choose or create one to link it."
 }
 
 // canAttachLocked implements the REAPER single-instance rule: attach a new
@@ -1631,9 +1631,7 @@ func (h *Host) settingsSchemas() map[string][]fieldSchema {
 		schemas[tool] = fields
 	}
 	if models := h.registry().spacy; models != nil {
-		// Replace only the spacy_model choices with the catalog's models; a bug fixed on the way in (found while adding
-		// build_after_import, N19d): this used to replace the whole ManuscriptGuide list, silently dropping every other
-		// field in it whenever the spaCy registry was built.
+		// Replace only the spacy_model choices with the catalog's models; the other ManuscriptGuide fields stay.
 		schemas["ManuscriptGuide"] = withChoices(schemas["ManuscriptGuide"], "spacy_model", models.IDs())
 	}
 	schemas["Teleprompter"] = withChoices(schemas["Teleprompter"], "engine", teleprompter.Engines(teleprompter.PlatformOrCurrent(h.platform)))

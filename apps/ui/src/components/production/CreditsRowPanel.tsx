@@ -10,7 +10,7 @@ import type { CreditsRow } from './useCreditsRows';
 const MUTED = { color: 'var(--text-muted)' };
 
 // Why a row has no Recorded length, in the panel's own words (mirrors productionFormat.ts's UNRECORDED, actual-
-// recorded-column.prd.md's reasons).
+// 's reasons).
 const UNRECORDED_TEXT: Record<NonNullable<CreditsRow['recordedUnavailable']>, string> = {
   unlinked: 'No track linked yet',
   multiple_tracks: 'Linked to more than one track',
@@ -29,8 +29,7 @@ const unresolvedWarning = (unresolved: string[]): string | undefined => {
 };
 
 /**
- * An Opening or Closing credits row's slide-over on the Production board (credits-in-chapter-table.prd.md Phase 2, moved from
- * Home's chapter table by stage-navigation-and-page-replacement.prd.md Phase 2): its template, words and estimated length, the
+ * An Opening or Closing credits row's slide-over on the Production board (credits-in-chapter-table.prd.md Phase 2): its template, words and estimated length, the
  * tokens still to fill in, and its status, which only `setCreditsStatus` writes (credits are never a manuscript chapter and the
  * stage engine does not assess them).
  */

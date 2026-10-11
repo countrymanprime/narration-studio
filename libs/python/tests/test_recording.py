@@ -304,10 +304,9 @@ def test_a_disk_error_closes_the_file_keeps_draining_and_reports_it(tmp_path, mo
 
 
 def test_a_second_io_error_while_closing_after_a_write_failure_does_not_kill_the_writer_thread(tmp_path, monkeypatch):
-    """A security review found that the writer thread's ``except OSError`` around ``write()`` calls ``close()``
-    unguarded: on a genuinely failed device (a dropped share, a pulled drive), that ``close()`` can itself raise, and
-    the exception used to escape the thread uncaught, killing it silently instead of being folded into the take's
-    reported error."""
+    """On a genuinely failed device (a dropped share, a pulled drive), the ``close()`` in the writer thread's
+    ``except OSError`` around ``write()`` can itself raise; that exception must be folded into the take's reported
+    error, not escape and kill the thread silently."""
 
     def failing_write(self, frames):
         raise OSError("disk full")

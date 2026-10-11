@@ -28,11 +28,16 @@ export function isMarkdownFile(file) {
 
 /** The Markdown files added, copied, modified or renamed-into between `base` and `head` (a merge-base diff, so a
  *  `head` that is behind `base` reports nothing new rather than every file `base` has moved on without). */
-export function changedMarkdownFiles({ base, head = 'HEAD', cwd = process.cwd() } = {}) {
+export function changedMarkdownFiles({ base, head = 'HEAD', cwd = process.cwd(), includeWorkingTree = false } = {}) {
   const mergeBase = execFileSync('git', ['merge-base', base, head], { cwd, encoding: 'utf8' }).trim();
-  const output = execFileSync('git', ['diff', '--name-status', '-z', '--diff-filter=ACMR', `${mergeBase}...${head}`], {
-    cwd,
-    encoding: 'utf8',
-  });
-  return parseChangedFiles(output).filter(isMarkdownFile);
+  // Committed changes only (`a...b`), or, with includeWorkingTree, everything since the merge base: the working tree
+  // against it (`a`), plus files git does not track yet. A local run before the commit then sees what it will commit.
+  const range = includeWorkingTree ? mergeBase : `${mergeBase}...${head}`;
+  const output = execFileSync('git', ['diff', '--name-status', '-z', '--diff-filter=ACMR', range], { cwd, encoding: 'utf8' });
+  const files = parseChangedFiles(output);
+  if (includeWorkingTree) {
+    const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { cwd, encoding: 'utf8' });
+    files.push(...untracked.split('\0').filter(Boolean));
+  }
+  return [...new Set(files)].filter(isMarkdownFile);
 }

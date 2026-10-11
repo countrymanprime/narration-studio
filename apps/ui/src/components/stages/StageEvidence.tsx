@@ -39,14 +39,12 @@ type Props = {
   /** Opens the finding an evidence entry names (the proofing pickups roll-up's open items), on whatever page hosts
    * this popover; undefined where there is nowhere to open it. */
   onOpenFinding?: (findingId: string) => void;
-  /** Shown first, above the verdict: the Production board's status override and its links to the chapter's checks
-   * (stage-navigation-and-page-replacement.prd.md Phase 2), which Home's table row used to carry. */
+  /** Shown first, above the verdict: the Production board's status override and its links to the chapter's checks. */
   status?: ReactNode;
 };
 
 /**
- * Why a chapter has the suggestion it has (chapter-stage-recommendations.prd.md Phase 5, Q11, deleted; see
- * docs/architecture/stage-recommendations.md): the verdict in a sentence, each
+ * Why a chapter has the suggestion it has (docs/architecture/stage-recommendations.md): the verdict in a sentence, each
  * required check with its state and reason, the evidence behind it (linked to the paragraphs it names), the saved project it was read from
  * and how old that is, and, for a check that cannot tell, what resolves it. Confirm, Dismiss and Revert are here too, and Check now reads
  * the evidence again; nothing here starts an analysis (Q12).

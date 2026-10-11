@@ -1,4 +1,5 @@
 // How to reach each `proof` state (Proof's book level) in STATE_CATALOG (see app.drivers.ts).
+import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -19,6 +20,19 @@ import {
   waitForFindingRows,
 } from './shared';
 
+// Picks a chapter in the waveform card's selector by its name (the option starts with it, then " — " and a subtitle), which also
+// narrows the notes table to that chapter, and waits for the table to settle on it.
+async function pickWaveformChapter(page: Page, chapterTitle: string): Promise<void> {
+  const picker = page.getByRole('combobox', { name: 'Chapter to open' });
+  const label = (await picker.locator('option').allTextContents()).find((text) => text === chapterTitle || text.startsWith(`${chapterTitle} — `));
+  if (!label) throw new Error(`no chapter named ${chapterTitle} in Proof's picker`);
+  await picker.selectOption({ label });
+  await page.waitForFunction(
+    ([title]) => [...document.querySelectorAll('table[aria-label="Notes"] tbody tr[data-row]')].every((row) => row.textContent?.includes(title)),
+    [chapterTitle],
+  );
+}
+
 export const proofDrivers: Record<string, Driver> = {
   default: async (page) => {
     // Chapter 1 is linked to its track first, so the book-level waveform card draws its real stored peaks (ADR 0715)
@@ -28,6 +42,26 @@ export const proofDrivers: Record<string, Driver> = {
     await goToPage(page, 'Proof');
     await waitForFindingRows(page, 5);
   },
+  'no-recording': async (page) => {
+    await openProof(page);
+    await page.getByRole('img', { name: /placeholder waveform/i }).waitFor();
+  },
+  'chapter-selected': async (page) => {
+    await openLinkedProofChapter(page, 'Chapter 1');
+    await goToPage(page, 'Proof');
+    await waitForFindingRows(page, 5);
+    // Chapter 1 is what the card opens on; picking Chapter 2 and back is what narrows the table to Chapter 1.
+    await pickWaveformChapter(page, 'Chapter 2');
+    await pickWaveformChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Show all chapters' }).waitFor();
+    await page.getByRole('region', { name: "The chapter's waveform" }).waitFor();
+  },
+  'chapter-filtered': async (page) => {
+    await openProof(page);
+    await pickWaveformChapter(page, 'Chapter 2');
+    await page.getByRole('img', { name: /placeholder waveform/i }).waitFor();
+    await page.getByRole('button', { name: 'Show all chapters' }).waitFor();
+  },
   empty: async (page) => {
     await page.goto('/?mockFindings=empty');
     await settlePage(page);
@@ -36,7 +70,7 @@ export const proofDrivers: Record<string, Driver> = {
   },
   filtered: async (page) => {
     await openProof(page);
-    // Mock 04 draws no filter row (mock-fidelity-primitives-and-components.prd.md Phase 12): open the popover, so
+    // Mock 04 draws no filter row: open the popover, so
     // the capture shows which filters are narrowing the list rather than just the narrowed list on its own.
     await page.getByRole('button', { name: /^Filters/ }).click();
     await page.getByRole('combobox', { name: 'Check' }).selectOption({ label: 'Local AI compare' });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The stage suggestions on the Production board, end to end against the mock host (chapter-stage-recommendations.prd.md Phase 5): the
+// The stage suggestions on the Production board, end to end against the mock host: the
 // current-stage cells, the summary chips, Confirm, Dismiss, Revert, a refused decision, Check now, the error state and the evidence view.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

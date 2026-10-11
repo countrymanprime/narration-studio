@@ -21,7 +21,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// One story per tone (studio-ui-primitives.prd.md Q6): a closed set of meanings, not one tone per stage name.
+// One story per tone (Q6): a closed set of meanings, not one tone per stage name.
 export const Neutral: Story = { args: { tone: 'neutral', label: 'Not started' } };
 export const Info: Story = {};
 export const Progress: Story = { args: { tone: 'progress', label: '41%' } };
@@ -53,7 +53,7 @@ export const EveryShapeAndLook: Story = {
   ),
 };
 
-// The measured spec (mock-fidelity-primitives-and-components.prd.md Phase 2, ADR 0600): a pill is 22 px tall and fully
+// The measured spec (ADR 0600): a pill is 22 px tall and fully
 // rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 58×20 (ADR 0645). Measured
 // at the default root size.
 export const MeasuredShapes: Story = {

@@ -114,8 +114,7 @@ describe('MicrophoneField', () => {
   });
 });
 
-// Keeps the ControlledMicrophoneField helper exercised (device persistence across a re-pick), even though the typed
-// "Other…" round trip it used to cover is gone.
+// Exercises the ControlledMicrophoneField helper: device persistence across a re-pick.
 describe('MicrophoneField (controlled)', () => {
   it('keeps the chosen device selected after a re-render with the same devices', async () => {
     const user = userEvent.setup();

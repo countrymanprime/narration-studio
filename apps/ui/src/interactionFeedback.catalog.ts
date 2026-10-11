@@ -80,8 +80,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   // Phase 3 (app-navigation-and-zoom-controls.prd.md): the debounced persistence write, added after the three above.
   'src/hooks/useZoom.ts#4':
     'The debounced persist of the settled level (Q4 A); a failure just leaves the next launch opening at the last successfully saved level, and the narrator sees no error from a header control that already did what they asked.',
-  // Phase 1 (app-navigation-and-zoom-controls.prd.md) added two more bare catches in this file (Back/Forward's own guard,
-  // and the nav's original one, now #7), renumbering what follows; stage navigation Phase 2's timer read is #1.
   'src/App.tsx#6': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',
   'src/App.tsx#7':
     'Best effort when leaving a Proof chapter view with a compare run through the nav: a reset that fails leaves the finished results in place, which is harmless.',
@@ -124,6 +122,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The one-time browser-storage-to-settings migration write; a failure leaves the device in local state for this visit and the migration is retried next load since the settings value never got marked set.',
   'src/components/manuscript/creditsExpandedStorage.ts#1':
     "Remembering a credits card's open state per project in localStorage (MC5 b); the choice lasts for this visit only when storage is disabled.",
+  'src/components/proof/lastChapterStorage.ts#1':
+    'Remembering the last chapter looked at on Proof per project in localStorage (ADR 0750); the choice lasts for this visit only when storage is disabled.',
   'src/components/booth/readerPreferences.ts#1':
     'Remembering the read-aloud rail (open, tab) in localStorage; the choice lasts for this dialog only when storage is disabled.',
   'src/components/booth/readerPreferences.ts#2':

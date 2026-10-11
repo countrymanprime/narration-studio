@@ -181,7 +181,13 @@ if (mode === 'go-lint') {
   // gVisor's checklocks: a field annotated `// +checklocks:mu` is only touched with mu held, and a field that is
   // always used under a lock but has no annotation is reported too, so a new guarded field gets one. Product code
   // only (-test=false): tests set seams on a Host no goroutine can see yet, and the race detector covers them.
-  run('checklocks', ['-test=false', './...'], { cwd: join(root, dir) });
+  // checklocks analyses every dependency too, and the pinned build (x/tools v0.43.0) cannot build Go 1.27's Linux standard
+  // library: fmt, os and internal/poll panic with "unexpected expr: *ast.KeyValueExpr". Off Windows it therefore analyses
+  // the Windows target, which is what CI lints (quick-windows).
+  const checklocksEnv = process.platform === 'win32' ? process.env : { ...process.env, GOOS: 'windows' };
+  run('checklocks', ['-test=false', './...'], { cwd: join(root, dir), env: checklocksEnv });
+  // A new exported name needs a doc comment (revive `exported`, new lines only; scripts/ci/doc-comments.mjs).
+  run('node', ['scripts/ci/doc-comments.mjs', 'go', dir]);
   process.exit(0);
 }
 
@@ -193,4 +199,12 @@ if (mode !== 'check') {
 // The full gate: every project's lint, format, knip, test, test-node and build target, one at a time, never from
 // the Nx cache (a green gate must mean the checks ran). CI runs the same targets with
 // `nx affected` (see .github/actions/nx-run).
+// Code changed without the docs that describe it (scripts/ci/docs-impact.mjs). It diffs against origin/main, so a
+// change that owes no doc says so in a commit message: `Docs: none — <reason>`. CI runs it in docs.yml with the PR body.
+run('node', ['scripts/ci/docs-impact.mjs']);
+// Filler phrases and dead backticked paths in the Markdown this change touches (docs-slop.mjs, docs-references.mjs).
+run('node', ['scripts/ci/docs-slop.mjs']);
+run('node', ['scripts/ci/docs-references.mjs', '--strict']);
 run('pnpm', ['exec', 'nx', 'run-many', '-t', 'lint', 'format', 'architecture', 'knip', 'test', 'test-node', 'build', '--skip-nx-cache', '--parallel=1', '--nx-bail', '--output-style=stream']);
+// Last: record that the full gate passed on this exact tree, so the Stop hook (scripts/ci/gate-stamp.mjs) lets the session end.
+run('node', ['scripts/ci/gate-stamp.mjs', 'record']);

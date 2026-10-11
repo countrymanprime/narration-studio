@@ -138,7 +138,7 @@ export const RowsActivateFromTheKeyboard: Story = {
   },
 };
 
-// Shaped like mock 05's per-file checks (mock-fidelity-primitives-and-components.prd.md Phase 3): flush to the card's
+// Shaped like mock 05's per-file checks: flush to the card's
 // edges, a 31 px header and 34 px rows, the numbers in mono, a muted secondary column, the failing file highlighted, the
 // chapter the work is on in bold, and a note spanning the measure columns of a file that is not measured yet.
 const FILES = [

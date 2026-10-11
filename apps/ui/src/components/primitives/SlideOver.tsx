@@ -8,10 +8,10 @@ import { IconButton } from './IconButton';
 // Right-edge panel with a transparent click-away backdrop, on Base UI's Drawer (ADR 0047, 0051). It is a real modal
 // panel: the page behind is hidden and unreachable, Tab loops inside, Escape and a press on the backdrop close it, and
 // focus goes back to what opened it. The library keeps the panel mounted while it slides out and removes it afterwards,
-// so a closed panel is not in the page at all (it used to stay mounted, invisible). All positioning is Tailwind: an
-// unlayered legacy panel rule used to shadow these utilities and keep the panel permanently off-screen behind a live
+// so a closed panel is not in the page at all. All positioning is Tailwind: an
+// unlayered panel rule would shadow these utilities and keep the panel permanently off-screen behind a live
 // backdrop (ADR-0017). `data-slide-over` and `data-slide-over-backdrop` mark the panel and its backdrop for tests.
-// `size="wide"` (ADR 0430) is for a panel that holds tables and lists a page used to (the engine panel), not a detail view.
+// `size="wide"` (ADR 0430) is for a panel that holds tables and lists that would otherwise be a page (the engine panel), not a detail view.
 // `headingLevel` 2 is for a panel that opens over any page and sits beside it rather than inside one of its sections (the
 // engine panel again): its title then follows the page's <h1> directly, where the default <h3> would skip a level.
 const WIDTH = { default: 'w-[min(20rem,100vw)]', wide: 'w-[min(44rem,100vw)]' } as const;

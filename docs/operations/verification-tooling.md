@@ -22,13 +22,13 @@ What `pnpm check` and CI verify beyond "it lints and the example tests pass", ho
 
 `apps/desktop/.golangci.yml` runs the `standard` set plus gosec and depguard and reports every finding (the defaults cap identical ones at three). The binary is pinned in `scripts/toolchain.json` and built with the repo's Go (`go install`, or `pnpm bootstrap`). Each exclusion in the file says why. A finding is fixed, or given a `//nolint:gosec // <reason>` comment. The two depguard rules are `no-network-outside-the-download-flow` and `analyzers-report-they-do-not-write` ([ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md)); to add a rule, copy one and name the ADR in its `desc`.
 
-The lint target also runs gVisor's [checklocks](https://github.com/google/gvisor/tree/master/tools/checklocks) on the product code (`checklocks -test=false ./...`, about three seconds; pinned in `scripts/toolchain.json`). A field only touched under a lock says so with `// +checklocks:mu`, and a helper its caller holds the lock for says so with `// +checklocks:s.mu` (or `+checklocksread:s.mu` for a read lock); any access without the lock fails lint. A field checklocks sees used under a lock every time is reported until it is annotated, or given a trailing `// +checklocksignore: <reason>` when the lock is incidental (an atomic, read-only data). Declare one field per line in an annotated struct: checklocks pairs annotations with fields by position, so `a, b string` moves every later annotation onto the wrong field ([ADR 0171](../adr/0171-the-race-detector-runs-only-where-there-is-concurrency-and-checklocks-guards-the-locks.md)).
+The lint target also runs gVisor's [checklocks](https://github.com/google/gvisor/tree/master/tools/checklocks) on the product code (`checklocks -test=false ./...`, about three seconds; pinned in `scripts/toolchain.json`). It analyses the Windows target on every host (`GOOS=windows` off Windows): it also analyses each dependency, and the pinned build panics on Go 1.27's Linux standard library (`fmt`, `os`, `internal/poll`), so a Linux run would crash before reaching our code. A field only touched under a lock says so with `// +checklocks:mu`, and a helper its caller holds the lock for says so with `// +checklocks:s.mu` (or `+checklocksread:s.mu` for a read lock); any access without the lock fails lint. A field checklocks sees used under a lock every time is reported until it is annotated, or given a trailing `// +checklocksignore: <reason>` when the lock is incidental (an atomic, read-only data). Declare one field per line in an annotated struct: checklocks pairs annotations with fields by position, so `a, b string` moves every later annotation onto the wrong field ([ADR 0171](../adr/0171-the-race-detector-runs-only-where-there-is-concurrency-and-checklocks-guards-the-locks.md)).
 
 The race detector runs in CI only (`-race` needs cgo), and only on the packages it can find something in: `scripts/ci/coverage-gate.mjs` races every package whose source takes a lock, uses an atomic, starts a goroutine or makes a channel, or whose tests start goroutines, and runs the rest without it, printing which. `internal/measure` took 454 s under the detector and 4 s without it.
 
 ## Coverage ratchet
 
-Only the logic directories in `scripts/ci/coverage-floors.json` are gated; components, host glue and sidecar-launch code are not. A floor is the rounded-down coverage when it was added and only goes up. To add a directory, add an entry at 80 or more (a lower floor needs a `reason`); to raise floors after adding tests, run the gate with `--update`. Details and the list of exempt code are in [CI and releases](ci-and-releases.md#coverage-ratchet).
+Only the logic directories in `scripts/ci/coverage-floors.json` are gated; components, host glue and sidecar-launch code are not. A floor is the rounded-down coverage when it was added and only goes up. To add a directory, add an entry at 80 or more (a lower floor needs a `reason`); to raise floors after adding tests, run the gate with `--update`. A few Go packages measure lower off Windows, so an entry can carry a `nonWindowsFloor` (and a `nonWindowsReason`) that applies on other hosts while `floor` stays the Windows number CI enforces. Details and the list of exempt code are in [CI and releases](ci-and-releases.md#coverage-ratchet).
 
 ## Property tests and fuzzing
 
@@ -54,6 +54,10 @@ See [CI and releases](ci-and-releases.md#dead-code-check-knip). The short versio
 ## UI import rules
 
 `apps/ui/.dependency-cruiser.mjs` has five rules over `src` and `tests`, run by the `architecture` target (about 2 s): `primitives-are-leaves` (a file in `components/primitives/`, a story or test too, imports nothing else under `components/`), `wails-bindings-only-in-api` (only `src/api/` imports `wailsjs/`), `wails-runtime-only-in-api` (only `src/api/` imports `@wailsio/runtime`, whose `Events` and `Call` reach the host without the bindings, [ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)), `base-ui-only-in-primitives` (a second guard behind `baseUiBoundary.test.ts`, [ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md)) and `zod-only-in-api` ([ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md)). A failure names the rule and says what to do instead. To add a rule, add an entry to the file and a deliberate violation to `src/architectureRules.test.ts`, which writes each bad fixture and expects exactly that rule to fire. The `<mark>` rule of [ADR 0016](../adr/0016-highlight-primitive.md) needs syntax, not imports, so it is `src/highlightBoundary.test.ts` (a scan with an allowlist that carries a reason per entry and fails when an entry is stale); the tooling's config-protection hook refuses edits to `eslint.config.js`, so no lint rule was added. [ADR 0062](../adr/0062-ui-import-rules-are-a-dependency-cruiser-config-and-a-mark-scan-that-name-their-adr.md) records the rules; `design-spec-guard` cites them and keeps only the judgement calls.
+
+## ADR index and topics
+
+`scripts/ci/adr-index.mjs` builds the table in `docs/adr/README.md` from the ADR files ([ADR 0410](../adr/0410-the-adr-index-is-generated-from-each-adrs-heading-and-status-line-and-a-stale-index-fails-the-gate.md)). `scripts/ci/adr-topics.mjs` builds [ADRs by topic](../adr/topics.md) from the same files and `scripts/ci/adr-topics.json`: each ADR sits under the first topic that pins its number or whose title pattern hits. Both run as tests in `repo-scripts` (`scripts/ci/adr-topics.test.mjs`), so a stale page, a pin that names no ADR, or an ADR no topic claims fails `pnpm check`. After adding an ADR, run `node scripts/ci/adr-topics.mjs --write`; if it reports an unclaimed ADR, add a title pattern or a pin to the config. The same script prints one topic (`--topic <id>`) or searches titles (`--grep <words>`) for the `decision-index` skill.
 
 ## Aria snapshots
 
@@ -92,6 +96,26 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 
 The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×900, dark) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons, D98).
 
+## Skill evals
+
+`pnpm run eval:skills` (`scripts/ci/skill-evals.mjs`) checks that a project skill triggers on the prompts it should and stays quiet on near misses. Each skill keeps its cases in `.claude/skills/<name>/evals/evals.json`: an `id`, a `prompt` and `expect` of `trigger` or `no-trigger`. A run copies `.claude/skills` into an empty scratch directory and runs `claude -p` there with only the `Skill` tool. `CLAUDE.md` names several skills outright, so the scratch directory has none, and a trigger has to come from the skill's description. A case passes when the named skill was called (`trigger`) or was not called (`no-trigger`). `--skill <name>` runs one skill, and `--dry-run` lists the cases without calling the model.
+
+It makes real model calls (about $0.06 a case, $0.71 for the 12 cases of the four skills that have them), so it is not part of `pnpm check`. Run it after changing a skill's description and after a model change. It measures triggering only; whether a skill then does the right thing is not checked. A skill's evals file needs at least one `trigger` and one `no-trigger` case, and `scripts/ci/skill-evals.test.mjs` fails when one is malformed or missing for a skill that has them.
+
+## Gate stamp
+
+`scripts/ci/gate-stamp.mjs` ties "the full gate passed" to an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `pnpm check` runs `record` as its last step, and `--hook` runs as a `Stop` and `SubagentStop` hook (`.claude/settings.json`): it exits 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match the tree. It lets a stop through when `stop_hook_active` is set, and when the last message says `Gate: skipped — <reason>` (an agent-train worker runs the targeted set its template names, not the full gate).
+
+The hook only reads the stamp; it never runs the gate.
+
+## Agent-train safety checks
+
+Four scripts in `scripts/ci/` keep the unattended [agent train](agent-train.md#safety-net) honest. Each exports pure functions with a `node --test` file beside it, and the two that gate a pull request run from the base branch in CI, so a pull request cannot edit its own check.
+
+- `train-health.mjs heartbeat` reads `Last pass:` from #509's body and comments once per stall on #510 when it is over two hours old and `HOLD` is not ticked. `train-health.mjs hold <reason>` ticks `HOLD` on #509 and says why. Both need `gh` and a token with `issues: write`.
+- `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any. Run it locally before pushing a test change.
+- `pr-risk.mjs <path>...` prints `high` or `normal` and the boundary each path touches. The list is in the script; `--json` reads paths from stdin.
+
 ## Reading a run
 
 Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\narration-utils\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text, [ADR 0251](../adr/0251-tool-runs-are-logged-as-json-lines-through-slog-with-a-run-id-and-content-is-never-logged.md)), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).
@@ -100,7 +124,7 @@ Turning on Settings > General > "Debug logging" raises the level from `info` to 
 
 ## Not built, on purpose
 
-These were considered and left out; the reasons are current as of the work that delivered this tooling (`git log` for `docs/prds/verification-and-code-health-tooling.prd.md` recovers the full PRD).
+These were considered and left out; the reasons are current as of the work that delivered this tooling (the PRD was deleted when the work landed; `git log` for `docs/prds/verification-and-code-health-tooling.prd.md` recovers it).
 
 - **Chromatic:** a SaaS visual service, redundant with the Playwright suite, and it cannot see the WebView2 host.
 - **MSW:** the app talks to Wails bindings, not HTTP, and the mock API already covers tests.

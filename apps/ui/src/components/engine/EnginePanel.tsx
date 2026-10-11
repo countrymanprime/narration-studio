@@ -33,13 +33,13 @@ export type EngineLinkState = {
   dawReachable: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches: boolean;
-  /** The shared "link a REAPER project file" action (project-workspace W19): the chip's old click, now the panel's button. */
+  /** The shared "link a REAPER project file" action (project-workspace W19). */
   onLinkDawFile: () => void;
   linkingDawFile: boolean;
 };
 
 /**
- * The engine panel (stage-navigation-and-page-replacement.prd.md Phase 6, Q3 A, ADR 0407), opened from the header's engine
+ * The engine panel (Q3 A, ADR 0407), opened from the header's engine
  * chip on any page. It holds what the Tracks page held that is about REAPER rather than a stage: the linked `.rpp` (link,
  * relink, or choose between several), the REAPER tools, chapter sync with its Sync activity (daw-chapter-track-auto-sync
  * Phases 3-4, mockup 02), and the track list with each track's chapter and the Chapter links table. The Tracks page's player
@@ -65,7 +65,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
   const [tool, setTool] = useState<Tool>();
-  // Read-only here (chapter-stage-recommendations.prd.md Phase 9, D5), so onStatus is a no-op; a Link or a Change below is exactly
+  // Read-only here (D5), so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });
   const unmappedCount = Array.from(stages.state.byChapter.values()).filter(

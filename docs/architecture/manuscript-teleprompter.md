@@ -1,6 +1,6 @@
 # Manuscript Teleprompter
 
-**Status: Shipped (first cut).** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog, stage navigation Phase 4) exist. This document is the design record; open and planned work is specified in teleprompter-engines-and-input-devices.prd.md (deleted) and teleprompter-manuscript-integration.prd.md (deleted).
+**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record; open and planned work is specified in teleprompter-engines-and-input-devices.prd.md (deleted PRD `teleprompter-engines-and-input-devices`) and teleprompter-manuscript-integration.prd.md (deleted PRD `teleprompter-manuscript-integration`).
 
 ## Problem
 
@@ -10,8 +10,8 @@ reviewable suspected word-level substitutions, skips, or misreads; it never
 edits text or audio automatically. Everything else — how position tracking
 behaves, which ASR approach is realistic in real time, how flags surface for
 review, and how the UI renders — was undefined. This document records how
-those questions were resolved for the shipped first cut; the flag and review
-questions are now specified in the PRDs linked above.
+those questions were resolved for the shipped feature; the flag and review
+questions are specified in the PRDs linked above.
 
 ## Intended experience
 
@@ -29,9 +29,7 @@ continuously and needs no manual scrolling:
   next word, a restart a sentence back, or a skip ahead — the highlight jumps
   to that point and resumes. The skipped or repeated span is not silently
   discarded; it becomes a flagged item.
-Flagged words (hover to see what was heard, click for review actions) are not
-built; they are specified in
-teleprompter-manuscript-integration.prd.md (deleted).
+Flags are listed in the Booth's Flags tab (`apps/ui/src/components/booth/ReaderFlagsPanel.tsx`); see "Flags" below.
 
 Nothing about this view edits the manuscript or the audio. It only tracks
 position and produces reviewable flags, same as every other analyzer in this
@@ -227,7 +225,7 @@ fuzzy matching against the script is the ordinary open-source pattern.
    segment grows, cheaper short update intervals, and `set_context()`.
 4. **Default engine.** Evaluating both engines in the real UI and recording
    the default and its rationale in an ADR is planned in
-   teleprompter-engines-and-input-devices.prd.md (deleted).
+   teleprompter-engines-and-input-devices.prd.md (deleted PRD `teleprompter-engines-and-input-devices`).
    `faster-whisper` stays for offline Transcript Compare either way.
 
 ## Engine evaluation protocol and lag-capture aid (teleprompter-engines-and-input-devices PRD, Phase 8)
@@ -312,7 +310,7 @@ in ADR 0414's Consequences, once a real-time pass exists; until then the
 default stays `whisper`/`tiny` (`config/defaults.json`, unchanged) and ADR
 0414 stays Proposed.
 
-## Flags (events built; review and persistence planned)
+## Flags
 
 With a script, the sidecar also reports suspected reading errors as `flag`
 events ([ADR 0115](../adr/0115-live-flags-are-suspected-judged-per-closed-segment-and-forgive-what-transcript-compare-forgives.md)):
@@ -341,13 +339,13 @@ restart, and no gap whose words start inside the audio of the word before
 them (the engine confirmed the same audio twice). A seek is never flagged.
 
 The Go host relays flags like any other event and keeps none in its snapshot:
-Phase 7 persists each flag as a suspected finding (`transcript_discrepancy`,
-or `pickup` for a restart), and that store, not the snapshot, is what a view
+`internal/liveflags` persists each flag as a suspected finding (`transcript_discrepancy`,
+or `pickup` for a restart) when the session ends ([ADR 0117](../adr/0117-live-flags-are-kept-as-suspected-findings-merged-per-chapter-when-a-session-ends.md)), and that store, not the snapshot, is what a view
 opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
 printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
 words by kind, which on a clean read is the false-flag rate. How a flag is
 confirmed later (recheck on click, a trailing confirmation pass) is deferred
-in teleprompter-manuscript-integration.prd.md (deleted).
+in teleprompter-manuscript-integration.prd.md (deleted PRD `teleprompter-manuscript-integration`).
 
 ## Streaming subprocess support (resolves decision #5)
 
@@ -367,8 +365,7 @@ arguments (`--engine`, `--model`, `--model-dir`, `--manuscript`, `--chapter`,
 verbatim as the Wails event `teleprompter:event`, publishes phase changes as
 `teleprompter:state`, and keeps the last `script` and `position` events in its
 snapshot so a view that opens mid-session catches up. The `Host` exposes
-`TeleprompterStart`, `TeleprompterStop` and `TeleprompterState` (added in
-host API version 5). `TeleprompterStart` uses the same first-use model gate as
+`TeleprompterStart`, `TeleprompterStop` and `TeleprompterState`. `TeleprompterStart` uses the same first-use model gate as
 Transcript Compare and defaults to the `tiny` model, because live
 transcription has to keep up with speech. It launches the engine the request
 names (Whisper by default; Moonshine on Windows only, from its verified catalog
@@ -485,25 +482,18 @@ is needed for Start.
 **Duplicate device names.** ffmpeg disambiguates same-named devices with an
 "Alternative name" line (a stable `@device_...` path); `devices.py` records
 it (`Device.alternative_name`) but nothing opens a device by that path
-instead of its friendly name yet, and no duplicate audio device names existed
-on the development machine to test the collision case against. Left for the
-phase that builds the picker (Phase 2): if it needs to disambiguate, the
-alternative name is already captured, just not exposed over the wire yet
-(`Device.to_json()` returns only `name` today).
+instead of its friendly name, and no duplicate audio device names existed
+on the development machine to test the collision case against. The
+alternative name is not exposed over the wire (`Device.to_json()` returns only
+`name`).
 
 The Go binding (`apps/desktop/internal/teleprompter/service.go`'s `Devices`,
-exposed as the `TeleprompterDevices` host binding, `hostAPIVersion` 14) runs
+exposed as the `TeleprompterDevices` host binding) runs
 the sidecar in `--list-devices` mode with a caller-supplied timeout and caches
 nothing; a failure at any layer (bad exit code, unparseable output, a timeout)
 comes back as an empty list plus a message, never a rejected call, so the UI
-always gets a result to react to. Phase 1 stops at the binding: no UI calls it
-yet, and the existing typed microphone field is unchanged behavior, only
-relocated to `apps/ui/src/components/booth/MicrophoneField.tsx` as the
-shared seam this PRD and `teleprompter-manuscript-integration.prd.md` agreed
-on. The device picker itself (consuming `TeleprompterDevices`, replacing the
-typed field entirely with a dropdown-only picker, the "not found" state, and a
-blocking message on an empty or failed listing - the PRD's "Microphone is
-never typed" decision) is Phase 2.
+always gets a result to react to. `useTeleprompterSession.ts` calls it and
+`apps/ui/src/components/booth/MicrophoneField.tsx` is the picker.
 
 ## Input level and the meter (read-aloud-control-bar PRD, Phase 4)
 
@@ -538,7 +528,7 @@ redirects here keeping its query and hash). `BoothPage` owns what the Booth read
 `?credits=opening|closing`, else REAPER's confident suggestion, ADR 0113, else the last chapter read) and loads the
 Story Bible entries and notes for the marks; it mounts one `BoothSession`, keyed by what it reads, which holds the one
 `useTeleprompterSession` subscription, the flags kept as findings, the resume prompt and Record in REAPER. `BoothView`
-lays it out on `FocusShell` (mock 03): a status line, the chapter picker above the text while idle, the rail and the
+lays it out on `FocusShell`: a status line, the chapter picker above the text while idle, the rail and the
 `ReadingControlBar` as its command bar (microphone, engine and model, Record in REAPER). Companion mode (`CompanionShell`,
 ADR 0401) is entered from the Booth's header. The text highlights the current word as you read: read words dim, the
 current word is a solid accent fill (the `Cursor` kind of `Highlight`), words the tracker says you skipped get a dotted
@@ -553,8 +543,8 @@ of the chapter).
 
 **Still open:** punch-and-roll from a word beyond the flag's "Punch from here", and the per-character reference clips
 the rail reserves a place for, are specified in
-teleprompter-manuscript-integration.prd.md (deleted) and
-character-continuity-review.prd.md (deleted).
+teleprompter-manuscript-integration.prd.md (deleted PRD `teleprompter-manuscript-integration`) and
+character-continuity-review.prd.md (deleted PRD `character-continuity-review`).
 
 ## Resume: where REAPER is and where the prompter was
 
@@ -619,9 +609,7 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 - **`estimate`**: the anchors' pace, only when the recording cannot answer.
 
 A punch after its preview reuses the preview's alignment; a successful punch drops the anchors at or after the word.
-The mockups the prompt was built to (deleted 2026-09-29, D96) showed
-(agree, disagree, recorded to the end, gone after play, checking, last reading
-only). REAPER's own behaviour of the live read (an unsaved take's file, a
+REAPER's own behaviour of the live read (an unsaved take's file, a
 `SECTION` source's file name, a take still recording) is checked by the owner in
 REAPER (#510).
 
@@ -645,9 +633,9 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 The remaining open items (engine choice and default, Moonshine provisioning and
 packaging, microphone selection, and the audio source for reviewing a flag) are
 specified in
-teleprompter-engines-and-input-devices.prd.md (deleted)
+teleprompter-engines-and-input-devices.prd.md (deleted PRD `teleprompter-engines-and-input-devices`)
 and
-teleprompter-manuscript-integration.prd.md (deleted).
+teleprompter-manuscript-integration.prd.md (deleted PRD `teleprompter-manuscript-integration`).
 
 - Script tracker placement and source: decided. The sidecar hosts it and reads
   the script from a chapter of the project's canonical `manuscript.json`
@@ -666,11 +654,9 @@ teleprompter-manuscript-integration.prd.md (deleted).
   `script` event's spans (a paragraph that disagrees is shown untracked), and
   the chapter is chosen from a picker that starts on the reader's active chapter
   ([ADR 0024](../adr/0024-teleprompter-highlight-follows-the-sidecars-spans.md)).
-  Still open: choosing the chapter from the REAPER track name, as Transcript
-  Compare does.
 - Tracker limits to revisit with real use: word matching is normalization plus
   a close-spelling check, without Transcript Compare's homophone, number-word
   and hyphenation handling; invented names and spoken numbers are the likely
   misses. Flags forgive those forms (`narration_common.spoken_forms`, see
   "Flags" above), but position matching still does not; flags reach the
-  findings contract in the integration PRD's Phase 7.
+  findings contract through `internal/liveflags`.

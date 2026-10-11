@@ -67,7 +67,7 @@ function pickerValueOf(params: URLSearchParams): string {
 }
 
 /**
- * The Record stage's one page (stage-navigation-and-page-replacement.prd.md Phase 4, mock 03), replacing the Teleprompter
+ * The Record stage's one page (mock 03), replacing the Teleprompter
  * page, the Manuscript's Read aloud dialog and its booth dialog (ADR 0407: one page per job). The pre-session setup is the
  * chapter picker (with the credits, and REAPER's suggested chapter, ADR 0113) above the text, the resume prompt and the
  * command bar's microphone, engine and model; once a session starts the setup folds away and the reading surface is all

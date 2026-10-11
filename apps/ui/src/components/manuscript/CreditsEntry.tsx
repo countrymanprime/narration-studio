@@ -33,8 +33,7 @@ export function CreditsEntry({
    * shown beside the unresolved-token line whenever there is one to show. Omitted, the line renders with no button (a
    * caller that has not wired the dialog up yet). */
   onFillIn?: () => void;
-  /** Record in Booth (manuscript-credits-card-parity.prd.md Phase 2's read-aloud action, now the Booth page's link,
-   * stage-navigation-and-page-replacement.prd.md Phase 4): shown only once there is something to read (`preview.words > 0`,
+  /** Record in Booth (manuscript-credits-card-parity.prd.md Phase 2): the Booth page's link, shown only once there is something to read (`preview.words > 0`,
    * matching the Booth's own chapter picker). */
   onRecordInBooth?: () => void;
 }) {

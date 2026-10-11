@@ -23,6 +23,9 @@ Scripts that run **inside a real REAPER** to answer questions a fake cannot: how
 | `enumcheck.lua` | Shows that `reaper.EnumerateFiles` caches a directory listing until it is called with index `-1`. |
 | `build_cases.lua` | Builds the fixture project (multi-take, muted, section, rate and stretch, FX, extension data, markers, regions), saves it, reloads it, saves it again, and records the API return shapes the harness fake copies. |
 | `real_project.lua` | Opens a copy of a real project, re-saves it unchanged, stamps its first five items through the real bridge and saves again, so the two saved files can be compared. |
+| `reachability.lua` | Spike S6 (project-workspace-and-daw-link PRD): reports what `EnumProjects` sees for the active tab and proves a periodic file-based heartbeat is viable for a host to poll. |
+| `spike_s5_render.lua` | Spike S5 (reaper-automation-follow-through PRD, Phase 10): `RENDER_STATS` key format, `$region` naming in `RENDER_PATTERN`, the render action IDs, and whether a render can be previewed without writing files. |
+| `verify_p7_heartbeat.lua` | Loads the real `narration_ui_bridge.lua` and counts the `PROJECT_STATUS` heartbeats it appends to `events.log` over a few seconds, to check the periodic rewrite against real REAPER. |
 | `results/` | The recorded outputs of the runs described in the S0 research doc (paths removed). |
 | `checklist.lua` | Loads the real bridge in REAPER and runs the line identity checklist (stamp, undo, idempotence, conflict, stale, split, duplicate, save and reload, notes untouched, regions, and the Transcript Compare commands with a hand-made results file), writing PASS/FAIL per step. |
 | `make_length_media.py` | Writes a 1 s, a 5 s and a 4 s synthetic tone into `<out>/media`, for the take-mechanics spike's longer/shorter/offset-alignment cases. |

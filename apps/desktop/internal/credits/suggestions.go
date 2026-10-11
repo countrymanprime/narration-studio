@@ -10,8 +10,8 @@ import (
 
 // SuggestFromManuscript seeds Title and Author suggestions from the current project's imported manuscript: a thin
 // wrapper over Detect (credits-token-setup-and-front-matter-detection.prd.md Phase 1) that keeps
-// CreditsProjectValues.suggestions compatible with what it always returned, now backed by the front matter parser and
-// file metadata rather than only a "Cover" section and docProps (CS10: the Cover label no longer matters to credits).
+// CreditsProjectValues.suggestions compatible with its earlier shape, backed by the front matter parser and
+// file metadata (CS10: the Cover label does not matter to credits).
 // This never writes anything back to manuscript.json or the source file; it only reads and returns editable
 // suggestions for the narrator to accept, change or ignore. A project with no manuscript, or one with nothing
 // detectable, returns an empty map rather than an error - suggesting nothing is a normal outcome, not a failure.

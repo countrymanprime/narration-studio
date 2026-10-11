@@ -89,7 +89,7 @@ function JudgementSummary({ files, profile }: { files: readonly MeasureFileResul
 }
 
 /**
- * Master & QC (stage-navigation-and-page-replacement.prd.md Phase 8, mock 05; it replaces the Delivery page, ADR 0407): one page
+ * Master & QC (mock 05; it replaces the Delivery page, ADR 0407): one page
  * for the book's finish. The platform tabs choose the delivery profile the project is judged against (the project's own choice,
  * the one Settings > Delivery also sets, ADR 0440); the per-file checks are the host's measurement of the rendered files, judged
  * rule by rule against it (ADR 0179), with why a file fails and a suggested fix beside the book's consistency; the mastering

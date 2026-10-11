@@ -33,6 +33,10 @@
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git push --force-with-lease:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push origin HEAD:main:*)",
+      "Bash(git push -u origin main:*)",
+      "Bash(git push -u origin HEAD:main:*)",
       "Bash(git reset --hard origin:*)",
       "Bash(git rebase:*)",
       "Bash(rm -rf /:*)",
@@ -42,6 +46,14 @@
   "hooks": {
     "SessionStart": [
       { "matcher": "startup", "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/cloud/session-start.sh\"", "timeout": 600 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] },
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs\" --hook", "timeout": 30 }] }
+    ],
+    "SubagentStop": [
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] },
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs\" --hook", "timeout": 30 }] }
     ]
   }
 }

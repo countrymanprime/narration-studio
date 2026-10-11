@@ -5,7 +5,7 @@ import type { PickupsState } from '../../types';
 const IDLE: PickupsState = { phase: 'idle', message: '', remaining: 0, total: 0, csv: '' };
 
 /**
- * The proofer's pickup list as REAPER last reported it (stage-navigation-and-page-replacement.prd.md Phase 7): the live
+ * The proofer's pickup list as REAPER last reported it: the live
  * pickups event, the run already in flight, then a fresh count. The Pickups page and the Booth companion's Pickups
  * section both read it, so they never disagree about what is left.
  */

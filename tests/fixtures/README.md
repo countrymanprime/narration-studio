@@ -94,18 +94,9 @@ Needs `python-docx` and `fpdf2` (`pip install fpdf2` - a fixture-generation
 tool only, not a project dependency) and, as written, a Windows Arial TTF
 path for Unicode PDF text - see the script for how to point it elsewhere.
 
-**Known limitation, deliberately left visible rather than worked around:**
-`alice.pdf` imports as a single paragraph with no chapter breaks via the
-current Python PDF import path (`_pdf_draft` in `manuscript.py`). `pypdf`'s
-`extract_text()` never produces a blank line for a PDF built this way (a
-large `pdf.ln()` gap and an explicit empty text-draw both failed to
-trigger one), so the whole document is one block for the
-`re.split(r"\n\s*\n+", ...)` chapter/paragraph splitter regardless of how
-many chapters it has. This is a real, pre-existing characteristic of PDF
-import generally - any manuscript PDF from a similarly simple generator
-(not Word/LibreOffice's PDF export, which does preserve blank lines) hits
-the same ceiling. The Go importer (`apps/desktop/internal/importer`) reads the same file
-through its own PDF path.
+**Known limitation, deliberately left visible:** `alice.pdf` has no reliable chapter boundaries
+(`pypdf` text extraction never yields a blank line for a PDF built this way), so the Go importer rejects it;
+`TestPDFFixtureIsRejectedUntilChapterBoundariesAreReliable` (`apps/desktop/internal/importer/importer_test.go`) holds it to that.
 
 ## audio/librivox-alice/
 

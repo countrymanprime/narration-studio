@@ -54,7 +54,7 @@ import { PronunciationQueries } from '../storybible/PronunciationQueries';
 import { ScriptChapterList, SCRIPT_SECTION_LABEL } from './ScriptChapterList';
 import { ScriptRail } from './ScriptRail';
 
-// The Booth (stage-navigation-and-page-replacement.prd.md Phase 4) reads narration chapters only, so only they link to it.
+// The Booth reads narration chapters only, so only they link to it.
 const isNarrationChapter = (chapter: Pick<ManuscriptChapter, 'contentKind'>) => (chapter.contentKind ?? 'narration') === 'narration';
 
 const TEXT_SIZES = ['small', 'medium', 'large'] as const;
@@ -74,7 +74,7 @@ const defaultState: ReaderState = { expandedChapters: [], bookmarks: [] };
 const escapeSelector = (value: string) =>
   typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(value) : value.replace(/(["\\])/g, '\\$1');
 
-// The Script page (stage-navigation-and-page-replacement.prd.md Phase 3, mock 02), which replaced the Manuscript page: the
+// The Script page (mock 02), which replaced the Manuscript page: the
 // chapter list with each chapter's prep status, the reader, and a rail of Pronunciations, Characters and Queries. The list is a
 // column from `xl` and the rail from 1440 px (mock 02's own three-column capture width - D85 on issue #509, ADR 0393,
 // superseding ADR 0392's `2xl`); below those widths the list is the Chapters & Search panel and the rail opens as a panel
@@ -226,7 +226,7 @@ export function ScriptPage({
 
   const [loadError, setLoadError] = useState<string>();
   const [loadAttempt, setLoadAttempt] = useState(0);
-  // The nav's "Suggested: <stage>" marker (chapter-stage-recommendations.prd.md Phase 9, Q6): read-only here, so
+  // The nav's "Suggested: <stage>" marker (Q6): read-only here, so
   // onStatus is a no-op - the marker never confirms, dismisses or reverts. Refreshed whenever chapters reload
   // (loadAttempt), the same trigger the page's own chapter list already uses.
   const stages = useStageRecommendations({ refreshKey: String(loadAttempt), notify, onStatus: () => {} });
@@ -615,14 +615,14 @@ export function ScriptPage({
       // empirically (a real 1440px render kept two columns until this was fixed). Plain `xl:grid` alone is fine to
       // keep for turning on the grid itself - nothing else sets `display` at another breakpoint on this element, so
       // there is no such conflict for that property.
-      className="reader-page min-h-full [--reader-inline:1.5rem] max-md:[--reader-inline:1rem] min-[1280px]:grid-cols-[12rem_minmax(0,1fr)] min-[1440px]:grid-cols-[12rem_minmax(0,1fr)_21.5rem] xl:grid"
+      className="reader-page min-h-full [--reader-inline:1.5rem] max-md:[--reader-inline:1rem] min-[1280px]:grid-cols-[13.5rem_minmax(0,1fr)] min-[1440px]:grid-cols-[13.5rem_minmax(0,1fr)_22.5rem] xl:grid"
       style={{ '--band-h': `${bandHeight}px` } as CSSProperties}
     >
       {/* Mock 02's left column: the chapters with their prep status, and the key to the marks in the text. The page scrolls
           under it, so it sticks to the top of the scroll area (the header above is h-14). */}
       <aside
         aria-label="Chapters and marks"
-        className="sticky top-0 hidden h-[calc(100dvh-3.5rem)] self-start overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-3 xl:block"
+        className="sticky top-3 m-3 hidden h-[calc(100dvh-3.5rem-1.5rem)] self-start overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 xl:block"
       >
         <ScriptChapterList chapters={chapters} activeId={active} toConfirm={toConfirm} select={(id) => showChapter(id)} />
         <div className="mt-4 border-t border-[var(--border)] pt-3">
@@ -791,7 +791,7 @@ export function ScriptPage({
       </div>
       <aside
         aria-label="Prep"
-        className="sticky top-0 hidden h-[calc(100dvh-3.5rem)] flex-col self-start overflow-hidden border-l border-[var(--border)] bg-[var(--surface)] min-[1440px]:flex"
+        className="sticky top-3 m-3 hidden h-[calc(100dvh-3.5rem-1.5rem)] flex-col self-start overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] min-[1440px]:flex"
       >
         {rail}
       </aside>

@@ -20,6 +20,10 @@ v3 is not a drop-in: the app is `application.New` plus a window instead of `wail
 6. **Events.** The host emits one value per event (`emitEvent(name, data)`); the page receives a `WailsEvent` and the client checks its `data` against the event's schema, as before ([ADR 0069](0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md)). Event names and payloads are unchanged, so no golden file or schema moves.
 7. **Build.** `scripts/release/wails-build.mjs`, run from `apps/desktop` by CI and by `pnpm run build`, does what v3's Windows Taskfile does, with no Taskfile: `wails3 update build-assets` renders the Windows version resource, manifest and `wails_tools.nsh` and the macOS `Info.plist` from `wails.json` into a temporary folder (`wails.json` stays the product-facts file `sync-version.mjs` keeps at the release version; v3 itself never reads it); `wails3 generate syso` embeds them; `go build -tags production -trimpath -buildvcs=false -ldflags "-w -s [-H windowsgui] -X main.version=…"`; and `--installer` writes the WebView2 bootstrapper the pinned CLI carries (no download) beside `project.nsi` and runs `makensis`, failing when makensis or the setup program is missing. Linux links GTK 4 and WebKitGTK 6.0; CI installs them.
 
+## Amendment, 2026-10-11
+
+The pin moved from `v3.0.0-beta.25` to `v3.0.0-beta.26` in all three places item 1 names (Dependabot moved `go.mod` in #919; the npm runtime and the CLI followed). `@wailsio/runtime@3.0.0-beta.26` was published 2026-09-25T15:18Z, so the cooldown exclusion in item 1 is gone from `pnpm-workspace.yaml`. The file name keeps `beta-25` so existing links hold.
+
 ## Consequences
 
 - The zoom controls can set the real page zoom while the app runs, which was the point (nav PRD Phase 2).

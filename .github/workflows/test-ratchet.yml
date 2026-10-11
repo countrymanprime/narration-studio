@@ -1,0 +1,35 @@
+name: Test ratchet
+# Tests only ratchet up (scripts/ci/test-ratchet.mjs): a pull request may not delete a test file, add a skip or focus
+# marker to one, or lower a coverage floor. The owner clears a deliberate change with the `ratchet-approved` label, which
+# is why this is its own workflow: a label change re-runs it without re-running the whole of CI. The check runs the
+# script as it is on the base branch, so a pull request cannot edit its own gate; a pull request that adds the script
+# runs its own copy, once. Not a required check (no ruleset requires one, #544); the agent-train coordinator reads it.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+permissions: { contents: read }
+concurrency:
+  group: test-ratchet-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  ratchet:
+    name: Test ratchet
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'ratchet-approved') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: |
+          script="$RUNNER_TEMP/test-ratchet.mjs"
+          git show "$BASE_SHA:scripts/ci/test-ratchet.mjs" > "$script" 2>/dev/null || cp scripts/ci/test-ratchet.mjs "$script"
+          if node "$script" "$BASE_SHA"; then exit 0; fi
+          if [ "$APPROVED" = "true" ]; then
+            echo "The owner approved this with the ratchet-approved label."
+            exit 0
+          fi
+          exit 1

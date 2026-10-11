@@ -77,7 +77,7 @@ func (h *Host) CreditsProjectValues() (string, error) {
 }
 
 // CreditsSaveProjectValues saves this project's own credit token values onto
-// the project manifest (C12: the manifest directly, now that it exists).
+// the project manifest (C12).
 func (h *Host) CreditsSaveProjectValues(title, subtitle, author, series, bookNumber, copyrightText, year, copyrightHolder, publisher, narrator string) (string, error) {
 	svc := h.services()
 	projectFolder := svc.config.projectFolder

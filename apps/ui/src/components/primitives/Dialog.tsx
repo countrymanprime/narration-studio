@@ -148,7 +148,7 @@ export function Dialog({
             {hasContent(actions) && (
               <div
                 data-dialog-actions
-                // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px now
+                // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // (ADR 0595), so the row keeps the mocks' height and centres the buttons in the 38 px band.
                 className={`flex min-h-[4.1875rem] flex-none items-center gap-2 border-t px-4 pt-3 pb-4 ${actionsAlign === 'between' ? 'justify-between' : 'justify-end'}`}
                 style={{ borderColor: 'var(--border)' }}

@@ -6,7 +6,7 @@ import type { CapabilityEntry } from './components/primitives/CapabilityGate';
 const UNKNOWN_CAPABILITY: CapabilityEntry = { level: 'unsupported', available: false };
 
 /**
- * One capability's live entry from the DAW port's capability report (studio-ui-primitives.prd.md Phase 12): read once
+ * One capability's live entry from the DAW port's capability report: read once
  * with `dawCapabilities()`, then kept current by `daw_capabilities_changed`, the same read-then-subscribe race
  * handling as `useChapterSync` (an update the subscription's own attach triggers may resolve before the plain read
  * does, so a stale read is dropped rather than allowed to overwrite it). A capability the host's report does not

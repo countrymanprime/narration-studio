@@ -47,7 +47,7 @@ function WordStrip({ evidence, member }: { evidence: TakeComparisonEvidence; mem
 }
 
 /**
- * A take comparison (take-review-pickups-duplicates-take-intelligence.prd.md Phase 10, ADR 0165): the reads of one group set
+ * A take comparison (ADR 0165): the reads of one group set
  * side by side over the same part of the script. First how each read read the script, word by word, with every place it
  * departs listed with its time; then one table of the audio measurements, a row per category with what it measures and a
  * column per read, each figure measured or unavailable with its reason. Nothing adds the rows up, orders the reads or names a

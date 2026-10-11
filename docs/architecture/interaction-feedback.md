@@ -1,6 +1,6 @@
 # Interaction feedback: what an action owes the narrator
 
-**Status: implemented.** Every place the UI calls the Go host has a row in a catalog with a verdict against a written standard, a test keeps that inventory honest, the Story Bible actions acknowledge and cannot overlap, and a host job that ends tells the narrator wherever they are. The decisions are [ADR 0075](../adr/0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md) (the standard, the tiers, the catalog) and [ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md) (job-end events, the toast queue, the rebuild in the background; Proposed). The work was specified in the interaction feedback audit PRD (`git log --diff-filter=D -- docs/prds/interaction-feedback-audit.prd.md` finds it); the measurements are in the [latency baseline](../research/interaction-latency-baseline.md).
+**Status: implemented.** Every place the UI calls the Go host has a row in a catalog with a verdict against a written standard, a test keeps that inventory honest, the Story Bible actions acknowledge and cannot overlap, and a host job that ends tells the narrator wherever they are. The decisions are [ADR 0075](../adr/0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md) (the standard, the tiers, the catalog) and [ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md) (job-end events, the toast queue, the rebuild in the background). The work was specified in the interaction feedback audit PRD (`git log --diff-filter=D -- docs/prds/interaction-feedback-audit.prd.md` finds it); the measurements are in the [latency baseline](../research/interaction-latency-baseline.md).
 
 ## The standard
 
@@ -35,13 +35,7 @@ Where things fall (measured on one machine, see the baseline for its caveats): e
 
 The host emits one `job:ended` per finished job, `{ id, kind, outcome, message, durationMs }`, from the goroutine that ran it, after the job is settled and with no lock held (`publishJobEnded`; tests replace it with the `h.jobEvents` sink because the Wails runtime rejects a context it did not make). `outcome` is `success`, `error` or `cancelled`; `message` is a sentence for the narrator.
 
-| Kind | Emitted when | Announced by |
-| --- | --- | --- |
-| `story_bible` | the build ends | the App-level toast |
-| `transcript_compare` | the transcript state leaves an active phase for `success`, `error` or `cancelled` (a reset is not an end) | the App-level toast |
-| `manuscript_import` | a commit ends (a ready preview is not an end) | its modal dialog |
-| `tts_install`, `whisper_install` | the install ends | its modal dialog |
-| `app_update` | the download ends | its modal dialog |
+The kinds are the `jobKind*` constants in `apps/desktop/jobs.go`, matched by the UI in `apps/ui/src/api/contracts/system.ts`. `story_bible` and `transcript_compare` (emitted when the transcript state leaves an active phase for `success`, `error` or `cancelled`; a reset is not an end) are announced by the App-level toast. `manuscript_import`, `tts_install`, `whisper_install` and `app_update` are announced by their modal dialog.
 
 One owner per kind: `toastForJobEnd` returns nothing for a cancelled job and for the kinds whose modal dialog is on screen while they run, so nothing is announced twice. The event reaches every listener, which is what a notification feature reads: `kind` and `durationMs` to decide whether the narrator was waiting, `document.hasFocus()` in the webview to decide whether they were looking (the webview is the side that knows; the host does not ask Wails for window focus).
 
@@ -52,7 +46,7 @@ The payload is a wire contract ([wire contracts](wire-contracts.md)): `jobEndedS
 - **`apps/ui/src/interactionFeedback.catalog.ts`** has one row for every call of a `NarrationApi` method outside `src/api/`. A site is `<file>::<method>#<n>` (the n-th call of that method in that file, in source order). A row says what triggers the call, what the host does (`instant`, `file-io`, `python`, `job`, `download`, `os-dialog`), how it acknowledges, guards and completes, where a failure goes, whether the outcome survives leaving the page, and a verdict.
 - **Verdicts.** `ok` meets the standard. `gap` does not, and its `plan` is a GitHub issue (`#123`). `owned` belongs to other work named in `plan`. `exempt` is on purpose and the note says why (a mount-time load with a page error state, a diagnostic that must never throw).
 - **`apps/ui/src/interactionFeedback.test.ts`** fails on a call with no row, a row whose call is gone, a `gap` with no issue, an `ok` row that fails silently or leaves a Python call unacknowledged or unguarded, and any bare catch (`catch {}`, `.catch(() => {})`, `.catch(() => undefined)`) that is not in `SILENT_CATCHES` with its reason. It reads the contracts and the source with the TypeScript parser, so a comment that mentions `api.guideEdit(` is not a call. `SILENT_CATCHES` may only shrink, and a narrator's action never belongs on it.
-- **State today:** 110 call sites; no `gap`, no `owned` (the nine install rows became `ok` when the install flows were rebuilt, [ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md)); the rest `ok` or `exempt`.
+- **State:** the rows live in one file per area under `apps/ui/src/interactionFeedback/`; none has the verdict `gap` or `owned`.
 
 ## Adding a call to the host, or a job
 
@@ -64,8 +58,7 @@ The payload is a wire contract ([wire contracts](wire-contracts.md)): `jobEndedS
 
 `apps/desktop/internal/latency` is a build-tagged Go test (not in the gate) that drives the real Story Bible service through the real supervisor and the Go calls, for the dev venv or a frozen sidecar (`LATENCY_PYTHON`, `LATENCY_BACKEND`; `LATENCY_GO_ONLY=1` for the Go calls alone). How to run it, the numbers before and after the latency work, and what could not be measured are in the [latency baseline](../research/interaction-latency-baseline.md).
 
-## What is not done
+## Open
 
-- **The install flows** are done ([ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md)): real bytes, a host that joins a running install, one `useAssetInstall` hook.
-- **Operating system notifications** are the Story Bible and import briefs PRD's (owner decision D8: on by default); they subscribe to `job:ended`.
+- **Operating system notifications** subscribe to `job:ended` ([native notifications](native-notifications.md)).
 - **Owner steps** ([#210](https://github.com/countrymanprime/narration-utils/issues/210)): a screen-reader pass on the live regions and busy buttons, a real desktop run of the job-end toast, and the measurements that need a spaCy model, a Piper voice or antivirus.

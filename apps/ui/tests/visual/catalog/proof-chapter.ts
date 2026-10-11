@@ -1,5 +1,5 @@
 // The `proof-chapter` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: Proof's chapter view,
-// `/proof/:chapterId` (stage-navigation-and-page-replacement.prd.md Phase 5). It is the chapter workspace of
+// `/proof/:chapterId`. It is the chapter workspace of
 // edit-and-proof-workspace.prd.md (the `workspace` page key until Phase 5) with the Proofing page folded in (the `proofing`
 // page key): the compare run, its results as flags, and the Preview and stage panels.
 import type { StateEntry } from '../lib/types';
@@ -186,7 +186,7 @@ export const proofChapterStates: StateEntry[] = [
     ...KEEPS_DESKTOP_SCROLL,
   },
   { page: 'proof-chapter', state: 'compare-toast', description: 'Proof chapter view, Suggest from manuscript answered with a toast', ...FREEZES_THE_CLOCK },
-  // The vocabulary hints tag-input box (proofing-vocabulary-hints.prd.md Phase 2): the pills box is the input, no separate Add row.
+  // The vocabulary hints tag-input box: the pills box is the input, no separate Add row.
   {
     page: 'proof-chapter',
     state: 'compare-hints-typing',
@@ -220,7 +220,7 @@ export const proofChapterStates: StateEntry[] = [
       'Proof chapter view reviewing the last completed comparison with no linked REAPER project file (?mockNoDaw=1, PRD W16): its misread selected, Play recorded audio off, and Export off in the summary',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // The Preview panel (proofing-preview-suggestion.prd.md Phase 3): a suggested five-minute excerpt from the manuscript, computed on
+  // The Preview panel: a suggested five-minute excerpt from the manuscript, computed on
   // read (SR D1 - never applied, exported or stored), beside the compare run.
   {
     page: 'proof-chapter',
@@ -258,7 +258,7 @@ export const proofChapterStates: StateEntry[] = [
     description:
       'Proof chapter view, the Preview panel with a full-length candidate warned for a reason other than being short (an unclassified import, ?mockPreviewCandidates=warnings) - text and an icon, never colour alone',
   },
-  // The pin and adjust UI (proofing-preview-suggestion.prd.md Phase 8): the narrator's own pinned window, settled on
+  // The pin and adjust UI: the narrator's own pinned window, settled on
   // rather than recomputed, with edge adjustment and a stale banner when the manuscript has moved on since.
   {
     page: 'proof-chapter',
@@ -272,7 +272,7 @@ export const proofChapterStates: StateEntry[] = [
     description:
       'Proof chapter view, a pinned preview whose manuscript text changed since it was pinned (?mockPreviewCandidates=pin-stale) - the stale banner in text and an icon, never colour alone, beside its still-recomputed evidence',
   },
-  // The stage recommendations panel (chapter-stage-recommendations.prd.md Phase 8, proofing-readiness-signals.prd.md Phases 1 and 5):
+  // The stage recommendations panel (proofing-readiness-signals.prd.md Phases 1 and 5):
   // every narration chapter currently in Proofing, with the StageSuggestion/StageEvidence pattern Home's breakdown table uses.
   {
     page: 'proof-chapter',
@@ -297,7 +297,7 @@ export const proofChapterStates: StateEntry[] = [
     description:
       'Proof chapter view, the stage recommendations panel: Why opened on an unmapped-track cause (?mockProofingSignal=unmapped-track) - "Open the audio engine panel", never "Open recording check" (stageText.ts PROOFING_CAUSE_TEXT)',
   },
-  // The chosen rendered file the delivery checks are about (proofing-readiness-signals.prd.md Phase 6).
+  // The chosen rendered file the delivery checks are about.
   {
     page: 'proof-chapter',
     state: 'render-none',

@@ -64,7 +64,7 @@ describe('AppShell nav gating (PRD project-workspace-and-daw-link.prd.md, W16/W1
     expect(screen.getAllByRole('group', { name: /Import a manuscript to unlock this page/ }).length).toBeGreaterThan(0);
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 5: Proof replaces Proofing and Review, and its compare run gates itself on
+  // Proof replaces Proofing and Review, and its compare run gates itself on
   // the DAW inside the chapter view (CompareRun.test.tsx), so the nav item is never off - not for a missing file, nor for REAPER.
   it('never gates Proof, with no linked file and with REAPER not connected', () => {
     renderShell({ hasManuscript: true, dawFileLinked: false }, { connected: false });
@@ -120,7 +120,7 @@ describe('AppShell header pill mismatch state (Phase 7)', () => {
   });
 });
 
-// stage-navigation-and-page-replacement.prd.md Phase 1 (ADR 0407 item 3, Q5, Q6): the nav is grouped by production
+//  (ADR 0407 item 3, Q5, Q6): the nav is grouped by production
 // stage, each existing page held under its current name until the phase that replaces it; Phase 2 made Production the item at `/`.
 describe('AppShell grouped navigation (Phase 1)', () => {
   it('names every group (sidebar, rail and drawer all expose the same accessible name)', () => {

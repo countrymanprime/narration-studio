@@ -6,8 +6,7 @@ import type { StageDecision, StagesState } from './useStageRecommendations';
 import { stageLabel, verdictLine } from './stageText';
 
 /**
- * A chapter's stage suggestion under its status (chapter-stage-recommendations.prd.md Phase 5, deleted; see
- * docs/architecture/stage-recommendations.md): the verdict in a few words,
+ * A chapter's stage suggestion under its status (docs/architecture/stage-recommendations.md): the verdict in a few words,
  * Confirm and Dismiss when a move is suggested, Revert after a confirmation (and prominently when the evidence has since changed), and Why,
  * which opens the evidence. It never changes a status on its own; the status select above it stays the narrator's override. Every button
  * names its chapter, so twelve rows of them can be told apart.

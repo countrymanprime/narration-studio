@@ -170,7 +170,7 @@ describe('ChapterNav', () => {
     expect(screen.getByRole('button', { name: /^Chapter One — Down the Rabbit-Hole/ })).toBeTruthy();
   });
 
-  // chapter-stage-recommendations.prd.md Phase 9, Q6: a non-interactive marker beside a chapter with a live
+  // Q6: a non-interactive marker beside a chapter with a live
   // suggestion, reusing stageText.ts's verdictLine so the wording matches Home's own row exactly.
   it('shows a non-interactive "Suggested: <stage>" marker for a chapter with a recommended verdict', () => {
     const chapters = [chapter({ id: 'c1', title: 'Chapter One', status: 'recording' })];
@@ -211,7 +211,7 @@ describe('ChapterNav', () => {
     expect(screen.queryByText(/^Suggested:/)).toBeNull();
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 3 (ADR 0392): below `xl` this panel is the Script page's chapter list, so it
+  //  (ADR 0392): below `xl` this panel is the Script page's chapter list, so it
   // carries the same prep status as the column: the names first heard in the chapter still to confirm.
   it("shows a chapter's names still to confirm, and nothing for a chapter with none", () => {
     const chapters = [chapter({ id: 'c1', title: 'Chapter One' }), chapter({ id: 'c2', title: 'Chapter Two' })];

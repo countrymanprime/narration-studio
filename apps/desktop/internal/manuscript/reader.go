@@ -16,8 +16,7 @@ import (
 // adapters (Transcript Compare's, review-dashboard-and-findings-adoption.prd.md)
 // that only receive a title from a data source outside the manuscript.
 // ambiguous is true when more than one chapter shares the title exactly; ok
-// is still true, but callers should treat the match as provisional (the
-// PRD's Architecture Notes say to fall back to the title with a flag).
+// is still true, but callers should treat the match as provisional.
 func (s *Service) ChapterIDByTitle(title string) (id string, ambiguous, ok bool) {
 	data, err := s.Load()
 	if err != nil {
@@ -450,7 +449,7 @@ func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, 
 		result["subtitle"] = subtitle
 	}
 	// A chapter reclassified after import (SetChapterKind) says when; one imported as narration and now another kind
-	// was removed from recording and is listed for Restore (chapter-track-link-control PRD Phase 3).
+	// was removed from recording and is listed for Restore (docs/prds/chapter-track-link-control.prd.md Phase 3).
 	if changed := text(chapter, "kindChangedAt"); changed != "" {
 		result["kindChangedAt"] = changed
 		if text(chapter, "importedKind") == "narration" && !isNarration(chapter) {

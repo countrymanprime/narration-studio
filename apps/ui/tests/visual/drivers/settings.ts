@@ -149,7 +149,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Download update' }).click();
     await page.getByRole('button', { name: 'Download', exact: true }).click();
-    await page.getByRole('dialog', { name: 'Download Narration Utils 0.2.7' }).waitFor();
+    await page.getByRole('dialog', { name: 'Download Narration Studio 0.2.7' }).waitFor();
     await page
       .getByText(/160 of 400 MB/)
       .first()
@@ -190,7 +190,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
-    await page.getByRole('dialog', { name: 'Installing Narration Utils 0.2.7' }).waitFor();
+    await page.getByRole('dialog', { name: 'Installing Narration Studio 0.2.7' }).waitFor();
   },
   'about-install-refused': async (page) => {
     await page.goto('/?mockUpdate=install-refused');
@@ -200,7 +200,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
-    await page.getByRole('alert').filter({ hasText: 'Narration Utils is busy' }).waitFor();
+    await page.getByRole('alert').filter({ hasText: 'Narration Studio is busy' }).waitFor();
   },
   'about-install-blocked': async (page) => {
     await page.goto('/?mockUpdate=install-blocked');
@@ -292,8 +292,8 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Tracks and Proof read from the linked .rpp file.').waitFor();
   },
   'project-daw-not-linked': async (page) => {
-    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category (new in this phase,
-    // PRD W19 - previously global-only) shows its unlinked copy and "Link a REAPER project file".
+    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category (PRD W19)
+    // shows its unlinked copy and "Link a REAPER project file".
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await goToPage(page, 'Settings');

@@ -12,13 +12,13 @@ import { PickupListCount } from './PickupListCount';
 import { REGION_LABEL, describePosition, describeRegion, formatAudioTime, paragraphRefs, plural, recordedTo, verdict } from './recordingCheckText';
 import { TakeReviewPickups } from './TakeReviewPickups';
 
-// A pickup is one of the check's own interior gaps (recording-check-summary.prd.md, RS8, D33): a place worth reading
+// A pickup is one of the check's own interior gaps (RS8, D33): a place worth reading
 // on its own. An unread start or end is unfinished recording, not a pickup (RS2 A) - recordedTo() states it in the
 // summary instead, so a chapter that is a third unread reads as "not finished", not as "3 pickups".
 const PICKUP_KINDS: ReadonlySet<CoverageRegionKind> = new Set(['skip', 'short_read', 'different_text']);
 
 /**
- * A stored recording check read out as a chapter summary first (recording-check-summary.prd.md Phase 1): the headline
+ * A stored recording check read out as a chapter summary first: the headline
  * (the host's judgement, ADR 0204 - the same rule the stage signal uses), the chapter figures, an unread start or end
  * stated as "recorded to" rather than listed, then the check's own interior gaps as one-line Pickups, with the full
  * paragraph table folded away (RS6 A) since every pickup already names and links to its paragraphs.
@@ -37,11 +37,11 @@ export function RecordingCheckReport({
   judgement?: CoverageJudgement;
   /** Opens the manuscript at a paragraph (its index in the whole manuscript). */
   goToParagraph: (index: number) => void;
-  /** Check again, placed after the chapter figures and before Pickups (recording-check-summary.prd.md Phase 4
+  /** Check again, placed after the chapter figures and before Pickups (
    * mockups, `01-slideover-not-complete.webp`): the one action the panel has, kept close to the figures it refreshes. */
   actionsSlot?: ReactNode;
   /** "Open in Proof" (edit-and-proof-workspace.prd.md Phase 4's "Open workspace", renamed once the workspace became Proof's
-   * chapter view, stage-navigation-and-page-replacement.prd.md Phase 5; the summary component is shared and the dialog gets it). Undefined when there is none to open (the same
+   * chapter view; the summary component is shared and the dialog gets it). Undefined when there is none to open (the same
    * summary rendered inside the workspace's own Check again). */
   openWorkspace?: () => void;
 }) {
@@ -60,7 +60,7 @@ export function RecordingCheckReport({
   const [paragraphsOpen, setParagraphsOpen] = useState(false);
   const pickups = report.regions.filter((region) => PICKUP_KINDS.has(region.kind));
   const api = useApi();
-  // RS4 A (recording-check-summary.prd.md Phase 3): the chapter's other pickups - take review's unreviewed repeated
+  // RS4 A: the chapter's other pickups - take review's unreviewed repeated
   // reads, a different kind from the check's own gaps above. A background count with nothing to guard or retry, so
   // a failure is silent (SILENT_CATCHES) and just leaves it out of the list.
   const [otherPickups, setOtherPickups] = useState<number>();
@@ -77,7 +77,7 @@ export function RecordingCheckReport({
       current = false;
     };
   }, [api, chapter.id]);
-  // RS5 B (recording-check-summary.prd.md Phase 3): the proofer's pickup list, project-wide - the same figure
+  // RS5 B: the proofer's pickup list, project-wide - the same figure
   // the Pickups page shows, kept current for as long as the panel is open. It needs REAPER running (the `pickups`
   // capability), so a background count is only started once the capability report says it is available; failing
   // silently otherwise, like otherPickups above (SILENT_CATCHES).

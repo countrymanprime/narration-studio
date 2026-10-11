@@ -25,7 +25,7 @@ export function elapsedClock(startedAt: string, now: number): string {
 }
 
 /**
- * The header's running-timer chip (stage-navigation-and-page-replacement.prd.md Phase 2, "The header" item 4; mock 01's
+ * The header's running-timer chip ("The header" item 4; mock 01's
  * "2:14:08 today · timer on Ch 7"): how long the production stage timer has run and on which chapter, on every page while it
  * runs, and nothing otherwise. The host logs the time (production tracking, ADR 0320); this only counts the seconds since the
  * session started so the narrator sees it move. A `timer` role is not a live region, so the ticking is never announced.

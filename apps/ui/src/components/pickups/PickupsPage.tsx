@@ -72,7 +72,7 @@ function PickupChapterLinks({ matches }: { matches: PickupChapter[] | undefined 
 }
 
 /**
- * Pickups (stage-navigation-and-page-replacement.prd.md Phase 7, mock 04's Review › Pickups): the book's pickup list
+ * Pickups (mock 04's Review › Pickups): the book's pickup list
  * from the proofer's REAPER markers (reaper-automation-follow-through PRD Phase 9) - import a proofer's CSV, jump
  * through the remaining pickups, open one's chapter in Proof, punch or mark it done, export what is left - and the
  * pickup session slot closed-loop proofing fills. It replaces the Tracks page's Pickups dialog (ADR 0407).

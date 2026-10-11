@@ -52,6 +52,15 @@ func (s *switchableSidecar) launch(ctx context.Context, program string, args ...
 	return launcher(ctx, program, args...)
 }
 
+// setReachability swaps the host's DAW heartbeat under h.mu, the lock services() snapshots it with. staleCoverageHost's
+// setup run leaves a goroutine in flight (emitCoverage's go h.emitChapterSyncState(), which Wait does not cover) that
+// reads every swappable service through services(), so a bare assignment here races with that snapshot.
+func setReachability(host *Host, heartbeat dawport.Heartbeat) {
+	host.mu.Lock()
+	defer host.mu.Unlock()
+	host.reachability = heartbeat
+}
+
 // staleCoverageHost is a coverage project whose one chapter was checked and then trimmed in REAPER an hour ago, on a
 // computer on mains power with REAPER closed: every condition allows a background check.
 func staleCoverageHost(t *testing.T) (*Host, *switchableSidecar, time.Time) {
@@ -142,7 +151,7 @@ func TestOnBatteryNothingStarts(t *testing.T) {
 // power, quiet chapter, model installed) allows a check.
 func TestNothingStartsWhileReaperIsRecording(t *testing.T) {
 	host, _, now := staleCoverageHost(t)
-	host.reachability = fakeBackgroundHeartbeat{reachable: true, transport: dawport.Transport{Recording: true}, hasTransport: true}
+	setReachability(host, fakeBackgroundHeartbeat{reachable: true, transport: dawport.Transport{Recording: true}, hasTransport: true})
 	if decision := host.backgroundCheckTick(now); decision.Wait != coverage.WaitRecording || host.services().coverage.Busy() {
 		t.Fatalf("decision = %+v", decision)
 	}
@@ -155,7 +164,7 @@ func TestABackgroundCheckRunsWhileReaperIsOpenAndKnownNotRecording(t *testing.T)
 	// The check this starts writes its results into the test's temp folder: let it finish before the folder is removed,
 	// which Windows refuses while the run still holds it ("The directory is not empty").
 	t.Cleanup(host.services().coverage.Wait)
-	host.reachability = fakeBackgroundHeartbeat{reachable: true, transport: dawport.Transport{Recording: false}, hasTransport: true}
+	setReachability(host, fakeBackgroundHeartbeat{reachable: true, transport: dawport.Transport{Recording: false}, hasTransport: true})
 	if decision := host.backgroundCheckTick(now); decision.ChapterID != "c-0001" {
 		t.Fatalf("decision = %+v", decision)
 	}
@@ -166,7 +175,7 @@ func TestABackgroundCheckRunsWhileReaperIsOpenAndKnownNotRecording(t *testing.T)
 // stream landed the wiring.
 func TestNothingStartsWhileReaperIsRunningWithNoTransportInTheHeartbeat(t *testing.T) {
 	host, _, now := staleCoverageHost(t)
-	host.reachability = fakeBackgroundHeartbeat{reachable: true}
+	setReachability(host, fakeBackgroundHeartbeat{reachable: true})
 	if decision := host.backgroundCheckTick(now); decision.Wait != coverage.WaitRecording {
 		t.Fatalf("decision = %+v", decision)
 	}

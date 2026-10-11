@@ -3,7 +3,7 @@ package credits
 // Values is a project's own credit token values (PRD Open Question C2: per-
 // project ownership for everything except the narrator name). It is stored on
 // the project manifest (project.Manifest.Credits) rather than in a dedicated
-// file, now that the project manifest exists (PRD Open Question C12).
+// file (PRD Open Question C12).
 type Values struct {
 	Title           string `json:"title,omitempty"`
 	Subtitle        string `json:"subtitle,omitempty"`

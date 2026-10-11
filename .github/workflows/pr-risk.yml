@@ -1,0 +1,42 @@
+name: PR risk
+# Puts the `risk:high` label on a pull request that touches a trust boundary or a file that decides what runs unattended
+# (scripts/ci/pr-risk.mjs lists them). The agent-train coordinator does not merge a `risk:high` pull request without the
+# owner's approval (docs/operations/agent-train.md, "Safety net"). The check runs the script as it is on the base
+# branch, so a pull request cannot rate itself lower; a pull request that adds the script runs its own copy, once.
+# A fork's token is read-only, so only same-repository pull requests are rated.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions: { contents: read }
+concurrency:
+  group: pr-risk-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  rate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the script
+      pull-requests: write # to label the pull request
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: |
+          script="$RUNNER_TEMP/pr-risk.mjs"
+          git show "$BASE_SHA:scripts/ci/pr-risk.mjs" > "$script" 2>/dev/null || cp scripts/ci/pr-risk.mjs "$script"
+          git diff --name-only "$(git merge-base "$BASE_SHA" HEAD)" HEAD | node "$script" --json > "$RUNNER_TEMP/risk.json"
+          cat "$RUNNER_TEMP/risk.json"
+          risk="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).risk" "$RUNNER_TEMP/risk.json")"
+          if [ "$risk" = "high" ]; then
+            gh pr edit "$PR_NUMBER" --add-label "risk:high"
+          else
+            gh pr edit "$PR_NUMBER" --remove-label "risk:high" || true
+          fi

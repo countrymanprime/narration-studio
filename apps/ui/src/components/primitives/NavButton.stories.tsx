@@ -36,7 +36,7 @@ export const IconOnly: Story = {
 };
 
 // The full-width sidebar (>= 1400px in AppShell): icon + label, unavailable pages disabled. The 216 px rail and its 8 px
-// inset, as mock 01 draws it (mock-fidelity-primitives-and-components.prd.md Phase 8, ADR 0635).
+// inset, as mock 01 draws it (ADR 0635).
 export const Sidebar: Story = {
   render: () => (
     <nav className="flex w-54 flex-col gap-[0.1875rem] border-r border-[var(--border)] bg-[var(--surface)] p-2" aria-label="Primary navigation">

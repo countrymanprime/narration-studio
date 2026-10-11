@@ -1,6 +1,6 @@
 # Codebase map
 
-Narration Utils names every top-level folder for the role of what is in it, and keeps its stable launch
+Narration Studio names every top-level folder for the role of what is in it, and keeps its stable launch
 and integration paths while organizing implementation around the product domain that owns its behavior.
 The decision and the old-to-new path map are in
 [ADR 0040](../adr/0040-the-repository-is-laid-out-by-role-and-each-project-is-an-nx-project.md).
@@ -44,7 +44,7 @@ next move is a one-line change in each.
 
 ### Projects
 
-Every folder above except `docs/` is an Nx project with a `project.json`; `pnpm check` and CI run their
+Every folder above that has a `project.json` is an Nx project (all except `docs/`, `tests/` and `integrations/audacity/`); `pnpm check` and CI run their
 `lint`, `format`, `test` and `build` targets, and CI runs only the projects a change affects. See
 [Nx projects and the quality gate](../operations/ci-and-releases.md#nx-projects-and-the-quality-gate).
 
@@ -72,7 +72,7 @@ Every folder above except `docs/` is an Nx project with a `project.json`; `pnpm 
 
 ## How the parts connect
 
-Everything runs on the narrator's machine. The only things that leave it are the three boxes at the bottom, and each is a request the narrator can see and switch off, except the fonts, which are a known finding ([#238](https://github.com/countrymanprime/narration-utils/issues/238)). The diagram is a container view: one box per running thing or store, one arrow per call that crosses a boundary; the table under it says what each arrow is. The [threat model](threat-model.md) walks the same boundaries one by one, and the flows that need a sequence are drawn beside the doc that owns them.
+Everything runs on the narrator's machine. The things that leave it are the two dashed boxes at the bottom, each started by the narrator (a confirmed download or update) or switched off in Settings (the update check), and the narrator-keyed Merriam-Webster lookup, which is drawn in no box ([threat model](threat-model.md#what-the-app-sends-off-the-machine), row 15). The diagram is a container view: one box per running thing or store, one arrow per call that crosses a boundary; the table under it says what each arrow is. The [threat model](threat-model.md) walks the same boundaries one by one, and the flows that need a sequence are drawn beside the doc that owns them.
 
 ```mermaid
 flowchart LR
@@ -138,7 +138,7 @@ flowchart LR
 | `internal/assets` to Hugging Face and GitHub | Pinned URLs, size and SHA-256, staging then rename, only after the narrator confirms | [first-use provisioning](first-use-dependency-provisioning.md) |
 | `internal/update` to GitHub | The release list once a day at most; a download only after two clicks; the program is replaced on Windows | [in-app update](in-app-update.md) |
 
-The settings, the recents list and the host log live in `%APPDATA%/narration-utils`, beside the user cache (`%LOCALAPPDATA%/narration-utils`); `services` reads and writes them and no arrow is drawn for it. *Verified 2026-09-21 against `apps/desktop/app.go` (`configureLocked`, `packagedResources`), `bindings.go`, `bindings_assets.go`, `media.go`, `internal/process/`, `internal/bridge/`, `internal/assets/`, `internal/update/`, `integrations/reaper/NarrationUtils_Launcher.lua` and `apps/ui/index.html` (the fonts are bundled since #238, so the webview asks no other host). A box names the folder or file that owns it, a dashed arrow or box is a request the narrator did not ask for or a host that is not ours, and a label names the mechanism, not the intent.*
+The settings, the recents list and the host log live in `%APPDATA%/narration-utils`, beside the user cache (`%LOCALAPPDATA%/narration-utils`); `services` reads and writes them and no arrow is drawn for it. *Verified 2026-09-21 against `apps/desktop/app.go` (`configureLocked`, `packagedResources`), `bindings.go`, `bindings_assets.go`, `media.go`, `internal/process/`, `internal/bridge/`, `internal/assets/`, `internal/update/`, `integrations/reaper/NarrationUtils_Launcher.lua` and `apps/ui/index.html` (the fonts are bundled, #238, so the webview asks no other host). A box names the folder or file that owns it, a dashed arrow or box is a request the narrator did not ask for or a host that is not ours, and a label names the mechanism, not the intent.*
 
 ## Go host ownership
 
@@ -155,7 +155,7 @@ Every binding reads the project-scoped services (manuscript, Story Bible, settin
 - The host files that put the asset manager in front of the UI: `assetcache.go` (the per-user cache location, stale-staging cleanup, and the registry built once at start), `assetregistry.go` and `assetproviders.go` (one provider per kind of asset: voices, Whisper models, spaCy models; [ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md)), `bindings_assets.go` (`AssetsList`, `AssetsInstall`, `AssetsInstallState`, `AssetsInstallCancel`, `AssetsVerify`, `AssetsRemove`), `installjobs.go` (the one install job every asset uses, with real bytes; a second start joins the running job; [ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md)) and `jobs.go` (the `job:ended` event every host job finishes with). `guidegate.go` is the Story Bible first-use gate: it decides whether a build gets an installed spaCy model, must ask first (`asset_required`) or runs rules-only this once ([ADR 0080](../adr/0080-the-story-bible-language-model-is-a-catalog-asset-unpacked-at-install-and-the-build-asks-before-it-downloads.md)).
 - `update` (`internal/update`, with `update.go`, `update_job.go`, `update_install.go` and `bindings_update.go` in the host) checks GitHub for a newer release of this repository at most once a day (two hours after a failed check), downloads and stages one only after a click, and on Windows replaces the running program ([in-app update](in-app-update.md)). `version.go` holds the stamped version.
 - `smoke.go` is the packaged-app smoke test, `narration-utils --smoke`: it runs before the window exists, checks what a release carries and exits non-zero on a failure ([CI and releases](../operations/ci-and-releases.md#the-packaged-app-smoke-test)).
-- `apps/desktop/cmd/seed-assets` is the developer-only seeding command behind `pnpm run assets:seed`; it installs approved catalog assets into the same per-user cache through the same managers. `cmd/manuscript-import` is the standalone importer entry point, and `cmd/narration-utils/` holds only the embedded UI bundle and sidecar resources that the release build fills in.
+- `apps/desktop/cmd/seed-assets` is the developer-only seeding command behind `pnpm run assets:seed`; it installs approved catalog assets into the same per-user cache through the same managers. `cmd/manuscript-import` is the standalone importer entry point, `cmd/spike-globalhotkeys` is a throwaway proof of concept that no CI job builds and the release does not ship, and `cmd/narration-utils/` holds only the embedded UI bundle and sidecar resources that the release build fills in.
 - `apps/desktop/build/windows/installer/project.nsi` is the Windows setup program definition (NSIS, per user; [ADR 0082](../adr/0082-windows-installs-per-user-from-an-nsis-setup-program-that-wails-builds-and-the-release-carries-beside-the-update-zip.md)). Wails regenerates the rest of `build/windows/` on every build.
 - `tracks` owns reading a project's `.rpp` file (discovery, selection, track/item metadata). `apps/desktop/media.go` serves those tracks' audio to the webview through the asset server's `/media` route (see [ADR 0012](../adr/0012-media-route-for-track-playback.md)); it is the only non-frontend content the asset server serves.
 - `findings` implements the [findings contract](findings-contract.md) record (validation, stable IDs, review state); analyzers emit it without importing REAPER APIs. The `Findings*` bindings (`apps/desktop/bindings_findings.go`) serve Proof, `apps/ui/src/components/proof/` (`ProofPage`), which lists, filters and decides them; `bindings_navigation.go` lets it go to and loop a finding in REAPER through `bridge.Navigator`, and `bindings_marker.go` add one approved take marker for an accepted finding.
@@ -185,7 +185,7 @@ Every call the UI makes to the host has a row in a catalog with a verdict agains
 The asset UI is `apps/ui/src/components/assets/` (`AssetInstallPrompt` is the first-use dialog every gated feature shows, `AssetFacts` the version, size, publisher, licence and destination it lists, `LocalAssets` and `LocalAssetRow` the Settings > Local assets page) on the `useAssetInstall` hook (`apps/ui/src/hooks/`), which follows one install job to its end for every kind of asset; `api/assetInstallMock.ts` scripts install steps for the mock host ([ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md), [ADR 0081](../adr/0081-local-assets-is-a-settings-list-built-from-the-registry-whose-rows-own-their-download-verify-and-remove.md)).
 
 `apps/ui/src/api/contracts/` contains the TypeScript wire contracts by
-domain. `types.ts` is a compatibility barrel during migration. New feature
+domain. `apps/ui/src/types.ts` is a compatibility barrel over them. New feature
 work should import from its owning contract module and keep component-local
 state or hooks beside the feature. For example, Story Bible pronunciation
 playback lives in `components/storybible/usePreviewAudio.ts`, while editing and

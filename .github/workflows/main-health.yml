@@ -1,0 +1,35 @@
+name: Main health
+# The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` every night. The agent
+# train merges on the light gate (D43) and runs the full suite only at the end (D44), so between sweeps a regression
+# can sit on `main` unseen. When this run fails it ticks HOLD on #509, so no new worker launches onto a red `main`
+# (docs/operations/agent-train.md, "Safety net"). The owner or the coordinator clears HOLD once `main` is green.
+on:
+  schedule:
+    - cron: '37 7 * * *'
+  workflow_dispatch: {}
+permissions: { contents: read }
+concurrency:
+  group: main-health
+  cancel-in-progress: false
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+  hold-on-red:
+    name: Tick HOLD when main is red
+    needs: ci
+    if: failure()
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the script
+      issues: write # to edit #509
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          node scripts/ci/train-health.mjs hold "the nightly full CI run on main failed ($RUN_URL)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

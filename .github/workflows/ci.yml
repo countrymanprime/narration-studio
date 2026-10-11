@@ -5,6 +5,7 @@ on:
       - 'docs/**'
       - '**/*.md'
   workflow_dispatch:
+  workflow_call:
 permissions: { contents: read }
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

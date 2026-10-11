@@ -62,8 +62,7 @@ func sine(rate int, seconds, freq, peakDB float64) []float64 {
 }
 
 // sweep returns a mono linear-frequency chirp from f0 to f1 Hz over
-// seconds, at peakDB dBFS: a synthetic sweep fixture (per the worker's
-// "synthetic tones and sweeps" instruction), used to check that per-range
+// seconds, at peakDB dBFS: a synthetic sweep fixture used to check that per-range
 // F0 tracks the instantaneous frequency near wherever a range is centered.
 func sweep(rate int, seconds, f0, f1, peakDB float64) []float64 {
 	n := int(math.Round(seconds * float64(rate)))

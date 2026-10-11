@@ -56,8 +56,7 @@ function coverageWorkJob(state: CoverageState, logs: string[], now: number): Wor
  * work dialog, the Whisper model's first-use question when it is not installed (the download is never silent), and the chapter-track link
  * right in the panel when the check needs one.
  *
- * A slide-over, opened from the row's check-status cell (daw-chapter-track-auto-sync.prd.md Phase 6, S14; recording-check-summary.prd.md
- * Phase 4, RS7, D26): retiring the row's own Check button left the summary needing a new home, and a slide-over leaves the table visible
+ * A slide-over, opened from the row's check-status cell (daw-chapter-track-auto-sync.prd.md Phase 6, S14, RS7, D26): retiring the row's own Check button left the summary needing a new home, and a slide-over leaves the table visible
  * beside it, the same choice chapter-track-link-control.prd.md made for the track panel.
  *
  * `coverage` is the live state the Production board follows, so a check that was left running in the background is picked up again here.
@@ -78,7 +77,7 @@ export function RecordingCheck({
   notify: Notify;
   close: () => void;
   goToParagraph: (index: number) => void;
-  /** "Open in Proof" (edit-and-proof-workspace.prd.md Phase 4, now Proof's chapter view):
+  /** "Open in Proof" (edit-and-proof-workspace.prd.md Phase 4; Proof's chapter view):
    * undefined when this dialog is itself opened from the workspace (WorkspacePage.tsx's own Check again), where
    * there is nothing to open. */
   openWorkspace?: () => void;
@@ -190,7 +189,7 @@ export function RecordingCheck({
       <AssetInstallPrompt
         ask={{
           title: 'Download local Whisper model?',
-          body: `The ${modelRequired.model.displayName} Whisper model is needed to transcribe this chapter's recording. It is not bundled with Narration Utils and will be stored in your per-user asset cache.`,
+          body: `The ${modelRequired.model.displayName} Whisper model is needed to transcribe this chapter's recording. It is not bundled with Narration Studio and will be stored in your per-user asset cache.`,
           confirmLabel: 'Download model',
         }}
         workTitle="Downloading Whisper model"
@@ -224,7 +223,7 @@ export function RecordingCheck({
       <AssetInstallPrompt
         ask={{
           title: 'Download the re-check model?',
-          body: `The ${recheckRequired.model.displayName} Whisper model re-checks anything the fast first pass reports missing. It is not bundled with Narration Utils and will be stored in your per-user asset cache.`,
+          body: `The ${recheckRequired.model.displayName} Whisper model re-checks anything the fast first pass reports missing. It is not bundled with Narration Studio and will be stored in your per-user asset cache.`,
           confirmLabel: 'Download model',
           alternative: {
             label: 'Check with tiny only',
@@ -333,7 +332,7 @@ function ResultBody({
   retry: () => Promise<void>;
   goToParagraph: (index: number) => void;
   showReasons: boolean;
-  /** Check recording / Check again (recording-check-summary.prd.md Phase 4): the slide-over has no dialog action bar,
+  /** Check recording / Check again: the slide-over has no dialog action bar,
    * so it sits with the report's own figures when there is a report, and right here otherwise. */
   checkButton: ReactNode;
   openWorkspace?: () => void;

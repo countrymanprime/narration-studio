@@ -25,6 +25,8 @@
         "go",
         "gofmt",
         "wails3",
+        // The Go linter, installed by .github/actions/setup-toolchain (need-golangci-lint); scripts/ci/doc-comments.mjs runs it.
+        "golangci-lint",
         // Installed by .github/actions/setup-playwright (`playwright install`) from the apps/ui dependency.
         "playwright"
       ]

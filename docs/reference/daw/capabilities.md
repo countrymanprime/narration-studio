@@ -1,0 +1,233 @@
+# DAW capabilities: what each one is and what it returns
+
+The DAW-neutral catalog behind [the DAW port](../../architecture/daw-integration.md#the-daw-port). One section per capability, in the order of `dawport.Capabilities()`. Each states the intent, the result a conforming engine returns, how each engine maps to it, and where it was checked. [The matrix](matrix.md) says which engine declares which level. A test fails when this page and the port's catalog list different capabilities (`apps/desktop/internal/dawport/dawportdoc/reference_doc_test.go`).
+
+Facts about REAPER and Audacity are copied from the pages linked in each section. Each "Checked" line separates three kinds of evidence: the **harness** (a fake `reaper` under Lua 5.4, which proves the bridge's logic and nothing about REAPER), a **run in the engine** (a spike or a scripted pass, with its version), and the **verification pass row**, which defines the expected result and has not run yet where the line says pending. Where a line says "not checked", no run in the engine backs the statement: it comes from published documentation or from the code.
+
+## Rules every capability follows
+
+- **A capability is declared at a level**: Unsupported, Not yet available, Experimental (built, not through the owner's verification pass, off unless the narrator turns it on) or Supported ([port levels](../../../apps/desktop/internal/port/port.go)). Promoting one is a one-line declaration change after the owner's pass ([ADR 0400](../../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md)).
+- **The resolver decides what is usable now**, from the declaration, whether the engine is answering and the narrator's `DAW.capability.<name>` setting. A refusal carries a reason (`standalone`, `not_running`, `experimental_off`, `turned_off`, `not_yet`, `unsupported`, `failed`) and a sentence for the narrator; a control never words its own ([ADR 0300](../../adr/0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md)).
+- **A mutation runs only on the narrator's action** and, in REAPER, in one undo block that reports failure without applying unrelated changes ([DAW integration](../../architecture/daw-integration.md#reaper-rules)).
+- **An item is found by identity, never by position.** A GUID that no longer resolves is stale and nothing is changed; no command falls back to a neighbouring item or to the time a finding had when it was made ([going to and looping a finding](../../architecture/reaper-navigation.md)).
+- **Nothing happens while the engine is recording** for the commands that move the cursor or write markers.
+- **The two capabilities that make the engine render** (`render_with_fx`, `macro_render`) need the narrator's approval for that one render. REAPER's script also uses the token up and writes only into an empty folder the host made; the Audacity role checks only that an approval is present, and the mastering row owns the destination rule.
+- **Asynchronous roles** return an error only when the request could not be handed to the engine; the answer is an event tagged with the run ID. **Synchronous roles** return when the engine has answered ([roles](../../../apps/desktop/internal/dawport/roles.go)).
+
+## Capabilities
+
+### `review`
+
+- **Intent:** compare a recording with the manuscript and carry the findings into the engine as markers or labels.
+- **Role:** `ReviewSession`, asynchronous.
+- **Result:** `PrepareReview` answers `COMPARE_PREPARED` with the paths of the manifest, manuscript and diff, the count of audio items listed, and the project change count at that moment. `InspectFindings` answers `COMPARE_MARKER` per finding, then `COMPARE_INSPECTED` with the total and how many are already marked. `ExportFindings` answers `COMPARE_EXPORT_MARKER` per finding, then `COMPARE_EXPORTED` with added and skipped counts; it skips a finding the same active take already marks within 0.15 s with the same issue prefix, and writes only when the narrator selects Export markers.
+- **REAPER:** `prepare_compare`, `inspect_compare_results`, `export_compare_markers`, `jump_to_compare_marker` ([the bridge](../../architecture/reaper-bridge.md#commands)).
+- **Audacity:** every request is refused with the "Audacity support is not available yet" sentence ([ADR 0144](../../adr/0144-a-launch-names-its-daw-with-daw-and-an-audacity-launch-opens-no-reaper-bridge.md)); the review needs the recorded audio from the engine, which the adapter does not read.
+- **Checked:** harness, `integrations/reaper/tests/compare_test.lua`.
+
+### `navigate`
+
+- **Intent:** put the engine's cursor on a finding, loop the audio around it, and stop the loop.
+- **Role:** `Navigator`, synchronous (`Navigate`, `Loop`, `StopLoop`).
+- **Result:** `Navigate` returns the project time the cursor is at. `Loop` returns the window it looped, which is the finding padded by 2 s each side (never below 0). `StopLoop` returns what it restored and what it kept. A stale finding (`item`, `take` or `range`) changes nothing. Nothing makes an undo point.
+- **REAPER:** `navigate_item`, `loop_context`, `stop_loop`. Navigate selects only the finding's item. Loop sets the time selection and loop points, turns repeat on and plays; Stop puts back the narrator's time selection, loop points and repeat, and keeps a value the narrator changed while listening ([going to and looping a finding](../../architecture/reaper-navigation.md)).
+- **Audacity 3.x:** `Navigate` stops playback and puts the cursor at the target's time. `Loop` selects the padded time and plays it looped (`SelectTime`, then `PlayAtSpeedLooped`). `StopLoop` stops playback and restores nothing, because Audacity keeps no loop state. A target that names an item is refused: Audacity has no items or takes ([session.go](../../../apps/desktop/internal/dawport/audacity/session.go)).
+- **Checked:** REAPER, a scripted REAPER 7.80 run and the harness (`navigation_test.lua`). Audacity, not checked: built from the published spec and waiting on the owner's pass ([ADR 0355](../../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)).
+
+### `markers`
+
+- **Intent:** add one marker for an accepted finding.
+- **Role:** `MarkerWriter`, synchronous (`AddMarker`).
+- **Result:** a `MarkerResult` saying whether a marker was added. The duplicate rule differs by engine: REAPER skips a marker when the same active take has one within 0.15 s with the same issue prefix; Audacity skips a label with the same text within 0.15 s.
+- **REAPER:** `add_finding_marker` adds a take marker at the source time, so it follows the item, in one undo point. Its name is the finding's kind plus the script's words and the recorded words, eight words at most each, in that kind's colour. Stale findings and recording are refused as for `navigate`.
+- **Audacity 3.x:** adds one label named for the finding at the target's start unless a label with the same text is within 0.15 s. Labels have no colour, so the colour is not used. Labels live on a track named "Narration Utils", made when the project has none.
+- **Checked:** REAPER, harness (`finding_marker_test.lua`). Audacity, not checked.
+
+### `pickups`
+
+- **Intent:** keep a list of lines to re-record, walk it, and resolve entries.
+- **Role:** `PickupList`, asynchronous.
+- **Result:** `import_pickups` answers `PICKUPS_IMPORTED` with added, already-there and invalid counts. `export_pickups` answers `PICKUPS_EXPORTED` with the path and count. `next_pickup` answers `PICKUP_NEXT`, or an error when none remain. `resolve_pickup` answers `PICKUP_RESOLVED`. `count_pickups` answers `PICKUPS_COUNTED` with remaining and total.
+- **REAPER:** the commands of the same names ([the bridge](../../architecture/reaper-bridge.md#commands)).
+- **Audacity:** none. Take management has no direct Audacity equivalent ([DAW integration](../../architecture/daw-integration.md#audacity-boundary)).
+- **Checked:** REAPER, harness (`pickups_test.lua`).
+
+### `line_identity`
+
+- **Intent:** record which manuscript line each recorded item reads, and read it back.
+- **Role:** `LineStamper`, asynchronous.
+- **Result:** `LINES_*` events. Identity is stored on items as namespaced extension data; `overwrite` false keeps an existing stamp ([manuscript line identity](../../architecture/manuscript-line-identity.md), [ADR 0026](../../adr/0026-manuscript-line-identity-in-item-extension-data.md)).
+- **REAPER:** `stamp_item_lines`, `read_line_ids`.
+- **Audacity:** none (take management).
+- **Checked:** REAPER, harness (`line_identity_test.lua`). What REAPER does with the extension data on save, split and copy is checked in [spike S0](../../research/reaper-spike-s0-item-extension-data.md).
+
+### `render_config`
+
+- **Intent:** set the engine's render settings so each chapter renders to its own file, without rendering.
+- **Role:** `RenderConfigurer`, asynchronous.
+- **Result:** `RENDER_CONFIGURED` with the folder, the count of targets and their names. The command never invokes a render.
+- **REAPER:** `configure_chapter_render`. The harness asserts it never calls `Main_OnCommand` or reads render stats.
+- **Audacity:** none (take management).
+- **Checked:** REAPER, harness (`render_test.lua`); render keys are in [spike S5](../../research/reaper-spike-s5-render-details.md).
+
+### `cleanup_tools`
+
+- **Intent:** open one of the engine's own cleanup dialogs on the selected items. The app edits nothing itself.
+- **Role:** `CleanupLauncher`, asynchronous.
+- **Result:** `CLEANUP_LAUNCHED` with the tool key and the action's name. Only an allow-listed tool (`repair_pops_clicks`, `magnolius_declick`) is launched; a launch is one action call and no edit ([ADR 0146](../../adr/0146-cleanup-launchers-open-an-allow-listed-reaper-action-found-by-its-name-and-change-nothing-themselves.md)).
+- **REAPER:** `launch_cleanup_tool`.
+- **Audacity:** not built.
+- **Checked:** REAPER, harness (`cleanup_test.lua`). The check in REAPER is pending with the owner.
+
+### `retake_lanes`
+
+- **Intent:** play one retake of a line on a fixed-lane track.
+- **Role:** `RetakeLanePicker`, asynchronous.
+- **Result:** `RETAKE_LANE_PICKED` with the line, the item GUID and the 0-based lane. One lane value changes, in one undo block, and nothing else ([retake lanes](../../research/reaper-retake-lanes.md)).
+- **REAPER:** `pick_retake_lane`.
+- **Audacity:** not built.
+- **Checked:** REAPER, harness (`retake_lanes_test.lua`); lane semantics observed in [spike S7](../../research/reaper-spike-s7-fixed-lanes.md). The command's own check in REAPER is pending with the owner.
+
+### `project_state`
+
+- **Intent:** ask for the live change count and the current project's saved file.
+- **Role:** `ProjectStateReader`, asynchronous.
+- **Result:** `PROJECT_STATE` with the change count and the project path.
+- **REAPER:** `project_state`.
+- **Audacity:** not built.
+- **Checked:** REAPER, harness (`project_state_test.lua`).
+
+### `take_create`
+
+- **Intent:** add a chosen read as a take of an existing item, from a source range of another item.
+- **Role:** `TakeCreator`, asynchronous.
+- **Result:** `TAKE_CREATED` with the target item and the new take's GUID, or `TAKE_STALE` when the item is gone. One undo step.
+- **REAPER:** `create_take`.
+- **Audacity:** none (take management).
+- **Checked:** REAPER, harness (`take_review_test.lua`). The check in REAPER is pending with the owner ([take review](../../utilities/take-review.md)).
+
+### `heartbeat`
+
+- **Intent:** know without asking whether the engine is answering, which project it has open, whether that project has unsaved changes, its change count, and the transport state.
+- **Role:** `Heartbeat`, synchronous reads of what the engine last reported.
+- **Result:** `Reachable`, `CurrentProject`, `Matches`, `ChangeCount` and `Transport`. The heartbeat carries the transport and is sent at once when it changes ([ADR 0305](../../adr/0305-the-daw-heartbeat-carries-the-transport-and-is-sent-at-once-when-it-changes.md)).
+- **REAPER:** the bridge's reachability heartbeat ([the bridge](../../architecture/reaper-bridge.md#reachability-heartbeat)).
+- **Audacity:** not built.
+- **Checked:** expected result is row A1 of [the verification pass](../../operations/reaper-verification-pass.md#the-rows): the change count is present, whole, and rises after a move, a marker and a save; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `project_read`
+
+- **Intent:** read a saved project's tracks and items with the engine closed.
+- **Role:** `ProjectReader`, synchronous (`ReadProject(path)`).
+- **Result:** the project's tracks, chapter links and items. Needs no running engine.
+- **REAPER:** the Go `tracks` package parses the `.rpp` file ([Tracks](../../utilities/tracks.md)).
+- **Audacity:** not built; Audacity's project format is not read.
+- **Checked:** REAPER, Go tests in `apps/desktop/internal/tracks`.
+
+### `track_state`
+
+- **Intent:** read one track's arm and record state, its items, and the transport.
+- **Role:** `TrackStateReader`, synchronous.
+- **Result:** `TRACK_STATE` (play state, edit cursor, play position, project path, unsaved, change count, armed flags, record input), a `TRACK_ITEM` per item (at most 1000), then `TRACK_STATE_END`. A track that is gone answers `TRACK_STALE`. An empty GUID answers the transport only. No undo point and the change count does not move.
+- **REAPER:** `chapter_track_state`.
+- **Audacity:** not built.
+- **Checked:** harness (`track_state_test.lua`); expected result is rows A2 and A3 of the verification pass; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `track_select`
+
+- **Intent:** select one chapter's track in the engine.
+- **Role:** `TrackSelector`, synchronous.
+- **Result:** `TRACK_SELECTED`; only that track is selected afterwards. An unknown or empty GUID answers `TRACK_STALE` and leaves the selection as it was. No undo point.
+- **REAPER:** `select_track`.
+- **Audacity:** not built.
+- **Checked:** harness (`track_select_test.lua`); expected result is row A11; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `record`
+
+- **Intent:** arm one track, start and stop recording on it, and learn when the narrator stops it in the engine.
+- **Role:** `Recorder`, synchronous, with an `OnRecordEnded` callback.
+- **Result:** `ARMED` with how many other tracks were disarmed, `RECORD_STARTED` with the position once the engine reports recording, `RECORD_STOPPED`, or `RECORD_NOT_OURS` when no recording this bridge started is running. If the narrator stops it in the engine, `RECORD_ENDED` follows. Recording is refused with two tracks armed, with a different track armed, and while playing. Arming makes no "Narration Utils" undo point.
+- **REAPER:** `arm_only`, `record_start`, `record_stop`.
+- **Audacity:** not built.
+- **Checked:** harness (`transport_test.lua`); expected result is rows A4 and A5 (unattended) and Part B (with an audio device); the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `punch`
+
+- **Intent:** put the cursor a pre-roll before a word, and read the play position.
+- **Role:** `Puncher`, synchronous.
+- **Result:** `PUNCHED` with the cursor at `max(0, time - pre-roll)`, in view, without starting playback. Refused while recording and for a pre-roll out of range. `PLAY_POSITION` reports the play state, the position being heard, the position being processed and the cursor; while recording the state is 5.
+- **REAPER:** `punch_to`, `play_position`.
+- **Audacity:** not built.
+- **Checked:** harness (`punch_test.lua`); expected result is rows A9b and A9c; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)). The heard-versus-processed gap is community research, not a measurement made here ([REAPER transport timing](../../research/reaper-transport-timing.md)).
+
+### `regions`
+
+- **Intent:** create or update chapter and credits regions.
+- **Role:** `RegionWriter`, synchronous.
+- **Result:** `REGIONS_CREATED` with counts created, existing, invalid, updated, ambiguous and failed. Sending the same list twice creates none the second time; with `update` on, a moved end moves the region and keeps its number and colour. One undo point.
+- **REAPER:** `create_regions`.
+- **Audacity:** not built.
+- **Checked:** harness (`regions_test.lua`); expected result is row A9; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `takes`
+
+- **Intent:** make one take of an item the active one.
+- **Role:** `TakeSelector`, synchronous.
+- **Result:** `ACTIVE_TAKE_SET` with whether it changed; a take or item that is gone answers `ITEM_STALE` with the reason and changes nothing. One undo point.
+- **REAPER:** `set_active_take`.
+- **Audacity:** not built.
+- **Checked:** harness (`workspace_test.lua`); expected result is row A6; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `fx_chains`
+
+- **Intent:** list the narrator's FX chain files and installed plug-ins, apply a chain to a track, and add a plug-in to one passage of a take.
+- **Role:** `FXManager`, synchronous.
+- **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_PLUGIN` per plug-in then `FX_PLUGINS_LISTED`; `FX_CHAIN_APPLIED` with the number added; `TAKE_FX_ADDED` with the number of splits. A name outside the chains folder or not in the list is refused before anything changes. Each write is one undo point.
+- **REAPER:** `list_fx_chains`, `apply_fx_chain`, `list_fx`, `add_take_fx`.
+- **Audacity:** not built.
+- **Checked:** harness (`workspace_test.lua`); expected result is rows A7, A8 and A8b; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `silence_trim`
+
+- **Intent:** preview silences as take markers, then trim them.
+- **Role:** `SilenceTrimmer`, synchronous (`Preview`, `Apply`).
+- **Result:** the preview adds `CLEANUP_SILENCE_START` and `CLEANUP_SILENCE_END` take markers and answers `CLEANUP_PREVIEWED` with added and existing counts; repeating it adds none. Apply answers `CLEANUP_APPLIED`; the item keeps its GUID, a new piece starts after the cut, and the source file is untouched. An unknown item or a range past the end answers `CLEANUP_STALE` and is not applied.
+- **REAPER:** `preview_cleanup_markers`, `apply_cleanup_trims`, reached through the host's `CleanupPreview` and `CleanupApply` bindings (booth actions enablement, Phase 5). Experimental until the pass.
+- **Audacity:** not built.
+- **Checked:** harness (`cleanup_preview_test.lua`); expected result is rows A12 and A13; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `item_gain`
+
+- **Intent:** match levels by changing an item's gain.
+- **Role:** `GainAdjuster`, synchronous.
+- **Result:** `GAIN_ITEM` per item with the volume before and after, then `GAIN_APPLIED`. The gain multiplies the item's existing volume, so the narrator's own trim is kept. An unknown item answers `GAIN_STALE`. One undo point.
+- **REAPER:** `apply_item_gain`, reached through the host's `LevelMatchPreview` and `LevelMatchApply` bindings (booth actions enablement, Phase 5). Experimental until the pass.
+- **Audacity:** not built.
+- **Checked:** harness (`level_normalize_test.lua`); expected result is row A14; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
+
+### `render_with_fx`
+
+- **Intent:** render chapter regions through the project's own track and master FX, into a folder the host made.
+- **Role:** `FXRenderer`, asynchronous.
+- **Result:** `FX_RENDER_FILE` per region, then `FX_RENDERED` with the folder and count. The approval token is used up by the render. The folder is empty, under the project's mastering folder, and nothing is written outside it. The narrator's own render settings are put back afterwards. Each use needs the narrator's approval in the UI (threat model row 5o in [the threat model](../../architecture/threat-model.md)).
+- **REAPER:** `render_with_fx`.
+- **Audacity:** not built.
+- **Checked:** REAPER, harness (`master_render_test.lua`: approval used once, run folder, one predicted WAV, settings restored). Not run in REAPER.
+
+### `master_chain_read`
+
+- **Intent:** show the narrator the FX a render would run, before they approve it.
+- **Role:** `MasterChainReader`, synchronous.
+- **Result:** `MASTER_CHAIN_FX` per slot (every track's, then the master's, at most 500), then `MASTER_CHAIN_READ` with the count and whether the list was cut. Reads only.
+- **REAPER:** `master_chain_read`.
+- **Audacity:** none. A macro's steps cannot be read back.
+- **Checked:** REAPER, harness (`master_render_test.lua`). Not run in REAPER.
+
+### `macro_render`
+
+- **Intent:** apply the narrator's named effect macro to a rendered WAV and export the result.
+- **Role:** `MacroRenderer`, synchronous (`RenderWithMacro`).
+- **Result:** `MacroRendered` with the exported path, which equals the requested path on success. The role refuses a request without an approval or without a macro name. It imports the source as its own track, selects only that track, applies the macro and exports. The mastering row, not this role, makes the destination a path that does not exist yet and refuses one equal to the source ([ADR 0460](../../adr/0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md)).
+- **REAPER:** Unsupported: REAPER has no macro manager.
+- **Audacity 3.x:** import, select, apply the macro, export, over the scripting pipe. Audacity 4.0.0 lists the Macro Manager and the scripting pipe as not available ([Audacity 4](audacity-4.md)).
+- **Checked:** not checked in Audacity ([ADR 0460](../../adr/0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md)); the owner's pass is the check.

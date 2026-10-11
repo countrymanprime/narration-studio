@@ -41,7 +41,7 @@ export const WithProgress: Story = {
 };
 
 // The thin, ok-toned bar under a tile matches the mock without the caller choosing anything: StatTile picks it for
-// `progress` (mock-fidelity-primitives-and-components.prd.md Phase 9, mock B01).
+// `progress` (mock B01).
 export const ProgressIsThinAndOk: Story = {
   name: 'Progress is thin and ok-toned',
   args: { label: 'Finished audio', value: '1:52 / 3:08', hint: undefined, progress: 0.61 },

@@ -20,7 +20,7 @@ export type { StateEntry };
 // viewports.ts. This is the single naming authority for
 // screenshots/app/<page>/<state>/<viewport>.png. app.spec.ts supplies its
 // own driver (how to reach the state) keyed by page+state - see
-// APP_DRIVERS in app.spec.ts.
+// APP_DRIVERS in app.drivers.ts.
 
 // One file per page under catalog/ (their shared row metadata is catalog/shared.ts), in capture order.
 export const STATE_CATALOG: StateEntry[] = [

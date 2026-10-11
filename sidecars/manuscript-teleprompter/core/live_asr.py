@@ -75,8 +75,7 @@ turns them into these three event types:
         keyed by port then name; registration only by default, so "loadable"
         is null unless --verify is also given (sidecar-capabilities-flag PRD,
         ADR 0403). With --verify, the rows _VERIFY_HOOKS names (today: just
-        moonshine, folding in what --check-moonshine used to check alone
-        before Phase 3 retired it) also get "loadable" true/false and a
+        moonshine) also get "loadable" true/false and a
         "detail" string, and the process exits 1 if any of them is false.
         Prints once and exits 0 otherwise. The packaged app's smoke test
         (checkCapabilities) reads it to catch a row Go declares for this
@@ -615,16 +614,14 @@ def _load_engine(args) -> EventStream:
 
 
 def _verify_moonshine() -> dict:
-    """The verify hook for asr/moonshine: whether this build's Moonshine native library actually loads, the exact
-    question --check-moonshine used to answer alone (sidecar-capabilities-flag PRD Phase 3, ADR 0403)."""
+    """The verify hook for asr/moonshine: whether this build's Moonshine native library actually loads, (sidecar-capabilities-flag PRD Phase 3, ADR 0403)."""
     from moonshine_engine import self_check
 
     return self_check()
 
 
 # Which (port, name) rows --capabilities --verify can additionally prove actually load, not just registered (Q2/Q3,
-# ADR 0403) - today only moonshine, the row --check-moonshine existed to prove alone before Phase 3 folded it into
-# this generic flag and retired the bespoke one. A future engine needing the same guarantee adds one row here, the
+# ADR 0403) - today only moonshine. A future engine needing the same guarantee adds one row here, the
 # same one-row-not-a-rewritten-call-site shape ENGINES/BACKENDS already have; looked up by key, never compared, so
 # this needs no provider-guard exception (libs/python/tests/test_provider_guard.py).
 _VERIFY_HOOKS: dict[tuple[str, str], Callable[[], dict]] = {("asr", "moonshine"): _verify_moonshine}

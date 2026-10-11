@@ -24,8 +24,8 @@ export type Flag = {
   /** What the script says, for a flag that has no tokens of its own to read it from (a Transcript Compare discrepancy
    * whose paragraph is not in the chapter's alignment, compareFlags.ts). */
   script?: string;
-  /** The Transcript Compare discrepancy behind (or attached to) this flag, from a run on the Proof chapter view
-   * (stage-navigation-and-page-replacement.prd.md Phase 5): the flag detail shows its inline diff and the run's own
+  /** The Transcript Compare discrepancy behind (or attached to) this flag, from a run on the Proof chapter view:
+   * the flag detail shows its inline diff and the run's own
    * actions (Play recorded audio, Add pronunciation equivalence). */
   discrepancy?: Discrepancy;
   /** Set when a stored Finding backs this flag (Phase 4, `overlayFindings`): the flag can be reviewed in place

@@ -19,7 +19,7 @@ const NOT_ACCEPTED = 'Mark this note as a pickup or an edit first. A take is onl
 const CHOOSE_BOTH = 'Choose a target item and a different candidate read.';
 
 /**
- * The reads a take-review finding groups (take-review-pickups-duplicates-take-intelligence.prd.md Phase 5): every read of the
+ * The reads a take-review finding groups: every read of the
  * same part of the script, each with where it is in its own source, how much of the span it covers and how closely it matches
  * the script, and nothing that ranks one over another (Q9). Each read has its own Go to and Loop in REAPER, by its own item
  * GUID (ADR 0121, through FindingsGoToRead and FindingsLoopRead), in place of the finding-level controls a single-spot finding

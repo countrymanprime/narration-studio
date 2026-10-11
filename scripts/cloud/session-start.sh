@@ -28,6 +28,14 @@ if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
 fi
 export GOTOOLCHAIN="go${go_version}" UV_PYTHON=3.12
 
+# The image's standalone gofmt is older than the pin and rewraps files the pinned one accepts, which fails the gofmt
+# step of lint. The pinned toolchain's own gofmt goes first on PATH.
+goroot="$(go env GOROOT)"
+if [[ -n "${CLAUDE_ENV_FILE:-}" && -x "${goroot}/bin/gofmt" ]]; then
+  echo "export PATH=\"${goroot}/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
+fi
+export PATH="${goroot}/bin:$PATH"
+
 # uv: the lockfile needs the pinned version.
 if ! uv --version 2>/dev/null | grep -q "^uv ${uv_version}"; then
   log "uv -> ${uv_version}"
@@ -38,6 +46,22 @@ log "go $(go version | awk '{print $3}')"
 uv python install 3.12 >/dev/null
 log "uv sync (includes the lua group for the REAPER harness)"
 uv sync --locked >/dev/null || log "uv sync failed"
+# pnpm and StyLua: the container ships an older global pnpm, and run from the repo it only looks right because it
+# switches itself to the packageManager pin. A `pnpm` spawned under Nx (the licence tests do) resolves back to the
+# global one, which cannot read the pnpm 11 lockfile. StyLua is not in the image at all and `pnpm check` runs it.
+pnpm_version="$(pin pnpm)"
+stylua_version="$(pin stylua)"
+stylua_version="${stylua_version#v}"
+# From /tmp, so pnpm cannot switch itself and hide the global version.
+if [[ "$(cd /tmp && pnpm --version 2>/dev/null)" != "${pnpm_version}" ]]; then
+  log "pnpm -> ${pnpm_version}"
+  npm install --global --silent "pnpm@${pnpm_version}" || log "pnpm install failed; continuing with $(cd /tmp && pnpm --version)"
+fi
+if ! stylua --version 2>/dev/null | grep -q " ${stylua_version}$"; then
+  log "stylua -> ${stylua_version}"
+  npm install --global --silent "@johnnymorganz/stylua-bin@${stylua_version}" || log "stylua install failed; reaper:lint will fail"
+fi
+
 log "pnpm install"
 pnpm install --frozen-lockfile --reporter=silent || log "pnpm install failed"
 

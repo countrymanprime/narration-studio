@@ -434,7 +434,7 @@ def transcribe(audio_array, model_size, language, device="cpu", progress_path=No
     import asr_batch  # a sibling module: compare.py's own directory is on sys.path, frozen or not
     from narration_common.ports.asr import BatchRequest
 
-    # model_dir is a Narration Utils asset-cache directory whose contents were
+    # model_dir is a Narration Studio asset-cache directory whose contents were
     # already hash-verified before this process was started (see
     # apps/desktop/internal/whisper). Passing it with local_files_only=True stops
     # faster-whisper/huggingface_hub from ever reaching the network here -
@@ -1437,7 +1437,7 @@ def build_unit_audio_info(unit_idx, opcodes, index_map, chapter_index_map, chapt
     punctuation, quotes, hyphenation) instead of Whisper's raw rendering,
     since they're confirmed the same content; only a genuine replace/
     insert substitutes the actual transcribed word(s). Without this, one
-    real misread in an otherwise-perfect sentence used to make the whole
+    real misread in an otherwise-perfect sentence would make the whole
     line fall back to Whisper's raw transcript, which then *also* painted
     unrelated quote/dash/case/number formatting as "different" even
     though only one word was actually wrong (confirmed live). Returns a

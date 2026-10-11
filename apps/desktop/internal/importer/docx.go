@@ -81,8 +81,8 @@ type tocEntry struct {
 
 // tocAuthorityThreshold is the minimum fraction of a docx's own table-of-contents entries that must match a body heading (by
 // bookmark anchor, then normalised text, then position) before the TOC is trusted as the chapter list instead of the heading
-// heuristic (import-structure-toc-and-characters PRD, S6). Below it, a hand-typed or stale TOC is common enough that overriding
-// the heuristic would do more harm than good; ADR 0089 records this as a real decision, adopting the PRD's own recommendation.
+// heuristic. Below it, a hand-typed or stale TOC is common enough that overriding
+// the heuristic would do more harm than good; ADR 0089 records this as a decision.
 const tocAuthorityThreshold = 0.8
 
 // tocMatchedTitles matches a document's own table-of-contents entries, in their own order, to the chapter titles the heading
@@ -377,9 +377,8 @@ func docxWithProgress(path string, progress Progress) (Draft, error) {
 	progress.report(55, "Read %d paragraphs, %d of them headings", len(records), headings)
 	// first is the index of the document's first heading of any kind, chapter or not (a Contents/TOC heading included): everything
 	// before it is unheaded front matter or cover material, and everything from it on belongs to the heading that introduced it. A
-	// TOC heading used to be skipped here so only the first *chapter* heading counted, which is what let a pre-first-chapter TOC's
-	// own entries (still ordinary, non-heading paragraphs) fall through to the front-matter heuristic below alongside the real cover
-	// text.
+	// TOC heading counts too: skipping it would let a pre-first-chapter TOC's own entries (ordinary, non-heading paragraphs)
+	// fall through to the front-matter heuristic below alongside the real cover text.
 	first := len(records)
 	for index, record := range records {
 		if record.heading {

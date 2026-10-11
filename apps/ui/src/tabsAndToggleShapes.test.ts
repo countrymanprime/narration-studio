@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// The primitive owns the underline-tab and segmented-group look (mock-fidelity-primitives-and-components.prd.md Phase 5).
+// The primitive owns the underline-tab and segmented-group look.
 // The owner saw the Production board's step strip and the Master platform switch drawn as ad hoc spans and Buttons glued
 // together with `rounded-none`/`border-l`, instead of `Tabs` or `ToggleGroup look="segmented"`. This scan catches a page
 // that goes back to hand-drawing either shape:

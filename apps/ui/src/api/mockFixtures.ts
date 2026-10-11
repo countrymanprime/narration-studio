@@ -238,8 +238,8 @@ export const WIRE_CHAPTERS: ManuscriptChapter[] = aliceChapters.map((chapter, in
   })),
   wordCount: chapter.paragraphs.join(' ').split(/\s+/).length * 4,
   // Chapters 1-3 were checked and read in full, 4-6 were checked with a third of their text still to record, the rest were never
-  // checked (docs/utilities/recording-coverage.md D11, Q12). The share only drives the recording check and stage suggestions now;
-  // Home's Actual recorded column no longer estimates from it (actual-recorded-column.prd.md Phase 1).
+  // checked (docs/utilities/recording-coverage.md D11, Q12). The share only drives the recording check and stage suggestions;
+  // Home's Actual recorded column does not estimate from it (actual-recorded-column.prd.md Phase 1).
   ...(index < 6 ? { recordedFraction: index < 3 ? 1 : 0.65 } : {}),
   status: index < 3 ? 'finalized' : index < 6 ? 'recording' : index < 8 ? 'editing' : index < 10 ? 'proofing' : 'not_started',
 }));
@@ -853,14 +853,14 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('breath_below_speech_db', 'How far below speech level a breath sits', '12', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
     recordingCheck('click_above_silence_db', 'How far above the silence around it a click stands', '30', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
   ],
-  // Which signals must be met for a stage suggestion (chapter-stage-recommendations PRD Phase 6, Q8), mirroring the
+  // Which signals must be met for a stage suggestion, mirroring the
   // host's fieldSchemas: the master switch, then one choice per signal a provider declares. Only the recording
   // signal is wired so far (coverage.RecordingSignalID); the editing and proofing signal phases add their own rows.
   StageRecommendations: [
     bool('suggestions_enabled', 'Suggest stage advances', 'true'),
     choice('recording.text_present', 'Text present in order (recording)', ['required', 'ignored'], 'required'),
   ],
-  // The preview suggestion's four settings (proofing-preview-suggestion.prd.md Phase 4), mirroring the host's
+  // The preview suggestion's four settings, mirroring the host's
   // fieldSchemas and numberSpecs: preview.DefaultSettings' own shipped defaults (5:00, 10%, Sample, ending
   // exclusion off), all still unset at every scope (repo default only) the way a fresh install reads them.
   Preview: [
@@ -1180,7 +1180,7 @@ export const WIRE_CLEANUP_TOOLS_LAUNCHED: CleanupToolsState = {
 export const WIRE_CLEANUP_TOOLS_ERROR: CleanupToolsState = {
   runId: '1790000000000001',
   phase: 'error',
-  message: 'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); Narration Utils never installs it.',
+  message: 'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); Narration Studio never installs it.',
   tool: 'magnolius_declick',
   action: '',
 };
@@ -1234,7 +1234,7 @@ export const WIRE_RETAKE_LANES_ERROR: RetakeLanesState = {
   runId: '1790000000000001',
   phase: 'error',
   message:
-    'The track "Chapter 1" is not in fixed item lane mode, so it has no lanes to choose from. Narration Utils never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
+    'The track "Chapter 1" is not in fixed item lane mode, so it has no lanes to choose from. Narration Studio never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
   lineId: 'line-000012',
   itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}',
   trackName: 'Chapter 1',
@@ -1491,7 +1491,7 @@ export const WIRE_FINDINGS: Finding[] = [
   },
 ];
 
-/** One unreviewed take-review pickup finding for chapterId (recording-check-summary.prd.md Phase 3, RS4 A): the
+/** One unreviewed take-review pickup finding for chapterId: the
  * summary's "Take review" count and Open Review link demo, seeded additively (never into the default
  * `WIRE_FINDINGS` other tests hardcode exact counts against) alongside the coverage mock's own interior-pickups
  * seed for the same chapter. */

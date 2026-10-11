@@ -25,8 +25,8 @@ const declinedCandidates = new Set<string>();
 const IMPORT_POLLED_PHASES: WorkJob['phase'][] = ['preparing', 'committing'];
 
 /**
- * The manuscript import and the credits prompt (moved from Home by stage-navigation-and-page-replacement.prd.md Phase 2: "the import
- * flow and the manuscript candidate offer are the page's empty state"). A hook, not a component, so the Production home can put the
+ * The manuscript import and the credits prompt (the import
+ * flow and the manuscript candidate offer are the Production page's empty state). A hook, not a component, so the Production home can put the
  * choose-a-file button in its empty state or its header while the dialogs stay mounted in one place: an import that finishes turns
  * the empty state into the board, and must not lose the job it is following when it does.
  */

@@ -444,7 +444,7 @@ def classify(candidate: dict[str, str]) -> str:
     return "Needs Review"
 
 
-# The narrator's choices for --source, now the pronunciation source registry's own names (ADR 0301, provider-ports P8).
+# The narrator's choices for --source: the pronunciation source registry's own names (ADR 0301, provider-ports P8).
 PRONUNCIATION_SOURCES = SOURCES.names()
 
 

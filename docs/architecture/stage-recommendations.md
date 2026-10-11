@@ -1,19 +1,6 @@
 # Chapter stage recommendations: the signal contract
 
-**Status: contract, engine, decision store and host bindings delivered, one signal.** The Go types, the `Provider` interface and the pure engine
-are in [`apps/desktop/internal/stages`](../../apps/desktop/internal/stages) (Phase 1 of the chapter stage
-recommendations PRD, `docs/prds/chapter-stage-recommendations.prd.md`, delivered and deleted). The recording signal,
-`recording.text_present`, and its provider are in
-[`apps/desktop/internal/coverage`](../../apps/desktop/internal/coverage) (`signal.go`, `provider.go`;
-[ADR 0131](../adr/0131-the-recording-signal-is-read-from-stored-checks-with-thresholds-applied-on-read-and-alignment-from-settings.md)).
-The decision store and the service that composes the providers, the engine and the manuscript's status path are in
-`internal/stages` too (`store.go`, `service.go`, `assess.go`; Phase 2,
-[ADR 0161](../adr/0161-stage-decisions-live-in-their-own-sidecar-and-confirm-writes-the-record-before-the-status.md)).
-`coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`), and a test runs the
-service over the recording-coverage corpus (Phase 3). The host builds the service for each project and four bindings reach
-it (Phase 4, `apps/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the Home surface is Phase 5 (see [On the Production board](#on-the-production-board)). The
-contract's decision is
-[ADR 0160](../adr/0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md).
+**Status: delivered.** The Go types, the `Provider` interface and the pure engine are in [`apps/desktop/internal/stages`](../../apps/desktop/internal/stages) ([ADR 0160](../adr/0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md)). The recording signal, `recording.text_present`, and its provider are in [`apps/desktop/internal/coverage`](../../apps/desktop/internal/coverage) (`signal.go`, `provider.go`; [ADR 0131](../adr/0131-the-recording-signal-is-read-from-stored-checks-with-thresholds-applied-on-read-and-alignment-from-settings.md)). The decision store and the service that composes the providers, the engine and the manuscript's status path are in `internal/stages` too (`store.go`, `service.go`, `assess.go`; [ADR 0161](../adr/0161-stage-decisions-live-in-their-own-sidecar-and-confirm-writes-the-record-before-the-status.md)). `coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`). The host builds the service for each project and four bindings reach it (`apps/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the UI is described under [On the Production board](#on-the-production-board).
 
 This page is for whoever implements a signal: recording coverage (`recording`), editing readiness (`editing`) and
 proofing readiness (`proofing`).
@@ -85,8 +72,8 @@ type Provider interface {
 }
 ```
 
-- `SignalIDs` declares every id the provider can report. The narrator's `StageRecommendations` settings (Phase 6,
-  `apps/desktop/app.go`'s `fieldSchemas`) choose the required set out of these ids: each is `required` or `ignored`
+- `SignalIDs` declares every id the provider can report. The narrator's `StageRecommendations` settings
+  (`apps/desktop/app.go`'s `fieldSchemas`) choose the required set out of these ids: each is `required` or `ignored`
   (default `required`), and a master switch (`suggestions_enabled`) empties every stage's required set at once when
   off. `Config.RequiredSignals` narrows `DeclaredSignalIDs` accordingly; a nil `RequiredSignals` (a caller not wired to
   settings) keeps every declared id required, the original Q8 default.
@@ -189,16 +176,15 @@ saved project once.
 | `StageRevert(chapterId)` | the same |
 
 A refusal changed nothing: `basis_changed` (check again), `not_recommended` or `nothing_to_revert`. Anything else (no
-project, no manuscript, a file that could not be read or written) is a rejected promise, which Home shows as "Couldn't
+project, no manuscript, a file that could not be read or written) is a rejected promise, which the Production board shows as "Couldn't
 check". The TypeScript contract is `apps/ui/src/api/contracts/stages.ts`, its schemas `schemas/stages.ts`, and the
 payloads are pinned in `tests/fixtures/contracts/stages-*.json` (the cause and refusal word lists too). The browser mock
-(`apps/ui/src/api/stagesMock.ts`) answers as the host does with the recording signal only, and a seed puts a chapter in
+(`apps/ui/src/api/stagesMock.ts`) answers as the host does for the recording signal and seeds the editing empty-space and proofing pickups signals, and a seed puts a chapter in
 any verdict, cause or notice.
 
-With only the recording signal wired, a chapter in editing or proofing reads `none` (`no_required_signals`) until the
-editing and proofing signals exist (Phases 7 and 8).
+A chapter whose stage has no required signal (all ignored in the settings) reads `none` (`no_required_signals`).
 
-**Cost, measured (Phase 4, Q5).** On a copy of a real project (a 4.2 MB `.rpp`, 35 narration chapters all set to
+**Cost, measured (Q5).** On a copy of a real project (a 4.2 MB `.rpp`, 35 narration chapters all set to
 recording, 15 tracks, 3,894 items, 252 source files; Windows, the audio on a local disk) one `StageRecommendations` took
 about 0.35 s with the project's own links (1 chapter linked) and 1.1 to 1.5 s with all 15 tracks linked to chapters. The
 time is the saved project's parse, once per read, and each linked chapter's fingerprint, which hashes part of every
@@ -207,13 +193,13 @@ project copy (`STAGES_TIMING_PROJECT`).
 
 ## On the Production board
 
-Phase 5 showed the recommendations in Home's estimate card; stage navigation Phase 2 moved them onto the Production
+The recommendations show on the Production
 home's board (`apps/ui/src/components/stages/`, wired into `components/production/ChapterBoard.tsx`): a chapter's
 current-stage cell reads the verdict and opens `StageEvidence`, where Confirm, Dismiss, Revert and the status override
 live. `useStageRecommendations` reads `StageRecommendations()` when the page opens,
 after a manuscript import, after a recording check ends or its dialog closes, after a status is changed by hand, when the
 window regains focus or the page becomes visible again (`useRefreshOnFocus`, throttled to once per 30 s and skipped while
-a decision is pending, `home-stage-check-line.prd.md` Phase 2, Q2 A) and, on a
+a decision is pending, `home-stage-check-line.prd.md` Q2 A) and, on a
 failed read, when Try again is pressed; nothing is cached across reads (D1, Q5). `StageSuggestion` sits under each
 chapter's status select, which stays the narrator's override: the verdict in a few words, Confirm and Dismiss for
 `recommended`, Revert for a live confirmation, and the "evidence changed since you confirmed" notice with Revert for a
@@ -221,18 +207,18 @@ chapter's status select, which stays the narrator's override: the verdict in a f
 evidence (a paragraph it names links to the manuscript), the saved project's modified time and its age, and for an
 unknown cause what resolves it (`stageText.ts`, `CAUSE_TEXT`: the recording check dialog, the audio engine panel, or Check now).
 `StageSummary` holds the chips on the collapsed card; `StageCheckLine` above the table renders nothing while the read
-succeeds and only the reason and a Try again retry when it fails (`home-stage-check-line.prd.md` Phase 1). Confirm is one
+succeeds and only the reason and a Try again retry when it fails (`home-stage-check-line.prd.md`). Confirm is one
 click, reversible by Revert (Q13). A refusal is shown as an error toast and the recommendations are read again; a failed
 read shows "Couldn't check" in every row. The mock's `?mockStages=mixed|error` seeds (`apps/ui/src/main.tsx`) drive the
-visual states `home/stage-*`.
+visual states `production/stage-*`.
 
 ## Elsewhere
 
-Phase 8 added `apps/ui/src/components/proof/ProofingStagePanel.tsx` on the Proofing page (a Proof chapter view since stage navigation Phase 5): every narration chapter
-currently in `proofing`, with the same `StageSuggestion`/`StageEvidence` pair Home uses (Confirm, Dismiss, Revert, Why),
+`apps/ui/src/components/proof/ProofingStagePanel.tsx` is on Proof's chapter view: every narration chapter
+in `proofing`, with the same `StageSuggestion`/`StageEvidence` pair the board uses (Confirm, Dismiss, Revert, Why),
 self-fetching since the Transcript state carries no chapter id.
 
-Phase 9 added two read-only consumers, both through `useStageRecommendations` like every other reader here - neither
+Two read-only consumers also read recommendations, both through `useStageRecommendations` like every other reader here - neither
 confirms, dismisses or reverts:
 
 - `ChapterNav.tsx` (the Script page's Chapters & Search panel) shows a non-interactive "Suggested: `<stage>`" line

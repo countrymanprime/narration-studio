@@ -12,11 +12,11 @@ The play button beside a Story Bible name, or beside one of its aliases, speaks 
 ## What keeps a failure from hurting the next try
 
 - **The cache never trusts an empty file.** A file no larger than a WAV header counts as a miss and is replaced, and a failed run removes its output. The sidecar renders to `<name>.<pid>.part` and renames on success, so a partial file cannot exist under the final name.
-- **The cache key holds the voice.** The hash input is the tag `narration-utils-tts-preview-v2`, the voice id, provider and version, and the text. Changing the voice changes the path; the tag moved to `v2` so files rendered under the old key (which ignored the voice and might be empty) are never trusted.
+- **The cache key holds the voice.** The hash input is the tag `previewCacheTag` (`narration-utils-tts-preview-v3`), the voice id, provider and version, the chosen pronunciation and the text. Changing the voice changes the path, and the tag is bumped whenever the key's inputs change so files rendered under an older key are never trusted.
 - **The real error is reported.** The wave writer is closed by hand, so its own "# channels not specified" cannot replace the synthesis error, and a name that phonemizes to no audio says so: `"<name>" could not be spoken: <reason>`.
-- **UTF-8 pipes.** The sidecar writes UTF-8 to stdout and stderr (`use_utf8_stdio`), the encoding the host reads, so a project folder outside the Windows code page no longer fails the first run.
+- **UTF-8 pipes.** The sidecar writes UTF-8 to stdout and stderr (`use_utf8_stdio`), the encoding the host reads, so a project folder outside the Windows code page does not fail the first run.
 - **The two-minute deadline** stops a hung process (a cold start of the frozen sidecar is the slow case) with `the preview took longer than 2m0s and was stopped`. The other sidecar commands are long-running by design and are not bounded.
-- **The voice is not hashed on every click.** State comes from the manifest and the voice is read in full once per session ([ADR 0078](../adr/0078-asset-state-comes-from-the-manifest-an-asset-is-read-in-full-once-per-session-and-a-failed-download-resumes.md)), where it used to hash the whole 114 MB model per preview.
+- **The voice is not hashed on every click.** State comes from the manifest and the voice is read in full once per session ([ADR 0078](../adr/0078-asset-state-comes-from-the-manifest-an-asset-is-read-in-full-once-per-session-and-a-failed-download-resumes.md)), not hashed from the whole 114 MB model per preview.
 - **The frozen sidecar carries what Piper needs.** `scripts/release/prepare-resources.py` collects Piper's `espeak-ng-data` and the `cmudict` data for the guide sidecar, and the packaged `--smoke` run proves the frozen guide can load them (a real spoken word is a local check with the seed command and `--piper-model`; CI does not download the voice, see [CI and releases](../operations/ci-and-releases.md)).
 
 ## Messages

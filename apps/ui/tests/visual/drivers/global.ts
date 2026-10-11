@@ -13,7 +13,7 @@ export const globalDrivers: Record<string, Driver> = {
     // hovering there changes nothing visible.
     // Icon-only buttons are the ones carrying an aria-label; the full
     // sidebar's button has the same accessible name from its text instead.
-    // Pickups, since stage navigation Phase 6 retired the Tracks item this used to hover.
+    // Pickups: the Tracks item was retired in stage navigation Phase 6.
     const railButton = page.locator('button[aria-label="Pickups"]:visible');
     if (await railButton.count()) {
       await railButton.first().hover();

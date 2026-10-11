@@ -3,8 +3,8 @@
 // segments that drop cleanly (their own punctuation and whitespace with them)
 // when any token inside them has no value (PRD audiobook-credits-templates.prd.md,
 // Open Questions C1-C12; C5's "optional segments yes"). One renderer is used by
-// every surface that shows credits text (Settings preview now; the estimate and
-// the teleprompter in later phases), so what a narrator previews is exactly what
+// every surface that shows credits text (the Settings preview; the estimate and
+// the teleprompter are planned), so what a narrator previews is exactly what
 // gets counted and read (PRD "Technical Approach").
 //
 // Callers: apps/desktop's credits bindings (creditsbindings.go, Phase 1); the

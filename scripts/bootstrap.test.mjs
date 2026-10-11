@@ -22,9 +22,9 @@ import {
 test('reads all pinned Go/Wails quality-tool versions from the toolchain manifest', () => {
   assert.equal(PNPM_VERSION, '11.27.0');
   assert.equal(UV_VERSION, '0.12.15');
-  assert.equal(GO_VERSION, '1.27.1');
-  assert.equal(WAILS_VERSION, 'v3.0.0-beta.25');
-  assert.equal(GOLANGCI_LINT_VERSION, 'v2.13.2');
+  assert.equal(GO_VERSION, '1.27.2');
+  assert.equal(WAILS_VERSION, 'v3.0.0-beta.26');
+  assert.equal(GOLANGCI_LINT_VERSION, 'v2.14.0');
   assert.equal(CHECKLOCKS_VERSION, 'v0.0.0-20260924014505-db6c1a7c24b4');
   assert.equal(STYLUA_VERSION, 'v2.1.0');
 });
@@ -43,7 +43,7 @@ test('uses platform-specific virtual-environment paths', () => {
 });
 
 test('prefers the pinned repo-local Go and Wails tool directories', () => {
-  assert.deepEqual(localToolPaths('C:\\repo', 'win32'), ['C:\\repo\\.tools\\go-1.27.1\\go\\bin', 'C:\\repo\\.tools\\go-bin', 'C:\\repo\\.tools\\wails-bin']);
+  assert.deepEqual(localToolPaths('C:\\repo', 'win32'), ['C:\\repo\\.tools\\go-1.27.2\\go\\bin', 'C:\\repo\\.tools\\go-bin', 'C:\\repo\\.tools\\wails-bin']);
 });
 
 test('build plan installs locked dependencies and creates a production-like workspace binary', () => {

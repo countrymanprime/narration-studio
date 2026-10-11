@@ -35,7 +35,7 @@ read the docs here in `docs/` meanwhile.
 narration-utils/
   apps/
     desktop/                   Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
-                               cmd/ (seed-assets, manuscript-import), build/ (icons, the Windows setup program definition)
+                               cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys), build/ (icons, the Windows setup program definition)
     ui/                        React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
   sidecars/                    Python programs frozen into the app and run on demand
     manuscript-guide/          core/ CLI backend, tests/
@@ -45,7 +45,7 @@ narration-utils/
     python/narration_common/   DAW-agnostic helpers shared by the sidecars
   integrations/
     reaper/                    REAPER launcher and Lua bridge
-    audacity/                  placeholder notes for a future Audacity driver
+    audacity/                  Audacity notes only; the driver is in apps/desktop/internal/
   config/                      shipped JSON: defaults, asset catalogs, roadmap
   tests/fixtures/              manuscripts used by tests across projects
   tools/docs-site/             the public docs site: MkDocs config, include list and hooks (reads docs/, holds no content)
@@ -63,12 +63,13 @@ The layout and its test rule are recorded in
 ## Supported DAWs
 
 - **Reaper** — supported. Load `integrations/reaper/NarrationUtils_Launcher.lua` as
-  the one action; it opens the centered Narration Utils workspace with every tool (Proof,
+  the one action; it opens the centered Narration Studio workspace with every tool (Proof,
   Story Bible, Teleprompter, Tracks and the manuscript reader) and their global/project settings.
-- **Audacity** — planned, not yet implemented. Audacity's scripting model
-  (mod-script-pipe, label tracks instead of take markers, no ExtState-equivalent settings
-  store) is different enough from Reaper's that it needs its own driver design rather than a
-  port of the Reaper one. Placeholder notes live under `integrations/audacity/`.
+- **Audacity 3.x** — adapter built from the published `mod-script-pipe` spec and tested against a fake pipe server; the
+  owner's check in a running Audacity is pending ([verification pass](docs/operations/audacity-verification-pass.md)). The
+  pipe client and adapter are in `apps/desktop/internal/audacitybridge` and `apps/desktop/internal/dawport/audacity`;
+  `integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
+  ([DAW reference](docs/reference/daw/README.md)).
 
 ## Supported platforms
 
@@ -82,9 +83,9 @@ The supported way to get the app is a GitHub release. From the [releases page](h
 1. Download `narration-utils-<version>-windows-x64-setup.exe`, for example `narration-utils-0.2.7-windows-x64-setup.exe` (and,
    to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
 2. Run it. It installs for your user account only, so it asks for no administrator rights, puts the program in
-   `%LOCALAPPDATA%\Programs\Narration Utils`, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
+   `%LOCALAPPDATA%\Programs\Narration Studio`, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
    installs the Microsoft WebView2 runtime only if your computer does not have it yet. A second Start Menu entry,
-   **Narration Utils for Audacity**, opens the app ready for a project you record in Audacity 3.x.
+   **Narration Studio for Audacity**, opens the app ready for a project you record in Audacity 3.x.
 3. **The release is unsigned**, so Windows SmartScreen may say it "prevented an unrecognized app from starting". Choose
    **More info**, then **Run anyway**. The warning is about the missing signature, not about anything found in the file. To
    check the file yourself before you run it:
@@ -93,7 +94,7 @@ The supported way to get the app is a GitHub release. From the [releases page](h
    - where it was built, with the [GitHub CLI](https://cli.github.com):
      `gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-utils`. Success names the
      workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
-4. Start **Narration Utils** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
+4. Start **Narration Studio** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
 
 The app updates itself from these releases after you click (Settings > About & updates); it never installs an update on its
 own. That works because the install folder is yours to write to. `narration-utils-<version>-windows-x64.zip` on the release is
@@ -206,7 +207,7 @@ committed `uv.lock` by `pnpm run bootstrap`.
 
 ## License
 
-Narration Utils is free software, licensed under the
+Narration Studio is free software, licensed under the
 [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is built to
 help narrators for free and to stay that way: anyone who distributes it, or runs a modified
 copy as a network service, must offer the corresponding source under the same terms. See

@@ -1,7 +1,7 @@
 /**
  * Shared dBFS math for `LevelMeter` (the primitive) and `useInputLevel` (the teleprompter's live level hook):
  * the dBFS-to-percent width map, which zone a reading falls in relative to the peak ceiling, and the peak-hold
- * ballistics (studio-ui-primitives.prd.md Phase 5, ADR 0360 Q2).
+ * ballistics (ADR 0360 Q2).
  */
 
 export type LevelMeterZone = 'body' | 'hot' | 'over';

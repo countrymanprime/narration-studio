@@ -809,7 +809,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     });
   });
 
-  // stage-navigation-and-page-replacement.prd.md Phase 4 (Q9): the cards' Read aloud, Booth and Companion buttons became one
+  //  (Q9): the cards' Read aloud, Booth and Companion buttons became one
   // "Record in Booth" link to the Booth page; the Read aloud dialog is gone (ADR 0407).
   describe('Record in Booth', () => {
     it('opens the Booth on a narration chapter, with no dialog of its own', async () => {
@@ -852,7 +852,7 @@ describe('Script page (integration, driven through the mock NarrationApi)', () =
     renderScript();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy());
     const grid = document.querySelector('.reader-page')!;
-    expect(grid.className).toContain('min-[1440px]:grid-cols-[12rem_minmax(0,1fr)_21.5rem]');
+    expect(grid.className).toContain('min-[1440px]:grid-cols-[13.5rem_minmax(0,1fr)_22.5rem]');
     expect(grid.className).not.toMatch(/(^|\s)2xl:grid-cols-/);
     const rail = screen.getByRole('complementary', { name: 'Prep' });
     expect(rail.className).toContain('min-[1440px]:flex');

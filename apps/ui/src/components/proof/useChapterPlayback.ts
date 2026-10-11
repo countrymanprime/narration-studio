@@ -42,7 +42,7 @@ export function useChapterPlayback(playlist: PlaylistSegment[], mediaUrl: (sourc
   }, []);
 
   // Advance to the next segment, or stop at the chapter's end, once the current one reaches its played range's end -
-  // the trim `useTrackPlayback` used to ignore (it played the item's whole source file from 0).
+  // `useTrackPlayback` ignores the trim and plays the item's whole source file from 0.
   useEffect(() => {
     const audio = audioRef.current!;
     const advance = () => {

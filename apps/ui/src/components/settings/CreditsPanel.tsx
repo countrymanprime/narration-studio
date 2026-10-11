@@ -43,7 +43,7 @@ const VALUE_FIELDS: { key: keyof CreditValues; label: string }[] = [
 // its token by capitalizing the first letter, with no exceptions to keep track of as fields are added.
 const detectedToken = (key: keyof CreditValues): string => key.charAt(0).toUpperCase() + key.slice(1);
 
-// previewParts (splitting an unresolved token out as its own chip marker) now lives in ../../creditsPreviewParts,
+// previewParts (splitting an unresolved token out as its own chip marker) lives in ../../creditsPreviewParts,
 // shared with the Manuscript pseudo-entries (Phase 3) so both surfaces highlight an unresolved token the same way.
 
 /**

@@ -1,0 +1,13 @@
+[
+  {
+    "id": "new-binding-field",
+    "prompt": "I'm adding a durationMs field to the result a Wails binding returns for the take list. What do I need to touch?",
+    "expect": "trigger"
+  },
+  {
+    "id": "sidecar-output-key",
+    "prompt": "The sidecar's JSON output is gaining a confidence key that the UI will show next to each line. Implement it.",
+    "expect": "trigger"
+  },
+  { "id": "pure-function-test", "prompt": "Add a unit test for a pure Python function that formats a timestamp as mm:ss.", "expect": "no-trigger" }
+]

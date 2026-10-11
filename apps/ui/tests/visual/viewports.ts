@@ -22,12 +22,12 @@ export const VIEWPORTS: Viewport[] = [
 // by resizing.
 export const REFLOW_VIEWPORT: Viewport = { name: 'reflow', width: 390, height: 844 };
 
-// Companion mode's window (booth-mode-and-companion-panel.prd.md Phase 7, ADR 0401): the host narrows the app's one window
+// Companion mode's window (ADR 0401): the host narrows the app's one window
 // to 380 px (apps/desktop/bindings_companion.go's companionModeWidth) and pins it beside the DAW, so the companion rows are
 // judged at that width too, the way the narrator actually sees them. Not part of the matrix: rows opt in with `COMPANION`.
 export const COMPANION_VIEWPORT: Viewport = { name: 'companion', width: 380, height: 900 };
 
-// The Script page's full mock-02 layout (stage-navigation-and-page-replacement.prd.md Phase 3, ADR 0393, superseding ADR
+// The Script page's full mock-02 layout (ADR 0393, superseding ADR
 // 0392): the chapter list, the reader and the rail show side by side from 1440 px (D85 on issue #509 - mock 02's own
 // capture width), so the matrix's `desktop` width already shows it; the rail rows also opt in here, an even wider check.
 export const WIDE_VIEWPORT: Viewport = { name: 'wide', width: 1680, height: 1050 };

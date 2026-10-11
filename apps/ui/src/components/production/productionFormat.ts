@@ -4,7 +4,7 @@ import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import type { StageGridCell } from '../primitives/StageGrid';
 import type { StatTileTone } from '../primitives/StatTile';
 
-// The Production page's words and figures (production-tracking.prd.md Phase 4). Every figure is measured or logged (ADR 0320): an
+// The Production page's words and figures. Every figure is measured or logged (ADR 0320): an
 // undefined one is a dash, never 0 and never an estimate, and nothing here projects a pace from the time logged so far.
 
 const DASH = '—';

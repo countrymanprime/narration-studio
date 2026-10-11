@@ -52,13 +52,19 @@ jobs:
       # SARIF output never fails the run; the text run below prints the findings for the log.
       - name: Scan the Go module (SARIF)
         run: govulncheck -C apps/desktop -format sarif ./... > govulncheck.sarif
+      # govulncheck v1.8.0 repeats identical entries in a result's `stacks`, which SARIF forbids, so Code scanning rejects
+      # the file. Only exact duplicates are dropped; every finding stays.
+      - name: Drop duplicate stacks from the SARIF
+        run: node scripts/ci/dedupe-sarif-stacks.mjs govulncheck.sarif
       - name: Upload the results to Code scanning
         if: env.CAN_UPLOAD == 'true'
-        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: govulncheck.sarif
           category: govulncheck
+      # `!cancelled()`: the findings must reach the log even when the upload above fails.
       - name: Print the findings
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: govulncheck -C apps/desktop ./...
 

@@ -27,6 +27,7 @@ import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
 import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
 import { ProofChapterPage } from './components/proof/ProofChapterPage';
+import { saveLastChapter } from './components/proof/lastChapterStorage';
 import { ProofPage } from './components/proof/ProofPage';
 import { PickupsPage } from './components/pickups/PickupsPage';
 import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLocation';
@@ -45,8 +46,8 @@ import { useCommand } from './input/useCommand';
 import { useRecordingEngine } from './components/booth/useRecorder';
 
 // The Settings categories another page can open Settings at, by URL anchor.
-// `#teleprompter` is kept as an alias of `#booth` so links from before the Booth replaced the Teleprompter page still land
-// (stage-navigation-and-page-replacement.prd.md Q11); the category's key stays its settings tool's name.
+// `#teleprompter` is kept as an alias of `#booth` so links from before the Booth replaced the Teleprompter page still land;
+// the category's key stays its settings tool's name.
 const SETTINGS_ANCHORS: Record<string, string> = { '#credits': 'Credits', '#delivery': 'Delivery', '#booth': 'Teleprompter', '#teleprompter': 'Teleprompter' };
 
 const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not be read, so what you see may be out of date. Reopen the page to refresh it.';
@@ -121,8 +122,8 @@ function AppRoutes() {
   const [settingsDirty, setSettingsDirty] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove>();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  // The engine panel (stage-navigation-and-page-replacement.prd.md Phase 6): one panel for the app, opened from the header's
-  // engine chip and from every pointer that used to send the narrator to the Tracks page.
+  // The engine panel: one panel for the app, opened from the header's
+  // engine chip and from every pointer to the retired Tracks page.
   // The engine chip's state: the project's recording engine (native-recording-suite P2, ADR 0455), REAPER by default.
   const engine = useRecordingEngine();
   const [enginePanelOpen, setEnginePanelOpen] = useState(false);
@@ -142,7 +143,7 @@ function AppRoutes() {
   // boundary (the active manuscript affects several pages).  Refresh this
   // payload in place instead of reloading the browser, which could interrupt
   // the completion dialog before its activity log is visible.
-  // The header's running-timer chip (stage-navigation-and-page-replacement.prd.md Phase 2): read once for the project's manuscript,
+  // The header's running-timer chip: read once for the project's manuscript,
   // so the chip shows on whichever page the app opens on, and then from every overview the Production home reads, since only its
   // Start and Stop timer change it.
   const [runningTimer, setRunningTimer] = useState<RunningTimer | null>(null);
@@ -365,9 +366,8 @@ function AppRoutes() {
   }, []);
 
   // Alt+Left/Right, the keyboard's Browser Back/Forward keys and Cmd+[ / Cmd+] on macOS are `nav.back` and
-  // `nav.forward`, `global` commands in the registry (input-commands-and-pedals.prd.md Phase 2, ADR 0361), replacing
-  // the hand-written `keydown` listener this effect used to add. The registry applies the target guard and resolves
-  // scopes on its own; `isModalOpen()` above is the one piece kept from the old listener (see its comment).
+  // `nav.forward`, `global` commands in the registry (ADR 0361). The registry applies the target guard and resolves
+  // scopes on its own; `isModalOpen()` above covers the open dialog (see its comment).
   useCommand('nav.back', () => {
     if (!isModalOpen()) guardedBackRef.current();
   });
@@ -437,18 +437,21 @@ function AppRoutes() {
   // index, assigned when the manuscript is imported), "#c<chapter-id>" at a
   // chapter with no specific line, and "#<entityId>" at a Story Bible entry.
   // See script/ScriptPage.tsx and Guide.tsx for where these are consumed. The pages that call it still name the prop
-  // `goToManuscript` (it opens the manuscript's text, now on the Script page).
+  // `goToManuscript` (it opens the manuscript's text on the Script page).
   const goToScript = (chapter: string, paragraph?: number) =>
     guardedNavigate(`/script#${paragraph !== undefined ? `p${paragraph}` : `c${encodeURIComponent(chapter)}`}`);
   const goToStoryBible = (entityId: string) => guardedNavigate(`/story-bible#${encodeURIComponent(entityId)}`);
   // A chapter's Proof view (stage-navigation-and-page-replacement.prd.md Phase 5; edit-and-proof-workspace.prd.md's
   // "Open in workspace"): from Proof's notes, the Production board and Script. findingId is the deep link's ?finding=, so the
   // chapter view lands on the flag that finding backs (Navigation and deep links).
-  const goToProofChapter = (chapterId: string, findingId?: string) =>
+  const goToProofChapter = (chapterId: string, findingId?: string) => {
+    // Proof's book-level waveform card opens on the last chapter the narrator looked at (ADR 0750, D100).
+    saveLastChapter(data.projectFolder, chapterId);
     guardedNavigate(`/proof/${encodeURIComponent(chapterId)}${findingId ? `?finding=${encodeURIComponent(findingId)}` : ''}`);
+  };
   // A delivery finding opens Master & QC on its file and rule: "#file=<path>&rule=<id>" (masterLink.ts).
   const goToMaster = (file: string, rule?: string) => guardedNavigate(`/master${masterHash({ file, ...(rule ? { rule } : {}) })}`);
-  // A Manuscript card's "Record in Booth" (stage-navigation-and-page-replacement.prd.md Q9): the Booth on that chapter or credits.
+  // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
   const goToBooth = (target: { chapter: string } | { credits: CreditsKind }) => guardedNavigate(`/booth${boothQuery(target)}`);
 
   const guardedNavigate = (next: string) => {
@@ -551,8 +554,8 @@ function AppRoutes() {
                 />
                 <Route path="/manuscript" element={<RedirectKeepingLocation to="/script" />} />
                 <Route path="/story-bible" element={data.manuscript ? <Guide notify={setNotice} goToManuscript={goToScript} /> : <Navigate to="/" replace />} />
-                {/* Retired by the engine panel (stage-navigation-and-page-replacement.prd.md Phase 6, Q8 A): lands on Proof, where a chapter
-                  is heard now, with the panel open over it, since the Tracks page's REAPER tools live there. */}
+                {/* Retired by the engine panel: lands on Proof, where a chapter
+                  is heard, with the panel open over it, since the Tracks page's REAPER tools live there. */}
                 <Route path="/tracks" element={<RetiredTracksRoute />} />
                 <Route
                   path="/proof/:chapterId"
@@ -590,6 +593,7 @@ function AppRoutes() {
                   element={
                     <ProofPage
                       notify={setNotice}
+                      projectFolder={data.projectFolder}
                       hasManuscript={Boolean(data.manuscript)}
                       goToManuscript={goToScript}
                       goToStoryBible={goToStoryBible}
@@ -599,18 +603,18 @@ function AppRoutes() {
                     />
                   }
                 />
-                {/* Pickups (stage-navigation-and-page-replacement.prd.md Phase 7) replaces the Tracks page's Pickups dialog, which had no route. */}
+                {/* Pickups replaces the Tracks page's Pickups dialog, which had no route. */}
                 <Route path="/pickups" element={<PickupsPage />} />
-                {/* Retired by Proof (stage-navigation-and-page-replacement.prd.md Phase 5, ADR 0407): old links land, query and hash kept. */}
+                {/* Retired by Proof (ADR 0407): old links land, query and hash kept. */}
                 <Route path="/review" element={<RedirectKeepingLocation to="/proof" />} />
                 <Route path="/proofing" element={<RedirectKeepingLocation to="/proof" />} />
                 <Route
                   path="/tracks/chapter/:chapterId"
                   element={<RedirectKeepingLocation to={({ chapterId = '' }) => `/proof/${encodeURIComponent(chapterId)}`} />}
                 />
-                {/* The Production page moved to `/` (stage-navigation-and-page-replacement.prd.md Phase 2). */}
+                {/* The Production page moved to `/`. */}
                 <Route path="/production" element={<RedirectKeepingLocation to="/" />} />
-                {/* Master & QC (stage-navigation-and-page-replacement.prd.md Phase 8) replaces Delivery; old links land, hash kept. */}
+                {/* Master & QC replaces Delivery; old links land, hash kept. */}
                 <Route
                   path="/master"
                   element={<MasterQcPage openSettings={() => guardedNavigate('/settings#delivery')} focus={parseMasterHash(location.hash)} />}

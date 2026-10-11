@@ -9,15 +9,14 @@ type ToggleGroupOption = {
 };
 
 /** `default` is a row of standalone chips, each with its own border. `segmented` is one bordered container (the Master
- * platform switch, mock-fidelity-primitives-and-components.prd.md Phase 5): 33 px, 1 px `--border`, `--bg` fill, radius
+ * platform switch): 33 px, 1 px `--border`, `--bg` fill, radius
  * ≈6; the chosen segment is inset, filled `--accent`, and the rest carry no fill, in the label's own case (title case in
  * the mocks, not uppercase — ACX, iNaudio, Google Play). */
 export type ToggleGroupLook = 'default' | 'segmented';
 
 // A group of chips of which one is chosen (the Whisper model, the text size, the theme). The group has a name a screen
-// reader says before its chips ("Chunk length, group"), where the chips used to be preceded by a `<label>` with nothing to
-// label. Each chip is a `Pill`, a toggle that reports `aria-pressed`; pressing the chosen one again reports it too and the
-// caller decides, as before. Every chip stays a tab stop. `className` is the group's layout (`gap-1.5 flex-wrap`).
+// reader says before its chips ("Chunk length, group"). Each chip is a `Pill`, a toggle that reports `aria-pressed`; pressing the chosen one again reports it too and the
+// caller decides. Every chip stays a tab stop. `className` is the group's layout (`gap-1.5 flex-wrap`).
 export function ToggleGroup({
   label,
   value,

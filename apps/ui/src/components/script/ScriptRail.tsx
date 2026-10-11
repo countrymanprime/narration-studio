@@ -12,7 +12,7 @@ type RailTab = 'pronunciations' | 'characters' | 'queries';
 // (teleprompter/ReaderRail.tsx), which `Button`'s padded, uppercase chrome does not fit.
 const NAME_BUTTON = 'text-left font-semibold text-[var(--text)] underline-offset-2 hover:underline';
 
-// The Script page's rail (stage-navigation-and-page-replacement.prd.md Phase 3, mock 02): Pronunciations, Characters and Queries
+// The Script page's rail (mock 02): Pronunciations, Characters and Queries
 // over the Story Bible the reader already loaded. A name opens the same summary a mark in the text opens; the queries are the
 // Story Bible's own (prep-depth P3), and Manage queries opens that same panel (storybible/PronunciationQueries.tsx), so marking
 // one sent, answering it or exporting them happens in one place. `queries` is undefined until the first read answers.
@@ -35,7 +35,7 @@ export function ScriptRail({
   const characters = entities.filter((entity) => entity.category === 'Character');
 
   return (
-    <Tabs value={tab} onChange={(next) => setTab(next as RailTab)} className="flex min-h-0 flex-col">
+    <Tabs value={tab} onChange={(next) => setTab(next as RailTab)} className="flex min-h-0 flex-1 flex-col">
       <TabList label="Prep" activation="automatic">
         <Tab value="pronunciations">Pronunciations · {pronounced.length}</Tab>
         <Tab value="characters">Characters · {characters.length}</Tab>
@@ -136,12 +136,13 @@ export function ScriptRail({
             </Table>
           </div>
         )}
-        <div className="border-t border-[var(--border)] p-3">
-          <Button variant="secondary" className="text-xs" onClick={openQueries}>
-            Manage queries
-          </Button>
-        </div>
       </TabPanel>
+      {/* Pinned under every tab (mock 02's actions sit below its table, whichever list it shows). */}
+      <div className="mt-auto border-t border-[var(--border)] p-3">
+        <Button variant="secondary" className="text-xs" onClick={openQueries}>
+          Manage queries
+        </Button>
+      </div>
     </Tabs>
   );
 }

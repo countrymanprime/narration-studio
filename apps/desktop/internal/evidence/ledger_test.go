@@ -318,3 +318,27 @@ func TestRetainIgnoresStrayTmpFiles(t *testing.T) {
 		t.Fatalf("Retain should not touch a stray .tmp file, but it is gone: %v", err)
 	}
 }
+
+// --- Write failures: a plain file or a folder stands where the store needs the opposite ---
+
+func TestLedgerWriteReportsAFolderItCannotCreate(t *testing.T) {
+	notAFolder := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(notAFolder, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store := NewLedgerStore(notAFolder)
+	if _, err := store.Write(LedgerRecord{ID: "r1"}); err == nil {
+		t.Fatal("Write with a project that is a file: want an error, got nil")
+	}
+}
+
+func TestLedgerWriteReportsARecordFileItCannotWrite(t *testing.T) {
+	store := NewLedgerStore(t.TempDir())
+	// A folder where the temporary record file goes makes writing it fail.
+	if err := os.MkdirAll(store.recordPath("r1")+".tmp", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Write(LedgerRecord{ID: "r1"}); err == nil {
+		t.Fatal("Write with a folder in the temporary file's place: want an error, got nil")
+	}
+}

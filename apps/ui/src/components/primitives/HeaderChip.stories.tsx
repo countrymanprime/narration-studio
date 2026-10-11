@@ -51,7 +51,7 @@ export const OpensThePanel: Story = {
   },
 };
 
-// The measured spec (mock-fidelity-primitives-and-components.prd.md Phase 8, ADR 0635), side by side as mock 01's header
+// The measured spec (ADR 0635), side by side as mock 01's header
 // draws them: 22 px tall, fully rounded, 12 px apart, no border.
 export const MeasuredHeader: Story = {
   render: () => (
