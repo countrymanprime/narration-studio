@@ -138,7 +138,14 @@ func (s *Service) document() (map[string]any, error) {
 	return document, nil
 }
 
-func (s *Service) Entities() ([]map[string]any, error) {
+// Entities is the Story Bible as the UI reads it: a stored pronunciation status is not returned (ADR 0792).
+func (s *Service) Entities() ([]map[string]any, error) { return s.readEntities(false) }
+
+// entitiesWithStatus is Entities with each pronunciation left as stored (status and source), for the query export and import that still work
+// on it (queries.go) until SN-B8 removes them.
+func (s *Service) entitiesWithStatus() ([]map[string]any, error) { return s.readEntities(true) }
+
+func (s *Service) readEntities(keepStatus bool) ([]map[string]any, error) {
 	document, err := s.document()
 	if err != nil {
 		return nil, err
@@ -154,7 +161,7 @@ func (s *Service) Entities() ([]map[string]any, error) {
 	out := []map[string]any{}
 	for _, x := range items {
 		if m, ok := x.(map[string]any); ok {
-			if err := normalizeEntity(m); err != nil {
+			if err := normalizeEntity(m, keepStatus); err != nil {
 				return nil, err
 			}
 			out = append(out, m)
@@ -169,10 +176,11 @@ func (s *Service) Entities() ([]map[string]any, error) {
 // written by a Python sidecar across several schema generations, so any of
 // these can be absent; a missing object must read as empty, never crash the
 // Story Bible page after a rebuild.
-func normalizeEntity(entity map[string]any) error {
+func normalizeEntity(entity map[string]any, keepStatus bool) error {
 	if _, ok := entity["pronunciation"].(map[string]any); !ok {
 		entity["pronunciation"] = map[string]any{}
 	}
+	readPronunciation(entity["pronunciation"].(map[string]any), keepStatus)
 	if description, ok := entity["description"].(map[string]any); !ok {
 		entity["description"] = map[string]any{"text": "", "evidence": map[string]any{}}
 	} else if description["evidence"] == nil {
@@ -199,6 +207,7 @@ func normalizeEntity(entity map[string]any) error {
 			if _, ok := alias["pronunciation"].(map[string]any); !ok {
 				alias["pronunciation"] = map[string]any{}
 			}
+			readPronunciation(alias["pronunciation"].(map[string]any), keepStatus)
 			if alias["occurrences"] == nil {
 				alias["occurrences"] = []any{}
 			} else if _, ok := alias["occurrences"].([]any); !ok {
@@ -207,6 +216,20 @@ func normalizeEntity(entity map[string]any) error {
 		}
 	}
 	return nil
+}
+
+// readPronunciation reads a stored pronunciation the way ADR 0792 says: a stored status is ignored, and the legacy source "user" reads as
+// "manual", in the value and in its alternate. A note stays as it is.
+func readPronunciation(value map[string]any, keepStatus bool) {
+	if !keepStatus {
+		delete(value, "status")
+	}
+	if !keepStatus && value["source"] == legacyManualSource {
+		value["source"] = ManualSource
+	}
+	if alternate, ok := value["alternate"].(map[string]any); ok {
+		readPronunciation(alternate, keepStatus)
+	}
 }
 
 // DialogueCue is one entry of the guide file's dialogue_cues
@@ -408,6 +431,37 @@ func (s *Service) Pronounce(id string, aliasIndex *int, source string) error {
 	return err
 }
 
+// ManualSource is the source id of a pronunciation the narrator typed (ADR 0792). A file written before it says "user"; Entities reads
+// that as manual.
+const ManualSource = "manual"
+
+const legacyManualSource = "user"
+
+// Candidate is one source's answer for one word: Say when it has one, otherwise a sentence naming the source and the word.
+type Candidate struct {
+	OK     bool   `json:"ok"`
+	Say    string `json:"say,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+// Candidate asks one registered source how it would say word, changing nothing. An unregistered source is refused with its
+// *port.NotSupportedError before the sidecar starts. The word is trimmed and goes as one --word=VALUE argument, so a leading "-"
+// stays a value; the sidecar refuses one that is blank, over 80 characters or holds a newline or NUL.
+func (s *Service) Candidate(word, source string) (Candidate, error) {
+	if err := pronunciationport.CheckPronounce(source); err != nil {
+		return Candidate{}, err
+	}
+	out, err := s.Run("candidate", "--word="+strings.TrimSpace(word), "--source", source)
+	if err != nil {
+		return Candidate{}, err
+	}
+	var result Candidate
+	if err := json.Unmarshal([]byte(out), &result); err != nil {
+		return Candidate{}, fmt.Errorf("the pronunciation source gave an answer that could not be read")
+	}
+	return result, nil
+}
+
 // The narrator's own pronunciation and a pronunciation's note are free text (ADR 0346). The sidecar checks the same
 // limits; the host checks them first so a bad value never starts a process.
 const (
@@ -425,7 +479,7 @@ func pronunciationTarget(args []string, aliasIndex *int) []string {
 	return args
 }
 
-// PronounceUser sets the narrator's own pronunciation (source "user") of the entity's name or one alias. It never asks a dictionary,
+// PronounceUser sets the narrator's own pronunciation (source "manual") of the entity's name or one alias. It never asks a dictionary,
 // and the pronunciation it replaces is kept beside it as the alternate. The text goes as one --ipa=VALUE argument, so a value
 // starting with "-" stays a value.
 func (s *Service) PronounceUser(id string, aliasIndex *int, ipa string) error {

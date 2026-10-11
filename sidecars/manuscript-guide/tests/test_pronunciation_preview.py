@@ -48,16 +48,16 @@ class SpokenFormTests(unittest.TestCase):
         self.assertEqual("Dawnspire", guide.spoken_form(holder, "Dawnspire"))
 
     def test_a_chosen_pronunciation_is_wrapped_as_a_piper_phoneme_block(self):
-        holder = {"pronunciation": {"ipa": "dˈɔːnspaɪɚ", "source": "user", "confidence": "narrator", "chosen": True}}
+        holder = {"pronunciation": {"ipa": "dˈɔːnspaɪɚ", "source": "manual", "confidence": "narrator", "chosen": True}}
         self.assertEqual("[[dˈɔːnspaɪɚ]]", guide.spoken_form(holder, "Dawnspire"))
 
     def test_a_chosen_pronunciation_with_no_ipa_falls_back_to_the_name(self):
-        holder = {"pronunciation": {"ipa": "", "source": "user", "confidence": "narrator", "chosen": True}}
+        holder = {"pronunciation": {"ipa": "", "source": "manual", "confidence": "narrator", "chosen": True}}
         self.assertEqual("Dawnspire", guide.spoken_form(holder, "Dawnspire"))
 
     def test_an_ipa_string_containing_the_blocks_own_closing_marker_falls_back_to_the_name(self):
         # "]]" would end the raw-phoneme block early; refuse to build a corrupt one rather than mis-speak it.
-        holder = {"pronunciation": {"ipa": "a]]evil", "source": "user", "confidence": "narrator", "chosen": True}}
+        holder = {"pronunciation": {"ipa": "a]]evil", "source": "manual", "confidence": "narrator", "chosen": True}}
         self.assertEqual("Dawnspire", guide.spoken_form(holder, "Dawnspire"))
 
 
@@ -82,7 +82,7 @@ class RenderAudioSpeaksThePronunciationTests(unittest.TestCase):
             "id": "entity-1",
             "canonical_name": "Dawnspire",
             "aliases": [],
-            "pronunciation": {"ipa": "dˈɔːnspaɪɚ", "source": "user", "confidence": "narrator", "chosen": True},
+            "pronunciation": {"ipa": "dˈɔːnspaɪɚ", "source": "manual", "confidence": "narrator", "chosen": True},
         }
         with tempfile.TemporaryDirectory() as temporary:
             voice = self._render(Path(temporary), entity, _speaking_voice())
