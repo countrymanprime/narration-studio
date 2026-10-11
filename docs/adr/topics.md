@@ -18,10 +18,10 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 9 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 52 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 53 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 49 |
-| [Persistence and project files](#persistence-and-project-files) | 8 |
+| [Persistence and project files](#persistence-and-project-files) | 9 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
 <a id="consent-and-safety"></a>
@@ -350,6 +350,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Accepted |
 | [0804](0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) | The Editing page replaces the workspace in Proof in one change | Accepted |
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
+| [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 
@@ -462,6 +463,7 @@ Sidecars beside the project, append-only decisions, per-user files, atomic write
 | [0382](0382-script-markup-is-a-chapter-keyed-sidecar-of-line-offsets-checked-on-read-and-drawn-without-changing-the-text.md) | Script markup is a chapter-keyed sidecar of line offsets, checked on read and drawn without changing the text | Proposed |
 | [0450](0450-series-storage-is-a-per-user-file-and-cross-project-reference-reads-never-write-into-a-sibling-project.md) | Series storage is a per-user file, and cross-project reference reads never write into a sibling project | Accepted |
 | [0485](0485-a-native-takes-line-identity-lives-in-a-project-owned-sidecar-file-mirroring-but-not-sharing-code-with-adr-0026.md) | A native take's line identity lives in a project-owned sidecar file, mirroring but not sharing code with ADR 0026 | Accepted |
+| [0844](0844-the-narrator-can-retype-a-finding-and-the-choice-is-kept-beside-the-decisions-as-an-append-only-entry.md) | The narrator can retype a finding, and the choice is kept beside the decisions as an append-only entry | Proposed |
 
 <a id="ui-primitives-and-design-system"></a>
 

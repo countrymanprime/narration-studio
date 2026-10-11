@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -81,7 +83,7 @@ func (h *Host) FindingsReview(id, evidenceVersion, status, note string) (string,
 		return "", err
 	}
 	if current.EvidenceVersion != evidenceVersion {
-		return "", fmt.Errorf("this finding changed since it was shown (its analyzer ran again); look at it again before deciding")
+		return "", errEvidenceChanged
 	}
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 	finding, found, err := store.RecordDecision(id, evidenceVersion, findings.Status(status), note, timestamp)
@@ -89,6 +91,49 @@ func (h *Host) FindingsReview(id, evidenceVersion, status, note string) (string,
 		err = errFindingGone
 	}
 	return encodeBinding(finding, err)
+}
+
+// FindingsSetType records the kind the narrator says a finding is (ADR 0844), made against evidenceVersion
+// like a decision, and answers the finding as the store now holds it (review.type set, or absent when the
+// narrator chose the analyzer's own word). noteType is one of findings.NoteTypes. It is not a decision:
+// status, note and the review counts stay as they were. A stale evidenceVersion is refused as FindingsReview
+// refuses it.
+func (h *Host) FindingsSetType(id, evidenceVersion, noteType string) (string, error) {
+	store, err := h.findingsStore()
+	if err != nil {
+		return "", err
+	}
+	chosen := findings.NoteType(noteType)
+	if id == "" {
+		return "", fmt.Errorf("a finding id is required")
+	}
+	if !slices.Contains(findings.NoteTypes(), chosen) {
+		return "", fmt.Errorf("%q is not one of the finding types (%s)", noteType, joinNoteTypes())
+	}
+	current, err := existingFinding(store, id)
+	if err != nil {
+		return "", err
+	}
+	if current.EvidenceVersion != evidenceVersion {
+		return "", errEvidenceChanged
+	}
+	if chosen == findings.DefaultNoteType(current) {
+		chosen = "" // the analyzer's own word again: kept as "not chosen" so review.type stays absent
+	}
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	finding, found, err := store.RecordType(id, evidenceVersion, chosen, timestamp)
+	if err == nil && !found {
+		err = errFindingGone
+	}
+	return encodeBinding(finding, err)
+}
+
+func joinNoteTypes() string {
+	words := make([]string, 0, len(findings.NoteTypes()))
+	for _, t := range findings.NoteTypes() {
+		words = append(words, string(t))
+	}
+	return strings.Join(words, ", ")
 }
 
 // FindingsSummary answers the review queue at a glance: counts by status (the navigation badge is the
@@ -100,6 +145,8 @@ func (h *Host) FindingsSummary() (string, error) {
 	}
 	return encodeBinding(store.Summary())
 }
+
+var errEvidenceChanged = fmt.Errorf("this finding changed since it was shown (its analyzer ran again); look at it again before deciding")
 
 var errFindingGone = fmt.Errorf("that finding is no longer in this project; reload the list")
 

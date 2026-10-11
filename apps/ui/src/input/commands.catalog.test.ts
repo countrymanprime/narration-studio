@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMAND_CATALOG, findCommand } from './commands.catalog';
+import { findConflicts } from './findConflicts';
+import { defaultKeymap } from './keymap';
 
 describe('COMMAND_CATALOG', () => {
   it('has no duplicate id', () => {
@@ -52,5 +54,61 @@ describe('the history row', () => {
     expect(row?.scope).toBe('global');
     expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+Shift+KeyH']);
     expect(row?.surfaces).toEqual(['jumpMenu', 'help', 'settings']);
+  });
+});
+
+describe('the Booth rows', () => {
+  const codes = (id: string) => findCommand(id)?.defaults.map((gesture) => [...gesture.modifiers, gesture.code].join('+'));
+
+  it('booth-scope-rows: every Booth key is a booth row in the Booth group, on help and settings only', () => {
+    const expected: Record<string, string[]> = {
+      'booth.phrase.next': ['ArrowDown'],
+      'booth.phrase.prev': ['ArrowUp', 'Backspace'],
+      'booth.word.next': ['ArrowRight'],
+      'booth.word.prev': ['ArrowLeft'],
+      'booth.roll': ['KeyR'],
+      'booth.view.down': ['PageDown'],
+      'booth.view.up': ['PageUp'],
+      'booth.text.larger': ['Equal', 'NumpadAdd'],
+      'booth.text.smaller': ['Minus', 'NumpadSubtract'],
+      'booth.exit': ['Escape'],
+      'booth.pickup.next': ['KeyN'],
+      'booth.pickup.prev': ['Shift+KeyN'],
+    };
+    for (const [id, keys] of Object.entries(expected)) {
+      const row = findCommand(id);
+      expect(row?.scope, id).toBe('booth');
+      expect(row?.group, id).toBe('Booth');
+      expect(row?.surfaces, id).toEqual(['help', 'settings']);
+      expect(codes(id), id).toEqual(keys);
+    }
+  });
+
+  it('space-stays-one-action: reading.toggle keeps Space as "Record or stop" and no other booth row binds it', () => {
+    expect(findCommand('reading.toggle')?.label).toBe('Record or stop');
+    expect(codes('reading.toggle')).toEqual(['Space']);
+    const spaceRows = COMMAND_CATALOG.filter((row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === 'Space'));
+    expect(spaceRows.map((row) => row.id)).toEqual(['reading.toggle']);
+    expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
+  });
+
+  it('no-f-or-p-bindings: no booth row binds F or P, so nothing is flagged or sent to Pickups from the Booth', () => {
+    const codesInBooth = COMMAND_CATALOG.filter((row) => row.scope === 'booth').flatMap((row) => row.defaults.map((gesture) => gesture.code));
+    expect(codesInBooth).not.toContain('KeyF');
+    expect(codesInBooth).not.toContain('KeyP');
+  });
+
+  it('pedal-is-space-only: no booth row has a pedal or MIDI default, so the keyboard Space is the one record key', () => {
+    const boothDefaults = COMMAND_CATALOG.filter((row) => row.scope === 'booth').flatMap((row) => row.defaults);
+    expect(boothDefaults.filter((gesture) => gesture.source !== 'keyboard')).toEqual([]);
+    expect(codes('reading.toggle')).toEqual(['Space']);
+  });
+
+  it('typing-and-ctrl-are-ignored: no booth row defaults to Ctrl or Meta', () => {
+    for (const row of COMMAND_CATALOG.filter((r) => r.scope === 'booth')) {
+      for (const gesture of row.defaults) {
+        for (const held of ['Ctrl', 'Meta', 'Mod'] as const) expect(gesture.modifiers as string[], `${row.id} ${held}`).not.toContain(held);
+      }
+    }
   });
 });

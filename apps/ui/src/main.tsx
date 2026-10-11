@@ -15,6 +15,7 @@ import type { PreviewCandidate } from './api/contracts/preview';
 import type { PrepMarkupSeed } from './api/prepMarkupMock';
 import { MOCK_RESUME_SEEDS } from './api/resumeMockSeed';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS } from './api/teleprompterMock';
+import { scenarioFromParams } from './components/devtools/mockStates';
 import { ThemeProvider } from './theme/ThemeContext';
 import { LiveCommandRouter } from './input/LiveCommandRouter';
 import { createKeyboardSource } from './input/KeyboardSource';
@@ -387,7 +388,11 @@ const MOCK_RECORDER_SEEDS: Record<string, RecordingMockSeed> = {
 };
 const mockRecorderParam = mockParams.get('mockRecorder') ?? '';
 const mockRecorder = Object.hasOwn(MOCK_RECORDER_SEEDS, mockRecorderParam) ? MOCK_RECORDER_SEEDS[mockRecorderParam] : undefined;
+// `?mockChapters=12|40` and `?mockHeadings=titleAndSubtitle|titleOnly|legacyNewline` boot the scenario book (SN-S61,
+// fixtures/scenario.ts) in place of the Alice chapters; an unknown value is ignored.
+const mockScenario = scenarioFromParams(mockParams);
 const mockInitial = {
+  ...(mockScenario ? mockScenario.seed : {}),
   ...(mockFidelity ? MOCK_FIDELITY[mockFidelity] : {}),
   ...(mockRecorder ? { recording: mockRecorder } : {}),
   ...(mockMarkup ? { prepMarkup: MOCK_MARKUP_SEED } : {}),
@@ -560,3 +565,9 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </React.StrictMode>,
 );
+
+// `?mockPanel=1` opens the dev-only Mock states panel beside the app. Only the mock build reaches the dynamic import, so the
+// shipped build holds neither the panel nor its sentence.
+if (import.meta.env.VITE_USE_MOCK_API === '1' && mockParams.get('mockPanel') === '1') {
+  void import('./components/devtools/MockStatesPanel').then(({ mountMockStatesPanel }) => mountMockStatesPanel());
+}

@@ -37,9 +37,9 @@ import { fileURLToPath } from 'node:url';
 import { parseIndex } from './studio-next-rulings.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const MOCK_DIR = 'docs/research/mockups/studio-next';
-export const RULING_INDEX = 'docs/research/studio-next-ruling-index.md';
-export const STATUSES = ['ported', 'covered', 'mock-only'];
+const MOCK_DIR = 'docs/research/mockups/studio-next';
+const RULING_INDEX = 'docs/research/studio-next-ruling-index.md';
+const STATUSES = ['ported', 'covered', 'mock-only'];
 const CASE_HEADER = ['mock file', 'mock case', 'status', 'real test', 'note'];
 const RULING_HEADER = ['ruling id', 'test'];
 const MIN_NOTE = 10;

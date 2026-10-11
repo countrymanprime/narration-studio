@@ -87,7 +87,7 @@ describe('ShortcutSheet', () => {
     const wordRow = screen.getByText('Previous word').closest('li')!;
     expect(wordRow.querySelector('kbd[data-key="ArrowLeft"]')).not.toBeNull();
     expect(within(wordRow).getByText('Left arrow')).toBeTruthy();
-    const readingRow = screen.getByText('Play or pause reading').closest('li')!;
+    const readingRow = screen.getByText('Record or stop').closest('li')!;
     expect(readingRow.querySelector('kbd[data-key="Space"]')).not.toBeNull();
   });
 
@@ -108,7 +108,7 @@ describe('ShortcutSheet', () => {
     expect(within(backRow).getByRole('img', { name: 'Alt + ←' })).toBeTruthy();
     // A text cap is a `Kbd` image inside the way's own image; a screen reader reads only the outer one.
     expect(within(backRow).getAllByRole('img', { name: 'Browser Back' }).length).toBeGreaterThan(0);
-    const readingRow = within(dialog).getByText('Play or pause reading').closest('li')!;
+    const readingRow = within(dialog).getByText('Record or stop').closest('li')!;
     expect(within(readingRow).getByRole('img', { name: 'Space' })).toBeTruthy();
   });
 
