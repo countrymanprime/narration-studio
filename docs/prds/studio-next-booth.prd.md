@@ -134,7 +134,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADR and audit | A10; audit of the current Booth against the table, including the files the Companion shares | pending | - | SN0-1 | 0.5 | - |
+| 1 | ADR and audit | A10; audit of the current Booth against the table, including the files the Companion shares | in review (docs/sn-o1-booth-audit; ADR 0790, ADR 0791 merged) | - | SN0-1 | 0.5 | - |
 | 2 | Record preconditions | `recordCheck`, reasons on the control, start rule | pending | 3 | 1, SND-2 | 1.0 | - |
 | 3 | Leave guard | Registration, dialog, stop on yes | pending | 2 | 1, SNR-3 | 0.8 | - |
 | 4 | Roll and punch confirm | Uses the DAW roll and `destructive` | pending | 5 | 2, SND-6a | 0.8 | - |

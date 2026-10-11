@@ -100,4 +100,55 @@ describe('IconButton', () => {
     expect(screen.getByRole('button', { name: 'b' }).className).toContain('bg-[var(--accent)]');
     expect(screen.getByRole('button', { name: 'c' }).className).toContain('text-[var(--danger-text)]');
   });
+
+  it('icon-button-from-an-action: derives its name, icon and hint from the catalogue', async () => {
+    const user = userEvent.setup();
+    render(<IconButton action="markDone" />);
+    const button = screen.getByRole('button', { name: 'Mark done' });
+    expect(button.querySelector('svg')?.getAttribute('data-icon')).toBe('circle-check');
+    await user.tab();
+    expect(await screen.findByRole('tooltip')).toHaveProperty('textContent', 'Mark done');
+  });
+
+  it('puts the shortcut in the hint and in aria-keyshortcuts, not in the name', async () => {
+    const user = userEvent.setup();
+    render(<IconButton action="undo" />);
+    const button = screen.getByRole('button', { name: 'Undo' });
+    expect(button.getAttribute('aria-keyshortcuts')).toBe('Ctrl+Z');
+    await user.tab();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Undo (Ctrl+Z)');
+  });
+
+  it('a label still works and wins when both are given; children win the icon', async () => {
+    const user = userEvent.setup();
+    render(
+      <IconButton action="markDone" label="Keep take 2">
+        <span data-probe="kid" />
+      </IconButton>,
+    );
+    const button = screen.getByRole('button', { name: 'Keep take 2' });
+    expect(screen.queryByRole('button', { name: 'Mark done' })).toBeNull();
+    expect(button.querySelector('[data-probe="kid"]')).not.toBeNull();
+    await user.tab();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Keep take 2');
+  });
+
+  it('a label-only button draws no hint of its own', () => {
+    render(<IconButton label="Edit">x</IconButton>);
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit' }).closest('span')).toBeNull();
+  });
+
+  it('an action button keeps the press, the ref and the disabled behaviour', async () => {
+    const onClick = vi.fn();
+    const ref = createRef<HTMLButtonElement>();
+    const user = userEvent.setup();
+    const { rerender } = render(<IconButton action="delete" variant="danger" onClick={onClick} ref={ref} />);
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(ref.current).toBe(screen.getByRole('button', { name: 'Delete' }));
+    rerender(<IconButton action="delete" disabledReason="Nothing to delete" onClick={onClick} />);
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });
