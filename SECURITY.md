@@ -51,6 +51,11 @@ especially welcome:
   a file that makes the app run, open, fetch or write anything else, that puts markup into the page, or that is drawn without
   being checked against the current text is in scope; one that only changes which prep marks the narrator sees is the
   documented residual risk (threat model row 6p).
+- The narrator's bookmarks (`narration-utils/bookmarks.json` in the project,
+  [ADR 0820](docs/adr/0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
+  a file or a label or note that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used
+  without being validated, or a bookmark moved to a guessed place instead of reported stale, is in scope; one that only changes where
+  the narrator's own bookmarks point is the documented residual risk (threat model row 6u).
 - The delivery profiles the app reads back to judge the rendered files (the user-level `delivery-profiles.json` beside
   `credit-templates.json`, and the project's choice in `project.json`,
   [ADR 0180](docs/adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md)): a file that makes the app
