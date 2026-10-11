@@ -2306,6 +2306,41 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
   });
 
+  it('the heard words (ADR 0855): a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
+    const golden = JSON.parse(readFileSync(`${GOLDEN_DIR}workspace-alignment-added-words.json`, 'utf8'));
+    const parsed = workspaceAlignmentResultSchema.parse(golden);
+    expect(parsed.engine).toEqual({ id: 'whisper:small', name: 'Whisper small' });
+    expect(parsed.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(parsed.extras.flatMap((extra) => extra.words ?? []).map((word) => word.timing)).toEqual(['spread', 'spread', 'unplaced', 'unplaced', 'spread']);
+
+    const withToken = (patch: Record<string, unknown>) => ({ ...golden, tokens: [{ ...golden.tokens[0], ...patch }] });
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: 'no_word_scores' })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: null, confReason: null })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ added: true })).success).toBe(false);
+    // A later score needs no wire change: a number beside no reason is accepted.
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: null })).success).toBe(true);
+
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    // A confirmed link to a live item, so the mock times its words (as the workspace peaks row below seeds it).
+    const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
+    const link = {
+      trackGuid: linkedTrack.guid,
+      chapterId: measured.id,
+      chapterTitle: measured.title,
+      confirmedAt: '2026-09-24T09:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const mock = await createMockApi({}, { chapterTrackMappings: [link] }).workspaceAlignment(measured.id);
+    expectMatches(workspaceAlignmentResultSchema, mock, 'mock workspace alignment, heard words');
+    expect(mock.engine).toBeDefined();
+    expect(mock.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(mock.tokens.some((token) => token.status === 'misread')).toBe(true);
+    expect(mock.extras.flatMap((extra) => extra.words ?? []).every((word) => word.added && word.timing === 'spread')).toBe(true);
+    expect(mock.extras.flatMap((extra) => extra.words ?? []).length).toBeGreaterThan(0);
+  });
+
   it("the workspace peaks answer the live item's waveform, deterministically", async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
