@@ -6,6 +6,10 @@
   - group "Zoom"
   - alert
   - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
 - alertdialog "Add this read and make it active":
   - heading "Add this read and make it active" [level=2]
   - button "Close"

@@ -29,4 +29,5 @@
       - /children: equal
       - text: Finish
       - button "Master & QC"
+  - button "Dark theme"
   - button "Settings"

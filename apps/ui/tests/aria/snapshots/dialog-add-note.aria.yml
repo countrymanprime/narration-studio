@@ -5,6 +5,10 @@
 - main:
   - alert
   - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
 - dialog "Add note":
   - heading "Add note" [level=2]
   - button "Close"

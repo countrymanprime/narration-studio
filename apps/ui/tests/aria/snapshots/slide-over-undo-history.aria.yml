@@ -1,0 +1,13 @@
+# The undo history (ADR 0771): a modal slide-over that says so when the journal is empty. The live regions behind it are the page's and the overlay host's.
+- main:
+  - group "Zoom"
+  - alert
+  - status
+- alert
+- status
+- status
+- dialog "Undo history":
+  - heading "Undo history" [level=3]
+  - button "Close"
+  - paragraph: Ctrl Z undoes the last one
+  - paragraph: Nothing to undo yet.

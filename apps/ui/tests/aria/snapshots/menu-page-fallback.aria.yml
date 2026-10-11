@@ -1,0 +1,9 @@
+# The menu on empty space in <main> (ADR 0780 decision 5): the shell's fallback items, then the tail every menu ends with. A step that cannot run says why.
+- menu:
+  - menuitem "Go to…"
+  - menuitem "Zoom in"
+  - menuitem "Zoom out Already at the smallest size" [disabled]
+  - menuitem /Reset zoom Already \d+%/ [disabled]
+  - menuitem "Use the dark theme"
+  - menuitem "Jump menu…"
+  - menuitem "Find a page, chapter or command"

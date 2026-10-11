@@ -6,6 +6,10 @@
 - main:
   - alert
   - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
 - dialog "Create chapter regions":
   - heading "Create chapter regions" [level=2]
   - button "Close"

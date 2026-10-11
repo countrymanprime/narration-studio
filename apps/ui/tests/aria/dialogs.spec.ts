@@ -109,6 +109,16 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     state: ['proof-chapter', 'takes-confirm'],
     snapshot: 'confirm-add-take-and-activate.aria.yml',
   },
+  {
+    name: 'the jump menu is a modal dialog holding a combobox field and its list of results',
+    state: ['shell', 'jump-menu-open'],
+    snapshot: 'dialog-jump-menu.aria.yml',
+  },
+  {
+    name: 'the undo history is a modal slide-over that says when there is nothing to undo',
+    state: ['shell', 'history-panel-open'],
+    snapshot: 'slide-over-undo-history.aria.yml',
+  },
 ];
 
 for (const modal of MODALS) {
@@ -139,6 +149,12 @@ test('the passage effects menu is a menu of two items, and each says why it is o
   await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-passage-effects.aria.yml' });
   await openApp(page, DESKTOP, ['proof-chapter', 'effects-menu-standalone']);
   await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-passage-effects-standalone.aria.yml' });
+});
+
+// The shell's menu on empty space: a menu of items, the unavailable ones carrying their reason.
+test('the menu on empty space is a menu of the shell items, ending with the jump menu and Find', async ({ page }) => {
+  await openApp(page, DESKTOP, ['shell', 'context-menu-open']);
+  await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-page-fallback.aria.yml' });
 });
 
 test('the info icon is a button that says it is expanded, and its hint is a tooltip', async ({ page }) => {
