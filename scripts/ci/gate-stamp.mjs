@@ -32,7 +32,7 @@ function git(args, env = {}) {
 }
 
 /** The tree hash of everything not ignored, taken through a throwaway index so the real one is untouched. */
-export function workingTreeHash() {
+function workingTreeHash() {
   const dir = mkdtempSync(join(tmpdir(), 'gate-index-'));
   try {
     const env = { GIT_INDEX_FILE: join(dir, 'index') };
