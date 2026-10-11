@@ -14,6 +14,7 @@ import type { GuideBuildResult, WorkJob } from './types';
 import { WIRE_CHAPTERS } from './api/mockFixtures';
 import type { JobEnded } from './api/contracts/system';
 import type { DawTransport } from './api/contracts/daw';
+import { DESKTOP_HOST_API_VERSION } from './hostApi';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -145,8 +146,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
   it('reports an incompatible host as a version problem even when its Bootstrap would not match', async () => {
     const bootstrap = vi.fn().mockRejectedValue(new Error('must not be reached'));
-    renderApp({ ready: async () => ({ apiVersion: 99, diagnosticId: 'future-host' }), bootstrap });
-    await waitFor(() => expect(screen.getByText(/Desktop host API version 99 is incompatible/)).toBeTruthy());
+    const future = DESKTOP_HOST_API_VERSION + 1;
+    renderApp({ ready: async () => ({ apiVersion: future, diagnosticId: 'future-host' }), bootstrap });
+    await waitFor(() => expect(screen.getByText(new RegExp(`Desktop host API version ${future} is incompatible`))).toBeTruthy());
     expect(bootstrap).not.toHaveBeenCalled();
     expect(screen.queryByText('The app received data it could not read.')).toBeNull();
   });
