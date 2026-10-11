@@ -1,0 +1,10 @@
+{
+  "chapterId": "c-0001",
+  "itemGuid": "{ITEM-GONE}",
+  "message": "This item is no longer in the REAPER project as it was checked, so the cut was not moved. Run the check again to find it where it is now.",
+  "moved": 0,
+  "outcome": "refused",
+  "reason": "stale",
+  "sourceTime": 1.0013,
+  "time": 1.0013
+}

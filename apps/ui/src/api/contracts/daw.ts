@@ -71,7 +71,11 @@ export type DawCapabilityKey =
   | 'item_gain'
   | 'render_with_fx'
   | 'master_chain_read'
-  | 'macro_render';
+  | 'macro_render'
+  | 'cut_range'
+  | 'fx_range'
+  | 'stack_takes'
+  | 'backups';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -109,6 +113,10 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'render_with_fx', label: "Mastering with the project's FX" },
   { key: 'master_chain_read', label: 'Master and track FX listing' },
   { key: 'macro_render', label: 'Mastering with an effect macro' },
+  { key: 'cut_range', label: 'Cut words and audio' },
+  { key: 'fx_range', label: 'Add an effect to words' },
+  { key: 'stack_takes', label: 'Stack takes' },
+  { key: 'backups', label: 'Audio backups' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;

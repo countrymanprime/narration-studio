@@ -62,7 +62,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getByText(/Opening Narration Studio/)).toBeTruthy();
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy());
     expect(screen.getAllByText('Alice’s Adventures in Wonderland').length).toBeGreaterThan(0);
-    expect(await screen.findByRole('grid', { name: 'Chapter pipeline' })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: 'Chapter pipeline' })).toBeTruthy();
     expect(screen.queryByText(/Ch\.1 take 4/)).toBeNull();
   });
 
@@ -389,19 +389,22 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   it('choosing a manuscript file: busy while the host dialog is open, one dialog, and a failure is a toast', async () => {
+    // The Studio Next header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
+    const source = createMockApi();
+    const noManuscript = async () => ({ ...(await source.bootstrap()), manuscript: null });
     const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
-    renderApp({ selectManuscript });
+    renderApp({ selectManuscript, bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const choose = screen.getByRole('button', { name: 'Replace manuscript' });
+    const choose = screen.getByRole('button', { name: 'Import manuscript' });
     fireEvent.click(choose);
     fireEvent.click(choose);
     await waitFor(() => expect(choose.getAttribute('aria-busy')).toBe('true'));
     expect(selectManuscript).toHaveBeenCalledTimes(1);
     cleanup();
 
-    renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')) });
+    renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')), bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getByRole('button', { name: 'Replace manuscript' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
     expect(await within(appToasts('alert')).findByText(/the file dialog could not open/)).toBeTruthy();
   });
 
@@ -474,9 +477,23 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     for (const name of ['Script', 'Story Bible', 'Booth']) {
       expect(screen.getAllByRole('button', { name }).every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
     }
-    expect(screen.getByRole('region', { name: 'No imported manuscript' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Import your manuscript' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Import manuscript' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Import legacy Word file' })).toBeNull();
+  });
+
+  it('schedule-route-and-rail-item: /schedule draws the Schedule page, and the rail item opens it', async () => {
+    window.history.replaceState(null, '', '/schedule');
+    renderApp();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Schedule' })).toBeTruthy();
+    cleanup();
+    window.history.replaceState(null, '', '/');
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Schedule' })[0]);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Schedule' })).toBeTruthy();
+    expect(window.location.pathname).toBe('/schedule');
+    window.history.replaceState(null, '', '/');
   });
 
   it('opens the Booth with a manuscript, and sends a direct URL to the Production home without one', async () => {
@@ -922,7 +939,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     );
 
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(screen.getByText(/No imported manuscript/)).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Import your manuscript' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
     await screen.findByRole('alertdialog', { name: 'Import Alice.docx' });
@@ -941,9 +958,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();
     expect((await screen.findAllByText('Manuscript import complete.')).length).toBeGreaterThanOrEqual(2);
     await waitFor(() => expect(bootstrap.mock.calls.length).toBeGreaterThanOrEqual(2));
-    // The empty state has become the board behind the modal import dialog, which stayed open through it (useManuscriptImport).
-    expect(await screen.findByRole('button', { name: 'Replace manuscript', hidden: true })).toBeTruthy();
-    expect(await screen.findByRole('grid', { name: 'Chapter pipeline', hidden: true })).toBeTruthy();
+    // The empty state has become the pipeline behind the modal import dialog, which stayed open through it (useManuscriptImport).
+    expect(await screen.findByRole('table', { name: 'Chapter pipeline', hidden: true })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog', { name: 'Import manuscript' })).toBeNull();
@@ -951,7 +967,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { name: /^Story Bible/ });
     fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]);
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(await screen.findByRole('grid', { name: 'Chapter pipeline' })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: 'Chapter pipeline' })).toBeTruthy();
   });
 
   it('offers to import a manuscript file found in the project folder, and stays quiet once declined', async () => {
@@ -1386,7 +1402,8 @@ describe('App shell mounts', () => {
     const rail = screen.getByRole('complementary', { name: 'Primary navigation' });
     // The Wails runtime decides the browser menu itself; the host's part is to open none outside <main>'s page area.
     fireEvent.contextMenu(within(rail).getByRole('button', { name: 'Script' }));
-    fireEvent.contextMenu(screen.getByRole('banner'));
+    // The shell's header, the first in the document; the Production title block is a <header> of its own further down.
+    fireEvent.contextMenu(screen.getAllByRole('banner')[0]);
     expect(screen.queryByRole('menu')).toBeNull();
   });
 

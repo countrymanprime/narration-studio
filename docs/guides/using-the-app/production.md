@@ -3,88 +3,96 @@
 # Production
 
 Production is the page a project opens on, the first item in the navigation. It answers "am I on
-pace?" for the book you have open: how much audio is finished, how many hours you have worked and on
-which stages, your hours per finished hour (PFH), your effective hourly rate, how far away the
-delivery date is, and which chapters to work on next. Its **Chapter pipeline** has one row per
-chapter and one column per stage, and every cell opens that stage for the chapter: its track, its
-recording check, its stage suggestion, its editing check or its Proof view.
+pace?" for the book you have open: how much finished audio there is and how much recording,
+editing and proofing is left, the open pickups, the due date and whether the pace reaches it, and
+what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
+The book's dates, payment and milestones are on [Schedule](#schedule), the item after Production in
+the navigation.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
 
-The subtitle names the book's chapters, words and delivery date ("12 chapters · 29,189 words ·
-delivery due Oct 14 (18 days)"). Every figure comes from two things only: hours you logged with the
-stage timer, and audio the app measured on each chapter's confirmed REAPER track. Nothing is
-estimated from the word count except the target runtime beside **Finished audio**, which says it
-is one. A figure with nothing honest to work from shows a dash (—) and says why, rather than 0. The
-"i" beside the subtitle says the same.
+The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
+due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only a colour. The pill
+under it is the verdict for the due date (on track, tight or behind); it opens
+[Schedule](#schedule). **Export status report** (the export icon) opens the
+[status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
+being recorded, or says why it cannot when the audio engine cannot record.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
-picker (see [Importing the manuscript](#importing-the-manuscript)). Once there is one, **Replace
-manuscript** sits in the page header with **Refresh**, which reads the figures again, and **Export
-status report**.
+picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
+[Schedule](#schedule) to set a due date first. To replace a manuscript later, use
+[Settings](settings.md).
+
+When the audio engine is not running, a line at the top says progress that comes from it may be
+out of date, with **Retry** and **Use built-in recorder**.
 
 ## The figures
 
-- **Finished audio**: the measured length of every chapter with a confirmed track, against a target
-  estimated from the word count.
-- **Work time logged**: every stopped timer added up, and split by stage (record, edit, proof).
-- **Hours per finished hour**: hours logged divided by measured audio. It stays a dash until both exist.
-- **Effective rate**: the contracted amount for the book divided by the hours logged, in your own
-  currency. It stays a dash until a contracted amount is set.
-- **Delivery date**: the days left until the book is due. It turns to a warning in the last week while
-  chapters are unfinished, and to red once the date has passed. It stays a dash until a date is set.
-- **Chapters finalized**: how many chapters are marked Finalized.
+The six figures are one card; each opens the page it counts.
 
-Set the delivery date and the contracted amount under [Delivery plan](#delivery-plan).
+- **Finished audio**: the measured length of every chapter with a confirmed track, out of the
+  book's finished length estimated from its words.
+- **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
+  words still to do. The info icon on **Recording** opens the target pace: the standard rate or
+  your own, once enough chapters are measured.
+- **Open pickups**: the pickup lines REAPER last counted, and the booth time to redo them once a
+  pickup session has been timed.
+- **Delivery check**: chapters that pass, fail or are not checked yet. It reads "Not measured
+  yet" until the host reports a check per chapter.
+- **Due**: the due date and what the pace says about it. It opens [Schedule](#schedule).
+
+Under the figures, **Where the book stands** splits the book's finished hours by stage, **This
+week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
+take log), and **Recording check** counts the chapters checked as of the last save, out of date,
+and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends.
+A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer
 
-Each chapter under **Next up** has **Start timer**, which starts timing the chapter's current stage. While
-a timer runs, a chip in the header of every page counts its time and names the chapter ("0:42:07 ·
-timer on Chapter 6"), and **Stop timer** is in this page's header. Only one timer runs at a time:
-stop it before you start another. Time is logged only while you run a timer, never from REAPER
-activity, and starting or stopping a timer never changes a chapter's status.
+The stage timer stays as it was. **Start timer**, on the Next up item of the chapter being
+recorded, starts timing that chapter's current stage. While a timer runs, a chip in the header of
+every page counts its time and names the chapter ("0:42:07 · timer on Chapter 6"), and **Stop
+timer** is in this page's header. Only one timer runs at a time: stop it before you start
+another. Time is logged only while you run a timer, never from REAPER activity, and starting or
+stopping a timer never changes a chapter's status.
+
+Once time is logged, three figures sit under the card: **Work time logged** (split by stage),
+**Hours per finished hour** (hours logged divided by measured audio) and **Effective rate** (the
+contracted amount divided by the hours logged). Each stays a dash until it has something to work
+from.
 
 ## Next up
 
-**Next up** lists up to five chapters, in the order they most threaten the delivery date: first the
-chapters whose current stage is held back by something a check found (for example, the end of a chapter
-not read), then the other chapters in progress, least advanced first, then those that look ready to move
-on (confirm them from their cell on the board), then the chapters not started. It sits above the board
-in a narrower window and beside it in a wide one.
+**Next up** lists what to do next, ranked by the hours of work it puts at risk: finishing the
+chapter being recorded (with **Open Booth** and **Start timer**), and a pickup session when REAPER
+counts open pickups. It reads "Nothing needs you right now" when there is nothing to list.
 
 ## Chapter pipeline
 
-The board has one row per narration chapter, between **Opening credits** and **Closing credits**.
-Its cells:
+The pipeline has one row per narration chapter. **Fin.** is the chapter's estimated finished
+length; its Record cell's tip has the measured one. **Record**, **Edit** and **Proof** show a check
+mark (✓) for a stage done, a half circle for the stage under way and a dash for one not started.
+**Prep**, **Pickups**, **Master** and **QC** read a dash with "Not measured yet" until a check
+reports them per chapter. A cell opens its stage for the chapter: Script, the Booth, the editing
+check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
-- **Recorded**: how much audio the chapter's linked REAPER track holds, as of the last save (the
-  union of its unmuted items, overlaps counted once). A chapter with none says why: **No track**,
-  **2+ tracks**, **Track missing** or **No project**. It never guesses from a status or a recording
-  check. The cell opens the chapter's [track](#a-chapters-track).
-- **Record**, **Edit** and **Proof**: a check mark (✓) for a stage the chapter has passed, a dash (—)
-  for one ahead of it, and for its current stage what the [stage suggestion](#stage-suggestions)
-  says: **Ready**, **Not ready**, **Not checked**, **In progress** or **Evidence changed**. A chapter
-  not started yet reads a dash under Record too, and a recording check running on it reads
-  **Checking 42%**.
-- **Prep** and **Delivery**: a dash, since no check reports them per chapter yet. Prep opens the
-  chapter on [Script](script.md).
+The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).
 
-The chapter's current-stage cell opens its [stage suggestion](#stage-suggestions). The other Record,
-Edit and Proof cells open that stage: the [recording check](#checking-a-chapters-recording), the
-[editing check](navigation.md#editing-check), or the chapter's view on [Proof](proof.md). The board
-scrolls sideways in a narrow window; use the arrow keys to move from cell to cell, and Enter or
-Space to open one.
+Right-click a row (or press the Menu key or Shift+F10 on one of its cells) for the chapter's menu:
+**Open prep in Script**, **Open in Booth**, **Open Proof**, **Open Master & QC**, then the tools
+the page kept: **Chapter track…** (see [A chapter's track](#a-chapters-track)), **Recording
+check…** (see [Checking a chapter's recording](#checking-a-chapters-recording)), **Editing
+check…**, and **Set status:** for each other status, which sets the chapter's status by hand.
 
 The engine chip at the top right of every page says whether a REAPER project is linked and opens
-the [audio engine panel](navigation.md#the-audio-engine-panel). With no REAPER project found, a line above the board
-says so, with a link to the [audio engine panel](navigation.md#the-reaper-project) when more than one project file was found.
+the [audio engine panel](navigation.md#the-audio-engine-panel).
 
 ### A chapter's track
 
-A chapter's **Recorded** cell opens its track: what the saved project knows about the track (its
-items, span, recorded length, how the link was found and when, and whether you or chapter sync
-made it), and **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
+**Chapter track…** opens what the saved project knows about the chapter's track (its items, span,
+recorded length, how the link was found and when, and whether you or chapter sync made it), and
+**Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
 A suggested track says it is not linked yet; a chapter two tracks look like says so and lists
 them; a linked track no longer in the saved project says it may have been deleted or the project
 saved elsewhere.
@@ -95,30 +103,28 @@ view in REAPER itself. Selecting is an experimental REAPER action ([Settings](se
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 **Remove from recording…**, under **Chapter**, takes a mis-imported heading (a part title, an
-epigraph, or front matter that was read in as a chapter) out of the board, the totals, the reader
+epigraph, or front matter that was read in as a chapter) out of the pipeline, the totals, the reader
 and the Booth. Choose **Not a chapter** to hide it from navigation too, or **Front matter** to keep
 it in the manuscript's navigation without recording it. Nothing is deleted - its text stays in the
 manuscript and its track link is cleared - and the last narration chapter can't be removed. A
-removed chapter is listed under **Removed from recording**, below the board, with **Restore** to
+removed chapter is listed under **Removed from recording**, below the pipeline, with **Restore** to
 bring it back with its status and any notes intact.
 
-### The credits rows
+### The credits
 
-**Opening credits** and **Closing credits** are not chapters, but the first opening and first
-closing template in [Settings, Credits](settings.md#credits), each with its own status. A credits
-cell opens its row: the template's name, words and estimated length (including room tone), a
-warning for an unresolved token (`[Author]` never filled in), **Open in Script**, its Recorded
-length (once its own track is linked - never an estimate, the same rule a chapter's own Recorded
-figure follows), its status and a **Recording check** button. A missing template reads "Not set up"
-with a link to [Settings, Credits](settings.md#credits). Checking a credits row works the same as
-[checking a chapter's recording](#checking-a-chapters-recording) below: the same dialog, against the
-credits template's rendered text rather than a manuscript chapter, and an edited template stales a
-stored result the same way an edited chapter does.
+**Opening credits** and **Closing credits**, in the **Credits** panel below the pipeline, are not
+chapters, but the first opening and first closing template in [Settings, Credits](settings.md#credits),
+each with its own status. **Open** shows the template's name, words and estimated length (including
+room tone), a warning for an unresolved token (`[Author]` never filled in), **Open in Script**, its
+Recorded length (once its own track is linked - never an estimate), its status and a **Recording
+check** button. A missing template reads "Not set up" with a link to [Settings, Credits](settings.md#credits).
+Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
+below, against the credits template's rendered text rather than a manuscript chapter.
 
 ## Checking a chapter's recording
 
-A chapter's Record cell opens its recording check (for a chapter still recording, its stage
-suggestion opens instead, with a **Recording check** button). Nothing runs until you ask: the panel
+A row's **Recording check…** opens the chapter's recording check (to check several chapters at
+once, use **Check recordings** on the Recording check card). Nothing runs until you ask: the panel
 first shows the last result, or says the chapter was never checked, and names the saved project
 file it reads ("Based on the saved REAPER project, file modified ..."). Save the project in REAPER
 before checking, because the check reads the saved file, not the open session.
@@ -127,7 +133,7 @@ before checking, because the check reads the saved file, not the open session.
 track with the Whisper model chosen in Settings, then compares the words with the chapter's text
 in order. The progress is real, from the transcription itself; **Cancel** stops it and keeps the
 items already transcribed, so the next check is quicker, and **Continue in background** closes
-the work dialog while the Record cell keeps its percent ("Checking 42%"). The app tells you when
+the work dialog. The app tells you when
 it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
 downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
 own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
@@ -142,7 +148,7 @@ large-v3-turbo Whisper model", with each re-checked pickup marked "Confirmed mis
 the re-check model is not installed yet, the app offers the download or **Check with tiny only**,
 which finishes the check with the fast pass alone rather than blocking on the download.
 
-![Production - a chapter's recording check, opened from its Record cell, with text still to record](../../images/ui/production-recording-check.webp)
+![Production - a chapter's recording check, with text still to record](../../images/ui/production-recording-check.webp)
 
 The result reads as a **chapter summary first**: "Passes the check", or "Not complete" naming the
 one thing that fails first ("Not complete: paragraph 14: 9 words not read"), then an unread start
@@ -173,74 +179,42 @@ chapter that is not linked to its REAPER track gets the track picker right there
 project file points to the [audio engine panel](navigation.md#the-reaper-project), and a missing Transcript Compare tool points to
 [Settings](settings.md).
 
-## Stage suggestions
+## Stage readiness
 
-The board suggests when a chapter looks ready for its next stage, from evidence the app already
-has, and never changes a status on its own. A chapter in Recording is suggested for Editing when
-its current recording check finds every paragraph of its text in the recording, in order (misreads
-allowed). A chapter in Editing is checked against its [editing check](navigation.md#editing-check):
-empty space, clicks and breaths still to trim. Every one of a stage's checks must be met before a
-suggestion appears — until clicks and breaths are validated on a labeled corpus, an Editing
-chapter reads "Can't tell yet" rather than suggested, even with no empty space left to trim.
-Proofing has no check yet, so chapters there get no suggestion. Missing evidence never counts as
-done: a chapter nobody has checked reads **Not checked**, not ready.
+The app says when a chapter looks ready for its next stage, from evidence it already has, and never
+changes a status on its own. A chapter in Recording is ready for Editing when its current recording
+check finds every paragraph of its text in the recording, in order (misreads allowed). A chapter in
+Editing is checked against its [editing check](navigation.md#editing-check). Missing evidence never
+counts as done: a chapter nobody has checked reads as not checked, not ready.
 
-Chips above the board say how many chapters have a suggestion and how many have evidence that
-changed since you confirmed them; a chip opens the first of those chapters. On the board, the
-chapter's current-stage cell reads **Ready**, **Not ready**, **Not checked** or **Evidence
-changed**.
+The chip on a chapter's current-stage cell says the verdict; it opens the chapter's readiness at the
+side of the page: the verdict in a sentence, each check with its state and reason, and the saved
+REAPER project it was read from. **Confirm** moves the chapter to the next stage and records what
+the evidence was, with **Revert** to move it back; **Dismiss** hides the suggestion until the
+evidence changes. **Check now** reads the evidence again; it never starts a check. The readiness is
+read again when the page opens, when a recording check ends, and when you switch back to the app
+after saving in REAPER.
 
-![Production - the stage suggestion chips above the board, and the current-stage cells that read Ready and Evidence changed](../../images/ui/production-stage-suggestions.webp)
-
-The current-stage cell opens the chapter's stage at the side of the page. At the top is its
-**status**, which you can always set by hand, the state of its recording check, and **Recording
-check** and **Editing check**. Under that is the suggestion: the verdict in a sentence, each check
-with its state and reason, the facts behind it (the text present, each missing region with **Go to
-paragraph**), and the saved REAPER project it was read from with how old that file is. For a
-check that cannot tell, it says what to do and offers the way there.
-
-- **Confirm** moves the chapter to the suggested stage and records what the evidence was; it then
-  reads "Confirmed" with **Revert**, which moves it back. **Dismiss** hides the suggestion until
-  the evidence changes.
-- **Evidence changed since you confirmed**, with **Revert to Recording**: a check after you
-  confirmed found text missing. Nothing moves until you revert; an edit alone (which changes the
-  audio, as editing does) never raises it.
-
-![Production - a chapter's stage slide-over: its status, its checks, and the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
+![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 
 ![Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own](../../images/ui/production-stage-evidence-changed.webp)
 
-The suggestions are read again when the page opens, when a recording check ends, when you change a
-status yourself, and when you switch back to the app after saving in REAPER (throttled, so
-switching back and forth does not read every time), so nothing asks you to press anything. If a
-read fails, the reason appears above the board with **Try again**, which only reads the evidence
-again; it never starts a check. The stage's own **Check now** does the same. If the evidence
-changed while you were looking, Confirm and Dismiss refuse and say so, and the suggestions are read
-again.
+## Schedule
 
-## Delivery plan
-
-**Delivery plan**, at the bottom of the page, holds the book's delivery date (written `YYYY-MM-DD`) and the
-contracted amount (a number in your own currency). Leave either empty for none. **Save date and amount**
-saves both and updates the figures above; an impossible date or an amount that is not a number is refused
-and nothing is saved.
-
-**Milestones** are dated checkpoints with an optional note. **Add milestone** adds an empty one, and **Add
-the ACX 15-minute checkpoint** adds ACX's checkpoint as an ordinary milestone for you to date, edit or
-remove. The app names the checkpoint but does not check ACX's approval process. **Save milestones** saves
-the whole list; one with no name or no real date is refused, and nothing is saved.
+**Schedule**, the item after Production in the navigation, holds the book's due date, how it pays,
+the work left and how it is worked out, and its milestones. With no manuscript it asks you to import
+one first. Every change there is one step you can undo.
 
 ## Status report
 
-**Export status report**, in the page header, opens the status report. Its own **Export status report**
-writes an HTML page anyone can open and a JSON file with the same figures shown on the page: hours by
-stage, hours per finished hour, the delivery date and milestone status, and how many chapters fall into
-each readiness. Both files go into this project's `narration-utils/production/reports` folder, under a
-name built from when you exported it, and an export never overwrites an earlier one.
+**Export status report** opens the report dialog: a preview of the host's own report, the format
+(HTML or JSON), the path it will be written to, and **Export**. The file goes into this project's
+`narration-utils/production/reports` folder, under a name built from when you exported it, and an
+export never overwrites an earlier one.
 
-The contracted amount and effective rate are left out unless you tick **Include the contracted amount and
-effective rate**: a status report is often the one thing you hand to someone else — a publisher, a
-collaborator, a rights holder checking on progress — who has no need to know what the book pays.
+The contracted amount and effective rate are left out unless you tick the box to include them: a
+status report is often handed to someone else — a publisher, a collaborator, a rights holder
+checking on progress — who has no need to know what the book pays.
 
 ## Importing the manuscript
 

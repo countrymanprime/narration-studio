@@ -444,7 +444,7 @@ project, or audio.
 Above the Preview panel, **Proofing readiness** shows only while this chapter's own status is Proofing:
 its suggestion for Finalized — a badge if the evidence says it's ready, "Not ready" if a pickup is still
 open, or "Can't tell yet" with what to check next. Confirm, Dismiss, and Revert work the same way they
-do on [Production](production.md#stage-suggestions); Why opens the same evidence view, listing what was checked
+do on [Production](production.md#stage-readiness); Why opens the same evidence view, listing what was checked
 (pickups from every tracked analyzer, and any delivery check the narrator turned on) — an open pickup's
 **Open this note** selects it in the Flags panel above without leaving the page, and an unmapped chapter
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).

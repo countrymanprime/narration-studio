@@ -25,10 +25,10 @@ const ALLOW_LIST = new Set([
 // One entry per file that still reads `.subtitle` directly, with its count. Moving a site onto TitleSubtitle lowers
 // its entry; at zero the entry goes.
 const CEILING: Record<string, number> = {
-  // The Production board: its rows go through chapterName(); the one
+  // The Production page's chapter tools: the pipeline rows go through chapterName(); the one
   // read is the ChapterTrackPanel call's prop handoff (`subtitle={...?.subtitle}`), so the slide-over title can draw the
   // chapter's full name through chapterName(..., context('Track')).
-  [join('src', 'components', 'production', 'ChapterBoard.tsx')]: 1,
+  [join('src', 'components', 'production', 'useChapterTools.tsx')]: 1,
   // The joined-title row goes through chapterName()/TitleSubtitle; one read is the prop handoff to
   // TitleSubtitle (`subtitle={heading.subtitle}`), and one is the Subtitle checkbox's own accessible-name suffix
   // ("Subtitle — {section.subtitle}"), which shows the raw second line, not a formatted chapter name.

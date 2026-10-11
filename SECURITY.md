@@ -56,6 +56,11 @@ especially welcome:
   a file or a label or note that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used
   without being validated, or a bookmark moved to a guessed place instead of reported stale, is in scope; one that only changes where
   the narrator's own bookmarks point is the documented residual risk (threat model row 6u).
+- The narrator's calls on recording-check gaps (`narration-utils/coverage/gap-reviews.json` in the project,
+  [ADR 0842](docs/adr/0842-accepting-a-recording-check-gap-writes-one-note-and-ignoring-one-is-remembered-in-a-small-review-file.md)):
+  a file or an id that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
+  being checked against the chapter's current check result, or an accept or ignore made by running a check, is in scope; one that
+  only changes which gaps the narrator's own card lists as reviewed is the documented residual risk (threat model row 6w).
 - The Story Bible extraction suggestions (`ManuscriptGuide/suggestions.json` in the project,
   [ADR 0846](docs/adr/0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md)):
   a file or a quote, note or payload text that makes the app run, open, fetch or write anything else, that is used as a path, that puts markup

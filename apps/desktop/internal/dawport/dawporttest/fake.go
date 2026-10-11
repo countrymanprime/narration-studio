@@ -72,6 +72,10 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapRenderWithFX:    renderWithFXRole{r(dawport.CapRenderWithFX)},
 		dawport.CapMasterChainRead: masterChainReadRole{r(dawport.CapMasterChainRead)},
 		dawport.CapMacroRender:     macroRenderRole{r(dawport.CapMacroRender)},
+		dawport.CapCutRange:        cutRangeRole{r(dawport.CapCutRange)},
+		dawport.CapFXRange:         fxRangeRole{r(dawport.CapFXRange)},
+		dawport.CapStackTakes:      stackTakesRole{r(dawport.CapStackTakes)},
+		dawport.CapBackups:         backupsRole{r(dawport.CapBackups)},
 	}
 	return f
 }
@@ -243,7 +247,7 @@ type recordRole struct{ role }
 func (r recordRole) ArmOnly(context.Context, string) (dawport.Armed, error) {
 	return dawport.Armed{}, r.do("ArmOnly")
 }
-func (r recordRole) RecordStart(context.Context, string) (dawport.RecordStarted, error) {
+func (r recordRole) RecordStart(context.Context, string, dawport.RecordOptions) (dawport.RecordStarted, error) {
 	return dawport.RecordStarted{}, r.do("RecordStart")
 }
 func (r recordRole) RecordStop(context.Context) (dawport.RecordStopped, error) {
@@ -316,4 +320,47 @@ type macroRenderRole struct{ role }
 
 func (r macroRenderRole) RenderWithMacro(context.Context, dawport.MacroRender) (dawport.MacroRendered, error) {
 	return dawport.MacroRendered{}, r.do("RenderWithMacro")
+}
+
+// The edit roles answer the Result a conforming engine gives a change it made: ok, changed, one undo step. A closed fake answers the
+// transport error and no Result.
+
+func (r role) result(method, message string) (dawport.Result, error) {
+	if err := r.do(method); err != nil {
+		return dawport.Result{}, err
+	}
+	return dawport.OK(message, true), nil
+}
+
+type cutRangeRole struct{ role }
+
+func (r cutRangeRole) DeleteRange(context.Context, dawport.DeleteRangeRequest) (dawport.Result, error) {
+	return r.result("DeleteRange", "Cut.")
+}
+
+type fxRangeRole struct{ role }
+
+func (r fxRangeRole) ApplyFXToRange(context.Context, dawport.FXRangeRequest) (dawport.Result, error) {
+	return r.result("ApplyFXToRange", "Effect added.")
+}
+func (r fxRangeRole) RemoveFXFromRange(context.Context, string, string) (dawport.Result, error) {
+	return r.result("RemoveFXFromRange", "Effect removed.")
+}
+
+type stackTakesRole struct{ role }
+
+func (r stackTakesRole) StackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
+	return r.result("StackTakes", "Takes stacked.")
+}
+func (r stackTakesRole) UnstackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
+	return r.result("UnstackTakes", "Takes unstacked.")
+}
+
+type backupsRole struct{ role }
+
+func (r backupsRole) BackupAround(context.Context, dawport.BackupRequest) (dawport.Result, error) {
+	return r.result("BackupAround", "Backup made.")
+}
+func (r backupsRole) RestoreBackup(context.Context, string) (dawport.Result, error) {
+	return r.result("RestoreBackup", "Backup restored.")
 }

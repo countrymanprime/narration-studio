@@ -47,6 +47,7 @@ export * from './api/contracts/pronunciationOnline';
 export * from './api/contracts/proofingRender';
 export * from './api/contracts/prepCompleteness';
 export * from './api/contracts/renderEncodeMaster';
+export * from './api/contracts/workspaceSnap';
 
 import type { ChapterTrackMapApi } from './api/contracts/chapterTrackMap';
 import type { ChapterSyncApi } from './api/contracts/chapterSync';
@@ -99,6 +100,7 @@ import type { TakeEvidenceApi } from './api/contracts/takeEvidence';
 import type { ProofingRenderApi } from './api/contracts/proofingRender';
 import type { PrepCompletenessApi } from './api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from './api/contracts/renderEncodeMaster';
+import type { WorkspaceSnapApi } from './api/contracts/workspaceSnap';
 
 /** The app compatibility facade; domain interfaces remain independently testable. */
 export interface NarrationApi
@@ -153,4 +155,5 @@ export interface NarrationApi
     TakeEvidenceApi,
     ProofingRenderApi,
     PrepCompletenessApi,
-    RenderEncodeMasterApi {}
+    RenderEncodeMasterApi,
+    WorkspaceSnapApi {}

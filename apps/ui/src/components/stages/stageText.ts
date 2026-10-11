@@ -1,6 +1,6 @@
 // The words of a chapter's stage suggestion (deleted, ADR 0160 and 0161): what each
 // verdict says in the breakdown row, what each unknown cause means and what resolves it, and the summary the estimate card shows.
-// Pure functions, so StageSuggestion, StageEvidence and StageSummary only lay them out.
+// Pure functions, so StageSuggestion and StageEvidence only lay them out.
 import { STATUS_LABELS } from '../../chapterStatus';
 import type { ChapterStatus, StageChapterRecommendation, StageSignal, StageSignalState, StageUnknownCause } from '../../types';
 import { COVERAGE_REASON_TEXT } from '../production/recordingCheckText';
@@ -162,16 +162,6 @@ export function evidenceValue(kind: string, value: string): string {
     .map((code) => COVERAGE_REASON_TEXT[code as keyof typeof COVERAGE_REASON_TEXT] ?? code)
     .join(' ');
 }
-
-/** What the estimate card's chips count: chapters that can be confirmed, and chapters whose confirmed evidence changed. */
-export function summarize(recommendations: StageChapterRecommendation[]): { suggested: number; changed: number } {
-  return {
-    suggested: recommendations.filter((item) => item.verdict === 'recommended').length,
-    changed: recommendations.filter((item) => item.contradiction).length,
-  };
-}
-
-export const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
 const AGE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['day', 86_400_000],

@@ -47,6 +47,7 @@ import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLoca
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
 import { MasterQcPage } from './components/master/MasterQcPage';
 import { ProductionPage } from './components/production/ProductionPage';
+import { SchedulePage } from './components/schedule/SchedulePage';
 import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
 import type { ProductionOverview } from './api/contracts/production';
 import { masterHash, parseMasterHash } from './components/master/masterLink';
@@ -639,11 +640,14 @@ function AppRoutes() {
                       notify={setNotice}
                       goToScript={goToScript}
                       goToProofChapter={goToProofChapter}
+                      goToBooth={(chapterId) => (chapterId ? goToBooth({ chapter: chapterId }) : guardedNavigate('/booth'))}
                       refreshBootstrap={refreshBootstrap}
                       onOverview={onProductionOverview}
                     />
                   }
                 />
+                {/* The Schedule (the Studio Next mock's Schedule page): with no manuscript it says to import one first. */}
+                <Route path="/schedule" element={<SchedulePage journal={journal} onImport={() => guardedNavigate('/')} />} />
                 <Route
                   path="/script"
                   element={

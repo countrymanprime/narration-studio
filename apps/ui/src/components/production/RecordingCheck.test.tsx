@@ -1,82 +1,86 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { useCallback, useState } from 'react';
-import { ChapterBoard } from './ChapterBoard';
+import { useEffect, useState } from 'react';
 import { RecordingCheck } from './RecordingCheck';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, takeReviewPickupFor } from '../../api/mockFixtures';
-import type { ProductionOverview } from '../../api/contracts/production';
-import type { NarrationApi } from '../../types';
+import type { CoverageState, ManuscriptChapter, NarrationApi } from '../../types';
 import type { Notify } from '../primitives/Toast';
 
 afterEach(cleanup);
 
 type Initial = Parameters<typeof createMockApi>[1];
 
-// The board as the Production home holds it, reading the overview again whenever the board says something changed.
-function Board({
+// The check as a page holds it: subscribed to the one coverage run the host reports, so a run sent to the background is still followed.
+function Host({
   api,
-  initial,
+  chapter,
   ...props
 }: {
   api: NarrationApi;
-  initial: ProductionOverview;
+  chapter: ManuscriptChapter;
   notify: Notify;
-  goToScript: () => void;
+  goToScript: (paragraph?: number) => void;
   goToProofChapter: () => void;
 }) {
-  const [overview, setOverview] = useState(initial);
-  const changed = useCallback(() => void api.productionOverview().then(setOverview), [api]);
-  return <ChapterBoard overview={overview} {...props} onChanged={changed} />;
+  const [coverage, setCoverage] = useState<CoverageState>({ phase: 'idle', percent: 0, message: '' });
+  const [open, setOpen] = useState(true);
+  useEffect(() => api.subscribeCoverage(setCoverage), [api]);
+  return open ? (
+    <RecordingCheck
+      chapter={chapter}
+      coverage={coverage}
+      notify={props.notify}
+      close={() => setOpen(false)}
+      goToParagraph={props.goToScript}
+      openWorkspace={() => props.goToProofChapter()}
+    />
+  ) : null;
 }
 
-// The recording check on the Production board (docs/utilities/recording-coverage.md, ADR 0130), driven through the board against the
-// coverage mock, which answers the same states the host does: chapters 1-3 have a current check with every word, 4-6 a current check
-// with a third missing, the rest were never checked.
+// The recording check (docs/utilities/recording-coverage.md, ADR 0130) against the coverage mock, which answers the same states the host
+// does: chapters 1-3 have a current check with every word, 4-6 a current check with a third missing, the rest were never checked. The
+// Production row menu's "Recording check…" opens it.
+let current: {
+  api: NarrationApi;
+  goToManuscript: Mock<(chapter: string, paragraph?: number) => void>;
+  goToProofChapter: Mock<(chapterId: string) => void>;
+  notify: Mock<Notify>;
+};
 async function openBoard(initial: Initial = {}, overrides: Partial<NarrationApi> = {}) {
   const api = createMockApi(overrides, initial);
-  const goToManuscript = vi.fn();
-  const goToProofChapter = vi.fn();
-  const notify = vi.fn();
-  const overview = await api.productionOverview();
+  current = {
+    api,
+    goToManuscript: vi.fn<(chapter: string, paragraph?: number) => void>(),
+    goToProofChapter: vi.fn<(chapterId: string) => void>(),
+    notify: vi.fn<Notify>(),
+  };
+  return current;
+}
+
+// The dialog title is the chapter's full name: a prefix match keeps this helper working whether or not the mock chapter also carries a
+// subtitle after the title.
+const openCheck = async (title: string) => {
+  const { api, goToManuscript, goToProofChapter, notify } = current;
+  const chapter = (await api.manuscriptChapters()).find((candidate) => candidate.title === title);
+  if (!chapter) throw new Error(`no chapter ${title}`);
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <Board api={api} initial={overview} notify={notify} goToScript={goToManuscript} goToProofChapter={goToProofChapter} />
+        <Host
+          api={api}
+          chapter={chapter}
+          notify={notify}
+          goToScript={(paragraph?: number) => goToManuscript(chapter.id, paragraph)}
+          goToProofChapter={() => goToProofChapter(chapter.id)}
+        />
       </ApiProvider>
     </MemoryRouter>,
   );
-  await screen.findByRole('grid', { name: 'Chapter pipeline' });
-  return { api, goToManuscript, goToProofChapter, notify };
-}
-
-/** One board cell, by the chapter's title and the column's name. */
-const cell = (title: string, column: string) => {
-  const grid = screen.getByRole('grid', { name: 'Chapter pipeline', hidden: true });
-  const columns = within(grid)
-    .getAllByRole('columnheader', { hidden: true })
-    .map((header) => header.textContent);
-  const row = within(grid)
-    .getByRole('rowheader', { name: new RegExp(`^${title}( —|$)`), hidden: true })
-    .closest('tr') as HTMLElement;
-  return within(row).getAllByRole('gridcell', { hidden: true })[columns.indexOf(column) - 1];
-};
-
-// A Record cell opens the chapter's recording check; when Record is the chapter's current stage it opens the stage suggestion, whose
-// Recording check button opens the same check. The dialog title is the chapter's full name:
-// a prefix match keeps this helper working whether or not the mock chapter also carries a subtitle after the title.
-const openCheck = async (title: string) => {
-  const name = new RegExp(`^Recording check: ${title}\\b`);
-  await waitFor(() => {
-    fireEvent.click(cell(title, 'Record'));
-    const stage = screen.queryByRole('dialog', { name: new RegExp(`^Stage suggestion: ${title}\\b`) });
-    if (stage) fireEvent.click(within(stage).getByRole('button', { name: 'Recording check' }));
-    expect(screen.getByRole('dialog', { name })).toBeTruthy();
-  });
-  return screen.getByRole('dialog', { name });
+  return screen.findByRole('dialog', { name: new RegExp(`^Recording check: ${title}\\b`) });
 };
 
 // The check gets "Open in Proof", now the chapter's Proof view.
@@ -106,13 +110,7 @@ describe('Open in Proof from the recording check', () => {
   });
 });
 
-describe('recording check on the board', () => {
-  it('never shows a status- or check-derived recorded length', async () => {
-    await openBoard();
-    // No estimate, checked or not: the board drops the status guess and the check's word share alike.
-    for (const title of ['Chapter 1', 'Chapter 4', 'Chapter 7']) expect(cell(title, 'Recorded').textContent).toBe('No track');
-  });
-
+describe('the recording check', () => {
   it('says a stale check no longer measures the chapter', async () => {
     await openBoard({ coverage: { stale: [WIRE_CHAPTERS[3].id] } });
     const dialog = await openCheck('Chapter 4');
@@ -197,7 +195,7 @@ describe('recording check on the board', () => {
     expect(within(dialog).getByRole('button', { name: /^Paragraph detail/ })).toBeTruthy();
   });
 
-  it('runs a check with real progress and shows its result, leaving the recorded length column untouched', async () => {
+  it('runs a check with real progress and shows its result', async () => {
     await openBoard();
     const dialog = await openCheck('Chapter 7');
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Check recording' }));
@@ -208,7 +206,6 @@ describe('recording check on the board', () => {
     expect(await within(result).findByText('Passes the check')).toBeTruthy();
     fireEvent.click(within(result).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(cell('Chapter 7', 'Recorded').textContent).toBe('No track');
   });
 
   it('cancels a running check and keeps the dialog until it is closed', async () => {
@@ -222,16 +219,13 @@ describe('recording check on the board', () => {
     expect(await screen.findByRole('dialog', { name: 'Recording check: Chapter 7 — A Mad Tea-Party' })).toBeTruthy();
   });
 
-  it('keeps the Record cell’s percent when the check is sent to the background, and reopens its progress', async () => {
+  it('sends a running check to the background and closes', async () => {
     await openBoard({ coverage: { hold: true } });
     const dialog = await openCheck('Chapter 7');
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Check recording' }));
     const progress = await screen.findByRole('dialog', { name: 'Checking Chapter 7' });
     fireEvent.click(within(progress).getByRole('button', { name: 'Continue in background' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    await waitFor(() => expect(cell('Chapter 7', 'Record').textContent).toBe('70%'), { timeout: 2000 });
-    fireEvent.click(cell('Chapter 7', 'Record'));
-    expect(await screen.findByRole('dialog', { name: 'Checking Chapter 7' })).toBeTruthy();
   });
 
   it('says in plain words why a check was refused and offers the chapter-track link in place', async () => {

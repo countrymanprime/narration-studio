@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AppShell } from './AppShell';
+import { AppShell, shellPages } from './AppShell';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -128,9 +128,27 @@ describe('AppShell grouped navigation', () => {
     expect(button.getAttribute('aria-current')).toBe('page');
   });
 
+  // SN-P8 (schedule-route-and-rail-item): the Studio Next rail has Schedule after Production in the Production group, with no count.
+  it('schedule-route-and-rail-item: lists Production then Schedule in the Production group, Schedule with no count, and opens /schedule', () => {
+    const navigate = vi.fn();
+    renderShell({ navigate, navCounts: { storyBible: 1, proof: 2, pickups: 3 } });
+    const group = screen.getAllByRole('group', { name: 'Production' })[0];
+    expect(
+      within(group)
+        .getAllByRole('button')
+        .map((button) => button.textContent?.trim()),
+    ).toEqual(['Production', 'Schedule']);
+    fireEvent.click(within(group).getByRole('button', { name: 'Schedule' }));
+    expect(navigate).toHaveBeenCalledWith('/schedule');
+  });
+
+  it('schedule-route-and-rail-item: "Go to Schedule" is a page with or without a manuscript', () => {
+    for (const hasManuscript of [true, false]) expect(shellPages(hasManuscript)).toContainEqual({ id: '/schedule', label: 'Schedule' });
+  });
+
   it('lists every other page, with Production in place of Home, Proof in place of Proofing and Review and Booth in place of the Teleprompter', () => {
     renderShell();
-    for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Settings']) {
+    for (const name of ['Production', 'Schedule', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Settings']) {
       expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
     }
   });

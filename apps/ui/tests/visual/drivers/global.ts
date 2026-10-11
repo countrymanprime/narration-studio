@@ -3,7 +3,8 @@ import { type Driver, clickSettingsCategory, clickVisible, compareRun, confirmDi
 
 export const globalDrivers: Record<string, Driver> = {
   tooltip: async (page) => {
-    await page.getByLabel('About these figures').hover();
+    // The first KPI tile of the Production home carries a tooltip (what the figure counts).
+    await page.getByRole('list', { name: 'Production figures' }).getByRole('button').first().hover();
     // TooltipTarget shows its tooltip 1s after hover - wait for it, don't race it.
     await page.getByRole('tooltip').waitFor();
   },

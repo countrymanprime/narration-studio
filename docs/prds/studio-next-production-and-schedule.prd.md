@@ -133,12 +133,12 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADR | A12 Proposed (rulings DQ-3, DQ-4, DQ-14 recorded) | pending | - | SN0-1 | 0.3 | - |
 | 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | in review ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040)) | 4 | 1 | 0.9 | - |
-| 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | in review ([#1083](https://github.com/countrymanprime/narration-utils/issues/1083)) | 4 | 2, SNF-3 | 1.0 | - |
-| 4 | Sourced numbers | `MeasurementsPort`, `Measured`, This week, chart line, room tone | pending | 2, 3 | SNS-4 | 1.2 | - |
-| 5 | Target pace popover | Info affordance and popover | pending | 6 | 4 | 0.4 | - |
-| 6 | Readiness and report | Chip, slide-over, report dialog parity | in progress (readiness half [#1078](https://github.com/countrymanprime/narration-utils/issues/1078); the report dialog is SNP-6b) | 5 | SNS-2 | 0.9 | - |
-| 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | pending | 6 | 1 | 1.0 | - |
-| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | pending (audit: [docs/research/studio-next-production-audit.md](../research/studio-next-production-audit.md), [#1136](https://github.com/countrymanprime/narration-utils/issues/1136), in review) | - | 3 to 7 | 0.5 | - |
+| 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | done ([#1083](https://github.com/countrymanprime/narration-utils/issues/1083); routed by SN-P8, [#1295](https://github.com/countrymanprime/narration-utils/issues/1295)) | 4 | 2, SNF-3 | 1.0 | - |
+| 4 | Sourced numbers | `MeasurementsPort`, `Measured`, This week, chart line, room tone | done (SN-P41, SN-P42, SN-P43) | 2, 3 | SNS-4 | 1.2 | - |
+| 5 | Target pace popover | Info affordance and popover | done (SN-P52, [#1197](https://github.com/countrymanprime/narration-utils/issues/1197)) | 6 | 4 | 0.4 | - |
+| 6 | Readiness and report | Chip, slide-over, report dialog parity | done ([#1078](https://github.com/countrymanprime/narration-utils/issues/1078), SN-P622 [#1216](https://github.com/countrymanprime/narration-utils/issues/1216)) | 5 | SNS-2 | 0.9 | - |
+| 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | done (SN-P71, [#1154](https://github.com/countrymanprime/narration-utils/issues/1154)) | 6 | 1 | 1.0 | - |
+| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | done ([#1295](https://github.com/countrymanprime/narration-utils/issues/1295); supersedes ADR 0404 "shown, not projected" to the extent of DQ-4, ADR 0407 decision 5 by DQ-14, and ADR 0585 / 0645 by DQ-1) | - | 3 to 7 | 0.5 | - |
 
 ### Phase Details
 

@@ -145,7 +145,7 @@ Facts about REAPER and Audacity are copied from the pages linked in each section
 ### `record`
 
 - **Intent:** arm one track, start and stop recording on it, and learn when the narrator stops it in the engine.
-- **Role:** `Recorder`, synchronous, with an `OnRecordEnded` callback.
+- **Role:** `Recorder`, synchronous, with an `OnRecordEnded` callback. `RecordStart(ctx, guid, opts)` takes a start rule: `AtEnd` first moves the cursor to the end of the track's last item, the default leaves it. The host's Record arms the chapter's track alone and then starts with `AtEnd`.
 - **Result:** `ARMED` with how many other tracks were disarmed, `RECORD_STARTED` with the position once the engine reports recording, `RECORD_STOPPED`, or `RECORD_NOT_OURS` when no recording this bridge started is running. If the narrator stops it in the engine, `RECORD_ENDED` follows. Recording is refused with two tracks armed, with a different track armed, and while playing. Arming makes no "Narration Utils" undo point.
 - **REAPER:** `arm_only`, `record_start`, `record_stop`.
 - **Audacity:** not built.
@@ -231,3 +231,47 @@ Facts about REAPER and Audacity are copied from the pages linked in each section
 - **REAPER:** Unsupported: REAPER has no macro manager.
 - **Audacity 3.x:** import, select, apply the macro, export, over the scripting pipe. Audacity 4.0.0 lists the Macro Manager and the scripting pipe as not available ([Audacity 4](audacity-4.md)).
 - **Checked:** not checked in Audacity ([ADR 0460](../../adr/0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md)); the owner's pass is the check.
+
+### `cut_range`
+
+- **Intent:** cut a range of words from the script together with their audio.
+- **Role:** `RangeCutter`, synchronous (`DeleteRange`, a `DeleteRangeRequest`: the item's GUID as the app last read it, start and end in seconds, the word count, mode `close` or `gap`, fade in milliseconds).
+- **Result:** a `Result` ([ADR 0810](../../adr/0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md)). The middle piece goes to a muted Cuts track, never deleted ([PRD decision DQ-8](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions)); `close` moves later audio up, `gap` fills the cut with room tone.
+- **Refusals:** an item whose GUID no longer matches (`stale`); an engine that cannot make the edit. A refused call changes nothing.
+- **Undo:** one undo point where the engine makes the edit as one action; `UndoSteps` and `Steps` report otherwise.
+- **REAPER:** not yet available: no bridge command. Whether the split and move is one undo block is spike SND-S2 ([PRD](../../prds/studio-next-daw-ports-and-capabilities.prd.md#spikes-each-is-a-slice-result-written-to-docsresearch)).
+- **Audacity 3.x:** not yet available. The PRD plans select and delete after a backup ([`backups`](#backups)).
+- **Checked:** not checked; no engine builds it yet.
+
+### `fx_range`
+
+- **Intent:** put one of the engine's own saved chains on a range of words, and take it off again.
+- **Role:** `RangeFXApplier`, synchronous (`ApplyFXToRange` with an `FXRangeRequest`: the range, the chain's id and name as the engine listed them, fade in milliseconds; `RemoveFXFromRange` with the item GUID and chain name).
+- **Result:** a `Result`. The item is split at the range and the chain goes on the middle piece; removing it joins the piece back.
+- **Refusals:** a stale item GUID; a chain the engine does not list; an engine that cannot make the edit. A refused call changes nothing.
+- **Undo:** as `cut_range`.
+- **REAPER:** not yet available: no bridge command. Loading a saved chain onto a split piece is spike SND-S3.
+- **Audacity 3.x:** not yet available. The mock refuses it without backups, as it changes the audio itself.
+- **Checked:** not checked; no engine builds it yet.
+
+### `stack_takes`
+
+- **Intent:** put the later reads of a passage on the first read's spot as takes, and move them back.
+- **Role:** `TakeStacker`, synchronous (`StackTakes` and `UnstackTakes`, a `StackRequest`: the chapter, one group per passage with its item GUID, base read and moves, and the shift of the audio that follows).
+- **Result:** a `Result`; an engine with no native way lists the edits it made in `Steps` (mode `steps`).
+- **Refusals:** a stale item GUID; an engine that cannot stack (Audacity without backups, in the mock).
+- **Undo:** one undo point natively ([PRD acceptance, "Stack retries"](../../prds/studio-next-daw-ports-and-capabilities.prd.md#acceptance-criteria-tied-to-the-mock)).
+- **REAPER:** not yet available: no bridge command. One undo block for the stack is spike SND-S4.
+- **Audacity 3.x:** not yet available.
+- **Checked:** not checked; no engine builds it yet.
+
+### `backups`
+
+- **Intent:** clone the audio around an edit before it is made, so it can be put back, for an engine that keeps no takes of its own.
+- **Role:** `BackupKeeper`, synchronous (`BackupAround` with a `BackupRequest`: the track or item GUID, the chapter, start and end in seconds; `RestoreBackup` with the backup's GUID).
+- **Result:** a `Result`. How long a stretch is cloned and how long backups are kept are settings ([PRD decisions](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions)).
+- **Refusals:** `RestoreBackup` of a GUID the engine has no backup for.
+- **Undo:** not settled; spike SND-S7 and the command slice record it, and `UndoSteps` reports it.
+- **REAPER:** not yet available. The mock declares it unsupported, as REAPER keeps takes itself (`studio-next/src/fixtures/daw.ts`); the command slice settles the declaration.
+- **Audacity 3.x:** not yet available. Cloning a range over the scripting pipe is spike SND-S7.
+- **Checked:** not checked; no engine builds it yet.

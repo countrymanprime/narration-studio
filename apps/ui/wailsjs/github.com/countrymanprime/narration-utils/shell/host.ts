@@ -338,6 +338,29 @@ export function CoverageEngines(): $CancellablePromise<string> {
 }
 
 /**
+ * CoverageGapAccept turns one gap of the chapter's current check into a note with the accepted decision, and answers
+ * that finding. The same gap again answers the same finding and writes nothing.
+ */
+export function CoverageGapAccept(chapterID: string, gapID: string): $CancellablePromise<string> {
+    return $Call.ByID(699765656, chapterID, gapID);
+}
+
+/**
+ * CoverageGapIgnore remembers that the narrator passed on one gap of the chapter's current check. It makes no note.
+ */
+export function CoverageGapIgnore(chapterID: string, gapID: string): $CancellablePromise<string> {
+    return $Call.ByID(3260799698, chapterID, gapID);
+}
+
+/**
+ * CoverageGapReviews answers {gapId: "accepted" | "ignored"} for the gaps of the chapter's current check that have a
+ * review. A stale or absent result, and a gap without a review, are not in it.
+ */
+export function CoverageGapReviews(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2961454629, chapterID);
+}
+
+/**
  * CoverageResult reads a chapter's newest complete check back and says whether it is current, stale or never, with
  * reasons (coverage.ResultView). It never runs anything (Q14).
  */
@@ -877,6 +900,22 @@ export function GuideEntities(): $CancellablePromise<string> {
     return $Call.ByID(1537717617);
 }
 
+/**
+ * GuideFlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of GuideMarkReviewed, and the call that
+ * flags an entry an accepted automatic suggestion changed.
+ */
+export function GuideFlagReview(id: string, aliasIndex: number | null): $CancellablePromise<string> {
+    return $Call.ByID(3261446084, id, aliasIndex);
+}
+
+/**
+ * GuideMarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when
+ * nothing is left to look at.
+ */
+export function GuideMarkReviewed(id: string, aliasIndex: number | null): $CancellablePromise<string> {
+    return $Call.ByID(4040741622, id, aliasIndex);
+}
+
 export function GuideMerge(sourceID: string, targetID: string): $CancellablePromise<string> {
     return $Call.ByID(98047630, sourceID, targetID);
 }
@@ -934,6 +973,14 @@ export function GuideRescan(id: string): $CancellablePromise<string> {
 
 export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise<string> {
     return $Call.ByID(2024869160, id, locked);
+}
+
+/**
+ * GuideSetSpeakerColor sets a character's speaker colour, 1 to 7 (--speaker-N, ADR 0367), which wins over the stable pick; nil or 0
+ * puts it back to automatic. A category that cannot speak is refused.
+ */
+export function GuideSetSpeakerColor(id: string, index: number | null): $CancellablePromise<string> {
+    return $Call.ByID(2072746294, id, index);
 }
 
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {
@@ -2301,6 +2348,17 @@ export function WorkspaceLoop(chapterID: string, firstToken: number, lastToken: 
  */
 export function WorkspacePeaks(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(1143383553, chapterID);
+}
+
+/**
+ * WorkspaceSnap moves sourceTime, a cut point in seconds of itemGUID's source, to the nearest zero crossing of that
+ * source's audio within 2 ms. It refuses, reading nothing, a chapter with no checked track, an item GUID the chapter's
+ * alignment or the saved project no longer has, and an item whose source file is missing; and refuses, leaving the
+ * time, a source that is not a WAV, a time past its end, and a window that is silent or has no crossing. A negative or
+ * non-finite time is the caller's error, as is no project.
+ */
+export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: number): $CancellablePromise<string> {
+    return $Call.ByID(4178291727, chapterID, itemGUID, sourceTime);
 }
 
 /**
