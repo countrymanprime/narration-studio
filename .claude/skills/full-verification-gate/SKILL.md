@@ -1,38 +1,42 @@
 ---
 name: full-verification-gate
-description: The one gate that must pass before any feature or fix is called done — full pnpm check, Playwright visual suite when apps/ui changed, and the bridge harness plus a recorded in-REAPER check when integrations/reaper (Lua) changed.
+description: What to verify before pushing a feature or fix — the targeted checks for what changed, the visual PNGs when apps/ui changed, the bridge harness plus a recorded in-REAPER check when integrations/reaper (Lua) changed — and that the PR pipeline, not a local pnpm check, is the full gate.
 ---
 
 # full-verification-gate
 
 ## Why this exists
 
-`pnpm check` runs the full monorepo gate (UI lint/format/test/build, Python ruff+pytest, Go vet/test/golangci-lint, the Knip dead-code check, the coverage ratchet on the logic directories, Lua format check) — but `pnpm check:fast` only checks staged files, and it's easy for an agent or a rushed commit to run the fast version, see green, and call it done while a full-suite regression sits untouched elsewhere. This skill is the checkpoint that stops "looked fine locally" from becoming "broke something unrelated."
+`pnpm check` runs the full monorepo gate (UI lint/format/test/build, Python ruff+pytest, Go vet/test/golangci-lint, the Knip dead-code check, the coverage ratchet on the logic directories, Lua format check). It takes about 15 minutes, and the pull-request pipeline ([`ci.yml`](../../../.github/workflows/ci.yml), which calls `_quality.yml`) runs the same checks on every push, split into parallel jobs. This skill says what to run yourself and what to leave to the pipeline, so a regression elsewhere in the repo is caught without a session sitting idle for the full run.
 
-## When to use this
+## The rule
 
-Before reporting any feature, bugfix, or refactor as complete — always, not just for large changes. Run it again after any fix made in response to its own findings.
+**`pnpm check` does not gate a push, a PR or the next piece of work.** Run the targeted set for what you changed, push, subscribe to the PR (`subscribe_pr_activity`) and let the pipeline be the full gate. While it runs, start the next piece of work or the `intent-check` pass 2. When a job goes red, fix it and push again. A red pipeline blocks the merge, not the work.
 
-## In an agent-train worker stream
+Targeted set, for every session (worker stream or not):
 
-A worker started from the [worker template](../../../docs/operations/agent-train.md#worker-template) runs the targeted set, not the full runs in the steps below (owner rules D43 and D44): Go tests of the changed packages plus `go vet`, the Lua harness for Lua, Vitest of the changed UI, pytest of the changed sidecars, lint and typecheck of the touched projects, and the visual states of the pages it changed, looking at every viewport's PNG. It does not run the full `pnpm check`, the full visual suite, the atlas (a primitive's own atlas story is fine) or `aria`: the final sweep runs those once. The PR body lists the checks run and says the full gate is deferred to the sweep. Everything else here still holds: a red targeted check is not done, and a manual step that is outstanding is named as pending. A session that is not a worker stream runs the full gate.
+- Go tests of the changed packages plus `go vet`.
+- The Lua harness when `integrations/reaper` changed.
+- Vitest of the changed UI; lint and typecheck of the touched projects.
+- pytest of the changed sidecars.
+- The visual states of the pages you changed, looking at every viewport's PNG (below).
+- The generators and golden checks a change owes (`UPDATE_CONTRACTS=1` for a wire contract, `adr-topics.mjs --write` for an ADR).
 
-## What to do
+The PR body lists the checks run and says the full gate runs in the pipeline. There is no stop hook that demands a stamp, and no `Gate: skipped` line to write.
 
-1. Run the full gate, not the staged one:
+## What still holds
 
-   ```bash
-   pnpm check
-   ```
-
-   Do not substitute `pnpm check:fast` or a hand-picked subset unless the change is trivially scoped (e.g. a single doc file) — if you scope it down, say explicitly why and what you skipped.
-2. If `apps/ui` visual/layout code changed: first run `visual-catalog-sync` if the change added, removed, or visibly changed a page/state, so `state-catalog.ts` and its drivers describe current reality. Then follow the visual bug fix verification rule in [CLAUDE.md](../../../CLAUDE.md): run the Playwright visual suite for the affected page/state across every viewport in `apps/ui/tests/visual/viewports.ts`, and actually open the generated PNGs — not just the one viewport eyeballed live.
-   Also run `pnpm --dir apps/ui atlas` when a primitive or `styles.css` changed, and `pnpm --dir apps/ui run aria` when a dialog, slide-over or the navigation changed (read the snapshot diff before updating it).
-3. If `integrations/reaper` Lua changed: `pnpm check` runs StyLua and the bridge harness (a fake `reaper` driven through the file protocol, plus mutation checks; [ADR 0066](../../../docs/adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)). Every new or changed command needs a harness test first. The fake cannot prove REAPER's own API behaviour, so verify that inside REAPER, scripted on a copy of a project with an isolated `-cfgfile`, and record it. Mark anything that needs the owner or audio hardware as pending. Do not let a green `pnpm check` imply REAPER behaviour is safe.
+1. A red targeted check is not done. Fix it before you push; do not push a failure you can see locally.
+2. If `apps/ui` visual/layout code changed: first run `visual-catalog-sync` if the change added, removed, or visibly changed a page/state, so `state-catalog.ts` and its drivers describe current reality. Then follow the visual bug fix verification rule in [CLAUDE.md](../../../CLAUDE.md): run the Playwright visual suite for the affected page/state across every viewport in `apps/ui/tests/visual/viewports.ts`, and actually open the generated PNGs — not just the one viewport eyeballed live. The full suite, the atlas and `aria` run in the pipeline; run `pnpm --dir apps/ui atlas` yourself only when a primitive's story needs it, and `pnpm --dir apps/ui run aria` when a dialog, slide-over or the navigation changed (read the snapshot diff before updating it).
+3. If `integrations/reaper` Lua changed: every new or changed command needs a harness test first ([ADR 0066](../../../docs/adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)). The fake cannot prove REAPER's own API behaviour, so verify that inside REAPER, scripted on a copy of a project with an isolated `-cfgfile`, and record it. Mark anything that needs the owner or audio hardware as pending. A green pipeline does not imply REAPER behaviour is safe.
    If the PR adds types, interfaces, packages or dependencies, confirm its body has a clean Design check or a **Design waivers** table from `solid-design-review`. This is a presence check, not a judgement.
-4. If `change-impact-scan` was run earlier for this change, compare failures against its findings: a failure in a consumer that scan already flagged as zero-coverage is new information, not noise — surface it. A pre-existing flaky failure unrelated to the touched files can be named as such, but don't wave away a failure just because it's inconvenient.
-5. Do not report the work as complete while `pnpm check` is red or a required manual-verification step is outstanding. If a failure can't be fixed immediately, say so plainly and name the failing check — don't silently narrow scope to make the gate pass.
+4. If `change-impact-scan` was run earlier for this change, compare pipeline failures against its findings: a failure in a consumer that scan already flagged as zero-coverage is new information, not noise — surface it. A failure unrelated to the touched files can be named as such, but don't wave away a failure just because it's inconvenient.
+5. Do not call a PR ready for merge while the pipeline is red or a required manual-verification step is outstanding. If a failure can't be fixed immediately, say so plainly and name the failing job.
+
+## When to run `pnpm check` locally
+
+To reproduce a red pipeline job you cannot diagnose from its log, when the owner asks, or for a change so wide that a red pipeline would cost more cycles than 15 minutes. It is never a precondition. `pnpm check:fast` checks staged files only and is not a substitute for the pipeline.
 
 ## What this skill is not
 
-It's not a substitute for `change-impact-scan` (that's the "who else is affected" step, done before implementation) or `feature-cleanup` (the "leave no mess" step, done after this gate passes).
+It's not a substitute for `change-impact-scan` (that's the "who else is affected" step, done before implementation) or `feature-cleanup` (the "leave no mess" step, done after the targeted checks pass).

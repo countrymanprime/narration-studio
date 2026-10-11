@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Records that the full gate (`pnpm check`) passed on an exact working tree, and blocks a Claude Code stop that
-// leaves changed code without that record.
+// Records that the full gate (`pnpm check`) passed on an exact working tree. `--hook` can also block a Claude Code
+// stop that leaves changed code without that record, but .claude/settings.json does not wire it: the pull-request
+// pipeline is the full gate, and a session pushes after its targeted checks (full-verification-gate).
 //
 // node scripts/ci/gate-stamp.mjs record   Writes the hash of the current working tree. `pnpm check` calls it last.
 // node scripts/ci/gate-stamp.mjs --hook   Claude Code Stop and SubagentStop hook. Reads the payload on stdin.
