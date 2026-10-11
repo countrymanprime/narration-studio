@@ -121,7 +121,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Capability section | Reason, destructive, mode in Settings; section registry | pending | 2 | SND-2 | 0.8 | - |
+| 1 | Capability section | Reason, destructive, mode in Settings; section registry | in progress ([#1079](https://github.com/countrymanprime/narration-utils/issues/1079)) | 2 | SND-2 | 0.8 | - |
 | 2 | Manuscript and keys | Replace in Settings only; key list from catalogue | pending | 1 | SNR-6 | 0.7 | - |
 | 3 | Backups and analysis tools | Backups settings; tools section | pending | - | 1, SND-8, SNX-6 | 0.8 | - |
 | 4 | Delivery lookup and page | `platformHas`, profile on first import, Master wording from capabilities, Delivery page components (no route) | pending | - | SNP-3 | 1.0 | - |
