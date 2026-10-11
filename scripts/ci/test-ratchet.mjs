@@ -41,11 +41,15 @@ export function parseAddedLines(diff) {
 const floorKey = (entry) => `${entry.tool} ${entry.project} ${entry.path}`;
 
 function floorViolations(before, after) {
-  const now = new Map(after.map((entry) => [floorKey(entry), entry.floor]));
+  const now = new Map(after.map((entry) => [floorKey(entry), entry]));
   return before.flatMap((entry) => {
-    const value = now.get(floorKey(entry));
-    if (value === undefined) return [`coverage floor for ${entry.path} (${entry.tool}) was removed`];
-    if (value < entry.floor) return [`coverage floor for ${entry.path} (${entry.tool}) fell from ${entry.floor} to ${value}`];
+    const current = now.get(floorKey(entry));
+    if (current === undefined) return [`coverage floor for ${entry.path} (${entry.tool}) was removed`];
+    if (current.floor < entry.floor) return [`coverage floor for ${entry.path} (${entry.tool}) fell from ${entry.floor} to ${current.floor}`];
+    // The floor that applies off Windows is a floor too. Dropping it makes the gate stricter on those hosts, so only lowering one counts.
+    if (entry.nonWindowsFloor !== undefined && current.nonWindowsFloor !== undefined && current.nonWindowsFloor < entry.nonWindowsFloor) {
+      return [`non-Windows coverage floor for ${entry.path} (${entry.tool}) fell from ${entry.nonWindowsFloor} to ${current.nonWindowsFloor}`];
+    }
     return [];
   });
 }

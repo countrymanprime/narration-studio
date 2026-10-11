@@ -24,6 +24,10 @@ Coverage is gated as a **ratchet on logic directories**, and this is a deliberat
 - **80% is the floor for any new logic directory.** An entry below 80 must carry a written `reason` (validated by `scripts/ci/coverage-gate.test.mjs`); the entries that do today are baselines of code that had little coverage when the gate landed, and each names the change expected to raise it.
 - **Exempt on purpose:** UI components and the Wails client, host glue, and sidecar-launch code (Go packages `root`, `cmd`, `assets`, `guide`, `process`, `settings`, `transcript`, `tts`, `whisper`; the teleprompter `live_asr` engines; release scripts). Their behavior is verified by the visual suite, the atlas, hand checks in REAPER or the first-use flows, and by tests that assert behavior rather than lines. Adding one of them to the ratchet is allowed and starts at 80.
 
+## Amendment, 2026-10-11
+
+Coverage can differ by operating system, so an entry may carry a `nonWindowsFloor` below its `floor`, with a `nonWindowsReason`. `floor` stays the Windows number, which CI enforces ([ADR 0412](0412-windows-is-the-only-supported-platform-for-now.md)); off Windows the lower one applies, so a Linux or macOS run does not fail on statements that only Windows reaches. Floors still only go up: the test ratchet fails a lowered `nonWindowsFloor` like a lowered `floor`. The first two are `internal/findings` and `internal/stages`.
+
 ## Consequences
 
 - Coverage of the code where a regression is silent (parsers, offset and alignment math, state, findings, analyzers) cannot fall without a red gate, and rises as tests are added.

@@ -678,6 +678,12 @@ removed, fails the run.
 - **After adding tests:** run `node scripts/ci/coverage-gate.mjs <go|vitest|pytest> <projectRoot> --update` (the same
   arguments as the project's `test` target) to raise floors to the rounded-down measurement. Floors never go down by
   `--update`; lowering one is a reviewed edit.
+- **A floor that differs by operating system:** `floor` is the Windows number, which CI enforces ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
+  An entry may add `nonWindowsFloor`, below `floor`, with a `nonWindowsReason`; off Windows that one applies, and
+  `--update` raises whichever applies on the host. Use it only where the platforms really measure differently: a test that
+  stands a file where a folder belongs reaches one more statement on Windows, where a path through a file reads as "not
+  found", than elsewhere, where it fails with `ENOTDIR` first (`internal/findings` and `internal/stages`). The test ratchet
+  fails a lowered `nonWindowsFloor` as it does a lowered `floor`; dropping one only makes the gate stricter.
 - **Not gated on purpose:** UI components, host glue and sidecar-launch code (the list is in the floors file's
   `$comment`).
 - `vitest --coverage` also works by hand and writes `apps/ui/coverage/` (ignored).

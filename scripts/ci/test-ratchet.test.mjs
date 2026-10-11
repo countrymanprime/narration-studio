@@ -73,3 +73,21 @@ test('parseAddedLines pairs each added line with its file and skips headers and 
     { path: 'x.test.ts', text: 'const b = 1' },
   ]);
 });
+
+const osFloor = (path, windows, other) => ({ ...floor(path, windows), nonWindowsFloor: other, nonWindowsReason: 'a path through a file fails earlier off Windows' });
+
+test('a lowered non-Windows coverage floor is a violation; a raised, equal or dropped one is not', () => {
+  const run = (after) => findRatchetViolations({ ...none, floorsBefore: [osFloor('internal/a', 96, 95)], floorsAfter: [after] });
+  assert.deepEqual(run(osFloor('internal/a', 96, 94)), ['non-Windows coverage floor for internal/a (go) fell from 95 to 94']);
+  assert.deepEqual(run(osFloor('internal/a', 96, 95)), []);
+  assert.deepEqual(run(osFloor('internal/a', 96, 95.0)), []);
+  assert.deepEqual(run(osFloor('internal/a', 97, 95)), [], 'raising the Windows floor alone is fine');
+  assert.deepEqual(run(osFloor('internal/a', 97, 96)), []);
+  assert.deepEqual(run(floor('internal/a', 96)), [], 'dropping the non-Windows floor makes the gate stricter');
+});
+
+test('lowering the Windows floor of an entry that has a non-Windows floor is still a violation', () => {
+  const found = findRatchetViolations({ ...none, floorsBefore: [osFloor('internal/a', 96, 95)], floorsAfter: [osFloor('internal/a', 95, 94)] });
+  assert.deepEqual(found, ['coverage floor for internal/a (go) fell from 96 to 95']);
+});
+

@@ -11,6 +11,12 @@
  * renamed or deleted directory must be edited out of the floors file on purpose). Floors only go
  * up: `--update` rewrites them to the rounded-down measurement and never lowers one. The floor for
  * a new logic directory is TARGET (80); a lower floor needs a written `reason` in the file.
+ *
+ * Coverage can differ by operating system: a test that stands a file where a folder belongs reaches one more
+ * statement on Windows, where a path through a file reads as "not found", than elsewhere, where it fails with ENOTDIR
+ * before the write. `floor` is the Windows number (CI runs there, and the test ratchet protects it). An entry may add
+ * `nonWindowsFloor`, lower than `floor`, with a `nonWindowsReason`: off Windows that one applies instead, and `--update`
+ * raises whichever applies on the host.
  * UI, glue and sidecar-launch code are not listed and so are not gated.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -26,6 +32,11 @@ const TOOLS = new Set(['go', 'vitest', 'pytest']);
 
 const slash = (value) => value.split('\\').join('/');
 const label = (entry) => `${entry.tool} ${entry.project} ${entry.path}`;
+
+/** The floor that applies on `platform`: an entry's `nonWindowsFloor` off Windows, its `floor` on Windows. */
+export function floorFor(entry, platform = process.platform) {
+  return platform !== 'win32' && entry.nonWindowsFloor !== undefined ? entry.nonWindowsFloor : entry.floor;
+}
 
 /** Per-package statement coverage from `go test -cover` output, as module-relative directories. */
 export function parseGoCover(output, modulePath) {
@@ -111,30 +122,49 @@ export function validateFloors(doc) {
     if (!Number.isInteger(entry.floor)) problems.push(`${id}: floor must be a whole number`);
     else if (entry.floor < 0 || entry.floor > 100) problems.push(`${id}: floor must be between 0 and 100`);
     else if (entry.floor < TARGET && !entry.reason) problems.push(`${id}: floor ${entry.floor}% is below the ${TARGET}% target and has no reason`);
+    if (entry.nonWindowsFloor !== undefined) {
+      if (!Number.isInteger(entry.nonWindowsFloor) || entry.nonWindowsFloor < 0) problems.push(`${id}: nonWindowsFloor must be a whole number from 0`);
+      else if (Number.isInteger(entry.floor) && entry.nonWindowsFloor >= entry.floor) problems.push(`${id}: nonWindowsFloor ${entry.nonWindowsFloor}% must be below the floor ${entry.floor}%; drop it when the platforms agree`);
+      if (!entry.nonWindowsReason) problems.push(`${id}: nonWindowsFloor needs a nonWindowsReason`);
+    } else if (entry.nonWindowsReason !== undefined) {
+      problems.push(`${id}: nonWindowsReason without a nonWindowsFloor`);
+    }
   }
   return problems;
 }
 
 /** `measure(entry)` returns the current percentage or null when there is no data. */
-export function evaluate(entries, measure) {
+export function evaluate(entries, measure, platform = process.platform) {
   const failures = [];
   const notes = [];
   for (const entry of entries) {
     const pct = measure(entry);
+    const floor = floorFor(entry, platform);
+    const which = floor === entry.floor ? '' : 'non-Windows ';
     if (pct === null || pct === undefined) {
       failures.push(`${label(entry)}: no coverage data. If it was renamed or removed, edit scripts/ci/coverage-floors.json in the same change.`);
-    } else if (pct + 1e-9 < entry.floor) {
-      failures.push(`${label(entry)}: ${pct.toFixed(1)}% is below the floor ${entry.floor}%. Add tests; do not lower the floor to pass.`);
-    } else if (pct >= entry.floor + RAISE_MARGIN) {
-      notes.push(`${label(entry)}: ${pct.toFixed(1)}% clears the ${entry.floor}% floor; raise it to ${Math.floor(pct)} (run with --update).`);
+    } else if (pct + 1e-9 < floor) {
+      failures.push(`${label(entry)}: ${pct.toFixed(1)}% is below the ${which}floor ${floor}%. Add tests; do not lower the floor to pass.`);
+    } else if (pct >= floor + RAISE_MARGIN) {
+      notes.push(`${label(entry)}: ${pct.toFixed(1)}% clears the ${floor}% ${which}floor; raise it to ${Math.floor(pct)} (run with --update).`);
     }
   }
   return { failures, notes };
 }
 
-/** A copy of the floors with each one raised to the rounded-down measurement; never lowered. */
-export function raiseFloors(doc, measure) {
-  return { ...doc, entries: doc.entries.map((entry) => ({ ...entry, floor: Math.max(entry.floor, Math.floor(measure(entry) ?? 0)) })) };
+/**
+ * A copy of the floors with each one raised to the rounded-down measurement; never lowered. Off Windows an entry's
+ * `nonWindowsFloor` is the one raised (kept below `floor`), and on Windows `floor` is.
+ */
+export function raiseFloors(doc, measure, platform = process.platform) {
+  return {
+    ...doc,
+    entries: doc.entries.map((entry) => {
+      const measured = Math.floor(measure(entry) ?? 0);
+      if (floorFor(entry, platform) !== entry.floor) return { ...entry, nonWindowsFloor: Math.min(entry.floor - 1, Math.max(entry.nonWindowsFloor, measured)) };
+      return { ...entry, floor: Math.max(entry.floor, measured) };
+    }),
+  };
 }
 
 /** The floors file as it is checked in: the comment, then one entry per line so a raised floor is a one-line diff. */
@@ -155,11 +185,11 @@ function readFloors() {
 }
 
 /** Prints the verdict and returns the exit code; writes raised floors to `floorsPath` when `update` is set. */
-export function report(doc, entries, measure, { update = false, floorsPath = FLOORS_PATH, log = console.log, error = console.error } = {}) {
-  const { failures, notes } = evaluate(entries, measure);
+export function report(doc, entries, measure, { update = false, floorsPath = FLOORS_PATH, log = console.log, error = console.error, platform = process.platform } = {}) {
+  const { failures, notes } = evaluate(entries, measure, platform);
   for (const note of notes) log(`coverage: ${note}`);
   if (update) {
-    const next = raiseFloors(doc, (entry) => (entries.includes(entry) ? measure(entry) : entry.floor));
+    const next = raiseFloors(doc, (entry) => (entries.includes(entry) ? measure(entry) : floorFor(entry, platform)), platform);
     writeFileSync(floorsPath, formatFloors(next));
     log('coverage: floors raised where coverage had risen.');
   }
