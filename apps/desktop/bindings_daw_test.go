@@ -6,6 +6,7 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
 )
 
 // newTestHostForDawCapabilities builds a Host with no bridge and no session directory (a launch with no REAPER file
@@ -51,8 +52,66 @@ func TestDawCapabilitiesGoldenIsCurrent(t *testing.T) {
 	}
 }
 
+// builtinCapabilitiesHost is a launch with no DAW whose project records with the built-in recorder (acting as Windows, where its
+// capture row runs).
+func builtinCapabilitiesHost(t *testing.T) *Host {
+	t.Helper()
+	host := recorderHost(t, &recordingtest.Fake{})
+	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	return host
+}
+
+// capabilities-golden-for-built-in: the built-in recorder's row of DawCapabilities, written from a launch whose project chose it
+// (record and takes Experimental and switched off by default, project_read "keeps no saved project", the rest worded for the
+// built-in recorder). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-capabilities-builtin.json.
+func TestDawCapabilitiesBuiltInGoldenIsCurrent(t *testing.T) {
+	raw, err := builtinCapabilitiesHost(t).DawCapabilities()
+	if err != nil {
+		t.Fatalf("DawCapabilities() error = %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+		t.Fatalf("DawCapabilities() = %q, not JSON: %v", raw, err)
+	}
+	if decoded["daw"] != "Built-in" || decoded["reachable"] != true {
+		t.Fatalf("daw = %v, reachable = %v; want Built-in, reachable: the recorder is the app's own", decoded["daw"], decoded["reachable"])
+	}
+	contractfile.Check(t, "daw-capabilities-builtin", decoded)
+}
+
+// built-in-is-a-kind: the project's engine choice makes the launch's kind the built-in recorder only while no DAW launched the
+// app; choosing REAPER again, or a DAW launch, keeps the DAW.
+func TestDawLaunchKindFollowsTheEngineChoiceOnlyWithoutADAW(t *testing.T) {
+	host := builtinCapabilitiesHost(t)
+	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindBuiltIn {
+		t.Errorf("no DAW, built-in chosen: kind = %v, want KindBuiltIn", kind)
+	}
+	host.mu.Lock()
+	host.config.daw = "REAPER"
+	host.mu.Unlock()
+	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindREAPER {
+		t.Errorf("REAPER launch, built-in chosen: kind = %v, want KindREAPER", kind)
+	}
+	host.mu.Lock()
+	host.config.daw = ""
+	host.mu.Unlock()
+	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
+	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindNone {
+		t.Errorf("no DAW, REAPER chosen: kind = %v, want KindNone", kind)
+	}
+	host.platform = "windows"
+	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	host.platform = "linux"
+	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindNone {
+		t.Errorf("built-in chosen where its capture row does not run: kind = %v, want KindNone", kind)
+	}
+}
+
 func TestDawCapabilitiesReportsTheLaunchKind(t *testing.T) {
-	cases := []struct{ daw, want string }{{"", "none"}, {"REAPER", "REAPER"}, {"Audacity", "Audacity"}, {"reaper", "REAPER"}}
+	cases := []struct {
+		daw, want string
+		reachable bool
+	}{{"", "none", false}, {"REAPER", "REAPER", false}, {"Audacity", "Audacity", false}, {"reaper", "REAPER", false}, {"Built-in", "Built-in", true}}
 	for _, c := range cases {
 		host := newTestHostForDawCapabilities(t, c.daw)
 		raw, err := host.DawCapabilities()
@@ -69,8 +128,8 @@ func TestDawCapabilitiesReportsTheLaunchKind(t *testing.T) {
 		if decoded.Daw != c.want {
 			t.Errorf("daw = %q, want %q", decoded.Daw, c.want)
 		}
-		if decoded.Reachable {
-			t.Errorf("reachable = true, want false: no bridge is connected")
+		if decoded.Reachable != c.reachable {
+			t.Errorf("%q: reachable = %v, want %v", c.daw, decoded.Reachable, c.reachable)
 		}
 	}
 }

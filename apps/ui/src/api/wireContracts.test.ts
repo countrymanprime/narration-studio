@@ -1636,6 +1636,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawCapabilitiesSchema, audacity, 'mock daw capabilities (Audacity)');
     expect(audacity).toEqual(readGolden('daw-capabilities-audacity.json'));
 
+    const builtIn = await createMockApi({}, { daw: { daw: 'Built-in' } }).dawCapabilities();
+    expectMatches(dawCapabilitiesSchema, builtIn, 'mock daw capabilities (built-in recorder)');
+    expect(builtIn).toEqual(readGolden('daw-capabilities-builtin.json'));
+
     // The host's own "daw-capabilities-reaper" golden is a REAPER launch with no live bridge at all (Bridge: false); the
     // mock's disconnected seed is the same shape.
     const disconnectedReaper = await createMockApi({}, { daw: { daw: 'REAPER', connected: false } }).dawCapabilities();

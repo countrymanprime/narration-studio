@@ -12,7 +12,7 @@ import type {
 } from '../contracts/daw';
 import { optionalFromNull } from './base';
 
-const DAW_KINDS = ['REAPER', 'Audacity', 'none'] as const satisfies readonly DawKind[];
+const DAW_KINDS = ['REAPER', 'Audacity', 'Built-in', 'none'] as const satisfies readonly DawKind[];
 const DAW_CAPABILITY_LEVELS = ['unsupported', 'not_yet_available', 'experimental', 'supported'] as const satisfies readonly DawCapabilityLevel[];
 const DAW_CAPABILITY_REASONS = [
   'standalone',

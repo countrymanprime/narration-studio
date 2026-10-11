@@ -8,6 +8,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-capabilities-standalone.json': dawCapabilitiesSchema,
   'daw-capabilities-reaper.json': dawCapabilitiesSchema,
   'daw-capabilities-audacity.json': dawCapabilitiesSchema,
+  'daw-capabilities-builtin.json': dawCapabilitiesSchema,
   'daw-transport-stopped.json': dawTransportSchema,
   'daw-transport-playing.json': dawTransportSchema,
   'daw-transport-recording.json': dawTransportSchema,
