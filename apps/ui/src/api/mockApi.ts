@@ -50,6 +50,7 @@ import { createSystemMock, invalidPayloadOverrides } from './mockHost/system';
 import { createPronunciationLookupMock } from './mockHost/pronunciationLookup';
 import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommonsAudio';
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
+import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -313,6 +314,7 @@ export function createMockApi(
     ...createPronunciationLookupMock(),
     ...createPronunciationCommonsAudioMock(),
     ...createPronunciationOnlineMock(),
+    ...createWorkspaceSnapMock(),
     ...createPronunciationSourcesMock(),
   };
   const api = initial.invalidPayload ? { ...base, ...invalidPayloadOverrides(initial.invalidPayload, base) } : base;

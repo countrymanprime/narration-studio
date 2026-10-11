@@ -2327,6 +2327,17 @@ export function WorkspacePeaks(chapterID: string): $CancellablePromise<string> {
 }
 
 /**
+ * WorkspaceSnap moves sourceTime, a cut point in seconds of itemGUID's source, to the nearest zero crossing of that
+ * source's audio within 2 ms. It refuses, reading nothing, a chapter with no checked track, an item GUID the chapter's
+ * alignment or the saved project no longer has, and an item whose source file is missing; and refuses, leaving the
+ * time, a source that is not a WAV, a time past its end, and a window that is silent or has no crossing. A negative or
+ * non-finite time is the caller's error, as is no project.
+ */
+export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: number): $CancellablePromise<string> {
+    return $Call.ByID(4178291727, chapterID, itemGUID, sourceTime);
+}
+
+/**
  * WorkspaceTakeEvidence answers, for each take WorkspaceTakes offers for the same passage and in the same order, the
  * share of the passage's script words it read as written (from the stored alignment of its range), what its own
  * source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
