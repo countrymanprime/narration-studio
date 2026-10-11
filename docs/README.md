@@ -53,8 +53,36 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    Before switching on a REAPER bridge command that ships behind the Experimental REAPER actions switch, run
    [the REAPER verification pass](operations/reaper-verification-pass.md); the calls each command makes are in
    [the ReaScript calls behind the planned commands](research/reaper-api-for-planned-commands.md).
-1. Before changing what crosses a trust boundary (a download, the update, a sidecar's arguments, the REAPER bridge, the
-   files the app opens), read the [threat model](architecture/threat-model.md) and update its row in the same pull request.
+1. Before changing what crosses a trust boundary (a download, the update, a sidecar's arguments, the REAPER bridge, a
+   file from outside the app), read the [threat model](architecture/threat-model.md) and update its row in the same pull
+   request. A file the app writes and reads back for the same user is a data file: its row is in
+   [data files](reference/data-files.md).
+
+## Which document
+
+| If you are recording ... | Put it in | Not in |
+| --- | --- | --- |
+| A choice that changes the structure, a dependency, an interface between parts, a platform, a persistence strategy or a quality attribute, and is costly to reverse | an ADR ([adr/](adr/README.md)) | |
+| A CI gate, test strategy or release-pipeline choice every contributor must follow | an ADR, plus the how-to in [operations/](operations/) | |
+| What a page, dialog or control does, its copy, its shortcut | while it is being built: the PRD; once built: the [user guide](guides/using-the-app/README.md) page, and a test | an ADR |
+| A token value, size, colour or component look | [the design system](design/design-system.md) | an ADR |
+| A threshold, default, field, error code or one function's rule | a doc comment and a test beside the code; a reference page if another component or a user depends on it | an ADR |
+| A file the app writes and reads back: path, contents, version, limits, when it is cleared | [data files](reference/data-files.md) | the threat model, `SECURITY.md`, an ADR |
+| A file the app writes that names a path the host opens, a command it runs or a URL it fetches | [data files](reference/data-files.md), plus a [threat model](architecture/threat-model.md) row | |
+| A new way untrusted data reaches the app (the network, a download, a file from someone else, a new parser, a new process or channel, device input) or a new outbound request | a [threat model](architecture/threat-model.md) row; a `SECURITY.md` scope line only if a reporter needs it | |
+| What leaves the machine, and what is kept and for how long | [what the app sends off the machine](architecture/threat-model.md#what-the-app-sends-off-the-machine) in the threat model; the retention column in [data files](reference/data-files.md) | |
+| How to report a vulnerability, supported versions, scope | [SECURITY.md](../SECURITY.md) | feature behaviour |
+| A planned feature: problem, users, requirements, scope, open product questions | a PRD ([prds/](prds/README.md)), deleted once built | an ADR, an architecture doc |
+| Who does which piece of work, and in what order | the tracking issue on GitHub ([github-workflow](operations/github-workflow.md)) | a PRD, a research note |
+| A dated investigation, spike or trial: question, method, findings | [research/](research/) | a living spec, a runbook, an audit for one pull request |
+| An audit or checklist for one pull request | a comment on the pull request or its issue | a file |
+| How to run, release or verify something by hand | [operations/](operations/) | an architecture doc |
+| How to add a binding, an engine or a command | a doc comment or README beside the code | an architecture doc |
+| How the parts fit and why: structure, runtime flows, cross-cutting concepts | [architecture/](architecture/) | PRD sections, UI behaviour, how-tos |
+| Instructions that only automated coding tools read | `CLAUDE.md` and `.claude/`, linking the docs here for facts | `docs/` |
+| What changed in a release | the release notes, generated from the Conventional Commit titles (`scripts/release/generate-notes.mjs`) | a document's Status line |
+
+[The docs placement audit](research/docs-placement-audit.md#1-industry-standards-by-document-type) has the practice behind each row.
 
 ## Terms
 
