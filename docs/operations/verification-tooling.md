@@ -28,7 +28,7 @@ The race detector runs in CI only (`-race` needs cgo), and only on the packages 
 
 ## Coverage ratchet
 
-Only the logic directories in `scripts/ci/coverage-floors.json` are gated; components, host glue and sidecar-launch code are not. A floor is the rounded-down coverage when it was added and only goes up. To add a directory, add an entry at 80 or more (a lower floor needs a `reason`); to raise floors after adding tests, run the gate with `--update`. Details and the list of exempt code are in [CI and releases](ci-and-releases.md#coverage-ratchet).
+Only the logic directories in `scripts/ci/coverage-floors.json` are gated; components, host glue and sidecar-launch code are not. A floor is the rounded-down coverage when it was added and only goes up. To add a directory, add an entry at 80 or more (a lower floor needs a `reason`); to raise floors after adding tests, run the gate with `--update`. A few Go packages measure lower off Windows, so an entry can carry a `nonWindowsFloor` (and a `nonWindowsReason`) that applies on other hosts while `floor` stays the Windows number CI enforces. Details and the list of exempt code are in [CI and releases](ci-and-releases.md#coverage-ratchet).
 
 ## Property tests and fuzzing
 
