@@ -15,10 +15,14 @@ import {
   faMicrophone,
   faMagnifyingGlass,
   faMinus,
+  faMoon,
   faPlus,
   faRotateLeft,
+  faSun,
   faWaveSquare,
 } from '@fortawesome/free-solid-svg-icons';
+import { ContextMenuHost } from './ContextMenuHost';
+import type { ContextMenuItem } from '../primitives/ContextMenu';
 import { NavButton } from '../primitives/NavButton';
 import { NavDrawer } from '../primitives/NavDrawer';
 import { IconButton } from '../primitives/IconButton';
@@ -92,6 +96,8 @@ export function AppShell({
   onOpenJump,
   onOpenHistory,
   undo,
+  theme,
+  contextMenu,
   children,
 }: {
   pathname: string;
@@ -125,6 +131,10 @@ export function AppShell({
   onOpenHistory: () => void;
   /** The header's Undo: `disabledReason` is set while the journal has nothing to undo. */
   undo: { disabledReason?: string; run: () => void };
+  /** The foot's Theme item (the mock's rail): absent draws none. */
+  theme?: { dark: boolean; toggle: () => void };
+  /** The menu on empty space in `<main>`, then the items every menu ends with (ADR 0780 decision 5). */
+  contextMenu?: { fallback: (target: Element) => ContextMenuItem[]; tail: ContextMenuItem[] };
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -196,7 +206,12 @@ export function AppShell({
         ))}
       </nav>
       {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above. */}
-      <div className="flex-none border-t border-[var(--border)] px-3 py-[0.625rem]">
+      <div className="flex flex-none flex-col gap-[0.1875rem] border-t border-[var(--border)] px-3 py-[0.625rem]">
+        {theme && (
+          <NavButton active={false} icon={theme.dark ? faSun : faMoon} onClick={theme.toggle}>
+            {theme.dark ? 'Light theme' : 'Dark theme'}
+          </NavButton>
+        )}
         <NavButton active={settingsActive} icon={faGear} onClick={() => go('/settings')}>
           Settings
         </NavButton>
@@ -323,7 +338,13 @@ export function AppShell({
               linkingDawFile={linkingDawFile}
             />
           </header>
-          <div className={`scroll-chrome-hidden relative flex-1 overflow-y-auto ${isActivePath(pathname, '/script') ? 'p-0' : 'p-4 md:p-6'}`}>{children}</div>
+          <ContextMenuHost
+            className={`scroll-chrome-hidden relative flex-1 overflow-y-auto ${isActivePath(pathname, '/script') ? 'p-0' : 'p-4 md:p-6'}`}
+            fallback={contextMenu?.fallback}
+            tail={contextMenu?.tail}
+          >
+            {children}
+          </ContextMenuHost>
         </main>
       </div>
     </div>

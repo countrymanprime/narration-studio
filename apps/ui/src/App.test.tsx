@@ -6,6 +6,7 @@ import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
 import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
+import { createJournal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
 import { bootstrapSchema } from './api/schemas/system';
@@ -36,6 +37,10 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
   );
   return api;
 }
+
+// The app's own toast region (`useToasts`) comes first in the document; the overlay host mounted after it draws a second pair for
+// `overlay.toast`, empty until a caller uses it (ADR 0781 decision 4 moves the call sites over one slice at a time).
+const appToasts = (role: 'status' | 'alert') => screen.getAllByRole(role)[0]!;
 
 // A project with no imported manuscript but a manuscript file in its folder.
 const bootstrapWithCandidate = (manuscriptCandidate: { path: string; name: string }) => async () => ({
@@ -95,7 +100,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('shows the Story Bible page an inline error with Retry when its entities cannot be read, and keeps navigation', async () => {
     renderApp({}, { invalidPayload: 'storybible' });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
     expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
     expect(screen.getByText('The app received data it could not read.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
@@ -167,8 +172,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('navigates to Story Bible and lists entities from the backend', async () => {
     renderApp();
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Story Bible' })).toBeTruthy());
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
     expect((await screen.findAllByText('Alice')).length).toBeGreaterThan(0);
   });
 
@@ -176,8 +181,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const api = renderApp();
     const guideCreate = vi.spyOn(api, 'guideCreate');
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Story Bible' })).toBeTruthy());
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Add entity' }));
     expect(await screen.findByDisplayValue(/New entity/)).toBeTruthy();
@@ -195,8 +200,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('opens Review Entry as a read-only overlay without discarding the in-progress edit', async () => {
     renderApp();
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Story Bible' })).toBeTruthy());
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
 
     fireEvent.click((await screen.findAllByText('Alice'))[0]);
     const nameInput = await screen.findByDisplayValue('Alice');
@@ -223,15 +228,15 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { name: /^Proof · / });
 
     fireEvent.click(await screen.findByRole('button', { name: /Suggest from manuscript/ }));
-    await waitFor(() => expect(screen.getByRole('status').firstElementChild).not.toBeNull());
-    const first = screen.getByRole('status').firstElementChild;
-    const text = screen.getByRole('status').textContent;
+    await waitFor(() => expect(appToasts('status').firstElementChild).not.toBeNull());
+    const first = appToasts('status').firstElementChild;
+    const text = appToasts('status').textContent;
     fireEvent.click(screen.getByRole('button', { name: /Suggest from manuscript/ }));
 
     // The same text replaces the message that is showing, as a new element that starts its time again, and does not stack a copy.
-    await waitFor(() => expect(screen.getByRole('status').firstElementChild).not.toBe(first));
-    expect(screen.getByRole('status').textContent).toBe(text);
-    expect(screen.getByRole('status').children).toHaveLength(1);
+    await waitFor(() => expect(appToasts('status').firstElementChild).not.toBe(first));
+    expect(appToasts('status').textContent).toBe(text);
+    expect(appToasts('status').children).toHaveLength(1);
   });
 
   it('tells the narrator a rebuild finished after they left the Story Bible, and keeps a failure until it is dismissed', async () => {
@@ -247,12 +252,12 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { name: 'Settings' });
 
     act(() => announce({ id: 'guide-1', kind: 'story_bible', outcome: 'success', message: 'Story Bible rebuild complete.', durationMs: 4200 }));
-    expect(within(screen.getByRole('status')).getByText('Story Bible rebuild complete.')).toBeTruthy();
+    expect(within(appToasts('status')).getByText('Story Bible rebuild complete.')).toBeTruthy();
 
     act(() =>
       announce({ id: 'run-1', kind: 'transcript_compare', outcome: 'error', message: 'The comparison could not read the REAPER audio.', durationMs: 900 }),
     );
-    const alert = within(screen.getByRole('alert'));
+    const alert = within(appToasts('alert'));
     expect(alert.getByText('The comparison could not read the REAPER audio.')).toBeTruthy();
     fireEvent.click(alert.getByRole('button', { name: 'Dismiss message' }));
     expect(screen.queryByText('The comparison could not read the REAPER audio.')).toBeNull();
@@ -295,7 +300,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     act(() =>
       announce?.({ id: 'run-1', kind: 'transcript_compare', outcome: 'error', message: 'The comparison could not read the REAPER audio.', durationMs: 900 }),
     );
-    expect(within(screen.getByRole('alert')).getByText('The comparison could not read the REAPER audio.')).toBeTruthy();
+    expect(within(appToasts('alert')).getByText('The comparison could not read the REAPER audio.')).toBeTruthy();
 
     // Recording stops: the queued success toast appears.
     act(() => emitTransport?.({ playing: false, recording: false }));
@@ -337,7 +342,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     let calls = 0;
     renderApp({ guideBuildState: async () => ({ ...job, phase: ++calls === 1 ? ('running' as const) : ('success' as const) }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
     await screen.findByRole('dialog', { name: 'Rebuild Story Bible' });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rebuild Story Bible' })).toBeNull(), { timeout: 3000 });
   });
@@ -352,7 +357,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       },
     });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
     const dialog = await screen.findByRole('dialog', { name: 'Rebuild Story Bible' });
     expect(await within(dialog).findAllByText(/the host stopped answering/)).not.toHaveLength(0);
   });
@@ -380,7 +385,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(attach).toBeDefined());
     act(() => attach!({ attached: true }));
     expect(await screen.findByText(/the host is busy/)).toBeTruthy();
-    expect(within(screen.getByRole('alert')).getByText(/the host is busy/)).toBeTruthy();
+    expect(within(appToasts('alert')).getByText(/the host is busy/)).toBeTruthy();
   });
 
   it('choosing a manuscript file: busy while the host dialog is open, one dialog, and a failure is a toast', async () => {
@@ -397,7 +402,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getByRole('button', { name: 'Replace manuscript' }));
-    expect(await within(await screen.findByRole('alert')).findByText(/the file dialog could not open/)).toBeTruthy();
+    expect(await within(appToasts('alert')).findByText(/the file dialog could not open/)).toBeTruthy();
   });
 
   it('Clear derived project data stays open and busy while it runs and cannot be confirmed twice', async () => {
@@ -420,8 +425,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const guideBuild = vi.fn(() => new Promise<GuideBuildResult>(() => {}));
     renderApp({ guideBuild });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await screen.findByRole('heading', { name: 'Story Bible' });
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await screen.findByRole('heading', { name: /^Story Bible/ });
     const build = await screen.findByRole('button', { name: 'Build / refresh Story Bible' });
     fireEvent.click(build);
     fireEvent.click(build);
@@ -433,7 +438,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const running = { id: 'guide-9', kind: 'story_bible' as const, phase: 'running' as const, message: 'Extracting names', percent: 40, logs: [], elapsed: 12 };
     renderApp({ guideBuildState: async () => running });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
     const dialog = await screen.findByRole('dialog', { name: 'Rebuild Story Bible' });
     expect(within(dialog).getByText(/keeps running/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Continue in background' }));
@@ -448,11 +453,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { name: 'Script' });
     expect(window.location.pathname).toBe('/script');
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Proof' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
     await screen.findByRole('heading', { name: 'Proof' });
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await screen.findByRole('heading', { name: 'Story Bible' });
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await screen.findByRole('heading', { name: /^Story Bible/ });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
@@ -538,7 +543,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(screen.queryAllByRole('button', { name: 'Tracks' })).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /^REAPER linked/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
@@ -559,7 +564,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('opens Proof from the navigation, and a note there opens the manuscript at its line', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Proof' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
     await screen.findByRole('heading', { name: 'Proof' });
     expect(window.location.pathname).toBe('/proof');
     const row = await screen.findByText(/pink eyes/);
@@ -571,7 +576,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('opens a chapter view from Proof’s chapter picker', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Proof' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
     const picker = (await screen.findByRole('combobox', { name: 'Chapter to open' })) as HTMLSelectElement;
     const first = picker.options[1];
     fireEvent.change(picker, { target: { value: first.value } });
@@ -584,7 +589,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const proofButtons = screen.getAllByRole('button', { name: 'Proof' });
+    const proofButtons = screen.getAllByRole('button', { name: /^Proof/ });
     expect(proofButtons.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
     fireEvent.click(proofButtons[0]);
     await screen.findByRole('heading', { name: 'Proof' });
@@ -667,8 +672,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('Story Bible has no stale detection notice, and entry actions render as icon-only buttons on one row', async () => {
     renderApp();
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Story Bible' })).toBeTruthy());
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
     await screen.findAllByText('Alice');
 
     expect(screen.queryByText(/Detection cleaned up/)).toBeNull();
@@ -907,11 +912,13 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       },
     });
     render(
-      <ApiProvider api={api}>
-        <CommandRouter>
-          <App />
-        </CommandRouter>
-      </ApiProvider>,
+      <ThemeProvider>
+        <ApiProvider api={api}>
+          <CommandRouter>
+            <App />
+          </CommandRouter>
+        </ApiProvider>
+      </ThemeProvider>,
     );
 
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -940,8 +947,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog', { name: 'Import manuscript' })).toBeNull();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Story Bible' })[0]);
-    await screen.findByRole('heading', { name: 'Story Bible' });
+    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
+    await screen.findByRole('heading', { name: /^Story Bible/ });
     fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]);
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(await screen.findByRole('grid', { name: 'Chapter pipeline' })).toBeTruthy();
@@ -1164,7 +1171,7 @@ describe('App Back and Forward', () => {
     const transcriptReset = vi.fn(createMockApi().transcriptReset);
     renderApp({ transcriptReset });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Proof' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
     const picker = (await screen.findByRole('combobox', { name: 'Chapter to open' })) as HTMLSelectElement;
     fireEvent.change(picker, { target: { value: picker.options[1].value } });
     fireEvent.click(screen.getByRole('button', { name: 'Open chapter' }));
@@ -1244,5 +1251,135 @@ describe('App shortcut sheet', () => {
     // covers it, which is what "Alt+Left did nothing" means here.
     expect(screen.getByRole('heading', { name: 'Script', hidden: true })).toBeTruthy();
     expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
+  });
+});
+
+// SN-R8: the shell mounts the overlay host, the jump menu, the context menu host and the journal (ADR 0780, 0781).
+describe('App shell mounts', () => {
+  // The overlay service is the app's one module-level store, so a layer a test leaves open would show in the next test's host.
+  afterEach(async () => {
+    const { overlay } = await import('./overlay/overlayService');
+    for (const entry of overlay.getSnapshot().dialogs) {
+      if (entry.kind === 'confirm') entry.answer(false);
+      else entry.close();
+    }
+  });
+
+  const openJumpFromHeader = async () => {
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const button = screen.getByRole('button', { name: /Jump to or run/ });
+    // A real press focuses the button, which is where the dialog gives focus back.
+    button.focus();
+    fireEvent.click(button);
+    return button;
+  };
+
+  it('overlay-host-is-mounted-once: overlay.confirm from outside React shows one confirm over the page', async () => {
+    const { overlay } = await import('./overlay/overlayService');
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    let answer: boolean | undefined;
+    act(() => {
+      void overlay.confirm({ title: 'Discard the take?', body: 'It cannot be brought back.', confirmLabel: 'Discard' }).then((value) => (answer = value));
+    });
+    const dialog = await screen.findByRole('alertdialog', { name: /Discard the take/ });
+    expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(answer).toBe(true));
+  });
+
+  it('jump-menu-opens-from-key-and-header-button: the button opens it, "Go to Proof" navigates, Escape returns focus', async () => {
+    renderApp();
+    const button = await openJumpFromHeader();
+    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    fireEvent.change(field, { target: { value: 'Go to Proof' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    await screen.findByRole('heading', { name: 'Proof' });
+
+    button.focus();
+    fireEvent.click(button);
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+    expect(document.activeElement).toBe(button);
+  });
+
+  it('jump-menu-opens-from-key-and-header-button: Ctrl+K opens it too', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+  });
+
+  it('context-menu-host-covers-main-only: empty space in main shows the fallback menu, the rail keeps the browser menu', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const main = screen.getByRole('main');
+    const page = main.querySelector('.scroll-chrome-hidden') as HTMLElement;
+    fireEvent.contextMenu(page);
+    const menu = await screen.findByRole('menu');
+    for (const name of ['Go to…', 'Zoom in', 'Zoom out', 'Reset zoom', 'Jump menu…']) {
+      expect(within(menu).getByRole('menuitem', { name: new RegExp(`^${name}`) })).toBeTruthy();
+    }
+    cleanup();
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const rail = screen.getByRole('complementary', { name: 'Primary navigation' });
+    // The Wails runtime decides the browser menu itself; the host's part is to open none outside <main>'s page area.
+    fireEvent.contextMenu(within(rail).getByRole('button', { name: 'Script' }));
+    fireEvent.contextMenu(screen.getByRole('banner'));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('history-button-and-key-open-the-panel: the button and Mod+Shift+H open it over a live journal', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    const panel = await screen.findByRole('dialog', { name: 'Undo history' });
+    expect(within(panel).getByText('Nothing to undo yet.')).toBeTruthy();
+    await waitFor(() => expect(panel.contains(document.activeElement)).toBe(true));
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    // The slide-over stays in the document while it animates out, and an open dialog holds the shortcut back.
+    await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull(), { timeout: 4000 });
+    fireEvent.keyDown(document.body, { key: 'h', code: 'KeyH', ctrlKey: true, shiftKey: true });
+    await screen.findByRole('dialog', { name: 'Undo history' });
+  });
+
+  it('header-undo-follows-the-journal: Undo is off with the reason while the journal is empty', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    expect(undo.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('leave-guard-is-asked-before-navigating: a guard that asks shows the confirm; Cancel stays, Yes goes', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    render(
+      <ThemeProvider>
+        <ApiProvider api={createMockApi()}>
+          <CommandRouter>
+            <App journal={journal} />
+          </CommandRouter>
+        </ApiProvider>
+      </ThemeProvider>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    journal.setLeaveGuard(() => ({ ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Leave' } }));
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
+    const dialog = await screen.findByRole('alertdialog', { name: /Stop recording/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.queryByRole('heading', { name: 'Proof' })).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
+    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Leave' }));
+    await screen.findByRole('heading', { name: 'Proof' });
+  });
+
+  it('leave-guard-is-asked-before-navigating: with no guard navigation is unchanged', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
+    await screen.findByRole('heading', { name: 'Proof' });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 });

@@ -13,13 +13,14 @@ const StudioContext = createContext<Journal | null>(null);
 /**
  * The composition root of the command journal for the shell (ADR 0771). It creates the one journal the header's Undo and History read and
  * the pages will record into. The DAW's name comes from the DAW capabilities; its last action is not reportable yet, so it answers
- * 'unknown' (the journal's documented stand-in). It clears nothing on a project switch and adds no command: the store composition extends it.
+ * 'unknown' (the journal's documented stand-in). A test passes its own `journal`. It clears nothing on a project switch and adds no command: the store composition extends it.
  */
-export function StudioProvider({ children }: { children: ReactNode }) {
+export function StudioProvider({ journal: provided, children }: { journal?: Journal; children: ReactNode }) {
   const daw = useDawKind();
   const nameRef = useRef('the DAW');
   nameRef.current = daw ? dawShortName(daw) : 'the DAW';
-  const [journal] = useState(() => createJournal({ dawName: () => nameRef.current, dawLastAction: async () => 'unknown' }));
+  const [created] = useState(() => createJournal({ dawName: () => nameRef.current, dawLastAction: async () => 'unknown' }));
+  const journal = provided ?? created;
   return <StudioContext.Provider value={journal}>{children}</StudioContext.Provider>;
 }
 
