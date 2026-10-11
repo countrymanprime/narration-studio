@@ -4,7 +4,7 @@ import type { TranscriptStartResult } from '../contracts/transcript';
 import { assetInstallJobShape } from './assets';
 import { listFromNull } from './base';
 
-const whisperInstallStateSchema = z.enum(['installed', 'not_installed', 'verification_failed']) satisfies z.ZodType<WhisperInstallState>;
+export const whisperInstallStateSchema = z.enum(['installed', 'not_installed', 'verification_failed']) satisfies z.ZodType<WhisperInstallState>;
 
 const modelIdentityShape = {
   id: z.string(),

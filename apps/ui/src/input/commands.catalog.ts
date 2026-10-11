@@ -108,6 +108,20 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'workspace.paragraph.next', label: 'Next paragraph', scope: 'page', defaults: [key('ArrowDown')], group: 'Workspace', surfaces: ['help', 'settings'] },
   { id: 'workspace.flag.prev', label: 'Previous flag', scope: 'page', defaults: [key('BracketLeft')], group: 'Workspace', surfaces: ['help', 'settings'] },
   { id: 'workspace.flag.next', label: 'Next flag', scope: 'page', defaults: [key('BracketRight')], group: 'Workspace', surfaces: ['help', 'settings'] },
+  // Bookmarks (SNB-6a). The Script page and the Booth register the handlers with `useBookmarkCommands`; until then these rows are inert.
+  // `B` is a plain key, so typing in a field never fires it. The mock binds plain `[` and `]` too, but `workspace.flag.*` holds those in page
+  // scope (the Proof page) and the catalogue cannot tell two pages apart, so the steps are Alt+[ and Alt+] until the flag keys move. They list in the sheet and Settings and not the jump menu,
+  // whose "Bookmark here", "Next bookmark" and "Previous bookmark" entries come from the provider only while a page has the handlers.
+  { id: 'bookmark.here', label: 'Bookmark here', scope: 'page', defaults: [key('KeyB')], group: 'Bookmarks', surfaces: ['help', 'settings'] },
+  { id: 'bookmark.next', label: 'Next bookmark', scope: 'page', defaults: [key('BracketRight', ['Alt'])], group: 'Bookmarks', surfaces: ['help', 'settings'] },
+  {
+    id: 'bookmark.prev',
+    label: 'Previous bookmark',
+    scope: 'page',
+    defaults: [key('BracketLeft', ['Alt'])],
+    group: 'Bookmarks',
+    surfaces: ['help', 'settings'],
+  },
   // Not noisy: it starts or pauses the live listening/transcription session (`useTeleprompterSession`), which plays
   // no audio of its own - unlike `workspace.play`, a recorded-audio player (ADR 0361 decision 7).
   // The Booth's keys (mock `Booth.tsx` `registerKeys('booth')`). They act on the open page, so they list in the sheet and Settings

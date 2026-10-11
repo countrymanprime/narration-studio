@@ -35,7 +35,9 @@ var coverageIdle = coverage.State{Phase: coverage.PhaseIdle, Message: "Open a pr
 // CoverageStart starts a recording check of one chapter. With the model cascade off (Q7 A, the default, MC1) it uses
 // the narrator's Transcript Compare model; with it on, the two cascade settings (MC2). options["skipRecheck"] ==
 // "true" starts a cascade-enabled chapter with the first pass alone - the narrator's "Check with tiny only" choice
-// (MC4) when the re-check model is not installed; nil or without that key is the ordinary start. It answers
+// (MC4) when the re-check model is not installed; nil or without that key is the ordinary start. options["model"] names
+// an approved Whisper model (CoverageEngines lists them) to run alone, replacing the cascade for this run (ADR 0841);
+// an unknown id is an error and nothing starts. It answers
 // {status: "started", state}; {status: "refused", reason, message} when the chapter cannot be measured as the saved
 // project stands (nothing was run or written); {status: "asset_required", ...} when the first-pass model is not
 // installed yet (the first-use gate TranscriptStart has); or {status: "recheck_asset_required", ...} when the
@@ -55,10 +57,9 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 		return nil, h.registry().catalogUnavailable("Whisper")
 	}
 	cascade := coverageSettings(svc.settings).Cascade
-	firstPassModelID := resolveWhisperModelID(svc.settings, nil)
-	if cascade.Enabled {
-		firstPassModelID = cascade.FirstPassModel
-	}
+	firstPassModelID := coverageFirstPassModelID(svc.settings, options)
+	// A named model replaces the cascade for this run (ADR 0841): it is the whole check, with no re-check pass.
+	named := options["model"] != ""
 	model, knownModel := models.Model(firstPassModelID)
 	if !knownModel {
 		return nil, fmt.Errorf("the selected Whisper model is not in the approved catalog")
@@ -72,7 +73,7 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 		Transcription: coverage.Transcription{Model: firstPassModelID, ModelDir: modelDir},
 		Alignment:     coverageSettings(svc.settings).Alignment,
 	}
-	if cascade.Enabled && options["skipRecheck"] != "true" {
+	if cascade.Enabled && !named && options["skipRecheck"] != "true" {
 		recheck, required, err := resolveCoverageRecheck(models, cascade.RecheckModel)
 		if err != nil {
 			return nil, err
@@ -100,6 +101,19 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 	// waits on a context (or run) parameter threaded into internal/coverage.Service.Start itself.
 	h.jobRuns.begin(h.runLog, state.RunID, jobKindCoverage, "chapter_id", chapterID)
 	return map[string]any{"status": "started", "state": state}, nil
+}
+
+// coverageFirstPassModelID is the model a check's first pass runs: the one options["model"] names, else the cascade's
+// first-pass model with the cascade on, else the narrator's Transcript Compare model (Q7 A, MC1). CoverageEngines
+// reports the same rule as its default.
+func coverageFirstPassModelID(store *settings.Store, options map[string]string) string {
+	if options["model"] != "" {
+		return resolveWhisperModelID(store, options)
+	}
+	if cascade := coverageSettings(store).Cascade; cascade.Enabled {
+		return cascade.FirstPassModel
+	}
+	return resolveWhisperModelID(store, nil)
 }
 
 // resolveCoverageRecheck resolves the model cascade's re-check model (MC2) into a Transcription ready to run, or, when

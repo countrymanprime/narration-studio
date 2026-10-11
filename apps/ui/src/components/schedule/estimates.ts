@@ -6,6 +6,8 @@
 
 /** Standard words per finished hour. */
 export const WPH = 9300;
+/** Chapters with a measured finished length the narrator's own rate needs before it is offered. */
+export const MIN_OWN_RATE_CHAPTERS = 3;
 /** Work-hours per finished hour, per stage. */
 export const RATIO = { rec: 3.0, edit: 2.1, proof: 0.94 } as const;
 /** Work-hours the narrator does per day. */
