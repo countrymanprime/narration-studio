@@ -43,30 +43,59 @@ describe('footerHints', () => {
 
   it('footer-specs-name-real-commands: every id in every spec is a catalogue row', () => {
     for (const [surface, spec] of Object.entries(FOOTER_SPECS)) {
-      for (const { id } of spec) expect(findCommand(id), `${surface} footer names "${id}"`).toBeDefined();
+      for (const id of spec.flatMap((hint) => [hint.id, ...(hint.with ?? [])])) expect(findCommand(id), `${surface} footer names "${id}"`).toBeDefined();
     }
   });
 
-  it('the Booth footer lists the booth-scope commands that exist, in spec order, from the keymap', () => {
+  it('footer-spec-is-the-mocks: the Booth footer follows the mock, from the keymap, with pickups off', () => {
     expect(footerHints('booth', keymap)).toEqual([
-      { keys: ['Space'], label: 'Play or pause', id: 'hint-reading.toggle' },
+      { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },
+      { keys: ['R'], label: 'Punch and roll from here', id: 'hint-booth.roll' },
+      { keys: ['Right-click'], label: 'Start from here' },
+      { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
+      { keys: ['←', '→'], label: 'Word', id: 'hint-booth.word.prev' },
       { keys: ['F11'], label: 'Full screen', id: 'hint-booth.fullscreen' },
+      { keys: ['Escape'], label: 'Exit', id: 'hint-booth.exit' },
     ]);
   });
 
-  it("draws the narrator's gesture, not the default, once the keymap is remapped", () => {
-    const remapped = { ...keymap, 'booth.fullscreen': [gesture('keyboard', 'KeyF', ['Ctrl'])] };
-    expect(footerHints('booth', remapped).map((hint) => hint.keys)).toEqual([['Space'], ['Ctrl', 'F']]);
+  it('the-pickup-hint-is-conditional: "Next pickup" shows only while a pickup session is active', () => {
+    expect(footerHints('booth', keymap).map((hint) => hint.label)).not.toContain('Next pickup');
+    const withPickups = footerHints('booth', keymap, undefined, undefined, new Set(['pickupSession' as const]));
+    expect(withPickups.map((hint) => hint.label)).toContain('Next pickup');
+    expect(withPickups.find((hint) => hint.label === 'Next pickup')?.keys).toEqual(['N']);
+  });
+
+  it('non-key-hints-are-extra: an extra hint follows the hint it names and carries no command id', () => {
+    const spec = [
+      { id: 'booth.roll', label: 'Roll' },
+      { id: 'booth.exit', label: 'Exit' },
+    ];
+    expect(footerHints('booth', keymap, spec, [{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }])).toEqual([
+      { keys: ['R'], label: 'Roll', id: 'hint-booth.roll' },
+      { keys: ['Right-click'], label: 'Start from here' },
+      { keys: ['Escape'], label: 'Exit', id: 'hint-booth.exit' },
+    ]);
+  });
+
+  it("remapped-keys-show-in-the-footer: the cap follows the narrator's keymap", () => {
+    const remapped = { ...keymap, 'booth.roll': [gesture('keyboard', 'KeyG', ['Ctrl'])], 'booth.fullscreen': [gesture('keyboard', 'KeyF', ['Ctrl'])] };
+    const hints = footerHints('booth', remapped);
+    expect(hints.find((hint) => hint.id === 'hint-booth.roll')?.keys).toEqual(['Ctrl', 'G']);
+    expect(hints.find((hint) => hint.id === 'hint-booth.fullscreen')?.keys).toEqual(['Ctrl', 'F']);
   });
 
   it('unbound-command-drops-out-of-a-footer: a command with no gesture is omitted, not drawn empty', () => {
-    const unbound = { ...keymap, 'reading.toggle': [] };
-    expect(footerHints('booth', unbound)).toEqual([{ keys: ['F11'], label: 'Full screen', id: 'hint-booth.fullscreen' }]);
+    const unbound = { ...keymap, 'reading.toggle': [], 'booth.phrase.next': [] };
+    const labels = footerHints('booth', unbound).map((hint) => hint.label);
+    expect(labels).not.toContain('Record / stop');
+    expect(labels).not.toContain('Phrase');
+    expect(labels).toContain('Word');
   });
 
   it('a spec naming an id that is not in the catalogue is caught by the catalogue check', () => {
     const spec = [{ id: 'no.such.command', label: 'Nope' }];
     expect(spec.filter(({ id }) => !findCommand(id))).toHaveLength(1);
-    expect(footerHints('booth', keymap, spec)).toEqual([]);
+    expect(footerHints('booth', keymap, spec, [])).toEqual([]);
   });
 });
