@@ -7,20 +7,13 @@ export const globalDrivers: Record<string, Driver> = {
     // TooltipTarget shows its tooltip 1s after hover - wait for it, don't race it.
     await page.getByRole('tooltip').waitFor();
   },
-  'nav-rail-tooltip': async (page) => {
-    // Only the icon-only rail (small-desktop and tablet widths) wraps its
-    // buttons in a tooltip; the full sidebar shows labels already, so
-    // hovering there changes nothing visible.
-    // Icon-only buttons are the ones carrying an aria-label; the full
-    // sidebar's button has the same accessible name from its text instead.
-    // Pickups: the Tracks item is retired.
-    const railButton = page.locator('button[aria-label="Pickups"]:visible');
-    if (await railButton.count()) {
-      await railButton.first().hover();
-      // TooltipTarget waits 1s after hover before showing (focus shows it
-      // immediately), so wait for it rather than screenshotting too early.
-      await page.getByRole('tooltip').waitFor({ timeout: 3_000 });
-    }
+  // The collapsed rail (below 1360 CSS px) opens over the page on hover, with its labels and group headings; at 1360 and above the wide
+  // rail is already open, so there is nothing to hover and the state is the page as it was.
+  'nav-rail-open': async (page) => {
+    if ((page.viewportSize()?.width ?? 0) >= 1360) return;
+    const rail = page.getByRole('complementary', { name: 'Primary navigation' });
+    await rail.getByRole('button', { name: /^Pickups/ }).hover();
+    await page.waitForFunction(() => (document.querySelector('aside[aria-label="Primary navigation"] > div')?.getBoundingClientRect().width ?? 0) > 200);
   },
   toast: async (page) => {
     await openProofChapter(page);

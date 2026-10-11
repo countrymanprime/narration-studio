@@ -236,8 +236,8 @@ export function AppShell({
         {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it (ADR 0761). Below 1360 the panel inside
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
             markup, hidden by size, so every item keeps its name. */}
-        <aside className="relative hidden w-16 flex-none min-[1360px]:w-54 md:block" aria-label="Primary navigation">
-          <div className="absolute inset-y-0 left-0 flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:z-30 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[1360px]:static min-[1360px]:w-54 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.8125rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.8125rem] max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
+        <aside className="relative hidden w-16 flex-none min-[1360px]:w-54 md:flex" aria-label="Primary navigation">
+          <div className="flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:z-30 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[1360px]:static min-[1360px]:w-54 md:max-[1359px]:absolute md:max-[1359px]:inset-y-0 md:max-[1359px]:left-0 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.8125rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.8125rem] max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
             {navigation}
           </div>
         </aside>
@@ -246,7 +246,7 @@ export function AppShell({
         </NavDrawer>
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
-          <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm md:px-5">
+          <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
             <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="hidden max-md:inline-flex">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
@@ -273,21 +273,23 @@ export function AppShell({
             </div>
             {/* The mock's top bar: the jump menu opens from here, and the journal's Undo and History sit beside it. */}
             <TooltipTarget text="Jump to a page or chapter, or run a command (Ctrl+K)">
-              <Button
-                variant="secondary"
+              <button
+                type="button"
                 onClick={onOpenJump}
                 aria-label="Jump to or run…"
                 aria-keyshortcuts="Control+K"
-                className="h-8 flex-none gap-2 px-2.5 py-0 font-normal tracking-normal normal-case max-md:size-8 max-md:px-0"
+                className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-md:size-8 max-md:justify-center max-md:px-0"
               >
                 <FontAwesomeIcon icon={faMagnifyingGlass} />
                 <span className="max-md:hidden">Jump to or run…</span>
                 <span className="max-lg:hidden">
                   <KeyChord keys={['Ctrl', 'K']} />
                 </span>
-              </Button>
+              </button>
             </TooltipTarget>
-            <div className="flex flex-none items-center gap-1" role="group" aria-label="Undo history">
+            {/* Below `md` there is no room for these two beside the zoom group at 390 px: the jump menu lists "Open the undo history" there, and each
+                history row has its own Undo. */}
+            <div className="flex flex-none items-center gap-1 max-md:hidden" role="group" aria-label="Undo history">
               <TooltipTarget text={undo.disabledReason ?? 'Undo the last change'}>
                 <IconButton label="Undo" disabledReason={undo.disabledReason} onClick={undo.run}>
                   <FontAwesomeIcon icon={faRotateLeft} />

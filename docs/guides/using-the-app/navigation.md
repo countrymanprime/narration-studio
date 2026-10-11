@@ -5,34 +5,39 @@
 The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md)),
 **Prep** ([Script](script.md), [Story Bible](story-bible.md)), **Record** ([Booth](booth.md)),
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md)).
-At desktop widths each group shows as a heading over its pages; narrower windows switch it to icon-only groups
-divided by a thin line, then hide it behind a hamburger menu that opens it as a slide-in drawer with the headings
-back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group.
+From 1360 px wide each group shows as a heading over its pages. Below that the rail shrinks to icons, grouped by a thin line,
+and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
-In the icon-only layout, hover an icon (or tab to it) to see the page's name.
+In the icon layout, hover the rail (or tab into it) and it opens over the page with every label; nothing moves.
 
-![Icon-only navigation rail with a page name shown on hover](../../images/ui/nav-rail-tooltip.webp)
+![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)
 
 Script, Story Bible, and Booth stay locked until a manuscript has been
 [imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Proof, Pickups, and Master & QC
 are always available.
 
-The header runs, left to right: Back and Forward (below), the project's name, and at the right the timer, the
-[zoom controls](#zoom) and the engine chip. While a [production stage timer](production.md#the-stage-timer) runs,
+The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
+the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
+type `>` to list commands only. Undo takes back the last change you made in the app, and says why when it cannot; History lists
+the changes you can undo (`Ctrl+Shift+H`). Below the tablet width Undo and History leave the header; the jump menu opens History.
+While a [production stage timer](production.md#the-stage-timer) runs,
 the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the
 tablet width it keeps the clock only. With no timer running it is not there.
 
-The engine chip at the right of the header shows the linked audio engine, and clicking it opens the
-[audio engine panel](#the-audio-engine-panel), where the project's `.rpp` file is linked or changed:
+Right-clicking empty space in a page opens a menu of where to go, the zoom steps and the theme, ending with the jump menu.
 
-- **REAPER linked**: a `.rpp` file is linked to this project.
-- **No REAPER project linked**: nothing is linked yet.
-- **Wrong REAPER project open**: REAPER is running with a different project open than the linked one. Link
-  the open project instead, or switch REAPER to the linked file.
-- **Built-in recorder**: the project records through the app's own recorder instead of REAPER. Nothing chooses
-  this yet; it appears once a future update adds a built-in recorder.
+The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
+dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the
+project's `.rpp` file is linked or changed:
+
+- **Green dot, "Linked"**: the DAW is running with the linked project open.
+- **Amber dot, "Not running"**: the DAW is not running. Open it to carry on.
+- **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
+  or switch the DAW to the linked file.
+- **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
+- **Built-in**: the project records in the app. Nothing chooses this yet; it appears once a future update adds a built-in recorder.
 
 ## Moving around: Back and Forward
 

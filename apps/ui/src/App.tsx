@@ -80,9 +80,12 @@ export function App({ journal }: { journal?: Journal } = {}) {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       {/* The journal and the overlay host are mounted once, here: a page asks the overlay for a confirm, a dialog or a toast by calling the service (ADR 0781). */}
       <StudioProvider journal={journal}>
-        <OverlayProvider>
-          <AppRoutes />
-        </OverlayProvider>
+        {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}
+        <div className="relative h-full">
+          <OverlayProvider>
+            <AppRoutes />
+          </OverlayProvider>
+        </div>
       </StudioProvider>
     </BrowserRouter>
   );

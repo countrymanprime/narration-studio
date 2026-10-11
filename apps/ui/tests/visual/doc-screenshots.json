@@ -15,10 +15,10 @@
   },
   {
     "page": "global",
-    "state": "nav-rail-tooltip",
+    "state": "nav-rail-open",
     "viewport": "small-desktop",
-    "docName": "nav-rail-tooltip",
-    "caption": "Primary navigation - the icon-only rail shows a page's name when you hover its icon"
+    "docName": "nav-rail-open",
+    "caption": "Primary navigation - the collapsed rail opens over the page, with its labels, when you hover it"
   },
   {
     "page": "production",

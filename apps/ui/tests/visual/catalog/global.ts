@@ -35,13 +35,13 @@ export const globalStates: StateEntry[] = [
   },
   {
     page: 'global',
-    state: 'nav-rail-tooltip',
+    state: 'nav-rail-open',
     description:
-      "Primary navigation - hovering an enabled icon in the icon-only rail shows that page's name; at desktop width there is no icon-only rail, so this is a no-op there",
+      'Primary navigation - hovering the collapsed rail opens it over the page with the labels and group headings; at desktop width the rail is already open, so this is a no-op there',
     pointer: 'keep',
     sameAs: {
       of: 'production/no-data',
-      reason: 'Only the icon-only rail shows tooltips; the full sidebar has nothing to hover.',
+      reason: 'Only the collapsed rail opens on hover; the wide rail is always open.',
       viewports: ['desktop'],
     },
     ...TOOLTIP_CLOSES_ON_RESIZE,
