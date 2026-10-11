@@ -14,7 +14,7 @@ import (
 // session. The Lua and bridge half (arm_only, record_start, record_stop in narration_transport.lua and bridge.Actions,
 // and the DAW port's Recorder role) is already built and harness-tested; this file is the remaining caller. Every
 // command is sent only from a click (or the Space shortcut on Play, ReadingControlBar.tsx), with the track GUID taken
-// from the chapter-track mapping the same way ReadAloudReaperState reads it, never from the UI (threat-model row 5j).
+// from the chapter-track mapping the same way ReadAloudReaperState reads it, never from the UI (threat-model row 5k).
 
 // readAloudRecordStartTimeout bounds how long RecordStart waits for REAPER to report recording: on a timeout nothing
 // starts listening and the bar says why, the same as any other refusal.
@@ -51,6 +51,19 @@ func recorderFrom(svc hostServices) dawport.Recorder {
 	return recorder
 }
 
+// readAloudAdapterName is the display name of the DAW adapter the refusals speak of: what the resolver drives, or
+// REAPER, the one adapter with a bridge, while there is no resolver. It is the only place in this file that spells a
+// DAW's name (TestRecordRefusalsNameTheAdapterNotReaper scans for it), so a second adapter words its refusals without
+// touching Go (ADR 0791).
+func readAloudAdapterName(svc hostServices) string {
+	if svc.dawPortResolver != nil {
+		if name := svc.dawPortResolver.Kind().String(); name != "none" {
+			return name
+		}
+	}
+	return "REAPER"
+}
+
 // readAloudTrackGUID is chapterID's one linked track, or a refusal in the control bar's own words for no link or
 // several links - the same cases and wording readAloudReaperStateIn turns into no_link. A chapter the manuscript does
 // not have is still a hard error, not a refusal.
@@ -59,9 +72,10 @@ func readAloudTrackGUID(svc hostServices, chapterID string) (string, *ReadAloudR
 	if err != nil {
 		return "", nil, err
 	}
+	name := readAloudAdapterName(svc)
 	switch {
 	case len(links) == 0:
-		refused := readAloudRefused(readAloudUnlinked, fmt.Sprintf("%q has no linked track. Link it to its REAPER track in the audio engine panel.", title))
+		refused := readAloudRefused(readAloudUnlinked, fmt.Sprintf("%q has no linked track. Link it to its %s track in the audio engine panel.", title, name))
 		return "", &refused, nil
 	case len(links) > 1:
 		refused := readAloudRefused(readAloudSeveralLinks, fmt.Sprintf("%q is linked to %d tracks. Keep the one to record on, in the audio engine panel.", title, len(links)))
@@ -70,46 +84,59 @@ func readAloudTrackGUID(svc hostServices, chapterID string) (string, *ReadAloudR
 	return links[0], nil, nil
 }
 
-// readAloudRecordRefusal turns what ArmOnly, RecordStart or RecordStop answered into the reason and words the bar
-// shows, mirroring readAloudRefusal's REAPER-connection cases.
-func readAloudRecordRefusal(err error) ReadAloudRecording {
+// readAloudConnectionRefusal is the refusal for a bridge that is not connected or not answering, worded from name.
+func readAloudConnectionRefusal(name, connection string) ReadAloudRecording {
+	if connection == reaperNotRunning {
+		return readAloudRefused(reaperNotRunning, fmt.Sprintf("%s is not answering. Check that %s is open and the Narration Utils action is running, then try again.", name, name))
+	}
+	return readAloudRefused(connection, fmt.Sprintf("%s is not connected to this app. To record with reading, open this app from the Narration Utils action in %s.", name, name))
+}
+
+func readAloudExperimentalOffRefusal(name string) ReadAloudRecording {
+	return readAloudRefused(readAloudExperimentalOff, fmt.Sprintf("Reading %s's tracks is an experimental action. Turn on Experimental %s actions in Settings to use it.", name, name))
+}
+
+// readAloudRecordRefusal turns what ArmOnly, RecordStart or RecordStop answered into the reason and the sentence the
+// bar shows. The sentence is built from name, the adapter's display name, never from the bridge's own error text.
+func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 	var stale *bridge.TrackStaleError
 	switch {
 	case errors.As(err, &stale):
-		return readAloudRefused(readAloudTrackMissing, "The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel.")
+		return readAloudRefused(readAloudTrackMissing, fmt.Sprintf("The track linked to this chapter is no longer in the %s project. Link it again in the audio engine panel.", name))
 	case errors.Is(err, context.DeadlineExceeded):
-		return readAloudRefused("timeout", "REAPER did not confirm within 3 seconds. Nothing started.")
+		return readAloudRefused("timeout", fmt.Sprintf("%s did not confirm within 3 seconds. Nothing started.", name))
 	case errors.Is(err, bridge.ErrNoTrackArmed):
-		return readAloudRefused("not_armed", capitalized(err.Error())+".")
+		return readAloudRefused("not_armed", fmt.Sprintf("No track is armed in %s.", name))
 	case errors.Is(err, bridge.ErrSeveralTracksArmed):
-		return readAloudRefused("several_armed", capitalized(err.Error())+".")
+		return readAloudRefused("several_armed", fmt.Sprintf("More than one track is armed in %s.", name))
 	case errors.Is(err, bridge.ErrOtherTrackArmed):
-		return readAloudRefused("other_armed", capitalized(err.Error())+".")
+		return readAloudRefused("other_armed", fmt.Sprintf("Another track than this chapter's is armed in %s.", name))
 	case errors.Is(err, bridge.ErrPlaying):
-		return readAloudRefused("playing", capitalized(err.Error())+".")
+		return readAloudRefused("playing", fmt.Sprintf("%s is playing: stop it first.", name))
 	case errors.Is(err, bridge.ErrAlreadyRecording):
-		return readAloudRefused("already_recording", capitalized(err.Error())+".")
+		return readAloudRefused("already_recording", fmt.Sprintf("%s is already recording.", name))
 	case errors.Is(err, bridge.ErrRecordingDidNotStart):
-		return readAloudRefused("did_not_start", capitalized(err.Error())+".")
+		return readAloudRefused("did_not_start", fmt.Sprintf("%s did not start recording.", name))
 	case errors.Is(err, bridge.ErrNotOurRecording):
-		return readAloudRefused("not_our_recording", capitalized(err.Error())+".")
+		return readAloudRefused("not_our_recording", fmt.Sprintf("%s is not recording anything this app started, so nothing was stopped.", name))
 	case errors.Is(err, bridge.ErrNoAnswer):
-		return readAloudRefused(reaperNotRunning, messageNotRunning)
+		return readAloudConnectionRefusal(name, reaperNotRunning)
 	case errors.Is(err, bridge.ErrUnavailable):
-		return readAloudRefused(reaperStandalone, messageReaperOff)
+		return readAloudConnectionRefusal(name, reaperStandalone)
 	}
-	return readAloudRefused(refusedFailed, "REAPER could not do that: "+err.Error()+".")
+	return readAloudRefused(refusedFailed, fmt.Sprintf("%s could not do that: %s.", name, err.Error()))
 }
 
 // readAloudArmOnlyIn arms chapterID's linked track and disarms every other one (the "Arm Chapter N only" action),
-// refusing while REAPER records. It changes nothing in the reading session. recorder is nil exactly when
-// recorderFrom would answer nil (no resolver, the capability off, or REAPER not reachable).
+// refusing while the DAW records. It changes nothing in the reading session. recorder is nil exactly when
+// recorderFrom would answer nil (no resolver, the capability off, or the DAW not reachable).
 func readAloudArmOnlyIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (ReadAloudRecording, error) {
+	name := readAloudAdapterName(svc)
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
-		return readAloudRefused(status.Connection, readAloudConnectionMessage(status.Connection)), nil
+		return readAloudConnectionRefusal(name, status.Connection), nil
 	}
 	if recorder == nil {
-		return readAloudRefused(readAloudExperimentalOff, messageExperimentalOff), nil
+		return readAloudExperimentalOffRefusal(name), nil
 	}
 	guid, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil {
@@ -120,7 +147,7 @@ func readAloudArmOnlyIn(ctx context.Context, svc hostServices, recorder dawport.
 	}
 	armed, err := recorder.ArmOnly(ctx, guid)
 	if err != nil {
-		return readAloudRecordRefusal(err), nil
+		return readAloudRecordRefusal(name, err), nil
 	}
 	disarmed, changed := armed.Disarmed, armed.Changed
 	return ReadAloudRecording{Outcome: "armed", TrackGUID: armed.TrackGUID, Disarmed: &disarmed, Changed: &changed}, nil
@@ -131,15 +158,19 @@ func (h *Host) ReadAloudArmOnly(chapterID string) (string, error) {
 	return encodeBinding(readAloudArmOnlyIn(context.Background(), svc, recorderFrom(svc), chapterID))
 }
 
-// readAloudRecordStartIn asks REAPER to record on chapterID's linked track, which must already be the one armed
-// track (arm it first with ArmOnly), and waits for ctx's deadline for REAPER to confirm. Sent only from Play with the
-// Record in REAPER toggle on (ReadingControlBar.tsx); TeleprompterStart follows only once this answers "started".
-func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (ReadAloudRecording, error) {
+// readAloudRecordStartIn is Record: it arms chapterID's linked track alone (the narrator's other arms are remembered
+// and come back on stop, ADR 0232), then starts recording at the end of the track's last item, and waits for ctx's
+// deadline for the DAW to confirm. A precondition that fails first - playing, already recording - refuses before
+// anything is armed or moved; reader is the track-state role that reads them, nil when it is not available. Another
+// track being armed is no longer a refusal. Sent only from Play with the Record toggle on (ReadingControlBar.tsx) and
+// the Companion's Record; TeleprompterStart follows only once this answers "started".
+func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, reader trackStateReader, chapterID string) (ReadAloudRecording, error) {
+	name := readAloudAdapterName(svc)
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
-		return readAloudRefused(status.Connection, readAloudConnectionMessage(status.Connection)), nil
+		return readAloudConnectionRefusal(name, status.Connection), nil
 	}
 	if recorder == nil {
-		return readAloudRefused(readAloudExperimentalOff, messageExperimentalOff), nil
+		return readAloudExperimentalOffRefusal(name), nil
 	}
 	guid, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil {
@@ -148,12 +179,41 @@ func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawp
 	if refused != nil {
 		return *refused, nil
 	}
-	started, err := recorder.RecordStart(ctx, guid)
+	if reader != nil {
+		state, err := reader.ChapterTrackState(ctx, guid)
+		if err != nil {
+			return readAloudRecordRefusal(name, err), nil
+		}
+		switch {
+		case state.Recording:
+			return readAloudRecordRefusal(name, bridge.ErrAlreadyRecording), nil
+		case state.Playing:
+			return readAloudRecordRefusal(name, bridge.ErrPlaying), nil
+		}
+	}
+	armed, err := recorder.ArmOnly(ctx, guid)
 	if err != nil {
-		return readAloudRecordRefusal(err), nil
+		return readAloudRecordRefusal(name, err), nil
+	}
+	started, err := recorder.RecordStart(ctx, guid, dawport.RecordOptions{Start: bridge.AtEnd})
+	if err != nil {
+		if armed.Changed {
+			putArmsBack(recorder)
+		}
+		return readAloudRecordRefusal(name, err), nil
 	}
 	position := started.Position
 	return ReadAloudRecording{Outcome: "started", TrackGUID: started.TrackGUID, Position: &position}, nil
+}
+
+// putArmsBack asks the recorder to give the narrator's arms back after a start that failed once the arms had changed,
+// so no track is left armed behind a refusal. RecordStop is the only command that restores them; it answers
+// ErrNotOurRecording when nothing was recording, which is expected here and ignored. It has its own deadline because
+// the start's may be spent.
+func putArmsBack(recorder dawport.Recorder) {
+	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	defer cancel()
+	_, _ = recorder.RecordStop(ctx)
 }
 
 func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
@@ -161,7 +221,7 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartIn(ctx, svc, recorder, chapterID)
+	result, err := readAloudRecordStartIn(ctx, svc, recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}
@@ -170,14 +230,14 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 
 // readAloudRecordStopIn stops the recording this app started (Stop, or the dialog closing while reading and
 // recording), and puts the narrator's own arms back. A recording this app did not start is left alone
-// (ErrNotOurRecording).
-func readAloudRecordStopIn(ctx context.Context, recorder dawport.Recorder) (ReadAloudRecording, error) {
+// (ErrNotOurRecording). name is the adapter's display name for the refusal sentences.
+func readAloudRecordStopIn(ctx context.Context, name string, recorder dawport.Recorder) (ReadAloudRecording, error) {
 	if recorder == nil {
-		return readAloudRefused(readAloudExperimentalOff, messageExperimentalOff), nil
+		return readAloudExperimentalOffRefusal(name), nil
 	}
 	stopped, err := recorder.RecordStop(ctx)
 	if err != nil {
-		return readAloudRecordRefusal(err), nil
+		return readAloudRecordRefusal(name, err), nil
 	}
 	restored, kept := stopped.Restored, stopped.Kept
 	return ReadAloudRecording{Outcome: "stopped", Restored: &restored, Kept: &kept}, nil
@@ -185,7 +245,7 @@ func readAloudRecordStopIn(ctx context.Context, recorder dawport.Recorder) (Read
 
 func (h *Host) ReadAloudRecordStop() (string, error) {
 	svc := h.services()
-	result, err := readAloudRecordStopIn(context.Background(), recorderFrom(svc))
+	result, err := readAloudRecordStopIn(context.Background(), readAloudAdapterName(svc), recorderFrom(svc))
 	h.clearReadAloudRecording()
 	return encodeBinding(result, err)
 }
@@ -206,7 +266,7 @@ func (h *Host) clearReadAloudRecording() {
 	h.readAloudRecordingChapter = ""
 }
 
-// stopReadAloudRecordingOnShutdown is ServiceShutdown's best-effort recording stop (threat-model row 5j: the host
+// stopReadAloudRecordingOnShutdown is ServiceShutdown's best-effort recording stop (threat-model row 5k: the host
 // stops a recording it started when the app shuts down, rather than leaving REAPER recording with no app open to
 // stop it). It never blocks shutdown on REAPER answering.
 func (h *Host) stopReadAloudRecordingOnShutdown() {

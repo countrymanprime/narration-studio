@@ -338,6 +338,29 @@ export function CoverageEngines(): $CancellablePromise<string> {
 }
 
 /**
+ * CoverageGapAccept turns one gap of the chapter's current check into a note with the accepted decision, and answers
+ * that finding. The same gap again answers the same finding and writes nothing.
+ */
+export function CoverageGapAccept(chapterID: string, gapID: string): $CancellablePromise<string> {
+    return $Call.ByID(699765656, chapterID, gapID);
+}
+
+/**
+ * CoverageGapIgnore remembers that the narrator passed on one gap of the chapter's current check. It makes no note.
+ */
+export function CoverageGapIgnore(chapterID: string, gapID: string): $CancellablePromise<string> {
+    return $Call.ByID(3260799698, chapterID, gapID);
+}
+
+/**
+ * CoverageGapReviews answers {gapId: "accepted" | "ignored"} for the gaps of the chapter's current check that have a
+ * review. A stale or absent result, and a gap without a review, are not in it.
+ */
+export function CoverageGapReviews(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2961454629, chapterID);
+}
+
+/**
  * CoverageResult reads a chapter's newest complete check back and says whether it is current, stale or never, with
  * reasons (coverage.ResultView). It never runs anything (Q14).
  */

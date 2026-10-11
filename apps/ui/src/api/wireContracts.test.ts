@@ -54,6 +54,7 @@ import {
   COVERAGE_EVALUATOR_REASONS,
   COVERAGE_REFUSAL_REASONS,
   coverageEnginesSchema,
+  coverageGapReviewsSchema,
   coverageResultSchema,
   coverageStartResultSchema,
   coverageStateSchema,
@@ -214,6 +215,53 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const chapter = chapters.find((item) => item.recordedFraction !== undefined);
     if (!chapter) throw new Error('the mock chapters carry a measured recordedFraction');
     expect((await api.coverageStart(chapter.id, { model: mocked.default })).status).toBe('started');
+  });
+
+  it('a recording check gap review: the goldens parse, the mock answers the same shapes and refuses what the host refuses (ADR 0842)', async () => {
+    const note = parseWire(findingSchema, readGolden('coverage-gap-review-accepted.json'), ctx('accepted gap'));
+    expect(note).toMatchObject({ analyzer: 'recording-check', category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    const reviews = parseWire(coverageGapReviewsSchema, readGolden('coverage-gap-review-reviews.json'), ctx('gap reviews'));
+    expect(Object.values(reviews)).toEqual(['accepted']);
+    expect(() => parseWire(coverageGapReviewsSchema, { a: 'dismissed' }, ctx('gap reviews'))).toThrow();
+    expect(() => parseWire(coverageGapReviewsSchema, { a: 1 }, ctx('gap reviews'))).toThrow();
+
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    const chapterId = measured.id;
+    const api = createMockApi({}, { coverage: { pickups: [chapterId] } });
+    const checked = await api.coverageResult(chapterId);
+    const gaps = checked.result?.gaps ?? [];
+    expect(checked.state).toBe('current');
+    expect(gaps.length).toBeGreaterThan(1);
+    const [first, second] = gaps;
+    if (!first || !second) throw new Error('the mock check has two gaps');
+    expect(await api.coverageGapReviews(chapterId)).toEqual({});
+
+    const before = (await api.findingsSummary()).total;
+    const accepted = await api.coverageGapAccept(chapterId, first.id);
+    expectMatches(findingSchema, accepted, 'mock accepted gap');
+    expect(accepted).toMatchObject({ category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+    expect(await api.coverageGapAccept(chapterId, first.id)).toEqual(accepted);
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+
+    await api.coverageGapIgnore(chapterId, second.id);
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+    const read = await api.coverageGapReviews(chapterId);
+    expectMatches(coverageGapReviewsSchema, read, 'mock gap reviews');
+    expect(read).toEqual({ [first.id]: 'accepted', [second.id]: 'ignored' });
+
+    await expect(api.coverageGapAccept(chapterId, 'missing:nope:1')).rejects.toThrow('not in this chapter');
+    await expect(api.coverageGapIgnore(chapterId, '../../x')).rejects.toThrow('not in this chapter');
+    await expect(api.coverageGapAccept(chapterId, second.id)).rejects.toThrow('stays ignored');
+    await expect(api.coverageGapIgnore(chapterId, first.id)).rejects.toThrow('already a note');
+    await expect(api.coverageGapAccept('never-checked', first.id)).rejects.toThrow('out of date or was never run');
+
+    // A new check is a new evidence key: the old reviews no longer match, the accepted note stays a note.
+    expect((await api.coverageStart(chapterId)).status).toBe('started');
+    await vi.waitFor(async () => expect((await api.coverageState()).phase).toBe('complete'), { timeout: 5000 });
+    expect(await api.coverageGapReviews(chapterId)).toEqual({});
+    expect((await api.findingsSummary()).total).toBe(before + 1);
   });
 
   it('a coverage region keeps its bounds, and a missing bound reads as absent (ADR 0168)', () => {
@@ -2880,6 +2928,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
       'coverageEngines',
+      'coverageGapAccept',
+      'coverageGapIgnore',
+      'coverageGapReviews',
       'exportPickFiles',
       'exportStart',
       'exportState',
