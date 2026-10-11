@@ -14,7 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// The Diagnostics view's job (diagnostics PRD Phase 6): the windowed analyzers of ADR 0158 over files the narrator picked
+// The Diagnostics view's job: the windowed analyzers of ADR 0158 over files the narrator picked
 // for measuring, read-only, with real progress and a cancel, answering each file's summary and findings with the
 // thresholds that raised them.
 
@@ -75,7 +75,7 @@ func TestDiagnosticsStateIsIdleWithTheThresholdsItWouldUse(t *testing.T) {
 	}
 }
 
-// The narrator's own silence cleanup thresholds (Phase 9 remainder, ADR 0238 decision 4) are read from the layered
+// The narrator's own silence cleanup thresholds (ADR 0238 decision 4) are read from the layered
 // store at start, shown even while idle, and threaded into every file's measure.DiagnosticInput.Cleanup - the
 // classifier itself (internal/measure/cleanup.go) is untouched; only what reaches it changes.
 func TestDiagnosticsThreadsTheNarratorsCleanupSettingsIntoEachFile(t *testing.T) {

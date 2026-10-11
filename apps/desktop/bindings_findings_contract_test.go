@@ -24,7 +24,7 @@ func (contractManuscriptLookup) ParagraphID(_ string, globalIndex int) (string, 
 }
 
 // compareMarkerRow builds a row the way transcript.Service builds one from a COMPARE_MARKER event, with the item, take
-// and track GUIDs the bridge appends (review-dashboard PRD Phase 6), which a finding is navigated by.
+// and track GUIDs the bridge appends, which a finding is navigated by.
 func compareMarkerRow(paragraph, itemIndex int, srcpos, projectTime float64, kind, doc, audio, script, audioContext, state, existing string) map[string]any {
 	return map[string]any{
 		"id": fmt.Sprintf("%d_%.3f", itemIndex, srcpos), "kind": kind, "docText": doc, "audioText": audio,
@@ -84,7 +84,7 @@ func contractReviewHost(t *testing.T) *Host {
 	return host
 }
 
-// What FindingsList, FindingsReview and FindingsSummary send (review dashboard Phase 4, ADR 0120): a decided
+// What FindingsList, FindingsReview and FindingsSummary send (ADR 0120): a decided
 // finding, the evidence shapes the store holds today, and a finding not in the latest run. FindingsGet sends the
 // same record as FindingsReview, so it has no file of its own.
 func TestContractFindingsReviewBindings(t *testing.T) {

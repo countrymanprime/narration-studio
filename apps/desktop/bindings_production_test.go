@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The production plan bindings (production-tracking.prd.md Phase 3): deadline, contracted amount and milestones on the
+// The production plan bindings: deadline, contracted amount and milestones on the
 // project manifest.
 
 func decodePlan(t *testing.T, encoded string) production.Plan {
@@ -211,7 +211,7 @@ func TestProductionOverviewReadsTheChaptersTheirReadinessAndTheTimeLog(t *testin
 }
 
 // A timer is started and stopped only by these two bindings, a second start is refused rather than switching timers,
-// and neither touches the chapter's status (PRD success metrics "Timer honesty", "Board never invents a status").
+// and neither touches the chapter's status.
 func TestProductionTimerStartsStopsAndRefusesASecondTimer(t *testing.T) {
 	host := productionHost(t)
 	started := decodeAnswer(t)(host.ProductionStartTimer("c-0001", "recording"))
@@ -295,7 +295,7 @@ func TestContractProductionTimer(t *testing.T) {
 	pin("production-timer-stopped", encoded, err)
 }
 
-// ProductionBurndown (Phase 6, Could): a time series of the book's logged hours, one point per day from the first
+// ProductionBurndown: a time series of the book's logged hours, one point per day from the first
 // stopped session to the last, running cumulatively. Data only; no chart primitive reads it yet.
 func TestProductionBurndownRequiresAnOpenProject(t *testing.T) {
 	host := NewHost()
@@ -352,7 +352,7 @@ func TestContractProductionBurndown(t *testing.T) {
 	contractfile.Check(t, "production-burndown", stable)
 }
 
-// The overview reads the deadline and contracted amount Phase 3 stores on the manifest: the rate becomes defined once an
+// The overview reads the deadline and contracted amount the manifest stores: the rate becomes defined once an
 // amount and some logged time exist, and the deadline appears with the days left.
 func TestProductionOverviewReadsThePlanSetOnTheManifest(t *testing.T) {
 	host := productionHost(t)

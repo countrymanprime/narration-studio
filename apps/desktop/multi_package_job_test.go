@@ -18,8 +18,8 @@ import (
 // one file-scope rule whose Metric is "m4b_format", otherwise a minimal copy of what ACX carries. It is only ever
 // handed to a test host through resolveProfile (a seam, app.go), never saved through the real deliveryprofile.Store,
 // whose own validation would refuse an "m4b_format" metric it does not yet know (internal/deliveryprofile/store.go's
-// knownMetrics) - exactly the situation ADR 0480 records: no built-in profile needs a format helper yet, so the
-// PRD's own "a profile requiring M4B" test wording is only reachable with a profile built directly in a test.
+// knownMetrics) - exactly the situation ADR 0480 records: no built-in profile needs a format helper yet, so a
+// profile requiring M4B is only reachable with a profile built directly in a test.
 func m4bProfile(id string) deliveryprofile.Profile {
 	profile := deliveryprofile.ACX()
 	name := "M4B Platform (" + id + ")"
@@ -167,8 +167,8 @@ func TestMultiPackageRefusesASecondBuildWhileOneRuns(t *testing.T) {
 	waitMultiPackage(t, host)
 }
 
-// TestMultiPackageMatchingFormatsReuseTheSameEncodedFiles is the PRD's own Phase 6 test requirement: "two profiles
-// sharing MP3 at the same bitrate reuse one encoded file". Both selected profiles require MP3, the export job's own
+// TestMultiPackageMatchingFormatsReuseTheSameEncodedFiles checks that two profiles sharing MP3 at the same
+// bitrate reuse one encoded file. Both selected profiles require MP3, the export job's own
 // current format, so no encode call is made at all - the job packages straight from the given (already-encoded)
 // items.
 func TestMultiPackageMatchingFormatsReuseTheSameEncodedFiles(t *testing.T) {
@@ -219,8 +219,8 @@ func TestMultiPackageMatchingFormatsReuseTheSameEncodedFiles(t *testing.T) {
 	}
 }
 
-// TestMultiPackageDifferingFormatEncodesOncePerFile is the PRD's other Phase 6 test requirement: "a profile
-// requiring M4B triggers a second encode only for that format" - exactly one encode call per export-job file
+// TestMultiPackageDifferingFormatEncodesOncePerFile checks that a profile requiring M4B triggers a
+// second encode only for that format: exactly one encode call per export-job file
 // (memoized, not once per selection), even though two of the three selected profiles both require M4B.
 func TestMultiPackageDifferingFormatEncodesOncePerFile(t *testing.T) {
 	dir := t.TempDir()

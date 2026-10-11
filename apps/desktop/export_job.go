@@ -16,18 +16,17 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// The Master & QC export flow (render-encode-master.prd.md Phase 5): the narrator picks rendered chapter (and
-// credits, and retail sample) WAV files, optionally masters them (internal/mastering, Phase 3, narrator-triggered,
-// writes a new file), encodes them (internal/encodeport, Phases 1-2), then assembles one profile's package
-// (internal/packager, Phase 4). Mastering and encoding run together as one job (ExportStart/ExportState/
-// ExportCancel), matching the mock's one "Master & encode" action; packaging is its own job
-// (PackageStart/PackageState/PackageCancel) so the narrator can build several platforms' packages from one export
-// without re-encoding (Phase 6's own job, not built here, will reuse the same encoded files).
+// The Master & QC export flow: the narrator picks rendered chapter (and credits, and retail sample) WAV files,
+// optionally masters them (internal/mastering, narrator-triggered, writes a new file), encodes them
+// (internal/encodeport), then assembles one profile's package (internal/packager). Mastering and encoding run
+// together as one job (ExportStart/ExportState/ExportCancel), a single "Master & encode" action; packaging is its own
+// job (PackageStart/PackageState/PackageCancel) so the narrator can build several platforms' packages from one export
+// without re-encoding (multi_package_job.go reuses the same encoded files).
 //
 // Every stage writes a NEW file and never the source, following chaptertags' and mastering's own "new copy, never
 // the source" rule. Mastered and encoded files are derived, intermediate data, so they live under the project's own
 // narration-utils/ sidecar tree (exportDir); the assembled package is the narrator's deliverable and is never
-// written there (Q5) - PackageStart asks for an output folder with the operating system's own picker.
+// written there - PackageStart asks for an output folder with the operating system's own picker.
 
 // exportScratchDir is where a project's mastered and encoded intermediates are written, never the deliverable
 // itself: <project>/narration-utils/render-encode-master/<mastered|encoded>.

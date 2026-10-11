@@ -11,9 +11,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// What MeasurePickFiles, MeasureAnalyze, MeasureState and MeasureCancel send (diagnostics-delivery-and-cleanup-tools
-// Phase 1): the picker's answer, the idle job, a measurement part way through, and each way one ends. The reports are
-// built here rather than measured, so the files do not depend on floating point; their shape is measure.Report's own.
+// What MeasurePickFiles, MeasureAnalyze, MeasureState and MeasureCancel send: the picker's answer, the idle job, a
+// measurement part way through, and each way one ends. The reports are built here rather than measured, so the files do
+// not depend on floating point; their shape is measure.Report's own.
 
 var contractMeasurePaths = []string{"C:/Renders/Chapter 01.wav", "C:/Renders/Chapter 02.wav", "C:/Renders/Chapter 03.mp3"}
 
@@ -92,7 +92,7 @@ func TestContractMeasureBindings(t *testing.T) {
 	pinMeasureJob(t, "measure-error", broken.snapshot())
 }
 
-// contractMP3Job is a finished measurement of two MP3s read for their container (delivery profiles PRD Phase 6): a
+// contractMP3Job is a finished measurement of two MP3s read for their container: a
 // 192 kbps CBR file that meets ACX's format, and a VBR one that does not; neither has a level, since neither is decoded.
 func contractMP3Job() MeasureJob {
 	paths := []string{"C:/Renders/Chapter 01.mp3", "C:/Renders/Chapter 02.mp3"}

@@ -26,23 +26,23 @@ func TestDawLinkFactsWithNoManifestIsAllFalse(t *testing.T) {
 	}
 }
 
-// TestDawLinkFactsTreatsALiveReaperLaunchAsLinkedUntilPhase5sMatchingIsWiredThroughThePicker
-// is PRD project-workspace-and-daw-link.prd.md Open Question W18: the
-// launcher knows the exact rpp but Phase 4's gate would otherwise lock
-// Proofing for a REAPER session that has no manifest link yet.
-func TestDawLinkFactsTreatsALiveReaperLaunchAsLinkedUntilPhase5sMatchingIsWiredThroughThePicker(t *testing.T) {
+// TestDawLinkFactsTreatsALiveReaperLaunchAsLinked
+// covers a live --daw REAPER launch: the
+// launcher knows the exact rpp, so the Proofing gate would otherwise lock
+// for a REAPER session that has no manifest link yet.
+func TestDawLinkFactsTreatsALiveReaperLaunchAsLinked(t *testing.T) {
 	folder := t.TempDir()
 	linked, reachable, matches := dawLinkFacts(nil, folder, "REAPER", nil)
 	if !linked {
-		t.Fatal("linked = false, want true: a live --daw REAPER launch is linked (W18) even with no manifest link yet")
+		t.Fatal("linked = false, want true: a live --daw REAPER launch is linked even with no manifest link yet")
 	}
 	if reachable || matches {
-		t.Fatalf("facts = (linked %v, reachable %v, matches %v), want reachable and matches false until Phase 6", linked, reachable, matches)
+		t.Fatalf("facts = (linked %v, reachable %v, matches %v), want reachable and matches false with no heartbeat", linked, reachable, matches)
 	}
 }
 
 // TestDawLinkFactsWithNoDawAndNoManifestIsNotLinked is the Standalone
-// counterpart of the W18 test above: no live REAPER launch and no manifest
+// counterpart of the live-launch test above: no live REAPER launch and no manifest
 // link means nothing is linked.
 func TestDawLinkFactsWithNoDawAndNoManifestIsNotLinked(t *testing.T) {
 	folder := t.TempDir()
@@ -103,7 +103,7 @@ func TestDawLinkFactsWithAManifestLinkThatNoLongerResolvesIsNotLinked(t *testing
 	}
 }
 
-// TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFile is Phase 7 (ADR 0092, W10): a fresh
+// TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFile (ADR 0092): a fresh
 // PROJECT_STATUS heartbeat naming the same file the manifest links makes both reachable and matches true.
 func TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFile(t *testing.T) {
 	folder := t.TempDir()
@@ -135,7 +135,7 @@ func TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFil
 }
 
 // TestDawLinkFactsIsReachableButNotMatchedWhenTheHeartbeatNamesADifferentFile covers a real REAPER session open on
-// the wrong project (the PRD's "Mismatch detection" success metric).
+// the wrong project.
 func TestDawLinkFactsIsReachableButNotMatchedWhenTheHeartbeatNamesADifferentFile(t *testing.T) {
 	folder := t.TempDir()
 	rpp := filepath.Join(folder, "Book.rpp")
@@ -187,10 +187,10 @@ func TestBootstrapExposesTheThreeSeparateDawFacts(t *testing.T) {
 		t.Fatalf("dawFileLinked = %#v, want true", boot["dawFileLinked"])
 	}
 	if boot["dawReachable"] != false {
-		t.Fatalf("dawReachable = %#v, want false (unknown until Phase 6)", boot["dawReachable"])
+		t.Fatalf("dawReachable = %#v, want false (no heartbeat)", boot["dawReachable"])
 	}
 	if boot["dawProjectMatches"] != false {
-		t.Fatalf("dawProjectMatches = %#v, want false (unknown until Phase 6)", boot["dawProjectMatches"])
+		t.Fatalf("dawProjectMatches = %#v, want false (no heartbeat)", boot["dawProjectMatches"])
 	}
 }
 

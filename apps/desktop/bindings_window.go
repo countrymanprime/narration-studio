@@ -8,14 +8,14 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// The header's zoom group and its Ctrl+=/-/0 shortcuts (app-navigation-and-zoom-controls.prd.md Phase 2, D29) read
-// and set the window's real webview zoom through Wails v3's Window.SetZoom/GetZoom (ADR 0200 names the window
-// "main"). Nothing here reads a project service, so a project switch never touches it.
+// The header's zoom group and its Ctrl+=/-/0 shortcuts read and set the window's real webview zoom through Wails v3's
+// Window.SetZoom/GetZoom (ADR 0200 names the window "main"). Nothing here reads a project service, so a project switch
+// never touches it.
 
-// zoomSteps are the levels the header's buttons and Ctrl+=/-/0 step through (Q6 A, narrowed to Windows by ADR 0201):
-// WebView2's own percentages from 100% to 200%. Ctrl+wheel and pinch are WebView2's own and never call
-// WindowSetZoom, which is how a level under 100% (ADR 0201 item 2, "kept, because a smaller page cramps nothing")
-// stays reachable outside the buttons.
+// zoomSteps are the levels the header's buttons and Ctrl+=/-/0 step through (Windows only, ADR 0201): WebView2's own
+// percentages from 100% to 200%. Ctrl+wheel and pinch are WebView2's own and never call WindowSetZoom, which is how a
+// level under 100% (ADR 0201 item 2, "kept, because a smaller page cramps nothing") stays reachable outside the
+// buttons.
 var zoomSteps = []float64{1.0, 1.10, 1.25, 1.50, 1.75, 2.00}
 
 // zoomMin and zoomMax bound WindowSetZoom's clamp. Wails v3's own SetZoom/ZoomOut already floor at 1.0 on Windows
@@ -51,7 +51,7 @@ func (h *Host) WindowZoom() (string, error) {
 
 // WindowSetZoom sets the window's zoom to the nearest of zoomSteps, clamped to [zoomMin, zoomMax] regardless of what
 // factor the caller sends - the defensive floor and ceiling behind the header's own disabled-at-100%/never-past-200%
-// promise (Q6, ADR 0201). The UI calls this from the header's buttons, Ctrl+=/-/0, reset, and the "set back to 200%"
+// promise (ADR 0201). The UI calls this from the header's buttons, Ctrl+=/-/0, reset, and the "set back to 200%"
 // clamp it runs itself when it sees an external (Ctrl+wheel or pinch) zoom above the ceiling; Ctrl+wheel and pinch
 // never call it directly.
 func (h *Host) WindowSetZoom(factor float64) (string, error) {
@@ -67,20 +67,18 @@ func readZoom(window zoomWindow) WindowZoomResult {
 	return WindowZoomResult{Level: window.GetZoom()}
 }
 
-// appearanceTool and appearanceZoomKey hold the remembered zoom level (app-navigation-and-zoom-controls.prd.md Phase
-// 3, Q4 A: one app-wide level in global settings). There is no fieldSchemas entry for it - that is only added if Q4
-// C (a Settings > Appearance row) is taken, and it was not - so it never appears on the generic Settings page; only
-// this file's own binding and main.go's startup read ever touch it, the same way Keymap.overrides and ReadAloud's
-// rows are global/project-only tools with no fieldSchemas UI row of their own.
+// appearanceTool and appearanceZoomKey hold the remembered zoom level: one app-wide level in global settings. There is
+// no fieldSchemas entry for it, so it never appears on the generic Settings page; only this file's own binding and
+// main.go's startup read ever touch it, the same way Keymap.overrides and ReadAloud's rows are global/project-only
+// tools with no fieldSchemas UI row of their own.
 const (
 	appearanceTool    = "Appearance"
 	appearanceZoomKey = "zoom"
 )
 
 // WindowSaveZoom persists the window's current zoom level, debounced, whenever the header's useZoom hook sees it
-// settle - a button, a Ctrl+=/-/0 shortcut, or the resize re-read that picks up an external Ctrl+wheel/pinch change
-// (Solution Detail: "written to global settings ... debounced"). It always saves at global scope: the level belongs
-// to this computer's window, not a project (Q4 A).
+// settle - a button, a Ctrl+=/-/0 shortcut, or the resize re-read that picks up an external Ctrl+wheel/pinch change.
+// It always saves at global scope: the level belongs to this computer's window, not a project.
 func (h *Host) WindowSaveZoom(level float64) (string, error) {
 	return encodeBinding(nil, h.saveZoom(level, "global"))
 }

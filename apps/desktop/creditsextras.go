@@ -8,9 +8,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Credits extras (audiobook-credits-templates.prd.md Phase 5): chapter announcements rendered per narration chapter from
-// manuscript.json (Open Question C8, ADR 0151) and the retail sample range the narrator picks, stored on the project
-// manifest (C10, ADR 0152). Both read the manuscript through h.services(), like every other manuscript binding.
+// Credits extras: chapter announcements rendered per narration chapter from
+// manuscript.json (ADR 0151) and the retail sample range the narrator picks, stored on the project
+// manifest (ADR 0152). Both read the manuscript through h.services(), like every other manuscript binding.
 
 // CreditsChapterAnnouncements renders body once per narration chapter, with the project's own tokens plus the chapter's
 // [Chapter] and [Chapter Title]. The Settings preview shows the first; the estimate times them all.
@@ -51,7 +51,7 @@ func (h *Host) CreditsRetailSample() (string, error) {
 }
 
 // CreditsSaveRetailSample picks startParagraphID..endParagraphID (both included) as the retail sample, refusing a range
-// over 5 minutes (C10) and keeping the previous one when it does. Two empty ids clear it.
+// over 5 minutes and keeping the previous one when it does. Two empty ids clear it.
 func (h *Host) CreditsSaveRetailSample(startParagraphID, endParagraphID string) (string, error) {
 	svc := h.services()
 	projectFolder := svc.config.projectFolder

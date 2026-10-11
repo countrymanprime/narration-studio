@@ -6,14 +6,14 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/pickups"
 )
 
-// The Phase 9 (Go client and UI) bindings for the pickup list (reaper-automation-follow-through PRD): CSV parse
+// The bindings for the pickup list: CSV parse
 // and validation live in internal/pickups (never trust external data, ADR 0069's rule for anything that crosses
 // into the UI applies just as much to what a narrator hands the app from disk), and h.emitPickups (app.go)
 // relays every state change as the "pickups:state" live event, the way h.emitLineIdentity does for line
 // identity. The wire-contract schema, golden payloads and mock live in apps/ui/src/api.
 
 // PickupsImportResult is PickupsImport's answer: the run has started, plus every CSV row that could not be
-// used (a report, never a silent drop - Phase 9's success signal).
+// used (a report, never a silent drop).
 type PickupsImportResult struct {
 	Status    string   `json:"status"`
 	RowErrors []string `json:"rowErrors"`

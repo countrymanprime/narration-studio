@@ -17,9 +17,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// Multi-platform export (render-encode-master.prd.md Phase 6): one mastered/encoded source produces packages for
+// Multi-platform export: one mastered/encoded source produces packages for
 // several selected delivery profiles in one action, built on top of the same export job's own encoded files
-// PackageStart already packages (package_job.go, Phase 5). A selection that needs the export job's own current
+// PackageStart already packages (package_job.go). A selection that needs the export job's own current
 // format reuses its already-encoded files; a selection whose profile requires a different container format (today
 // only ACX's mp3_format rule exists, so a second format only ever comes from a custom or future profile) triggers
 // exactly one additional encode per export-job file for that format, memoized so two selected profiles sharing a

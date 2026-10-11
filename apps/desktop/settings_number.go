@@ -37,12 +37,12 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"head_max_seconds": {min: bound(0), step: bound(0.1), unit: "s"},
 		"tail_max_seconds": {min: bound(0), step: bound(0.1), unit: "s"},
 	},
-	// The proofing render length tolerance (proofing-readiness-signals.prd.md Q9 C) is seconds, at least 0, with no
+	// The proofing render length tolerance is seconds, at least 0, with no
 	// declared maximum and a 0.1 s step; blank (no default) keeps the length check not required.
 	"Proofing": {
 		"render_length_tolerance_seconds": {min: bound(0), step: bound(0.1), unit: "s"},
 	},
-	// The preview suggestion's three numeric settings (proofing-preview-suggestion.prd.md Phase 4). target_seconds
+	// The preview suggestion's three numeric settings. target_seconds
 	// is bounded at 60 (below a minute is not a meaningful audition excerpt - the engine's own window is whole
 	// paragraphs, and a target that short would leave almost every chapter "Shorter") and 3600 (an hour: past a
 	// "sample" or "spot check" excerpt this is no longer a preview, and it is already longer than most chapters), on
@@ -55,14 +55,12 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"tolerance_fraction":      {min: bound(0.01), max: bound(0.5), step: bound(0.01)},
 		"exclude_ending_fraction": {min: bound(0), max: bound(0.5), step: bound(0.01)},
 	},
-	// Punch and roll's pre-roll (teleprompter-manuscript-integration.prd.md Phase 12, decided range and default: "0-10
-	// s, default 3 s"), on a 0.5 s step (fine enough for a pre-roll, which is a few seconds of runway before the
-	// punched word, not a precision edit point).
+	// Punch and roll's pre-roll is 0-10 s (default 3 s), on a 0.5 s step (fine enough for a pre-roll,
+	// which is a few seconds of runway before the punched word, not a precision edit point).
 	"Teleprompter": {
 		"punch_preroll_seconds": {min: bound(0), max: bound(10), step: bound(0.5), unit: "s"},
 	},
-	// The silence cleanup analyzer's five thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
-	// ADR 0238): the ranges mirror measure.CleanupOptions.resolve's own per-field bounds (cleanup.go), so a value this
+	// The silence cleanup analyzer's five thresholds (ADR 0238): the ranges mirror measure.CleanupOptions.resolve's own per-field bounds (cleanup.go), so a value this
 	// page accepts is one cleanupSettings (cleanup_settings.go) never has to fall back from. pad_seconds keeps
 	// resolve's 0-2 s; min/max_breath_seconds start just above 0 (resolve requires min strictly positive) up to
 	// resolve's ceiling of 5 s; the two dB thresholds start just above 0 (resolve requires them strictly positive)

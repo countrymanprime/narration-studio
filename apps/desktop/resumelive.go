@@ -11,11 +11,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The live half of the resume locate (read-aloud-resume-from-daw PRD Phase 4, ADR 0349): where the chapter's track is in
+// The live half of the resume locate (ADR 0349): where the chapter's track is in
 // REAPER now, read through the DAW port's Track state role (chapter_track_state, ADR 0231), preferred over the saved .rpp
 // whenever REAPER can say. It only reads.
 
-// Where the DAW place came from (TeleprompterLocate's dawSource) and which point of the track it is (dawAt, RD2).
+// Where the DAW place came from (TeleprompterLocate's dawSource) and which point of the track it is (dawAt).
 const (
 	dawSourceSaved = "saved" // the saved .rpp, "as of the project's last save"
 	dawSourceLive  = "live"  // REAPER's answer, "in REAPER now"
@@ -59,7 +59,7 @@ func recordingOn(state dawport.TrackState) bool {
 	return state.Recording && state.TrackArmed
 }
 
-// liveRecordedEnd is RD2's DAW place: the edit cursor when it lies on the track's recorded audio (an item that plays,
+// liveRecordedEnd is the DAW place: the edit cursor when it lies on the track's recorded audio (an item that plays,
 // cursor after its start and no later than its end; the item that starts last when several overlap, as it plays on top),
 // else the end of the item that ends last. It is the saved project's tracks.RecordedEnd computed from REAPER's live
 // items, with at saying which point it is. saved is the same track in the saved project (nil when it is not there): it

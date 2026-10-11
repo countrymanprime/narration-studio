@@ -245,8 +245,8 @@ func TestChapterRegionsCreateBindingIsRefusedWithoutAREAPERSession(t *testing.T)
 	}
 }
 
-// The chapter regions' payloads (reaper-automation-follow-through PRD Phase 7, credits-in-chapter-table PRD Phase 4):
-// a plan with credits first and last and a skipped chapter, no .rpp, and what a create run answers.
+// The chapter regions' payloads: a plan with credits first and last and a skipped chapter, no .rpp, and what a create
+// run answers.
 func TestContractChapterRegions(t *testing.T) {
 	pin := func(t *testing.T, name, folder string, value any) {
 		t.Helper()
@@ -282,9 +282,9 @@ func TestContractChapterRegions(t *testing.T) {
 	pin(t, "chapter-regions-created", host.config.projectFolder, created)
 }
 
-// TestRegionCreatorFromComesFromTheResolver is the "role comes from the resolver" test the DAW port PRD's migration
-// risk table calls for (P5a, ADR 0300): ChapterRegionsCreate sources its creator through regionCreatorFrom, which
-// asks svc.dawPortResolver for the Regions role instead of holding svc.actions directly.
+// TestRegionCreatorFromComesFromTheResolver pins that the role comes from the resolver (ADR 0300):
+// ChapterRegionsCreate sources its creator through regionCreatorFrom, which asks svc.dawPortResolver for the Regions
+// role instead of holding svc.actions directly.
 func TestRegionCreatorFromComesFromTheResolver(t *testing.T) {
 	fake := dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Supported))
 	resolver := dawport.NewResolver(dawport.ResolverConfig{

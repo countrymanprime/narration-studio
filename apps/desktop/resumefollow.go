@@ -10,11 +10,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Following REAPER while the read-aloud dialog's resume prompt shows (read-aloud-resume-from-daw PRD Phase 5, ADR 0353).
+// Following REAPER while the read-aloud dialog's resume prompt shows (ADR 0353).
 // While the UI follows a chapter, the host reads chapter_track_state (the DAW port's Track state role) about once a
 // second, never while a teleprompter session runs, and tells the UI on teleprompter_resume_follow when REAPER starts
-// playing or recording (RD7: the prompt goes away) or when the edit cursor settles on the chapter's recorded audio (RD6:
-// the UI re-runs the locate). It is not the heartbeat: it runs only for an open prompt, and stops when the UI unfollows,
+// playing or recording (the prompt goes away) or when the edit cursor settles on the chapter's recorded audio (the UI
+// re-runs the locate). It is not the heartbeat: it runs only for an open prompt, and stops when the UI unfollows,
 // when another follow replaces it, when REAPER plays or records, when the app quits, or after resumeFollowLifetime. It
 // only reads.
 
@@ -56,8 +56,8 @@ type resumeFollowAnswer struct {
 }
 
 // resumeFollower turns successive reads of REAPER into what the prompt needs to hear. The first read sets the baseline
-// cursor; a cursor that moves counts once it reads the same twice in a row (one poll interval, RD6's debounce, as a
-// locate costs a Whisper run), and is reported only when it settled on the track's recorded audio (the RD2 rule
+// cursor; a cursor that moves counts once it reads the same twice in a row (one poll interval, a debounce, as a
+// locate costs a Whisper run), and is reported only when it settled on the track's recorded audio (the rule
 // liveRecordedEnd applies to the locate).
 type resumeFollower struct {
 	chapterID string
@@ -149,8 +149,8 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 	}
 }
 
-// TeleprompterResumeFollow starts following REAPER for chapterID's resume prompt (read-aloud-resume-from-daw PRD Phase 5,
-// ADR 0353), replacing any follow already running. trackGUID is the track the prompt's locate read ("" for the chapter's
+// TeleprompterResumeFollow starts following REAPER for chapterID's resume prompt (ADR 0353),
+// replacing any follow already running. trackGUID is the track the prompt's locate read ("" for the chapter's
 // matched track); like TeleprompterLocate, a picked track must be one of the selected project's. It answers whether it
 // follows: not with no track to follow or no way to ask REAPER, which is an answer, not an error.
 func (h *Host) TeleprompterResumeFollow(chapterID, trackGUID string) (string, error) {

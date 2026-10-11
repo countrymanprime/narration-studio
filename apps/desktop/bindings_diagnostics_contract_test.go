@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// What DiagnosticsAnalyze, DiagnosticsState and DiagnosticsCancel send (diagnostics PRD Phase 6): the idle check with
+// What DiagnosticsAnalyze, DiagnosticsState and DiagnosticsCancel send: the idle check with
 // its thresholds, a check part way through, and each way one ends. The diagnostics are built here rather than
 // measured, so the files do not depend on floating point; their findings are measure.Diagnostics.Findings' own.
 
@@ -34,7 +34,7 @@ func contractDiagnosed(path string) measure.Diagnostics {
 			Evidence:     measure.Evidence{Status: measure.StatusUnavailable, Reason: "no transcript timing for this audio"},
 			PauseOptions: measure.DefaultPauseOptions(),
 		},
-		// One of each cleanup class (Phase 9 remainder, ADR 0238), so the golden exercises CleanupFindings apart from
+		// One of each cleanup class (ADR 0238), so the golden exercises CleanupFindings apart from
 		// Findings above: a silence past the hold, a breath below speech level, and a click between two silences.
 		Cleanup: measure.CleanupDiagnostics{
 			Options:         measure.DefaultCleanupOptions(),

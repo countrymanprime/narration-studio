@@ -8,8 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// Which microphone REAPER uses, for the teleprompter's microphone picker (teleprompter-manuscript-integration PRD Phase
-// 11, ADR 0250): REAPER's open input device, from chapter_track_state's device read, matched against the names the
+// Which microphone REAPER uses, for the teleprompter's microphone picker (ADR 0250): REAPER's open input device, from chapter_track_state's device read, matched against the names the
 // teleprompter's capture opens. The picker preselects Device only when Status is matched, with Message as the reason;
 // every other answer leaves the full list and the narrator's own choice as they are.
 
@@ -38,7 +37,7 @@ type deviceLister interface {
 }
 
 // TeleprompterReaperInput answers which of the teleprompter's microphones REAPER records from, so the picker can
-// preselect it with a reason (teleprompter-manuscript-integration.prd.md Phase 11). It asks REAPER once, read-only,
+// preselect it with a reason. It asks REAPER once, read-only,
 // and never on a timer; a REAPER that is not there or cannot say is an answer, and the picker then keeps its list.
 func (h *Host) TeleprompterReaperInput() (string, error) {
 	svc := h.services()

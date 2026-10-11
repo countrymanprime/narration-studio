@@ -2,7 +2,7 @@ package main
 
 import "github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 
-// The measurement bindings (diagnostics-delivery-and-cleanup-tools.prd.md Phase 1, ADR 0156). The job is in
+// The measurement bindings (ADR 0156). The job is in
 // measure_job.go; the wire-contract schema, golden payloads and mock are in apps/ui/src/api. The job reads no project
 // service; each answer is judged against the current project's delivery profile when it is read (judgeMeasure, ADR 0179).
 
@@ -34,7 +34,7 @@ func (h *Host) MeasureCancel() (string, error) {
 	return encodeBinding(h.judgeMeasure(h.cancelMeasure()), nil)
 }
 
-// DeliveryExportReport writes the report of the last measurement and diagnostics check (Phase 7) as an HTML and a JSON
+// DeliveryExportReport writes the report of the last measurement and diagnostics check as an HTML and a JSON
 // file in the project's narration-utils/delivery folder, and answers where. includePaths is the narrator's choice to
 // write each file's full path; off, only file names are written. It refuses without a project, while a measurement or a
 // check runs, or when nothing has been measured or checked.
@@ -44,7 +44,7 @@ func (h *Host) DeliveryExportReport(includePaths bool) (string, error) {
 
 // DeliveryProfiles answers every delivery profile the narrator can choose (the built-ins first, then their custom
 // profiles), the Global default, the current project's own choice and the profile it is judged against
-// (delivery-platform-profiles.prd.md Phase 2, ADR 0179).
+// (ADR 0179).
 func (h *Host) DeliveryProfiles() (string, error) {
 	return encodeBinding(h.deliveryProfilesState())
 }
@@ -57,12 +57,12 @@ func (h *Host) DeliverySelectProfile(scope, id, version string) (string, error) 
 }
 
 // DeliveryDuplicateProfile copies a profile (a built-in at version, or a custom one) into a new custom profile and
-// answers it (Phase 4).
+// answers it.
 func (h *Host) DeliveryDuplicateProfile(id, version string) (string, error) {
 	return encodeBinding(h.profileStore().Duplicate(deliveryprofile.Ref{ID: id, Version: version}))
 }
 
-// DeliverySaveProfile saves a custom profile's name, numbers and rules turned off (Phase 4), from the editor's JSON
+// DeliverySaveProfile saves a custom profile's name, numbers and rules turned off, from the editor's JSON
 // ({id, name, rules: [{id, off, min, max}]}), and answers it with its revision bumped. A built-in is never written.
 func (h *Host) DeliverySaveProfile(edit string) (string, error) {
 	return encodeBinding(h.saveDeliveryProfile(edit))

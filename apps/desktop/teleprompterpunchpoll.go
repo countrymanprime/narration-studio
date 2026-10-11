@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// The punch-and-roll anchor poll (teleprompter-manuscript-integration.prd.md Phase 12, ADR 0246, owner decision
+// The punch-and-roll anchor poll (ADR 0246, owner decision
 // 2026-09-23: live anchors first). While a live session is reading a manuscript chapter, this loop asks REAPER's
 // play position (dawport.Puncher, the same role "Punch from here" resolves through) every punchAnchorPollInterval and
 // pairs it with the word the reader is on (teleprompter.Service.CurrentWord), so a later punch can resolve any word's
@@ -69,9 +69,9 @@ func pollPunchAnchor(parent context.Context, puncher dawport.Puncher, project, c
 	if err != nil {
 		return
 	}
-	// Heard (GetPlayPosition) is the position the narrator hears, the working default until spike 1 decides which
-	// play position anchors a word best (teleprompter-manuscript-integration.prd.md Phase 12, still owner-gated); no
-	// ASR-latency correction is applied yet, since it is not measured for either engine (the PRD's own Evidence).
+	// Heard (GetPlayPosition) is the position the narrator hears, the working default until the owner's REAPER check
+	// decides which play position anchors a word best (ADR 0246); no ASR-latency correction is applied yet, since it is
+	// not measured for either engine.
 	anchor := teleprompter.Anchor{Word: word, Position: position.Heard}
 	if err := teleprompter.AppendAnchor(project, chapterID, anchor); err != nil && log != nil {
 		_ = log.Report("punch_anchor_not_recorded", err.Error())

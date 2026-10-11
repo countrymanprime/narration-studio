@@ -187,7 +187,7 @@ func (h *Host) GuidePronunciationSetStatus(id string, aliasIndex *int, status st
 	return encodeBinding(nil, service.SetPronunciationStatus(id, aliasIndex, status, note))
 }
 
-// GuidePronunciationQueries lists every name whose pronunciation the author has not confirmed, in reading order (prep-depth P3).
+// GuidePronunciationQueries lists every name whose pronunciation the author has not confirmed, in reading order.
 func (h *Host) GuidePronunciationQueries() (string, error) {
 	service := h.services().guide
 	if service == nil {
@@ -210,7 +210,7 @@ func (h *Host) GuidePronunciationQueriesCSV() (string, error) {
 	return encodeBinding(map[string]any{"csv": guide.QueriesCSV(queries), "count": len(queries)}, nil)
 }
 
-// GuidePronunciationImportQueriesCSV applies an author's answered file back onto the Story Bible (prep-depth P6): the UI
+// GuidePronunciationImportQueriesCSV applies an author's answered file back onto the Story Bible: the UI
 // reads whatever file the narrator picks in their own file input and sends its text; the host never opens a file of its
 // own. Every row it could not read, match to a still-existing entry or apply is reported with its line, never dropped.
 func (h *Host) GuidePronunciationImportQueriesCSV(csvText string) (string, error) {
@@ -320,7 +320,7 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 }
 
 // pickerSwitchDAW is the `daw` a picker switch attaches with. An Audacity launch (the installer's "Narration Utils for Audacity"
-// shortcut starts the app with `--daw Audacity` and no folder, audacity-integration PRD Phase 10) stays one: the narrator's DAW is
+// shortcut starts the app with `--daw Audacity` and no folder) stays one: the narrator's DAW is
 // still Audacity whichever folder they pick, and no bridge is tied to a project. Any other launch becomes "Standalone", a REAPER
 // one included, because the picked project is not the one REAPER has open.
 func pickerSwitchDAW(launched string) string {
@@ -349,9 +349,9 @@ func attachResult(attached bool, reason string) (string, error) {
 }
 
 // ProjectCreateIn makes a new project.json-manifested folder named name under
-// parent (the PRD's "Visual Studio model": a name plus a location) and
-// attaches it, replacing the old full-path ProjectCreate (PRD W9). An empty
-// parent defaults to the Phase 1 projects directory (project.ResolveDir), so
+// parent (a name plus a location, as Visual Studio does) and
+// attaches it. An empty
+// parent defaults to the projects directory (project.ResolveDir), so
 // the picker's default "Create new" needs only a name. name is validated
 // (project.ValidateName: non-empty, no illegal or control characters, not a
 // Windows reserved device name) before parent is even resolved, and the busy
@@ -459,7 +459,7 @@ func (h *Host) ManuscriptImportPreview(jobID string, markdownHeadingLevel int) (
 
 // ManuscriptImportCommit writes the previewed manuscript with the narrator's review choices: each section's kind, the character
 // suggestions to seed, and, for a section with a subtitle, whether it is one (subtitleOverrides, keyed by section id; false joins
-// the line to the title or returns it to the body, story-bible-and-import-ux-briefs PRD, Phase 5).
+// the line to the title or returns it to the body).
 func (h *Host) ManuscriptImportCommit(jobID string, confirmedReset bool, sectionKinds map[string]string, characterCandidateIDs []string, subtitleOverrides map[string]bool) (string, error) {
 	svc := h.services()
 	var post manuscript.PostCommit
@@ -496,7 +496,7 @@ func seedCharacterCandidates(service *guide.Service, candidates []importer.Chara
 	}
 	for index, candidate := range chosen {
 		report(index*100/len(chosen), fmt.Sprintf("Adding Story Bible character %d of %d: %s", index+1, len(chosen), candidate.Name))
-		// The description and any labelled properties (import-structure-toc-and-characters PRD, Phase 3) go in with the create:
+		// The description and any labelled properties go in with the create:
 		// one sidecar process per candidate instead of two or three.
 		if _, err := service.CreateFull(candidate.Name, "Character", nil, candidate.Description, toGuideProperties(candidate.Properties)); err != nil {
 			report(index*100/len(chosen), fmt.Sprintf("Skipped %s: %v", candidate.Name, err))
@@ -624,8 +624,7 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 		stale.End("cancelled")
 	}
 	h.jobRuns.begin(h.runLog, teleprompterSessionRunID, "teleprompter", "engine", engine)
-	// `credits` ("opening" or "closing") reads the credits instead of a chapter (audiobook-credits-templates.prd.md
-	// Phase 4, ADR 0150): the host renders the text itself, so the UI names only which credits, never the text.
+	// `credits` ("opening" or "closing") reads the credits instead of a chapter (ADR 0150): the host renders the text itself, so the UI names only which credits, never the text.
 	if kind := strings.TrimSpace(options["credits"]); kind != "" {
 		script, err := h.creditsScript(kind)
 		if err != nil {
@@ -701,7 +700,7 @@ func (h *Host) TeleprompterStop() (string, error) {
 }
 
 // TeleprompterSeek moves a running session's tracker straight to script word `word` (the read-aloud modal's "Start
-// here"/"Go back to here", teleprompter-manuscript-integration.prd.md Phase 3): one line appended to the session's
+// here"/"Go back to here"): one line appended to the session's
 // control file, the sentinel-file pattern service.Seek documents. Errors (no service, no running session, a write
 // failure) come back as a rejected promise, the same shape as every other teleprompter binding failure.
 func (h *Host) TeleprompterSeek(word int) (string, error) {
@@ -712,7 +711,7 @@ func (h *Host) TeleprompterSeek(word int) (string, error) {
 	return encodeBinding(nil, service.Seek(word))
 }
 
-// TeleprompterMeterStart shows the chosen microphone's level before reading starts (read-aloud-control-bar.prd.md Phase 4):
+// TeleprompterMeterStart shows the chosen microphone's level before reading starts:
 // a separate `--meter` sidecar child that loads no model and prints only `level` events, relayed as "teleprompter:event"
 // like a session's own, then one `meter_stopped` when it ends. It replaces a meter already running, and is refused while a
 // session runs (the session reports its own levels) or with no microphone chosen.
@@ -733,7 +732,7 @@ func (h *Host) TeleprompterMeterStop() (string, error) {
 }
 
 // TeleprompterPause stops (true) or restarts (false) a running session's listening without ending it
-// (read-aloud-control-bar.prd.md Phase 5, ADR 0248): the microphone stays open and its level still shows, the recognizer
+// (ADR 0248): the microphone stays open and its level still shows, the recognizer
 // hears nothing and the tracker holds its word. The state keeps phase "running" with `paused` set. It errors when no
 // session is running.
 func (h *Host) TeleprompterPause(paused bool) (string, error) {
@@ -865,9 +864,8 @@ func (h *Host) TranscriptSaveHints(accepted []string) (string, error) {
 }
 
 // ChapterTrackMapList, ChapterTrackMapConfirm and ChapterTrackMapClear are
-// the narrator-confirmed chapter-track mapping's bindings (analysis
-// evidence ledger PRD, Phase 5, Q6/Q7): the mapping-confirm UI itself is
-// Phase 7 (not built here), but the store it will call is bound now.
+// the narrator-confirmed chapter-track mapping's bindings: list the
+// confirmed rows, confirm one and clear one.
 func (h *Host) ChapterTrackMapList() (string, error) { return encodeBinding(h.mappingList()) }
 func (h *Host) ChapterTrackMapConfirm(trackGUID, chapterID string) (string, error) {
 	return encodeBinding(h.mappingConfirm(trackGUID, chapterID))
@@ -877,7 +875,7 @@ func (h *Host) ChapterTrackMapClear(trackGUID string) (string, error) {
 }
 
 // ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks are the chapter
-// track link control's host half (chapter-track-link-control PRD Phase 1): Set
+// track link control's host half: Set
 // makes a track the chapter's one link, replacing its old one and saying which
 // chapter the track was taken from; Unlink clears every link a chapter holds;
 // Links reads every narration chapter's link state and track facts from one
@@ -891,8 +889,7 @@ func (h *Host) ChapterTrackUnlink(chapterID string) (string, error) {
 func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chapterTrackLinks()) }
 
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits
-// regions (reaper-automation-follow-through PRD Phase 7, credits-in-chapter-
-// table PRD Phase 4; chapterregions.go): Preview plans one region per linked
+// regions (chapterregions.go): Preview plans one region per linked
 // chapter, plus the opening and closing credits when their tracks are given
 // (empty leaves them out), from the saved .rpp and writes nothing; Create
 // recomputes the same plan and sends it to REAPER's create_regions in one
@@ -913,7 +910,7 @@ func (h *Host) TracksSelect(path string) (string, error) {
 func (h *Host) TracksList() (string, error) { return encodeBinding(h.tracksList()) }
 
 // ChapterTrackMatch finds the track holding chapterID and where its recorded
-// audio ends (teleprompter-manuscript-integration PRD Phase 8, ADR 0110): a
+// audio ends (ADR 0110): a
 // confirmed link first, then the shared chapter-to-track matcher over track
 // and region names. It only reads; it never creates a track or a link.
 func (h *Host) ChapterTrackMatch(chapterID string) (string, error) {
@@ -922,15 +919,14 @@ func (h *Host) ChapterTrackMatch(chapterID string) (string, error) {
 
 // ChapterSuggestion suggests the chapter the narrator is recording from the
 // selected .rpp's record-armed (else selected) track as of its last save
-// (teleprompter-engines-and-input-devices PRD Phase 11, ADR 0113): the matcher's
+// (ADR 0113): the matcher's
 // other direction, track to chapter, with the same statuses. Read-only.
 func (h *Host) ChapterSuggestion() (string, error) {
 	return encodeBinding(h.chapterSuggestionFor())
 }
 
 // ChaptersForTracks is ForTrack (ADR 0113) run over every GUID in guids: the
-// Review page's chapter grouping (diagnostics-delivery-and-cleanup-tools PRD
-// Phase 8 remainder) for findings that carry only a track, item or take GUID
+// Review page's chapter grouping for findings that carry only a track, item or take GUID
 // rather than a manuscript-anchored chapter. One GUID the project no longer
 // has is reported as an error alongside the others, never as a failed call.
 // Read-only.
@@ -938,8 +934,8 @@ func (h *Host) ChaptersForTracks(guids []string) (string, error) {
 	return encodeBinding(h.chaptersForTracks(guids))
 }
 
-// TakeReviewScanStart starts a pickup and duplicate scan of scope as a job (take-review phase 5): the chapter track's
-// items and takes, plus at most one pickup track or time range (Q3). It answers the job; TakeReviewScanState reports
+// TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
+// items and takes, plus at most one pickup track or time range. It answers the job; TakeReviewScanState reports
 // its real progress (ADR 0015) and TakeReviewScanCancel stops it. The findings it saves are read and decided through
 // the Review page's generic findings bindings (ADR 0120), like every other analyzer's.
 func (h *Host) TakeReviewScanStart(scope TakeReviewScanScope) (string, error) {
@@ -1029,9 +1025,9 @@ func moonshineDownloadSize(model moonshine.Model) int64 {
 	return total
 }
 
-// ManuscriptSetChapterKind reclassifies a chapter after import (chapter-track-link-control PRD Phase 3):
+// ManuscriptSetChapterKind reclassifies a chapter after import:
 // "reference" or "opening" removes it from recording, "narration" restores it. A removal clears the chapter's
-// track links (TL5 A). See manuscriptSetChapterKind.
+// track links. See manuscriptSetChapterKind.
 func (h *Host) ManuscriptSetChapterKind(chapterID, kind string) (string, error) {
 	return encodeBinding(h.manuscriptSetChapterKind(chapterID, kind))
 }

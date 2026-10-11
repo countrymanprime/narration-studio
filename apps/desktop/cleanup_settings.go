@@ -8,8 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The silence cleanup analyzer's own thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
-// ADR 0238 decision 4: "the settings keys and saved presets in the layered store... are the host's"). They live
+// The silence cleanup analyzer's own thresholds (ADR 0238 decision 4: "the settings keys and saved presets in the layered store... are the host's"). They live
 // under their own "Cleanup" tool, layered project over global over config/defaults.json like every other tool
 // (fieldSchemas["Cleanup"], numberSpecs["Cleanup"]); a saved preset is simply this set of values at a layer, the
 // same way every other settings section already is one. The detector itself (internal/measure/cleanup.go) is not

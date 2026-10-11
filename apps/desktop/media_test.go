@@ -148,10 +148,9 @@ func TestMediaMiddlewareAuthorizesEveryTakesSourceNotJustTheActiveOne(t *testing
 }
 
 // TestMediaMiddlewareAuthorizesEveryTakeOfARealReaperSavedMultiTakeItem
-// reuses the S0 spike's REAPER-saved fixture pack (three real takes on one
-// item, the second active) rather than a hand-written project, per the
-// take-review PRD's instruction to test the take-aware model against real
-// REAPER output.
+// reuses a REAPER-saved fixture pack (three real takes on one
+// item, the second active) rather than a hand-written project, so the
+// take-aware model is tested against real REAPER output.
 func TestMediaMiddlewareAuthorizesEveryTakeOfARealReaperSavedMultiTakeItem(t *testing.T) {
 	folder := t.TempDir()
 	copyReaperFixture(t, folder, "saved-cases.rpp", "Book.rpp")

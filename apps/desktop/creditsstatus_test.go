@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The credits row statuses (credits-in-chapter-table.prd.md Phase 1, CT2/CT3, ADR 0183): stored on the project manifest,
+// The credits row statuses (ADR 0183): stored on the project manifest,
 // separately from a manuscript chapter's status in manuscript-notes.json, so they survive Replace manuscript and Clear.
 
 func TestCreditsStatusesIsEmptyForAProjectThatHasNeverSetOne(t *testing.T) {

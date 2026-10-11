@@ -123,9 +123,8 @@ type chapterTrackLink struct {
 	// ChapterSubtitle is the chapter's subtitle field ("" when it has none). It
 	// never reaches the wire (json:"-"): the UI already builds its own display
 	// name with chapterName(). It exists so a host-side consumer that writes a
-	// chapter's name as plain text (chapterRegionPlanIn, Q7 of
-	// chapter-title-display-consistency.prd.md, owner decision D34) can follow
-	// the same rule without a new wire payload.
+	// chapter's name as plain text (chapterRegionPlanIn) can follow the same
+	// rule without a new wire payload.
 	ChapterSubtitle string `json:"-"`
 	chaptermatch.Result
 	Links       []evidence.TrackMapping `json:"links"`
@@ -173,8 +172,8 @@ func chapterTrackLinksIn(svc hostServices) (chapterTrackLinks, error) {
 	chapters := make([]chaptermatch.Chapter, 0, len(raw))
 	narration := make([]chaptermatch.Chapter, 0, len(raw))
 	// subtitles holds each chapter's subtitle by id, off to the side of chaptermatch.Chapter: the matcher compares
-	// titles only (chapter-title-display-consistency.prd.md, "No change to what the chapter matchers compare"), so
-	// the subtitle never joins the matched/narration lists above, only chapterTrackLink's own (non-wire) field below.
+	// titles only, so the subtitle never joins the matched/narration lists above, only chapterTrackLink's own
+	// (non-wire) field below.
 	subtitles := make(map[string]string, len(raw))
 	for _, chapter := range raw {
 		id, _ := chapter["id"].(string)

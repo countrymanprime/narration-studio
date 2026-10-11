@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Punch and roll's offline fallback (teleprompter-manuscript-integration.prd.md Phase 12, ADR 0560, owner decision
+// Punch and roll's offline fallback (ADR 0560, owner decision
 // 2026-09-23: live anchors first, offline alignment when no anchor covers the word). When the anchors the poll recorded
 // (teleprompterpunchpoll.go) cannot bracket a flagged word, "Punch from here" times it from the chapter's recording
 // instead: the chapter's track (the same match the resume prompt reads, teleprompterlocate.go), the recorded item the

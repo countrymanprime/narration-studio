@@ -12,9 +12,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// Status without a click (daw-chapter-track-auto-sync PRD Phase 6, S14): chaptersync:state carries, for every narration
-// chapter, its link, whether its recording check is current, stale (with the reasons) or never run, and when its track
-// last changed. Reading it never starts a check (Q14).
+// Status without a click: chaptersync:state carries, for every narration chapter, its link, whether its recording check
+// is current, stale (with the reasons) or never run, and when its track last changed. Reading it never starts a check.
 
 func chapterRow(t *testing.T, state chapterSyncState, chapterID string) chapterSyncChapter {
 	t.Helper()

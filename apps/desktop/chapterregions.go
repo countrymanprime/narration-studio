@@ -12,14 +12,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// This file is the host half of the chapter regions (reaper-automation-follow-through PRD Phase 7, "chapter regions
-// from matched tracks") and of the credits regions (credits-in-chapter-table PRD Phase 4, CT8): one plan of REAPER
-// regions, read from the saved .rpp and the confirmed chapter-track links, that the narrator previews and then
+// This file is the host half of the chapter regions (from matched tracks) and of the credits regions: one plan of
+// REAPER regions, read from the saved .rpp and the confirmed chapter-track links, that the narrator previews and then
 // approves. Nothing is written to REAPER until ChapterRegionsCreate, and that recomputes the plan itself rather than
-// trusting bounds the UI sends back. The one command both PRDs share is create_regions (ADR 0235).
+// trusting bounds the UI sends back. The one command both share is create_regions (ADR 0235).
 
-// Credits rows are named like the chapter table's rows (CT8: "own regions named like the row labels"; the labels are
-// AudiobookEstimatePanel.tsx's CREDITS_LABEL), so a $region render writes files named the way the table names them.
+// Credits rows are named like the chapter table's rows (the labels are AudiobookEstimatePanel.tsx's CREDITS_LABEL), so
+// a $region render writes files named the way the table names them.
 const (
 	openingCreditsRegion = "Opening credits"
 	closingCreditsRegion = "Closing credits"
@@ -86,12 +85,12 @@ type chapterRegionsCreated struct {
 }
 
 // regionCreator is the one method the create step needs of the Regions role; a seam for tests. It is an alias of
-// dawport.RegionWriter (DAW port PRD P5a, ADR 0300): the role interface this file's local seam is promoted onto.
+// dawport.RegionWriter (ADR 0300): the role interface this file's local seam is promoted onto.
 type regionCreator = dawport.RegionWriter
 
-// regionCreatorFrom asks svc's DAW port resolver for the Regions role (DAW port PRD P5a): nil, exactly as svc.actions
-// being nil once was, when there is no resolver, no adapter, the capability is toggled off, or REAPER is not
-// reachable right now. createChapterRegions already turns a nil creator into bridge.ErrUnavailable.
+// regionCreatorFrom asks svc's DAW port resolver for the Regions role (ADR 0300): nil, exactly as svc.actions being nil
+// once was, when there is no resolver, no adapter, the capability is toggled off, or REAPER is not reachable right now.
+// createChapterRegions already turns a nil creator into bridge.ErrUnavailable.
 func regionCreatorFrom(svc hostServices) regionCreator {
 	if svc.dawPortResolver == nil {
 		return nil
@@ -147,9 +146,9 @@ func chapterRegionPlanIn(svc hostServices, openingTrackGUID, closingTrackGUID st
 		case 0:
 			plan.Skipped = append(plan.Skipped, chapterRegionSkip{Kind: "chapter", ChapterID: chapter.ChapterID, Title: chapter.ChapterTitle, Reason: "No track is linked to this chapter."})
 		case 1:
-			// The region name (then the render file name, then the ID3 CHAP title that reads it: Q7 of
-			// chapter-title-display-consistency.prd.md) follows the same title/subtitle rule as everywhere else, with
-			// D34's ASCII "Plain" form so an em dash never reaches a file name or a REAPER object.
+			// The region name (then the render file name, then the ID3 CHAP title that reads it) follows the same
+			// title/subtitle rule as everywhere else, with the ASCII "Plain" form so an em dash never reaches a file
+			// name or a REAPER object.
 			subtitle := chapter.ChapterSubtitle
 			add("chapter", chapter.ChapterID, chaptername.Name(chapter.ChapterTitle, &subtitle, chaptername.Plain), chapter.Links[0].TrackGUID)
 		default:

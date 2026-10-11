@@ -8,8 +8,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// "Remove from recording" and "Restore" (chapter-track-link-control PRD Phase 3, TL2, TL5): a chapter's kind changes
-// after import, its links are cleared, and every recording surface that filters by kind drops it.
+// "Remove from recording" and "Restore": a chapter's kind changes after import, its links are cleared, and every
+// recording surface that filters by kind drops it.
 
 const chapterITrack = "{11111111-1111-4111-8111-111111111111}"
 

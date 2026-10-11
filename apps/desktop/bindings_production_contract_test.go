@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// ProductionPlan's, ProductionSetDeadline's and ProductionSaveMilestones's payload (production-tracking.prd.md Phase 3):
+// ProductionPlan's, ProductionSetDeadline's and ProductionSaveMilestones's payload:
 // the empty plan of a project that has set nothing, then one with a deadline, an amount and two milestones.
 func TestContractProductionPlan(t *testing.T) {
 	host := hostWithCredits(t)

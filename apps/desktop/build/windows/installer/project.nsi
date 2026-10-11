@@ -16,7 +16,7 @@ Unicode true
 ##    (the Wails default removes the whole folder), and leaves the narrator's settings, downloaded assets and project sidecars alone.
 ##  - No network access of its own. The WebView2 runtime is installed by the bootstrapper embedded here (it comes from the pinned
 ##    wails3 CLI), and only when it is missing.
-##  - Unsigned (owner decision D7): nothing here signs anything.
+##  - Unsigned (the first stable release is unsigned, by owner decision): nothing here signs anything.
 ##
 ## The build passes -DARG_WAILS_AMD64_BINARY=<the built program>. To try the installer by hand, run makensis in this folder with
 ## that define after one `wails-build.mjs --installer` has written wails_tools.nsh and the bootstrapper.
@@ -100,7 +100,7 @@ Section "${INFO_PRODUCTNAME} (required)"
     Delete "$SMPROGRAMS\Narration Utils.lnk"
     Delete "$SMPROGRAMS\Narration Utils for Audacity.lnk"
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
-    # The Audacity launcher (audacity-integration PRD Phase 10): Audacity cannot start a program, so this entry does it instead,
+    # The Audacity launcher: Audacity cannot start a program, so this entry does it instead,
     # with exactly --daw Audacity. The narrator picks the project in the app.
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME} for Audacity.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "--daw Audacity"
 

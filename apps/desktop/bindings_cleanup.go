@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// The Editing view's silence-trim and item-gain action (booth-actions-enablement PRD Phase 5): the first non-test
+// The Editing view's silence-trim and item-gain action: the first non-test
 // callers of bridge.CleanupClient and bridge.LevelMatchClient (apps/desktop/internal/bridge/{cleanup.go,
 // levelnormalize.go}), reached the same way bindings_navigation.go and chapterregions.go already reach their own
 // REAPER roles - through dawport.Role[T](resolver, capability), never a cached adapter, so a capability the narrator

@@ -12,15 +12,15 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// The Review page's REAPER bindings (review-dashboard-and-findings-adoption.prd.md Phase 7): Go to, Loop and Stop on
-// a finding, and whether REAPER is there to do them. They drive bridge.Navigator (Phase 6, ADR 0121,
+// The Review page's REAPER bindings: Go to, Loop and Stop on
+// a finding, and whether REAPER is there to do them. They drive bridge.Navigator (ADR 0121,
 // docs/architecture/reaper-navigation.md), which finds a finding by its item GUID and its time inside the take's
-// audio, never by a project time. Each is sent only on the narrator's click (the PRD's boundary: no bridge command
+// audio, never by a project time. Each is sent only on the narrator's click (no bridge command
 // without an explicit action), and only when REAPER is listening, so a command never waits in the session folder for
 // a REAPER that starts later. A refusal is an answer, not an error, so the page can say in plain words what to do.
 
 // p5aAdapter is dawport.Adapter over the objects configureLocked already builds for the Review page's navigator and
-// the S28 commands (DAW port PRD P5a, ADR 0300): it hands the same *bridge.Navigator and *bridge.Actions out as the
+// the action commands (ADR 0300): it hands the same *bridge.Navigator and *bridge.Actions out as the
 // Navigate, Markers, Track state, Track select and Regions roles rather than opening a second dawport/reaper.Adapter
 // over the same client, which would race its own run IDs against h.actions' (bridge/actions.go). Its declaration
 // mirrors dawport/reaper's for exactly these five capabilities; the other REAPER capabilities stay off
@@ -73,7 +73,7 @@ type findingNavigation struct {
 	loopingID string
 }
 
-// newFindingNavigation takes its navigator from resolver (DAW port PRD P5a, ADR 0300) rather than wrapping client
+// newFindingNavigation takes its navigator from resolver (ADR 0300) rather than wrapping client
 // itself: navigatorRole asks the resolver for the Navigate and Markers roles on every call, so a toggle the narrator
 // changes in Settings, or REAPER going quiet and coming back, is reflected the next time a finding is navigated, not
 // only at the project's next attach. standalone still comes from client directly, exactly as before, since a resolver
@@ -217,13 +217,13 @@ func (h *Host) FindingsGoTo(id string) (string, error) {
 }
 
 // FindingsLoop loops the finding's context in REAPER: the time selection and loop points around it, repeat on, and
-// Play (Q6). The narrator's own selection and repeat come back with FindingsStopLoop.
+// Play. The narrator's own selection and repeat come back with FindingsStopLoop.
 func (h *Host) FindingsLoop(id string) (string, error) {
 	return h.navigateFinding(id, findingTarget, true, loopFor(id))
 }
 
 // FindingsGoToRead is FindingsGoTo for one read of a finding that groups several (a take-review pickup or duplicate
-// read, take-review-pickups-duplicates-take-intelligence.prd.md Phase 5): read is the index in its evidence.members,
+// read): read is the index in its evidence.members,
 // and REAPER goes to that read's own item and take, at the start of its range in its own source. A read index the
 // finding does not have is an error, not a refusal: the page only offers the reads it was sent.
 func (h *Host) FindingsGoToRead(id string, read int) (string, error) {

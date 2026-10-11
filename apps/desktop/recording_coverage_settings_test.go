@@ -12,8 +12,8 @@ import (
 )
 
 // nonNumberRecordingCoverageFields are the RecordingCoverage fields coverage.ResolveSettings reads that are not one
-// of the four numbers: background checks (auto-sync Phase 7, ADR 0211) and the model cascade's own three
-// (recording-check-model-cascade PRD Phase 5, MC1, MC2).
+// of the four numbers: background checks (ADR 0211) and the model cascade's own three
+// (docs/utilities/recording-coverage.md, MC1 and MC2).
 var nonNumberRecordingCoverageFields = map[string]string{
 	settingBackgroundChecks:               "bool",
 	coverage.SettingCascadeEnabled:        "bool",
@@ -95,8 +95,8 @@ func TestARecordingCoverageSettingOutsideItsRangeIsRefused(t *testing.T) {
 	}
 }
 
-// Phase 5 started and read every check with the default alignment; now both take it from the settings, so they cannot
-// disagree, and changing it makes the stored result stale (Q13 B) rather than silently re-judged.
+// A check's start and its read both take the alignment from the settings, so they cannot disagree, and changing it makes
+// the stored result stale (Q13 in docs/utilities/recording-coverage.md) rather than silently re-judged.
 func TestAChecksStartAndItsReadBothUseTheAlignmentSettings(t *testing.T) {
 	var mu sync.Mutex
 	var launches [][]string

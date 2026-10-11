@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The credits on the teleprompter (audiobook-credits-templates.prd.md Phase 4, ADR 0150): the host renders the text with
+// The credits on the teleprompter (ADR 0150): the host renders the text with
 // the one renderer (credits.Render) from the template ADR 0093 picks, and a token with no value warns but never blocks.
 
 func hostWithCredits(t *testing.T) *Host {
@@ -68,7 +68,7 @@ func TestCreditsScriptKeepsAnUnresolvedTokenVisibleRatherThanRefusing(t *testing
 
 	script, err := host.creditsScript("opening")
 	if err != nil {
-		t.Fatalf("an unresolved token warns in the UI but must not block Start (C6): %v", err)
+		t.Fatalf("an unresolved token warns in the UI but must not block Start: %v", err)
 	}
 	if !strings.Contains(script.Text, "[Narrator]") {
 		t.Fatalf("text = %q, want the unresolved placeholder left in place", script.Text)

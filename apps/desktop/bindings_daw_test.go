@@ -112,7 +112,7 @@ func TestDawCapabilitiesOfflineReadingWorksWithNoBridge(t *testing.T) {
 	}
 }
 
-// TestSaveSettingsAcceptsACapabilityToggle: the row DAW port PRD P3 added to config/defaults.json is now exposed by
+// TestSaveSettingsAcceptsACapabilityToggle: the capability row in config/defaults.json is now exposed by
 // settingsForScope and saveable, not only readable through Store.Effective.
 func TestSaveSettingsAcceptsACapabilityToggle(t *testing.T) {
 	host := newTestHostForDawCapabilities(t, "REAPER")

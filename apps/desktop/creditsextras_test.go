@@ -12,8 +12,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The credits extras (audiobook-credits-templates.prd.md Phase 5): chapter announcements rendered per narration chapter
-// (C8, ADR 0151) and the narrator-picked retail sample range (C10, ADR 0152).
+// The credits extras: chapter announcements rendered per narration chapter
+// (ADR 0151) and the narrator-picked retail sample range (ADR 0152).
 
 // A manuscript with front matter, two narration chapters (one with no subtitle) and a reference chapter; its paragraphs
 // are wordsPer words long each, two per chapter.

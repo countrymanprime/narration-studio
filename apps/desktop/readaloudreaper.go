@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Whether REAPER is ready to record a chapter with reading (read-aloud-control-bar PRD Phase 6, ADR 0249): one read-only
+// Whether REAPER is ready to record a chapter with reading (ADR 0249): one read-only
 // chapter_track_state of the chapter's linked track, compared with REAPER's arms. It is asked on demand (the dialog
 // opening, the REAPER toggle, before Play, a Refresh), never on a timer (ADR 0122), and changes nothing in REAPER.
 
@@ -52,12 +52,12 @@ const (
 )
 
 // trackStateReader is the Track state role's read of chapter_track_state, as the binding needs it (a fake in tests):
-// an alias of dawport.TrackStateReader (DAW port PRD P5a, ADR 0300), the role interface this file and
+// an alias of dawport.TrackStateReader (ADR 0300), the role interface this file and
 // teleprompterinput.go promote their identical local seam onto.
 type trackStateReader = dawport.TrackStateReader
 
-// ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading
-// (read-aloud-control-bar.prd.md Phase 6): its linked track the one track armed, and REAPER not already recording. A
+// ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading:
+// its linked track the one track armed, and REAPER not already recording. A
 // chapter with no link, a REAPER that is not there and the experimental switch being off are answers, not errors; only
 // a chapter the manuscript does not have is an error. It reads, and changes nothing in REAPER.
 func (h *Host) ReadAloudReaperState(chapterID string) (string, error) {
@@ -65,7 +65,7 @@ func (h *Host) ReadAloudReaperState(chapterID string) (string, error) {
 	return encodeBinding(readAloudReaperStateIn(context.Background(), svc, trackStateReaderFrom(svc), chapterID))
 }
 
-// trackStateReaderFrom asks svc's DAW port resolver for the Track state role (DAW port PRD P5a): nil, exactly as
+// trackStateReaderFrom asks svc's DAW port resolver for the Track state role: nil, exactly as
 // svc.actions being nil once was, when there is no resolver, no adapter, the capability is toggled off, or REAPER is
 // not reachable right now. readAloudReaperStateIn and teleprompterReaperInputIn already turn that into "unavailable"
 // or a specific reason.

@@ -16,7 +16,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
 )
 
-// comparisonRecorder is the transcript service's run recorder (proofing-readiness-signals.prd.md Phase 2): every
+// comparisonRecorder is the transcript service's run recorder: every
 // finished comparison becomes one analysis evidence ledger record, with its chapter resolved from the run's chapter
 // title through the manuscript, the manuscript's documentId, the compared set read from the run's manifest and the
 // saved project file's time at completion. A record that cannot be written is logged and never fails the comparison
@@ -39,7 +39,7 @@ func comparisonRecorder(folder string, text *manuscript.Service, store *settings
 	}
 }
 
-// renderMeasurementRecorder is the measurement job's per-file hook (proofing-readiness-signals.prd.md Phase 4): a
+// renderMeasurementRecorder is the measurement job's per-file hook: a
 // measured file that is some chapter's chosen render becomes one ledger record per such chapter, keyed by the render's
 // fingerprint, with its Report (or failed, with the error). Nil without a project or a manuscript. A record that cannot
 // be written is logged; the measurement the narrator is looking at is unaffected.
@@ -57,8 +57,7 @@ func renderMeasurementRecorder(folder string, text *manuscript.Service, reporter
 	}
 }
 
-// proofingProfile is the delivery profile the open project is judged against now, for the proofing delivery checks
-// (proofing-readiness-signals.prd.md Phase 5). It takes a services() snapshot, so it must not be called with h.mu held:
+// proofingProfile is the delivery profile the open project is judged against now, for the proofing delivery checks. It takes a services() snapshot, so it must not be called with h.mu held:
 // configureLocked passes it as a value and the stages service calls it at evaluation time.
 func (h *Host) proofingProfile() deliveryprofile.Profile {
 	profile, _, _ := h.selectedDeliveryProfile(h.services())

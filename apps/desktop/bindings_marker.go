@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The Review page's approved marker (review-dashboard-and-findings-adoption.prd.md Phase 8, Q8; ADR 0123): one take
+// The Review page's approved marker (ADR 0123): one take
 // marker in REAPER for one finding the narrator accepted, sent only after they confirm it. It goes through the same
 // navigator, the same refusals and the same "only while REAPER is listening" rule as Go to (bindings_navigation.go), and
 // it is the one REAPER action from the page that changes the project, so REAPER wraps it in one undo block. The batch

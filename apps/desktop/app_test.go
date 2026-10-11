@@ -178,9 +178,9 @@ func TestParseConfigArgsUsesForwardedSecondInstanceArguments(t *testing.T) {
 	}
 }
 
-// TestParseConfigArgsReadsProjectFile is PRD project-workspace-and-daw-link.prd.md
-// Phase 5: the REAPER launcher passes --project-file so a second launch (and
-// first launch) can map the rpp back to its own project (W5).
+// TestParseConfigArgsReadsProjectFile pins that the REAPER launcher passes
+// --project-file so a second launch (and first launch) can map the rpp back to
+// its own project.
 func TestParseConfigArgsReadsProjectFile(t *testing.T) {
 	config := parseConfigArgs(`C:\repo`, []string{"--project-file", `C:\books\novel\Book.rpp`, "--daw", "REAPER"})
 	if config.projectFile != `C:\books\novel\Book.rpp` {
@@ -189,7 +189,7 @@ func TestParseConfigArgsReadsProjectFile(t *testing.T) {
 }
 
 // TestParseConfigArgsWithNoProjectFileLeavesItEmpty covers the unsaved-REAPER-project
-// case (W5): the launcher passes an empty --project-file, and an absent flag
+// case: the launcher passes an empty --project-file, and an absent flag
 // entirely (a standalone launch) must behave the same way.
 func TestParseConfigArgsWithNoProjectFileLeavesItEmpty(t *testing.T) {
 	config := parseConfigArgs(`C:\repo`, []string{"--daw", "REAPER"})
@@ -199,7 +199,7 @@ func TestParseConfigArgsWithNoProjectFileLeavesItEmpty(t *testing.T) {
 }
 
 // TestResolveProjectFileMapsAnRppToItsLinkedProjectEvenOutsideTheRppsOwnFolder
-// is W4/W5: the rpp may live outside its project's folder, so the match comes
+// pins that the rpp may live outside its project's folder, so the match comes
 // from the manifest's link, not from next.projectFolder (which the launcher
 // only ever sets to the rpp's own containing folder).
 func TestResolveProjectFileMapsAnRppToItsLinkedProjectEvenOutsideTheRppsOwnFolder(t *testing.T) {
@@ -232,7 +232,7 @@ func TestResolveProjectFileMapsAnRppToItsLinkedProjectEvenOutsideTheRppsOwnFolde
 	}
 }
 
-// TestResolveProjectFileWithNoMatchKeepsTheLaunchersGuess is W6: an existing
+// TestResolveProjectFileWithNoMatchKeepsTheLaunchersGuess pins that an existing
 // REAPER session with no link yet still attaches the rpp's own folder as
 // before, unchanged.
 func TestResolveProjectFileWithNoMatchKeepsTheLaunchersGuess(t *testing.T) {
@@ -244,7 +244,7 @@ func TestResolveProjectFileWithNoMatchKeepsTheLaunchersGuess(t *testing.T) {
 }
 
 // TestResolveProjectFileWithNoProjectFileIsANoOp covers the unsaved-REAPER-project
-// case (W5): nothing to match, so config passes through unchanged and the
+// case: nothing to match, so config passes through unchanged and the
 // caller's existing empty-projectFolder handling opens the picker.
 func TestResolveProjectFileWithNoProjectFileIsANoOp(t *testing.T) {
 	next := resolveProjectFile(nil, t.TempDir(), config{projectFolder: "", projectName: "Unsaved REAPER project"})
@@ -253,8 +253,8 @@ func TestResolveProjectFileWithNoProjectFileIsANoOp(t *testing.T) {
 	}
 }
 
-// TestOnSecondInstanceMapsTheRppToItsLinkedProjectInsteadOfTheRppsOwnFolder is
-// W4/W5 end to end through the real second-instance path: a relaunch from
+// TestOnSecondInstanceMapsTheRppToItsLinkedProjectInsteadOfTheRppsOwnFolder
+// pins the link match end to end through the real second-instance path: a relaunch from
 // REAPER must not silently replace the narrator's chosen project with the
 // rpp's own (now decoupled) folder when a link exists elsewhere.
 func TestOnSecondInstanceMapsTheRppToItsLinkedProjectInsteadOfTheRppsOwnFolder(t *testing.T) {

@@ -5,10 +5,9 @@ import (
 	"testing"
 )
 
-// The Takes panel's bindings (edit-and-proof-workspace.prd.md Phase 6, ADR 0700). What they answer is
-// internal/passagetakes' own (its tests pin the candidates, the choices and the outcomes, and write the goldens the UI
-// checks); these cover the host's wiring: no project, a token range the alignment does not have, and a read of a
-// chapter whose item has only one take.
+// The Takes panel's bindings (ADR 0700). What they answer is internal/passagetakes' own (its tests pin the candidates,
+// the choices and the outcomes, and write the goldens the UI checks); these cover the host's wiring: no project, a
+// token range the alignment does not have, and a read of a chapter whose item has only one take.
 
 func TestWorkspaceTakesBindingsWithNoProjectAreAnError(t *testing.T) {
 	host := NewHost()

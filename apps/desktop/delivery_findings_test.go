@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// Delivery findings on the Review page (delivery-platform-profiles.prd.md Phase 9, P12): each measurement saves the
+// Delivery findings on the Review page : each measurement saves the
 // rules a file misses into the project's findings store, and a change of profile re-judges what was measured.
 
 func fv(x float64) *float64 { return &x }

@@ -47,8 +47,7 @@ const chapterRegionsSubtitleRpp = `<REAPER_PROJECT 0.1 "7.80/x64" 1789000000
 >
 `
 
-// newTestHostForChapterRegionsSubtitle builds a Host over
-// tests/fixtures/chapter-regions-subtitle.md (chapter-title-display-consistency PRD Phase 4, Q7): "CHAPTER ONE" has
+// newTestHostForChapterRegionsSubtitle builds a Host over tests/fixtures/chapter-regions-subtitle.md: "CHAPTER ONE" has
 // the subtitle "Bad Ideas Look Great in Neon"; "Chapter Two" has none. It returns the chapter ids in book order.
 func newTestHostForChapterRegionsSubtitle(t *testing.T) (*Host, []string) {
 	t.Helper()
@@ -96,10 +95,9 @@ func newTestHostForChapterRegionsSubtitle(t *testing.T) (*Host, []string) {
 	return host, ids
 }
 
-// TestChapterRegionsPreviewFollowsTheSameNameRuleAsEverywhereElse pins Q7 of chapter-title-display-consistency.prd.md
-// (owner decision D34): a chapter's region title is chaptername.Plain's "Title - Subtitle" (the ASCII hyphen, not the
-// em dash, since the name becomes a REAPER region, then a render file name, then an ID3 CHAP title), and a chapter
-// with no subtitle keeps exactly its title, unchanged from before this phase.
+// TestChapterRegionsPreviewFollowsTheSameNameRuleAsEverywhereElse pins that a chapter's region
+// title is chaptername.Plain's "Title - Subtitle" (the ASCII hyphen, not the em dash, since the name becomes a REAPER
+// region, then a render file name, then an ID3 CHAP title), and a chapter with no subtitle keeps exactly its title.
 func TestChapterRegionsPreviewFollowsTheSameNameRuleAsEverywhereElse(t *testing.T) {
 	host, ids := newTestHostForChapterRegionsSubtitle(t)
 	linkChapter(t, host, ids[0], chapterRegionsSubtitleTrackI)

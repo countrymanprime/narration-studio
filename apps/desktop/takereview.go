@@ -26,7 +26,7 @@ var takeReviewUnsafeScopeChars = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
 
 // takeReviewChapterID derives the findings store's scope id (and
 // findings.Manuscript.ChapterID) from the chapter track name a scan
-// covers: this milestone has no manuscript chapter picker (Q6 - spans come
+// covers: this milestone has no manuscript chapter picker (spans come
 // from alignment, not stamped ids), so the track name is both what the
 // narrator chose to scan and the scope its findings are saved and read
 // back under. The human-readable name stays intact as ChapterTitle.
@@ -72,12 +72,11 @@ func (h *Host) takeReviewRunnerFor(svc hostServices) takereview.SidecarRunner {
 	}
 }
 
-// takeReviewCreateTake sends the create_take bridge command for a narrator-approved candidate (phase 6 of
-// take-review-pickups-duplicates-take-intelligence.prd.md): the finding id (provenance, ADR 0098), the target
-// item's own GUID (Q4/Q6 - the narrator chooses it explicitly; this method never preselects one), the candidate's
+// takeReviewCreateTake sends the create_take bridge command for a narrator-approved candidate. The request carries the
+// finding id (provenance, ADR 0098), the target item's own GUID (the narrator chooses it explicitly; this method never preselects one), the candidate's
 // own item GUID when it has one, its source file, and the matched span's range within that source. It does not
 // change the finding's review status in the store: the narrator decides that on the Review page, which offers this
-// action only for a finding they accepted (phase 5).
+// action only for a finding they accepted.
 func (h *Host) takeReviewCreateTake(req takereview.CreateTakeRequest) (takereview.CreateTakeResult, error) {
 	svc := h.services()
 	if svc.takeCreator == nil {

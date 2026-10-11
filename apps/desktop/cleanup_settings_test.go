@@ -7,8 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The silence cleanup analyzer's own thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
-// ADR 0238 decision 4): a narrator's settings resolve to measure.CleanupOptions the same way coverageSettings
+// The silence cleanup analyzer's own thresholds (ADR 0238 decision 4): a narrator's settings resolve to measure.CleanupOptions the same way coverageSettings
 // resolves the recording check's, with config/defaults.json seeding every key so an untouched store still answers
 // measure.DefaultCleanupOptions.
 

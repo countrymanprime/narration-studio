@@ -63,8 +63,7 @@ func TestSaveSettingsRejectsAnUnknownTeleprompterField(t *testing.T) {
 	}
 }
 
-// Phase 3 ("Teleprompter settings section") added the engine choice; Phase 7 ("Engine choice end to end") offers
-// Moonshine in it wherever the sidecar ships it (Windows, ADR 0107).
+// The engine choice offers Moonshine wherever the sidecar ships it (Windows, ADR 0107).
 func TestSaveSettingsAcceptsAndPersistsTheTeleprompterEngineChoice(t *testing.T) {
 	host := newTestHostForTeleprompterSettings(t, "")
 	host.platform = "windows"
@@ -102,8 +101,8 @@ func TestTheEngineChoicesAreTheEnginesThisPlatformCanLaunch(t *testing.T) {
 	}
 }
 
-// Model choices exposed per engine (the PRD's Decisions Log recommendation): tiny and small only, for either engine
-// (both catalogs have them), since only those have measured live-lag data.
+// Model choices exposed per engine (only those have measured live-lag data): tiny and small only, for either engine
+// (both catalogs have them).
 func TestSaveSettingsAcceptsAndPersistsTheTeleprompterModelChoice(t *testing.T) {
 	host := newTestHostForTeleprompterSettings(t, "")
 

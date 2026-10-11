@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// recordedLengths is the manuscript service's recorded-length provider (actual-recorded-column PRD Phase 2, AR2 A):
+// recordedLengths is the manuscript service's recorded-length provider:
 // for every chapter, the recorded seconds of its one confirmed track in the saved .rpp (tracks.Track.RecordedSeconds),
 // or why there are none. Confirmed links are the only source: a name match, however confident, is never read here.
 // It is bound to one project's folder, settings and manuscript in configureLocked.

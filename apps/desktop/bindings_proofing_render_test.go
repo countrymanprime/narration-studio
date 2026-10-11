@@ -12,10 +12,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// The chapter-to-render association bindings (proofing-readiness-signals.prd.md Phase 6): ProofingChooseRender opens
-// a file dialog (a test-only seam, host.pickRenderFile) and attests the chosen file for the chapter; ProofingRenderState
-// reads it back; ProofingClearRender removes it. renderHost reuses stagesHost's coverage project (bindings_stages_test.go):
-// chapter c-0001, confirmed to REAPER track {TRACK-1}, in status proofing.
+// The chapter-to-render association bindings: ProofingChooseRender opens a file dialog (a test-only seam,
+// host.pickRenderFile) and attests the chosen file for the chapter; ProofingRenderState reads it back;
+// ProofingClearRender removes it. renderHost reuses stagesHost's coverage project (bindings_stages_test.go): chapter
+// c-0001, confirmed to REAPER track {TRACK-1}, in status proofing.
 
 func renderHost(t *testing.T) *Host {
 	t.Helper()

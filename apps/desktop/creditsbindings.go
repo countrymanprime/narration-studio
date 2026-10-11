@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// Credits bindings (PRD audiobook-credits-templates.prd.md, Phase 1): the
+// Credits bindings: the
 // user-level template library (h.creditTemplates, set once in NewHost, never
 // swapped by a project switch, like h.recents), the current project's own
 // token values (project.Manifest.Credits, read/written the same way
@@ -25,7 +25,7 @@ func (h *Host) CreditsTemplates() (string, error) {
 }
 
 // CreditsSaveTemplate creates a template (id empty) or updates one in place
-// (id set). kind is "opening", "closing" or "chapter_announcement" (C8).
+// (id set). kind is "opening", "closing" or "chapter_announcement".
 func (h *Host) CreditsSaveTemplate(id, kind, name, body string) (string, error) {
 	if kind != "opening" && kind != "closing" && kind != "chapter_announcement" {
 		return "", fmt.Errorf("unsupported credit template kind %q", kind)
@@ -47,8 +47,7 @@ func (h *Host) CreditsDeleteTemplate(id string) (string, error) {
 
 // CreditsProjectValues returns the current project's own credit token
 // values, the global narrator default, and suggestions seeded from the
-// imported manuscript's front matter and file metadata (C3, amended by
-// credits-token-setup-and-front-matter-detection.prd.md Phase 1) for any
+// imported manuscript's front matter and file metadata for any
 // field the project has not set yet. It never writes anything: suggestions
 // are for the narrator to accept or ignore. detected carries the same
 // candidates with their source and confidence (additive; suggestions alone
@@ -77,7 +76,7 @@ func (h *Host) CreditsProjectValues() (string, error) {
 }
 
 // CreditsSaveProjectValues saves this project's own credit token values onto
-// the project manifest (C12).
+// the project manifest.
 func (h *Host) CreditsSaveProjectValues(title, subtitle, author, series, bookNumber, copyrightText, year, copyrightHolder, publisher, narrator string) (string, error) {
 	svc := h.services()
 	projectFolder := svc.config.projectFolder
@@ -103,15 +102,14 @@ func (h *Host) CreditsSaveProjectValues(title, subtitle, author, series, bookNum
 
 // CreditsPreview renders text (a template body, or an unsaved draft the
 // narrator is still editing) with this project's own credit values, falling
-// back to the global narrator default for [Narrator] (C2), exactly as the
-// estimate and the teleprompter will render it in later phases (one
-// renderer, PRD "Technical Approach").
+// back to the global narrator default for [Narrator], exactly as the
+// estimate and the teleprompter render it (one renderer, credits.Render).
 func (h *Host) CreditsPreview(body string) (string, error) {
 	return encodeBinding(credits.Render(body, h.creditTokens()), nil)
 }
 
 // creditTokens is the token map every credits render uses: this project's own values, the global narrator default filling
-// [Narrator] when the project has none (C2). A project with no manifest (or none open) renders with no project values.
+// [Narrator] when the project has none. A project with no manifest (or none open) renders with no project values.
 func (h *Host) creditTokens() map[string]string {
 	svc := h.services()
 	projectFolder := svc.config.projectFolder
@@ -131,10 +129,10 @@ func (h *Host) creditTokens() map[string]string {
 // creditsScriptTitles are the credits kinds the teleprompter reads and the name each is shown under (never read aloud).
 var creditsScriptTitles = map[string]string{"opening": "Opening credits", "closing": "Closing credits"}
 
-// creditsScript is the opening or closing credits as the teleprompter reads them (Phase 4, ADR 0150): the first template of
+// creditsScript is the opening or closing credits as the teleprompter reads them (ADR 0150): the first template of
 // that kind in the library (ADR 0093, the same one the estimate times and the Manuscript entry shows), rendered with
 // credits.Render exactly as CreditsPreview renders it. An unresolved token stays visible in the text rather than failing:
-// the UI warns about it and Start stays allowed (C6, owner decision 2026-09-23).
+// the UI warns about it and Start stays allowed (owner decision 2026-09-23).
 func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
 	title, ok := creditsScriptTitles[kind]
 	if !ok {

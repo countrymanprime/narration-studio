@@ -10,9 +10,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// WorkspaceListFXChains (edit-and-proof-workspace.prd.md Phase 8, ADR 0234): a read-only list of the narrator's FX
-// chains, over the DAW port's FXManager role, exactly as silenceTrimmerFrom/CleanupPreview are tested
-// (bindings_cleanup_test.go) - fakeResolver is defined there and reused here.
+// WorkspaceListFXChains (ADR 0234): a read-only list of the narrator's FX chains, over the DAW port's FXManager role,
+// exactly as silenceTrimmerFrom/CleanupPreview are tested (bindings_cleanup_test.go) - fakeResolver is defined there
+// and reused here.
 
 func TestFxManagerFromComesFromTheResolver(t *testing.T) {
 	resolver, fake := fakeResolver(dawport.Supported)

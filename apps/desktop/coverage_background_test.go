@@ -14,7 +14,7 @@ import (
 )
 
 // fakeBackgroundHeartbeat is a dawport.Heartbeat a test can point at a chosen transport, for background-check gating
-// on REAPER's own recording state (daw-chapter-track-auto-sync.prd.md Phase 7, ADR 0211; the transport itself is
+// on REAPER's own recording state (ADR 0211; the transport itself is
 // ADR 0305). Only Reachable and Transport matter to backgroundCheckTick; the rest answer as an unlinked heartbeat.
 type fakeBackgroundHeartbeat struct {
 	reachable    bool
@@ -30,7 +30,7 @@ func (f fakeBackgroundHeartbeat) Transport() (dawport.Transport, bool) {
 	return f.transport, f.hasTransport
 }
 
-// Background recording checks (daw-chapter-track-auto-sync PRD Phase 7, S7, D27, ADR 0211): the host's loop over the
+// Background recording checks (ADR 0211): the host's loop over the
 // real coverage service, with the power state and the clock handed in.
 
 // switchableSidecar is a coverage launcher a test can point at another fake between runs.
@@ -146,7 +146,7 @@ func TestOnBatteryNothingStarts(t *testing.T) {
 	}
 }
 
-// TestNothingStartsWhileReaperIsRecording covers the heartbeat's recording bit (Phase 7's own gap, ADR 0211 and
+// TestNothingStartsWhileReaperIsRecording covers the heartbeat's recording bit (ADR 0211 and
 // ADR 0305): a live heartbeat that says REAPER is recording holds off, even though every other condition (mains
 // power, quiet chapter, model installed) allows a check.
 func TestNothingStartsWhileReaperIsRecording(t *testing.T) {

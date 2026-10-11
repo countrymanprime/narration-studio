@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/cleanuptools"
 )
 
-// The Phase 23 (cleanup launchers) bindings for the reaper-automation-follow-through PRD, ADR 0146. h.emitCleanupTools
+// The cleanup launcher bindings, ADR 0146. h.emitCleanupTools
 // (app.go) relays every state change as the "cleanuptools:state" live event. The wire-contract schema, golden payloads
 // and mock live in apps/ui/src/api.
 

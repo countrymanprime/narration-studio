@@ -8,10 +8,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 )
 
-// The proofing-preview-suggestion PRD's Phase 8: letting the narrator settle on one suggested window and keep it
-// (Q9 recommendation B, "a pin per book"), and move its edges by paragraph (User Flow step 5). Like Phase 2's
-// PreviewCandidates, every binding here recomputes the pin's evidence fresh from the manuscript's current state on
-// every call (SR D1): only the pin itself - which chapter, which paragraphs, and the text they read when pinned or
+// The preview pin (docs/architecture/preview-suggestion.md): letting the narrator settle on one suggested window and
+// keep it ("a pin per book"), and move its edges by paragraph. Like PreviewCandidates, every binding here recomputes
+// the pin's evidence fresh from the manuscript's current state on every call: only the pin itself - which chapter, which paragraphs, and the text they read when pinned or
 // last adjusted - is stored (preview.PinStore), never a verdict.
 
 // pinnedPreviewView is the wire shape for the narrator's pinned window: always present (never null), with
@@ -42,7 +41,7 @@ func (h *Host) PreviewPin() (string, error) {
 
 // PreviewPinSet pins one window: chapterID and paragraphIDs are normally a candidate's own fields, exactly as
 // PreviewCandidates answered them, though any contiguous, in-order run of one chapter's paragraph ids is accepted
-// (Phase 8 does not require the narrator to have started from a suggested candidate at all).
+// (the narrator need not have started from a suggested candidate at all).
 func (h *Host) PreviewPinSet(chapterID string, paragraphIDs []string) (string, error) {
 	svc := h.services()
 	if svc.manuscript == nil {

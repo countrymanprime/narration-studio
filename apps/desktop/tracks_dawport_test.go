@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// fakeProjectReaderRole proves readProject asks the dawport.ProjectReader role (DAW port PRD Phase 5d) for the project
+// fakeProjectReaderRole proves readProject asks the dawport.ProjectReader role for the project
 // instead of calling tracks.Parse itself: it never opens path, so a real .rpp is never required once it is installed.
 type fakeProjectReaderRole struct {
 	project tracks.Project

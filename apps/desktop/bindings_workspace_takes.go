@@ -15,11 +15,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The workspace's Takes panel (edit-and-proof-workspace.prd.md Phase 6, EP6 and EP7, ADR 0700): the alternate takes of
-// a chapter passage, a passage-based comparison of them, and "Use this take". The page sends a chapter id and a range
-// of token indices (and, to choose, the id of a candidate this host offered), never a GUID, a file or a time: every one
-// of those is read here from the chapter's stored alignment, the saved REAPER project and the findings store
-// (internal/passagetakes), exactly as WorkspaceGoTo does for a word (threat model rows 5l and 4f).
+// The workspace's Takes panel (ADR 0700): the alternate takes of a chapter passage, a passage-based comparison of them,
+// and "Use this take". The page sends a chapter id and a range of token indices (and, to choose, the id of a candidate
+// this host offered), never a GUID, a file or a time: every one of those is read here from the chapter's stored
+// alignment, the saved REAPER project and the findings store (internal/passagetakes), exactly as WorkspaceGoTo does for
+// a word (threat model rows 5l and 4f).
 
 // workspaceTakesResolved reads the alternates of the passage [firstToken, lastToken] of chapterID, with the saved
 // project they were resolved against (a choice acts on that project's GUIDs).

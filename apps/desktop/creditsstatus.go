@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Credits row statuses (credits-in-chapter-table.prd.md Phase 1, CT2/CT3, ADR 0183): the opening and closing credits rows
+// Credits row statuses (ADR 0183): the opening and closing credits rows
 // the chapter table shows get a status of their own, one of the same five a manuscript chapter has, stored on the project
 // manifest beside Credits and RetailSample so it survives Replace manuscript and Clear derived data, unlike a chapter's
 // status in manuscript-notes.json (which resetDerived wipes).

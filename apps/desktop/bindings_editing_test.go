@@ -16,7 +16,7 @@ import (
 // editingProject writes a project folder with one saved .rpp (one track, one item), a manuscript and a confirmed
 // chapter-track link, the same shape coverageProject builds, but with a real, decodable WAV (a half-second of quiet
 // tone: no silence gap, so a scan of it finds no empty-space candidates - a clean-pass fixture). unmapped controls
-// whether the chapter-track link is confirmed at all (Q9's own "unmapped" refusal).
+// whether the chapter-track link is confirmed at all (the "unmapped" refusal).
 func editingProject(t *testing.T, unmapped bool) string {
 	t.Helper()
 	project := t.TempDir()
@@ -122,8 +122,7 @@ func TestEditingStartRunsToCompletionWithNoCandidates(t *testing.T) {
 	contractfile.Check(t, "editing-candidates-empty", candidates)
 }
 
-// TestEditingSourceChoiceDefaultsToItemsAndCanBeSetToRender is Q6's own wire contract (editing-readiness-analysis.prd.md
-// Phase 8): the choice binding is a bare wire string ("items" or "render"), never an object, matching every other
+// TestEditingSourceChoiceDefaultsToItemsAndCanBeSetToRender is the wire contract of the source choice: the choice binding is a bare wire string ("items" or "render"), never an object, matching every other
 // bare-string binding's own encodeBinding(value, nil) shape.
 func TestEditingSourceChoiceDefaultsToItemsAndCanBeSetToRender(t *testing.T) {
 	host := editingHost(t, false)

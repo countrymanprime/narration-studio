@@ -14,8 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
 )
 
-// Comparing the takes of one group of repeated reads, as a job (take-review-pickups-duplicates-take-intelligence.prd.md
-// Phase 10, ADR 0165): the Review page starts it from a take-review group, polls the sidecar's own progress (ADR 0015)
+// Comparing the takes of one group of repeated reads, as a job (ADR 0165): the Review page starts it from a take-review group, polls the sidecar's own progress (ADR 0015)
 // and can cancel it. The comparison it saves is a take_comparison finding under "take-comparison", listed and decided
 // through the generic findings bindings (ADR 0120). The page sends only the group's id: everything the sidecar reads is
 // built here from the saved project and the store (threat model 4f).

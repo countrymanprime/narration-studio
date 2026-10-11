@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// The online pronunciation lookup's guards (prep-depth.prd.md Phase 9, mirroring providerguard_test.go): the key store,
+// The online pronunciation lookup's guards (mirroring providerguard_test.go): the key store,
 // the adapter and the API's host are each reachable from exactly one place, so no other code can read the narrator's
 // key or build a request to Merriam-Webster, and no future edit can quietly add a second caller.
 

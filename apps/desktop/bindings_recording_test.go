@@ -227,9 +227,9 @@ func recorderHostWithManuscript(t *testing.T, fake *recordingtest.Fake) *Host {
 	return host
 }
 
-// TestRecorderSetTakeLineAssignsThroughTheManuscriptsOwnChecksum pins Phase 4's binding: it takes only an entity id
-// from the caller, reading the manuscript's own recorded source checksum itself so the UI can never stamp a stale
-// or wrong one (native-recording-suite PRD Phase 3's SetTakeLine, first wired to the UI here).
+// TestRecorderSetTakeLineAssignsThroughTheManuscriptsOwnChecksum pins the take-line binding: it takes only an entity id
+// from the caller, reading the manuscript's own recorded source checksum itself so the UI can never stamp a stale or
+// wrong one.
 func TestRecorderSetTakeLineAssignsThroughTheManuscriptsOwnChecksum(t *testing.T) {
 	fake := &recordingtest.Fake{}
 	host := recorderHostWithManuscript(t, fake)
@@ -274,7 +274,7 @@ func TestRecorderSetTakeLineWithoutAProjectIsRefused(t *testing.T) {
 	}
 }
 
-// TestRecorderSetTakeKeeperMarksAndUndoes pins Phase 4's keeper binding end to end, through the host.
+// TestRecorderSetTakeKeeperMarksAndUndoes pins the keeper binding end to end, through the host.
 func TestRecorderSetTakeKeeperMarksAndUndoes(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
 	folder := filepath.Join(host.config.projectFolder, recording.FolderName)

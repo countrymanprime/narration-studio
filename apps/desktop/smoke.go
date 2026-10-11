@@ -41,10 +41,10 @@ import (
 //   - on Windows, the frozen Teleprompter sidecar can load Moonshine's native library (`--capabilities --verify`), which PyInstaller cannot
 //     see it needs; no model is loaded and nothing is downloaded;
 //   - the frozen Teleprompter sidecar's own `--capabilities` report names every ASR and capture row Go's own registries declare for
-//     this platform (sidecar-capabilities-flag PRD Phase 1: registration only, not the Moonshine check's native-library load);
+//     this platform (registration only, not the Moonshine check's native-library load);
 //   - the frozen Story Bible sidecar's own `capabilities` report names every TTS and pronunciation row Go's own registries declare
-//     for this platform, and the frozen Transcript Compare sidecar's own `--capabilities` report names every batch ASR row (Phase 2:
-//     same registration-only comparison, extended to the other two sidecars);
+//     for this platform, and the frozen Transcript Compare sidecar's own `--capabilities` report names every batch ASR row (the same
+//     registration-only comparison, extended to the other two sidecars);
 //   - the four approved asset catalogs load and name assets;
 //   - the asset cache folder can be found and written;
 //   - the REAPER launcher and its scripts are there, with the pointer to this executable.
@@ -343,9 +343,8 @@ type capabilitiesReport struct {
 }
 
 // checkCapabilities runs the frozen Teleprompter sidecar's own --capabilities report and requires every ASR and capture row Go's
-// own registries declare for options.Platform to be one this process actually registered (sidecar-capabilities-flag PRD, generalizing
-// the single hardcoded Moonshine comparison the retired checkFrozenMoonshine made into a loop over every registered provider row
-// instead). With options.Moonshine (Windows, the one platform moonshine-voice is pinned for), it also asks for --verify and requires
+// own registries declare for options.Platform to be one this process actually registered (a loop over every registered
+// provider row, where the retired checkFrozenMoonshine compared only Moonshine). With options.Moonshine (Windows, the one platform moonshine-voice is pinned for), it also asks for --verify and requires
 // the moonshine row to report loadable=true - the native library actually loads (ADR 0403). Every other row stays
 // registration-only (loadable: null) until a future phase gives it its own verify hook.
 func checkCapabilities(ctx context.Context, options smokeOptions, root string) (string, error) {
@@ -408,9 +407,9 @@ type guideCapabilitiesReport struct {
 }
 
 // checkGuideCapabilities runs the frozen Story Bible sidecar's own `capabilities` report and requires every TTS and pronunciation
-// row Go's own registries declare for options.Platform to be one this process actually registered (sidecar-capabilities-flag PRD
-// Phase 2, the same comparison checkCapabilities makes for the Teleprompter sidecar). It proves only that the row registered, not
-// that it loads (Q2/ADR 0403).
+// row Go's own registries declare for options.Platform to be one this process actually registered (the same comparison
+// checkCapabilities makes for the Teleprompter sidecar). It proves only that the row registered, not that it loads
+// (ADR 0403).
 func checkGuideCapabilities(ctx context.Context, options smokeOptions, root string) (string, error) {
 	executable := sidecarPath(root, "manuscript-guide")
 	if executable == "" {
@@ -456,9 +455,8 @@ type compareCapabilitiesReport struct {
 }
 
 // checkCompareCapabilities runs the frozen Transcript Compare sidecar's own --capabilities report and requires every batch-mode ASR
-// row Go's own registries declare for options.Platform to be one this process actually registered (sidecar-capabilities-flag PRD
-// Phase 2). Unlike checkCapabilities (the live/Teleprompter sidecar), this filters to rows that declare the batch mode: Transcript
-// Compare only ever imports asr_batch, so a live-only, platform-applicable row (Moonshine) would never appear in its report even on
+// row Go's own registries declare for options.Platform to be one this process actually registered. Unlike checkCapabilities (the live/Teleprompter sidecar), this filters to rows that declare the
+// batch mode: Transcript Compare only ever imports asr_batch, so a live-only, platform-applicable row (Moonshine) would never appear in its report even on
 // a platform it ships for, and that must not be mistaken for a missing registration. --manuscript is passed only because compare.py's
 // argument parser requires it for every invocation (see compare.py's module docstring); --capabilities ignores its value.
 func checkCompareCapabilities(ctx context.Context, options smokeOptions, root string) (string, error) {
@@ -493,7 +491,7 @@ func checkCompareCapabilities(ctx context.Context, options smokeOptions, root st
 
 // checkCatalogs loads the seven approved asset catalogs the release carries (config/*-assets.json in the unpacked resources) and requires
 // each to name at least one asset: an empty or unreadable catalog would leave the narrator nothing to download. A Pending row (the
-// wiktextract catalog, prep-depth Phase 8, until a future session verifies its download) still counts: this check is "the catalog lists
+// wiktextract catalog, until a future session verifies its download) still counts: this check is "the catalog lists
 // something," not "it can be installed." The frozen sidecar's own Moonshine support is checked apart from its catalog, by checkCapabilities's
 // verify pass.
 func checkCatalogs(root string) (string, error) {

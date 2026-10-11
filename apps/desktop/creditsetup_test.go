@@ -13,8 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The credits setup prompt's host half (credits-token-setup-and-front-matter-detection PRD Phase 2, CS1, CS2, CS4,
-// CS7): whether to ask, what to ask for with what prefilled, "Not now" and "Don't ask", and a save that only fills.
+// The credits setup prompt's host half (ADR 0208): whether to ask, what to ask for with what prefilled, "Not now" and "Don't ask", and a save that only fills.
 
 // hostWithImportedBook is hostWithCredits with the owner's book imported (tests/fixtures/after-the-applause.md) and
 // no credits values saved: a project that predates credits, which is the upgrade case the prompt catches.
@@ -96,7 +95,7 @@ func TestAPreCreditsProjectWithAManuscriptIsAskedWithTheBookPrefilled(t *testing
 		}
 		byToken[field.Token] = value
 	}
-	// The default templates read [Title], [Author] and [Narrator]; nothing names the narrator (CS7).
+	// The default templates read [Title], [Author] and [Narrator]; nothing names the narrator.
 	if byToken["Title"] != "After the Applause" || byToken["Author"] != "Adrian Crow" || byToken["Narrator"] != "" || len(state.Fields) != 3 {
 		t.Fatalf("fields = %+v", state.Fields)
 	}
@@ -181,7 +180,7 @@ func TestNotNowLastsTheSessionAndDontAskLastsUntilTheManuscriptIsReplaced(t *tes
 	}
 }
 
-// CreditsSetupState's payloads (PRD Phase 2): asked with the owner's book prefilled, and after "Don't ask".
+// CreditsSetupState's payloads: asked with the owner's book prefilled, and after "Don't ask".
 func TestContractCreditsSetupState(t *testing.T) {
 	host := hostWithImportedBook(t)
 	check := func(name string) {
