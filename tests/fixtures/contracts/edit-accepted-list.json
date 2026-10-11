@@ -1,0 +1,43 @@
+{
+  "chapterId": "c-0001",
+  "words": [
+    {
+      "acceptedAt": "2026-09-21T10:00:00Z",
+      "key": "p-000001:4",
+      "ordinal": 4,
+      "paragraph": 0,
+      "paragraphId": "p-000001",
+      "stale": false,
+      "text": "the"
+    },
+    {
+      "acceptedAt": "2026-09-21T10:00:00Z",
+      "key": "p-000001:5",
+      "ordinal": 5,
+      "paragraph": 0,
+      "paragraphId": "p-000001",
+      "stale": false,
+      "text": "Queen"
+    },
+    {
+      "acceptedAt": "2026-09-21T10:00:00Z",
+      "key": "p-000002:1",
+      "ordinal": 1,
+      "paragraph": 1,
+      "paragraphId": "p-000002",
+      "stale": true,
+      "staleReason": "text_changed",
+      "text": "soldiers"
+    },
+    {
+      "acceptedAt": "2026-09-21T10:00:00Z",
+      "key": "p-000002:3",
+      "ordinal": 3,
+      "paragraph": 1,
+      "paragraphId": "p-000002",
+      "stale": true,
+      "staleReason": "word_missing",
+      "text": "silent."
+    }
+  ]
+}

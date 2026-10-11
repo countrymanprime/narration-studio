@@ -31,6 +31,7 @@ import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createPrepMarkupMock } from './prepMarkupMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createEditLogMock } from './editLogMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
 import { createUpdateMock } from './mockHost/update';
@@ -261,6 +262,11 @@ export function createMockApi(
     ...cleanupAction,
     ...prepMarkup,
     ...createBookmarksMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
+    ...createEditLogMock(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,

@@ -56,6 +56,11 @@ especially welcome:
   a file or a label or note that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used
   without being validated, or a bookmark moved to a guessed place instead of reported stale, is in scope; one that only changes where
   the narrator's own bookmarks point is the documented residual risk (threat model row 6u).
+- The narrator's accepted words (`narration-utils/editing/accepted.json` in the project,
+  [ADR 0856](docs/adr/0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
+  a file or a key that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
+  being validated, or an accepted word applied to another word instead of reported stale, is in scope; one that only changes which
+  flags the narrator sees on their own manuscript is the documented residual risk (threat model row 6w).
 - The Story Bible extraction suggestions (`ManuscriptGuide/suggestions.json` in the project,
   [ADR 0846](docs/adr/0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md)):
   a file or a quote, note or payload text that makes the app run, open, fetch or write anything else, that is used as a path, that puts markup
