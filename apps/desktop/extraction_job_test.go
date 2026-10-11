@@ -274,9 +274,9 @@ func TestExtractionScanProgressIsReal(t *testing.T) {
 	rules, gliner := newGate(), newGate()
 	host, _, events := scanHost(t, scanSource{name: extractionport.Rules, runs: true, extract: rules.extract(rulesRabbit)},
 		scanSource{name: extractionport.Gliner, runs: true, extract: gliner.extract(glinerHatter)})
-	job := decodeScanJob(t)(host.ExtractionScan([]string{extractionport.Gliner}))
+	decodeScanJob(t)(host.ExtractionScan([]string{extractionport.Gliner}))
 	waitGate(t, rules.started, "the rules starting")
-	job = decodeScanJob(t)(host.ExtractionScanState())
+	job := decodeScanJob(t)(host.ExtractionScanState())
 	if job.Percent != 0 || job.Message != "Scanning with Rules (1 of 2)." {
 		t.Fatalf("while the rules run: %d%% %q", job.Percent, job.Message)
 	}

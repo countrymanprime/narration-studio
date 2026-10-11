@@ -191,12 +191,12 @@ func (h *Host) startExtractionScan(ids []string) (ExtractionScanJob, error) {
 // a registered source the narrator can start.
 func extractionScanOrder(registry *port.Registry[extractionport.Source], ids []string) ([]string, error) {
 	if len(ids) > maxExtractionSourceIDs {
-		return nil, errors.New(sentenceTooManyIDs)
+		return nil, extractionRefusal(sentenceTooManyIDs)
 	}
 	runnable := extractionport.RunnableNamesIn(registry)
 	for _, id := range ids {
 		if len(id) > maxSuggestionIDBytes || extractionport.CheckExtractIn(registry, id) != nil || !slices.Contains(runnable, id) {
-			return nil, fmt.Errorf("%q is not a source a scan can run.", truncateID(id))
+			return nil, extractionRefusal(fmt.Sprintf("%q is not a source a scan can run.", truncateID(id)))
 		}
 	}
 	order := []string{}
@@ -231,7 +231,7 @@ func (h *Host) extractionScanInput(registry *port.Registry[extractionport.Source
 		return extractionScanRun{}, err
 	}
 	if len(paragraphs) == 0 {
-		return extractionScanRun{}, errors.New(sentenceNoManuscript)
+		return extractionScanRun{}, extractionRefusal(sentenceNoManuscript)
 	}
 	return extractionScanRun{
 		registry:  registry,
@@ -408,7 +408,7 @@ func (h *Host) extractionParagraphsOf(svc hostServices) ([]extraction.Paragraph,
 		return h.extractionParagraphs()
 	}
 	if svc.manuscript == nil {
-		return nil, errors.New(sentenceNoManuscript)
+		return nil, extractionRefusal(sentenceNoManuscript)
 	}
 	data, err := svc.manuscript.Load()
 	if err != nil {
