@@ -1,6 +1,6 @@
-// The mock host (mockApi.ts): the online pronunciation lookup (PronunciationOnline*, prep-depth P9). It keeps the Go
+// The mock host (mockApi.ts): the online pronunciation lookup (PronunciationOnline*). It keeps the Go
 // service's rules (pronunciationonline.CheckWord, the key's shape, the cache, the confirmed batch) so a screen built
-// against it meets the same refusals the host gives, and never reaches the network (D67).
+// against it meets the same refusals the host gives, and never reaches the network.
 import type { NarrationApi, PronunciationOnlineKeyStatus, PronunciationOnlineResult, PronunciationOnlineSpelling } from '../../types';
 import { PRONUNCIATION_ONLINE_MAX_BATCH } from '../contracts/pronunciationOnline';
 import { onlineBatchWords, onlineWord } from '../../pronunciationOnlineWords';

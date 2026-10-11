@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// What FindingsReaperStatus, FindingsGoTo, FindingsLoop and FindingsStopLoop send (review dashboard Phase 7), over the
+// What FindingsReaperStatus, FindingsGoTo, FindingsLoop and FindingsStopLoop send, over the
 // findings the real Transcript Compare adapter writes (contractReviewHost): every outcome, and every refusal the Review
 // page words differently. REAPER's side is a fake navigator; bridge.Navigator's own tests pin the file protocol.
 func TestContractFindingsNavigationBindings(t *testing.T) {

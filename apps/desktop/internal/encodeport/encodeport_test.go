@@ -24,8 +24,7 @@ func TestEveryRegisteredPackagerPassesTheSuite(t *testing.T) {
 }
 
 func TestThePackagerRegistryIsDeclaredEmpty(t *testing.T) {
-	// Provider-ports P13 declared both ports only; render-encode-master Phase 1 added the FFmpeg encoder (ffmpeg_test.go checks it),
-	// and Phase 4 adds the first packager.
+	// The FFmpeg encoder is registered (ffmpeg_test.go checks it); no packager is yet.
 	for _, platform := range port.Platforms {
 		if got := encodeport.Packagers.Names(platform); !reflect.DeepEqual(got, []string{}) {
 			t.Errorf("Packagers.Names(%q) = %v, want none", platform, got)

@@ -179,7 +179,7 @@ func TestParseQueriesCSVNeedsAHeaderWithTheWordAndEntryIDColumns(t *testing.T) {
 	}
 }
 
-// MatchQueryAnswers (prep-depth P6): a parsed answer matches an entity or alias that is still there; one that is not is
+// MatchQueryAnswers: a parsed answer matches an entity or alias that is still there; one that is not is
 // reported by its own line, never guessed at.
 
 func TestMatchQueryAnswersMatchesAnEntityAndAnAliasByIDAndIndex(t *testing.T) {
@@ -223,7 +223,7 @@ func TestMatchQueryAnswersReportsAnEntityOrAliasThatIsNoLongerThere(t *testing.T
 	}
 }
 
-// ImportQueriesCSV (prep-depth P6): applies every matched row's status and note through the same sidecar call the
+// ImportQueriesCSV: applies every matched row's status and note through the same sidecar call the
 // narrator's own "Mark answered" uses, and reports every row it could not use, whether ParseQueriesCSV or the match
 // against the current entities rejected it, by line, sorted the way the file reads.
 

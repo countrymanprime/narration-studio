@@ -56,7 +56,7 @@ func (h *Host) mediaMiddleware(next http.Handler) http.Handler {
 // play a candidate take's own source without first making it the active take
 // in REAPER.
 func (h *Host) authorizedMediaSource(requested string) (string, bool) {
-	// A take of the built-in recorder (native-recording-suite P2): only a file its Recordings list names, as its own path.
+	// A take of the built-in recorder: only a file its Recordings list names, as its own path.
 	if recorder := h.services().recorder; recorder != nil {
 		if path, ok := recorder.TakePath(requested); ok {
 			return path, true

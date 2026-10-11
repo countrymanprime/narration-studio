@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// FLAC output (render-encode-master Phase 7, Could/Q7): FFmpeg's own native "flac" encoder writes a lossless file - there is no
+// FLAC output: FFmpeg's own native "flac" encoder writes a lossless file - there is no
 // bitrate to ask for, and no MPEG-1-style sample-rate restriction to work around (mp3Spec's own concern). encodeFLAC (ffmpeg.go)
 // follows the same chain of custody as MP3 and M4B: a dot-named partial beside dst, checked before it is kept, removed on any
 // failure, timeout or cancel. checkFLAC reads back the STREAMINFO metadata block FLAC requires to be first (RFC 9639 §8.1-8.2)

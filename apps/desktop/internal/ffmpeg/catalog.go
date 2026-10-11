@@ -1,4 +1,4 @@
-// Package ffmpeg owns the approved catalog of FFmpeg builds the MP3 encoder runs (render-encode-master Phase 1, ADR 0342): a pinned
+// Package ffmpeg owns the approved catalog of FFmpeg builds the MP3 encoder runs (ADR 0342): a pinned
 // archive (the imageio-ffmpeg wheel on PyPI, which carries gyan.dev's static Windows build) is downloaded only when the narrator
 // confirms, checked against its SHA-256, unpacked, and everything but the one executable removed, inside the same staged install the
 // other assets use (internal/assets). The executable is checked against its own pinned hash before it is kept, and Verify reads it

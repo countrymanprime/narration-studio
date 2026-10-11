@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Listen on Commons (prep-depth P10, D72, Q12): the narrator's own press opens the Commons recording Wiktextract's own
+// Listen on Commons: the narrator's own press opens the Commons recording Wiktextract's own
 // offline data names for the word; a word the fixture index has no audio for shows a clear reason inline.
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

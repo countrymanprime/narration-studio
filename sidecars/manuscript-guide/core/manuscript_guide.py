@@ -460,7 +460,7 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
     return engine.pronounce(name)
 
 
-# The narrator's own pronunciation (prep-depth P1, ADR 0346). It is a provenance label, not a registered source: it is never looked
+# The narrator's own pronunciation (ADR 0346). It is a provenance label, not a registered source: it is never looked
 # up, so it is not in SOURCES and the pronounce command does not offer it.
 USER_SOURCE = "user"
 # Where the narrator is with a pronunciation: looked up (the default, and what an entry written before status existed reads as),
@@ -877,7 +877,7 @@ def merge_locked(generated: list[dict[str, Any]], old: dict[str, Any] | None) ->
             entity["properties"] = entity_properties(prior)
             # A pronunciation the narrator explicitly chose (pronounce(), marked "chosen") survives a rebuild too,
             # the same as a locked entity's - only an auto-generated one is replaced by the fresh build (B11).
-            # Otherwise the narrator's status, note and alternate carry over to the fresh one (prep-depth P1).
+            # Otherwise the narrator's status, note and alternate carry over to the fresh one.
             if (prior.get("pronunciation") or {}).get("chosen"):
                 entity["pronunciation"] = prior["pronunciation"]
             elif prior.get("pronunciation"):
@@ -1186,7 +1186,7 @@ def pronounce(args: argparse.Namespace) -> None:
 
 
 def pronounce_user(args: argparse.Namespace) -> None:
-    """Sets the narrator's own pronunciation (source ``user``) beside the dictionary's, which is kept as the alternate (prep-depth P1)."""
+    """Sets the narrator's own pronunciation (source ``user``) beside the dictionary's, which is kept as the alternate."""
     value = user_pronunciation(args.ipa)
     guide = _load_guide_for_edit(args.guide)
     holder, _ = _pronunciation_holder(guide, args.entity_id, args.alias_index)

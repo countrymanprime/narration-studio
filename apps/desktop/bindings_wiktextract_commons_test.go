@@ -19,7 +19,7 @@ import (
 // testWiktextractManager builds a manager whose default source is genuinely installed, through the real Install
 // pipeline (an httptest server serving a hand-built archive in the real Wiktextract JSON Lines shape, then unpacked
 // and derived exactly as a real install would be) - the same discipline the wiktextract package's own catalog_test.go
-// uses (prep-depth Phase 8, #782) rather than a hand-faked manifest, which would risk diverging from what State/Ready
+// uses (#782) rather than a hand-faked manifest, which would risk diverging from what State/Ready
 // actually check.
 func testWiktextractManager(t *testing.T, words map[string]wiktextract.WordEntry) *wiktextract.Manager {
 	t.Helper()

@@ -1,6 +1,5 @@
-// audio.go builds the Wikimedia Commons address for an audio file name Phase 8's derived index records (WordEntry.Audio),
-// for prep-depth Phase 10 to hand to the narrator's own browser or media player (Q12: opened, never fetched by this
-// app). It constructs no HTTP client and reads no network response - a pure string build, checked by
+// audio.go builds the Wikimedia Commons address for an audio file name the derived index records (WordEntry.Audio),
+// to hand to the narrator's own browser or media player (opened, never fetched by this app). It constructs no HTTP client and reads no network response - a pure string build, checked by
 // TestPackageNeverImportsNet in audio_test.go the same way pronunciationlookup's own URL builder is.
 package wiktextract
 
@@ -9,7 +8,7 @@ import (
 	"strings"
 )
 
-// CommonsHost is the one Wikimedia Commons host a Phase 10 URL is built for and checked against before it is opened.
+// CommonsHost is the one Wikimedia Commons host a Commons audio URL is built for and checked against before it is opened.
 const CommonsHost = "commons.wikimedia.org"
 
 // ErrNoAudio is returned for a word with no Commons audio file name: not in the index, or indexed with an empty Audio
@@ -64,7 +63,7 @@ func isPathSegmentUnreserved(c byte) bool {
 	return false
 }
 
-// WordAudioURL looks word up in words (an index Phase 8's LoadIndex returned) and builds its Commons audio URL.
+// WordAudioURL looks word up in words (an index LoadIndex returned) and builds its Commons audio URL.
 // Lookup is by the same key BuildIndex writes: lower-cased and trimmed. ErrNoAudio covers a word not in the index at
 // all, as well as one indexed with no Audio file name - both mean there is nothing for the narrator to open.
 func WordAudioURL(words map[string]WordEntry, word string) (string, error) {

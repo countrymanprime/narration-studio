@@ -52,7 +52,7 @@ import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
 
-// `?mockEngine=builtin` seeds the mock recorder's engine choice (native-recording P2, ADR 0455): the host answers the
+// `?mockEngine=builtin` seeds the mock recorder's engine choice (ADR 0455): the host answers the
 // project's engine in RecorderState, and the mock answers it from this flag, so the story, the visual rows and the demo
 // reach the "Built-in recorder" chip and the Booth's recorder without a click. No window (a node test) is REAPER.
 function mockEngineFromLocation(): 'daw' | 'builtin' {

@@ -18,8 +18,8 @@ function compactChapterName(name: string): string {
 // The Script page's chapter column (mock 02's "Chapters · Prep"): the
 // chapters the reader shows (reference material never, ADR 0090), the one being read marked, and each chapter's prep status.
 // The status is the one prep count the app has per chapter today: the names first heard in it whose pronunciation the author
-// has not confirmed (prep-depth P3's queries). A chapter with none shows nothing rather than a tick, since nothing else says
-// its prep is done (prep-depth P7's rollup will).
+// has not confirmed (the pronunciation queries). A chapter with none shows nothing rather than a tick, since nothing else says
+// its prep is done.
 export function ScriptChapterList({
   chapters,
   activeId,

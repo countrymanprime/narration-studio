@@ -409,7 +409,7 @@ export function Settings({
                     void save();
                   }}
                 >
-                  {/* The narrator's own Merriam-Webster key is theirs, not a project's (prep-depth P9), so it is set in Global only. */}
+                  {/* The narrator's own Merriam-Webster key is theirs, not a project's, so it is set in Global only. */}
                   {category === 'ManuscriptGuide' && scope === 'global' && <OnlineDictionaryPanel notify={notify} />}
                   {category === 'About' && (
                     <>

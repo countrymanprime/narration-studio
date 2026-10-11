@@ -24,7 +24,7 @@ const ROWS: Record<MockPort, MockRow[]> = {
   ],
   capture: [
     { name: 'dshow', label: 'DirectShow', platforms: ['windows'], modes: [] },
-    // The built-in recorder's engine (native-recording-suite P1, ADR 0357), Experimental until the owner's microphone check.
+    // The built-in recorder's engine (ADR 0357), Experimental until the owner's microphone check.
     { name: 'wasapi', label: 'WASAPI', platforms: ['windows'], modes: [], level: 'experimental' },
   ],
 };

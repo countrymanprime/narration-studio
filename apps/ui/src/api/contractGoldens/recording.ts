@@ -1,4 +1,4 @@
-// The built-in recorder's golden files (native-recording-suite Phase 2, ADR 0455): which schema owns each file in
+// The built-in recorder's golden files (ADR 0455): which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts). Written by apps/desktop/bindings_recording_test.go (UPDATE_CONTRACTS=1).
 import type { z } from 'zod';
 import { recorderDevicesResultSchema, recorderStateSchema } from '../schemas/recording';

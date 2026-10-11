@@ -1,4 +1,4 @@
-// The mock built-in recorder (native-recording-suite Phase 2, ADR 0455; D67 mock-first): a stand-in for
+// The mock built-in recorder (ADR 0455): a stand-in for
 // apps/desktop/bindings_recording.go over internal/recording, so the Booth's recorder and the visual suite run with no
 // microphone. Its payloads follow the host goldens (tests/fixtures/contracts/recorder-*.json; wireContracts.test.ts
 // pins them). A take "records" in memory: Start publishes a steady level and Stop adds the next take to the list.

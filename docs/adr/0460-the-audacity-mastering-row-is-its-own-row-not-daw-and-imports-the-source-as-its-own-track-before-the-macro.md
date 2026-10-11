@@ -2,11 +2,11 @@
 
 **Status:** Proposed
 **Date:** 2026-09-28
-**Supersedes:** none. It answers the open question [ADR 0306](0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md) left for this phase ("whether it stays its own row or becomes the `daw` row served by the Audacity adapter's `render_with_fx` is decided in that phase, by how close the macro-and-export flow comes to the role").
+**Supersedes:** none. It answers the open question [ADR 0306](0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md) left for the Audacity row ("whether it stays its own row or becomes the `daw` row served by the Audacity adapter's `render_with_fx` is decided in that phase, by how close the macro-and-export flow comes to the role").
 
 ## Context
 
-Render-encode-master Phase 10 ("Apply the narrator's chosen Audacity effect macro, then `Export2` to a folder the host created, then measure and judge the file") is the second row behind `internal/masteringport`, after Phase 9's REAPER `daw` row. ADR 0306 built `daw` on two DAW port roles that are shaped around REAPER's own mixing model:
+The Audacity mastering row (apply the narrator's chosen Audacity effect macro, then `Export2` to a folder the host created, then measure and judge the file) is the second row behind `internal/masteringport`, after REAPER's `daw` row. ADR 0306 built `daw` on two DAW port roles that are shaped around REAPER's own mixing model:
 
 - `FXRenderer.RenderWithFX(runID, FXRender{Regions, OutputFolder})`: renders one or more named **regions** through the project's **per-track and master FX chains**, answered asynchronously through `Events` (the bridge's fan-out, tagged `FX_RENDER_FILE`/`FX_RENDERED`).
 - `MasterChainReader.ReadMasterChain()`: lists every track's FX and the master's, so the UI can show the narrator the chain before they approve it.
@@ -42,5 +42,5 @@ Selecting only the freshly imported track, rather than selecting nothing (which 
 
 - A DAW-shaped row and a script-pipe-shaped row now both pass the same port contract without either faking a capability its engine does not have. A third mastering engine with its own shape (neither REAPER's mixer nor Audacity's macros) gets the same choice this ADR records: its own row and capability if the existing roles would have to be stretched to fit it.
 - `Result.Chain` for the Audacity row is words this row supplies itself ("Import," the macro's name, "Export"), not a chain read back from the engine, because none exists to read. A narrator's report for this row is honest about that: it says what ran, not what plugins ran, unlike `daw`'s report of the project's actual FX slots.
-- Two DAW capabilities (`render_with_fx`, `master_chain_read`) already appear as not-yet-available or unsupported in `DawCapabilities` and Settings' per-capability list; `macro_render` is the third, following the same pattern (Phase 8, ADR 0306).
+- Two DAW capabilities (`render_with_fx`, `master_chain_read`) already appear as not-yet-available or unsupported in `DawCapabilities` and Settings' per-capability list; `macro_render` is the third, following the same pattern (ADR 0306).
 - Superseding this — making the Audacity row answer through `render_with_fx`/`master_chain_read` after all, or dropping the per-render approval or the folder isolation — takes a new ADR.

@@ -77,7 +77,7 @@ H.test('EnumerateFiles lists a cached snapshot until it is cleared with index -1
 end)
 
 H.test('with the default link the time selection and the loop points move together, and GetSetRepeat asks, sets and toggles', function()
-  -- REAPER 7.80, the review-dashboard Phase 6 check (integrations/reaper/spikes/results/navigation-check-report.txt):
+  -- REAPER 7.80, the navigation check (integrations/reaper/spikes/results/navigation-check-report.txt):
   -- setting only the loop points moved the time selection, and setting only the time selection moved the loop points.
   local reaper_api, fake = api()
   fake.linked_loop = true

@@ -1,4 +1,4 @@
-"""The WASAPI spike probe (native-recording-suite P1) runs end to end on a host with no audio device: its report says so,
+"""The WASAPI spike probe (ADR 0357) runs end to end on a host with no audio device: its report says so,
 and its synthetic and throughput takes are measured and checked. The Windows numbers come from CI (docs/research)."""
 
 import importlib.util

@@ -11,7 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Voice data panel (character-continuity-review P6: Narration reference, "Remove voice data")', () => {
+describe('Voice data panel (Narration reference, "Remove voice data")', () => {
   it('lets the narrator approve a reference for plain narration', async () => {
     const api = createMockApi();
     const user = userEvent.setup();

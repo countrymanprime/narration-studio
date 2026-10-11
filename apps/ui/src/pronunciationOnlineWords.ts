@@ -1,5 +1,5 @@
 // The Go host's rule for what an online pronunciation lookup may send (pronunciationonline.CheckWord and BatchWords,
-// prep-depth P9, D72 and Q11), for the batch notice to count exactly the words the host would send, and for the mock to
+// ADR 0356), for the batch notice to count exactly the words the host would send, and for the mock to
 // refuse what the host refuses. The host checks again: this copy only keeps the notice honest.
 
 /** The word (or short name) a lookup may send, with its spaces tidied; undefined when the host would refuse it. */

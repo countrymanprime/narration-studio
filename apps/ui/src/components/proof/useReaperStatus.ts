@@ -10,7 +10,7 @@ import type { ReaperStatus } from '../../types';
 const REAPER_STATUS_POLL_MS = 3000;
 
 /**
- * Whether Go to and Loop can work now (review dashboard Phase 7), while the Review page is open: read on opening, every
+ * Whether Go to and Loop can work now, while the Review page is open: read on opening, every
  * REAPER_STATUS_POLL_MS, and on `refresh` after an action. Until the first answer the controls wait (`undefined`); a failed read
  * counts as not connected and says why, so the buttons are never enabled on a guess.
  */

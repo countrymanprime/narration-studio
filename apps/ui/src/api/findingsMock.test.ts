@@ -114,7 +114,7 @@ describe('the browser mock findings store follows the host rules', () => {
   });
 });
 
-// The mock's REAPER (review dashboard Phase 7) answers Go to, Loop and Stop in the host's order and words, so the Review page
+// The mock's REAPER answers Go to, Loop and Stop in the host's order and words, so the Review page
 // built against it says what the app says.
 describe("the browser mock's REAPER follows the host's navigation rules", () => {
   const golden = (file: string): { message?: string } =>
@@ -162,7 +162,7 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
   });
 });
 
-// The approved marker (review dashboard Phase 8): only an accepted finding gets one, in the host's order and words.
+// The approved marker: only an accepted finding gets one, in the host's order and words.
 describe("the browser mock's REAPER adds an approved marker as the host does", () => {
   const golden = (file: string): { message?: string; name?: string } =>
     JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));

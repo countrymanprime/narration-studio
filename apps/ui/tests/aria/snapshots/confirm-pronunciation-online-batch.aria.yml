@@ -1,4 +1,4 @@
-# The batch notice (prep-depth P9, Q11) opens over the Pronunciation queries slide-over; everything behind it is aria-hidden, so
+# The batch notice opens over the Pronunciation queries slide-over; everything behind it is aria-hidden, so
 # <body> holds the alert dialog and the two empty toast live regions. Its message names the count and says nothing else is sent.
 - /children: equal
 - main:

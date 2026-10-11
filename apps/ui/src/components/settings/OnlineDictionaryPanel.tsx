@@ -9,9 +9,9 @@ import { StatusBadge } from '../primitives/StatusBadge';
 import type { Notify } from '../primitives/Toast';
 
 /**
- * The narrator's own Merriam-Webster key (prep-depth P9; ADR 0405 point 2, ADR 0356): get a free one from the sign-up page
+ * The narrator's own Merriam-Webster key (ADR 0405 point 2, ADR 0356): get a free one from the sign-up page
  * (opened in the browser), paste it here, remove it any time. The key goes to the host once and never comes back: this
- * panel only ever knows whether one is saved. What an online lookup sends is said here in plain words (D72).
+ * panel only ever knows whether one is saved. What an online lookup sends is said here in plain words (ADR 0405).
  */
 export function OnlineDictionaryPanel({ notify }: { notify: Notify }) {
   const api = useApi();

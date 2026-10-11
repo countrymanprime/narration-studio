@@ -124,7 +124,7 @@ function AppRoutes() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // The engine panel: one panel for the app, opened from the header's
   // engine chip and from every pointer to the retired Tracks page.
-  // The engine chip's state: the project's recording engine (native-recording-suite P2, ADR 0455), REAPER by default.
+  // The engine chip's state: the project's recording engine (ADR 0455), REAPER by default.
   const engine = useRecordingEngine();
   const [enginePanelOpen, setEnginePanelOpen] = useState(false);
   const openEnginePanel = useCallback(() => setEnginePanelOpen(true), []);

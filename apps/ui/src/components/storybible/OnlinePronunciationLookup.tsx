@@ -5,7 +5,7 @@ import type { PronunciationOnlineResult } from '../../types';
 import { Button } from '../primitives/Button';
 
 /**
- * Look one name up in Merriam-Webster's online dictionary (prep-depth P9, D72): the narrator's own press, sending that
+ * Look one name up in Merriam-Webster's online dictionary (ADR 0405, ADR 0356): the narrator's own press, sending that
  * name alone, answered from this computer's copy when it was looked up before. An answer is a suggestion for the
  * narrator's own pronunciation field, never saved by itself: "Use this" only fills the field, and "Use mine" saves it.
  */

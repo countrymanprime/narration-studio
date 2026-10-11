@@ -51,7 +51,7 @@ function renderRail(overrides: Partial<Parameters<typeof ScriptRail>[0]> = {}) {
   return props;
 }
 
-describe('ScriptRail (stage navigation Phase 3, mock 02)', () => {
+describe('ScriptRail', () => {
   it('names its three tabs with their counts and opens on Pronunciations', () => {
     renderRail();
     const tabs = within(screen.getByRole('tablist', { name: 'Prep' })).getAllByRole('tab');

@@ -12,9 +12,9 @@ type RailTab = 'pronunciations' | 'characters' | 'queries';
 // (teleprompter/ReaderRail.tsx), which `Button`'s padded, uppercase chrome does not fit.
 const NAME_BUTTON = 'text-left font-semibold text-[var(--text)] underline-offset-2 hover:underline';
 
-// The Script page's rail (mock 02): Pronunciations, Characters and Queries
+// The Script page's rail: Pronunciations, Characters and Queries
 // over the Story Bible the reader already loaded. A name opens the same summary a mark in the text opens; the queries are the
-// Story Bible's own (prep-depth P3), and Manage queries opens that same panel (storybible/PronunciationQueries.tsx), so marking
+// Story Bible's own, and Manage queries opens that same panel (storybible/PronunciationQueries.tsx), so marking
 // one sent, answering it or exporting them happens in one place. `queries` is undefined until the first read answers.
 export function ScriptRail({
   entities,
@@ -137,7 +137,7 @@ export function ScriptRail({
           </div>
         )}
       </TabPanel>
-      {/* Pinned under every tab (mock 02's actions sit below its table, whichever list it shows). */}
+      {/* Pinned under every tab, below the table, whichever list it shows. */}
       <div className="mt-auto border-t border-[var(--border)] p-3">
         <Button variant="secondary" className="text-xs" onClick={openQueries}>
           Manage queries

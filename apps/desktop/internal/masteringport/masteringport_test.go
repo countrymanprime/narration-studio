@@ -24,8 +24,7 @@ func TestEveryRegisteredRowPassesTheSuite(t *testing.T) {
 }
 
 func TestTheRowsAreTheBuiltInChainThenTheDAWThenAudacity(t *testing.T) {
-	// D86: the built-in chain is the default; the DAW and Audacity rows are both Experimental (ADR 0460), registered in the order
-	// their phases built them.
+	// The built-in chain is the default; the DAW and Audacity rows are both Experimental (ADR 0460), registered in that order.
 	for _, platform := range port.Platforms {
 		want := []string{masteringport.Builtin, masteringport.DAW, masteringport.Audacity}
 		if got := masteringport.Rows.Names(platform); !reflect.DeepEqual(got, want) {
@@ -130,7 +129,7 @@ func TestANewRowIsOneRegistrationAndPassesTheSuiteWithNoOtherEdit(t *testing.T) 
 }
 
 func TestTheBuiltinRowDeclaresTheStepsItRuns(t *testing.T) {
-	// Master & QC draws the chain before anything is mastered (stage navigation Phase 8), so the row declares its steps, and they are
+	// Master & QC draws the chain before anything is mastered, so the row declares its steps, and they are
 	// the steps a master reports, in the same order. The DAW row declares none: the project's own FX chain decides what runs there.
 	entry, _ := masteringport.Rows.Lookup(masteringport.Builtin)
 	declared := entry.New().Capabilities().Chain

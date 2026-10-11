@@ -116,7 +116,7 @@ export function ScriptPage({
   const [notes, setNotes] = useState<ManuscriptNote[]>([]);
   const [readerState, setReaderState] = useState<ReaderState>(defaultState);
   const [sheet, setSheet] = useState<'chapters' | 'detail' | 'prep'>();
-  // The rail's queries (prep-depth P3's list): undefined until the first read answers, and read again after the panel changes one.
+  // The rail's pronunciation queries: undefined until the first read answers, and read again after the panel changes one.
   const [queries, setQueries] = useState<PronunciationQuery[]>();
   const [queriesOpen, setQueriesOpen] = useState(false);
   const [textSize, setTextSize] = useState<(typeof TEXT_SIZES)[number]>('medium');

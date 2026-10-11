@@ -278,7 +278,7 @@ func TestAnErrorFromREAPERIsReturnedWithItsMessage(t *testing.T) {
 }
 
 // The two refusals narration_navigation.lua words itself are told apart by their exact message, so the Review page can say
-// what to do (review dashboard Phase 7) without reading an error string of its own.
+// what to do without reading an error string of its own.
 func TestRecordingAndANoTimeRefusalFromREAPERAreToldApart(t *testing.T) {
 	for message, want := range map[string]error{
 		"REAPER is recording. Stop recording first.": ErrRecording,

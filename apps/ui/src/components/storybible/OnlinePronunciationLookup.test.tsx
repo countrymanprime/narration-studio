@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Look up online (prep-depth P9, D72): the narrator's own press sends the name alone; a repeat is answered from this computer's
+// Look up online: the narrator's own press sends the name alone; a repeat is answered from this computer's
 // copy; an answer only fills the narrator's field; without a key nothing is sent and the narrator is told where to add one.
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

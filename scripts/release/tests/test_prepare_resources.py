@@ -168,7 +168,7 @@ def flag_values(call, flag: str) -> list[str]:
 def test_the_guide_freeze_carries_piper_data_and_the_cmu_dictionary(script, monkeypatch):
     # Piper needs piper/espeak-ng-data to speak (about 19 MB), and cmudict needs its data and its package metadata: PyInstaller has
     # no hook for either, and the frozen guide logged "CMU pronunciation unavailable (No package metadata was found for cmudict)"
-    # (release-readiness phase 4 spike). The packaged smoke test proves it end to end.
+    # (found in a release spike). The packaged smoke test proves it end to end.
     fake = FakePyInstaller()
     install(monkeypatch, script, fake)
 

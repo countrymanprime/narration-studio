@@ -139,7 +139,7 @@ import asr_adapters  # noqa: F401
 # calling devices.py/PyAV itself.
 import capture_dshow  # noqa: F401
 
-# Registers the Experimental "wasapi" row after it (native-recording-suite P1, ADR 0357): the built-in recorder's engine.
+# Registers the Experimental "wasapi" row after it (ADR 0357): the built-in recorder's engine.
 # Nothing here opens it; --capabilities reports it, and the packaged app's smoke test checks it registered.
 import capture_wasapi  # noqa: F401
 from narration_common.logging_utils import log, set_log_file
@@ -837,7 +837,7 @@ def _run_meter(ap: argparse.ArgumentParser, args) -> None:
         ap.error(f"--meter takes only --mic, --capture and --stop-file, not {' '.join(taken)}")
     log(f"Metering {args.mic}...")
     try:
-        # --capture meters through that row (the built-in recorder's wasapi, native-recording P2); dshow otherwise.
+        # --capture meters through that row (the built-in recorder's wasapi, ADR 0357); dshow otherwise.
         chunks = _capture_row(ap, args.capture).chunks(args.mic) if args.capture else iter_microphone_chunks(args.mic)
         for _chunk in metered(stoppable(chunks, args.stop_file), LevelMeter(), _emit):
             pass

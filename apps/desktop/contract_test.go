@@ -89,7 +89,7 @@ func TestContractStoryBibleBuildJob(t *testing.T) {
 	pinBinding("guide-build-idle", host.guideBuildState())
 	// A job just started has no log lines yet: its `logs` is a nil slice, which the host sends as null.
 	pinBinding("guide-build-starting", snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "running", message: "Preparing…", started: time.Now()}))
-	// What GuideBuild answers: the job that started, or the first-use gate for the language model (release readiness phase 5).
+	// What GuideBuild answers: the job that started, or the first-use gate for the language model.
 	started := snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "running", message: "Story Bible rebuild started.", percent: 1, started: time.Now()})
 	started["elapsed"] = 0.0
 	contractfile.Check(t, "guide-build-started", map[string]any{"status": "started", "job": started})
@@ -219,7 +219,7 @@ func TestContractCatalogsAndInstallJobs(t *testing.T) {
 	}
 }
 
-// The generic asset API (release readiness phase 3): the list of everything that can be downloaded, and the answer to a verify.
+// The generic asset API: the list of everything that can be downloaded, and the answer to a verify.
 func TestContractAssetsListAndVerify(t *testing.T) {
 	fixture := contractServices(t)
 	host := &Host{assets: fixture.registry, installJobs: map[string]*installJob{}}
