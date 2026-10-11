@@ -588,6 +588,14 @@ export function DawLaunch(): $CancellablePromise<string> {
 }
 
 /**
+ * DawProjectState answers {savedAt, unsavedChanges, playState, playPosition} (dawport.ProjectState). With no DAW, the
+ * heartbeat capability unavailable or turned off, or a DAW not answering, it is the idle payload: stopped, 0, null, false.
+ */
+export function DawProjectState(): $CancellablePromise<string> {
+    return $Call.ByID(2311648888);
+}
+
+/**
  * DeliveryDeleteProfile deletes a custom profile and answers the profiles again; a project that chose it is judged
  * against the Global default from then on, with a notice.
  */

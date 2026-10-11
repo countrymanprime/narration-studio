@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { dawCapabilitiesSchema, dawResultSchema } from '../api/schemas/daw';
+import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
 import { findingMarkerSchema } from '../api/schemas/findings';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
 import { workspaceUseTakeResultSchema } from '../api/schemas/workspace';
 import { parseWire } from '../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../api/wire/standardSchema';
-import { DAW_PROJECT, DAW_SETUPS } from '../fixtures/daw';
+import { DAW_PROJECT, DAW_PROJECT_STATES, DAW_SETUPS } from '../fixtures/daw';
 import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
@@ -22,6 +22,7 @@ const GOLDEN_FILES = [
   'daw-result-ok.json',
   'daw-result-refused-stale.json',
   'daw-result-multi-step.json',
+  'daw-project-state-saved.json',
   'read-aloud-recordings.json',
   'workspace-use-take-done.json',
   'workspace-use-take-refused.json',
@@ -41,6 +42,7 @@ function hostApi(): DawHostApi {
   const known = DAW_PROJECT;
   return {
     dawCapabilities: () => Promise.resolve(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)),
+    dawProjectState: () => Promise.resolve(read('daw-project-state-saved.json', dawProjectStateSchema)),
     readAloudRecordStart: (chapterId) => Promise.resolve(recording(known.chapterIds.includes(chapterId) ? 'ready.start' : 'track_missing.start')),
     readAloudRecordStop: () => Promise.resolve(recording('ready.stop')),
     workspaceUseTake: (chapterId, _first, _last, candidateId) =>
@@ -95,6 +97,13 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
       expectWellFormed(await daw.useTake('chapter-1', 0, 4, 'stale-take'));
     },
   },
+  {
+    name: 'project-state-is-the-wire-shape',
+    check: async (daw) => {
+      expect(dawProjectStateSchema.parse(await daw.projectState()).playState).toBe('stopped');
+    },
+  },
+  { name: 'project-state-is-answered-alike', observe: (daw) => daw.projectState() },
   { name: 'unknown-chapter-is-refused-alike', observe: (daw) => daw.recordStart('no-such-chapter') },
   { name: 'known-chapter-is-accepted-alike', observe: (daw) => daw.recordStart('chapter-1') },
   { name: 'stale-take-is-refused-alike', observe: (daw) => daw.useTake('chapter-1', 0, 4, 'stale-take') },
@@ -152,6 +161,22 @@ describe('the mock setups', () => {
     const mock = createMockDawClient(DAW_SETUPS.audacity);
     expect((await mock.useTake('chapter-1', 0, 4, 'take-1')).refused).toBe(DAW_SETUPS.audacity.capabilities.takes.message);
     expect((await createMockDawClient(DAW_SETUPS.builtin).addMarker('finding-1')).refused).toBe(DAW_SETUPS.builtin.capabilities.markers.message);
+  });
+
+  it('dawclient-reads-it: each setup answers its saved time, unsaved flag and transport, and the schema accepts it', async () => {
+    for (const [id, setup] of Object.entries(DAW_SETUPS)) {
+      const state = await createMockDawClient(setup).projectState();
+      expect(dawProjectStateSchema.parse(state), id).toEqual(DAW_PROJECT_STATES[id as keyof typeof DAW_SETUPS]);
+    }
+    expect((await createMockDawClient(DAW_SETUPS.reaper).projectState()).savedAt).toBe('2026-09-26T08:40');
+    const builtin = await createMockDawClient(DAW_SETUPS.builtin).projectState();
+    expect(builtin.savedAt).toBeNull();
+    expect(builtin.unsavedChanges).toBe(false);
+  });
+
+  it('dawclient-reads-it: a setup given its own project state answers it', async () => {
+    const live = { savedAt: '2026-09-26T08:40', unsavedChanges: true, playState: 'recording', playPosition: 40.25 } as const;
+    expect(await createMockDawClient(DAW_SETUPS.reaper, DAW_PROJECT, live).projectState()).toEqual(live);
   });
 
   it('behaviour differs only through the capability fields: Audacity with backups can use a take, without them it cannot', async () => {

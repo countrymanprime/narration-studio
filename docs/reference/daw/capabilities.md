@@ -97,6 +97,13 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Audacity:** not built.
 - **Checked:** REAPER, harness (`project_state_test.lua`).
 
+`DawProjectState()` and its `daw_project_state_changed` event answer the saved project against the live one without this command: `{savedAt, unsavedChanges, playState, playPosition}`, read through the `heartbeat` capability (`apps/desktop/bindings_daw_projectstate.go`, `internal/dawport/projectstate.go`).
+
+- `savedAt` is the host's stat of the `.rpp` the heartbeat names, as a local date and time to the minute; null when the project was never saved or the engine keeps no saved project (the built-in recorder, and Audacity until it reports one).
+- `unsavedChanges` compares the heartbeat's change count with a baseline taken at the first count and again at each save (the `.rpp`'s modification time moves), as the chapter sync watcher does ([ADR 0210](../../adr/0210-chapter-sync-watches-the-saved-rpp-and-reapers-edit-counter-and-sends-reaper-nothing.md)). The `unsaved` field of the heartbeat and of `chapter_track_state` means "never saved", not this.
+- `playState` is `stopped`, `playing` or `recording`, and `playPosition` is the heartbeat's position while playing or recording, 0 when stopped. It is a display value, not an anchor for a word.
+- With no engine, the engine not answering or `heartbeat` turned off, the payload is stopped, 0, null, false. The event goes out from the same `transcriptLoop` tick as `daw_transport_changed`, on the first tick and then only on a change.
+
 ### `take_create`
 
 - **Intent:** add a chosen read as a take of an existing item, from a source range of another item.

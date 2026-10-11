@@ -154,7 +154,7 @@ import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schema
 import { pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
-import { dawCapabilitiesSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
+import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -1830,6 +1830,49 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(seen({ daw: { toggles: { heartbeat: 'off' }, transport: recording } })[0]).toEqual(quiet);
   });
 
+  it('dawProjectState and its subscribe answer the seeded project state, and match the host goldens', async () => {
+    const read = async (seed: Parameters<typeof createMockApi>[1]): Promise<unknown> => {
+      const api = createMockApi({}, seed);
+      const answered = await api.dawProjectState();
+      expectMatches(dawProjectStateSchema, answered, 'mock DawProjectState');
+      const events: unknown[] = [];
+      api.subscribeDawProjectState((state) => events.push(structuredClone(state)))();
+      expect(events).toEqual([answered]);
+      expectMatches(dawProjectStateSchema, events[0], 'mock daw_project_state_changed');
+      return answered;
+    };
+    const savedAt = '2026-09-26T08:40';
+    expect(await read({})).toEqual(readGolden('daw-project-state-idle.json'));
+    expect(await read({ daw: { savedAt } })).toEqual(readGolden('daw-project-state-saved.json'));
+    expect(await read({ daw: { savedAt, unsavedChanges: true, transport: { playing: true, recording: false, position: 12.5 } } })).toEqual(
+      readGolden('daw-project-state-unsaved.json'),
+    );
+    expect(await read({ daw: { savedAt, transport: { playing: true, recording: true, position: 40.25 } } })).toEqual(
+      readGolden('daw-project-state-recording.json'),
+    );
+    // With no heartbeat to read (no DAW, the built-in recorder, REAPER not answering, the capability off) it is the idle payload.
+    const idle = readGolden('daw-project-state-idle.json');
+    const live = { savedAt, unsavedChanges: true, transport: { playing: true, recording: true, position: 1 } };
+    for (const daw of [
+      { daw: 'none' as const, ...live },
+      { daw: 'Built-in' as const, ...live },
+      { daw: 'Audacity' as const, ...live },
+      { reachable: false, ...live },
+      { toggles: { heartbeat: 'off' as const }, ...live },
+    ]) {
+      expect(await read({ daw })).toEqual(idle);
+    }
+  });
+
+  it('dawProjectStateSchema rejects a negative position, an unknown play state and an unknown key', () => {
+    const valid = readGolden('daw-project-state-unsaved.json') as Record<string, unknown>;
+    expect(dawProjectStateSchema.safeParse(valid).success).toBe(true);
+    expect(dawProjectStateSchema.safeParse({ ...valid, playPosition: -1 }).success).toBe(false);
+    expect(dawProjectStateSchema.safeParse({ ...valid, playState: 'paused' }).success).toBe(false);
+    expect(dawProjectStateSchema.safeParse({ ...valid, projectFile: 'C:/Alice.rpp' }).success).toBe(false);
+    expect(dawProjectStateSchema.safeParse({ ...valid, savedAt: undefined }).success).toBe(false);
+  });
+
   it('chapterTagsPreview and its seeded states', async () => {
     expectMatches(chapterTagsPreviewSchema, await createMockApi().chapterTagsPreview(), 'mock chapter-tags preview idle');
     for (const seed of ['ready', 'not-rendered'] as const) {
@@ -3094,6 +3137,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'linkDawFile',
       'launchDaw',
       'dawCapabilities',
+      'dawProjectState',
       'providerCapabilities',
       'masteringProviders',
       'masteringChooseProvider',
@@ -3342,6 +3386,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeRetakeLanes',
       'subscribeDawCapabilities',
       'subscribeDawTransport',
+      'subscribeDawProjectState',
       'subscribeRecorderState',
       'subscribeRecorderLevel',
     ];

@@ -101,6 +101,7 @@ import type { EditWordFxApi } from './api/contracts/wordFx';
 import type { WorkspaceApi } from './api/contracts/workspace';
 import type { PreviewApi } from './api/contracts/preview';
 import type { DawCapabilitiesApi } from './api/contracts/daw';
+import type { DawProjectStateApi } from './api/contracts/daw';
 import type { ProviderCapabilitiesApi } from './api/contracts/providers';
 import type { MasteringApi } from './api/contracts/mastering';
 import type { RecordingApi } from './api/contracts/recording';
@@ -162,6 +163,7 @@ export interface NarrationApi
     WorkspaceApi,
     PreviewApi,
     DawCapabilitiesApi,
+    DawProjectStateApi,
     ProviderCapabilitiesApi,
     MasteringApi,
     RecordingApi,

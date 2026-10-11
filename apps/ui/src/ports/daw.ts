@@ -1,5 +1,5 @@
-import type { DawCapabilities, DawResult } from '../api/contracts/daw';
-import { DAW_ANSWERS, DAW_PROJECT, type DawProject } from '../fixtures/daw';
+import type { DawCapabilities, DawProjectState, DawResult } from '../api/contracts/daw';
+import { DAW_ANSWERS, DAW_PROJECT, type DawProject, projectStateOf } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
 // The DAW port (ADR 0770, ADR 0810): what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
@@ -10,6 +10,8 @@ import type { NarrationApi } from '../types';
 export interface DawClient {
   /** What the launch's DAW can do now, as the host or the mock setup reports it. */
   capabilities(): Promise<DawCapabilities>;
+  /** The project as last saved, whether the DAW has unsaved changes, and the transport. `playPosition` is for display only. */
+  projectState(): Promise<DawProjectState>;
   /** Start recording on the chapter's track. */
   recordStart(chapterId: string): Promise<DawResult>;
   /** Stop a recording this app started. */
@@ -20,8 +22,11 @@ export interface DawClient {
   addMarker(findingId: string): Promise<DawResult>;
 }
 
-/** The `NarrationApi` methods the host adapter calls: no new binding, only today's. */
-export type DawHostApi = Pick<NarrationApi, 'dawCapabilities' | 'readAloudRecordStart' | 'readAloudRecordStop' | 'workspaceUseTake' | 'findingsAddMarker'>;
+/** The `NarrationApi` methods the host adapter calls. */
+export type DawHostApi = Pick<
+  NarrationApi,
+  'dawCapabilities' | 'dawProjectState' | 'readAloudRecordStart' | 'readAloudRecordStop' | 'workspaceUseTake' | 'findingsAddMarker'
+>;
 
 /** A refused call changed nothing; `refused` holds the sentence and `message` repeats it. */
 function refused(sentence: string | undefined, call: string): DawResult {
@@ -36,6 +41,7 @@ const done = (changed: boolean, undoSteps: number, message = ''): DawResult => (
 export function createHostDawClient(api: DawHostApi): DawClient {
   return {
     capabilities: () => api.dawCapabilities(),
+    projectState: () => api.dawProjectState(),
     async recordStart(chapterId) {
       const result = await api.readAloudRecordStart(chapterId);
       return result.outcome === 'refused' ? refused(result.message, 'recordStart') : done(true, 0, result.message);
@@ -65,10 +71,16 @@ function unavailable(capabilities: DawCapabilities, name: string, call: string):
   return support.message;
 }
 
-/** The mock, driven by one setup from `fixtures/daw.ts`. It refuses what the host refuses, with the host's sentences, and answers the rest as the host does. */
-export function createMockDawClient(setup: DawCapabilities, project: DawProject = DAW_PROJECT): DawClient {
+/** The mock, driven by one setup from `fixtures/daw.ts`. It refuses what the host refuses, with the host's sentences, and answers the rest as the host does.
+ * `projectState` defaults to the setup's own from the fixtures. */
+export function createMockDawClient(
+  setup: DawCapabilities,
+  project: DawProject = DAW_PROJECT,
+  projectState: DawProjectState = projectStateOf(setup),
+): DawClient {
   return {
     capabilities: () => Promise.resolve(setup),
+    projectState: () => Promise.resolve(projectState),
     async recordStart(chapterId) {
       const sentence = unavailable(setup, 'record', 'recordStart');
       if (sentence) return refused(sentence, 'recordStart');
