@@ -62,7 +62,8 @@ var builtinDefaults = map[string]Values{
 	// NARRATION_DEBUG=1.
 	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
-	"ManuscriptGuide":   {"spacy_model": "en_core_web_sm", "build_after_import": "true"},
+	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
+	"ManuscriptGuide":   {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
 	"Piper":             {"tts_provider": "piper", "tts_voice_id": "en_US-ljspeech-high"},
 	"Updates":           {"check_on_startup": "true", "channel": "candidates"},
 	"Manuscript":        {"color_note": "B85C1E"},

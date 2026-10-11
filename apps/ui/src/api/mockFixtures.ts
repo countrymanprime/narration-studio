@@ -676,6 +676,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   ManuscriptGuide: [
     choice('spacy_model', 'spaCy model', ['en_core_web_sm', 'en_core_web_lg'], 'en_core_web_sm'),
     bool('build_after_import', 'Build the Story Bible after import', 'true'),
+    choice('analysis_prompt', 'Offer better analysis tools', ['ask', 'basic'], 'ask'),
     // "" (Automatic) is the unset default, matching app.go's fieldSchemas.
     choice('default_pronunciation_source', 'Default pronunciation source', ['', 'cmu', 'wiktextract', 'espeak'], ''),
   ],

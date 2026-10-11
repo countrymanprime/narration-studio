@@ -1444,6 +1444,9 @@ var fieldSchemas = map[string][]fieldSchema{
 	"ManuscriptGuide": {
 		{"spacy_model", "spaCy model", "choice", []string{"en_core_web_sm", "en_core_web_lg"}},
 		{"build_after_import", "Build the Story Bible after import", "bool", nil},
+		// analysis_prompt is the "ask about better analysis" preference: ask offers the optional analysis tools, basic is "Don't ask
+		// again". Global only (saveSettings refuses it at project scope): a narrator preference, not a per-project one.
+		{"analysis_prompt", "Offer better analysis tools", "choice", []string{"ask", "basic"}},
 		{"default_pronunciation_source", "Default pronunciation source", "choice", append([]string{""}, pronunciationport.FallbackOrder("")...)},
 	},
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
@@ -1689,6 +1692,11 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "General" && scope != "global" {
 		if _, ok := values["debug_logging"]; ok {
 			return fmt.Errorf("debug logging is global: it is a switch for this machine, not this project")
+		}
+	}
+	if tool == "ManuscriptGuide" && scope != "global" {
+		if _, ok := values["analysis_prompt"]; ok {
+			return fmt.Errorf("the analysis prompt preference is global: it is the narrator's choice, not this project's")
 		}
 	}
 	valid := map[string]fieldSchema{}

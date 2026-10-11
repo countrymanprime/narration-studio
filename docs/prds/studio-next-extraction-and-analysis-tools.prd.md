@@ -123,7 +123,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 3 | Rules tier into suggestions | Sidecar adapter emits suggestions | in progress (extraction port, Go registry and Python mirror SNX-3a [#1189](https://github.com/countrymanprime/narration-utils/issues/1189); rules adapter and the scan job to come) | 4 | 2 | 1.0 | - |
 | 4 | Suggested UI | Rows, chips, accept, reject, review, needs-verification | pending | 3 | 2, SNB-3 | 1.3 | - |
 | 5 | Import and prompt | Host parser, preview, UI dialog, prompt template | in progress (parser, plan and prompt SNX-5a [#1086](https://github.com/countrymanprime/narration-utils/issues/1086); binding, dialog and threat-model row SNX-5b) | 4 | 2 | 1.2 | - |
-| 6 | Consent and registry rows | Consent screen, assets for the tools, Settings section, first-scan prompt | pending | 4 | 1 | 1.2 | - |
+| 6 | Consent and registry rows | Consent screen, assets for the tools, Settings section, first-scan prompt | in progress (the "ask about better analysis" preference, `ManuscriptGuide.analysis_prompt`, SNX-6b [#1230](https://github.com/countrymanprime/narration-utils/issues/1230); consent screen, registry rows and checkbox to come) | 4 | 1 | 1.2 | - |
 | 7 | Tool adapters | GLiNER, BookNLP sidecar adapters, conformance | pending | - | 1, 6 | 1.3 | - |
 | 8 | Evaluation | Harness, calibration table, default review | pending | - | 7 | 0.5 | - |
 | 9 | Local LLM tier (Could) | Spike only; no default | pending | - | 8 | 0.3 | - |
