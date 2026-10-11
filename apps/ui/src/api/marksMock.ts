@@ -1,9 +1,11 @@
 // The browser mock's Script marks. It keeps the types and marks in memory and checks each mark against the mock manuscript's
 // current text the way apps/desktop/internal/marks does: a range the line lacks is refused, the quote is the line's own text,
 // a question needs its text and starts open, at least one type is kept, removing a type in use needs `removeUses`, the list is
-// in reading order, and a mark whose line is gone, whose range no longer fits or whose words changed comes back stale.
-import { MARK_COLOURS, MARK_STYLES, MARK_TEXT_MAX, MARK_TYPE_NAME_MAX } from './contracts/marks';
-import type { ManuscriptChapter, ManuscriptParagraph, Mark, MarkType, Marks, MarksApi } from '../types';
+// in reading order, and a mark whose line is gone, whose range no longer fits or whose words changed comes back stale. A
+// thread takes the host's rules too: a known author, plain text that is not empty, an index in the thread, and a status only
+// on a mark whose type asks.
+import { MARK_COLOURS, MARK_STYLES, MARK_TEXT_MAX, MARK_THREAD_AUTHORS, MARK_TYPE_NAME_MAX } from './contracts/marks';
+import type { ManuscriptChapter, ManuscriptParagraph, Mark, MarkType, Marks, MarksApi, ThreadMessage } from '../types';
 import { wireClone } from './mockFixtures';
 
 type Stored = Omit<Mark, 'paragraph' | 'stale' | 'staleReason'>;
@@ -34,6 +36,16 @@ function cleanText(text: string): string {
   if (controlCharacters.test(cleaned.replace(/[\n\t]/g, ''))) throw new Error('a note can hold only text, line breaks and tabs');
   return cleaned;
 }
+
+function checkMessage(message: ThreadMessage): void {
+  if (!(MARK_THREAD_AUTHORS as readonly string[]).includes(message.who)) throw new Error('that is not one who can reply');
+  const cleaned = cleanText(message.text);
+  if (!cleaned || cleaned !== message.text) throw new Error('a message needs its text');
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(message.at)) throw new Error('a message needs the time it was written');
+}
+
+/** The host's time as it stamps a message: UTC, to the second. */
+const nowStamp = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 function cleanTypes(types: MarkType[], nextKey: () => string): MarkType[] {
   if (types.length === 0) throw new Error('keep at least one kind of mark');
@@ -75,6 +87,22 @@ export function createMarksMock(ready: Promise<unknown>, chapters: () => Manuscr
       .map(resolve)
       .sort((a, b) => at(a) - at(b) || a.start - b.start || a.end - b.end || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
     return wireClone({ types, marks });
+  };
+
+  /** Applies edit to one stored mark and answers it; a refused edit changes nothing. */
+  const change = (id: string, edit: (mark: Stored, type: MarkType | undefined) => Stored): Mark => {
+    const index = stored.findIndex((mark) => mark.id === id);
+    const current = stored[index];
+    if (!current) throw new Error('that mark is no longer there');
+    const next = edit(
+      { ...current, thread: [...current.thread] },
+      types.find((type) => type.key === current.type),
+    );
+    stored = stored.map((mark, at) => (at === index ? next : mark));
+    return wireClone(resolve(next));
+  };
+  const inThread = (mark: Stored, index: number, end = mark.thread.length) => {
+    if (!Number.isInteger(index) || index < 0 || index >= end) throw new Error('that message is no longer there');
   };
 
   return {
@@ -125,6 +153,49 @@ export function createMarksMock(ready: Promise<unknown>, chapters: () => Manuscr
       types = cleaned;
       stored = stored.filter((mark) => asks.has(mark.type)).map((mark) => (asks.get(mark.type) && !mark.status ? { ...mark, status: 'open' as const } : mark));
       return list();
+    },
+    marksReply: async (id, who, text) => {
+      await ready;
+      if (!(MARK_THREAD_AUTHORS as readonly string[]).includes(who)) throw new Error('that is not one who can reply');
+      const cleaned = cleanText(text);
+      if (!cleaned) throw new Error('write the reply or note first');
+      return change(id, (mark) => ({ ...mark, thread: [...mark.thread, { who, text: cleaned, at: nowStamp() }] }));
+    },
+    marksEditMessage: async (id, index, text) => {
+      await ready;
+      const cleaned = cleanText(text);
+      if (!cleaned) throw new Error('write the message first');
+      return change(id, (mark) => {
+        inThread(mark, index);
+        return { ...mark, thread: mark.thread.map((message, at) => (at === index ? { ...message, text: cleaned } : message)) };
+      });
+    },
+    marksDeleteMessage: async (id, index) => {
+      await ready;
+      let removed: ThreadMessage | undefined;
+      const mark = change(id, (current) => {
+        inThread(current, index);
+        removed = current.thread[index];
+        return { ...current, thread: current.thread.filter((_, at) => at !== index) };
+      });
+      if (!removed) throw new Error('that message is no longer there');
+      return wireClone({ mark, message: removed });
+    },
+    marksRestoreMessage: async (id, index, message) => {
+      await ready;
+      checkMessage(message);
+      return change(id, (mark) => {
+        inThread(mark, index, mark.thread.length + 1);
+        return { ...mark, thread: [...mark.thread.slice(0, index), { ...message }, ...mark.thread.slice(index)] };
+      });
+    },
+    marksSetStatus: async (id, status) => {
+      await ready;
+      if (status !== 'open' && status !== 'resolved') throw new Error('a question is either open or resolved');
+      return change(id, (mark, type) => {
+        if (!type?.asks) throw new Error("only a question can be resolved or reopened; this mark's kind does not ask");
+        return { ...mark, status };
+      });
     },
   };
 }

@@ -1,5 +1,16 @@
 import { z } from 'zod';
-import { MARK_COLOURS, MARK_STYLES, MARK_TEXT_MAX, MARK_TYPE_NAME_MAX, type Mark, type MarkType, type Marks } from '../contracts/marks';
+import {
+  MARK_COLOURS,
+  MARK_STYLES,
+  MARK_TEXT_MAX,
+  MARK_THREAD_AUTHORS,
+  MARK_TYPE_NAME_MAX,
+  type Mark,
+  type MarkThreadDeleted,
+  type MarkType,
+  type Marks,
+  type ThreadMessage,
+} from '../contracts/marks';
 
 export const markTypeSchema = z
   .object({
@@ -11,13 +22,13 @@ export const markTypeSchema = z
   })
   .strict() satisfies z.ZodType<MarkType>;
 
-const markMessageSchema = z
+export const threadMessageSchema = z
   .object({
-    who: z.enum(['you', 'author', 'proofer']),
-    text: z.string().max(MARK_TEXT_MAX),
-    at: z.string(),
+    who: z.enum(MARK_THREAD_AUTHORS),
+    text: z.string().min(1).max(MARK_TEXT_MAX),
+    at: z.string().min(1),
   })
-  .strict();
+  .strict() satisfies z.ZodType<ThreadMessage>;
 
 export const markSchema = z
   .object({
@@ -31,7 +42,7 @@ export const markSchema = z
     type: z.string().min(1),
     text: z.string().max(MARK_TEXT_MAX),
     status: z.enum(['open', 'resolved']).optional(),
-    thread: z.array(markMessageSchema),
+    thread: z.array(threadMessageSchema),
     createdAt: z.string(),
     stale: z.boolean(),
     staleReason: z.enum(['paragraph_missing', 'range_out_of_range', 'text_changed']).optional(),
@@ -45,3 +56,10 @@ export const marksSchema = z
     marks: z.array(markSchema),
   })
   .strict() satisfies z.ZodType<Marks>;
+
+export const markThreadDeletedSchema = z
+  .object({
+    mark: markSchema,
+    message: threadMessageSchema,
+  })
+  .strict() satisfies z.ZodType<MarkThreadDeleted>;
