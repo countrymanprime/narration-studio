@@ -121,9 +121,13 @@ async function settledPickupsRun(api: DawHostApi, start: () => Promise<unknown>)
   });
 }
 
-/** CSV text in the columns `pickupsImport` reads (start,note,tag), each cell quoted when it needs to be. */
+/** CSV text in the columns `pickupsImport` reads (start,note,tag), each cell on one line (the host reads a row per line, and a
+ * marker name is one line anyway) and quoted when it needs to be. */
 function pickupsCsv(items: readonly DawPickupItem[]): string {
-  const cell = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value);
+  const cell = (text: string) => {
+    const value = text.replace(/[\r\n]+/g, ' ');
+    return /[",]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  };
   return ['start,note,tag', ...items.map((item) => [String(item.start), cell(item.note), cell(item.tag)].join(','))].join('\n') + '\n';
 }
 

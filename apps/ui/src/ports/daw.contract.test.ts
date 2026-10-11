@@ -427,6 +427,21 @@ describe("pickup markers are the DAW's truth", () => {
     ]);
   });
 
+  it('the host adapter sends each pickup as one CSV row: commas and quotes quoted, a line break made a space', async () => {
+    const host = pickupsHost();
+    const sent: string[] = [];
+    const daw = createHostDawClient({
+      ...hostApi(),
+      ...host.api,
+      pickupsImport: (csvText) => {
+        sent.push(csvText);
+        return host.api.pickupsImport('start,note,tag\n1,x,\n');
+      },
+    });
+    await daw.addPickupMarkers([{ ref: 'p', start: 2.5, tag: 'a,b', note: 'Say "hello"\nagain' }]);
+    expect(sent).toEqual(['start,note,tag\n2.5,"Say ""hello"" again","a,b"\n']);
+  });
+
   it('a marker this session never marked is read without an id', async () => {
     const host = pickupsHost();
     await createHostDawClient({ ...hostApi(), ...host.api }).addPickupMarkers(PICKUPS.slice(1));
