@@ -6,6 +6,8 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   // The Booth (it replaced the Teleprompter page and the Read aloud
   // dialog): the session core is `useTeleprompterSession`, mounted once by `BoothSession`, and `BoothPage.tsx`
   // keeps the chapter selection and what it loads for the marks.
+  // booth/passagemap/usePassageMapWriter.ts: the marks of a take are sent once, at stop; a refused run is kept, toasted once and sent again at the next stop or flush.
+  'src/components/booth/passagemap/usePassageMapWriter.ts::passageMapRecordRun#1': row('event', 'file-io', 'na', 'host', 'ui', 'toast', 'yes', 'ok', 'Sends the run of marks when a take stops; the take is already saved, a refusal is the host\'s sentence in a toast and the run is kept for the next stop.'),
   'src/components/booth/BoothPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'An inline error.'),
   'src/components/booth/BoothPage.tsx::readerState#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only picks the chapter the narrator last read; the first chapter is used without it.'),
   // The REAPER suggestion (ADR 0113) is a hint beneath the picker, and the
