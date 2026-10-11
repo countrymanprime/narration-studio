@@ -129,7 +129,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 2 | Catalogue extension | Descriptor fields, provider API, surface tests | in review (#1032) | 3 | 1 | 1.0 | - |
 | 3 | Overlay service | `overlay.*` over primitives, tests | in review (#1033) | 2 | 1 | 1.0 | - |
 | 4 | Jump menu and search sources | `JumpMenu`, sources registry, first sources (chapters, pages) | in review (#1052) | 5 | 2, 3, SNF-4 | 1.5 | - |
-| 5 | Context menu host | Provider registry, `ContextMenuHost`, keyboard open | pending | 4 | 3 | 1.2 | - |
+| 5 | Context menu host | Provider registry, `ContextMenuHost`, keyboard open | in review (#1053) | 4 | 3 | 1.2 | - |
 | 6 | Help as data | Sheet, Settings list and footers from catalogue and hint specs | pending | 7 | 2, SNF-4 | 1.0 | - |
 | 7 | History panel | Slide-over over the journal | pending | 6 | 3, SNS-3 | 0.8 | - |
 | 8 | Shell | Header Undo and History, engine chip label, rail groups and counts as the mock, collapse below 1360 | pending | - | 4, 7 | 1.1 | - |
