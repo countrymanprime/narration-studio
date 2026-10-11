@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/liveflags"
+	"github.com/countrymanprime/narration-utils/shell/internal/marks"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 	"github.com/countrymanprime/narration-utils/shell/internal/recents"
 )
@@ -79,6 +80,13 @@ var stressReaders = []stressReader{
 	{"MarksAdd (unknown chapter)", func(h *Host) { _, _ = h.MarksAdd("missing", "missing", 0, 1, "stress", "") }},
 	{"MarksRemove (unknown mark)", func(h *Host) { _, _ = h.MarksRemove("missing") }},
 	{"MarksSaveTypes (no types)", func(h *Host) { _, _ = h.MarksSaveTypes(nil, false) }},
+	{"MarksReply (unknown mark)", func(h *Host) { _, _ = h.MarksReply("missing", "you", "hi") }},
+	{"MarksEditMessage (unknown mark)", func(h *Host) { _, _ = h.MarksEditMessage("missing", 0, "hi") }},
+	{"MarksDeleteMessage (unknown mark)", func(h *Host) { _, _ = h.MarksDeleteMessage("missing", 0) }},
+	{"MarksRestoreMessage (unknown mark)", func(h *Host) {
+		_, _ = h.MarksRestoreMessage("missing", 0, marks.Message{Who: "you", Text: "hi", At: "2026-10-11T00:00:00Z"})
+	}},
+	{"MarksSetStatus (unknown mark)", func(h *Host) { _, _ = h.MarksSetStatus("missing", "open") }},
 	{"EditingAcceptedList", func(h *Host) { _, _ = h.EditingAcceptedList("missing") }},
 	{"EditingAccept (unknown chapter)", func(h *Host) { _, _ = h.EditingAccept("missing", []string{"missing:0"}) }},
 	{"EditingUnaccept (unknown word)", func(h *Host) { _, _ = h.EditingUnaccept("missing", []string{"missing:0"}) }},

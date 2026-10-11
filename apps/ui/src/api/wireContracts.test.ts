@@ -13,7 +13,7 @@ import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
-import { markSchema, markTypeSchema, marksSchema } from './schemas/marks';
+import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -3074,6 +3074,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'marksAdd',
       'marksRemove',
       'marksSaveTypes',
+      'marksReply',
+      'marksEditMessage',
+      'marksDeleteMessage',
+      'marksRestoreMessage',
+      'marksSetStatus',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -3937,5 +3942,67 @@ describe('the marks bindings', () => {
     expect(markSchema.safeParse({ ...added, start: 9, end: 2 }).success).toBe(false);
     expect(markSchema.safeParse({ ...added, status: 'closed' }).success).toBe(false);
     expect(marksSchema.safeParse({ ...list, types: [] }).success).toBe(false);
+  });
+
+  it('the thread goldens parse, and the schemas refuse an unknown author, an empty message or an unknown key', () => {
+    const threaded = parseWire(markSchema, readGolden('marks-thread.json'), ctx('marks thread'));
+    expect(threaded.thread.map((message) => message.who)).toEqual(['author', 'proofer']);
+    const deleted = parseWire(markThreadDeletedSchema, readGolden('marks-thread-deleted.json'), ctx('marks thread deleted'));
+    expect(deleted.mark.thread).toHaveLength(1);
+    expect(deleted.message.who).toBe('proofer');
+    const message = threaded.thread[0];
+    expect(threadMessageSchema.safeParse(message).success).toBe(true);
+    expect(threadMessageSchema.safeParse({ ...message, who: 'editor' }).success).toBe(false);
+    expect(threadMessageSchema.safeParse({ ...message, text: '' }).success).toBe(false);
+    expect(threadMessageSchema.safeParse({ ...message, text: 'x'.repeat(2001) }).success).toBe(false);
+    expect(threadMessageSchema.safeParse({ ...message, html: '<b>' }).success).toBe(false);
+    expect(markSchema.safeParse({ ...threaded, thread: [{ ...message, who: 'narrator' }] }).success).toBe(false);
+    expect(markThreadDeletedSchema.safeParse({ ...deleted, index: 1 }).success).toBe(false);
+  });
+
+  it('the mock keeps a thread: reply, edit, delete and restore, resolve and reopen, through the schemas', async () => {
+    const { api, chapterId, line } = await firstLine();
+    const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', 'Is this right?');
+    await api.marksReply(question.id, 'author', ' Yes. ');
+    const replied = await api.marksReply(question.id, 'proofer', 'Clipped at 2:14.');
+    expectMatches(markSchema, replied, 'mock marks reply');
+    expect(replied.thread.map((message) => [message.who, message.text])).toEqual([
+      ['author', 'Yes.'],
+      ['proofer', 'Clipped at 2:14.'],
+    ]);
+    expect(replied.thread[0]?.at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    const edited = await api.marksEditMessage(question.id, 0, 'Yes, the live ones.');
+    expectMatches(markSchema, edited, 'mock marks edit message');
+    expect(edited.thread.map((message) => message.text)).toEqual(['Yes, the live ones.', 'Clipped at 2:14.']);
+    const deleted = await api.marksDeleteMessage(question.id, 0);
+    expectMatches(markThreadDeletedSchema, deleted, 'mock marks delete message');
+    expect(deleted.message.text).toBe('Yes, the live ones.');
+    expect(deleted.mark.thread).toHaveLength(1);
+    const restored = await api.marksRestoreMessage(question.id, 0, deleted.message);
+    expectMatches(markSchema, restored, 'mock marks restore message');
+    expect(restored.thread).toEqual(edited.thread);
+    expect((await api.marksSetStatus(question.id, 'resolved')).status).toBe('resolved');
+    expect((await api.marksSetStatus(question.id, 'open')).status).toBe('open');
+  });
+
+  it('the mock refuses in a thread what the host refuses and changes nothing', async () => {
+    const { api, chapterId, line } = await firstLine();
+    const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', 'Is this right?');
+    const stress = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
+    await api.marksReply(question.id, 'author', 'Yes.');
+    await expect(api.marksReply(question.id, 'you', '  ')).rejects.toThrow('write the reply or note first');
+    await expect(api.marksReply('missing', 'you', 'Hi')).rejects.toThrow('no longer there');
+    await expect(api.marksReply(question.id, 'you', 'x'.repeat(2001))).rejects.toThrow('at most 2000');
+    await expect(api.marksReply(question.id, 'you', 'bell\u0007')).rejects.toThrow('only text');
+    await expect(api.marksEditMessage(question.id, 1, 'x')).rejects.toThrow('no longer there');
+    await expect(api.marksEditMessage(question.id, 0, ' ')).rejects.toThrow('write the message first');
+    await expect(api.marksDeleteMessage(question.id, -1)).rejects.toThrow('no longer there');
+    const message = { who: 'you', text: 'Hi', at: '2026-10-11T10:00:00Z' } as const;
+    await expect(api.marksRestoreMessage(question.id, 2, message)).rejects.toThrow('no longer there');
+    await expect(api.marksRestoreMessage(question.id, 0, { ...message, text: '' })).rejects.toThrow('needs its text');
+    await expect(api.marksSetStatus(stress.id, 'resolved')).rejects.toThrow('only a question');
+    const after = (await api.marksList()).marks.find((mark) => mark.id === question.id);
+    expect(after?.thread.map((entry) => entry.text)).toEqual(['Yes.']);
+    expect(after?.status).toBe('open');
   });
 });

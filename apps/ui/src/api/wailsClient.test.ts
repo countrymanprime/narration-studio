@@ -1113,6 +1113,33 @@ describe('the marks bindings', () => {
     standInHost({ MarksList: () => Promise.resolve(JSON.stringify({ ...marks, types: [{ ...type, colour: 'pink' }] })) });
     await expect(wailsClient.marksList()).rejects.toBeInstanceOf(WireError);
   });
+
+  it('calls the five thread methods with their arguments and decodes each answer', async () => {
+    const message = { who: 'author', text: 'Loud.', at: '2026-10-11T10:00:00Z' } as const;
+    const threaded = { ...mark, thread: [message] };
+    const reply = vi.fn().mockResolvedValue(JSON.stringify(threaded));
+    const edit = vi.fn().mockResolvedValue(JSON.stringify(threaded));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ mark, message }));
+    const restore = vi.fn().mockResolvedValue(JSON.stringify(threaded));
+    const setStatus = vi.fn().mockResolvedValue(JSON.stringify({ ...mark, status: 'resolved' }));
+    standInHost({ MarksReply: reply, MarksEditMessage: edit, MarksDeleteMessage: remove, MarksRestoreMessage: restore, MarksSetStatus: setStatus });
+
+    await expect(wailsClient.marksReply('m1', 'author', 'Loud.')).resolves.toEqual(threaded);
+    expect(reply).toHaveBeenCalledWith('m1', 'author', 'Loud.');
+    await expect(wailsClient.marksEditMessage('m1', 0, 'Loud.')).resolves.toEqual(threaded);
+    expect(edit).toHaveBeenCalledWith('m1', 0, 'Loud.');
+    await expect(wailsClient.marksDeleteMessage('m1', 0)).resolves.toEqual({ mark, message });
+    expect(remove).toHaveBeenCalledWith('m1', 0);
+    await expect(wailsClient.marksRestoreMessage('m1', 0, message)).resolves.toEqual(threaded);
+    expect(restore).toHaveBeenCalledWith('m1', 0, message);
+    await expect(wailsClient.marksSetStatus('m1', 'resolved')).resolves.toMatchObject({ status: 'resolved' });
+    expect(setStatus).toHaveBeenCalledWith('m1', 'resolved');
+  });
+
+  it('refuses a thread message from an unknown author', async () => {
+    standInHost({ MarksReply: () => Promise.resolve(JSON.stringify({ ...mark, thread: [{ who: 'editor', text: 'Hi', at: '2026-10-11T10:00:00Z' }] })) });
+    await expect(wailsClient.marksReply('m1', 'you', 'Hi')).rejects.toBeInstanceOf(WireError);
+  });
 });
 
 describe('the DAW project state binding and event', () => {
