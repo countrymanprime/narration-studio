@@ -11,6 +11,9 @@
 -- ITEM_STALE|run|guid|reason (item or take) and changes nothing. Nothing changes while REAPER records. The answer is
 -- TAKES_HIDDEN|run|item guid|takes hidden|changed: changed is 1 when an undo point was added, which can be with none hidden
 -- (the kept take made active, or its volume given back).
+--
+-- Pending in REAPER (docs/reference/daw/reaper.md, "Takes"): that a take at D_VOL 0 is silent, that the take's P_EXT
+-- survives save, and that one Undo restores every volume and the active take. The harness proves only the calls.
 
 local core = ...
 local event = core.event
@@ -61,13 +64,14 @@ local function resolve(item_text, take_text)
   return nil, nil, take_text, 'take'
 end
 
--- The volume a hidden take had before it was hidden, or nil when it is not hidden.
+-- What a hidden take saved under HIDDEN_KEY, or nil when it is not hidden. Any non-empty value counts as hidden, so a
+-- value that does not read as a number is never overwritten with the 0 the take now plays at.
 local function saved_volume(take)
   local _, saved = reaper.GetSetMediaItemTakeInfo_String(take, HIDDEN_KEY, '', false)
   if saved == nil or saved == '' then
     return nil
   end
-  return tonumber(saved)
+  return saved
 end
 
 local function hide_takes(session_dir, run_id, item_text, keep_text)
@@ -91,7 +95,8 @@ local function hide_takes(session_dir, run_id, item_text, keep_text)
       to_hide[#to_hide + 1] = take
     end
   end
-  local restore = saved_volume(keep)
+  -- A kept take whose saved volume is unreadable is left as it is: no volume is guessed.
+  local restore = tonumber(saved_volume(keep) or '')
   local activate = reaper.GetActiveTake(item) ~= keep
   if #to_hide == 0 and restore == nil and not activate then
     event(session_dir, 'TAKES_HIDDEN', run_id, item_guid(item), 0, 0)

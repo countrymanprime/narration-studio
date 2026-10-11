@@ -195,3 +195,19 @@ H.test('the kept take is made active when another take was active', function()
   H.eq(item.active_index, 1)
   H.eq(s.fake:undo_labels(), { LABEL }, 'switching the active take is a change, so it is one undo point')
 end)
+
+H.test('a saved volume that does not read as a number is never overwritten, and a kept take holding one is left alone', function()
+  local s, track = new_session()
+  local item = takes(s, track, 3)
+  item.takes[2].vol = 0
+  item.takes[2].ext[HIDDEN] = 'not a number'
+  s:send('hide_takes', 'h1', ITEM, item.takes[1].guid)
+  H.eq(s:events(), { { 'TAKES_HIDDEN', 'h1', ITEM, '1', '1' } })
+  H.eq(item.takes[2].ext[HIDDEN], 'not a number', 'a take with any saved value counts as hidden')
+  H.eq(volumes(item), { 0.1, 0, 0 })
+  item.active_index = 2
+  s:send('hide_takes', 'h2', ITEM, item.takes[2].guid)
+  s:events()
+  H.eq(item.takes[2].ext[HIDDEN], 'not a number', 'a kept take whose saved volume is unreadable keeps its key')
+  H.eq(item.takes[2].vol, 0, 'and its volume is not guessed')
+end)

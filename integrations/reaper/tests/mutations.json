@@ -940,5 +940,41 @@
     "file": "narration_takes.lua",
     "find": "    reaper.SetMediaItemTakeInfo_Value(take, 'D_VOL', 0)\n",
     "replace": "    reaper.SetMediaItemTakeInfo_Value(take, 'D_VOL', 0)\n    reaper.Main_OnCommand(40129, 0)\n"
+  },
+  {
+    "name": "hide_takes: an already hidden take is hidden again, losing its saved volume",
+    "file": "narration_takes.lua",
+    "find": "if take and take ~= keep and saved_volume(take) == nil then",
+    "replace": "if take and take ~= keep then"
+  },
+  {
+    "name": "hide_takes: a keep take not on the item falls back to its first take",
+    "file": "narration_takes.lua",
+    "find": "  return nil, nil, take_text, 'take'\nend",
+    "replace": "  return item, reaper.GetTake(item, 0)\nend"
+  },
+  {
+    "name": "hide_takes: the kept take's volume is not given back",
+    "file": "narration_takes.lua",
+    "find": "    reaper.SetMediaItemTakeInfo_Value(keep, 'D_VOL', restore)\n",
+    "replace": "    local _ = restore\n"
+  },
+  {
+    "name": "hide_takes: the kept take is not made active",
+    "file": "narration_takes.lua",
+    "find": "    reaper.SetActiveTake(keep)\n",
+    "replace": "    local _ = keep\n"
+  },
+  {
+    "name": "hide_takes: switching the active take opens no undo block",
+    "file": "narration_takes.lua",
+    "find": "if #to_hide == 0 and restore == nil and not activate then",
+    "replace": "if #to_hide == 0 and restore == nil then"
+  },
+  {
+    "name": "hide_takes: a REAPER without SetActiveTake is not refused",
+    "file": "narration_takes.lua",
+    "find": "  if not reaper.APIExists('SetActiveTake') then\n    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot choose the active take.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot choose the active take.')"
   }
 ]
