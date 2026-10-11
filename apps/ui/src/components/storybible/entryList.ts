@@ -1,9 +1,11 @@
-// Pure selectors for the Story Bible list: the sort, and the alias and chapter counts a row shows. The list shows no line or mention
+// Pure selectors for the Story Bible list: the sort, the alias and chapter counts a row shows, and what needs review. The list shows no line or mention
 // counts (the Studio Next mock has none). The sort choice is a per-viewer convenience in browser storage, like readerPreferences.ts;
 // storage can be missing or blocked, so every access is guarded and the list sorts by name when it fails.
 
-import type { GuideEntity } from '../../types';
+import type { ExtractionSuggestion } from '../../api/contracts/extraction';
+import type { GuideEntity, GuideReview } from '../../types';
 import { STORY_BIBLE_TABS } from '../../state';
+import { verifyOf } from './suggested/row/selectors';
 
 export type EntrySortKey = 'name' | 'type' | 'chapters';
 
@@ -26,6 +28,33 @@ export function chapterCount(entry: GuideEntity): number {
     ? entry.appearances.map((appearance) => appearance.chapterId)
     : entry.occurrences.map((occurrence) => occurrence.chapterId ?? occurrence.chapter);
   return new Set(chapters).size;
+}
+
+/** The host's review flags; a host that sends none is read from `review_state`, with no name flagged. */
+export const reviewFlags = (entry: GuideEntity): GuideReview => entry.review ?? { entry: entry.review_state === 'needs review', aliases: [] };
+
+/** The entry or one of its names carries a flag the narrator has not cleared (the Studio Next mock's `needsReview`). */
+export const entryFlagged = (entry: GuideEntity): boolean => {
+  const review = reviewFlags(entry);
+  return review.entry || review.aliases.length > 0;
+};
+
+/** One name carries a flag (`aliasNeedsReview`). */
+export const aliasFlagged = (entry: GuideEntity, aliasText: string): boolean => reviewFlags(entry).aliases.includes(aliasText);
+
+/** Flagged, or a suggestion about it is still to be verified (`entryNeedsReview`). */
+export const entryNeedsReview = (entry: GuideEntity, suggestions: readonly ExtractionSuggestion[]): boolean =>
+  entryFlagged(entry) || verifyOf(suggestions, entry.id) > 0;
+
+/** How many entries need review: what the chip counts and filters to (`reviewCount`). */
+export const reviewCount = (entries: readonly GuideEntity[], suggestions: readonly ExtractionSuggestion[]): number =>
+  entries.filter((entry) => entryNeedsReview(entry, suggestions)).length;
+
+/** The row's pill: "Verify · N" while N suggestions wait, else "Review" for a flag; nothing when the entry needs neither. */
+export function reviewPill(entry: GuideEntity, suggestions: readonly ExtractionSuggestion[]): string | undefined {
+  const verify = verifyOf(suggestions, entry.id);
+  if (verify > 0) return `Verify · ${verify}`;
+  return entryFlagged(entry) ? 'Review' : undefined;
 }
 
 // Category tabs after "All" and before "Needs Review" give the order of types; an unknown category sorts last.

@@ -1,4 +1,4 @@
-import { describeApiError } from '../../api/errorMessage';
+import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -19,11 +19,12 @@ import type { GuideEntity, GuidePreview, GuidePronunciationStatus, TtsInstallJob
 import { categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
+import { overlay } from '../../overlay/overlayService';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { CAT_DOT_BG, EntitySummary, entityBadgeColors } from '../manuscript/EntitySummary';
-import { Dot, badgeClass, badgeStyle } from '../primitives/StatusBadge';
+import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
 import { SlideOver } from '../primitives/SlideOver';
 import { Button } from '../primitives/Button';
 import { Field } from '../primitives/Field';
@@ -39,6 +40,7 @@ import { SpeakerColourField } from './SpeakerColourField';
 import { PronunciationWork } from './PronunciationWork';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
+import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { pronunciationSourceLabel } from './pronunciationStatus';
 import { draftFrom, propertiesFrom, propertyProblem, sameProperties, type DraftProperty } from './propertyDraft';
 import { IconButton } from '../primitives/IconButton';
@@ -62,6 +64,7 @@ const draftOf = (entity: GuideEntity): Draft => ({
 });
 
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
+const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
 
 export function GuideDetail({
   entity,
@@ -72,6 +75,7 @@ export function GuideDetail({
   reload,
   notify,
   goToManuscript,
+  toVerify = 0,
 }: {
   entity?: GuideEntity;
   // A brand-new entity with no backend record yet - see Guide.tsx's
@@ -86,6 +90,8 @@ export function GuideDetail({
   notify: Notify;
   // A method, so Guide's (chapter, paragraph) handler still fits; the Appears in list calls it with a chapter alone.
   goToManuscript(chapter: string, paragraph?: number): void;
+  // How many of this entry's extraction suggestions are still to be verified; Mark reviewed waits until none are.
+  toVerify?: number;
 }) {
   const api = useApi();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [] });
@@ -325,6 +331,36 @@ export function GuideDetail({
         notify(describeApiError(error), 'error');
       }
     });
+  // Mark reviewed clears the flags of the entry and every name, or of one name. Undo flags back exactly what the entry carried, so a
+  // flag the narrator never had is not invented; the host is the one place that decides what a cleared entry looks like.
+  const markReviewed = (aliasIndex?: number) => {
+    const id = entity.id;
+    const flags = reviewFlags(entity);
+    const named = aliasIndex === undefined ? undefined : entity.aliases[aliasIndex]?.text;
+    const restore: (number | undefined)[] =
+      aliasIndex !== undefined
+        ? [aliasIndex]
+        : [...(flags.entry ? [undefined] : []), ...entity.aliases.flatMap((alias, index) => (flags.aliases.includes(alias.text) ? [index] : []))];
+    // Arguments as an array, so a call for the entry carries no `undefined` alias index.
+    const argsFor = (index: number | undefined): Parameters<typeof api.guideMarkReviewed> => (index === undefined ? [id] : [id, index]);
+    return mutation.run(aliasIndex === undefined ? 'review' : `review:${aliasIndex}`, async () => {
+      try {
+        await api.guideMarkReviewed(...argsFor(aliasIndex));
+        overlay.toastUndo(`“${named ?? entity.canonical_name}” reviewed.`, async () => {
+          try {
+            for (const index of restore) await api.guideFlagReview(...argsFor(index));
+            await reloadFor(id);
+            return { ok: true as const };
+          } catch (error) {
+            return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
+          }
+        });
+        await reloadFor(id);
+      } catch (error) {
+        notify(describeApiError(error), 'error');
+      }
+    });
+  };
   const removeRelationship = (relationId: string, label: string) =>
     mutation.run(`unrelate:${relationId}:${label}`, async () => {
       try {
@@ -398,7 +434,7 @@ export function GuideDetail({
       title={entity.canonical_name || 'New entity'}
       leading={<Dot color={CAT_DOT_BG[categoryCssName(entity.category)]} />}
       subtitle={
-        <div style={{ position: 'relative' }}>
+        <div className="flex items-center gap-2" style={{ position: 'relative' }}>
           <Menu
             triggerClassName={badgeClass('pill')}
             triggerStyle={badgeStyle(entityBadgeColors(entity.category))}
@@ -415,10 +451,23 @@ export function GuideDetail({
           >
             {categoryLabel(entity.category)} <FontAwesomeIcon icon={faChevronDown} />
           </Menu>
+          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone="warning" label="Needs review" />}
         </div>
       }
       actions={
         <>
+          {entryFlagged(entity) &&
+            (toVerify > 0 ? (
+              <TooltipTarget text={VERIFY_FIRST_REASON}>
+                <Button variant="secondary" size="sm" disabled>
+                  Mark reviewed
+                </Button>
+              </TooltipTarget>
+            ) : (
+              <Button variant="secondary" size="sm" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
+                Mark reviewed
+              </Button>
+            ))}
           {/* Lock/Unlock is read-view only (ADR 0087): it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
           {!isNewDraft && !editing && (
             <TooltipTarget text={locked ? 'Unlock entry' : 'Lock entry'}>
@@ -574,7 +623,10 @@ export function GuideDetail({
             <TableBody>
               {entity.aliases.map((alias, index) => (
                 <TableRow key={alias.text}>
-                  <TableCell className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{alias.text}</TableCell>
+                  <TableCell className="font-['IBM_Plex_Mono',ui-monospace,monospace]">
+                    {alias.text}
+                    {aliasFlagged(entity, alias.text) && <StatusBadge tone="warning" label="Needs review" className="ml-2" />}
+                  </TableCell>
                   <TableCell>
                     <div style={{ position: 'relative', width: '100%' }}>
                       <TextField
@@ -641,6 +693,17 @@ export function GuideDetail({
                     />
                   </TableCell>
                   <TableCell align="right">
+                    {aliasFlagged(entity, alias.text) && (
+                      <TooltipTarget text={`Mark ${alias.text} reviewed`}>
+                        <IconButton
+                          action="markReviewed"
+                          label={`Mark ${alias.text} reviewed`}
+                          pending={mutation.isPending(`review:${index}`)}
+                          disabled={waiting(`review:${index}`)}
+                          onClick={() => void markReviewed(index)}
+                        />
+                      </TooltipTarget>
+                    )}
                     <IconButton
                       label={`Remove alias ${alias.text}`}
                       disabled={editingDisabled || waiting(`alias:${alias.text}`)}

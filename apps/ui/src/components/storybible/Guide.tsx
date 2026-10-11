@@ -4,11 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClipboardQuestion, faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
+import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideBuildResult, GuideEntity } from '../../types';
 import { categoryCssName, categoryLabel, STORY_BIBLE_TABS } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { usePendingAction } from '../../hooks/usePendingAction';
+import { usePort } from '../../ports/usePort';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
@@ -17,8 +19,21 @@ import { Panel } from '../primitives/Panel';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { CAT_DOT_BG } from '../manuscript/EntitySummary';
-import { Dot } from '../primitives/StatusBadge';
-import { aliasCount, chapterCount, ENTRY_SORT_OPTIONS, loadEntrySort, saveEntrySort, sortEntries, type EntrySortKey } from './entryList';
+import { Pill } from '../primitives/Pill';
+import { Dot, StatusBadge } from '../primitives/StatusBadge';
+import {
+  aliasCount,
+  chapterCount,
+  ENTRY_SORT_OPTIONS,
+  entryNeedsReview,
+  loadEntrySort,
+  reviewCount,
+  reviewPill,
+  saveEntrySort,
+  sortEntries,
+  type EntrySortKey,
+} from './entryList';
+import { verifyOf } from './suggested/row/selectors';
 import { GuideDetail } from './GuideDetail';
 import { PronunciationQueries } from './PronunciationQueries';
 import { VoiceDataPanel } from './VoiceDataPanel';
@@ -62,6 +77,7 @@ const emptyGuideEntity = (name: string): GuideEntity => ({
 
 export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscript: (chapter: string, paragraph: number) => void }) {
   const api = useApi();
+  const extraction = usePort('extraction');
   const location = useLocation();
   const routerNavigate = useNavigate();
   const entityId = location.hash ? decodeURIComponent(location.hash.slice(1)) : undefined;
@@ -76,6 +92,10 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   const [queriesOpen, setQueriesOpen] = useState(false);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
+  // The suggestions the host lists: an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b). The
+  // suggestion panel itself is a separate slice; this page only reads the list.
+  const [suggestions, setSuggestions] = useState<ExtractionSuggestion[]>([]);
+  const [reviewOnly, setReviewOnly] = useState(false);
   // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild (ADR 0075).
   const starting = usePendingAction();
   // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
@@ -90,6 +110,8 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
 
   const load = useCallback(
     async (selectId?: string) => {
+      // Without the list the page still shows its entries; the narrator hears that the Verify marks may be missing.
+      void extraction.extractionList().then(setSuggestions, (error) => notify(describeApiError(error), 'error'));
       try {
         const next = await api.guideEntities();
         loadedOnce.current = true;
@@ -101,7 +123,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
         else setLoadError(describeApiError(error));
       }
     },
-    [api, notify],
+    [api, extraction, notify],
   );
   // Follows a running rebuild (ADR 0015). A success reloads the rows before the dialog goes, so the page never briefly renders on stale
   // (pre-build) rows - that render trips the route ErrorBoundary, which looks exactly like the build itself had failed. The
@@ -165,8 +187,10 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   // every tab/search except while it's the one open in the detail pane - it
   // isn't a "real" browsable entry until it has a category.
   const visible = rows.filter((row) => row.category !== 'Draft' || row.id === selectedId);
+  const toReview = reviewCount(visible, suggestions);
   const filtered = visible
     .filter((row) => tab === 'All' || categoryLabel(row.category) === tab)
+    .filter((row) => !reviewOnly || entryNeedsReview(row, suggestions))
     .filter((row) =>
       `${row.canonical_name} ${row.aliases.map((alias) => alias.text).join(' ')} ${categoryLabel(row.category)}`.toLowerCase().includes(query.toLowerCase()),
     );
@@ -244,6 +268,11 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
                 <span aria-hidden="true">Sort</span>
                 <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="flex-1" />
               </div>
+              {(toReview > 0 || reviewOnly) && (
+                <div className="mt-2 flex" role="group" aria-label="Filter entries">
+                  <Pill label={`Needs review · ${toReview}`} active={reviewOnly} onClick={() => setReviewOnly((on) => !on)} />
+                </div>
+              )}
             </div>
             <div className="guide-list-scroll min-h-0 overflow-y-auto px-2 pb-2">
               <Table label="Story Bible entries">
@@ -261,6 +290,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
                           <Dot color={CAT_DOT_BG[categoryCssName(row.category)]} />
                           <span className="truncate text-sm font-medium">{row.canonical_name}</span>
                           {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
+                          {reviewPill(row, suggestions) && <StatusBadge tone="warning" label={reviewPill(row, suggestions)!} className="ml-auto" />}
                         </div>
                         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
                           {categoryLabel(row.category)}
@@ -298,6 +328,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
               reload={load}
               notify={notify}
               goToManuscript={goToManuscript}
+              toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
             />
           </div>
         </div>
