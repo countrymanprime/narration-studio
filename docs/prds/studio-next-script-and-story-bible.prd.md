@@ -131,7 +131,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | pending | 3 | 1 | 1.5 | - |
 | 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | pending | 2 | 1 | 1.0 | - |
 | 4 | Appears-in and colours | Chapters only with go-to; speaker override | pending | 2, 3 | 1 | 0.8 | - |
-| 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | pending | 2 | 1 | 1.0 | - |
+| 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | in review (ADR 0820; PR #1113) | 2 | 1 | 1.0 | - |
 | 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | pending | - | 5, SNR-4, SNF-3 | 1.2 | - |
 | 7 | Script migrations | Search sources, context providers, key hints for Script | pending | - | SNR-4, SNR-5 | 0.7 | - |
 | 8 | Swap and close-out | Swap the Story Bible and Script routes; delete the old pages, queries page, query CSV export and import and open-queries badge; visual rows, guide pages, doc screenshots | pending | - | 2 to 7 | 0.3 | - |
@@ -164,7 +164,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNB-2 | Phase 2 | SNB-1 | yes | Sidecar and Go tests; ported bible tests; visual row |
 | SNB-3 | Phase 3 | SNB-1 | yes | Ported tests; visual rows |
 | SNB-4 | Phase 4 | SNB-1 | yes | Ported tests |
-| SNB-5 | Phase 5 | SNB-1 | yes | Go tests; golden; wire row; threat model |
+| SNB-5 | Phase 5 | SNB-1 | yes | Go tests; goldens `bookmarks-*.json`; wire rows; threat model row 6u; ADR 0820 |
 | SNB-6 | Phase 6 | SNB-5, SNR-4, SNF-3 | yes | Ported `bookmarks.test.tsx`; visual; aria |
 | SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests |
 | SNB-8 | Phase 8 | SNB-2..7 | no (page swap) | Full visual suite for the two pages; Screenshots against the mock pages; deleted code gone from Knip |
