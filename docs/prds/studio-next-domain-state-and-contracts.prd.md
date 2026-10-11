@@ -122,7 +122,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | ADRs | A5 and A6 as Proposed, with the mock-command to inverse-command table | in review (ADR 0770, ADR 0771) | - | SN0-1 | 0.8 | - |
 | 2 | Store core | `studio/` store, selectors helpers, hydration by events | pending | 3 | 1 | 1.5 | - |
 | 3 | Journal and undo | `act`, `undo`, refusals, leave guard, tests | pending | 2 | 1 | 1.5 | - |
-| 4 | Contract kit | `describeProviderContract`, `Refusal`, `Measured`, registration test | pending | 5 | 1 | 1.0 | - |
+| 4 | Contract kit | `describeProviderContract`, `Refusal`, `Measured`, registration test | in review (#1031) | 5 | 1 | 1.0 | - |
 | 5 | Ports and fixtures | `ports/`, `usePort`, ratchet on whole-facade `useApi()`, `fixtures/` builders, scan test | pending | 4 | 1 | 1.0 | - |
 | 6 | Mock states and scenarios | Dev-only panel, scenario book builder, scenario test helper | pending | - | 5 | 0.8 | - |
 | 7 | First adopters | Chapter selection, preferences, one journalled command end to end | pending | - | 2, 3 | 0.4 | - |
@@ -154,7 +154,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNS-1 | Phase 1 | SN0-1 | yes | ADR index generated; table covers every mock `act` |
 | SNS-2 | Phase 2 | SNS-1 | yes | Store tests; stable-slice test |
 | SNS-3 | Phase 3 | SNS-1 | yes | Ported journal tests; property tests |
-| SNS-4 | Phase 4 | SNS-1 | yes | Registration test fails for a port without a suite |
+| SNS-4 | Phase 4 (in review, #1031) | SNS-1 | yes | Registration test fails for a port without a suite |
 | SNS-5 | Phase 5 | SNS-1 | yes | Ratchet and scan tests |
 | SNS-6 | Phase 6 | SNS-5 | yes | Scenario test runs for one existing page |
 | SNS-7 | Phase 7 | SNS-2, SNS-3 | no (needs a bookmark binding from SNB) | Journalled add and undo through the mock and the host adapter |
