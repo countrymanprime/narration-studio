@@ -2,41 +2,42 @@
 
 **Status:** Accepted
 **Date:** 2026-09-28
-**Supersedes:** (none; resolves the open compatibility risk ADR 0091 left for this phase)
+**Supersedes:** (none; resolves the open compatibility risk ADR 0091 left open)
 
 ## Context
 
-`docs/prds/story-bible-and-import-ux-briefs.prd.md` Phase 10 asks for the gap [ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and
-[the pronunciation provider spike](../research/pronunciation-provider-spike.md) recorded: `render_audio` in
+[ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and
+[the pronunciation provider spike](../research/pronunciation-provider-spike.md) recorded a gap: `render_audio` in
 `sidecars/manuscript-guide/core/manuscript_guide.py` always spoke the entity's spelled name through Piper, so a
 narrator-edited pronunciation had no audible effect. ADR 0091 picked the direction (speak the narrator's edited value
 directly, no second engine) but left one risk open: the CMU dictionary source stores ARPABET, "a different symbol set
 from IPA", and feeding it to Piper's phoneme-input path unconverted "would very likely produce wrong or silent audio" —
-needing "a real trial" before Phase 10 could ship it.
+needing "a real trial" before it could ship.
 
-Reading the code for this phase found that risk already closed by a concurrent stream: `sidecars/manuscript-guide/core/providers.py`
-(provider-ports P8, ADR 0301) now converts every pronunciation source to IPA before it is ever stored —
+Reading the code found that risk already closed by a concurrent stream: `sidecars/manuscript-guide/core/providers.py`
+([ADR 0301](0301-providers-sit-behind-small-ports-with-a-registry-and-a-capability-descriptor.md)) now converts every pronunciation source to IPA before it is ever stored —
 `CmuSource.pronounce()` runs the CMU dictionary's ARPABET through `arpabet_to_ipa()` (a fixed ARPABET-to-IPA table)
 before returning it, and `WiktextractSource`/`EspeakSource` already produce IPA. `entity["pronunciation"]["ipa"]` and an
-alias's `pronunciation.ipa` are therefore IPA regardless of source by the time Phase 10 starts, which removes the
+alias's `pronunciation.ipa` are therefore IPA regardless of source by the time the preview reads them, which removes the
 symbol-set mismatch ADR 0091 flagged. The narrator-chosen mechanism itself was also already delivered by other
 concurrent work (`pronounce()`/`pronounce_user()`, the `GuidePronounce`/`GuidePronounceUser` bindings, and
 `merge_locked`'s "a `chosen` pronunciation survives a rebuild" rule, both already covered by
-`sidecars/manuscript-guide/tests/test_pronounce.py` and `test_pronunciation_depth.py`) — so this phase's own scope is
-narrower than the PRD's phase table implies: only the preview path was still silent.
+`sidecars/manuscript-guide/tests/test_pronounce.py` and `test_pronunciation_depth.py`) — so only the preview path
+was still silent.
 
 Reading `piper.voice.PiperVoice.phonemize()` (the installed `piper-tts` package) found it already supports raw phoneme
 input as a documented text convention, not just through the two-step `phonemes_to_ids()`/`phoneme_ids_to_audio()` API
 ADR 0091 named: text wrapped in `"[[ ... ]]"` is extracted verbatim and fed straight to `phonemes_to_ids()`, skipping
 Piper's own espeak-based text-to-phoneme guess for that span. `piper.phoneme_ids.phonemes_to_ids()` also silently skips
 (with a log warning) any symbol missing from the voice's phoneme map, rather than raising — so a stored IPA string this
-project didn't produce (for example from the Wiktextract dataset, D72/ADR 0405) degrades instead of failing the preview
+project didn't produce (for example from the Wiktextract dataset, ADR 0405) degrades instead of failing the preview
 outright.
 
 An actual listening trial (synthesize edited names through each source and judge the audio) is not something this
 session can do — there is no way to play or judge audio here. Building the change on the documented API contract
 (IPA-in, Piper's own graceful degradation on an unrecognized symbol) is the trial substitute; a real listening check is
-an owner step (D65: hardware/audio checks are flagged on #510, never block a merge or a launch).
+an owner step (hardware and audio checks are flagged on #510 and never block a merge or a launch; see the
+[owner standing rules](../operations/agent-train.md#owner-standing-rules)).
 
 ## Decision
 
@@ -54,8 +55,7 @@ compatible offline. `apps/desktop/internal/guide/service.go`'s preview cache key
 include the chosen pronunciation's IPA (`chosenPronunciationKey`), because the cache was keyed only on the spoken text:
 without this, choosing or changing a pronunciation for an already-previewed name would keep serving the old, spelled-name
 audio from disk. `apps/desktop/bindings.go` needed no change: `GuidePreview`'s binding signature and response shape are
-unchanged, and `GuideEdit` already forwards an arbitrary field map to the sidecar, so no new host binding was required
-for this phase.
+unchanged, and `GuideEdit` already forwards an arbitrary field map to the sidecar, so no new host binding was required.
 
 ## Consequences
 
@@ -68,7 +68,7 @@ for this phase.
   that degradation still sounds acceptably close to the intended pronunciation is unverified by this ADR — it is a
   real audio judgement, not a desk check.
 - A real listening trial (does the phoneme block actually sound like the chosen pronunciation, for each source) is
-  filed as an owner QA item on issue #510, per D65 and D70/D71's "provisional until a real check" pattern. If that
+  filed as an owner QA item on issue #510: audio checks stay pending until the owner runs them. If that
   trial finds a source's IPA needs its own conversion or should be excluded, a new ADR supersedes this one for that
   source only.
 - Every existing cached preview under the old (`v2`) cache-key format is orphaned by the `previewCacheTag` bump to

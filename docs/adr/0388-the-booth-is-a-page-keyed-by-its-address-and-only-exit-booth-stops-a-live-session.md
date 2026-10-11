@@ -5,7 +5,7 @@
 
 ## Context
 
-Stage navigation and page replacement (`docs/prds/stage-navigation-and-page-replacement.prd.md`, delivered and deleted) Phase 4 replaces the Teleprompter page, the Manuscript's Read aloud dialog and its booth dialog with one Booth page at `/booth` ([ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)). The three surfaces differed on two things the PRD does not settle:
+Stage navigation and page replacement replaces the Teleprompter page, the Manuscript's Read aloud dialog and its booth dialog with one Booth page at `/booth` ([ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)). The three surfaces differed on two things:
 
 - **What a surface reads.** The dialog was opened already pointed at one chapter (or the credits); the page had a picker that opened on REAPER's suggested chapter ([ADR 0113](0113-the-teleprompter-suggests-a-chapter-from-the-saved-armed-track-and-preselects-only-a-confident-match.md)) or the last chapter read.
 - **Leaving during a live session.** The dialog was modal: closing it (the Close button or Escape) asked "Stop reading?" and stopped the session, so a live microphone never outlived it. The page could be left through the nav at any time, and the session kept running in the host; coming back picked it up.
@@ -14,7 +14,7 @@ On a page inside the app shell, the nav, Back and the mouse's back button are al
 
 ## Decision
 
-1. **The address says what the Booth reads.** `/booth?chapter=<id>` or `/booth?credits=opening|closing`; with neither, it opens on REAPER's confident suggestion, else the last chapter read (the old page's rule). A Manuscript card's "Record in Booth" links to it (the PRD's Q9), choosing in the picker replaces the query rather than pushing an entry, and `/teleprompter` redirects here with its query and hash. The page mounts one `BoothSession` keyed by what it reads, so the one `useTeleprompterSession` subscription is never doubled and a new chapter starts clean.
+1. **The address says what the Booth reads.** `/booth?chapter=<id>` or `/booth?credits=opening|closing`; with neither, it opens on REAPER's confident suggestion, else the last chapter read (the old page's rule). A Manuscript card's "Record in Booth" links to it, choosing in the picker replaces the query rather than pushing an entry, and `/teleprompter` redirects here with its query and hash. The page mounts one `BoothSession` keyed by what it reads, so the one `useTeleprompterSession` subscription is never doubled and a new chapter starts clean.
 2. **Exit booth and Escape keep the dialog's rule.** Both ask "Stop reading?" while a session is active and stop it (and a REAPER recording this app started) on confirm. Escape is heard on the Booth's own root, not as a registry command, because the router's target guard would drop it whenever focus sits on a button such as Play.
 3. **Leaving by the nav, Back or a new chapter keeps the old page's rule.** The session keeps running in the host and the Booth picks it up on return; the flags the session raised so far are kept as findings as the Booth unmounts.
 

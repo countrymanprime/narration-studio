@@ -5,12 +5,12 @@
 
 ## Context
 
-`audiobook-credits-templates.prd.md` Phase 5 ("Extras") carries the optional chapter announcement template (Open Question C8:
-"[Chapter], [Chapter Title] computed from manuscript.json") and the room tone setting the Phase 2 time model left at 0 with no
-Settings field (C9, ADR 0025: published room-tone guidance disagrees, so no number is baked in without a user setting). The
+Two credits extras were still open: the optional chapter announcement template ("[Chapter], [Chapter Title]" computed from
+`manuscript.json`) and the room tone setting that the credits time model left at 0 with no Settings field (ADR 0025: published
+room-tone guidance disagrees, so no number is baked in without a user setting). The
 `chapter_announcement` kind already existed in the template store (`internal/credits/templates.go`) and could be saved, but
 nothing rendered it: Settings did not offer it, and `CreditsPreview` has no chapter to fill `[Chapter]` from. Optional `{...}`
-segments, the other Phase 5 item, shipped in Phase 1 (C5, `renderer.go`). Imported chapters carry a heading (`title`, "Chapter
+segments are already part of the renderer (`renderer.go`). Imported chapters carry a heading (`title`, "Chapter
 1") and, when the importer split one from it, a `subtitle` ("Down the Rabbit-Hole", ADR 0013); `chapter.wordCount` counts
 paragraph text only, so a spoken heading is in no estimate today.
 
@@ -37,7 +37,7 @@ paragraph text only, so a spoken heading is in no estimate today.
 ## Consequences
 
 - One renderer still: the announcement preview and the estimate use `credits.Render`, and the `{...}` segment that drops a
-  missing subtitle is the Phase 1 grammar, not a new one.
+  missing subtitle is the renderer's existing grammar, not a new one.
 - The Credits stat grows by every chapter's announcement, which is honest (the words are read) but new: a narrator who adds an
   announcement template sees the stat rise by about a second or two per chapter.
 - The announcement is not shown in the Manuscript reader or read on the teleprompter, and Proofing still prepends only the

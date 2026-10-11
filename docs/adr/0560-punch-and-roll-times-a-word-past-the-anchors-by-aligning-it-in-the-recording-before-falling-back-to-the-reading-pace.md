@@ -1,17 +1,17 @@
 # 0560. Punch and roll times a word past the anchors by aligning it in the recording, before falling back to the reading pace
 
-**Status:** Proposed (teleprompter-manuscript-integration PRD Phase 12, stream N-B46; the owner checks it on a real recording on #510)
+**Status:** Proposed (the owner checks it on a real recording on #510)
 **Date:** 2026-09-28
 **Supersedes:** (none; refines the fallback half of ADR 0246)
 
 ## Context
 
 "Punch from here" moves REAPER's edit cursor to a flagged word's project time minus the pre-roll
-(teleprompter-manuscript-integration.prd.md Phase 12, [ADR 0246](0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md)).
+([ADR 0246](0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md)).
 The owner chose on 2026-09-23 where that time comes from: live anchors first (the host polls REAPER's play position
 during a session and pairs it with the word being read, `internal/teleprompter/anchors.go`), offline alignment over
-the resolved range when no anchor covers the word. Booth Actions Enablement Phase 3 built the anchors and labelled
-anything outside them `alignment`, but that answer was an extrapolation of the anchors' pace, not an alignment: it
+the resolved range when no anchor covers the word. The anchors shipped first, with
+anything outside them labelled `alignment`, but that answer was an extrapolation of the anchors' pace, not an alignment: it
 drifts with every pause the narrator took since the last anchor, and there is nothing at all without two anchors (a
 session with the `punch` capability off, a chapter recorded before the teleprompter was open). The poll runs every
 3 s, so the word a flag was just raised on is very often past the last anchor.

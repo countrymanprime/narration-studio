@@ -1,6 +1,6 @@
 # Transcript Compare
 
-**Status: Implemented, and its results are findings on Proof.** Each comparison's rows are saved as shared findings (review dashboard PRD Phases 2 and 5), which [Proof](../guides/using-the-app/proof.md) lists, filters and decides, and from which it goes to, loops and marks a row in REAPER (Phases 6 to 8, [going to and looping a finding](../architecture/reaper-navigation.md)).
+**Status: Implemented, and its results are findings on Proof.** Each comparison's rows are saved as shared findings (the review dashboard), which [Proof](../guides/using-the-app/proof.md) lists, filters and decides, and from which it goes to, loops and marks a row in REAPER ([going to and looping a finding](../architecture/reaper-navigation.md)).
 
 ## Current capability and problem
 
@@ -19,7 +19,7 @@ Select a chapter track, confirm its manuscript mapping and settings, run compari
 
 ## Run identity and currency (proofing signals)
 
-A comparison's result is kept beyond the one `.narration-last-comparison.json` slot for the proofing pickups signal (proofing readiness signals, delivered and deleted, Phase 2; see [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md), `apps/desktop/internal/proofing/compare.go`). No Lua, Python or marker-protocol change is involved; everything comes from files a run already writes.
+A comparison's result is kept beyond the one `.narration-last-comparison.json` slot for the proofing pickups signal (see [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md), `apps/desktop/internal/proofing/compare.go`). No Lua, Python or marker-protocol change is involved; everything comes from files a run already writes.
 
 - **Identity.** When a run finishes, the host writes one analysis evidence ledger record (`<project>/narration-utils/analysis/ledger/`, analyzer `transcript-compare`): the chapter resolved from the run's chapter title through the manuscript (the rows' chapter, else compare.py's `MATCH: '<title>'` summary, else the chapter the narrator chose), the manuscript's `documentId`, the model, the saved project file's modified time at completion, and the compared set read from `manifest_<run>.txt` (per item: source file and its identity under the ledger's hash policy, start offset, played length). A clean run gets a record too, so its chapter no longer lives only in the summary string, and comparing chapter 3 leaves chapter 2's record. A run that errors records `failed`; a cancelled run records nothing. A title that more than one chapter has is recorded without a chapter, and each such chapter reads unknown until the titles are distinct.
 - **A clean run is a full run.** A complete run with no rows now saves an empty set for its chapter in the findings store, so the chapter's earlier findings are marked `not_in_latest_run` exactly as a run with rows marks the rows it did not reproduce.
@@ -40,7 +40,7 @@ A heavier alternative — true forced alignment (aligning the manuscript directl
 
 ### MVP enhancements
 
-Delivered by the review dashboard PRD: the shared finding contract beside the existing marker protocol, review state and notes in the project sidecar, and `confidence`/`timing_gap_seconds` on Proof with a low-confidence filter.
+Built: the shared finding contract beside the existing marker protocol, review state and notes in the project sidecar, and `confidence`/`timing_gap_seconds` on Proof with a low-confidence filter.
 
 - Consume approved Manuscript Guide pronunciation/hotword exports through an explicit import action.
 

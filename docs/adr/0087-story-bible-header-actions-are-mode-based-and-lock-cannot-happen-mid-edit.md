@@ -6,7 +6,7 @@
 
 ## Context
 
-[ADR 0018](0018-story-bible-entries-read-only-until-edit.md) put Story Bible entries behind an explicit Edit action, but kept Lock/Unlock and Delete available in every mode. That mixed a safe toggle (Lock) and a destructive one (Delete) into the same row as Save, next to it in every mode: Delete sits beside Save where a mis-click is one pixel away, and Lock can be pressed while an edit is in progress. Pressing Lock mid-edit reloads the entity, and the effect that syncs the draft from the entity resets `editing` to its default alongside it — so Lock then Unlock silently discards the in-progress edit and returns to edit mode, contrary to the ADR's own "unlocking returns to read-only" intent (`story-bible-entries-and-actions.prd.md`, Evidence). The owner asked for entries to be locked from the read view only (B3, B5, B6 of that PRD; `implementation-plan.md` D22 adopts the PRD's recommendation).
+[ADR 0018](0018-story-bible-entries-read-only-until-edit.md) put Story Bible entries behind an explicit Edit action, but kept Lock/Unlock and Delete available in every mode. That mixed a safe toggle (Lock) and a destructive one (Delete) into the same row as Save, next to it in every mode: Delete sits beside Save where a mis-click is one pixel away, and Lock can be pressed while an edit is in progress. Pressing Lock mid-edit reloads the entity, and the effect that syncs the draft from the entity resets `editing` to its default alongside it — so Lock then Unlock silently discards the in-progress edit and returns to edit mode, contrary to the ADR's own "unlocking returns to read-only" intent. The owner asked for entries to be locked from the read view only.
 
 ## Decision
 

@@ -5,7 +5,7 @@
 
 ## Context
 
-[ADR 0089](0089-a-docx-table-of-contents-becomes-the-authoritative-chapter-list-above-a-match-threshold.md) made a docx's own table of contents the chapter list once 80% of its entries match a heading, and left the Markdown TOC (a `[text](#slug)` link list, PRD priority "Should") for later. The Import Structure PRD's Phase 4 asked for it to be matched against the heading slugs, with the duplicate-suffix and punctuation rules. Markdown has no field or style that marks a TOC, and a manuscript may hold a list of in-file links for another reason.
+[ADR 0089](0089-a-docx-table-of-contents-becomes-the-authoritative-chapter-list-above-a-match-threshold.md) made a docx's own table of contents the chapter list once 80% of its entries match a heading, and left the Markdown TOC (a `[text](#slug)` link list) for later. The owner asked for it to be matched against the heading slugs, with the duplicate-suffix and punctuation rules. Markdown has no field or style that marks a TOC, and a manuscript may hold a list of in-file links for another reason.
 
 ## Decision
 

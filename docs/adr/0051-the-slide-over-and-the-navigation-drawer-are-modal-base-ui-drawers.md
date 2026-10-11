@@ -6,7 +6,7 @@
 
 ## Context
 
-`SlideOver` (the Manuscript "Chapters & Search" and note or entity panels, and the Story Bible "Review entry" panel) and the narrow layout's navigation drawer in `AppShell` closed only on a press of their backdrop. They had no Escape, no focus trap, no focus return, and the page behind stayed readable to a screen reader. The dialog PRD had left them out (its question 7 chose the dialog family only). The owner decided (foundation PRD question 6a, D22) to put both on Base UI's Drawer with `modal` true, which reverses that. The navigation drawer was inline markup inside `AppShell.tsx` with a `z-[70]` div.
+`SlideOver` (the Manuscript "Chapters & Search" and note or entity panels, and the Story Bible "Review entry" panel) and the narrow layout's navigation drawer in `AppShell` closed only on a press of their backdrop. They had no Escape, no focus trap, no focus return, and the page behind stayed readable to a screen reader. The dialog work ([ADR 0048](0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md)) covered only the dialog family and left them out. The owner decided to put both on Base UI's Drawer with `modal` true, which reverses that. The navigation drawer was inline markup inside `AppShell.tsx` with a `z-[70]` div.
 
 ## Decision
 

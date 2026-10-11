@@ -37,7 +37,7 @@ type Signal struct {
 ```
 
 - **`met`** only from a `complete` analysis at the chapter's current fingerprint whose result passes the rule. A clean
-  result is not the same as "never ran" (D7).
+  result is not the same as "never ran".
 - **`not_met`** from the same kind of current, complete analysis whose result breaks the rule. Say which part in
   `Reason` (for example "paragraph 12: 14 words not read").
 - **`unknown`** for everything else, with a `Cause`:
@@ -76,7 +76,7 @@ type Provider interface {
   (`apps/desktop/app.go`'s `fieldSchemas`) choose the required set out of these ids: each is `required` or `ignored`
   (default `required`), and a master switch (`suggestions_enabled`) empties every stage's required set at once when
   off. `Config.RequiredSignals` narrows `DeclaredSignalIDs` accordingly; a nil `RequiredSignals` (a caller not wired to
-  settings) keeps every declared id required, the original Q8 default.
+  settings) keeps every declared id required, the original default.
 - A provider may also drop its own ids that its evidence says are not required right now, by having a
   `FilterRequired(required []string) []string` method: the host's `RequiredSignals` (`apps/desktop/bindings_stages.go`,
   `filterRequired`) applies it after the settings, for the provider's own stage only, and never adds an id. The proofing
@@ -157,7 +157,7 @@ Decisions are an append-only list in `<project>/narration-utils/stage-decisions.
 - **Contradiction.** While a confirmation is live, the signals of the stage it confirmed as finished are evaluated
   again. A `not_met` among them is the "evidence changed since you confirmed" notice (`contradiction`, with the stage to
   revert to). A changed basis without a `not_met`, such as a recording check gone stale because the chapter is being
-  edited, sets `confirmation.evidenceChanged` and raises no notice (Q10). Nothing changes a status by itself.
+  edited, sets `confirmation.evidenceChanged` and raises no notice. Nothing changes a status by itself.
 
 ## The bindings
 
@@ -184,7 +184,7 @@ any verdict, cause or notice.
 
 A chapter whose stage has no required signal (all ignored in the settings) reads `none` (`no_required_signals`).
 
-**Cost, measured (Q5).** On a copy of a real project (a 4.2 MB `.rpp`, 35 narration chapters all set to
+**Cost, measured.** On a copy of a real project (a 4.2 MB `.rpp`, 35 narration chapters all set to
 recording, 15 tracks, 3,894 items, 252 source files; Windows, the audio on a local disk) one `StageRecommendations` took
 about 0.35 s with the project's own links (1 chapter linked) and 1.1 to 1.5 s with all 15 tracks linked to chapters. The
 time is the saved project's parse, once per read, and each linked chapter's fingerprint, which hashes part of every
@@ -199,16 +199,16 @@ current-stage cell reads the verdict and opens `StageEvidence`, where Confirm, D
 live. `useStageRecommendations` reads `StageRecommendations()` when the page opens,
 after a manuscript import, after a recording check ends or its dialog closes, after a status is changed by hand, when the
 window regains focus or the page becomes visible again (`useRefreshOnFocus`, throttled to once per 30 s and skipped while
-a decision is pending, `home-stage-check-line.prd.md` Q2 A) and, on a
-failed read, when Try again is pressed; nothing is cached across reads (D1, Q5). `StageSuggestion` sits under each
+a decision is pending) and, on a
+failed read, when Try again is pressed; nothing is cached across reads. `StageSuggestion` sits under each
 chapter's status select, which stays the narrator's override: the verdict in a few words, Confirm and Dismiss for
 `recommended`, Revert for a live confirmation, and the "evidence changed since you confirmed" notice with Revert for a
-`contradiction`. `StageEvidence` is the evidence view in the existing `SlideOver` (Q11): each signal's state, reason and
+`contradiction`. `StageEvidence` is the evidence view in the existing `SlideOver`: each signal's state, reason and
 evidence (a paragraph it names links to the manuscript), the saved project's modified time and its age, and for an
 unknown cause what resolves it (`stageText.ts`, `CAUSE_TEXT`: the recording check dialog, the audio engine panel, or Check now).
 `StageSummary` holds the chips on the collapsed card; `StageCheckLine` above the table renders nothing while the read
-succeeds and only the reason and a Try again retry when it fails (`home-stage-check-line.prd.md`). Confirm is one
-click, reversible by Revert (Q13). A refusal is shown as an error toast and the recommendations are read again; a failed
+succeeds and only the reason and a Try again retry when it fails. Confirm is one
+click, reversible by Revert. A refusal is shown as an error toast and the recommendations are read again; a failed
 read shows "Couldn't check" in every row. The mock's `?mockStages=mixed|error` seeds (`apps/ui/src/main.tsx`) drive the
 visual states `production/stage-*`.
 
@@ -222,7 +222,7 @@ Two read-only consumers also read recommendations, both through `useStageRecomme
 confirms, dismisses or reverts:
 
 - `ChapterNav.tsx` (the Script page's Chapters & Search panel) shows a non-interactive "Suggested: `<stage>`" line
-  under a chapter's title for a live `recommended` verdict only (`stageText.ts`'s `verdictLine`, Q6 option B) - the nav
+  under a chapter's title for a live `recommended` verdict only (`stageText.ts`'s `verdictLine`) - the nav
   row stays dense, and every action stays on the Production board or the Proofing panel.
 - The audio engine panel (`engine/EnginePanel.tsx`) shows a line above the Chapter links table counting chapters whose recommendation carries the
   `unmapped_track` or `unconfirmed_mapping` cause, pointing at that table (the analysis evidence ledger's own mapping

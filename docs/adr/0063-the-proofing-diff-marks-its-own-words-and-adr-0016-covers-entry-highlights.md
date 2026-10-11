@@ -11,7 +11,7 @@
 
 Reading ADR 0016, its problem was the reader and the Story Bible drawing *entry* highlights three ways, with a category that had no colour falling through to the browser's default yellow. Its `Highlight` is built around `highlightKind(category)`, an entry category, and around the reader's per-size line padding. The diff words are not entries: their colour comes from a different vocabulary (`KIND_STYLES`), they are plain static text with no category, no activation and no anchor. So the file is not a breach of what ADR 0016 was about, but it is a breach of what ADR 0016 says.
 
-This is a design question, so the owner has it: the rule started with a one-entry allowlist for this file (implementation plan D22, verification PRD question 7) and the work continues on the recommended path.
+This is a design question, so the owner has it: the rule started with a one-entry allowlist for this file and the work continues with that allowlist in place until the owner decides.
 
 ## Decision
 

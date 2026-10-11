@@ -9,7 +9,7 @@
 
 At a 390 px window every Settings row with a select or a colour box rendered its control as a blank sliver: the model and chunk-length selects were 44.8 px wide and the hex boxes 26 px (defect 8 of the retired defects register). The row was a grid with no breakpoint, and a grid gives a fixed-range track (the label's `minmax(12rem,16rem)`) its full maximum before a flexible track gets any. The visual suite that exists to catch layout bugs did not see it: [ADR 0023](0023-visual-suite-capture-contract-and-storybook.md)'s checks are page errors, failed requests, sideways overflow, a blank image and undeclared duplicates, and a collapsed control does not overflow, it shrinks. Nothing measured a control. The same defect would have shipped again with the next Settings field.
 
-The owner answered the settings mobile layout PRD's questions with their recommendations (implementation plan D22): the check belongs in the kit core (question 1a), at a flat 64 px with colour swatches and check boxes exempt by type (question 2), and a row may opt out with a reason.
+The owner decided that the check belongs in the kit core, at a flat 64 px with colour swatches and check boxes exempt by type, and that a row may opt out with a reason.
 
 ## Decision
 

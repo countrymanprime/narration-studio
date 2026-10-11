@@ -6,16 +6,15 @@
 
 ## Context
 
-D85 #6 on [#509](https://github.com/countrymanprime/narration-utils/issues/509) answered the visual audit's open
-question SC7: the Script reader's speaker-attribution chip and the Booth's "Voices in scene" tags should give each
-speaker its own colour, as the benchmark mocks show (mock 02, mock 03), rather than the one `--character` colour every
+The owner's answer on [#509](https://github.com/countrymanprime/narration-utils/issues/509) to the visual audit's open
+question on speaker colours: the Script reader's speaker-attribution chip and the Booth's "Voices in scene" tags should give each
+speaker its own colour, as the benchmark mocks show, rather than the one `--character` colour every
 speaker drew before this batch (`manuscript/SpeakerTag.tsx`'s and `booth/BoothView.tsx`'s own prior comments both
-recorded this as a deliberate scope cut, pending "a lane-U token batch"). This is that batch (lane U, D85's own
-carrier: N-U26).
+recorded this as a deliberate scope cut, pending "a lane-U token batch"). This is that batch.
 
-Three things this phase had to decide, the same way ADR 0362 decided the meter zones and badge fills:
+Three things this change had to decide, the same way ADR 0362 decided the meter zones and badge fills:
 
-1. **How many colours, and which hues.** The mocks' sample speakers and names are invented (PRD Visual Spec: "Names
+1. **How many colours, and which hues.** The mocks' sample speakers and names are invented ("names
    and numbers are invented"), so neither their exact count nor their exact hues are a byte-for-byte spec - only that
    distinct speakers read as distinct colours.
 2. **How a speaker maps to a colour**, given neither caller has a stable per-speaker id readily at hand: the Script

@@ -25,6 +25,6 @@ The shape follows commercial voice-following teleprompters such as PromptSmart's
 - Restarts and skips shorter than three matching words are not reported as jumps, and a single word that also appears elsewhere never moves the cursor (`test_a_single_word_that_appears_elsewhere_in_the_script_is_not_enough_to_jump`).
 - The thresholds are judgment calls. They were set against three replayed readings of a 55-word script, and the tracker's tests use synthetic sequences (`core/tests/test_script_tracker.py`), so real long-form reading may need retuning.
 - Matching is normalization plus a close-spelling check (ratio 0.8, words of four or more letters). It lacks Transcript Compare's homophone, number-word and hyphenation handling, so invented names and spoken numbers are the likely misses.
-- No flags are emitted. A skipped or repeated span becomes a `jump` event and a dotted underline (ADR 0024), not a finding; turning it into one is planned in the teleprompter integration PRD.
+- No flags are emitted. A skipped or repeated span becomes a `jump` event and a dotted underline (ADR 0024), not a finding; turning it into one is not part of this decision.
 - The design record still describes an earlier plan (a window of the current paragraph plus the next, a debounce, and matching with the same primitive as `InlineDiffRow.tsx` and `compare.py`). The code uses word-count windows and its own matcher, and this ADR follows the code.
 - Replacing this with a gate, a clock, or a forced-alignment model would need a new ADR that supersedes this one.

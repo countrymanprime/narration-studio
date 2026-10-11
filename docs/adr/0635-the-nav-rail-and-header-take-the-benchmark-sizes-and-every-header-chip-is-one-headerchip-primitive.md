@@ -1,14 +1,14 @@
 # 0635. The nav rail and header take the benchmark sizes, and every header chip is one HeaderChip primitive
 
-**Status:** Proposed (Phase 8 of the mock fidelity PRD, streams F-P8 and F-P8b on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the benchmark shell's lower score against the 2026-09-24 sets, and mock 01's rail, are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the benchmark shell's lower score against the 2026-09-24 sets, and mock 01's rail, are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510))
 **Date:** 2026-09-28
 **Amends:** [ADR 0059](0059-text-colours-meet-wcag-aa-with-two-text-levels-a-non-text-token-and-derived-on-tint-text.md)'s "accent tint" behind the current nav item, which becomes the `--accent-soft` token
 
 ## Context
 
-The owner found the merged pages don't match the approved mocks stylistically (D91 on #509), and the nav rail and header are on every page. The shell drew a 224 px rail with 41.6 px items in Barlow Condensed 16 px, a 56 px header, and the header's chip in four hand-written copies (`EngineChip` twice, `TimerChip`, the Booth's `RecorderStatus`), 28 px tall with a border. The current nav item's fill was an untokenised `color-mix` of `--accent` at 10%.
+The owner found the merged pages don't match the approved mocks stylistically (reported on #509), and the nav rail and header are on every page. The shell drew a 224 px rail with 41.6 px items in Barlow Condensed 16 px, a 56 px header, and the header's chip in four hand-written copies (`EngineChip` twice, `TimerChip`, the Booth's `RecorderStatus`), 28 px tall with a border. The current nav item's fill was an untokenised `color-mix` of `--accent` at 10%.
 
-Benchmark mock 01 (`docs/research/mockups/audiobook-studio-benchmark/01-production-home.webp`, D92) was measured again for this phase at 1440 px, scanning edges and ink with sharp (good to about ±1 px):
+Benchmark mock 01 (`docs/research/mockups/audiobook-studio-benchmark/01-production-home.webp`) was measured at 1440 px, scanning edges and ink with sharp (good to about ±1 px):
 
 | Part          | Measured                                                                                                                                                                                                                                                                                                                                                            |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -21,17 +21,17 @@ Benchmark mock 01 (`docs/research/mockups/audiobook-studio-benchmark/01-producti
 | Header        | 52 px including its 1 px rule; its content from x 236 (20 px in)                                                                                                                                                                                                                                                                                                    |
 | Header chips  | 22 px (±1), fully rounded, no border, 10 px each side, their parts 6 px apart, 12 px between chips, the last ending 20 px from the edge; Barlow Condensed 600, 8 px caps (≈11.5 px), in the label's own case; timer and series on `--surface-2` in `--text` with the clock in Plex Mono 13 px 500; "REAPER linked" on `--ok-soft` in `--ok-text` with an `--ok` dot |
 
-The PRD's table gives the chip as "≈21 px"; the scan puts its edge at 22 with antialiasing on both sides, the same height as ADR 0600's pill, so it is 22.
+An earlier estimate put the chip at about 21 px; the scan puts its edge at 22 with antialiasing on both sides, the same height as ADR 0600's pill, so it is 22.
 
 ## Decision
 
 1. **The rail and header take the measured sizes.** `AppShell.tsx`: the wide rail is `w-54` (216 px), the header `h-13` (52 px), the brand block, the nav's padding, the group heading and the foot as measured above. The icon-only rail (768–1399 px) and the drawer are not drawn by any benchmark mock and keep their widths; they inherit the item's type and radius.
-2. **`NavButton` is the measured item.** 34 px, radius 7, 13 px Barlow Condensed 600 tracked 0.11 em, a 12 px icon, and the current page on `--accent-soft` (the `accent-strong-on-soft` pair `paletteContrast.test.ts` already checks), replacing the `color-mix`. It gains a `count` slot: a 16 px pill at the item's end, part of the item's accessible name ("Proof, 14"), drawn only for a count above zero. Nothing passes one yet: a count is drawn when a page's count has data behind it (visual audit SH5).
+2. **`NavButton` is the measured item.** 34 px, radius 7, 13 px Barlow Condensed 600 tracked 0.11 em, a 12 px icon, and the current page on `--accent-soft` (the `accent-strong-on-soft` pair `paletteContrast.test.ts` already checks), replacing the `color-mix`. It gains a `count` slot: a 16 px pill at the item's end, part of the item's accessible name ("Proof, 14"), drawn only for a count above zero. Nothing passes one yet: a count is drawn when a page's count has data behind it.
 3. **Every group's heading is drawn, the first too** ([ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) item 3 stands). Mock 01 heads no first group, but its first group is Production and **Schedule**, and the app has no Schedule item ([ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) item 5). Without a first heading every item after Production sits one item (37 px) higher than the four benchmark mocks draw it, so on mocks 02, 04 and 05 the current item's `--accent-soft` fill lands a whole item away from the mock's. With it, the heading takes 29 of those 37 px: every later item sits 8 px from the mock's, and only mock 01's Production item sits 29 px low. Measured with the tool's chrome regions ([ADR 0636](0636-the-mock-match-tool-scores-the-nav-rail-and-header-apart-from-the-page.md)), rail match % against the benchmark mocks:
 
    | Rail | Mock 01 | Mock 02 | Mock 04 | Mock 05 | Sum |
    | --- | --- | --- | --- | --- | --- |
-   | Before Phase 8 (224 px, 41.6 px items) | 92.04 | 94.41 | 94.60 | 94.20 | 375.25 |
+   | Before this ADR (224 px, 41.6 px items) | 92.04 | 94.41 | 94.60 | 94.20 | 375.25 |
    | First heading hidden (the earlier draft) | 96.43 | 90.25 | 90.34 | 90.32 | 367.34 |
    | **First heading drawn (this decision)** | **90.67** | **95.49** | **95.40** | **95.31** | **376.87** |
 
@@ -44,7 +44,7 @@ The PRD's table gives the chip as "≈21 px"; the scan puts its edge at 22 with 
 ## Consequences
 
 - Every page's shell is 8 px narrower in the rail and 4 px shorter in the header, so each page's content area grows by that much; the visual suite captures every page again.
-- The 2026-09-24 sets were drawn from the app of that day, so they draw the old 224 px rail and 56 px header. Their pixel match falls a little (0.04 to 2.40 points), and so does their chrome region: every pixel of the page body shifts 8 px left and 4 px up. No shell can match both sets. The benchmark mocks are the spec where they draw the same surface (D92, the PRD's Q1), so they win, and the tool marks these rows "old shell" instead of a regression (ADR 0636). This is for the owner to confirm on #510.
-- The header keeps what the benchmark mocks don't draw and the app-navigation PRD added (Back, Forward and the zoom group, ADR 0407 item 4); they sit on the 52 px header unchanged.
+- The 2026-09-24 sets were drawn from the app of that day, so they draw the old 224 px rail and 56 px header. Their pixel match falls a little (0.04 to 2.40 points), and so does their chrome region: every pixel of the page body shifts 8 px left and 4 px up. No shell can match both sets. The benchmark mocks are the spec where they draw the same surface (where two approved mocks disagree, the benchmark wins), so they win, and the tool marks these rows "old shell" instead of a regression (ADR 0636). This is for the owner to confirm on #510.
+- The header keeps what the benchmark mocks don't draw and the app-navigation work added (Back, Forward and the zoom group, ADR 0407 item 4); they sit on the 52 px header unchanged.
 - A new header chip is a `HeaderChip`, never a pasted class string; a new look is a new `tone`, in a change to this primitive.
 - Hiding the first group's heading (if a Schedule item is added, mock 01's layout comes back whole), or a count with no data behind it, needs a new ADR that supersedes this one.

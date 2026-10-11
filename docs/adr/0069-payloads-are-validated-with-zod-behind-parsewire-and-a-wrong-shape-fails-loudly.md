@@ -8,7 +8,7 @@
 
 Data crosses four boundaries in this app and, until now, none of them was checked at runtime. The UI called `JSON.parse(value) as T` on 65 of the 67 Wails bindings (they return a string, so Wails generates no model), cast every live event, and read `Bootstrap` and `Ready` with `as`. The Go host built payloads as `map[string]any`, read sidecar output and REAPER events by field index with helpers that turn a parse error into `0`, and read six persisted files that fell back to "empty" without saying so. The result was drift that showed up far from its cause: `TranscriptState` declares `runId?: string` while Go sends `null`, the `normalize*` helpers each patch one field, and the mock client and fixtures could diverge from what the real host sends because nothing compared them. The client also had no host log to write to: `SystemReportDiagnostic` discarded its arguments.
 
-The owner approved runtime validation at the boundaries and answered the open questions of the runtime schema validation PRD (`docs/prds/boundary-schema-validation.prd.md`, deleted when the work was done; recover it from git history; the steady state is [wire contracts](../architecture/wire-contracts.md)) (owner decisions D16 and D22). A fifth boundary, the in-app update manifest (D14), is coming and is remote JSON.
+The owner approved runtime validation at the boundaries (the steady state is [wire contracts](../architecture/wire-contracts.md)). A fifth boundary, the in-app update's GitHub release list ([ADR 0072](0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md)), is remote JSON.
 
 ## Decision
 
@@ -27,7 +27,7 @@ The owner approved runtime validation at the boundaries and answered the open qu
 
 - A wrong shape fails a named test in CI or, in the app, shows a specific recoverable message and a host log line. A payload that worked by accident (a field the UI never read) now fails if the schema declares it wrongly, which is why schemas are built from real captures and land per domain.
 - A dependency is added to the UI (Zod, 4.6.5 at the time, already in the lockfile through ESLint's tooling). The repository's near-zero runtime dependency stance is relaxed here for the same reason it was for Base UI: it buys behaviour (inference, readable paths) a hand-written route would reinvent.
-- Every new binding, event or persisted file has a schema to write. Other PRDs that add wire contracts follow rule 4 in their own pull request.
+- Every new binding, event or persisted file has a schema to write. Any work that adds a wire contract follows rule 4 in its own pull request.
 - Schemas and contract types are two definitions until a domain is quiet enough to move to `z.infer`; the `satisfies` assertion is what keeps them honest meanwhile.
 - The update manifest boundary uses the same helper: a remote JSON payload is `parseWireJson` with its own schema and the same failure policy, and needs no second validator.
 - To change the library, replace the schema files and the one import of `zod`; `parseWire` and its callers do not change. To change the failure policy, write a new ADR that supersedes this one.

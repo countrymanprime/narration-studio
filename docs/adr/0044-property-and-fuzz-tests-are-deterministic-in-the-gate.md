@@ -6,7 +6,7 @@
 
 ## Context
 
-The verification tooling PRD added property tests (Hypothesis for Python, fast-check for the UI) and Go fuzz targets over the text, offset and alignment logic. Randomized tests find more, but a gate that is red on one draw and green on the next teaches people to rerun it, which [ADR 0023](0023-visual-suite-capture-contract-and-storybook.md) rejects: no retries, red must mean real. The first runs also showed that random exploration is still worth having: it found nothing beyond the fixed examples in 3000-example runs, but the properties themselves found six real defects (a `TypeError` and two escaped exceptions in `narration_common.manuscript`, two offset bugs in the reader's compositor and note anchors, and a panic in the Markdown underline tag). The owner adopted the PRD's recommendations (implementation plan D22, questions 3 and 5).
+Verification tooling added property tests (Hypothesis for Python, fast-check for the UI) and Go fuzz targets over the text, offset and alignment logic. Randomized tests find more, but a gate that is red on one draw and green on the next teaches people to rerun it, which [ADR 0023](0023-visual-suite-capture-contract-and-storybook.md) rejects: no retries, red must mean real. The first runs also showed that random exploration is still worth having: it found nothing beyond the fixed examples in 3000-example runs, but the properties themselves found six real defects (a `TypeError` and two escaped exceptions in `narration_common.manuscript`, two offset bugs in the reader's compositor and note anchors, and a panic in the Markdown underline tag).
 
 ## Decision
 

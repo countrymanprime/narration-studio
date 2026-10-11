@@ -1,16 +1,16 @@
 # 0435. render_with_fx renders one region at a time into a run folder with a one-time approval, and puts the narrator's render settings back
 
-**Status:** Proposed (the worker's choices in building ADR 0306's DAW row, render-encode-master PRD Phase 9; the owner confirms them on #510 with the scripted REAPER pass)
+**Status:** Proposed (the worker's choices in building ADR 0306's DAW row; the owner confirms them on #510 with the scripted REAPER pass)
 **Date:** 2026-09-28
 **Supersedes:** none. It applies [ADR 0306](0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md)'s four conditions for the bridge's first render, and is checked in REAPER as [ADR 0066](0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md) point 5 requires.
 
 ## Context
 
-[ADR 0306](0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md) made mastering a provider port and declared a `daw` row that renders a region through the project's own track and master FX. It allowed the bridge's first render on four conditions: the narrator approves each render in the UI, it runs only from their action, it is Experimental until the owner's REAPER pass, and it writes only into an empty folder the host made inside the project, never over a file. It left the command's exact shape to the phase that builds it.
+[ADR 0306](0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md) made mastering a provider port and declared a `daw` row that renders a region through the project's own track and master FX. It allowed the bridge's first render on four conditions: the narrator approves each render in the UI, it runs only from their action, it is Experimental until the owner's REAPER pass, and it writes only into an empty folder the host made inside the project, never over a file. It left the command's exact shape to the change that builds it.
 
 Until now the bridge never rendered: `narration_render.lua` sets `RENDER_FILE`, `RENDER_PATTERN` and `RENDER_BOUNDSFLAG` and reads `RENDER_TARGETS`, and the narrator presses Render. The S5 spike ([reaper-spike-s5-render-details.md](../research/reaper-spike-s5-render-details.md)) confirmed action 42230 ("File: Render project, using the most recent render settings, auto-close render dialog") in REAPER 7.80, that `RENDER_TARGETS` predicts the rendered names exactly, and that reading `RENDER_STATS` with a render action's ID can itself trigger a render.
 
-Several choices were open, and the PRD's recommendation (D22) did not settle them:
+Several choices were open, and ADR 0306 did not settle them:
 
 - how a render names the one region, and how the host tells the file it got;
 - whether the Lua checks the approval at all, since a forged command can carry any string ([threat model](../architecture/threat-model.md) row 5a);

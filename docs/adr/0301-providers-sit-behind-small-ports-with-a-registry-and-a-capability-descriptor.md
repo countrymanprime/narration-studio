@@ -17,7 +17,7 @@ ADR 0300 puts every DAW behind one port. The app has other providers, and none o
 
 Adding an engine means finding every string comparison, in two languages. Nothing proves the two ASR engines behave the same to their callers. There is no Protocol or ABC anywhere in `libs/python` or `sidecars`.
 
-The repository already has one pattern that works. `assetProvider` (`apps/desktop/assetregistry.go`) is a small interface, with one implementation per asset kind held in one registry, and generic callers. The [audiobook studio benchmark](../research/audiobook-studio-benchmark.md) (§1 and recommendation 7) asks for the audio engine behind a seam, and later for macOS capture and built-in encoding, which need these seams first. The work was specified in the provider ports PRD (delivered and deleted; `git log --diff-filter=D -- docs/prds/provider-ports.prd.md` finds it), and how it works now is in [provider ports](../architecture/provider-ports.md).
+The repository already has one pattern that works. `assetProvider` (`apps/desktop/assetregistry.go`) is a small interface, with one implementation per asset kind held in one registry, and generic callers. The [audiobook studio benchmark](../research/audiobook-studio-benchmark.md) (§1 and recommendation 7) asks for the audio engine behind a seam, and later for macOS capture and built-in encoding, which need these seams first. How it works now is in [provider ports](../architecture/provider-ports.md).
 
 ## Decision
 
@@ -60,7 +60,7 @@ The repository already has one pattern that works. `assetProvider` (`apps/deskto
 **Easier:**
 - A new engine is an adapter file and a registry row. The suite checks it, and no call site changes.
 - The two ASR engines are proven interchangeable by one suite, not by one caller's tests happening to cover both.
-- A read-only `ProviderCapabilities` payload (a Should in the PRD) can explain a missing engine the way `DawCapabilities` explains a missing DAW action, with the same `Support` shape.
+- A read-only `ProviderCapabilities` payload can explain a missing engine the way `DawCapabilities` explains a missing DAW action, with the same `Support` shape.
 
 **Harder:**
 - Each port adds a package and a suite to maintain.

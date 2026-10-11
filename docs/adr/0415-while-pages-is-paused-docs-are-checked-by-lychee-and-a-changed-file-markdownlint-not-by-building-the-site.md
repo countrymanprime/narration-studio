@@ -5,7 +5,7 @@
 
 ## Context
 
-D75 paused `pages.yml`'s deploy job (no more publishing on a push to `main`), but left its `build` job running on
+The owner paused `pages.yml`'s deploy job (no more publishing on a push to `main`), but left its `build` job running on
 every pull request that touches `docs/`, `tools/docs-site/`, the Storybook config, `pyproject.toml`, `uv.lock` or the
 workflow itself, as the docs link check for those pull requests (`ci.yml` skips documentation-only pull requests).
 `_quality.yml`'s `quick-ubuntu` job separately ran the same MkDocs strict build and HTML link check
@@ -23,7 +23,7 @@ person read the diff.
 
 ## Decision
 
-While GitHub Pages stays paused (D75):
+While GitHub Pages stays paused:
 
 1. `pages.yml` drops its `pull_request` trigger entirely and keeps only `workflow_dispatch`. Its header comment
    carries the trigger block to restore (both `push: branches: [main]` and the `pull_request` path list) when Pages
@@ -54,7 +54,7 @@ While GitHub Pages stays paused (D75):
 - `pnpm check` runs faster and no longer needs the `docs` `uv` group's site-build step; `tools/docs-site`'s own tests
   (fixture-tree MkDocs builds included) still run everywhere they did.
 - The docs site itself is unverified between now and when Pages resumes, except by a manual `workflow_dispatch` run
-  or the release-adjacent judgment of a person reading the diff. That is the accepted cost of D75: nothing is
+  or the release-adjacent judgment of a person reading the diff. That is the accepted cost of pausing Pages: nothing is
   published in the meantime, so nothing regresses in front of a reader.
 - Resuming Pages needs three changes, all reversible from a comment left where the change was made: restore
   `pages.yml`'s `pull_request` trigger (the header comment carries the path list), rename `docs-site`'s `build-site`

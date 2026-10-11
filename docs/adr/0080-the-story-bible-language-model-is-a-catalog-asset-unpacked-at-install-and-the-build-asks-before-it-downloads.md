@@ -5,9 +5,9 @@
 
 ## Context
 
-The Story Bible extracts names with a spaCy language model when one can be loaded and with a rules-only fallback when not (`spacy_candidates` logged a warning and used the rules). No model is in the release, none was ever downloaded by the app, the choices were a list in `app.go`, and `startGuideBuild` had no gate: every narrator got the lower-quality extraction unless a developer had installed a model by hand, and nothing told them. The [phase 4 spike](../research/spacy-model-provisioning-spike.md) verified that the frozen sidecar imports spaCy and loads a model from an unpacked directory with the same output as the development environment, and pinned the two official wheels (`en_core_web_sm` 12.8 MB, `en_core_web_lg` 400.7 MB).
+The Story Bible extracts names with a spaCy language model when one can be loaded and with a rules-only fallback when not (`spacy_candidates` logged a warning and used the rules). No model is in the release, none was ever downloaded by the app, the choices were a list in `app.go`, and `startGuideBuild` had no gate: every narrator got the lower-quality extraction unless a developer had installed a model by hand, and nothing told them. The [spaCy model provisioning spike](../research/spacy-model-provisioning-spike.md) verified that the frozen sidecar imports spaCy and loads a model from an unpacked directory with the same output as the development environment, and pinned the two official wheels (`en_core_web_sm` 12.8 MB, `en_core_web_lg` 400.7 MB).
 
-Owner decisions (Q1, Q2 of the release-readiness PRD): decline offers Download, rules-only for this run, or Cancel, with no bundling; the wheel is cataloged, unpacked into the cache, and its directory passed to `spacy.load`.
+Owner decisions: decline offers Download, rules-only for this run, or Cancel, with no bundling; the wheel is cataloged, unpacked into the cache, and its directory passed to `spacy.load`.
 
 ## Decision
 

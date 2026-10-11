@@ -1,14 +1,14 @@
 # 0640. Panel draws the mocks' card header with a divider and a padded or flush body, and the eyebrow and the inset card are primitives
 
-**Status:** Proposed (Phase 4 of the mock fidelity PRD, stream F-P4 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
 **Date:** 2026-09-28
 **Supersedes:**
 
 ## Context
 
-The owner found that the merged pages don't match the approved mocks (D91 on #509). Cards are on every page, and the mock fidelity PRD's Phase 4 gives their spec: the card header, the page title, the eyebrow label and the inset card. [ADR 0590](0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md) added the tokens it needs (`--radius-card`, `--font-size-page-title`, `--font-size-card-title`, `--font-size-label`, `--tracking-label`).
+The owner found that the merged pages don't match the approved mocks (reported on #509). Cards are on every page, and this ADR gives their spec: the card header, the page title, the eyebrow label and the inset card. [ADR 0590](0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md) added the tokens it needs (`--radius-card`, `--font-size-page-title`, `--font-size-card-title`, `--font-size-label`, `--tracking-label`).
 
-This phase measured benchmark mock 05 again, reading each edge as a change in a column or row of pixels:
+Benchmark mock 05 was measured, reading each edge as a change in a column or row of pixels:
 
 - **Card header.** "Per-file checks": the frame is at y 119 and the divider at y 169, so the row is 49 px inside the frame and 50 px with its divider. "Mastering chain" is the same (634 to 684). "04 · Why it fails" holds two buttons and is 54 px (420 to 475), 11 px above and below a 32 px button.
 - **Card title.** The title's capitals are 13 px tall (y 139 to 151). Barlow Condensed's capitals are 0.7 em, so the type is 19 px. The ink starts at x 257, 17 px from the frame's outer edge at x 240 (the border and 16 px). It is centred in the row.
@@ -37,13 +37,13 @@ The app drew the card title in IBM Plex Sans 16 px, inside the card's 17.6 px pa
   - `className` is for layout only.
 - **`PanelHeader`** is the header row on its own, for a card that is not a `section` of its own (a `TabPanel` drawn as a card). With `PANEL_FRAME_CLASS`, that card takes the same look without copying it.
 
-The dark Settings mocks (delivery-platform-profiles 05 and 09, input-commands-and-pedals 01) draw a category's title differently. Its capitals are 12 px tall, so it is Barlow Condensed at 17 px, uppercase and tracked. The benchmark set has no Settings screen, so nothing there contradicts that title, and `titleStyle="caps"` draws it. The body padding is the benchmark's 16 px, not the dark set's 18 px, because the benchmark wins where both draw a thing (D92).
+The dark Settings mocks (since deleted) draw a category's title differently. Its capitals are 12 px tall, so it is Barlow Condensed at 17 px, uppercase and tracked. The benchmark set has no Settings screen, so nothing there contradicts that title, and `titleStyle="caps"` draws it. The body padding is the benchmark's 16 px, not the dark set's 18 px, because the benchmark wins where both draw a thing.
 
 A subtitle keeps to the title's line and wraps inside its own box while it has 10 rem, as the 390 px Settings mock draws it. Only below that does it drop under the title.
 
 **Heading** takes `--font-size-page-title` (26 px) and a 13 px muted subtitle. A new `icon` prop leads the title (the start-up screen's spinner), so the last raw page `h1`s become Headings.
 
-**SectionLabel** is a new primitive for the eyebrow: Barlow Condensed at `--font-size-label` (11 px), weight 600, uppercase, `--tracking-label` (0.1 em), `--text-muted`. `as` picks the element: a heading when it names a region, a `legend` over a fieldset, a `span` by default. The global `.section-label` class draws the same thing from the same tokens, for the files later phases own. Those files are the Script page, the Master page, the Booth and the shell's nav groups (Phase 8). This phase doesn't edit them, so the class stays until they migrate.
+**SectionLabel** is a new primitive for the eyebrow: Barlow Condensed at `--font-size-label` (11 px), weight 600, uppercase, `--tracking-label` (0.1 em), `--text-muted`. `as` picks the element: a heading when it names a region, a `legend` over a fieldset, a `span` by default. The global `.section-label` class draws the same thing from the same tokens, for the files not yet migrated: the Script page, the Master page, the Booth and the shell's nav groups. This ADR doesn't edit them, so the class stays until they migrate.
 
 **InsetCard** is a new primitive for a card inside a card: a 1 px border, a 6 px radius and 12 px inside it, on `--surface`. That is the panel it sits in; where it sits on the page (the Booth's resume prompt) it stays an opaque card, so its text keeps the contrast it was checked at. It has these props:
 
@@ -67,12 +67,12 @@ A file's count may only go down.
 
 - Every card on every page gets the mock's header, divider and body from Panel.
   - Titles move from Plex 16 px to Barlow 19 px, which is narrower, so long titles wrap later.
-  - Cards with buttons in their header are 61 px tall until the Button phase brings buttons to 32 px.
-- A panel's content no longer needs a top margin to clear the title. The call sites dropped theirs, except in the files later phases own:
+  - Cards with buttons in their header are 55 px tall: a 32 px button ([ADR 0595](0595-button-has-two-measured-sizes-a-surface-filled-secondary-and-a-link-and-owns-its-look.md)) with 11 px above and below, and the divider.
+- A panel's content no longer needs a top margin to clear the title. The call sites dropped theirs, except in the files not yet migrated:
   - `production/{ProductionPage,ChapterBoard}`;
   - `proof/{ProofPage,FindingDetail}`;
   - `master/{MasterQcPage,MasteringChain,DeliveryPackagePanel,BookConsistency}`.
-  These keep a few pixels of extra space until their phase.
+  These keep a few pixels of extra space until they are migrated.
 - Inset cards grow 8 px taller, so lists of them (take reads, chapter track candidates) are longer.
-- The files other phases own keep their eyebrow and card copies, and the guard's ceilings list them. Each page phase (11 to 15) and Phase 8 lowers its own entries.
+- The files not yet migrated keep their eyebrow and card copies, and the guard's ceilings list them. Each page ADR (0645 to 0670) and [ADR 0635](0635-the-nav-rail-and-header-take-the-benchmark-sizes-and-every-header-chip-is-one-headerchip-primitive.md) lowers its own entries.
 - To change a size here, change the tokens (a follow-up token batch, per [ADR 0360](0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md)). To change anything else, write a new ADR that supersedes this one.

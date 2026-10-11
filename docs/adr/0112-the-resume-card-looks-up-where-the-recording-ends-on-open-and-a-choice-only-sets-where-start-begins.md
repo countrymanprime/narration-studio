@@ -5,12 +5,12 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 10 ("Resume UI") puts the resume point from Phase 9
-([ADR 0111](0111-the-resume-point-comes-from-transcribing-the-recorded-tail-and-placing-it-with-the-tracker.md),
-`TeleprompterLocate`) in the read-aloud dialog. The PRD's user flow says the modal asks the host about the chapter's
+The resume UI puts the resume point of
+[ADR 0111](0111-the-resume-point-comes-from-transcribing-the-recorded-tail-and-placing-it-with-the-tracker.md)
+(`TeleprompterLocate`) in the read-aloud dialog. The planned flow is that the modal asks the host about the chapter's
 track and shows "Resume at word N / Start from the top / Pick a word", and that it "never starts anything by itself".
-Its success signal: "without a matching track the modal starts from the top and says so; with one it never starts by
-itself". Three things were left to settle while building it:
+The success signal: without a matching track the modal starts from the top and says so; with one it never starts by
+itself. Three things were left to settle while building it:
 
 - when the lookup runs: it transcribes up to 30 s of audio with Whisper, a second or two with the tiny model on a CPU
   and longer with a bigger one, and it may need a model that is not downloaded;
@@ -23,15 +23,15 @@ itself". Three things were left to settle while building it:
 1. **The card asks the host once, when the dialog opens**, with the session's Whisper model, and again only when the
    narrator picks a track, presses Try again, or has just downloaded the model it needed. It only reads: the host's
    `TeleprompterLocate` records, moves and links nothing. Waiting for a button press first would put a click and a wait
-   between opening a chapter and seeing where it stopped, the step the PRD's "under 30 s" target is about.
+   between opening a chapter and seeing where it stopped, the step a 30-second target for getting to the resume point is about.
 2. **A missing model is asked for, never fetched.** When the host answers `asset_required` the card says so and offers
    "Download model…", which opens the shared first-use confirm (`AssetInstallPrompt` through `WhisperModelPrompt`);
    only its confirm starts a download, and a finished download runs the lookup again. The dialog never opens that
    confirm by itself.
 3. **A choice only sets where Start begins.** "Resume from here" sets the session's start word
    (`useTeleprompterSession.startWord`), which Start reading passes to `TeleprompterStart` as `startWord`, the start-at-a-
-   word half of the Phase 3 seek channel, so a resumed session never reads from the top first. "Start from the top"
-   clears it. "Pick a word" says to start reading and click the word (Phase 4's "Start here"), because before the script
+   word half of the seek channel ([ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md)), so a resumed session never reads from the top first. "Start from the top"
+   clears it. "Pick a word" says to start reading and click the word (the reader's "Start here"), because before the script
    arrives the reader's words are not yet positions the tracker knows. Nothing starts until the narrator presses Start
    reading.
 4. **The card never guesses between tracks.** When the host answers `no_track` (the match is `uncertain`, `ambiguous`
@@ -42,7 +42,7 @@ itself". Three things were left to settle while building it:
    when it comes back it asks again and clears the start word, so a word chosen before one session never silently starts
    the next.
 6. **Every answer is labelled "as of the project's last save"** with the `.rpp`'s save time, because the lookup reads
-   the saved project, not REAPER's live state (Phase 11).
+   the saved project, not REAPER's live state.
 
 ## Consequences
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-Two primitives had accessibility gaps that every page inherited. `MeterBar` (the recording-progress bar on Home) had no role or name, its segments were unnamed boxes with hover-only tooltips, and it animated its width even for users who ask for reduced motion. `Field` (the labelled text control in the Story Bible entry form) had no place for a hint or an error and wired nothing to the control beyond wrapping it in a `<label>`. The foundation PRD (owner decisions D1 and D22) puts `Field` on Base UI's Field and keeps `MeterBar` custom, because Base UI's Meter and Progress model a single value in a range and this bar is several segments of one whole.
+Two primitives had accessibility gaps that every page inherited. `MeterBar` (the recording-progress bar on Home) had no role or name, its segments were unnamed boxes with hover-only tooltips, and it animated its width even for users who ask for reduced motion. `Field` (the labelled text control in the Story Bible entry form) had no place for a hint or an error and wired nothing to the control beyond wrapping it in a `<label>`. The owner decided to put `Field` on Base UI's Field and keep `MeterBar` custom, because Base UI's Meter and Progress model a single value in a range and this bar is several segments of one whole.
 
 ## Decision
 
@@ -18,5 +18,5 @@ Two primitives had accessibility gaps that every page inherited. `MeterBar` (the
 
 - The recording-progress bar is announced with its breakdown instead of being silent. The label is caller text, so it can go stale if a caller stops passing the segments' real numbers.
 - No form validates inline today, so `hint` and `error` have no caller yet; they exist so the first form that needs one does not have to hand-wire it.
-- `Heading` and `Panel` (levels and a named region, the rest of the component-accessibility PRD) are unchanged and stay in the dialog and accessibility stack that follows.
+- `Heading` and `Panel` (levels and a named region) are unchanged here; [ADR 0058](0058-heading-has-a-level-and-panel-names-its-region-with-a-level-2-title.md) covers them.
 - To change any of this, write a new ADR that supersedes this one.

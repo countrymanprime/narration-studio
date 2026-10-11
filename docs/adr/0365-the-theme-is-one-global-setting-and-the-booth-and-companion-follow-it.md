@@ -2,13 +2,13 @@
 
 **Status:** Accepted
 **Date:** 2026-09-27
-**Supersedes:** ADR-0360 (its Q1 booth token block only), ADR-0362 (its booth block decision only)
+**Supersedes:** ADR-0360 (its booth token block only), ADR-0362 (its booth block decision only)
 
 ## Context
 
-[ADR 0360](0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md) settled open question Q1 of Studio UI Primitives (a PRD deleted, delivered) with a high-contrast booth token block, `[data-surface='booth']` in `apps/ui/src/styles.css`, scoped to `FocusShell`. [ADR 0362](0362-studio-token-batch-aliases-meter-and-badge-colours-and-a-minimal-booth-override.md) chose what that block overrides: the surface and text tokens, a copy of the dark theme's status colours, the kind `-text` mixes and `--font-size-booth-script`. `FocusShell` set `data-surface="booth"` on its root. The effect was that the booth was always very dark, whatever the narrator picked in Settings > Appearance: "the booth is a place, not a preference". `tokenContrast.ts` modelled the block as a third map (`booth`, layered over dark), and `paletteContrast.test.ts` checked every pair over light, dark and booth. The `StatusBadge` atlas story `Booth` pinned the whole document to dark so the badges would match.
+[ADR 0360](0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md) settled the booth look with a high-contrast booth token block, `[data-surface='booth']` in `apps/ui/src/styles.css`, scoped to `FocusShell`. [ADR 0362](0362-studio-token-batch-aliases-meter-and-badge-colours-and-a-minimal-booth-override.md) chose what that block overrides: the surface and text tokens, a copy of the dark theme's status colours, the kind `-text` mixes and `--font-size-booth-script`. `FocusShell` set `data-surface="booth"` on its root. The effect was that the booth was always very dark, whatever the narrator picked in Settings > Appearance: "the booth is a place, not a preference". `tokenContrast.ts` modelled the block as a third map (`booth`, layered over dark), and `paletteContrast.test.ts` checked every pair over light, dark and booth. The `StatusBadge` atlas story `Booth` pinned the whole document to dark so the badges would match.
 
-The owner reversed that on issue #509 (D69, 2026-09-27): dark mode is one app-wide setting, either on or off. No page or surface may force light or dark. The dark backgrounds of the approved booth and DAW companion concept mocks show the dark theme; they are not a per-page look.
+The owner reversed that on issue #509 (2026-09-27): dark mode is one app-wide setting, either on or off. No page or surface may force light or dark. The dark backgrounds of the approved booth and DAW companion concept mocks show the dark theme; they are not a per-page look.
 
 ## Decision
 
@@ -30,6 +30,6 @@ The owner reversed that on issue #509 (D69, 2026-09-27): dark mode is one app-wi
 ## Consequences
 
 - **One place for colour.** A token has a light value and a dark value, and nothing else. There is no third map to keep in sync with dark, and no hand-copied block of dark's status colours to drift.
-- **The booth is no darker than dark.** A narrator who wants a dark booth picks Dark for the whole app. A narrator on Light gets a light booth. The deeper, lights-down palette of ADR 0360 Q1 is given up. If one is wanted again, it must be an app-wide theme choice (a new ADR), not a surface-scoped block.
+- **The booth is no darker than dark.** A narrator who wants a dark booth picks Dark for the whole app. A narrator on Light gets a light booth. The deeper, lights-down palette of ADR 0360 is given up. If one is wanted again, it must be an app-wide theme choice (a new ADR), not a surface-scoped block.
 - **What stands of ADR 0360 and 0362.** The one token batch, the flat leaf primitives, `CapabilityGate`, the meter-zone aliases, the 14% badge fills and the `experimental` tone all stand. Only the booth block, and the checking of it as a third map, are superseded. The `StatusBadge` `Booth` story, which forced the document to dark, is deleted. `docs/ui/` still lists it until the next `pnpm --dir apps/ui docs:atlas` run.
 - **Changing this decision.** To let any surface choose its own theme or palette, write a new ADR that supersedes this one (see [the ADR README](README.md)). `forcedThemeRules` and the `booth-dark` state will fail until that ADR's change also updates them.

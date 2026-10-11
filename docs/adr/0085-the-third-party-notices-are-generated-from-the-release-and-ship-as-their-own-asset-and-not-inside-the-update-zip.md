@@ -5,7 +5,7 @@
 
 ## Context
 
-The project is AGPL-3.0-or-later ([ADR 0039](0039-the-project-is-licensed-agpl-3-or-later.md), owner decision D17), so bundling GPL-family code is allowed but the release must carry the licences of what it contains, the AGPL text and a source offer. The docs security and hygiene PRD (stack S17) recommended (Open Question 15 a): the notices as a release asset **and a copy inside the update zip**.
+The project is AGPL-3.0-or-later ([ADR 0039](0039-the-project-is-licensed-agpl-3-or-later.md), an owner decision), so bundling GPL-family code is allowed but the release must carry the licences of what it contains, the AGPL text and a source offer. The first recommendation was the notices as a release asset **and a copy inside the update zip**.
 
 The copy inside the zip conflicts with a security control the app already ships. The in-app updater unpacks exactly one entry, `narration-utils.exe`, and refuses a zip that holds anything else ([in-app update](../architecture/in-app-update.md), [ADR 0074](0074-the-windows-update-renames-the-running-executable-and-keeps-the-old-one-until-the-new-one-starts.md)). A client that is already installed (release candidates exist) would refuse every update to a two-file zip with "does not hold exactly the program", so the change would strand them. Changing the updater's rule is possible but is a change to the hostile-archive defence for the sake of a text file, and the notices would still be stale next to an updated program.
 

@@ -6,22 +6,22 @@
 
 ## Context
 
-The chapter stage recommendations PRD (`docs/prds/chapter-stage-recommendations.prd.md`, delivered and deleted;
-[ADR 0160](0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md),
+Chapter stage recommendations
+([ADR 0160](0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md),
 [ADR 0161](0161-stage-decisions-live-in-their-own-sidecar-and-confirm-writes-the-record-before-the-status.md))
-rests on one guarantee above every other: a chapter the narrator would call "not done" must never read
-`recommended`. Its Success Metrics ask for that to be proven end to end, on the recording, editing and proofing
-corpora, against a narrator's own stage labels (D12). `apps/desktop/internal/coverage/corpus_test.go` already does
+rest on one guarantee above every other: a chapter the narrator would call "not done" must never read
+`recommended`. That guarantee should be proven end to end, on the recording, editing and proofing
+corpora, against a narrator's own stage labels. `apps/desktop/internal/coverage/corpus_test.go` already does
 this for the recording rule, against a small synthetic corpus of public-domain text (three chapters of *Alice's
 Adventures in Wonderland*, 1865) with hand-labeled paragraph completeness (ADR 0125).
 
-Neither the editing nor the proofing rule has an equivalent real corpus. `editing-readiness-analysis.prd.md`'s own
-Phase 1 (the annotated corpus and evaluation harness) is `pending`: it explicitly needs permissioned audio nobody
-has yet (its Q10), and synthetic audio is only good enough for its own unit tests, not a validation. Its Q5/D22
-default also means the click and breath signals can never report `met` in this build - they are gated behind
-Phase 4's own corpus-based detector validation, which has not happened. `proofing-readiness-signals.prd.md` is in
-the same position for its pickup and delivery-check corpus. Closing this PRD with no end-to-end proof at all for
-two of its three rules would leave the false-"met" guarantee checked in principle (the engine's own table tests)
+Neither the editing nor the proofing rule has an equivalent real corpus. The editing readiness analysis has no
+annotated corpus or evaluation harness yet: it needs permissioned audio nobody has, and synthetic audio is only good
+enough for unit tests, not a validation. The click and breath signals therefore can never report `met` in this
+build ([ADR 0510](0510-click-and-breath-signals-open-only-on-a-recorded-permissioned-held-out-run-at-target-in-every-condition.md));
+they stay gated behind a corpus-based detector validation, which has not happened. The proofing readiness signals are
+in the same position for their pickup and delivery-check corpus. Shipping stage recommendations with no end-to-end
+proof at all for two of its three rules would leave the false-"met" guarantee checked in principle (the engine's own table tests)
 but never exercised through the real providers, the real findings store and the real stages service together.
 
 ## Decision
@@ -41,25 +41,25 @@ Both tests assert the one invariant that matters: every case labeled anything bu
 editing corpus also documents, rather than works around, a real fact about the shipped build: under SR's
 production default required set, editing can never read `recommended` at all, because clicks and breaths are
 unvalidated; one case reaches `recommended` only by using the documented settings path (a narrator deselecting
-those two checks), exactly as editing-readiness-analysis.prd.md Phase 6/Q5 recommends.
+those two checks).
 
-**This result is provisional, not calibrated (D70/D71).** A synthetic corpus proves the invariant holds in
+**This result is provisional, not calibrated.** A synthetic corpus proves the invariant holds in
 principle; it says nothing about narration audio a real editing or proofing detector will actually see. A QA item
 on issue [#510](https://github.com/countrymanprime/narration-utils/issues/510) asks for the same two test files'
-cases to be re-run, and superseded, against the owner's own permissioned project once editing-readiness-analysis
-Phase 1 or proofing-readiness-signals lands a real annotated corpus.
+cases to be re-run, and superseded, against the owner's own permissioned project once a real annotated editing or
+proofing corpus exists.
 
 ## Consequences
 
 - **The false-"met" guarantee has *some* end-to-end proof for every one of the three stage-advance rules today**,
-  not just the recording one - closing this PRD with the editing and proofing rules completely unexercised
-  end to end would have been a weaker close-out than D12 calls for.
+  not just the recording one. Shipping with the editing and proofing rules completely unexercised
+  end to end would have been a weaker guarantee.
 - **Nothing here is a new corpus format.** Unlike the recording corpus (`recording-coverage-fixtures.md`), there is
   no permissioned-directory environment variable and nothing to extend: a real ER or PS corpus will need its own
   labeling shape (time ranges over audio, not a Go-level signal input), so these two test files are meant to be
   *replaced*, not grown, once a real corpus exists.
 - **A reviewer must not read "4/4 cases agreed" as a calibrated result.** `docs/research/editing-and-proofing-corpus.md`
   and this ADR both say so explicitly, and the QA item on #510 is the actual next step, not a nice-to-have.
-- **Changing this decision.** Once editing-readiness-analysis Phase 1 or proofing-readiness-signals ships a real
-  corpus, write a new ADR in lane U's block (0360-0379) that supersedes this one, replace the two test files' cases
+- **Changing this decision.** Once a real editing or proofing
+  corpus exists, write a new ADR in lane U's block (0360-0379) that supersedes this one, replace the two test files' cases
   (keeping their real-service architecture), and close out the #510 QA item.

@@ -5,13 +5,12 @@
 
 ## Context
 
-`internal/measure` could measure a WAV file but nothing in the app called it for the narrator's own files. Phase 1 of
-the diagnostics PRD (deleted) exposes it through bindings. That opens a
-new path from the webview to a file the Go host opens: whatever path the UI sends, the host reads. Every earlier
+`internal/measure` could measure a WAV file but nothing in the app called it for the narrator's own files. Exposing it
+through bindings opens a new path from the webview to a file the Go host opens: whatever path the UI sends, the host reads. Every earlier
 boundary of that kind keeps the page from naming a path: `/media` serves only a source of the current project's `.rpp`
 (ADR 0012), a recording check takes a chapter id, a take comparison a finding id. A measurement also runs for as long as
 it takes to read the files (about 90 s per hour of 48 kHz stereo on the development machine), so it has to report real
-progress and stop when the narrator asks (ADR 0015). And the PRD's Open Question 5 recommends that a finding keep its
+progress and stop when the narrator asks (ADR 0015). And a finding should keep its
 id when the audio changes and carry a fingerprint of the audio as evidence instead.
 
 ## Decision
@@ -42,11 +41,11 @@ id when the audio changes and carry a fingerprint of the audio as evidence inste
 
 - The page cannot turn the host into a reader of arbitrary files: the worst a hostile page can do is re-measure a file the
   narrator already picked. Threat model row 6g.
-- A later phase that measures something other than a picked file (the items of a REAPER project, Phase 8; a report's
+- A later feature that measures something other than a picked file (the items of a REAPER project; a report's
   re-measure) needs its own source of paths, built by the host (for example from the saved `.rpp`, as `/media` does),
   not a wider allowlist. Measuring again after a restart means picking the files again.
-- Measuring a range of a long file costs a read to the end of the file for the fingerprint. Per-item measurement (Phase
-  11) that does not need a fingerprint keeps using `AnalyzeFileRange`.
+- Measuring a range of a long file costs a read to the end of the file for the fingerprint. Per-item measurement
+  that does not need a fingerprint keeps using `AnalyzeFileRange`.
 - The throughput baseline is recorded by `BenchmarkAnalyzeOneHourStereo48k`; the true-peak oversampler takes about 80% of
   the time, so that is where a target would be met.
-- Owner review: this ADR is Proposed; it records a trust-boundary choice (point 1) the PRD left to the implementation.
+- Owner review: this ADR is Proposed; it records a trust-boundary choice (point 1) that was left to the implementation.

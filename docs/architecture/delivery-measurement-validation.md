@@ -1,6 +1,6 @@
 # Delivery measurement validation against the EBU loudness test set
 
-This note records how the Go `measure` package (`apps/desktop/internal/measure`) is checked against the EBU's official loudness test signals, and the result of each run. It is Phase 3 of the diagnostics, delivery and cleanup tools PRD (deleted). [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
+This note records how the Go `measure` package (`apps/desktop/internal/measure`) is checked against the EBU's official loudness test signals, and the result of each run. [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
 
 ## What is checked
 
@@ -20,7 +20,7 @@ The gated test is `TestEBULoudnessTestSet`. It runs only when `NARRATION_EBU_DIR
 
 ## Why the files are not committed or fetched by CI
 
-The EBU's terms of use for its audio test sequences (July 2019, v1.0) allow use only to assess equipment and systems in internal research and development. They forbid copying, publishing or distributing the sequences. So the audio stays outside the repository, and CI cannot download it. The EBU site's browser check refuses scripted downloads, and downloading the files means accepting the terms, which a person must do. What the repository keeps is the table of published numbers, the gated test, a test that runs the gated runner over stand-in files named like the set's files, and the Table 1 signals rebuilt in code. The rebuilt signals run in every `pnpm check`. This settles Open Question 6 of the PRD with option (b). No DSP decision changed, so there is no new ADR.
+The EBU's terms of use for its audio test sequences (July 2019, v1.0) allow use only to assess equipment and systems in internal research and development. They forbid copying, publishing or distributing the sequences. So the audio stays outside the repository, and CI cannot download it. The EBU site's browser check refuses scripted downloads, and downloading the files means accepting the terms, which a person must do. What the repository keeps is the table of published numbers, the gated test, a test that runs the gated runner over stand-in files named like the set's files, and the Table 1 signals rebuilt in code. The rebuilt signals run in every `pnpm check`. No DSP decision changed, so there is no new ADR.
 
 Whether this project's use counts as "internal research and development" rather than a "business, commercial or for-profit" use is for the owner to judge before running the check.
 
@@ -36,7 +36,7 @@ When a run is recorded, add a row above and paste the test's `-v` lines under it
 
 ## Comparison with Audacity's ACX Check (the ACX profile)
 
-The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](../research/acx-delivery-requirements.md), ADR 0179) judges `measure`'s RMS, sample peak and noise floor against ACX's numbers. Whether `measure`'s definitions agree with ACX's own check is what this comparison records: the same verdict per rule, and values within 0.5 dB (the PRD's proposal).
+The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](../research/acx-delivery-requirements.md), ADR 0179) judges `measure`'s RMS, sample peak and noise floor against ACX's numbers. Whether `measure`'s definitions agree with ACX's own check is what this comparison records: the same verdict per rule, and values within 0.5 dB.
 
 | Date | Commit | Files | RMS (app / ACX Check) | Peak (app / ACX Check) | Noise floor (app / ACX Check) | Verdicts agree |
 | --- | --- | --- | --- | --- | --- | --- |

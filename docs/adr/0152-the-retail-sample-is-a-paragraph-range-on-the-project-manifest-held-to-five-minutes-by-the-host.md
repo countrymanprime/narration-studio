@@ -5,12 +5,11 @@
 
 ## Context
 
-ACX asks for a retail sample of 5 minutes or less. The PRD recommended a computed marker on the first five minutes of chapter
-one (Open Question C10); the owner decided on 2026-09-23 that the narrator picks the range, at most 5 minutes, anywhere in the
-book, stored per project, and that it adds no time to the estimate (Phase 5: "a sample range over 5 minutes is refused, and the
-estimate is unchanged by a sample"). Before any audio exists the only measure of "5 minutes" is the estimate's own rate, 9,300
-words per finished hour (`WORDS_PER_FINISHED_HOUR`, `apps/ui/src/state.ts`). Credits data must not live in `manuscript.json`
-or any folder that Replace or "Clear derived project data" deletes (PRD Evidence); the project manifest already holds the
+ACX asks for a retail sample of 5 minutes or less. A computed marker on the first five minutes of chapter
+one was one option; the owner decided on 2026-09-23 that the narrator picks the range, at most 5 minutes, anywhere in the
+book, stored per project, that a sample range over 5 minutes is refused, and that the sample adds no time to the estimate.
+Before any audio exists the only measure of "5 minutes" is the estimate's own rate, 9,300 words per finished hour (`WORDS_PER_FINISHED_HOUR`, `apps/ui/src/state.ts`). Credits data must not live in `manuscript.json`
+or any folder that Replace or "Clear derived project data" deletes; the project manifest already holds the
 credits values (`project.Manifest.Credits`).
 
 ## Decision

@@ -6,19 +6,17 @@
 ## Context
 
 The narrator asked for the app to suggest when a chapter is done recording, editing or proofing, always as a suggestion
-they confirm (the chapter stage recommendations PRD, `docs/prds/chapter-stage-recommendations.prd.md`, delivered and
-deleted; see [stage recommendations](../architecture/stage-recommendations.md)). The evidence comes
-from three other PRDs (recording coverage, editing readiness, proofing readiness) written in parallel, so they need one
+they confirm (see [stage recommendations](../architecture/stage-recommendations.md)). The evidence comes
+from three features (recording coverage, editing readiness, proofing readiness) built in parallel, so they need one
 contract to code against before any of them builds a signal. Two constraints were already recorded: a recommendation
-is computed on read and never stored as truth (D1), and a signal is tri-state, with `unknown` for anything never run,
-stale, unmapped, partial or unavailable (D2). A signal that reads "no findings" as success would report "done" for a
+is computed on read and never stored as truth, and a signal is tri-state, with `unknown` for anything never run,
+stale, unmapped, partial or unavailable. A signal that reads "no findings" as success would report "done" for a
 chapter nobody analyzed (`measure.Evaluate` returns an empty slice for a compliant report), and a false "done" hides
 real work until delivery, so the cost of the two errors is not symmetric.
 
-The PRD's open questions had no owner answers; by rule D22 (`docs/prds/implementation-plan.md`) Phase 1 adopted each
-question's recommendation where it needed one: no new `proofed` status (Q3), `not_started` is not evaluated (Q4),
-evaluation on read only (Q5), a dismissal returns only when its basis changes (Q7), an empty required set never
-recommends (Q8), one confirmed track per chapter (Q9), and evaluation never starts an analysis (Q12).
+Some design questions had no owner answer, so the recommended answer was adopted for each where it needed one: no new
+`proofed` status, `not_started` is not evaluated, evaluation on read only, a dismissal returns only when its basis changes,
+an empty required set never recommends, one confirmed track per chapter, and evaluation never starts an analysis.
 
 Alternatives considered: boolean signals (cannot tell clean from never ran), a single readiness score (over-trusts one
 number, hides which check failed), letting `unknown` outrank `not_met` (hides the concrete reason when both are
@@ -58,4 +56,4 @@ The contract is described for implementers in
   the cause and the fix to keep that from being noise.
 - A new cause, a new stage or a change to the verdict precedence changes this contract and needs an ADR that
   supersedes this one. Where the narrator's decisions are stored and how Confirm writes the status is a separate
-  decision for the PRD's Phase 2.
+  decision ([ADR 0161](0161-stage-decisions-live-in-their-own-sidecar-and-confirm-writes-the-record-before-the-status.md)).

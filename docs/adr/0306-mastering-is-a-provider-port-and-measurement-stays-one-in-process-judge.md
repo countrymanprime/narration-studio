@@ -6,15 +6,15 @@
 
 ## Context
 
-The render-encode-master PRD built one mastering chain, `apps/desktop/internal/mastering` ([ADR 0321](0321-the-mastering-chain-is-a-fixed-high-pass-limiter-and-gain-that-masters-to-the-profiles-own-measured-rms-and-sample-peak.md)): a fixed high-pass EQ, a limiter and gain into the delivery profile's RMS window, re-measured with `internal/measure` and judged with `internal/deliveryprofile`. Its Q3 took the built-in chain for v1 and left "a REAPER-FX-chain alternative" as a Could, gated on the DAW port's `fx_chains` capability reaching Supported.
+The app has one mastering chain, `apps/desktop/internal/mastering` ([ADR 0321](0321-the-mastering-chain-is-a-fixed-high-pass-limiter-and-gain-that-masters-to-the-profiles-own-measured-rms-and-sample-peak.md)): a fixed high-pass EQ, a limiter and gain into the delivery profile's RMS window, re-measured with `internal/measure` and judged with `internal/deliveryprofile`. It took the built-in chain for the first version and left a REAPER-FX-chain alternative for later, gated on the DAW port's `fx_chains` capability reaching Supported.
 
-On 2026-09-28 the owner decided (D86 on [#509](https://github.com/countrymanprime/narration-utils/issues/509)) that mastering must be swappable like the other providers: REAPER and Audacity may master with their own FX, while the metrics stay the app's own, `internal/measure` plus `internal/deliveryprofile` judging whatever file any mastering chain produces.
+On 2026-09-28 the owner decided (recorded on [#509](https://github.com/countrymanprime/narration-utils/issues/509)) that mastering must be swappable like the other providers: REAPER and Audacity may master with their own FX, while the metrics stay the app's own, `internal/measure` plus `internal/deliveryprofile` judging whatever file any mastering chain produces.
 
 Three facts shape the design:
 
-- [Provider ports](../architecture/provider-ports.md) chose not to make measurement a port: one implementation needs no registry. That still holds, and D86 keeps it.
+- [Provider ports](../architecture/provider-ports.md) chose not to make measurement a port: one implementation needs no registry. That still holds, and this decision keeps it.
 - The DAW port has `fx_chains` (`FXManager`: list, apply and add FX, Experimental) and `render_config` (`RenderConfigurer`: set up REAPER's render for chapter files, Supported), but no role renders. `integrations/reaper/narration_render.lua` configures a render and deliberately never triggers one; the narrator renders from REAPER's own dialog.
-- Audacity 3.x can apply effect macros and export through mod-script-pipe (`Export2`), and its pipe client is being built (N-B36, [#834](https://github.com/countrymanprime/narration-utils/pull/834), [#838](https://github.com/countrymanprime/narration-utils/pull/838)).
+- Audacity 3.x can apply effect macros and export through mod-script-pipe (`Export2`), and its pipe client is being built ([#834](https://github.com/countrymanprime/narration-utils/pull/834), [#838](https://github.com/countrymanprime/narration-utils/pull/838)).
 
 ## Decision
 
@@ -22,7 +22,7 @@ Three facts shape the design:
 
 - `Mastering` is `Name()`, `Capabilities()` and `Master(ctx, Request) (Result, error)`. A `Request` names the input (a WAV `Source`, or a DAW `Region`), a new `Destination`, the delivery `Profile`, the narrator's `Approved` for this run, and optional progress. A `Result` says which row ran, the chain it ran (steps in words, for the narrator's report), and `Before`, `After` and `Judgement`.
 - The registry is `masteringport.Rows`, a `port.Registry[Mastering]`, keyed by the name a project's choice stores. A row's descriptor `Modes` say what it masters from: `wav` (a rendered WAV) or `daw_region` (the DAW renders a region itself). Its `Capabilities` declare its `Level` (NotYetAvailable, Experimental or Supported), whether each master `NeedsApproval`, and the DAW port capabilities it `Needs`.
-- The conformance suite, `masteringporttest.Run`, runs over every registered row from the registry's own test, so no row skips it. It checks the descriptor and capabilities, that a NotYetAvailable row refuses with a `not_yet` refusal, and that a built row writes only a new file, never over its source or an existing file, leaves nothing after a failure or a cancel, refuses without approval when it needs it, and answers exactly the one judge's verdict on the file it wrote. A row that makes the DAW render and does not need approval fails it. `masteringporttest.Fake` is the mock row (D67): it copies the WAV and passes the suite.
+- The conformance suite, `masteringporttest.Run`, runs over every registered row from the registry's own test, so no row skips it. It checks the descriptor and capabilities, that a NotYetAvailable row refuses with a `not_yet` refusal, and that a built row writes only a new file, never over its source or an existing file, leaves nothing after a failure or a cancel, refuses without approval when it needs it, and answers exactly the one judge's verdict on the file it wrote. A row that makes the DAW render and does not need approval fails it. `masteringporttest.Fake` is the mock row: it copies the WAV and passes the suite.
 
 **The rows.**
 
@@ -34,7 +34,7 @@ Three facts shape the design:
 
 **Measurement stays one in-process judge, not a port.** Every row's `After` and `Judgement` are `masteringport.Judge`'s answer on the file it wrote: `internal/measure` reads it and `internal/deliveryprofile.EvaluateFile` judges it, the same code the Delivery page, the proofing checks and the Master & QC flow already use. A row never reports levels of its own, not even a DAW's loudness meter. So a narrator reads one set of numbers whichever chain made the file, a file mastered in REAPER and one mastered by the built-in chain are compared by the same ruler, and a profile's verdict cannot change with the chain that produced the file.
 
-**A project chooses its row.** The choice is the project settings row `Mastering.provider`, written only by `MasteringChooseProvider(name)`, which refuses an unknown row or one that is not available yet with its sentence and clears the choice on an empty name. `MasteringProviders()` answers every row (label, whether it is the default, modes, whether it needs approval, the DAW capabilities it needs, and its `support` in the DAW port's shape), the project's stored choice, the row it masters with, and a notice when a stored choice cannot run. The row is not a generic Settings field. Both bindings carry a Zod schema, three goldens, a `wireContracts.test.ts` row and a mock ([wire contracts](../architecture/wire-contracts.md)); host API 77. No screen reads them yet: Master & QC (stage navigation Phase 8) will.
+**A project chooses its row.** The choice is the project settings row `Mastering.provider`, written only by `MasteringChooseProvider(name)`, which refuses an unknown row or one that is not available yet with its sentence and clears the choice on an empty name. `MasteringProviders()` answers every row (label, whether it is the default, modes, whether it needs approval, the DAW capabilities it needs, and its `support` in the DAW port's shape), the project's stored choice, the row it masters with, and a notice when a stored choice cannot run. The row is not a generic Settings field. Both bindings carry a Zod schema, three goldens, a `wireContracts.test.ts` row and a mock ([wire contracts](../architecture/wire-contracts.md)); host API 77. No screen reads them yet: the Master & QC stage will.
 
 ## Consequences
 

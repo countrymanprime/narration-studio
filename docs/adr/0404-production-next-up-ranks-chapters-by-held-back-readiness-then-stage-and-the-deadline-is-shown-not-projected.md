@@ -5,12 +5,12 @@
 
 ## Context
 
-Production Tracking (delivered and deleted; `git log --diff-filter=D -- docs/prds/production-tracking.prd.md` finds it) Phase 4 adds the Production page (how it works now is in [Production](../guides/using-the-app/production.md)). Its "Next up" list is "ranked by which chapter most threatens the deadline", and its success metric asks for an order that matches "a recorded expected order (nearest at-risk deadline first)". The concept mock (`mockups/production-tracking/01-production-home-concept.webp`, not yet owner-approved) also shows a pace projection ("On track · at current pace done Oct 9") and a burndown.
+Production Tracking adds the Production page (how it works now is in [Production](../guides/using-the-app/production.md)). Its "Next up" list is meant to be ranked by which chapter most threatens the deadline, with the nearest at-risk deadline first. The concept mock (`mockups/production-tracking/01-production-home-concept.webp`, not yet owner-approved) also shows a pace projection ("On track · at current pace done Oct 9") and a burndown.
 
 Two facts limit what can honestly be computed:
 
-- The book has **one** deadline and no chapter has its own. Phase 3 (deadlines and milestones on the manifest, [ADR 0323](0323-production-deadlines-and-milestones-are-calendar-dates-on-the-project-manifest.md)) adds a book deadline and a generic milestone list (Q5 A). No per-chapter due date exists or is planned, so "nearest deadline first" cannot tell two chapters apart.
-- A pace projection needs a rate of progress over time. Nothing records when progress happened: the time log records hours worked per chapter and stage (ADR 0320), and a chapter's status records where it is now, not when it got there. Projecting a finish date from those would mix hours worked with an estimated amount of work left, which is the "estimate presented as a fact" that ADR 0015 and ADR 0320 rule out. The PRD itself leaves burndown data to its Phase 6 (Could).
+- The book has **one** deadline and no chapter has its own. Deadlines and milestones on the manifest ([ADR 0323](0323-production-deadlines-and-milestones-are-calendar-dates-on-the-project-manifest.md)) add a book deadline and a generic milestone list. No per-chapter due date exists or is planned, so "nearest deadline first" cannot tell two chapters apart.
+- A pace projection needs a rate of progress over time. Nothing records when progress happened: the time log records hours worked per chapter and stage (ADR 0320), and a chapter's status records where it is now, not when it got there. Projecting a finish date from those would mix hours worked with an estimated amount of work left, which is the "estimate presented as a fact" that ADR 0015 and ADR 0320 rule out. Burndown data is not recorded either.
 
 ## Decision
 
@@ -21,7 +21,7 @@ Two facts limit what can honestly be computed:
 3. Chapters in progress that look ready to move on (`recommended`). They need a confirmation on Home, not more work.
 4. Chapters not started.
 
-Within each group, the least advanced stage comes first, then book order. Readiness is always the stage recommendations' own verdict, read live (Q8 A) and never recomputed. The mock (`apps/ui/src/api/productionMock.ts`) applies the same order.
+Within each group, the least advanced stage comes first, then book order. Readiness is always the stage recommendations' own verdict, read live and never recomputed. The mock (`apps/ui/src/api/productionMock.ts`) applies the same order.
 
 **The deadline is shown, not projected.** The page shows the due date and the whole calendar days left, counted by the host from the local date so the figure stays the same all day. Its tone is:
 
@@ -32,11 +32,11 @@ Within each group, the least advanced stage comes first, then book order. Readin
 
 No finish date is projected from the pace so far.
 
-**Readiness columns with no producer say "Not available".** On the board, Record, Edit and Proof come from the chapter's status and its current stage's readiness. Prep (prep depth) and Delivery (a delivery verdict tied to a chapter's file) have no per-chapter producer yet. Their columns render "Not available", as the PRD's risk table says, and come last so a narrow window shows the columns that have real answers first.
+**Readiness columns with no producer say "Not available".** On the board, Record, Edit and Proof come from the chapter's status and its current stage's readiness. Prep (prep depth) and Delivery (a delivery verdict tied to a chapter's file) have no per-chapter producer yet. Their columns render "Not available", and come last so a narrow window shows the columns that have real answers first.
 
 ## Consequences
 
-- The order is deterministic and tested (`TestNextUpOrdersChaptersByTheRiskTheyPutOnTheDeadline`), and it changes when a stage's readiness changes, which is the PRD hypothesis's third check. It does not change when the deadline moves: with one book-wide date, no chapter-level order could honestly change.
-- Book milestones (Phase 3) are not ranked against: they name no chapter. If per-chapter milestones are ever added (a later extension of Phase 3's generic list), the ranking gains a first key, the nearest milestone. That supersedes this ADR's ordering rule.
-- The concept mock's pace projection and burndown are not built. Once Phase 6 records burndown data, a projection can be decided in its own ADR, with how its uncertainty is shown.
+- The order is deterministic and tested (`TestNextUpOrdersChaptersByTheRiskTheyPutOnTheDeadline`), and it changes when a stage's readiness changes, which is the intended behaviour. It does not change when the deadline moves: with one book-wide date, no chapter-level order could honestly change.
+- Book milestones are not ranked against: they name no chapter. If per-chapter milestones are ever added (an extension of the generic milestone list), the ranking gains a first key, the nearest milestone. That supersedes this ADR's ordering rule.
+- The concept mock's pace projection and burndown are not built. Once burndown data is recorded, a projection can be decided in its own ADR, with how its uncertainty is shown.
 - **Owner review needed** (#510): whether "held back first, then least advanced" is the risk order the owner wants, and whether the one-week warning threshold is right.

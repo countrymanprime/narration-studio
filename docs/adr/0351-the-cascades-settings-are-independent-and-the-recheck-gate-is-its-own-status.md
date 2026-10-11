@@ -6,23 +6,22 @@
 
 ## Context
 
-The model cascade (recording-check-model-cascade PRD, deleted, delivered) reaches the narrator in
-Phase 5: settings to turn it on, the missing-model choice (MC4), and the dialog's and result's
-labels (MC5). Three things needed a real answer that Phase 4 deliberately left open (it changed
-neither `coverage:state` nor `CoverageStartResult`):
+The model cascade reaches the narrator through settings to turn it on, a missing-model choice, and the
+dialog's and result's labels. Three things needed a real answer that [ADR 0344](0344-the-cascades-second-pass-is-a-relaunch-in-the-same-job-and-its-words-key-on-the-model-pair.md)
+deliberately left open (it changed neither `coverage:state` nor `CoverageStartResult`):
 
 - **Where the cascade's two models live.** `CoverageStart` already resolves a model from
-  `TranscriptCompare.model_size` (`resolveWhisperModelID`, Q7 A) for every check, cascade or not.
-  MC2 asks for two settings, "from the approved list"; whether those reuse `model_size` for the
+  `TranscriptCompare.model_size` (`resolveWhisperModelID`) for every check, cascade or not.
+  The cascade needs two settings, each from the approved list; whether those reuse `model_size` for the
   first pass or stand apart from it changes what turning the cascade on does to a narrator's
   existing Transcript Compare default.
 - **What a missing re-check model answers.** The first-pass model already has a first-use gate
   (`asset_required`, shared with `TranscriptStart`): not installed, the check cannot run at all.
-  MC4's recommendation is different - offer the download *or* "Check with tiny only" - so reusing
+  The choice here is different - offer the download *or* "Check with tiny only" - so reusing
   the same answer shape would need the UI to guess, from context alone, which of two installs a
   generic `asset_required` was for.
-- **How the dialog names a running pass without waiting for the result.** The PRD's user flow
-  describes "First pass (tiny)", then "Re-checking 3 passages (large-v3-turbo)" while the check is
+- **How the dialog names a running pass without waiting for the result.** The dialog
+  is meant to show "First pass (tiny)", then "Re-checking 3 passages (large-v3-turbo)" while the check is
   still running. `coverage:state` (`State`, `service.go`) carries only `Stage`/`Message`, the
   sidecar's own raw progress text (ADR 0015): it says nothing about which of the job's own stages
   (`stageFirstPass`, `stageRecheckWindows`, `stageRecheckWhole`, `stageRealign`, ADR 0344) is
@@ -33,7 +32,7 @@ neither `coverage:state` nor `CoverageStartResult`):
 - **`RecordingCoverage` gains its own three settings** (`cascade_enabled`, `cascade_first_pass_model`,
   `cascade_recheck_model`; `coverage.CascadeSettings`), read the same layered way as the tool's four
   existing ones. `cascade_first_pass_model` is independent of `TranscriptCompare.model_size`: while
-  the cascade is off, `CoverageStart` keeps resolving `model_size` exactly as before this phase (no
+  the cascade is off, `CoverageStart` keeps resolving `model_size` exactly as before this ADR (no
   narrator sees any change from turning Transcript Compare's own model around); once it is on, both
   cascade models come from these new settings and `model_size` plays no further part in a check.
 - **A missing re-check model answers `recheck_asset_required`**, not `asset_required`: the same
@@ -51,8 +50,8 @@ neither `coverage:state` nor `CoverageStartResult`):
   sidecar's own detail underneath.
 - **`StoredResult`/`ReportView` gain `Recheck` (`{model, wholeChapter, windows, seconds}`)**,
   set once, at `finish`, from the job's own resolved plan (`recheckSummary`, `run.go`): nil when
-  nothing was re-checked. `Model` keeps naming the first pass only (ADR 0344's "stays the
-  first-pass model for compatibility"); `Recheck` is the other one. Every region left in a report
+  nothing was re-checked. `Model` keeps naming the first pass only (it stays the
+  first-pass model for compatibility, ADR 0344); `Recheck` is the other one. Every region left in a report
   that carries a `Recheck` was seen by both models - the planner windows every region the first
   pass reports (or, `wholeChapter`, re-transcribes the whole chapter) - so the UI marks a pickup
   "Confirmed missing by ..." from the report-level field alone, with no separate per-region flag.
@@ -65,13 +64,13 @@ neither `coverage:state` nor `CoverageStartResult`):
   hatch.
 - `hostAPIVersion` moves to 68: `CoverageStart` gained a second parameter (`options`), the same
   shape `TranscriptStart` already takes.
-- A stored result from before this phase reads with no `recheck` field (`omitempty`), the same
+- A stored result from before this ADR reads with no `recheck` field (`omitempty`), the same
   compatibility `before`/`after` (ADR 0168) established for additive report fields.
 
 ## Alternatives considered
 
 - **Reusing `TranscriptCompare.model_size` as the cascade's first-pass model**, rather than a
-  dedicated setting. Rejected: MC2 asks for two settings "from the approved list", and coupling the
+  dedicated setting. Rejected: the cascade needs two settings from the approved list, and coupling the
   cascade to a proofing setting would silently change Transcript Compare's own default the moment a
   narrator repurposed it for the cascade, or vice versa.
 - **A `tinyOnly: true` field alongside `asset_required`**, instead of a distinct

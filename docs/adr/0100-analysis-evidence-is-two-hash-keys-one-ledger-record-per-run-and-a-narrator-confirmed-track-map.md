@@ -5,13 +5,11 @@
 
 ## Context
 
-Every signal behind a "suggest this stage is done" recommendation (`chapter-stage-recommendations.prd.md` and its
-siblings) needs to answer two questions the static project reader could not: which audio does a result describe, and
+Every signal behind a "suggest this stage is done" recommendation ([ADR 0160](0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md))
+needs to answer two questions the static project reader could not: which audio does a result describe, and
 is that still the audio the narrator has now, without ever attributing a result to the wrong track. The analysis
-evidence ledger PRD (`docs/prds/analysis-evidence-ledger.prd.md`) built this as `apps/desktop/internal/evidence`
-across Phases 1-6; its own Decisions Log recorded the choices below as "(proposed)" while the code shipped, and this
-ADR is the formal record those rows pointed at (Q1-Q7 above the log are the PRD's own tracking of the same
-questions).
+evidence ledger is `apps/desktop/internal/evidence`; the choices below were made while that code shipped, and this
+ADR is their formal record.
 
 ## Decision
 
@@ -19,7 +17,7 @@ We use two separate hash keys, not one. The **analysis key** (`evidence.ComputeA
 content is: source identity, played range and playrate. The **item fingerprint**
 (`evidence.ComputeItemFingerprint`) hashes what the item is on the timeline: the analysis key plus GUID, position,
 length, mute and active-take index. A fingerprint that mixed both would force a re-decode on a position-only move,
-which ER's cache-reuse requirement rules out. Both hash a fixed, canonical field set - never a hash of the whole
+which the requirement to reuse cached analysis rules out. Both hash a fixed, canonical field set - never a hash of the whole
 REAPER `<ITEM>` chunk - so a cosmetic change (color, name, notes, fades, volume) never reads as an edit.
 
 We record one **ledger record** per analysis run, one file under `<project>/narration-utils/analysis/ledger/`
@@ -50,7 +48,7 @@ future edit type turns out to matter. One `complete` record per (analyzer, chapt
 simple to test and explain, at the cost of a slower re-run after a one-item edit than a hypothetical item-union
 scheme would give; the per-item cache (`evidence.CacheStore`) exists specifically to keep that re-run cheap.
 Confirmed links are per-track-GUID, so nothing stops two tracks from being confirmed to one chapter; consumers
-(SR) are expected to detect and report that case themselves rather than the store refusing it. Every result is
+(the stage recommendations) are expected to detect and report that case themselves rather than the store refusing it. Every result is
 built from the saved file, so an edit made in REAPER and not yet saved will not be reflected until the narrator
-saves; Q8's staleness warning (comparing the `.rpp`'s modified time to the newest ledger record) is the mitigation,
+saves; a staleness warning (comparing the `.rpp`'s modified time to the newest ledger record) is the mitigation,
 not a live read.

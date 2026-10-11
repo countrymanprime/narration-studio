@@ -59,11 +59,11 @@ catalog, integrity, UX, migration, and acceptance criteria.
 
 ### Deferred work
 
-- macOS and Linux support: removed for now by owner decision D74 ([ADR 0412](adr/0412-windows-is-the-only-supported-platform-for-now.md)), until the app is steadier or someone uses those systems.
+- macOS and Linux support: removed for now by an owner decision ([ADR 0412](adr/0412-windows-is-the-only-supported-platform-for-now.md)), until the app is steadier or someone uses those systems.
 - Languages beyond US English.
 - Team collaboration, cloud analysis, or shared project services.
 - Manuscript Teleprompter beyond what has shipped (listening on a chosen microphone with a local Whisper model, or Moonshine on Windows, word highlighting, and reviewable suspected misreads, skips, extra words and restarts in the Booth): a default engine chosen by evaluating both, following live REAPER state, and punch-in from a word; it never edits text or audio automatically. See the [Manuscript Teleprompter brief](architecture/manuscript-teleprompter.md) for the resolved design questions.
-- The rest of the benchmark mocks' pixel gap (owner decision D96; only `docs/research/mockups/audiobook-studio-benchmark/` is the spec, see [Verification tooling](operations/verification-tooling.md#mock-match)): Production's missing features (pace pill, burndown chart, This week, the Pickups, Master and QC columns); the Booth filling the whole shell window with F11 full screen, its Room, Mic and DAW chips and mock 07's sections; Proof's per-chapter waveform with a chapter selector; a search tab in Script's right panel; and the app's name in the nav ("Studio"). Pages the mocks draw that the app doesn't have yet (Schedule, a Delivery page, Character Continuity review, a redesigned Story Bible) each need their own PRD and mocks first.
+- The rest of the benchmark mocks' pixel gap (an owner decision; only `docs/research/mockups/audiobook-studio-benchmark/` is the spec, see [Verification tooling](operations/verification-tooling.md#mock-match)): Production's missing features (pace pill, burndown chart, This week, the Pickups, Master and QC columns); the Booth filling the whole shell window with F11 full screen, its Room, Mic and DAW chips and the sections of benchmark mock `07-daw-companion`; Proof's per-chapter waveform with a chapter selector; a search tab in Script's right panel; and the app's name in the nav ("Studio"). Pages the mocks draw that the app doesn't have yet (Schedule, a Delivery page, Character Continuity review, a redesigned Story Bible) each need their own PRD and mocks first.
 
 ## Audacity adapter
 

@@ -1,9 +1,7 @@
 # Native notifications
 
 A Windows OS notification for a long job that finished while the narrator was looking at something else, alongside
-the in-app toast queue ([interaction feedback](interaction-feedback.md)), never instead of it. Delivered by the
-story-bible-and-import-ux-briefs PRD's N brief (phases 1-2); this page replaces that PRD (see its Open Questions
-N1-N4 for the decisions' own reasoning) now that the PRD is deleted.
+the in-app toast queue ([interaction feedback](interaction-feedback.md)), never instead of it.
 
 ## The path
 
@@ -23,14 +21,14 @@ N1-N4 for the decisions' own reasoning) now that the PRD is deleted.
 
 ## Decisions worth remembering
 
-- **On by default** (owner decision D8), opt-out in `General.notifications`. Wails needs no OS consent prompt on
+- **On by default** (an owner decision), opt-out in `General.notifications`. Wails needs no OS consent prompt on
   Windows.
 - **A manuscript import that chains a Story Bible build** ([story-bible-concurrent-build.md](story-bible-concurrent-build.md))
   notifies only through the build's own `job:ended` event, once the build itself clears the threshold; a fast import
   stays quiet on its own account like anything else under 10 seconds.
 - **Windows-only, plain title and body.** No action buttons, categories, reply fields, or macOS/Linux behavior.
 - **Toast identity** on a dev build shows the executable's base name, not "Narration Studio"; the installed build is
-  an owner verification step (was tracked on issue #280, which this PRD's phases closed).
+  an owner verification step.
 
 ## Tests
 

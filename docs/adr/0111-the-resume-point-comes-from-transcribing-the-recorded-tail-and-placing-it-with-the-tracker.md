@@ -5,10 +5,10 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 9 ("Tail-audio locate") turns what is already recorded
-for a chapter into the word the narrator resumes from. Phase 8 ([ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md))
-delivered the chapter's track and where its audio ends (`tracks.RecordedEnd`: project time, source file, time in that
-file). The PRD's Decisions Log already chose how, as a prior decision: "Resume point: run the tracker over the tail
+The tail-audio locate turns what is already recorded
+for a chapter into the word the narrator resumes from. The chapter-to-track matcher ([ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md))
+provides the chapter's track and where its audio ends (`tracks.RecordedEnd`: project time, source file, time in that
+file). The plan had already chosen how, as a prior decision: "Resume point: run the tracker over the tail
 audio of the track", over "anchors from past live sessions", because it also works for audio that was not recorded
 through the teleprompter (most of it: a narrator who reads from paper, a take from before this feature, a pickup
 session). What that decision left open:
@@ -23,7 +23,7 @@ session). What that decision left open:
 ## Decision
 
 1. **Anchors from past sessions are not used.** They exist only for audio recorded through a live session, would need
-   a store kept in step with every later edit of the take, and Phase 12 introduces live anchors for punch-in, not for
+   a store kept in step with every later edit of the take, and the live anchors introduced later are for punch-in, not for
    resume. The tail is the one source that describes what is actually on the track.
 2. **The tail is the last 30 seconds of the last audible item, never before the item's own start.**
    `teleprompter.DefaultTailSeconds` (30 s, about 70 words of narration) is enough to tell a passage the chapter
@@ -43,7 +43,7 @@ session). What that decision left open:
    words) x (1 - runnerUp / matched)`, where `runnerUp` is the best alignment that does not overlap the chosen one. A
    tail wholly inside a passage the chapter repeats scores near 0; `confident` needs a score of at least 0.5 and at
    least 6 words matched. Fewer than 3 matched words (the tracker's own bar for a jump) is no place at all
-   (`word: null`). The resume point is always shown with its sentence for confirmation (PRD risk table); confidence
+   (`word: null`). The resume point is always shown with its sentence for confirmation, because a wrong resume point is costly; confidence
    decides whether the UI offers it as the answer or as a guess.
 5. **Accuracy target, measured on recorded tails.** `spikes/record_locate_tails.py` speaks Chapter I of Alice
    (`tests/fixtures/alice.md`) with the app's Piper voice up to a known word, with the twist of each case (stopped at
@@ -66,15 +66,15 @@ session). What that decision left open:
    `source_unsupported`) with the chapter's full track match, the track read, its recorded end, the tail range and the
    sidecar's result, or the Whisper first-use gate's `asset_required`. The model is checked only once there is audio
    to read, so a chapter with no track never asks for a download. An uncertain or ambiguous match is `no_track`: it
-   never guesses; the narrator's pick (`trackGUID`, any track of the selected project) is read instead. No UI calls it
-   yet (Phase 10 is the resume card).
+   never guesses; the narrator's pick (`trackGUID`, any track of the selected project) is read instead. When this was
+   decided no UI called it; the resume card ([ADR 0112](0112-the-resume-card-looks-up-where-the-recording-ends-on-open-and-a-choice-only-sets-where-start-begins.md)) is its caller.
 
 ## Consequences
 
-- The resume point is "as of the .rpp's last save" (Phase 8): a take REAPER holds unsaved is not seen until Phase 11
-  reads live REAPER state. Phase 10 labels it.
+- The resume point is "as of the .rpp's last save": a take REAPER holds unsaved is not seen until live REAPER state is
+  read ([ADR 0349](0349-the-resume-locate-reads-reapers-live-cursor-and-items-first-and-falls-back-to-the-saved-project-never-to-a-guess.md)). The resume card labels it.
 - A recording that ends in a long ad-lib, or a track whose last item holds another chapter, places poorly or not at
-  all; that shows as low confidence or `not_found`, and the narrator picks a word (Phase 10's "Pick a word").
+  all; that shows as low confidence or `not_found`, and the narrator picks a word (the resume card's "Pick a word").
 - Only the last item is read. A chapter whose last item is a few-second pickup gets a short tail and lower
   confidence (the 8-second fixture still scores 0.63); reading back across items is a later change if real use needs it.
 - The fixtures measure recognition of a synthetic voice, not a human narrator's pacing, accent or room; a real reading

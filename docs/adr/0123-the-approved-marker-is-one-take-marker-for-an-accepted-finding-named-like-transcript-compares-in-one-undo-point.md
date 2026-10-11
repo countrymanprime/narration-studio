@@ -5,9 +5,9 @@
 
 ## Context
 
-`docs/prds/review-dashboard-and-findings-adoption.prd.md` Phase 8 (the owner's answer to Q8) puts a per-finding "add
-approved marker" action in milestone 1, to meet the adapter criterion in `docs/architecture/daw-integration.md` ("a
-REAPER adapter can navigate, loop, and add an approved marker from a valid finding"). The batch **Export markers**
+The owner decided that a per-finding "add approved marker" action ships with the Review page, to meet the adapter
+criterion in `docs/architecture/daw-integration.md` ("a REAPER adapter can navigate, loop, and add an approved marker
+from a valid finding"). The batch **Export markers**
 action stays on the Proofing page. Unlike Go to and Loop ([ADR 0121](0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md),
 [ADR 0122](0122-the-review-page-asks-reaper-only-on-a-click-and-only-while-it-answers-and-a-refusal-is-an-answer.md)),
 this action changes the project, so several things had to be settled:
@@ -18,8 +18,8 @@ this action changes the project, so several things had to be settled:
 - **How it avoids doubling a marker.** The export already skips a marker of the same kind within 0.15 s on the take.
   Without the same rule, a finding marked from the Review page and then exported from Proofing would be marked twice.
 - **How it is undone.** A project change from the bridge must be one undo point (`daw-integration.md`).
-- **The "generic execute suggested action" path the PRD sketches for TR-5.** TR-5's take creation had already landed
-  with its own executor (`apps/desktop/internal/takereview/createtake.go`) before this phase.
+- **Whether to add a generic "execute suggested action" path.** Take creation already has its own executor
+  (`apps/desktop/internal/takereview/createtake.go`).
 
 ## Decision
 
@@ -42,7 +42,7 @@ this action changes the project, so several things had to be settled:
    marker"). A skipped marker makes no undo point.
 6. **It goes through the navigator, not a new executor.** `bridge.Navigator.AddMarker` is one more command with one
    awaited answer (`FINDING_MARKER|run|added or existing|take_guid|source_time|name`) on the same plumbing as Go to
-   and Loop. This phase does not move TR-5's `CreateTake` onto it.
+   and Loop. `CreateTake` stays on its own executor.
 
 ## Consequences
 

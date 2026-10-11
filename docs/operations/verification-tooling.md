@@ -72,7 +72,7 @@ Snapshots live in `tests/aria/snapshots/*.aria.yml`, hand-trimmed and commented.
 
 ## Mock match
 
-`pnpm --dir apps/ui mock-match` measures how much of each benchmark mock the app reproduces: its layout, features and style, not its words (owner decisions D91 and D97, [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0636](../adr/0636-the-mock-match-tool-scores-the-nav-rail-and-header-apart-from-the-page.md)). **The spec is `docs/research/mockups/audiobook-studio-benchmark/` and nothing else; every other mock was deleted (D96)** ([why](agent-train.md#which-mocks-are-the-spec)). **The number is a diagnostic, not a gate.** There is no percentage a state must reach, no reason to write when it falls short and no region-attribution table (D97): look at the diff picture and at the mock, and build the page's features and styles.
+`pnpm --dir apps/ui mock-match` measures how much of each benchmark mock the app reproduces: its layout, features and style, not its words (owner decisions, [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0636](../adr/0636-the-mock-match-tool-scores-the-nav-rail-and-header-apart-from-the-page.md)). **The spec is `docs/research/mockups/audiobook-studio-benchmark/` and nothing else; every other mock was deleted** ([why](agent-train.md#which-mocks-are-the-spec)). **The number is a diagnostic, not a gate.** There is no percentage a state must reach, no reason to write when it falls short and no region-attribution table: look at the diff picture and at the mock, and build the page's features and styles.
 
 **Method.** For each mock listed in `apps/ui/tests/visual/mock-match/mocks.ts` it loads the mock-backend build at the mock's own size and theme (light against light, dark against dark), drives the app to the target state with the visual suite's driver, photographs it and scores it in two ways:
 
@@ -94,7 +94,7 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 | 05 Master & QC | `master/mock-fidelity-05` | light | 92.06 | 85.76 |
 | 07 Companion (420×900 crop) | `booth/companion-listening` | dark | 92.39 | 85.86 |
 
-The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×900, dark) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons, D98).
+The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×900, dark) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons).
 
 ## Skill evals
 
@@ -124,7 +124,7 @@ Turning on Settings > General > "Debug logging" raises the level from `info` to 
 
 ## Not built, on purpose
 
-These were considered and left out; the reasons are current as of the work that delivered this tooling (the PRD was deleted when the work landed; `git log` for `docs/prds/verification-and-code-health-tooling.prd.md` recovers it).
+These were considered and left out; the reasons are current as of the work that delivered this tooling.
 
 - **Chromatic:** a SaaS visual service, redundant with the Playwright suite, and it cannot see the WebView2 host.
 - **MSW:** the app talks to Wails bindings, not HTTP, and the mock API already covers tests.

@@ -5,12 +5,12 @@
 
 ## Context
 
-Phase 4 of the diagnostics PRD (deleted) asks for shared, tested
-detectors for clipping, level shifts, silence and room tone, in Go beside `measure`, that emit findings. The PRD says
-what they detect and that every threshold is the narrator's. It does not say how each is measured, what a threshold
-means before the narrator sets one, or how severe each finding is. Those choices decide what Phases 6 (the Diagnostics
-view), 7 (the report) and 9 (silence cleanup, which reuses the silence map) build on. Other choices constrained this one:
-Phase 1 is changing `measure.Analyze` and its `Report` at the same time, [ADR 0025](0025-delivery-measurements-in-go-profiles-deferred.md)
+Diagnostics need shared, tested detectors for clipping, level shifts, silence and room tone, in Go beside `measure`, that
+emit findings. What they detect, and that every threshold is the narrator's, was decided; how each is measured, what a
+threshold means before the narrator sets one, and how severe each finding is were not. Those choices decide what the
+Diagnostics view, the report and silence cleanup (which reuses the silence map) build on. Other choices constrained this
+one: the measurement job of [ADR 0156](0156-measurement-reads-only-files-picked-this-session-as-one-job-and-fingerprints-the-bytes-it-read.md)
+changes `measure.Analyze` and its `Report` at the same time, [ADR 0025](0025-delivery-measurements-in-go-profiles-deferred.md)
 rules out any delivery specification's numbers, and a long pause must never be called a defect by default.
 
 ## Decision
@@ -52,16 +52,16 @@ rules out any delivery specification's numbers, and a long pause must never be c
 
 ## Consequences
 
-- Phases 6, 7 and 9 have one detector set to bind, report and reuse, and it is tested on generated fixtures: a clean
+- The Diagnostics view, the report and silence cleanup have one detector set to bind, report and reuse, and it is tested on generated fixtures: a clean
   read, an intentional silence, clipping, a room-tone change, a level shift and unresolved transcript timing. Each
   reported range reproduces its condition when `AnalyzeRange` measures that range again.
-- Phase 1's job and `Report` are untouched, so the two phases merge independently. Running diagnostics as a job with
-  progress is left to the phase that binds it (Phase 6, which added `DiagnosticInput.Progress` beside the ctx hook).
+- The measurement job and `Report` are untouched, so the two changes merge independently. A caller that runs diagnostics
+  as a job with progress passes `DiagnosticInput.Progress` beside the ctx hook.
 - The starting thresholds are judgement calls and have not been checked against real chapters. A narrator who finds
   them wrong will change them once settings keys carry them, using
   [ADR 0155](0155-settings-gain-a-number-kind-with-a-declared-range-and-delivery-limits-are-the-narrators-own.md)'s
-  number kind. Phase 6 (the Diagnostics view, read-only) shows them with every check and on every finding; the keys
-  arrive with Phase 9, which brings the analyzer thresholds into the layered settings.
+  number kind. The Diagnostics view (read-only) shows them with every check and on every finding; bringing the analyzer
+  thresholds into the layered settings is separate work.
 - The id ignores the audio's content (like `measure.Evaluate`'s). A re-render that moves an event keeps or changes its
-  id with its start time, and stale-dismissal handling stays with the fingerprint evidence of Open Question 5.
+  id with its start time, and stale-dismissal handling stays with the audio fingerprint evidence of ADR 0156.
 - Changing a window, the id or the severity policy needs a new ADR that supersedes this one.

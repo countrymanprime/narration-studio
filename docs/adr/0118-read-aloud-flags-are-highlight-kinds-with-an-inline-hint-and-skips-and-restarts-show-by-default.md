@@ -6,17 +6,17 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 7 draws the sidecar's suspected flags
-([ADR 0115](0115-live-flags-are-suspected-judged-per-closed-segment-and-forgive-what-transcript-compare-forgives.md)) in the
+The sidecar's suspected flags
+([ADR 0115](0115-live-flags-are-suspected-judged-per-closed-segment-and-forgive-what-transcript-compare-forgives.md)) are drawn in the
 read-aloud dialog: a misread as a wavy underline, extra words heard as a caret between words, skipped words as the dotted
 underline the reader already draws, "through `Highlight` or a documented equivalent" (ADR 0016/0017), in Transcript Compare's
 colours for the same kinds, each a control that shows what was heard as a hint (ADR 0049) and opens a review panel, on top of
-Phase 5's mark model ([ADR 0116](0116-read-aloud-marks-cover-whole-words-the-innermost-is-the-control-and-a-mark-never-seeks.md)).
-It also leaves two design points to this phase: whether the paragraph being read gets a background tint (against
+the mark model ([ADR 0116](0116-read-aloud-marks-cover-whole-words-the-innermost-is-the-control-and-a-mark-never-seeks.md)).
+Two design points were left open: whether the paragraph being read gets a background tint (against
 [ADR 0024](0024-teleprompter-highlight-follows-the-sidecars-spans.md)'s `Cursor`-only choice), and which kinds show by default
-now that Phase 6 measured them. The owner decided the defaults on 2026-09-23, after Phase 6 measured `misread` at 2.07 false
+now that they have been measured. The owner decided the defaults on 2026-09-23, after the measurement of `misread` at 2.07 false
 flags per 100 heard words on synthetic speech against a target of at most 1: skipped and restart on, misread and extra behind
-toggles. That revises the earlier "skipped and misread on" row of the PRD's Decisions Log.
+toggles. That revises the earlier plan of "skipped and misread on".
 
 [ADR 0063](0063-the-proofing-diff-marks-its-own-words-and-adr-0016-covers-entry-highlights.md) read ADR 0016 as covering entry
 highlights and kept the proofing diff's own `<mark>` outside it; its first alternative was to give `Highlight` a second
@@ -46,7 +46,7 @@ travels the reader's mark path, which is built on `Highlight`.
    twice (a misread repeated the same way after going back) is one flag.
 4. **Defaults: skipped and restart on, misread and extra off,** as the owner decided; the narrator turns each kind on or off
    in the rail's Flags tab, a per-viewer preference kept in browser storage like the rail itself. A dismissed flag leaves the
-   text and stays in the tab's list, marked dismissed. "Punch from here" is shown disabled with its reason until Phase 12.
+   text and stays in the tab's list, marked dismissed. "Punch from here" is shown disabled with its reason until punch and roll exists ([ADR 0246](0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md)).
 5. **No paragraph tint.** The row being read gets no background: ADR 0024's `Cursor` fill stays the only position marker. A
    tint would sit under the entity, note and flag marks and lower their contrast, and the dimmed read words already show
    where in the paragraph the narrator is.
@@ -57,6 +57,6 @@ travels the reader's mark path, which is built on `Highlight`.
   a flag inside a name; the palette guard is unaffected because no new token or text colour is introduced.
 - `Highlight` now knows two vocabularies. If the owner later takes ADR 0063's first alternative for the proofing diff, the
   flag kinds are the precedent.
-- Misreads and extras are off until a measurement meets the target (human microphone readings are still owed, PRD Phase 6);
+- Misreads and extras are off until a measurement meets the target (human microphone readings are still owed);
   turning one on by default is a change to decision 4 only.
 - Restarts show as a single marked word; the whole re-read is in the Flags tab and in the kept finding (ADR 0117).

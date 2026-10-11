@@ -5,7 +5,7 @@
 
 ## Context
 
-`docs/prds/daw-chapter-track-auto-sync.prd.md` asks that a track added in REAPER for the next chapter be linked and announced within seconds of the narrator saving, with no click (Phase 4). Until now nothing in the app watched anything: every reader parsed the saved `.rpp` when a page asked, and the chapter stage recommendations PRD (`docs/prds/chapter-stage-recommendations.prd.md`, delivered and deleted) Q5 chose "evaluate on read" because the app "cannot watch cheaply without REAPER". [ADR 0122](0122-the-review-page-asks-reaper-only-on-a-click-and-only-while-it-answers-and-a-refusal-is-an-answer.md) and threat model row 5f keep the app from sending REAPER a command without a click. S6 (answered by D39 with the PRD's recommendation) takes options A and B: poll the saved file's modification time, and add REAPER's edit counter to the heartbeat REAPER already sends unasked. Lane B's stream B1 added that counter (`PROJECT_STATUS`'s optional `changeCount`, `daw.Reachability.ChangeCount`). Option C, a read-only `list_tracks` command for unsaved tracks (Phase 5), is out under D39.
+The owner asked that a track added in REAPER for the next chapter be linked and announced within seconds of the narrator saving, with no click. Until now nothing in the app watched anything: every reader parsed the saved `.rpp` when a page asked, and stage recommendations are evaluated on read because the app cannot watch cheaply without REAPER. [ADR 0122](0122-the-review-page-asks-reaper-only-on-a-click-and-only-while-it-answers-and-a-refusal-is-an-answer.md) and threat model row 5f keep the app from sending REAPER a command without a click. The owner chose two sources: poll the saved file's modification time, and add REAPER's edit counter to the heartbeat REAPER already sends unasked. The counter is `PROJECT_STATUS`'s optional `changeCount` (`daw.Reachability.ChangeCount`). A read-only `list_tracks` command for unsaved tracks was considered and is out of scope.
 
 ## Decision
 
@@ -18,7 +18,7 @@
 
 ## Consequences
 
-- A new, conventionally named chapter track is linked and announced within about 4 s of a save (at most one 2 s poll plus the 1.5 s wait, then one parse), inside the PRD's 5 s target.
-- A save that REAPER writes without the narrator (an autosave to the project file, if it does so) triggers a sync too. That is harmless: a sync only adds confident links and never removes one. Whether REAPER's autosave touches the `.rpp`, and whether a save itself moves the counter, are Phase 0's measurements. If a save does move the counter, the sync after it takes the new count as its baseline.
+- A new, conventionally named chapter track is linked and announced within about 4 s of a save (at most one 2 s poll plus the 1.5 s wait, then one parse).
+- A save that REAPER writes without the narrator (an autosave to the project file, if it does so) triggers a sync too. That is harmless: a sync only adds confident links and never removes one. Whether REAPER's autosave touches the `.rpp` is not measured; whether a save moves the counter is row A1 of [the REAPER verification pass](../operations/reaper-verification-pass.md). If a save does move the counter, the sync after it takes the new count as its baseline.
 - A stat every 2 s runs only while sync is on and a `.rpp` is linked. A project that said Not now, or has no `.rpp`, costs one manifest read per tick.
-- Unsaved tracks are still not seen until a save. That needs Phase 5's command, which D39 put out of scope.
+- Unsaved tracks are still not seen until a save. That needs a read-only track-list command, which is out of scope.

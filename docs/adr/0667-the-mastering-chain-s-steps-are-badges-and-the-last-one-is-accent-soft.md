@@ -1,12 +1,12 @@
 # 0667. The mastering chain's steps are Badges, and the last one is `--accent-soft`
 
-**Status:** Proposed (Phase 14 of the mock fidelity PRD, stream F-P14 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
 **Date:** 2026-09-28
 **Supersedes:** none (`MasteringChain.tsx`'s chips had no ADR of their own)
 
 ## Context
 
-`master/MasteringChain.tsx` drew its read-only chain (fixed by [ADR 0440](0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md) point 4: EQ, Limiter, Gain, in words) as a hand-rolled `li` chip (`rounded-full border ... bg-[var(--surface-2)]`) per step, joined by `→` arrows. Mock 05 draws the same shape - `--surface-2` chips joined by arrows - but its last chip (the platform's own gain target, e.g. "Gain to RMS −20.5 dB") is filled `--accent-soft`, distinct from the fixed steps before it.
+`master/MasteringChain.tsx` drew its read-only chain (fixed by [ADR 0440](0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md) point 4: EQ, Limiter, Gain, in words) as a hand-rolled `li` chip (`rounded-full border ... bg-[var(--surface-2)]`) per step, joined by `→` arrows. Benchmark mock 05 draws the same shape - `--surface-2` chips joined by arrows - but its last chip (the platform's own gain target, e.g. "Gain to RMS −20.5 dB") is filled `--accent-soft`, distinct from the fixed steps before it.
 
 ## Decision
 

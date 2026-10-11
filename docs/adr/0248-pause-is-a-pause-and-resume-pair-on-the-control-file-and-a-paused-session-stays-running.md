@@ -5,7 +5,7 @@
 
 ## Context
 
-The Read Aloud control bar (read-aloud-control-bar PRD (deleted) Phase 5) gives the narrator Pause for a drink, a page turn or a cough without ending the session. The owner approved Q3 A (D39): Pause keeps the session alive but ignores audio, the tracker holds its word and does not report `waiting`, the status says "Paused", Stop ends the session and keeps its flags, and there is no separate mute. The alternative, Pause as Stop plus a resume through `startWord`, would end a session, keep its flags and reload the model (a few seconds) on every pause. [ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md) already gives the host a way to reach a running sidecar: a control file it tails once per chunk, with one command, `seek`.
+The Read Aloud control bar gives the narrator Pause for a drink, a page turn or a cough without ending the session. The owner approved this behaviour: Pause keeps the session alive but ignores audio, the tracker holds its word and does not report `waiting`, the status says "Paused", Stop ends the session and keeps its flags, and there is no separate mute. The alternative, Pause as Stop plus a resume through `startWord`, would end a session, keep its flags and reload the model (a few seconds) on every pause. [ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md) already gives the host a way to reach a running sidecar: a control file it tails once per chunk, with one command, `seek`.
 
 ## Decision
 
@@ -21,5 +21,5 @@ The Read Aloud control bar (read-aloud-control-bar PRD (deleted) Phase 5) gives 
 
 - A pause costs nothing to resume from: no model load, no new session, no second set of flags.
 - A segment that was open when the narrator paused stays open until they speak again. Its words so far are confirmed when it closes, as before.
-- The recorded REAPER take is not paused by this. What Pause does to a recording the app started is Phase 7's (Q8, owner answer: a pause is a take boundary), built on this command.
+- The recorded REAPER take is not paused by this. What Pause does to a recording the app started is not decided here; the owner's answer was that a pause is a take boundary.
 - Pause in the bar is built: Play and Pause share one toggle button (`aria-pressed`, named "Play" or "Pause" by state), Space now toggles Play/Pause instead of Stop while a session runs (amending the Space shortcut ADR 0119 amendment made for this dialog), and the status line reads "Paused" from `host.paused`.

@@ -5,21 +5,20 @@
 
 ## Context
 
-`docs/prds/review-dashboard-and-findings-adoption.prd.md` Phase 6 asks the REAPER bridge to go to a finding, loop its
-context and say whether it is listening. The owner answered Q6 on 2026-09-23: Loop sets REAPER's time selection to
-the finding's context window, turns repeat on and starts playback, and an explicit Stop puts back the time selection
-and repeat the narrator had. Four things were still open:
+The REAPER bridge has to go to a finding, loop its context and say whether it is listening. The owner decided on
+2026-09-23 that Loop sets REAPER's time selection to the finding's context window,
+turns repeat on and starts playback, and an explicit Stop puts back the time selection and repeat the narrator had. Four things were still open:
 
 - **What a finding is found by.** The only navigation so far, `jump_to_compare_marker`, looks a row up in a Lua table
   that holds live item pointers and a project time; it dies with the launcher and would point at whatever sits at that
   time once anything moved. `findings-contract.md` says GUIDs are preferred and positions are a fallback;
   `daw-integration.md` says a stale GUID must never operate on an adjacent item.
-- **Undo.** The PRD's Architecture Notes say every mutating REAPER call is wrapped in an undo block. Navigation and
+- **Undo.** Every REAPER call that changes the project is wrapped in an undo block. Navigation and
   looping change item selection, the edit cursor, the time selection, the loop points, repeat and the transport, but
   no project content. An undo point per click would sit between the narrator and their last real edit: Ctrl+Z after
   listening would undo "go to finding" instead of the cut they just made.
 - **What repeat actually loops.** REAPER repeats the loop points, not the time selection. The two are linked by a
-  preference that is on by default in REAPER 7.80 (the Phase 6 scripted check) but can be turned off.
+  preference that is on by default in REAPER 7.80 (seen in a scripted check) but can be turned off.
 - **What Stop restores when the narrator has changed something meanwhile,** and what happens when the script ends
   with a loop still running.
 
@@ -57,7 +56,7 @@ and repeat the narrator had. Four things were still open:
    reachability signal; `ping` proves the script can execute these commands.
 7. **The host side is `bridge.Navigator`** (`apps/desktop/internal/bridge/navigation.go`): one command, one awaited
    answer (routed by run ID, 3 s timeout, `ErrNoAnswer`, `ErrUnavailable` without a bridge), typed results, and a
-   `StaleError` that `errors.Is(ErrStale)`. It is not wired to a binding yet (Phase 7).
+   `StaleError` that `errors.Is(ErrStale)`. The Review page reaches it through the bindings of [ADR 0122](0122-the-review-page-asks-reaper-only-on-a-click-and-only-while-it-answers-and-a-refusal-is-an-answer.md).
 
 ## Consequences
 
@@ -68,6 +67,6 @@ and repeat the narrator had. Four things were still open:
   kept for Stop, and `ping` reports `looping` with `playing` 0.
 - Hearing the loop, REAPER's own Stop button and `ping` after a REAPER restart need audio hardware or the owner; they
   are in the manual checklist of `docs/architecture/reaper-navigation.md`. If Stop's restore turns out unreliable in
-  real use, the PRD's fallback is the in-app raw-source loop.
-- `jump_to_compare_marker` is unchanged and still uses `SelectAllMediaItems` and the run table; Phase 7 moves the
-  Review page to `navigate_item`.
+  real use, the fallback is a loop of the raw source inside the app.
+- `jump_to_compare_marker` is unchanged and still uses `SelectAllMediaItems` and the run table; the Review page uses
+  `navigate_item`.

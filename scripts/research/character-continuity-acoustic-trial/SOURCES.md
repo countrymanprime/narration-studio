@@ -2,7 +2,7 @@
 
 ## Corpus
 
-**Route taken: synthetic (fallback route).** The PRD's Phase 1 scope calls for a LibriVox solo
+**Route taken: synthetic (fallback route).** The trial was scoped to a LibriVox solo
 dramatic reading. This sandbox's egress proxy denies `librivox.org` and `archive.org` at the
 CONNECT step (`403`, "gateway answered 403 to CONNECT (policy denial or upstream failure)" per
 `/root/.ccr/__agentproxy/status`), which `/root/.ccr/README.md` identifies as an organization

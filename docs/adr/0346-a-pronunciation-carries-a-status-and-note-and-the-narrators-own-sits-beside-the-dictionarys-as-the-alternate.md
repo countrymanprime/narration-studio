@@ -2,13 +2,13 @@
 
 **Status:** Accepted
 **Date:** 2026-09-27
-**Supersedes:** none. It extends the Story Bible pronunciation of [ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and keeps the `chosen` rule of the story bible entries PRD (B11). Prep depth PRD (`docs/prds/prep-depth.prd.md` (deleted)) Phase 1, Open Question Q2 (recommendation taken, D22).
+**Supersedes:** none. It extends the Story Bible pronunciation of [ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and keeps the existing `chosen` rule (a chosen pronunciation survives a rebuild).
 
 ## Context
 
 Each Story Bible name (an entity's own, and each alias) has exactly one pronunciation object, `{ipa, source, confidence, chosen?}`. Its source is always a dictionary (`CMU dictionary`, `eSpeak NG`, from the pronunciation source registry, ADR 0301). A narrator could not type their own, and nothing said whether the author had confirmed a pronunciation or been asked about it, which the benchmark lists as a prep must-have ("the word, the chosen pronunciation, the source ... and whether the author confirmed it").
 
-The PRD's Q2 asks whether a narrator's own pronunciation replaces the dictionary's answer or sits beside it, and recommends beside, "one `chosen`". The data has one object per name, not a list, and every consumer (the reader's entity summary, the preview, the review findings) reads that one object's `ipa`.
+The question is whether a narrator's own pronunciation replaces the dictionary's answer or sits beside it. It sits beside it, with one `chosen`. The data has one object per name, not a list, and every consumer (the reader's entity summary, the preview, the review findings) reads that one object's `ipa`.
 
 ## Decision
 
@@ -21,7 +21,7 @@ The PRD's Q2 asks whether a narrator's own pronunciation replaces the dictionary
 
 ## Consequences
 
-- The query list of Phase 3 is a pure function of these fields: every name whose status is not `author_confirmed`.
+- The query list ([ADR 0347](0347-the-pronunciation-query-export-is-csv-with-its-ids-last-and-a-formula-guard-and-is-a-download.md)) is a pure function of these fields: every name whose status is not `author_confirmed`.
 - A narrator who mistypes an override switches back in one step, with no lookup and nothing lost; the one they typed stays as the alternate.
 - An author confirmation never silently vouches for a pronunciation the author did not hear. The cost: a narrator who changes a confirmed pronunciation on purpose (a typo fix in the IPA) marks it confirmed again by hand.
 - Only two pronunciations per name are kept, one of each kind. A second dictionary Replace overwrites the first dictionary answer (as it always did); the narrator's own survives as the alternate. Keeping a full history is out of scope.

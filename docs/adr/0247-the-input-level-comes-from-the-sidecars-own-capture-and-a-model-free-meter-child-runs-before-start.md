@@ -5,7 +5,7 @@
 
 ## Context
 
-The Read Aloud control bar (read-aloud-control-bar PRD (deleted) Phase 4) shows a live microphone level in the bar and a larger one in the microphone popover, so the narrator can see the microphone is live before and while reading. The owner approved the PRD's recommendation for Q6 (D39): measure in the sidecar, not in the webview. A webview meter (`getUserMedia`) would open the microphone through a second path that Wails grants silently, under a name that may not match the `dshow` name the recognizer opens. Q5 was answered "meter only" (D37): no gain. The sidecar's capture yields 0.32 s chunks, too coarse for a meter, and ADR 0022 noted that the cost of Wails events was unmeasured.
+The Read Aloud control bar shows a live microphone level in the bar and a larger one in the microphone popover, so the narrator can see the microphone is live before and while reading. The owner chose to measure in the sidecar, not in the webview. A webview meter (`getUserMedia`) would open the microphone through a second path that Wails grants silently, under a name that may not match the `dshow` name the recognizer opens. The owner chose a meter only: no gain control. The sidecar's capture yields 0.32 s chunks, too coarse for a meter, and ADR 0022 noted that the cost of Wails events was unmeasured.
 
 ## Decision
 

@@ -5,14 +5,13 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 3 ("Seek channel") needs a way for the host to move a
-running teleprompter session's tracker to a word the narrator chose (a click on a word, "Start here" / "Go back to
-here" in a later phase) and to start a session already at a word (resume, a later phase). ADR 0022 already settled
+The teleprompter manuscript integration needs a way for the host to move a
+running teleprompter session's tracker to a word the narrator chose (a click on a word, or "Start here" / "Go back to
+here" in the reader, both built later) and to start a session already at a word (resume, also built later). ADR 0022 already settled
 how the host talks to this sidecar: no loopback server, port or polling endpoint (`docs/architecture/daw-integration.md`),
 Wails events for sidecar-to-host, and a sentinel file (`--stop-file`) for the one host-to-sidecar signal that existed
-before this phase. `teleprompter-manuscript-integration.prd.md`'s own Decisions Log already records "Control channel:
-sentinel file the sidecar tails (proposed, from PR #35) - same pattern as `--stop-file`" as the chosen mechanism, so
-this ADR documents that decision as implemented rather than reopening it.
+before this decision. The plan had already chosen the mechanism, a sentinel file the sidecar tails (proposed in PR #35), the same
+pattern as `--stop-file`, so this ADR documents that decision as implemented rather than reopening it.
 
 `sidecars/manuscript-teleprompter/core/script_tracker.py`'s `ScriptTracker` already tracks a `read`/`committed`
 position in the same index space as `script_words(text)` (the whitespace-split script tokens) and already reports a
@@ -34,7 +33,7 @@ the narrator instead of by what the tracker heard.
    reader's existing one-word-back convention covers a seek backward, even though `reset_to` can also move forward.
    There is no separate "seek" jump kind in the wire contract.
 3. `live_asr.py` adds `--start-word N`, which calls `reset_to` once before the capture loop starts, so a session can
-   open already at a word (used by the resume phase later); it requires `--script` or `--manuscript`, like
+   open already at a word (used later by resume); it requires `--script` or `--manuscript`, like
    `--control-file`.
 4. `apps/desktop/internal/teleprompter.Service` always creates a session-scoped control file beside the stop file
    (`plan()`) and passes `--control-file`; `Service.Seek(word int) error` appends one `{"cmd":"seek","word":N}` line
@@ -47,8 +46,7 @@ the narrator instead of by what the tracker heard.
    and `TeleprompterStartOptions.startWord?: number`; `wailsClient.ts` converts `startWord` to the string the host's
    flat `Record<string, string>` options expect. `teleprompterMock.ts` implements `teleprompterSeek` by emitting a
    synthetic `position` event with `jump: "restart"` at the requested word, without restarting its own replay
-   timeline (seek *UI* - a click affordance and the "Start here" / "Go back to here" menu - is Phase 4, not this
-   phase).
+   timeline (seek *UI* - a click affordance and the "Start here" / "Go back to here" menu - is not part of this decision).
 
 ## Consequences
 
@@ -57,12 +55,12 @@ the narrator instead of by what the tracker heard.
 - A seek cannot arrive faster than about one capture chunk (`CHUNK_SECONDS`, 0.32s by default) after it is written;
   acceptable for a narrator's click, not for anything higher-frequency.
 - Because a seek is reported as `jump: "restart"`, any UI logic that treats a restart jump specially (for example a
-  visual "jumped back" cue) also fires for a forward seek. Phase 4 (seek UI) should account for this rather than
+  visual "jumped back" cue) also fires for a forward seek. The seek UI should account for this rather than
   assume "restart" always means the narrator went backward.
 - A malformed or unrecognized control line is silently ignored rather than crashing the session or the poll loop,
   matching the sidecar's existing tolerance for stray/invalid input.
-- Future phases that need the host to move the tracker (resume, in `docs/prds/teleprompter-manuscript-integration.prd.md`
-  Phases 9-10; punch, Phase 12) reuse this same control file and `reset_to`, rather than adding a second channel or
+- Later work that needs the host to move the tracker (resume, [ADR 0111](0111-the-resume-point-comes-from-transcribing-the-recorded-tail-and-placing-it-with-the-tracker.md);
+  punch, [ADR 0246](0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md)) reuses this same control file and `reset_to`, rather than adding a second channel or
   sentinel file.
 - A future change that needs a *different* kind of host-to-sidecar command (not a seek) extends the same
   `{"cmd": ...}` line shape and `ControlChannel`/`live_asr.py` dispatch rather than inventing a new file; a change

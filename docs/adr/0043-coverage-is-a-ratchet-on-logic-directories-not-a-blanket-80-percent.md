@@ -6,13 +6,13 @@
 
 ## Context
 
-The owner's global testing rule asks for 80% coverage everywhere. Measured on 2026-09-20 (verification and code health tooling PRD, phase 3), that rule cannot be applied as written and would reward the wrong work:
+The owner's global testing rule asks for 80% coverage everywhere. Measured on 2026-09-20, that rule cannot be applied as written and would reward the wrong work:
 
 - Go package coverage ranges from 100% (`findings`) to 0% (`cmd/manuscript-import`). Glue and launch packages sit far below 80: the root host package 56%, `transcript` 40%, `tts` 62%, `whisper` 67%, `process` 66%.
 - `apps/ui` had no coverage tooling; its components are 57% to 100% and are already covered by the Playwright visual suite and the component atlas, which coverage does not see.
 - The Python sidecars had no coverage tooling: `script_tracker.py` is 99% while `compare.py` is 14% and `live_asr.py` (engines that need a microphone and models) is 62%.
 
-A blanket 80% would fail today, and the cheapest way to pass it is padding tests on glue code. The owner decided (implementation plan D18, PRD question 1, option c) on a ratchet over logic directories instead.
+A blanket 80% would fail today, and the cheapest way to pass it is padding tests on glue code. The owner decided on a ratchet over logic directories instead.
 
 ## Decision
 

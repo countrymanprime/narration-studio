@@ -44,7 +44,7 @@ repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, a
   with `cancel-in-progress`, so a newer push cancels the run before it, and `cancel-closed-pr.yml` cancels whatever is
   still queued or running when the pull request is merged or closed (a merge starts its own runs on `main`). Runs on
   `main` and the release workflows are never cancelled.
-- **Windows is the only platform the app is built for** (owner decision D74, [ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)). `Build (Windows)` is the only native
+- **Windows is the only platform the app is built for** (an owner decision, [ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)). `Build (Windows)` is the only native
   build, on pull requests and in releases. The Linux runners that run the docs, Lua, UI, Python and lint checks host those
   checks; they build no Linux app.
 
@@ -92,7 +92,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `dependency-review.yml` | pull request to `main` | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
-| `pages.yml` (`Pages`) | paused (D75, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
+| `pages.yml` (`Pages`) | paused (an owner decision, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old ([the agent train's safety net](agent-train.md#safety-net)) | not a pull request check |
 | `main-health.yml` (`Main health`) | nightly (07:37 UTC), manual | the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; the agent-train coordinator reads it |
@@ -202,7 +202,7 @@ uses the squash commit title to calculate the synchronized application version:
 next minor release. The workflow tags `v<version>-rc`, builds the Windows
 package, and its `publish` job creates the GitHub pre-release with the Windows
 zip and the Windows setup program ([The Windows setup program](#the-windows-setup-program)). No other platform is built or
-attached: the macOS and Linux preview builds were removed by D74 ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
+attached: the macOS and Linux preview builds were removed ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
 
 The one platform, `windows-x64`, ships an asset named `narration-utils-<version>-<platform>.<ext>`, with a
 `.sha256` beside it, and its setup program and its third-party notices, named and checksummed the same way. All three files are
@@ -446,7 +446,7 @@ Both are smell detectors: a phrase list cannot judge a sentence, and a path chec
 
 ## Third-party notices
 
-`scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). Owner decision D17 ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
+`scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). The owner's licence decision ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
 
 ```bash
 uv run python scripts/licenses/notices.py --version 0.1.0 --tag v0.1.0-rc --out THIRD-PARTY-NOTICES.txt
@@ -468,7 +468,7 @@ The run **fails, and writes nothing**, rather than guess: when a licence cannot 
 
 ## The Pages workflow
 
-**Paused (owner decision D75, 2026-09-27; narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md), same day).** The site isn't how the owner wants it yet, so nothing is published until the main
+**Paused (an owner decision, 2026-09-27; narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md), same day).** The site isn't how the owner wants it yet, so nothing is published until the main
 app's development is done and the site is reworked. `pages.yml` no longer runs on a push to `main`, and no longer runs on a pull
 request either: `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` ([The docs link check](#the-docs-link-check))
 cover a pull request's Markdown without building the site. Only a manual start builds, and deploys only when its `publish` input is

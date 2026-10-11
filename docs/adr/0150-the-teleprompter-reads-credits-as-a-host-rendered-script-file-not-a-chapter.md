@@ -5,14 +5,14 @@
 
 ## Context
 
-`audiobook-credits-templates.prd.md` Phase 4 asks for "Opening credits" and "Closing credits" to be selectable on the
+"Opening credits" and "Closing credits" should be selectable on the
 teleprompter, readable with the highlight following, through the one Go renderer (`internal/credits.Render`) so what the
 narrator previews is what is read. The credits are not manuscript chapters and must never become one: `contentKind: "opening"`
-is Front Matter (ADR 0004), `manuscript.json` holds no credits (the PRD's "What We're NOT Building"), and the Manuscript
-pseudo-entries of Phase 3 exist outside the chapter list by construction. The teleprompter sidecar, however, only emitted the
+is Front Matter (ADR 0004), `manuscript.json` holds no credits, and the Manuscript
+page's credits pseudo-entries exist outside the chapter list by construction. The teleprompter sidecar, however, only emitted the
 `script` event the reader needs (spans that map its word indices onto rows) in `--manuscript FILE --chapter ID` mode; its
-`--script FILE` mode read plain text and sent no spans. The PRD's Technical Approach names the two options: spans for
-`--script`, or a pseudo-chapter. Owner decision C6 (2026-09-23): unresolved tokens warn, and Start is still allowed.
+`--script FILE` mode read plain text and sent no spans. Two options were open: spans for
+`--script`, or a pseudo-chapter. The owner decided on 2026-09-23 that unresolved tokens warn and Start is still allowed.
 
 ## Decision
 
@@ -29,7 +29,7 @@ pseudo-entries of Phase 3 exist outside the chapter list by construction. The te
   `credits-<kind>-<n>` from 1, `index: null`, and no title span (the name is not read aloud). A plain `--script` is unchanged.
   The reader splits the same text the same way (`creditsParagraphs`/`creditsRows`, `readerModel.ts`); the golden
   `teleprompter-credits-script.json` and a cross-check in `wireContracts.test.ts` pin that both sides agree.
-- **Unresolved tokens stay visible and warn (C6).** `creditsScript` never refuses a text with unresolved tokens; the
+- **Unresolved tokens stay visible and warn.** `creditsScript` never refuses a text with unresolved tokens; the
   placeholder stays in brackets. The Teleprompter page shows a warning naming the tokens, with "Fill them in Settings"
   (`/settings#credits`), and Start stays enabled.
 - The credits are offered on the standalone Teleprompter page's picker, first and last around the chapters. The read-aloud

@@ -5,16 +5,16 @@
 
 ## Context
 
-Phase 7 of `docs/prds/recording-coverage-analysis.prd.md` gives the stage recommendations engine
-([ADR 0160](0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md)) its `recording` signal, and
-moves the four numbers of Q3 into settings. The PRD fixes the tri-state rule (D2: `unknown` is never `met`), that a
-confirmed mapping is an input (D5), that thresholds are applied in Go on read (a change never re-runs ASR), and that a
-different model or language keeps a result current while different alignment parameters make it stale (Q13). Some things
-were left open:
+The stage recommendations engine
+([ADR 0160](0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md)) needs a `recording`
+signal, and the four recording-check numbers (two thresholds, two alignment parameters) belong in settings. Already
+settled: the tri-state rule (`unknown` is never `met`), that a confirmed mapping is an input, that thresholds are applied
+in Go on read (a change never re-runs ASR), and that a different model or language keeps a result current while
+different alignment parameters make it stale. Some things were left open:
 
-- The signal's id, and how it maps the coverage service's refusal and staleness words to the contract's ten causes.
+- The signal's id, and how it maps the coverage service's refusal and staleness words to the causes of the stage recommendations contract (`docs/architecture/stage-recommendations.md`).
 - What a partial or failed run newer than a current complete one means.
-- Where the settings live, and how the start and the read of a check (Phase 5 used `DefaultAlignmentParams` in both)
+- Where the settings live, and how the start and the read of a check (both used `DefaultAlignmentParams` until now)
   stay in step.
 - What `not_met` names when several things fail.
 
@@ -24,9 +24,9 @@ were left open:
   clock) over the result reader's answer, the chapter's newest coverage ledger record, whether a check of it is running,
   why a check cannot run here (for example the model is not installed), whether an unconfirmed name match exists, the
   settings and a timestamp. `coverage.SignalProvider` is its `stages.Provider`. It reads the shared, already parsed saved
-  project from `EvidenceView` (`Service.ResultIn`) and never starts a check (Q14).
+  project from `EvidenceView` (`Service.ResultIn`) and never starts a check.
 - **Causes, first match wins:** a result the reader could not evaluate maps to its cause: `unmapped` to `unmapped_track`,
-  or to `unconfirmed_mapping` when an unlinked track confidently matches the chapter (the same rule as EL's
+  or to `unconfirmed_mapping` when an unlinked track confidently matches the chapter (the same rule as the evidence platform's
   `MatchSuggester`, ADR 0110). `multiple_tracks` stays `multiple_tracks`. A missing linked track maps to `unmapped_track`, no or an
   unreadable project file to `project_unreadable`, and not a narration chapter to `measurement_unavailable`. Next, a running check of this
   chapter gives `analysis_running`. Without a current result, a check that cannot be run here gives
@@ -40,29 +40,29 @@ were left open:
   read"). With no such region it names the paragraph with the longest run over the limit, and then the paragraph with the
   smallest share read. Paragraphs are numbered from 1 within the chapter, as the Home check numbers them. Evidence is typed
   `coverage` (with how many paragraphs pass), `region` (largest first, with paragraph ids and the source time), `paragraph`
-  (each paragraph that fails a threshold, in chapter order; added by stage recommendations Phase 3), `items` and `analysis`, and the analysis
+  (each paragraph that fails a threshold, in chapter order), `items` and `analysis`, and the analysis
   entry labels the thresholds Proposed and uncalibrated. A stale signal carries one `stale` entry with the reasons.
 - **Basis:** the compared complete record's id and fingerprint (equal to the chapter's current fingerprint when the
   result is current), a newer incomplete record's id, and the saved project's modified time. So a threshold change keeps the basis
   key, and a new check changes it.
-- **Settings:** a `RecordingCoverage` settings tool with four `number` fields (DX-2's kind, ADR 0155):
+- **Settings:** a `RecordingCoverage` settings tool with four `number` fields (the kind of ADR 0155):
   `min_paragraph_present` (0 to 1, step 0.01), `max_missing_run` (0 to 200 words), `max_misread_run` (0 to 200 words)
   and `min_anchor_run` (1 to 50 words). The defaults are 0.95, 3, 8 and 3 in `config/defaults.json` and
-  `builtinDefaults`, labelled on the Settings page as Proposed values, not yet calibrated (Q15), until Phase 8.
+  `builtinDefaults`, labelled on the Settings page as Proposed values, not yet calibrated, until the calibration of [ADR 0132](0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md).
   `coverage.ResolveSettings` falls back per key to the default for a value it cannot use.
 - **One source for the alignment.** `CoverageStart`, `CoverageResult` and the chapter payload's `recordedFraction` all take
   the alignment from `coverageSettings(store)`, so a start and a read cannot disagree. Changing an alignment setting
-  makes earlier results stale (`params_changed`, Q13 B). Changing a threshold only changes the verdict. The signal also
+  makes earlier results stale (`params_changed`). Changing a threshold only changes the verdict. The signal also
   treats a current result whose stored alignment differs from the settings as stale, as a guard.
 
 ## Consequences
 
-- The umbrella's service (a later SR phase) plugs in `NewSignalProvider` with the settings, the model check and a clock.
-  Nothing calls the provider until then.
+- The stage recommendations service plugs in `NewSignalProvider` with the settings, the model check and a clock
+  (`apps/desktop/bindings_stages.go`).
 - A narrator who lowers a threshold sees the verdict change at once, without a transcription. A narrator who changes an
   alignment setting sees every recorded chapter go back to "check again", and the Home recorded column goes back to
   estimates until they check again. The Settings page says so.
-- The Home dialog still states counts, not the verdict. Showing `met` or `not_met` beside the counts is the umbrella's
-  Home work.
-- The numbers are placeholders by design. Phase 8 runs the synthetic fixtures through this path and either keeps them or
+- The Home dialog of ADR 0130 states counts, not the verdict. Showing `met` or `not_met` beside the counts is separate
+  work ([ADR 0204](0204-the-recording-check-result-carries-the-hosts-judgement-by-the-stage-signals-rule.md)).
+- The numbers are placeholders by design. ADR 0132 runs the synthetic fixtures through this path and either keeps them or
   tightens them, still labelled uncalibrated until a real corpus exists.

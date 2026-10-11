@@ -6,7 +6,7 @@
 
 ## Context
 
-A release here is an unsigned executable built and published by GitHub Actions, so everything the workflows run is part of the trust path. Before this change 34 of 38 external `uses:` references were mutable tags (`actions/checkout@v7`), no checkout set `persist-credentials: false` (the token stayed in `.git/config` for every later step), `promote-release.yml` held `contents: write` at workflow level, and nothing checked the workflows themselves. A moved action tag is a real attack: on 2026-03-19 76 of 77 tags of `aquasecurity/trivy-action` were force-pushed to credential-stealing code. The owner approved the hardening (owner decisions D7, D11, D14 and D22 of the implementation plan; the PRD `docs/prds/release-supply-chain-hardening.prd.md`, deleted when the work was done; recover it from git history; the steady state is [CI and releases](../operations/ci-and-releases.md#workflow-security)).
+A release here is an unsigned executable built and published by GitHub Actions, so everything the workflows run is part of the trust path. Before this change 34 of 38 external `uses:` references were mutable tags (`actions/checkout@v7`), no checkout set `persist-credentials: false` (the token stayed in `.git/config` for every later step), `promote-release.yml` held `contents: write` at workflow level, and nothing checked the workflows themselves. A moved action tag is a real attack: on 2026-03-19 76 of 77 tags of `aquasecurity/trivy-action` were force-pushed to credential-stealing code. The owner approved the hardening (the steady state is [CI and releases](../operations/ci-and-releases.md#workflow-security)).
 
 ## Decision
 
@@ -18,6 +18,6 @@ A release here is an unsigned executable built and published by GitHub Actions, 
 ## Consequences
 
 - A repointed action tag cannot change what a job runs; the cost is that an action update is a reviewed pull request (Dependabot opens it, a week after release).
-- An unpinned line, a checkout that keeps its credential, or a workflow with no `permissions` fails the `zizmor` check with the line named. The check is a pull-request check but not a required one (no ruleset requires a status check, D11), so the maintainer reads it before merging.
+- An unpinned line, a checkout that keeps its credential, or a workflow with no `permissions` fails the `zizmor` check with the line named. The check is a pull-request check but not a required one (no ruleset requires a status check), so the maintainer reads it before merging.
 - The owner-only setting "Require actions to be pinned to a full-length commit SHA" makes GitHub itself refuse an unpinned action; it is enabled after this lands and one Dependabot run has passed (listed in [GitHub workflow](../operations/github-workflow.md)).
 - Changing any of this means a new ADR that supersedes this one.

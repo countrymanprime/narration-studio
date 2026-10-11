@@ -10,22 +10,21 @@ clause stands unchanged)
 [ADR 0005](0005-reference-material-excluded-from-chapter-nav.md) filtered `contentKind: "reference"` chapters (Contents,
 Characters, Glossary) out of the Manuscript page's chapter-navigation panel only, and deliberately left the continuous page-flip
 reader (`Manuscript.tsx`) and the backend unfiltered, so reference material stayed readable in place. That was a narrower fix for
-a narrower bug at the time. `manuscript-reader-search-and-controls.prd.md` R13 (adopted by `implementation-plan.md` D22, and
-`docs/prds/README.md`'s "Accepted ADRs reversed by PRDs" note) asks the reader itself to stop showing reference material too,
-since none of it is ever recorded: a narrator paging through the manuscript still meets Contents and Characters as ordinary
-readable chapters today, with no purpose in that view. [ADR 0088](0088-contents-and-characters-stay-reference-hidden-by-the-reader.md)
-(stack S19c) already settled the storage-side half of this - both stay `contentKind: "reference"`, nothing is dropped or
-reclassified - and explicitly left this reader-side reversal to this PRD's own Phase 5, which owns `Manuscript.tsx`.
+a narrower bug at the time. The reader itself should stop showing reference material too, since none of it is ever recorded: a
+narrator paging through the manuscript still met Contents and Characters as ordinary readable chapters, with no purpose in that
+view. [ADR 0088](0088-contents-and-characters-stay-reference-hidden-by-the-reader.md)
+already settled the storage-side half of this - both stay `contentKind: "reference"`, nothing is dropped or
+reclassified - and explicitly left this reader-side reversal to the reader work, which owns `Manuscript.tsx`.
 
 ## Decision
 
 - `Manuscript.tsx`'s continuous reader renders only chapters that pass the existing `isListableChapter` predicate
   (`apps/ui/src/state.ts`: `contentKind !== 'reference'`) - the same predicate `ChapterNav.tsx` already used for the panel, reused
-  rather than duplicated as a second `isRecordedChapter` helper, since the two checks are the same rule (R13: hide **every**
+  rather than duplicated as a second `isRecordedChapter` helper, since the two checks are the same rule (hide **every**
   reference section, not only Contents).
 - **Default open chapter.** The reader opens on the first chapter that passes `isListableChapter`, not simply `chapters[0]`, both
-  on first load and when a previously saved reader state points at a chapter that no longer passes the filter (R14: this also
-  covers a manuscript imported before this phase landed, since the check keys on `contentKind`, not a migration flag or an
+  on first load and when a previously saved reader state points at a chapter that no longer passes the filter (this also
+  covers a manuscript imported before this change landed, since the check keys on `contentKind`, not a migration flag or an
   import-time timestamp).
 - **Expand all.** Expands only the listable chapters; a reference chapter is never requested from `manuscriptParagraphs` and never
   gets a manual expand/collapse control, since it has no rendered chapter row to click.
@@ -37,7 +36,7 @@ reclassified - and explicitly left this reader-side reversal to this PRD's own P
   could land on instead.
 - The chapter-navigation panel's own filter (ADR 0005) is unchanged; this ADR only extends the same predicate to the reader body,
   the default chapter, "Expand all," and hash resolution. The backend (`reader.go`, `manuscript.json`) still never filters, per
-  ADR 0005's own consequence and this PRD's "What We're NOT Building."
+  ADR 0005's own consequence.
 - `AudiobookEstimatePanel.tsx` already filters to `contentKind === 'narration'` (stricter than `isListableChapter`, which also
   excludes only `reference`) for its totals and its own chapter links, so audiobook totals and its own "go to chapter" links are
   unaffected by this change and needed no edit.

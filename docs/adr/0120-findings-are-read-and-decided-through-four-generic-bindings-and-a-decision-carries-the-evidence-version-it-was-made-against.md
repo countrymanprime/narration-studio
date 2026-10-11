@@ -5,22 +5,21 @@
 
 ## Context
 
-`docs/prds/review-dashboard-and-findings-adoption.prd.md` Phase 4 gives the UI a way to read and decide the findings
-that Transcript Compare, the Story Bible and take review already write into the project's findings store
-(`apps/desktop/internal/findings`, Phases 1-3). The PRD had already settled that filtering and sorting run in Go over
-`findings.Query` (Q9) and that the decision history is append-only with an `evidence_version` beside each id (Q2, Q5).
-Three questions were still open when the bindings were written:
+The UI needs a way to read and decide the findings that Transcript Compare, the Story Bible and take review already
+write into the project's findings store (`apps/desktop/internal/findings`). Filtering and sorting already run in Go over
+`findings.Query`, and the decision history is append-only with an `evidence_version` beside each id. Three questions
+were still open when the bindings were written:
 
 - **One surface or one per analyzer.** Take review already has its own `TakeReviewFindings` binding, which returns
-  only its analyzer's findings. The teleprompter PRD will soon write `transcript_discrepancy` findings from live
-  sessions, and the character and diagnostics PRDs add analyzers of their own. A binding per analyzer would mean a
+  only its analyzer's findings. Live teleprompter sessions are planned to write `transcript_discrepancy` findings, and character
+  and diagnostics analyzers are planned too. A binding per analyzer would mean a
   host API bump, a schema and a mock for each one.
 - **What a decision is made against.** `findings.Store.RecordDecision` takes an `evidenceVersion`, and the store's
   merge keeps a decision only while the evidence version matches. If the host filled in the version itself (the
-  PRD's sketch was `FindingsReview(id, status, note)`), a re-run that changed the evidence between the page showing a
+  first sketch was `FindingsReview(id, status, note)`), a re-run that changed the evidence between the page showing a
   finding and the narrator clicking would record the decision against evidence the narrator never saw.
 - **How the query crosses the boundary.** Every other string binding takes positional arguments; a filter with
-  eleven optional fields does not fit that shape, and the teleprompter phase will want to add filters.
+  eleven optional fields does not fit that shape, and more filters will be added.
 
 ## Decision
 
@@ -61,7 +60,7 @@ Three questions were still open when the bindings were written:
   be built without a host; the host's tests (`internal/findings/query_test.go`) are the ones that define them, and a
   drift shows up as a mock that orders differently from the golden payloads.
 - A narrator who decides a finding after its analyzer re-ran gets an error and must look again; the Review page
-  (Phase 5) has to reload the finding when that happens.
+  has to reload the finding when that happens.
 - Every call still reads every scope file; paging bounds what crosses the boundary, not what is read. If real books
   make that slow, an index belongs behind `Store.Page` without changing the bindings.
 - `hostAPIVersion` went from 36 to 37 for the four new bindings.

@@ -24,7 +24,7 @@ func (h *Host) GuideRescan(id string) (string, error) {
 - Take **one** snapshot per call and use it throughout. A call that needs several services (`GuidePreview` uses guide and settings, and reads the voice manager from `h.registry()`; `TranscriptSuggestHints` uses guide and transcript) then sees one project even when a switch lands mid-call. Do not mix `svc.guide` with a second `h.services().transcript`. `svc.config` carries the launch config, so the project folder and the settings store of one call belong to the same project.
 - Pass the snapshot, or the one service, to goroutines that outlive the call: the TTS and Whisper install goroutines, the Story Bible build, the post-commit character seeding. Never re-read the field inside them.
 - **Never hold `h.mu` across a service call, and never call `services()` while holding it.** The `emit*` callbacks (`emitTranscript`, `emitTeleprompterEvent`, `emitTeleprompterState`) take `h.mu.RLock()`, and a service reports progress through them from inside its own calls; a held read lock plus a queued writer (a project switch) plus that re-entrant read lock is a deadlock. `Shutdown` stops the teleprompter before it takes `h.mu` for the same reason ([ADR 0022](../adr/0022-live-sidecar-events-over-wails-and-stop-file.md)). Under the write lock (`configureLocked`, `attachProjectLocked`, `ProjectSwitch` and `onSecondInstance` between `Lock` and `Unlock`) `services()` would deadlock on itself, so use `h.config` there or take the snapshot before locking.
-- New bindings, and every PRD that adds one, build on `h.services()`. There is no other accessor.
+- Every new binding builds on `h.services()`. There is no other accessor.
 
 ## What enforces it
 
