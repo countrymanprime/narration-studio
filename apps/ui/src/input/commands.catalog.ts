@@ -124,6 +124,16 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
+  // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script, where the Script page's own Find row wins by
+  // scope priority (SNR-Q1, ADR 0780 decision 6). Not in `jumpMenu`: the menu would list the command that opened it.
+  {
+    id: 'jump.open',
+    label: 'Open the jump menu',
+    scope: 'global',
+    defaults: [key('KeyK', ['Mod']), key('KeyF', ['Mod'])],
+    group: 'View',
+    surfaces: ['help', 'settings'],
+  },
 ];
 
 export function findCommand(id: CommandId): CommandDescriptor | undefined {

@@ -117,6 +117,15 @@ export default {
       from: { path: '^src/overlay/' },
       to: { path: '^src/', pathNot: '^src/(overlay|components/primitives)/' },
     },
+    {
+      // ADR 0780 decision 10. A registry is a table features add to (search sources, later contexts), so it sits below them: it takes
+      // the primitives' types, the input layer and other registries, and no feature folder, or a feature's import would loop back.
+      name: 'registries-import-no-feature',
+      comment: 'src/registries/ imports components/primitives/, src/input/ and itself, never a feature folder (ADR 0780). Features import registries.',
+      severity: 'error',
+      from: { path: '^src/registries/' },
+      to: { path: '^src/', pathNot: '^src/(registries|input|components/primitives)/' },
+    },
   ],
   options: {
     // Follow imports into wailsjs/ (rule 2 needs to see them) but never into packages.
