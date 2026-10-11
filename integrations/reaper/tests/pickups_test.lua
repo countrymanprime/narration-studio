@@ -272,6 +272,116 @@ H.test('resolve_pickup picks the closest pickup within tolerance when two are ne
   H.eq(s:events(), { { 'PICKUP_RESOLVED', 't2', '9.2', '', 'Near' } })
 end)
 
+-- reopen_pickup --------------------------------------------------------------------------------------------------
+
+local NOT_RESOLVED = 'No resolved pickup was found at that position.'
+
+H.test('reopen_pickup renames a done marker back to PICKUP, keeping its body, in one undo step', function()
+  local s = new_session()
+  s:send('import_pickups', 't1', payload(s, 'p.txt', { '9.25|narrator|Fix this | now' }))
+  s:send('resolve_pickup', 't2', '9.25')
+  s:events()
+  s:send('reopen_pickup', 't3', '9.3')
+  H.eq(s:events(), { { 'PICKUP_REOPENED', 't3', '9.25', 'narrator', 'Fix this | now' } })
+  H.eq(s.fake.markers[1].name, 'PICKUP: [narrator] Fix this | now')
+  H.eq(s.fake.markers[1].pos, 9.25)
+  H.eq(s.fake:undo_labels(), {
+    'Narration Utils: import pickups',
+    'Narration Utils: resolve pickup',
+    'Narration Utils: reopen pickup',
+  })
+end)
+
+H.test('reopen_pickup finds no done marker for an open pickup and opens no undo block', function()
+  local s = new_session()
+  s:send('import_pickups', 't1', payload(s, 'p.txt', { '9.25||Still open' }))
+  s:events()
+  s:send('reopen_pickup', 't2', '9.25')
+  H.eq(s:events(), { { 'ERROR', 't2', NOT_RESOLVED } })
+  H.eq(s.fake.markers[1].name, 'PICKUP: Still open')
+  H.eq(#s.fake.undo, 1)
+end)
+
+H.test('reopen_pickup is idempotent: reopening twice changes nothing the second time', function()
+  local s = new_session()
+  s.fake:insert_marker({ is_region = false, pos = 4, rgnend = 0, name = 'PICKUP_DONE: Fixed', color = 0 })
+  s:send('reopen_pickup', 't1', '4')
+  s:events()
+  s:send('reopen_pickup', 't2', '4')
+  H.eq(s:events(), { { 'ERROR', 't2', NOT_RESOLVED } })
+  H.eq(#s.fake.undo, 1)
+end)
+
+H.test('reopen_pickup never renames other markers or regions and honours the tolerance', function()
+  local s = new_session()
+  s.fake:insert_marker({ is_region = false, pos = 4, rgnend = 0, name = 'COMPARE: other', color = 0 })
+  s.fake:insert_marker({ is_region = false, pos = 4, rgnend = 0, name = 'CLEANUP: other', color = 0 })
+  s.fake:add_region(3, 5, 'PICKUP_DONE: region')
+  s.fake:insert_marker({ is_region = false, pos = 4.5, rgnend = 0, name = 'PICKUP_DONE: far', color = 0 })
+  s:send('reopen_pickup', 't1', '4')
+  H.eq(s:events(), { { 'ERROR', 't1', NOT_RESOLVED } })
+  H.eq(#s.fake.undo, 0)
+  for _, marker in ipairs(s.fake.markers) do
+    H.truthy(not marker.name:match('^PICKUP: '), 'nothing was reopened: ' .. marker.name)
+  end
+end)
+
+H.test('reopen_pickup picks the closest done marker within tolerance', function()
+  local s = new_session()
+  s.fake:insert_marker({ is_region = false, pos = 9.2, rgnend = 0, name = 'PICKUP_DONE: Near', color = 0 })
+  s.fake:insert_marker({ is_region = false, pos = 9.3, rgnend = 0, name = 'PICKUP_DONE: Far', color = 0 })
+  s:send('reopen_pickup', 't1', '9.22')
+  H.eq(s:events(), { { 'PICKUP_REOPENED', 't1', '9.2', '', 'Near' } })
+end)
+
+H.test('reopen_pickup needs a rename API and a position', function()
+  local s = new_session()
+  s:send('reopen_pickup', 't1', '')
+  H.eq(s:events(), { { 'ERROR', 't1', 'Send a pickup position to reopen.' } })
+  s.fake:remove_api('SetProjectMarker3')
+  s:send('reopen_pickup', 't2', '9.25')
+  H.eq(s:events(), { { 'ERROR', 't2', 'This REAPER version cannot rename markers.' } })
+end)
+
+H.test('resolve_pickup does not match a done marker', function()
+  local s = new_session()
+  s.fake:insert_marker({ is_region = false, pos = 4, rgnend = 0, name = 'PICKUP_DONE: Fixed', color = 0 })
+  s:send('resolve_pickup', 't1', '4')
+  H.eq(s:events(), { { 'ERROR', 't1', 'No open pickup was found at that position.' } })
+  H.eq(s.fake.markers[1].name, 'PICKUP_DONE: Fixed')
+end)
+
+-- list_pickup_markers --------------------------------------------------------------------------------------------
+
+H.test('list_pickup_markers writes every pickup with its state in position order and opens no undo block', function()
+  local s = new_session()
+  s.fake:insert_marker({ is_region = false, pos = 20, rgnend = 0, name = 'PICKUP_DONE: Already fixed', color = 0 })
+  s.fake:insert_marker({ is_region = false, pos = 5, rgnend = 0, name = 'COMPARE: ignore me', color = 0 })
+  s.fake:add_region(0, 10, 'PICKUP: a region')
+  s:send('import_pickups', 't1', payload(s, 'p.txt', { '9.25|narrator|Say it | again', '1.5||First' }))
+  s:events()
+  local undo_count = #s.fake.undo
+  local out = s:path('markers.txt')
+  s:send('list_pickup_markers', 't2', out)
+  H.eq(s:events(), { { 'PICKUP_MARKERS_LISTED', 't2', out, '2', '1' } })
+  H.eq(H.read_text(out), '1.500000|open||First\n9.250000|open|narrator|Say it | again\n20.000000|done||Already fixed\n')
+  H.eq(#s.fake.undo, undo_count)
+end)
+
+H.test('list_pickup_markers writes an empty file when there are no pickups', function()
+  local s = new_session()
+  local out = s:path('markers.txt')
+  s:send('list_pickup_markers', 't1', out)
+  H.eq(s:events(), { { 'PICKUP_MARKERS_LISTED', 't1', out, '0', '0' } })
+  H.eq(H.read_text(out), '')
+end)
+
+H.test('list_pickup_markers reports an output file it cannot write like export_pickups', function()
+  local s = new_session()
+  s:send('list_pickup_markers', 't1', s:path('no-such-folder') .. package.config:sub(1, 1) .. 'out.txt')
+  H.eq(s:events(), { { 'ERROR', 't1', 'Could not write the pickup list.' } })
+end)
+
 -- count_pickups --------------------------------------------------------------------------------------------------
 
 H.test('count_pickups reports zero of zero for an empty project', function()

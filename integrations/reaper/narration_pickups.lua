@@ -1,4 +1,5 @@
--- Pickup list over the bridge: import_pickups, export_pickups, next_pickup, resolve_pickup and count_pickups (see
+-- Pickup list over the bridge: import_pickups, export_pickups, next_pickup, resolve_pickup, reopen_pickup,
+-- list_pickup_markers and count_pickups (see
 -- docs/architecture/reaper-bridge.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers as the
 -- chunk argument. This file owns the pickup marker convention.
 --
@@ -181,39 +182,103 @@ local function next_pickup(session_dir, run_id)
   event(session_dir, 'PICKUP_NEXT', run_id, chosen.pos, tag, note)
 end
 
--- Renames the open pickup nearest `position` (within the duplicate tolerance) to `PICKUP_DONE:`, keeping its body,
--- in one undo step. An already-resolved pickup at that position is not an open pickup, so resolving it again finds
--- no match: resolve_pickup is idempotent the same way import_pickups is.
-local function resolve_pickup(session_dir, run_id, position_arg)
-  if not reaper.APIExists('SetProjectMarker3') then
-    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot rename markers.')
-    return
-  end
-  local target = tonumber(position_arg)
-  if not target then
-    event(session_dir, 'ERROR', run_id, 'Send a pickup position to resolve.')
-    return
-  end
+-- The marker of `kind` nearest `target` within the duplicate tolerance, or nil.
+local function nearest_marker(kind, target)
   local best, best_gap = nil, nil
   for _, marker in ipairs(project_markers()) do
-    if marker_kind(marker.name) == 'PICKUP' then
+    if marker_kind(marker.name) == kind then
       local gap = math.abs(marker.pos - target)
       if gap <= PICKUP_TOLERANCE and (not best_gap or gap < best_gap) then
         best, best_gap = marker, gap
       end
     end
   end
+  return best
+end
+
+-- Renames the marker of `from_kind` nearest `position` (within the duplicate tolerance) to `to_kind`, keeping its
+-- body, in one undo step; answers `done_event`. A marker already in the target state is no match, so repeating
+-- the command finds nothing and changes nothing.
+local function rename_pickup(session_dir, run_id, position_arg, spec)
+  if not reaper.APIExists('SetProjectMarker3') then
+    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot rename markers.')
+    return
+  end
+  local target = tonumber(position_arg)
+  if not target then
+    event(session_dir, 'ERROR', run_id, spec.no_position)
+    return
+  end
+  local best = nearest_marker(spec.from, target)
   if not best then
-    event(session_dir, 'ERROR', run_id, 'No open pickup was found at that position.')
+    event(session_dir, 'ERROR', run_id, spec.not_found)
     return
   end
   local body = marker_body(best.name)
   reaper.Undo_BeginBlock2(0)
-  reaper.SetProjectMarker3(0, best.idnum, false, best.pos, best.rgnend or 0, 'PICKUP_DONE: ' .. body, 0)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: resolve pickup', -1)
+  reaper.SetProjectMarker3(0, best.idnum, false, best.pos, best.rgnend or 0, spec.to .. ': ' .. body, 0)
+  reaper.Undo_EndBlock2(0, spec.undo, -1)
   reaper.UpdateArrange()
   local tag, note = split_pickup_body(body)
-  event(session_dir, 'PICKUP_RESOLVED', run_id, best.pos, tag, note)
+  event(session_dir, spec.event, run_id, best.pos, tag, note)
+end
+
+-- Open to resolved. An already-resolved pickup at that position is not an open pickup, so resolve_pickup is
+-- idempotent the same way import_pickups is.
+local function resolve_pickup(session_dir, run_id, position_arg)
+  rename_pickup(session_dir, run_id, position_arg, {
+    from = 'PICKUP',
+    to = 'PICKUP_DONE',
+    undo = 'Narration Utils: resolve pickup',
+    event = 'PICKUP_RESOLVED',
+    no_position = 'Send a pickup position to resolve.',
+    not_found = 'No open pickup was found at that position.',
+  })
+end
+
+-- Resolved back to open: the inverse of resolve_pickup, so the DAW's marker names stay the truth both ways.
+local function reopen_pickup(session_dir, run_id, position_arg)
+  rename_pickup(session_dir, run_id, position_arg, {
+    from = 'PICKUP_DONE',
+    to = 'PICKUP',
+    undo = 'Narration Utils: reopen pickup',
+    event = 'PICKUP_REOPENED',
+    no_position = 'Send a pickup position to reopen.',
+    not_found = 'No resolved pickup was found at that position.',
+  })
+end
+
+-- Writes every pickup marker, open or resolved, as `start|state|tag|note` (state `open` or `done`) in position
+-- order; the note is last so it may contain pipes. Read-only.
+local function list_pickup_markers(session_dir, run_id, path)
+  local output = io.open(path, 'w')
+  if not output then
+    event(session_dir, 'ERROR', run_id, 'Could not write the pickup list.')
+    return
+  end
+  local pickups = {}
+  for _, marker in ipairs(project_markers()) do
+    local kind = marker_kind(marker.name)
+    if kind == 'PICKUP' or kind == 'PICKUP_DONE' then
+      marker.state = kind == 'PICKUP' and 'open' or 'done'
+      pickups[#pickups + 1] = marker
+    end
+  end
+  table.sort(pickups, function(a, b)
+    return a.pos < b.pos
+  end)
+  local open_count, done_count = 0, 0
+  for _, marker in ipairs(pickups) do
+    local tag, note = split_pickup_body(marker_body(marker.name))
+    output:write(string.format('%.6f|%s|%s|%s\n', marker.pos, marker.state, tag, one_line(note)))
+    if marker.state == 'open' then
+      open_count = open_count + 1
+    else
+      done_count = done_count + 1
+    end
+  end
+  output:close()
+  event(session_dir, 'PICKUP_MARKERS_LISTED', run_id, path, open_count, done_count)
 end
 
 -- Reports remaining (`PICKUP:`) versus total (`PICKUP:` plus `PICKUP_DONE:`) pickups. Read-only.
@@ -242,6 +307,12 @@ return function(registry)
   end)
   registry.register('resolve_pickup', function(ctx, args)
     resolve_pickup(ctx.session_dir, args[1] or '', args[2] or '')
+  end)
+  registry.register('reopen_pickup', function(ctx, args)
+    reopen_pickup(ctx.session_dir, args[1] or '', args[2] or '')
+  end)
+  registry.register('list_pickup_markers', function(ctx, args)
+    list_pickup_markers(ctx.session_dir, args[1] or '', args[2] or '')
   end)
   registry.register('count_pickups', function(ctx, args)
     count_pickups(ctx.session_dir, args[1] or '')

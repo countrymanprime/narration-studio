@@ -55,14 +55,16 @@ var eventSpecs = map[string]eventSpec{
 	"LINES_CONFLICT": {required: []fieldSpec{text("run"), text("guid")}},
 	// updated, ambiguous and failed were appended by create_regions (narration_regions.lua), which replaced
 	// create_chapter_regions: optional, so the older three-count answer still reads.
-	"PLAY_POSITION":    {required: []fieldSpec{text("run"), count("state"), number("heard"), number("processed"), number("cursor")}},
-	"PUNCHED":          {required: []fieldSpec{text("run"), number("cursor")}},
-	"REGIONS_CREATED":  {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
-	"PICKUPS_IMPORTED": {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
-	"PICKUPS_EXPORTED": {required: []fieldSpec{text("run"), text("path"), count("count")}},
-	"PICKUPS_COUNTED":  {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
-	"PICKUP_NEXT":      {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
-	"PICKUP_RESOLVED":  {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PLAY_POSITION":         {required: []fieldSpec{text("run"), count("state"), number("heard"), number("processed"), number("cursor")}},
+	"PUNCHED":               {required: []fieldSpec{text("run"), number("cursor")}},
+	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
+	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
+	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
+	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
+	"PICKUP_NEXT":           {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PICKUP_RESOLVED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PICKUP_REOPENED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PICKUP_MARKERS_LISTED": {required: []fieldSpec{text("run"), text("path"), count("open"), count("done")}},
 	// Configure-only render setup. targets is RENDER_TARGETS, semicolon-joined, empty when count is 0 (no chapter
 	// regions yet).
 	"RENDER_CONFIGURED": {required: []fieldSpec{text("run"), text("folder"), count("count"), text("targets")}},
