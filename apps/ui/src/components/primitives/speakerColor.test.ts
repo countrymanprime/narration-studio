@@ -49,3 +49,15 @@ describe('speakerColorToken', () => {
     expect(speakerColorToken(undefined)).toBe('--speaker-1');
   });
 });
+
+describe('the narrator override', () => {
+  it('wins over the stable pick, for the index and the token', () => {
+    const other = [1, 2, 3, 4, 5, 6, 7].find((n) => n !== speakerColorIndex('x')) as number;
+    expect(speakerColorIndex('x', other)).toBe(other);
+    expect(speakerColorToken('x', other)).toBe(`--speaker-${other}`);
+  });
+  it('is ignored outside 1..7', () => {
+    for (const bad of [0, 8, -1, 2.5, Number.NaN]) expect(speakerColorIndex('x', bad)).toBe(speakerColorIndex('x'));
+    expect(speakerColorIndex('x', undefined)).toBe(speakerColorIndex('x'));
+  });
+});

@@ -351,3 +351,28 @@ describe('Story Bible Appears in', () => {
     expect(await screen.findByText('Not listed yet. Build the Story Bible again to list the chapters.')).toBeTruthy();
   });
 });
+
+describe('speaker colour field in the entry', () => {
+  it('puts the colour back to Automatic with one host call', async () => {
+    const api = createMockApi();
+    const call = vi.spyOn(api, 'guideSetSpeakerColor');
+    const row = { ...WIRE_ENTITIES.find((entity) => entity.category === 'Character' && !entity.locked)!, speaker_color: 3 };
+    render(
+      <ApiProvider api={api}>
+        <GuideDetail entity={row} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+      </ApiProvider>,
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
+    await waitFor(() => expect(call).toHaveBeenCalledWith(row.id, 0));
+  });
+
+  it('is not offered on a place', () => {
+    const place = WIRE_ENTITIES.find((entity) => entity.category === 'Place')!;
+    render(
+      <ApiProvider api={createMockApi()}>
+        <GuideDetail entity={place} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+      </ApiProvider>,
+    );
+    expect(screen.queryByRole('combobox', { name: 'Speaker colour' })).toBeNull();
+  });
+});

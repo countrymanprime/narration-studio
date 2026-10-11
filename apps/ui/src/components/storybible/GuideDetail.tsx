@@ -35,6 +35,7 @@ import { CANONICAL_PREVIEW, previewKey, usePreviewAudio } from './usePreviewAudi
 import { PropertiesSection } from './PropertiesSection';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
+import { SpeakerColourField } from './SpeakerColourField';
 import { PronunciationWork } from './PronunciationWork';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
@@ -310,6 +311,15 @@ export function GuideDetail({
       try {
         await api.guideSetLocked(entity.id, !locked);
         notify(locked ? 'Entry unlocked.' : 'Entry locked.');
+        await reloadFor(entity.id);
+      } catch (error) {
+        notify(describeApiError(error), 'error');
+      }
+    });
+  const setSpeakerColour = (index: number) =>
+    mutation.run('speaker-colour', async () => {
+      try {
+        await api.guideSetSpeakerColor(entity.id, index);
         await reloadFor(entity.id);
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -788,6 +798,7 @@ export function GuideDetail({
             />
             {!isNewDraft && (
               <>
+                <SpeakerColourField entity={entity} disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
                 <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
                 <DialogueCueAttribution entity={entity} entities={entities} notify={notify} />
               </>

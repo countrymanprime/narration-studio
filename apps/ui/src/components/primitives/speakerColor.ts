@@ -14,17 +14,24 @@ function hash(id: string): number {
   return value >>> 0;
 }
 
+/** The narrator's own pick for an entry (`speaker_color`): a whole number 1..SPEAKER_COLOR_COUNT. Anything else is no pick. */
+function isOverride(override: number | undefined): override is number {
+  return override !== undefined && Number.isInteger(override) && override >= 1 && override <= SPEAKER_COLOR_COUNT;
+}
+
 /** The 1-based index into the speaker colour tokens for a speaker id (a name or a Story Bible entity id - whichever
  * the caller already has). The same id always maps to the same index; an eighth or later distinct speaker wraps back
  * to 1, which is `--speaker-1` (an alias of `--character`, styles.css) - the app's own colour for a speaker before
- * this batch, so overflow and "no id at all" resolve to the same tone. */
-export function speakerColorIndex(speakerId: string | undefined): number {
+ * this batch, so overflow and "no id at all" resolve to the same tone. The narrator's `override` (an entry's
+ * `speaker_color`, 1..7) wins over the stable pick; a value outside 1..7 is ignored. */
+export function speakerColorIndex(speakerId: string | undefined, override?: number): number {
+  if (isOverride(override)) return override;
   if (!speakerId) return 1;
   return (hash(speakerId) % SPEAKER_COLOR_COUNT) + 1;
 }
 
 /** The bare custom-property name for a speaker's colour, e.g. `--speaker-3` (styles.css). For a caller composing its
  * own `var()` expression, or reading the `-text` companion directly (`${speakerColorToken(id)}-text`). */
-export function speakerColorToken(speakerId: string | undefined): string {
-  return `--speaker-${speakerColorIndex(speakerId)}`;
+export function speakerColorToken(speakerId: string | undefined, override?: number): string {
+  return `--speaker-${speakerColorIndex(speakerId, override)}`;
 }

@@ -50,3 +50,13 @@ describe('SpeakerTag', () => {
     expect(onActivate).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('SpeakerTag colour override', () => {
+  it('draws with the narrator’s pick and ignores one outside 1..7', () => {
+    const pick = speakerColorIndex('x') === 4 ? 5 : 4;
+    const { rerender } = render(<SpeakerTag label="Alice" speakerId="x" colorOverride={pick} />);
+    expect(screen.getByText('Alice').getAttribute('style')).toContain(`--speaker-${pick}-text`);
+    rerender(<SpeakerTag label="Alice" speakerId="x" colorOverride={9} />);
+    expect(screen.getByText('Alice').getAttribute('style')).toContain(`--speaker-${speakerColorIndex('x')}-text`);
+  });
+});
