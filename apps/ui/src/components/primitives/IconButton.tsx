@@ -1,6 +1,9 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import type { ComponentPropsWithRef } from 'react';
+import { nameFor, tooltipFor, CATALOG, type IconName } from '../../icons.catalog';
+import { Icon } from './Icon';
+import { TooltipTarget } from './Tooltip';
 
 type IconButtonVariant = 'default' | 'primary' | 'danger';
 
@@ -18,9 +21,7 @@ const SIZE_CLASSES: Record<IconButtonSize, string> = {
   sm: 'size-[var(--button-height-sm)]',
 };
 
-type Props = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
-  // The accessible name. An icon has no text, so it is required: it is what a screen reader says and what a hint repeats.
-  label: string;
+type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   variant?: IconButtonVariant;
   size?: IconButtonSize;
   // The action this button started is running (ADR 0075): the icon becomes a spinner, the button is marked busy and ignores a press, and it
@@ -33,6 +34,18 @@ type Props = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   disabledReason?: string;
 };
 
+// Either a `label` (the accessible name, for a control the catalogue has no row for) or an `action` (a catalogue key, ADR 0761:
+// the name, the hint and the icon come from `icons.catalog.ts`). Both together is allowed and `label` wins the name and the hint.
+type Props = Base &
+  (
+    | {
+        // The accessible name. An icon has no text, so one of `label` and `action` is required: it is what a screen reader says and what a hint repeats.
+        label: string;
+        action?: IconName;
+      }
+    | { label?: string; action: IconName }
+  );
+
 // A square button that holds one icon. Its look was a class string pasted at every call site; this is the one place
 // it lives (ADR 0053). A hint is composed around it, `<TooltipTarget text="..."><IconButton .../></TooltipTarget>`, because
 // the hint often says more than the label and the wrapper sometimes needs its own layout class. A disabled one is dimmed and
@@ -40,6 +53,7 @@ type Props = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
 // forwards every attribute and the ref.
 export function IconButton({
   label,
+  action,
   variant = 'default',
   size = 'md',
   className = '',
@@ -51,10 +65,12 @@ export function IconButton({
   ...rest
 }: Props) {
   const gated = pending || Boolean(disabledReason);
-  return (
+  const name = label ?? (action === undefined ? undefined : nameFor(action));
+  const button = (
     <button
       type={type}
-      aria-label={label}
+      aria-label={name}
+      aria-keyshortcuts={label === undefined && action !== undefined ? CATALOG[action].shortcut : undefined}
       aria-busy={pending || undefined}
       aria-disabled={gated || undefined}
       // A press does nothing while pending or gated, and it does not submit a form either (`preventDefault` stops the native submit).
@@ -63,7 +79,13 @@ export function IconButton({
       className={`${SIZE_CLASSES[size]} items-center justify-center rounded-[var(--radius-button)] border disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:opacity-55 [:where(&)]:inline-flex ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}
     >
-      {pending ? <FontAwesomeIcon icon={faCircleNotch} className="motion-safe:animate-spin" aria-hidden="true" /> : children}
+      {pending ? (
+        <FontAwesomeIcon icon={faCircleNotch} className="motion-safe:animate-spin" aria-hidden="true" />
+      ) : (
+        (children ?? (action === undefined ? null : <Icon name={action} />))
+      )}
     </button>
   );
+  // An action brings its own hint (the tooltip, then its shortcut). A button with only a `label` keeps the caller's composition.
+  return action === undefined ? button : <TooltipTarget text={label ?? tooltipFor(action)}>{button}</TooltipTarget>;
 }
