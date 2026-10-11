@@ -310,6 +310,9 @@ export const wailsClient: NarrationApi = {
     decode(voidResult, 'GuidePronunciationSetStatus', host.GuidePronunciationSetStatus(id, aliasIndex ?? null, status, note ?? null)),
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
+  guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
+  guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),
+  guideSetSpeakerColor: (id, index) => decode(voidResult, 'GuideSetSpeakerColor', host.GuideSetSpeakerColor(id, index)),
   characterListRegions: () => decode(characterRegionsSchema, 'CharacterListRegions', host.CharacterListRegions()),
   characterApprove: (characterId, regionGuid, note) =>
     decode(characterReferenceSchema, 'CharacterApprove', host.CharacterApprove(characterId, regionGuid, note ?? '')),

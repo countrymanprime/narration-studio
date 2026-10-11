@@ -141,3 +141,27 @@ func TestContractEntitiesWithPronunciationWorkFromTheSidecarsOwnFile(t *testing.
 	}
 	contractfile.Check(t, "guide-entities-pronunciation", got)
 }
+
+// The entities after Mark reviewed and after Flag review plus a speaker colour (SNB-3b, SNB-4b), from the files the sidecar's own
+// test writes (test_review_flags.py), as the host sends them to the UI.
+func TestContractGuideReviewFromTheSidecarsOwnFiles(t *testing.T) {
+	dir, err := contractfile.Dir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"guide-review-marked", "guide-review-flagged"} {
+		bytes, err := os.ReadFile(filepath.Join(dir, name+"-sidecar.json"))
+		if err != nil {
+			t.Fatalf("the sidecar's entity file is missing (run the Python contract test with UPDATE_CONTRACTS=1): %v", err)
+		}
+		var entities []any
+		if err := json.Unmarshal(bytes, &entities); err != nil {
+			t.Fatal(err)
+		}
+		got, err := serviceWithGuideFile(t, entities).Entities()
+		if err != nil {
+			t.Fatal(err)
+		}
+		contractfile.Check(t, name, got)
+	}
+}

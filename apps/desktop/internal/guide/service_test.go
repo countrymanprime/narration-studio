@@ -290,3 +290,62 @@ func TestCandidateTrimsTheWordAndPassesItAsOneWordArgument(t *testing.T) {
 		t.Fatalf("command line = %q", line)
 	}
 }
+
+func entitiesFrom(t *testing.T, document string) []map[string]any {
+	t.Helper()
+	root := t.TempDir()
+	s := New(root, "", "", settings.New(root, root), process.NewSupervisor())
+	if err := os.MkdirAll(filepath.Dir(s.guidePath()), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(s.guidePath(), []byte(document), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	entities, err := s.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return entities
+}
+
+// SNB-3b: a file written before the review flags reads the entry flag from review_state and no name flags.
+func TestEntitiesReadTheReviewFlagFromReviewStateInAnOlderFile(t *testing.T) {
+	entities := entitiesFrom(t, `{"entities":[{"id":"a","review_state":"needs review"},{"id":"b","review_state":"generated"}]}`)
+	for i, want := range []bool{true, false} {
+		review, ok := entities[i]["review"].(map[string]any)
+		if !ok || review["entry"] != want || len(review["aliases"].([]any)) != 0 {
+			t.Fatalf("entity %d review = %#v", i, entities[i]["review"])
+		}
+	}
+}
+
+func TestEntitiesKeepOnlyTheFlaggedNamesTheEntryHas(t *testing.T) {
+	entities := entitiesFrom(t, `{"entities":[{"id":"a","review_state":"needs review","aliases":[{"text":"Sparrow"}],
+		"review":{"entry":false,"aliases":["Sparrow","Gone","Sparrow",3]}}]}`)
+	review := entities[0]["review"].(map[string]any)
+	if review["entry"] != false || !slices.Equal(review["aliases"].([]any), []any{"Sparrow"}) {
+		t.Fatalf("review = %#v", review)
+	}
+}
+
+// SNB-4b: a stored colour 1..7 is sent; anything else reads as automatic.
+func TestEntitiesSendOnlyASpeakerColorOneToSeven(t *testing.T) {
+	entities := entitiesFrom(t, `{"entities":[{"id":"a","speaker_color":7},{"id":"b","speaker_color":8},{"id":"c","speaker_color":"3"},{"id":"d","speaker_color":0},{"id":"e"}]}`)
+	if entities[0]["speaker_color"] != float64(7) {
+		t.Fatalf("speaker_color = %#v", entities[0]["speaker_color"])
+	}
+	for _, entity := range entities[1:] {
+		if _, present := entity["speaker_color"]; present {
+			t.Fatalf("%v kept speaker_color %#v", entity["id"], entity["speaker_color"])
+		}
+	}
+}
+
+func TestSetSpeakerColorRefusesAnIndexOutsideOneToSevenBeforeTheSidecar(t *testing.T) {
+	s := New(t.TempDir(), "", "", nil, nil)
+	for _, bad := range []int{-1, 8} {
+		if err := s.SetSpeakerColor("a", &bad); err == nil || !strings.Contains(err.Error(), "1 to 7") {
+			t.Fatalf("SetSpeakerColor(%d) = %v", bad, err)
+		}
+	}
+}
