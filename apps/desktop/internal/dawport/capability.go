@@ -1,6 +1,10 @@
 package dawport
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/countrymanprime/narration-utils/shell/internal/port"
+)
 
 // Capability is one thing an engine can do for the host, named as it appears on the wire and in the settings key
 // DAW.capability.<name>. Each has exactly one role interface (Spec.Role).
@@ -101,4 +105,27 @@ func SpecOf(c Capability) (Spec, bool) {
 		}
 	}
 	return Spec{}, false
+}
+
+// Mode is how a change that needs several edits is made. See port.Mode for each value.
+type Mode = port.Mode
+
+const (
+	ModeNative = port.ModeNative
+	ModeApp    = port.ModeApp
+	ModeSteps  = port.ModeSteps
+)
+
+// Depth is what an adapter declares about how a capability acts, beyond its Level: whether using it destroys audio that
+// cannot be brought back, and how a multi-edit change is made. Like Declares it is static. The resolver copies it into every
+// Support for the capability, available or not.
+type Depth struct {
+	Destructive bool
+	Mode        Mode
+}
+
+// Describer is an adapter that declares a Depth for some capabilities. An adapter that is not one, and a capability it
+// answers with the zero Depth for, declare neither field.
+type Describer interface {
+	Depth(c Capability) Depth
 }

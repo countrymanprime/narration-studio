@@ -64,7 +64,7 @@ func dawDeclarationFor(kind dawport.Kind) dawport.Adapter {
 }
 
 // dawCapabilitiesPayload is DawCapabilities' and daw_capabilities_changed's shared shape: {daw, reachable, capabilities:
-// {<name>: {level, available, reason?, message?}}} (apps/ui/src/api/schemas/daw.ts).
+// {<name>: {level, available, reason?, message?, destructive?, mode?}}} (apps/ui/src/api/schemas/daw.ts).
 func dawCapabilitiesPayload(resolver *dawport.Resolver, runtime dawport.Runtime) map[string]any {
 	all := resolver.All()
 	capabilities := make(map[string]any, len(all))
@@ -76,6 +76,12 @@ func dawCapabilitiesPayload(resolver *dawport.Resolver, runtime dawport.Runtime)
 		}
 		if support.Message != "" {
 			entry["message"] = support.Message
+		}
+		if support.Destructive {
+			entry["destructive"] = true
+		}
+		if support.Mode != "" {
+			entry["mode"] = string(support.Mode)
 		}
 		capabilities[string(spec.Capability)] = entry
 	}

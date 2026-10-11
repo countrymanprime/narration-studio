@@ -48,13 +48,27 @@ const (
 	ReasonUnsupported     Reason = "unsupported"      // declared Unsupported, or not declared at all
 )
 
+// Mode is how a change that needs several edits is made. The values are the wire's.
+type Mode string
+
+const (
+	ModeNative Mode = "native" // the DAW does it itself, as one undo step
+	ModeApp    Mode = "app"    // the app makes it; the DAW keeps no project of its own
+	ModeSteps  Mode = "steps"  // the app performs the edits one after another, in a DAW with no native way
+)
+
 // Support is a resolver's answer for one capability: the declared Level, whether it can be used now, and when it cannot, why
-// (Reason) in the narrator's words (Message). An available capability has neither.
+// (Reason) in the narrator's words (Message). An available capability has neither. Destructive and Mode are what the provider
+// declares about how the capability acts, reported whether or not it is available now; the zero values declare nothing.
 type Support struct {
 	Level     Level
 	Available bool
 	Reason    Reason
 	Message   string
+	// Destructive: using it replaces audio that cannot be brought back (a roll in a DAW with no backups), so the UI asks first.
+	Destructive bool
+	// Mode is how a multi-edit change is made; empty when the provider declares none.
+	Mode Mode
 }
 
 // ErrNotSupported matches every *NotSupportedError under errors.Is.
