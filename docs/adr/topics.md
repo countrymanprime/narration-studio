@@ -353,7 +353,6 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
 | [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
 | [0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md) | The take suggestion is evidence first, and its confidence is null with a reason until the takes are comparable | Proposed |
-| [0865](0865-the-studio-next-program-has-a-daily-cap-on-slices-launched-and-an-unanswered-register-question-takes-its-recommendation-after-seven-days.md) | The Studio Next program has a daily cap on slices launched, and an unanswered register question takes its recommendation after seven days | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 
