@@ -41,6 +41,12 @@ export const storybibleStates: StateEntry[] = [
     state: 'voice-download-failed',
     description: 'Story Bible, the voice download after it failed: the reason as an alert and Close (?mockAssets=download-fails)',
   },
+  {
+    page: 'storybible',
+    state: 'review-filter',
+    description:
+      "Story Bible, the Needs review chip on: the entries the host flagged or that have a suggestion to verify with their Verify or Review pill, and the selected entry with its own and its name's flags and Mark reviewed off until its two suggestions are decided",
+  },
   { page: 'storybible', state: 'category-all', description: 'Story Bible, All category tab' },
   { page: 'storybible', state: 'category-character', description: 'Story Bible, Character category tab' },
   { page: 'storybible', state: 'category-place', description: 'Story Bible, Place/Location category tab' },
