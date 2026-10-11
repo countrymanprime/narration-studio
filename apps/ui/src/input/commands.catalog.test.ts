@@ -24,3 +24,14 @@ describe('COMMAND_CATALOG', () => {
     expect(findCommand('not.a.command')).toBeUndefined();
   });
 });
+
+describe('COMMAND_CATALOG metadata', () => {
+  it('every-static-row-has-a-group-and-surfaces', () => {
+    for (const command of COMMAND_CATALOG) {
+      expect(command.group, `${command.id} group`).toBeTruthy();
+      expect(command.surfaces, `${command.id} surfaces`).toBeDefined();
+      // A row that shows nowhere (`surfaces: []`) would need a reason comment in the catalogue, so none exists yet.
+      expect(command.surfaces?.length, `${command.id} shows nowhere`).toBeGreaterThan(0);
+    }
+  });
+});
