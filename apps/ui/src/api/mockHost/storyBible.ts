@@ -228,6 +228,20 @@ export function createStoryBibleMock(
   const updateEntity = (id: string, change: (entity: GuideEntity) => GuideEntity) => {
     s.entities = s.entities.map((entity) => (entity.id === id ? change(entity) : entity));
   };
+  // The review flags and speaker colour calls (SNB-3b, SNB-4b), refused on a locked entry like every edit.
+  const editableEntity = (id: string): GuideEntity => {
+    const entity = s.entities.find((row) => row.id === id);
+    if (!entity) throw new Error('Entity not found.');
+    if (entity.locked) throw new Error('This entity is locked. Unlock it before editing.');
+    return entity;
+  };
+  const reviewOf = (entity: GuideEntity) => entity.review ?? { entry: entity.review_state === 'needs review', aliases: [] };
+  const aliasTextAt = (entity: GuideEntity, aliasIndex: number | undefined): string | undefined => {
+    if (aliasIndex === undefined) return undefined;
+    const alias = entity.aliases[aliasIndex];
+    if (!alias) throw new Error('Alias index out of range.');
+    return alias.text;
+  };
   const bindings = {
     guideBuild: async (options) => {
       // The first-use gate: the selected language model is an asset, so nothing starts until the narrator chooses to download it or to
@@ -480,6 +494,36 @@ export function createStoryBibleMock(
       return { applied, issues: rowIssues.map((issue) => `line ${issue.line}: ${issue.message}`) };
     },
     guideDialogueCues: async () => wireClone(s.dialogueCues),
+    guideMarkReviewed: async (id, aliasIndex) => {
+      const entity = editableEntity(id);
+      const review = reviewOf(entity);
+      const alias = aliasTextAt(entity, aliasIndex);
+      const aliases = alias === undefined ? [] : review.aliases.filter((text) => text !== alias);
+      const entry = alias === undefined ? false : review.entry;
+      updateEntity(id, (row) => ({
+        ...row,
+        review: { entry, aliases },
+        review_state: !entry && !aliases.length ? 'reviewed' : row.review_state,
+      }));
+    },
+    guideFlagReview: async (id, aliasIndex) => {
+      const entity = editableEntity(id);
+      const review = reviewOf(entity);
+      const alias = aliasTextAt(entity, aliasIndex);
+      if (alias === undefined) updateEntity(id, (row) => ({ ...row, review: { ...review, entry: true }, review_state: 'needs review' }));
+      else if (!review.aliases.includes(alias)) updateEntity(id, (row) => ({ ...row, review: { ...review, aliases: [...review.aliases, alias] } }));
+    },
+    guideSetSpeakerColor: async (id, index) => {
+      const value = index ?? 0;
+      if (!Number.isInteger(value) || value < 0 || value > 7) throw new Error('A speaker colour is 1 to 7, or 0 for automatic.');
+      const entity = editableEntity(id);
+      if (entity.category !== 'Character') throw new Error('Only a character speaks, so only a character has a speaker colour.');
+      updateEntity(id, (row) => {
+        const next = { ...row, speaker_color: value };
+        if (!value) delete next.speaker_color;
+        return next;
+      });
+    },
     guideCorrectCue: async (cueId, speakerEntityId) => {
       const cue = s.dialogueCues.find((row) => row.id === cueId);
       if (!cue) throw new Error('Cue not found.');

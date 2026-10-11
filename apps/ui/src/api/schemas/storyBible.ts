@@ -81,6 +81,8 @@ const appearanceSchema = z.object({ chapterId: z.string(), chapter: z.string(), 
 /** The `properties` value of an edit or a create, which the host carries as JSON text; the mock parses it with this. */
 export const guidePropertiesSchema = listFromNull(propertySchema);
 
+const reviewSchema = z.object({ entry: z.boolean(), aliases: listFromNull(z.string()) });
+
 const guideEntitySchema = z.object({
   id: z.string(),
   canonical_name: z.string(),
@@ -101,6 +103,10 @@ const guideEntitySchema = z.object({
   manual: z.boolean().optional(),
   /** Additive; a file written before it existed reads as an empty list. Not yet read by this page. */
   appearances: listFromNull(appearanceSchema),
+  /** The review flags; an older host sends none. */
+  review: optionalFromNull(reviewSchema),
+  /** 1..7 when the narrator chose one; absent means automatic. */
+  speaker_color: optionalFromNull(z.number().int().min(1).max(7)),
 }) satisfies z.ZodType<GuideEntity>;
 
 /** The entity list: the host sends an empty list for no Story Bible yet, and an older host null. */

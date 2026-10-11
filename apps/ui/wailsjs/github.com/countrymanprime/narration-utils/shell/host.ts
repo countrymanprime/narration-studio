@@ -877,6 +877,22 @@ export function GuideEntities(): $CancellablePromise<string> {
     return $Call.ByID(1537717617);
 }
 
+/**
+ * GuideFlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of GuideMarkReviewed, and the call that
+ * flags an entry an accepted automatic suggestion changed.
+ */
+export function GuideFlagReview(id: string, aliasIndex: number | null): $CancellablePromise<string> {
+    return $Call.ByID(3261446084, id, aliasIndex);
+}
+
+/**
+ * GuideMarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when
+ * nothing is left to look at.
+ */
+export function GuideMarkReviewed(id: string, aliasIndex: number | null): $CancellablePromise<string> {
+    return $Call.ByID(4040741622, id, aliasIndex);
+}
+
 export function GuideMerge(sourceID: string, targetID: string): $CancellablePromise<string> {
     return $Call.ByID(98047630, sourceID, targetID);
 }
@@ -934,6 +950,14 @@ export function GuideRescan(id: string): $CancellablePromise<string> {
 
 export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise<string> {
     return $Call.ByID(2024869160, id, locked);
+}
+
+/**
+ * GuideSetSpeakerColor sets a character's speaker colour, 1 to 7 (--speaker-N, ADR 0367), which wins over the stable pick; nil or 0
+ * puts it back to automatic. A category that cannot speak is refused.
+ */
+export function GuideSetSpeakerColor(id: string, index: number | null): $CancellablePromise<string> {
+    return $Call.ByID(2072746294, id, index);
 }
 
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {

@@ -68,6 +68,32 @@ describe('wailsClient', () => {
     ]);
   });
 
+  it('sends the Story Bible review flags and speaker colour calls, with null for an omitted alias index', async () => {
+    const marked = vi.fn().mockResolvedValue('null');
+    const flagged = vi.fn().mockResolvedValue('null');
+    const coloured = vi.fn().mockResolvedValue('null');
+    standInHost({ GuideMarkReviewed: marked, GuideFlagReview: flagged, GuideSetSpeakerColor: coloured });
+
+    await expect(wailsClient.guideMarkReviewed('e-1')).resolves.toBeUndefined();
+    await wailsClient.guideMarkReviewed('e-1', 2);
+    await wailsClient.guideFlagReview('e-1');
+    await wailsClient.guideFlagReview('e-1', 0);
+    await wailsClient.guideSetSpeakerColor('e-1', 4);
+    await wailsClient.guideSetSpeakerColor('e-1', null);
+    expect(marked.mock.calls).toEqual([
+      ['e-1', null],
+      ['e-1', 2],
+    ]);
+    expect(flagged.mock.calls).toEqual([
+      ['e-1', null],
+      ['e-1', 0],
+    ]);
+    expect(coloured.mock.calls).toEqual([
+      ['e-1', 4],
+      ['e-1', null],
+    ]);
+  });
+
   it('uses generated Wails methods rather than an operation-string transport', async () => {
     const select = vi.fn().mockResolvedValue(JSON.stringify({ selected: true, jobId: 'import-1' }));
     standInHost({ Ready: () => Promise.resolve({ apiVersion: 1, diagnosticId: 'native' }), ManuscriptSelectFile: select });
