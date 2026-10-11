@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -368,5 +369,140 @@ func TestProductionOverviewReadsThePlanSetOnTheManifest(t *testing.T) {
 	totals := overview["totals"].(map[string]any)
 	if totals["contractedAmount"] != 1200.0 || totals["effectiveRate"] != nil {
 		t.Fatalf("totals = %v, want the amount set and no rate before any hour is logged", totals)
+	}
+}
+
+// old-manifest-reads-as-defaults: a project.json written before the payment type and the milestone fields reads with
+// their defaults, and reading it does not rewrite the file.
+func TestProductionPlanReadsAnOldManifestAsDefaultsWithoutRewritingIt(t *testing.T) {
+	host := hostWithCredits(t)
+	path := project.Path(host.config.projectFolder)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := []byte(`{"schemaVersion":1,"name":"Alice","deadline":"2026-12-01","contractedAmount":2400,` +
+		`"milestones":[{"name":"ACX 15-minute checkpoint","dueDate":"2026-10-15","note":"approve"}]}`)
+	if err := os.WriteFile(path, old, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := host.ProductionPlan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := decodePlan(t, encoded)
+	if plan.Payment != production.PaymentPerFinishedHour || plan.ContractedAmount == nil || *plan.ContractedAmount != 2400 {
+		t.Fatalf("an amount and no payment type reads as per finished hour, got %s", encoded)
+	}
+	if got := plan.Milestones; len(got) != 1 || got[0] != (project.Milestone{Name: "ACX 15-minute checkpoint", DueDate: "2026-10-15", Note: "approve"}) {
+		t.Fatalf("want the milestone with empty new fields, got %s", encoded)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(old) {
+		t.Fatalf("reading must not rewrite project.json, got %s (%v)", after, err)
+	}
+}
+
+// plan-roundtrips-with-the-new-fields: each payment type and a milestone with every new field read back equal from a
+// new host over the same folder.
+func TestProductionPlanRoundTripsThePaymentAndMilestoneFieldsAcrossARestart(t *testing.T) {
+	host := hostWithCredits(t)
+	milestones := []project.Milestone{
+		{Name: "ACX 15-minute checkpoint", DueDate: "2026-10-15", Measure: "checkpoint", Estimate: "2026-10-12", Done: true, Template: "checkpoint15"},
+		{Name: "Final delivery", DueDate: "2026-12-01", Measure: "all"},
+	}
+	if _, err := host.ProductionSaveMilestones(milestones); err != nil {
+		t.Fatal(err)
+	}
+	for _, payment := range []string{production.PaymentRoyaltyShare, production.PaymentNone, production.PaymentPerFinishedHour} {
+		saved, err := host.ProductionSetPayment(payment)
+		if err != nil {
+			t.Fatal(err)
+		}
+		restarted := NewHost()
+		restarted.config.projectFolder = host.config.projectFolder
+		restarted.config.projectName = host.config.projectName
+		reread, err := restarted.ProductionPlan()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if reread != saved {
+			t.Fatalf("%s: want the saved plan back after a restart\nsaved:  %s\nreread: %s", payment, saved, reread)
+		}
+		plan := decodePlan(t, reread)
+		if plan.Payment != payment || len(plan.Milestones) != 2 || plan.Milestones[0] != milestones[0] || plan.Milestones[1] != milestones[1] {
+			t.Fatalf("%s: unexpected plan %s", payment, reread)
+		}
+	}
+}
+
+// royalty-share-has-no-figure: choosing royalty share or none clears the contracted amount on save (the mock's
+// Schedule dialog does the same, studio-next/tests/batch-b.test.tsx), and an amount is then refused with a sentence
+// until the payment type is per finished hour again. The overview computes no effective rate.
+func TestProductionSetPaymentClearsTheAmountForRoyaltyShareOrNone(t *testing.T) {
+	for _, payment := range []string{production.PaymentRoyaltyShare, production.PaymentNone} {
+		host := productionHost(t)
+		amount := 2400.0
+		if _, err := host.ProductionSetDeadline("2026-12-01", &amount); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := host.ProductionStartTimer("c-0001", "recording"); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(5 * time.Millisecond)
+		if _, err := host.ProductionStopTimer(); err != nil {
+			t.Fatal(err)
+		}
+		if before, _, err := host.buildProductionOverview(); err != nil || before.Totals.EffectiveRate == nil {
+			t.Fatalf("%s: want an effective rate while per finished hour, got %+v %v", payment, before.Totals, err)
+		}
+		encoded, err := host.ProductionSetPayment(payment)
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := decodePlan(t, encoded)
+		if plan.Payment != payment || plan.ContractedAmount != nil || plan.Deadline == nil || *plan.Deadline != "2026-12-01" {
+			t.Fatalf("%s: want the amount cleared and the deadline kept, got %s", payment, encoded)
+		}
+		if manifest, _, _ := project.Load(host.persist, host.config.projectFolder); manifest.ContractedAmount != nil || manifest.Payment != payment {
+			t.Fatalf("%s: want the amount cleared on the manifest, got %+v", payment, manifest)
+		}
+		if _, err := host.ProductionSetDeadline("2026-12-01", &amount); err == nil || !strings.Contains(err.Error(), "per finished hour") {
+			t.Fatalf("%s: want an amount refused with a sentence, got %v", payment, err)
+		}
+		overview, _, err := host.buildProductionOverview()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if overview.Totals.ContractedAmount != nil || overview.Totals.EffectiveRate != nil {
+			t.Fatalf("%s: want no amount and no effective rate, got %+v", payment, overview.Totals)
+		}
+		if _, err := host.ProductionSetDeadline("", nil); err != nil {
+			t.Fatalf("%s: clearing the deadline without an amount stays allowed: %v", payment, err)
+		}
+	}
+}
+
+// refusals-stay-whole-list: an unknown payment type is refused and nothing is saved.
+func TestProductionSetPaymentRefusesAnUnknownTypeAndWritesNothing(t *testing.T) {
+	host := hostWithCredits(t)
+	amount := 2400.0
+	if _, err := host.ProductionSetDeadline("2026-12-01", &amount); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(project.Path(host.config.projectFolder))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"", "royalty", "hourly"} {
+		if _, err := host.ProductionSetPayment(bad); err == nil {
+			t.Errorf("%q: want refused", bad)
+		}
+	}
+	if _, err := host.ProductionSaveMilestones([]project.Milestone{{Name: "M", DueDate: "2026-10-15", Measure: "nonsense"}}); err == nil {
+		t.Error("want an unknown measure refused")
+	}
+	after, err := os.ReadFile(project.Path(host.config.projectFolder))
+	if err != nil || string(after) != string(before) {
+		t.Fatalf("a refused call must write nothing:\nbefore %s\nafter  %s", before, after)
 	}
 }
