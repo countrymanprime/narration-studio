@@ -240,6 +240,8 @@ type takeSelector struct {
 	allowed func(dawport.Capability) error
 }
 
+var _ dawport.TakeSelector = takeSelector{}
+
 // HideTakes mutes every take of itemGUID but keepTakeGUID (bridge's hide_takes). It asks allowed itself first, so a refusal is
 // the capability's own sentence rather than bridge's ErrExperimentalOff.
 func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID string) (dawport.Result, error) {
