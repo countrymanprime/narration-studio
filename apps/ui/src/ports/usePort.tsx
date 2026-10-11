@@ -2,10 +2,12 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useApi } from '../api/ApiContext';
 import type { NarrationApi } from '../types';
 import { createHostDawClient } from './daw';
+import { createHostMeasurements } from './measurements';
 import type { ClientPortMap, PortName, PortOf } from './index';
 
 const CLIENT_BUILDERS: { [N in keyof ClientPortMap]: (api: NarrationApi) => ClientPortMap[N] } = {
   daw: createHostDawClient,
+  measurements: createHostMeasurements,
 };
 
 const isClientPort = (name: PortName): name is keyof ClientPortMap => Object.hasOwn(CLIENT_BUILDERS, name);

@@ -1322,6 +1322,14 @@ export function ProductionStatusReport(includeContractedAmount: boolean): $Cance
 }
 
 /**
+ * ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
+ * (ADR 0843). includeContractedAmount is the same opt-in as the export's.
+ */
+export function ProductionStatusReportPreview(includeContractedAmount: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1952080667, includeContractedAmount);
+}
+
+/**
  * ProductionStopTimer stops the running timer. It answers {stopped: true, session} with the session it logged, or
  * {stopped: false, session: null} when no timer was running.
  */

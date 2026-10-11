@@ -1,4 +1,3 @@
-import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -8,7 +7,6 @@ import type { ProductionChapter, ProductionOverview } from '../../api/contracts/
 import { chapterName } from '../../chapterName';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { useApi } from '../../api/ApiContext';
-import { useChapterSync } from '../../hooks/useChapterSync';
 import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { Select } from '../primitives/Select';
@@ -21,12 +19,12 @@ import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageEvidence } from '../stages/StageEvidence';
 import { StageCheckLine, StageSummaryChips } from '../stages/StageSummary';
 import { chapterCheckStatus, chapterCheckStatusText } from './chapterCheckStatus';
-import { chapterSyncBatchToastText } from './chapterSyncToastText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { RecordingCheck } from './RecordingCheck';
 import { creditsCheckChapter, creditsCheckKind } from './recordingCheckText';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
+import { useChapterSyncToast } from './useChapterSyncToast';
 import { useCreditsRows, type CreditsKind } from './useCreditsRows';
 import { BOARD_COLUMNS, boardCell, creditsCell, isCurrentStage } from './productionFormat';
 
@@ -112,29 +110,6 @@ export function ChapterBoard({
     void loadTrackLinks();
   }, [loadTrackLinks, refreshKey, measuredRun]);
 
-  // Chapter sync: one toast per batch that linked something. `lastBatchAt` guards
-  // against re-toasting the same batch on a re-render.
-  const chapterSync = useChapterSync(api);
-  const lastBatchAt = useRef<string>(undefined);
-  useEffect(() => {
-    const batch = chapterSync?.batch;
-    if (!batch || batch.linked.length === 0 || lastBatchAt.current === batch.at) return;
-    lastBatchAt.current = batch.at;
-    const trackName = (guid: string) => trackLinks?.tracks.find((track) => track.guid === guid)?.name;
-    notify(
-      chapterSyncBatchToastText(batch, trackName),
-      'info',
-      {
-        label: 'Undo',
-        onAction: () => {
-          void Promise.all(batch.linked.map((link) => api.chapterSyncUndo(link.trackGuid))).catch((error) => notify(describeApiError(error), 'error'));
-        },
-      },
-      faLayerGroup,
-    );
-    void loadTrackLinks();
-  }, [chapterSync?.batch, trackLinks, api, notify, loadTrackLinks]);
-
   useEffect(() => {
     if (coverage.phase !== 'complete' || !coverage.runId || lastCompleted.current === coverage.runId) return;
     lastCompleted.current = coverage.runId;
@@ -155,27 +130,25 @@ export function ChapterBoard({
     void loadChapters();
   }, [loadChapters, refreshKey, measuredRun]);
 
+  // Chapter sync: the batch toast, and a re-read on every later `chaptersync:state`.
+  const chapterSync = useChapterSyncToast({
+    api,
+    notify,
+    trackName: (guid) => trackLinks?.tracks.find((track) => track.guid === guid)?.name,
+    onState: () => {
+      void loadTrackLinks();
+      void loadChapters();
+      void stages.refresh();
+      onChanged();
+    },
+  });
+
   // Refresh when the window regains focus: the narrator saving the project in REAPER while the page stays open.
   useRefreshOnFocus(() => {
     void stages.refresh();
     void loadChapters();
     onChanged();
   }, stages.busy);
-
-  // Every `chaptersync:state` after the first may mean the saved project or a stored
-  // result changed.
-  const sawChapterSync = useRef(false);
-  useEffect(() => {
-    if (!chapterSync) return;
-    if (!sawChapterSync.current) {
-      sawChapterSync.current = true;
-      return;
-    }
-    void loadChapters();
-    void stages.refresh();
-    onChanged();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only chapterSync (a new object per event) should retrigger this
-  }, [chapterSync]);
 
   // Remove from recording / Restore: the chapter leaves or rejoins the board. Remove
   // rethrows on failure so the slide-over's confirm stays open for a retry.

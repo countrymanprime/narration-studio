@@ -1304,6 +1304,65 @@ describe('App shell mounts', () => {
     expect(document.activeElement).toBe(button);
   });
 
+  it('jump-menu-chapters-come-from-the-slot: lists "Go to <chapter>" for every chapter of the manuscript', async () => {
+    renderApp();
+    await openJumpFromHeader();
+    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
+    expect((await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length).toBeGreaterThan(0);
+  });
+
+  it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
+    const manuscriptChapters = vi.fn().mockResolvedValue([]);
+    renderApp({ manuscriptChapters, bootstrap: bootstrapWithCandidate({ path: 'a.docx', name: 'a.docx' }) });
+    await screen.findByRole('button', { name: /Jump to or run/ });
+    expect(manuscriptChapters).not.toHaveBeenCalled();
+  });
+
+  it('refreshes-after-an-import: a job:ended event makes the jump menu list the new chapters', async () => {
+    const listeners = new Set<(event: never) => void>();
+    const ended = (event: never) => listeners.forEach((l) => l(event));
+    const chapters = await createMockApi().manuscriptChapters();
+    let list = chapters.slice(0, 1);
+    const extra = { ...chapters[0]!, id: 'chapter-new', index: 99, title: 'Zzyzx Afterword' };
+    renderApp({ manuscriptChapters: async () => list, subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)) });
+    const button = await openJumpFromHeader();
+    let field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    fireEvent.change(field, { target: { value: 'Zzyzx' } });
+    expect(screen.queryByRole('option', { name: /Zzyzx/ })).toBeNull();
+    fireEvent.keyDown(field, { key: 'Escape' });
+    list = [...chapters, extra];
+    await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+    fireEvent.click(button);
+    field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    fireEvent.change(field, { target: { value: 'Zzyzx' } });
+    expect(await screen.findByRole('option', { name: /Zzyzx/ })).toBeTruthy();
+  });
+
+  it('failed-load-keeps-the-last-list: a failing read leaves the chapters in the menu', async () => {
+    let fail = false;
+    const listeners = new Set<(event: never) => void>();
+    const ended = (event: never) => listeners.forEach((l) => l(event));
+    const base = createMockApi();
+    const chapters = await base.manuscriptChapters();
+    renderApp({
+      manuscriptChapters: async () => {
+        if (fail) throw new Error('boom');
+        return chapters;
+      },
+      subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
+    });
+    await openJumpFromHeader();
+    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
+    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length;
+    fail = true;
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
+    expect(screen.getAllByRole('option', { name: /^Go to Chapter/ })).toHaveLength(before);
+  });
+
   it('jump-menu-opens-from-key-and-header-button: Ctrl+K opens it too', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });

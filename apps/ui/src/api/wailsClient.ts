@@ -85,6 +85,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
@@ -421,6 +422,8 @@ export const wailsClient: NarrationApi = {
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
   productionStatusReport: (includeContractedAmount) =>
     decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(includeContractedAmount)),
+  productionStatusReportPreview: (includeContractedAmount) =>
+    decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(includeContractedAmount)),
   productionBurndown: () => decode(productionBurndownSchema, 'ProductionBurndown', host.ProductionBurndown()),
   subscribeCoverage: (onUpdate) => subscribeChecked('coverage:state', coverageStateSchema, onUpdate),
   editingStart: (documentId, chapterId, chapterTitle) =>

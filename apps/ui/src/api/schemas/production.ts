@@ -9,6 +9,7 @@ import type {
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
+  ProductionReportPreview,
   ProductionSession,
   ProductionStartResult,
   ProductionStopResult,
@@ -115,5 +116,13 @@ export const productionReportExportSchema = z.object({
   jsonFile: z.string(),
   contractedAmountIncluded: z.boolean(),
 }) satisfies z.ZodType<ProductionReportExport>;
+
+export const productionReportPreviewSchema = z.strictObject({
+  html: z.string(),
+  json: z.string(),
+  folder: z.string(),
+  stem: z.string(),
+  contractedAmountIncluded: z.boolean(),
+}) satisfies z.ZodType<ProductionReportPreview>;
 
 export const productionBurndownSchema = z.array(z.object({ date: calendarDate, hoursLogged: z.number() })) satisfies z.ZodType<ProductionBurndownPoint[]>;

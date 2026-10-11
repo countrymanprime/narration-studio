@@ -66,6 +66,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#3': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
   'src/App.tsx#4': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
   'src/App.tsx#5': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
+  'src/components/storybible/entryList.ts#1':
+    "Saving the Story Bible list's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the list is already sorted as asked.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
   'src/useCapability.ts#1':
