@@ -1,0 +1,9 @@
+[
+  {
+    "id": "shared-python-lib",
+    "prompt": "I need to rename a helper in libs/python/narration_common that I think only one sidecar uses. Can you make the change?",
+    "expect": "trigger"
+  },
+  { "id": "shared-ui-component", "prompt": "Make the shared button component under apps/ui/src/components 4px taller on every page.", "expect": "trigger" },
+  { "id": "isolated-doc-typo", "prompt": "Fix the typo in the first heading of docs/guides/getting-started.md.", "expect": "no-trigger" }
+]

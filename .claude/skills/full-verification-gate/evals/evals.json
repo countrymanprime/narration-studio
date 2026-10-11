@@ -1,0 +1,13 @@
+[
+  {
+    "id": "ready-to-open-pr",
+    "prompt": "I've finished the feature and want to open the pull request now. Are we good to call this done?",
+    "expect": "trigger"
+  },
+  {
+    "id": "local-tests-pass",
+    "prompt": "The tests I ran locally pass, so I think this bug fix is complete. Anything else before I report it as done?",
+    "expect": "trigger"
+  },
+  { "id": "explain-adr", "prompt": "Summarise what ADR 0066 decides about testing the Lua bridge.", "expect": "no-trigger" }
+]

@@ -1,0 +1,9 @@
+[
+  { "id": "new-bridge-command", "prompt": "Add a new bridge command so the app can ask REAPER to select a track by name.", "expect": "trigger" },
+  {
+    "id": "new-bridge-event",
+    "prompt": "The Lua bridge needs to emit a new event when the user splits a take in REAPER. Wire it up end to end.",
+    "expect": "trigger"
+  },
+  { "id": "lua-format-only", "prompt": "Run the formatter over the Lua files in integrations/reaper and tell me if anything changed.", "expect": "no-trigger" }
+]
