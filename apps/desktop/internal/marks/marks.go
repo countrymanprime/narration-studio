@@ -104,7 +104,8 @@ func DefaultTypes() []MarkType {
 // noteType is the type the reader's old notes come across as.
 const noteType = "note"
 
-// Message is one reply in a mark's thread. Threads are written by a later slice; today every mark's thread is empty.
+// Message is one message in a mark's thread: who wrote it (one of Authors), its plain text, and the host's UTC time it was
+// written, as RFC 3339.
 type Message struct {
 	Who  string `json:"who"`
 	Text string `json:"text"`
@@ -498,7 +499,7 @@ func validFile(file marksFile) bool {
 			return false
 		}
 		for _, message := range mark.Thread {
-			if checkText(message.Text) != nil {
+			if checkMessage(message) != nil {
 				return false
 			}
 		}
