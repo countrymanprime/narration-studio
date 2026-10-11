@@ -910,5 +910,35 @@
     "file": "narration_pickups.lua",
     "find": "  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or",
     "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'Narration Utils: list pickups', -1)\n  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or"
+  },
+  {
+    "name": "hide_takes: a stale item GUID resolves to another item",
+    "file": "narration_takes.lua",
+    "find": "  local item = nil\n  for index = 0, reaper.CountMediaItems(0) - 1 do",
+    "replace": "  local item = reaper.GetMediaItem(0, 0)\n  for index = 0, reaper.CountMediaItems(0) - 1 do"
+  },
+  {
+    "name": "hide_takes: the kept take is hidden",
+    "file": "narration_takes.lua",
+    "find": "if take and take ~= keep and saved_volume(take) == nil then",
+    "replace": "if take and saved_volume(take) == nil then"
+  },
+  {
+    "name": "hide_takes: an undo block opens with nothing changed",
+    "file": "narration_takes.lua",
+    "find": "if #to_hide == 0 and restore == nil and not activate then",
+    "replace": "if false then"
+  },
+  {
+    "name": "hide_takes: the recording refusal is lifted",
+    "file": "narration_takes.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')"
+  },
+  {
+    "name": "hide_takes: a take is deleted",
+    "file": "narration_takes.lua",
+    "find": "    reaper.SetMediaItemTakeInfo_Value(take, 'D_VOL', 0)\n",
+    "replace": "    reaper.SetMediaItemTakeInfo_Value(take, 'D_VOL', 0)\n    reaper.Main_OnCommand(40129, 0)\n"
   }
 ]

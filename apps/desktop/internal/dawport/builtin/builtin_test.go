@@ -180,6 +180,10 @@ func TestRolesDriveTheRecorder(t *testing.T) {
 	if !set.Changed || set.TakeGUID != "Take 003" || len(rec.keepers) != 1 || rec.keepers[0] != "Take 003" {
 		t.Errorf("SetActiveTake = %+v, keepers %v; want Take 003 kept", set, rec.keepers)
 	}
+	hidden, err := takes.HideTakes(ctx, "chapter-1", "Take 003")
+	if err != nil || !hidden.OK || hidden.Changed || hidden.UndoSteps != 0 || len(rec.keepers) != 1 {
+		t.Errorf("HideTakes = %+v, %v; want ok and nothing changed", hidden, err)
+	}
 }
 
 func TestRolesRefuseWithoutARecorderOrAfterCancel(t *testing.T) {

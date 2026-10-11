@@ -47,6 +47,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'create_take',
     'export_compare_markers',
     'export_pickups',
+    'hide_takes',
     'import_pickups',
     'inspect_compare_results',
     'jump_to_compare_marker',
