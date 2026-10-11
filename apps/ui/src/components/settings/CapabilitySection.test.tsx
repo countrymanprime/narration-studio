@@ -167,6 +167,8 @@ async function renderDawCategory() {
           registerActions={vi.fn()}
           onProjectDataCleared={async () => undefined}
           onLinkDawFile={vi.fn()}
+          go={vi.fn()}
+          refreshBootstrap={async () => undefined}
           initialCategory="Daw"
         />
       </ApiProvider>

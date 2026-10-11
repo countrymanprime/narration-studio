@@ -746,6 +746,8 @@ function AppRoutes() {
                         guardedNavigate('/');
                       }}
                       onLinkDawFile={() => void linkDawFile()}
+                      go={guardedNavigate}
+                      refreshBootstrap={refreshBootstrap}
                       initialCategory={SETTINGS_ANCHORS[location.hash]}
                     />
                   }

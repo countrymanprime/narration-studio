@@ -91,7 +91,12 @@ export const settingsStates: StateEntry[] = [
       'Settings, Global scope / DAW Integration category with REAPER detected but no REAPER project linked yet (?mockNoDaw=1, docs/architecture/daw-integration.md): the "Link a REAPER project file" handoff button next to the detected entry, and the "Check again" action below it',
     ...REFLOW,
   },
-  { page: 'settings', state: 'global-manuscript', description: 'Settings, Global scope / Manuscript category (note color picker)', ...REFLOW },
+  {
+    page: 'settings',
+    state: 'global-manuscript',
+    description: 'Settings, Global scope / Manuscript category: the Manuscript panel with Replace manuscript, and the note color picker',
+    ...REFLOW,
+  },
   {
     page: 'settings',
     state: 'global-stage-recommendations',

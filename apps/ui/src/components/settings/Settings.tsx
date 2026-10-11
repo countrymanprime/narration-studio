@@ -21,6 +21,7 @@ import { CapabilitySection } from './CapabilitySection';
 import { DawCatalogPanel } from './DawCatalogPanel';
 import { DeliveryProfilesPanel } from './DeliveryProfilesPanel';
 import { KeyboardPanel } from './KeyboardPanel';
+import { ManuscriptSection } from './ManuscriptSection';
 import { OnlineDictionaryPanel } from './OnlineDictionaryPanel';
 import { RecordingCheckSummary } from './RecordingCheckSummary';
 import { ScopedSetting } from './ScopedSetting';
@@ -91,6 +92,8 @@ export function Settings({
   registerActions,
   onProjectDataCleared,
   onLinkDawFile,
+  go,
+  refreshBootstrap,
   initialCategory,
 }: {
   data: Bootstrap;
@@ -100,6 +103,10 @@ export function Settings({
   onProjectDataCleared: () => Promise<void>;
   /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;
+  /** Navigates the app (the import flow's credits prompt links to Settings > Credits). */
+  go: (page: string) => void;
+  /** Re-reads the shared application state after an import commits. */
+  refreshBootstrap: () => Promise<void>;
   /**
    * The category to open on (a deep link such as the teleprompter's "Fill them in Settings" for the credits),
    * in the first scope that has it. Absent: General, in the Global scope.
@@ -418,6 +425,9 @@ export function Settings({
                   }}
                 >
                   {/* The narrator's own Merriam-Webster key is theirs, not a project's, so it is set in Global only. */}
+                  {category === 'Manuscript' && scope === 'global' && (
+                    <ManuscriptSection data={data} go={go} notify={notify} refreshBootstrap={refreshBootstrap} />
+                  )}
                   {category === 'ManuscriptGuide' && scope === 'global' && <OnlineDictionaryPanel notify={notify} />}
                   {category === 'About' && (
                     <>
