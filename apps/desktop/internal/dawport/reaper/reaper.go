@@ -61,6 +61,12 @@ var declares = map[dawport.Capability]dawport.Level{
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so this is Unsupported,
 	// not NotYetAvailable (port.go's own example is exactly this shape, the other way around: "Audacity has no punch-and-roll").
 	dawport.CapMacroRender: dawport.Unsupported,
+	// The edit rows (SND-3): REAPER can make each edit, but the bridge has no command for them yet. Each command slice flips its own row
+	// to Experimental.
+	dawport.CapCutRange:   dawport.NotYetAvailable,
+	dawport.CapFXRange:    dawport.NotYetAvailable,
+	dawport.CapStackTakes: dawport.NotYetAvailable,
+	dawport.CapBackups:    dawport.NotYetAvailable,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and

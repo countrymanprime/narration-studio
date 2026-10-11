@@ -16,7 +16,7 @@ Appearance controls the light/dark theme.
 Other categories mix dropdowns and color pickers — Manuscript's own category, for example,
 controls the color used to mark reader notes in the text. **General** (Global only) also holds the
 **Narrator name (default for credits)** and the **Room tone per credits file (seconds)**, 0 to 10 and 0 by
-default: the silence the [Production](production.md#the-credits-rows) credits estimate adds to the opening and to the closing credits file, head
+default: the silence the [Production](production.md#the-credits) credits estimate adds to the opening and to the closing credits file, head
 and tail together (ACX asks for 1 to 5 seconds at each end of every file). In both scopes:
 
 - **Recording check** holds the four numbers the [recording check](production.md#checking-a-chapters-recording) uses: the **Share of
@@ -112,7 +112,7 @@ announcement, and the retail sample.
   is saved as you type. Where the manuscript suggests a title or author, **Use suggestion** fills it in.
 
 The first opening and closing templates appear in the [Script](script.md) reader and as the
-credits rows on [Production](production.md#the-credits-rows).
+credits rows on [Production](production.md#the-credits).
 
 ![Settings, Credits, a chapter announcement previewed for Chapter 1](../../images/ui/settings-credits-chapter-announcement.webp)
 

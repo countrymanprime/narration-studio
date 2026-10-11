@@ -30,3 +30,7 @@ What each engine declares for each capability today. The levels are the adapters
 | `render_with_fx` | `FXRenderer` | Engine answering | Experimental | Not yet available | Not reachable |
 | `master_chain_read` | `MasterChainReader` | Engine answering | Experimental | Not yet available | Not reachable |
 | `macro_render` | `MacroRenderer` | Engine answering | Unsupported | Experimental | Not reachable |
+| `cut_range` | `RangeCutter` | Engine answering | Not yet available | Not yet available | Not reachable |
+| `fx_range` | `RangeFXApplier` | Engine answering | Not yet available | Not yet available | Not reachable |
+| `stack_takes` | `TakeStacker` | Engine answering | Not yet available | Not yet available | Not reachable |
+| `backups` | `BackupKeeper` | Engine answering | Not yet available | Not yet available | Not reachable |

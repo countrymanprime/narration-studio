@@ -68,6 +68,32 @@ describe('wailsClient', () => {
     ]);
   });
 
+  it('sends the Story Bible review flags and speaker colour calls, with null for an omitted alias index', async () => {
+    const marked = vi.fn().mockResolvedValue('null');
+    const flagged = vi.fn().mockResolvedValue('null');
+    const coloured = vi.fn().mockResolvedValue('null');
+    standInHost({ GuideMarkReviewed: marked, GuideFlagReview: flagged, GuideSetSpeakerColor: coloured });
+
+    await expect(wailsClient.guideMarkReviewed('e-1')).resolves.toBeUndefined();
+    await wailsClient.guideMarkReviewed('e-1', 2);
+    await wailsClient.guideFlagReview('e-1');
+    await wailsClient.guideFlagReview('e-1', 0);
+    await wailsClient.guideSetSpeakerColor('e-1', 4);
+    await wailsClient.guideSetSpeakerColor('e-1', null);
+    expect(marked.mock.calls).toEqual([
+      ['e-1', null],
+      ['e-1', 2],
+    ]);
+    expect(flagged.mock.calls).toEqual([
+      ['e-1', null],
+      ['e-1', 0],
+    ]);
+    expect(coloured.mock.calls).toEqual([
+      ['e-1', 4],
+      ['e-1', null],
+    ]);
+  });
+
   it('accepts, ignores and reads the reviews of a recording check gap by ids only', async () => {
     const finding = {
       schema_version: 1,
@@ -956,6 +982,38 @@ describe('the passage map bindings', () => {
   it('refuses an answer its schema does not accept', async () => {
     standInHost({ PassageMapList: () => Promise.resolve(JSON.stringify([{ ...marks[0], kind: 'pause' }])) });
     await expect(wailsClient.passageMapList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
+describe('the accepted words bindings', () => {
+  const word = {
+    key: 'p-000001:5',
+    paragraphId: 'p-000001',
+    ordinal: 5,
+    text: 'Queen',
+    acceptedAt: '2026-10-11T10:00:00Z',
+    paragraph: 0,
+    stale: false,
+  };
+  const words = { chapterId: 'c-0001', words: [word] };
+
+  it('calls the three host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(words));
+    const accept = vi.fn().mockResolvedValue(JSON.stringify({ ...words, changed: ['p-000001:5'] }));
+    const unaccept = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', words: [], changed: ['p-000001:5'] }));
+    standInHost({ EditingAcceptedList: list, EditingAccept: accept, EditingUnaccept: unaccept });
+
+    await expect(wailsClient.editingAcceptedList('c-0001')).resolves.toEqual(words);
+    expect(list).toHaveBeenCalledWith('c-0001');
+    await expect(wailsClient.editingAccept('c-0001', ['p-000001:5'])).resolves.toMatchObject({ changed: ['p-000001:5'] });
+    expect(accept).toHaveBeenCalledWith('c-0001', ['p-000001:5']);
+    await expect(wailsClient.editingUnaccept('c-0001', ['p-000001:5'])).resolves.toMatchObject({ words: [] });
+    expect(unaccept).toHaveBeenCalledWith('c-0001', ['p-000001:5']);
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ EditingAcceptedList: () => Promise.resolve(JSON.stringify({ ...words, words: [{ ...word, ordinal: -1 }] })) });
+    await expect(wailsClient.editingAcceptedList('c-0001')).rejects.toBeInstanceOf(WireError);
   });
 });
 

@@ -94,6 +94,7 @@ const ZERO_DIRS = [
   'src/components/production/readiness/',
   'src/components/production/pipeline/',
   'src/components/production/overview/',
+  'src/components/proof/checkcard/',
 ];
 
 const MARKER = 'native-control-ok:';

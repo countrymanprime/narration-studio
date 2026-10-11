@@ -52,6 +52,19 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	}
 }
 
+// The edit rows (SND-3) are NotYetAvailable with no role until their command slices build them.
+func TestTheEditCapabilitiesAreNotYetAvailable(t *testing.T) {
+	adapter := closedAdapter(t)
+	for _, c := range []dawport.Capability{dawport.CapCutRange, dawport.CapFXRange, dawport.CapStackTakes, dawport.CapBackups} {
+		if got := adapter.Declares()[c]; got != dawport.NotYetAvailable {
+			t.Errorf("%s is declared %v, want NotYetAvailable", c, got)
+		}
+		if role := adapter.Role(c); role != nil {
+			t.Errorf("%s has role %T before its command is built", c, role)
+		}
+	}
+}
+
 func resolverFor(adapter dawport.Adapter, rt dawport.Runtime, toggle dawport.Toggle) *dawport.Resolver {
 	return dawport.NewResolver(dawport.ResolverConfig{
 		Adapter: adapter,

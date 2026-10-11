@@ -28,6 +28,10 @@ The full table, with the commands and their reply shapes, is [the Audacity 4 spe
 
 Audacity has no items, takes or extension data. Take creation, pickups, line identity and render setup are REAPER-only, and the review page hides REAPER's take management for an Audacity launch instead of showing it disabled ([ADR 0660](../../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md)).
 
+## Not yet available
+
+`cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with Audacity: the adapter has no role for them. Every other capability except navigate, markers and `macro_render` is not yet available too ([matrix](matrix.md)).
+
 ## Checking a capability in Audacity
 
 [The Audacity verification pass](../../operations/audacity-verification-pass.md): Part A runs unattended against Audacity 3 with the module enabled and records the installed version first; Part B is by eye and ear. Its table gives the expected result of each step. On Audacity 4.0, step A1 fails with "not reachable" and the run stops.

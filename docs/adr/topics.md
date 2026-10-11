@@ -353,6 +353,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
 | [0842](0842-accepting-a-recording-check-gap-writes-one-note-and-ignoring-one-is-remembered-in-a-small-review-file.md) | Accepting a recording-check gap writes one note, and ignoring one is remembered in a small review file | Proposed |
 | [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
+| [0856](0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | The Editing records are one file per kind, keyed by word with its text, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md) | The take suggestion is evidence first, and its confidence is null with a reason until the takes are comparable | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>

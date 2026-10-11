@@ -749,6 +749,7 @@ def build_entities(paragraphs: list[dict[str, str]], model_name: str, espeak_lib
                 "locked": False,
                 "manual": False,
                 "review_state": "needs review" if category == "Needs Review" else "generated",
+                "review": {"entry": category == "Needs Review", "aliases": []},
                 "appearances": appearance_map(all_evidence, scenes),
             }
         )
@@ -884,6 +885,11 @@ def merge_locked(generated: list[dict[str, Any]], old: dict[str, Any] | None) ->
             entity["relationships"] = prior.get("relationships", [])
             # Properties are the narrator's own facts and extraction never produces them, so a rebuild keeps them all.
             entity["properties"] = entity_properties(prior)
+            # The narrator's review flags and speaker colour are theirs too.
+            if isinstance(prior.get("review"), dict):
+                entity["review"] = prior["review"]
+            if prior.get("speaker_color"):
+                entity["speaker_color"] = prior["speaker_color"]
             # A pronunciation the narrator explicitly chose (pronounce(), marked "chosen") survives a rebuild too,
             # the same as a locked entity's - only an auto-generated one is replaced by the fresh build (B11).
             # Otherwise the narrator's note and alternate carry over to the fresh one.
@@ -909,6 +915,8 @@ def merge_locked(generated: list[dict[str, Any]], old: dict[str, Any] | None) ->
                     entity.setdefault("aliases", []).append(alias)
                     fresh_alias_texts.add(alias["text"].lower())
             entity["occurrence_count"] = entity_occurrence_count(entity)
+            if "review" in entity:
+                entity["review"] = entity_review(entity)
         merged.append(entity)
         seen_ids.add(entity["id"])
     # Locked or manual entries the rebuild didn't rediscover at all (e.g. a
@@ -1112,6 +1120,8 @@ def apply_edit(
             )
         entity["aliases"] = new_aliases
         entity["occurrence_count"] = entity_occurrence_count(entity)
+        if "review" in entity:
+            entity["review"] = entity_review(entity)
     else:
         raise ValueError("Unsupported editable field.")
 
@@ -1169,6 +1179,94 @@ def _pronunciation_holder(guide: dict[str, Any], entity_id_value: str, alias_ind
     if not 0 <= alias_index < len(aliases):
         raise ValueError("Alias index out of range.")
     return aliases[alias_index], aliases[alias_index]["text"]
+
+
+def entity_review(entity: dict[str, Any]) -> dict[str, Any]:
+    """The entry's review flags: ``entry`` for the entry itself and ``aliases``, the alias texts still to look at.
+
+    A file written before the flags existed has no ``review``; its entry flag is ``review_state == "needs review"`` and no name is flagged.
+    A stored name the entry no longer has is dropped.
+    """
+    stored = entity.get("review")
+    if not isinstance(stored, dict):
+        return {"entry": entity.get("review_state") == "needs review", "aliases": []}
+    names = {alias["text"] for alias in entity.get("aliases", []) if isinstance(alias, dict)}
+    flagged = [text for text in stored.get("aliases") or [] if isinstance(text, str) and text in names]
+    return {"entry": bool(stored.get("entry")), "aliases": list(dict.fromkeys(flagged))}
+
+
+def set_review(entity: dict[str, Any], entry: bool, aliases: list[str]) -> None:
+    """Stores the review flags, keeping only names the entry has, and keeps ``review_state`` (which the findings read) in step:
+    a flagged entry needs review, and one with nothing left to look at is reviewed."""
+    entity["review"] = entity_review({**entity, "review": {"entry": entry, "aliases": aliases}})
+    if entry:
+        entity["review_state"] = "needs review"
+    elif not entity["review"]["aliases"] and entity.get("review_state") == "needs review":
+        entity["review_state"] = "reviewed"
+
+
+def _review_target(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str | None]:
+    """The entry a review call changes and the alias text it names (None for the entry itself). Refused on a locked entry (ADR 0007)."""
+    entity = find_entity(guide, entity_id_value)
+    if entity.get("locked"):
+        raise ValueError("This entity is locked. Unlock it before editing.")
+    if alias_index is None:
+        return entity, None
+    aliases = entity.get("aliases", [])
+    if not 0 <= alias_index < len(aliases):
+        raise ValueError("Alias index out of range.")
+    return entity, aliases[alias_index]["text"]
+
+
+def mark_reviewed(args: argparse.Namespace) -> None:
+    """Mark reviewed: the entry and every name (no ``--alias-index``), or one name. The entry is reviewed when nothing is left."""
+    guide = _load_guide_for_edit(args.guide)
+    entity, alias = _review_target(guide, args.entity_id, args.alias_index)
+    review = entity_review(entity)
+    if alias is None:
+        set_review(entity, False, [])
+        entity["review_state"] = "reviewed"
+    else:
+        set_review(entity, review["entry"], [text for text in review["aliases"] if text != alias])
+    write_json(args.guide, guide)
+    print(f"REVIEWED|{args.entity_id}")
+
+
+def review_flag(args: argparse.Namespace) -> None:
+    """Flags the entry, or one name, as needing review: the undo of ``mark_reviewed`` and what an accepted automatic suggestion sets.
+    A flag that is already set changes nothing and the file is not written."""
+    guide = _load_guide_for_edit(args.guide)
+    entity, alias = _review_target(guide, args.entity_id, args.alias_index)
+    review = entity_review(entity)
+    if alias is None and not (review["entry"] and isinstance(entity.get("review"), dict)):
+        set_review(entity, True, review["aliases"])
+        write_json(args.guide, guide)
+    elif alias is not None and alias not in review["aliases"]:
+        set_review(entity, review["entry"], [*review["aliases"], alias])
+        write_json(args.guide, guide)
+    print(f"FLAGGED|{args.entity_id}")
+
+
+SPEAKER_COLORS = 7
+# Only a character speaks (the dialogue cues resolve to characters only), so only a character has a speaker colour.
+SPEAKING_CATEGORIES = {"Character"}
+
+
+def speaker_color(args: argparse.Namespace) -> None:
+    """Sets the entry's speaker colour, 1..7 (the ``--speaker-N`` hue of ADR 0367), which wins over the stable pick; 0 puts it back to
+    automatic. Refused on a locked entry and for a category that cannot speak."""
+    if not 0 <= args.index <= SPEAKER_COLORS:
+        raise ValueError(f"A speaker colour is 1 to {SPEAKER_COLORS}, or 0 for automatic.")
+    guide = _load_guide_for_edit(args.guide)
+    entity, _ = _review_target(guide, args.entity_id, None)
+    if entity.get("category") not in SPEAKING_CATEGORIES:
+        raise ValueError("Only a character speaks, so only a character has a speaker colour.")
+    if args.index:
+        entity["speaker_color"] = args.index
+    else:
+        entity.pop("speaker_color", None)
+    write_json(args.guide, guide)
+    print(f"SPEAKER_COLOR|{args.entity_id}|{args.index}")
 
 
 def _load_guide_for_edit(path: str) -> dict[str, Any]:
@@ -1310,6 +1408,7 @@ def create(args: argparse.Namespace) -> None:
         "locked": False,
         "manual": True,
         "review_state": "reviewed",
+        "review": {"entry": False, "aliases": []},
         "appearances": [],
     }
     description = getattr(args, "description", "")
@@ -1338,6 +1437,7 @@ def split(args: argparse.Namespace) -> None:
     match_index = next((index for index, alias in enumerate(aliases) if alias["text"].lower() == alias_text.lower()), None)
     if match_index is None:
         raise ValueError("Alias not found.")
+    review = entity_review(entity)
     alias = aliases.pop(match_index)
     new_id = entity_id(alias["text"])
     if any(value["id"] == new_id for value in guide["entities"]):
@@ -1357,8 +1457,13 @@ def split(args: argparse.Namespace) -> None:
         "locked": False,
         "manual": False,
         "review_state": "reviewed",
+        # A name that needed review gives its flag back to the entry it becomes.
+        "review": {"entry": alias["text"] in review["aliases"], "aliases": []},
         "appearances": [],
     }
+    if new_entity["review"]["entry"]:
+        new_entity["review_state"] = "needs review"
+    set_review(entity, review["entry"], review["aliases"])
     new_entity["occurrence_count"] = entity_occurrence_count(new_entity)
     entity["occurrence_count"] = entity_occurrence_count(entity)
     guide["entities"].append(new_entity)
@@ -1560,6 +1665,11 @@ def merge(args: argparse.Namespace) -> None:
     target_properties = entity_properties(target)
     target_keys = {item["key"].casefold() for item in target_properties}
     target["properties"] = [*target_properties, *(item for item in entity_properties(source) if item["key"].casefold() not in target_keys)]
+    # Flagged if either was, with the name flags of both that the target now has; the target's colour, else the source's.
+    target_review, source_review = entity_review(target), entity_review(source)
+    set_review(target, target_review["entry"] or source_review["entry"], [*target_review["aliases"], *source_review["aliases"]])
+    if not target.get("speaker_color") and source.get("speaker_color"):
+        target["speaker_color"] = source["speaker_color"]
 
     for other in guide["entities"]:
         if other["id"] in {args.source_id, args.target_id}:
@@ -1897,6 +2007,18 @@ def main() -> None:
     audio_parser.add_argument("--piper-model", required=True)
     audio_parser.add_argument("--alias-index", type=int, default=None)
     audio_parser.add_argument("--output-name", default="")
+    review_parser = command.add_parser("mark-reviewed", help="the entry and every name reviewed, or one name (--alias-index)")
+    review_parser.add_argument("--guide", required=True)
+    review_parser.add_argument("--entity-id", required=True)
+    review_parser.add_argument("--alias-index", type=int, default=None)
+    flag_parser = command.add_parser("review-flag", help="flag the entry, or one name (--alias-index), as needing review")
+    flag_parser.add_argument("--guide", required=True)
+    flag_parser.add_argument("--entity-id", required=True)
+    flag_parser.add_argument("--alias-index", type=int, default=None)
+    color_parser = command.add_parser("speaker-color", help="set a character's speaker colour, 1 to 7, or 0 for automatic")
+    color_parser.add_argument("--guide", required=True)
+    color_parser.add_argument("--entity-id", required=True)
+    color_parser.add_argument("--index", type=int, required=True)
     check_parser = command.add_parser("self-check", help="prove the dictionary and the espeak-ng data this program carries load (the packaged smoke test)")
     check_parser.add_argument("--piper-model", default="", help="also load this voice and speak one word")
     command.add_parser(
@@ -1932,6 +2054,9 @@ def main() -> None:
             "merge": merge,
             "split": split,
             "correct-cue": correct_cue,
+            "mark-reviewed": mark_reviewed,
+            "review-flag": review_flag,
+            "speaker-color": speaker_color,
             "delete": delete,
             "relate": relate,
             "unrelate": unrelate,

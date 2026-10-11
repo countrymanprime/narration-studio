@@ -25,7 +25,8 @@ func newTestHostForDawCapabilities(t *testing.T, daw string) *Host {
 // TestDawCapabilitiesGoldenIsCurrent pins DawCapabilities' payload for the three launch kinds a unit test can build
 // without a real REAPER session: no DAW at all (every capability unsupported, standalone), REAPER declared but not
 // connected (its Supported/Experimental declaration, refused standalone or experimental_off, except the offline
-// project_read capability, which needs no bridge), and Audacity (navigate, markers and macro_render experimental and
+// project_read capability, which needs no bridge, and the edit rows cut_range, fx_range, stack_takes and backups, not_yet_available
+// until their commands land), and Audacity (navigate, markers and macro_render experimental and
 // switched off, ADR 0355, ADR 0460; every other capability not_yet_available, ADR 0144's sentence). UPDATE_CONTRACTS=1
 // rewrites tests/fixtures/contracts/daw-capabilities-*.json.
 func TestDawCapabilitiesGoldenIsCurrent(t *testing.T) {

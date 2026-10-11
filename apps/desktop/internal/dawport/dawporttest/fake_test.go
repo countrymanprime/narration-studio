@@ -83,3 +83,43 @@ func TestFakeWorksThroughTheResolver(t *testing.T) {
 		t.Fatalf("Calls() = %q", got)
 	}
 }
+
+func TestFakeEditRolesAnswerAResultAndFailOnceClosed(t *testing.T) {
+	f := NewFake(dawport.KindREAPER, Levels(dawport.Experimental))
+	ctx := context.Background()
+	calls := func() []func() (dawport.Result, error) {
+		cut := f.Role(dawport.CapCutRange).(dawport.RangeCutter)
+		fx := f.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+		stack := f.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+		backups := f.Role(dawport.CapBackups).(dawport.BackupKeeper)
+		return []func() (dawport.Result, error){
+			func() (dawport.Result, error) {
+				return cut.DeleteRange(ctx, dawport.DeleteRangeRequest{Mode: dawport.CutClose})
+			},
+			func() (dawport.Result, error) { return fx.ApplyFXToRange(ctx, dawport.FXRangeRequest{}) },
+			func() (dawport.Result, error) { return fx.RemoveFXFromRange(ctx, "item", "Chain") },
+			func() (dawport.Result, error) { return stack.StackTakes(ctx, dawport.StackRequest{}) },
+			func() (dawport.Result, error) { return stack.UnstackTakes(ctx, dawport.StackRequest{}) },
+			func() (dawport.Result, error) { return backups.BackupAround(ctx, dawport.BackupRequest{}) },
+			func() (dawport.Result, error) { return backups.RestoreBackup(ctx, "backup") },
+		}
+	}()
+	for i, call := range calls {
+		if got, err := call(); err != nil || !got.OK || !got.Changed || got.UndoSteps != 1 {
+			t.Errorf("call %d = %+v, %v; want ok, changed, one undo step", i, got, err)
+		}
+	}
+	want := []string{
+		"cut_range.DeleteRange", "fx_range.ApplyFXToRange", "fx_range.RemoveFXFromRange", "stack_takes.StackTakes",
+		"stack_takes.UnstackTakes", "backups.BackupAround", "backups.RestoreBackup",
+	}
+	if got := f.Calls(); !slices.Equal(got, want) {
+		t.Errorf("Calls() = %v, want %v", got, want)
+	}
+	f.Close()
+	for i, call := range calls {
+		if got, err := call(); !errors.Is(err, ErrClosed) || got.OK {
+			t.Errorf("closed call %d = %+v, %v; want ErrClosed", i, got, err)
+		}
+	}
+}

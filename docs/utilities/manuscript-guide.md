@@ -16,6 +16,15 @@ Every entry carries `properties`: an ordered list of `{"key", "value"}` facts, t
 - **Creating with properties.** `create --properties=<JSON list>` sets them in the same run as the entry, for the import of a manuscript's cast blocks (`guide.Service.CreateFull` in the host). The list must be valid (a name on every property, no name twice); an invalid list creates nothing. The caller merges repeated labels before it asks.
 - **Rebuilding.** A build never produces properties, so `merge_locked` carries the prior list onto a regenerated entry, and a locked or manual entry is kept whole. `merge` unions by key: the target's value wins and the source adds the keys the target lacks.
 
+## Review flags and speaker colour
+
+Every entry carries `review: {"entry", "aliases"}`: whether the entry itself still needs the narrator's look, and which alias texts do. A file written before it has none; its `entry` reads from `review_state == "needs review"` and no name is flagged. An entry may also carry `speaker_color`, 1 to 7 (the `--speaker-N` hues of ADR 0367), which wins over the stable pick; absent means automatic.
+
+- **`mark-reviewed --entity-id [--alias-index]`** clears the entry and every name, or one name. When the entry flag is off and no name is left, `review_state` becomes `reviewed`.
+- **`review-flag --entity-id [--alias-index]`** sets the flag: the undo of `mark-reviewed`, and what an accepted automatic suggestion sets. Flagging the entry sets `review_state` to `needs review`; a flag already set changes nothing.
+- **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only a Character takes one, since only a character speaks.
+- All three refuse a locked entry (ADR 0007). `merge` keeps the target flagged if either was, with both entries' name flags that the target now has, and keeps the target's colour, else the source's; `split` gives a flagged name's flag to the new entry; removing an alias drops its flag; a rebuild keeps both fields.
+
 ## Pronunciation: generate and replace
 
 Alongside the automatic CMU-then-eSpeak fallback used at build time (`pronunciation()`), a narrator can set a pronunciation

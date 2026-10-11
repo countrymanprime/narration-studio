@@ -10,6 +10,7 @@ import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMar
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
+import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -881,6 +882,28 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const cleared = (await api.guideDialogueCues()).find((cue) => cue.id === unknown?.id);
     expect(cleared).toMatchObject({ speaker_entity_id: null, speaker_source: 'correction', corrected: true });
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
+  });
+
+  it('the Story Bible review flags and speaker colour', async () => {
+    const api = createMockApi();
+    const entity = (await api.guideEntities()).find((row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked);
+    if (!entity) throw new Error('the mock has no unlocked character with an alias');
+    const read = async () => (await api.guideEntities()).find((row) => row.id === entity.id);
+    await api.guideFlagReview(entity.id);
+    await api.guideFlagReview(entity.id, 0);
+    expect((await read())?.review).toEqual({ entry: true, aliases: [entity.aliases[0].text] });
+    await api.guideMarkReviewed(entity.id, 0);
+    expect((await read())?.review).toEqual({ entry: true, aliases: [] });
+    await api.guideMarkReviewed(entity.id);
+    expect(await read()).toMatchObject({ review: { entry: false, aliases: [] }, review_state: 'reviewed' });
+    await api.guideSetSpeakerColor(entity.id, 3);
+    expect((await read())?.speaker_color).toBe(3);
+    await api.guideSetSpeakerColor(entity.id, null);
+    expect((await read())?.speaker_color).toBeUndefined();
+    await expect(api.guideSetSpeakerColor(entity.id, 8)).rejects.toThrow('1 to 7');
+    const place = (await api.guideEntities()).find((row) => row.category !== 'Character' && !row.locked);
+    if (place) await expect(api.guideSetSpeakerColor(place.id, 2)).rejects.toThrow('Only a character speaks');
+    expectMatches(guideEntitiesSchema, await api.guideEntities(), 'mock entities after review and colour');
   });
 
   it('the character bible: regions, approving a reference, revoking it and removing every reference', async () => {
@@ -2991,6 +3014,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksRemove',
       'passageMapRecordRun',
       'passageMapList',
+      'editingAcceptedList',
+      'editingAccept',
+      'editingUnaccept',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -3230,6 +3256,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideRelate',
       'guideUnrelate',
       'guideCorrectCue',
+      'guideMarkReviewed',
+      'guideFlagReview',
+      'guideSetSpeakerColor',
       'characterRevoke',
       'characterRemoveVoiceData',
       'seriesDelete',
@@ -3640,5 +3669,65 @@ describe('the passage map bindings', () => {
     expect(passageMarkSchema.safeParse({ ...mark, path: '/etc/passwd' }).success).toBe(false);
     expect(passageMarkSchema.safeParse({ ...mark, staleReason: 'moved' }).success).toBe(false);
     expect(passageMarkSchema.safeParse({ ...mark, prev: { pid: 'p', word: 0, extra: 1 } }).success).toBe(false);
+  });
+});
+
+// The narrator's accepted words (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the
+// host refuses, and the schemas refuse what the host never sends.
+describe('the accepted words bindings', () => {
+  const firstWords = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
+  };
+
+  it('the mock answers EditingAcceptedList, Accept and Unaccept through their schemas, in reading order', async () => {
+    const { api, chapterId, line } = await firstWords();
+    expectMatches(acceptedWordsSchema, await api.editingAcceptedList(chapterId), 'mock accepted list (empty)');
+    const accepted = await api.editingAccept(chapterId, [`${line.id}:2`, `${line.id}:0`]);
+    expectMatches(acceptedWordsChangeSchema, accepted, 'mock accept');
+    expect(accepted.changed).toEqual([`${line.id}:2`, `${line.id}:0`]);
+    expect(accepted.words.map((word) => word.key)).toEqual([`${line.id}:0`, `${line.id}:2`]);
+    expect(accepted.words[0]).toMatchObject({ text: line.text.split(/\s+/).filter(Boolean)[0], paragraph: line.index, stale: false });
+    expect((await api.editingAccept(chapterId, [`${line.id}:0`])).changed).toEqual([]);
+    const listed = await api.editingAcceptedList(chapterId);
+    expectMatches(acceptedWordsSchema, listed, 'mock accepted list');
+    expect(listed.words).toHaveLength(2);
+    const removed = await api.editingUnaccept(chapterId, [`${line.id}:0`, `${line.id}:1`]);
+    expectMatches(acceptedWordsChangeSchema, removed, 'mock unaccept');
+    expect(removed.changed).toEqual([`${line.id}:0`]);
+    expect(removed.words.map((word) => word.key)).toEqual([`${line.id}:2`]);
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstWords();
+    const count = line.text.split(/\s+/).filter(Boolean).length;
+    await expect(api.editingAccept('no-such-chapter', [`${line.id}:0`])).rejects.toThrow('not in the manuscript');
+    await expect(api.editingAccept(otherId, [`${line.id}:0`])).rejects.toThrow('not in this chapter');
+    await expect(api.editingAccept(chapterId, [`${line.id}:0`, `${line.id}:${count}`])).rejects.toThrow('past the end of its line');
+    await expect(api.editingAccept(chapterId, [`${line.id}:-1`])).rejects.toThrow('not a word of the script');
+    await expect(api.editingAccept(chapterId, [`${line.id}:01`])).rejects.toThrow('not a word of the script');
+    await expect(api.editingAccept(chapterId, ['../../etc/passwd:0'])).rejects.toThrow('not in this chapter');
+    await expect(api.editingAccept(chapterId, [])).rejects.toThrow('choose a word');
+    expect((await api.editingAcceptedList(chapterId)).words).toEqual([]);
+  });
+
+  it('the schemas read stale words and refuse a negative ordinal, an unknown key or a stale reason the host never sends', () => {
+    const list = parseWire(acceptedWordsSchema, readGolden('edit-accepted-list.json'), ctx('accepted list'));
+    expect(list.words.filter((word) => word.stale).map((word) => word.staleReason)).toEqual(['text_changed', 'word_missing']);
+    const empty = parseWire(acceptedWordsSchema, readGolden('edit-accepted-list-empty.json'), ctx('accepted list empty'));
+    expect(empty.words).toEqual([]);
+    const change = parseWire(acceptedWordsChangeSchema, readGolden('edit-accepted-accept.json'), ctx('accept'));
+    expect(change.changed).toEqual(['p-000001:4', 'p-000001:5']);
+    expect(parseWire(acceptedWordsChangeSchema, readGolden('edit-accepted-unaccept.json'), ctx('unaccept')).changed).toEqual(['p-000002:1', 'p-000002:3']);
+    const word = change.words[0];
+    expect(acceptedWordSchema.safeParse({ ...word, ordinal: -1 }).success).toBe(false);
+    expect(acceptedWordSchema.safeParse({ ...word, ordinal: 1.5 }).success).toBe(false);
+    expect(acceptedWordSchema.safeParse({ ...word, path: '/etc/passwd' }).success).toBe(false);
+    expect(acceptedWordSchema.safeParse({ ...word, key: '../x' }).success).toBe(false);
+    expect(acceptedWordSchema.safeParse({ ...word, staleReason: 'moved' }).success).toBe(false);
+    expect(acceptedWordsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
   });
 });

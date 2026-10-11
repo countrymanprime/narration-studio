@@ -61,7 +61,12 @@ especially welcome:
   a file or a mark that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
   being validated, a DAW id taken from the page instead of read by the host, or a mark moved to a guessed place instead of reported
   stale, is in scope; one that only changes where the narrator's own takes are said to begin is the documented residual risk (threat
-  model row 6x).
+  model row 6y).
+- The narrator's accepted words (`narration-utils/editing/accepted.json` in the project,
+  [ADR 0856](docs/adr/0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
+  a file or a key that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
+  being validated, or an accepted word applied to another word instead of reported stale, is in scope; one that only changes which
+  flags the narrator sees on their own manuscript is the documented residual risk (threat model row 6x).
 - The narrator's calls on recording-check gaps (`narration-utils/coverage/gap-reviews.json` in the project,
   [ADR 0842](docs/adr/0842-accepting-a-recording-check-gap-writes-one-note-and-ignoring-one-is-remembered-in-a-small-review-file.md)):
   a file or an id that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without

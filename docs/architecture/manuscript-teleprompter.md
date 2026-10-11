@@ -612,7 +612,7 @@ REAPER (#510).
 
 The Booth writes a passage map while it records, so Editing can list a Booth-recorded chapter's passages without aligning
 the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_passagemap.go`,
-`apps/desktop/internal/passagemap`; host API 93).
+`apps/desktop/internal/passagemap`; host API 95).
 
 - **The file.** `<project>/narration-utils/passagemap.json`: `{ "schemaVersion": 1, "marks": [...] }`. Each mark is
   `{ id, run, chapterId, pid, word, sec, kind, prev?, itemGuid, takeGuid }`; `kind` is `start`, `roll` or `stop`, and a

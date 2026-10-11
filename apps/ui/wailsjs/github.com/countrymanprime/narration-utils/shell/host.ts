@@ -659,6 +659,21 @@ export function DiagnosticsState(): $CancellablePromise<string> {
 }
 
 /**
+ * EditingAccept records words of a chapter as accepted, so they are no longer flagged. Every key must name a word of the
+ * chapter's current text, or nothing is saved; a word already accepted is not recorded twice.
+ */
+export function EditingAccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
+    return $Call.ByID(2697825286, chapterID, keys);
+}
+
+/**
+ * EditingAcceptedList returns a chapter's accepted words (flagged words the narrator kept as read) in reading order.
+ */
+export function EditingAcceptedList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2965962927, chapterID);
+}
+
+/**
  * EditingCancel asks a running check to stop after its current item; the
  * items it already finished stay cached and ledgered. With nothing running
  * it does nothing.
@@ -716,6 +731,13 @@ export function EditingStart(documentID: string, chapterID: string, chapterTitle
  */
 export function EditingState(): $CancellablePromise<string> {
     return $Call.ByID(2969112107);
+}
+
+/**
+ * EditingUnaccept removes words of a chapter from the accepted list, so their flags show again (Undo of an accept).
+ */
+export function EditingUnaccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
+    return $Call.ByID(4156351737, chapterID, keys);
 }
 
 /**
@@ -900,6 +922,22 @@ export function GuideEntities(): $CancellablePromise<string> {
     return $Call.ByID(1537717617);
 }
 
+/**
+ * GuideFlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of GuideMarkReviewed, and the call that
+ * flags an entry an accepted automatic suggestion changed.
+ */
+export function GuideFlagReview(id: string, aliasIndex: number | null): $CancellablePromise<string> {
+    return $Call.ByID(3261446084, id, aliasIndex);
+}
+
+/**
+ * GuideMarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when
+ * nothing is left to look at.
+ */
+export function GuideMarkReviewed(id: string, aliasIndex: number | null): $CancellablePromise<string> {
+    return $Call.ByID(4040741622, id, aliasIndex);
+}
+
 export function GuideMerge(sourceID: string, targetID: string): $CancellablePromise<string> {
     return $Call.ByID(98047630, sourceID, targetID);
 }
@@ -957,6 +995,14 @@ export function GuideRescan(id: string): $CancellablePromise<string> {
 
 export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise<string> {
     return $Call.ByID(2024869160, id, locked);
+}
+
+/**
+ * GuideSetSpeakerColor sets a character's speaker colour, 1 to 7 (--speaker-N, ADR 0367), which wins over the stable pick; nil or 0
+ * puts it back to automatic. A category that cannot speak is refused.
+ */
+export function GuideSetSpeakerColor(id: string, index: number | null): $CancellablePromise<string> {
+    return $Call.ByID(2072746294, id, index);
 }
 
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {

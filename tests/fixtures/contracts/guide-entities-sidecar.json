@@ -77,6 +77,10 @@
     },
     "properties": [],
     "relationships": [],
+    "review": {
+      "aliases": [],
+      "entry": false
+    },
     "review_state": "generated"
   },
   {
@@ -147,6 +151,10 @@
     },
     "properties": [],
     "relationships": [],
+    "review": {
+      "aliases": [],
+      "entry": true
+    },
     "review_state": "needs review"
   },
   {
@@ -186,6 +194,10 @@
     },
     "properties": [],
     "relationships": [],
+    "review": {
+      "aliases": [],
+      "entry": false
+    },
     "review_state": "generated"
   }
 ]
