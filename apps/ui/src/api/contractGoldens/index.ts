@@ -33,6 +33,7 @@ import { masteringGoldens } from './mastering';
 import { recordingGoldens } from './recording';
 import { prepMarkupGoldens } from './prepMarkup';
 import { bookmarksGoldens } from './bookmarks';
+import { passageMapGoldens } from './passageMap';
 import { editLogGoldens } from './editLog';
 import { marksGoldens } from './marks';
 import { productionGoldens } from './production';
@@ -73,6 +74,7 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   recordingGoldens,
   prepMarkupGoldens,
   bookmarksGoldens,
+  passageMapGoldens,
   editLogGoldens,
   marksGoldens,
   productionGoldens,

@@ -36,6 +36,7 @@ export * from './api/contracts/editing';
 export * from './api/contracts/cleanup';
 export * from './api/contracts/prepMarkup';
 export * from './api/contracts/bookmarks';
+export * from './api/contracts/passageMap';
 export * from './api/contracts/editLog';
 export * from './api/contracts/marks';
 export * from './api/contracts/workspace';
@@ -88,6 +89,7 @@ import type { EditingApi } from './api/contracts/editing';
 import type { CleanupActionApi } from './api/contracts/cleanup';
 import type { PrepMarkupApi } from './api/contracts/prepMarkup';
 import type { BookmarksApi } from './api/contracts/bookmarks';
+import type { PassageMapApi } from './api/contracts/passageMap';
 import type { EditLogApi } from './api/contracts/editLog';
 import type { MarksApi } from './api/contracts/marks';
 import type { WorkspaceApi } from './api/contracts/workspace';
@@ -145,6 +147,7 @@ export interface NarrationApi
     CleanupActionApi,
     PrepMarkupApi,
     BookmarksApi,
+    PassageMapApi,
     EditLogApi,
     MarksApi,
     WorkspaceApi,

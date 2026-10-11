@@ -12,6 +12,8 @@ type Props = {
    * resolved display name where it does not. Defaults to `label`, so a caller with no separate id still gets a
    * stable, deterministic colour. */
   speakerId?: string;
+  /** The entry's `speaker_color` (1..7), the narrator's pick, which wins over the colour hashed from the id. */
+  colorOverride?: number;
   /** Opens the speaker's Story Bible entry (mirrors Highlight's own onActivate), the Booth's "Voices in scene" use. */
   onActivate?: () => void;
   description?: string;
@@ -22,8 +24,8 @@ type Props = {
 /** A speaker's colour, the same one Highlight's `colorToken` override draws with for the Booth's "Voices in scene"
  * tags (booth/BoothView.tsx): both read the token names from speakerColor.ts, so a speaker's colour is the same
  * wherever the app names them (D85 #6, ADR 0367). */
-export function SpeakerTag({ label, speakerId, onActivate, description, size = 'tag' }: Props) {
-  const token = speakerColorToken(speakerId ?? label);
+export function SpeakerTag({ label, speakerId, colorOverride, onActivate, description, size = 'tag' }: Props) {
+  const token = speakerColorToken(speakerId ?? label, colorOverride);
   const style = { background: `color-mix(in srgb, var(${token}) 20%, transparent)`, color: `var(${token}-text)`, borderColor: 'transparent' };
   const classes = `${badgeClass(size)} ${PLACEMENT}`;
   if (!onActivate)
