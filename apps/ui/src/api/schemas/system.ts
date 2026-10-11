@@ -24,7 +24,7 @@ export const bootstrapSchema = z.object({
   projectFolder: z.string(),
   projectName: z.string(),
   daw: z.string(),
-  // Defaulted to false so a Bootstrap from a host that predates these fields (W13) still parses instead of failing the whole payload;
+  // Defaulted to false so a Bootstrap from a host that predates these fields still parses instead of failing the whole payload;
   // false reads as "not linked" / "unknown", which is the safe fallback for each.
   dawFileLinked: z.boolean().default(false),
   dawReachable: z.boolean().default(false),
@@ -50,8 +50,8 @@ export const jobEndedSchema = z.object({
   durationMs: z.number(),
 }) satisfies z.ZodType<JobEnded>;
 
-/** SystemCopyDiagnostics's answer (docs/prds/tool-run-logging.prd.md phase 7). */
+/** SystemCopyDiagnostics's answer. */
 export const copyDiagnosticsResultSchema = z.object({ path: z.string() }) satisfies z.ZodType<CopyDiagnosticsResult>;
 
-/** WindowZoom's and WindowSetZoom's answer (app-navigation-and-zoom-controls.prd.md Phase 2). */
+/** WindowZoom's and WindowSetZoom's answer. */
 export const windowZoomSchema = z.object({ level: z.number() }) satisfies z.ZodType<WindowZoom>;

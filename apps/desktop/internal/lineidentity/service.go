@@ -3,7 +3,7 @@
 // integrations/reaper/narration_line_identity.lua). It is the second consumer built on the event fan-out
 // (apps/desktop/internal/bridge), alongside the transcript service.
 //
-// Line ID scheme (PRD reaper-automation-follow-through, Open Question 4, answered (a)): a line ID stamped
+// Line ID scheme: a line ID stamped
 // onto a REAPER item is the manuscript entity ID (a paragraph ID such as "p-000001" or a chapter ID such as
 // "c-0001") plus the manuscript's source SHA-256, so a re-import that renumbers entities is detectable
 // instead of silently drifting. The stored line text (already written by the Lua side) is the second signal:
@@ -45,7 +45,7 @@ type Service struct {
 	state map[string]any
 }
 
-// New builds the service over role (DAW port PRD Phase 5b: line identity depends on the LineStamper role, never
+// New builds the service over role (line identity depends on the LineStamper role, never
 // a concrete bridge client). When there is a role it subscribes to the events line identity owns: the LINES_*
 // family, and ERROR events for its own run (or with no run, a session-level problem). The transcript service
 // subscribes independently on the same underlying client; Dispatch fans events to both.
@@ -385,7 +385,7 @@ func rowStatus(idOK bool, dataErr error, stampedHash, currentHash, entityID, sto
 	return "ok"
 }
 
-// ComposeLineID and ParseLineID implement the line ID scheme (Open Question 4, answered (a)): the
+// ComposeLineID and ParseLineID implement the line ID scheme: the
 // manuscript entity ID plus the manuscript's source SHA-256, joined by "@" (an entity ID is "p-000006" or
 // "c-0004" and never contains "@").
 const lineIDSeparator = "@"
@@ -422,7 +422,7 @@ func sourceSHA256(data map[string]any) (string, error) {
 }
 
 // entityText maps every chapter and paragraph ID to the text a stamp of it should carry: a chapter's title
-// (chapter-level identity, Open Question 3's first slice) and a paragraph's own text. The two ID spaces
+// (chapter-level identity) and a paragraph's own text. The two ID spaces
 // never collide ("c-" versus "p-" prefixes), so one map serves both granularities.
 func entityText(data map[string]any) map[string]string {
 	texts := map[string]string{}

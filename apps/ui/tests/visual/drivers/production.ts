@@ -70,7 +70,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'chapter-sync-toast-undo': async (page) => {
     // The mock's `?mockChapterSync=linked` seam runs its first sync once something subscribes (see mockApi.ts),
-    // which the Production board does on mount, so the toast appears without a click (Phase 3, S12).
+    // which the Production board does on mount, so the toast appears without a click.
     await page.goto('/?mockChapterSync=linked');
     await settlePage(page);
     await productionLoaded(page);
@@ -131,7 +131,7 @@ export const productionDrivers: Record<string, Driver> = {
     await settlePage(page);
     await confirmDialog(page, 'Import manuscript?').waitFor();
   },
-  // credits-token-setup-and-front-matter-detection.prd.md Phase 2: the "Set up the credits" dialog, reached with no
+  // The "Set up the credits" dialog, reached with no
   // manuscript-candidate offer in the way (see main.tsx's ?mockCredits=setup seam).
   'credits-setup-dialog': async (page) => {
     await page.goto('/?mockCredits=setup');
@@ -215,7 +215,7 @@ export const productionDrivers: Record<string, Driver> = {
     const dialog = await openRecordingCheck(page, 'Chapter 1');
     await dialog.getByText('Passes the check').waitFor();
   },
-  // RS2 A: a chapter that is simply unfinished states it in the summary
+  // A chapter that is simply unfinished states it in the summary
   // ("Recorded to paragraph N of M") rather than listing its unread end as a pickup.
   'recording-check-incomplete': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 4');
@@ -242,14 +242,14 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByRole('button', { name: 'Check recording' }).click();
     await confirmDialog(page, 'Download local Whisper model?').waitFor();
   },
-  // The model cascade's own result (recording-check-model-cascade PRD Phase 5, MC5): both models named, and the
+  // The model cascade's own result: both models named, and the
   // pickups it confirmed still missing.
   'recording-check-cascade': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 4', 'mockCoverage=cascade');
     await dialog.getByText(/passage.*re-checked with the large-v3-turbo Whisper model/).waitFor();
     await dialog.getByText('Confirmed missing by the large-v3-turbo Whisper model.').first().waitFor();
   },
-  // The re-check model's own missing-model gate (Phase 5, MC4): "Check with tiny only" beside the download.
+  // The re-check model's own missing-model gate: "Check with tiny only" beside the download.
   'recording-check-recheck-model-required': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7', 'mockCoverage=recheck-required');
     await dialog.getByRole('button', { name: 'Check recording' }).click();
@@ -318,7 +318,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'editing-check-complete-clean': async (page) => {
     const panel = await openEditingCheck(page, 'mockEditingSignal=met');
-    await panel.getByText('Met.').waitFor();
+    await panel.getByText('Met.', { exact: true }).waitFor();
   },
   'editing-check-cleanup-confirm': async (page) => {
     const panel = await openEditingCheck(page, 'mockEditingCandidates=1&mockEditingSignal=not-met&mockDawExperimentalOn=1');

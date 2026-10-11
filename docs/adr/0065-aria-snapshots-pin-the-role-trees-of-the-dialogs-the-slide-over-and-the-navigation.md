@@ -6,7 +6,7 @@
 
 ## Context
 
-The Base UI stack ([ADR 0047](0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md) to [ADR 0058](0058-heading-has-a-level-and-panel-names-its-region-with-a-level-2-title.md)) made the dialogs, the slide-over and the navigation drawer real modals with roles, names and an inert page behind them. Nothing pinned that: the atlas checks keyboard behaviour in `play()` and axe checks for violations, but a dialog that stopped being an `alertdialog`, lost its name or its Close button, or stopped hiding the page behind it would pass both. The verification tooling PRD planned aria snapshots for this once the trees had settled, sequenced after the dialog and drawer work and the Playwright traces (owner decision D22, question 9).
+The Base UI stack ([ADR 0047](0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md) to [ADR 0058](0058-heading-has-a-level-and-panel-names-its-region-with-a-level-2-title.md)) made the dialogs, the slide-over and the navigation drawer real modals with roles, names and an inert page behind them. Nothing pinned that: the atlas checks keyboard behaviour in `play()` and axe checks for violations, but a dialog that stopped being an `alertdialog`, lost its name or its Close button, or stopped hiding the page behind it would pass both. Aria snapshots were planned for this once the trees had settled, after the dialog and drawer work.
 
 ## Decision
 

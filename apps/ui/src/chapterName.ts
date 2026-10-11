@@ -1,4 +1,4 @@
-// One rule for a chapter's name everywhere it is shown (chapter-title-display-consistency.prd.md): title and subtitle
+// One rule for a chapter's name everywhere it is shown (ADR 0191): title and subtitle
 // join with " — " (space, em dash, space) in source casing, never CSS capitals, never italic or monospace. This is the
 // only place that formats one into plain text; primitives/TitleSubtitle.tsx is the only place that renders it as markup.
 // Read chapterNameFormatting.test.ts before adding another site that reads `.subtitle` directly.
@@ -15,7 +15,7 @@ export interface ChapterNameContext {
 }
 
 // 'plain' is 'full' with " - " (an ASCII hyphen) in place of the em dash, for a name a consumer may not take an em
-// dash in (a file name, a REAPER region: owner decision D34). It mirrors internal/chaptername's and
+// dash in (a file name, a REAPER region; ADR 0239). It mirrors internal/chaptername's and
 // narration_common's Plain form; tests/fixtures/chapter-names.json pins all three to the same output
 // (chapterName.fixture.test.ts).
 export type ChapterNameForm = 'full' | 'short' | 'plain' | ChapterNameContext;

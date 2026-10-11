@@ -1,6 +1,6 @@
 # Story Bible preview (hearing a name)
 
-The play button beside a Story Bible name, or beside one of its aliases, speaks it with the local Piper preview voice. This page is how that path works and how it fails. It replaces the defect PRD that tracked the failures (delivered by stacks S04 and S16); the narrator-facing troubleshooting table is in the [Story Bible guide](../guides/using-the-app/story-bible.md#hearing-a-name).
+The play button beside a Story Bible name, or beside one of its aliases, speaks it with the local Piper preview voice. This page is how that path works and how it fails. The narrator-facing troubleshooting table is in the [Story Bible guide](../guides/using-the-app/story-bible.md#hearing-a-name).
 
 ## The path
 

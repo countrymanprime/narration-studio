@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 // The `demo` mode (`.env.demo`, `pnpm build:demo`) publishes the mock build under GitHub Pages'
-// `/narration-utils/demo/` subpath (see docs/prds/public-app-demo.prd.md D3); every other mode
+// `/narration-utils/demo/` subpath (ADR 0096); every other mode
 // (dev, `mock`, `test`, production) keeps the app at the site root.
 export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],

@@ -13,8 +13,7 @@ import (
 	"strings"
 )
 
-// DefaultTailSeconds is how much of a recording's end the locate transcribes (teleprompter-manuscript-integration PRD
-// Phase 9, ADR 0111): about seventy words of narration, enough to place the tail in a chapter and to tell a passage the
+// DefaultTailSeconds is how much of a recording's end the locate transcribes (ADR 0111): about seventy words of narration, enough to place the tail in a chapter and to tell a passage the
 // chapter repeats from the one the narrator stopped in, and a few seconds of CPU decode with the tiny model.
 const DefaultTailSeconds = 30.0
 

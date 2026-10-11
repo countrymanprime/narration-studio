@@ -8,15 +8,14 @@
 ADR 0021 put Whisper and Moonshine behind one event contract, but until now Moonshine ran only from a developer's
 ephemeral `uv` environment: `moonshine-voice` was not a project dependency, the frozen `manuscript-teleprompter`
 sidecar left it out, and without `--model-dir` the library downloaded its model from Moonshine's servers into its own
-cache, checked only by CRC32C. `docs/prds/teleprompter-engines-and-input-devices.prd.md` Phase 5 put the English
-`tiny` and `small` streaming models in the hashed catalog (`config/moonshine-assets.json`, SHA-256 per file, ADR 0079);
-Phase 6 has to make the shipped program use them. The owner chose (2026-09-23) to freeze `moonshine-voice` into the
+cache, checked only by CRC32C. The English
+`tiny` and `small` streaming models are in the hashed catalog (`config/moonshine-assets.json`, SHA-256 per file, ADR 0079);
+the shipped program now has to use them. The owner chose (2026-09-23) to freeze `moonshine-voice` into the
 existing sidecar rather than a second executable, falling back to one only if the size cost was unacceptable.
 
 What was found while doing it:
 
-- `moonshine-voice` 0.1.5 has wheels for Windows x64, Linux and macOS arm64, and none for macOS Intel. The PRD scopes
-  Moonshine to Windows.
+- `moonshine-voice` 0.1.5 has wheels for Windows x64, Linux and macOS arm64, and none for macOS Intel. Moonshine is scoped to Windows.
 - The package loads `moonshine.dll`, and the `onnxruntime.dll` it ships beside it, with `ctypes` from its own folder.
   PyInstaller cannot see a `ctypes` load, so a freeze without them still starts and answers `--help`.
 - The package's own data (sample WAVs, TTS embeddings, about 8 MB) is never needed to transcribe, and `sounddevice`
@@ -24,8 +23,9 @@ What was found while doing it:
   `Transcriber`. Capture here is PyAV `dshow`. `google-crc32c` is optional (imported in a `try`) and only speeds up the
   checksum of the library's own downloader.
 - The library's own offline manifest for `en` with word timestamps names exactly the nine files, URLs and sizes the
-  catalog pins (the attention decoder `decoder_kv_with_attention.ort` included). The PRD records that a directory
-  without that decoder degrades word timings silently instead of failing.
+  catalog pins (the attention decoder `decoder_kv_with_attention.ort` included). A directory
+  without that decoder makes Moonshine silently return lines with no word timings instead of failing
+  (`moonshine_engine.py`).
 
 ## Decision
 
@@ -60,5 +60,5 @@ What was found while doing it:
 - The wheel carries its own ONNX Runtime 1.23, separate from the `onnxruntime` package faster-whisper uses. A session
   loads one engine, so the two never share a process today; a change that loads both in one process must check which
   DLL each gets.
-- Moving to another `moonshine-voice` version means re-checking its licence (D17), its wheel list and its DLL names, and
+- Moving to another `moonshine-voice` version means re-checking its licence (against [ADR 0039](0039-the-project-is-licensed-agpl-3-or-later.md)), its wheel list and its DLL names, and
   updating the catalog if the manifest test fails.

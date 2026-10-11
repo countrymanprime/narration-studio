@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-  Phase 0 spike for docs/prds/app-navigation-and-zoom-controls.prd.md: verifies today's zoom and
+  Phase 0 spike for the app navigation and zoom controls (results in
+  docs/research/app-navigation-and-zoom-controls-phase0.md): verifies the zoom and
   back/forward behaviour on the real packaged Windows build (Wails v3), scripted, with no REAPER
   and no owner. Throwaway research tooling (like apps/desktop/cmd/spike-globalhotkeys before it):
   not wired into the shipped binary, not run by any always-on CI job.
@@ -22,8 +23,8 @@
     - quits and relaunches against the same isolated profile folder to check zoom persistence.
 
   Touchpad pinch and a physical side-button mouse are not simulated: Win32 has no supported way to
-  synthesize either from a script, so those two rows stay owner-pending on #510 exactly as the PRD's
-  own Phase 0 scope says.
+  synthesize either from a script, so those two rows stay owner-pending on #510 as the results note
+  records.
 
 .OUTPUTS
   Writes a JSON report to -ReportPath (default .\app-nav-zoom-p0-report.json) and prints a
@@ -279,14 +280,14 @@ Send-CtrlWheel -Notches 6
 Start-Sleep -Milliseconds 800
 $afterWheelRatio = $cdp.Eval('window.devicePixelRatio')
 if ($afterWheelRatio -gt $baselineRatio) {
-    Add-Check -Name 'ctrl-wheel-zoom' -Result 'pass' -Detail "devicePixelRatio moved $baselineRatio -> $afterWheelRatio after 6 Ctrl+wheel notches up. Confirms mainWindowOptions()'s ZoomControlEnabled: true keeps this on, as the PRD's Evidence predicted from source."
+    Add-Check -Name 'ctrl-wheel-zoom' -Result 'pass' -Detail "devicePixelRatio moved $baselineRatio -> $afterWheelRatio after 6 Ctrl+wheel notches up. Confirms mainWindowOptions()'s ZoomControlEnabled: true keeps this on, as predicted from source."
 }
 else {
     Add-Check -Name 'ctrl-wheel-zoom' -Result 'fail' -Detail "devicePixelRatio did not increase ($baselineRatio -> $afterWheelRatio) after a synthetic Ctrl+wheel. Either SendInput's synthetic wheel isn't accepted the way real hardware input is, or zoom control is off in this build; needs a real machine to disambiguate (SendInput-synthesized input is occasionally treated differently from hardware by some input stacks)." -Confidence 'medium (synthetic input, see detail)'
 }
 
 # --- Ctrl+=, Ctrl+-, Ctrl+0: WebView2's browser accelerator keys are off (frontend disables them unconditionally
-#     on v2; Phase 2 of this PRD is what will make the page itself handle these, and it is not built yet) ------
+#     on v2; this script installs no page-level handler, so nothing handles them here) ------
 $preAccelRatio = $cdp.Eval('window.devicePixelRatio')
 Send-KeyChord -Modifiers @([NavZoomSpike.Win32]::VK_CONTROL) -Key ([NavZoomSpike.Win32]::VK_OEM_MINUS)
 Start-Sleep -Milliseconds 400
@@ -294,10 +295,10 @@ Send-KeyChord -Modifiers @([NavZoomSpike.Win32]::VK_CONTROL) -Key ([NavZoomSpike
 Start-Sleep -Milliseconds 400
 $postAccelRatio = $cdp.Eval('window.devicePixelRatio')
 if ($postAccelRatio -eq $preAccelRatio) {
-    Add-Check -Name 'ctrl-accelerator-keys-noop' -Result 'pass' -Detail "devicePixelRatio unchanged ($preAccelRatio) across Ctrl+-, Ctrl+0 with no app-level handler installed (Phase 2 not built): today, on Wails v3, these keys do nothing at the OS/WebView2 layer, exactly as PutAreBrowserAcceleratorKeysEnabled(false) predicts from source (main.go / v3's webview_window_windows.go)."
+    Add-Check -Name 'ctrl-accelerator-keys-noop' -Result 'pass' -Detail "devicePixelRatio unchanged ($preAccelRatio) across Ctrl+-, Ctrl+0 with no app-level handler installed (no page-level handler is mounted here): on Wails v3, these keys do nothing at the OS/WebView2 layer, exactly as PutAreBrowserAcceleratorKeysEnabled(false) predicts from source (main.go / v3's webview_window_windows.go)."
 }
 else {
-    Add-Check -Name 'ctrl-accelerator-keys-noop' -Result 'fail' -Detail "devicePixelRatio moved ($preAccelRatio -> $postAccelRatio) from Ctrl+-/Ctrl+0 alone, with no page-level handler present. Contradicts the PRD's source-based prediction; re-check whether v3 still disables browser accelerator keys the same way v2 did."
+    Add-Check -Name 'ctrl-accelerator-keys-noop' -Result 'fail' -Detail "devicePixelRatio moved ($preAccelRatio -> $postAccelRatio) from Ctrl+-/Ctrl+0 alone, with no page-level handler present. Contradicts the source-based prediction; re-check whether v3 still disables browser accelerator keys the same way v2 did."
 }
 
 # --- Zoom persistence across relaunch: is this WebView2's own per-profile behaviour, independent of app code? --
@@ -321,10 +322,10 @@ else {
         $cdp2 = [CdpClient]::new($wsUrl2)
         $relaunchRatio = $cdp2.Eval('window.devicePixelRatio')
         if ([Math]::Abs($relaunchRatio - $prePersistRatio) -lt 0.01) {
-            Add-Check -Name 'zoom-persists-relaunch' -Result 'pass' -Detail "devicePixelRatio was $prePersistRatio before quitting and $relaunchRatio on relaunch against the same profile folder: WebView2 restores the last Ctrl+wheel level on its own, with no app code involved. The PRD's Q4/Phase 3 work (an explicit saved 'Zoom' startup option) is about controlling this deliberately and app-wide, not about the underlying persistence not existing."
+            Add-Check -Name 'zoom-persists-relaunch' -Result 'pass' -Detail "devicePixelRatio was $prePersistRatio before quitting and $relaunchRatio on relaunch against the same profile folder: WebView2 restores the last Ctrl+wheel level on its own, with no app code involved. An explicit saved 'Zoom' startup option is about controlling this deliberately and app-wide, not about the underlying persistence not existing."
         }
         else {
-            Add-Check -Name 'zoom-persists-relaunch' -Result 'fail' -Detail "devicePixelRatio was $prePersistRatio before quitting (after a 12s wait for Chromium's preference-commit timer) and reset to $relaunchRatio on relaunch: WebView2 does NOT restore the level on its own here. Phase 3 cannot rely on an implicit WebView2 behaviour and must actively call Window.SetZoom before first paint, as its Scope already plans. (The 12s wait rules out the obvious false negative - the write not having landed before the process was killed - but a forced Stop-Process is still not the same shutdown path a narrator's own window-close would take; worth one confirmation on a real machine before fully relying on this.)"
+            Add-Check -Name 'zoom-persists-relaunch' -Result 'fail' -Detail "devicePixelRatio was $prePersistRatio before quitting (after a 12s wait for Chromium's preference-commit timer) and reset to $relaunchRatio on relaunch: WebView2 does NOT restore the level on its own here. Remembering the zoom cannot rely on an implicit WebView2 behaviour and must actively call Window.SetZoom before first paint. (The 12s wait rules out the obvious false negative - the write not having landed before the process was killed - but a forced Stop-Process is still not the same shutdown path a narrator's own window-close would take; worth one confirmation on a real machine before fully relying on this.)"
         }
         $cdp2.Close()
     }
@@ -335,7 +336,7 @@ else {
 }
 
 # --- Mouse buttons 4/5 and Alt+Left/Right vs WebView2's OWN back/forward handling, isolated from any app code --
-# ProjectPicker has no router (App.tsx gates it out entirely without a project attached), so there is no Phase 1
+# ProjectPicker has no router (App.tsx gates it out entirely without a project attached), so there is no app
 # JS listener mounted here to confound the answer: two history entries are pushed directly with the History API
 # (harmless same-page anchors, not real app routes) purely so there is somewhere for a native back/forward to go.
 $proc3 = Start-App -ProfileDir (Join-Path $env:RUNNER_TEMP 'navzoom-profile-nav')
@@ -354,14 +355,14 @@ else {
     Start-Sleep -Milliseconds 500
     $afterXButton = $cdp3.Eval('location.href')
     if ($afterXButton -ne $atB -and $afterXButton.EndsWith('#a')) {
-        Add-Check -Name 'mouse-xbutton1-navigates' -Result 'notable' -Detail "WebView2 itself moved from '#b' to '#a' on a synthetic XBUTTON1 press, with no page-level listener installed to cause it. This means WebView2 DOES wire the mouse's back/forward buttons to browser history even with PutAreBrowserAcceleratorKeysEnabled(false) (that setting is documented as covering keyboard accelerators; this suggests it does not cover the chrome mouse buttons). Phase 1's own mousedown/mouseup preventDefault matters for real: without it, WebView2's native back would run *in addition to* the app's guarded back, double-moving or bypassing the Settings/Proofing guards." -Confidence 'high (directly observed, isolated from app code)'
+        Add-Check -Name 'mouse-xbutton1-navigates' -Result 'notable' -Detail "WebView2 itself moved from '#b' to '#a' on a synthetic XBUTTON1 press, with no page-level listener installed to cause it. This means WebView2 DOES wire the mouse's back/forward buttons to browser history even with PutAreBrowserAcceleratorKeysEnabled(false) (that setting is documented as covering keyboard accelerators; this suggests it does not cover the chrome mouse buttons). The app's own mousedown/mouseup preventDefault matters for real: without it, WebView2's native back would run *in addition to* the app's guarded back, double-moving or bypassing the Settings/Proofing guards." -Confidence 'high (directly observed, isolated from app code)'
     }
     else {
-        Add-Check -Name 'mouse-xbutton1-navigates' -Result 'notable' -Detail "location stayed at '$afterXButton' after a synthetic XBUTTON1 press (expected '...#a'). WebView2 does NOT act on the mouse's back button by itself here; Phase 1's mousedown preventDefault is defensive, not load-bearing, for this specific path. (Caveat: a real physical side-button mouse still needs the owner to confirm — SendInput's XBUTTON path is not guaranteed identical to a hardware device's, see #510.)" -Confidence 'medium (synthetic input; a real device is the stronger test)'
+        Add-Check -Name 'mouse-xbutton1-navigates' -Result 'notable' -Detail "location stayed at '$afterXButton' after a synthetic XBUTTON1 press (expected '...#a'). WebView2 does NOT act on the mouse's back button by itself here; the app's mousedown preventDefault is defensive, not load-bearing, for this specific path. (Caveat: a real physical side-button mouse still needs the owner to confirm — SendInput's XBUTTON path is not guaranteed identical to a hardware device's, see #510.)" -Confidence 'medium (synthetic input; a real device is the stronger test)'
     }
 
-    # Re-arm two entries and repeat with a mousedown-capturing preventDefault installed, mirroring Phase 1's own
-    # App.tsx listener, to check whether preventDefault is actually sufficient to stop WebView2's native handling.
+    # Re-arm two entries and repeat with a mousedown-capturing preventDefault installed, mirroring the
+    # app's own App.tsx listener, to check whether preventDefault is actually sufficient to stop WebView2's native handling.
     $cdp3.Eval("history.pushState(null, '', location.pathname + '#c')") | Out-Null
     $cdp3.Eval("window.__navSpikeBlocked = 0; document.addEventListener('mousedown', function(e){ if (e.button === 3 || e.button === 4) { e.preventDefault(); window.__navSpikeBlocked++; } }, true);") | Out-Null
     $beforeGuarded = $cdp3.Eval('location.href')
@@ -370,10 +371,10 @@ else {
     $afterGuarded = $cdp3.Eval('location.href')
     $blockedCount = $cdp3.Eval('window.__navSpikeBlocked')
     if ($afterGuarded -eq $beforeGuarded) {
-        Add-Check -Name 'preventdefault-stops-xbutton' -Result 'pass' -Detail "With a capturing mousedown listener calling preventDefault() (blocked count=$blockedCount), the synthetic XBUTTON1 no longer changed location.href ($beforeGuarded unchanged). This validates Phase 1's App.tsx comment ('mousedown, to stop WebView2 acting first') as effective, at least against this synthetic input."
+        Add-Check -Name 'preventdefault-stops-xbutton' -Result 'pass' -Detail "With a capturing mousedown listener calling preventDefault() (blocked count=$blockedCount), the synthetic XBUTTON1 no longer changed location.href ($beforeGuarded unchanged). This validates the App.tsx comment ('mousedown, to stop WebView2 acting first') as effective, at least against this synthetic input."
     }
     else {
-        Add-Check -Name 'preventdefault-stops-xbutton' -Result 'fail' -Detail "Despite a capturing mousedown preventDefault (blocked count=$blockedCount), location still moved $beforeGuarded -> $afterGuarded. If this reproduces on real hardware, Phase 1's guard can be bypassed by the mouse's own back button: worth a Proposed ADR and a #510 item for the owner to confirm on their own mouse."
+        Add-Check -Name 'preventdefault-stops-xbutton' -Result 'fail' -Detail "Despite a capturing mousedown preventDefault (blocked count=$blockedCount), location still moved $beforeGuarded -> $afterGuarded. If this reproduces on real hardware, the app's guard can be bypassed by the mouse's own back button: worth a Proposed ADR and a #510 item for the owner to confirm on their own mouse."
     }
 
     # Alt+Left / Alt+Right, same isolated page, no app listener for the first probe.
@@ -383,10 +384,10 @@ else {
     Start-Sleep -Milliseconds 500
     $afterAlt = $cdp3.Eval('location.href')
     if ($afterAlt -ne $beforeAlt) {
-        Add-Check -Name 'alt-left-navigates' -Result 'notable' -Detail "Alt+Left moved location from '$beforeAlt' to '$afterAlt' with no app-level handler present: WebView2/Windows itself treats Alt+Left as browser-back here, unlike the PRD's inference. Needs Phase 1's own keydown handler (which does preventDefault) re-checked the same way for double-handling."
+        Add-Check -Name 'alt-left-navigates' -Result 'notable' -Detail "Alt+Left moved location from '$beforeAlt' to '$afterAlt' with no app-level handler present: WebView2/Windows itself treats Alt+Left as browser-back here, unlike the source-based inference. Needs the app's own keydown handler (which does preventDefault) re-checked the same way for double-handling."
     }
     else {
-        Add-Check -Name 'alt-left-navigates' -Result 'pass' -Detail "location stayed at '$afterAlt': Alt+Left does nothing at the OS/WebView2 layer today (confirms the PRD Evidence's inference from PutAreBrowserAcceleratorKeysEnabled(false) and WebView2's documented accelerator-key list, which names Alt+Left/Right)."
+        Add-Check -Name 'alt-left-navigates' -Result 'pass' -Detail "location stayed at '$afterAlt': Alt+Left does nothing at the OS/WebView2 layer today (confirms the inference from PutAreBrowserAcceleratorKeysEnabled(false) and WebView2's documented accelerator-key list, which names Alt+Left/Right)."
     }
 
     $cdp3.Close()

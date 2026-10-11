@@ -1,6 +1,6 @@
 # Wire contracts: how data is checked where it crosses a boundary
 
-**Status: implemented.** Every value that crosses into the UI, and every file the host reads back, is checked at that line, and a wrong shape fails loudly with a specific message. The decision is [ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) (Zod 4 behind `parseWire`, owner decision D16).
+**Status: implemented.** Every value that crosses into the UI, and every file the host reads back, is checked at that line, and a wrong shape fails loudly with a specific message. The decision is [ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) (Zod 4 behind `parseWire`).
 
 ## The boundaries and what checks each
 
@@ -68,7 +68,7 @@ The Lua script is imported into REAPER by the narrator, so it can be older or ne
 
 ## Measurements
 
-- **Cost.** Validating every live event fully (owner decision Q7) costs about 0.05 microseconds per event of the recorded teleprompter stream and about 1.4 microseconds for a 30-word `partial`, measured in Node on 2026-09-21; the envelope-only fallback the PRD kept in reserve was not needed. `schemas/teleprompter.test.ts` keeps a budget four orders of magnitude looser, so it fails only if validation ever becomes a real cost.
+- **Cost.** Validating every live event fully (an owner decision) costs about 0.05 microseconds per event of the recorded teleprompter stream and about 1.4 microseconds for a 30-word `partial`, measured in Node on 2026-09-21; an envelope-only fallback was not needed. `schemas/teleprompter.test.ts` keeps a budget four orders of magnitude looser, so it fails only if validation ever becomes a real cost.
 
 ## Where things are
 

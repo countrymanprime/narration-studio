@@ -9,9 +9,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The RetakeLanesList and RetakeLanesState wire payloads apps/ui needs for its schemas and mock (ADR 0069,
-// reaper-automation-follow-through PRD Phase 25). "retake-lanes-list" is the S7 spike project as the binding lists it
-// (no paths in it, so nothing to make portable); "retake-lanes-idle" is the state before any pick and
+// The RetakeLanesList and RetakeLanesState wire payloads apps/ui needs for its schemas and mock (ADR 0069).
+// "retake-lanes-list" is the spike S7 project (docs/research/reaper-spike-s7-fixed-lanes.md) as the binding lists
+// it (no paths in it, so nothing to make portable); "retake-lanes-idle" is the state before any pick and
 // "retake-lanes-picked" a pick REAPER confirmed. runId is time-based (newRunID), so it is fixed here.
 func stable(state map[string]any) map[string]any {
 	if state["runId"] != nil {

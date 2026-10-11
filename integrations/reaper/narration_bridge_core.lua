@@ -45,13 +45,12 @@ local JSON_ESCAPES = { ['\\'] = '\\\\', ['"'] = '\\"', ['\n'] = '\\n', ['\r'] = 
 local function json_escape(value)
   return (tostring(value or ''):gsub('[\\"\n\r\t]', JSON_ESCAPES))
 end
--- One JSON line per bridge command at debug level (docs/prds/tool-run-logging.prd.md phase 6), correlated by the
--- host's run id (runlog.Run.ID(), a different id than the per-request one `event` above carries) so a "Copy
--- diagnostics" bundle can show REAPER's side of a run next to the host's run.jsonl and a sidecar's stderr. A no-op
--- unless the host asked for debug (level == 'debug') and sent a run id; `fields` is an ordered list of {key, value}
--- string pairs (ordered, not a table, so a test can read them back deterministically). The same content rule as the
--- host's run log (ADR 0069, threat-model row 7a) applies: ids, counts, tags and refusal reasons only, never project
--- text.
+-- One JSON line per bridge command at debug level (ADR 0253), correlated by the host's run id (runlog.Run.ID(), a
+-- different id than the per-request one `event` above carries) so a "Copy diagnostics" bundle can show REAPER's side of
+-- a run next to the host's run.jsonl and a sidecar's stderr. A no-op unless the host asked for debug (level == 'debug')
+-- and sent a run id; `fields` is an ordered list of {key, value} string pairs (ordered, not a table, so a test can read
+-- them back deterministically). The same content rule as the host's run log (ADR 0251, threat-model row 7a) applies:
+-- ids, counts, tags and refusal reasons only, never project text.
 local function debug_log(session_dir, run_id, level, event_name, fields)
   if level ~= 'debug' or not run_id or run_id == '' then
     return

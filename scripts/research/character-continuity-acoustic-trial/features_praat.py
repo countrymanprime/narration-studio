@@ -1,8 +1,8 @@
 """Praat features via parselmouth (candidate 6, local-dependency-evaluation.md), for the
 trial's blind comparison against the dependency-free baseline. Optional: importing this
 module raises ImportError when `praat-parselmouth` is not installed, and the trial runner
-treats that as "did not install" rather than a hard failure (the PRD's Phase 1 scope says
-"compare ... where they install").
+treats that as "did not install" rather than a hard failure (the trial compares the
+extractors that install).
 
 parselmouth is a Python binding that links Praat's own C++ engine in-process; it is GPL-3.0-
 or-later (see docs/research/local-dependency-evaluation.md candidate 6), so a shipped

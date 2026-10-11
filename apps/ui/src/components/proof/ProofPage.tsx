@@ -38,11 +38,10 @@ function headerCounts(summary: FindingsSummary | undefined, accepted: readonly F
 }
 
 /**
- * Proof, the book level (mock 04; the Review page of
- * review-dashboard-and-findings-adoption.prd.md at its new address): every analyzer's notes in one queue, filtered
- * and sorted by the host, drawn as mock 04's notes table, with a note's evidence and the narrator's decision beside
+ * Proof, the book level (ADR 0470): every analyzer's notes in one queue, filtered
+ * and sorted by the host, drawn as a notes table, with a note's evidence and the narrator's decision beside
  * it. A chapter opens its chapter view (`/proof/:chapterId`), where the recording plays against the script and
- * Transcript Compare runs. Find pickups and duplicates (take review Phase 5) starts that analyzer's scan here, and its
+ * Transcript Compare runs. Find pickups and duplicates starts that analyzer's scan here, and its
  * groups are reviewed here like every other note.
  */
 export function ProofPage({
@@ -61,9 +60,9 @@ export function ProofPage({
   hasManuscript: boolean;
   goToManuscript: (chapter: string, paragraph?: number) => void;
   goToStoryBible: (entityId: string) => void;
-  /** "Open in workspace" (edit-and-proof-workspace.prd.md Phase 4): threaded straight through to FindingDetail. */
+  /** "Open in workspace": threaded straight through to FindingDetail. */
   goToWorkspace?: (chapterId: string, findingId: string) => void;
-  /** Opens Master & QC on a measured file and rule, for a delivery finding (delivery-platform-profiles.prd.md P12). */
+  /** Opens Master & QC on a measured file and rule, for a delivery finding. */
   goToMaster: (file: string, rule?: string) => void;
   /** Opens a chapter's view, `/proof/:chapterId`. */
   openChapter: (chapterId: string) => void;
@@ -83,7 +82,7 @@ export function ProofPage({
   const dawKind = useDawKind();
   const [scanning, setScanning] = useState(false);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  // The chapter whose waveform the card draws (ADR 0750, D100): the one the notes are filtered to, else the last chapter the
+  // The chapter whose waveform the card draws (ADR 0750): the one the notes are filtered to, else the last chapter the
   // narrator looked at in this project, else the first narration chapter.
   const [lastChapter, setLastChapter] = useState(() => loadLastChapter(projectFolder));
   const known = (id: string) => chapters.some((chapter) => chapter.id === id);
@@ -174,7 +173,7 @@ export function ProofPage({
 
   if (loadError) return <LoadError title="Proof" message={loadError} retry={retry} />;
 
-  // The card's selector also narrows the notes table to that chapter; "Show all chapters" undoes it (ADR 0750, D100).
+  // The card's selector also narrows the notes table to that chapter; "Show all chapters" undoes it (ADR 0750).
   const pickChapter = (chapterId: string) => {
     setLastChapter(chapterId);
     saveLastChapter(projectFolder, chapterId);

@@ -147,7 +147,7 @@ def test_transcribe_raises_cancelled_once_the_progress_file_is_marked_cancelled(
         compare.transcribe(b"fake-audio", "small", "en", progress_path=progress_path)
 
 
-# --- --capabilities (sidecar-capabilities-flag PRD Phase 2) ------------------------------------------------------------------
+# --- --capabilities ------------------------------------------------------------------------------------------------------
 # Unlike the Teleprompter and Story Bible sidecars, asr_batch's registration into ENGINES is lazy (only transcribe() and this
 # module's own `import asr_batch` above trigger it); by the time these tests run ENGINES already has "whisper" registered,
 # the same way compare.py's own --capabilities dispatch branch imports asr_batch before reading it.
@@ -169,7 +169,7 @@ def test_capabilities_report_never_verifies_loading():
 
 
 def test_capabilities_report_only_lists_what_actually_registered():
-    # The fault-detection case (PRD Success Metrics): a row an adapter failed to register never reaches ENGINES, so it
+    # The fault-detection case: a row an adapter failed to register never reaches ENGINES, so it
     # is simply absent here too - a reduced fake registry stands in for a real broken import, without needing one.
     report = compare.capabilities_report(engines=[])
 

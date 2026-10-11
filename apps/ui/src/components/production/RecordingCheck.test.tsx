@@ -66,7 +66,7 @@ const cell = (title: string, column: string) => {
 };
 
 // A Record cell opens the chapter's recording check; when Record is the chapter's current stage it opens the stage suggestion, whose
-// Recording check button opens the same check. The dialog title is the chapter's full name (chapter-title-display-consistency.prd.md Q6):
+// Recording check button opens the same check. The dialog title is the chapter's full name:
 // a prefix match keeps this helper working whether or not the mock chapter also carries a subtitle after the title.
 const openCheck = async (title: string) => {
   const name = new RegExp(`^Recording check: ${title}\\b`);
@@ -79,7 +79,7 @@ const openCheck = async (title: string) => {
   return screen.getByRole('dialog', { name });
 };
 
-// edit-and-proof-workspace.prd.md Phase 4: the check gets "Open in Proof", now the chapter's Proof view.
+// The check gets "Open in Proof", now the chapter's Proof view.
 describe('Open in Proof from the recording check', () => {
   it('opens the Proof view of the check’s own chapter', async () => {
     const { goToProofChapter } = await openBoard();
@@ -109,7 +109,7 @@ describe('Open in Proof from the recording check', () => {
 describe('recording check on the board', () => {
   it('never shows a status- or check-derived recorded length', async () => {
     await openBoard();
-    // No estimate, checked or not: actual-recorded-column.prd.md Phase 1 drops the status guess and the check's word share alike.
+    // No estimate, checked or not: the board drops the status guess and the check's word share alike.
     for (const title of ['Chapter 1', 'Chapter 4', 'Chapter 7']) expect(cell(title, 'Recorded').textContent).toBe('No track');
   });
 
@@ -132,14 +132,14 @@ describe('recording check on the board', () => {
     expect(coverageStart).not.toHaveBeenCalled();
   });
 
-  it('states an unfinished chapter as "recorded to", not as a pickup (recording-check-summary.prd.md RS2)', async () => {
+  it('states an unfinished chapter as "recorded to", not as a pickup', async () => {
     await openBoard();
     const dialog = await openCheck('Chapter 4');
     expect(await within(dialog).findByText(/^Not complete: /)).toBeTruthy();
     expect(within(dialog).getByText(/^Recorded to paragraph \d+ of \d+ \(.*words? left\)\.$/)).toBeTruthy();
     expect(within(dialog).getByText('Pickups (0)')).toBeTruthy();
     expect(within(dialog).queryByText('End not read')).toBeNull();
-    // The paragraph table stays folded even with text missing (RS6 A): every pickup already names its own paragraphs.
+    // The paragraph table stays folded even with text missing: every pickup already names its own paragraphs.
     expect(within(dialog).queryByRole('table', { name: 'Paragraphs' })).toBeNull();
   });
 
@@ -158,7 +158,7 @@ describe('recording check on the board', () => {
     expect(goToManuscript).toHaveBeenCalledWith(chapter.id, chapter.paragraphIds![number - 1].index);
   });
 
-  it("shows the chapter's other pickups from take review, a different kind from the check's own gaps (recording-check-summary.prd.md RS4 A)", async () => {
+  it("shows the chapter's other pickups from take review, a different kind from the check's own gaps", async () => {
     const chapter = WIRE_CHAPTERS[3];
     await openBoard({ findings: [...WIRE_FINDINGS, takeReviewPickupFor(chapter.id, chapter.title)] });
     const dialog = await openCheck('Chapter 4');
@@ -174,14 +174,14 @@ describe('recording check on the board', () => {
     expect(await within(dialog).findByText('Repeated reads (Proof): none waiting')).toBeTruthy();
   });
 
-  it("shows the proofer's project-wide open pickup count, the same figure the Pickups page shows (recording-check-summary.prd.md RS5 B)", async () => {
+  it("shows the proofer's project-wide open pickup count, the same figure the Pickups page shows", async () => {
     await openBoard({ pickups: 'next-success' });
     const dialog = await openCheck('Chapter 1');
     expect(await within(dialog).findByText('Pickup list: 2 open (project-wide)')).toBeTruthy();
     expect(within(dialog).getByRole('link', { name: 'Open pickups' }).getAttribute('href')).toBe('/pickups');
   });
 
-  it('reads "open REAPER to count" for the pickup list when REAPER is not connected (RS5 B)', async () => {
+  it('reads "open REAPER to count" for the pickup list when REAPER is not connected', async () => {
     await openBoard({ pickups: 'next-success', daw: { connected: false } });
     const dialog = await openCheck('Chapter 1');
     expect(await within(dialog).findByText('Pickup list: open REAPER to count')).toBeTruthy();
@@ -263,7 +263,7 @@ describe('recording check on the board', () => {
     expect(whisperInstall).not.toHaveBeenCalled();
   });
 
-  // The model cascade's own missing-model gate (recording-check-model-cascade PRD Phase 5, MC4): the re-check model
+  // The model cascade's own missing-model gate: the re-check model
   // not installed offers "Check with tiny only" beside the download, never blocking the check on it.
   it('offers "Check with tiny only" when the re-check model is not installed, and starts without it', async () => {
     const { api } = await openBoard({ coverage: { recheckAssetRequired: true } });
@@ -279,7 +279,7 @@ describe('recording check on the board', () => {
     expect(coverageStart).toHaveBeenLastCalledWith(WIRE_CHAPTERS[6].id, { skipRecheck: true });
   });
 
-  // MC5: the result names both models and the re-checked passages, and marks the pickup they confirmed. Seeded with
+  // The result names both models and the re-checked passages, and marks the pickup they confirmed. Seeded with
   // pickups too (interior gaps, not just the tail reportFor alone would give) so there is a pickup row to mark.
   it('names both models and the re-checked passages on a cascade result', async () => {
     await openBoard({ coverage: { pickups: [WIRE_CHAPTERS[3].id], cascade: [WIRE_CHAPTERS[3].id] } });

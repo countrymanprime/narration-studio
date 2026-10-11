@@ -1,8 +1,8 @@
-"""The capture port's `wasapi` row: the built-in recorder's engine (native-recording-suite PRD Phase 1, ADR 0357).
+"""The capture port's `wasapi` row: the built-in recorder's engine (ADR 0357).
 
-WASAPI in shared mode, through PortAudio's WASAPI host API as the `sounddevice` package binds it. That is the PRD's
-recommended shape (Q3, answered by D86): a proven library rather than hand-written COM calls, in a sidecar rather than in
-the Go host, whose Windows build is `CGO_ENABLED=0`. It sits beside `capture_dshow.py` in this sidecar and registers
+WASAPI in shared mode, through PortAudio's WASAPI host API as the `sounddevice` package binds it. That is a proven
+library rather than hand-written COM calls, in a sidecar rather than in the Go host, whose Windows build is
+`CGO_ENABLED=0`. It sits beside `capture_dshow.py` in this sidecar and registers
 into the same `BACKENDS`, after `dshow`, so `dshow` stays the default and the teleprompter's own capture does not change.
 
 It does what the port asks of every row:
@@ -19,9 +19,9 @@ and the one thing the dshow row cannot:
   (`narration_common.recording.Recorder`).
 
 It is **Experimental** (`LEVEL`): built and tested against a faked `sounddevice`, measured on CI's Windows runner, not yet
-through the owner's check with a real microphone (#510). The Booth's "Built-in recorder" (PRD Phase 2, ADR 0455) calls it
+through the owner's check with a real microphone (#510). The Booth's "Built-in recorder" (ADR 0455) calls it
 through live_asr.py's --record, --meter and --list-devices with --capture wasapi. It opens only the local device and writes only the file it is
-given: no network, no telemetry (D72). `sounddevice` is imported only when a device is listed or opened; in a build or on
+given: no network, no telemetry. `sounddevice` is imported only when a device is listed or opened; in a build or on
 a host without it (Linux) listing says so in a sentence.
 """
 

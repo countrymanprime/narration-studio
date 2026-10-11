@@ -9,12 +9,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// Punch and roll (teleprompter-manuscript-integration.prd.md Phase 12, booth-actions-enablement PRD Phase 3, ADRs
-// 0246 and 0560): "Punch from here" on a flag resolves the flagged word's project time from the punch anchors the poll
+// Punch and roll (ADRs 0246 and 0560): "Punch from here" on a flag resolves the flagged word's project time from the punch anchors the poll
 // loop has recorded (teleprompterpunchpoll.go), else from the recording itself (the offline alignment,
 // teleprompterpunchalign.go), else from the anchors' pace, then moves REAPER's edit cursor there minus the pre-roll
-// setting, through dawport.Puncher (CapPunch), never bridge.Actions directly. Reading REAPER's own pre-roll preference first is the
-// owner-gated spike this phase does not run; the setting is the only source until it does.
+// setting, through dawport.Puncher (CapPunch), never bridge.Actions directly. Reading REAPER's own pre-roll preference first waits
+// for the owner's go-ahead (ADR 0246); the setting is the only source until then.
 
 // defaultPunchPreRoll is what a settings value that will not parse falls back to (the same 3 s the setting's own
 // repo default and range describe, apps/desktop/settings_number.go).
@@ -105,8 +104,8 @@ func resolvePunch(svc hostServices, word int, align punchAligner) (chapterID str
 }
 
 // TeleprompterPunchPreview resolves word's punch time and pre-roll without moving anything in REAPER: what the
-// narrator sees before confirming "Punch from here" (Phase 12's "UI showing resolved time, its source... and pre-roll
-// before moving"). word is the flag's own script word index; the chapter is whichever one is live right now. When the
+// narrator sees before confirming "Punch from here" (its time, its source and the pre-roll,
+// before moving). word is the flag's own script word index; the chapter is whichever one is live right now. When the
 // anchors do not bracket the word, this runs the offline alignment (a sidecar decode of up to two minutes of the
 // recording, bounded by teleprompterLocateTimeout), so it can take a few seconds.
 func (h *Host) TeleprompterPunchPreview(word int) (string, error) {

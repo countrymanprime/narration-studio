@@ -14,13 +14,11 @@ var tokenStatuses = map[string]bool{
 // start and end are set only for these (coverage_mode._alignment_lines).
 var heardStatuses = map[string]bool{"read": true, "misread": true, "heading": true}
 
-// TokenLine is one COVERAGE_TOKEN line (edit-and-proof-workspace PRD Phase 1,
-// ADR 0242): one chapter token as the check aligned it. ParagraphID is nil for
-// a title or subtitle token (recording_coverage.HEADING); Word is the ordinal
-// of its whitespace word in that paragraph's (or the heading's) text, so a
-// screen finds it with text.split()[w] rather than re-tokenizing. Item, Start
-// and End are nil for a token nothing was heard for (a missing region, or an
-// optional heading never read); Heard is set only for a misread.
+// TokenLine is one COVERAGE_TOKEN line (ADR 0242): one chapter token as the check aligned it.
+// ParagraphID is nil for a title or subtitle token (recording_coverage.HEADING); Word is the ordinal of its
+// whitespace word in that paragraph's (or the heading's) text, so a screen finds it with text.split()[w] rather than
+// re-tokenizing. Item, Start and End are nil for a token nothing was heard for (a missing region, or an optional
+// heading never read); Heard is set only for a misread.
 type TokenLine struct {
 	Index       int      `json:"i"`
 	ParagraphID *string  `json:"p"`
@@ -48,9 +46,8 @@ type ExtraLine struct {
 // HasAlignment reports whether the results carry the per-token alignment at
 // all: false for a report stored before the sidecar wrote COVERAGE_TOKEN
 // lines (ADR 0242 shipped them as additive output, so an older stored result,
-// or one from a sidecar run before this PRD's slice landed, has none). The
-// read binding answers such a report with needsAlignAgain, since align-again
-// re-aligns from cached words alone (EP3 C) rather than re-running the check.
+// or one from a sidecar run before they existed, has none). The read binding
+// answers such a report with needsAlignAgain, since align-again re-aligns from cached words alone rather than re-running the check.
 func (r Report) HasAlignment() bool {
 	return len(r.Tokens) > 0
 }

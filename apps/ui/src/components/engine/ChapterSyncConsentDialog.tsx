@@ -5,7 +5,7 @@ import { SectionLabel } from '../primitives/SectionLabel';
 import { chapterSyncNotChaptersText, chapterSyncReasonText } from './chapterSyncText';
 
 /**
- * "Sync chapters to tracks?" (daw-chapter-track-auto-sync.prd.md Phase 3, mockup 01): shown once per project, the
+ * "Sync chapters to tracks?" shown once per project, the
  * moment `chapterSyncState().ask` is true (a manuscript and a linked DAW project, consent undecided), from every
  * link path. `preview` is `chapterSyncPreview()`'s answer, loaded by the caller; undefined while it is still loading.
  */

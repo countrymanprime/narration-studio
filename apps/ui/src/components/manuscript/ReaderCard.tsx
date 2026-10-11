@@ -10,21 +10,18 @@ import { StatusBadge } from '../primitives/StatusBadge';
 import { TitleSubtitle } from '../primitives/TitleSubtitle';
 import { TooltipTarget } from '../primitives/Tooltip';
 
-// The stat block's minimum width (manuscript-chapter-header-alignment.prd.md, Q2 A): fits "99,999 words" at the mono
-// font/size the word count uses, so the two lines' right edges line up down the page without a page-wide subgrid. A
-// count wider than that (Q2's accepted risk) grows just that row's block instead of overflowing.
+// The stat block's minimum width: fits "99,999 words" at the mono font/size the word count uses, so the two lines' right
+// edges line up down the page without a page-wide subgrid. A count wider than that grows just that row's block instead of
+// overflowing.
 const STAT_BLOCK_CLASS = 'min-w-[6.5rem] tabular-nums';
-// The action slot (manuscript-chapter-header-alignment.prd.md, Q1 A / Technical Approach): a fixed-width box rendered
-// on every row, empty when the chapter has no actions, so the stat block still lines up beside it. Its content is
-// right-aligned (not left-aligned), so both edges - the cluster's start and end - stay put whether or not a Retail
-// sample tag widens the cluster to its left. Sized for "Record in Booth" (Q9, which replaced the Read aloud, Booth and Companion buttons) and the icon-only Workspace entry beside it
-// (edit-and-proof-workspace.prd.md Phase 4).
+// The action slot: a fixed-width box rendered on every row, empty when the chapter has no actions, so the stat block still
+// lines up beside it. Its content is right-aligned (not left-aligned), so both edges - the cluster's start and end - stay
+// put whether or not a Retail sample tag widens the cluster to its left. Sized for "Record in Booth" and the icon-only Workspace entry beside it.
 const ACTION_SLOT_CLASS = 'flex w-52 flex-none justify-end gap-1';
 
-// A Manuscript card's frame: a chapter card or a credits card (manuscript-credits-card-parity.prd.md, Phase 1),
-// sharing one header and one whole-header disclosure. The header's right side is one fixed order - [Retail sample
-// tag] [stat block] [action slot] [chevron] - so the stats and the action line up from row to row
-// (manuscript-chapter-header-alignment.prd.md, Q6 a).
+// A Manuscript card's frame: a chapter card or a credits card,
+// sharing one header and one whole-header disclosure. The header's right side is one fixed order - [Retail sample tag]
+// [stat block] [action slot] [chevron] - so the stats and the action line up from row to row.
 //
 // Whole-header toggle without nesting controls (ADR: a control inside a button is not valid HTML, see
 // primitives/Disclosure.tsx): the title button's `::after` pseudo-element is stretched over the whole header
@@ -64,12 +61,11 @@ export function ReaderCard({
   bookmarked?: boolean;
   onToggleBookmark?: () => void;
   showRetailSample?: boolean;
-  /** "Record in Booth" (Q9): the Booth page on this chapter or
+  /** "Record in Booth": the Booth page on this chapter or
    * credits. Omitted where there is nothing to read aloud (a reference chapter, empty credits); the slot stays either way. */
   onRecordInBooth?: () => void;
-  /** The chapter-header "Open workspace" entry point (edit-and-proof-workspace.prd.md Phase 4, page inventory
-   * "Manuscript"): icon-only, so it fits the fixed-width action slot beside Record in Booth; only ever set for a
-   * narration chapter, never a credits card. */
+  /** The chapter-header "Open workspace" entry point: icon-only, so it fits the fixed-width action slot beside
+   * Record in Booth; only ever set for a narration chapter, never a credits card. */
   showWorkspace?: boolean;
   onWorkspace?: () => void;
   wordCount: number;
@@ -90,12 +86,12 @@ export function ReaderCard({
       aria-label={creditsKind ? title : undefined}
     >
       {/* The header's right-side cluster (Retail sample tag, stat block, action slot, chevron) sits beside the title
-          once the card itself has room, and wraps below it otherwise (manuscript-chapter-header-alignment.prd.md).
+          once the card itself has room, and wraps below it otherwise.
           That used to be a viewport breakpoint (`md`, 768px), on the assumption that a viewport wide enough implies
-          a card wide enough - true until the Script page's mock-02 three-column layout (D85 #3, ADR 0393, superseding
+          a card wide enough - true until the Script page's benchmark mock 02 three-column layout (ADR 0393, superseding
           ADR 0392): there the card's own rendered width (as little as ~520-630px at the 1440px desktop capture) can be
           narrower than the viewport implies, so the cluster overflowed or clipped instead of wrapping (the visual
-          suite's retail-sample and markup-dialog states, stage-navigation-and-page-replacement.prd.md Phase 3). A
+          suite's retail-sample and markup-dialog states). A
           container query keys the wrap on the card's actual width in every context it renders in (Script's 2- and
           3-column modes, a narrower Booth/companion panel), not on which viewport implies which reader width.
           40rem (640px) is the card width the fixed-width cluster (Retail sample tag + the 6.5rem stat block + the

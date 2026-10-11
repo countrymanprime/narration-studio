@@ -6,7 +6,7 @@
 
 ## Context
 
-Owner decision D14 moved the version into the app: "we should include the version internal to the packaged app. something it can reference internally and look at the releases on github for new versions to download and replace itself with". Two things follow. The program a narrator unpacks was called `narration-utils-shell` (the internal name of the Go/Wails part), which means nothing to them; and the program had no way to say which version it is: the only version in the build was the Windows file property, which Go never reads. The release-artifact-naming PRD (`docs/prds/release-artifact-naming.prd.md`, deleted when the work was done; recover it from git history) had a second phase that put the version in the asset file names; D14 dropped it, so [ADR 0027](0027-windows-gates-and-creates-the-release.md)'s "one asset per platform, named `narration-utils-<platform>.<ext>`" stands unchanged.
+The owner moved the version into the app: "we should include the version internal to the packaged app. something it can reference internally and look at the releases on github for new versions to download and replace itself with". Two things follow. The program a narrator unpacks was called `narration-utils-shell` (the internal name of the Go/Wails part), which means nothing to them; and the program had no way to say which version it is: the only version in the build was the Windows file property, which Go never reads. A plan to put the version in the asset file names was dropped, so [ADR 0027](0027-windows-gates-and-creates-the-release.md)'s "one asset per platform, named `narration-utils-<platform>.<ext>`" stands unchanged.
 
 ## Decision
 

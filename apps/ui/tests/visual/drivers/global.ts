@@ -13,7 +13,7 @@ export const globalDrivers: Record<string, Driver> = {
     // hovering there changes nothing visible.
     // Icon-only buttons are the ones carrying an aria-label; the full
     // sidebar's button has the same accessible name from its text instead.
-    // Pickups: the Tracks item was retired in stage navigation Phase 6.
+    // Pickups: the Tracks item is retired.
     const railButton = page.locator('button[aria-label="Pickups"]:visible');
     if (await railButton.count()) {
       await railButton.first().hover();
@@ -39,15 +39,14 @@ export const globalDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Edit this entry');
     await clickVisible(page, 'button', 'Delete entity');
     await confirmDialog(page, 'Delete entry').waitFor();
-    // Base UI's scroll lock only reserves a scrollbar gutter on <html> when the document itself can scroll
-    // (app-shell-vertical-overflow.prd.md): with the document locked, a modal over Story Bible - the state that
-    // measured a full-height gutter before Phase 1's fix - must leave no inline scrollbar-gutter behind.
+    // Base UI's scroll lock only reserves a scrollbar gutter on <html> when the document itself can scroll:
+    // with the document locked, a modal over Story Bible must leave no inline scrollbar-gutter behind.
     await page.waitForFunction(() => document.documentElement.style.scrollbarGutter === '');
   },
   'shortcut-sheet': async (page) => {
     await goToPage(page, 'Production');
     // The registry's own binding (commands.catalog.ts: `help.shortcuts`), by physical key rather than the
-    // character it types (PRD Q1) - same as a real Shift+Slash keydown.
+    // character it types - same as a real Shift+Slash keydown.
     await page.keyboard.press('Shift+Slash');
     await page.getByRole('dialog', { name: 'Keyboard shortcuts' }).waitFor();
   },

@@ -6,9 +6,8 @@ import (
 	"strings"
 )
 
-// SetupField is one token the credits setup prompt asks for (credits-token-setup-and-front-matter-detection PRD
-// Phase 2): Token is its render name ("Copyright Holder"), Field the Values JSON key the save takes
-// ("copyrightHolder"), and Candidate the detected value to prefill, when Detect found one.
+// SetupField is one token the credits setup prompt asks for. Token is its render name ("Copyright Holder"), Field the Values JSON key the
+// save takes ("copyrightHolder"), and Candidate the detected value to prefill, when Detect found one.
 type SetupField struct {
 	Token     string     `json:"token"`
 	Field     string     `json:"field"`
@@ -23,7 +22,7 @@ var setupTokenFields = map[string]string{
 	"Narrator": "narrator",
 }
 
-// SetupFields is what the prompt asks for (CS4 A): the tokens the first opening and the first closing template (the
+// SetupFields is what the prompt asks for (ADR 0208): the tokens the first opening and the first closing template (the
 // credits the app reads, ADR 0093) leave unresolved with the project's values and the global narrator, in the order
 // they first appear, each with its detected candidate. Tokens only other templates use are left to Settings.
 func SetupFields(templates []Template, values Values, globalNarrator string, candidates []Candidate) []SetupField {

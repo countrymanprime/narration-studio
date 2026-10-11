@@ -6,7 +6,7 @@
 
 ## Context
 
-The Proofing setup page keeps a list of vocabulary hints (unusual names Whisper is likely to mis-hear) as chips in a box, with suggested ones as dashed chips, a text box to add one, and buttons beside it. It was written inline in `Transcript.tsx` with a bare `<input>`, a remove cross with no label of its own beyond `aria-label`, and no group name; the focus was lost when a cross was pressed and its chip disappeared. The vocabulary-hints PRD's phase 2 ("the tag-input box") builds on this, and the owner asked for `TagInput` to be added ([ADR 0053](0053-icon-buttons-text-fields-and-selects-wrap-the-native-controls.md) has the `TextField` it uses). Base UI's Combobox with chips was the other candidate.
+The Proofing setup page keeps a list of vocabulary hints (unusual names Whisper is likely to mis-hear) as chips in a box, with suggested ones as dashed chips, a text box to add one, and buttons beside it. It was written inline in `Transcript.tsx` with a bare `<input>`, a remove cross with no label of its own beyond `aria-label`, and no group name; the focus was lost when a cross was pressed and its chip disappeared. The owner asked for `TagInput` to be added ([ADR 0053](0053-icon-buttons-text-fields-and-selects-wrap-the-native-controls.md) has the `TextField` it uses). Base UI's Combobox with chips was the other candidate.
 
 ## Decision
 

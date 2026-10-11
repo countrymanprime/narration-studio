@@ -1,4 +1,4 @@
-"""Writes the constructed heading-misread fixtures (story-bible-and-import-ux-briefs PRD, Phase 4).
+"""Writes the constructed heading-misread fixtures (see docs/research/import-heading-misreads.md).
 
 Each case is one small manuscript whose single chapter heading exercises one way the importer's
 title/subtitle heuristic (``headingParts``/``splitGluedHeading`` in

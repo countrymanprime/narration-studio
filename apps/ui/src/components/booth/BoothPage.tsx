@@ -18,7 +18,7 @@ const CREDITS_PREFIX = 'credits:';
 const creditsKindOf = (value: string): CreditsKind | undefined => CREDITS_KINDS.find((kind) => value === `${CREDITS_PREFIX}${kind}`);
 
 type Props = {
-  /** Opens Settings > Credits, where a token with no value is filled in (C6's "link to fix in Settings"). */
+  /** Opens Settings > Credits, where a token with no value is filled in; the unresolved-token warning links there. */
   onFixCredits?: () => void;
   /** Exit booth: back to where the narrator came from. */
   onExit: () => void;
@@ -28,7 +28,7 @@ const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
 
 /**
- * The credits as the Booth reads them (audiobook-credits-templates.prd.md Phase 4, ADR 0150): the first opening- and
+ * The credits as the Booth reads them (ADR 0150): the first opening- and
  * first closing-kind template (ADR 0093), each rendered by the host's one renderer (`creditsPreview`). A secondary read, as
  * on the Manuscript page: a failure leaves the credits out of the picker rather than blocking the chapters.
  */
@@ -153,7 +153,7 @@ export function BoothPage({ onFixCredits, onExit }: Props) {
   );
 
   return (
-    // The Booth fills the whole window (mock 03, owner call BO2): `AppShell` draws no rail or header on this route.
+    // The Booth fills the whole window (mock 03): `AppShell` draws no rail or header on this route.
     <div className="flex size-full flex-col">
       <h1 className="sr-only">Booth</h1>
       {chapters?.length === 0 && (

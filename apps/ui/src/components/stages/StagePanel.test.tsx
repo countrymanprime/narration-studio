@@ -211,7 +211,7 @@ describe('stage suggestions on the board', () => {
     await waitFor(() => expect(cell('Chapter 6', 'Record').textContent).toBe('✓'));
   });
 
-  it('reads the suggestions and the chapter list again when the window regains focus (home-stage-check-line.prd.md Phase 2)', async () => {
+  it('reads the suggestions and the chapter list again when the window regains focus', async () => {
     const base = mixedApi();
     const stageRecommendations = vi.fn(base.stageRecommendations);
     const manuscriptChapters = vi.fn(base.manuscriptChapters);

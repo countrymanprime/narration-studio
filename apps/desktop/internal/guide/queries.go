@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// PronunciationQuery is one name whose pronunciation the author has not confirmed yet (prep-depth P3, ADR 0346): the entity's own
+// PronunciationQuery is one name whose pronunciation the author has not confirmed yet (ADR 0346): the entity's own
 // name (AliasIndex nil) or one alias, with where the book first uses it. The list is derived from the Story Bible on every read, the
 // way VocabularyCandidates is; nothing else stores it.
 type PronunciationQuery struct {
@@ -100,10 +100,10 @@ func pronunciationStatus(pronunciation map[string]any) string {
 }
 
 // QueryCSVHeader is the query export's first row. The columns a person reads come first; entry_id and alias_index come last and let a
-// file sent back be matched to the entry it is about (Phase 6), whatever order the author leaves the columns in.
+// file sent back be matched to the entry it is about (ImportQueriesCSV), whatever order the author leaves the columns in.
 var QueryCSVHeader = []string{"word", "entry", "category", "chapter", "excerpt", "pronunciation", "source", "status", "note", "entry_id", "alias_index"}
 
-// QueriesCSV writes the query list as CSV text for the narrator to send to the author (Q3: CSV, like the pickup list's export). The
+// QueriesCSV writes the query list as CSV text for the narrator to send to the author as CSV, like the pickup list's export. The
 // narrator's own pronunciation's source reads "Yours". A cell a spreadsheet would run as a formula (one starting with =, +, -, @, a
 // tab or a carriage return) is written with a leading apostrophe, so opening the file never runs anything.
 func QueriesCSV(queries []PronunciationQuery) string {
@@ -164,7 +164,7 @@ type QueryIssue struct {
 // ParseQueriesCSV reads a query file back, the one QueriesCSV wrote or one a person edited: the header names the columns (any order,
 // any case), and word and entry_id are required. A status may be written as its key (author_confirmed) or its label (Author
 // confirmed). A row that cannot be used is reported with its line, never dropped or guessed at. Matching a row to the Story Bible,
-// and applying it, is Phase 6's; this only proves the file reads back.
+// and applying it, is MatchQueryAnswers and ImportQueriesCSV's; this only proves the file reads back.
 func ParseQueriesCSV(text string) ([]QueryAnswer, []QueryIssue) {
 	reader := csv.NewReader(strings.NewReader(text))
 	reader.FieldsPerRecord = -1
@@ -235,7 +235,7 @@ func parseQueryStatus(text string) (string, bool) {
 // MatchQueryAnswers matches every answer ParseQueriesCSV read against the Story Bible's current entities (Entities()'s own
 // map shape): an answer's entry_id must still name an entity, and its alias_index, when it has one, must still be inside
 // that entity's aliases. The file may be old, or from another project; a row whose entry or alias is gone is reported by
-// its own line, never guessed at or applied to the wrong name (prep-depth P6).
+// its own line, never guessed at or applied to the wrong name.
 func MatchQueryAnswers(entities []map[string]any, answers []QueryAnswer) (matched []QueryAnswer, issues []QueryIssue) {
 	byID := make(map[string]map[string]any, len(entities))
 	for _, entity := range entities {
@@ -261,7 +261,7 @@ func MatchQueryAnswers(entities []map[string]any, answers []QueryAnswer) (matche
 	return matched, issues
 }
 
-// ImportQueriesCSV applies an author's answered file back onto the Story Bible (prep-depth P6): the one QueriesCSV wrote,
+// ImportQueriesCSV applies an author's answered file back onto the Story Bible: the one QueriesCSV wrote,
 // sent out and back unchanged, or a hand-edited one. Each matched row's status, and its note when the row carries one, go
 // through the same SetPronunciationStatus call the narrator's own "Mark answered" uses; a blank note column leaves an
 // existing note alone, the same "nil means leave it" rule that call already follows for a direct edit, so a file that

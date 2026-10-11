@@ -8,11 +8,11 @@ import type { ChapterTagsPreview } from '../../types';
 
 const IDLE: ChapterTagsPreview = { chapters: [], ready: false };
 
-/** Chapter tag embedding (reaper-automation-follow-through PRD, Phase 12). This never talks to REAPER: it reads
- * Phase 11's last "Prepare chapter render" result (the per-chapter MP3 titles and files) to build a chapter
+/** Chapter tag embedding. This never talks to REAPER: it reads
+ * the last "Prepare chapter render" result (the per-chapter MP3 titles and files) to build a chapter
  * timeline, then writes ID3v2 CHAP/CTOC frames into a NEW copy of a separate, already-rendered combined-book MP3
  * the narrator names below - never into the per-chapter files, and never overwriting the file they name. Reachable
- * from the audio engine panel next to "Link chapters…" and "Prepare chapter render…" (Phases 7 and 11),
+ * from the audio engine panel next to "Link chapters…" and "Prepare chapter render…",
  * not a new nav item. */
 export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();

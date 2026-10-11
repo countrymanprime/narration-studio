@@ -8,9 +8,9 @@ import (
 // SelectedTrack is what select_track answers: the track REAPER now has selected, and only it.
 type SelectedTrack struct{ TrackGUID string }
 
-// SelectTrack deselects every other track in REAPER and selects trackGUID (chapter-track-link-control PRD Phase 4,
-// "Select in REAPER"). It changes nothing else: no undo block, no scroll. A track that is gone is a *TrackStaleError,
-// the same error ChapterTrackState reports for a stale GUID.
+// SelectTrack deselects every other track in REAPER and selects trackGUID ("Select in REAPER"). It changes
+// nothing else: no undo block, no scroll. A track that is gone is a *TrackStaleError, the same error ChapterTrackState
+// reports for a stale GUID.
 func (a *Actions) SelectTrack(ctx context.Context, trackGUID string) (SelectedTrack, error) {
 	events, err := a.request(ctx, "select_track", []string{"TRACK_SELECTED", "TRACK_STALE"}, trackGUID)
 	if err != nil {

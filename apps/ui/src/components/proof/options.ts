@@ -37,7 +37,7 @@ export const proofingChoiceLabel = (key: string, value: string) => {
         spot_check: 'Spot check',
       }[value] ?? value
     );
-  // story-bible-and-import-ux-briefs PRD phase 11: "" is the unset default, kept as its own selectable choice
+  // "" is the unset default, kept as its own selectable choice
   // (app.go fieldSchemas) rather than a separate "not set" affordance, the same way DAW.capability.* uses "auto".
   if (key === 'default_pronunciation_source')
     return (

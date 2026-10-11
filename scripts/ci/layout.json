@@ -42,7 +42,6 @@
   "historical": [
     "docs/adr/",
     "docs/research/repo-layout-alignment.md",
-    "docs/prds/implementation-plan.md",
     "pnpm-lock.yaml",
     "scripts/ci/layout.json",
     "scripts/ci/layout.test.mjs"

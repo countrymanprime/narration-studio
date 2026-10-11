@@ -1,14 +1,14 @@
 # The REAPER verification pass
 
-**Status: Part A is scripted (booth actions enablement PRD Phase 6) and its run on the owner's machine is pending; Part B has not run.** Stack S37 of the [implementation plan](../prds/implementation-plan.md) (section 7) runs it with the owner. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental REAPER actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md)).
+**Status: Part A is scripted and its run on the owner's machine is pending; Part B has not run.** The owner runs it. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental REAPER actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md)).
 
 The harness ([ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md), `integrations/reaper/tests`) proves each command's logic, refusals and events against a fake REAPER. It cannot prove what REAPER itself does with a call. This pass checks that, command by command, in a real REAPER. The calls and what the reference leaves open are in [the ReaScript calls behind the planned commands](../research/reaper-api-for-planned-commands.md).
 
-## Rules (owner decision D3)
+## Rules
 
 - REAPER runs isolated: `integrations/reaper/spikes/run-reaper.ps1` starts it with `-cfgfile <temp>\reaper.ini`, so the owner's settings, scripts and projects are never read or written ([the spike rules](../../integrations/reaper/spikes/README.md)).
 - Only a **copy** of a project is opened, in a temp folder, with its media copied beside it or replaced by synthetic tones (`make_media.py`). Never open, save into or delete anything under `C:\Users\Count\Documents\REAPER Media\Projects\Challenges\`. Record the original `.rpp`'s SHA-256 before and after, as spike S6 did.
-- Part A runs unattended with the audio device closed (`reaper.Audio_Quit()`). Part B records, so it needs the owner present and their approval for the one test recording on a copy (D28), with a silent or virtual input.
+- Part A runs unattended with the audio device closed (`reaper.Audio_Quit()`). Part B records, so it needs the owner present and their approval for the one test recording on a copy, with a silent or virtual input.
 - The script loads the real bridge from the working tree (`NARRATION_UTILS_REAPER_DIR`) and drives each command through a fresh registry, the way `navigation_check.lua` does, writing `PASS`/`FAIL` per step and every value it read back into the report. The report goes into `integrations/reaper/spikes/results/` with paths removed, and its findings into this page's record.
 - Record REAPER's version and the OS. A finding that differs from the harness's fake changes the fake in the same PR, so the harness keeps modelling what REAPER does.
 
@@ -61,7 +61,7 @@ The scratch project has three tracks ("Chapter 1", "Chapter 2", "Pickups"), `mak
 
 ## Part B: with the owner and an audio device
 
-Needs the owner present and approval for one test recording on a copy of a project (D28). Use a silent or virtual input (the owner chooses); open the device in the scratch `-cfgfile` REAPER.
+Needs the owner present and approval for one test recording on a copy of a project. Use a silent or virtual input (the owner chooses); open the device in the scratch `-cfgfile` REAPER.
 
 | # | Command | Steps | Pass when |
 | --- | --- | --- | --- |
@@ -71,7 +71,7 @@ Needs the owner present and approval for one test recording on a copy of a proje
 | B4 | Stop in REAPER | `record_start` again; press Stop in REAPER itself. | The bridge reports `RECORD_ENDED` for the start's run and restores the arms; a later `record_stop` answers `RECORD_NOT_OURS`. |
 | B5 | A recording the app did not start | Press Record in REAPER; send `record_stop`. | `RECORD_NOT_OURS`; REAPER keeps recording. Stop it by hand. |
 | B6 | The narrator changes an arm mid-take | Arm "Chapter 2" by hand; `arm_only` "Chapter 1"; `record_start`; arm "Pickups" (not armed before) by hand during the take; `record_stop`. | "Pickups" stays armed as the narrator set it and is reported as kept; "Chapter 2" is armed again. |
-| B7 | Which microphone REAPER uses (teleprompter PRD Phase 11, [ADR 0250](../adr/0250-the-teleprompter-preselects-reapers-microphone-only-on-a-sure-match-of-its-device-name.md)) | With the device open in REAPER, open the app's microphone picker (`TeleprompterReaperInput`); repeat with ASIO and with WASAPI if both are available. | `matched` selects the microphone REAPER records from, or `uncertain` names that interface's inputs; never a different device. Record REAPER's `IDENT_IN` name and the teleprompter's device list for each driver type, and add any pair that does not match as a case in `internal/daw/inputmatch_test.go`. |
+| B7 | Which microphone REAPER uses ([ADR 0250](../adr/0250-the-teleprompter-preselects-reapers-microphone-only-on-a-sure-match-of-its-device-name.md)) | With the device open in REAPER, open the app's microphone picker (`TeleprompterReaperInput`); repeat with ASIO and with WASAPI if both are available. | `matched` selects the microphone REAPER records from, or `uncertain` names that interface's inputs; never a different device. Record REAPER's `IDENT_IN` name and the teleprompter's device list for each driver type, and add any pair that does not match as a case in `internal/daw/inputmatch_test.go`. |
 | B8 | The same microphone in REAPER and the app | With REAPER recording or monitoring the device, open the microphone popover's level meter (`TeleprompterMeterStart`, [ADR 0247](../adr/0247-the-input-level-comes-from-the-sidecars-own-capture-and-a-model-free-meter-child-runs-before-start.md)), then start a reading. | The meter moves with the owner's voice and the reading follows, or the open fails and `meter_stopped` or the session's error says why (REAPER holding the device exclusively). REAPER's own recording is never interrupted. Record which drivers share the device. |
 | B9 | `play_position` and `punch_to` while recording (the recording steps of A9b and A9c, which Part A cannot take) | During B2's recording, send `play_position`; then `punch_to` 42 with pre-roll 3. | `PLAY_POSITION` state 5 with both positions moving; `punch_to` is refused with "REAPER is recording. Stop it before moving to a word." and the cursor does not move. |
 
@@ -94,8 +94,8 @@ A command passes when every row that names it passes and the report is recorded.
 Then, in one PR:
 
 1. Record the run here (a "Verification record" section: date, REAPER version, OS, the report, every value that differed from the fake) and correct the fake to match.
-2. Take the command off the host's experimental list (`experimentalCommands` in `apps/desktop/internal/bridge/actions.go`) and move its capability's declaration in `apps/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR ([ADR 0400](../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md)), so it no longer needs to be turned on. A command whose row failed stays on the list, and its PRD phase stays partial, with the finding on the phase.
-3. Set the PRD phases the command completes to `complete`, and update the threat model rows that say "pending" for it.
+2. Take the command off the host's experimental list (`experimentalCommands` in `apps/desktop/internal/bridge/actions.go`) and move its capability's declaration in `apps/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR ([ADR 0400](../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md)), so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
+3. Update the threat model rows that say "pending" for it.
 
 When every command is off the list, the switch has nothing left to gate; the PR that empties the list removes the switch and its `config/defaults.json` default.
 

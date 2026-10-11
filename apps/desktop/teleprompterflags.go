@@ -9,7 +9,7 @@ import (
 )
 
 // TeleprompterSaveFlags writes a read-aloud session's suspected flags into the project's findings store as unreviewed
-// findings (teleprompter-manuscript-integration.prd.md Phase 7, ADR 0117): a misread, extra or skip as a
+// findings (ADR 0117): a misread, extra or skip as a
 // transcript_discrepancy, a restart as a pickup. The dialog calls it when a session ends and when it closes, so it is
 // idempotent: a finding's id comes from the manuscript words, a repeat is one finding, and a flag the narrator dismissed
 // is recorded once as a dismissed decision, never deleted. It answers one finding per flag, in order, as stored, so the

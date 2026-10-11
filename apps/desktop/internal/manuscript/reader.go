@@ -13,7 +13,7 @@ import (
 )
 
 // ChapterIDByTitle resolves a chapter title to its manuscript id, for
-// adapters (Transcript Compare's, review-dashboard-and-findings-adoption.prd.md)
+// adapters (Transcript Compare's)
 // that only receive a title from a data source outside the manuscript.
 // ambiguous is true when more than one chapter shares the title exactly; ok
 // is still true, but callers should treat the match as provisional.
@@ -438,7 +438,7 @@ func paragraphPayload(paragraph map[string]any) map[string]any {
 }
 
 // chapterPayload is one chapter as the reader contract sends it. recordedFraction is present only for a chapter the
-// recording coverage measured (recorded, from RecordedFractions): never a guess from the status (ADR 0015, Q12 A).
+// recording coverage measured (recorded, from RecordedFractions): never a guess from the status (ADR 0015).
 func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, paragraphs []map[string]any, includeParagraphs bool) map[string]any {
 	status := "not_started"
 	if stored, ok := object(notes["chapterStatus"])[text(chapter, "id")].(string); ok {
@@ -449,7 +449,7 @@ func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, 
 		result["subtitle"] = subtitle
 	}
 	// A chapter reclassified after import (SetChapterKind) says when; one imported as narration and now another kind
-	// was removed from recording and is listed for Restore (docs/prds/chapter-track-link-control.prd.md Phase 3).
+	// was removed from recording and is listed for Restore (ADR 0207).
 	if changed := text(chapter, "kindChangedAt"); changed != "" {
 		result["kindChangedAt"] = changed
 		if text(chapter, "importedKind") == "narration" && !isNarration(chapter) {

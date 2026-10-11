@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// M4B chapters (render-encode-master Phase 2): FFmpeg is told a Spec's Chapters through an FFMETADATA file (its own
+// M4B chapters: FFmpeg is told a Spec's Chapters through an FFMETADATA file (its own
 // chapter-metadata format, ffmpeg-formats(1) "Metadata"), passed as a second input and merged with -map_metadata. The "ipod"
 // muxer (FFmpeg's M4A/M4B flavour of MP4/ISO base media) writes them as a QuickTime "chapters" text track that the audio
 // track's own tref/chap box names - the format iTunes, VLC and most audiobook players read - rather than the ID3 CHAP/CTOC

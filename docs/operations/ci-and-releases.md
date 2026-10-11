@@ -13,7 +13,7 @@ gate](#nx-projects-and-the-quality-gate)).
 
 GitHub Actions cannot configure repository settings from a workflow, so this section records what is set on the
 repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, and `.../environments` and `.../actions/permissions`, on
-2026-09-21) and what that means for CI. The docs follow the settings, not the other way round (owner decision D11 of the [implementation plan](../prds/implementation-plan.md)).
+2026-09-21) and what that means for CI. The docs follow the settings, not the other way round.
 
 - **`Main Protection` ruleset** (active): deleting `main`, force-pushing to it and re-creating it are blocked. The
   admin role and the owner bypass it.
@@ -44,7 +44,7 @@ repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, a
   with `cancel-in-progress`, so a newer push cancels the run before it, and `cancel-closed-pr.yml` cancels whatever is
   still queued or running when the pull request is merged or closed (a merge starts its own runs on `main`). Runs on
   `main` and the release workflows are never cancelled.
-- **Windows is the only platform the app is built for** (owner decision D74, [ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)). `Build (Windows)` is the only native
+- **Windows is the only platform the app is built for** (an owner decision, [ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)). `Build (Windows)` is the only native
   build, on pull requests and in releases. The Linux runners that run the docs, Lua, UI, Python and lint checks host those
   checks; they build no Linux app.
 
@@ -92,7 +92,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `dependency-review.yml` | pull request to `main` | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
-| `pages.yml` (`Pages`) | paused (D75, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
+| `pages.yml` (`Pages`) | paused (an owner decision, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old ([the agent train's safety net](agent-train.md#safety-net)) | not a pull request check |
 | `main-health.yml` (`Main health`) | nightly (07:37 UTC), manual | the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; the agent-train coordinator reads it |
@@ -171,8 +171,7 @@ Install-time settings are written in the repository so a default that changes up
 ## Vulnerability scanning
 
 `security.yml` runs two scanners on every pull request, on pushes to `main` and weekly (Tuesday). Both are **advisory**:
-neither fails the run on a finding, neither is a required check, and the first month is a baseline (owner decision
-D22, question 12). Findings show under **Security > Code scanning** (categories `govulncheck` and `osv-scanner`) and in
+neither fails the run on a finding, neither is a required check, and the first month is a baseline (the owner's decision). Findings show under **Security > Code scanning** (categories `govulncheck` and `osv-scanner`) and in
 the run log; a fork or Dependabot pull request scans but does not upload, because its token is read-only.
 
 - **govulncheck** (Windows, the version pinned in `scripts/toolchain.json`) reports only Go vulnerabilities the code can
@@ -203,7 +202,7 @@ uses the squash commit title to calculate the synchronized application version:
 next minor release. The workflow tags `v<version>-rc`, builds the Windows
 package, and its `publish` job creates the GitHub pre-release with the Windows
 zip and the Windows setup program ([The Windows setup program](#the-windows-setup-program)). No other platform is built or
-attached: the macOS and Linux preview builds were removed by D74 ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
+attached: the macOS and Linux preview builds were removed ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
 
 The one platform, `windows-x64`, ships an asset named `narration-utils-<version>-<platform>.<ext>`, with a
 `.sha256` beside it, and its setup program and its third-party notices, named and checksummed the same way. All three files are
@@ -291,12 +290,12 @@ A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an N
 - **The WebView2 bootstrapper** the setup program embeds comes from inside the pinned `wails3` CLI (Wails v2 downloaded it from
   Microsoft while it built and nothing pinned it; the CLI is verified by the Go checksum database). The build still checks that
   `installer/MicrosoftEdgeWebview2Setup.exe` has a valid Authenticode signature from Microsoft Corporation before the release is packaged.
-- **Unsigned.** The setup program is not signed (owner decision D7); the release notes say so and tell a narrator to choose **More info**
+- **Unsigned.** The setup program is not signed (the owner's decision); the release notes say so and tell a narrator to choose **More info**
   then **Run anyway** on the SmartScreen warning (`scripts/release/generate-notes.mjs`). No workflow here signs anything.
 - **Tests.** `scripts/release/installer.test.mjs` holds the definition to the decisions of the ADR (the file names, per user, what the
   uninstaller deletes, no network, no signing, that the file is tracked); `assets.test.mjs` and `wails-build.test.mjs` cover packaging, the
   checksum, the promote checks and the missing-installer failure. `makensis` is not on a development machine as a rule (it can be: NSIS runs on Linux,
-  and the Wails v3 migration compiled `project.nsi` there against a cross-built program), so the compile is proven by the `Build (Windows)` job; an install on a clean machine is the owner's check (the first stable rehearsal, PRD phase 16).
+  and the Wails v3 migration compiled `project.nsi` there against a cross-built program), so the compile is proven by the `Build (Windows)` job; an install on a clean machine is the owner's check (the first stable rehearsal).
 - **Install and uninstall by hand** for a check: run the setup program; `narration-utils-<version>-windows-x64-setup.exe /S` installs silently
   (both shortcuts) and `"%LOCALAPPDATA%\Programs\Narration Studio\uninstall.exe" /S` removes it.
 
@@ -314,9 +313,9 @@ and exits: `0` when every check passed, `1` when one failed, `2` for a bad comma
 | `sidecar:<name>` | each of the three frozen sidecars is in the unpacked tree and starts (`--help` exits 0) |
 | `guide:cmudict`, `guide:espeak` | the frozen Story Bible sidecar reads the CMU dictionary and starts the espeak-ng phonemizer Piper speaks through, from `piper/espeak-ng-data` (`manuscript-guide self-check`); a freeze that loses either data set fails here, and a self-check that stops reporting one of them fails too |
 | `guide:synthesis` | only with `--piper-model FILE`: the frozen guide loads that voice and speaks one word |
-| `teleprompter:capabilities` | the frozen Teleprompter sidecar's `--capabilities` report names every ASR and capture row this build declares for the platform (sidecar-capabilities-flag PRD Phase 1); Windows only, `--verify` is also asked, and the `moonshine` row must report `loadable: true` — the native library actually loads (no model, no network), the guarantee the retired `--check-moonshine` flag used to make alone (Phase 3, [ADR 0403](../adr/0403-the-capabilities-flag-reports-what-registered-not-what-loads.md)) |
-| `guide:capabilities` | the frozen Story Bible sidecar's `capabilities` subcommand names every TTS and pronunciation row this build declares (Phase 2) |
-| `compare:capabilities` | the frozen Transcript Compare sidecar's `--capabilities` report names every batch ASR row this build declares (Phase 2) |
+| `teleprompter:capabilities` | the frozen Teleprompter sidecar's `--capabilities` report names every ASR and capture row this build declares for the platform; Windows only, `--verify` is also asked, and the `moonshine` row must report `loadable: true` — the native library actually loads (no model, no network), the guarantee the retired `--check-moonshine` flag used to make alone ([ADR 0403](../adr/0403-the-capabilities-flag-reports-what-registered-not-what-loads.md)) |
+| `guide:capabilities` | the frozen Story Bible sidecar's `capabilities` subcommand names every TTS and pronunciation row this build declares |
+| `compare:capabilities` | the frozen Transcript Compare sidecar's `--capabilities` report names every batch ASR row this build declares |
 | `catalogs` | the four approved asset catalogs load and name assets |
 | `reaper` | the launcher and its six scripts are present and the launcher points at this executable |
 
@@ -368,7 +367,7 @@ level 3). The subjects are identified by digest:
 - Promote does not attest again: it re-publishes the same bytes, and an attestation belongs to a digest, not to a release.
 - Attestations prove which workflow, commit and run produced a file. They do not prove the source is benign, and they do
   not change how Windows SmartScreen or antivirus software treats an unsigned executable. The first stable release is
-  unsigned and Windows-only (owner decision D7): signing is the owner's call, and no workflow here signs.
+  unsigned and Windows-only: signing is the owner's call, and no workflow here signs.
 - A release candidate published before this change has no attestations, so promote refuses it (it cannot be promoted
   once attestations are enforced, as a candidate with `SHA256SUMS.txt` could not be promoted after ADR 0027). Only the
   newest ten candidates are kept in any case.
@@ -406,15 +405,15 @@ The `.sha256` beside a file only detects a damaged download: it is not evidence 
 
 `docs.yml` (workflow `Docs`) runs [lychee](https://github.com/lycheeverse/lychee) (`lycheeverse/lychee-action`, pinned to a commit, lychee 0.24.2) over every Markdown file in the repository, configured by `.lychee.toml` and `.lycheeignore` at the root. It has three jobs:
 
-- **`Links (offline)`** (shown as `Docs / Links (offline)`) starts on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a *code* change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it (owner decision D11), so the maintainer reads it like the others, and adding `Docs / Links (offline)` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. While GitHub Pages is paused ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) this is the only link check a pull request runs; `apps/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
+- **`Links (offline)`** (shown as `Docs / Links (offline)`) starts on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a *code* change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it, so the maintainer reads it like the others, and adding `Docs / Links (offline)` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. While GitHub Pages is paused ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) this is the only link check a pull request runs; `apps/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
 - **`Markdown lint (changed files)`** (shown as `Docs / Markdown lint (changed files)`) also starts on every pull request, and also fails the run on a finding, but checks Markdown *style*, not links: heading levels, list marker and indent consistency, trailing whitespace, multiple blank lines, fenced code language, bare URLs, and the rest of `.markdownlint-cli2.jsonc`'s starter rule set (`markdownlint-cli2`, exact version pinned in the root `devDependencies`). It scopes itself to only the `.md` files the pull request adds or changes against the merge base with its base branch (`scripts/ci/changed-markdown.mjs`, `scripts/ci/lint-markdown-changed.mjs`) — not a full-repo baseline, so pre-existing debt in an untouched file never blocks an unrelated change, only in one a pull request itself touches. A rename lands on its new path; a deletion has nothing left to lint. The job writes a job summary naming the fix command on a failure. `pnpm lint:md` runs the same check locally against `origin/main` (or `--base <ref>`), and `pnpm lint:md:fix` adds `--fix`; lint-staged also runs `markdownlint-cli2 --fix` on staged `*.md` files on commit, so most violations never reach a pull request at all. See [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md) for why this replaced building the docs site on every pull request, and why the rule set turns off line length, table style and a handful of rules that fired only on the repo's own deliberate style (template formatting, angle-bracket placeholders, bold lead-in labels, footnote-style citation markers).
 - **`Links (online, advisory)`** starts weekly and by hand. It also follows the `http(s)` links (with `actions/cache` on `.lycheecache`, one day), reports the ones that rotted in the job summary, and **never fails**: a link on someone else's server is not a regression in this repository. `429 Too Many Requests` is accepted. The `GITHUB_TOKEN` is passed only to lift GitHub's anonymous rate limit.
 
 **Diagrams.** lychee reads a Mermaid block as text, so `scripts/ci/mermaid-diagrams.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`, and so in `pnpm check`) hands every ```` ```mermaid ```` block of every tracked Markdown file to Mermaid's own parser (`mermaid.parse`, the `mermaid` devDependency of the root package) and fails with the file, the line and the parser's message. It needs no browser: Mermaid's sanitizer only wants a DOM, and the test gives it jsdom (already a dependency of the UI's tests) before it imports Mermaid. It proves the syntax, not that the names in a picture are still true; the five diagrams of [the codebase map](../architecture/codebase-map.md#how-the-parts-connect) and the four flows each say which files they were checked against, and the test fails if one of the five owning docs loses its diagram.
 
-What it does not see: a path in a code comment (`docs/prds/<name>.prd.md` in a Go or Python file) is not a Markdown link, so `scripts/ci/prd-references.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`) fails when a source file cites a PRD that is not in the tree ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) deletes them by design). Mermaid diagrams are text to lychee.
+What it does not see: a path in a code comment (a path to a planning document in a Go or Python file) is not a Markdown link, so `scripts/ci/prd-references.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`) fails when a source file cites a PRD that is not in the tree ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) deletes them by design). Mermaid diagrams are text to lychee.
 
-The baseline on 2026-09-21 (S17 phase 1): 0 dead repository links; 7 external links rotted or unreachable, six of them pull requests of the owner's private repositories cited as history in the UI atlas kit's rollout ledger (deleted with the kit, [ADR 0243](../adr/0243-the-ui-atlas-kit-is-dissolved-into-apps-ui-which-owns-its-visual-suite-and-atlas-outright.md)) and one real finding, the README's link to the published site `https://countrymanprime.github.io/narration-utils/`, which answers 404 until the owner enables GitHub Pages ([#231](https://github.com/countrymanprime/narration-utils/issues/231)). To add a link the checker should not chase, add a regular expression to `.lycheeignore` with its reason; to run the check locally, install lychee (`cargo install lychee --locked`) and run `lychee --config .lychee.toml --offline .` (drop `--offline` for the online run).
+The baseline on 2026-09-21: 0 dead repository links; 7 external links rotted or unreachable, six of them pull requests of the owner's private repositories cited as history in the UI atlas kit's rollout ledger (deleted with the kit, [ADR 0243](../adr/0243-the-ui-atlas-kit-is-dissolved-into-apps-ui-which-owns-its-visual-suite-and-atlas-outright.md)) and one real finding, the README's link to the published site `https://countrymanprime.github.io/narration-utils/`, which answers 404 until the owner enables GitHub Pages ([#231](https://github.com/countrymanprime/narration-utils/issues/231)). To add a link the checker should not chase, add a regular expression to `.lycheeignore` with its reason; to run the check locally, install lychee (`cargo install lychee --locked`) and run `lychee --config .lychee.toml --offline .` (drop `--offline` for the online run).
 
 ## The docs-impact check
 
@@ -447,13 +446,13 @@ Both are smell detectors: a phrase list cannot judge a sentence, and a path chec
 
 ## Third-party notices
 
-`scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). Owner decision D17 ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
+`scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). The owner's licence decision ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
 
 ```bash
 uv run python scripts/licenses/notices.py --version 0.1.0 --tag v0.1.0-rc --out THIRD-PARTY-NOTICES.txt
 ```
 
-Each part is read from the thing the release is built from, so nobody keeps a list that can drift (this answers Open Question 11 of the PRD: **derive the shipped Python set from the frozen bundle**, proven on the local build):
+Each part is read from the thing the release is built from, so nobody keeps a list that can drift (**the shipped Python set is derived from the frozen bundle**, proven on the local build):
 
 | Ecosystem | Source of truth | Notes |
 | --- | --- | --- |
@@ -469,7 +468,7 @@ The run **fails, and writes nothing**, rather than guess: when a licence cannot 
 
 ## The Pages workflow
 
-**Paused (owner decision D75, 2026-09-27; narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md), same day).** The site isn't how the owner wants it yet, so nothing is published until the main
+**Paused (an owner decision, 2026-09-27; narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md), same day).** The site isn't how the owner wants it yet, so nothing is published until the main
 app's development is done and the site is reworked. `pages.yml` no longer runs on a push to `main`, and no longer runs on a pull
 request either: `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` ([The docs link check](#the-docs-link-check))
 cover a pull request's Markdown without building the site. Only a manual start builds, and deploys only when its `publish` input is
@@ -478,7 +477,7 @@ ticked on `main`. Unpublishing the site that is already live is an owner-only se
 unconditional `deploy`. The rest of this section describes the workflow as it runs when publishing.
 
 `pages.yml` publishes the public site to GitHub Pages, at `https://countrymanprime.github.io/narration-utils/`, on
-demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook component atlas of `apps/ui` under `/storybook/` (PRD phases 9 and 11).
+demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook component atlas of `apps/ui` under `/storybook/`.
 
 - **Two jobs.** `build` (read-only token) checks out with `persist-credentials: false`, runs the `setup-toolchain` action (pnpm, and
   the `docs` uv group only), `pnpm --dir apps/ui run build-storybook`, `nx run docs-site:build-site` (the strict docs build and its link
@@ -496,8 +495,8 @@ demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook 
   every asset URL relative (`./sb-manager/...`, `./assets/...`), so no `base` setting is needed. Checked by serving the build
   from `/narration-utils/` on a server that answers 404 for anything outside that folder and loading `index.html` and `iframe.html`
   in Chromium in light and dark (`globals=theme:dark`): no request failed, no page or console error, the stories rendered
-  (2026-09-21, [PRD phase 9](../prds/release-readiness-provisioning-and-docs-site.prd.md)). Phase 11 put it one folder deeper
-  (`/narration-utils/storybook/`) and loaded it from there the same way; the docs pages use relative links only. The fonts are bundled
+  (2026-09-21), and again one folder deeper
+  (`/narration-utils/storybook/`), loaded from there the same way; the docs pages use relative links only. The fonts are bundled
   (`apps/ui/src/fonts.ts`, #238), so the published atlas makes no third-party request.
 - **Not enabled yet.** Pages is off for the repository and turning it on is an owner-only setting
   ([the table](github-workflow.md#repository-settings-that-only-the-owner-can-change)). Until then a manual run with `publish` ticked
@@ -541,7 +540,7 @@ fails if it gains one, or if `docs_dir` stops being `docs/`.
 - **Dependencies** are the `docs` group of `pyproject.toml` (`mkdocs`, `mkdocs-material`, and `pytest`/`ruff` so the docs job installs that
   group alone), exact versions, locked with hashes in `uv.lock`, Dependabot's `uv` entry and its 3-day cooldown apply, and nothing of it is
   in the app. Do not raise the pins without re-running the spike: Material requires `mkdocs<2`.
-- **Not proven until the owner enables Pages:** that the deployed address serves this build (phases 9 and 11 are `partial` for that reason).
+- **Not proven until the owner enables Pages:** that the deployed address serves this build.
 
 ## Nx projects and the quality gate
 
@@ -736,20 +735,20 @@ hosted jobs at once across the account.
 
 ### Success Metrics: measured (2026-09-27)
 
-The CI pipeline speed PRD's Phases 1-6 shipped Split 1 (build beside quality, later superseded by the Prerelease
-dropping quality entirely), the sidecar freeze cache (Phase 2), one load per state in the visual suite and per story in
-the atlas (Phases 3, 4), and sharding plus the folded quick jobs ([ADR 0244](../adr/0244-the-playwright-suites-are-sharded-in-ci-the-quick-checks-share-a-runner-per-os-and-one-check-sums-up-the-run.md)).
-This is what a sample taken against the PRD's Success Metrics table shows once that work was steady state, and why the
-sample is not the "median of 5 idle runs" the PRD asked for:
+The CI speed work shipped Split 1 (build beside quality, later superseded by the Prerelease
+dropping quality entirely), the sidecar freeze cache, one load per state in the visual suite and per story in
+the atlas, and sharding plus the folded quick jobs ([ADR 0244](../adr/0244-the-playwright-suites-are-sharded-in-ci-the-quick-checks-share-a-runner-per-os-and-one-check-sums-up-the-run.md)).
+This is what a sample taken against the original baselines and targets shows once that work was steady state, and why the
+sample is not a median of 5 idle runs:
 
 | Metric | Original baseline | Target | Measured (2026-09-27) | Met? |
 | --- | --- | --- | --- | --- |
 | Prerelease push to release published | 13 m 33 s | ≤ 8 min | median 6 m 20 s, p90 8 m 35 s (n=30 successful runs) | Met |
 | CI pull request to all green (UI affected) | ~9 min | ≤ 5 min | median 7 min, p90 10 m 40 s (n=4 successful runs) | Missed, low confidence (see below) |
-| `quality / ui-visual` job | 7 m 17 s | ≤ 4 min | pooled across 3 shards: median 4 m 50 s, p90 5 m 55 s (n=12 shard-jobs) | Not comparable: ADR 0244 sharded this job after the PRD's own Phase 3 left the unsharded job at 9.4 min (D5), which is why sharding exists |
-| `quality / ui-atlas` job | 6 m 45 s | ≤ 4 min | pooled across 2 shards: median 3 m 45 s, p90 5 m 15 s (n=8 shard-jobs) | Not comparable, same reason (2 shards vs. the PRD's 1-job baseline) |
-| Windows `build-native` with sidecar cache hit | 5 m 29 s | ≤ 3 min | CI `Build (Windows)`: median 4 m 30 s, p90 5 m 10 s; Prerelease `Windows build`: median 4 m 35 s, p90 4 m 45 s (n=8 each) | Missed. Job-level data cannot distinguish a cache hit from a cold freeze; the PRD's own Phase 2 status was "cold vs. hit comparison pending" |
-| Job slots per CI run / Prerelease run | 13 / 14 | 9 / 10 | CI: 12-13 (ADR 0244 accepted this trade-off deliberately: sharding costs slots to cut wall clock). Prerelease: 4 (`version`, `ui-dist`, `Windows build`, `Windows release` - quality jobs were dropped entirely, past what Phase 6 targeted) | CI: missed by design; Prerelease: exceeded |
+| `quality / ui-visual` job | 7 m 17 s | ≤ 4 min | pooled across 3 shards: median 4 m 50 s, p90 5 m 55 s (n=12 shard-jobs) | Not comparable: ADR 0244 sharded this job after the per-state load change left the unsharded job at 9.4 min, which is why sharding exists |
+| `quality / ui-atlas` job | 6 m 45 s | ≤ 4 min | pooled across 2 shards: median 3 m 45 s, p90 5 m 15 s (n=8 shard-jobs) | Not comparable, same reason (2 shards vs. a 1-job baseline) |
+| Windows `build-native` with sidecar cache hit | 5 m 29 s | ≤ 3 min | CI `Build (Windows)`: median 4 m 30 s, p90 5 m 10 s; Prerelease `Windows build`: median 4 m 35 s, p90 4 m 45 s (n=8 each) | Missed. Job-level data cannot distinguish a cache hit from a cold freeze; the cold-versus-hit comparison was never made |
+| Job slots per CI run / Prerelease run | 13 / 14 | 9 / 10 | CI: 12-13 (ADR 0244 accepted this trade-off deliberately: sharding costs slots to cut wall clock). Prerelease: 4 (`version`, `ui-dist`, `Windows build`, `Windows release` - quality jobs were dropped entirely, past the 10-slot target) | CI: missed by design; Prerelease: exceeded |
 | Checks run | all | all, none dropped | not independently re-verified in this pass | Not measured |
 
 Run ids: CI wall-clock (n=4) 36327001255, 36132192971, 36130938887, 36126949380; Prerelease wall-clock (n=30, newest
@@ -764,18 +763,17 @@ first) 36336010157, 36334152008, 36333183333, 36332358483, 36330499985, 36329512
 (train control) shows 10 of 10 agent-train lanes running throughout the sampled window (2026-09-25 to 2026-09-27), so
 roughly ten parallel agent-authored pull requests were contending for the free plan's 20 concurrent hosted job slots,
 and each CI run alone now costs 12 to 13 of them. Pooled job start offset (a job's `started_at` minus its run's
-`created_at`) across the sampled runs has a median of 78 s and a p90 of 546 s (max 24 min), against the PRD's own idle
-baseline of about 3 s; the p90 sits inside the PRD's own "congested" band (138 s to 1966 s). Of the 40 most recent
+`created_at`) across the sampled runs has a median of 78 s and a p90 of 546 s (max 24 min), against an earlier idle
+baseline of about 3 s; the p90 sits inside an earlier congested range (138 s to 1966 s). Of the 40 most recent
 `ci.yml` pull-request runs, only 4 (10%) completed successfully - 24 failed and 12 were cancelled, which is why the "CI
 pull request to all green" row above is a 4-run sample: the same churn that inflates queueing also means most runs
 never finish, from a mix of rapid pushes cancelling their own prior runs and real flakiness under contention. None of
-this is evidence the Phase 1-6 work regressed; it is evidence that today is a poor day to take an idle-runner sample.
+this is evidence the speed work regressed; it is evidence that today is a poor day to take an idle-runner sample.
 A repeat of this measurement once the agent train's lane count drops (or `HOLD`s) would be a truer read.
 
 **What is still open:** the Windows build and the two Playwright suites (compared on their own pre-sharding baselines)
-remain above their per-job targets. The PRD's Open Question 3 ("is a paid 8-core runner acceptable if Phases 3-5 miss
-the target") applies, and Open Question 2 (a GitHub merge queue) is unanswered; neither carried a stated
-recommendation, so both are left for the owner rather than decided here (see
+remain above their per-job targets. Whether a paid 8-core runner is acceptable and whether to use a GitHub merge queue are unanswered;
+neither has a recommendation, so both are left for the owner rather than decided here (see
 [#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ## Runtime provenance
@@ -788,8 +786,7 @@ malformed checksum or a missing size, and its own cases prove each rule on a bad
 resolve its commit (`git ls-remote https://huggingface.co/<owner>/<repo> refs/tags/<tag>`, or the `X-Repo-Commit`
 response header) and put it in the URL. The Piper voice's `version` stays `1.0.0` (it names the install directory, so
 existing installs stay valid); only the download URLs moved from the tag `v1.0.0` to its commit, with the same hashes.
-The Whisper path that loads a model by name from the hub when no `--model-dir` is given is not covered here (release
-readiness provisioning phase 2).
+The Whisper path that loads a model by name from the hub when no `--model-dir` is given is not covered here.
 
 `scripts/release/prepare-resources.py` freezes only the two first-party Python
 tool entry points. It does not bundle optional voices, models, dictionaries, or

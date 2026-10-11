@@ -32,7 +32,7 @@ const CURRENT_ALIGNMENT: WorkspaceAlignmentResult = {
   items: [],
 };
 
-describe('checkSentence (edit-and-proof mock 01: "2 regions not read, 3 misreads, 2 repeats.")', () => {
+describe('checkSentence ("2 regions not read, 3 misreads, 2 repeats.")', () => {
   it('names only the kinds the check found, counted', () => {
     expect(checkSentence([flag('skip'), flag('not_recorded'), flag('misread'), flag('misread'), flag('misread')])).toBe('2 regions not read, 3 misreads.');
     expect(checkSentence([flag('partial'), flag('extra')])).toBe('1 read short, 1 extra passage.');
@@ -44,7 +44,7 @@ describe('checkSentence (edit-and-proof mock 01: "2 regions not read, 3 misreads
   });
 });
 
-describe('RecordingCheckCard figures (mock-fidelity-primitives-and-components.prd.md Phase 9: the hand-drawn dl becomes StatTile)', () => {
+describe('RecordingCheckCard figures (StatTile, not a hand-drawn dl)', () => {
   it('draws Recorded and Length as one figures strip, not a bare dl', () => {
     render(<RecordingCheckCard chapter={CHAPTER} alignment={CURRENT_ALIGNMENT} flags={[]} />);
     const strip = screen.getByRole('list', { name: 'Recording check figures' });

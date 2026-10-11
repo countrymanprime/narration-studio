@@ -17,8 +17,7 @@ function ControlledMicrophoneField({ initial = '', devices = DEVICES }: { initia
   return <MicrophoneField value={value} onChange={setValue} devices={devices} />;
 }
 
-// The picker (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 2, "Microphone is never typed" Decisions
-// Log row): a dropdown of enumerated devices only, never a typed field. A failed or empty listing blocks the phase
+// The picker is a dropdown of enumerated devices only, never a typed field. A failed or empty listing blocks Start
 // instead of offering one.
 describe('MicrophoneField', () => {
   it('labels the control "Microphone"', () => {

@@ -8,10 +8,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// This file is Phase 4 of the production tracking PRD (delivered and deleted; ADR 0028): the one read the Production page makes. BuildOverview
-// is pure: the host hands it the chapters (status and measured recorded time from the manuscript, readiness from the
-// stage recommendations), the time log and the plan, and it only arranges and adds them up. It never writes a chapter
-// status and never recomputes a readiness signal (Q8 A): the board shows what the signal owners already said.
+// This file is the one read the Production page makes. BuildOverview is pure: the host hands it the chapters (status
+// and measured recorded time from the manuscript, readiness from the stage recommendations), the time log and the plan,
+// and it only arranges and adds them up. It never writes a chapter status and never recomputes a readiness signal: the
+// board shows what the signal owners already said.
 
 // nextUpLimit is how many chapters "Next up" lists.
 const nextUpLimit = 5
@@ -40,9 +40,9 @@ type ChapterInput struct {
 	Readiness           *Readiness
 }
 
-// OverviewInput is everything BuildOverview reads. Plan is the book's deadline and contracted amount as Phase 3 keeps
-// them on the project manifest (plan.go): an unset one is nil, and the figures it feeds are undefined. Now is the local
-// time the deadline's days are counted from.
+// OverviewInput is everything BuildOverview reads. Plan is the book's deadline and contracted amount as plan.go
+// validates and the project manifest keeps them: an unset one is nil, and the figures it feeds are undefined. Now is
+// the local time the deadline's days are counted from.
 type OverviewInput struct {
 	Chapters []ChapterInput
 	Sessions []Session

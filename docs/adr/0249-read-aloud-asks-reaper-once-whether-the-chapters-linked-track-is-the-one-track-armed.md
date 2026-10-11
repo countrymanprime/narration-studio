@@ -5,7 +5,7 @@
 
 ## Context
 
-The Read Aloud control bar ([read-aloud-control-bar PRD](../prds/read-aloud-control-bar.prd.md) Phase 6) shows, beside its REAPER toggle, whether REAPER is ready to record this chapter. Phase 7 then records only under the rule the owner approved for Q7 (D28): record on the chapter's linked track, never another chapter's. The read-only `chapter_track_state` ([ADR 0231](0231-chapter-track-state-is-one-read-only-answer-of-the-transport-the-arms-the-input-device-and-one-tracks-items.md)) already answers the transport, whether a named track is armed and how many tracks are. It is experimental until the verification pass ([ADR 0230](0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)). Nothing in the host called it yet. [ADR 0122](0122-the-review-page-asks-reaper-only-on-a-click-and-only-while-it-answers-and-a-refusal-is-an-answer.md) says a page asks REAPER only on an action and treats a refusal as an answer.
+The Read Aloud control bar shows, beside its REAPER toggle, whether REAPER is ready to record this chapter. Recording from the bar ([ADR 0380](0380-record-in-reaper-is-a-project-scope-setting-and-arming-is-a-separate-click-from-play.md)) follows the rule the owner approved: record on the chapter's linked track, never another chapter's. The read-only `chapter_track_state` ([ADR 0231](0231-chapter-track-state-is-one-read-only-answer-of-the-transport-the-arms-the-input-device-and-one-tracks-items.md)) already answers the transport, whether a named track is armed and how many tracks are. It is experimental until the verification pass ([ADR 0230](0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)). Nothing in the host called it yet. [ADR 0122](0122-the-review-page-asks-reaper-only-on-a-click-and-only-while-it-answers-and-a-refusal-is-an-answer.md) says a page asks REAPER only on an action and treats a refusal as an answer.
 
 ## Decision
 
@@ -18,13 +18,13 @@ The Read Aloud control bar ([read-aloud-control-bar PRD](../prds/read-aloud-cont
   - One armed and it is not the chapter's → `other_armed`.
   - Otherwise → `ready`.
 
-  `ready` means exactly the state Phase 7 may record in. The other statuses name what the "Arm Chapter N only" action (D28) would change.
+  `ready` means exactly the state in which recording from the bar is allowed. The other statuses name what the "Arm Chapter N only" action would change.
 - **Availability comes first and is an answer.** The heartbeat is read before anything is sent: no bridge answers `unavailable`/`standalone`, a silent REAPER `not_running`. The experimental switch being off answers `unavailable`/`experimental_off`, a timeout `not_running`, and anything else `failed`, each with a message in the narrator's words. Only a chapter the manuscript does not have is an error.
 - **Nothing is written to REAPER** and nothing is cached. The answer carries no item or path, only what the bar shows.
 
 ## Consequences
 
-- The bar can say why recording is not ready ("2 tracks are armed in REAPER…") before the narrator presses Play, and Phase 7's guard reuses the same comparison.
-- `chapter_track_state` answers counts, not the other armed tracks' names, so `other_armed` and `several_armed` cannot name them. Phase 7's arm command disarms them anyway.
-- Until the verification pass switches the command on, the real app answers `experimental_off` (D24/D38). The mock answers every status (`?mockReaperState=`).
-- The REAPER state in the bar is built: `useReadAloudReaperState` asks on mount and on its own Refresh button, never on a timer; the bar shows it as a `Button` that is always disabled (it is information only - Phase 7's arm/record actions the toggle would gate are not built), named by its status ("Record in REAPER: Chapter armed", "Not armed", "Recording", …) with the full message as its tooltip, and a red icon while REAPER is recording. What the fake cannot prove, REAPER's own `GetPlayState` and `I_RECARM` values, is the owner's scripted check (#510).
+- The bar can say why recording is not ready ("2 tracks are armed in REAPER…") before the narrator presses Play, and the record guard reuses the same comparison.
+- `chapter_track_state` answers counts, not the other armed tracks' names, so `other_armed` and `several_armed` cannot name them. the arm command disarms them anyway.
+- Until the verification pass switches the command on, the real app answers `experimental_off`. The mock answers every status (`?mockReaperState=`).
+- The REAPER state in the bar is built: `useReadAloudReaperState` asks on mount and on its own Refresh button, never on a timer; the bar shows it as a `Button` that is always disabled (information only when this was written; the arm and record actions the toggle gates are ADR 0380's), named by its status ("Record in REAPER: Chapter armed", "Not armed", "Recording", …) with the full message as its tooltip, and a red icon while REAPER is recording. What the fake cannot prove, REAPER's own `GetPlayState` and `I_RECARM` values, is the owner's scripted check (#510).

@@ -6,20 +6,19 @@
 ## Context
 
 The owner reported that the Home chapter table lists only manuscript chapters, even though opening and closing credits are
-recorded too (`docs/prds/credits-in-chapter-table.prd.md`). Phase 1 of that PRD adds a status the narrator can set for the
-opening and closing credits rows, so a later phase can show them as the first and last rows of the table. ADR 0150 already
+recorded too. This adds a status the narrator can set for the opening and closing credits rows, so the table can show them as
+its first and last rows. ADR 0150 already
 established that the credits are not manuscript chapters ("The credits are not manuscript chapters and must never become
 one") for the teleprompter, and ADR 0004 keeps `contentKind: "opening"` reserved for Front Matter, not for a synthetic
 "Opening Credits" chapter. Chapter statuses live in `manuscript-notes.json` (`manuscript.Service.SetChapterStatus`), which
-`resetDerived` deletes on Replace manuscript and on "Clear derived project data" (`credits-in-chapter-table.prd.md`
-Evidence); a credits status stored there would not survive either, but the credits text itself already lives on
-`project.Manifest.Credits` (ADR-less, PRD `audiobook-credits-templates.prd.md` C12) precisely because it must survive both.
+`resetDerived` deletes on Replace manuscript and on "Clear derived project data"; a credits status stored there would not
+survive either, but the credits text itself already lives on `project.Manifest.Credits` precisely because it must survive both.
 
 ## Decision
 
 - **Credits rows are never chapters.** They keep the fixed ids `credits-opening` and `credits-closing`, matching the
   teleprompter's `--script-id credits-<kind>` (ADR 0150). They never enter `manuscript.json`, `ManuscriptChapters`,
-  `ChapterNav`, search, `contentKind`, stage suggestions, or coverage; a later phase renders them outside the chapter array
+  `ChapterNav`, search, `contentKind`, stage suggestions, or coverage; the table renders them outside the chapter array
   the same way the Manuscript page already does, so every chapter-only consumer stays chapter-only by construction, not by a
   filter one might forget to add.
 - **The status is stored on the project manifest, not in `manuscript-notes.json`.** `project.Manifest.CreditsStatus` is an
@@ -38,8 +37,8 @@ Evidence); a credits status stored there would not survive either, but the credi
 - The status survives Replace manuscript and "Clear derived project data" (the manifest is outside both operations), matching
   the credits values it sits beside; a Go test clears derived data and confirms the status is unchanged while a manuscript
   chapter's own status is gone.
-- Nothing here builds the rows themselves, the disabled Check button, or the progress-text change (Phase 2 of the PRD); this
-  ADR only fixes where the status lives and what values it takes, so Phase 2 has a stable, already-persisted signal to render.
+- Nothing here builds the rows themselves, the disabled Check button, or the progress-text change; this
+  ADR only fixes where the status lives and what values it takes, so the rows have a stable, already-persisted signal to render.
 - A `credits-<kind>` id can never collide with a manuscript chapter id (`c-XXXX`), so no chapter-only binding needs to special-
   case it; the risk this ADR is written against is a credits id leaking into `ManuscriptSetChapterStatus`, stage suggestions
   or coverage, which the id scheme and the separate bindings rule out rather than a runtime check.

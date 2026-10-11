@@ -95,8 +95,8 @@ func TestReaderNotesStatusAndSearch(t *testing.T) {
 	}
 }
 
-// Phase 2 of the reader search and controls PRD: the search cache (keyed by the file's own mtime
-// and size), the result cap, and the match offset the PRD's windowing helper (Phase 3) needs.
+// The reader search cache (keyed by the file's own mtime and size), the result cap, and the match
+// offset the reader's windowing helper needs.
 
 func TestSearchReturnsTheMatchOffset(t *testing.T) {
 	service, _, _ := importReaderFixture(t)
@@ -310,8 +310,8 @@ func TestChapterIDByTitleAndParagraphIDFailWithoutAManuscript(t *testing.T) {
 	}
 }
 
-// docs/utilities/recording-coverage.md, ADR 0129 (D11): recordedFraction is set only from a measurement the provider
-// gives, and absent for every other chapter, so the UI keeps its labeled status estimate (Q12 A).
+// docs/utilities/recording-coverage.md, ADR 0129: recordedFraction is set only from a measurement the provider
+// gives, and absent for every other chapter, so the UI keeps its labeled status estimate.
 func TestRecordedFractionComesOnlyFromTheMeasurementProvider(t *testing.T) {
 	service, chapterID, _ := importReaderFixture(t)
 	chapters, err := service.Chapters()
@@ -391,7 +391,7 @@ func TestChaptersUnmeasuredKeepsTheStatusesAndNeverAsksForTheFractions(t *testin
 	}
 }
 
-// actual-recorded-column PRD Phase 2 (AR2, AR3): a chapter's recordedSeconds comes only from the recorded-length
+// TestRecordedSecondsComesOnlyFromTheRecordedLengthProvider pins that a chapter's recordedSeconds comes only from the recorded-length
 // provider (the linked track's audio in the saved project), and a chapter the provider cannot answer carries the
 // reason instead. The status never fills it, and ChaptersUnmeasured never asks.
 func TestRecordedSecondsComesOnlyFromTheRecordedLengthProvider(t *testing.T) {

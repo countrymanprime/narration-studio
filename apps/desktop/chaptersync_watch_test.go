@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
 )
 
-// Watching the saved .rpp (daw-chapter-track-auto-sync PRD Phase 4, S6 A and B, S12). The tests drive
+// Watching the saved .rpp (ADR 0210). The tests drive
 // chapterSyncWatchTick with their own clock, so the debounce is exact and nothing sleeps.
 
 // chapterThreeTrack is a track saved in REAPER for the next chapter: "Ch. 3" names Chapter III confidently both ways.

@@ -20,7 +20,7 @@ const (
 )
 
 // Roles a source declares in its Descriptor's Modes, as the Python port names them: pronounce gives a name's pronunciation; browse
-// (the BrowserLookup role, Q5) gives a page about the name on the source's one browser host, for the narrator's browser, and is
+// (the BrowserLookup role) gives a page about the name on the source's one browser host, for the narrator's browser, and is
 // never fetched by the app. No source takes browse yet.
 const (
 	ModePronounce = "pronounce"
@@ -43,8 +43,8 @@ type source struct{ name string }
 func (s source) Name() string        { return s.name }
 func (s source) BrowserHost() string { return "" }
 
-// NewRegistry is a registry holding the built-in rows in the build-time fallback's order, CMU first as the default (D72/Q7:
-// prep-depth Phase 8, ADR 0405, adds Wiktextract between CMU and eSpeak). A test registers a fake on its own copy.
+// NewRegistry is a registry holding the built-in rows in the build-time fallback's order, CMU first as the default (ADR 0405
+// puts Wiktextract between CMU and eSpeak). A test registers a fake on its own copy.
 func NewRegistry() *port.Registry[Source] {
 	r := &port.Registry[Source]{Kind: "pronunciation source"}
 	// CMU is quick and good for familiar names; Wiktextract covers more headwords with a real dictionary hit; eSpeak is

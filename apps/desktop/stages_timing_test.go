@@ -10,10 +10,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// stagesTimingEnv names a project folder to time StageRecommendations on (chapter-stage-recommendations.prd.md Phase 4, the
-// "Evaluation is read-only and cheap" metric and Q5). The folder is changed: every narration chapter is put in recording and,
-// in the second pass, every unlinked track is linked to a chapter, so point it at a copy of a real project, never the project
-// itself. Unset, the test is skipped.
+// stagesTimingEnv names a project folder to time StageRecommendations on to check that evaluation is read-only and
+// cheap. The folder is changed: every narration chapter is put in recording and, in the second pass, every unlinked
+// track is linked to a chapter, so point it at a copy of a real project, never the project itself. Unset, the test is skipped.
 const stagesTimingEnv = "STAGES_TIMING_PROJECT"
 
 // stagesTimingRuns is how many reads each pass times after the first one.

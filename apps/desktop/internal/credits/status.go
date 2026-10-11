@@ -1,6 +1,6 @@
 package credits
 
-// Status is a credits row's production stage, stored on the project manifest (Credits in the Chapter Table PRD, CT2/CT3):
+// Status is a credits row's production stage, stored on the project manifest (ADR 0183):
 // the same five values ManuscriptSetChapterStatus accepts (apps/desktop/internal/manuscript/reader.go's
 // validChapterStatus), so the select and colours the chapter table already has can be reused as-is for a credits row.
 type Status = string

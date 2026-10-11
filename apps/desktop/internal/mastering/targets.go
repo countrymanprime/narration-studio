@@ -44,8 +44,8 @@ type Targets struct {
 	Ceiling float64 `json:"ceiling"`
 }
 
-// TargetsFrom reads the chain's targets from a delivery profile's own RMS and sample-peak rules (PRD Q4: fixed chain,
-// the profile's numbers).
+// TargetsFrom reads the chain's targets from a delivery profile's own RMS and sample-peak rules: the chain is fixed and
+// the profile supplies the numbers.
 func TargetsFrom(profile deliveryprofile.Profile) (Targets, error) {
 	rms, ok := measuredRule(profile, metricRMS)
 	if !ok || (rms.Min == nil && rms.Max == nil) {

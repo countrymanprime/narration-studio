@@ -7,8 +7,7 @@
 
 Reaching the end of a chapter sets the tracker's status to `done` (`script_tracker.py`, `_status`), the reader shows
 "Done", and until now the session kept listening until the narrator pressed Stop.
-`docs/prds/teleprompter-engines-and-input-devices.prd.md` Phase 9 asks for the session to end itself. The PRD's Open
-Question "Auto-stop trigger and delay" offered three places for the trigger: (a) the UI calls Stop when it sees `done`,
+The teleprompter work asks for the session to end itself. The open question of the auto-stop trigger and delay offered three places for the trigger: (a) the UI calls Stop when it sees `done`,
 (b) the Go service starts a timer on a `done` position and calls `Stop()` when it expires unless a later position
 clears it, (c) the sidecar exits itself. The owner answered (b) on 2026-09-23, with the delay above the tracker's
 1.5 s `WAIT_SECONDS`, no user setting at first, and a message in the UI. The delay value itself was left open.

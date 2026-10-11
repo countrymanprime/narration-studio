@@ -667,11 +667,10 @@ def test_list_devices_reports_a_listing_failure_instead_of_pretending_there_are_
 
 
 # --capabilities is a one-shot mode like --list-devices: every row this process has registered in ENGINES and
-# BACKENDS by the time it runs, registration only by default (Q2, ADR 0403) - "loadable" is null unless --verify is
-# also given, in which case _VERIFY_HOOKS rows (today: just moonshine, sidecar-capabilities-flag PRD Phase 3) also
-# get a real loadable/detail. capabilities_report() is tested directly against fake registries below, so the
-# fault-detection case (PRD Success Metrics: a row an adapter failed to register is absent from the report) needs no
-# real broken import to prove; the CLI wiring test only checks --capabilities is short-circuited before a session,
+# BACKENDS by the time it runs, registration only by default (ADR 0403) - "loadable" is null unless --verify is
+# also given, in which case _VERIFY_HOOKS rows (today: just moonshine) also get a
+# real loadable/detail. capabilities_report() is tested directly against fake registries below, so the fault-detection
+# case (a row an adapter failed to register is absent from the report) needs no real broken import to prove; the CLI wiring test only checks --capabilities is short-circuited before a session,
 # the same as --list-devices. --capabilities --verify's exit-code/exit-1-on-failure behavior against the real
 # moonshine row is tested in test_moonshine_engine.py, beside self_check()'s own tests.
 def _fake_registry(rows):
@@ -723,7 +722,7 @@ def test_capabilities_report_never_verifies_loading_by_default():
 
 
 def test_capabilities_report_verify_leaves_a_row_with_no_verify_hook_unloaded():
-    # whisper has no _VERIFY_HOOKS entry, so --verify reports it exactly as registration-only would (Q2/Q3: verify is
+    # whisper has no _VERIFY_HOOKS entry, so --verify reports it exactly as registration-only would (verify is
     # opt-in per row, not a blanket "load everything" switch).
     from narration_common.ports.asr import AsrDescriptor
 
@@ -734,7 +733,7 @@ def test_capabilities_report_verify_leaves_a_row_with_no_verify_hook_unloaded():
 
 
 def test_capabilities_report_verifies_the_moonshine_row_when_asked(monkeypatch):
-    # sidecar-capabilities-flag PRD Phase 3: --capabilities --verify folds moonshine_engine.self_check()'s guarantee
+    # --capabilities --verify folds moonshine_engine.self_check()'s guarantee
     # into the generic report, through _VERIFY_HOOKS[("asr", "moonshine")].
     from narration_common.ports.asr import AsrDescriptor
 
@@ -762,7 +761,7 @@ def test_capabilities_report_reports_a_failed_moonshine_verify(monkeypatch):
 
 
 def test_capabilities_report_only_lists_what_actually_registered():
-    # The fault-detection case (PRD Success Metrics): a row an adapter failed to register never reaches ENGINES/
+    # The fault-detection case: a row an adapter failed to register never reaches ENGINES/
     # BACKENDS, so it is simply absent here too - reading the registry as it stands is the whole mechanism.
     from narration_common.ports.asr import AsrDescriptor
 
@@ -837,8 +836,8 @@ def test_a_plain_script_still_emits_no_script_event(tmp_path, monkeypatch):
     assert (script_event, text) == (None, None)
 
 
-# Input level (read-aloud-control-bar PRD Phase 4): a session reports `level` events beside its words, and --meter reports
-# only levels, with no model and no script, until the stop file appears.
+# Input level: a session reports `level` events beside its words, and --meter reports only
+# levels, with no model and no script, until the stop file appears.
 def _loud_chunks(count):
     t = np.arange(HALF_SECOND) / live_asr.SAMPLE_RATE
     for _ in range(count):
@@ -915,7 +914,7 @@ def test_meter_mode_needs_a_microphone_and_takes_no_session_options(extra, monke
     assert "--meter" in capsys.readouterr().err
 
 
-# Pause (read-aloud-control-bar PRD Phase 5): while paused the device stays open and its level still shows, but the
+# Pause: while paused the device stays open and its level still shows, but the
 # engine hears nothing and the tracker's clock stands still, so it never reports `waiting` for the pause itself.
 def test_a_paused_stream_clock_stands_still_and_resumes_without_the_pause():
     wall = [10.0]
@@ -1002,7 +1001,7 @@ def test_main_loads_the_engine_the_flag_names_with_the_chapter_as_default_contex
     assert loaded == [(engine, "Call me Ishmael.")]
 
 
-# --record (native-recording-suite PRD Phase 2): the built-in recorder's take, through a capture row's record(). A fake
+# --record: the built-in recorder's take, through a capture row's record(). A fake
 # row stands in for wasapi with the shared core's SyntheticSource, so the take, its level events and its `recorded`
 # event are the real Recorder's and WavWriter's.
 class _FakeRecordingRow:

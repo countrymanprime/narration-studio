@@ -10,10 +10,9 @@ import (
 
 // FindByDawFile scans projectsDir's immediate subfolders for the one project
 // whose manifest links rppPath as its DAW project file
-// (docs/prds/project-workspace-and-daw-link.prd.md Phase 5, W5: "match by
-// linked file"; W4: the rpp may live outside its project's folder, so this
-// walks every project's own link rather than assuming rppPath's containing
-// folder is the project).
+// (the rpp may live outside its project's folder, so this walks every
+// project's own link rather than assuming rppPath's containing folder is the
+// project).
 //
 // For each candidate it resolves the manifest's link the same way
 // dawLinkFacts does (DawLink.Resolve: whichever of the absolute/relative
@@ -22,7 +21,7 @@ import (
 // case-sensitive, and this is the first platform, ADR 0030).
 //
 // ok is false when projectsDir cannot be listed, rppPath is empty (an unsaved
-// REAPER project has no file to match, W5), or no project's link resolves to
+// REAPER project has no file to match), or no project's link resolves to
 // rppPath. Callers that get ok=false fall back to their existing behaviour
 // (the picker, or the rpp's own folder) unchanged.
 func FindByDawFile(reporter *persist.Reporter, projectsDir, rppPath string) (folder, name string, ok bool) {

@@ -53,10 +53,10 @@ func main() {
 // mainWindowOptions is the app's one window. What differs from Wails v3's defaults is deliberate and kept as it was on v2
 // (docs/adr/0200, main_test.go):
 //   - ZoomControlEnabled: v3 turns WebView2's zoom control off unless asked, which would silently stop Ctrl+wheel zoom. Pinch zoom
-//     stays on because v3 leaves WebView2's IsPinchZoomEnabled at its default. The header's zoom controls (nav PRD Phase 2) set the
+//     stays on because v3 leaves WebView2's IsPinchZoomEnabled at its default. The header's zoom controls set the
 //     level at runtime with Window.SetZoom on the window this names.
 //   - DefaultContextMenuDisabled: v2 hid the browser's right-click menu (Reload, Inspect) in a production build; v3 shows it.
-//   - Zoom: the remembered level (nav PRD Phase 3, Q4 A), read by host.startupZoom() before this is called and
+//   - Zoom: the remembered level, read by host.startupZoom() before this is called and
 //     already clamped to [zoomMin, zoomMax]; 0 on a fresh install, which leaves WebView2 at its own 100% default.
 func mainWindowOptions(zoom float64) application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{

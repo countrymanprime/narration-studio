@@ -9,7 +9,7 @@ import (
 )
 
 // The values the roles exchange. They are aliases of the types the REAPER bridge and the .rpp reader already use, so the REAPER
-// adapter wraps today's code without converting anything and a consumer moved onto a role keeps its types (the P5 migrations change
+// adapter wraps today's code without converting anything and a consumer moved onto a role keeps its types (migrating a consumer changes
 // constructors, not bodies). A caller names them through this package; when a second engine needs a neutral shape, the alias
 // becomes a type here and no caller changes.
 type (
@@ -148,7 +148,7 @@ type ReviewSession interface {
 	Events
 	// PrepareReview asks the engine for the audio the narrator selected, to compare against the manuscript (COMPARE_PREPARED).
 	// projectFolder is the app's project folder, where the manuscript is read and the diffs are written, which need not be the
-	// engine's own project file's folder (project-workspace PRD Phase 5, W4); empty means the engine project file's folder.
+	// engine's own project file's folder; empty means the engine project file's folder.
 	PrepareReview(runID, projectFolder string) error
 	// InspectFindings asks the engine which of the findings in findingsPath it already carries as a marker or label, which is how
 	// a finding that was reviewed earlier is recognised (COMPARE_MARKER per finding, then COMPARE_INSPECTED).
@@ -231,7 +231,7 @@ type MarkerWriter interface {
 }
 
 // Heartbeat is what the host knows of the engine without asking it: whether it is answering, which project it has open, that
-// project's change count, and whether the engine is playing or recording (DAW port PRD Phase 9, ADR 0305). It reads; a request that
+// project's change count, and whether the engine is playing or recording (ADR 0305). It reads; a request that
 // waits for an answer is ProjectStateReader. Transport's ok is false when the engine is not answering or does not report it.
 type Heartbeat interface {
 	Reachable() bool
@@ -251,7 +251,7 @@ type TrackStateReader interface {
 	ChapterTrackState(ctx context.Context, trackGUID string) (TrackState, error)
 }
 
-// TrackSelector selects one track in REAPER ("Select in REAPER", chapter-track-link-control PRD Phase 4), deselecting
+// TrackSelector selects one track in REAPER ("Select in REAPER"), deselecting
 // every other one. It changes nothing else.
 type TrackSelector interface {
 	SelectTrack(ctx context.Context, trackGUID string) (SelectedTrack, error)

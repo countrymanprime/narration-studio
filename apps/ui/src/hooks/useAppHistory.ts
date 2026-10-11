@@ -11,20 +11,20 @@ function currentIdx(): number {
 }
 
 /**
- * Page-level Back/Forward for the app (app-navigation-and-zoom-controls.prd.md Phase 1, Q5, Q8). Tracks only
+ * Page-level Back/Forward for the app. Tracks only
  * in-app page moves through React Router's history `idx`:
  * - a **push** (a nav click, a "go to" link) discards any forward entries and becomes the new ceiling;
  * - a **replace** (a redirect, an anchor settling) does not move the ceiling;
  * - a **pop** (our own guarded back/forward, or a browser/mouse gesture the guard could not stop) never
  *   moves the ceiling, only the current position.
  *
- * `resetFloor()` is called once a project attaches (Q8): entries from an earlier project stay behind the
+ * `resetFloor()` is called once a project attaches: entries from an earlier project stay behind the
  * floor and Back stops there, because they would open that project's pages with this project's data.
  *
  * `back()`/`forward()` here are the raw moves (`navigate(-1)`/`navigate(1)`); the guards that Back and
  * Forward must run (unsaved Settings, leaving Proofing) live in `App.tsx`, which wraps these before calling
  * them, the way `guardedNavigate` wraps a path move. `unexpectedPop` covers the case a browser or mouse
- * gesture moves history without going through that wrapper (Phase 0 tells us whether WebView2 needs it):
+ * gesture moves history without going through that wrapper (whether WebView2 needs it is unverified):
  * `App.tsx` checks the same guards when it sees one and calls `clearUnexpectedPop()` once it has.
  */
 export function useAppHistory() {

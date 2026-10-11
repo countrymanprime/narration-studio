@@ -6,7 +6,7 @@ import type { CreditsRenderResult } from '../../types';
 
 afterEach(cleanup);
 
-describe('CreditsEntry (Manuscript pseudo-entry for opening/closing credits, PRD audiobook-credits-templates.prd.md Phase 3)', () => {
+describe('CreditsEntry (Manuscript pseudo-entry for opening/closing credits)', () => {
   it('shows the kind label and is collapsed when expanded=false, with no preview text rendered', () => {
     render(<CreditsEntry kind="opening" expanded={false} onToggle={vi.fn()} textClass="text-sm" />);
     expect(screen.getByRole('heading', { name: 'Opening credits' })).toBeTruthy();
@@ -40,7 +40,7 @@ describe('CreditsEntry (Manuscript pseudo-entry for opening/closing credits, PRD
     expect(screen.getByRole('heading', { name: 'Closing credits' })).toBeTruthy();
   });
 
-  it('renders one row per line, matching how the teleprompter splits the same text (MC3)', () => {
+  it('renders one row per line, matching how the teleprompter splits the same text', () => {
     const preview: CreditsRenderResult = { text: 'Alice\nwritten by Lewis Carroll\n\nnarrated by You.', words: 8, unresolved: [] };
     const { container } = render(<CreditsEntry kind="opening" preview={preview} expanded onToggle={vi.fn()} textClass="text-sm" />);
     const rows = container.querySelectorAll('p.text-sm');
@@ -63,7 +63,7 @@ describe('CreditsEntry (Manuscript pseudo-entry for opening/closing credits, PRD
     expect(document.querySelector('[data-icon="chevron-down"]')).toBeTruthy();
   });
 
-  it('has no bookmark column (MC1: credits are not bookmarkable)', () => {
+  it('has no bookmark column (credits are not bookmarkable)', () => {
     render(<CreditsEntry kind="opening" expanded={false} onToggle={vi.fn()} textClass="text-sm" />);
     expect(screen.queryByRole('button', { name: /bookmark/i })).toBeNull();
   });
@@ -75,7 +75,7 @@ describe('CreditsEntry (Manuscript pseudo-entry for opening/closing credits, PRD
     expect(article.hasAttribute('data-chapter-id')).toBe(false);
   });
 
-  it('shows a Fill in button beside the unresolved line when onFillIn is given (credits-token-setup-and-front-matter-detection.prd.md, Phase 3)', () => {
+  it('shows a Fill in button beside the unresolved line when onFillIn is given', () => {
     const preview: CreditsRenderResult = { text: '[Title], written by [Author].', words: 4, unresolved: ['Title', 'Author'] };
     const onFillIn = vi.fn();
     render(<CreditsEntry kind="opening" preview={preview} expanded onToggle={vi.fn()} textClass="text-sm" onFillIn={onFillIn} />);
@@ -95,7 +95,7 @@ describe('CreditsEntry (Manuscript pseudo-entry for opening/closing credits, PRD
     expect(screen.queryByRole('button', { name: 'Fill in' })).toBeNull();
   });
 
-  it('shows Record in Booth once there is something to read (stage-navigation-and-page-replacement.prd.md Phase 4)', () => {
+  it('shows Record in Booth once there is something to read', () => {
     const preview: CreditsRenderResult = { text: 'Alice, written by Lewis Carroll.', words: 5, unresolved: [] };
     const onRecordInBooth = vi.fn();
     render(<CreditsEntry kind="opening" preview={preview} expanded onToggle={vi.fn()} textClass="text-sm" onRecordInBooth={onRecordInBooth} />);

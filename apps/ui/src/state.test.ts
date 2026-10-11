@@ -157,7 +157,7 @@ describe('Home audiobook estimate', () => {
   });
 });
 
-describe('Manuscript search/bookmark line numbers (R5)', () => {
+describe('Manuscript search/bookmark line numbers', () => {
   const chapter = {
     paragraphIds: [
       { id: 'p10', index: 10 },
@@ -185,7 +185,7 @@ describe('Manuscript search/bookmark line numbers (R5)', () => {
   });
 });
 
-describe('readTimeLabel (manuscript-credits-card-parity.prd.md, MC6: one read-time helper for chapters and credits)', () => {
+describe('readTimeLabel (one read-time helper for chapters and credits)', () => {
   it('shows seconds under a minute', () => {
     expect(readTimeLabel(0)).toBe('~0 s read');
     expect(readTimeLabel(7)).toBe('~2 s read');
@@ -199,7 +199,7 @@ describe('readTimeLabel (manuscript-credits-card-parity.prd.md, MC6: one read-ti
   });
 });
 
-describe('Manuscript chapter title/subtitle subset (R2)', () => {
+describe('Manuscript chapter title/subtitle subset', () => {
   const chapters = [
     { id: 'c1', title: 'Down the Rabbit-Hole', subtitle: undefined },
     { id: 'c2', title: 'The Pool of Tears', subtitle: 'A soggy start' },
@@ -225,7 +225,7 @@ describe('Manuscript chapter title/subtitle subset (R2)', () => {
   });
 });
 
-describe('windowExcerpt (R3)', () => {
+describe('windowExcerpt', () => {
   const long = 'A'.repeat(30) + 'RABBIT' + 'B'.repeat(60); // len 96, match at [30,36)
 
   it('returns the text unchanged when it already fits the budget', () => {
@@ -278,14 +278,14 @@ describe('windowExcerpt (R3)', () => {
   });
 });
 
-describe('Credits time (audiobook-credits-templates.prd.md, Phase 2)', () => {
+describe('Credits time', () => {
   it('times each credits segment at the same 155 wpm figure as the narration estimate', () => {
     // 155 words/min: a 155-word segment reads in exactly 60s.
     expect(estimateCreditsSeconds([155])).toBe(60);
     expect(estimateCreditsSeconds([0])).toBe(0);
   });
 
-  it('sums multiple segments (opening and closing are separate files, ACX convention/C11)', () => {
+  it('sums multiple segments (opening and closing are separate files, ACX convention)', () => {
     expect(estimateCreditsSeconds([155, 310])).toBe(180);
   });
 
@@ -293,7 +293,7 @@ describe('Credits time (audiobook-credits-templates.prd.md, Phase 2)', () => {
     expect(estimateCreditsSeconds([])).toBe(0);
   });
 
-  it('defaults room tone to 0 seconds per file (C9: no Settings knob until Phase 5)', () => {
+  it('defaults room tone to 0 seconds per file', () => {
     expect(CREDITS_ROOM_TONE_SECONDS_PER_FILE).toBe(0);
     expect(estimateCreditsSeconds([155])).toBe(estimateCreditsSeconds([155], 0));
   });
@@ -302,12 +302,12 @@ describe('Credits time (audiobook-credits-templates.prd.md, Phase 2)', () => {
     expect(estimateCreditsSeconds([155, 155], 2)).toBe(124);
   });
 
-  it('times chapter announcements at the same rate with no room tone, since they sit inside chapter files (Phase 5)', () => {
+  it('times chapter announcements at the same rate with no room tone, since they sit inside chapter files', () => {
     expect(estimateAnnouncementSeconds([155, 155])).toBe(120);
     expect(estimateAnnouncementSeconds([])).toBe(0);
   });
 
-  it('reads the room tone setting as whole seconds, 0 when unset or not a number (Phase 5)', () => {
+  it('reads the room tone setting as whole seconds, 0 when unset or not a number', () => {
     expect(roomToneSeconds('3')).toBe(3);
     expect(roomToneSeconds('')).toBe(0);
     expect(roomToneSeconds(undefined)).toBe(0);

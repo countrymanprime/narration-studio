@@ -16,8 +16,8 @@ import (
 // truncation buildCTOCBody would otherwise do silently.
 const maxCTOCEntries = 255
 
-// Chapter is one already-rendered per-chapter MP3 file (a Phase 11 RENDER_TARGETS entry, title from the region
-// name), used only to learn how long that chapter runs.
+// Chapter is one already-rendered per-chapter MP3 file (a RENDER_TARGETS entry, title from the region name),
+// used only to learn how long that chapter runs.
 type Chapter struct {
 	Title string
 	Path  string
@@ -34,8 +34,8 @@ type TimedChapter struct {
 // BuildTimeline reads each chapter's rendered MP3 file (in the given order - the narrator's chapter order, not
 // sorted) and lays out a sequential timeline: chapter N starts where chapter N-1 ended. It never reads the
 // combined book file (Embed's destPath) - only the per-chapter files, which is the input this app actually has
-// (Phase 11's RENDER_TARGETS). An empty title is rejected (a CHAP frame needs one) and a chapter whose file has
-// not been rendered yet (does not exist, or is not an MP3) fails with a message naming the missing file, rather
+// (the RENDER_TARGETS render event). An empty title is rejected (a CHAP frame needs one) and a chapter whose file
+// has not been rendered yet (does not exist, or is not an MP3) fails with a message naming the missing file, rather
 // than silently skipping it or guessing its length.
 func BuildTimeline(chapters []Chapter) ([]TimedChapter, error) {
 	if len(chapters) == 0 {
@@ -63,7 +63,7 @@ func BuildTimeline(chapters []Chapter) ([]TimedChapter, error) {
 // Embed writes ID3v2 CHAP and CTOC frames describing timeline into a NEW copy of destPath, beside it, and
 // returns that new file's path. destPath itself is opened read-only and is never modified - the copy is where
 // every mutation happens. destPath must already be an MP3 (ID3v2's CHAP/CTOC frames are meaningless in a WAV
-// container; see the PRD phase-12 note in docs/adr/0099-... for why this feature is MP3-only). Re-running Embed
+// container; see docs/adr/0099-chapter-tags-are-embedded-with-bogem-id3v2-and-a-hand-built-ctoc-frame.md for why this feature is MP3-only). Re-running Embed
 // on the same destPath is safe: any CHAP/CTOC frames already in the copy from a previous run are replaced, not
 // duplicated, and every other existing tag (title, artist, ...) is preserved.
 func Embed(destPath string, timeline []TimedChapter) (string, error) {

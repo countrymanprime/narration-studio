@@ -5,13 +5,11 @@
 
 ## Context
 
-`docs/prds/teleprompter-engines-and-input-devices.prd.md` Phase 11 ("Chapter from REAPER track name") is to
-"preselect the chapter the narrator is recording" from the `.rpp`'s track names, using the shared chapter-to-track
+The teleprompter is to "preselect the chapter the narrator is recording" from the `.rpp`'s track names, using the shared chapter-to-track
 matcher ([ADR 0110](0110-one-go-chapter-to-track-matcher-ported-from-transcript-compare-with-explicit-confidence-states.md)).
 The owner chose (2026-09-23) option (a): suggest from the *saved* `.rpp` with the matcher, standalone; following the
-live selected or armed track in a running REAPER through the bridge is later work
-(`teleprompter-manuscript-integration.prd.md` Phase 11). Its success signal: "Chapter 1" never suggests "Chapter 11",
-and no match leaves the current default.
+live selected or armed track in a running REAPER through the bridge is later work.
+The success signal: "Chapter 1" never suggests "Chapter 11", and no match leaves the current default.
 
 Three things were open:
 

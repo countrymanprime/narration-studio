@@ -35,7 +35,7 @@ export function timings(run, jobs) {
   return { wallClock: seconds(run.created_at, finished.at(-1) ?? run.updated_at), rows };
 }
 
-/** A Markdown table, so the output pastes straight into a PRD or an issue. */
+/** A Markdown table, so the output pastes straight into a pull request or an issue. */
 export function render({ wallClock, rows }, { steps = false } = {}) {
   const lines = [`Wall clock: ${duration(wallClock)}`, '', '| Job | Runner | Started after | Ran | Result |', '| --- | --- | --- | --- | --- |'];
   for (const row of rows) {

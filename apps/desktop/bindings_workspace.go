@@ -10,13 +10,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// The chapter workspace's REAPER navigation (edit-and-proof-workspace.prd.md Phase 3): Go to and Loop for a chapter
-// token, over the same bridge.Navigator, the same navigate_item and loop_context commands, and the same connection
-// status and refusal order as the Review page's FindingsGoTo/FindingsLoop (bindings_navigation.go, ADR 0121;
-// docs/architecture/reaper-navigation.md, "From the workspace"). No new Lua command: what is new is resolving a
-// token, in the host, to the item GUID, take GUID and source time bridge.Target needs, from the chapter's stored
-// alignment (WorkspaceAlignment, ADR 0242) checked against the saved project - the page sends only a chapter id and
-// token indices, never a GUID or a time, exactly as the Review page sends only a finding id (threat model row 5f).
+// The chapter workspace's REAPER navigation: Go to and Loop for a chapter token, over the same bridge.Navigator, the
+// same navigate_item and loop_context commands, and the same connection status and refusal order as the Review page's
+// FindingsGoTo/FindingsLoop (bindings_navigation.go, ADR 0121; docs/architecture/reaper-navigation.md, "From the
+// workspace"). No new Lua command: what is new is resolving a token, in the host, to the item GUID, take GUID and
+// source time bridge.Target needs, from the chapter's stored alignment (WorkspaceAlignment, ADR 0242) checked against
+// the saved project - the page sends only a chapter id and token indices, never a GUID or a time, exactly as the Review
+// page sends only a finding id (threat model row 5f).
 
 // workspaceRefusal turns an error from resolving or sending a workspace target into a refused FindingNavigation, in
 // the workspace's own words (a word, not "this finding" - bridge.StaleError.Error() is worded for the Review page, so
@@ -158,12 +158,11 @@ func alignmentItemAt(items []coverage.AlignmentItem, index int) (coverage.Alignm
 	return coverage.AlignmentItem{}, false
 }
 
-// FX discovery (edit-and-proof-workspace.prd.md Phase 8, EP8 B, ADR 0234): a read-only list of the narrator's own
-// FX chains, over the DAW port's FXManager role (list_fx_chains; internal/dawport/roles.go), so it is gated and
-// refused exactly as ApplyFXChain will be once Phase 9 sends it (dawport.CapFXChains, ADR 0230, ADR 0304). The
-// narrator's favourites are a Settings row (DAW.fx_favourites), not part of this read: the effects menu Phase 9
-// builds combines the two client-side, since a favourite is just a name this listing (or a future FX plug-in
-// listing) already lists.
+// FX discovery (ADR 0234): a read-only list of the narrator's own FX chains, over the DAW port's FXManager role
+// (list_fx_chains; internal/dawport/roles.go), so it is gated and refused exactly as WorkspaceApplyFXChain is
+// (dawport.CapFXChains, ADR 0230, ADR 0304). The narrator's favourites are a Settings row (DAW.fx_favourites), not part
+// of this read: the effects menu combines the two client-side, since a favourite is just a name this listing (or a
+// future FX plug-in listing) already lists.
 
 // fxManagerFrom is svc's FX chains role, or nil exactly as silenceTrimmerFrom is nil (bindings_cleanup.go): no DAW
 // port resolver, no adapter, the capability toggled off, or REAPER unreachable right now.

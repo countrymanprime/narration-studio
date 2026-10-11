@@ -152,10 +152,8 @@ func TestComputeItemFingerprintIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestEditTypeTable is the PRD's Phase 2 acceptance table
-// (docs/prds/analysis-evidence-ledger.prd.md#edit-type-table-phase-2-acceptance):
-// every listed edit and the analysis key/item fingerprint columns it
-// specifies.
+// TestEditTypeTable is the edit-type acceptance table (ADR 0100): every listed
+// edit and the analysis key/item fingerprint columns it specifies.
 func TestEditTypeTable(t *testing.T) {
 	identity := baseIdentity()
 	base := baseItem()
@@ -378,11 +376,10 @@ func TestComputeTrackFingerprintIsOrderSensitive(t *testing.T) {
 	}
 }
 
-// TestRandomEditSequenceNeverLeavesAFingerprintUnchanged is the Phase 2
-// success signal's property test ("a property test over random edit
-// sequences never yields an unchanged fingerprint after a change to a
-// listed field"), run with a fixed seed so the gate stays deterministic
-// (ADR 0044): each step mutates exactly one field the fingerprint reads
+// TestRandomEditSequenceNeverLeavesAFingerprintUnchanged is a property
+// test over random edit sequences: no sequence yields an unchanged fingerprint
+// after a change to a listed field. It runs with a fixed seed so the gate
+// stays deterministic (ADR 0044): each step mutates exactly one field the fingerprint reads
 // (position, length, mute, active take, SOFFS or play rate) on a
 // two-take item and checks the fingerprint moved.
 func TestRandomEditSequenceNeverLeavesAFingerprintUnchanged(t *testing.T) {
@@ -420,10 +417,9 @@ func TestRandomEditSequenceNeverLeavesAFingerprintUnchanged(t *testing.T) {
 	}
 }
 
-// TestNoOpResaveKeepsEveryItemFingerprint is the PRD's no-op stability
-// success metric ("Re-saving a project with no edits ... keeps every
-// fingerprint") checked against the real REAPER-saved pair. Both files
-// name the same underlying media, but resave-noop.rpp's absolute paths
+// TestNoOpResaveKeepsEveryItemFingerprint checks that re-saving a
+// project with no edits keeps every fingerprint, against the real REAPER-saved
+// pair. Both files name the same underlying media, but resave-noop.rpp's absolute paths
 // don't resolve from this checkout (see
 // tracks.TestANoOpResavedProjectKeepsItsTracksButNotTheRelativeMediaPaths),
 // so a synthetic, shared identity stands in for a real Identify() call:

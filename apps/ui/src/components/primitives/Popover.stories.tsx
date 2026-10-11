@@ -7,7 +7,7 @@ import { screen } from './portalScreen';
 
 // Popover is an interactive popup over other content: a click opens it, focus moves in, Escape closes it and returns
 // focus to the trigger, a press outside closes it too. It sits above the dialog layer (z-[70]), so it works when opened
-// from inside a full-size dialog (read-aloud-control-bar.prd.md's microphone and Settings panels).
+// from inside a full-size dialog (the read-aloud dialog's microphone and Settings panels).
 const meta = {
   title: 'Primitives/Popover',
   component: Popover,

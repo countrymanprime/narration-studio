@@ -224,7 +224,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
               {name === 'All' ? `All · ${visible.length}` : `${TAB_PLURAL[name]} · ${visible.filter((row) => categoryLabel(row.category) === name).length}`}
             </Tab>
           ))}
-          {/* character-continuity-review.prd.md Phase 11, D79: a tab here, not a nav entry of its own. */}
+          {/* The Series view is a tab here, not a navigation entry of its own. */}
           <Tab value="Series">Series</Tab>
         </TabList>
       </div>

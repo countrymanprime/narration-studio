@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
-// renderConfigurerRole wraps client in the REAPER adapter (DAW port PRD P2) and takes its RenderConfigurer
+// renderConfigurerRole wraps client in the REAPER adapter (ADR 0300) and takes its RenderConfigurer
 // role, the way the composition root does (apps/desktop/app.go), so these tests exercise the real bridge round
 // trip through the same port the service now depends on.
 func renderConfigurerRole(t *testing.T, client *bridge.Client) dawport.RenderConfigurer {

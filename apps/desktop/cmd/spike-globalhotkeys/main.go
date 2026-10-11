@@ -1,6 +1,5 @@
-// Command spike-globalhotkeys is a throwaway proof-of-concept for Phase 12 of the
-// Input Commands and Pedals PRD (docs/prds/input-commands-and-pedals.prd.md, tracking
-// issue #646): can Wails v3 or the OS register a hotkey that still fires while another
+// Command spike-globalhotkeys is a throwaway proof-of-concept for issue #646 (global
+// hotkeys for pedals): can Wails v3 or the OS register a hotkey that still fires while another
 // application (REAPER) has OS focus?
 //
 // It is NOT wired into the shipped narration-utils binary (cmd/narration-utils), is not
@@ -26,7 +25,7 @@ import (
 func main() {
 	app := application.New(application.Options{
 		Name:        "Global Hotkey Spike",
-		Description: "Phase 12 spike: does a global shortcut fire while another app has focus?",
+		Description: "Spike: does a global shortcut fire while another app has focus?",
 	})
 
 	app.Window.New()
@@ -37,7 +36,7 @@ func main() {
 
 	if err := app.GlobalShortcut.Register(accel, func() {
 		log.Printf("spike: global shortcut %q fired", accel)
-		// A real binding would post this into the same command router the keymap (Phase 1)
+		// A real binding would post this into the same command router the keymap
 		// already dispatches keyboard/MIDI/HID presses through, not emit a page event directly.
 		app.Event.Emit("spike:fired", accel)
 	}); err != nil {

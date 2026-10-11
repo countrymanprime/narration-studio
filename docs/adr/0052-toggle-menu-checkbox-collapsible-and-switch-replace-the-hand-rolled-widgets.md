@@ -6,7 +6,7 @@
 
 ## Context
 
-Four widgets were hand-written in pages or in a primitive with none of the behaviour a screen reader or a keyboard expects: the `Pill` chip had no `aria-pressed`; the category menu in the Story Bible entry header was a `role="menu"` div of buttons with no arrow keys, no Escape and no focus return; the import preview's character suggestions were raw native checkboxes; and the audiobook estimate's per-chapter disclosure was a button with `aria-expanded` and a conditional block. Settings will also need on/off controls (implementation plan D8), and a `Switch` is the right semantics for a setting that takes effect at once. The owner decided (foundation PRD question 7a, D1, and the addition of `Switch`) to convert these four call sites and add `Switch`; the alias combobox in `GuideDetail.tsx` stays bespoke (its matching and active-index logic is domain code and the riskiest to regress), and the six native `<select>`s stay native (question 5a).
+Four widgets were hand-written in pages or in a primitive with none of the behaviour a screen reader or a keyboard expects: the `Pill` chip had no `aria-pressed`; the category menu in the Story Bible entry header was a `role="menu"` div of buttons with no arrow keys, no Escape and no focus return; the import preview's character suggestions were raw native checkboxes; and the audiobook estimate's per-chapter disclosure was a button with `aria-expanded` and a conditional block. Settings will also need on/off controls, and a `Switch` is the right semantics for a setting that takes effect at once. The owner decided to convert these four call sites and add `Switch`; the alias combobox in `GuideDetail.tsx` stays bespoke (its matching and active-index logic is domain code and the riskiest to regress), and the six native `<select>`s stay native.
 
 ## Decision
 
@@ -22,7 +22,7 @@ Five primitives on Base UI, each with a story and tests, closed APIs, Tailwind a
 ## Consequences
 
 - The four converted widgets announce their state and work from the keyboard the way the platform documents, and nothing outside `primitives/` imports the library. What is not converted (the alias combobox, `NavButton`, the lock button, the native selects) is unchanged.
-- `Pill` reports `aria-pressed` on the groups that use it as a single choice (theme, text size, log verbosity), where radio semantics would be more accurate; group semantics are deferred (foundation PRD question 7). The `Menu` popup is not modal, so the page behind stays scrollable and clickable as it was.
+- `Pill` reports `aria-pressed` on the groups that use it as a single choice (theme, text size, log verbosity), where radio semantics would be more accurate; group semantics are deferred. The `Menu` popup is not modal, so the page behind stays scrollable and clickable as it was.
 - The visible changes are the token-styled checkbox and the category menu's popup being portalled (same look, positioned by the library). The visual-suite states that show a chip, the disclosure or the entry header were compared pixel by pixel with the state before this work and are identical (the disclosure's top border colour needed an explicit token: Tailwind 4's default is `currentcolor`).
 - `Checkbox` and `Switch` label presses are proved in RTL tests; the Storybook jsdom runner cannot press a label (Base UI builds a `PointerEvent` that its window rejects), so their stories press the control itself.
 - `Switch` is unused code until Settings adopts it; Knip sees it through its story and test.

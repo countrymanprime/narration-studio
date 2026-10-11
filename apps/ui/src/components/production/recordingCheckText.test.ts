@@ -125,7 +125,7 @@ describe('recording check text', () => {
     expect(recordedTo({ ...report(100, 100), paragraphs }, chapter)).toBeUndefined();
   });
 
-  // The model cascade's own labels (recording-check-model-cascade PRD Phase 5, MC5).
+  // The model cascade's own labels.
   it('names the re-check model and how much it covered, or nothing for a plain check', () => {
     expect(recheckLabel(report(90, 100))).toBeUndefined();
     expect(recheckLabel({ ...report(90, 100), recheck: { model: 'large-v3-turbo', wholeChapter: false, windows: 1, seconds: 30 } })).toBe(

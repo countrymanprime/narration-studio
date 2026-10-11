@@ -1,39 +1,28 @@
-// This file is Phase 3 of the analysis evidence ledger PRD
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-3---analysis-ledger,
-// Q3, D7): the ledger record type and its one-JSON-file-per-record store
-// under <project>/narration-utils/analysis/ledger/. Importers/callers: the
-// recording coverage service (apps/desktop/internal/coverage) writes one
-// record per run, and Phase 6's staleness evaluator in this same package
-// reads them; apps/desktop/internal/manuscript/service.go's resetDerived adds
-// LedgerDir to the directories a manuscript reset clears. Public API added
-// here: LedgerRecord and its nested LedgerScope/LedgerFingerprint/
-// LedgerProjectFile types, LedgerOutcome and its three values, LedgerStore,
-// NewLedgerStore, LedgerDir, and LedgerStore's Write/Get/Latest/List/All/
-// Retain methods. Data schema: LedgerRecord's JSON shape below, versioned by
-// its own SchemaVersion field (ledgerSchemaVersion). User's instruction
-// (verbatim): "you should have everythign you need to make decisions.
-// anything that you think you need my decision on, create an open ADR for
-// and keep going. callout any new adrs on the pr that you created them so i
-// can review."
+// This file holds the ledger record type and its one-JSON-file-per-record store
+// under <project>/narration-utils/analysis/ledger/ (ADR 0100).
 //
-// Phase 6 addition (staleness.go, docs/prds/analysis-evidence-ledger.prd.md
-// #phase-6---staleness-evaluator): LedgerFingerprint gained ItemFacts, and
-// this file gained the LedgerItemFact type. A record's ItemFingerprints and
-// AnalysisKeys are opaque hashes by design (Architecture Notes: "Fingerprints
-// hash a canonical encoding... never the raw chunk text"), which is exactly
-// right for detecting *that* an item changed but cannot say *why* - hashes
-// don't invert. Q4/Phase 6's evaluator needs to name the edit-type table's
-// reason (item_moved vs item_trimmed vs item_muted vs take_switched vs
-// source_changed) for the narrator, not just flag a mismatch, so ItemFacts
-// keeps a small, plain (non-hashed) snapshot of exactly the fields the
-// fingerprint hashes already commit to (Position, Length, Muted, ActiveTake,
-// and a summary of SourceIdentity) beside the hash - never anything the
-// fingerprint doesn't already cover, so this stays additive to "fingerprint"
-// in spirit, not a second, independent record of item state. It is additive
-// and backward compatible: ledgerSchemaVersion stays 1, and a record written
-// before this field existed decodes with a nil ItemFacts map, which the
-// evaluator treats as "identity unknown" and falls back to a coarser but
-// still-correct reason (see staleness.go's itemChangeReason).
+// Callers: the recording coverage service (apps/desktop/internal/coverage)
+// writes one record per run, and the staleness evaluator (staleness.go) reads
+// them; apps/desktop/internal/manuscript/service.go's resetDerived adds
+// LedgerDir to the directories a manuscript reset clears. The data schema is
+// LedgerRecord's JSON shape below, versioned by its own SchemaVersion field
+// (ledgerSchemaVersion).
+//
+// A record's ItemFingerprints and AnalysisKeys are opaque hashes by design
+// (fingerprints hash a canonical encoding, never the raw chunk text), which is
+// right for detecting that an item changed but cannot say why - hashes don't
+// invert. The evaluator needs to name the edit type (item_moved vs
+// item_trimmed vs item_muted vs take_switched vs source_changed) for the
+// narrator, not just flag a mismatch, so LedgerFingerprint.ItemFacts keeps a
+// small, plain (non-hashed) snapshot of exactly the fields the fingerprint
+// hashes already commit to (Position, Length, Muted, ActiveTake, and a summary
+// of SourceIdentity) beside the hash - never anything the fingerprint doesn't
+// already cover, so this stays additive to "fingerprint" in spirit, not a
+// second, independent record of item state. It is additive and backward
+// compatible: ledgerSchemaVersion stays 1, and a record written before this
+// field existed decodes with a nil ItemFacts map, which the evaluator treats
+// as "identity unknown" and falls back to a coarser but still-correct reason
+// (see staleness.go's itemChangeReason).
 package evidence
 
 import (
@@ -53,12 +42,11 @@ import (
 
 // ledgerSchemaVersion is the schema version every record written by this
 // package carries. A record read back with a higher version was written by
-// a newer app (Architecture Notes: "Each entry carries a schema version; an
-// unknown version is treated as absent, never as an error the narrator has
-// to fix") - readRecord treats it the same as a missing or corrupt file.
+// a newer app (an unknown version is treated as absent, never as an error the
+// narrator has to fix) - readRecord treats it the same as a missing or corrupt file.
 const ledgerSchemaVersion = 1
 
-// LedgerOutcome is how an analyzer run ended (D7). Only a LedgerComplete
+// LedgerOutcome is how an analyzer run ended. Only a LedgerComplete
 // record is meant to be read as a current result; LedgerPartial and
 // LedgerFailed exist so "clean" (a completed run that found nothing) is
 // never confused with "the run did not finish" (Evidence: measure.Evaluate
@@ -75,7 +63,7 @@ const (
 // LedgerScope is what a ledger record's run covered: a chapter of a
 // manuscript, optionally narrowed to one track or one set of items (a
 // re-analysis of only the items an edit touched still records against the
-// same chapter scope, per Phase 4's per-item cache).
+// same chapter scope, because of the per-item cache).
 type LedgerScope struct {
 	DocumentID string   `json:"documentId"`
 	ChapterID  string   `json:"chapterId"`
@@ -84,22 +72,22 @@ type LedgerScope struct {
 }
 
 // LedgerFingerprint is the fingerprint state a record was computed against,
-// so Phase 6's evaluator can compare it to the project's fingerprints now.
+// so the evaluator can compare it to the project's fingerprints now.
 // ItemFingerprints, AnalysisKeys and ItemFacts are all keyed by item GUID.
 type LedgerFingerprint struct {
 	TrackFingerprint TrackFingerprint           `json:"trackFingerprint"`
 	ItemFingerprints map[string]ItemFingerprint `json:"itemFingerprints,omitempty"`
 	AnalysisKeys     map[string]AnalysisKey     `json:"analysisKeys,omitempty"`
-	// ItemFacts is Phase 6's addition (see this file's header comment): a
+	// ItemFacts (see this file's header comment) is a
 	// plain, unhashed snapshot of the same fields ItemFingerprints already
 	// hashes, so the staleness evaluator can name why an item's fingerprint
 	// changed instead of only that it did. Absent (nil) on a record written
-	// before Phase 6, which the evaluator treats as "identity unknown".
+	// before ItemFacts existed, which the evaluator treats as "identity unknown".
 	ItemFacts map[string]LedgerItemFact `json:"itemFacts,omitempty"`
 }
 
 // LedgerItemFact is one item's plain-value snapshot at the moment a ledger
-// record was written: exactly the fields ItemFingerprint hashes (Q2), plus a
+// record was written: exactly the fields ItemFingerprint hashes, plus a
 // content-addressed summary of the active take's SourceIdentity (Path, Size,
 // PartialHash - never ModTime, matching AnalysisKey's own reasoning in
 // fingerprint.go) so the evaluator can tell "source replaced on disk" apart
@@ -113,17 +101,16 @@ type LedgerItemFact struct {
 	SourceIdentity string  `json:"sourceIdentity"`
 }
 
-// LedgerProjectFile is the saved .rpp a record was computed against. D6:
-// the basis is always the saved project, never live REAPER state, so every
-// result can state "saved project, file modified <time>" (Q8).
+// LedgerProjectFile is the saved .rpp a record was computed against. The
+// basis is always the saved project, never live REAPER state, so every result
+// can state "saved project, file modified <time>".
 type LedgerProjectFile struct {
 	Path    string    `json:"path"`
 	ModTime time.Time `json:"modTime"`
 }
 
-// LedgerRecord is one analyzer run's outcome (Solution Detail's "Ledger
-// record" data model). It records that a run happened and on what, never a
-// verdict: RC, ER and PS's analyzers decide met/not_met/unknown (D2) from
+// LedgerRecord is one analyzer run's outcome. It records that a run happened
+// and on what, never a verdict: the analyzers decide met/not_met/unknown from
 // what they measured, using this record only to answer "is that result
 // still current".
 type LedgerRecord struct {
@@ -140,28 +127,26 @@ type LedgerRecord struct {
 	Outcome         LedgerOutcome     `json:"outcome"`
 	// Counts is opaque, analyzer-defined tallies (for example
 	// "itemsAnalyzed", "cacheHits") - the ledger does not assume what an
-	// analyzer counts, the same "store stays opaque" principle the PRD
-	// applies to Phase 4's cache blobs.
+	// analyzer counts, the same "store stays opaque" principle the
+	// cache applies to its blobs.
 	Counts map[string]int `json:"counts,omitempty"`
 	// Payload is an analyzer-defined JSON document the ledger stores and
 	// returns untouched, for what Counts cannot hold: the proofing signals
 	// keep a Transcript Compare run's compared set and a render
-	// measurement's values here (proofing-readiness-signals.prd.md Phases 2
-	// and 4). Additive and optional: absent on every other analyzer's
+	// measurement's values here. Additive and optional: absent on every other analyzer's
 	// records, so ledgerSchemaVersion stays 1.
 	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
-// LedgerDir is the ledger's storage directory under a project (Q3
-// recommendation A: one JSON file per record under
-// <project>/narration-utils/analysis/ledger/). It is exported so
+// LedgerDir is the ledger's storage directory under a project
+// (<project>/narration-utils/analysis/ledger/, one JSON file per record). It is exported so
 // manuscript.resetDerived can clear it without this package depending on
 // the manuscript package.
 func LedgerDir(project string) string {
 	return filepath.Join(project, "narration-utils", "analysis", "ledger")
 }
 
-// LedgerStore is the one-JSON-file-per-record store described by Q3. Writes
+// LedgerStore is the one-JSON-file-per-record store. Writes
 // are temp-file-then-rename (the saveNotes/SaveHints pattern), so a killed
 // write never corrupts or loses a previously-written record. Zero value is
 // not usable; construct with NewLedgerStore.
@@ -213,14 +198,14 @@ func (s *LedgerStore) Write(record LedgerRecord) (LedgerRecord, error) {
 // is missing, unreadable, not valid JSON, or written by a schema newer than
 // this package supports (ledgerSchemaVersion) - every one of those reads as
 // "absent", never as an error the caller has to handle specially, per the
-// Architecture Notes' unknown-version rule.
+// unknown-version rule.
 func (s *LedgerStore) Get(id string) (LedgerRecord, bool) {
 	return s.readRecord(s.recordPath(id))
 }
 
 // Latest returns the most recently started record whose AnalyzerID and
 // Scope.ChapterID match, regardless of Outcome - callers that only want a
-// complete result filter Outcome themselves (Phase 6's evaluator does; this
+// complete result filter Outcome themselves (the evaluator does; this
 // package stays a plain store, not a policy).
 func (s *LedgerStore) Latest(analyzerID, chapterID string) (LedgerRecord, bool) {
 	records, err := s.List(analyzerID, chapterID)
@@ -276,9 +261,9 @@ func (s *LedgerStore) All() ([]LedgerRecord, error) {
 	return records, nil
 }
 
-// Retain prunes the ledger to Q3's retention rule: the latest record per
+// Retain prunes the ledger to its retention rule: the latest record per
 // (AnalyzerID, Scope.ChapterID) is always kept, plus every record whose ID
-// is in referencedIDs (a confirmation or dismissal's basis, D4 - those
+// is in referencedIDs (a confirmation or dismissal's basis - those
 // records must outlive newer runs of the same analyzer over the same
 // chapter). Every other record file is deleted. It returns the IDs it
 // deleted. A referenced ID that no longer exists is silently ignored, and a
@@ -286,8 +271,7 @@ func (s *LedgerStore) All() ([]LedgerRecord, error) {
 // an interrupted write) is left alone unless its filename's ID is neither
 // referenced nor resolvable to a readable "latest" - i.e. Retain never
 // deletes a name it cannot positively rule out as safe to keep, matching
-// "an interrupted write leaves the previous record readable" (Success
-// Metrics: ledger durability).
+// "an interrupted write leaves the previous record readable".
 func (s *LedgerStore) Retain(referencedIDs []string) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -49,8 +49,7 @@ type TitleMatch struct {
 }
 
 // MatchTitle is FindChapterByTrackName with the kind of match kept.
-// Both sides go through LabelTokens, the canonicalising pre-pass
-// (daw-chapter-track-auto-sync PRD Phase 1), so "Ch. 6", "Chapter VI" and
+// Both sides go through LabelTokens, the canonicalising pre-pass (ADR 0175), so "Ch. 6", "Chapter VI" and
 // "Sixth Chapter" meet "Chapter 6" as an exact match.
 func MatchTitle(titles []string, name string) TitleMatch {
 	match := matchLabels(titles, name)

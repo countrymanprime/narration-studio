@@ -7,7 +7,7 @@
 
 ## Context
 
-Axe ran on Storybook stories only (`tests/atlas/atlas.spec.ts`), so page-level accessibility, the labels, landmarks and dialog roles of the pages a person actually sees, was checked only by looking at the PNGs. The test flakiness PRD queued "axe on app states" behind the dialog and palette work, so the first baseline would not be dominated by defects that work was about to fix (owner decision D22, question 6: measure a report-only baseline first, then gate with a debt ratchet). Both are delivered, and the palette stack left every app state at 0 `color-contrast` violations in both themes.
+Axe ran on Storybook stories only (`tests/atlas/atlas.spec.ts`), so page-level accessibility, the labels, landmarks and dialog roles of the pages a person actually sees, was checked only by looking at the PNGs. Axe on app states was queued behind the dialog and palette work, so the first baseline would not be dominated by defects that work was about to fix; the owner decided to measure a report-only baseline first, then gate with a debt ratchet. Both are delivered, and the palette stack left every app state at 0 `color-contrast` violations in both themes.
 
 ## Decision
 

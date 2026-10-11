@@ -1,14 +1,14 @@
 # 0657. `FocusShell` takes a `contentClassName` for a host's own main-region look
 
-**Status:** Proposed (Phase 13 of the mock fidelity PRD, stream F-P13 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
 **Date:** 2026-09-28
-**Amends:** `primitives/FocusShell.tsx`'s slots-only API (studio-ui-primitives.prd.md Phase 9)
+**Amends:** `primitives/FocusShell.tsx`'s slots-only API ([ADR 0360](0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md))
 
 ## Context
 
-Mock 03's reading surface is darker than the app's ordinary `--bg` (`--reading-bg`, Q6 of the mock fidelity PRD, Phase 0b). `FocusShell` (`primitives/FocusShell.tsx`) is the shared full-screen layout the Booth (and, through `CompactShell`, the companion) is built on; its own outer wrapper always paints `bg-[var(--bg)]`, and its `className` prop only reaches that outer wrapper, not the scrollable main content region `Content` renders.
+Mock 03's reading surface is darker than the app's ordinary `--bg` (`--reading-bg`, [ADR 0590](0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md)). `FocusShell` (`primitives/FocusShell.tsx`) is the shared full-screen layout the Booth (and, through `CompactShell`, the companion) is built on; its own outer wrapper always paints `bg-[var(--bg)]`, and its `className` prop only reaches that outer wrapper, not the scrollable main content region `Content` renders.
 
-`FocusShell` also has other, non-Booth-specific consumers of the same shell shape (`ReaderRail.tsx`, `ReadAlongView.tsx`, `BoothSession.tsx` all reference it, alongside `CompactShell.tsx`), so hard-coding a darker main-region background into the primitive itself would force every host to draw it, which contradicts D69 (no surface is forced) for any host that doesn't want the Booth's specific reading tint.
+`FocusShell` also has other, non-Booth-specific consumers of the same shell shape (`ReaderRail.tsx`, `ReadAlongView.tsx`, `BoothSession.tsx` all reference it, alongside `CompactShell.tsx`), so hard-coding a darker main-region background into the primitive itself would force every host to draw it, including any host that doesn't want the Booth's specific reading tint.
 
 ## Decision
 

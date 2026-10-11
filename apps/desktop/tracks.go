@@ -109,10 +109,9 @@ func selectedProject(svc hostServices) (tracks.Project, error) {
 	return project, nil
 }
 
-// offlineProjectReader is the DAW port's declaration for reading a saved .rpp with no live session (DAW port PRD Phase
-// 5d): project_read is NeedsNothing (dawport's capability.go), so a resolver built over it reports the capability
-// available with no bridge at all - the "offline reading" this phase's name refers to, and the reason this app can browse
-// a project's tracks before REAPER has ever been launched from it. Every other capability answers unsupported: this
+// offlineProjectReader is the DAW port's declaration for reading a saved .rpp with no live session: project_read is NeedsNothing
+// (dawport's capability.go), so a resolver built over it reports the capability available with no bridge at all,
+// which is why this app can browse a project's tracks before REAPER has ever been launched from it. Every other capability answers unsupported: this
 // adapter is never handed to bridge.Actions or the review workflow.
 type offlineProjectReader struct{}
 
@@ -136,8 +135,7 @@ var projectReaderRole = func() (dawport.ProjectReader, error) {
 	return dawport.Role[dawport.ProjectReader](resolver, dawport.CapProjectRead)
 }
 
-// readProject is tracks.go's, chapterlinks.go's and recordedlengths.go's shared way to parse a saved .rpp (DAW port PRD
-// Phase 5d): each asks the resolver for the dawport.ProjectReader role instead of calling tracks.Parse directly.
+// readProject is tracks.go's, chapterlinks.go's and recordedlengths.go's shared way to parse a saved .rpp each asks the resolver for the dawport.ProjectReader role instead of calling tracks.Parse directly.
 func readProject(path string) (tracks.Project, error) {
 	reader, err := projectReaderRole()
 	if err != nil {

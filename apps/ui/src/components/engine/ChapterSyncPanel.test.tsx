@@ -73,7 +73,7 @@ describe('ChapterSyncPanel', () => {
     const notify = vi.fn();
     render(<ApiProvider api={api}>{<ChapterSyncPanel notify={notify} onChanged={() => {}} />}</ApiProvider>);
     await screen.findByText('Needs you (1)');
-    // The panel's own wording (mockup 02, D85 #13), not the consent dialog's.
+    // The panel's own wording, not the consent dialog's.
     expect(screen.getByText('Two tracks match: “Chapter 5 part 1” and “Chapter 5 part 2”. A chapter is checked from one track.')).toBeTruthy();
     const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
     expect(select.value).toBe('g5a');
@@ -82,7 +82,7 @@ describe('ChapterSyncPanel', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked.'));
   });
 
-  it('names the saved file and splits automatic links from the narrator’s in the summary (mockup 02)', async () => {
+  it('names the saved file and splits automatic links from the narrator’s in the summary', async () => {
     render(<ApiProvider api={createMockApi({}, { chapterSync: 'activity' })}>{<ChapterSyncPanel notify={() => {}} onChanged={() => {}} />}</ApiProvider>);
     await screen.findByText(/^On · last synced .+ from the saved Alice\.rpp · 1 chapter linked automatically, 1 by you$/);
   });
@@ -119,7 +119,7 @@ describe('ChapterSyncPanel', () => {
     expect(screen.getByText(/REAPER has changes that aren’t saved yet/)).toBeTruthy();
   });
 
-  it('says why background checks wait, when they are on and something is blocking them (daw-chapter-track-auto-sync.prd.md Phase 7)', async () => {
+  it('says why background checks wait, when they are on and something is blocking them', async () => {
     const base = await createMockApi({}, {}).chapterSyncState();
     const api = createMockApi({ chapterSyncState: async () => ({ ...base, background: { enabled: true, wait: 'recording' } }) }, {});
     render(<ApiProvider api={api}>{<ChapterSyncPanel notify={() => {}} onChanged={() => {}} />}</ApiProvider>);

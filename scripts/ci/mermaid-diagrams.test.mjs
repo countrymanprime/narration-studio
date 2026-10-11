@@ -42,8 +42,7 @@ test('parseDiagram refuses a malformed diagram and says where', async () => {
   assert.equal(sequence.ok, false);
 });
 
-// The diagrams this repository draws on purpose (docs-security-and-hygiene PRD, phases 4 and 5): one container view and four flows, each
-// beside the doc that owns it. A doc that loses its diagram is a regression the parse check would otherwise not notice.
+// The diagrams this repository draws on purpose: one container view and four flows, each beside the doc that owns it. A doc that loses its diagram is a regression the parse check would otherwise not notice.
 const OWNERS = [
   'docs/architecture/codebase-map.md',
   'docs/architecture/first-use-dependency-provisioning.md',

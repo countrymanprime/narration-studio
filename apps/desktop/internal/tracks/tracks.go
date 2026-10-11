@@ -18,9 +18,7 @@ import (
 // Item is REAPER's <ITEM> chunk, still with Position/Length/Name/SourceKind/
 // SourceFile/SourceAvailable/Supported/GUID (the TracksList wire contract:
 // tests/fixtures/contracts/tracks-project.json, apps/ui's Zod schema) always
-// describing the item's active take, not necessarily its first one (Q10 of
-// the analysis evidence ledger PRD). GUID joined the wire contract in the
-// reaper-automation-follow-through PRD's Phase 7 (Line-identity UI): the
+// describing the item's active take, not necessarily its first one. GUID is on the wire contract because the
 // "Link chapters" preview names, by GUID, exactly which item each stamp
 // would write to (never a position or an index), and LineIdentityStamp's
 // rows are keyed by item GUID. TakeGUID, SourceStart and PlayRate (the
@@ -40,8 +38,8 @@ type Item struct {
 	// single item-position GUID line). It identifies the item across edits
 	// that don't change its take content (a move, for example).
 	GUID string `json:"guid"`
-	// TakeGUID, SourceStart and PlayRate are the active take's played range
-	// (edit-and-proof-workspace PRD Phase 1): the take's GUID, where the item
+	// TakeGUID, SourceStart and PlayRate are the active take's played range: the
+	// take's GUID, where the item
 	// starts in its source (the SECTION start, when the source is a trimmed
 	// section, plus SOFFS) and the take's rate (1 when the .rpp has no
 	// PLAYRATE). The item plays Length * PlayRate seconds of source from
@@ -99,11 +97,11 @@ type Take struct {
 	PlayRate        float64
 	// Section is non-nil when the take's source is a <SOURCE SECTION ...>
 	// wrapper (a trimmed/offset region of a larger file): the offsets a
-	// hash of the whole source file cannot see (D6 of the evidence ledger
-	// PRD - non-destructive edits leave the source unchanged).
+	// hash of the whole source file cannot see (non-destructive edits leave
+	// the source unchanged).
 	Section *SectionOffsets
 	// HasFXChain records whether the take carries a <TAKEFX> chain, not the
-	// chain's contents (the PRD's "FX-chain presence, not full FX parsing").
+	// chain's contents (FX-chain presence, not full FX parsing).
 	HasFXChain bool
 	// StretchMarkerCount counts the take's SM lines, evidence rather than
 	// full stretch-marker semantics.
@@ -196,7 +194,7 @@ type Project struct {
 
 	// Markers are the project's plain markers (a MARKER line with the region
 	// flag clear; Region is the paired form), in file order. The proofing
-	// readiness signals PRD's Phase 3 reads these for the RF convention's
+	// readiness signals read these for the RF convention's
 	// `PICKUP:`/`PICKUP_DONE:` project markers; not on the TracksList wire
 	// contract (json:"-"): no UI shows them yet.
 	Markers []Marker `json:"-"`
@@ -224,14 +222,14 @@ type Region struct {
 }
 
 // ItemByGUID finds the item whose own GUID (Item.GUID, from <ITEM IGUID
-// ...>, not a take's own GUID) equals guid, and the track that holds it. It
-// is the take-review PRD's answer to Q6: a finding targets an item by its
+// ...>, not a take's own GUID) equals guid, and the track that holds it. A
+// finding targets an item by its
 // GUID rather than a manuscript line-identity stamp, so re-resolving that
 // target against a freshly parsed project (immediately before a mutation,
 // to refuse a stale identity) needs no stamped ids at all - only this
 // lookup over the static model. It matches only Item.GUID: a take's own
 // GUID never matches, since a take is not a valid mutation target on its
-// own (Q4/Q5 - a candidate is added as a take *of* a target item).
+// own (a candidate is added as a take *of* a target item).
 func (project Project) ItemByGUID(guid string) (track Track, item Item, ok bool) {
 	if guid == "" {
 		return Track{}, Item{}, false

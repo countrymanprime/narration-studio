@@ -23,8 +23,7 @@ func candidateConfidence(candidates []Candidate, token string) Confidence {
 	return ""
 }
 
-// TestParseFrontMatterOwnersBook is the Success Metrics case: the owner's own book (credits-token-setup-and-front-
-// matter-detection.prd.md, "Owner's book"), whose split, all-capitals title, bare-name byline and copyright line
+// TestParseFrontMatterOwnersBook is the owner's own book, whose split, all-capitals title, bare-name byline and copyright line
 // together must give Title and Author at high confidence, plus Year and Copyright Holder.
 func TestParseFrontMatterOwnersBook(t *testing.T) {
 	lines := []string{"AFTER", "THE", "APPLAUSE", "A Novel", "Adrian Crow", "Copyright © 2026 Adrian Crow", "All rights reserved."}
@@ -50,7 +49,7 @@ func TestParseFrontMatterOwnersBook(t *testing.T) {
 		t.Fatalf("CopyrightHolder = %q, %v, want \"Adrian Crow\"", holder, ok)
 	}
 	if _, ok := candidateValue(candidates, TokenSubtitle); ok {
-		t.Fatal("\"A Novel\" must not become a Subtitle (CS5)")
+		t.Fatal("\"A Novel\" must not become a Subtitle")
 	}
 }
 

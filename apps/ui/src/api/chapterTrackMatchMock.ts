@@ -152,7 +152,7 @@ const PROJECT_MESSAGE: Record<ChapterTrackLinksProject, string> = {
   error: 'Could not read the REAPER project file.',
 };
 
-/** The mock's ChapterTrackLinks (chapter-track-link-control PRD Phase 1): every narration chapter's match against the
+/** The mock's ChapterTrackLinks: every narration chapter's match against the
  * mock project, from mockChapterTrackMatch, plus each track's facts. A link to a track the project no longer has is
  * reported as missing, as the host does. */
 export function mockChapterTrackLinks(
@@ -192,7 +192,7 @@ export function mockChapterTrackLinks(
   };
 }
 
-/** The mock's recorded length for a chapter (actual-recorded-column PRD Phase 2), by the host's rule: only a chapter with
+/** The mock's recorded length for a chapter by the host's rule: only a chapter with
  * one confirmed link to a track in the project has seconds, the union of its items (the mock has no mutes or lanes on
  * the wire); every other chapter says why not. */
 export function mockRecordedLength(
@@ -223,7 +223,7 @@ export function mockRecordedLength(
 }
 
 /**
- * The mock's ChapterSyncPreview (daw-chapter-track-auto-sync PRD Phase 3): chaptersync.Build's rules over the mock's links read.
+ * The mock's ChapterSyncPreview: chaptersync.Build's rules over the mock's links read.
  * A chapter's own links are kept; a confident track-name match links (unless the pair was undone); a tie, a guess or an undone
  * pair needs the narrator; nothing is no track. A track no chapter holds or names is unmatched.
  */
@@ -284,10 +284,9 @@ export function mockChapterSyncPreview(links: ChapterTrackLinks, rejected: Reado
   return preview;
 }
 
-/** The mock's chapter region plan (reaper-automation-follow-through PRD Phase 7, credits-in-chapter-table PRD Phase 4)
- * by the host's rule (chapterregions.go): the opening credits, every chapter with exactly one confirmed link to a track
- * with items, then the closing credits, each spanning its track; every other chapter is skipped with a reason. The mock
- * project holds no regions, so every row is new. */
+/** The mock's chapter region plan by the host's rule (chapterregions.go): the opening credits, every chapter with exactly one
+ * confirmed link to a track with items, then the closing credits, each spanning its track; every other chapter is
+ * skipped with a reason. The mock project holds no regions, so every row is new. */
 export function mockChapterRegionPlan(links: ChapterTrackLinks, openingTrackGuid: string, closingTrackGuid: string): ChapterRegionPlan {
   const plan: ChapterRegionPlan = {
     project: links.project,

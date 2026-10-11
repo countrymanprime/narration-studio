@@ -73,7 +73,7 @@ func TestServiceNeverSavesFindingsWhenFindingsIsNotWired(t *testing.T) {
 	}
 }
 
-// The REAPER identity narration_compare.lua appends to COMPARE_MARKER (review-dashboard PRD Phase 6), after srcpos.
+// The REAPER identity narration_compare.lua appends to COMPARE_MARKER after srcpos.
 const (
 	markerItemGUID  = "{AAAAAAAA-0000-4000-8000-000000000001}"
 	markerTakeGUID  = "{AAAAAAAA-0000-4000-8000-0000000000A1}"

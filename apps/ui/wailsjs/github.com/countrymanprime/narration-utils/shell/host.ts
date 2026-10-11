@@ -509,18 +509,16 @@ export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<stri
 }
 
 /**
- * DawLaunch starts REAPER on the current project's linked DAW file (Phase 8,
- * docs/prds/project-workspace-and-daw-link.prd.md): it resolves reaper.exe (a
- * Settings override always wins, otherwise auto-detect - daw.Resolve /
- * daw.LocateReaperExecutable, ADR 0092 W11), and passes the linked .rpp,
- * plus, when the DAW.auto_start_launcher setting is on (owner decision D10,
- * default OFF), the launcher script too - the exact
- * `reaper.exe "<project.rpp>" "<script.lua>"` form spike S6 confirmed REAPER
- * runs automatically at startup (ADR 0092 W12), so the bridge is live
- * without the narrator running the action by hand. The launch is detached
- * (daw.Launch): never through the sidecar supervisor's kill-on-close job
- * object (internal/process/job_windows.go), so REAPER outlives the app when
- * the narrator closes it.
+ * DawLaunch starts REAPER on the current project's linked DAW file: it resolves
+ * reaper.exe (a Settings override always wins, otherwise auto-detect -
+ * daw.Resolve / daw.LocateReaperExecutable, ADR 0092), and passes the linked
+ * .rpp, plus, when the DAW.auto_start_launcher setting is on (default off), the
+ * launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
+ * form spike S6 confirmed REAPER runs automatically at startup (ADR 0092), so
+ * the bridge is live without the narrator running the action by hand. The
+ * launch is detached (daw.Launch): never through the sidecar supervisor's
+ * kill-on-close job object (internal/process/job_windows.go), so REAPER
+ * outlives the app when the narrator closes it.
  */
 export function DawLaunch(): $CancellablePromise<string> {
     return $Call.ByID(739370161);
@@ -1820,9 +1818,9 @@ export function TakeReviewScanState(): $CancellablePromise<string> {
 
 /**
  * TeleprompterDevices lists the input devices the teleprompter's capture path can open, by the name it opens them
- * under (docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 1). It never fails Start-style: a listing
- * problem comes back as `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can always still try
- * to start with a device the narrator picked before.
+ * under. It never fails Start-style: a listing problem comes back as
+ * `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can
+ * always still try to start with a device the narrator picked before.
  */
 export function TeleprompterDevices(): $CancellablePromise<string> {
     return $Call.ByID(122676926);

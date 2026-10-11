@@ -1,6 +1,5 @@
 // `?mockFidelity=<mock>`: the mock backend drawn as a benchmark mock draws its screen, so the pixel-match tool
-// (tests/visual/mock-match) scores the page's style rather than its sample data (mock-fidelity-primitives-and-components.prd.md
-// Q5, D67). A fixture sets only fields the app has; what the mock draws with no data behind it stays the app's own.
+// (tests/visual/mock-match) scores the page's style rather than its sample data. A fixture sets only fields the app has; what the mock draws with no data behind it stays the app's own.
 import { PRODUCTION_SCENARIOS } from '../productionMock';
 import type { MockApiSeed } from './state';
 

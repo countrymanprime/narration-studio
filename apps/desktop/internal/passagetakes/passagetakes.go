@@ -1,9 +1,8 @@
-// Package passagetakes finds the alternate takes of a chapter passage for the workspace's Takes panel
-// (edit-and-proof-workspace.prd.md Phase 6, EP6, ADR 0700): the other takes on the item the passage was heard on, the
-// other retakes of its line on a fixed-lane track, and the reads a take-review group set beside it. Everything is read
-// from the saved project, the chapter's stored alignment and the findings store, never from the page: the page names
-// a chapter and a range of tokens, and a candidate is chosen by an id this package offered (Resolved.Choice), so a GUID,
-// a file or a time never comes from the UI (threat model 5l).
+// Package passagetakes finds the alternate takes of a chapter passage for the workspace's Takes panel (ADR 0700): the
+// other takes on the item the passage was heard on, the other retakes of its line on a fixed-lane track, and the reads
+// a take-review group set beside it. Everything is read from the saved project, the chapter's stored alignment and the
+// findings store, never from the page: the page names a chapter and a range of tokens, and a candidate is chosen by an
+// id this package offered (Resolved.Choice), so a GUID, a file or a time never comes from the UI (threat model 5l).
 package passagetakes
 
 import (

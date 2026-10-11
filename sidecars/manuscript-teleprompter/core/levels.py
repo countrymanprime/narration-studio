@@ -1,4 +1,4 @@
-"""Input level for the Read Aloud meter (read-aloud-control-bar PRD Phase 4, Q6 A).
+"""Input level for the Read Aloud meter.
 
 The meter measures exactly what the recognizer hears: the capture path's own 16 kHz mono chunks, after resampling. Each
 chunk (0.32 s) is too coarse for a meter, so the samples are cut into 50 ms windows and reported every 100 ms as

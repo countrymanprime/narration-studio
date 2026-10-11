@@ -25,8 +25,7 @@ func peaksOf(t *testing.T, wav []byte, rng *Range, perSecond int) Peaks {
 
 func near1(a, b int8) bool { return a-b <= 1 && b-a <= 1 }
 
-// The edit and proof workspace PRD Phase 5 (EP12 A): the host draws the waveform from min and max
-// peaks per bucket, computed from the WAV source with the existing reader.
+// The host draws the waveform from min and max peaks per bucket, computed from the WAV source with the existing reader.
 func TestPeaksAreTheMinimumAndMaximumOfEachBucket(t *testing.T) {
 	wav := encodeWAV(t, 1, 8000, 16, false, sine(8000, 1, 220, -6, 0))
 	peaks := peaksOf(t, wav, nil, 50)
@@ -152,7 +151,7 @@ func TestAnHourOfPeaksIsSmall(t *testing.T) {
 	}
 }
 
-// The cost Phase 0 asked for: peaks over 60 minutes of 48 kHz stereo 24-bit WAV (about 1 GB of audio data).
+// BenchmarkPeaksOneHourStereo48k measures peaks over 60 minutes of 48 kHz stereo 24-bit WAV (about 1 GB of audio data).
 func BenchmarkPeaksOneHourStereo48k(b *testing.B) {
 	for range b.N {
 		stream := newToneStream(b, 48000, 3600)

@@ -171,7 +171,7 @@ describe('the import review dialog, as the narrator meets it', () => {
 });
 
 describe('build after import (B1-B3)', () => {
-  it('offers the checkbox pre-checked from Settings (ManuscriptGuide.build_after_import defaults on, D8)', async () => {
+  it('offers the checkbox pre-checked from Settings (ManuscriptGuide.build_after_import defaults on)', async () => {
     const { dialog } = await openReview();
     const box = await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
     expect(box.getAttribute('aria-checked')).toBe('true');
@@ -352,7 +352,7 @@ describe('the subtitle of each chapter in the review', () => {
   });
 });
 
-describe('the "Set up the credits" prompt (credits-token-setup-and-front-matter-detection.prd.md, Phase 2)', () => {
+describe('the "Set up the credits" prompt ', () => {
   async function renderImport(overrides: Partial<NarrationApi> = {}) {
     const api = createMockApi(overrides, { creditsSetup: true });
     const data: Bootstrap = await api.bootstrap();
@@ -417,7 +417,7 @@ describe('the "Set up the credits" prompt (credits-token-setup-and-front-matter-
   });
 });
 
-describe('the credits-setup banner, the way back after Not now (credits-token-setup-and-front-matter-detection.prd.md, Phase 3)', () => {
+describe('the credits-setup banner, the way back after Not now', () => {
   async function renderImportPastNotNow() {
     const api = createMockApi({}, { creditsSetup: true });
     const data: Bootstrap = await api.bootstrap();

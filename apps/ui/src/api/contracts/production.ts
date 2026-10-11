@@ -2,12 +2,12 @@ import type { ChapterStatus, ManuscriptContentKind, RecordedUnavailable } from '
 import type { StageVerdict } from './stages';
 
 /**
- * Production tracking (the PRD, delivered and deleted; ADR 0028). Phase 3: the book's deadline, contracted amount and
+ * Production tracking: the book's deadline, contracted amount and
  * milestones, stored on the project manifest (apps/desktop/bindings_production.go) so they survive Replace manuscript.
  * Dates are calendar dates written "YYYY-MM-DD" (ADR 0323), never a time of day.
  */
 
-/** One dated checkpoint (Q5 A): the ACX 15-minute checkpoint is a milestone like any other. */
+/** One dated checkpoint: the ACX 15-minute checkpoint is a milestone like any other. */
 export type ProductionMilestone = { name: string; dueDate: string; note?: string };
 
 /** The book's plan. `deadline` and `contractedAmount` are null when unset; `contractedAmount` is a bare number in the
@@ -18,11 +18,11 @@ export type ProductionPlan = {
   milestones: ProductionMilestone[];
 };
 
-// Phase 4: the Production page's one read and the stage timer's two
-// writes. The host shapes are apps/desktop/internal/production (overview.go, production.go) and apps/desktop/bindings_production.go.
+// The Production page's one read and the stage timer's two writes. The host shapes are
+// apps/desktop/internal/production (overview.go, production.go) and apps/desktop/bindings_production.go.
 // Every figure here is measured or logged, never estimated (ADR 0320): an undefined one is `null`, shown as "—", never 0.
 
-/** One stretch of work on one chapter's stage. `endedAt` is absent while its timer runs. `source` is always `manual` (Q1 A). */
+/** One stretch of work on one chapter's stage. `endedAt` is absent while its timer runs. `source` is always `manual`. */
 export type ProductionSession = {
   id: string;
   chapterId: string;
@@ -33,7 +33,7 @@ export type ProductionSession = {
 };
 
 /**
- * A chapter's current-stage verdict as the stage recommendations gave it, read and never recomputed (Q8 A). `reason` is the first
+ * A chapter's current-stage verdict as the stage recommendations gave it, read and never recomputed. `reason` is the first
  * signal that holds the stage back, or with none the first unknown one; empty otherwise.
  */
 export type ProductionReadiness = {
@@ -71,7 +71,7 @@ export type ProductionTotals = {
   /** Hours logged per stage; a stage with none is absent. */
   hoursByStage: Partial<Record<ChapterStatus, number>>;
   bookPfh: number | null;
-  /** The plan's contracted amount (Phase 3); `null` until set. */
+  /** The plan's contracted amount; `null` until set. */
   contractedAmount: number | null;
   effectiveRate: number | null;
 };
@@ -91,7 +91,7 @@ export type ProductionNextUpItem = {
 export type ProductionOverview = {
   chapters: ProductionChapter[];
   totals: ProductionTotals;
-  /** The plan's deadline (Phase 3) with the days left; `null` until one is set. */
+  /** The plan's deadline with the days left; `null` until one is set. */
   deadline: ProductionDeadline | null;
   running: ProductionSession | null;
   nextUp: ProductionNextUpItem[];
@@ -105,7 +105,7 @@ export type ProductionStartResult =
 export type ProductionStopResult = { stopped: true; session: ProductionSession } | { stopped: false; session: null };
 
 /**
- * What one status report export wrote (ProductionStatusReport, production-tracking.prd.md Phase 5): the folder
+ * What one status report export wrote (ProductionStatusReport): the folder
  * relative to the project (`narration-utils/production/reports`), the two file names in it, and whether the narrator
  * chose to include the contracted amount and effective rate (off by default: a status report is often shared with
  * someone the narrator would not otherwise tell their rate).
@@ -118,9 +118,8 @@ export type ProductionReportExport = {
 };
 
 /**
- * One calendar date of the book's logged-hours burndown (ProductionBurndown, production-tracking.prd.md Phase 6,
- * Could): every hour logged by the end of that day, added up from every earlier day. Data only - a future chart
- * primitive (out of this PRD's scope) would plot it.
+ * One calendar date of the book's logged-hours burndown (ProductionBurndown): every hour logged by the end of that day, added up from every earlier day. Data only - a chart
+ * primitive would plot it; none does yet.
  */
 export type ProductionBurndownPoint = { date: string; hoursLogged: number };
 
@@ -147,6 +146,6 @@ export interface ProductionApi {
    */
   productionStatusReport(includeContractedAmount: boolean): Promise<ProductionReportExport>;
   /** The book's logged hours by day, one point per day from the first stopped session to the last; empty until one
-   * is logged. Data only, for a future chart primitive (out of this PRD's scope). */
+   * is logged. Data only, for a chart primitive that does not exist yet. */
   productionBurndown(): Promise<ProductionBurndownPoint[]>;
 }

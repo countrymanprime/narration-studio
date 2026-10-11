@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// The decode direction (delivery-platform-profiles Phase 8, P11): the same fake FFmpeg test binary that stands in for
+// The decode direction (measuring an encoded MP3): the same fake FFmpeg test binary that stands in for
 // the Encoder (ffmpeg_test.go) also stands in for the Decoder, dispatched by fakeFFmpeg on the presence of
 // "pcm_s16le" in the command line (decodeArgs). It reads the source MP3's frame headers for its nominal length and
 // writes that many seconds of silent PCM WAV, so these tests exercise DecodeToWAV's own chain-of-custody and error

@@ -17,9 +17,7 @@ const REGION_STATE_LABEL: Record<ChapterRegionState, string> = {
   ambiguous: 'Several regions share this title',
 };
 
-/** Chapter regions (booth-actions-enablement PRD Phase 4; reaper-automation-follow-through PRD Phase 7's remaining
- * UI half, "not delivered yet" there). Plans one REAPER region per chapter with a confirmed track link (the Tracks
- * page's "Link chapters…" flow), plus the opening/closing credits tracks chosen below, and writes them to the saved
+/** Chapter regions. Plans one REAPER region per chapter with a confirmed track link (the "Link chapters…" flow), plus the opening/closing credits tracks chosen below, and writes them to the saved
  * project in one undo step (`ChapterRegionsCreate`, already wired to `dawport.RegionWriter` via the DAW port
  * resolver). Reachable from the audio engine panel next to "Link chapters…" and "Prepare chapter render…", not
  * a new nav item. Styled after LinkChaptersDialog.tsx: both preview a REAPER write derived from the same confirmed

@@ -35,7 +35,7 @@ export type ReaderRow = {
   /** The whitespace after each word, aligned with `words`; null exactly when `words` is. */
   gaps: string[] | null;
   text: string;
-  /** The title row's subtitle (chapter-title-display-consistency.prd.md Q9), kept off a paragraph row: shown under the
+  /** The title row's subtitle, kept off a paragraph row: shown under the
    * title, in source casing, but never joined into `text` - only the title's own words are in the sidecar's span, so
    * the subtitle stays on screen without being tracked. */
   subtitle?: string;
@@ -56,7 +56,7 @@ export function buildRows(
   for (const span of script.spans) {
     if (span.kind === 'title') {
       // The sidecar's title span counts the title's own words only (chapter_script.py) - the subtitle is never glued
-      // into the tracked text, so it renders as its own line without being part of what the tracker follows (Q9).
+      // into the tracked text, so it renders as its own line without being part of what the tracker follows.
       const text = chapter.title || script.chapter.title;
       const fit = tokenize(text).length === span.count;
       const split = fit ? splitWords(text) : null;
@@ -87,7 +87,7 @@ export function previewRows(chapter: Pick<ManuscriptChapter, 'title' | 'subtitle
   ];
 }
 
-/** The credits the teleprompter can read instead of a chapter (audiobook-credits-templates.prd.md Phase 4, ADR 0150). */
+/** The credits the teleprompter can read instead of a chapter (ADR 0150). */
 export type CreditsKind = 'opening' | 'closing';
 export const CREDITS_LABEL: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
 
@@ -114,11 +114,11 @@ export function wordOffsets(text: string): Array<[number, number]> {
 }
 
 /**
- * Marks on the reader's words (teleprompter-manuscript-integration.prd.md Phase 5). The Manuscript reader annotates by
+ * Marks on the reader's words. The Manuscript reader annotates by
  * character offsets (`manuscript/annotations.ts`); the read-aloud reader shows words, so a mark is mapped onto every word
  * it touches: a name across a word boundary ("Mr. Hale") marks both words, a mention inside a word ("Hale" in "Hale's")
  * marks the whole word, and a range of only whitespace marks nothing. `value` is what the mark points at, kept generic so
- * Phase 7's flag marks travel the same path as the story bible and note marks.
+ * flag marks travel the same path as the story bible and note marks.
  */
 export type TextMark<T> = { id: string; start: number; end: number; value: T };
 /** A mark on a row's words: [from, to) indices into that row's own word list. */
@@ -149,7 +149,7 @@ export function segmentWords<T>(count: number, marks: WordMark<T>[]): WordSegmen
   });
 }
 
-/** What a reader mark opens in the side rail: a story bible entry or a note (Phase 5), or a suspected flag (Phase 7, `readerFlags.ts`). */
+/** What a reader mark opens in the side rail: a story bible entry or a note, or a suspected flag (`readerFlags.ts`). */
 export type ReaderMarkTarget = { kind: 'entity'; entity: GuideEntity } | { kind: 'note'; note: ManuscriptNote } | { kind: 'flag'; flag: TeleprompterFlag };
 export type ReaderMark = WordMark<ReaderMarkTarget>;
 

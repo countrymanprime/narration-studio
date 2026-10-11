@@ -5,7 +5,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// notice is the report's first words: what it is, and what it is not (the PRD's "What We're NOT Building").
+// notice is the report's first words: what it is, and what it is not.
 const notice = "A generic technical measurement of the files listed, made on the narrator's computer. It is not a certification: " +
 	"it does not say that a distributor (ACX or another) will accept these files, and it does not replace an engineer's review. " +
 	"A rule marked \"not checked by the app\" or \"listen\" was not judged, and never counts as met. " +

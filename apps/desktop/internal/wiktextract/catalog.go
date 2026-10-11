@@ -1,7 +1,7 @@
-// Package wiktextract owns the approved catalog of the Wiktionary/Wiktextract-derived pronunciation index (prep-depth
-// Phase 8, D72, ADR 0405) and its install-time Derive step. A source is a pinned release archive: it is downloaded only
-// when the narrator confirms, checked against its SHA-256, unpacked, reduced to one compact word -> {ipa, audio} index
-// (build.go) and the unpacked release removed, all inside the same staged install the other assets use (internal/assets),
+// Package wiktextract owns the approved catalog of the Wiktionary/Wiktextract-derived pronunciation index (ADR 0405)
+// and its install-time Derive step. A source is a pinned release archive: it is downloaded only when the narrator
+// confirms, checked against its SHA-256, unpacked, reduced to one compact word -> {ipa, audio} index (build.go) and the
+// unpacked release removed, all inside the same staged install the other assets use (internal/assets),
 // the same shape internal/dictionary already uses for the Open English WordNet dictionary (ADR 0097). The index itself is
 // read by the guide sidecar (Python, WiktextractSource in providers.py), given its resolved path as --wiktextract-index;
 // there is no Go-side lookup.
@@ -97,7 +97,7 @@ func (m *Manager) Source(id string) (Source, bool) {
 }
 
 // Default is the source the offline registry uses: the first in the catalog. There is one (Wiktextract's English
-// extract, prep-depth Phase 8); a choice would be a setting.
+// extract); a choice would be a setting.
 func (m *Manager) Default() (Source, bool) {
 	if len(m.catalog.Sources) == 0 {
 		return Source{}, false
@@ -219,8 +219,8 @@ func withDefaults(options assets.Options) assets.Options {
 	return options
 }
 
-// deriveIndex builds the index from the unpacked release in the archive's folder, then removes the release (Q8: never
-// keep the raw dump).
+// deriveIndex builds the index from the unpacked release in the archive's folder, then removes the release (the raw dump is never
+// kept).
 func deriveIndex(staging string, file File, _ []assets.ExtractedFile) ([]assets.ExtractedFile, error) {
 	root := filepath.Join(staging, file.Extract)
 	built := filepath.Join(staging, IndexName+".new")

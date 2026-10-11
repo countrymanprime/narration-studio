@@ -5,7 +5,7 @@
 
 ## Context
 
-ACX asks for each uploaded file to be an MP3 at 192 kbps or more, constant bit rate (CBR). The app measures the WAV render, so the `acx.format` rule has read "not checked" since the profile shipped ([ADR 0179](0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)). [Delivery Platform Profiles](../prds/delivery-platform-profiles.prd.md) Phase 6 asked for the format to be read from the MP3's frame headers without decoding it. Decoding (levels on MP3) belongs to the diagnostics PRD's DX-2 and is not built. The MP3's bytes are untrusted input parsed in the host.
+ACX asks for each uploaded file to be an MP3 at 192 kbps or more, constant bit rate (CBR). The app measures the WAV render, so the `acx.format` rule has read "not checked" since the profile shipped ([ADR 0179](0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)). This ADR reads the format from the MP3's frame headers without decoding it. Decoding (levels on an MP3) is not built here; [ADR 0325](0325-an-mp3s-levels-are-decoded-through-a-decoder-port-the-same-catalogued-ffmpeg-build-runs-in-reverse.md) adds it. The MP3's bytes are untrusted input parsed in the host.
 
 ## Decision
 

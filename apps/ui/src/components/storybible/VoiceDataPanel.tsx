@@ -10,10 +10,9 @@ import type { Notify } from '../primitives/Toast';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 
 /**
- * Project-wide voice-reference actions (character-continuity-review.prd.md Phase 6, non-acoustic part): approving
- * a reference for plain narration as a first-class reference subject (Q9 - Phase 3's approval layer already
- * accepts NARRATION_CHARACTER_ID like any other opaque character id), and "Remove voice data" (Q7): revoking
- * every reference for the project in one action, delivered here rather than Phase 7 per owner decision D87.
+ * Project-wide voice-reference actions (non-acoustic only): approving a reference for plain narration as a
+ * first-class reference subject (the approval layer accepts NARRATION_CHARACTER_ID like any other opaque character
+ * id), and "Remove voice data": revoking every reference for the project in one action.
  */
 export function VoiceDataPanel({ open, onClose, notify }: { open: boolean; onClose: () => void; notify: Notify }) {
   const api = useApi();

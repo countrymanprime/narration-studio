@@ -27,11 +27,11 @@ python -c "import importlib.util; from pathlib import Path; spec = importlib.uti
 ## heading-misreads/
 
 Small constructed manuscripts (DOCX, EPUB, Markdown and plain text, one chapter heading each) that exercise the
-importer's title/subtitle heuristic: 5 read correctly and 18 do not (story-bible-and-import-ux-briefs PRD, Phase 4).
+importer's title/subtitle heuristic: 5 read correctly and 18 do not.
 `cases.json` records each case's intended and observed title and subtitle, and `TestHeadingMisreadFixtures`
 (`apps/desktop/internal/importer/heading_misreads_test.go`) holds the importer to the observed values.
 [`docs/research/import-heading-misreads.md`](../../docs/research/import-heading-misreads.md) explains each failure
-mode, and the subtitle override (Phase 5) uses these cases as its fixtures. Regenerate with the standard library only:
+mode, and the subtitle override uses these cases as its fixtures. Regenerate with the standard library only:
 
 ```powershell
 cd tests/fixtures/heading-misreads
@@ -59,12 +59,12 @@ uv run python sidecars/manuscript-teleprompter/spikes/record_locate_tails.py `
 A Gutenberg-shaped, hard-wrapped plain-text export of the same three chapters (`write_txt` in
 `generate_alice.py`): a `*** START OF ... ***`/`*** END OF ... ***` boilerplate pair, lines
 wrapped at about 70 columns, and `_word_` underscore italics, matching `alice_raw.txt`'s own
-shape (PRD Evidence). Used by the TXT importer's parity and hazard tests
+shape. Used by the TXT importer's parity and hazard tests
 (`apps/desktop/internal/importer/txt_test.go`).
 
 ## after-the-applause.md
 
-The front matter from the owner's report on `credits-token-setup-and-front-matter-detection.prd.md` (a title split
+The front matter from an owner report (a title split
 across lines, an all-capitals title, a genre descriptor, a bare-name byline and a copyright line), imported through
 `manuscript.Service` and read by `credits.Detect` in `apps/desktop/creditsdetect_test.go`, so the fix for the
 `storedPath` double-join defect and the front matter parser are both exercised against a real commit()-produced

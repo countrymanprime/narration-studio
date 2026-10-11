@@ -8,8 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 )
 
-// TestCreditsDetectReadsTheOwnersBookThroughARealImport is the "Stored-source defect" Success Metric of
-// credits-token-setup-and-front-matter-detection.prd.md: credits.Detect reads a real commit()-produced project (a
+// TestCreditsDetectReadsTheOwnersBookThroughARealImport covers the stored-source defect: credits.Detect reads a real commit()-produced project (a
 // storedPath commit() itself wrote, not a made-up one) and finds the same values the owner's report expects from
 // tests/fixtures/after-the-applause.md.
 func TestCreditsDetectReadsTheOwnersBookThroughARealImport(t *testing.T) {
@@ -42,6 +41,6 @@ func TestCreditsDetectReadsTheOwnersBookThroughARealImport(t *testing.T) {
 		t.Fatalf("CopyrightHolder = %+v, want \"Adrian Crow\"", got)
 	}
 	if _, ok := byToken[credits.TokenSubtitle]; ok {
-		t.Fatal("\"A Novel\" must not become a Subtitle (CS5)")
+		t.Fatal("\"A Novel\" must not become a Subtitle")
 	}
 }

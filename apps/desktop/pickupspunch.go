@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Punch and roll for the pickup list (booth-actions-enablement PRD Phase 3): unlike a teleprompter flag, a pickup
+// Punch and roll for the pickup list: unlike a teleprompter flag, a pickup
 // marker's project time is already known (PickupsMoment.position, imported from the proofer's CSV or read back from
 // REAPER), so there is no word-to-time resolution here - just the same dawport.Puncher role (CapPunch) "Punch from
 // here" uses in the reader rail, so a narrator can cue REAPER up before re-recording a pickup.

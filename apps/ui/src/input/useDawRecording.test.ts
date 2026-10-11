@@ -19,7 +19,7 @@ describe('useDawRecording', () => {
     expect(result.current()).toBe(false);
   });
 
-  it('reads the seeded transport (daw-port-and-capabilities.prd.md Phase 9) on mount', () => {
+  it('reads the seeded transport on mount', () => {
     const api = createDawMock({ daw: 'REAPER', transport: { playing: true, recording: true } });
     const { result } = renderHook(() => useDawRecording(), { wrapper: wrapper(api) });
     expect(result.current()).toBe(true);

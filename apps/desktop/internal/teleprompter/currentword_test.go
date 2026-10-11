@@ -2,7 +2,7 @@ package teleprompter
 
 import "testing"
 
-// CurrentWord feeds the host's punch-anchor poll (teleprompter-manuscript-integration.prd.md Phase 12): it must say
+// CurrentWord feeds the host's punch-anchor poll: it must say
 // nothing while there is no word to anchor, so the poller never writes a bogus anchor.
 
 func TestCurrentWordWhileListening(t *testing.T) {
@@ -62,7 +62,7 @@ func TestCurrentWordAfterTheSessionStopsIsNothing(t *testing.T) {
 	}
 }
 
-// CurrentChapter feeds "Punch from here" (Phase 12): unlike CurrentWord it is not gated on "running" specifically or
+// CurrentChapter feeds "Punch from here": unlike CurrentWord it is not gated on "running" specifically or
 // on being unpaused, since a narrator reviewing a flag may have paused.
 
 func TestCurrentChapterWhileListening(t *testing.T) {

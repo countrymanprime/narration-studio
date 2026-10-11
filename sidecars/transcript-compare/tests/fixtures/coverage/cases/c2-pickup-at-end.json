@@ -6,7 +6,7 @@
     "pickup_at_end"
   ],
   "split": "tune",
-  "description": "Paragraph two is skipped in place and recorded as a pickup after the last paragraph. In order it is missing where it belongs (the PRD's Definitions, In order).",
+  "description": "Paragraph two is skipped in place and recorded as a pickup after the last paragraph. In order it is missing where it belongs.",
   "recording": {
     "items": [
       {

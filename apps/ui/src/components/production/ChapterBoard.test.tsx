@@ -203,7 +203,7 @@ describe('ChapterBoard', () => {
   });
 });
 
-describe('recorded length on the board (actual-recorded-column.prd.md)', () => {
+describe('recorded length on the board', () => {
   it('names why a chapter has no recorded length', async () => {
     await renderBoard();
     // The default demo has no confirmed chapter-track links.
@@ -211,7 +211,7 @@ describe('recorded length on the board (actual-recorded-column.prd.md)', () => {
     expect(cell('Chapter 7', 'Recorded').textContent).toBe('No track');
   });
 
-  it("shows the linked track's measured length, and leaves it unchanged when the status changes (Phase 1 and 3)", async () => {
+  it("shows the linked track's measured length, and leaves it unchanged when the status changes", async () => {
     await renderBoard({}, {}, (api) =>
       withChapters(api, (chapter) =>
         chapter.id === 'chapter-4'
@@ -244,7 +244,7 @@ describe('recorded length on the board (actual-recorded-column.prd.md)', () => {
   });
 });
 
-describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', () => {
+describe('credits rows on the board', () => {
   const rowNames = () =>
     within(screen.getByRole('grid', { name: 'Chapter pipeline', hidden: true }))
       .getAllByRole('rowheader', { hidden: true })
@@ -254,7 +254,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     return screen.findByRole('dialog', { name: label });
   };
 
-  it('places Opening credits first and Closing credits last, around the twelve chapters (CT1)', async () => {
+  it('places Opening credits first and Closing credits last, around the twelve chapters', async () => {
     await renderBoard();
     await waitFor(() => expect(rowNames()[0]).toBe('Opening credits'));
     const names = rowNames();
@@ -273,7 +273,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     expect(notify).not.toHaveBeenCalled();
   });
 
-  it('shows the template, its words and length, and a link to it on Script in its slide-over (CT4)', async () => {
+  it('shows the template, its words and length, and a link to it on Script in its slide-over', async () => {
     const segment = 'word '.repeat(155).trim();
     await renderBoard({
       creditsTemplates: async () => [
@@ -283,7 +283,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
       creditsPreview: async (body: string) => ({ text: body, words: body.split(/\s+/).filter(Boolean).length, unresolved: [] }),
     });
     await waitFor(() => expect(rowNames()[0]).toBe('Opening credits'));
-    // No track is linked yet (Phase 3): the same "No track" a manuscript chapter's own Recorded cell shows.
+    // No track is linked yet: the same "No track" a manuscript chapter's own Recorded cell shows.
     expect(cell('Opening credits', 'Recorded').textContent).toBe('No track');
     const dialog = await openCredits('Opening credits');
     // A 155-word segment at 155 wpm reads 60s; the room-tone allowance defaults to 0.
@@ -292,7 +292,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     expect(within(dialog).queryByRole('alert')).toBeNull();
   });
 
-  it('shows its own measured Recorded length once a track is linked to the credits id (Phase 3)', async () => {
+  it('shows its own measured Recorded length once a track is linked to the credits id', async () => {
     const { api, rerender } = await renderBoard();
     await waitFor(() => expect(rowNames()[0]).toBe('Opening credits'));
     await api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'credits-opening');
@@ -301,7 +301,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     expect(cell('Closing credits', 'Recorded').textContent).toBe('No track');
   });
 
-  it("enables the credits row's Check button, opening the same recording-check dialog a manuscript chapter uses (Phase 3, CT4)", async () => {
+  it("enables the credits row's Check button, opening the same recording-check dialog a manuscript chapter uses", async () => {
     await renderBoard();
     await waitFor(() => expect(rowNames()[0]).toBe('Opening credits'));
     const panel = await openCredits('Opening credits');
@@ -311,7 +311,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     expect(within(check).getByRole('button', { name: 'Check recording' })).toBeTruthy();
   });
 
-  it("a manuscript chapter's own recording check is unchanged by the credits Check button existing (Phase 3, regression)", async () => {
+  it("a manuscript chapter's own recording check is unchanged by the credits Check button existing", async () => {
     await renderBoard();
     fireEvent.click(cell('Chapter 1', 'Record'));
     const dialog = await screen.findByRole('dialog', { name: /^Recording check: Chapter 1/ });
@@ -336,7 +336,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     expect(within(dialog).queryByText(/not filled in/)).toBeNull();
   });
 
-  it('shows "Not set up" with a link to Settings > Credits for a missing template (CT5)', async () => {
+  it('shows "Not set up" with a link to Settings > Credits for a missing template', async () => {
     await renderBoard({}, { creditsMissingClosing: true });
     await waitFor(() => expect(rowNames()).toContain('Closing credits'));
     expect(cell('Closing credits', 'Recorded').textContent).toBe('Not set up');
@@ -350,7 +350,7 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
     expect(within(dialog).queryByRole('link', { name: 'Open in Script' })).toBeNull();
   });
 
-  it('changes a row status through setCreditsStatus, never manuscriptSetChapterStatus or the stage engine (CT1, CT2, CT3)', async () => {
+  it('changes a row status through setCreditsStatus, never manuscriptSetChapterStatus or the stage engine', async () => {
     const setCreditsStatus = vi.fn(async (kind: string, status: string) => ({ [kind]: status }));
     const manuscriptSetChapterStatus = vi.fn();
     await renderBoard({ setCreditsStatus, manuscriptSetChapterStatus });
@@ -371,14 +371,14 @@ describe('credits rows on the board (credits-in-chapter-table.prd.md Phase 2)', 
   });
 });
 
-// chapter-track-link-control.prd.md Phase 2: the track slide-over the Recorded cell opens, driven against the same ChapterTrackLinks mock
+// The track slide-over the Recorded cell opens, driven against the same ChapterTrackLinks mock
 // (chapterTrackMatchMock.ts). The default demo project ("ready") names its tracks "Chapter 1" and "Chapter 2" (mockFixtures.ts's
 // WIRE_TRACKS_PROJECT), which match those two chapters' titles exactly, so they read "suggested"; every other chapter has no name match
-// and reads "not linked" (TL1-TL4).
+// and reads "not linked".
 describe('chapter-track link control on the board', () => {
   const closeTrack = (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
 
-  it("shows each chapter's suggested or not-linked state (TL1-TL4)", async () => {
+  it("shows each chapter's suggested or not-linked state", async () => {
     await renderBoard();
     const first = await openTrack('Chapter 1');
     expect(trackState(first)).toBe('Suggested');
@@ -386,7 +386,7 @@ describe('chapter-track link control on the board', () => {
     expect(trackState(await openTrack('Chapter 3'))).toBe('Not linked');
   });
 
-  it('shows what the suggestion was found through, and confirms it through Another track… (TL5)', async () => {
+  it('shows what the suggestion was found through, and confirms it through Another track…', async () => {
     const { notify } = await renderBoard();
     const dialog = await openTrack('Chapter 1');
     expect(within(dialog).getByText('Found through')).toBeTruthy();
@@ -399,7 +399,7 @@ describe('chapter-track link control on the board', () => {
     expect(within(dialog).getByText(/, by you$/)).toBeTruthy();
   });
 
-  it('offers every unclaimed track to a chapter with no suggestion, and reflects the link after Confirm (TL3)', async () => {
+  it('offers every unclaimed track to a chapter with no suggestion, and reflects the link after Confirm', async () => {
     const { notify } = await renderBoard();
     const dialog = await openTrack('Chapter 3');
     expect(within(dialog).queryByText('Possible tracks')).toBeNull();
@@ -410,7 +410,7 @@ describe('chapter-track link control on the board', () => {
     await waitFor(() => expect(trackState(dialog)).toBe('Linked'));
   });
 
-  it("tells the narrator when linking a track displaces another chapter's confirmed link, and lets it be unlinked (TL5, TL6)", async () => {
+  it("tells the narrator when linking a track displaces another chapter's confirmed link, and lets it be unlinked", async () => {
     const { notify } = await renderBoard();
     const first = await openTrack('Chapter 1');
     fireEvent.click(await within(first).findByRole('button', { name: 'Another track…' }));
@@ -439,7 +439,7 @@ describe('chapter-track link control on the board', () => {
     expect(trackState(await openTrack('Chapter 1'))).toBe('Suggested');
   });
 
-  it('shows the project message when no REAPER project was found, and suggests no track (TL7)', async () => {
+  it('shows the project message when no REAPER project was found, and suggests no track', async () => {
     await renderBoard({}, { tracksCandidates: [] });
     expect(await screen.findByText('No REAPER project (.rpp) file was found in this project folder.')).toBeTruthy();
     const dialog = await openTrack('Chapter 1');
@@ -447,14 +447,14 @@ describe('chapter-track link control on the board', () => {
     expect(within(dialog).queryByText('Found through')).toBeNull();
   });
 
-  it('points to the Tracks page to choose a project when more than one REAPER project file is found (TL7)', async () => {
+  it('points to the Tracks page to choose a project when more than one REAPER project file is found', async () => {
     await renderBoard({}, { tracksCandidates: ['C:/proj/one.rpp', 'C:/proj/two.rpp'] });
     expect(await screen.findByText(/Choose which REAPER project file to use in the audio engine panel\./)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Choose it on Tracks' }).getAttribute('href')).toBe('/tracks');
   });
 });
 
-describe('chapter-sync toast on the board (daw-chapter-track-auto-sync.prd.md Phase 3, S12)', () => {
+describe('chapter-sync toast on the board', () => {
   it('shows one toast with Undo for a sync batch, and Undo calls chapterSyncUndo for each link', async () => {
     const { api, notify } = await renderBoard({}, { chapterSync: 'linked' });
     await waitFor(() => expect(notify).toHaveBeenCalled());
@@ -476,7 +476,7 @@ describe('chapter-sync toast on the board (daw-chapter-track-auto-sync.prd.md Ph
   });
 });
 
-describe('remove from recording (chapter-track-link-control.prd.md Phase 3)', () => {
+describe('remove from recording', () => {
   const openRemove = async (title: string) => {
     const panel = await openTrack(title);
     expect(within(panel).getByText(/^Imported by mistake\?/)).toBeTruthy();
@@ -529,7 +529,7 @@ describe('remove from recording (chapter-track-link-control.prd.md Phase 3)', ()
     expect(screen.getByRole('alertdialog', { name: 'Remove Chapter 3 from recording?' })).toBeTruthy();
   });
 
-  // Mock 01 (ADR 0645): the chapter the timer runs on is the board's current row, in bold, and a length is a figure, not a badge.
+  // The benchmark mock (ADR 0645): the chapter the timer runs on is the board's current row, in bold, and a length is a figure, not a badge.
   it('draws the chapter a timer runs on in bold, and its length as a figure', async () => {
     await renderBoard({}, { production: PRODUCTION_SCENARIOS['on-pace'] });
     await waitFor(() => expect(cell('Chapter 1', 'Recorded').textContent).toBe('11:48'));

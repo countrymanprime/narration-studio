@@ -25,10 +25,9 @@ export type TransportBarPlayer = {
   setSpeed: (speed: PlaybackSpeed) => void;
 };
 
-/** The chapter workspace's transport (edit-and-proof-workspace.prd.md Phase 2, EP17; Phase 3 Go to/Loop): play/pause,
+/** The chapter workspace's transport: play/pause,
  * back and forward SKIP_SECONDS, the app's own elapsed/duration readout, the narrator's pitch-kept speed, and Go to
- * and Loop in REAPER for the word currently at the playhead (mockups/edit-and-proof-workspace/03-click-word-to-seek.webp,
- * "GO TO IN REAPER"). Built on `useChapterPlayback`, not `useTrackPlayback` - a chapter plays a whole track's items
+ * and Loop in REAPER for the word currently at the playhead. Built on `useChapterPlayback`, not `useTrackPlayback` - a chapter plays a whole track's items
  * honouring their trims, not one item at a time with track-to-track navigation. */
 export function TransportBar({ player, reaper }: { player: TransportBarPlayer; reaper: WorkspaceReaperControls }) {
   return (

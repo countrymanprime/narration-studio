@@ -18,7 +18,7 @@ type DialogProps = {
   escapeCloses?: boolean;
   // 'default' (ADR 0001): capped at 70vw wide and 80dvh tall, sized to its content. 'full': fills the viewport with a
   // fixed 1rem margin on every side and scrolls its body, for a surface that needs the whole window (the teleprompter
-  // reading modal, teleprompter-manuscript-integration.prd.md Phase 1). Modality (focus trap, Escape, initial focus,
+  // reading modal, ADR 0094). Modality (focus trap, Escape, initial focus,
   // hidden siblings) is unchanged by size: both variants are the one shell ADR 0048 describes.
   size?: 'default' | 'full';
   // null when there is nothing to press (a running job that cannot be cancelled): no empty action row is drawn.
@@ -26,9 +26,8 @@ type DialogProps = {
   // WorkDialog only ever shows one action at a time - 'between' would strand
   // it on the left, so it opts into 'end' instead.
   actionsAlign?: 'between' | 'end';
-  // A region between the body and `actions` that never scrolls with it (read-aloud-control-bar.prd.md Phase 3, amending
-  // ADR 0094): the read-aloud dialog's control bar, kept visible in every scroll position. Absent, most dialogs draw
-  // nothing here. Unlike `actions` it has no padding or alignment opinion of its own - a toolbar lays out its own row.
+  // A region between the body and `actions` that never scrolls with it (ADR 0196): the read-aloud dialog's
+  // control bar, kept visible in every scroll position. Absent, most dialogs draw nothing here. Unlike `actions` it has no padding or alignment opinion of its own - a toolbar lays out its own row.
   footer?: ReactNode;
   children: ReactNode;
 } & (

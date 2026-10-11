@@ -6,8 +6,8 @@ import (
 )
 
 // Reason is a typed cause for a chapter whose coverage cannot be measured (or
-// read as current) right now. The PRD's signal maps every one of them to
-// `unknown` (D2: unknown is never met); the UI (Phase 6) names it.
+// read as current) right now. The recording signal maps every one of them to
+// `unknown` (D2: unknown is never met); the UI names it.
 type Reason string
 
 const (
@@ -33,10 +33,10 @@ const (
 	// ReasonResultMissing is a result reader reason: the ledger has a complete
 	// record but its stored report cannot be read.
 	ReasonResultMissing Reason = "result_missing"
-	// ReasonCreditsNotSetUp is a refusal reason (Phase 3): the credits kind checked has no rendered template to
-	// measure against (CT5's row still shows "Not set up" on Home).
+	// ReasonCreditsNotSetUp is a refusal reason: the credits kind checked has no rendered template to
+	// measure against (the Production board's credits row still shows "Not set up").
 	ReasonCreditsNotSetUp Reason = "credits_not_set_up"
-	// ReasonCreditsChanged is a staleness reason of the result reader (Phase 3): a credits row's rendered template
+	// ReasonCreditsChanged is a staleness reason of the result reader: a credits row's rendered template
 	// text no longer matches the hash a stored result was measured against - creditsBasis's own ReasonManuscriptChanged.
 	ReasonCreditsChanged Reason = "credits_changed"
 )

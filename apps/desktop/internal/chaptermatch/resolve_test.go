@@ -153,7 +153,7 @@ func TestBlankTrackNamesAreNotCandidates(t *testing.T) {
 func TestAConfirmedLinkWinsOverTheNameAndSurvivesARenameAndReorder(t *testing.T) {
 	project := fixtureProject(t)
 	// Reorder and rename: Room Tone moves first and is renamed to a name that matches no chapter ("Ch. 1 (final)" would
-	// now read as a take of Chapter 1, daw-chapter-track-auto-sync PRD Phase 1).
+	// now read as a take of Chapter 1, ADR 0175).
 	roomTone := project.Tracks[3]
 	roomTone.Name, roomTone.Index = "Room tone (final)", 0
 	reordered := tracks.Project{Path: project.Path, Regions: project.Regions, Tracks: append([]tracks.Track{roomTone}, project.Tracks[:3]...)}

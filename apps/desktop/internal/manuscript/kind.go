@@ -15,7 +15,7 @@ type KindChange struct {
 	PreviousKind string
 }
 
-// SetChapterKind reclassifies one chapter after import (chapter-track-link-control PRD Phase 3, TL2): "Remove from
+// SetChapterKind reclassifies one chapter after import: "Remove from
 // recording" makes a narration chapter reference material (or Front Matter) and Restore makes it narration again.
 // Only that chapter's contentKind changes: the document id, every id, the paragraphs and importedAt stay, so the
 // statuses, notes, bookmarks, findings and check results of every chapter stay valid, this one's included. The first

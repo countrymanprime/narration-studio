@@ -1,9 +1,8 @@
 # Dictionary look-up
 
 A "Look up" action on a selected word in the manuscript reader, answered from a local dictionary index the host reads
-directly (never a Python server or a cloud API). Delivered by the story-bible-and-import-ux-briefs PRD's D brief
-(phases 6-8): a docs-only spike choosing the dataset, then the asset-backed backend, then the reader UI. This page
-replaces that PRD (its Open Questions D1-D2 hold the licensing and scope decisions) now that it is deleted.
+directly (never a Python server or a cloud API). The dataset is a downloadable asset (ADR 0097); the licensing and
+scope decisions are recorded below and in that ADR.
 
 ## The dataset
 

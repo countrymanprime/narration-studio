@@ -5,20 +5,19 @@
 
 ## Context
 
-`docs/prds/public-app-demo.prd.md` Phase 1 publishes the existing `build:mock` bundle to
+The public demo publishes the existing `build:mock` bundle to
 `https://countrymanprime.github.io/narration-utils/demo/`, alongside the docs site and Storybook
-that `pages.yml` already builds (`release-readiness-provisioning-and-docs-site.prd.md` Phases 9-13).
+that `pages.yml` already builds.
 `apps/ui/vite.config.ts` hardcoded `base: '/'`, which only the site root (and the desktop app, which
-also serves from `/`) needs; the demo needs its own subpath. The PRD's own Open Question D3 ("base
-path mechanism") named two options without picking one: a Vite CLI `--base` flag per build
+also serves from `/`) needs; the demo needs its own subpath. The open question of the base path
+mechanism named two options without picking one: a Vite CLI `--base` flag per build
 invocation, or a `demo` mode alongside the existing `mock` mode. A CLI flag on top of the existing
-`mock` mode would also make the demo banner (a Phase 1 Must: "every page of the demo shows it is a
-demo") show up in the Playwright visual suite, Storybook and the component atlas, all of which build
+`mock` mode would also make the demo banner (every page of the demo must show it is a
+demo) show up in the Playwright visual suite, Storybook and the component atlas, all of which build
 with `--mode mock` today and must not change.
 
-Verifying the built demo locally (a static file server under `/narration-utils/demo/`, per the PRD's
-own "verify locally the same way the Storybook step was proven") surfaced a second, unrelated defect
-the PRD did not anticipate: `apps/ui/src/App.tsx`'s `<BrowserRouter>` carried no `basename`, so every
+Verifying the built demo locally (a static file server under `/narration-utils/demo/`, the same way the Storybook step was
+proven) surfaced a second, unrelated defect nobody had anticipated: `apps/ui/src/App.tsx`'s `<BrowserRouter>` carried no `basename`, so every
 route (`/`, `/proofing`, `/story-bible`, ...) failed to match under the `/narration-utils/demo/`
 prefix. The console read `No routes matched location "/narration-utils/demo/"` and every page
 rendered only the app shell (banner, nav, header) with no page content - the demo's whole "navigate
@@ -48,8 +47,6 @@ the real UI" success state.
   must keep this wired together, or routing breaks silently under a subpath the way it did before this
   fix - there is no automated check that the two stay in sync beyond the demo build itself resolving
   routes.
-- This ADR's language (build mode, banner gating, router basename) describes the shape of Phase 1 as
-  delivered; when `public-app-demo.prd.md` reaches steady state and is deleted, the durable rule
-  ("the demo mode's base and the router's basename come from the same Vite env var") belongs in
-  whatever steady-state doc describes the docs site's build (`docs/operations/ci-and-releases.md` or
-  a new `docs/architecture/` page), not only here.
+- The durable rule is that the demo mode's base and the router's basename come from the same Vite env var.
+  `.github/workflows/pages.yml` runs `build:demo` and adds the result beside the docs site; no other doc
+  describes the demo build, so this ADR is where the rule is recorded.

@@ -9,9 +9,9 @@ import (
 )
 
 // SuggestFromManuscript seeds Title and Author suggestions from the current project's imported manuscript: a thin
-// wrapper over Detect (credits-token-setup-and-front-matter-detection.prd.md Phase 1) that keeps
+// wrapper over Detect that keeps
 // CreditsProjectValues.suggestions compatible with its earlier shape, backed by the front matter parser and
-// file metadata (CS10: the Cover label does not matter to credits).
+// file metadata (the Cover label does not matter to credits).
 // This never writes anything back to manuscript.json or the source file; it only reads and returns editable
 // suggestions for the narrator to accept, change or ignore. A project with no manuscript, or one with nothing
 // detectable, returns an empty map rather than an error - suggesting nothing is a normal outcome, not a failure.
@@ -70,9 +70,8 @@ type manuscriptDoc struct {
 		Index     int    `json:"index"`
 	} `json:"paragraphs"`
 	// SourceMetadata is structure the importer read straight from the source's own markup at import time - a
-	// Markdown YAML front matter block, or a DOCX Title/Subtitle paragraph style
-	// (credits-token-setup-and-front-matter-detection.prd.md, Phase 4) - as opposed to Detect's own plain-text guess
-	// below. Nil when the import carried none of it.
+	// Markdown YAML front matter block, or a DOCX Title/Subtitle paragraph style -
+	// as opposed to Detect's own plain-text guess below. Nil when the import carried none of it.
 	SourceMetadata *sourceMetadataDoc `json:"sourceMetadata,omitempty"`
 }
 
@@ -97,7 +96,7 @@ func readManuscriptDoc(projectFolder string) (manuscriptDoc, bool) {
 }
 
 // openingChapterLines returns the paragraph text of every "opening" content-kind chapter, in the manuscript's own
-// paragraph order - the whole front matter, not just a "Cover" section (CS10).
+// paragraph order - the whole front matter, not just a "Cover" section.
 func openingChapterLines(doc manuscriptDoc) []string {
 	openingChapters := map[string]bool{}
 	for _, chapter := range doc.Chapters {

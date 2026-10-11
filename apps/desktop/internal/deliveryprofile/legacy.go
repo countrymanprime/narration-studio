@@ -7,7 +7,7 @@ import (
 )
 
 // The narrator's old delivery limits (ADR 0155 decision 5, superseded by ADR 0179): seven number settings in the
-// layered settings' Delivery section. They are read once more, to move them into a profile (PRD P6), and never again:
+// layered settings' Delivery section. They are read once more, to move them into a profile (ADR 0179), and never again:
 // the keys stay in the settings files, unread.
 
 // legacyNote marks a custom profile moved from the old limits.

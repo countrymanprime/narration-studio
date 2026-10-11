@@ -12,7 +12,7 @@ import (
 )
 
 // What CharacterListRegions, CharacterApprove/CharacterReferences and GuideDialogueCues send to the UI
-// (character-continuity-review.prd.md Phase 6, non-acoustic part only; D87 on #509 benches every acoustic-drift
+// (non-acoustic part only; the owner decision on #509 benches every acoustic-drift
 // binding, so there is no findings or audition contract here).
 
 const contractTwoRegions = `<REAPER_PROJECT 0.1 "7.0" 0
@@ -59,7 +59,7 @@ func TestContractCharacterApproveAndReferences(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The saved project is re-saved with the Narration region's name changed, as a narrator renaming a region in
-	// REAPER would produce, so the second reference reads "changed since approval" (Q2) in the golden.
+	// REAPER would produce, so the second reference reads "changed since approval" in the golden.
 	renamed := `<REAPER_PROJECT 0.1 "7.0" 0
   MARKER 1 1.5 "Alice ref A" 1 0 1 R {AAAAAAAA-0000-0000-0000-000000000001} 0 1
   MARKER 1 3.5 "" 1

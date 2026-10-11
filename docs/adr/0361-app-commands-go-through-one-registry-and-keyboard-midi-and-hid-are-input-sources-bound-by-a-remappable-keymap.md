@@ -7,7 +7,7 @@
 
 ## Context
 
-[Input Commands and Pedals](../prds/input-commands-and-pedals.prd.md) comes from recommendation 2 of the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md). The benchmark requires that "every command on the keyboard, and footswitches (USB, MIDI or HID) can be mapped", that the booth is keyboard-first and silent while recording, and that everything works from a screen reader. Today the app has three hand-written `keydown` listeners, each with its own rules for when a key counts:
+Input commands and pedals come from recommendation 2 of the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md). The benchmark requires that "every command on the keyboard, and footswitches (USB, MIDI or HID) can be mapped", that the booth is keyboard-first and silent while recording, and that everything works from a screen reader. Today the app has three hand-written `keydown` listeners, each with its own rules for when a key counts:
 
 - **Back and Forward:** `apps/ui/src/App.tsx:269-306`. It skips a key while a dialog is open.
 - **Workspace keys:** `components/workspace/WorkspacePage.tsx:148-185`. It skips a key typed into a field, but ignores modifiers and `defaultPrevented`.
@@ -30,12 +30,12 @@ These listeners have no shared list, so nothing can be remapped and nothing dete
 4. **A keymap binds gestures to command ids.** The router resolves the active scopes (topmost dialog, then booth, then page, then global), looks up the keymap, checks `enabled()`, and applies the target guard to a gesture that has no modifier. The guard uses `EDITABLE`, `SPACE_ACTIVATES` and `KEY_WIDGET_ROLES`, moved to `src/input/targets.ts` and re-exported from `useFollowCursor.ts`. The router then acts on the result:
    - **A gesture a command takes:** it calls `preventDefault` and the handler. `isScrollKey` already skips a prevented event, so ADR 0119 and ADR 0196 keep working unchanged.
    - **A gesture no command takes:** it leaves the event alone.
-5. **Defaults live in code; the narrator's overrides live in the host settings store.** The overrides are one global row, whose shape is PRD Q2, added append-only to `config/defaults.json`, `apps/desktop/internal/settings/store.go` and `apps/desktop/app.go` `fieldSchemas`. The UI parses the row through `parseWireJson` and a Zod schema ([ADR 0069](0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md)). A malformed document falls back to the defaults.
+5. **Defaults live in code; the narrator's overrides live in the host settings store.** The overrides are one global row, added append-only to `config/defaults.json`, `apps/desktop/internal/settings/store.go` and `apps/desktop/app.go` `fieldSchemas`. The UI parses the row through `parseWireJson` and a Zod schema ([ADR 0069](0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md)). A malformed document falls back to the defaults.
 6. **Conflicts are a pure function.**
    - `findConflicts(catalog, keymap)` reports two commands on one gesture in scopes that can be active together.
    - The default keymap must have none, which a unit test checks, backed by fast-check properties.
    - A remap that would conflict names the other command and asks the narrator before replacing it.
-7. **While the DAW reports recording, `noisy` commands do not run.** This depends on the recording state from the DAW port PRD.
+7. **While the DAW reports recording, `noisy` commands do not run.** This depends on the recording state from the DAW port ([ADR 0300](0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md)).
 
 ## Consequences
 

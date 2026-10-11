@@ -25,9 +25,8 @@ const (
 
 // Query filters, sorts and pages a List or Page call. A zero Query matches
 // every finding except ones absent from the latest run, in chapter order,
-// unpaged. Filtering and sorting run in Go, not the UI (review-dashboard PRD
-// Q9), so the same code serves every analyzer and stays fast on a large
-// book. Every filter is optional; an empty one matches everything.
+// unpaged. Filtering and sorting run in Go, not the UI, so the same code
+// serves every analyzer and stays fast on a large book. Every filter is optional; an empty one matches everything.
 type Query struct {
 	Analyzer      string
 	Category      Category

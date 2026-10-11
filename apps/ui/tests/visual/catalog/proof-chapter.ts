@@ -1,12 +1,11 @@
 // The `proof-chapter` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: Proof's chapter view,
-// `/proof/:chapterId`. It is the chapter workspace of
-// edit-and-proof-workspace.prd.md (the `workspace` page key until Phase 5) with the Proofing page folded in (the `proofing`
-// page key): the compare run, its results as flags, and the Preview and stage panels.
+// `/proof/:chapterId`. It is the chapter workspace with the
+// Proofing page folded in (the `proofing` page key): the compare run, its results as flags, and the Preview and stage panels.
 import type { StateEntry } from '../lib/types';
 import { FREEZES_THE_CLOCK, KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON } from './shared';
 
 export const proofChapterStates: StateEntry[] = [
-  // The chapter workspace (edit-and-proof-workspace.prd.md Phases 2 to 4), reached from a linked chapter's "Open in Proof" link.
+  // The chapter workspace, reached from a linked chapter's "Open in Proof" link.
   {
     page: 'proof-chapter',
     state: 'never',
@@ -29,7 +28,7 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'note-selected',
     description:
-      'Proof chapter view led by mock 04 (D85 #2): a pin on the notes strip pressed - the note open beside the chapter\'s notes table ("0:0x.x · Misread", Play ±3 s, Pickup/Waive/Defer), with the recording-check card under it (D85 #11)',
+      'Proof chapter view led by benchmark mock 04: a pin on the notes strip pressed - the note open beside the chapter\'s notes table ("0:0x.x · Misread", Play ±3 s, Pickup/Waive/Defer), with the recording-check card under it',
     // Below `xl` the detail sits under the notes table, so the driver scrolls it into view at each width.
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -37,22 +36,21 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'playing',
     description: 'Proof chapter view, Play pressed - transport shows Pause and a live elapsed readout, the currently spoken word highlighted in the script',
-    // The transport sits under mock 04's notes, below the fold under `xl`: the driver scrolls to it at each width.
+    // The transport sits under benchmark mock 04's notes, below the fold under `xl`: the driver scrolls to it at each width.
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
     state: 'flag-selected',
     description: 'Proof chapter view, a flag selected from the Flags panel - its script/heard text and "Play from here" shown in the panel’s detail section',
-    // Below `xl` the detail sits under the flags list, off the bottom of a reused desktop scroll position (issue #509
-    // D82 judge-duplicate fix): the driver scrolls it into view per viewport.
+    // Below `xl` the detail sits under the flags list, off the bottom of a reused desktop scroll position: the driver scrolls it into view per viewport.
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
     state: 'flag-finding-open',
     description:
-      'Proof chapter view, a finding-backed flag selected (edit-and-proof-workspace.prd.md Phase 4): "From <analyzer>", Go to/Loop in REAPER for that word, and the Decision section (Pickup/Waive/Defer, D85 #7, a note field) - mockups/edit-and-proof-workspace/02-flag-detail-open.webp',
+      'Proof chapter view, a finding-backed flag selected: "From <analyzer>", Go to/Loop in REAPER for that word, and the Decision section (Pickup/Waive/Defer, a note field)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -66,10 +64,10 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'standalone',
     description:
-      'Proof chapter view with REAPER not running (edit-and-proof-workspace PRD Phase 3) - Go to in REAPER and Loop in REAPER on the transport bar are disabled, with the reason under a tooltip; everything else still works',
+      'Proof chapter view with REAPER not running - Go to in REAPER and Loop in REAPER on the transport bar are disabled, with the reason under a tooltip; everything else still works',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // The Takes panel (edit-and-proof-workspace.prd.md Phase 6, EP6 and EP7, ADR 0700; mock 04-takes-panel-ab): the takes of the
+  // The Takes panel (ADR 0700): the takes of the
   // paragraph at the playhead in the chapter view's right column, heard one at a time or A/B, compared, and chosen. It shows on
   // Chapter 1 (a current check with a live item).
   {
@@ -83,7 +81,7 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'takes-ab',
     description:
-      'Proof chapter view, the Takes panel in A/B mode (mock 04-takes-panel-ab) - Take 1 in slot A and Take 2 in slot B, Take 2 playing (pause button, its card outlined), Swap switches A and B at the same word, Use this take on each take REAPER does not play',
+      'Proof chapter view, the Takes panel in A/B mode - Take 1 in slot A and Take 2 in slot B, Take 2 playing (pause button, its card outlined), Swap switches A and B at the same word, Use this take on each take REAPER does not play',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -113,36 +111,35 @@ export const proofChapterStates: StateEntry[] = [
       'Proof chapter view with REAPER not running - the takes are listed and can be played, and Use this take is off on each, with the reason in a line under the list',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Effects on a passage (edit-and-proof-workspace.prd.md Phase 9, ADR 0705): the right-click menu on the script, and its confirm step.
+  // Effects on a passage (ADR 0705): the right-click menu on the script, and its confirm step.
   {
     page: 'proof-chapter',
     state: 'effects-menu',
     description:
-      'Proof chapter view, a right click on a script word (edit-and-proof-workspace PRD Phase 9) - the word selected and a context menu open beside it: "Add an effect to this passage…" and "Put an FX chain on the chapter’s track…"',
+      'Proof chapter view, a right click on a script word - the word selected and a context menu open beside it: "Add an effect to this passage…" and "Put an FX chain on the chapter’s track…"',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
     state: 'effects-menu-standalone',
-    description:
-      'Proof chapter view with REAPER not running, a right click on a script word - both effect items disabled, each with the reason under it (edit-and-proof-workspace PRD Phase 9)',
+    description: 'Proof chapter view with REAPER not running, a right click on a script word - both effect items disabled, each with the reason under it',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
     state: 'effects-confirm',
     description:
-      'Proof chapter view, "Add an effect to this passage…" chosen - the confirm dialog names the passage, lists REAPER’s effects and says what REAPER will do and that one Undo takes it back (edit-and-proof-workspace PRD Phase 9)',
+      'Proof chapter view, "Add an effect to this passage…" chosen - the confirm dialog names the passage, lists REAPER’s effects and says what REAPER will do and that one Undo takes it back',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
     state: 'effects-chain-confirm',
     description:
-      'Proof chapter view, "Put an FX chain on the chapter’s track…" chosen - the confirm dialog lists the narrator’s FX chains and says the chain changes everything on that track (edit-and-proof-workspace PRD Phase 9)',
+      'Proof chapter view, "Put an FX chain on the chapter’s track…" chosen - the confirm dialog lists the narrator’s FX chains and says the chain changes everything on that track',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // The compare run (the Proofing page's setup, run and results, folded in by stage navigation Phase 5), scrolled into view.
+  // The compare run (the Proofing page's setup, run and results), scrolled into view.
   {
     page: 'proof-chapter',
     state: 'compare-setup',
@@ -182,7 +179,7 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'compare-results-changed-since',
     description:
-      'Proof chapter view, reviewing the last completed comparison after a low-frequency background check finds REAPER’s edit count has moved past it (reaper-automation-follow-through PRD Phase 13) - a "may have changed" note in text and an icon, never colour alone, beside the summary; nothing re-runs on its own',
+      'Proof chapter view, reviewing the last completed comparison after a low-frequency background check finds REAPER’s edit count has moved past it - a "may have changed" note in text and an icon, never colour alone, beside the summary; nothing re-runs on its own',
     ...KEEPS_DESKTOP_SCROLL,
   },
   { page: 'proof-chapter', state: 'compare-toast', description: 'Proof chapter view, Suggest from manuscript answered with a toast', ...FREEZES_THE_CLOCK },
@@ -205,23 +202,22 @@ export const proofChapterStates: StateEntry[] = [
   {
     page: 'proof-chapter',
     state: 'compare-hints-chips',
-    description:
-      'Proof chapter view, the vocabulary hints box with one suggested term accepted (a solid pill) beside the ones still pending (the home/hint-chips row until Phase 5)',
+    description: 'Proof chapter view, the vocabulary hints box with one suggested term accepted (a solid pill) beside the ones still pending',
   },
   {
     page: 'proof-chapter',
     state: 'compare-no-daw',
-    description: 'Proof chapter view with no linked REAPER project file (?mockNoDaw=1, PRD W16): Start comparison is gated, with the reason as its description',
+    description: 'Proof chapter view with no linked REAPER project file (?mockNoDaw=1): Start comparison is gated, with the reason as its description',
   },
   {
     page: 'proof-chapter',
     state: 'compare-no-daw-review',
     description:
-      'Proof chapter view reviewing the last completed comparison with no linked REAPER project file (?mockNoDaw=1, PRD W16): its misread selected, Play recorded audio off, and Export off in the summary',
+      'Proof chapter view reviewing the last completed comparison with no linked REAPER project file (?mockNoDaw=1): its misread selected, Play recorded audio off, and Export off in the summary',
     ...KEEPS_DESKTOP_SCROLL,
   },
   // The Preview panel: a suggested five-minute excerpt from the manuscript, computed on
-  // read (SR D1 - never applied, exported or stored), beside the compare run.
+  // read (never applied, exported or stored), beside the compare run.
   {
     page: 'proof-chapter',
     state: 'preview-default',
@@ -272,7 +268,7 @@ export const proofChapterStates: StateEntry[] = [
     description:
       'Proof chapter view, a pinned preview whose manuscript text changed since it was pinned (?mockPreviewCandidates=pin-stale) - the stale banner in text and an icon, never colour alone, beside its still-recomputed evidence',
   },
-  // The stage recommendations panel (proofing-readiness-signals.prd.md Phases 1 and 5):
+  // The stage recommendations panel:
   // every narration chapter currently in Proofing, with the StageSuggestion/StageEvidence pattern Home's breakdown table uses.
   {
     page: 'proof-chapter',
@@ -323,7 +319,7 @@ export const proofChapterStates: StateEntry[] = [
       'Proof chapter view, a chosen render gone stale (?mockProofingRender=chapter-9-stale) - "changed since you chose it", Choose rendered file again',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Native takes (native-recording-suite PRD Phase 4, "take review integration"): the built-in recorder's takes
+  // Native takes ("take review integration"): the built-in recorder's takes
   // (?mockEngine=builtin) beside REAPER-sourced take review on the same Proof page - one take-review experience
   // whatever the source.
   {
@@ -337,7 +333,7 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'native-takes-keeper',
     description:
-      'Proof chapter view, the Native takes panel with two takes assigned to the same line, one marked the keeper (Q5: narrator-confirmed, undoable) and the other not',
+      'Proof chapter view, the Native takes panel with two takes assigned to the same line, one marked the keeper (narrator-confirmed, undoable) and the other not',
     ...KEEPS_DESKTOP_SCROLL,
   },
 ];

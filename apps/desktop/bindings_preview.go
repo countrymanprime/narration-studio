@@ -12,15 +12,15 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The proofing-preview-suggestion PRD's Phase 2 read binding: the UI's only way to reach Phase 1's pure engine
-// (apps/desktop/internal/preview, preview.Suggest). It never runs anything and stores nothing (SR D1, shared by
-// CoverageResult and WorkspaceAlignment): every call recomputes from the manuscript's current chapters and
-// paragraphs, at the narrator's own Preview settings (Phase 4, previewSettings below) - target length, tolerance,
+// The preview suggestion's read binding (docs/architecture/preview-suggestion.md): the UI's only way to reach the
+// pure engine (apps/desktop/internal/preview, preview.Suggest). It never runs anything and stores nothing, like
+// CoverageResult and WorkspaceAlignment: every call recomputes from the manuscript's current chapters and
+// paragraphs, at the narrator's own Preview settings (previewSettings below) - target length, tolerance,
 // preset and ending exclusion, layered project over global over config/defaults.json like every other tool.
-// HardWords is always nil (no vocabulary-candidates source exists yet - the sibling proofing-vocabulary-hints PRD,
-// not built) and Phase 1's engine already treats nil as "no evidence either way".
+// HardWords is always nil (no vocabulary-candidates source exists yet) and the engine treats nil as "no evidence
+// either way".
 
-// previewSettingsTool is the settings.Store tool the four Preview settings (Phase 4, app.go's fieldSchemas) live
+// previewSettingsTool is the settings.Store tool the four Preview settings (app.go's fieldSchemas) live
 // under.
 const previewSettingsTool = "Preview"
 
@@ -72,7 +72,7 @@ func previewPresetSetting(raw string, fallback preview.Preset) preview.Preset {
 }
 
 // previewCandidateView is one preview.Candidate as the wire sends it. preview.Candidate itself carries no json
-// tags (Phase 1's package is pure Go with no I/O, internal/preview/types.go's own doc comment), so this is the
+// tags (the package is pure Go with no I/O, internal/preview/types.go's own doc comment), so this is the
 // boundary's own copy, camelCased like every other binding payload.
 type previewCandidateView struct {
 	ChapterID        string   `json:"chapterId"`
@@ -88,9 +88,8 @@ type previewCandidateView struct {
 	Warnings []string `json:"warnings"`
 }
 
-// previewResultView is preview.Result as the wire sends it: an Outcome the UI names a state by (Success Metrics:
-// an empty Candidates list must never be conflated with "nothing eligible" - Outcome is the state, not the list's
-// length), and up to three ranked candidates when it is "ok".
+// previewResultView is preview.Result as the wire sends it: an Outcome the UI names a state by (an empty Candidates list must never be conflated
+// with "nothing eligible" - Outcome is the state, not the list's length), and up to three ranked candidates when it is "ok".
 type previewResultView struct {
 	Outcome    string                 `json:"outcome"`
 	Candidates []previewCandidateView `json:"candidates"`
@@ -115,14 +114,13 @@ func previewView(result preview.Result) previewResultView {
 
 // previewNoManuscript is PreviewCandidates' answer with no chapters to read at all: no project attached, or a
 // project open with no manuscript imported yet (manuscript.Service.Chapters' own "import a manuscript first"
-// error). Both read as the engine's own OutcomeNoManuscript rather than a rejected promise, so the panel (Phase 3)
+// error). Both read as the engine's own OutcomeNoManuscript rather than a rejected promise, so the panel
 // names the state instead of catching an error - the same "never an error for a named state" shape CoverageResult
 // and WorkspaceAlignment already use for "no project".
 var previewNoManuscript = previewView(preview.Result{Outcome: preview.OutcomeNoManuscript})
 
 // PreviewCandidates reads up to three ranked five-minute preview candidates from the imported manuscript
-// (proofing-preview-suggestion.prd.md Phase 1's preview.Suggest over this file's own adapter). It never runs
-// anything and stores nothing.
+// (preview.Suggest over this file's own adapter). It never runs anything and stores nothing.
 func (h *Host) PreviewCandidates() (string, error) {
 	svc := h.services()
 	service := svc.manuscript
@@ -138,13 +136,13 @@ func (h *Host) PreviewCandidates() (string, error) {
 	return encodeBinding(previewView(preview.Suggest(input)), nil)
 }
 
-// previewAudioEvidence is Phase 7's own adapter: one preview.ChapterAudioEvidence per chapter, composing RC's
-// coverage.Service (which already applies EL-6's staleness rule for its own analyzer scope, so one read serves
-// both "recorded" and "mapping current" - Architecture Notes) and Phase 6's MapParagraphsToTime. It never runs
-// anything (Q14, the same rule CoverageResult already follows): a chapter whose recording has not been checked
-// yet, or whose coverage service is unavailable, reads as AudioUnknown, never as met or not_met. DX-4's own
-// windowed findings are never given here (ADR 0327: they carry no chapter anchor and are not persisted, so
-// there is nothing this binding could read without starting a new measurement, which Q14 forbids).
+// previewAudioEvidence is the adapter that builds one preview.ChapterAudioEvidence per chapter, composing the
+// recording coverage service (which already applies the staleness rule for its own analyzer scope, so one read
+// serves both "recorded" and "mapping current") and MapParagraphsToTime. It never runs
+// anything (the same rule CoverageResult already follows, docs/utilities/recording-coverage.md Q14): a chapter
+// whose recording has not been checked yet, or whose coverage service is unavailable, reads as AudioUnknown, never as met or not_met. The diagnostics
+// pass's windowed findings are never given here (ADR 0327: they carry no chapter anchor and are not persisted, so
+// there is nothing this binding could read without starting a new measurement, which this binding never does).
 func previewAudioEvidence(svc hostServices, chapters []preview.Chapter, manuscriptService *manuscript.Service) map[string]preview.ChapterAudioEvidence {
 	if svc.coverage == nil || len(chapters) == 0 {
 		return nil
@@ -177,7 +175,7 @@ func previewCoverageSignal(result coverage.ChapterResult, settings coverage.Sett
 	return preview.AudioSignal{State: preview.AudioMet, Reason: "this chapter's recording coverage is current and complete."}
 }
 
-// previewPaceSignal is Q8 option C's own fallback evidence: the chapter's real recorded seconds (RC's own
+// previewPaceSignal is the fallback evidence: the chapter's real recorded seconds (the coverage result's own
 // Summary.Items.PlayedSeconds) over its word count (Summary.BodyTokens, the sidecar's own count for the same
 // chapter), read only from the same current, complete result previewCoverageSignal already checked - never a
 // rate computed from a stale or partial one.
@@ -236,8 +234,8 @@ func previewManuscriptSourceHash(service *manuscript.Service) string {
 	return sha
 }
 
-// previewOpenFindings is Phase 5's own adapter over the RD-1 findings store: every finding this project has
-// recorded, filtered to open (PS Q2: unreviewed, accepted or deferred - a dismissed one is never built into an
+// previewOpenFindings is the adapter over the findings store: every finding this project has
+// recorded, filtered to open (unreviewed, accepted or deferred - a dismissed one is never built into an
 // OpenFinding at all, so the engine cannot un-dismiss what it never receives) and not held back as
 // NotInLatestRun (Store.List's own default, findings.Query{}'s zero value). store is nil when no project is
 // open; that reads as "no findings known", the same as an empty result, never an error PreviewCandidates has to
@@ -260,9 +258,9 @@ func previewOpenFindings(store *findings.Store) []preview.OpenFinding {
 	return open
 }
 
-// previewOpenFinding narrows one findings.Finding to the plain fields Phase 5's engine reads (Architecture
-// Notes: "small read-only interfaces" - the engine itself never imports the findings package). ParagraphID is
-// "" when the finding carries no Manuscript.Span (TR-4's pickup and duplicate-read findings never set one
+// previewOpenFinding narrows one findings.Finding to the plain fields the engine reads (the engine itself
+// never imports the findings package). ParagraphID is
+// "" when the finding carries no Manuscript.Span (take review's pickup and duplicate-read findings never set one
 // today), which the engine already treats as a chapter-level warning rather than a silent pass.
 func previewOpenFinding(f findings.Finding) preview.OpenFinding {
 	open := preview.OpenFinding{

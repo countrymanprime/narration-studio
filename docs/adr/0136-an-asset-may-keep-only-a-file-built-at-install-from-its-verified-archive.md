@@ -11,7 +11,7 @@ WordNet as the manuscript reader's offline dictionary, read from Go with no serv
 9,986,555 bytes) unpacks to 73 files and 72,404,635 bytes: one entries file per initial letter and one synset file per lexicographer
 file. A lookup needs a word's senses from the first and their definitions from the second, and resolves an antonym from a sense id to
 a word, so reading the release as it is means parsing all of it (about 300 MB of memory and one to two seconds) at the first lookup of
-every session, and keeping 72 MB on disk. The PRD's success signal is a p95 under 250 ms.
+every session, and keeping 72 MB on disk. The target is a p95 lookup under 250 ms.
 
 The asset lifecycle ([ADR 0078](0078-asset-state-comes-from-the-manifest-an-asset-is-read-in-full-once-per-session-and-a-failed-download-resumes.md),
 [ADR 0080](0080-the-story-bible-language-model-is-a-catalog-asset-unpacked-at-install-and-the-build-asks-before-it-downloads.md))

@@ -41,12 +41,12 @@ describe('toastForJobEnd', () => {
   });
 });
 
-describe('shouldNotifyForJobEnd (N1-N4)', () => {
-  it('never notifies while the window is focused (N1)', () => {
+describe('shouldNotifyForJobEnd', () => {
+  it('never notifies while the window is focused', () => {
     expect(shouldNotifyForJobEnd(ended({ durationMs: 20_000 }), true)).toBe(false);
   });
 
-  it('notifies for a qualifying job that ran 10s or more while unfocused (N3)', () => {
+  it('notifies for a qualifying job that ran 10s or more while unfocused', () => {
     for (const kind of [
       'story_bible',
       'tts_install',
@@ -64,7 +64,7 @@ describe('shouldNotifyForJobEnd (N1-N4)', () => {
     }
   });
 
-  it('stays quiet for a fast job so a sub-10s job is not worth interrupting for (N3)', () => {
+  it('stays quiet for a fast job so a sub-10s job is not worth interrupting for', () => {
     expect(shouldNotifyForJobEnd(ended({ durationMs: 9_999 }), false)).toBe(false);
   });
 
@@ -72,12 +72,12 @@ describe('shouldNotifyForJobEnd (N1-N4)', () => {
     expect(shouldNotifyForJobEnd(ended({ outcome: 'cancelled', durationMs: 60_000 }), false)).toBe(false);
   });
 
-  it('stays quiet for a kind not in the notifiable set, because a newer host may add jobs this PRD did not review', () => {
+  it('stays quiet for a kind not in the notifiable set, because a newer host may add jobs nobody has reviewed for notifications', () => {
     expect(shouldNotifyForJobEnd(ended({ kind: 'future_job', durationMs: 60_000 }), false)).toBe(false);
   });
 });
 
-describe('shouldQueueJobEndAnnouncement (booth-mode-and-companion-panel.prd.md Phase 5)', () => {
+describe('shouldQueueJobEndAnnouncement', () => {
   it('queues a success/info announcement while the booth is recording', () => {
     const announcement = toastForJobEnd(ended({}));
     expect(announcement && shouldQueueJobEndAnnouncement(announcement, true)).toBe(true);
@@ -88,7 +88,7 @@ describe('shouldQueueJobEndAnnouncement (booth-mode-and-companion-panel.prd.md P
     expect(announcement && shouldQueueJobEndAnnouncement(announcement, false)).toBe(false);
   });
 
-  it('never queues an error announcement, even while recording (Risks table: silence is a comfort rule, not a safety one)', () => {
+  it('never queues an error announcement, even while recording, because silence is a comfort rule, not a safety one', () => {
     const announcement = toastForJobEnd(ended({ outcome: 'error', message: 'The build failed.' }));
     expect(announcement && shouldQueueJobEndAnnouncement(announcement, true)).toBe(false);
   });

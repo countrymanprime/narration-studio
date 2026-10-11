@@ -5,7 +5,7 @@
 
 ## Context
 
-`docs/prds/daw-chapter-track-auto-sync.prd.md` asks for the narrator to be told, once, that the app will now sync chapters to tracks, as soon as a project has both a manuscript and a linked DAW project. After that, confident matches should be linked without a click. Phase 2 built the pure planner (`chaptersync.Build`) and the store's auto-links (ADR 0202, 0203), and nothing called them. D39 takes the PRD's recommended answers: S1 (A: ask when the project has a manuscript and a linked `.rpp`, from any link path, whichever came second), S2 (A: "Not now" is stored and not asked again, and sync is turned on later from Tracks) and S12 (a toast per batch with Undo, and unmatched new tracks listed quietly). ADR 0207 found that the matcher's candidate pool is every chapter, so a chapter removed from recording could otherwise be auto-linked.
+The owner asked for the narrator to be told, once, that the app will now sync chapters to tracks, as soon as a project has both a manuscript and a linked DAW project. After that, confident matches should be linked without a click. The pure planner (`chaptersync.Build`) and the store's auto-links (ADR 0202, 0203) existed, and nothing called them. The owner's answers were: ask when the project has a manuscript and a linked `.rpp`, from any link path, whichever came second; store "Not now" and do not ask again, with sync turned on later from Tracks; and show a toast per batch with Undo, with unmatched new tracks listed quietly. ADR 0207 found that the matcher's candidate pool is every chapter, so a chapter removed from recording could otherwise be auto-linked.
 
 ## Decision
 
@@ -20,6 +20,6 @@
 ## Consequences
 
 - Linking a REAPER project, or importing into a project that has one, asks once. After Sync, conventionally named chapters are linked with no further click, and the toast says what was linked, with Undo.
-- Watching the saved `.rpp` for changes (a new track picked up within seconds) is Phase 4. Until then a new track is linked at the next link path or attach.
+- Watching the saved `.rpp` for changes (a new track picked up within seconds) is [ADR 0210](0210-chapter-sync-watches-the-saved-rpp-and-reapers-edit-counter-and-sends-reaper-nothing.md). Before it, a new track was linked at the next link path or attach.
 - The mock asks only with `?mockChapterSync=ask`. It otherwise boots as if sync was already on and had run, so the dialog and the toast never cover other screens.
 - `job:ended` for manuscript imports now reaches the UI in an attached project, as ADR 0076 intended.

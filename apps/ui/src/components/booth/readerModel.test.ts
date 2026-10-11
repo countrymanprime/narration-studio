@@ -19,7 +19,7 @@ import {
 } from './readerModel';
 import type { GuideEntity, ManuscriptNote, ManuscriptParagraph, TeleprompterPosition, TeleprompterScript, TeleprompterState } from '../../types';
 
-// The sidecar's title span counts the title's own words only (chapter-title-display-consistency.prd.md Q9) - "CHAPTER
+// The sidecar's title span counts the title's own words only - "CHAPTER
 // ONE" is 2 tokens; the subtitle is never part of what the span tracks.
 const script: TeleprompterScript = {
   type: 'script',
@@ -106,7 +106,7 @@ describe('buildRows', () => {
     ]);
   });
 
-  it('gives the title row the subtitle apart from its tracked words (chapter-title-display-consistency.prd.md Q9)', () => {
+  it('gives the title row the subtitle apart from its tracked words', () => {
     const rows = buildRows(script, { title: 'CHAPTER ONE', subtitle: 'Down the Rabbit-Hole' }, paragraphs);
 
     expect(rows[0].subtitle).toBe('Down the Rabbit-Hole');
@@ -150,7 +150,7 @@ describe('previewRows', () => {
   });
 });
 
-// The credits on the teleprompter (audiobook-credits-templates.prd.md Phase 4, ADR 0150): the rendered text split the way
+// The credits on the teleprompter (ADR 0150): the rendered text split the way
 // the sidecar's chapter_script.text_script splits it, so its spans fall on the same words.
 describe('creditsParagraphs', () => {
   it('makes one paragraph per line with words, numbered from one over those lines only', () => {
@@ -210,10 +210,10 @@ describe('nextCursor', () => {
     expect(nextCursor(7, position(6, { jump: 'restart' }))).toBe(6);
   });
 
-  // A seek (teleprompter-manuscript-integration.prd.md Phase 3's control channel) always reports its landing word as a
+  // A seek (the control channel) always reports its landing word as a
   // `jump: 'restart'` position (see teleprompterMock.ts), specifically so the one-word-back case below does not get
-  // swallowed as a mid-sentence correction (Evidence: "A seek back by exactly one word would be swallowed... unless the
-  // seek marks its position event as a jump").
+  // swallowed as a mid-sentence correction: a seek back by exactly one word would be, unless the seek marks its
+  // position event as a jump.
   it('a seek always lands immediately, forward or backward, including one word back', () => {
     expect(nextCursor(3, position(10, { jump: 'restart' }))).toBe(10);
     expect(nextCursor(7, position(6, { jump: 'restart' }))).toBe(6);
@@ -292,7 +292,7 @@ describe('reduceEvent', () => {
     expect(session.flags).toEqual([]);
   });
 
-  // Phase 7: the session keeps every flag the sidecar raised, in arrival order; which ones show is the view's choice.
+  // The session keeps every flag the sidecar raised, in arrival order; which ones show is the view's choice.
   it('keeps each flag once, in the order they arrived, and leaves the cursor alone', () => {
     let session = reduceEvent(initialSession, script);
     session = reduceEvent(session, position(9));

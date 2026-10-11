@@ -1,10 +1,10 @@
 import type { TrackItem } from '../../api/contracts/tracks';
 
-// The chapter's items, in the order the app plays them (edit-and-proof-workspace.prd.md Phase 2, "The player"): every
+// The chapter's items, in the order the app plays them (useChapterPlayback.ts plays it): every
 // playable item, sorted by position, each one's played range honoured (SOFFS to SOFFS + length * playRate) so a trim
 // stops the app where REAPER would, instead of the whole source file from 0. The app plays raw source at its own
-// (1x, or the narrator's EP17 speed) rate rather than REAPER's real-time-stretched render ("No pitch-correct
-// play-rate emulation... in the app player" - What We're NOT Building), so a segment's own played duration on the
+// (1x, or the narrator's chosen speed) rate rather than REAPER's real-time-stretched render (the app player does not
+// emulate pitch-correct play rate), so a segment's own played duration on the
 // app's timeline is its source span's length, not the item's project-time length.
 export type PlaylistSegment = {
   itemGuid: string;

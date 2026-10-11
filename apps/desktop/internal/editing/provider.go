@@ -1,12 +1,10 @@
 // This file registers this package's signals into SR's engine
-// (chapter-stage-recommendations.prd.md's Provider contract,
-// apps/desktop/internal/stages/provider.go), following
-// apps/desktop/internal/coverage/provider.go's own shape exactly (Phase 6's
-// success signal: "the engine and store are untouched - the diff proves the
-// plug-in claim"). It reads stored evidence only (Q12): the confirmed
-// mapping, each item's own ledger staleness, and the chapter's already-
-// persisted silence_cleanup findings - never a decode, never a fresh
-// composition. When every item is current, the findings a scan (Phase 5)
+// (the Provider contract in apps/desktop/internal/stages/provider.go),
+// following apps/desktop/internal/coverage/provider.go's own shape exactly:
+// the engine and store are untouched. It reads stored evidence only: the
+// confirmed mapping, each item's own ledger staleness, and the chapter's
+// already-persisted silence_cleanup findings - never a decode, never a fresh
+// composition. When every item is current, the findings a scan
 // persisted at that same run are already the correct current-fingerprint
 // candidates, so there is nothing left for this file to recompute.
 package editing
@@ -113,8 +111,8 @@ func (p *SignalProvider) projectUnreadableSignals(err error, now time.Time) []st
 	}
 }
 
-// gatherCoverage is the provider's own read of stored evidence (Q12): the
-// chapter's confirmed track (D5), every item's own staleness against
+// gatherCoverage is the provider's own read of stored evidence: the
+// chapter's confirmed track, every item's own staleness against
 // analyzerID's record at analyzerVersion
 // (CurrentItemRecord, item-scoped per ledger.go's own header comment), and
 // the typed reasons of every item Resolve refused. It never decodes audio.
@@ -170,7 +168,7 @@ func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.Evid
 
 // gatherCandidates reads the chapter's already-persisted silence_cleanup
 // findings (the scan's own output) and turns them into open/closed statuses
-// per class (D9: dismissed is the only status that is not open), keyed by
+// per class (dismissed is the only status that is not open), keyed by
 // evidence.class: silence, click or breath.
 func (s *Service) gatherCandidates(chapterID string) (map[string][]CandidateStatus, error) {
 	byClass := map[string][]CandidateStatus{}
@@ -183,10 +181,10 @@ func (s *Service) gatherCandidates(chapterID string) (map[string][]CandidateStat
 	}
 	for _, finding := range found {
 		class, _ := finding.Evidence["class"].(string)
-		// A source key naming the render path (Phase 8's own findings,
+		// A source key naming the render path (the render path's own findings,
 		// composeAndPersistRender in render_service.go) is read separately by
-		// gatherRenderCandidates below; an absent key (every finding before
-		// Phase 8) or "items" is this, the item path's own candidate.
+		// gatherRenderCandidates below; an absent key (a finding from before the
+		// render path) or "items" is this, the item path's own candidate.
 		if src, _ := finding.Evidence["source"].(string); src != "" && src != "items" {
 			continue
 		}
@@ -195,7 +193,7 @@ func (s *Service) gatherCandidates(chapterID string) (map[string][]CandidateStat
 	return byClass, nil
 }
 
-// gatherRenderCandidates is gatherCandidates' render-path counterpart (Q6):
+// gatherRenderCandidates is gatherCandidates' render-path counterpart:
 // the same already-persisted findings, filtered to the render-sourced ones a
 // render scan wrote (composeAndPersistRender, render_service.go), keyed by
 // class the same way gatherCandidates itself is.
@@ -240,8 +238,8 @@ func findTrackByGUID(project tracks.Project, trackGUID string) (tracks.Track, bo
 }
 
 // suggested reports whether a track of the saved project that is not linked
-// to any chapter has the chapter's title as its name (D5's "an unconfirmed
-// fuzzy match is never used", but still worth naming to the narrator as a
+// to any chapter has the chapter's title as its name (an unconfirmed fuzzy
+// match is never used, but it is still worth naming to the narrator as a
 // different action than "link this chapter") - the same check
 // coverage.SignalProvider.suggested makes for its own stage.
 func (s *Service) suggested(chapter stages.ChapterContext, view stages.EvidenceView) bool {

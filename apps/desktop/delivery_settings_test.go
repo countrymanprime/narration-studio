@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The number kind (docs/prds/diagnostics-delivery-and-cleanup-tools.prd.md Phase 2): a finite decimal written as plain
+// The number kind: a finite decimal written as plain
 // text, inside the field's range and on its step. Any other feature's numeric setting uses the same kind.
 func TestValidateNumberSettingAcceptsOnlyAPlainNumberInRangeAndOnStep(t *testing.T) {
 	minimum, maximum, tenth, whole := -60.0, 0.0, 0.1, 1.0

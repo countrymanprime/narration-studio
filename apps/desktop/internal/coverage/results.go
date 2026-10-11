@@ -46,15 +46,15 @@ type StoredResult struct {
 	EquivalencesHash string          `json:"equivalencesHash,omitempty"`
 	Alignment        AlignmentParams `json:"alignment"`
 	Report           Report          `json:"report"`
-	// Recheck is the model cascade's second pass over this report (recording-check-model-cascade PRD Phase 5, MC5):
+	// Recheck is the model cascade's second pass over this report (MC5):
 	// set only when the run asked for one (Request.Recheck.Model) and the first pass reported at least one region,
 	// so Report's remaining regions are exactly what the stronger model still could not hear. Nil for a plain,
 	// single-model check, keeping an older stored result reading exactly as it always did.
 	Recheck *Recheck `json:"recheck,omitempty"`
 }
 
-// Recheck names the model cascade's second pass (MC5's "the result names both models and how many windows were
-// re-checked"): Model stays the first pass's own model (Q13 compatibility), so this is the other one.
+// Recheck names the model cascade's second pass (MC5: the result names both models and how many windows were
+// re-checked): Model stays the first pass's own model (Q13 compatibility), so this is the other one.
 type Recheck struct {
 	Model        string  `json:"model"`
 	WholeChapter bool    `json:"wholeChapter"`
@@ -123,7 +123,7 @@ type ChapterResult struct {
 	// plus this package's own (manuscript_changed, result_missing), and for a
 	// chapter that cannot be evaluated at all, one refusal Reason.
 	Reasons []string `json:"reasons"`
-	// Basis is "saved project, file modified <time>" (Q8), when there is one.
+	// Basis is "saved project, file modified <time>" (Q6), when there is one.
 	Basis *evidence.EvaluationBasis `json:"basis,omitempty"`
 	// Record is the ledger record compared against, when there is one.
 	Record *evidence.LedgerRecord `json:"record,omitempty"`

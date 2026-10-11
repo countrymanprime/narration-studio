@@ -42,7 +42,7 @@ func decodeTransport(t *testing.T, payload map[string]any) map[string]any {
 	return decoded
 }
 
-// TestDawTransportGoldenIsCurrent pins daw_transport_changed's payload (DAW port PRD Phase 9): REAPER stopped (no position),
+// TestDawTransportGoldenIsCurrent pins daw_transport_changed's payload: REAPER stopped (no position),
 // playing and recording (with the play position). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-transport-*.json.
 func TestDawTransportGoldenIsCurrent(t *testing.T) {
 	cases := []struct{ name, playState string }{

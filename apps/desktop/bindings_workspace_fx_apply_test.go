@@ -12,9 +12,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Apply FX to a passage (edit-and-proof-workspace.prd.md Phase 9, ADR 0234, ADR 0705): the page sends a chapter id, a
-// token range and a plug-in name (or a chain name), never a GUID or a time; the host resolves the range to one
-// bridge.Passage and asks the DAW port's FXManager role. Unit coverage over a hand-built AlignmentView and a stub role.
+// Apply FX to a passage (ADR 0234, ADR 0705): the page sends a chapter id, a token range and a plug-in name (or a chain
+// name), never a GUID or a time; the host resolves the range to one bridge.Passage and asks the DAW port's FXManager
+// role. Unit coverage over a hand-built AlignmentView and a stub role.
 
 type stubFXRole struct {
 	passage   bridge.Passage

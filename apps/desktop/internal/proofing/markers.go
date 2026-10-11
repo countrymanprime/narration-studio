@@ -1,14 +1,13 @@
-// This file is Phase 3 of proofing-readiness-signals.prd.md (delivered and deleted; see ADR 0525): a
-// static read of the saved project's proofer PICKUP: markers (the
-// reaper-automation-follow-through PRD's Phase 8 convention, `PICKUP: <body>`
-// open and `PICKUP_DONE: <body>` resolved), attributed to a chapter by its
-// mapped track's played-item span (Q15) and registered as a pickup source
-// (Phase 1). There is no ledger record, because nothing was analyzed - the
-// basis is the saved project's own modified time (tracks.Project.Markers,
-// already parsed once per evaluation into EvidenceView.Project). No Lua, no
-// bindings, no UI: this is the standalone fallback (Q6 option A); RF's own
-// count_pickups over the live bridge stays a Could once its Lua is verified
-// in REAPER.
+// This file is a static read of the saved project's proofer PICKUP: markers
+// (ADR 0525; the bridge's convention in docs/architecture/reaper-bridge.md,
+// `PICKUP: <body>` open and `PICKUP_DONE: <body>` resolved), attributed to a
+// chapter by its mapped track's played-item span and registered as a pickup
+// source. There is no ledger record, because nothing was analyzed - the basis
+// is the saved project's own modified time (tracks.Project.Markers, already
+// parsed once per evaluation into EvidenceView.Project). No Lua, no bindings,
+// no UI: this is the standalone fallback, and the bridge's count_pickups over
+// the live connection is a separate path.
+
 package proofing
 
 import (
@@ -20,7 +19,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// AnalyzerProoferMarkers identifies the proofer PICKUP: marker source (Q1).
+// AnalyzerProoferMarkers identifies the proofer PICKUP: marker source.
 // It never comes from the findings store - gatherSources never sees it, and
 // it is not in knownSources - so markerSource builds its SourceReport
 // directly; sourceOrder still places its reading position.
@@ -106,8 +105,8 @@ func markerFindingID(marker tracks.Marker) string {
 }
 
 // UnattributedPickupMarkers lists every proofer pickup marker (open or done)
-// in the saved project that falls inside no chapter's mapped-track item span
-// (Q15 option A): it never blocks a chapter's signal, but is worth a
+// in the saved project that falls inside no chapter's mapped-track item span:
+// it never blocks a chapter's signal, but is worth a
 // project-level note once a page has somewhere to show one. documentID scopes
 // the confirmed mapping read; a project with no mapping store reports none.
 func UnattributedPickupMarkers(documentID string, view stages.EvidenceView) ([]tracks.Marker, error) {

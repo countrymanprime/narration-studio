@@ -31,7 +31,7 @@ func TestBuiltinDefaultsMatchRepoDefaultsFile(t *testing.T) {
 	}
 }
 
-// The store serves every DAW (audacity-integration PRD Phase 5), so refusing a project override with no project open must not
+// The store serves every DAW, so refusing a project override with no project open must not
 // tell an Audacity narrator, or a standalone one, to save a REAPER project.
 func TestAProjectSaveWithNoProjectNamesNoDAW(t *testing.T) {
 	value := "x"

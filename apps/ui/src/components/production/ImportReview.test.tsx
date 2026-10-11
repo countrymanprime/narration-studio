@@ -181,7 +181,7 @@ describe('ImportReview', () => {
   });
 });
 
-describe('ImportReview subtitles (story-bible-and-import-ux-briefs PRD, Phase 5)', () => {
+describe('ImportReview subtitles', () => {
   const subtitleBox = (subtitle: string) => screen.getByRole('checkbox', { name: `Subtitle — ${subtitle}` });
   const rowOf = (select: string) => screen.getByRole('combobox', { name: new RegExp(`^${select}.* content type$`) });
 

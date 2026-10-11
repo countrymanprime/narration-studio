@@ -15,7 +15,7 @@ const base: ChapterTrackLink = {
 
 const track = { trackGuid: '{T}', trackName: 'CHAPTER SIX', trackIndex: 5, score: 1, source: 'confirmed' as const, region: null };
 
-describe('chapterTrackButtonState (chapter-track-link-control.prd.md Phase 2, Solution Detail)', () => {
+describe('chapterTrackButtonState', () => {
   it('reads a confirmed link with no warnings as linked', () => {
     const link: ChapterTrackLink = { ...base, status: 'confirmed', track };
     expect(chapterTrackButtonState(link)).toEqual({ kind: 'linked', trackName: 'CHAPTER SIX', trackGuid: '{T}' });

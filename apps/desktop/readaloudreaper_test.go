@@ -198,8 +198,8 @@ func TestContractReadAloudReaperStates(t *testing.T) {
 	contractfile.Check(t, "read-aloud-reaper-states", answers)
 }
 
-// TestTrackStateReaderFromComesFromTheResolver is the "role comes from the resolver" test the DAW port PRD's migration
-// risk table calls for (P5a, ADR 0300): ReadAloudReaperState and TeleprompterReaperInput both source their reader
+// TestTrackStateReaderFromComesFromTheResolver checks that the Track state role comes from the resolver (ADR 0300):
+// ReadAloudReaperState and TeleprompterReaperInput both source their reader
 // through trackStateReaderFrom, which asks svc.dawPortResolver for the Track state role instead of holding
 // svc.actions directly.
 func TestTrackStateReaderFromComesFromTheResolver(t *testing.T) {

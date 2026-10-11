@@ -101,7 +101,7 @@ function ResultCell({ file }: { file: MeasureFileResult }) {
 }
 
 /**
- * Per-file checks (mock 05; delivery-platform-profiles.prd.md Phase 3): one
+ * Per-file checks (benchmark mock 05): one
  * row per picked file with the mock's columns, each level coloured by the host's judgement of the profile's rule on it, and the
  * file's verdict. A file that could not be read says why instead. Pressing a row opens why it fails, and every rule behind it.
  * Mock 05's Clicks and Text columns are left out: nothing measures clicks or text coverage per rendered file yet.

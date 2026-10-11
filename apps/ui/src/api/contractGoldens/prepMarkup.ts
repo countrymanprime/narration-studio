@@ -1,4 +1,4 @@
-// The golden payloads of the script markup layer (prep-depth.prd.md Phase 5, apps/desktop/bindings_prepmarkup.go).
+// The golden payloads of the script markup layer (apps/desktop/bindings_prepmarkup.go).
 import type { z } from 'zod';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from '../schemas/prepMarkup';
 

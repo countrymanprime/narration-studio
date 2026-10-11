@@ -7,9 +7,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The Teleprompter device setting (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine
-// and model choices are stored"): a global-only machine fact, so it survives an app restart and is never a per-project
-// override.
+// The Teleprompter device setting: a global-only machine fact, so it survives an app restart and is never a
+// per-project override.
 func newTestHostForTeleprompterSettings(t *testing.T, projectFolder string) *Host {
 	t.Helper()
 	// The global settings file lives under APPDATA, not under the repo root Store.New takes (store.go's globalPath):
@@ -64,8 +63,7 @@ func TestSaveSettingsRejectsAnUnknownTeleprompterField(t *testing.T) {
 	}
 }
 
-// Phase 3 ("Teleprompter settings section") added the engine choice; Phase 7 ("Engine choice end to end") offers
-// Moonshine in it wherever the sidecar ships it (Windows, ADR 0107).
+// The engine choice offers Moonshine wherever the sidecar ships it (Windows, ADR 0107).
 func TestSaveSettingsAcceptsAndPersistsTheTeleprompterEngineChoice(t *testing.T) {
 	host := newTestHostForTeleprompterSettings(t, "")
 	host.platform = "windows"
@@ -103,8 +101,8 @@ func TestTheEngineChoicesAreTheEnginesThisPlatformCanLaunch(t *testing.T) {
 	}
 }
 
-// Model choices exposed per engine (the PRD's Decisions Log recommendation): tiny and small only, for either engine
-// (both catalogs have them), since only those have measured live-lag data.
+// Model choices exposed per engine (only those have measured live-lag data): tiny and small only, for either engine
+// (both catalogs have them).
 func TestSaveSettingsAcceptsAndPersistsTheTeleprompterModelChoice(t *testing.T) {
 	host := newTestHostForTeleprompterSettings(t, "")
 

@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/character"
 )
 
-// Cue is one dialogue cue from the Manuscript Guide (Phase 2, ADR 0345): a
+// Cue is one dialogue cue from the Manuscript Guide (ADR 0345): a
 // quoted span and the character it is attributed to. SpeakerID is empty
 // when the guide left the speaker unknown.
 type Cue struct {
@@ -40,7 +40,7 @@ type guideCue struct {
 }
 
 // DecodeGuideCues reads the dialogue_cues of a Manuscript Guide JSON
-// document. A guide without cues (built before Phase 2) has none.
+// document. A guide without cues (built before cues existed) has none.
 func DecodeGuideCues(raw []byte) ([]Cue, error) {
 	var guide struct {
 		DialogueCues []guideCue `json:"dialogue_cues"`
@@ -77,7 +77,7 @@ const (
 
 // MinCandidateSeconds is the shortest located line that is compared: a
 // line shorter than this gives the pitch tracker too few frames for a
-// stable median. Provisional, like the rest of the Q6 calibration.
+// stable median. Provisional, like the rest of the calibration in baseline.go.
 const MinCandidateSeconds = 0.5
 
 // SkippedCue is a cue that produced no comparison, and why.
@@ -98,9 +98,8 @@ type Candidate struct {
 // Locate keeps the cues that can be compared: attributed to a character
 // and reliably aligned to a long enough stretch of audio. Everything else is
 // skipped with its reason, never guessed at: a line with no reliable
-// alignment yields no candidate (PRD "Locating candidate audio"). A cue
-// attributed to narration is not a character line, so it is skipped as
-// unknown too.
+// alignment yields no candidate. A cue attributed to
+// narration is not a character line, so it is skipped as unknown too.
 func Locate(cues []Cue, aligner CueAligner) ([]Candidate, []SkippedCue, error) {
 	var candidates []Candidate
 	var skipped []SkippedCue

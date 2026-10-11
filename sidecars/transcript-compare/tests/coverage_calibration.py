@@ -1,4 +1,4 @@
-"""Phase 8 calibration: the synthetic fixtures through the shipped coverage path.
+"""Calibration: the synthetic fixtures through the shipped coverage path.
 
 `docs/research/recording-coverage-calibration.md` records what this measured and ADR 0132 the
 defaults it chose. This module is test tooling, not product code. It runs each case the way the
@@ -11,7 +11,7 @@ host runs a check:
 2. the thresholds are applied on read to the result lines, by `text_complete`, which mirrors
    `coverage.Report.TextComplete` in `apps/desktop/internal/coverage/report.go`.
 
-It adds four things the Phase 1 harness and the Phase 2 spike do not have:
+It adds four things `coverage_harness.py` and `coverage_spike.py` do not have:
 
 - `with_asr_noise` drops and swaps transcript words at a set rate, seeded per case, so the
   perfect synthetic transcripts can stand in for a transcriber that makes mistakes;
@@ -25,10 +25,10 @@ It adds four things the Phase 1 harness and the Phase 2 spike do not have:
   `NARRATION_COVERAGE_CORPUS` layout, outside the repository, and `audio_report` runs the real
   sidecar with a Whisper model over it and times it.
 
-Phase 1 of the model cascade PRD (the note's "Model cascade (Phase 1)" section) adds two more:
+For the model cascade (the note's "Model cascade" section) it adds two more:
 
 - `cascade` simulates the two-pass check: a fast model over the whole chapter, windows planned from
-  the regions that fail it (`plan_windows`, the PRD's MC3 constants), a stronger model over those
+  the regions that fail it (`plan_windows`, MC3's constants), a stronger model over those
   windows only (one load a run), its words spliced into the first pass's (`splice`), and the chapter
   aligned again by the same pure alignment and coverage code the sidecar runs (`align_words`). It
   reports it per case against single-model runs, or, over an unlabelled chapter (a host manifest),
@@ -39,9 +39,8 @@ Run it: `uv run python sidecars/transcript-compare/tests/coverage_calibration.py
 the tables of the research note; `render-audio`, `audio`, `cascade` and `windows` are the optional
 audio runs.
 
-The file is over the 800-line soft ceiling on purpose: the PRD keeps the calibration harness in one
-module (its coverage floor is 100%, `scripts/ci/coverage-floors.json`), and the cascade's product
-code, where a split would matter, lands in Phases 3 and 4.
+The file is over the 800-line soft ceiling on purpose: the calibration harness stays in one
+module (its coverage floor is 100%, `scripts/ci/coverage-floors.json`).
 """
 
 from __future__ import annotations
@@ -397,7 +396,7 @@ def resolution_cases() -> tuple[harness.Case, ...]:
 
 
 def calibration_cases() -> tuple[harness.Case, ...]:
-    """The committed cases with their own split, then the Phase 2 stress cases and the resolution
+    """The committed cases with their own split, then the stress cases and the resolution
     cases split by chapter: chapter II and the constructed chapter are held out, so no generated
     case the defaults are chosen on shares a chapter with a generated case they are judged on."""
     committed = harness.load_corpus(harness.FIXTURE_DIR).cases
@@ -479,7 +478,7 @@ def _distance(settings: Settings) -> float:
 
 def chance_credit(table: ResultTable, cases: Sequence[harness.Case], noise: Noise, settings: Settings, split: str | None = None) -> int:
     """Words credited as read in a paragraph that unrelated speech replaced (the stress set's
-    `-unrelated-` cases): the PRD's chance-match metric, whose target is 0."""
+    `-unrelated-` cases): the chance-match metric, whose target is 0."""
     credited = 0
     for case in cases:
         if "-unrelated-" not in case.id or (split is not None and case.split != split):
@@ -706,7 +705,7 @@ def audio_report(corpus: Path, whispers: Sequence[Whisper], settings: Settings, 
 
 
 # ---------------------------------------------------------------------------
-# the model cascade (the calibration note's "Model cascade (Phase 1)")
+# the model cascade (the calibration note's "Model cascade" section)
 
 WINDOW_MIN_SECONDS = 25.0
 """MC3: Whisper costs a 30-second block however little of it is audio, so a window shorter than
@@ -799,8 +798,8 @@ class Aligned:
 
 
 def align_words(target: Target, words: Mapping[int, coverage_mode.ItemWords], settings: Settings) -> Aligned:
-    """`coverage_mode.run`'s alignment over words already in hand (the sidecar module is Phase 2's
-    to change, so its five alignment lines are repeated here; a test pins them to the sidecar)."""
+    """`coverage_mode.run`'s alignment over words already in hand (its alignment lines are
+    repeated here rather than factored out of the sidecar; a test pins them to the sidecar)."""
     manuscript = str(target.manuscript)
     engine.register_project_equivalences(manuscript)
     chapter = coverage_mode._chapter(engine, manuscript, target.chapter_id)
@@ -830,7 +829,7 @@ def is_complete(coverage: coverage_model.ChapterCoverage, settings: Settings) ->
 
 def failing_regions(coverage: coverage_model.ChapterCoverage, settings: Settings) -> tuple[coverage_model.Region, ...]:
     """The regions that make the chapter "not met": a run over `max_missing_run`, or a region in a
-    paragraph that fails. None when the chapter is met: a "met" stands (the PRD's safety rule)."""
+    paragraph that fails. None when the chapter is met: a "met" stands: the cascade never re-checks a complete chapter."""
     if is_complete(coverage, settings):
         return ()
     failing = {paragraph.id for paragraph in coverage.paragraphs if not paragraph.passes(_thresholds(settings))}
@@ -856,8 +855,8 @@ class Gap:
 
 def region_gap(region: coverage_model.Region, aligned: Aligned) -> Gap:
     """A region's bounds from the alignment's `equal` opcodes on either side of its manuscript
-    tokens, mapped through `index_map` to the joined transcript word and its item. Phase 2 emits
-    these bounds from the sidecar; Phase 4 should read them from there instead."""
+    tokens, mapped through `index_map` to the joined transcript word and its item. The sidecar's
+    regions carry the same bounds as `audio_before` and `audio_after` (ADR 0168)."""
     before = after = None
     for tag, i1, i2, j1, j2 in aligned.alignment["opcodes"]:
         if tag != "equal":
@@ -1108,7 +1107,7 @@ class Hypothesis:
 
 
 def hypothesis(rows: Sequence[CascadeRow], small: str = "small", large: str = "large-v3-turbo") -> Hypothesis:
-    """The PRD's Key Hypothesis on a corpus: no false met, no more false not met than the large
+    """The cascade's hypothesis on a corpus: no false met, no more false not met than the large
     model alone, and a total time within 40% of `small`'s."""
     ours, theirs = Tally(), Tally()
     for row in rows:

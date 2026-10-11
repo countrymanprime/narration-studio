@@ -1,4 +1,4 @@
-// The browser mock's silence trim and item gain (booth-actions-enablement PRD Phase 5). cleanupPreview/cleanupApply
+// The browser mock's silence trim and item gain. cleanupPreview/cleanupApply
 // read the same findings store editingCandidates already reads (a candidate is seeded like any other finding,
 // editingCandidateFor in mockFixtures.ts); levelMatchPreview/levelMatchApply hold their own small, self-contained
 // fixture of gain candidates, since nothing else in the mock measures REAPER item levels.

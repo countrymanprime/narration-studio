@@ -8,13 +8,11 @@ import (
 	"math"
 )
 
-// Diagnostics are the windowed analyzers (diagnostics PRD, phase 4): clip
-// regions (clipregions.go), a short-term loudness series with the level
-// shifts it shows (shortterm.go), and a silence map with the room-tone
-// segments it shows (silencemap.go), plus the pause profile when transcript
-// timing exists. They read the audio once, never change it, and turn what
-// they find into findings (diagnosticfindings.go) for the narrator to
-// review: candidates against the narrator's own thresholds, never verdicts.
+// Diagnostics are the windowed analyzers: clip regions (clipregions.go), a short-term loudness series with the level
+// shifts it shows (shortterm.go), and a silence map with the room-tone segments it shows (silencemap.go), plus the
+// pause profile when transcript timing exists. They read the audio once, never change it, and turn what they find into
+// findings (diagnosticfindings.go) for the narrator to review: candidates against the narrator's own thresholds, never
+// verdicts.
 
 // SourceKind says what the measured audio is. Room tone and level mean
 // different things for each: a raw recording's room tone is the room, a

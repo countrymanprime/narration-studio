@@ -5,11 +5,11 @@
 
 ## Context
 
-Phase 7 of [the diagnostics PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) asks for an exported report, HTML
+Diagnostics need an exported report, HTML
 and JSON with the same finding IDs and review states, redactable, in a sidecar folder, and deterministic. Before it, the
 Delivery page judged each measured value against the narrator's limits itself, mirroring `measure.Evaluate` in
-TypeScript (Phase 5), and Phases 5 and 6 left moving that judgement to the host to this phase, because a report written by
-the host needs the host's own findings with their IDs. Open Question 7 recommended one self-contained HTML plus a JSON,
+TypeScript, and moving that judgement to the host was left to this change, because a report written by
+the host needs the host's own findings with their IDs. The recommended shape is one self-contained HTML plus a JSON,
 local paths redacted by default with an explicit opt-in, no audio and no zip. Writing a file the narrator will send to
 someone else is a new place the app writes (threat model row 6h).
 

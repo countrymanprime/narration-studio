@@ -14,7 +14,7 @@ const (
 	createBreakawayJob    = 0x01000000
 )
 
-// Launch starts program with args, detached from this process (Phase 8, PRD "Launching REAPER": a detached spawn,
+// Launch starts program with args, detached from this process (ADR 0092): a detached spawn,
 // never the process supervisor, whose Windows job object kills every child when the app closes -
 // apps/desktop/internal/process/job_windows.go): its own process group, outside any job this process is in, so
 // REAPER outlives the app when the narrator quits it. Tried first with CREATE_BREAKAWAY_JOB (needed only when this

@@ -1,9 +1,8 @@
-// This file is proofing-readiness-signals.prd.md Phase 7 ("Mark proofing done
-// and close-out"): it proves, through the REAL stages.Service and the REAL
+// This file proves (ADR 0525), through the REAL stages.Service and the REAL
 // proofing.SignalProvider (never a fake), that "Mark proofing done" going
-// through SR's Confirm actually finalizes a proofing chapter, and that the
+// through the stage recommendations Confirm actually finalizes a proofing chapter, and that the
 // proofing signals stay evaluable for that now-confirmed chapter so a later
-// change (a fresh open pickup) raises SR's "evidence changed since you
+// change (a fresh open pickup) raises the "evidence changed since you
 // confirmed" contradiction with a Revert back to proofing. The generic
 // mechanism (stages.Service.assess re-evaluating the confirmed-from stage,
 // internal/stages/assess.go) already exists and is exercised generically by
@@ -12,6 +11,7 @@
 // chapter.Status (see Signals), so no production code changed to make this
 // pass - only proof that it holds for the real provider, which
 // corpus_test.go's verdict-only assertions never exercised.
+
 package proofing
 
 import (
@@ -52,10 +52,10 @@ func (f *confirmFixture) service(provider *SignalProvider) *stages.Service {
 	})
 }
 
-// TestMarkProofingDoneConfirmsAndCanBeReverted is the Phase 7 success signal:
-// "Confirm writes SR's record with this PRD's basis; a new pickup or an
-// edited item after confirm shows the changed-evidence note with revert;
-// nothing changes status without the click."
+// TestMarkProofingDoneConfirmsAndCanBeReverted proves the close-out contract:
+// Confirm writes the stage recommendations record with the proofing basis; a
+// new pickup or an edited item after confirm shows the changed-evidence note
+// with revert; nothing changes status without the click.
 func TestMarkProofingDoneConfirmsAndCanBeReverted(t *testing.T) {
 	fixture := newConfirmFixture(t)
 	provider := NewSignalProvider(Config{
@@ -93,7 +93,7 @@ func TestMarkProofingDoneConfirmsAndCanBeReverted(t *testing.T) {
 
 	// A new open pickup after the confirm. This re-runs the SAME real
 	// SignalProvider, unmodified for the change: proofing signals are
-	// "callable for a confirmed chapter" (Phase 7's own words) because
+	// callable for a confirmed chapter because
 	// nothing in it special-cases the current chapter.Status.
 	fixture.project.save(t, AnalyzerTranscriptCompare, testChapter,
 		testFinding("post-confirm-pickup", AnalyzerTranscriptCompare, testChapter, findings.CategoryTranscriptDiscrepancy))

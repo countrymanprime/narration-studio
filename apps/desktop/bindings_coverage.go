@@ -161,10 +161,10 @@ func (h *Host) CoverageResult(chapterID string) (string, error) {
 	return encodeBinding(result.View(chapterID, coverageSettings(svc.settings).Thresholds), nil)
 }
 
-// WorkspaceAlignment reads a chapter's stored word alignment (edit-and-proof-workspace PRD Phase 1, ADR 0242) joined
+// WorkspaceAlignment reads a chapter's stored word alignment (ADR 0242) joined
 // with its current paragraphs and its items' current played ranges (coverage.AlignmentView). It never runs anything
 // (Q14), exactly like CoverageResult, whose state, reasons and basis it shares. A stored report from before the
-// sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only, EP3 C).
+// sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only, ADR 0242).
 func (h *Host) WorkspaceAlignment(chapterID string) (string, error) {
 	svc := h.services()
 	service := svc.coverage
@@ -189,7 +189,7 @@ func coverageRecordedFractions(service *coverage.Service, store *settings.Store)
 func (h *Host) emitCoverage(state coverage.State) {
 	if event, ended := h.coverageRuns.observe(state); ended {
 		h.publishJobEnded(event)
-		// The chapter's status on chaptersync:state changes with its check (auto-sync Phase 6): the ledger record and
+		// The chapter's status on chaptersync:state changes with its check: the ledger record and
 		// the stored result are written before this state is sent, so the status read now is the new one.
 		go h.emitChapterSyncState()
 	}

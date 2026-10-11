@@ -11,10 +11,9 @@ import (
 )
 
 // ProjectLinkDawFile is the one shared binding behind the audio engine panel
-// and Settings' DAW category (PRD project-workspace-and-daw-
-// link.prd.md, Open Question W19): it opens a native "*.rpp" file dialog and
+// and Settings' DAW category: it opens a native "*.rpp" file dialog and
 // links the chosen file to the current project through the manifest storage
-// Phase 1-3 already built (project.BuildDawLink, Manifest.Save). Cancelling
+// (project.BuildDawLink, Manifest.Save). Cancelling
 // the dialog is not an error: the result says so instead.
 func (h *Host) ProjectLinkDawFile() (string, error) {
 	h.mu.RLock()
@@ -49,13 +48,10 @@ func (h *Host) ProjectLinkDawFile() (string, error) {
 // and the host so it can be unit tested directly.
 //
 // It refuses to link rppPath when it does not live directly inside
-// projectFolder (PRD Open Question W15): today Proofing's bridge only works
-// when the project folder equals the rpp's folder (see dawfacts.go and
-// transcript/service.go), and attaching a different folder's DAW project
-// would mean either silently breaking that invariant or re-pointing the
-// whole project (orphaning the imported manuscript) - both are out of scope
-// here and wait on W4's Lua changes. Linking inside the folder always
-// succeeds and never fails partway: BuildDawLink cannot fail once rppPath and
+// projectFolder: attaching a different folder's DAW project would mean
+// re-pointing the whole project (orphaning the imported manuscript), which
+// is out of scope here, so the result says folderMismatch instead. Linking
+// inside the folder always succeeds and never fails partway: BuildDawLink cannot fail once rppPath and
 // projectFolder both resolve to absolute paths, so the only remaining error
 // is Manifest.Save's own I/O failure.
 func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map[string]any, error) {

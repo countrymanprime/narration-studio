@@ -33,11 +33,9 @@ const isEngine = (value: string): value is TeleprompterEngine => value === 'whis
 /** The engines the host offers, in its order, as toggle options; an engine this UI does not know is left out. */
 const engineOptions = (choices: string[]) =>
   choices.filter(isEngine).map((engine) => ({ value: engine, label: ENGINE_LABELS[engine], title: ENGINE_CAPTIONS[engine] }));
-// The pre-Phase-2 (input devices PRD) browser-storage device value: migrated once into the global settings file
-// (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine and model choices are stored")
-// and then removed, so it is never read again once the settings value exists. Only the standalone page migrates it
-// (see `migrateLegacyDevice` below) - the read-aloud modal (teleprompter-manuscript-integration.prd.md Phase 2) is
-// new and never had a browser-storage value of its own to migrate.
+// The earlier browser-storage device value: migrated once into the global settings file and then removed, so it is never read again once the settings value exists. Only the standalone page migrates it
+// (see `migrateLegacyDevice` below) - the read-aloud modal never
+// had a browser-storage value of its own to migrate.
 const LEGACY_DEVICE_KEY = 'narration.teleprompter.device';
 const SETTINGS_TOOL = 'Teleprompter';
 const INPUT_DEVICE_KEY = 'input_device';
@@ -81,7 +79,7 @@ function statusText(host: TeleprompterState, session: Session): string {
   // The host says why a session stopped (the narrator pressed Stop, or it stopped itself at the end of the chapter, ADR 0106).
   if (host.phase === 'stopped') return host.message.trim() || 'Stopped';
   if (host.phase !== 'running') return '';
-  // Paused (Phase 5, ADR 0248): the tracker's clock is frozen, so it never reports `waiting` or `done` while paused.
+  // Paused (ADR 0248): the tracker's clock is frozen, so it never reports `waiting` or `done` while paused.
   if (host.paused) return 'Paused';
   if (session.position?.status === 'waiting') return 'Waiting for you to return to the script';
   if (session.position?.status === 'done')
@@ -96,11 +94,11 @@ export type UseTeleprompterSessionOptions = {
   chapterId: string;
   chapter: Pick<ManuscriptChapter, 'title' | 'subtitle'> | undefined;
   /**
-   * The opening or closing credits instead of a chapter (audiobook-credits-templates.prd.md Phase 4, ADR 0150), with the
+   * The opening or closing credits instead of a chapter (ADR 0150), with the
    * text the host's one renderer produced (`creditsPreview`); the host renders the same text again for the sidecar.
    */
   credits?: { kind: CreditsKind; text: string };
-  /** The standalone page migrates the pre-Phase-2 browser-storage device value once; the read-aloud modal does not (see above). */
+  /** The standalone page migrates the earlier browser-storage device value once; the read-aloud modal does not (see above). */
   migrateLegacyDevice?: boolean;
 };
 
@@ -124,11 +122,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const [loaded, setLoaded] = useState<{ chapterId: string; paragraphs: ManuscriptParagraph[] }>();
   const [error, setError] = useState('');
   const [prompt, setPrompt] = useState<ModelPrompt>();
-  // Where the next Start begins (the read-aloud dialog's resume card, teleprompter-manuscript-integration.prd.md Phase 10):
-  // null is the top. Passed to the host as `startWord` (the Phase 3 seek channel's start-at-a-word), so a resumed session
+  // Where the next Start begins (the read-aloud dialog's resume card):
+  // null is the top. Passed to the host as `startWord` (start at a word), so a resumed session
   // never reads from the top first.
   const [startWord, setStartWord] = useState<number | null>(null);
-  // The model download: the shared install-poll hook (D4), through the generic asset bindings, since the missing model is either
+  // The model download: the shared install-poll hook, through the generic asset bindings, since the missing model is either
   // engine's (the gate's answer names the engine, which is also the asset kind). A session must not start on a view the narrator has
   // already left: the hook stops and never calls onSuccess once this hook's owner has unmounted.
   const modelInstall = useAssetInstall<AssetInstallJob>({
@@ -182,8 +180,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     loadDevices();
   }, [loadDevices]);
 
-  // Loads the persisted device once (global settings, "Where the device, engine and model choices are stored"), and
-  // migrates the pre-Phase-2 browser-storage value into it exactly once (page only, see `migrateLegacyDevice`).
+  // Loads the persisted device once (global settings), and
+  // migrates the earlier browser-storage value into it exactly once (page only, see `migrateLegacyDevice`).
   // Also reads the Teleprompter settings section's default model so a session starts with whichever model the
   // narrator set in Settings, without forcing a per-session choice here.
   useEffect(() => {
@@ -259,12 +257,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     }
   };
   const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));
-  // Pause (true) or resume (false) a running session's listening without ending it (read-aloud-control-bar.prd.md Phase 5,
-  // Q3, ADR 0248): the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
+  // Pause (true) or resume (false) a running session's listening without ending it (ADR 0248): the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
   // `host.paused` changes. Flags are kept on Stop only (ADR 0117 unchanged).
   const pause = (paused: boolean) => void api.teleprompterPause(paused).catch((reason) => setError(errorText(reason)));
-  // Moves a running tracker straight to a chosen script word ("Start here" / "Go back to here", wired to a word click by
-  // Phase 4 of teleprompter-manuscript-integration.prd.md via `ReaderText`'s `onSeek`). `useCallback` keeps this a stable
+  // Moves a running tracker straight to a chosen script word ("Start here" / "Go back to here", wired to a word click through
+  // `ReaderText`'s `onSeek`). `useCallback` keeps this a stable
   // reference across renders: `ReaderText` passes it into a `memo`-wrapped per-row component, and a fresh closure every
   // render would defeat that row-level memoization (see `ReaderText.tsx`).
   const seek = useCallback((word: number) => void api.teleprompterSeek(word).catch((reason) => setError(errorText(reason))), [api]);
@@ -274,7 +271,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     modelInstall.reset();
   };
 
-  // Device, engine and model are machine facts kept in the global settings (the input-devices PRD's settled rule), so a choice made
+  // Device, engine and model are machine facts kept in the global settings, so a choice made
   // here is the one Settings shows and the next session starts with. Choosing never downloads: a missing model is asked for at Start.
   const saveChoice = (key: string, value: string) =>
     void api.saveSettings(SETTINGS_TOOL, 'global', { [key]: value }).catch((reason) => setError(errorText(reason)));
@@ -295,7 +292,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const reset = () => dispatch({ kind: 'reset' });
 
   const status = statusText(host, session);
-  // A failed or empty device listing blocks the phase (the input-devices PRD's "Microphone is never typed" decision):
+  // A failed or empty device listing blocks Start (the microphone is never typed):
   // there is no typed fallback to start with, so Start stays disabled until a device can be chosen from the list.
   const micBlockedReason = devices.length === 0 ? (devicesError ? "Couldn't list microphones." : 'No microphone found.') : undefined;
   const hasSource = Boolean(chapterId || creditsKind);

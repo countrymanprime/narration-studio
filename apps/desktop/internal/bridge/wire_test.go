@@ -30,24 +30,24 @@ var realEvents = map[string][]string{
 	"RENDER_CONFIGURED":     {"RENDER_CONFIGURED", "t1", "C:/p/renders", "2", "C:/p/renders/Chapter 1.wav;C:/p/renders/Chapter 2.wav"},
 	"PROJECT_STATE":         {"PROJECT_STATE", "t1", "7", "C:/p/Book.rpp"},
 	"CLEANUP_LAUNCHED":      {"CLEANUP_LAUNCHED", "t1", "repair_pops_clicks", "Item: Repair pops/clicks..."},
-	// integrations/reaper/tests/cleanup_preview_test.lua (diagnostics-delivery-and-cleanup-tools PRD Phase 10, ADR 0251).
+	// integrations/reaper/tests/cleanup_preview_test.lua (ADR 0251).
 	"CLEANUP_STALE":     {"CLEANUP_STALE", "c1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
 	"CLEANUP_PREVIEWED": {"CLEANUP_PREVIEWED", "c1", "2", "0"},
 	"CLEANUP_APPLIED":   {"CLEANUP_APPLIED", "c1", "1"},
-	// integrations/reaper/tests/level_normalize_test.lua (diagnostics-delivery-and-cleanup-tools PRD Phase 11, ADR 0252).
+	// integrations/reaper/tests/level_normalize_test.lua (ADR 0252).
 	"GAIN_STALE":         {"GAIN_STALE", "g1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "item"},
 	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
 	"GAIN_APPLIED":       {"GAIN_APPLIED", "g1", "1"},
 	"RETAKE_LANE_PICKED": {"RETAKE_LANE_PICKED", "t1", "line-000004", "{AAAAAAAA-0000-4000-8000-000000000001}", "2"},
 	"TAKE_CREATED":       {"TAKE_CREATED", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{BBBBBBBB-0000-4000-8000-000000000002}"},
 	"TAKE_STALE":         {"TAKE_STALE", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}"},
-	// integrations/reaper/tests/navigation_test.lua (review-dashboard PRD Phase 6).
+	// integrations/reaper/tests/navigation_test.lua.
 	"NAVIGATED":     {"NAVIGATED", "n1", "{AAAAAAAA-0000-4000-8000-000000000001}", "102.500000"},
 	"LOOP_STARTED":  {"LOOP_STARTED", "l1", "{AAAAAAAA-0000-4000-8000-000000000001}", "101.000000", "105.000000"},
 	"LOOP_STOPPED":  {"LOOP_STOPPED", "s1", "3", "0"},
 	"PONG":          {"PONG", "p1", "1", "0", "0"},
 	"FINDING_STALE": {"FINDING_STALE", "n1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}", "item"},
-	// integrations/reaper/tests/finding_marker_test.lua (review-dashboard PRD Phase 8).
+	// integrations/reaper/tests/finding_marker_test.lua (ADR 0123).
 	"FINDING_MARKER": {"FINDING_MARKER", "m1", "added", "{AAAAAAAA-0000-4000-8000-0000000000A1}", "12.500000", "MISREAD: 'pink eyes' as 'pink ice'"},
 	// integrations/reaper/tests/track_state_test.lua (chapter_track_state).
 	"TRACK_STATE":     {"TRACK_STATE", "t1", "{00000001-0000-4000-8000-000000000001}", "0", "2.500000", "1.250000", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", ""},
@@ -70,7 +70,7 @@ var realEvents = map[string][]string{
 	"FX_CHAIN_APPLIED":  {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
 	"FX_PLUGIN":         {"FX_PLUGIN", "p1", "VST3: ReaEQ (Cockos)"},
 	"FX_PLUGINS_LISTED": {"FX_PLUGINS_LISTED", "p1", "2", "0"},
-	// integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx; render-encode-master PRD Phase 9).
+	// integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx; ADR 0306).
 	"MASTER_CHAIN_FX":   {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1"},
 	"MASTER_CHAIN_READ": {"MASTER_CHAIN_READ", "c1", "3", "0"},
 	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-utils/mastering/run1/fx-01.wav"},
@@ -121,7 +121,7 @@ func TestATruncatedMarkerIsAnErrorThatNamesTheEventAndCountsTheFields(t *testing
 
 func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T) {
 	// Version skew is real for the Lua script: the user imports it into REAPER, so it can be older than the host. The fields after the
-	// ninth are optional and default when absent, including the three GUIDs a script older than Phase 6 does not send.
+	// ninth are optional and default when absent, including the three GUIDs a script that predates them does not send.
 	for cut := 9; cut <= 19; cut++ {
 		if err := CheckEvent(realEvents["COMPARE_MARKER"][:cut]); err != nil {
 			t.Errorf("a marker of %d fields: %v", cut, err)
@@ -130,8 +130,8 @@ func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T)
 }
 
 func TestAnOlderScriptsPreparedAnswerWithoutTheChangeCountIsAccepted(t *testing.T) {
-	// The change count (follow-through PRD Phase 13) is the seventh field; a script older than it, or a REAPER without
-	// GetProjectStateChangeCount, sends six.
+	// The change count is the seventh field; a script older than it, or a REAPER without GetProjectStateChangeCount,
+	// sends six.
 	if err := CheckEvent(realEvents["COMPARE_PREPARED"][:7]); err != nil {
 		t.Fatalf("a six-field COMPARE_PREPARED: %v", err)
 	}
@@ -211,8 +211,9 @@ func TestTheFieldNamesOfARealEventAreListedForDiagnosticsWithoutValues(t *testin
 	}
 }
 
-// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is ADR 0092/W10: an unsaved REAPER project reports an
-// empty rpp (never omitted, spike S6), so the field must be allowed to be empty although it is required.
+// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is ADR 0092: an unsaved REAPER project reports an
+// empty rpp (never omitted, docs/research/reaper-spike-s6-daw-reachability.md), so the field must be allowed to be
+// empty although it is required.
 func TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid(t *testing.T) {
 	if err := CheckEvent([]string{"PROJECT_STATUS", "", "", "1"}); err != nil {
 		t.Fatalf("an unsaved project's heartbeat must be valid: %v", err)
@@ -226,7 +227,7 @@ func TestAProjectStatusHeartbeatNeedsItsUnsavedFlagToBeANumber(t *testing.T) {
 	}
 }
 
-// DAW port PRD Phase 9 (ADR 0305): the heartbeat's transport fields are optional (an older script sends none) and numbers.
+// ADR 0305: the heartbeat's transport fields are optional (an older script sends none) and numbers.
 func TestAProjectStatusHeartbeatCarriesAnOptionalTransport(t *testing.T) {
 	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000"}); err != nil {
 		t.Fatalf("a heartbeat with the transport must be valid: %v", err)

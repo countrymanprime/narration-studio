@@ -10,9 +10,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
 )
 
-// The audacity-integration PRD's Phase 5: `--daw Audacity` reaches the host the way the REAPER launcher's `--daw REAPER` does,
-// the layered settings store serves an Audacity project with no code of its own, and the review workflow refuses clearly until
-// the Audacity pipe client exists (Phase 4).
+// `--daw Audacity` reaches the host the way the REAPER launcher's `--daw REAPER` does,
+// the layered settings store serves an Audacity project with no code of its own, and the review workflow refuses clearly while
+// the Audacity adapter reports itself not available (audacity.ErrNotAvailable).
 
 // audacityProject is a project folder shaped like an Audacity one: an .aup3 and no .rpp, with a manuscript imported.
 func audacityProject(t *testing.T) string {
@@ -40,7 +40,7 @@ func TestParseConfigArgsAcceptsDawAudacity(t *testing.T) {
 	}
 }
 
-// The smoke test the PRD's Decisions Log asks for: all three tiers resolve for an Audacity project, and a project override
+// A smoke test: all three tiers resolve for an Audacity project, and a project override
 // saves into the project's own sidecar, with nothing that assumes a REAPER project.
 func TestAnAudacityLaunchResolvesEveryTierOfTheLayeredSettings(t *testing.T) {
 	appData := t.TempDir()
@@ -113,8 +113,7 @@ func TestOnlyAReaperLaunchExplainsAMissingProjectFolder(t *testing.T) {
 	}
 }
 
-// The installer's "Narration Utils for Audacity" shortcut starts the app with `--daw Audacity` and no project folder (audacity-integration
-// PRD Phase 10), so the narrator picks the project in the app. The picker's switch keeps the launch an Audacity one; any other launch,
+// The installer's "Narration Utils for Audacity" shortcut starts the app with `--daw Audacity` and no project folder, so the narrator picks the project in the app. The picker's switch keeps the launch an Audacity one; any other launch,
 // a REAPER one included, becomes "Standalone" as before, because the project the narrator picked is not the one REAPER has open.
 func TestAPickerSwitchKeepsAnAudacityLaunchAnAudacityOne(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())

@@ -3,7 +3,7 @@
 #   pwsh run-reaper.ps1 -Cfg <temp dir> -Out <temp dir> -Script <file.lua> [-Project <copy of a .rpp>] [-TimeoutSec 90]
 #                       [-Done <file the script writes when it has finished>] [-ReaperDir <integrations/reaper>] [-IgnoreErrors]
 #
-# Safety rules (owner decision D3, docs/prds/implementation-plan.md), enforced here:
+# Safety rules, enforced here:
 #   - -Cfg, -Out and -Project must all be under the user's temp folder, and none may be under a "REAPER Media" folder, so
 #     REAPER's resource directory, this script's output and any project opened are scratch copies;
 #   - REAPER starts with -cfgfile, so the owner's settings, scripts and projects are never read or written, and every

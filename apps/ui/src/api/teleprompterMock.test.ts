@@ -100,7 +100,7 @@ describe('teleprompter mock', () => {
 
     const script = events[0];
     if (script.type !== 'script') throw new Error('the script event must come first');
-    // The title span counts the title's own words only (chapter-title-display-consistency.prd.md Q9); the subtitle is
+    // The title span counts the title's own words only; the subtitle is
     // shown but never part of what is tracked.
     const words = tokenize(chapters[0].title).length + paragraphs.reduce((total, paragraph) => total + tokenize(paragraph.text).length, 0);
     expect(script.tokens).toBe(words);
@@ -188,7 +188,7 @@ describe('teleprompter mock', () => {
     expect((await mock.teleprompterState()).phase).toBe('stopped');
   });
 
-  // Resuming (teleprompter-manuscript-integration.prd.md Phase 10) starts the tracker at the resume word, as the host's
+  // Resuming starts the tracker at the resume word, as the host's
   // --start-word does: the first position is that word and the replay never goes back before it.
   it('starts at the requested word and replays onward from it', async () => {
     const mock = build();
@@ -293,7 +293,7 @@ describe('teleprompter mock locate', () => {
     expect(locate).not.toHaveProperty('engine');
   });
 
-  // read-aloud-resume-from-daw.prd.md Phase 3: every seed answers a result the host could send, with its verdict.
+  // Every seed answers a result the host could send, with its verdict.
   it.each(MOCK_RESUME_SEEDS.filter((seed) => seed !== 'error'))('answers %s with a result that passes the schema', async (seed) => {
     const result = await build({ resume: seed }).teleprompterLocate('chapter-1');
 

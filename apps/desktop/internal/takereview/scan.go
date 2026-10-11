@@ -1,11 +1,10 @@
-// Package takereview is the pickup/duplicate findings scan service (phase 4
-// of take-review-pickups-duplicates-take-intelligence.prd.md): it builds
-// the Q3 scan scope from the static project model (internal/tracks), runs
+// Package takereview is the pickup/duplicate findings scan service: it builds
+// the scan scope from the static project model (internal/tracks), runs
 // the Transcript Compare sidecar's additive --find-repeats mode, adapts its
 // output into findings.Finding records via internal/repeats (which stays
 // independent of both the project model and the findings store so it can
 // be unit-tested and reused on its own), and saves them into the
-// milestone-1 findings store under repeats.AnalyzerName ("take-review").
+// findings store under repeats.AnalyzerName ("take-review").
 // The host runs it as a cancellable job with real progress
 // (apps/desktop/takereview.go), started from the Review page's scan dialog.
 package takereview
@@ -23,12 +22,12 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Scope is the Q3 scan scope: the chapter track's items and all takes of
+// Scope is the scan scope: the chapter track's items and all takes of
 // those items, plus at most one narrator-designated addition - a pickup
 // track (every item on it, in full) or a pickup time range (every item on
 // any track whose position overlaps it) - never both. ResolvePickupScope
-// reads the addition from layered project settings (Q12's pattern applied
-// to Q3); ChapterTrackName always names the track being scanned for this
+// reads the addition from layered project settings (the same layering
+// other project settings use); ChapterTrackName always names the track being scanned for this
 // one scan, not a standing preference.
 type Scope struct {
 	ChapterTrackName string
@@ -38,8 +37,8 @@ type Scope struct {
 }
 
 // ValidateScope refuses a scope the narrator chose that a scan could not honour, in words the scan dialog can
-// show: no chapter track, a pickup track that is the chapter track itself, both a pickup track and a range (Q3:
-// never both), or a range that is half given, backwards or before the project start. Whether the named tracks
+// show: no chapter track, a pickup track that is the chapter track itself, both a pickup track and a range
+// (never both), or a range that is half given, backwards or before the project start. Whether the named tracks
 // exist is buildManifest's check, against the project as it is when the scan runs.
 func ValidateScope(scope Scope) error {
 	start, end := scope.PickupRangeStart, scope.PickupRangeEnd
@@ -231,8 +230,8 @@ func appendTrackSegments(segments []Segment, track tracks.Track, included map[st
 }
 
 // appendRangeSegments scans every track (the pickup range is a project
-// timeline window, not confined to one track - Q3's evidence names pickups
-// "recorded on a separate track or later in the timeline") for an item
+// timeline window, not confined to one track, since a pickup may be
+// recorded on a separate track or later in the timeline) for an item
 // whose [Position, Position+Length) overlaps [start, end).
 func appendRangeSegments(segments []Segment, project tracks.Project, start, end float64, included map[string]bool) []Segment {
 	for _, track := range project.Tracks {

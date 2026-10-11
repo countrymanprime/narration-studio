@@ -1,6 +1,6 @@
 # The preview suggestion: engine, evidence and the narrator's pin
 
-**Status: delivered, all eight phases, PRD deleted.** The pure ranking engine, its findings and audio-checked
+**Status: delivered.** The pure ranking engine, its findings and audio-checked
 composition, and the narrator's pin are in
 [`apps/desktop/internal/preview`](../../apps/desktop/internal/preview) (`engine.go`, `types.go`, `findings.go`,
 `audiomapper.go`, `audiochecked.go`, `pace.go`, `pin.go`, `rangeeval.go`, `store.go`). The host read binding is
@@ -8,17 +8,15 @@ composition, and the narrator's pin are in
 `apps/desktop/bindings_preview_pin.go` (`PreviewPin`, `PreviewPinSet`, `PreviewPinAdjust`, `PreviewPinClear`). The
 UI is the Preview panel in the Proof chapter view
 ([`apps/ui/src/components/proof/PreviewPanel.tsx`](../../apps/ui/src/components/proof/PreviewPanel.tsx); see
-[the Proof guide](../guides/using-the-app/proof.md)). This page
-replaces `docs/prds/proofing-preview-suggestion.prd.md` (deleted per `docs/operations/github-workflow.md`; its
-tracking issue, [#728](https://github.com/countrymanprime/narration-utils/issues/728), stays as the historical
-record of the eight phases).
+[the Proof guide](../guides/using-the-app/proof.md)). The
+tracking issue is [#728](https://github.com/countrymanprime/narration-utils/issues/728).
 
 ## What the feature does
 
 A narrator who wants to judge an audiobook without listening to all of it is shown up to three candidate
 five-minute excerpts, one per eligible chapter, each with the reasons it was chosen and any warnings. Nothing is
 ever applied, exported or cut: `Suggest` recomputes fresh from the manuscript's current chapters and paragraphs on
-every read (SR D1, the same "computed, never applied" rule the chapter-stage recommendations engine follows -
+every read (the same "computed, never applied" rule the chapter-stage recommendations engine follows -
 [the signal contract](stage-recommendations.md)). The one exception is the narrator's own pin (below), which is a
 decision the narrator made, not a computed verdict, and so is the only thing this feature stores.
 
@@ -44,10 +42,10 @@ Two optional layers compose onto a candidate before it is ranked:
   when the chapter's recording coverage is current and complete, every paragraph in the window maps to a real
   audio position (`MapParagraphsToTime`, built and tested against a real REAPER-saved fixture -
   `internal/tracks/testdata/reaper/line-identity.rpp`), and no windowed audio-quality finding falls inside it.
-  Unknown never counts as good (SR D2, [ADR 0015](../adr/0015-real-progress-only.md)); a DX-4 windowed finding
+  Unknown never counts as good ([ADR 0015](../adr/0015-real-progress-only.md)); a DX-4 windowed finding
   cannot be read from a real chapter (as of 2026-09-27) for reasons unrelated to this package
   ([ADR 0327](../adr/0327-dx-4-windowed-findings-need-a-chapter-and-paragraph-anchor-and-a-store-scope-before-a-consumer-can-gate-on-them.md)),
-  so every candidate reports pace evidence (Q8 option C, `ChapterPace`/`EstimateErrorFraction`) but never the
+  so every candidate reports pace evidence (`ChapterPace`/`EstimateErrorFraction`) but never the
   audio-checked label in production.
 
 ## The narrator's pin
@@ -76,7 +74,7 @@ The narrator may pin one candidate to keep it, and move its edges by one paragra
 
 | Binding | Reads | Writes |
 | --- | --- | --- |
-| `PreviewCandidates` | manuscript, guide, findings, coverage, Phase 6 mapper | nothing |
+| `PreviewCandidates` | manuscript, guide, findings, coverage, audio mapper | nothing |
 | `PreviewPin` | the pin store, resolved against current text | nothing |
 | `PreviewPinSet(chapterId, paragraphIds)` | the manuscript, for anchor text | the pin store |
 | `PreviewPinAdjust(edge, grow)` | the manuscript and the pin store | the pin store |

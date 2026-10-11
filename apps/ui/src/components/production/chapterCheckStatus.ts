@@ -1,4 +1,4 @@
-// A narration chapter's recording-check status without a click (daw-chapter-track-auto-sync.prd.md Phase 6, S14):
+// A narration chapter's recording-check status without a click:
 // The Production board's Record cell reads this instead of pressing Check. It leads with the track link's own trouble when there is one (a
 // chapter with no confident, confirmed track has nothing for a check's freshness to mean yet), and only once the
 // chapter is linked does it show the check's own freshness (current / stale, with why / never), from
@@ -20,7 +20,7 @@ export type ChapterCheckStatus =
  * `link` is this chapter's row from `ChapterTrackLinks` (undefined while that read is still in flight, or the
  * project is not `ready`); `sync` is its row from `ChapterSyncState.chapters` (undefined before the first sync, or
  * for a project with no chapter-sync data yet); `checking` covers both a check this page started and one the
- * background scheduler started (Phase 7, `sync.checking`) or is already running when the page opens (`coverage`).
+ * background scheduler started (`sync.checking`) or is already running when the page opens (`coverage`).
  * `background` is `CoverageState.background` (ADR 0211): the host started this run on its own, so the label says so.
  */
 export function chapterCheckStatus(

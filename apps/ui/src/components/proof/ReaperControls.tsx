@@ -13,7 +13,7 @@ import { formatTime } from './findingFormat';
 const NO_ITEM = 'This finding has no REAPER item to go to, because it came from an older check. Run the check again to record one.';
 const NO_SOURCE_TIME = 'This finding has no time in its audio to loop. Go to it instead.';
 const CHECKING = 'Checking whether REAPER is connected…';
-// The approved marker's own reasons (apps/desktop/bindings_marker.go): only an accepted finding gets one (review dashboard Phase 8).
+// The approved marker's own reasons (apps/desktop/bindings_marker.go): only an accepted finding gets one.
 const NOT_ACCEPTED = 'Mark this note as a pickup or an edit first. Only a note you mean to fix gets a marker in REAPER.';
 const MARKER_NO_SOURCE_TIME = 'This finding has no time in its audio to put a marker at.';
 
@@ -43,13 +43,13 @@ function markerMessage(result: Exclude<FindingMarker, { outcome: 'refused' }>): 
 }
 
 /**
- * Go to, Loop and Stop for a finding in REAPER (review-dashboard-and-findings-adoption.prd.md Phase 7; ADR 0121). The buttons
+ * Go to, Loop and Stop for a finding in REAPER (ADR 0121). The buttons
  * are off, with the reason under them, until the host says REAPER is listening (`status`, polled by the page), and for a finding
  * the host could not place. What REAPER refuses (the finding's audio moved, REAPER is recording, an older script) is an alert in
  * plain words; nothing in REAPER changed. After every action the page reads the status again, so a loop's Stop appears and a
  * REAPER that went away turns the buttons off.
  *
- * Add marker in REAPER (Phase 8, ADR 0123) adds one take marker for a finding the narrator accepted, after they confirm it: the one
+ * Add marker in REAPER (ADR 0123) adds one take marker for a finding the narrator accepted, after they confirm it: the one
  * control here that changes the project, as one undo point in REAPER. The batch Export markers stays on the Proofing page.
  */
 export function ReaperControls({

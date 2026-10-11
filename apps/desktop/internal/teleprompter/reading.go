@@ -16,8 +16,7 @@ import (
 // version reads as absent.
 const readingSchemaVersion = 1
 
-// Reading is where the prompter last was in a chapter (read-aloud-resume-from-daw
-// PRD Phase 2, ADR 0205): the last position event's Read (the index space of
+// Reading is where the prompter last was in a chapter (ADR 0205): the last position event's Read (the index space of
 // locate's Word) out of Tokens script words, written when a chapter session
 // ends. ScriptHash is a hash of the manuscript document and the chapter's text,
 // so a reading is dropped rather than misplaced once the chapter is edited or
@@ -34,8 +33,7 @@ type Reading struct {
 	EndedAt    time.Time `json:"endedAt"`
 }
 
-// ReadingDir is where the readings live: beside the anchors file the
-// teleprompter PRD's Phase 12 plans.
+// ReadingDir is where the readings live: beside the anchors file (anchors.go).
 func ReadingDir(project string) string {
 	return filepath.Join(project, "narration-utils", "teleprompter")
 }

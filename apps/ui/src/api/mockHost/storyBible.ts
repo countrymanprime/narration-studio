@@ -74,7 +74,7 @@ const csvCell = (text: string) => {
   return /[",\r\n]/.test(guarded) ? `"${guarded.replaceAll('"', '""')}"` : guarded;
 };
 
-// The mock's own reader for a re-imported query file (prep-depth P6), matching the host's ParseQueriesCSV/MatchQueryAnswers
+// The mock's own reader for a re-imported query file, matching the host's ParseQueriesCSV/MatchQueryAnswers
 // (queries.go) closely enough for a component test: any column order or case, a status as its key or a spaced/underscored
 // label, a formula guard stripped, and a row that cannot be read or matched reported by its 1-based line, never dropped.
 type MockQueryAnswer = { line: number; entityId: string; aliasIndex: number | null; name: string; status: PronunciationQuery['status']; note: string };
@@ -209,7 +209,7 @@ export function createStoryBibleMock(
         elapsed: 12,
       }
     : { id: null, kind: 'story_bible', phase: 'idle', message: 'Ready to build.', percent: 0, logs: [], elapsed: 0 };
-  // The sidecar's rules (manuscript_guide.py set_pronunciation, prep-depth P1): the narrator's own and a dictionary's pronunciation sit
+  // The sidecar's rules (manuscript_guide.py set_pronunciation): the narrator's own and a dictionary's pronunciation sit
   // side by side, the one not in use kept as the alternate; an author confirmation is withdrawn when the IPA in use changes.
   const changePronunciation = (id: string, aliasIndex: number | undefined, change: (prior: GuidePronunciation) => GuidePronunciation) => {
     const entity = s.entities.find((row) => row.id === id);
@@ -408,7 +408,7 @@ export function createStoryBibleMock(
       const entity = s.entities.find((row) => row.id === id);
       if (!entity) throw new Error('Entity not found.');
       if (entity.locked) throw new Error('This entity is locked. Unlock it before editing.');
-      // The mock always succeeds; the real chain can refuse a name a given engine has nothing for (D13/B10).
+      // The mock always succeeds; the real chain can refuse a name a given engine has nothing for.
       const value: GuidePronunciation =
         source === 'cmu'
           ? { ipa: '/mɒk kjuː ɛm juː/', source: 'CMU dictionary', confidence: 'medium', chosen: true }

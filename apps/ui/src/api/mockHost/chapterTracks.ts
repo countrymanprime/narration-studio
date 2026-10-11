@@ -90,12 +90,12 @@ export function createChapterTracksMock(
       unsavedEdits: chapterSyncUnsavedEdits,
       activity: chapterSyncActivity,
       chapters: links.project === 'ready' ? mockChapterSyncRows(links) : [],
-      // The `background` seed (daw-chapter-track-auto-sync.prd.md Phase 7, ADR 0211) shows the engine panel's wait
+      // The `background` seed (ADR 0211) shows the engine panel's wait
       // line for the reason this stream landed: REAPER is running and its heartbeat says it is recording.
       background: { enabled: true, wait: initial.chapterSync === 'background' ? 'recording' : 'nothing' },
     };
   };
-  // Phase 6's status rows, as the host builds them: the link, and the recording check's own answer (the coverage mock's).
+  // The status rows, as the host builds them: the link, and the recording check's own answer (the coverage mock's).
   const mockChapterSyncRows = (links: ReturnType<typeof mockLinksRead>): ChapterSyncChapter[] =>
     links.chapters.map((chapter, index) => {
       const link = chapter.links.length === 1 ? chapter.links[0] : undefined;
@@ -263,7 +263,7 @@ export function createChapterTracksMock(
       const existing = plan.rows.filter((row) => row.state === 'exists').length;
       return { sent: plan.rows.length, created, existing, invalid: 0, updated, ambiguous, failed: 0 };
     },
-    // "Select in REAPER" (chapter-track-link-control PRD Phase 4, Could): follows the same `?mockReaperState=` seed
+    // "Select in REAPER" follows the same `?mockReaperState=` seed
     // readAloudArmOnly/readAloudRecordStart already use for "REAPER is not there" and "the experimental switch is
     // off", so the two REAPER-connection concepts stay consistent in mock mode without a second seed dimension.
     trackSelectInReaper: async (trackGuid) => {

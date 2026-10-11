@@ -104,8 +104,8 @@ def test_a_missing_manuscript_reports_a_chapter_error_not_a_crash(tmp_path):
         chapter_script.load_chapter_script(tmp_path / "nope.json", "c1")
 
 
-# A script that is not a manuscript chapter (the opening or closing credits, audiobook-credits-templates.prd.md Phase 4,
-# ADR 0150): the host renders the text and hands it over as a file, and the reader needs spans for it as for a chapter.
+# A script that is not a manuscript chapter (the opening or closing credits, ADR 0150): the host renders the text and hands it over as a file,
+# and the reader needs spans for it as for a chapter.
 
 
 def test_a_text_script_is_every_word_of_the_text_with_no_title_words():

@@ -23,7 +23,7 @@ func newActionsSession(t *testing.T, enabled bool) (*Actions, *Client, string) {
 }
 
 // trackStateAnswer is what track_state_test.lua pins for a track with two items, the second trimmed and faster. The first
-// is muted; the second has no muted field, as a bridge script older than read-aloud-resume PRD Phase 4 answers.
+// is muted; the second has no muted field, as a bridge script older than the muted field answers.
 func trackStateAnswer(command []string) [][]string {
 	return [][]string{
 		{"TRACK_STATE", run(command), testTrack, "5", "2.500000", "12.345678", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", "Focusrite USB ASIO"},

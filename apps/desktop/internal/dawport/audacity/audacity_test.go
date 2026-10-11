@@ -131,7 +131,7 @@ func TestTheFactoryIsRegisteredForAudacity(t *testing.T) {
 	if !ok {
 		t.Fatal("no factory registered for Audacity")
 	}
-	// An Audacity launch never opens REAPER's session directory, even when one is passed (audacity-integration PRD P5).
+	// An Audacity launch never opens REAPER's session directory, even when one is passed (ADR 0144).
 	adapter, err := factory(dawport.Env{SessionDir: t.TempDir()})
 	if err != nil {
 		t.Fatalf("factory: %v", err)

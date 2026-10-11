@@ -69,7 +69,7 @@ func TestContractNoGuideFileYetIsAnEmptyList(t *testing.T) {
 	contractfile.Check(t, "guide-entities-empty", got)
 }
 
-// The pronunciation query list and its CSV, as the host sends them to the UI (prep-depth P3), from the same sidecar-written file.
+// The pronunciation query list and its CSV, as the host sends them to the UI, from the same sidecar-written file.
 func TestContractPronunciationQueriesFromTheSidecarsOwnFile(t *testing.T) {
 	dir, err := contractfile.Dir()
 	if err != nil {
@@ -99,7 +99,7 @@ func TestContractNoGuideFileYetHasNoPronunciationQueries(t *testing.T) {
 	contractfile.Check(t, "guide-pronunciation-queries-empty", queries)
 }
 
-// The query-answer import result, as the host sends it to the UI (prep-depth P6), from the same sidecar-written file: a
+// The query-answer import result, as the host sends it to the UI, from the same sidecar-written file: a
 // row naming an entry that is not in it, so the wire shape (applied, issues) is proven with no sidecar call needed.
 func TestContractPronunciationQueriesImportFromTheSidecarsOwnFile(t *testing.T) {
 	dir, err := contractfile.Dir()
@@ -121,7 +121,7 @@ func TestContractPronunciationQueriesImportFromTheSidecarsOwnFile(t *testing.T) 
 	contractfile.Check(t, "guide-pronunciation-queries-import", map[string]any{"applied": applied, "issues": issues})
 }
 
-// The narrator's own pronunciation, its alternate, a status and a note (prep-depth P1), from the file the sidecar's own test writes.
+// The narrator's own pronunciation, its alternate, a status and a note, from the file the sidecar's own test writes.
 func TestContractEntitiesWithPronunciationWorkFromTheSidecarsOwnFile(t *testing.T) {
 	dir, err := contractfile.Dir()
 	if err != nil {

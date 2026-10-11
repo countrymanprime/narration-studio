@@ -1,4 +1,4 @@
-// Silence trim and item gain (booth-actions-enablement PRD Phase 5): the Editing view's own gate onto
+// Silence trim and item gain: the Editing view's own gate onto
 // bridge.CleanupClient and bridge.LevelMatchClient (apps/desktop/bindings_cleanup.go), behind CapabilityGate('silence_trim')
 // and CapabilityGate('item_gain'). Preview never changes anything in REAPER; Apply recomputes the same candidates
 // rather than trusting whatever Preview last answered.

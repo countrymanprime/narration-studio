@@ -1,4 +1,4 @@
-"""Tests for `compare.py --take-divergence` (core/take_divergence_mode.py, take-review PRD phase 9):
+"""Tests for `compare.py --take-divergence` (core/take_divergence_mode.py):
 the manifest, the results file, progress and exit codes. Transcription is replaced by a fake that
 returns hand-timed words, so no model is loaded."""
 

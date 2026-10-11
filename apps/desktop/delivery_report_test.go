@@ -20,7 +20,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The report export (diagnostics PRD Phase 7) and the host's judgement of a measurement against the project's delivery
+// The report export and the host's judgement of a measurement against the project's delivery
 // profile (ADR 0179), which Master & QC shows and the report carries with the same IDs.
 
 // withProfileStore gives host a delivery-profile store in a temporary folder.

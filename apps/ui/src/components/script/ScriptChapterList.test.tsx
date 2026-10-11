@@ -21,7 +21,7 @@ const CHAPTERS = [
   chapter('c2', 'Chapter 2 — The Pool of Tears', 2),
 ];
 
-describe('ScriptChapterList (stage navigation Phase 3, mock 02)', () => {
+describe('ScriptChapterList', () => {
   it('lists the chapters the reader shows, never reference material, and marks the one being read', () => {
     render(<ScriptChapterList chapters={CHAPTERS} activeId="c2" toConfirm={new Map()} select={vi.fn()} />);
     const list = screen.getByRole('navigation', { name: 'Chapters' });

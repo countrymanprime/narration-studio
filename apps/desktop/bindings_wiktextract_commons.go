@@ -13,11 +13,11 @@ import (
 )
 
 // PronunciationCommonsAudioOpen opens the Wikimedia Commons recording that Wiktextract's own offline pronunciation
-// data (prep-depth Phase 8, #782) names for word, in the narrator's default browser or media player: the same
-// "open externally" host path PronunciationLookupOpen and PronunciationOnlineSignUpOpen already use (Q12), never
+// data (#782) names for word, in the narrator's default browser or media player: the same
+// "open externally" host path PronunciationLookupOpen and PronunciationOnlineSignUpOpen already use, never
 // fetched, streamed or cached by the app itself.
 //
-// word crosses the Wails boundary; the address never does - it is built here from Phase 8's own installed index, the
+// word crosses the Wails boundary; the address never does - it is built here from the installed Wiktextract index, the
 // same trusted-URL discipline every other open-externally binding already follows (never a UI-supplied URL). A word
 // the index has no audio for, and a Wiktextract source not installed yet, are both refused with a clear reason
 // rather than opening nothing silently.
@@ -29,7 +29,7 @@ func (h *Host) PronunciationCommonsAudioOpen(word string) (string, error) {
 	return h.openTrustedURL(address)
 }
 
-// wiktextractCommonsAudioURL resolves word to its Commons audio address through Phase 8's installed index, or a clear
+// wiktextractCommonsAudioURL resolves word to its Commons audio address through the installed Wiktextract index, or a clear
 // error. It never opens anything itself - PronunciationCommonsAudioOpen does that, once this has returned a trusted,
 // Commons-hosted address (the same defense-in-depth check PronunciationLookupOpen's fixed switch already gives that
 // binding, applied here since this address is built from data, not a compile-time literal).

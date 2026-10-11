@@ -1,4 +1,4 @@
--- The mastering port's DAW row (ADR 0306, render-encode-master PRD Phase 9): master_chain_read and render_with_fx
+-- The mastering port's DAW row (ADR 0306): master_chain_read and render_with_fx
 -- (narration_master_render.lua). master_chain_read lists the FX a render runs and changes nothing. render_with_fx is the
 -- bridge's one render: it renders named regions through the project's track and master FX, only with an approval the host
 -- was just given (used once), only into an empty folder the app made inside the project, never over a file, and puts the

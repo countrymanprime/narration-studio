@@ -17,7 +17,7 @@ func itemAt(t *testing.T, track Track, position float64) Item {
 	return Item{}
 }
 
-// The edit and proof workspace PRD Phase 1: TracksList sends where each item's
+// TracksList sends where each item's
 // active take starts in its source and how fast it plays, so a player can play
 // the item's played range instead of its whole file from 0.
 func TestAnItemSaysWhereItsActiveTakeStartsInTheSourceAndItsRate(t *testing.T) {

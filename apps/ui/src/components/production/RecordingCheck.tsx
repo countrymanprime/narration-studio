@@ -19,7 +19,7 @@ import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE, formatWhen, passLabel,
 
 type Refusal = Extract<CoverageStartResult, { status: 'refused' }>;
 type ModelRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
-/** The model cascade's own re-check gate (Phase 5, MC4): the same shape as ModelRequired, kept apart so the dialog
+/** The model cascade's own re-check gate: the same shape as ModelRequired, kept apart so the dialog
  * can offer "Check with tiny only" beside the download. */
 type RecheckRequired = Extract<CoverageStartResult, { status: 'recheck_asset_required' }>;
 
@@ -35,7 +35,7 @@ const WORK_PHASE: Record<CoverageState['phase'], WorkJob['phase']> = {
 function coverageWorkJob(state: CoverageState, logs: string[], now: number): WorkJob {
   const started = state.startedAt ? Date.parse(state.startedAt) : NaN;
   const ended = state.completedAt ? Date.parse(state.completedAt) : now;
-  // The model cascade's own pass, ahead of the sidecar's own message (Phase 5's "First pass (tiny)", then
+  // The model cascade's own pass, ahead of the sidecar's own message ("First pass (tiny)", then
   // "Re-checking 3 passages (large-v3-turbo)"): absent for a plain, single-model check.
   const pass = passLabel(state);
   return {
@@ -52,12 +52,12 @@ function coverageWorkJob(state: CoverageState, logs: string[], now: number): Wor
 
 /**
  * One chapter's recording check (docs/utilities/recording-coverage.md, ADR 0130): the stored result (current, stale or never, with
- * its reasons and the saved-project basis), the check itself on demand (never on its own, Q14) with real progress and Cancel in the shared
+ * its reasons and the saved-project basis), the check itself on demand (never on its own) with real progress and Cancel in the shared
  * work dialog, the Whisper model's first-use question when it is not installed (the download is never silent), and the chapter-track link
  * right in the panel when the check needs one.
  *
- * A slide-over, opened from the row's check-status cell (daw-chapter-track-auto-sync.prd.md Phase 6, S14, RS7, D26): retiring the row's own Check button left the summary needing a new home, and a slide-over leaves the table visible
- * beside it, the same choice chapter-track-link-control.prd.md made for the track panel.
+ * A slide-over, opened from the row's check-status cell (retiring the row's own Check button left the summary needing a new home, and a slide-over leaves the table visible
+ * beside it, as ChapterTrackPanel does).
  *
  * `coverage` is the live state the Production board follows, so a check that was left running in the background is picked up again here.
  * Mounted conditionally by the caller, same as the dialog it replaces (`{checking && <RecordingCheck .../>}`): a
@@ -77,7 +77,7 @@ export function RecordingCheck({
   notify: Notify;
   close: () => void;
   goToParagraph: (index: number) => void;
-  /** "Open in Proof" (edit-and-proof-workspace.prd.md Phase 4; Proof's chapter view):
+  /** "Open in Proof" (Proof's chapter view):
    * undefined when this dialog is itself opened from the workspace (WorkspacePage.tsx's own Check again), where
    * there is nothing to open. */
   openWorkspace?: () => void;
@@ -140,7 +140,7 @@ export function RecordingCheck({
       await start();
     },
   });
-  // The model cascade's own re-check model (Phase 5, MC4): the same asset-install flow as whisperInstall, for the
+  // The model cascade's own re-check model: the same asset-install flow as whisperInstall, for the
   // gate's "Download model" choice; "Check with tiny only" instead skips straight to start({skipRecheck: true}).
   const recheckInstall = useAssetInstall<WhisperInstallJob>({
     start: () => (recheckRequired ? api.whisperInstall(recheckRequired.model.id) : Promise.reject(new Error('Check a recording first.'))),
@@ -217,7 +217,7 @@ export function RecordingCheck({
   }
 
   if (recheckRequired) {
-    // MC4: the re-check model is not installed. "Check with tiny only" (the alternative) starts the check with the
+    // The re-check model is not installed. "Check with tiny only" (the alternative) starts the check with the
     // first pass alone, its result labelled as such by naming just the one model (recordingCheckText.recheckLabel).
     return (
       <AssetInstallPrompt
@@ -451,7 +451,7 @@ function ReasonBlock({
   );
 }
 
-/** The chapter-track link, confirmed right here (analysis evidence ledger PRD, Phase 7): the same prompt the Tracks page lists. */
+/** The chapter-track link, confirmed right here: the same prompt the Tracks page lists. */
 function TrackLink({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinked: () => Promise<void> }) {
   const api = useApi();
   const [tracks, setTracks] = useState<Track[]>();

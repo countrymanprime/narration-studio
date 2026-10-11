@@ -5,32 +5,29 @@
 
 ## Context
 
-`proofing-preview-suggestion.prd.md` Phase 8 ("pin, adjust and close-out", deleted once this phase merged, per
-`docs/operations/github-workflow.md`; its tracking issue is [#728](https://github.com/countrymanprime/narration-utils/issues/728))
-lets the narrator settle on one suggested window and keep it, then move its edges by paragraph (Q9, User Flow
-step 5). Three design questions had no single obviously-right answer and needed a decision before implementation
+The Proofing preview pin (tracking issue [#728](https://github.com/countrymanprime/narration-utils/issues/728))
+lets the narrator settle on one suggested window and keep it, then move its edges by paragraph. Three design questions had no single obviously-right answer and needed a decision before implementation
 (`apps/desktop/internal/preview/pin.go`, `store.go`, `rangeeval.go`; `bindings_preview_pin.go`):
 
-1. **How many pins?** Q9's own prose says "a pin per book", but the phase's own scope ("Narrator pin and edge
-   adjustment") could also read as one pin per chapter, matching how `Suggest` already answers one candidate per
-   chapter (Q12).
-2. **How is staleness detected?** The sibling `prepmarkup` package (prep-depth PRD Phase 5, ADR 0069) already
+1. **How many pins?** The brief was "a pin per book", but "narrator pin and edge adjustment" could also read as one
+   pin per chapter, matching how `Suggest` already answers one candidate per chapter.
+2. **How is staleness detected?** The sibling `prepmarkup` package (ADR 0069) already
    solves an adjacent problem - a narrator mark whose underlying text may have changed - with UTF-16 offset
    anchoring and a `nonSpaceStart` whitespace-tolerant re-check, because its marks are sub-paragraph spans.
 3. **Does a pinned-and-adjusted window follow the same rules Suggest uses to rank and gate its own three
-   candidates** (Q7's Sample hard-gate exclusion, Q12's one-per-chapter, three-candidate cap), or does settling on
+   candidates** (the Sample preset's hard-gate exclusion, the one-per-chapter, three-candidate cap), or does settling on
    one window take it out from under those rules entirely?
 
 ## Decision
 
 1. **One pin per book, not one per chapter.** `preview.PinStore` (`store.go`) holds a single `PinnedRange`;
-   `PreviewPinSet` replaces whatever was pinned before, in any chapter. This follows Q9's own words over the
-   phase-scope reading: "settling on a preview" (User Flow) describes one decision the narrator is making, the
+   `PreviewPinSet` replaces whatever was pinned before, in any chapter. This follows the "a pin per book" wording over the
+   per-chapter reading: "settling on a preview" describes one decision the narrator is making, the
    same way choosing which five minutes to share is a single choice, not one per chapter of the book.
 2. **Staleness is a plain per-paragraph text comparison, not prepmarkup's offset anchoring.** `PinnedRange`
    stores each pinned paragraph's whole text (`AnchorText map[string]string`) at pin (or last adjustment) time;
    `CheckStale` (`pin.go`) compares it, unchanged, against the paragraph's current text. A pin never covers part of
-   a paragraph (Q3: whole paragraphs only, inherited from `Suggest`'s own candidates), so there is no sub-paragraph
+   a paragraph (whole paragraphs only, inherited from `Suggest`'s own candidates), so there is no sub-paragraph
    offset to reconcile and no whitespace-tolerance rule to port from `prepmarkup` - "is this still the same text"
    is the whole question. `StaleTextChanged` (the paragraph is still there, reworded) and
    `StaleParagraphMissing` (the paragraph is gone, most often a re-import renumbering chapter and paragraph ids)
@@ -40,8 +37,8 @@ step 5). Three design questions had no single obviously-right answer and needed 
    pass, never a guess at which words replaced the old ones.
 3. **A pinned-and-adjusted window is scored by `EvaluateRange` (`rangeeval.go`), not by re-running `Suggest`.**
    `EvaluateRange` reuses `Suggest`'s own per-window building blocks (`windowCandidate`, `attachFindings`,
-   `attachAudioChecked`) so the evidence looks identical, but it is never subjected to Q12's one-candidate-cap or
-   Q7's Sample-preset hard-gate exclusion of windows with an open finding: those are ranking and gating rules for
+   `attachAudioChecked`) so the evidence looks identical, but it is never subjected to the one-candidate-per-chapter cap or
+   the Sample preset's hard-gate exclusion of windows with an open finding: those are ranking and gating rules for
    what `Suggest` *offers*, not limits on what the narrator may *keep* once they have already chosen. A narrator
    who pins a window Suggest would have hard-gated (an open finding inside it) still sees that finding as a
    warning - findings evidence is never suppressed - but the window itself is not silently replaced or refused.

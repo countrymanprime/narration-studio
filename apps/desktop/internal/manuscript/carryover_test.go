@@ -30,8 +30,7 @@ func importAlice(t *testing.T, service *Service, reset bool) string {
 
 // A confirmed replace clears the links (their chapter ids are gone) but carries
 // them, and the auto-links the narrator undid, into the new document's mapping
-// file, so chapter sync can re-link by title (daw-chapter-track-auto-sync PRD
-// Phase 2).
+// file, so chapter sync can re-link by title.
 func TestAReplacedManuscriptCarriesItsLinksForward(t *testing.T) {
 	project := t.TempDir()
 	service := New(project)

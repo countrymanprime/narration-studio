@@ -6,7 +6,7 @@
 
 ## Context
 
-`Dialog`, `ConfirmDialog`, `WorkDialog` and `AddNoteDialog` (built on `Dialog`) declared `aria-modal="true"` and were not modal: Escape did nothing, focus was neither moved in nor trapped nor restored, and the page behind stayed focusable and readable. It was the only high-severity entry in the retired UI defects register. The owner moved the mechanism to Base UI ([ADR 0047](0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md)), gave the foundation PRD ownership of dialog modality (implementation plan D4) and chose `AlertDialog` for every confirm and red confirm buttons for the six destructive ones (D12). The dialog PRD's recommendations for Escape, the backdrop and initial focus (its questions 3, 5 and 6) were adopted (D22).
+`Dialog`, `ConfirmDialog`, `WorkDialog` and `AddNoteDialog` (built on `Dialog`) declared `aria-modal="true"` and were not modal: Escape did nothing, focus was neither moved in nor trapped nor restored, and the page behind stayed focusable and readable. It was the only high-severity entry in the retired UI defects register. The owner moved the mechanism to Base UI ([ADR 0047](0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md)), made dialog modality part of the Base UI primitive work and chose `AlertDialog` for every confirm and red confirm buttons for the six destructive ones. Escape, the backdrop and initial focus are settled in the Decision below.
 
 What building it showed, beyond the spike in ADR 0047:
 
@@ -31,7 +31,7 @@ There is one modal shell, `apps/ui/src/components/primitives/Dialog.tsx`, on Bas
 ## Consequences
 
 - All four consumers inherit the same keyboard behaviour, and a new dialog is one `Dialog` with a story. The visible changes are the red confirm on the six destructive confirms, a focus ring on the message when a dialog opens from the keyboard or on load, the scrim covering the whole window on Home, and the guide text describing the keyboard behaviour.
-- Reduced motion for the indeterminate bar and a status line for jobs with no Cancel (the dialog PRD's phase 3) are not part of this decision; a job that cannot be cancelled has nothing focusable except the body and log regions, so focus is never lost, but the bar still slides under `prefers-reduced-motion`.
+- Reduced motion for the indeterminate bar and a status line for jobs with no Cancel are not part of this decision; a job that cannot be cancelled has nothing focusable except the body and log regions, so focus is never lost, but the bar still slides under `prefers-reduced-motion`.
 - Two dialogs that replace one another (the import flow: preparing, preview confirm, committing) each return focus to whatever held it when they mounted, which for the second is inside the first, so the last one falls back into `<main>` rather than the Import button.
 - `AddNoteDialog` is opened from the selection popup, which unmounts as the dialog mounts, so there is no opener to return to and focus goes into `<main>` (its first control) rather than back to the reader text. Returning it there needs the reader to be a focus target and is a follow-up.
 - A hover tooltip inside a dialog would close with Escape together with the dialog; no tooltip is inside a dialog today, and the tooltip phase handles it.

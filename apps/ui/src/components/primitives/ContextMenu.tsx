@@ -11,7 +11,7 @@ export type ContextMenuItem = {
 };
 
 // An area that opens a menu of actions at the pointer on a right click, a long press, or the keyboard's Menu key or
-// Shift+F10 (edit-and-proof-workspace.prd.md Phase 9, ADR 0705). It is `Menu`'s sibling: the same popup, the same items,
+// Shift+F10 (ADR 0705). It is `Menu`'s sibling: the same popup, the same items,
 // the same roles and keys, but opened by the area instead of a button. `onOpen` runs on the contextmenu event, before the
 // menu opens, so the caller can choose what the menu acts on (the word under the pointer) and the items reflect it. A menu
 // with no items leaves the browser's own menu alone. An item that cannot run says why instead of vanishing, and is not

@@ -56,23 +56,24 @@ func (s *Store) Effective(tool, key, fallback string) (string, string) {
 // effective default read back empty - most visibly the Settings color pickers,
 // which rendered #000000 for every color. store_test.go keeps the two in sync.
 var builtinDefaults = map[string]Values{
-	// notifications defaults on (D8: OS notifications on by default, opt-out in Settings, N2). debug_logging defaults
-	// off (docs/prds/tool-run-logging.prd.md Q1, ADR 0251): decision records are opt-in, on the Settings page or with
+	// notifications defaults on (OS notifications are on by default and opt-out in Settings,
+	// docs/architecture/native-notifications.md). debug_logging defaults
+	// off (ADR 0251): decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
 	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
-	// build_after_import defaults on (D8: build the Story Bible after import by default, B1-B3).
+	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	"ManuscriptGuide":   {"spacy_model": "en_core_web_sm", "build_after_import": "true"},
 	"Piper":             {"tts_provider": "piper", "tts_voice_id": "en_US-ljspeech-high"},
 	"Updates":           {"check_on_startup": "true", "channel": "candidates"},
 	"Manuscript":        {"color_note": "B85C1E"},
 	"TranscriptCompare": {"chunk_seconds": "60", "model_size": "small", "color_misread": "FF4040", "color_skipped": "FFC000", "color_extra": "40A0FF"},
 	"Teleprompter":      {"engine": "whisper", "model": "tiny", "punch_preroll_seconds": "3"},
-	// auto_start_launcher defaults off (owner decision D10): the spike that proved REAPER auto-runs a script
-	// argument (ADR 0092, W12) does not by itself decide whether the app should always do it.
-	// experimental_reaper_actions defaults off (owner decision D38): the bridge commands not yet verified in a real
+	// auto_start_launcher defaults off: the spike that proved REAPER auto-runs a script
+	// argument (ADR 0092) does not by itself decide whether the app should always do it.
+	// experimental_reaper_actions defaults off (ADR 0230): the bridge commands not yet verified in a real
 	// REAPER stay off until the narrator turns them on (internal/bridge/actions.go).
-	// capability.<name> is the narrator's per-capability toggle for the DAW port (ADR 0300, DAW port PRD P3): auto, on or off,
-	// defaulting auto, which is today's behaviour (on when Supported; when Experimental, on only while
+	// capability.<name> is the narrator's per-capability toggle for the DAW port (ADR 0300): auto, on or off, defaulting
+	// auto, which is today's behaviour (on when Supported; when Experimental, on only while
 	// experimental_reaper_actions is on). One row per dawport capability; dawport's toggles_test.go holds the rows to its catalog.
 	"DAW": {"auto_start_launcher": "false", "experimental_reaper_actions": "false",
 		"capability.review": "auto", "capability.navigate": "auto", "capability.markers": "auto", "capability.pickups": "auto",
@@ -85,41 +86,39 @@ var builtinDefaults = map[string]Values{
 		"capability.macro_render": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md, ADR 0132, Q15).
-	// background_checks defaults on (S7 B, D27): it only ever runs with the model installed, on mains power and while
+	// background_checks defaults on: it only ever runs with the model installed, on mains power and while
 	// REAPER is idle (coverage.NextBackground, ADR 0211).
-	// cascade_enabled defaults off (recording-check-model-cascade PRD Phase 5, MC1); the two model settings default
+	// cascade_enabled defaults off (MC1 in docs/utilities/recording-coverage.md); the two model settings default
 	// to tiny (first pass) and large-v3-turbo (re-check), MC2.
 	"RecordingCoverage": {
 		"min_paragraph_present": "0.8", "max_missing_run": "3", "max_misread_run": "8", "min_anchor_run": "3", "background_checks": "true",
 		"cascade_enabled": "false", "cascade_first_pass_model": "tiny", "cascade_recheck_model": "large-v3-turbo",
 	},
-	// StageRecommendations defaults every signal to required and suggestions on (chapter-stage-recommendations.prd.md
-	// Phase 6, Q8, deleted; see docs/architecture/stage-recommendations.md): a narrator who never opens this settings page keeps the behaviour Phase 1 shipped with (every declared
-	// signal id required).
-	// editing.empty_space/clicks/breaths default to required (Q5 option A: "it matches the product definition").
-	// Clicks and breaths can never actually be met while their detector is unvalidated (Phase 4 has not run), so
-	// this default means the editing stage cannot be recommended until either Phase 4 lands or the narrator sets
-	// editing.clicks/editing.breaths to "ignored" here - the documented cost of Q5's own recommendation, not a bug.
+	// StageRecommendations defaults every signal to required and suggestions on
+	// (docs/architecture/stage-recommendations.md): a narrator who never opens this settings page gets the engine's
+	// own behaviour, where every declared signal id is required. editing.empty_space, editing.clicks and
+	// editing.breaths default to required because all three belong to an edited chapter; the narrator can set
+	// editing.clicks or editing.breaths to "ignored" here to leave one out of the recommendation.
 	"StageRecommendations": {
 		"suggestions_enabled": "true", "recording.text_present": "required",
 		"editing.empty_space": "required", "editing.clicks": "required", "editing.breaths": "required",
-		// proofing.pickups is the always-required proofing signal (proofing-readiness-signals.prd.md Proposed Solution 1).
+		// proofing.pickups is the always-required proofing signal.
 		"proofing.pickups": "required",
 		// The proofing delivery checks default to required; each is required only while the project's delivery profile
 		// has a required rule for it (and the length check only while a tolerance is set), so this default blocks nothing
-		// the narrator has not limited (proofing-readiness-signals.prd.md Q7 B).
+		// the narrator has not limited.
 		"proofing.delivery.integrated_lufs": "required", "proofing.delivery.rms_dbfs": "required",
 		"proofing.delivery.sample_peak_dbfs": "required", "proofing.delivery.true_peak_dbtp": "required",
 		"proofing.delivery.noise_floor_dbfs": "required", "proofing.delivery.sample_rate": "required",
 		"proofing.delivery.duration_seconds": "required", "proofing.delivery.head_room_tone_seconds": "required",
 		"proofing.delivery.tail_room_tone_seconds": "required", "proofing.delivery.render_length": "required",
 	},
-	// TakeReview holds the pickup/duplicate detector's Q12 thresholds and
-	// Q3 scan-scope settings (internal/takereview), layered like every
+	// TakeReview holds the pickup/duplicate detector's thresholds and
+	// scan-scope settings (internal/takereview), layered like every
 	// other tool here. Thresholds mirror repeats.DefaultThresholds();
 	// pickup_track_name and the pickup_range pair are mutually exclusive
-	// narrator-designated additions to the chapter track's own items (Q3
-	// option B) and both default empty (no pickup scope beyond the
+	// narrator-designated additions to the chapter track's own items
+	// and both default empty (no pickup scope beyond the
 	// chapter track).
 	"TakeReview": {
 		"full_coverage_threshold":          "0.9",
@@ -128,22 +127,20 @@ var builtinDefaults = map[string]Values{
 		"pickup_range_start_seconds":       "",
 		"pickup_range_end_seconds":         "",
 	},
-	// Preview mirrors preview.DefaultSettings (proofing-preview-suggestion.prd.md Phase 4, Q1/Q2/Q4's own stated
-	// defaults): 5:00 target, 10% tolerance, the Sample preset, ending exclusion off.
+	// Preview mirrors preview.DefaultSettings (docs/architecture/preview-suggestion.md):
+	// 5:00 target, 10% tolerance, the Sample preset, ending exclusion off.
 	"Preview": {
 		"target_seconds":          "300",
 		"tolerance_fraction":      "0.1",
 		"preset":                  "sample",
 		"exclude_ending_fraction": "0",
 	},
-	// Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5, Open Question Q2): the narrator's remap
-	// changes from the input registry's default keymap, as a versioned JSON document of only the gestures that
-	// differ from the defaults. Empty bindings is the fresh-install default: every command keeps its shipped
-	// gesture until the narrator remaps it (Phase 6). Global scope only (Q3: a narrator's pedal belongs to the
-	// booth, not the book), enforced in apps/desktop/app.go's saveSettings.
+	// Keymap.overrides: the narrator's remap changes from the input registry's default keymap, as a versioned JSON
+	// document of only the gestures that differ from the defaults. Empty bindings is the fresh-install default: every
+	// command keeps its shipped gesture until the narrator remaps it. Global scope only (a narrator's pedal belongs
+	// to the booth, not the book), enforced in apps/desktop/app.go's saveSettings.
 	"Keymap": {"overrides": `{"version":1,"bindings":{}}`},
-	// Cleanup mirrors measure.DefaultCleanupOptions (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
-	// ADR 0238 decision 4): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings
+	// Cleanup mirrors measure.DefaultCleanupOptions (ADR 0238 decision 4): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings
 	// (apps/desktop/cleanup_settings.go). They are not a delivery specification, and every one can be changed here.
 	"Cleanup": {
 		"pad_seconds":            "0.15",

@@ -1,6 +1,6 @@
 package deliveryprofile
 
-// The Review page's delivery findings (delivery-platform-profiles.prd.md Phase 9, P12): the adapter that turns one
+// The Review page's delivery findings (ADR 0322): the adapter that turns one
 // measured file's rule results into the delivery_qc findings saved in the project's findings store, beside Transcript
 // Compare's and the Story Bible's. It mirrors those adapters: it only reads a judgement (EvaluateFile), never changes a
 // profile or a measurement, and never deletes a finding. The store alone decides a finding is resolved, by its id being

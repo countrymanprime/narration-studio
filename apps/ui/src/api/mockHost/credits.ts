@@ -18,8 +18,7 @@ import { type MockApiSeed, mockDocumentId, type MockState } from './state';
 import type { MockSettings } from './settings';
 
 // A JS mirror of apps/desktop/internal/credits.Render: `[Token]` placeholders resolved from `values`, and `{...}`
-// optional segments dropped whole (their own punctuation with them) when any token inside is unresolved (PRD
-// audiobook-credits-templates.prd.md, Open Questions C5/C6). Kept deliberately close to the Go renderer so the mock's
+// optional segments dropped whole (their own punctuation with them) when any token inside is unresolved. Kept deliberately close to the Go renderer so the mock's
 // preview behaves like the real one; it does not need to be the same implementation, only the same behavior.
 function renderMockCredits(template: string, values: Record<string, string>): CreditsRenderResult {
   const unresolved: string[] = [];
@@ -96,7 +95,7 @@ function resolveMockCreditValues(values: CreditValues, narratorGlobal: string): 
   };
 }
 
-// A JS mirror of apps/desktop/internal/credits.MeasureSample (Phase 5, ADR 0152): the range start..end of the paragraphs in
+// A JS mirror of apps/desktop/internal/credits.MeasureSample (ADR 0152): the range start..end of the paragraphs in
 // book order, its lines within each chapter, and its length at 9,300 words per finished hour, refused over 5 minutes.
 const MOCK_WORDS_PER_FINISHED_HOUR = 9300;
 const MOCK_MAX_RETAIL_SAMPLE_SECONDS = 300;
@@ -139,7 +138,7 @@ export function createCreditsMock(
   initial: MockApiSeed,
   { settings, manuscriptReady }: { settings: MockSettings; manuscriptReady: Promise<void> },
 ) {
-  // Mirrors apps/desktop/internal/credits' shipped defaults (PRD audiobook-credits-templates.prd.md, Phase 1) so a
+  // Mirrors apps/desktop/internal/credits' shipped defaults so a
   // mock session shows the same starting library as the real host.
   let creditTemplates: CreditTemplate[] = [
     {
@@ -238,7 +237,7 @@ export function createCreditsMock(
       candidates: detected,
     };
   };
-  // The credits text a teleprompter session reads (Phase 4, ADR 0150): the first template of the kind (ADR 0093), rendered
+  // The credits text a teleprompter session reads (ADR 0150): the first template of the kind (ADR 0093), rendered
   // as `creditsPreview` renders it, as the host's creditsScript does.
   const mockCreditsText = (kind: 'opening' | 'closing') => {
     const template = creditTemplates.find((item) => item.kind === kind);

@@ -1,4 +1,4 @@
--- Take creation: create_take (take-review-pickups-duplicates-take-intelligence.prd.md phase 6, ADR 0098).
+-- Take creation: create_take (ADR 0098).
 
 local H = require('harness')
 

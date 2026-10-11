@@ -1,8 +1,8 @@
--- Spike S6 (phase-6 reachability, project-workspace-and-daw-link PRD, W10/W12): reports what EnumProjects sees for
+-- Spike S6 (reachability): reports what EnumProjects sees for
 -- the active tab, and proves a periodic file-based heartbeat a Go host could poll for "REAPER is running, here is
 -- the open project" is viable without any native extension or socket.
 --
--- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
+-- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
 -- passed, and the audio device is closed. A script started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
@@ -23,7 +23,7 @@ local function write_file(name, contents)
   f:close()
 end
 
--- W10: what does EnumProjects(-1, '') report for the active tab?
+-- What does EnumProjects(-1, '') report for the active tab?
 local _, rpp = reaper.EnumProjects(-1, '')
 local is_saved = rpp ~= nil and rpp ~= ''
 local proj, projfn2 = reaper.EnumProjects(-1, '')
@@ -63,7 +63,7 @@ write_file(
     .. '\n'
 )
 
--- W10: a heartbeat a Go host could poll. In production this would be one line rewritten by reaper.defer every
+-- A heartbeat a Go host could poll. In production this would be one line rewritten by reaper.defer every
 -- ~1s (defer runs at REAPER's UI frame rate, far faster than needed); this spike proves the write/read shape with
 -- one snapshot instead of a real timer loop, since the driver expects the script to finish and signal "done".
 local function heartbeat_line()
@@ -88,7 +88,7 @@ for tick = 1, 3 do
   write_file('heartbeat.txt', heartbeat_line() .. '\n')
 end
 
--- W12: prove the running script can see it was launched together with a project (the -cfgfile "<project>"
+-- Prove the running script can see it was launched together with a project (the -cfgfile "<project>"
 -- "<script>" CLI form). If REAPER started this script with a project already open, EnumProjects must report it
 -- without any user action; that is exactly what a launcher-run-automatically-on-app-start flow needs.
 write_file(

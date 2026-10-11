@@ -7,14 +7,14 @@ import { defaultKeymap } from '../../input/keymap';
 import { CommandScope } from '../../input/router';
 import type { Scope } from '../../input/scopes';
 
-// Every command is listed here, not only the ones active on the screen that opened the sheet (Success Metrics: "every
-// catalog command is discoverable... 100% listed in Settings and in the '?' sheet"), grouped the same way the Phase 6
-// Keyboard & pedals category groups them (PRD user flow step 1). This order is display-only, unrelated to
+// Every command is listed here, not only the ones active on the screen that opened the sheet, so every catalog command
+// is discoverable in both Settings and the '?' sheet. Grouped the same way the Keyboard & pedals Settings category
+// groups them. This order is display-only, unrelated to
 // `SCOPE_PRIORITY` (router.tsx), which orders scopes by specificity for gesture lookup, not for reading.
 const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };
 
-// A resolved keyboard gesture's `code` is the physical key (PRD Q1), not the character it types, so it reads "Slash"
+// A resolved keyboard gesture's `code` is the physical key, not the character it types, so it reads "Slash"
 // rather than "?"; this is the one place in the app that turns a code back into a cap a narrator recognises.
 const NAMED_CODES: Record<string, string> = {
   ArrowLeft: '←',
@@ -49,7 +49,7 @@ function groupByScope(catalog: readonly CommandDescriptor[]): Partial<Record<Sco
   return groups;
 }
 
-// The "?" (Shift+Slash) shortcut sheet (input-commands-and-pedals.prd.md Phase 7): every command in the catalog,
+// The "?" (Shift+Slash) shortcut sheet: every command in the catalog,
 // grouped by scope, each with its bound gestures as Kbd chips. Its content claims the router's `dialog` scope
 // (ADR 0361 decision 4), the first feature to do so - while it is open, a `global` command like Back/Forward no
 // longer matches (`activeScopes`, router.tsx), the same way any other open dialog already stops them through

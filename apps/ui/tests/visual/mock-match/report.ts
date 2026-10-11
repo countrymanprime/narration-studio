@@ -1,5 +1,5 @@
-// The score table the pixel-match tool prints and writes (screenshots/mock-match/scores.md), in the shape the PRD's
-// baseline and every UI pull request's Mockup check use (mock, page/state, viewport, match %; a diagnostic, D97 on #509).
+// The score table the pixel-match tool prints and writes (screenshots/mock-match/scores.md), in the shape every UI pull
+// request's Mockup check uses (mock, page/state, viewport, match %; a diagnostic).
 
 /** The match of one region of the screen (mocks.ts `chromeRegions`). */
 interface RegionScore {

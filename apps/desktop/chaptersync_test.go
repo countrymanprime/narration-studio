@@ -15,9 +15,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Chapter sync's consent and first sync (daw-chapter-track-auto-sync PRD Phase 3, S1, S2, S12). The chapter-match
-// host is Alice's three chapters and a .rpp with a "Chapter I" track (a confident two-way match), two "Chapter II"
-// tracks (ambiguous) and none for Chapter III.
+// Chapter sync's consent and first sync. The chapter-match host is Alice's three chapters and a .rpp with a "Chapter I"
+// track (a confident two-way match), two "Chapter II" tracks (ambiguous) and none for Chapter III.
 
 type syncHost struct {
 	host   *Host
@@ -224,8 +223,8 @@ func TestSyncLinksNarrationChaptersOnly(t *testing.T) {
 	}
 }
 
-// ChapterSyncState's payloads, which chaptersync:state also carries (PRD Phase 3): asking for consent, and after the
-// first sync with its batch; and ChapterSyncPreview's plan.
+// ChapterSyncState's payloads, which chaptersync:state also carries: asking for consent, and after the first sync with
+// its batch; and ChapterSyncPreview's plan.
 func TestContractChapterSync(t *testing.T) {
 	f := newSyncHost(t, true)
 	folder := f.host.config.projectFolder

@@ -1,7 +1,6 @@
 // The Story Bible's findings adapter turns entities the narrator has not
 // finished reviewing into shared findings.Finding records without touching
-// the Story Bible itself (review-dashboard-and-findings-adoption.prd.md
-// Phase 3, Q7 option A). It only reads what Service.Entities already
+// the Story Bible itself. It only reads what Service.Entities already
 // normalizes; it never calls Edit, EditFields, Pronounce, Rescan, Merge,
 // Delete, Create, CreateFull, Relate or Unrelate, or any other sidecar
 // command that could change the guide file. A finding is never deleted
@@ -23,8 +22,7 @@
 //     pronunciation's confidence label is "low" or "unknown" (manuscript_
 //     guide.py's cmu/espeak/none tiers). An entity's aliases are not
 //     checked: the contract's occurrence evidence is the entity's own, and
-//     Q7 only asks about "unreviewed pronunciations", which the UI and the
-//     sidecar both key off the primary name.
+//     the UI and the sidecar both key pronunciations off the primary name.
 package guide
 
 import (
@@ -36,7 +34,7 @@ import (
 )
 
 // analyzerName is the Store partition this adapter's findings are saved
-// under (review-dashboard-and-findings-adoption.prd.md Q5).
+// under.
 const analyzerName = "story-bible"
 
 // scopeName is the single Store scope every Story Bible finding is saved
@@ -58,8 +56,8 @@ const (
 const reviewStateNeedsReview = "needs review"
 
 // BuildFindings converts entities (Service.Entities' normalized shape) into
-// findings.Finding records per Q7's two conditions. It performs no I/O and
-// calls nothing on Service: it is a pure read of the maps it is given, so a
+// findings.Finding records per the two conditions in the file comment. It
+// performs no I/O and calls nothing on Service: it is a pure read of the maps it is given, so a
 // caller cannot accidentally reach a mutating sidecar command through it.
 func BuildFindings(entities []map[string]any, project findings.Project) []findings.Finding {
 	var result []findings.Finding
@@ -160,11 +158,10 @@ func pronunciationScore(label string) (*float64, string, findings.Severity) {
 	return nil, "manuscript_guide.py could not generate a pronunciation for this name at all, so no numeric confidence is reported.", findings.SeverityWarning
 }
 
-// manuscriptFor carries the entity's own evidence (Architecture Notes:
-// "evidence excerpts and chapter carried from occurrences"), anchored to its
-// first occurrence. Manuscript.Expected is the entity's name rather than
-// docText/audioText (findings have no recorded audio: Phase 3's scope note,
-// "findings have no time range or source by design"); the excerpt is
+// manuscriptFor carries the entity's own evidence (the excerpt and chapter come
+// from its occurrences), anchored to its first occurrence. Manuscript.Expected
+// is the entity's name rather than docText/audioText (findings have no
+// recorded audio, time range or source by design); the excerpt is
 // returned separately for Evidence, since the contract reserves
 // Manuscript.Recorded for what was actually heard, not manuscript prose.
 func manuscriptFor(entity map[string]any, name string) (manuscript *findings.Manuscript, excerpt string) {

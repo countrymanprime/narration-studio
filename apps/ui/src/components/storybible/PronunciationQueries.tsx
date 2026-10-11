@@ -34,7 +34,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 
 const queryKey = (row: PronunciationQuery) => `${row.entityId}:${row.aliasIndex ?? ''}`;
 
-// The pronunciation queries (prep-depth P3): every name whose pronunciation the author has not confirmed, in reading order. Export saves
+// The pronunciation queries: every name whose pronunciation the author has not confirmed, in reading order. Export saves
 // them as CSV to send to the author; Mark sent and Mark answered set a row's status, and an answered row leaves the list. The list is
 // the host's (derived from the Story Bible on every read), so it is loaded when the panel opens and after each change.
 export function PronunciationQueries({ open, onClose, onChanged, notify }: { open: boolean; onClose: () => void; onChanged: () => void; notify: Notify }) {
@@ -98,7 +98,7 @@ export function PronunciationQueries({ open, onClose, onChanged, notify }: { ope
       }
     });
 
-  // Q11: a batch online lookup is opt-in with a notice naming how many words it sends; the host refuses a batch whose confirmed count
+  // A batch online lookup is opt-in with a notice naming how many words it sends; the host refuses a batch whose confirmed count
   // is not that number, so the notice and the request are counted by the same rule (pronunciationOnlineWords.ts).
   const online = onlineBatchWords((rows ?? []).map((row) => row.name));
   const lookUpOnline = () =>

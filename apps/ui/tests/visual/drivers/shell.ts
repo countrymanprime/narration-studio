@@ -3,7 +3,7 @@ import { settlePage } from '../helpers/settle';
 import { type Driver, clickVisible, goToPage, productionLoaded, PAGE_HEADING } from './shared';
 
 export const shellDrivers: Record<string, Driver> = {
-  // app-navigation-and-zoom-controls.prd.md Phase 1: after one in-app move, Back is enabled and Forward
+  // After one in-app move, Back is enabled and Forward
   // is not (the default states already show both disabled at the first page, so they need no row here).
   'history-enabled': async (page) => {
     // Story Bible, not Script: reaching any page by one nav click also enables Back there, so without a further
@@ -24,23 +24,22 @@ export const shellDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Back');
     await page.getByRole('heading', { level: 1, name: PAGE_HEADING.Production, exact: true }).waitFor();
   },
-  // stage-navigation-and-page-replacement.prd.md Phase 1 (Q7): the UI-only "Built-in recorder" state, reachable only
-  // through the mock flag since nothing on the host selects it yet.
+  // The "Built-in recorder" state, reached through the mock flag (?mockEngine=builtin).
   'engine-builtin': async (page) => {
     await page.goto('/?mockEngine=builtin');
     await settlePage(page);
     await productionLoaded(page);
     await page.getByLabel('Built-in recorder').waitFor();
   },
-  // Phase 1: the header's mismatch state, simulating a live REAPER heartbeat whose open project disagrees with the
-  // linked file (Phase 7, ADR 0092) - the mock never grows one on its own (see main.tsx).
+  // The header's mismatch state, simulating a live REAPER heartbeat whose open project disagrees with the
+  // linked file (ADR 0092) - the mock never grows one on its own (see main.tsx).
   'engine-mismatch': async (page) => {
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await productionLoaded(page);
     await page.getByRole('button', { name: /Wrong REAPER project open/ }).waitFor();
   },
-  // Phase 2: the zoom group at a non-100% level (?mockZoom=125), so the enabled readout, Zoom out and reset can be
+  // The zoom group at a non-100% level (?mockZoom=125), so the enabled readout, Zoom out and reset can be
   // seen without driving Ctrl+wheel or a click first.
   'zoom-level': async (page) => {
     await page.goto('/?mockZoom=125');

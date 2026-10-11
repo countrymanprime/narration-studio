@@ -1,9 +1,9 @@
-// Package credentialstore keeps the narrator's own secrets at rest (ADR 0405 Q10, ADR 0356): today exactly one, the
-// Merriam-Webster Dictionary API key (prep-depth.prd.md Phase 9). It is the first secret this app stores.
+// Package credentialstore keeps the narrator's own secrets at rest (ADR 0405, ADR 0356): today exactly one, the
+// Merriam-Webster Dictionary API key. It is the first secret this app stores.
 //
 // A secret lives in its own per-user file (credentials.json beside the settings and the recents list), never in the
 // settings file, so no settings export, diagnostics copy or project file can carry it. On Windows, the one supported
-// platform (D74), each value is sealed with DPAPI (CryptProtectData, current-user scope) and only ever unsealed in
+// platform (ADR 0412), each value is sealed with DPAPI (CryptProtectData, current-user scope) and only ever unsealed in
 // memory, for the length of one request. On any other platform the value is kept in the clear, and ProtectedAtRest
 // says so for the Settings page to show.
 //

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The pronunciation queries panel (prep-depth P3): the host's list in reading order, a filter, Export CSV as a download, and Mark sent /
+// The pronunciation queries panel: the host's list in reading order, a filter, Export CSV as a download, and Mark sent /
 // Mark answered, after which the list is loaded again and an answered row is gone.
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -152,7 +152,7 @@ describe('the pronunciation queries panel', () => {
   });
 });
 
-// Q11 (prep-depth P9): a batch online lookup is opt-in with a notice naming how many names it sends, once per batch.
+// A batch online lookup is opt-in with a notice naming how many names it sends, once per batch.
 describe('looking every query up online', () => {
   const rows = [
     query({}),

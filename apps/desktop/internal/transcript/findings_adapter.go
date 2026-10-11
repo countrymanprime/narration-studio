@@ -1,7 +1,6 @@
 // Transcript Compare's findings adapter turns one run's discrepancy rows
 // into shared findings.Finding records without touching compare.py, the
-// marker protocol, or the Lua bridge (review-dashboard-and-findings-
-// adoption.prd.md Phase 2). It reads two things Go already has:
+// marker protocol, or the Lua bridge. It reads two things Go already has:
 //
 //   - the bridge-built rows kept in Service.state["rows"] (docText/
 //     audioText, project-relative time, chapter title, global paragraph
@@ -38,8 +37,8 @@ const analyzerName = "transcript-compare"
 // for readers that roll them up (apps/desktop/internal/proofing).
 const AnalyzerName = analyzerName
 
-// The row keys holding the REAPER identity COMPARE_MARKER carries after srcpos (review-dashboard PRD Phase 6): the item,
-// take and track GUIDs as they were when the comparison was prepared. Host-only: Service.snapshotLocked drops them.
+// The row keys holding the REAPER identity COMPARE_MARKER carries after srcpos: the item, take and
+// track GUIDs as they were when the comparison was prepared. Host-only: Service.snapshotLocked drops them.
 const (
 	rowItemGUID  = "itemGuid"
 	rowTakeGUID  = "takeGuid"
@@ -48,14 +47,12 @@ const (
 
 // timingToleranceSeconds quantizes project time before it enters
 // EvidenceVersion, so ASR-model jitter under the tolerance does not reset a
-// narrator's decision. The PRD's Q2 marks the tolerance value itself
-// "TBD - needs research on real timing jitter between models"; this is a
-// provisional default, not a tuned threshold, and is called out as such in
-// the phase 2 PR.
+// narrator's decision. The value is a provisional default, not a threshold
+// tuned against real timing jitter between models.
 const timingToleranceSeconds = 1.0
 
 // ManuscriptLookup resolves what the adapter needs from the manuscript to
-// anchor a finding's id (PRD Q2): the chapter id for a Transcript Compare
+// anchor a finding's id: the chapter id for a Transcript Compare
 // chapter title, and the paragraph id for a chapter's global paragraph
 // index. Both report ok=false when nothing matches, so the adapter falls
 // back to the raw title/index rather than fail the whole run.
@@ -74,7 +71,7 @@ type markerEvidence struct {
 
 // BuildFindings converts one run's bridge-built discrepancy rows into
 // findings.Finding records, grouped by the store scope each belongs in
-// (findings.Store partitions by analyzer and chapter, PRD Q5, so re-running
+// (findings.Store partitions by analyzer and chapter, so re-running
 // one chapter never touches another's saved findings). resultsPath is this
 // run's results_<run>.txt (confidence and timing_gap_seconds only);
 // manifestPath is this run's manifest_<run>.txt (source file identity only)
@@ -219,12 +216,10 @@ func scopeFor(chapterID string) string {
 	return "title-" + hex.EncodeToString(hash[:8])
 }
 
-// severityFor is a provisional mapping: the PRD's Architecture Notes say
-// "Severity mapping for the three kinds is TBD - needs a user decision
-// during phase 2 planning." MISREAD and SKIPPED both usually mean the line
+// severityFor is a provisional mapping, not an owner-ruled one. MISREAD and SKIPPED both usually mean the line
 // needs a fresh take; EXTRA (extra recorded words, nothing missing or wrong)
 // is sometimes a deliberate ad-lib, so it starts at info rather than
-// warning. Called out for owner review in the PR that adds this file.
+// warning.
 func severityFor(kind string) findings.Severity {
 	if kind == "EXTRA" {
 		return findings.SeverityInfo
@@ -236,8 +231,8 @@ func severityFor(kind string) findings.Severity {
 // numeric 0-1 confidence, honestly reporting "unknown" as no score at all
 // (findings-contract.md: an analyzer "must identify uncertain or
 // unavailable evidence rather than fabricate a score"). The three numeric
-// points are an ordering, not a probability, and provisional pending the
-// PRD's own "needs research" note on Q2.
+// points are an ordering, not a probability, and provisional until tuned against
+// real timing data.
 func confidenceScore(label string) (*float64, string) {
 	switch label {
 	case "high":
@@ -254,7 +249,7 @@ func confidenceScore(label string) (*float64, string) {
 func floatPointer(v float64) *float64 { return &v }
 
 // evidenceVersion hashes the audio-side evidence a review decision is made
-// against (PRD Q2/Q3: recorded text, source file identity, timing beyond a
+// against (recorded text, source file identity, timing beyond a
 // tolerance), separately from the manuscript-anchored id, so a re-recorded
 // line that now says something different resets review even though its id
 // (chapter/paragraph/kind/expected text) has not changed. sourceFile being

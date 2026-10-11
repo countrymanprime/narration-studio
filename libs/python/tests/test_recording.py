@@ -1,4 +1,4 @@
-"""The built-in recorder's core (native-recording-suite P1, ADR 0357): WAV writing, framing, metering and the recorder's
+"""The built-in recorder's core (ADR 0357): WAV writing, framing, metering and the recorder's
 dropout accounting, all against synthetic input, so none of it needs a device."""
 
 import math

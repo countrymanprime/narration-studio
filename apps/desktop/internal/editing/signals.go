@@ -1,11 +1,12 @@
-// This file is Phase 6 of docs/prds/editing-readiness-analysis.prd.md: the
-// three tri-state signals, in the shape chapter-stage-recommendations.prd.md
-// defines (apps/desktop/internal/stages). It mirrors
+// This file holds the three tri-state signals, in the shape the stage
+// recommendations contract defines (apps/desktop/internal/stages,
+// docs/architecture/stage-recommendations.md, ADR 0160). It mirrors
 // apps/desktop/internal/coverage/signal.go's own split: a pure decision
 // function (EmptySpaceSignal) over an already-gathered ChapterCoverage
-// (provider.go does the gathering, reading stored evidence only - Q12: "A
-// provider reads existing evidence only... must not decode audio"), so the
-// signal rule itself is unit-testable with no file, cache or ledger at all.
+// (provider.go does the gathering, reading stored evidence only and never
+// decoding audio), so the signal rule itself is unit-testable with no file,
+// cache or ledger at all.
+
 package editing
 
 import (
@@ -25,7 +26,7 @@ const (
 	BreathSignalID     = "editing.breaths"
 )
 
-// MappingState is what the chapter's confirmed-track mapping (D5) looks
+// MappingState is what the chapter's confirmed-track mapping looks
 // like, gathered by the provider before anything else is checked: an
 // unmapped or multiply-mapped chapter, or one whose mapped track no longer
 // exists in the saved project, can never reach met or not_met - there is no
@@ -39,8 +40,8 @@ const (
 	MappingTrackMissing MappingState = "mapped_track_missing"
 )
 
-// ItemCoverage is one analyzable item's own staleness (EL Phase 6's
-// per-item comparison, ledger.go's CurrentItemRecord): never analyzed,
+// ItemCoverage is one analyzable item's own staleness (the per-item
+// comparison in ledger.go's CurrentItemRecord): never analyzed,
 // stale (with typed reasons), or current.
 type ItemCoverage struct {
 	GUID    string
@@ -55,34 +56,30 @@ type ItemCoverage struct {
 // whether there is at least one analyzable item at all.
 type ChapterCoverage struct {
 	Mapping            MappingState
-	Unconfirmed        bool // an unconfirmed fuzzy match exists (D5); only meaningful when Mapping is MappingUnmapped
+	Unconfirmed        bool // an unconfirmed fuzzy match exists; only meaningful when Mapping is MappingUnmapped
 	Items              []ItemCoverage
 	UnsupportedReasons []UnknownReason
 	HasAnalyzableItems bool
 }
 
 // CandidateStatus is one composed empty-space candidate's open/closed state
-// (D9: dismissed is the only status that is not open) and, for an open one,
-// the evidence entry a narrator would see for it (chapter-stage-
-// recommendations.prd.md Phase 7: "evidence lists remaining candidates -
-// time range, class, confidence and reason").
+// (dismissed is the only status that is not open) and, for an open one, the
+// evidence entry a narrator would see for it (time range, class, confidence
+// and reason).
 type CandidateStatus struct {
 	Open     bool
 	Evidence stages.Evidence
 }
 
-// processedAudioCaveat is chapter-stage-recommendations.prd.md Phase 7's own
-// evidence entry, carried on every editing signal regardless of its state:
-// this package analyzes the source audio (editing-readiness-analysis.prd.md
-// Architecture Notes), so what REAPER's take FX, item gain and fades apply
+// processedAudioCaveat is an evidence entry carried on every editing signal
+// regardless of its state: this package analyzes the source audio, so what REAPER's take FX, item gain and fades apply
 // at playback can differ from what a candidate here reports.
 func processedAudioCaveat() stages.Evidence {
 	return stages.Evidence{Kind: "caveat", Label: "Caveat", Value: "Analysis of source audio; take FX, item gain and fades are not applied."}
 }
 
-// itemsSourceEvidence and renderSourceEvidence are Q6's own requirement,
-// Phase 8 of editing-readiness-analysis.prd.md: "the evidence names which
-// [source] was analyzed", for both choices, not only the render one. Every
+// itemsSourceEvidence and renderSourceEvidence name which source was
+// analyzed (ADR 0550), for both choices, not only the render one. Every
 // editing signal carries exactly one of these, always, whatever its state -
 // EmptySpaceSignal (the item path, below), RenderEmptySpaceSignal
 // (render_signal.go), ClassSignal (validation.go, the item path's click and
@@ -106,9 +103,9 @@ type EmptySpaceInput struct {
 	ComputedAt time.Time
 }
 
-// EmptySpaceSignal is the pure empty-space signal (D2): met only when the
+// EmptySpaceSignal is the pure empty-space signal: met only when the
 // mapping is confirmed, every analyzable item's own record is current, no
-// item is unsupported, a maximum gap is actually set (Q2), and no open
+// item is unsupported, a maximum gap is actually set, and no open
 // candidate remains; not_met when an open candidate remains; unknown, with a
 // cause, for everything else. The same input always gives the same signal.
 func EmptySpaceSignal(in EmptySpaceInput) stages.Signal {

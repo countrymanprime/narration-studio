@@ -2,15 +2,15 @@
 
 **Status:** Proposed
 **Date:** 2026-09-26
-**Supersedes:** none. It fills in the shapes [ADR 0300](0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md) left open. The DAW port PRD (PRD deleted, delivered) asks Phase 1 to check its capability table against the code before freezing it.
+**Supersedes:** none. It fills in the shapes [ADR 0300](0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md) left open. Its capability table was checked against the code before it was frozen.
 
 ## Context
 
-ADR 0300 names the role interfaces but not what goes through them. Phase 1 (`apps/desktop/internal/dawport`) had to settle four things.
+ADR 0300 names the role interfaces but not what goes through them. Building the port (`apps/desktop/internal/dawport`) meant settling four things.
 
-- **The types a role exchanges.** Today's callers pass `bridge.Target`, `bridge.TrackState`, `tracks.Project` and so on. Neutral copies of those types would mean converting in every adapter and in every consumer that moves onto a role. The P5 migrations are meant to change constructors only.
+- **The types a role exchanges.** Today's callers pass `bridge.Target`, `bridge.TrackState`, `tracks.Project` and so on. Neutral copies of those types would mean converting in every adapter and in every consumer that moves onto a role. Moving callers onto roles is meant to change constructors only.
 - **The shape of the services' roles.** Pickups, line identity, render config, cleanup tools, retake lanes, project state and take creation don't call typed methods. They call `client.Send("<command>", fields)` and then read the answer from events. A role that exposed `Send` would leak REAPER's command names into every engine.
-- **Three rows the PRD left open.** Its table folds retake lanes and project state into other rows "or their own rows if P1 finds they differ", and it has no row for cleanup tools.
+- **Three rows ADR 0300's table left open.** It folded retake lanes and project state into other rows, and had no row for cleanup tools.
 - **Which capabilities need a running engine.** The heartbeat is what reports whether the engine is answering, so it can't require one. `.rpp` parsing works with REAPER closed.
 
 ## Decision
@@ -40,12 +40,12 @@ ADR 0300 names the role interfaces but not what goes through them. Phase 1 (`app
 ## Consequences
 
 **Easier:**
-- The REAPER adapter (P2) is mostly a table of the existing types.
-- The P5 migrations keep their types and tests.
+- The REAPER adapter is mostly a table of the existing types.
+- Moving callers onto roles keeps their types and tests.
 - A refusal always carries a sentence.
 
 **Harder:**
-- `dawport` imports `bridge` for the aliases, so the port isn't engine-neutral at the type level yet. The boundary test (P6) forbids holding `*bridge.Client` or `*bridge.Actions`. It doesn't forbid naming a bridge value type through an alias.
+- `dawport` imports `bridge` for the aliases, so the port isn't engine-neutral at the type level yet. The boundary test forbids holding `*bridge.Client` or `*bridge.Actions`. It doesn't forbid naming a bridge value type through an alias.
 - Each async role's methods must be kept in step with the Lua command's fields.
 
 **Overriding this:** a new ADR is needed to replace the aliases with neutral types across the port, or to give a role a transport-level `Send`. Adding a capability row does not need one.

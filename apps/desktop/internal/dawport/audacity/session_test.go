@@ -75,8 +75,7 @@ func TestWriteLabelFile(t *testing.T) {
 	}
 }
 
-// Importing findings creates one label each on the "Narration Utils" track; importing them again adds nothing (PRD Phase 6's
-// success signal).
+// Importing findings creates one label each on the "Narration Utils" track; importing them again adds nothing.
 func TestImportFindingsIsIdempotent(t *testing.T) {
 	session, server := newSession(t)
 	server.With(func(p *abt.Project) {
@@ -151,7 +150,7 @@ func TestImportRecognisesReviewedAndRefusesBadInputUpFront(t *testing.T) {
 	}
 }
 
-// Marking reviewed rewrites the label in place (PRD Phase 7): its place, even after the narrator moved it, and its words are kept,
+// Marking reviewed rewrites the label in place: its place, even after the narrator moved it, and its words are kept,
 // and no second label appears.
 func TestMarkReviewedRewritesInPlace(t *testing.T) {
 	session, server := newSession(t)
@@ -396,7 +395,7 @@ func TestExportChapter(t *testing.T) {
 	}
 	path, err := session.ExportChapter(ctx, folder, "Chapter 1: The \"Start\"", 10, 300)
 	if runtime.GOOS != "windows" {
-		// Audacity is Windows-only here (D74): a path that is not on a drive is refused before it reaches the pipe.
+		// Audacity is Windows-only here: a path that is not on a drive is refused before it reaches the pipe.
 		if !errors.Is(err, audacitybridge.ErrInvalidValue) {
 			t.Fatalf("a non-Windows path: %v", err)
 		}

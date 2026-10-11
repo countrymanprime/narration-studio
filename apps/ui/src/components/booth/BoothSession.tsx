@@ -32,9 +32,9 @@ const NO_DISMISSED: ReadonlySet<number> = new Set();
 type Dismissal = { script: TeleprompterScript | null; ids: ReadonlySet<number> };
 
 /**
- * What the Booth reads: a manuscript chapter, or the opening/closing credits (manuscript-credits-card-parity.prd.md
- * Phase 2, superseding the clause of ADR 0150 that kept them out of the read-aloud dialog). `preview` is the credits'
- * `CreditsRenderResult`, so the Booth renders nothing it has to fetch again.
+ * What the Booth reads: a manuscript chapter, or the opening/closing credits (ADR 0260, which supersedes the clause of
+ * ADR 0150 that kept them out of the read-aloud dialog). `preview` is the credits' `CreditsRenderResult`,
+ * so the Booth renders nothing it has to fetch again.
  */
 export type BoothSource =
   { kind: 'chapter'; chapter: Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle'> } | { kind: 'credits'; credits: CreditsKind; preview: CreditsRenderResult };
@@ -49,7 +49,7 @@ type Props = {
   setup?: ReactNode;
   /** Leaves the Booth (Exit booth, or Escape), once a live session has been stopped with the narrator's consent. */
   onExit: () => void;
-  /** The credits' C6 warning's "Fill them in Settings": only ever shown, and only ever called, in credits mode. */
+  /** The credits' unresolved-token warning's "Fill them in Settings": only ever shown, and only ever called, in credits mode. */
   onFixCredits?: () => void;
 };
 
@@ -70,8 +70,8 @@ const byReadingOrder = (a: ManuscriptNote, b: ManuscriptNote): number => a.parag
  * One reading session in the Booth (replacing the Read aloud
  * dialog, its booth layout and the Teleprompter page): the one `useTeleprompterSession` mount (booth mode's risk: never
  * two subscriptions), the rail and its marks, the suspected flags and keeping them as findings (`useKeptFlags`, ADR
- * 0117), the resume prompt and Record in REAPER (read-aloud-control-bar.prd.md Phase
- * 7). `BoothPage` mounts it keyed by what it reads, so a new chapter starts a clean session state.
+ * 0117), the resume prompt and Record in REAPER. `BoothPage` mounts it keyed by what it reads, so a new
+ * chapter starts a clean session state.
  *
  * It is laid out by `BoothView` (mock 03) or, in companion mode (entered from the Booth's header, ADR 0401), by
  * `CompanionShell`, whose "Full app" (or a double Escape) comes back here with the same session still running.
@@ -82,7 +82,7 @@ const byReadingOrder = (a: ManuscriptNote, b: ManuscriptNote): number => a.parag
  */
 export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES, setup, onExit, onFixCredits }: Props) {
   const [mode, setMode] = useState<'booth' | 'companion'>('booth');
-  // F11 is the whole window's fullscreen, in the Booth only (owner call BO2): the companion is a narrow panel beside the DAW.
+  // F11 is the whole window's fullscreen, in the Booth only: the companion is a narrow panel beside the DAW.
   useFullscreenKey(mode === 'booth');
   const isCredits = source.kind === 'credits';
   const chapter = source.kind === 'chapter' ? source.chapter : undefined;
@@ -91,15 +91,15 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
     chapter,
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
   });
-  // Scrolling by hand pauses following until the current word is back in the band or Follow is pressed (engines PRD
-  // Phase 10); shared by the text and the command bar's Follow button.
+  // Scrolling by hand pauses following until the current word is back in the band or Follow is pressed;
+  // shared by the text and the command bar's Follow button.
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
   // One capability subscription and one Play/Stop orchestrator for the command bar's toggle and this Booth's own "Stop
-  // reading?" confirm (read-aloud-control-bar.prd.md Phase 7, booth-actions-enablement.prd.md Phase 2). Credits have no
-  // chapter track: every method that would touch REAPER checks for a chapter id first and no-ops without one.
+  // reading?" confirm. Credits have no chapter track:
+  // every method that would touch REAPER checks for a chapter id first and no-ops without one.
   const record = useCapability('record');
   const recording = useRecordInReaper(chapter?.id, record.available);
-  // The built-in recorder (native-recording-suite Phase 2, ADR 0455), for a project that records with it instead of REAPER.
+  // The built-in recorder (ADR 0455), for a project that records with it instead of REAPER.
   const recorder = useRecorder();
   const chapterTitle = source.kind === 'chapter' ? chapterName(source.chapter, 'full') : CREDITS_LABEL[source.credits];
   // What Stop-and-continue does once the live session has stopped: leave the Booth, or leave for Settings (credits'
@@ -107,7 +107,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
   const [confirmStop, setConfirmStop] = useState<'exit' | 'settings' | null>(null);
   const [rail, setRail] = useState<RailState>(loadRailState);
   const [selected, setSelected] = useState<ReaderMarkTarget>();
-  // The resume prompt's chosen quote (read-aloud-control-bar.prd.md Phase 3's start-point chip), alongside the session's
+  // The resume prompt's chosen quote (the control bar's start-point chip), alongside the session's
   // own `startWord`; cleared together with it (see the active/inactive effect below). Chapter mode only.
   const [startLabel, setStartLabel] = useState<string>();
   const { paragraphs, rows } = session;
@@ -121,7 +121,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
   const shownFlags = useMemo(() => visibleFlags(flags, visibility, dismissed), [flags, visibility, dismissed]);
   const marks = useMemo(() => withMarks(storyMarks, flagMarks(rows, shownFlags)), [storyMarks, rows, shownFlags]);
   const chapterEntities = useMemo(() => markedEntities(storyMarks), [storyMarks]);
-  // Speaker tags in the text's gutter (mock 03, audit BO4): prep-depth's speaker attribution, from the same recorded cues
+  // Speaker tags in the text's gutter (mock 03): the speaker attribution, from the same recorded cues
   // and the same label rule as the Script reader (`dialogueCues.ts`), so both readers name the same speakers.
   const speakerLabels = useMemo(() => {
     const labels = new Map<string, string>();
@@ -168,7 +168,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
   }, [session.active, keep, setStartWord]);
 
   // A dismissal during a session is kept with the rest when the session ends; after it has ended, it is kept at once, so the
-  // finding is dismissed in the store rather than deleted (ADR 0117). Credits: keepFlags.keep is a no-op (MC8 a).
+  // finding is dismissed in the store rather than deleted (ADR 0117). Credits: keepFlags.keep is a no-op (ADR 0260).
   const dismiss = (flag: TeleprompterFlag) => {
     const ids = new Set([...dismissed, flag.id]);
     setDismissal({ script, ids });
@@ -243,8 +243,9 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
     />
   );
   // The resume prompt sits in the text column's header slot, mounted for this
-  // session's whole life so it settles once (on a choice or a session starting) and stays gone. Credits (MC9) have no
-  // chapter to look up a track for, so the C6 warning takes this slot instead - and only while a token is unresolved.
+  // session's whole life so it settles once (on a choice or a session starting) and stays gone. Credits have no
+  // chapter to look up a track for, so the unresolved-token warning takes this slot
+  // instead - and only while a token is unresolved.
   const header =
     source.kind === 'chapter' ? (
       <ResumePrompt
@@ -261,7 +262,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
     ) : undefined;
 
   return (
-    // Booth scope (input-commands-and-pedals.prd.md Phase 4): `reading.toggle` (Space) resolves here ahead of `global`.
+    // Booth scope: `reading.toggle` (Space) resolves here ahead of `global`.
     <CommandScope kind="booth">
       {mode === 'companion' ? (
         <CompanionShell
@@ -330,7 +331,7 @@ export function BoothSession({ source, entities = NO_ENTITIES, notes = NO_NOTES,
  * session ended. Saving is idempotent on the host (a repeat is one finding, a dismissal is recorded once), so saving again is
  * safe. A flag an earlier session already dismissed with the same heard text comes back dismissed and is hidden here too.
  *
- * `chapterId: null` is the credits mode of the Booth (manuscript-credits-card-parity.prd.md, Phase 2, MC8 a): there is no
+ * `chapterId: null` is the credits mode of the Booth (ADR 0260): there is no
  * chapter id to keep a finding against, so `keep` never calls the host and the state starts (and stays) `not-kept`.
  */
 function useKeptFlags(

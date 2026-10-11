@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The Production page's status report export (production-tracking.prd.md Phase 5): the host builds it from exactly
+// The Production page's status report export (ProductionStatusReport): the host builds it from exactly
 // the overview and plan ProductionOverview just answered, and writes it into the project's own
 // narration-utils/production/reports folder, never over an earlier report.
 

@@ -6,7 +6,7 @@ The recorder writes as it captures, so the file on disk is a readable WAV at eve
   crash or a power cut leaves a file that plays up to the last patch (at most that many seconds short).
 - ``close()`` patches it once more with the final sizes and syncs the file. It is idempotent, and the context manager
   calls it on an exception too: a take that ends in an error is still a valid file of what was captured before it.
-- The file is created with ``open(path, "xb")``: a take never overwrites an existing file (PRD Q5, D86), so a name that
+- The file is created with ``open(path, "xb")``: a take never overwrites an existing file, so a name that
   is already taken raises ``FileExistsError`` before any audio is written.
 - A RIFF file cannot hold more than 4 GiB. A write that would pass that writes the whole frames that still fit, closes
   the file cleanly and raises ``WavFullError`` (at 48 kHz, 24-bit mono that is over eight hours).
@@ -120,7 +120,7 @@ class WavWriter:
         self.frames_written = 0
         self._patch_every = max(1, int(header_interval * sample_rate))
         self._since_patch = 0
-        self._file = open(self.path, "xb")  # noqa: SIM115 - held open for the take, closed by close(); never overwrites (PRD Q5)
+        self._file = open(self.path, "xb")  # noqa: SIM115 - held open for the take, closed by close(); never overwrites
         try:
             self._file.write(_header(sample_rate, channels, bits, 0))
             self._file.flush()

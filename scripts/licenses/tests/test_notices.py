@@ -1,6 +1,6 @@
 """The third-party notices: what ships, under which licence, and the text that goes with it.
 
-Docs security and hygiene PRD, phase 7. The release attaches `THIRD-PARTY-NOTICES.txt`, so a wrong or empty report is a wrong or
+The release attaches `THIRD-PARTY-NOTICES.txt`, so a wrong or empty report is a wrong or
 empty legal notice: these tests pin how each ecosystem is read (from fixtures, so they run anywhere) and, where the tools exist, that
 the real report names every direct dependency of the Go module and the UI.
 """

@@ -59,10 +59,9 @@ export function mockChapterSuggestion(
   return { ...base, basis: 'armed', track: null, status: candidates.length ? 'ambiguous' : 'none', chapter: null, candidates };
 }
 
-// The browser mock's stand-in for ChaptersForTracks (apps/desktop/chaptermatch.go, diagnostics-delivery-and-cleanup-
-// tools PRD Phase 8 remainder): forTrack run over every requested GUID, each resolved to its own track first (a track
-// GUID directly, or an item's or its active take's GUID) since the Review page's findings usually carry only one of
-// those. A GUID that resolves to no track in the mock project answers with `error` instead of failing the others.
+// The browser mock's stand-in for ChaptersForTracks (apps/desktop/chaptermatch.go): forTrack run over every requested
+// GUID, each resolved to its own track first (a track GUID directly, or an item's or its active take's GUID) since the
+// Review page's findings usually carry only one of those. A GUID that resolves to no track in the mock project answers with `error` instead of failing the others.
 export function mockChaptersForTracks(
   guids: readonly string[],
   chapters: ManuscriptChapter[],

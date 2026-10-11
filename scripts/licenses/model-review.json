@@ -28,7 +28,7 @@
     "piper/en_US-ljspeech-high": {
       "commercialUse": "The model card is silent; the LJ Speech data is public domain and the Piper Voices repository is MIT",
       "status": "In the catalog",
-      "note": "The card's silence on commercial use is a residual, recorded in the local dependency evaluation. The Piper program and eSpeak NG that speak it are GPL-3.0-or-later and are bundled (owner decision D17), not downloaded."
+      "note": "The card's silence on commercial use is a residual, recorded in the local dependency evaluation. The Piper program and eSpeak NG that speak it are GPL-3.0-or-later and are bundled (ADR 0039), not downloaded."
     },
     "spacy/en_core_web_sm": {
       "commercialUse": "Yes (MIT, ExplosionAI)",
@@ -42,12 +42,12 @@
     },
     "moonshine/tiny": {
       "commercialUse": "Yes (MIT)",
-      "status": "In the catalog (teleprompter-engines-and-input-devices.prd.md phase 5); the Windows sidecar runs it from a catalog install (phase 6), the app cannot start it yet (phase 7 pending)",
+      "status": "In the catalog; the Windows sidecar runs it from a catalog install (ADR 0107)",
       "note": "English streaming model, word-timestamp variant, publisher Moonshine AI. Licence re-verified 2026-09-22 directly against the repository's LICENSE file (GitHub's detector reports the repository as unrecognized): the English streaming models are explicitly MIT, distinct from the non-commercial Community License that covers only legacy non-English, non-streaming models. Pinned to the dated release path `.../quantized_26_08_21`; every file's URL, size and SHA-256 were verified by downloading and hashing once."
     },
     "moonshine/small": {
       "commercialUse": "Yes (MIT)",
-      "status": "In the catalog (teleprompter-engines-and-input-devices.prd.md phase 5); the Windows sidecar runs it from a catalog install (phase 6), the app cannot start it yet (phase 7 pending)",
+      "status": "In the catalog; the Windows sidecar runs it from a catalog install (ADR 0107)",
       "note": "As moonshine/tiny, larger architecture."
     },
     "oewn/oewn-2025": {
@@ -57,12 +57,12 @@
     },
     "wiktextract/wiktextract-en-pronunciation": {
       "commercialUse": "Pending (per upstream docs, not verified in this session: CC BY-SA 4.0 and GFDL dual licence, share-alike, attribution required; ADR 0405 accepts the class, scoped to displayed IPA only)",
-      "status": "In the catalog as a Pending row (prep-depth Phase 8, ADR 0405); its URL and SHA-256 are not yet filled in because the egress proxy blocks kaikki.org, en.wiktionary.org and every candidate mirror this session could try (docs/research/wiktextract-pronunciation-source.md, #510); Install/Repair refuse the row until a future session verifies it",
+      "status": "In the catalog as a Pending row (ADR 0405); its URL and SHA-256 are not yet filled in because the egress proxy blocks kaikki.org, en.wiktionary.org and every candidate mirror this session could try (docs/research/wiktextract-pronunciation-source.md, #510); Install/Repair refuse the row until a future session verifies it",
       "note": "Wiktionary's IPA data, extracted and republished as structured JSON Lines by the Wiktextract project (kaikki.org). Licence terms restated from Wiktionary's and Wiktextract's own public documentation, not re-read live this session (docs/research/wiktextract-pronunciation-source.md). Once installed, the derived index keeps only a word -> {ipa, audio} lookup file, never the raw multi-gigabyte release; every displayed answer carries a CC BY-SA attribution label and the full notice is printed in the third-party notices."
     },
     "ffmpeg/ffmpeg-7.1-essentials-win64": {
       "commercialUse": "Yes (GPL-3.0-or-later build of FFmpeg; encoding an audiobook with it does not put the audiobook under the GPL)",
-      "status": "In the catalog (render-encode-master.prd.md Phase 1, ADR 0342, Proposed); the MP3 encoder runs it as a separate process",
+      "status": "In the catalog (ADR 0342, Proposed); the MP3 encoder runs it as a separate process",
       "note": "FFmpeg 7.1 essentials build by gyan.dev, from the imageio-ffmpeg 0.6.0 win_amd64 wheel on PyPI (a content-addressed URL; the SHA-256 is PyPI's published digest, checked 2026-09-27). The install keeps only ffmpeg.exe, and only when its own SHA-256 is the pinned one. Build configuration read from the binary: --enable-gpl --enable-version3, no nonfree; the paths the app uses (libmp3lame, the WAV reader, the MP3 muxer) are LGPL code. Windows only. The project does not convey it (PyPI does); the notices name the licence and where the source is (docs/research/ffmpeg-encoder-build.md)."
     }
   },

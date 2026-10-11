@@ -30,7 +30,7 @@ describe('effectiveKind', () => {
   });
 });
 
-describe('the subtitle choices (story-bible-and-import-ux-briefs PRD, Phase 5)', () => {
+describe('the subtitle choices', () => {
   it('keeps every subtitle, as the importer guessed, until the narrator says otherwise', () => {
     expect(subtitleKept(section('section-0001'), {})).toBe(true);
     expect(reviewedHeading(section('section-0001'), {})).toEqual({ title: 'Chapter One', subtitle: 'Down the Rabbit-Hole' });

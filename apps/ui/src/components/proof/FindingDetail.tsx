@@ -49,13 +49,13 @@ function Facts({ rows, label }: { rows: Array<{ label: string; value: string }>;
 }
 
 /**
- * One finding in full, and the narrator's decision on it (review-dashboard-and-findings-adoption.prd.md Phase 5). A decision is
+ * One finding in full, and the narrator's decision on it. A decision is
  * sent with the evidence version shown here; when the host refuses it because the check ran again meanwhile (ADR 0120), the
  * latest version is fetched and shown, the typed note is kept, and the narrator is told in plain words to look again.
- * A finding with audio also has Go to, Loop and Stop in REAPER (Phase 7, ReaperControls), available while the page's REAPER
+ * A finding with audio also has Go to, Loop and Stop in REAPER (ReaperControls), available while the page's REAPER
  * status says REAPER is listening. A take-review group lists its reads instead, each with its own (TakeReviewReads), and a
- * take comparison sets its reads side by side (TakeComparisonView, take review Phase 10). None of these three show for an
- * Audacity session (audacity-integration.prd.md Phase 9): take management has no Audacity analog, so `dawKind` leaves the
+ * take comparison sets its reads side by side (TakeComparisonView). None of these three show for an
+ * Audacity session: take management has no Audacity analog, so `dawKind` leaves the
  * whole section out rather than showing it disabled.
  */
 export function FindingDetail({
@@ -80,16 +80,16 @@ export function FindingDetail({
   onChanged: (finding: Finding, decided: boolean) => void;
   goToManuscript: (chapter: string, paragraph?: number) => void;
   goToStoryBible: (entityId: string) => void;
-  /** Opens the chapter workspace on this finding (edit-and-proof-workspace.prd.md Phase 4, "Open in workspace"); undefined
+  /** Opens the chapter workspace on this finding ("Open in workspace"); undefined
    * where the caller has no workspace to open (there is none outside the app - every caller passes it). */
   goToWorkspace?: (chapterId: string, findingId: string) => void;
   /** Opens Master & QC on a measured file and one of its rules (a delivery finding has no manuscript position). */
   goToMaster: (file: string, rule?: string) => void;
   /** A comparison of this take-review group finished: the page shows it. */
   onCompared: (ended: TakeComparisonJob) => void;
-  /** The current session's DAW (audacity-integration.prd.md Phase 9), as `useDawKind` last read it; undefined until
+  /** The current session's DAW, as `useDawKind` last read it; undefined until
    * the first answer. REAPER's take management (Go to/Loop/Add marker in REAPER, take review, take comparison) has
-   * no Audacity analog (the PRD's own decisions log), so those sections are left out entirely for 'Audacity' rather
+   * no Audacity analog, so those sections are left out entirely for 'Audacity' rather
    * than shown disabled - they are not a gap Audacity will close later, unlike navigate and markers. */
   dawKind?: DawKind;
 }) {

@@ -1,6 +1,6 @@
 # Cleanup launchers: what is known, and the REAPER check still pending
 
-[Reaper automation follow-through PRD](../prds/reaper-automation-follow-through.prd.md) Phase 23, [ADR 0146](../adr/0146-cleanup-launchers-open-an-allow-listed-reaper-action-found-by-its-name-and-change-nothing-themselves.md). This note records where each fact the launcher relies on came from, and the scripted REAPER check that has not been run. No REAPER run was approved for this phase, so nothing here was observed in a running REAPER.
+Reaper automation follow-through PRD (deleted) Phase 23, [ADR 0146](../adr/0146-cleanup-launchers-open-an-allow-listed-reaper-action-found-by-its-name-and-change-nothing-themselves.md). This note records where each fact the launcher relies on came from, and the scripted REAPER check that has not been run. No REAPER run was approved for this phase, so nothing here was observed in a running REAPER.
 
 ## What the launcher relies on
 

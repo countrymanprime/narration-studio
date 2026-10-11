@@ -66,17 +66,17 @@ const READER_TEXT_CLASSES = {
   medium: 'text-base leading-6 [--hl-pad-y:0.09em]',
   large: 'text-xl leading-7 [--hl-pad-y:0.07em]',
 } as const;
-// How long "Go to line" keeps its destination highlighted (ADR: halved from 60s so it settles
-// sooner once the narrator has found the line - see the reader search and controls PRD, R7).
+// How long "Go to line" keeps its destination highlighted (halved from 60s so it settles
+// sooner once the narrator has found the line).
 const JUMP_HIGHLIGHT_MS = 30_000;
 const LINE_NUMBER_PADDING_CLASSES = { small: '!pt-2', medium: '!pt-2.5', large: '!pt-3' } as const;
 const defaultState: ReaderState = { expandedChapters: [], bookmarks: [] };
 const escapeSelector = (value: string) =>
   typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(value) : value.replace(/(["\\])/g, '\\$1');
 
-// The Script page (mock 02), which replaced the Manuscript page: the
+// The Script page, which replaced the Manuscript page: the
 // chapter list with each chapter's prep status, the reader, and a rail of Pronunciations, Characters and Queries. The list is a
-// column from `xl` and the rail from 1440 px (mock 02's own three-column capture width - D85 on issue #509, ADR 0393,
+// column from `xl` and the rail from 1440 px (the width the benchmark mock captures three columns at - ADR 0393,
 // superseding ADR 0392's `2xl`); below those widths the list is the Chapters & Search panel and the rail opens as a panel
 // from the band. The reader card's header no longer assumes a viewport breakpoint means it has room (ADR 0190) - it reacts
 // to its own rendered width instead (a CSS container query, ReaderCard.tsx), which is what makes three columns safe at 1440.
@@ -89,13 +89,12 @@ export function ScriptPage({
 }: {
   notify: Notify;
   focusStoryBibleEntity: (id: string) => void;
-  /** "Open workspace" from a narration chapter's header (edit-and-proof-workspace.prd.md Phase 4, page inventory
-   * "Manuscript: Keep. Share the paragraph renderer; the chapter header gets 'Open workspace'"). Optional so a caller
-   * with no workspace to open (none today) still type-checks. */
+  /** "Open workspace" from a narration chapter's header. Optional so a caller with no workspace to open (none
+   * today) still type-checks. */
   goToWorkspace?: (chapterId: string) => void;
-  /** Keys the credits cards' remembered open state (MC5 b): a project's own choice, not the viewer's in general. */
+  /** Keys the credits cards' remembered open state: a project's own choice, not the viewer's in general. */
   projectFolder: string;
-  /** A card's "Record in Booth" (Q9): the Booth page on that chapter or credits. Omitted, the cards offer no Booth link. */
+  /** A card's "Record in Booth": the Booth page on that chapter or credits. Omitted, the cards offer no Booth link. */
   goToBooth?: (target: { chapter: string } | { credits: CreditsKind }) => void;
 }) {
   const api = useApi();
@@ -117,13 +116,13 @@ export function ScriptPage({
   const [notes, setNotes] = useState<ManuscriptNote[]>([]);
   const [readerState, setReaderState] = useState<ReaderState>(defaultState);
   const [sheet, setSheet] = useState<'chapters' | 'detail' | 'prep'>();
-  // The rail's queries (prep-depth P3's list): undefined until the first read answers, and read again after the panel changes one.
+  // The rail's pronunciation queries: undefined until the first read answers, and read again after the panel changes one.
   const [queries, setQueries] = useState<PronunciationQuery[]>();
   const [queriesOpen, setQueriesOpen] = useState(false);
   const [textSize, setTextSize] = useState<(typeof TEXT_SIZES)[number]>('medium');
   const [detail, setDetail] = useState<{ entity?: GuideEntity; note?: ManuscriptNote }>();
   const [pendingNote, setPendingNote] = useState<{ paragraphIndex: number; anchorStart: number; anchorEnd: number; anchorText: string }>();
-  // Script markup (prep-depth.prd.md Phase 5), by chapter id: loaded with each chapter's lines, and the selection being
+  // Script markup, by chapter id: loaded with each chapter's lines, and the selection being
   // marked up while the Mark up dialog is open.
   const [markup, setMarkup] = useState<Record<string, PrepMarkupSpan[]>>({});
   const [pendingMarkup, setPendingMarkup] = useState<{ paragraphIndex: number; anchorStart: number; anchorEnd: number; anchorText: string }>();
@@ -131,7 +130,7 @@ export function ScriptPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   // The query text a result was actually fetched for - not the debounce hook's own state, so an
-  // Enter that jumps the debounce (R1) still reads as settled right away, instead of "Searching..."
+  // Enter that jumps the debounce still reads as settled right away, instead of "Searching..."
   // lingering for the rest of the window a keystroke already bypassed.
   const [lastFetchedQuery, setLastFetchedQuery] = useState('');
   // Mirrors lastFetchedQuery for the debounce effect below to read without depending on it (a
@@ -140,19 +139,18 @@ export function ScriptPage({
   // debouncedQuery. A ref lets the effect stay keyed on debouncedQuery alone.
   const lastFetchedQueryRef = useRef('');
   const debouncedQuery = useDebouncedValue(searchQuery, SEARCH_DEBOUNCE_MS);
-  // Credits pseudo-entries (PRD audiobook-credits-templates.prd.md, Phase 3): read-only, never chapters, so they
+  // Credits pseudo-entries: read-only, never chapters, so they
   // live entirely in local state - no readerState field, no manuscript.json entry, nothing ChapterNav or search
   // iterates over. Per ADR 0093's convention (the Home estimate's own reading default until a project can choose
   // its own opening/closing template), this uses the first opening-kind and first closing-kind template the
   // library returns, rendered with the current project's values.
   const [creditsTemplates, setCreditsTemplates] = useState<CreditTemplate[]>([]);
   const [creditsPreviews, setCreditsPreviews] = useState<{ opening?: CreditsRenderResult; closing?: CreditsRenderResult }>({});
-  // The credits-setup banner and its "Fill in" way back (credits-token-setup-and-front-matter-detection.prd.md,
-  // Phase 3): the dialog itself never opens on its own here (only Home does that, on load and after an import) -
+  // The credits-setup banner and its "Fill in" way back (Home opens the setup dialog): the dialog itself never opens on its own here (only Home does that, on load and after an import) -
   // this page only ever shows it because the narrator pressed Fill in.
   const [creditsSetup, setCreditsSetup] = useState<CreditsSetupState>();
   const [fillingInCredits, setFillingInCredits] = useState(false);
-  // Open by default (MC5), remembered per project in browser storage - never in expandedChapters/readerStateSave,
+  // Open by default, remembered per project in browser storage - never in expandedChapters/readerStateSave,
   // since a credits id is not a chapter id and the host's paragraph fetch would fail for one.
   const [creditsExpanded, setCreditsExpandedState] = useState<CreditsExpanded>(() => loadCreditsExpanded(projectFolder));
   const setCreditsExpanded = useCallback(
@@ -165,23 +163,23 @@ export function ScriptPage({
     },
     [projectFolder],
   );
-  // The retail sample the narrator picked in Settings > Credits (Phase 5, C10, ADR 0152): a marker on its lines, read
+  // The retail sample the narrator picked in Settings > Credits (ADR 0152): a marker on its lines, read
   // like the credits templates above - a failure leaves the reader unmarked rather than blocking it.
   const [retailSample, setRetailSample] = useState<RetailSample | null>(null);
   const { selection, clear: clearSelection } = useTextSelection(readerRef);
   // Reference material (Contents, Characters, ...) stays in manuscript.json and the chapter list,
-  // but is never a page the narrator flips through - see isListableChapter and the reader search and
-  // controls PRD Phase 5 (supersedes the reader half of ADR 0005; ADR 0090).
+  // but is never a page the narrator flips through - see isListableChapter (ADR 0090, which supersedes the
+  // reader half of ADR 0005).
   const recordedChapters = useMemo(() => chapters.filter(isListableChapter), [chapters]);
   const active = readerState.activeChapter || recordedChapters[0]?.id;
   const lineNumbers = useMemo(() => chapterLineNumbers(paragraphs), [paragraphs]);
-  // Speaker attribution (prep-depth.prd.md Phase 4): a recorded fixture, not a live extractor (dialogueCues.ts) -
+  // Speaker attribution: a recorded fixture, not a live extractor (dialogueCues.ts) -
   // it only ever matches the built-in Alice in Wonderland demo text, so a narrator's own manuscript shows no tags
-  // until Character Continuity Review's own extractor is exposed through a binding (that PRD's Phase 6).
+  // until Character Continuity Review's own extractor is exposed through a binding.
   const dialogueCues = useMemo(() => recordedDemoDialogueCues(paragraphs), [paragraphs]);
   const titleMatches = useMemo(() => chapterTextMatches(chapters, searchQuery), [chapters, searchQuery]);
   // True once there is a query the panel has not shown results for yet - the debounce wait, or
-  // (briefly) the request itself - so "No matches" never flashes before a settled answer exists (R1).
+  // (briefly) the request itself - so "No matches" never flashes before a settled answer exists.
   const searchPending = Boolean(searchQuery.trim()) && searchQuery !== lastFetchedQuery;
   const sampleRange = useMemo(() => retailSampleRange(chapters, retailSample), [chapters, retailSample]);
   const openingTemplate = creditsTemplates.find((template) => template.kind === 'opening');
@@ -226,7 +224,7 @@ export function ScriptPage({
 
   const [loadError, setLoadError] = useState<string>();
   const [loadAttempt, setLoadAttempt] = useState(0);
-  // The nav's "Suggested: <stage>" marker (Q6): read-only here, so
+  // The nav's "Suggested: <stage>" marker: read-only here, so
   // onStatus is a no-op - the marker never confirms, dismisses or reverts. Refreshed whenever chapters reload
   // (loadAttempt), the same trigger the page's own chapter list already uses.
   const stages = useStageRecommendations({ refreshKey: String(loadAttempt), notify, onStatus: () => {} });
@@ -241,8 +239,8 @@ export function ScriptPage({
         ]);
         const firstChapter = nextChapters.filter(isListableChapter)[0]?.id;
         const chapterId = (value: string | undefined) => nextChapters.find((item) => item.id === value || item.title === value)?.id || value;
-        // A reader state saved before this phase (or a manuscript re-imported since) may still point
-        // at a reference chapter (R14: the filter covers existing manuscripts too, since it keys on
+        // A reader state saved earlier (or a manuscript re-imported since) may still point
+        // at a reference chapter (the filter covers existing manuscripts too, since it keys on
         // contentKind, not a migration flag) - fall back to the first recorded one instead.
         const resolvedActive = chapterId(state.activeChapter);
         const activeChapter = nextChapters.find((item) => item.id === resolvedActive && isListableChapter(item)) ? resolvedActive : firstChapter;
@@ -264,7 +262,7 @@ export function ScriptPage({
       }
     })();
   }, [api, loadAttempt]);
-  // Credits templates (Phase 3): a secondary read, like AudiobookEstimatePanel's own credits stat - a failure here
+  // Credits templates: a secondary read, like AudiobookEstimatePanel's own credits stat - a failure here
   // should not block the manuscript itself, so it is swallowed and simply leaves no credits entries rendered.
   useEffect(() => {
     let active = true;
@@ -365,7 +363,7 @@ export function ScriptPage({
       const target = chapters.find((item) => item.id === chapter || item.title === chapter);
       const chapterId = target?.id || chapter;
       // Every caller (search results, Story Bible "Go to line", hash links, ...) funnels through
-      // here, so this one guard covers all of them (R13/ADR 0090) rather than duplicating it at
+      // here, so this one guard covers all of them (ADR 0090) rather than duplicating it at
       // each call site - a reference chapter is never a page the reader shows.
       if (target && !isListableChapter(target)) {
         notify("That link points to reference material, which isn't shown in the manuscript reader.");
@@ -413,7 +411,7 @@ export function ScriptPage({
       return;
     }
     if (handledHash.current === hash) return;
-    // "#credits-opening"/"#credits-closing" (Home's credits rows, credits-in-chapter-table.prd.md Phase 2, CT7): open
+    // "#credits-opening"/"#credits-closing" (Home's credits rows): open
     // the matching pseudo-entry and scroll to it, matching "#c<id>"'s open-and-scroll for a chapter. Checked before the
     // generic "#c" prefix below, which would otherwise swallow it (both start with "#c").
     if (hash === '#credits-opening' || hash === '#credits-closing') {
@@ -447,7 +445,7 @@ export function ScriptPage({
       return;
     }
     handledHash.current = hash;
-    // showChapter itself guards against a reference chapter (R13/ADR 0090: a no-op with a message,
+    // showChapter itself guards against a reference chapter (ADR 0090: a no-op with a message,
     // the reader has no "reference chapter's own view" to redirect to instead), so every caller -
     // this hash link, a search result, Story Bible "Go to line" - gets the same behavior for free.
     showChapter(chapter, paragraph);
@@ -475,7 +473,7 @@ export function ScriptPage({
     }
   };
   // The one place that ever calls the Go search: from the debounce effect below once it settles,
-  // and directly on Enter (R1). searchRequest guards a stale response the same way it always did.
+  // and directly on Enter. searchRequest guards a stale response the same way it always did.
   const fetchSearch = useCallback(
     async (query: string) => {
       const request = ++searchRequest.current;
@@ -502,7 +500,7 @@ export function ScriptPage({
     [api, notify],
   );
   useEffect(() => {
-    // Enter (R1) already fetched this exact query directly - skip the redundant repeat once the
+    // Enter already fetched this exact query directly - skip the redundant repeat once the
     // debounce hook's own timer independently catches up to the same settled value a moment later.
     if (debouncedQuery === lastFetchedQueryRef.current) return;
     void fetchSearch(debouncedQuery);
@@ -618,7 +616,7 @@ export function ScriptPage({
       className="reader-page min-h-full [--reader-inline:1.5rem] max-md:[--reader-inline:1rem] min-[1280px]:grid-cols-[13.5rem_minmax(0,1fr)] min-[1440px]:grid-cols-[13.5rem_minmax(0,1fr)_22.5rem] xl:grid"
       style={{ '--band-h': `${bandHeight}px` } as CSSProperties}
     >
-      {/* Mock 02's left column: the chapters with their prep status, and the key to the marks in the text. The page scrolls
+      {/* The left column: the chapters with their prep status, and the key to the marks in the text. The page scrolls
           under it, so it sticks to the top of the scroll area (the header above is h-14). */}
       <aside
         aria-label="Chapters and marks"
@@ -640,7 +638,7 @@ export function ScriptPage({
               <Heading title="Script" />
               <MarksKey className="flex-wrap xl:hidden" />
             </div>
-            {/* One control cluster: text size on the left, chapters/search and expand/collapse on the right (R12) - wraps to
+            {/* One control cluster: text size on the left, chapters/search and expand/collapse on the right - wraps to
               a second line only below 400px, since ml-auto pushes the right group down with the row rather than
               overlapping it once the row can no longer fit both groups side by side. */}
             <div className="mb-4 flex flex-wrap items-center gap-4">
@@ -858,7 +856,7 @@ export function ScriptPage({
         title={detail?.note ? 'Note' : detail?.entity?.canonical_name || (sheet === 'prep' ? 'Prep' : 'Chapters & Search')}
         onClose={closeSheet}
         // Escape clears an in-progress search before it closes the panel, so a narrator who
-        // mistypes doesn't lose the panel along with the query (R8): the first Escape is handled
+        // mistypes doesn't lose the panel along with the query: the first Escape is handled
         // right here (inside Base UI's own dismiss flow, which is the only listener that reliably
         // sees the key - a separate window-level handler raced it and lost, since Base UI's Drawer
         // stops the native event from reaching window once it decides to act on Escape) and keeps
@@ -944,12 +942,12 @@ export function ScriptPage({
   );
 }
 
-// Mock 02's "Markup layer" key (audit row SC3): what each mark actually
+// The "Markup layer" key: what each mark actually
 // draws in the reader's text, not the Story Bible's category colors (those are a different key, EntitySummary's category
 // dots, shown where an entity mention is looked up - unrelated to the marks a narrator adds here). Four of the five
-// entries are the reader's real script marks (prep-depth.prd.md Phase 5, MarkupMark.tsx: a speaker chip, a dotted stress
-// underline, a breath/pause glyph after the words) plus the "pronunciation" and "author query" ideas mock 02 draws beside
-// them - the reader's own equivalents are a highlighted name (its pronunciation lives on its Story Bible entry) and a
+// entries are the reader's real script marks (MarkupMark.tsx: a speaker chip, a dotted stress
+// underline, a breath/pause glyph after the words) plus the "pronunciation" and "author query" ideas the key also lists
+// - the reader's own equivalents are a highlighted name (its pronunciation lives on its Story Bible entry) and a
 // highlighted note (the narrator's "+ Note", answered by the author). A column of the left rail from `xl`, a row in the
 // band below it.
 function MarksKey({ className }: { className: string }) {

@@ -90,7 +90,7 @@ func TestRecordedSecondsFollowsASavedProjectAndSaysWhenThereIsNone(t *testing.T)
 }
 
 // BenchmarkRecordedLengths reads 30 linked chapters' recorded lengths from a 30-track, 3,000-item saved project: cold
-// (the .rpp is parsed) and warm (the parse is reused while the file is unchanged). The PRD's budget is 50 ms added to
+// (the .rpp is parsed) and warm (the parse is reused while the file is unchanged). The aim is to add no more than 50 ms to
 // a chapter-list read.
 func BenchmarkRecordedLengths(b *testing.B) {
 	folder := b.TempDir()

@@ -11,7 +11,7 @@ import (
 )
 
 // fakeAlignedCoverageSidecar stands in for `compare.py --coverage` once it also writes the chapter's word alignment
-// (edit-and-proof-workspace PRD Phase 1, ADR 0242): coverageProject's one item, one paragraph, one token, read in full.
+// (ADR 0242): coverageProject's one item, one paragraph, one token, read in full.
 func fakeAlignedCoverageSidecar() coverage.Launcher {
 	return func(_ context.Context, _ string, args ...string) (coverage.Child, error) {
 		values := map[string]string{}

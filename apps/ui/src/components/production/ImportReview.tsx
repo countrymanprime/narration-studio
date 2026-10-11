@@ -83,9 +83,9 @@ type ImportReviewProps = {
   // heading level is read again, so a re-read does not fold the groups back.
   groupOpen: ReviewGroupOpen;
   onGroupOpenChange: (group: ReviewGroupKey, open: boolean) => void;
-  // The seam for the per-import "Build the Story Bible after import" choice (owner decision D8: on by default). The choice and the build that
-  // follows an import belong to the Story Bible briefs work; this dialog only draws the checkbox when it is handed one, so that work adds the
-  // state and the chaining and touches nothing here. The Production home passes nothing yet, and nothing is shown that does nothing.
+  // The seam for the per-import "Build the Story Bible after import" choice (on by default). This dialog only draws the
+  // checkbox when it is handed one, so the state and the chained build live with the caller and nothing here changes. When a caller passes
+  // nothing, nothing is shown that does nothing.
   buildStoryBible?: { checked: boolean; onChange: (checked: boolean) => void };
 };
 
@@ -157,7 +157,7 @@ export function ImportReview({
                   )}
                 </span>
                 {hasSubtitleChoice(section) && (
-                  // The heading's second line, read as its subtitle or not (story-bible-and-import-ux-briefs PRD, Phase 5). The visible word is
+                  // The heading's second line, read as its subtitle or not. The visible word is
                   // short so the row keeps its room for the title; the name says which line it is about.
                   <div className="flex-none">
                     <Checkbox

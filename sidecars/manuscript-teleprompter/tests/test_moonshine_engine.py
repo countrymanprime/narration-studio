@@ -212,9 +212,8 @@ def test_live_asr_hands_the_model_directory_and_architecture_to_this_module(monk
     assert calls == [("TINY_STREAMING", "D:/assets/moonshine/tiny", live_asr.DECODE_INTERVAL_SECONDS, None, "Call me Ishmael.")]
 
 
-# --capabilities --verify (sidecar-capabilities-flag PRD Phase 3) is how the packaged
-# app's smoke test (apps/desktop/smoke.go) proves the frozen sidecar carries a working Moonshine: PyInstaller cannot see the
-# ctypes load of moonshine.dll, so a freeze that lost it would still start with --help.
+# --capabilities --verify is how the packaged app's smoke test (apps/desktop/smoke.go) proves the frozen sidecar carries a
+# working Moonshine: PyInstaller cannot see the ctypes load of moonshine.dll, so a freeze that lost it would still start with --help.
 def _fake_package(languages=("en",), transcriber=True):
     def supported_languages():
         if isinstance(languages, Exception):
@@ -287,7 +286,8 @@ def _live_asr():
     return module
 
 
-# --capabilities --verify exits by the Moonshine verdict (sidecar-capabilities-flag PRD Phase 3, ADR 0403), through _VERIFY_HOOKS[("asr", "moonshine")] calling this module's self_check().
+# --capabilities --verify exits by the Moonshine verdict (ADR 0403), through
+# _VERIFY_HOOKS[("asr", "moonshine")] calling this module's self_check().
 @pytest.mark.parametrize(("ok", "code"), [(True, None), (False, 1)])
 def test_capabilities_verify_exits_by_the_moonshine_verdict_without_wav_or_mic(monkeypatch, capsys, ok, code):
     live_asr = _live_asr()

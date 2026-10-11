@@ -32,7 +32,7 @@ async function findReferenceRow(name: string): Promise<HTMLElement> {
   return row;
 }
 
-describe('Story Bible character detail: voice references (character-continuity-review P6)', () => {
+describe('Story Bible character detail: voice references', () => {
   it('lists a character entry’s own approved reference clips, not another character’s', async () => {
     const alice = WIRE_ENTITIES.find((row) => row.id === 'alice');
     if (!alice) throw new Error('fixture must include alice');
@@ -81,7 +81,7 @@ describe('Story Bible character detail: voice references (character-continuity-r
   });
 });
 
-describe('Story Bible character detail: dialogue cue attribution (character-continuity-review P6)', () => {
+describe('Story Bible character detail: dialogue cue attribution', () => {
   it('shows an unknown cue and lets the narrator attribute it', async () => {
     const alice = WIRE_ENTITIES.find((row) => row.id === 'alice');
     if (!alice) throw new Error('fixture must include alice');

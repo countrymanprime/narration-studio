@@ -31,7 +31,7 @@ export const globalStates: StateEntry[] = [
   {
     page: 'global',
     state: 'shortcut-sheet',
-    description: 'The "?" shortcut sheet (input-commands-and-pedals.prd.md Phase 7), listing every command grouped by scope',
+    description: 'The "?" shortcut sheet, listing every command grouped by scope',
   },
   {
     page: 'global',

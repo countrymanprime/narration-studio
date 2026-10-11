@@ -31,7 +31,7 @@ type Props = {
   onCheckNow: () => void;
   /** Opens the chapter's recording check, which runs a check, links a track or offers the Whisper model. */
   onOpenCheck: () => void;
-  /** Opens the chapter's editing check (editing-readiness-analysis.prd.md Phase 7), for an editing signal's own
+  /** Opens the chapter's editing check, for an editing signal's own
    * `cause.resolve === 'check'` - a bare `onOpenCheck` would open the recording check instead, the wrong panel. */
   onOpenEditingCheck: () => void;
   /** Opens the manuscript at a paragraph (its index in the whole manuscript). */
@@ -47,7 +47,7 @@ type Props = {
  * Why a chapter has the suggestion it has (docs/architecture/stage-recommendations.md): the verdict in a sentence, each
  * required check with its state and reason, the evidence behind it (linked to the paragraphs it names), the saved project it was read from
  * and how old that is, and, for a check that cannot tell, what resolves it. Confirm, Dismiss and Revert are here too, and Check now reads
- * the evidence again; nothing here starts an analysis (Q12).
+ * the evidence again; nothing here starts an analysis.
  */
 export function StageEvidence(props: Props) {
   const { open, chapter, recommendation, onClose, status } = props;

@@ -19,15 +19,15 @@ import { useTrackPlayback } from '../engine/useTrackPlayback';
 
 const noop = () => {};
 
-// Recorded length as the mockup writes it (chapter-track-link-control mock 02, "13m"): seconds under a minute.
+// Recorded length as "13m": seconds under a minute.
 const recordedLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
 
 /**
- * The track slide-over a chapter's Recorded cell on the Production board opens (chapter-track-link-control.prd.md Phase 2): what the saved
+ * The track slide-over a chapter's Recorded cell on the Production board opens: what the saved
  * project knows about the chapter's track as of its last save, and the narrator's link/relink/unlink actions. Reuses
  * MappingConfirm for the track picker, so Change/Clear behave the same way here as on the Tracks page - one host
- * operation (`chapterTrackSet`) makes a relink atomic (Phase 1), so a narrator can never end up with two links.
- * "Remove from recording" (Phase 3) opens from here too: the chapter's own reclassification, so it lives beside its
+ * operation (`chapterTrackSet`) makes a relink atomic, so a narrator can never end up with two links.
+ * "Remove from recording" opens from here too: the chapter's own reclassification, so it lives beside its
  * track controls rather than on the row itself.
  */
 export function ChapterTrackPanel({
@@ -52,7 +52,7 @@ export function ChapterTrackPanel({
   link?: ChapterTrackLink;
   /** The linked or suggested track's own facts, resolved by the caller from ChapterTrackLinks' `tracks` list. */
   trackSummary?: ChapterTrackSummary;
-  /** The audio measured on the linked track as of the saved project (actual-recorded-column.prd.md); undefined when there is none. */
+  /** The audio measured on the linked track as of the saved project; undefined when there is none. */
   recordedSeconds?: number;
   savedAt: string;
   notify: Notify;
@@ -82,7 +82,7 @@ export function ChapterTrackPanel({
     };
   }, [api, open]);
 
-  // Playback (Phase 4, Could): the track the slide-over already knows from `link.track`, played through the same
+  // Playback: the track the slide-over already knows from `link.track`, played through the same
   // useTrackPlayback the Tracks page uses (ADR 0012's /media route). trackIndex stays -1 until `tracks` (this panel's
   // own read, above) resolves and the linked track's GUID is found in it; the hook is still called on every render
   // (rules of hooks) with a safe fallback index, but nothing is shown until trackIndex resolves, so playing track 0

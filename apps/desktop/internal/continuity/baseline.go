@@ -9,9 +9,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/acoustic"
 )
 
-// The Q6 calibration from the Phase 1 trial
+// The calibration from the acoustic trial
 // (docs/research/character-continuity-acoustic-trial.md), provisional until
-// the real-corpus re-run on #510 (D70/D71).
+// the real-corpus re-run on #510.
 const (
 	// DefaultMinReferences is the fewest usable approved clips a baseline
 	// is built from; below it no flag is raised ("insufficient reference").

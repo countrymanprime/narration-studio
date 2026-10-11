@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// Production plan bindings (production-tracking.prd.md Phase 3, Q3 A, Q5 A): the book's deadline, contracted amount
+// Production plan bindings: the book's deadline, contracted amount
 // and milestones, stored on the project manifest beside Credits so they survive Replace manuscript and Clear derived
 // data. Each answers the whole plan (production.Plan), so the page never merges a partial answer into what it holds.
 
@@ -92,10 +92,10 @@ func (h *Host) saveProductionPlan(what string, change func(*project.Manifest)) (
 	return encodeBinding(production.PlanOf(manifest), nil)
 }
 
-// The Production page's bindings (production tracking PRD Phase 4, delivered and deleted; ADR 0028). ProductionOverview only reads: the
+// The Production page's bindings. ProductionOverview only reads: the
 // chapters and their measured recorded time from the manuscript, each chapter's readiness from the stage
-// recommendations (read live, Q8 A), and the time log. ProductionStartTimer and ProductionStopTimer are the only two
-// paths that write a session (PRD success metric "Timer honesty"), and only when the narrator clicks. None of them
+// recommendations (read live), and the time log. ProductionStartTimer and ProductionStopTimer are the only two
+// paths that write a session, and only when the narrator clicks. None of them
 // writes a chapter status.
 
 // errProductionNoProject is the answer of every production binding before a project is open.
@@ -110,7 +110,7 @@ func (h *Host) ProductionOverview() (string, error) {
 	return encodeBinding(overview, nil)
 }
 
-// buildProductionOverview is ProductionOverview's own build, shared with the status report export (Phase 5) so the
+// buildProductionOverview is ProductionOverview's own build, shared with the status report export so the
 // two never drift: the report is exactly the figures the page just showed. It also answers the plan's milestones,
 // which Overview does not carry (only the deadline).
 func (h *Host) buildProductionOverview() (production.Overview, []project.Milestone, error) {
@@ -126,7 +126,7 @@ func (h *Host) buildProductionOverview() (production.Overview, []project.Milesto
 	if err != nil {
 		return production.Overview{}, nil, err
 	}
-	// The deadline and contracted amount the narrator set (Phase 3, ProductionSetDeadline); an unreadable manifest is an
+	// The deadline and contracted amount the narrator set (ProductionSetDeadline); an unreadable manifest is an
 	// error, never read as "none set".
 	manifest, _, err := project.Load(h.persist, svc.config.projectFolder)
 	if err != nil {
@@ -184,7 +184,7 @@ func (h *Host) ProductionStopTimer() (string, error) {
 	return encodeBinding(map[string]any{"stopped": true, "session": session}, nil)
 }
 
-// ProductionBurndown is the book's logged hours by day (Phase 6, Could): data only, for a future chart primitive to
+// ProductionBurndown is the book's logged hours by day: data only, for a future chart primitive to
 // plot. It reads the same time log as ProductionOverview and adds nothing to it.
 func (h *Host) ProductionBurndown() (string, error) {
 	svc := h.services()

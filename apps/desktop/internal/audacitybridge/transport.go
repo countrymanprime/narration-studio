@@ -1,4 +1,4 @@
-// Package audacitybridge drives Audacity over its scripting pipe, mod-script-pipe (audacity-integration PRD Phase 4, ADR 0355).
+// Package audacitybridge drives Audacity over its scripting pipe, mod-script-pipe (ADR 0355).
 //
 // The protocol is the one Audacity publishes (docs/research/audacity-4-scripting-spec.md): the client writes one command line to
 // the pipe Audacity reads (ToSrvPipe) and reads Audacity's answer from the pipe it writes (FromSrvPipe). An answer is any number of
@@ -60,6 +60,6 @@ const (
 	// ErrInvalidValue: a value cannot be put into a command safely (a double quote, a line break or a control character in a
 	// string, a number that is not finite, an empty or malformed name). Nothing was sent.
 	ErrInvalidValue = Sentence("that value cannot be sent to Audacity")
-	// ErrUnsupportedPlatform: this build has no pipe transport (the app is Windows-only, D74).
+	// ErrUnsupportedPlatform means this build has no pipe transport (the app is Windows-only).
 	ErrUnsupportedPlatform = Sentence("Audacity scripting is only supported on Windows")
 )

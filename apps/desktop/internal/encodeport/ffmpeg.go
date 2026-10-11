@@ -18,7 +18,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 )
 
-// The FFmpeg row (render-encode-master Phase 1, ADR 0342): WAV to constant-bit-rate MP3 with libmp3lame, run as a separate
+// The FFmpeg row (ADR 0342): WAV to constant-bit-rate MP3 with libmp3lame, run as a separate
 // process from the catalogued FFmpeg build (config/encoder-assets.json, internal/ffmpeg). The encode writes a dot-named temporary file beside
 // dst, checks it with the app's own MP3 reader (measure.ReadMP3) and only then renames it to dst, so a failure, a timeout or a
 // cancel leaves nothing at dst; the WAV is only ever read.
@@ -84,7 +84,7 @@ func notInstalled() (string, error) { return "", ErrEncoderNotInstalled }
 func init() {
 	Encoders.Register(port.Entry[Encoder]{
 		Name: FFmpegName,
-		// Windows only: the catalogued build is a Windows executable (ADR 0342); the PRD is Windows-first.
+		// Windows only: the catalogued build is a Windows executable (ADR 0342).
 		Descriptor: port.Descriptor{Label: "FFmpeg (LAME MP3, AAC/M4B, FLAC)", Platforms: []string{"windows"}, Modes: []string{"mp3", "m4b", "flac"}},
 		New: func() Encoder {
 			ffmpegRow.mu.RLock()
@@ -98,7 +98,7 @@ func init() {
 	})
 }
 
-// Encode writes wav to dst in spec.Format ("mp3", ADR 0342; "m4b", render-encode-master Phase 2; or "flac", Phase 7), refusing a
+// Encode writes wav to dst in spec.Format ("mp3", ADR 0342; "m4b"; or "flac"), refusing a
 // dst that is the WAV itself, a dst where a file already is, and a format neither row can write.
 func (f *FFmpeg) Encode(ctx context.Context, wav, dst string, spec Spec) error {
 	switch spec.Format {

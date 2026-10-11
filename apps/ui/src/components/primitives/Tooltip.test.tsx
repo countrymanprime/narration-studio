@@ -245,9 +245,8 @@ describe('TooltipTarget', () => {
   });
 });
 
-// The inline (flowing text) mode (teleprompter-manuscript-integration.prd.md Phase 7, deferred there by the component
-// accessibility PRD): the trigger is an inline box, so a mark that wraps across lines keeps flowing with the text around it,
-// and the hint follows the mark inside it the same way it follows a button.
+// The inline (flowing text) mode (for hints on marks inside running text): the trigger is an inline box, so a mark
+// that wraps across lines keeps flowing with the text around it, and the hint follows the mark inside it the same way it follows a button.
 describe('TooltipTarget inline', () => {
   const inline = (
     <p>

@@ -8,9 +8,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline/merriamwebster"
 )
 
-// The online pronunciation lookup (prep-depth.prd.md Phase 9; ADR 0405 point 2, ADR 0356): Merriam-Webster, on the
-// narrator's own key, one word at a time, cached. This file is the composition root's only mention of the adapter
-// (pronunciationonlineguard_test.go); every binding below talks to the port's Service.
+// The online pronunciation lookup (ADR 0405 point 2, ADR 0356): Merriam-Webster, on the narrator's own key, one word at
+// a time, cached. This file is the composition root's only mention of the adapter (pronunciationonlineguard_test.go);
+// every binding below talks to the port's Service.
 //
 // None of these bindings logs, and none of their errors carries the key or the word (the Service's errors are fixed
 // sentences). The key crosses the Wails boundary exactly once, inward, in PronunciationOnlineKeySet; nothing sends it
@@ -30,7 +30,7 @@ func (h *Host) PronunciationOnlineKeyStatus() (string, error) {
 	return encodeBinding(h.pronunciationOnline.KeyStatus())
 }
 
-// PronunciationOnlineKeySet saves the narrator's pasted key (Q10). An error never quotes what was pasted.
+// PronunciationOnlineKeySet saves the narrator's pasted key. An error never quotes what was pasted.
 func (h *Host) PronunciationOnlineKeySet(key string) (string, error) {
 	return encodeBinding(h.pronunciationOnline.SetKey(key))
 }
@@ -46,13 +46,14 @@ func (h *Host) PronunciationOnlineSignUpOpen() (string, error) {
 	return h.openTrustedURL(h.pronunciationOnline.SignUpURL())
 }
 
-// PronunciationOnlineLookup looks one word up for the narrator, who pressed Look up for it (D72: narrator-initiated): from
-// the local cache when it was looked up before, otherwise from Merriam-Webster on the narrator's key.
+// PronunciationOnlineLookup looks one word up for the narrator, who pressed Look up for it (a lookup is always
+// narrator-initiated): from the local cache when it was looked up before, otherwise from Merriam-Webster on the
+// narrator's key.
 func (h *Host) PronunciationOnlineLookup(word string) (string, error) {
 	return encodeBinding(h.pronunciationOnline.Lookup(h.lookupContext(), word))
 }
 
-// PronunciationOnlineLookupBatch looks every word in words up once (Q11: opt-in with a notice). confirmedCount is the word
+// PronunciationOnlineLookupBatch looks every word in words up once (opt-in, after a notice). confirmedCount is the word
 // count the narrator confirmed in the notice; the Service refuses the batch unless it is exactly the number of distinct
 // words it would send.
 func (h *Host) PronunciationOnlineLookupBatch(words []string, confirmedCount int) (string, error) {

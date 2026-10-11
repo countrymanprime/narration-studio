@@ -18,10 +18,9 @@ import (
 // changes in a way an older reader would misunderstand (persist.CheckVersion).
 const templatesSchemaVersion = 1
 
-// Template is one named opening/closing/chapter-announcement credit template
-// (PRD Open Question C8). BuiltIn marks a shipped default: the narrator may
-// still edit or delete it (this is their library), so BuiltIn is informational
-// only, not a lock.
+// Template is one named opening/closing/chapter-announcement credit template.
+// BuiltIn marks a shipped default: the narrator may still edit or delete it
+// (this is their library), so BuiltIn is informational only, not a lock.
 type Template struct {
 	ID      string `json:"id"`
 	Kind    string `json:"kind"` // "opening" | "closing" | "chapter_announcement"
@@ -30,10 +29,9 @@ type Template struct {
 	BuiltIn bool   `json:"builtIn,omitempty"`
 }
 
-// defaultTemplates are the shipped starting points from the PRD's "Default
-// templates" table: an ACX-minimum opening, an ACX-best-practice closing, and
-// a with-copyright variant labelled as a contractual option, not an ACX
-// requirement (PRD Evidence, ACX conventions).
+// defaultTemplates are the shipped starting points: an ACX-minimum opening,
+// an ACX-best-practice closing, and a with-copyright variant labelled as a
+// contractual option, not an ACX requirement.
 var defaultTemplates = []Template{ // +checklocksignore: read-only data, read under the store lock by chance
 	{ID: "default-opening-acx-minimum", Kind: "opening", Name: "ACX minimum (opening)", Body: "[Title], written by [Author], narrated by [Narrator].", BuiltIn: true},
 	{ID: "default-closing-acx-best-practice", Kind: "closing", Name: "ACX best practice (closing)", Body: "You have been listening to [Title], written by [Author], narrated by [Narrator]. The End.", BuiltIn: true},
@@ -46,7 +44,7 @@ type templatesFile struct {
 }
 
 // TemplateStore is the narrator's own credit-template library: a single
-// versioned JSON file, one per user (PRD Open Question C7), written with the
+// versioned JSON file, one per user, written with the
 // same write-to-temp-then-rename pattern as project.Manifest.Save and
 // settings.Store.Save so a crash mid-write never corrupts it.
 type TemplateStore struct {
@@ -120,7 +118,7 @@ func (s *TemplateStore) Save(template Template) (Template, error) {
 // Duplicate copies template id as a new, always-editable (never BuiltIn)
 // entry named "<original name> copy", so duplicating a shipped default is how
 // the narrator starts their own contractual variant without losing the
-// original (PRD Proposed Solution, item 1: "duplicate, edit and add to").
+// original.
 func (s *TemplateStore) Duplicate(id string) (Template, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -146,8 +144,8 @@ func (s *TemplateStore) Duplicate(id string) (Template, error) {
 	return duplicate, nil
 }
 
-// Delete removes template id. The narrator owns this library (PRD "add,
-// duplicate, edit and delete"), so a shipped default may be deleted like any
+// Delete removes template id. The narrator owns this library (add,
+// duplicate, edit and delete), so a shipped default may be deleted like any
 // other entry; deleting an id that is not present is not an error.
 func (s *TemplateStore) Delete(id string) error {
 	s.mu.Lock()

@@ -94,7 +94,7 @@ H.test('prepare_compare writes the manifest of the selected items in time order 
   H.eq(host.listdir(H.join(H.join(folder, 'TranscriptCompare'), 'diffs')), {}, 'the diffs directory is created and empty')
 end)
 
--- The comparison's baseline for the "changed since comparison" label (follow-through PRD Phase 13): REAPER's own edit
+-- The comparison's baseline for the "changed since comparison" label: REAPER's own edit
 -- counter as the audio was listed, read in the same call so no edit can fall between the two.
 H.test('prepare_compare answers the change count the comparison starts from', function()
   local s = project_session()
@@ -130,7 +130,7 @@ H.test('prepare_compare from a selected track uses every item on it, skipping MI
   H.eq(event[7], '2')
 end)
 
--- The app's project folder when the .rpp lives elsewhere (project-workspace PRD Phase 5, W4): the host passes its own folder,
+-- The app's project folder when the .rpp lives elsewhere: the host passes its own folder,
 -- and the manuscript and the diffs are found and written there, never beside the .rpp.
 local function app_folder(options)
   options = options or {}
@@ -239,7 +239,7 @@ H.test('inspect_compare_results emits one COMPARE_MARKER per row with project-ti
     'pending',
     '',
     '12.5',
-    -- The trailing identity (review-dashboard PRD Phase 6): item, take and track GUIDs, so a finding can be navigated
+    -- The trailing identity: item, take and track GUIDs, so a finding can be navigated
     -- to by GUID instead of by a row that only lives as long as this run.
     a.guid,
     a.takes[1].guid,

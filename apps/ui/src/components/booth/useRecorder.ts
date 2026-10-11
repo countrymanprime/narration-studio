@@ -5,7 +5,7 @@ import { updateHeldPeak, type HeldPeak } from '../../levelMeter';
 import type { InputLevel } from './useInputLevel';
 import { errorText } from './useTeleprompterSession';
 
-/** The Booth's built-in recorder (native-recording-suite PRD Phase 2, ADR 0455): the host's state, its live level and actions. */
+/** The Booth's built-in recorder (ADR 0455): the host's state, its live level and actions. */
 export type Recorder = {
   /** The host's state; undefined until it first answers. */
   state?: RecorderState;

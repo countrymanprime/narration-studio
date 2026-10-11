@@ -5,17 +5,16 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 6 asks the teleprompter sidecar to report suspected misreads,
-extra words, skipped words and (owner decision 2026-09-23) restarts, with precision over recall, as engine-independent
-events ([ADR 0021](0021-live-speech-engines-behind-one-event-contract.md)), and leaves three design points to the phase:
+The teleprompter sidecar is asked to report suspected misreads,
+extra words, skipped words and (an owner decision of 2026-09-23) restarts, with precision over recall, as engine-independent
+events ([ADR 0021](0021-live-speech-engines-behind-one-event-contract.md)). Three design points were left open:
 whether the flag normalization shares Transcript Compare's number-word merge and homophone canon or duplicates a subset,
 whether the host's `teleprompter:state` snapshot keeps flags, and which findings category a restart flag is persisted under
-in Phase 7 (`Validate` rejects unknown categories). The script tracker (`script_tracker.py`) already aligns heard words with
+when the flags are stored as findings (`Validate` rejects unknown categories). The script tracker (`script_tracker.py`) already aligns heard words with
 the script but deliberately ignores what does not fit. A live word is never proof: a wrong engine word looks exactly like a
 misread, and Transcript Compare over the recorded take is authoritative.
 
-Measured while building this (Whisper tiny, the host default, over Piper speech of four passages, see the PRD's Phase 6
-evidence): most false flags on clean reads were the engine's own errors, and two kinds were artefacts that text alone could
+Measured while building this (Whisper tiny, the host default, over Piper speech of four passages): most false flags on clean reads were the engine's own errors, and two kinds were artefacts that text alone could
 not tell from a narrator's mistake: the engine re-emitting the same audio's words (up to six words, identical timestamps)
 and splitting one written word across a matched neighbour ("7 o" + "clock" for "seven o'clock").
 
@@ -40,9 +39,9 @@ and splitting one written word across a matched neighbour ("7 o" + "clock" for "
    and `sidecars/transcript-compare/core/compare.py` imports them (its tokenizer is unchanged, pinned by a test).
    `core/homophones.csv` is deleted: a data file next to a script is not bundled by the PyInstaller freeze, so the frozen
    Transcript Compare could not load it; an imported module always is.
-4. The Go relay is unchanged and the snapshot keeps no flags. Phase 7 persists each flag as a finding, and that store is
+4. The Go relay is unchanged and the snapshot keeps no flags. The flag store persists each flag as a finding ([ADR 0117](0117-live-flags-are-kept-as-suspected-findings-merged-per-chapter-when-a-session-ends.md)), and that store is
    what a view opened mid-session reads, so a bounded flag list in the snapshot would be a second copy.
-5. Findings mapping for Phase 7: `misread`, `extra` and `skipped` are category `transcript_discrepancy`; `restart` is
+5. Findings mapping: `misread`, `extra` and `skipped` are category `transcript_discrepancy`; `restart` is
    category `pickup` with `evidence.kind` `restart`, the mapping take review already uses
    (`apps/desktop/internal/repeats`). `flags.FINDING_CATEGORIES` records it.
 6. `replay.py` measures it: it replays a Moonshine probe recording or a printed `live_asr.py` session (`--stream`)
@@ -57,8 +56,8 @@ and splitting one written word across a matched neighbour ("7 o" + "clock" for "
 - Recall is given up on purpose: short restarts, engine-dropped articles, discrepancies at segment edges and anything a
   spelling difference could explain are never flagged. The measured clean-read rate with Whisper tiny over synthetic
   speech (2,852 heard words: `misread` 2.07, `skipped` 0.42, `restart` 0.04, `extra` 0.00 per 100; 41 of 44 planted
-  errors flagged) is mostly real engine mishearings, which no text rule can remove; Phase 7 should hold a kind off by default while its measured
-  rate misses the PRD target, and human microphone readings are still owed.
+  errors flagged) is mostly real engine mishearings, which no text rule can remove; a kind should be held off by default while its measured
+  rate misses the owner's target (at most 1 false flag per 100 heard words, [ADR 0118](0118-read-aloud-flags-are-highlight-kinds-with-an-inline-hint-and-skips-and-restarts-show-by-default.md)), and human microphone readings are still owed.
 - A flag arrives up to one segment late (a pause or the 12 s buffer cap), which is acceptable for review marks and not
   meant for anything that must react mid-sentence.
 - Changing the event shape, the gates' meaning, the shared normalization home or the restart category needs a new ADR

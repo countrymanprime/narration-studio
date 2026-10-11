@@ -5,7 +5,7 @@
 
 ## Context
 
-`docs/prds/recording-coverage-analysis.prd.md` (D12) allows no coverage threshold to ship until it has been scored against labeled chapters. On 2026-09-23 the owner answered Q15: use synthetic fixtures for now instead of an owner-supplied corpus, ship the defaults as Proposed and labeled uncalibrated, and let a real permissioned corpus replace the fixtures later. The PRD suggests Piper-rendered audio as one way to build them. Audio in the repo is large, and Piper is not installed in CI. It would also add a text-to-speech model's own errors to every measurement before the analyzer (Phase 2) even exists.
+No recording-coverage threshold should ship until it has been scored against labeled chapters. On 2026-09-23 the owner decided to use synthetic fixtures for now instead of an owner-supplied corpus, to ship the defaults as Proposed and labeled uncalibrated, and to let a real permissioned corpus replace the fixtures later. Piper-rendered audio was one way to build them. Audio in the repo is large, and Piper is not installed in CI. It would also add a text-to-speech model's own errors to every measurement before the analyzer existed.
 
 ## Decision
 
@@ -14,7 +14,7 @@ The committed ground truth is text-only: scripted recordings plus labels, and no
 ## Consequences
 
 - The harness and every committed case run in `pnpm check` on any machine, with no model, no audio and no owner data. The whole set is under 64 KiB.
-- Labels describe what was read, not what an analyzer can detect, so the same cases score the Phase 2 alignment, the Phase 3 sidecar mode (the rendered words have the shape of its words files) and the Phase 8 thresholds.
-- A perfect transcript does not measure transcriber error. The false "not met" rate on real speech is still unknown, and the Phase 8 defaults stay uncalibrated until audio is scored: rendered audio outside the repo, or the permissioned corpus through the variable.
+- Labels describe what was read, not what an analyzer can detect, so the same cases score the alignment ([ADR 0126](0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md)), the sidecar mode (the rendered words have the shape of its words files, [ADR 0127](0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md)) and the thresholds ([ADR 0132](0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md)).
+- A perfect transcript does not measure transcriber error. The false "not met" rate on real speech is still unknown, and the default thresholds stay uncalibrated until audio is scored: rendered audio outside the repo, or the permissioned corpus through the variable.
 - Four short chapters give counts, not rates. Growing the set means adding case files. Changing the case schema means bumping `schemaVersion` in the harness and in every case.
 - Rendering audio into the repo, or making the corpus mandatory, would take a new ADR that supersedes this one.

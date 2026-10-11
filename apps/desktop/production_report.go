@@ -10,8 +10,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/productionreport"
 )
 
-// The Production page's status report export (production tracking PRD Phase 5, delivered and deleted; ADR 0028). The page sends only the
-// narrator's one choice, whether to include the contracted amount and effective rate; the host builds the report from
+// The Production page's status report export (ADR 0028). The page sends only the narrator's one
+// choice, whether to include the contracted amount and effective rate; the host builds the report from
 // exactly the same overview and plan the Production page just read (buildProductionOverview, bindings_production.go)
 // and writes an HTML and a JSON file into the project's narration-utils/production/reports folder. It never writes
 // next to the audio, never changes the time log or the plan, and never overwrites an earlier report.
@@ -28,7 +28,7 @@ type ProductionReportExport struct {
 	ContractedAmountIncluded bool   `json:"contractedAmountIncluded"`
 }
 
-// ProductionStatusReport writes the book's status report (Phase 5): hours by stage, PFH, the deadline and milestone
+// ProductionStatusReport writes the book's status report: hours by stage, PFH, the deadline and milestone
 // status, and book-wide readiness counts, as an HTML and a JSON file. includeContractedAmount is the narrator's choice
 // to write the contracted amount and the effective rate; off by default, since a status report is often shared with
 // someone the narrator would not otherwise tell their rate. It refuses without a project.

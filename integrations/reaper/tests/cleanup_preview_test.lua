@@ -1,5 +1,5 @@
 -- Preview markers and approve-to-apply trims for silence cleanup candidates: preview_cleanup_markers,
--- apply_cleanup_trims (diagnostics-delivery-and-cleanup-tools PRD Phase 10, ADR 0251).
+-- apply_cleanup_trims (ADR 0251).
 
 local H = require('harness')
 

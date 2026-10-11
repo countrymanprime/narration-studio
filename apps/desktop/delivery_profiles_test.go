@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The delivery-profile bindings (delivery-platform-profiles.prd.md Phases 2 and 4, ADR 0179): the profiles and the
+// The delivery-profile bindings (ADR 0179): the profiles and the
 // choices, a choice per scope, and a custom profile's duplicate, edit and delete.
 
 func profileHost(t *testing.T) (*Host, string) {

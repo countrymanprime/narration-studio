@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Delivery profiles (delivery-platform-profiles.prd.md Phase 2, ADR 0179): the built-in profiles are compiled into
+// Delivery profiles (ADR 0179): the built-in profiles are compiled into
 // internal/deliveryprofile; the narrator's custom profiles and the Global default are the user-level
 // delivery-profiles.json (h.deliveryProfiles, set once in NewHost like the credit templates); a project's own choice is
 // on its manifest. The old Delivery limits settings are read once more, to move them into a profile, and never again.
@@ -220,7 +220,7 @@ type profileEdit struct {
 // maxProfileEditBytes bounds what the editor may send: a profile's name and a few dozen rules.
 const maxProfileEditBytes = 64 << 10
 
-// saveDeliveryProfile saves a custom profile's name, numbers and rules turned off (Phase 4); the store refuses a
+// saveDeliveryProfile saves a custom profile's name, numbers and rules turned off; the store refuses a
 // built-in, a new rule, a dropped rule or a changed kind of bound.
 func (h *Host) saveDeliveryProfile(edit string) (deliveryprofile.Profile, error) {
 	if len(edit) > maxProfileEditBytes {

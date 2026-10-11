@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
-// cleanupLauncherRole wraps client in the REAPER adapter (DAW port PRD P2) and takes its CleanupLauncher role,
+// cleanupLauncherRole wraps client in the REAPER adapter (ADR 0300) and takes its CleanupLauncher role,
 // the way the composition root does (apps/desktop/app.go), so these tests exercise the real bridge round trip
 // through the same port the service depends on.
 func cleanupLauncherRole(t *testing.T, client *bridge.Client) dawport.CleanupLauncher {

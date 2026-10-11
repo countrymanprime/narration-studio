@@ -105,8 +105,8 @@ func coverageHost(t *testing.T, project string, installed bool, launcher coverag
 	return coverageHostWithModels(t, project, whisperWithSmall(t, installed), launcher)
 }
 
-// coverageHostWithModels is coverageHost with a caller-built Whisper catalog, for the model cascade's own tests
-// (Phase 5), which need more than the one model coverageHost's whisperWithSmall installs.
+// coverageHostWithModels is coverageHost with a caller-built Whisper catalog, for the model cascade's own tests,
+// which need more than the one model coverageHost's whisperWithSmall installs.
 func coverageHostWithModels(t *testing.T, project string, models *whisper.Manager, launcher coverage.Launcher) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
@@ -123,7 +123,7 @@ func coverageHostWithModels(t *testing.T, project string, models *whisper.Manage
 }
 
 // whisperCatalog is whisperWithSmall generalized to any set of models, each installed or not (the model cascade's
-// own tests, Phase 5, need tiny and large-v3-turbo beside small).
+// own tests need tiny and large-v3-turbo beside small).
 func whisperCatalog(t *testing.T, installed map[string]bool) *whisper.Manager {
 	t.Helper()
 	body := []byte("model-bytes")
@@ -202,7 +202,7 @@ func enableCascade(t *testing.T, host *Host) {
 	}
 }
 
-// TestCoverageStartCascadeUsesItsOwnModels is the model cascade PRD Phase 5's own binding test: with the cascade on,
+// TestCoverageStartCascadeUsesItsOwnModels is the model cascade's own binding test: with the cascade on,
 // the first pass runs with cascade_first_pass_model, not TranscriptCompare's model_size (small, whisperWithSmall's
 // only installed model plays no part here).
 func TestCoverageStartCascadeUsesItsOwnModels(t *testing.T) {

@@ -5,8 +5,8 @@
 
 ## Context
 
-`credits-in-chapter-table.prd.md` Phase 3 lets a narrator run the same recording check the chapter table already
-offers a manuscript chapter against an Opening or Closing credits row (CT4 option (c)). The Transcript Compare
+The owner wants the same recording check the chapter table already offers a manuscript chapter to run against an
+Opening or Closing credits row. The Transcript Compare
 sidecar (`sidecars/transcript-compare`, ADR 0127) measures a chapter's saved recording against text it reads from
 `narration-utils/manuscript/manuscript.json` (`compare.py`'s `load_manuscript_chapters`), keyed by a chapter id that
 must be in that file's `chapters` array. Credits are deliberately not manuscript chapters (ADR 0150, ADR 0183: "The
@@ -16,12 +16,12 @@ template library and the project's credits values (`internal/credits`, `apps/des
 manuscript entry.
 
 ADR 0183 said a credits id must never reach "coverage" among the chapter-only consumers it listed; that clause is
-this ADR's whole subject, not something it quietly drops — Phase 3 is the first time coverage needs to say anything
+this ADR's whole subject, not something it quietly drops — this is the first time coverage needs to say anything
 about a credits id at all, and it says it deliberately, in one narrow, additive place.
 
-The sidecar itself is out of this stream's scope (`sidecars/**` is lane B). Changing `compare.py` to accept raw text
+The sidecar itself stays unchanged. Changing `compare.py` to accept raw text
 instead of a manuscript-chapter lookup would be the more "natural" fix, but it would also touch a shared,
-Lua/harness-adjacent surface this stream does not own, for a problem the host can solve entirely on its own side.
+Lua/harness-adjacent surface this change does not own, for a problem the host can solve entirely on its own side.
 
 ## Decision
 
@@ -35,7 +35,7 @@ Lua/harness-adjacent surface this stream does not own, for a problem the host ca
 - **`DocumentID` is the current manuscript's own `documentId`, not a fixed "credits" placeholder.**
   `evidence.MappingStore` keeps one project's confirmed track links in one file, active for one `documentId` at a
   time (`chapter-track-map.json`); a separate scope for credits would either silently lose the manuscript's own
-  links or need a second mapping file this PRD does not ask for. A credits row's link lives beside every manuscript
+  links or need a second mapping file nobody asked for. A credits row's link lives beside every manuscript
   chapter's, told apart only by `ChapterID` ("credits-opening" / "credits-closing" can never collide with a
   manuscript "c-XXXX" id, ADR 0183).
 - **The sidecar is never changed.** When `Service.prepareAndLaunch` resolves a credits basis, it writes a synthetic,
@@ -48,7 +48,7 @@ Lua/harness-adjacent surface this stream does not own, for a problem the host ca
   (`Path(manuscript_path).resolve().parents[2]`) still resolves to `<project>/TranscriptCompare`, and the narrator's
   own word-equivalence list and vocabulary hints still apply to a credits check exactly as they do to a manuscript
   one. The file is removed, best-effort, once the run ends (`finish`), the same way the run's own folder is.
-- **Two new typed reasons**, not a reuse of the manuscript ones: `ReasonCreditsNotSetUp` (CT5: the kind checked has
+- **Two new typed reasons**, not a reuse of the manuscript ones: `ReasonCreditsNotSetUp` (the kind checked has
   no rendered template - `Config.LoadCredits` erroring or unset) and `ReasonCreditsChanged` (the credits staleness
   reason `evaluate` reports in place of `ReasonManuscriptChanged` when `CreditsKind` holds for the basis being
   read), so the UI can word a credits refusal or staleness message on its own terms rather than borrowing "the
@@ -59,22 +59,21 @@ Lua/harness-adjacent surface this stream does not own, for a problem the host ca
   `id` as an opaque key for every host call; `creditsCheckChapter(kind, title)` builds a synthetic-but-real
   `ManuscriptChapter` (never sent anywhere as a chapter, never entering `manuscriptChapters`) with the one paragraph
   id `writeCreditsManuscript`'s stand-in file gives the credits kind, so a reported gap numbers as "paragraph 1" the
-  same way a real chapter's first paragraph would. This stream stops at exporting that helper: wiring a live "Check"
-  button into the Home table (`AudiobookEstimatePanel.tsx`, a different phase's file, about to move to the
-  Production home in stage-navigation Phase 2) is a follow-up phase's work.
+  same way a real chapter's first paragraph would. This change stops at exporting that helper: wiring a live "Check"
+  button into the Home table (`AudiobookEstimatePanel.tsx`) is follow-up work, done in [ADR 0495](0495-a-credits-rows-check-and-track-link-reuse-recordingcheck-and-mappingconfirm-through-a-synthetic-chapter-and-a-credits-aware-title-lookup.md).
 
 ## Consequences
 
 - A credits check reuses every existing coverage code path (the job runner, the ledger, staleness, the model
   cascade) with zero sidecar or Lua change; `sidecars/transcript-compare` and `integrations/reaper` are untouched by
-  this PRD phase.
+  this change.
 - A credits row's confirmed track link and a manuscript chapter's now share one `chapter-track-map.json`; nothing
   about `evidence.MappingStore` itself changed; a caller building a suggestion candidate list to include the two
-  credits titles (the PRD's "suggestByMatch adds the two credits titles as candidates") still has to do so itself
+  credits titles still has to do so itself
   (`evidence.ChapterCandidate` already accepts any id/title pair) - no such caller exists yet outside the stage
-  engine, which this PRD explicitly keeps manuscript-only, so that wiring waits for whichever surface (a Tracks-page
+  engine, which stays manuscript-only, so that wiring waits for whichever surface (a Tracks-page
   suggestion list) ends up needing it.
-- The Check button on a credits row stays disabled on Home until a follow-up phase wires it; this ADR only makes
+- The Check button on a credits row stays disabled on Home until a follow-up wires it; this ADR only makes
   the check itself possible and correct once something calls it.
 - The synthetic manuscript file's lifecycle is best-effort cleanup, matching the run folder's own; a killed process
   between writing it and removing it leaves a stale `narration-utils/analysis/credits-manuscript.json` with an old

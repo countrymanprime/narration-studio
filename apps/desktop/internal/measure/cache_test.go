@@ -28,9 +28,8 @@ func identityOf(t *testing.T, path string) evidence.SourceIdentity {
 	return identity
 }
 
-// The edit-and-proof-workspace PRD Phase 5 (EP12 A, ADR 0520): peaks are cached per source identity in the
-// evidence cache, over the whole source, so a second item playing a different range of the same file never
-// re-decodes it.
+// Per ADR 0520, peaks are cached per source identity in the evidence cache, over the whole source, so a second item
+// playing a different range of the same file never re-decodes it.
 func TestCachedPeaksFileComputesOnceAndCachesForTheWholeSource(t *testing.T) {
 	wav := encodeWAV(t, 1, 8000, 16, false, sine(8000, 2, 220, -6, 0))
 	path := writeWAVFile(t, wav)

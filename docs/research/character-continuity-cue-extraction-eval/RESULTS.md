@@ -1,7 +1,7 @@
 # Dialogue cue attribution: labeled-quote evaluation (Q4)
 
-Phase 2 of [`character-continuity-review.prd.md`](../../prds/character-continuity-review.prd.md) asks for a
-"[labeled-quote evaluation](../../prds/character-continuity-review.prd.md) reported (Q4)". This is that
+Phase 2 of `character-continuity-review.prd.md` (deleted) asks for a
+"labeled-quote evaluation (deleted PRD `character-continuity-review`) reported (Q4)". This is that
 evaluation, run against `extract_dialogue_cues` in
 `sidecars/manuscript-guide/core/manuscript_guide.py`.
 
@@ -34,7 +34,7 @@ speakers, or an incidental speaker who was never named as a Character entity. Th
 
 ## Results
 
-```
+```text
 uv run --project ../../../sidecars/manuscript-guide python run_eval.py
 ```
 

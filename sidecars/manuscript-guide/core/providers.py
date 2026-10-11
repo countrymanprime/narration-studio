@@ -1,13 +1,13 @@
-"""Adapters for the guide sidecar's providers (ADR 0301, provider-ports P8; wiktextract row added by prep-depth Phase 8, ADR
+"""Adapters for the guide sidecar's providers (ADR 0301; the wiktextract row, ADR
 0405): Piper as the ``TtsEngine`` row, CMU, Wiktextract and eSpeak as the ``PronunciationSource`` rows. Each adapter wraps
-exactly the code ``manuscript_guide.py`` called directly before this phase; importing this module (which
-``manuscript_guide.py`` does at load time) registers all four, in the offline precedence order D72/Q7 recommends: CMU (D13's
+exactly the code ``manuscript_guide.py`` called directly before the ports existed; importing this module (which
+``manuscript_guide.py`` does at load time) registers all four, in the offline precedence order ADR 0405 records: CMU (the
 existing default), then Wiktextract (broader dictionary coverage than CMU alone), then eSpeak (a letter-to-sound guess for
 anything neither dictionary has).
 
 Nothing here imports piper, pronouncing or phonemizer at module level: each adapter's import stays lazy inside the call that
 needs it, so loading the sidecar for any other command does not pay their cost. ``WiktextractSource`` never imports anything
-beyond the standard library: its data is a plain JSON file the Go asset manager derives at install time (Q8), never a
+beyond the standard library: its data is a plain JSON file the Go asset manager derives at install time (ADR 0405), never a
 Python package.
 """
 
@@ -76,7 +76,7 @@ def arpabet_to_ipa(phones: str) -> str:
 
 
 class CmuSource:
-    """The CMU Pronouncing Dictionary: quick and high-quality for names it already knows, medium confidence (D13)."""
+    """The CMU Pronouncing Dictionary: quick and high-quality for names it already knows, medium confidence."""
 
     descriptor = PronunciationDescriptor("cmu", "CMU dictionary", modes=(PRONOUNCE,))
     # What the build-time fallback logs when this source fails on a name, before it tries the next one.
@@ -96,19 +96,19 @@ class CmuSource:
 
 
 class WiktextractSource:
-    """Wiktionary's IPA data, through the Wiktextract project's structured extracts (D72, ADR 0405): broader headword and
+    """Wiktionary's IPA data, through the Wiktextract project's structured extracts (ADR 0405): broader headword and
     variant coverage than the CMU dictionary, still a real dictionary hit rather than eSpeak's letter-to-sound guess, so it
-    sits between the two in the offline precedence chain (Q7).
+    sits between the two in the offline precedence chain.
 
     Reads a small derived ``word -> {ipa, audio}`` index the Go asset manager builds at install time from the Wiktextract
-    release and keeps in place of the raw multi-gigabyte dump (Q8, docs/research/wiktextract-pronunciation-source.md). The
-    ``audio`` field (a Wikimedia Commons file name, or an empty string) is read here for prep-depth Phase 10 to use later;
-    this phase's own ``pronounce`` never touches it.
+    release and keeps in place of the raw multi-gigabyte dump (docs/research/wiktextract-pronunciation-source.md). The
+    ``audio`` field (a Wikimedia Commons file name, or an empty string) is for the Go host's Listen on Commons lookup;
+    this adapter's ``pronounce`` never touches it.
     """
 
     descriptor = PronunciationDescriptor("wiktextract", "Wiktionary (via Wiktextract)", modes=(PRONOUNCE,))
     unavailable_log = "Wiktionary pronunciation unavailable"
-    # Every displayed answer carries this per the CC BY-SA terms (Q9's attribution requirement); the full notice is in
+    # Every displayed answer carries this per the CC BY-SA terms; the full notice is in
     # THIRD-PARTY-NOTICES.txt.
     attribution_label = "Wiktionary (CC BY-SA)"
 
@@ -142,13 +142,13 @@ class WiktextractSource:
 
 
 class EspeakSource:
-    """eSpeak NG: a letter-to-sound guess (Q9), not a dictionary hit, for a name neither CMU nor Wiktextract has heard of.
+    """eSpeak NG: a letter-to-sound guess, not a dictionary hit, for a name neither CMU nor Wiktextract has heard of.
     Low confidence, but it can attempt anything."""
 
     descriptor = PronunciationDescriptor("espeak", "eSpeak NG", modes=(PRONOUNCE,))
     unavailable_log = "eSpeak phonetic fallback unavailable"
-    # D72's own words: "a clearly labelled letter-to-sound guess", so a narrator never mistakes this for a dictionary hit
-    # (Q9). The descriptor's label stays "eSpeak NG" for the explicit source picker; only the generated answer's own label
+    # A generated answer is labelled as a letter-to-sound guess, so a narrator never mistakes it for a dictionary hit.
+    # The descriptor's label stays "eSpeak NG" for the explicit source picker; only the generated answer's own label
     # changes.
     guess_label = "Letter-to-sound guess (eSpeak NG)"
 
@@ -238,7 +238,7 @@ class PiperVoiceAdapter:
 
 
 class PiperEngine:
-    """Piper (D3): the one voice engine the narrator's Settings page has ever offered."""
+    """Piper: the one voice engine the narrator's Settings page has ever offered."""
 
     descriptor = TtsDescriptor("piper", "Piper", asset_kind="tts")
 

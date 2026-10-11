@@ -1,6 +1,6 @@
 # REAPER spike S5: render details
 
-**Status: done, 2026-09-22. Everything below was observed in REAPER 7.80/x64 on Windows; a different version may differ.** Spike S5 of the [REAPER automation research](reaper-automation-surface.md) (section 6, section 9 item 5) and phase 10 of [reaper-automation-follow-through.prd.md](../prds/reaper-automation-follow-through.prd.md). It ran in a real REAPER 7.80 under owner decision D3 (isolated resource directory, a scratch project only, never `Challenges_001.rpp` or any owner file). It verifies what phase 11 (per-chapter render configuration) is allowed to assume.
+**Status: done, 2026-09-22. Everything below was observed in REAPER 7.80/x64 on Windows; a different version may differ.** Spike S5 of the [REAPER automation research](reaper-automation-surface.md) (section 6, section 9 item 5) and phase 10 of reaper-automation-follow-through.prd.md (deleted). It ran in a real REAPER 7.80 under owner decision D3 (isolated resource directory, a scratch project only, never `Challenges_001.rpp` or any owner file). It verifies what phase 11 (per-chapter render configuration) is allowed to assume.
 
 ## What it settles
 

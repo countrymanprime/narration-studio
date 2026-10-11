@@ -9,10 +9,9 @@ import (
 )
 
 // AmbiguousRppError is returned by EnsureDawLink when several *.rpp files sit
-// directly in the project folder and nothing already resolves a choice: W3
-// says to auto-adopt a sole file silently but ask when several exist, so the
-// caller (a binding, eventually) can prompt the narrator with Candidates
-// instead of guessing.
+// directly in the project folder and nothing already resolves a choice: a sole
+// file is adopted silently but several mean asking, so the caller (a binding,
+// eventually) can prompt the narrator with Candidates instead of guessing.
 type AmbiguousRppError struct {
 	Candidates []string
 }
@@ -21,8 +20,7 @@ func (e *AmbiguousRppError) Error() string {
 	return fmt.Sprintf("%d REAPER project files were found; choose which one to link", len(e.Candidates))
 }
 
-// EnsureDawLink resolves a project's DAW file link exactly once, in this order
-// (PRD W1-W3):
+// EnsureDawLink resolves a project's DAW file link exactly once, in this order:
 //
 //  1. An existing manifest link that still resolves to a file on disk is
 //     reused as-is; changed is false.
@@ -30,13 +28,13 @@ func (e *AmbiguousRppError) Error() string {
 //     the caller) is adopted as the link if it still exists on disk.
 //  3. Otherwise, a sole *.rpp file found directly in the project folder is
 //     adopted silently, so no existing project regresses to a disabled Tracks
-//     page (W3).
+//     page.
 //
 // When several *.rpp files exist in the folder and neither 1 nor 2 resolved a
-// choice, it returns *AmbiguousRppError instead of guessing (W3: "ask when
-// several exist"). When nothing resolves and the folder holds no *.rpp files
-// at all, it returns the zero DawLink with changed false and a nil error:
-// there is simply nothing to link yet.
+// choice, it returns *AmbiguousRppError instead of guessing. When nothing
+// resolves and the folder holds no *.rpp files at all, it returns the zero
+// DawLink with changed false and a nil error: there is simply nothing to link
+// yet.
 func EnsureDawLink(projectFolder string, manifest *Manifest, legacySelectedRpp string) (DawLink, bool, error) {
 	if manifest != nil && manifest.DawProjectFile != nil {
 		if resolved, ok := manifest.DawProjectFile.Resolve(projectFolder); ok {

@@ -16,11 +16,10 @@ import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { mockImportPreview, mockImportPreviewLog } from '../mockImportPreview';
 import { withSeededStatuses, type MockApiSeed, type MockState } from './state';
 
-// `?mockManuscript=mixed` (manuscript-chapter-header-alignment.prd.md; heading cases added by
-// chapter-title-display-consistency.prd.md Phase 1): a buttonless row (Front Matter, contentKind 'opening') before
+// `?mockManuscript=mixed`: a buttonless row (Front Matter, contentKind 'opening') before
 // the narration chapters, one narration chapter's word count raised to 5 digits, so the header's stat block and
 // action slot can be shown lining up across a 3-, a 4- and a 5-digit count, with and without a Read aloud button,
-// and four of the owner's heading shapes (mockups/chapter-title-display-consistency/02-home-table-*.webp) so
+// and four heading shapes so
 // chapterName()/TitleSubtitle can be seen against a title in source capitals with a subtitle, a title with no
 // subtitle at all, a subtitle long enough to wrap, and a one-line heading that already ends in a colon before the
 // formatter appends its own " — subtitle" - without a second, forked mock. A pure function (not inlined in the
@@ -224,7 +223,7 @@ export function createManuscriptMock(
       );
     },
     // The host's ManuscriptSetChapterKind (apps/desktop/chapterkind.go): only the kind changes, and a removal clears the
-    // chapter's links (chapter-track-link-control PRD Phase 3, TL5 A).
+    // chapter's links.
     manuscriptSetChapterKind: async (chapterId, kind) => {
       await manuscriptReady;
       const found = s.chapters.find((item) => item.id === chapterId);

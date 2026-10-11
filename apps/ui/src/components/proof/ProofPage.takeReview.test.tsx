@@ -283,7 +283,7 @@ describe('A take-review group on the Review page', () => {
   });
 });
 
-// audacity-integration.prd.md Phase 9: take review has no Audacity analog, so its whole section is left out.
+// Take review has no Audacity analog, so its whole section is left out.
 describe('Find pickups and duplicates on the Review page, with Audacity', () => {
   it('has no Reads section for a take-review group', async () => {
     const user = userEvent.setup();

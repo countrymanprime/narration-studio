@@ -283,7 +283,7 @@ func TestLocatedStatusFollowsTheSidecarsConfidence(t *testing.T) {
 	}
 }
 
-// TeleprompterLocate's payloads (teleprompter-manuscript-integration PRD Phase 9, ADR 0111): a found resume word, a
+// TeleprompterLocate's payloads (ADR 0111): a found resume word, a
 // chapter with no confident track, a picked track with nothing recorded, and a missing source. The project folder
 // and the model's install path are made portable; the .rpp's save time is stabilized by contractfile.
 func TestContractTeleprompterLocate(t *testing.T) {
@@ -349,7 +349,7 @@ func verdictOf(t *testing.T, result map[string]any) map[string]any {
 	return verdict
 }
 
-// Resume reconciles the recorded tail with the prompter's last reading (read-aloud-resume-from-daw PRD Phase 3).
+// Resume reconciles the recorded tail with the prompter's last reading.
 func TestTeleprompterLocateReconcilesTheTailWithTheLastReading(t *testing.T) {
 	for _, c := range []struct {
 		name   string
@@ -424,7 +424,7 @@ func TestTeleprompterLocateDropsALastReadingOfAnEditedChapter(t *testing.T) {
 	}
 }
 
-// The resume verdicts lane C renders (PRD Phase 3): agree, disagree, complete and prompter-only, beside
+// The resume verdicts lane C renders: agree, disagree, complete and prompter-only, beside
 // teleprompter-locate-found (the recording alone).
 func TestContractTeleprompterLocateVerdicts(t *testing.T) {
 	cases := []struct {

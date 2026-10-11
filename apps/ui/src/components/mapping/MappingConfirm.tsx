@@ -6,7 +6,7 @@ import type { Track } from '../../types';
 type Props = {
   /** The chapter this link is for, used only to name the track picker for a screen reader. */
   chapterTitle: string;
-  /** Every REAPER track the narrator can link to (analysis evidence ledger PRD, Phase 7, Q7). */
+  /** Every REAPER track the narrator can link to. */
   tracks: Track[];
   /** The confirmed track's resolved name, when the link points at a track that still exists; omit it (leaving
    * `linkedTrackGuid` set) to show a missing-track state, or omit both to show nothing confirmed yet. */
@@ -22,7 +22,7 @@ type Props = {
   clearLabel?: string;
 };
 
-// A reusable inline "link this chapter to a track" prompt (analysis evidence ledger PRD, Phase 7, Q7): the Tracks
+// A reusable inline "link this chapter to a track" prompt: the Tracks
 // page's list uses one per chapter, and the recording check (components/production/RecordingCheck.tsx) shows one when a
 // chapter has no confirmed track, without needing the audio engine panel around it. It owns only the pending pick in the
 // track dropdown; the confirmed link itself lives in the caller's state, refreshed from `chapterTrackMapList` after

@@ -23,9 +23,9 @@ const KIND_ORDER: FlagKind[] = ['skip', 'partial', 'not_recorded', 'misread', 'e
 
 export type FlagDecisionResult = { ok: true } | { ok: false; message: string };
 
-/** A Transcript Compare discrepancy's own actions, from the Proofing page's results row (stage-navigation Phase 5). */
+/** A Transcript Compare discrepancy's own actions, from the Proofing page's results row. */
 export type CompareFlagActions = {
-  /** Whether Play recorded audio may call the live REAPER bridge (a linked project file, PRD W16). */
+  /** Whether Play recorded audio may call the live REAPER bridge (a linked project file). */
   canJump: boolean;
   jump: (row: Discrepancy) => void;
   addEquivalence: (row: Discrepancy) => void;
@@ -43,8 +43,7 @@ function countByKind(flags: readonly Flag[]): Array<{ kind: FlagKind; label: str
 }
 
 /**
- * A finding-backed flag's decision (edit-and-proof-workspace.prd.md Phase 4, mockups/edit-and-proof-workspace/02-flag-detail-open.webp
- * "DECISION"): accept, dismiss, defer and an optional note, sent through the same `findingsReview` binding the Review page uses - a
+ * A finding-backed flag's decision: accept, dismiss, defer and an optional note, sent through the same `findingsReview` binding the Review page uses - a
  * decision made here shows there too, and the other way round. Its own component (not inlined in FlagsPanel) so the parent can key it by
  * the flag's id and get a fresh note field on every selection, the same trick FindingDetail's caller uses.
  */
@@ -54,7 +53,7 @@ function FlagDecision({ flag, onDecide }: { flag: Flag; onDecide: (status: Findi
   const [saved, setSaved] = useState<string>();
   const action = usePendingAction();
   const noteTooLong = [...note].length > MAX_REVIEW_NOTE_LENGTH;
-  // Proof's one vocabulary (D85 #7, resolution.ts): accepting a flag records the fix it asks for, a pickup or an edit.
+  // Proof's one vocabulary (resolution.ts): accepting a flag records the fix it asks for, a pickup or an edit.
   const fix = flagFixKind(flag.kind);
 
   const decide = (status: FindingReviewStatus) =>
@@ -152,10 +151,10 @@ function CompareActions({ row, actions }: { row: Discrepancy; actions: CompareFl
 }
 
 /**
- * The workspace's flag legend and detail (edit-and-proof-workspace.prd.md Phase 2, EP4; Phase 4 review-in-place):
+ * The workspace's flag legend and detail:
  * counts by kind, next and previous navigation over every flag in the chapter, and the selected flag's script/heard
- * text. A flag backed by a stored Finding (Phase 4, `overlayFindings`) also shows where it came from ("From <analyzer>,
- * <time>") and its own Go to/Loop in REAPER for that word (mockups/edit-and-proof-workspace/02-flag-detail-open.webp),
+ * text. A flag backed by a stored Finding (`overlayFindings`) also shows where it came from ("From <analyzer>,
+ * <time>") and its own Go to/Loop in REAPER for that word,
  * plus the decision controls above (FlagDecision). A flag with no finding - straight from the check's own alignment -
  * stays read-only, with only "Play from here" (the app's own player).
  */
@@ -174,7 +173,7 @@ export function FlagsPanel({
   selectedIndex: number | undefined;
   onSelect: (index: number) => void;
   onPlayFromFlag: (flag: Flag) => void;
-  /** Go to/Loop in REAPER for the selected flag's word, shared with the transport bar's own (Phase 3). */
+  /** Go to/Loop in REAPER for the selected flag's word, shared with the transport bar's own. */
   reaper: Pick<WorkspaceReaperControls, 'goToTokenBlocked' | 'loopTokenBlocked' | 'tokenPending' | 'goToToken' | 'loopToken'>;
   /** Records a decision on the selected flag's finding; undefined flags never call this (no findingId to decide on). */
   onDecide: (flag: Flag, status: FindingReviewStatus, note: string) => Promise<FlagDecisionResult>;

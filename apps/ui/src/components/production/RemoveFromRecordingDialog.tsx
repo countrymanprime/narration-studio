@@ -9,9 +9,9 @@ const OPTIONS = [
 ];
 
 /**
- * "Remove <chapter> from recording?" (chapter-track-link-control.prd.md Phase 3, mockup 06): a reclassification, not
- * a delete (D12 does not list it among the danger confirms), so the confirm button stays the ordinary primary
- * colour. `kind` defaults to `reference` ("Not a chapter"), the PRD's recommended default (TL2).
+ * "Remove <chapter> from recording?" a reclassification, not
+ * a delete (ADR 0048 reserves the red confirm for destructive ones), so the confirm button stays the ordinary primary
+ * colour. `kind` defaults to `reference` ("Not a chapter"), the safest default.
  */
 export function RemoveFromRecordingDialog({
   chapterTitle,

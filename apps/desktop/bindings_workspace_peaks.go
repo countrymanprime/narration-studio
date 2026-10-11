@@ -11,16 +11,15 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The chapter workspace's waveform strip (edit-and-proof-workspace.prd.md Phase 5, ADR 0520): host-computed
-// peaks (measure.ComputePeaks/PeaksFile, EP12 A) for every analyzed item of a chapter's stored alignment, in
-// one call so the canvas can draw the whole chapter's strip without a round trip per item. The peaks
-// themselves are cached by source identity in the evidence cache (measure.CachedPeaksFile): a chapter whose
-// items share retakes of the same source file, or a chapter reopened later, is answered from disk rather
-// than re-decoded.
+// The chapter workspace's waveform strip (ADR 0520): host-computed peaks (measure.ComputePeaks/PeaksFile) for every
+// analyzed item of a chapter's stored alignment, in one call so the canvas can draw the whole chapter's strip without a
+// round trip per item. The peaks themselves are cached by source identity in the evidence cache
+// (measure.CachedPeaksFile): a chapter whose items share retakes of the same source file, or a chapter reopened later,
+// is answered from disk rather than re-decoded.
 
-// workspacePeaksTimeout bounds one WorkspacePeaks call so a very large or unreadable source cannot hang the
-// binding: the Phase 0 budget is 3.4 s for a whole hour of audio (docs/research/edit-and-proof-spike-ep0.md),
-// so this leaves ample room for a chapter's several items plus a cold cache.
+// workspacePeaksTimeout bounds one WorkspacePeaks call so a very large or unreadable source cannot hang the binding:
+// the spike measured 3.4 s for a whole hour of audio (docs/research/edit-and-proof-spike-ep0.md), so this leaves ample
+// room for a chapter's several items plus a cold cache.
 const workspacePeaksTimeout = 30 * time.Second
 
 // WorkspacePeaksItem is one analyzed item's waveform, or why it has none: Index matches

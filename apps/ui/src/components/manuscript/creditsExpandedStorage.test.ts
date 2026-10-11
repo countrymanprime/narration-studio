@@ -4,7 +4,7 @@ import { DEFAULT_CREDITS_EXPANDED, loadCreditsExpanded, saveCreditsExpanded } fr
 
 afterEach(() => window.localStorage.clear());
 
-describe('credits open state per project (manuscript-credits-card-parity.prd.md, MC5 b)', () => {
+describe('credits open state per project', () => {
   it('opens by default when nothing is stored', () => {
     expect(loadCreditsExpanded('/projects/alice')).toEqual(DEFAULT_CREDITS_EXPANDED);
   });

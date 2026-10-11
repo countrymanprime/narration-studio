@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/packager"
 )
 
-// What ExportPickFiles, ExportState, PackageState and their siblings send (render-encode-master.prd.md Phase 5): the
+// What ExportPickFiles, ExportState, PackageState and their siblings send: the
 // idle job, one mid-run, one that finished with a mastered and encoded file, one with a failed file, and a built
 // package. The reports are built here rather than run through real audio or a real package folder, so the files do
 // not depend on floating point or the host's own paths; their shape is exportJob's and packageJobState's own.
@@ -92,7 +92,7 @@ func TestContractPackageBindings(t *testing.T) {
 	contractfile.Check(t, "package-error", failedSnapshot)
 }
 
-// What PackageStartMulti, PackageMultiState and PackageMultiCancel send (render-encode-master.prd.md Phase 6): the
+// What PackageStartMulti, PackageMultiState and PackageMultiCancel send: the
 // idle job, one mid-run, one that finished with a mix of a reused-format package and a re-encoded-format package,
 // and one where one profile's package failed while another succeeded.
 

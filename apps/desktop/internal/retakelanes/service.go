@@ -32,7 +32,7 @@ type Service struct {
 
 // New builds the service and, when there is a picker, subscribes to RETAKE_LANE_PICKED and ERROR events for its own
 // run (or, with no run, a session-level problem while a pick is in flight). picker is the DAW port's retake_lanes
-// role (DAW port PRD P5c); nil is a standalone launch or a DAW with no such role, and every Pick then fails.
+// role (ADR 0300); nil is a standalone launch or a DAW with no such role, and every Pick then fails.
 func New(config Config, picker dawport.RetakeLanePicker, changed func(map[string]any)) *Service {
 	s := &Service{config: config, picker: picker, changed: changed, state: Idle()}
 	if picker != nil {

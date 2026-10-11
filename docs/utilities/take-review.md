@@ -18,8 +18,7 @@ Everything happens on [Proof](../guides/using-the-app/proof.md#pickups-and-dupli
 1. **Find pickups and duplicates…**: the narrator picks the chapter track and at most one pickup addition, a pickup track
    or a stretch of the timeline. The scan is a cancellable job with the sidecar's own progress. A track named as the
    chapter's pickup track ("Chapter 6 (pickups)") is recognised by chapter sync and carried on that chapter's row of
-   `chaptersync:state` (`pickupTrackName`), so the dialog can start with it
-   ([DAW chapter-track auto-sync](../prds/daw-chapter-track-auto-sync.prd.md) Phase 8). A finished scan that included
+   `chaptersync:state` (`pickupTrackName`), so the dialog can start with it. A finished scan that included
    the pickup track records it as scanned, and the row's `pickupsChanged` says when the track has changed since, so the
    scan can be offered again. A pickup track is never the chapter's link: the recording check still reads the chapter
    track only.
@@ -69,8 +68,7 @@ falls back to the default rather than failing a scan):
 
 ## Decisions
 
-These were the take-review PRD's open questions; the PRD is retired (`git log --diff-filter=D -- docs/prds/take-review-pickups-duplicates-take-intelligence.prd.md`
-finds it, with every phase's evidence).
+How take review was settled:
 
 - **Detection** is transcript-to-manuscript alignment of every read in scope plus exact-copy detection from source identity.
   Acoustic similarity (fingerprints, DTW) and a Silero VAD restart cue were not adopted; they need the local-dependency
@@ -93,8 +91,8 @@ finds it, with every phase's evidence).
 
 ## What is still open
 
-- **A scan of a real chapter** end to end, with the Whisper sidecar and the owner's project, and the calibration the PRD
-  proposed (recall 80% and precision 60% on an annotated set of at least 25 known locations over 3 to 5 chapters). No
+- **A scan of a real chapter** end to end, with the Whisper sidecar and the owner's project, and a calibration
+  target of recall 80% and precision 60% on an annotated set of at least 25 known locations over 3 to 5 chapters. No
   annotated set exists yet; the fixture suites (`sidecars/transcript-compare/tests/test_repeated_spans.py`,
   `tests/test_divergence_harness.py`) are the evidence so far, and synthetic evidence is weaker than real chapters.
 - **The owner's REAPER checks** for Go to and Loop per read, and what a split or a take-specific duplicate does to a take's

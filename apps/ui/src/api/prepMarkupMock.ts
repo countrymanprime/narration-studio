@@ -1,4 +1,4 @@
-// The browser mock's script markup layer (prep-depth.prd.md Phase 5). It keeps its spans in memory and checks each one
+// The browser mock's script markup layer. It keeps its spans in memory and checks each one
 // against the mock manuscript's current text the way apps/desktop/internal/prepmarkup does: a span whose words are no
 // longer under it (whitespace aside) comes back stale at its stored offsets, and one whose line is gone has no paragraph.
 // It does not re-find a span after a whitespace edit before it (the host's nonSpaceStart), since nothing in the mock edits

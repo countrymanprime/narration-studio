@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// Wiring internal/measure's Decoder capability (Phase 8, P11) to the catalogued FFmpeg row internal/encodeport
+// Wiring internal/measure's Decoder capability to the catalogued FFmpeg row internal/encodeport
 // registers. internal/measure never imports encodeport (encodeport already imports measure, for ReadMP3), so this
 // host-layer adapter is where the two meet, and where encodeport.ErrEncoderNotInstalled becomes
 // measure.ErrDecoderNotAvailable: a not-yet-downloaded (or platform-unsupported) encoder reads to a delivery rule as
@@ -30,7 +30,7 @@ func (d mp3Decoder) DecodeToWAV(ctx context.Context, src, dst string) error {
 }
 
 // mp3LevelDecoder answers the Decoder a measurement should use to read an MP3's levels on this platform, or nil when
-// no catalogued row declares support here (render-encode-master Phase 1's FFmpeg row is Windows-only today). Whether
+// no catalogued row declares support here (the FFmpeg row is Windows-only today). Whether
 // that row's binary is actually installed yet is not checked here: DecodeToWAV answers ErrDecoderNotAvailable itself
 // when it is not, at the moment a measurement actually needs it.
 func mp3LevelDecoder() measure.Decoder {

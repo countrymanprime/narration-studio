@@ -17,8 +17,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The pickup and duplicate scan as a job (take-review-pickups-duplicates-take-intelligence.prd.md Phase 5): the Review
-// page's scan dialog starts it with the scope the narrator chose (Q3), polls its real progress, the sidecar's own
+// The pickup and duplicate scan as a job: the Review
+// page's scan dialog starts it with the scope the narrator chose, polls its real progress, the sidecar's own
 // stage|pct|message line (ADR 0015), and can cancel it. The findings it saves go to the findings store under
 // "take-review", where the Review page lists and decides them through the generic findings bindings (ADR 0120).
 
@@ -26,7 +26,7 @@ import (
 const takeReviewScanPollInterval = 250 * time.Millisecond
 
 // TakeReviewScanScope is what the narrator chose to scan: a chapter track, and at most one pickup addition, a pickup
-// track or a time range in project seconds (Q3). The idle job carries the project's saved pickup addition (the
+// track or a time range in project seconds. The idle job carries the project's saved pickup addition (the
 // TakeReview settings) with no chapter track, for the dialog to offer.
 type TakeReviewScanScope struct {
 	ChapterTrackName string   `json:"chapterTrackName"`
@@ -241,7 +241,7 @@ func (h *Host) runTakeReviewScan(ctx context.Context, job *takeReviewScanJob, sc
 
 // recordPickupScan remembers, for a finished scan that included a pickup track, that track as it was scanned (its
 // fingerprint in the project the scan read), so the chapter's row can say when it has pickups the scan has not seen
-// (daw-chapter-track-auto-sync.prd.md Phase 8). A failure only means the row keeps saying the pickups changed; it is
+// A failure only means the row keeps saying the pickups changed; it is
 // logged, never raised.
 func (h *Host) recordPickupScan(request takereview.Request) {
 	if request.Scope.PickupTrackName == "" {

@@ -1,6 +1,6 @@
 import type { PrepMarkupSpan } from '../../types';
 
-// How the reader names a script mark (prep-depth.prd.md Phase 5): what a screen reader hears on the marked words, and the
+// How the reader names a script mark: what a screen reader hears on the marked words, and the
 // mark's own name where it is listed (a stale notice, the Mark up dialog).
 
 /** What the marked words are, said after them: "stressed", "breath after", "spoken by Queen". */

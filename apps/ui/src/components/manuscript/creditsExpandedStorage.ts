@@ -1,7 +1,7 @@
-// Whether the Opening/Closing credits cards are open, per project (manuscript-credits-card-parity.prd.md, MC5 b): a
+// Whether the Opening/Closing credits cards are open, per project: a
 // per-viewer convenience in browser storage, like readerPreferences.ts, never a host reader-state field - a credits id
 // never goes into expandedChapters or readerStateSave. Storage can be missing, full or blocked (a private window,
-// cleared site data), so every access is guarded and a credits card opens by default (MC5) when nothing is stored or
+// cleared site data), so every access is guarded and a credits card opens by default when nothing is stored or
 // storage fails.
 
 export type CreditsExpanded = { opening: boolean; closing: boolean };

@@ -1,12 +1,13 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: the
-// render source's own scan loop and signal gathering, run alongside (never
-// instead of) the item path's own run (scan.go) and gatherCoverage/
-// gatherCandidates (provider.go). Unlike run, there is no per-item loop - one
-// file, one decode - so progress is a single 0%->100% jump around that one
-// DecodeRender call: ADR 0015's real-progress honesty is still satisfied (0%
-// until the decode returns, then 100%, never a fabricated in-between number),
-// the same single-file-job precedent apps/desktop/internal/proofing's own
-// render measurement job already sets for one file's worth of work.
+// This file holds the render source's own scan loop and signal gathering
+// (ADR 0550), run alongside (never instead of) the item path's own run
+// (scan.go) and gatherCoverage/gatherCandidates (provider.go). Unlike run,
+// there is no per-item loop - one file, one decode - so progress is a single
+// 0%->100% jump around that one DecodeRender call: ADR 0015's real-progress
+// rule is still met (0% until the decode returns, then 100%, never a
+// fabricated in-between number), the same single-file-job precedent
+// apps/desktop/internal/proofing's own render measurement job sets for one
+// file's worth of work.
+
 package editing
 
 import (
@@ -21,10 +22,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// sourceChoice reads the chapter's Q6 choice; a nil Choices store (a Config
-// literal built before this field existed, or a project with none
-// configured) reads as every chapter's own default, SourceItems - "no choice
-// made yet" is never an error.
+// sourceChoice reads the chapter's source choice; a nil Choices store (a
+// Config literal that leaves it out, or a project with none configured) reads
+// as the default, SourceItems: "no choice made yet" is never an error.
 func (s *Service) sourceChoice(documentID, chapterID string) (SourceChoice, error) {
 	if s.config.Choices == nil {
 		return SourceItems, nil
@@ -40,8 +40,8 @@ func (s *Service) SourceChoice(documentID, chapterID string) (SourceChoice, erro
 	return s.sourceChoice(documentID, chapterID)
 }
 
-// SetSourceChoice sets documentID/chapterID's Q6 source choice (Editing­
-// SetSourceChoice). A nil Choices store (no project attached, or one
+// SetSourceChoice sets documentID/chapterID's source choice (the binding is
+// EditingSetSourceChoice). A nil Choices store (no project attached, or one
 // configured without this store) refuses rather than silently doing
 // nothing - the narrator's choice must actually be kept or the caller needs
 // to know it was not.
@@ -52,7 +52,7 @@ func (s *Service) SetSourceChoice(documentID, chapterID string, choice SourceCho
 	return s.config.Choices.Set(documentID, chapterID, choice)
 }
 
-// startRender resolves the chapter's current render (Q6) and decides whether
+// startRender resolves the chapter's current render and decides whether
 // a render-choice scan may even start. Unlike resolveChapter (service.go),
 // a render that is missing, stale or an unsupported format is allowed to
 // start: proofing.RenderMissing/RenderStale/RenderUnsupported still name a
@@ -136,8 +136,8 @@ func (s *Service) runRender(ctx context.Context, request Request, status proofin
 func renderFindingsScope(chapterID string) string { return chapterID + "-render" }
 
 // composeAndPersistRender is composeAndPersist's (scan.go) render-path
-// counterpart: Phase 3's own composition (ComposeRenderEmptySpace) for empty
-// space, plus one ClassCandidateFinding (findings.go, Phase 4) per click and
+// counterpart: ComposeRenderEmptySpace for empty space, plus one
+// ClassCandidateFinding (findings.go) per click and
 // breath candidate the render's own decode found, fed the same synthetic
 // whole-file ItemAudible renderAudible builds for composition - all saved
 // together to the render's own findings scope in one call, tagged
@@ -166,9 +166,9 @@ func (s *Service) composeAndPersistRender(request Request, path string, scan Ren
 	_, _ = s.findings.SaveAnalyzerFindings(analyzerName, renderFindingsScope(request.ChapterID), fresh)
 }
 
-// renderSignals is provider.go's SignalProvider.Signals render-choice branch
-// (Q6): it reads stored evidence only, exactly like gatherCoverage/
-// gatherCandidates do for the item path (Q12) - proofing.EvaluateRender reads
+// renderSignals is provider.go's SignalProvider.Signals render-choice branch.
+// It reads stored evidence only, exactly like gatherCoverage/
+// gatherCandidates do for the item path - proofing.EvaluateRender reads
 // the render association and the saved project already in view, this
 // package's own CurrentRenderRecord reads the ledger for scan currency, and
 // every class's candidates come from the render's own persisted findings

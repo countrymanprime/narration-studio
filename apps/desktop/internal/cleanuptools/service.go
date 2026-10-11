@@ -1,6 +1,6 @@
 // Package cleanuptools is the host's end of the cleanup launchers over the REAPER file bridge (launch_cleanup_tool in
-// integrations/reaper/narration_cleanup.lua; reaper-automation-follow-through PRD Phase 23, ADR 0146). It asks REAPER
-// to open its own Repair Pops/Clicks dialog, or the narrator's installed Magnolius DeClick script, on the items the
+// integrations/reaper/narration_cleanup.lua; ADR 0146). It asks REAPER to
+// open its own Repair Pops/Clicks dialog, or the narrator's installed Magnolius DeClick script, on the items the
 // narrator has selected. It mirrors renderconfig.Service: one run at a time, reported by phase.
 //
 // The app changes nothing itself. The only thing sent is an allow-listed tool key (Tools): never an action ID or
@@ -44,11 +44,10 @@ func lookup(key string) (Tool, bool) {
 // Config is the session path the service needs to talk to REAPER over the file bridge.
 type Config struct{ SessionDir string }
 
-// Service is the state machine for one launch at a time. Silence trim and level matching (DAW port PRD Phase
-// 5b) are a second, synchronous pair of roles on the same service: built in P2 and never wired to anything
-// (diagnostics-delivery-and-cleanup-tools PRD Phases 10 and 11 built the Lua and Go client but left "a
-// narrator-facing trigger" for later work), they take their SilenceTrimmer and GainAdjuster roles here so a
-// binding can call PreviewSilenceTrim, ApplySilenceTrim and ApplyGain once one exists.
+// Service is the state machine for one launch at a time. Silence trim and level matching are a second,
+// synchronous pair of roles on the same service (ADR 0300): the Lua and the Go client exist but no narrator-facing
+// trigger calls them yet, so they take their SilenceTrimmer and GainAdjuster roles here for a binding to call
+// PreviewSilenceTrim, ApplySilenceTrim and ApplyGain once one exists.
 type Service struct {
 	mu             sync.RWMutex
 	config         Config
@@ -60,7 +59,7 @@ type Service struct {
 	state map[string]any
 }
 
-// New builds the service over launcher, silenceTrimmer and gainAdjuster (DAW port PRD Phase 5b: cleanup tools
+// New builds the service over launcher, silenceTrimmer and gainAdjuster (ADR 0300: cleanup tools
 // depend on the roles they use, never a concrete bridge client). When there is a launcher it subscribes to
 // CLEANUP_LAUNCHED and ERROR events for its own run (or, with no run, a session-level problem while a launch is
 // in flight); silenceTrimmer and gainAdjuster are synchronous roles (roles.go) and need no subscription of

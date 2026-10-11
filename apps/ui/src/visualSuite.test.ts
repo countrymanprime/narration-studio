@@ -235,7 +235,7 @@ describe('disambiguateLabels', () => {
 });
 
 describe('this app opts into the document-scroll gate', () => {
-  test('declares documentScroll as locked (app-shell-vertical-overflow.prd.md)', () => {
+  test('declares documentScroll as locked', () => {
     expect(documentScroll).toBe('locked');
   });
 });

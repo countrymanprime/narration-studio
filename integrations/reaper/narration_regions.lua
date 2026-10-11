@@ -1,5 +1,4 @@
--- Regions for chapters and credits over the bridge: create_regions (the chapter regions of the follow-through PRD's
--- Phase 7, RF-7, and the credits regions of credits-in-chapter-table Phase 4; the calls are in
+-- Regions for chapters and credits over the bridge: create_regions (the chapter regions and the credits regions; the calls are in
 -- docs/research/reaper-api-for-planned-commands.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers
 -- as the chunk argument.
 --

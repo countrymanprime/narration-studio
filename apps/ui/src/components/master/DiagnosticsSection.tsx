@@ -23,10 +23,10 @@ const SOURCE_KINDS = [
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /**
- * Silence cleanup candidates (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder, ADR 0238): every
+ * Silence cleanup candidates (ADR 0238): every
  * `silence_cleanup` finding a checked file raised, apart from the Diagnostics tab's own findings above, with the
  * thresholds a check used (the narrator's own, from Settings > Silence cleanup). Findings view only: nothing here
- * applies a cut - that is the REAPER actions of PRD Phases 10 and 11, behind their own verification.
+ * applies a cut, because acting on a candidate in REAPER is not built here.
  */
 function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined; openSettings: () => void }) {
   const files = job?.files ?? [];
@@ -107,13 +107,13 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
 }
 
 /**
- * Master & QC's Diagnostics section (docs/prds/diagnostics-delivery-and-cleanup-tools.prd.md Phase 6): the windowed analyzers
+ * Master & QC's Diagnostics section: the windowed analyzers
  * (ADR 0158) over files picked for measuring, as a host job with real progress and Cancel (ADR 0015). Each finding shows its time in
  * the file, what was measured, the threshold that raised it and whether the audio is a raw recording or a rendered chapter, never a
- * grade. It is read-only: nothing is saved, played or sent to REAPER, so every finding stays unreviewed (PRD Open Question 4), and
- * the narrator listens at those times in REAPER (Open Question 8). `measuredPaths` are the files of the last measurement, which the
+ * grade. It is read-only: nothing is saved, played or sent to REAPER, so every finding stays unreviewed, and
+ * the narrator listens at those times in REAPER. `measuredPaths` are the files of the last measurement, which the
  * host already accepts, so they can be checked without picking them again. Below it, `CleanupSection` lists the same check's silence
- * cleanup candidates (Phase 9 remainder, ADR 0238) apart from these findings; `openSettings` opens Settings > Silence cleanup.
+ * cleanup candidates (ADR 0238) apart from these findings; `openSettings` opens Settings > Silence cleanup.
  */
 export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPaths: readonly string[]; openSettings: () => void }) {
   const api = useApi();

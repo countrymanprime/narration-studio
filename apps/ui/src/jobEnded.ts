@@ -13,10 +13,10 @@ export function toastForJobEnd(event: JobEnded): { text: string; tone: ToastTone
   return { text: event.message || 'A background task finished.', tone: 'info' };
 }
 
-// N3: only these kinds are worth an OS notification (Story Bible build, model/voice downloads, Transcript Compare, import, a recording
+// Only these kinds are worth an OS notification (Story Bible build, model/voice downloads, Transcript Compare, import, a recording
 // check, which transcribes minutes of audio, the pickup and duplicate scan, the take comparison, a measurement, which reads a book's
 // chapters at about 90 s an hour of audio, and a diagnostics check over the same files). A manuscript import that also chains a Story Bible
-// build (D8) still only notifies through its own story_bible job:ended event; a fast import stays quiet on its own account like
+// build still only notifies through its own story_bible job:ended event; a fast import stays quiet on its own account like
 // everything else here.
 const NOTIFIABLE_JOB_KINDS = new Set([
   'story_bible',
@@ -32,15 +32,15 @@ const NOTIFIABLE_JOB_KINDS = new Set([
   'diagnostics',
 ]);
 
-/** N3: fast jobs stay quiet so a notification means something. */
+/** Fast jobs stay quiet so a notification means something. */
 const NOTIFY_THRESHOLD_MS = 10_000;
 
 /**
- * Whether a host job ending is worth an OS notification (N1-N4). `focused` is `document.hasFocus()`: the host has no
- * way to know this (N1, no focus query in the Wails v2.16 host API), so the decision is made here, in the webview,
- * every time a job ends. A narrator watching the job does not need an OS notification about it (N1); a job the
+ * Whether a host job ending is worth an OS notification. `focused` is `document.hasFocus()`: the host has no
+ * way to know this, so the decision is made here, in the webview,
+ * every time a job ends. A narrator watching the job does not need an OS notification about it; a job the
  * narrator cancelled was not "finished" in a way worth telling them about elsewhere; and a job that took under 10s
- * would just be noise (N3).
+ * would just be noise.
  */
 export function shouldNotifyForJobEnd(event: JobEnded, focused: boolean): boolean {
   if (focused) return false;
@@ -56,9 +56,9 @@ export function notificationForJobEnd(event: JobEnded): { title: string; body: s
 }
 
 /**
- * Whether a job-end toast must wait rather than show immediately (booth-mode-and-companion-panel.prd.md Phase 5's
+ * Whether a job-end toast must wait rather than show immediately (the booth's
  * no-sound, no-notification rule): only while the booth is recording (`useBoothRecording`), and only a success/info
- * announcement - an error is never held back (Risks table: silence is a comfort rule, not a safety one). The
+ * announcement - an error is never held back (silence is a comfort rule, not a safety one). The
  * caller (App.tsx) queues it and shows it once `boothRecording` clears, so nothing is lost, only delayed.
  */
 export function shouldQueueJobEndAnnouncement(announcement: { tone: ToastTone }, boothRecording: boolean): boolean {

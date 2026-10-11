@@ -1,4 +1,4 @@
-// The pickup list (reaper-automation-follow-through PRD, Phase 9): import a proofer's CSV, jump to the next open
+// The pickup list: import a proofer's CSV, jump to the next open
 // pickup, resolve it, export the remaining list. Mirrors apps/desktop/internal/pickups.Service.Snapshot() exactly:
 // one run (import, export, jump or resolve or count) at a time, reported by phase, with remaining/total surviving
 // between runs so the count does not flash back to zero while a different action is in flight.
@@ -50,7 +50,7 @@ export type PickupsImportResult = {
 export type PickupsStartResult = { status: 'started' };
 
 /**
- * "Punch from here" on a pickup (`PickupsPunch`, booth-actions-enablement PRD Phase 3): a pickup marker's own project
+ * "Punch from here" on a pickup (`PickupsPunch`): a pickup marker's own project
  * time is already known, so unlike the teleprompter's punch this needs no word-to-time resolution. `punched` carries
  * `cursor`, where REAPER's edit cursor landed; `refused` carries `message`, and nothing moved.
  */

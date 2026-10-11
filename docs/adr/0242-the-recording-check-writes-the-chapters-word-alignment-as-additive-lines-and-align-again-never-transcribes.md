@@ -5,14 +5,14 @@
 
 ## Context
 
-The [edit and proof workspace](../prds/edit-and-proof-workspace.prd.md) follows the chapter's text while the recording plays and shows where the reading differs from the text. Phase 1 needs the word alignment for that. The recording check already computes it (`compare.diff_and_build_markers`, [ADR 0126](0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md)) and throws it away after counting.
+The edit and proof workspace follows the chapter's text while the recording plays and shows where the reading differs from the text. That needs the word alignment. The recording check already computes it (`compare.diff_and_build_markers`, [ADR 0126](0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md)) and throws it away after counting.
 
-The owner took the recommended answer to EP3 (D39), which is C:
+The owner chose to do both of these:
 
 - the check writes the alignment;
 - a cache-only re-align runs after a trim or split, when every item's words are still cached.
 
-The PRD assumed that the report's schema version would go up and that an older report would read as "align again". But the host (lane A's `internal/coverage/report.go`) refuses any schema version other than its own, and skips tags it doesn't know ([ADR 0127](0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md): the format is additive). The host side of Phase 1 is built in another lane, after this. A version bump now would make every stored check unreadable until then.
+It would be natural to assume that the report's schema version would go up and that an older report would read as "align again". But the host (lane A's `internal/coverage/report.go`) refuses any schema version other than its own, and skips tags it doesn't know ([ADR 0127](0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md): the format is additive). The host side is built in another lane, after this. A version bump now would make every stored check unreadable until then.
 
 ## Decision
 

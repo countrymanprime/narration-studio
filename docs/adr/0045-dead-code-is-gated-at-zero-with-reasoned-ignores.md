@@ -6,7 +6,7 @@
 
 ## Context
 
-Finding dead code was a manual step: `feature-cleanup` told an agent to grep for references, and neither `tsc` (`noUnusedLocals` is off) nor ESLint (`no-unused-vars` is a warning) sees an unused export, file or dependency. Knip (6.37) reported 130 findings on the first run with no configuration. After triage, 121 were false positives from a handful of classes and 9 were real: two dead files, six exports and a type that nothing else imports. Turning on entry-file exports found eight more in the scripts and the atlas kit. The owner adopted the PRD's recommendation (implementation plan D22, question 6): report, then one cleanup pull request, then gate at zero.
+Finding dead code was a manual step: `feature-cleanup` told an agent to grep for references, and neither `tsc` (`noUnusedLocals` is off) nor ESLint (`no-unused-vars` is a warning) sees an unused export, file or dependency. Knip (6.37) reported 130 findings on the first run with no configuration. After triage, 121 were false positives from a handful of classes and 9 were real: two dead files, six exports and a type that nothing else imports. Turning on entry-file exports found eight more in the scripts and the atlas kit. The owner chose to report first, then make one cleanup pull request, then gate at zero.
 
 ## Decision
 

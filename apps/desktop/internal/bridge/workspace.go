@@ -7,10 +7,9 @@ import (
 	"strings"
 )
 
-// The edit and proof workspace's REAPER actions (narration_workspace.lua; edit-and-proof-workspace PRD Phases 6, 8
-// and 9): make a take active; list the narrator's FX chains and apply one to a track or the master track; list the
-// installed plug-ins and add one to a passage of a take (ADR 0234). All are experimental (actions.go) until the
-// verification pass has confirmed them in a real REAPER.
+// The edit and proof workspace's REAPER actions (narration_workspace.lua): make a take active; list the narrator's FX
+// chains and apply one to a track or the master track; list the installed plug-ins and add one to a passage of a take
+// (ADR 0234). All are experimental (actions.go) until the verification pass has confirmed them in a real REAPER.
 
 // ActiveTakeSet is the item and take REAPER now plays, and whether the request changed anything.
 type ActiveTakeSet struct {

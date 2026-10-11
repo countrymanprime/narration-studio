@@ -89,7 +89,7 @@ func TestContractStoryBibleBuildJob(t *testing.T) {
 	pinBinding("guide-build-idle", host.guideBuildState())
 	// A job just started has no log lines yet: its `logs` is a nil slice, which the host sends as null.
 	pinBinding("guide-build-starting", snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "running", message: "Preparing…", started: time.Now()}))
-	// What GuideBuild answers: the job that started, or the first-use gate for the language model (release readiness phase 5).
+	// What GuideBuild answers: the job that started, or the first-use gate for the language model.
 	started := snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "running", message: "Story Bible rebuild started.", percent: 1, started: time.Now()})
 	started["elapsed"] = 0.0
 	contractfile.Check(t, "guide-build-started", map[string]any{"status": "started", "job": started})
@@ -127,7 +127,7 @@ func TestContractPreviewNeedsAVoice(t *testing.T) {
 	contractfile.Check(t, "guide-preview-asset-required", voiceAssetRequired(voice, "not_installed", "C:/Users/narrator/AppData/Local/narration-utils/assets/tts/piper/en_US-ljspeech-high/1.0.0"))
 }
 
-// What SystemLookup answers (story-bible-and-import-ux-briefs.prd.md Phase 7): a lookup the installed dictionary made, through the real
+// What SystemLookup answers: a lookup the installed dictionary made, through the real
 // install and index of a small release in the Open English WordNet shape, and the first-use gate for the real approved dictionary.
 func TestContractDictionaryLookup(t *testing.T) {
 	f := newLookupFixture(t)
@@ -152,7 +152,7 @@ func TestContractDictionaryLookup(t *testing.T) {
 	contractfile.Check(t, "system-lookup-asset-required", dictionaryAssetRequired(entry, "not_installed", "C:/Users/narrator/AppData/Local/narration-utils/assets/dictionary/oewn/oewn-2025/2025"))
 }
 
-// TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape (docs/prds/tool-run-logging.prd.md phase 7).
+// TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape.
 func TestContractCopyDiagnostics(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := NewHost()
@@ -219,7 +219,7 @@ func TestContractCatalogsAndInstallJobs(t *testing.T) {
 	}
 }
 
-// The generic asset API (release readiness phase 3): the list of everything that can be downloaded, and the answer to a verify.
+// The generic asset API: the list of everything that can be downloaded, and the answer to a verify.
 func TestContractAssetsListAndVerify(t *testing.T) {
 	fixture := contractServices(t)
 	host := &Host{assets: fixture.registry, installJobs: map[string]*installJob{}}
@@ -313,8 +313,7 @@ func TestContractTracksDiscovery(t *testing.T) {
 	pin("tracks-discovery-selected", one)
 }
 
-// The confirmed chapter-track mapping's ChapterTrackMapList/Confirm/Clear payloads (analysis evidence ledger PRD,
-// Phase 5, Q6). ConfirmedAt is a real timestamp (RFC3339Nano), so it is normalized to a fixed value before pinning -
+// The confirmed chapter-track mapping's ChapterTrackMapList/Confirm/Clear payloads. ConfirmedAt is a real timestamp (RFC3339Nano), so it is normalized to a fixed value before pinning -
 // the same "machine-specific values are fixed" rule contractHost already applies to the diagnostic id.
 func TestContractChapterTrackMap(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
@@ -393,7 +392,7 @@ func normalizeMappingPayload(value any) (any, error) {
 	return decoded, nil
 }
 
-// ChapterTrackMatch's payload (teleprompter-manuscript-integration PRD Phase 8, ADR 0110): a matched chapter with its
+// ChapterTrackMatch's payload (ADR 0110): a matched chapter with its
 // recorded end, an ambiguous one and one with no track. The project folder is made portable; Stabilize fixes the .rpp's
 // save time.
 func TestContractChapterTrackMatch(t *testing.T) {
@@ -420,8 +419,7 @@ func TestContractChapterTrackMatch(t *testing.T) {
 	}
 }
 
-// ChaptersForTracks's payload (diagnostics-delivery-and-cleanup-tools PRD
-// Phase 8 remainder): one call over a track that matches, another that
+// ChaptersForTracks's payload: one call over a track that matches, another that
 // matches nothing, and a GUID the project no longer has, so the golden file
 // shows every per-GUID shape (matched, none, error) at once.
 func TestContractChaptersForTracks(t *testing.T) {
@@ -446,7 +444,7 @@ func TestContractChaptersForTracks(t *testing.T) {
 	contractfile.Check(t, "chapters-for-tracks", stable)
 }
 
-// The chapter track link control's payloads (chapter-track-link-control PRD Phase 1): ChapterTrackLinks with a ready
+// The chapter track link control's payloads: ChapterTrackLinks with a ready
 // project, with no .rpp, and with a double link, a missing track and a renamed one; ChapterTrackSet taking a track from
 // another chapter; ChapterTrackUnlink. Paths are made portable, ids and times fixed by Stabilize.
 func TestContractChapterTrackLinks(t *testing.T) {
@@ -485,7 +483,7 @@ func TestContractChapterTrackLinks(t *testing.T) {
 	pin(t, "chapter-track-unlink", folder, call(host.ChapterTrackUnlink(ids[1])))
 }
 
-// ChapterSuggestion's payload (teleprompter-engines-and-input-devices PRD Phase 11, ADR 0113): the armed track's
+// ChapterSuggestion's payload (ADR 0113): the armed track's
 // chapter, two armed tracks naming different chapters (a choice), and nothing armed or selected.
 func TestContractChapterSuggestion(t *testing.T) {
 	for name, flags := range map[string]map[string]string{
@@ -515,8 +513,8 @@ func TestContractNarratorNotice(t *testing.T) {
 	contractfile.Check(t, "system-notice", noticePayload("Your notes file could not be read. It was kept as manuscript-notes.json.corrupt-20260921-101530 next to the original, and a fresh one was started."))
 }
 
-// ProjectLinkDawFile's result (PRD project-workspace-and-daw-link.prd.md, Open Question W19): a file linked inside the
-// project folder, one outside it (refused, W15), and the dialog cancelled.
+// ProjectLinkDawFile's result: a file linked inside the
+// project folder, one outside it (refused), and the dialog cancelled.
 func TestContractProjectLinkDawFile(t *testing.T) {
 	folder := t.TempDir()
 	rpp := filepath.Join(folder, "Alice.rpp")
@@ -555,7 +553,7 @@ func TestContractProjectLinkDawFile(t *testing.T) {
 	contractfile.Check(t, "daw-link-cancelled", map[string]any{"selected": false, "linked": false})
 }
 
-// DawLaunch's result (Phase 8, docs/prds/project-workspace-and-daw-link.prd.md).
+// TestContractDawLaunch pins DawLaunch's result shape.
 func TestContractDawLaunch(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir()) // never read the real machine's global-settings.json
 	folder := t.TempDir()
@@ -587,7 +585,7 @@ func TestContractDawLaunch(t *testing.T) {
 	contractfile.Check(t, "daw-launch", stable)
 }
 
-// CreditsTemplates' shipped defaults (audiobook-credits-templates.prd.md, Phase 1).
+// CreditsTemplates' shipped defaults.
 func TestContractCreditsTemplates(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := NewHost()
@@ -628,7 +626,7 @@ func TestContractCreditsProjectValuesAndPreview(t *testing.T) {
 	contractfile.Check(t, "credits-preview-unresolved", decodedPreview)
 }
 
-// CreditsChapterAnnouncements' answer (Phase 5, ADR 0151): one per narration chapter, the second with its optional chapter
+// CreditsChapterAnnouncements' answer (ADR 0151): one per narration chapter, the second with its optional chapter
 // title dropped and an unresolved project token reported.
 func TestContractCreditsChapterAnnouncements(t *testing.T) {
 	host := hostWithExtras(t, 10)
@@ -641,7 +639,7 @@ func TestContractCreditsChapterAnnouncements(t *testing.T) {
 	contractfile.Check(t, "credits-chapter-announcements", decoded)
 }
 
-// CreditsRetailSample's answers (Phase 5, ADR 0152): a measured sample, none picked, and a saved one whose lines are gone.
+// CreditsRetailSample's answers (ADR 0152): a measured sample, none picked, and a saved one whose lines are gone.
 func TestContractCreditsRetailSample(t *testing.T) {
 	host := hostWithExtras(t, 100)
 	check := func(name, encoded string) {
@@ -672,7 +670,7 @@ func TestContractCreditsRetailSample(t *testing.T) {
 	check("credits-retail-sample-stale", stale)
 }
 
-// CreditsStatuses' and CreditsSetStatus's payloads (Credits in the Chapter Table, Phase 1, ADR 0183): empty before
+// CreditsStatuses' and CreditsSetStatus's payloads (ADR 0183): empty before
 // anything is set, then both kinds once set.
 func TestContractCreditsStatuses(t *testing.T) {
 	host := hostWithExtras(t, 10)
@@ -697,7 +695,7 @@ func TestContractCreditsStatuses(t *testing.T) {
 	check("credits-status-set", set)
 }
 
-// CreditsRecordedLengths' payload (Credits in the Chapter Table, Phase 3): both kinds unavailable before any track
+// CreditsRecordedLengths' payload: both kinds unavailable before any track
 // is linked and no saved project exists.
 func TestContractCreditsRecordedLengths(t *testing.T) {
 	host := hostWithExtras(t, 10)

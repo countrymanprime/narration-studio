@@ -11,7 +11,7 @@ import (
 
 // headingMisreadCase is one entry of tests/fixtures/heading-misreads/cases.json: a constructed manuscript whose chapter heading
 // exercises the title/subtitle heuristic, what the author meant, and what the importer produced when the case was written
-// (story-bible-and-import-ux-briefs PRD, Phase 4; docs/research/import-heading-misreads.md).
+// (see docs/research/import-heading-misreads.md).
 type headingMisreadCase struct {
 	ID       string `json:"id"`
 	File     string `json:"file"`
@@ -28,7 +28,7 @@ type headingMisreadCase struct {
 	} `json:"observed"`
 	// FixedBy names the issue whose importer fix made a misread read as intended; such a case is held to its intended reading.
 	FixedBy string `json:"fixedBy"`
-	// Override is the per-heading subtitle choice that reads the case as intended (Phase 5), on the cases it can fix.
+	// Override is the per-heading subtitle choice that reads the case as intended, on the cases it can fix.
 	Override *struct {
 		SecondLineIsSubtitle bool   `json:"secondLineIsSubtitle"`
 		FirstParagraph       string `json:"firstParagraph"`
@@ -88,7 +88,7 @@ func TestHeadingMisreadFixtures(t *testing.T) {
 
 // TestHeadingMisreadOverrides applies each case's subtitle override the way the commit does and expects what the author meant: the
 // wrapped titles (F1) join back together and the plain-text epigraph (F3) is narrated again. Every other case, the controls included,
-// is left exactly as the importer read it when no override is chosen (Phase 5's "importer fixtures unchanged for correct headings").
+// is left exactly as the importer read it when no override is chosen (importer fixtures stay unchanged for correct headings).
 func TestHeadingMisreadOverrides(t *testing.T) {
 	fixed := 0
 	for _, testCase := range loadHeadingMisreadCases(t) {

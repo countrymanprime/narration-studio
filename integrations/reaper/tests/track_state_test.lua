@@ -1,5 +1,4 @@
--- The live state of REAPER and one track: chapter_track_state (narration_track_state.lua; read-aloud-resume PRD Phase 4,
--- read-aloud-control-bar PRD Phase 6, teleprompter-manuscript-integration PRD Phase 11). Read-only: it reports the
+-- The live state of REAPER and one track: chapter_track_state (narration_track_state.lua). Read-only: it reports the
 -- transport, the edit counter, which tracks are armed, the named track's record input, REAPER's input device and the
 -- track's items, and changes nothing.
 
@@ -53,7 +52,7 @@ H.test('chapter_track_state matches the track GUID without braces or case, and a
   H.eq(s:events()[1][3], CH1)
 end)
 
--- The arm counts the Read Aloud bar reads (read-aloud-control-bar PRD Phase 6): nothing armed, and the named track the
+-- The arm counts the Read Aloud bar reads: nothing armed, and the named track the
 -- only one armed (several armed and another track armed are the tests above and below).
 H.test('chapter_track_state reports nothing armed, and the named track as the only armed track', function()
   local s, chapter = new_session()
@@ -120,7 +119,7 @@ H.test('chapter_track_state reports an item without a take with an empty take an
 end)
 
 H.test('chapter_track_state reports a muted item as muted, so a muted take is never read as the recording', function()
-  -- The resume locate (read-aloud-resume-from-daw PRD Phase 4) skips muted items as the saved .rpp's reading does; a take
+  -- The resume locate skips muted items as the saved .rpp's reading does; a take
   -- muted live and not saved yet is only known from this answer. The field is appended, so an older reader ignores it.
   local s, chapter = new_session()
   local kept = s.fake:add_item(chapter, { position = 0, length = 2, source = 'kept.wav' })

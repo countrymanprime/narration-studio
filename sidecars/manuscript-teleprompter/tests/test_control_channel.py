@@ -79,7 +79,7 @@ def test_seek_word_is_none_when_word_is_missing_or_not_an_integer():
     assert control_channel.seek_word({"cmd": "seek", "word": True}) is None
 
 
-# Pause (read-aloud-control-bar PRD Phase 5): {"cmd": "pause"} and {"cmd": "resume"} on the same channel as seek.
+# Pause: {"cmd": "pause"} and {"cmd": "resume"} on the same channel as seek.
 def test_pause_state_reads_pause_and_resume():
     assert control_channel.pause_state({"cmd": "pause"}) is True
     assert control_channel.pause_state({"cmd": "resume"}) is False

@@ -6,11 +6,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// This file is Phase 2 of the production tracking PRD (delivered and deleted; ADR 0028): PFH (hours
-// worked per finished hour) and the effective hourly rate, computed only from
-// hours the narrator logged and audio the app measured (ADR 0320). Nothing
-// here falls back to the word-count estimate (Q4): a figure with no honest
-// input is undefined, returned as ok == false, never 0 and never a guess.
+// This file computes PFH (hours worked per finished hour) and the effective
+// hourly rate, only from hours the narrator logged and audio the app measured
+// (ADR 0320). Nothing here falls back to the word-count estimate: a figure with
+// no honest input is undefined, returned as ok == false, never 0 and never a
+// guess.
 
 // Recorded is the port through which the host hands this package each
 // chapter's measured recorded seconds: tracks.Track.RecordedSeconds of the
@@ -55,10 +55,10 @@ func ChapterPFH(sessions []Session, recorded map[string]float64, chapterID strin
 }
 
 // BookPFH is every hour logged on the book divided by every measured recorded
-// hour so far (Q4 A). A chapter with no measurement, or measured at 0,
-// adds nothing to the recorded total, but its logged hours still count: the
-// hours were worked on the book. It is undefined until some audio is
-// measured and some time is logged.
+// hour so far. A chapter with no measurement, or measured at 0, adds nothing to
+// the recorded total, but its logged hours still count: the hours were worked
+// on the book. It is undefined until some audio is measured and some time is
+// logged.
 func BookPFH(sessions []Session, recorded map[string]float64) (float64, bool) {
 	total := 0.0
 	for _, seconds := range recorded {

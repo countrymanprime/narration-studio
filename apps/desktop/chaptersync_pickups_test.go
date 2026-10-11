@@ -30,9 +30,8 @@ func pinChapterSyncState(t *testing.T, name string, state chapterSyncState, fold
 	contractfile.Check(t, name, stable)
 }
 
-// Pickup tracks (daw-chapter-track-auto-sync PRD Phase 8, S8, S11, D32, D33): a track named as a chapter's pickup track
-// is shown on that chapter's row, never linked, and the row says when it changed since the last take-review scan that
-// included it.
+// Pickup tracks: a track named as a chapter's pickup track is shown on that chapter's row, never linked, and the row
+// says when it changed since the last take-review scan that included it.
 
 const chapterIPickups = `  <TRACK {55555555-5555-4555-8555-555555555555}
     NAME "Chapter I (pickups)"

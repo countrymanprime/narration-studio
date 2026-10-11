@@ -8,8 +8,7 @@
 [ADR 0160](0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md) settled how a chapter's
 stage suggestion is computed and left open where the narrator's answers to it are kept and how Confirm changes the
 status. The narrator can confirm a suggestion, dismiss it, or revert a confirmation, and the app must remember each of
-those without ever changing a status by itself (the chapter stage recommendations PRD,
-`docs/prds/chapter-stage-recommendations.prd.md`, delivered and deleted; D1, D4).
+those without ever changing a status by itself.
 
 Three facts in the code limit the choice. The chapter status sidecar, `manuscript-notes.json`, keeps only `notes`,
 `chapterStatus` and `readerState` (`normalizeNotes`), so a new key there is dropped on the next save, and it reads a
@@ -17,9 +16,9 @@ status with a string assertion, so an object-valued status would read as `not_st
 a re-import writes a new `documentId`, so anything keyed by chapter id is wrong after a re-import. And a Confirm touches
 two files, the decision and the status, so a crash can land between the writes.
 
-The PRD's questions Q1 (where decisions are stored), Q2 (does Confirm set the status) and Q10 (does stale evidence alone
-raise the contradiction notice) had no owner answer. By rule D22 (`docs/prds/implementation-plan.md`) Phase 2 adopts
-each recommendation: Q1 A, Q2 A, Q10 B.
+Three questions had no owner answer: where decisions are stored, whether Confirm sets the status, and whether stale
+evidence alone raises the contradiction notice. This ADR adopts the recommended answer to each: a sidecar of their own,
+yes, and no (the alternatives are listed below).
 
 Alternatives considered: extending `manuscript-notes.json` (breaks on the code as written, and an older build would
 drop the record on its next save); storing decisions as findings in the findings store (findings are analyzer output
@@ -59,7 +58,7 @@ every edited chapter would warn).
   import.
 - A crash between the writes can leave an orphaned confirmation. If the narrator later sets that same status by hand,
   it becomes live again; that only shows the confirmation they had made, so it is accepted.
-- Confirm always re-evaluates, so its cost is one evaluation of one chapter. Phase 4 measures an evaluation on a real
-  project.
+- Confirm always re-evaluates, so its cost is one evaluation of one chapter. The measured cost of an evaluation on a real
+  project is in [stage recommendations](../architecture/stage-recommendations.md).
 - Changing where decisions live, the Confirm write order, or what raises the notice needs an ADR that supersedes this
   one.

@@ -1,6 +1,5 @@
-// The browser mock's chapter-to-render association (proofing-readiness-signals.prd.md Phase 6,
-// apps/desktop/bindings_proofing_render.go, apps/desktop/internal/proofing/renders.go). ProofingChooseRender always
-// succeeds here (the file dialog itself is not simulated, the same convention as ProjectLinkDawFile's mock): choosing
+// The browser mock's chapter-to-render association (apps/desktop/bindings_proofing_render.go,
+// apps/desktop/internal/proofing/renders.go). ProofingChooseRender always succeeds here (the file dialog itself is not simulated, the same convention as ProjectLinkDawFile's mock): choosing
 // attests a canonical rendered-file path for the chapter. A seed can start a chapter at any state (`stale`, `missing`,
 // `unsupported`, already measured) without going through choose() and Measure first. `recordMeasurement` is
 // mockApi.ts's hook from the measurement job, mirroring the host's renderMeasurementRecorder: any measured job file

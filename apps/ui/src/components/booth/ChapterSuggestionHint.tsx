@@ -28,7 +28,7 @@ type Props = {
 };
 
 /**
- * The chapter picker's REAPER hint (teleprompter-engines-and-input-devices PRD Phase 11, ADR 0113): says which chapter
+ * The chapter picker's REAPER hint (ADR 0113): says which chapter
  * the saved project's armed (else selected) track is for. A confident suggestion is preselected by the page and only
  * explained here, or offered back once the narrator picks another chapter; an unsure one (uncertain or ambiguous) is
  * only ever offered as choices, never chosen. Nothing shows when there is no suggestion.

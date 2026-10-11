@@ -1,5 +1,5 @@
 """
-Offline word-time alignment for punch and roll (teleprompter-manuscript-integration PRD Phase 12, ADR 0560): the
+Offline word-time alignment for punch and roll (ADR 0560): the
 project time of one script word, taken from the recording itself when the live punch anchors do not cover it.
 
 "Punch from here" needs the time a flagged word was spoken. The host first asks the anchors the live session's

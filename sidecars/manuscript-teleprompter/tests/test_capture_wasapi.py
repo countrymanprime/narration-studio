@@ -1,4 +1,4 @@
-"""capture_wasapi.py (native-recording-suite P1, ADR 0357): the `wasapi` row passes the capture port's conformance suite
+"""capture_wasapi.py (ADR 0357): the `wasapi` row passes the capture port's conformance suite
 and records a take, driven through a fake `sounddevice` that plays a synthetic tone from its own thread, as PortAudio
 calls its callback from the audio thread. CI has no microphone; the spike report (docs/research) has the measured runs."""
 

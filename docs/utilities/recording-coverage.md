@@ -17,7 +17,7 @@ recording" from memory. The cost of a wrong call is an editing pass started on a
 ## Workflow
 
 Save the REAPER project. Every narration chapter's Record cell on the Production board already shows its check without a click
-(Phase 6, S14 below): a bold label ("Current", "Out of date", "Never checked", "Needs a track", "Suggested track",
+a bold label ("Current", "Out of date", "Never checked", "Needs a track", "Suggested track",
 "Track missing" or "No track yet") and, under it, when it was checked or last changed. There is no separate Check
 button any more; the row itself opens the chapter's recording-check panel, a slide-over with the stored result and
 **Check recording** (or **Check again**). The check reads the chapter's confirmed REAPER track from the saved project
@@ -29,15 +29,15 @@ narrator always confirms. See [Using the app: Production](../guides/using-the-ap
 the screens and [Settings](../guides/using-the-app/settings.md) for the four numbers.
 
 Each chapter's status is known without a click for exactly this reason. Chapter sync's `chaptersync:state` event
-([DAW chapter-track auto-sync](../prds/daw-chapter-track-auto-sync.prd.md) Phase 6) carries one row per narration
+carries one row per narration
 chapter: its track, whether its check is `current`, `stale` (with the reasons above) or `never` run, when the check
 finished, whether one is running, and when the track last changed. The row is this evaluation of the stored result
-against the saved project, so reading it still never starts a check (Q14). The event is sent after each sync, each
+against the saved project, so reading it still never starts a check (Q14, below). The event is sent after each sync, each
 save the watcher picks up, and each check that ends; the Production board re-reads its chapter list and stage suggestions on the same
 event, so the row and the rest of the page never disagree.
 
 A chapter with no confirmed track yet reads its link trouble instead of a freshness word ("Needs a track", "Suggested
-track", "Track missing" or "No track yet": chapter-track-link-control.prd.md), since a check's freshness means nothing
+track", "Track missing" or "No track yet"), since a check's freshness means nothing
 until there is a track to check. The row is still clickable in every state: opening the panel on an unlinked chapter
 shows the same in-place track-link prompt a refused check always has.
 
@@ -75,7 +75,7 @@ flowchart LR
   again ([ADR 0127](../adr/0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md)).
 - **The alignment is the take markers' own.** `core/recording_coverage.py` reads the `SequenceMatcher` opcodes that
   `diff_and_build_markers` computes, so coverage and the markers cannot disagree. The marker output is unchanged,
-  pinned by a golden file. The Phase 2 spike kept `SequenceMatcher` over a word-level DP
+  pinned by a golden file. The alignment spike kept `SequenceMatcher` over a word-level DP
   ([ADR 0126](../adr/0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md),
   [the spike](../research/recording-coverage-alignment-spike.md)).
 - **The sidecar measures, the host judges.** `compare.py --coverage` writes counts only: `COVERAGE`, `COVERAGE_ITEM`,
@@ -93,8 +93,8 @@ flowchart LR
     where it was heard;
   - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for.
 
-  `--align-only` re-aligns from the cached words files and never transcribes. The host does not read these lines yet
-  (the stored alignment and its binding are the PRD's Phase 1 host side).
+  `--align-only` re-aligns from the cached words files and never transcribes. The host reads them through the `WorkspaceAlignment` binding
+  (`apps/desktop/bindings_coverage.go`, `coverage.AlignmentView`).
   Every run writes one ledger record
   (`complete`, `partial` on cancel, or `failed`). A complete run's report is stored under
   `narration-utils/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when
@@ -107,15 +107,14 @@ flowchart LR
   removed, trimmed, moved, muted or switched to another take, or an audio file changed. It also goes stale when the
   chapter's text, the equivalences, the vocabulary hints or an alignment setting changes. A different Whisper model or
   language keeps it current and labelled with the model (Q13).
-- **Three readers.** The Production board's slide-over (`RecordingCheck.tsx`, opened from the chapter's Record cell since stage navigation Phase 2, from the row's check-status cell since Phase 6
-  retired the row's own Check button) shows the stored report. The `CoverageResult` payload also
+- **Three readers.** The Production board's slide-over (`RecordingCheck.tsx`, opened from the row's check-status cell, which replaced the row's own Check button) shows the stored report. The `CoverageResult` payload also
   carries `judgement`: met or not met by the narrator's thresholds, with the gap that fails first. It comes from
   `coverage.Judge`, the same function the stage signal uses, so the two cannot disagree. It is set for any complete
   result with a report, a stale one included (as of the last check)
   ([ADR 0204](../adr/0204-the-recording-check-result-carries-the-hosts-judgement-by-the-stage-signals-rule.md)). `recordedFraction` on the chapter
   payload is the present share of a current complete check only; it no longer feeds the board's **Recorded** column,
   which instead reads `recordedSeconds`, a real duration from the chapter's linked track in the saved project, unrelated
-  to any check ([Actual Recorded](../prds/actual-recorded-column.prd.md) Phase 3, superseding Q12 below).
+  to any check (superseding Q12 below).
   `coverage.RecordingSignal` gives the stage recommendations engine the tri-state
   `recording.text_present` signal
   ([ADR 0131](../adr/0131-the-recording-signal-is-read-from-stored-checks-with-thresholds-applied-on-read-and-alignment-from-settings.md),
@@ -154,7 +153,7 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `cascade_first_pass_model` | `tiny` | Whisper model, cascade only | The fast first pass's own model (MC2), independent of `TranscriptCompare.model_size` |
 | `cascade_recheck_model` | `large-v3-turbo` | Whisper model, cascade only | The model that re-checks anything the first pass reports missing (MC2) |
 
-The Settings page labels them **Proposed values, not yet calibrated**. They were chosen by the Phase 8 calibration:
+The Settings page labels them **Proposed values, not yet calibrated**. They were chosen by a calibration:
 the synthetic fixtures run through the shipped path, 600 candidates, and five levels of simulated transcriber error.
 The shipped values give no false "met" on the held-out cases at any level. They pass every complete chapter under
 light error, where the owner's starting value of 0.95 failed 7 of 35. On Piper renders of the committed cases,
@@ -192,7 +191,7 @@ flowchart LR
   bounded by ADR 0168's `before`/`after` points, padded past each bound and up to a minimum size, merged when two
   windows of the same item are close together, and replaced by one whole-chapter pass when the windows would cover
   most of the chapter's played audio (MC3's constants: pad 3 s, minimum 25 s, merge under 20 s apart, whole-chapter
-  past 60%, chosen from the PRD's Evidence benchmark - Whisper's cost is per roughly-30-second block, so a shorter
+  past 60%, chosen because Whisper's cost is per roughly-30-second block, so a shorter
   window costs about the same as a 25-second one).
 - **The re-check** runs `cascade_recheck_model` (default `large-v3-turbo`) either as `compare.py --recheck` over
   the planned windows only, splicing the result into the same words files with per-span model provenance (ADR
@@ -219,9 +218,7 @@ flowchart LR
 
 ## Decisions
 
-The code comments name these decisions by their labels from the delivered PRD (`git log --diff-filter=D --
-docs/prds/recording-coverage-analysis.prd.md` finds it); MC1-MC7 are the model cascade's own, from its delivered PRD
-(`git log --diff-filter=D -- docs/prds/recording-check-model-cascade.prd.md` finds it).
+Code comments and the text above name these decisions by their labels: D, Q for the recording check and MC1-MC7 for the model cascade.
 
 | Label | Decision |
 | --- | --- |
@@ -240,7 +237,7 @@ docs/prds/recording-coverage-analysis.prd.md` finds it); MC1-MC7 are the model c
 | Q8 | The live teleprompter tracker is not reused: its "done" is a cursor position |
 | Q10 | Muted items are skipped and listed |
 | Q11 | A spoken title or subtitle is optional, and never counted as missing or extra |
-| Q12 | *Superseded* by [Actual Recorded](../prds/actual-recorded-column.prd.md) Phase 3: an unmeasured chapter kept the status estimate, labelled "estimated from status"; the column now reads a real recorded length or a plain dash, never a guess |
+| Q12 | *Superseded* by the Actual Recorded column: an unmeasured chapter kept the status estimate, labelled "estimated from status"; the column now reads a real recorded length or a plain dash, never a guess |
 | Q13 | Another model or language keeps a result current (labelled). Another alignment setting makes it stale |
 | Q14 | On demand only: the Production board reads stored results and never starts a check. Superseded in part by [ADR 0211](../adr/0211-a-changed-chapter-is-rechecked-in-the-background-only-on-mains-power-with-reaper-quiet-and-not-recording.md): the host re-checks a changed chapter on its own, only on mains power with REAPER quiet and not recording (`RecordingCoverage.background_checks`, on by default); reading a status still never starts one |
 | Q15 | Synthetic fixtures now, with `NARRATION_COVERAGE_CORPUS` for a real permissioned corpus later ([ADR 0125](../adr/0125-recording-coverage-ground-truth-is-scripted-recordings-with-paragraph-labels-and-a-corpus-directory-variable.md)) |
@@ -256,8 +253,8 @@ docs/prds/recording-coverage-analysis.prd.md` finds it); MC1-MC7 are the model c
 
 - `sidecars/transcript-compare/tests/`: `test_coverage.py` (the definitions), `test_coverage_mode.py` (the sidecar
   mode with a fake transcriber), `test_marker_golden.py` (markers unchanged), `coverage_harness.py` and
-  [the fixture set](../research/recording-coverage-fixtures.md), `coverage_spike.py` (Phase 2) and
-  `coverage_calibration.py` (Phase 8), each pinned by its own test file.
+  [the fixture set](../research/recording-coverage-fixtures.md), `coverage_spike.py` and
+  `coverage_calibration.py`, each pinned by its own test file.
 - `apps/desktop/internal/coverage`: service tests with a fake sidecar (fresh, all-cached, one-item edit, cancel, every
   refusal and staleness cause), the signal table, settings and a provider test through `stages.Collect`. A test runs
   the real sidecar over cached words when the checkout has a Python environment. `corpus_test.go` stores the
@@ -292,6 +289,6 @@ Tracked in [#425](https://github.com/countrymanprime/narration-utils/issues/425)
 - **A real, permissioned corpus.** It would replace the synthetic calibration and drop the "uncalibrated" label,
   and is also what turns the model cascade on by default (MC1): the first pass has never given a false "met" on the
   synthetic corpus, but that has not been checked against real narration (noise, breaths, pace).
-- **Play from a region** over `/media`, a Could in the PRD.
-- **Spot checks of "met" paragraphs** (MC6, a Could in the model cascade PRD): re-checking a small sample of
+- **Play from a region** over `/media`.
+- **Spot checks of "met" paragraphs** (MC6): re-checking a small sample of
   paragraphs the first pass calls complete, so a false "met" would show up in use even before a real corpus exists.

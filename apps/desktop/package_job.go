@@ -15,9 +15,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// The packaging half of the Master & QC export flow (render-encode-master.prd.md Phase 5): packager.Assemble (Phase
-// 4) over the files ExportStart already mastered and encoded, into a folder the narrator chooses with the operating
-// system's own picker (Q5) - never inside the project's narration-utils/ sidecar tree, so a package is never written
+// The packaging half of the Master & QC export flow packager.Assemble over the files ExportStart already mastered and encoded, into a folder the narrator chooses with the operating
+// system's own picker - never inside the project's narration-utils/ sidecar tree, so a package is never written
 // where exportScratchDir's own intermediates live. Assemble copies already-small, already-encoded files (never the
 // large WAVs the export job processes), so unlike ExportStart's own per-file progress, PackageStart reports only
 // running and done; ADR 0075's 100 ms acknowledgement still holds because the copy runs in the background, not on
@@ -296,7 +295,7 @@ func (h *Host) cancelPackage() PackageJob {
 }
 
 // inSidecarTree reports whether dir is the project's narration-utils folder or a folder inside it: a delivery
-// package is the narrator's own deliverable, never derived app state (Q5), so it is refused there even when the
+// package is the narrator's own deliverable, never derived app state, so it is refused there even when the
 // narrator's own picker chose it. With no open project (or a relative dir Abs could not resolve) it answers false:
 // nothing to protect.
 func inSidecarTree(projectFolder, dir string) bool {

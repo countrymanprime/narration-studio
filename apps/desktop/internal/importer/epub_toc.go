@@ -22,8 +22,7 @@ type epubTOCEntry struct {
 
 // parseEPUBNav reads an EPUB 3 navigation document's <nav epub:type="toc">
 // list into an ordered, depth-tagged entry list. x/net/html reports a
-// namespaced attribute such as epub:type by its literal name (the PRD's own
-// note on this), so it is matched as a plain "epub:type" key rather than a
+// namespaced attribute such as epub:type by its literal name, so it is matched as a plain "epub:type" key rather than a
 // separate namespace.
 func parseEPUBNav(content []byte, navDir string) []epubTOCEntry {
 	doc, err := html.Parse(bytes.NewReader(content))

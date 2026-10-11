@@ -7,8 +7,8 @@ import { ReaderCard } from './ReaderCard';
 const KIND_LABEL = { opening: 'Opening credits', closing: 'Closing credits' } as const;
 
 /**
- * The narrator's opening or closing credits, on the same Manuscript card a chapter uses
- * (manuscript-credits-card-parity.prd.md, Phase 1: "the credits panel ... needs to work the same for consistency").
+ * The narrator's opening or closing credits, on the same Manuscript card a chapter uses,
+ * so the credits panel works the same way for consistency.
  * Not a chapter: it carries no id in `manuscript.json`, is never returned by `manuscriptChapters()`, and Manuscript.tsx
  * renders it outside the `chapters.map` list so it is excluded from `isListableChapter`, ChapterNav's chapter list and
  * search by construction rather than by a filter that could be forgotten. `preview` is undefined while the library has
@@ -27,13 +27,13 @@ export function CreditsEntry({
   preview?: CreditsRenderResult;
   expanded: boolean;
   onToggle: () => void;
-  /** The reader's Text size setting (MC3): credits rows follow it exactly as chapter paragraphs do. */
+  /** The reader's Text size setting: credits rows follow it exactly as chapter paragraphs do. */
   textClass: string;
-  /** "Fill in" (credits-token-setup-and-front-matter-detection.prd.md, Phase 3): opens the same setup dialog Home does,
+  /** "Fill in": opens the same setup dialog Home does,
    * shown beside the unresolved-token line whenever there is one to show. Omitted, the line renders with no button (a
    * caller that has not wired the dialog up yet). */
   onFillIn?: () => void;
-  /** Record in Booth (manuscript-credits-card-parity.prd.md Phase 2): the Booth page's link, shown only once there is something to read (`preview.words > 0`,
+  /** Record in Booth: the Booth page's link, shown only once there is something to read (`preview.words > 0`,
    * matching the Booth's own chapter picker). */
   onRecordInBooth?: () => void;
 }) {

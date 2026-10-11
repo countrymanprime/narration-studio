@@ -55,7 +55,7 @@ function renderView(markup: PrepMarkupSpan[], removeMarkup = vi.fn(), paragraphs
 
 const lineText = (index: number) => document.querySelector(`[data-paragraph="${index}"] [data-paragraph-text]`)!;
 
-describe('ParagraphView script markup (prep-depth PRD Phase 5)', () => {
+describe('ParagraphView script markup', () => {
   it('marks a stressed word, a pause after a word and a character tag, without adding to the line’s text', () => {
     renderView([span('head!', 'stress'), span('shouted', 'pause', 'long'), span('Off with her head!', 'character_tag', 'Queen')]);
 

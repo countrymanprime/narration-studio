@@ -1,5 +1,4 @@
-// How to reach each `booth` state in STATE_CATALOG (see app.drivers.ts): the Booth page (stage-navigation-and-page-replacement.prd.md
-// Phase 4), reached through the nav as a narrator would. It opens on Chapter 1 (the mock's last chapter read) unless a
+// How to reach each `booth` state in STATE_CATALOG (see app.drivers.ts): the Booth page (reached through the nav as a narrator would. It opens on Chapter 1 (the mock's last chapter read) unless a
 // state picks otherwise.
 import type { Page } from '@playwright/test';
 import {
@@ -72,7 +71,7 @@ export const boothDrivers: Record<string, Driver> = {
     await openResumePrompt(page);
     await page.getByRole('button', { name: 'Resume from here' }).waitFor();
   },
-  // REAPER's suggested chapter (teleprompter-engines-and-input-devices.prd.md Phase 11, ADR 0113), in the setup's picker.
+  // REAPER's suggested chapter (ADR 0113), in the setup's picker.
   'chapter-suggested': async (page) => {
     await openBooth(page, '?mockChapterSuggestion=matched');
     await page.getByText(/Chosen from REAPER's armed track/).waitFor();
@@ -144,7 +143,7 @@ export const boothDrivers: Record<string, Driver> = {
     await controlBar(page).getByRole('button', { name: 'Play' }).waitFor();
     await page.getByRole('region', { name: 'Where you stopped' }).waitFor({ state: 'detached' });
   },
-  // REAPER playing makes the prompt go away by itself (RD7): the DAW mock pushes
+  // REAPER playing makes the prompt go away by itself: the DAW mock pushes
   // its seeded transport (playing) on subscribe, as the host's heartbeat push would when REAPER starts.
   'resume-after-reaper-plays': async (page) => {
     await openBooth(page, '?mockDawPlayhead=12');
@@ -154,13 +153,13 @@ export const boothDrivers: Record<string, Driver> = {
   listening: async (page) => {
     await openListening(page);
   },
-  // Manual scroll (teleprompter-engines-and-input-devices.prd.md Phase 10): a mouse wheel over the text pauses following;
+  // Manual scroll: a mouse wheel over the text pauses following;
   // the text stays where the narrator scrolled it, well past the highlighted word.
   'following-paused': async (page) => {
     await openListening(page);
     await scrollReaderByHand(page);
   },
-  // Pause keeps the session, it does not stop it (read-aloud-control-bar.prd.md Phase 5, Q3, ADR 0248).
+  // Pause keeps the session, it does not stop it (ADR 0248).
   paused: async (page) => {
     await openListening(page);
     await controlBar(page).getByRole('button', { name: 'Pause' }).click();
@@ -179,7 +178,7 @@ export const boothDrivers: Record<string, Driver> = {
     await openBooth(page, '?mockTeleprompter=ended');
     await controlBar(page).getByRole('status').filter({ hasText: 'Stopped at the end of the chapter.' }).waitFor();
   },
-  // Word-click seek (teleprompter-manuscript-integration.prd.md Phase 4): click the earliest "Go back to here" word (word 0)
+  // Word-click seek: click the earliest "Go back to here" word (word 0)
   // and wait for the highlight to land there without restarting.
   'seek-back': async (page) => {
     await openListening(page);
@@ -189,7 +188,7 @@ export const boothDrivers: Record<string, Driver> = {
       .click();
     await page.locator('[data-word="0"] [data-highlight="Cursor"]').waitFor();
   },
-  // Story bible and note marks (teleprompter-manuscript-integration.prd.md Phase 5): a mark opens its entry in the rail.
+  // Story bible and note marks: a mark opens its entry in the rail.
   'story-bible-entry': async (page) => {
     await openListening(page);
     await page.getByRole('region', { name: 'Chapter text' }).locator('[data-highlight="Character"][role="button"]').first().click();
@@ -205,20 +204,20 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Hide reading panel' }).click();
     await page.getByRole('button', { name: 'Show reading panel' }).waitFor();
   },
-  // The command bar's microphone popover (read-aloud-control-bar.prd.md Phases 3-4): the device list, Refresh, and a live
+  // The command bar's microphone popover: the device list, Refresh, and a live
   // level meter - fixed to -18 dBFS (?mockLevel=-18) for a stable, still capture (ADR 0247).
   'mic-popover': async (page) => {
     await openResumePrompt(page, '?mockLevel=-18');
     await chooseMicrophone(page);
     await page.getByRole('meter', { name: 'Input level' }).waitFor();
   },
-  // The command bar's Settings popover (Phase 3): Engine and Model, each a toggle group, and "More in Settings".
+  // The command bar's Settings popover: Engine and Model, each a toggle group, and "More in Settings".
   'settings-popover': async (page) => {
     await openResumePrompt(page);
     await openSettingsPopover(page);
   },
-  // The bar's REAPER state (Phase 6, ADR 0249) on the Record in REAPER toggle. The mock's default, the chapter's track
-  // armed and ready ("Chapter 1 armed", mock 06), is what `setup` shows, so it has no row of its own.
+  // The bar's REAPER state (ADR 0249) on the Record in REAPER toggle. The mock's default, the chapter's track
+  // armed and ready ("Chapter 1 armed"), is what `setup` shows, so it has no row of its own.
   'reaper-not-armed': async (page) => {
     await openResumePrompt(page, '?mockReaperState=not_armed');
     await controlBar(page).getByRole('button', { name: 'Record in REAPER: Not armed' }).waitFor();
@@ -227,13 +226,13 @@ export const boothDrivers: Record<string, Driver> = {
     await openResumePrompt(page, '?mockReaperState=recording_elsewhere');
     await controlBar(page).getByRole('button', { name: 'Record in REAPER: Recording' }).waitFor();
   },
-  // The first-time confirm turning Record in REAPER on for the project (read-aloud-control-bar mock 05).
+  // The first-time confirm turning Record in REAPER on for the project.
   'reaper-confirm': async (page) => {
     await openResumePrompt(page, '?mockRecordCapabilityOn=1');
     await controlBar(page).getByRole('button', { name: 'Record in REAPER: Chapter 1 armed' }).click();
     await page.getByRole('alertdialog', { name: 'Record in REAPER when you press Play?' }).waitFor();
   },
-  // Reading while REAPER records the take this app started (mock 07): the toggle shows "REC 06:42".
+  // Reading while REAPER records the take this app started: the toggle shows "REC 06:42".
   'reaper-rec': async (page) => {
     await playRecording(page);
     // A few seconds of reading, then the clock set 6 min 41 s into the take and one more second run, so the toggle's own
@@ -244,7 +243,7 @@ export const boothDrivers: Record<string, Driver> = {
     await controlBar(page).getByText('REC 06:42').waitFor();
     await page.locator('[data-highlight="Cursor"]').waitFor();
   },
-  // Reading reached the end and stopped itself while REAPER keeps recording (mock 10, Q8 Done B): the bar says so and Stop,
+  // Reading reached the end and stopped itself while REAPER keeps recording: the bar says so and Stop,
   // highlighted, is the way to end it. The clock runs 14 min 8 s on: the mock's replay reaches the last word, the reading
   // stops itself five seconds later, and REAPER's take keeps counting.
   'finished-still-recording': async (page) => {
@@ -253,7 +252,7 @@ export const boothDrivers: Record<string, Driver> = {
     await controlBar(page).getByText('Reading finished. REAPER is still recording').waitFor();
     await controlBar(page).getByText('REC 14:08').waitFor();
   },
-  // Speaker tags in the text's gutter (mock 03, audit BO4): Chapter 3 is the demo chapter prep-depth's recorded cues attribute.
+  // Speaker tags in the text's gutter (benchmark mock 03): Chapter 3 is the demo chapter prep-depth's recorded cues attribute.
   'speaker-tags': async (page) => {
     await openBooth(page);
     await page.getByRole('combobox', { name: 'Chapter' }).selectOption({ value: 'chapter-3' });
@@ -261,7 +260,7 @@ export const boothDrivers: Record<string, Driver> = {
     await tag.waitFor();
     await tag.scrollIntoViewIfNeeded();
   },
-  // Suspected flags (teleprompter-manuscript-integration.prd.md Phase 7): the `flagged` mock seam is a session further into
+  // Suspected flags: the `flagged` mock seam is a session further into
   // the chapter whose flags arrive as the Booth subscribes. The rail's key has flag swatches too, so marks are found as controls.
   flags: async (page) => {
     await openFlaggedBooth(page);
@@ -272,7 +271,7 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('tab', { name: 'Flags', selected: true }).waitFor();
     await page.getByRole('region', { name: 'Suspected restart' }).waitFor();
   },
-  // "Punch from here" wired to the real dawport.Puncher (booth-actions-enablement PRD Phase 3): the punch capability is
+  // "Punch from here" wired to the real dawport.Puncher: the punch capability is
   // turned on directly (?mockPunchCapabilityOn=1) so the button is enabled without also exercising the Settings toggle.
   'flag-punch-confirm': async (page) => {
     await openFlaggedBooth(page, '&mockPunchCapabilityOn=1');
@@ -288,8 +287,8 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-highlight="Misread"][role="button"]').first().waitFor();
     await page.locator('[data-highlight="Extra"][role="button"]').first().waitFor();
   },
-  // The credits (audiobook-credits-templates.prd.md Phase 4, manuscript-credits-card-parity.prd.md Phase 2): picked in the
-  // setup's picker like a chapter; a microphone is chosen so Play shows enabled.
+  // The credits: picked in the setup's
+  // picker like a chapter; a microphone is chosen so Play shows enabled.
   'credits-opening': async (page) => {
     await openBooth(page, '?mockCredits=filled');
     await page.getByRole('combobox', { name: 'Chapter' }).selectOption({ label: 'Opening credits' });
@@ -356,7 +355,7 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator(LISTENING_WORD).waitFor();
   },
 
-  // The built-in recorder (native-recording-suite Phase 2, ADR 0455): the project on "Built-in recorder", the takes listed.
+  // The built-in recorder (ADR 0455): the project on "Built-in recorder", the takes listed.
   'recorder-builtin': async (page) => {
     await openRecorder(page);
   },

@@ -1,14 +1,12 @@
-// Package moonshine owns the approved, versioned catalog of Moonshine streaming speech-to-text models used by the live Teleprompter engine,
-// gated behind the same first-use download/verify/install flow as Piper voices and Whisper models (internal/tts, internal/whisper). Ids
-// (`tiny`, `small`) collide with the Whisper catalog's own ids: the two never share an install directory because each catalog entry's
-// `Provider` ("moonshine" here, "faster-whisper" there) is part of the path assets.Dir builds (teleprompter-engines-and-input-devices.prd.md
-// phase 5, "Shape of the model-management bindings").
+// Package moonshine owns the approved, versioned catalog of Moonshine streaming speech-to-text models used by the live Teleprompter engine, gated
+// behind the same first-use download/verify/install flow as Piper voices and Whisper models (internal/tts, internal/whisper). Ids (`tiny`, `small`)
+// collide with the Whisper catalog's own ids: the two never share an install directory because each catalog entry's `Provider` ("moonshine" here,
+// "faster-whisper" there) is part of the path assets.Dir builds.
 //
-// Every file in the catalog is pinned to an immutable, dated Moonshine release path (".../quantized_26_08_21", never "latest") and carries
-// the SHA-256 this repository computed by downloading it once, not the CRC32C Moonshine's own download manifest reports (assets.File is
-// SHA-256 only, matching every other catalog). The word-timestamp attention decoder (`decoder_kv_with_attention.ort`) is included for both
-// models: without it the sidecar's word timestamps silently degrade to evenly-spread estimates (manuscript-teleprompter.md), and the phase's
-// own risk register calls for the catalog to list it.
+// Every file in the catalog is pinned to an immutable, dated Moonshine release path (".../quantized_26_08_21", never "latest") and carries the
+// SHA-256 this repository computed by downloading it once, not the CRC32C Moonshine's own download manifest reports (assets.File is SHA-256 only,
+// matching every other catalog). The word-timestamp attention decoder (`decoder_kv_with_attention.ort`) is included for both models: without it the
+// sidecar's word timestamps silently degrade to evenly-spread estimates (manuscript-teleprompter.md), so the catalog lists it.
 package moonshine
 
 import (
@@ -89,7 +87,7 @@ func (m *Manager) Model(id string) (Model, bool) {
 	return Model{}, false
 }
 
-// Dir returns the local model directory for an installed, verified model: what the sidecar's `--model-dir` is given (phase 6). Every file
+// Dir returns the local model directory for an installed, verified model: what the sidecar's `--model-dir` is given. Every file
 // is flat inside it (no nested layout), unlike spaCy's unpacked archive.
 func (m *Manager) Dir(id string) (string, error) {
 	model, ok := m.Model(id)

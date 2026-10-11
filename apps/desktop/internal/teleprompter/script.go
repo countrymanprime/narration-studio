@@ -11,8 +11,8 @@ import (
 
 // ChapterScript is a chapter as the sidecar tokenises it (chapter_script.load_chapter_script): the title's words,
 // then each paragraph's, split on whitespace as Python's str.split() does. A position event's `read` and locate's
-// `word` index Tokens, so the host can quote the sentence at any of them without running the sidecar
-// (read-aloud-resume-from-daw PRD Phase 3). Breaks holds the index of the title's and each paragraph's first token.
+// `word` index Tokens, so the host can quote the sentence at any of them without running the sidecar.
+// Breaks holds the index of the title's and each paragraph's first token.
 type ChapterScript struct {
 	Tokens []string
 	Breaks []int

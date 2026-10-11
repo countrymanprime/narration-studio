@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 )
 
-// The "keeper" mark on a native take (native-recording-suite PRD Phase 4, Solution Detail "mark the keeper take
-// among several; narrator-confirmed, undoable", Q5's "keeper, accept and discard are narrator-confirmed changes to
-// the take's metadata, and each can be undone"). Mirrors identity.go's sidecar pattern (a project-owned file in the
+// The "keeper" mark on a native take: the narrator marks one take among several as the read to keep, as a
+// narrator-confirmed change to the take's metadata that can be undone. Mirrors identity.go's sidecar pattern (a project-owned file in the
 // Recordings folder, keyed by take name), but a separate file: keeper status and line identity are independent
 // facts about a take, and a corrupt keeper file must never lose a narrator's line assignments (or the other way
 // round) - the same reasoning that keeps line-identity.json its own file rather than a field on the take itself.

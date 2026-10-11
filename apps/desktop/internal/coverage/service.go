@@ -36,12 +36,12 @@ type Config struct {
 	// LoadManuscript returns the canonical manuscript (manuscript.Service.Load).
 	LoadManuscript func() (map[string]any, error)
 	// LoadCredits returns a credits kind's ("opening" or "closing") rendered title and text - the same first-of-kind
-	// template render the Home row and the teleprompter show (Phase 3, ADR 0093, ADR 0150) - or an error when the
-	// library has no template of that kind (CT5). nil refuses every credits check with ReasonCreditsNotSetUp.
+	// template render the Home row and the teleprompter show (ADR 0093, ADR 0150) - or an error when the
+	// library has no template of that kind. nil refuses every credits check with ReasonCreditsNotSetUp.
 	LoadCredits func(kind string) (title, text string, err error)
 	// Reporter logs a stored file that cannot be read (ADR 0069); may be nil.
 	Reporter *persist.Reporter
-	// ProjectReader reads the saved .rpp ProjectFile resolves (DAW port PRD Phase 5d); nil falls back to tracks.Parse
+	// ProjectReader reads the saved .rpp ProjectFile resolves; nil falls back to tracks.Parse
 	// directly, so a Config literal built before this field existed keeps reading exactly as it did before.
 	ProjectReader dawport.ProjectReader
 }
@@ -79,7 +79,8 @@ const (
 	PhaseFailed    Phase = "failed"
 )
 
-// State is the service's job as the UI will see it (Phase 5 binds it).
+// State is the service's job as the UI sees it (the coverage bindings send it as the
+// "coverage:state" event).
 type State struct {
 	RunID     string  `json:"runId,omitempty"`
 	ChapterID string  `json:"chapterId,omitempty"`
@@ -91,10 +92,10 @@ type State struct {
 	RecordID    string     `json:"recordId,omitempty"`
 	StartedAt   *time.Time `json:"startedAt,omitempty"`
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
-	// Background is true for a run the host started on its own (Phase 7 of the auto-sync PRD, ADR 0211), not the
+	// Background is true for a run the host started on its own (ADR 0211), not the
 	// narrator: the UI labels it, and a narrator's own start pre-empts it.
 	Background bool `json:"background"`
-	// Pass, FirstPassModel, RecheckModel and RecheckWindows are the model cascade's own live progress (Phase 5):
+	// Pass, FirstPassModel, RecheckModel and RecheckWindows are the model cascade's own live progress:
 	// set only for a run that asked for a re-check (Request.Recheck.Model non-empty), so the dialog can name which
 	// pass is running and how many passages the plan found without waiting for the stored result. Pass is one of
 	// "first_pass", "recheck_windows", "recheck_whole" or "realign" (stage.label()).
@@ -111,12 +112,12 @@ type Request struct {
 	Alignment     AlignmentParams
 	// Background marks a run the host started on its own (NextBackground), not the narrator.
 	Background bool
-	// Recheck is the model cascade's second pass (recording-check-model-cascade PRD Phase 4): when
+	// Recheck is the model cascade's second pass: when
 	// its Model is set, a first pass with Transcription's model is followed, for every region the
 	// first pass reports missing, by a re-check with Recheck's model, spliced into the same words
 	// and re-aligned - or, when the windows would cover most of the chapter (MC3), one
 	// whole-chapter pass with Recheck's model in its place. The zero value keeps today's
-	// single-pass behaviour; Phase 5 resolves it from settings (MC1, MC2, off by default).
+	// single-pass behaviour; the host resolves it from settings (MC1, MC2, off by default).
 	Recheck Transcription
 }
 
@@ -143,7 +144,7 @@ type Service struct {
 }
 
 // New builds the service for one project. changed, when not nil, hears every
-// state change (Phase 5 turns it into an event).
+// state change.
 func New(config Config, launch Launcher, changed func(State)) *Service {
 	ledger := evidence.NewLedgerStore(config.Project)
 	ledger.Reporter = config.Reporter
@@ -239,7 +240,7 @@ func (s *Service) notify(state State) {
 }
 
 // savedProject resolves, checks and parses the saved .rpp: the only basis a
-// coverage run or result has (D6). The file must be directly inside the
+// coverage run or result has (Q6). The file must be directly inside the
 // project folder, as tracks.Discover finds it.
 func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, error) {
 	if s.config.ProjectFile == nil {
@@ -264,7 +265,7 @@ func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, er
 	return project, projectFileFact(path, info.ModTime()), nil
 }
 
-// readProject is the dawport.ProjectReader role over path (DAW port PRD Phase 5d): nil falls back to tracks.Parse
+// readProject is the dawport.ProjectReader role over path: nil falls back to tracks.Parse
 // directly.
 func (s *Service) readProject(path string) (tracks.Project, error) {
 	if s.config.ProjectReader == nil {
@@ -374,8 +375,8 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 }
 
 // sidecarArgs builds one stage's --coverage arguments over the run's manifest and chapter, with
-// the given transcription: the first pass's own model, the whole-chapter fallback's re-check model
-// (model cascade PRD Phase 4), or, for the align-only re-run after a windowed re-check, the first
+// the given transcription: the first pass's own model, the whole-chapter fallback's re-check model,
+// or, for the align-only re-run after a windowed re-check, the first
 // pass's model again (the words files still carry it, ADR 0341's compatibility field). Every path
 // is under the run's folder or is the project's own manuscript; the audio paths are in the
 // manifest and come from the saved project (threat-model row 4e).
@@ -404,7 +405,7 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 	return args
 }
 
-// recheckArgs builds the windows-only --recheck stage's arguments (model cascade PRD Phase 4):
+// recheckArgs builds the windows-only --recheck stage's arguments:
 // unlike sidecarArgs, no manifest, chapter or --out - coverage_mode.run_recheck touches none of
 // them - but --manuscript is required by the sidecar's argument parser regardless of mode.
 func (s *Service) recheckArgs(running *job) []string {
@@ -429,8 +430,7 @@ func (s *Service) recheckArgs(running *job) []string {
 	return args
 }
 
-// stageArgs builds the sidecar arguments for the stage advance is moving the job into (model
-// cascade PRD Phase 4).
+// stageArgs builds the sidecar arguments for the stage advance is moving the job into.
 func (s *Service) stageArgs(running *job, next stage) []string {
 	switch next {
 	case stageRecheckWhole:

@@ -6,7 +6,7 @@
 
 ## Context
 
-The top level of the repository no longer said what was in it. `shared/` held the React app, a Python library, the REAPER Lua bridge, shipped JSON, test fixtures and a README; `tools/` mixed three Python sidecars frozen into the app with one real development tool; `shell/` was the desktop app but read like a leftover; a dead Tauri icon folder sat inside the Go host. Tests followed five conventions. Nx was used only for release versioning, so affected detection lived in hand-rolled scripts. Several sessions change the repository at once and it ships often, so every new contributor or agent had to learn by grep where things live. The research is in [repo-layout-alignment](../research/repo-layout-alignment.md) (git history); the owner chose the full move on 2026-09-20 (decision D15 of the PRD implementation plan).
+The top level of the repository no longer said what was in it. `shared/` held the React app, a Python library, the REAPER Lua bridge, shipped JSON, test fixtures and a README; `tools/` mixed three Python sidecars frozen into the app with one real development tool; `shell/` was the desktop app but read like a leftover; a dead Tauri icon folder sat inside the Go host. Tests followed five conventions. Nx was used only for release versioning, so affected detection lived in hand-rolled scripts. Several sessions change the repository at once and it ships often, so every new contributor or agent had to learn by grep where things live. The research is in [repo-layout-alignment](../research/repo-layout-alignment.md) (git history); the owner chose the full move on 2026-09-20.
 
 ## Decision
 

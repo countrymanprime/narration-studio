@@ -3,12 +3,11 @@
 // integrations/reaper/narration_pickups.lua). It is the third consumer built on the event fan-out
 // (apps/desktop/internal/bridge), alongside the transcript and line-identity services.
 //
-// CSV format (PRD reaper-automation-follow-through, Open Question 5, answered (a)): a generic CSV with one row
-// per pickup, columns start time in seconds, note, and an optional tag - "matching REAPER's own marker CSV
-// columns" plus the tag this app's PICKUP: convention uses. A first row whose first cell is literally "start"
-// (case-insensitive) is treated as a header and skipped; every other row is data. This never trusts the file:
-// a row with a non-finite or negative start, an empty note, or a tag containing "|" (the payload file's own
-// field separator) is reported, never silently dropped or guessed at.
+// CSV format: a generic CSV with one row per pickup, columns start time in seconds, note, and an optional tag -
+// "matching REAPER's own marker CSV columns" plus the tag this app's PICKUP: convention uses. A first row whose first
+// cell is literally "start" (case-insensitive) is treated as a header and skipped; every other row is data. This never
+// trusts the file: a row with a non-finite or negative start, an empty note, or a tag containing "|" (the payload
+// file's own field separator) is reported, never silently dropped or guessed at.
 package pickups
 
 import (

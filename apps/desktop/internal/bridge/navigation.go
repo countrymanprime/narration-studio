@@ -11,9 +11,9 @@ import (
 )
 
 // Navigator asks REAPER to go to a finding, loop its context and stop the loop, and whether the script is listening
-// (integrations/reaper/narration_navigation.lua; review-dashboard PRD Phase 6 and Q6; docs/architecture/
-// reaper-navigation.md; ADR 0121), and to add one approved marker for a finding (AddMarker, marker.go; Phase 8, ADR 0123).
-// Each request is one command and waits for its one answer.
+// (integrations/reaper/narration_navigation.lua; docs/architecture/reaper-navigation.md; ADR 0121), and to add one
+// approved marker for a finding (AddMarker, marker.go; ADR 0123). Each request is one command and waits for its one
+// answer.
 //
 // A request returns only once the answer has been dispatched, and dispatching is the host's job (its 150 ms loop calls
 // Client.Dispatch through transcript.Service.Drain): so a request must never be made from a Subscription's Handle,
@@ -155,7 +155,7 @@ func (n *Navigator) Navigate(ctx context.Context, target Target) (Navigated, err
 }
 
 // Loop sets REAPER's time selection and loop points to the finding's context window (ContextPaddingSeconds either
-// side of its source times), turns repeat on and plays it (Q6). The first loop remembers what the narrator had;
+// side of its source times), turns repeat on and plays it. The first loop remembers what the narrator had;
 // StopLoop puts it back.
 func (n *Navigator) Loop(ctx context.Context, target Target) (LoopStarted, error) {
 	if target.ItemGUID == "" {

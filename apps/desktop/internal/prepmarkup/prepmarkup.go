@@ -1,11 +1,11 @@
-// Package prepmarkup is the script markup layer of docs/prds/prep-depth.prd.md Phase 5: stress, pause and character-tag
-// spans the narrator places on the manuscript while prepping, kept in their own project file (Q5) and checked against the
-// current text on every read (Q6). A span whose words are no longer where it was placed is reported stale, never moved to
-// a guess, so a mark never lands silently on the wrong words; whitespace alone never makes one stale.
+// Package prepmarkup is the script markup layer (ADR 0382): stress, pause and character-tag spans the narrator
+// places on the manuscript while prepping, kept in their own project file and checked against the current text on
+// every read. A span whose words are no longer where it was placed is reported stale, never moved to a guess, so a
+// mark never lands silently on the wrong words; whitespace alone never makes one stale.
 //
-// The file is narrator data (ADR 0069): it is never cleared by a re-import (a line whose text did not change keeps its
+// The file is narrator data: it is never cleared by a re-import (a line whose text did not change keeps its
 // marks, and one that did shows them as stale), only by the explicit Clear project data. It is a plain, versioned,
-// chapter-keyed document so a later reader (the booth view) can read it without this package (ADR 0382).
+// chapter-keyed document so a later reader (the booth view) can read it without this package.
 package prepmarkup
 
 import (

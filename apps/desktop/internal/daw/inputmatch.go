@@ -5,7 +5,7 @@ import (
 	"unicode"
 )
 
-// Which microphone REAPER uses (teleprompter-manuscript-integration PRD Phase 11, ADR 0250). REAPER names its open input
+// Which microphone REAPER uses (ADR 0250). REAPER names its open input
 // device by its driver (GetAudioDeviceInfo("IDENT_IN"): "Focusrite USB ASIO" under ASIO, the Windows name under WASAPI);
 // the teleprompter opens microphones by their dshow names ("Microphone (Focusrite USB Audio)"). MatchInputDevice says
 // which dshow name is REAPER's device only when it can be sure, so the UI preselects it with a reason and otherwise

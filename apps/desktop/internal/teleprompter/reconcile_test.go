@@ -5,8 +5,7 @@ import (
 	"testing"
 )
 
-// Resume reconciles where the recording ends with where the prompter last was (read-aloud-resume-from-daw PRD
-// Phase 3, RD1, RD3, RD8).
+// Resume reconciles where the recording ends with where the prompter last was.
 
 // reconcileScript is four sentences of words, "w0 ... w9.", "w10 ... w19.", "w20 ... w39." (longer than the
 // tolerance) and "w40 ... w49.", one paragraph, followed by two punctuation-only tokens (so the chapter's last word is

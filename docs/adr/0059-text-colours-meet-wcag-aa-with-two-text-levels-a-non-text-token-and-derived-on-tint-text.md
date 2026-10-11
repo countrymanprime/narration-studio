@@ -9,7 +9,7 @@
 
 The palette did not meet WCAG 2.x AA. `--text-faint` carried real labels (section labels, counts, "Global defaults", "Live activity") at 2.2 to 3.7:1; `--text-muted` fell to 4.32 and 3.85:1 on `--surface-2` and `--surface-3` in the light theme; the active navigation item was `--accent` on a 10% accent tint at 4.03:1; and the `Highlight` category colours, used as text on a 20% tint of themselves, reached 3.6 to 4.3:1 in light and 2.5 to 2.9:1 in dark for Lore, Item and Event, because `--lore`, `--item`, `--event` and `--note` had no dark override at all (an unlayered `:root` block at the bottom of `styles.css`). Entity badges, the warn colour used as text and the danger and review text on their soft tints fail the same way. [ADR 0023](0023-visual-suite-capture-contract-and-storybook.md) recorded the first four as ratcheted debt in `apps/ui/tests/atlas/a11y-debt.ts` rather than recolouring silently, and asked for a decision. Axe runs only on stories, never on app states, so nothing measured the rest.
 
-The owner decided (implementation plan D5, and the palette PRD's questions 3 to 8 took their recommendations): the text ramp has two levels plus a non-text token, not three AA levels; highlight and badge text are derived from the category colour; the failures beyond the four debt entries (badges, warn text) are in scope; and a permanent test guards the palette.
+The owner decided: the text ramp has two levels plus a non-text token, not three AA levels; highlight and badge text are derived from the category colour; the failures beyond the four debt entries (badges, warn text) are in scope; and a permanent test guards the palette.
 
 ## Decision
 
@@ -33,14 +33,14 @@ The current colour values live in `apps/ui/src/styles.css` and are described in 
 
 ## Consequences
 
-- Every text pair the app declares is AA in both themes, and a new low-contrast pair turns a fast Vitest test red, with the pair, the surface and the ratio in the message. Page-level pairs still depend on the declared list plus the census of tokens used as text; axe on app states (the test flakiness PRD's phase 6) is the wider net and is now unblocked.
+- Every text pair the app declares is AA in both themes, and a new low-contrast pair turns a fast Vitest test red, with the pair, the surface and the ratio in the message. Page-level pairs still depend on the declared list plus the census of tokens used as text; axe on app states ([ADR 0064](0064-the-visual-suite-runs-axe-on-every-app-state-and-a-violation-fails-unless-it-is-declared-debt.md)) is the wider net.
 - The interface loses its third grey. Text that was faint (section labels, counts, timestamps) is now as dark as muted text; the hierarchy there rests on type. The light theme looks slightly heavier; the dark theme's former faint text is much brighter.
 - About 73 usages in about 23 component files change colour token, in reviewable slices by area, each with the full visual suite.
 - Highlights and badges are a little darker (light) or lighter (dark) than the pure category colour, and the underline keeps the pure colour.
 - Border contrast (`--border` at 1.56:1 on white, WCAG 1.4.11 for component boundaries) is not decided here.
 - To change any of this, write a new ADR that supersedes this one.
 
-## Update (phase 4)
+## Update: the dark palette
 
 The decision stands. Building the dark palette corrected four details:
 
@@ -49,9 +49,9 @@ The decision stands. Building the dark palette corrected four details:
 - **The dark values** are `--lore` `#c49056`, `--item` `#6ea5bc`, `--event` `#d37e9b` and `--note` `#d4865a`, taken from the light hues at the lightness of the existing dark colours (about 0.69 in OKLCH) and checked by eye in the reader, the legend and the atlas.
 - **`--note` in the dark theme is a fallback the running app does not use.** It writes the repo default note colour inline, which beats the dark token, so the note dot and underline stay `#b85c1e` in dark: 3.70:1 on `--surface` and 3.19:1 on `--row-alt` as a mark, which passes. The guard's dark note pairs measure the token, not that painted colour, so a change of the default would not trip it: issue #138.
 
-## Update (phase 5)
+## Update: status text, placeholders and text tokens
 
 - **Status text has companions, not a `--review` equivalent.** `--danger-text`, `--warn-text` and `--info-text` carry text on the page and on the status colours' soft fills, and `--danger`, `--warn` and `--info` stay for borders, dots and fills. The MISREAD word, alerts and the last-completed badge on `--review-soft` use `--danger-text` (`--danger` and `--review` are the same hex); `--review-text` stays for the Review entity kind's highlight and badge. In light `--danger-text` and `--info-text` darken the fill colour toward `--text` (85% and 90% of the fill colour) and `--warn-text` is an explicit dark amber, `#755507` (4.62:1 on a warn tint over a hovered or selected table row, the tightest pair): a mix toward the olive text, which needed 50% to pass, turned the amber into a grey-brown that no longer read as a warning. In dark the fill colours already pass, so the companions equal them. Unlike the entity tokens they are therefore not defined once: the dark block overrides them. The dots and meter segments drawn in `--warn` and `--info` are held to 3:1 on the surface (`--warn` is 3.26:1 there in light, and 2.56:1 on `--surface-2`, which no such mark sits on).
 - **Placeholders are text.** Tailwind's preflight draws them at half the text colour, 3.25:1 in the light theme, and neither axe nor the pairs saw it. `styles.css` draws them in `--text-muted`.
 - **Text takes tokens only.** A test rejects a Tailwind palette colour or a literal colour as a text colour (`text-red-400` in the Results table was 2.89:1 on white in light).
-- The guard's ratchet is empty and the atlas debt list has been empty since phase 4.
+- The guard's ratchet is empty and the atlas debt list has been empty since the dark palette update above.

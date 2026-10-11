@@ -10,16 +10,16 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The credits setup prompt's host half (credits-token-setup-and-front-matter-detection.prd.md Phase 2, ADR 0208):
+// The credits setup prompt's host half (ADR 0208):
 // whether the project needs its credits set up, what to ask for with what prefilled, "Not now" and "Don't ask", and
 // a save that only fills empty values. It keys on state (a manuscript is imported and the credits the app reads have
 // unresolved tokens), not on an app or manifest version, so the first open, an upgraded project, an import and a
 // Replace manuscript all ask alike.
 
 // creditsSetupState is CreditsSetupState's payload. Needed says to show the dialog; Banner says to show the banner
-// (while tokens stay unresolved, unless the narrator chose "Don't ask", CS1 C). Dismissed is "", "session" or
-// "project". Fields are the unresolved tokens of the first opening and closing templates with their detected values
-// (CS4 A); Candidates are every detected value for a token the project has not set (for Settings' captions).
+// (while tokens stay unresolved, unless the narrator chose "Don't ask"). Dismissed is "", "session" or
+// "project". Fields are the unresolved tokens of the first opening and closing templates with their detected values;
+// Candidates are every detected value for a token the project has not set (for Settings' captions).
 type creditsSetupState struct {
 	Needed         bool                 `json:"needed"`
 	Banner         bool                 `json:"banner"`
@@ -31,7 +31,7 @@ type creditsSetupState struct {
 	Candidates     []credits.Candidate  `json:"candidates"`
 }
 
-// creditsSetupSession remembers "Not now" for this run of the app (CS2), per project folder and manuscript document,
+// creditsSetupSession remembers "Not now" for this run of the app, per project folder and manuscript document,
 // so a new session or a Replace manuscript asks again. The zero value is ready.
 type creditsSetupSession struct {
 	mu sync.Mutex
@@ -90,7 +90,7 @@ func (h *Host) creditsSetupState() (creditsSetupState, error) {
 	}
 	data, err := svc.manuscript.Load()
 	if err != nil {
-		return state, nil // no manuscript: nothing to detect from, and Settings covers it (PRD Phase 2)
+		return state, nil // no manuscript: nothing to detect from, and Settings covers it
 	}
 	state.DocumentID, _ = data["documentId"].(string)
 	manifest, ok, err := project.Load(h.persist, folder)

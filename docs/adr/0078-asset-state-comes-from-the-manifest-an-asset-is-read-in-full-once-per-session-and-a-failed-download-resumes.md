@@ -5,9 +5,9 @@
 
 ## Context
 
-`assets.State` hashed every byte of every file on each call. The Whisper catalog lists five models (75 MB to 3.09 GB, 5.3 GB together), `Catalog()` called it for each, `Dir()` called it before every use, and each `asset_required` reply called it again: a full read of an installed `large-v3` on every catalog fetch and every transcription start. The manifest an install wrote held only provider, id and version, so it could not stand in for the hash, and it could not give diagnostics the exact provenance the first-use brief asks for. A download that failed at 2.9 GB of 3.09 restarted from zero, replacing a corrupt install removed the target before renaming the new one into place (a crash between the two left neither), the disk was never asked, and the cache root fell back to the temporary folder when `os.UserCacheDir()` failed, where a cleanup tool can delete a multi-gigabyte download.
+`assets.State` hashed every byte of every file on each call. The Whisper catalog lists five models (75 MB to 3.09 GB, 5.3 GB together), `Catalog()` called it for each, `Dir()` called it before every use, and each `asset_required` reply called it again: a full read of an installed `large-v3` on every catalog fetch and every transcription start. The manifest an install wrote held only provider, id and version, so it could not stand in for the hash, and it could not give diagnostics the exact provenance a first-use prompt shows. A download that failed at 2.9 GB of 3.09 restarted from zero, replacing a corrupt install removed the target before renaming the new one into place (a crash between the two left neither), the disk was never asked, and the cache root fell back to the temporary folder when `os.UserCacheDir()` failed, where a cleanup tool can delete a multi-gigabyte download.
 
-Owner decisions (Q3 a, Q4, Q5 a of the release-readiness PRD): show the cache path and never delete an installed asset; resume with a `.part` file and HTTP Range if the hosts honour ranges (checked: Hugging Face answers `206 Partial Content` with a `Content-Range` for the pinned Piper and Whisper URLs); trust a manifest on listing and startup, hash in full on an explicit Verify and before the first load of a session.
+Owner decisions: show the cache path and never delete an installed asset; resume with a `.part` file and HTTP Range if the hosts honour ranges (checked: Hugging Face answers `206 Partial Content` with a `Content-Range` for the pinned Piper and Whisper URLs); trust a manifest on listing and startup, hash in full on an explicit Verify and before the first load of a session.
 
 ## Decision
 
@@ -23,7 +23,7 @@ Owner decisions (Q3 a, Q4, Q5 a of the release-readiness PRD): show the cache pa
 ## Consequences
 
 - Listing the five Whisper models with all of them installed takes 0.6 ms where reading them took 3.2 s (`go test ./internal/assets -run '^$' -bench State`, Windows 11, Ryzen 9 9955HX, files created at the real sizes). The first transcription of a session still reads the model once, in exchange for finding damage before the model loads it.
-- The cheap check trusts the manifest, the file size and the modification time: a file changed in place to the same size with its time put back is not noticed until the next `Verify` or the next session's first use. That is what the owner chose (Q5 a) and it is stated in the tests.
+- The cheap check trusts the manifest, the file size and the modification time: a file changed in place to the same size with its time put back is not noticed until the next `Verify` or the next session's first use. That is what the owner chose and it is stated in the tests.
 - A network failure no longer costs the bytes already fetched. A staging folder can sit on the disk for up to a week after a failed download; it is not an installed asset and is removed at start after that.
 - Every later asset kind (spaCy, dictionaries, Moonshine) gets the manifest, resume, repair and the disk check by using `assets.InstallWith`; nothing in this decision is specific to voices or models.
 - To trust less (hash on every listing) or more (skip the once-per-session read) write a new ADR that supersedes this one.

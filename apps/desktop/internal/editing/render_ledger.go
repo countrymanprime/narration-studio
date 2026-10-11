@@ -1,9 +1,8 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: the
-// render path's own ledger record. Unlike the per-item records ledger.go
-// writes (item-scoped, currency judged by evidence.LedgerFingerprint /
-// evidence.EvaluateFingerprints), Phase 8's ledger scope is explicitly "the
-// file fingerprint" (PRD Scope) - so this file does NOT reuse
-// evidence.LedgerFingerprint/EvaluateFingerprints for staleness. It follows
+// This file holds the render path's own ledger record (ADR 0550). Unlike the
+// per-item records ledger.go writes (item-scoped, currency judged by
+// evidence.LedgerFingerprint / evidence.EvaluateFingerprints), the render
+// record's scope is the render file's fingerprint, so this file does NOT
+// reuse evidence.LedgerFingerprint/EvaluateFingerprints for staleness. It follows
 // the simpler pattern apps/desktop/internal/proofing/renders.go's own
 // RecordRenderMeasurements/decodeRenderMeasurement already established: a
 // RenderKey string stored in the record's JSON Payload, compared directly
@@ -11,6 +10,7 @@
 // comparison IS this package's own "ledger scope is the file fingerprint"
 // design; Fingerprint on the LedgerRecord itself is left at its zero value,
 // unused.
+
 package editing
 
 import (

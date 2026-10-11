@@ -2,12 +2,11 @@ import type { WorkspaceExtra, WorkspaceToken } from '../../api/contracts/workspa
 import type { FindingReviewStatus } from '../../api/contracts/findings';
 import type { Discrepancy } from '../../api/contracts/transcript';
 
-/** The flaggable kinds a token's status groups into (edit-and-proof-workspace.prd.md Evidence, "Flags the app can
- * already place on the text"): a run of consecutive skipped words, a run read short or with different text, a run
+/** The flaggable kinds a token's status groups into (the flags the app can place on the text): a run of consecutive skipped words, a run read short or with different text, a run
  * at the chapter's start or end never recorded, one misread word, or (from `extras`, not a token status) a run of
  * audio the alignment didn't match to any script word. `read`/`heading` never flag. `pickup` and `cleanup` never come
  * from a token status - they exist only when a Finding maps onto the text with no check-derived flag to attach to
- * (Phase 4, `overlayFindings`): a proofer's pickup note, or an editing-readiness cleanup candidate (silence, clicks). */
+ * (`overlayFindings`): a proofer's pickup note, or an editing-readiness cleanup candidate (silence, clicks). */
 export type FlagKind = 'skip' | 'partial' | 'not_recorded' | 'misread' | 'extra' | 'pickup' | 'cleanup';
 
 export type Flag = {
@@ -28,11 +27,11 @@ export type Flag = {
    * the flag detail shows its inline diff and the run's own
    * actions (Play recorded audio, Add pronunciation equivalence). */
   discrepancy?: Discrepancy;
-  /** Set when a stored Finding backs this flag (Phase 4, `overlayFindings`): the flag can be reviewed in place
+  /** Set when a stored Finding backs this flag (`overlayFindings`): the flag can be reviewed in place
    * (accept, dismiss, defer, note) through the same `findingsReview` binding the Review page uses, and the decision
-   * shows there too. A flag with no findingId is read-only, straight from the check's own alignment (Phase 2). */
+   * shows there too. A flag with no findingId is read-only, straight from the check's own alignment. */
   findingId?: string;
-  /** The finding's analyzer, for the flag detail's "From <analyzer>" line (mockups/edit-and-proof-workspace/02-flag-detail-open.webp). */
+  /** The finding's analyzer, for the flag detail's "From <analyzer>" line. */
   analyzer?: string;
   /** The finding's confidence, null when the analyzer has none; undefined when the flag has no finding. */
   confidence?: number | null;
@@ -71,7 +70,7 @@ function flagKind(status: WorkspaceToken['status']): FlagKind | undefined {
 }
 
 /** Groups the chapter's tokens and extra (unmatched) audio runs into flags: consecutive tokens sharing the same
- * flaggable kind become one flag (edit-and-proof-workspace.prd.md, "skipped (2 words)" in the visual spec), a
+ * flaggable kind become one flag (for example "skipped (2 words)"), a
  * misread word is its own flag, and each extra run is its own flag. Flags are returned in token order, extras
  * placed after the token they followed (`afterToken`, or first if none). */
 export function buildFlags(tokens: readonly WorkspaceToken[], extras: readonly WorkspaceExtra[]): Flag[] {

@@ -5,7 +5,7 @@
 
 ## Context
 
-Take Intelligence (`docs/prds/take-review-pickups-duplicates-take-intelligence.prd.md`, phase 8) compares the takes of one span with separate text, timing and technical evidence per take. The owner settled three things in advance: measurement stays in Go and reads WAV only, and a measurement that cannot be made is reported as unavailable, never guessed ([ADR 0025](0025-delivery-measurements-in-go-profiles-deferred.md)); there is no composite "best take" score (PRD Q9); and a take's audio is the part of its source file the take-aware item model says it plays (`apps/desktop/internal/tracks`, phase 2). Before this change `measure.Analyze` read a whole file only and reported no clipping. `diagnostics-delivery-and-cleanup-tools.prd.md` also needs a range entry point in the same package, so its shape had to be settled once.
+Take review compares the takes of one span with separate text, timing and technical evidence per take. The owner settled three things in advance: measurement stays in Go and reads WAV only, and a measurement that cannot be made is reported as unavailable, never guessed ([ADR 0025](0025-delivery-measurements-in-go-profiles-deferred.md)); there is no composite "best take" score; and a take's audio is the part of its source file the take-aware item model says it plays (`apps/desktop/internal/tracks`). Before this change `measure.Analyze` read a whole file only and reported no clipping. The diagnostics tools also need a range entry point in the same package, so its shape had to be settled once.
 
 ## Decision
 
@@ -17,7 +17,7 @@ Take Intelligence (`docs/prds/take-review-pickups-duplicates-take-intelligence.p
 ## Consequences
 
 - An MP3 or FLAC take, a stretched take, or a take without a transcript still gets every figure that can honestly be given: the project duration always, and the pause profile whenever there are words. Coverage shows what is missing, and nothing about a missing category counts against the take.
-- The diagnostics PRD reuses `AnalyzeRange` for per-item analysis instead of adding a second entry point. Its frame-accurate `[start, end)` wish is met at frame granularity through seconds.
+- Diagnostics reuse `AnalyzeRange` for per-item analysis instead of adding a second entry point. A frame-accurate `[start, end)` range is met at frame granularity through seconds.
 - `measure` now imports `internal/tracks` (allowed by ADR 0046's depguard rule). A take whose timing is non-linear (stretch markers) gets no audio metrics until a later change maps stretch markers.
 - Clipping by the full-scale rule cannot see clipping that happened before a gain change (a clipped recording normalised down). Detecting that needs a flat-top heuristic and a new decision.
 - Changing the categories, adding a combined score, or measuring non-WAV sources needs a new ADR that supersedes this one (and ADR 0025 for formats).

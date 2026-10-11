@@ -1,5 +1,4 @@
-// The Review page's filter state and how it becomes the host's query. Filtering, sorting and paging run in the host (Q9 of
-// review-dashboard-and-findings-adoption.prd.md); this only leaves an empty control out, so it matches everything.
+// The Review page's filter state and how it becomes the host's query. Filtering, sorting and paging run in the host; this only leaves an empty control out, so it matches everything.
 import type { FindingReviewStatus, FindingSortKey, FindingsQuery } from '../../types';
 
 export type ReviewFilterValues = {

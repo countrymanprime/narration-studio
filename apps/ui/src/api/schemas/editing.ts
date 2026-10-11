@@ -3,7 +3,7 @@ import type { EditingRefusalReason, EditingSourceChoice, EditingState, EditingSt
 import { listFromNull, optionalFromNull } from './base';
 import { findingSchema } from './findings';
 
-// The editing-readiness check payloads (editing-readiness-analysis.prd.md Phase 5). The reason list is pinned
+// The editing-readiness check payloads. The reason list is pinned
 // against the host by tests/fixtures/contracts/editing-start-refused-unmapped.json.
 
 export const EDITING_REFUSAL_REASONS = [
@@ -41,7 +41,7 @@ export const editingStartResultSchema = z.discriminatedUnion('status', [
 
 export const editingCandidatesSchema = listFromNull(findingSchema);
 
-// Q6's per-chapter source choice (Phase 8): a bare wire string, "items" or "render" (bindings_editing.go's
+// The per-chapter source choice: a bare wire string, "items" or "render" (bindings_editing.go's
 // EditingSourceChoice/EditingSetSourceChoice both encode a plain Go string, never an object). Unlike
 // EDITING_REFUSAL_REASONS above, nothing outside this schema needs the raw list, so it stays unexported.
 const EDITING_SOURCE_CHOICES = ['items', 'render'] as const satisfies readonly EditingSourceChoice[];

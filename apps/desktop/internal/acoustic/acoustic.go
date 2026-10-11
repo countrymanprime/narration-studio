@@ -1,15 +1,14 @@
-// Package acoustic implements Phase 4 of
-// docs/prds/character-continuity-review.prd.md: a dependency-free,
+// Package acoustic is the character continuity review's dependency-free,
 // range-limited feature extraction engine (pitch, speaking rate, energy and
-// a coarse spectral summary) matching Open Question Q1's adopted decision
-// (docs/research/character-continuity-acoustic-trial.md, option A). It
+// a coarse spectral summary), option A of
+// docs/research/character-continuity-acoustic-trial.md (ADR 0348). It
 // consumes measure.Range so a candidate audio range means the same whole
-// number of frames here as it does in the measure package (and to any
-// future TR-8 shared range API), without depending on measure's unexported
-// conversion.
+// number of frames here as it does in the measure package, without depending
+// on measure's unexported conversion.
 //
 // This package produces features only. It never reads or writes
-// approvals, baselines or findings - those are Phase 5 and later.
+// approvals, baselines or findings - those belong to internal/character and
+// internal/continuity.
 package acoustic
 
 import (
@@ -44,17 +43,15 @@ const (
 )
 
 // FeatureVersion identifies the algorithm and Features shape this package
-// produces. Phase 5's derived-features cache keys on it alongside source
-// identity and range, so a future change to this package's math or fields
-// invalidates old cache entries instead of silently mixing with them. Bump
-// it whenever Extract's output would differ for the same input.
+// produces. continuity's findings carry it in their evidence version, so a
+// change to this package's math or fields re-opens old decisions instead of
+// silently mixing with them. Bump it whenever Extract's output would differ for the same input.
 const FeatureVersion = 1
 
 // Features is the explainable, per-clip acoustic summary Extract produces.
-// Every field is a plain measurement with no learned model behind it, per
-// the PRD's "neutral measurement" requirement; nil pointer fields mean the
-// value could not be measured (never a fabricated number - PRD Phase 4
-// success signal "failure cases return null").
+// Every field is a plain measurement with no learned model behind it; nil
+// pointer fields mean the value could not be measured (never a fabricated
+// number: failure cases return null).
 type Features struct {
 	// VoicedFraction is the share of analysis frames classed as voiced
 	// (RMS above the clip's own energy percentile). 0 for a clip with no
@@ -73,14 +70,13 @@ type Features struct {
 	// 3% of exactly double or half the clip's own F0 median: the
 	// hand-written tracker's documented octave-error failure mode
 	// (docs/research/character-continuity-acoustic-trial.md), quantified
-	// as a confidence signal for Phase 5 rather than corrected here. 0
+	// as a confidence signal rather than corrected here. 0
 	// when there are no F0 readings to compare.
 	OctaveAmbiguousFraction float64 `json:"octaveAmbiguousFraction"`
 
 	// RateVoicedRunsPerSecond is the count of voiced/unvoiced transitions
 	// into a voiced run, divided by the clip's duration: the coarse
-	// speaking-rate fallback the PRD anticipates for Phase 4 (Phase 5's
-	// baseline can prefer TR-3's aligned-word rate once that lands).
+	// coarse speaking-rate measure, which needs no aligned words.
 	RateVoicedRunsPerSecond float64 `json:"rateVoicedRunsPerSecond"`
 
 	// RMSMean and RMSStd summarize frame RMS energy across every analysis

@@ -42,7 +42,7 @@ function ThisFile({ rule, result, owner }: { rule: DeliveryRule; result?: Delive
 }
 
 /**
- * One measured file against the profile, rule by rule (delivery-platform-profiles.prd.md Phase 3, mockup 04): each file rule's
+ * One measured file against the profile, rule by rule: each file rule's
  * result, the value this file measured, what the platform requires and how that requirement was verified. Loudness and true peak
  * are information here, not rules, unless the profile has a rule for them.
  */

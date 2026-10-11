@@ -62,8 +62,8 @@ type Service struct {
 }
 
 // RecordedFractions supplies the measured share of each chapter's words present, by chapter id: what fills a chapter
-// payload's recordedFraction (docs/utilities/recording-coverage.md D11). A chapter it leaves out has no measurement and
-// its payload carries no recordedFraction (Q12 A). The host wires the recording coverage service in, so this package
+// payload's recordedFraction (docs/utilities/recording-coverage.md). A chapter it leaves out has no measurement and
+// its payload carries no recordedFraction. The host wires the recording coverage service in, so this package
 // never imports it.
 type RecordedFractions func() map[string]float64
 
@@ -80,7 +80,7 @@ func (s *Service) recordedFractions() map[string]float64 {
 	return map[string]float64{}
 }
 
-// RecordedUnavailable says why a chapter has no recorded length (actual-recorded-column PRD AR3 A, AR6 A).
+// RecordedUnavailable says why a chapter has no recorded length.
 type RecordedUnavailable string
 
 const (
@@ -101,7 +101,7 @@ type RecordedLength struct {
 }
 
 // RecordedLengths supplies each chapter's recorded length from its confirmed track in the saved project, by chapter
-// id: what fills a chapter payload's recordedSeconds, or recordedUnavailable (actual-recorded-column PRD Phase 2). A
+// id: what fills a chapter payload's recordedSeconds, or recordedUnavailable. A
 // chapter it leaves out carries neither. The host wires it in, so this package never reads a REAPER project.
 type RecordedLengths func() map[string]RecordedLength
 
@@ -394,7 +394,7 @@ func (s *Service) runCommit(job *ImportJob, confirmedReset bool, choices Choices
 		// The old links name chapter ids the re-import renumbers, so they are
 		// cleared, but read first: the new document's mapping file carries them
 		// (and the auto-links the narrator undid) for chapter sync to re-link by
-		// title (daw-chapter-track-auto-sync PRD Phase 2, ADR 0202).
+		// title (ADR 0202).
 		carry = evidence.ReadCarryOver(project)
 		s.report(job, 8, "Clearing derived data: Story Bible, notes, bookmarks, chapter statuses and proofing results")
 		if err := resetDerived(project); err != nil {
@@ -585,9 +585,9 @@ func canonicalize(draft importer.Draft, name, storedPath, sha string, kinds map[
 	return canonical, nil
 }
 
-// sourceMetadataFields renders draft.SourceMetadata (credits-token-setup-and-front-matter-detection.prd.md, Phase 4)
+// sourceMetadataFields renders draft.SourceMetadata
 // as a map holding only its non-empty fields, so manuscript.json stays additive: an import with nothing detected, or
-// one written before this phase, carries no "sourceMetadata" key at all rather than one full of empty strings.
+// one written before source metadata existed, carries no "sourceMetadata" key at all rather than one full of empty strings.
 func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 	if metadata == nil {
 		return nil
@@ -610,8 +610,7 @@ func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 
 func resetDerived(project string) error {
 	// Findings are anchored to manuscript chapter and paragraph ids, so a
-	// replace or Clear that invalidates those ids clears findings too
-	// (review-dashboard-and-findings-adoption.prd.md Q5).
+	// replace or Clear that invalidates those ids clears findings too.
 	for _, path := range []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, "narration-utils", "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project)} {
 		if err := os.RemoveAll(path); err != nil {
 			return fmt.Errorf("could not clear project data: %w", err)
@@ -629,7 +628,7 @@ func (s *Service) Clear() error {
 	if err := resetDerived(project); err != nil {
 		return err
 	}
-	// Script markup (prep-depth PRD Phase 5) is kept through a re-import, where an unchanged line keeps its marks and a
+	// Script markup is kept through a re-import, where an unchanged line keeps its marks and a
 	// changed one shows them as stale; only this explicit clear removes it.
 	if err := os.RemoveAll(prepmarkup.File(project)); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)

@@ -1,6 +1,6 @@
-// The mastering port's choice payload (ADR 0306, owner decision D86): every mastering chain this build has, read from the host's
+// The mastering port's choice payload (ADR 0306): every mastering chain this build has, read from the host's
 // Go registry (internal/masteringport), what each needs and whether it can be chosen now, and the current project's own choice.
-// apps/desktop/bindings_mastering.go is the binding. Master & QC (stage navigation Phase 8) reads it to draw the chain.
+// apps/desktop/bindings_mastering.go is the binding. Master & QC reads it to draw the chain.
 import type { DawCapabilitySupport } from './daw';
 
 /** One step of a row's own fixed chain (masteringport.Step), in words that hold for any delivery profile. */

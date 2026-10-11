@@ -26,7 +26,7 @@ func TestMainWindowKeepsCtrlWheelZoomAndHidesTheBrowserMenu(t *testing.T) {
 	}
 }
 
-// mainWindowOptions passes its zoom argument straight through to the window options (nav PRD Phase 3): main.go
+// mainWindowOptions passes its zoom argument straight through to the window options: main.go
 // computes it from host.startupZoom() before this is called, already clamped, so this file just proves the plumbing.
 func TestMainWindowOptionsPassesThroughTheStartupZoom(t *testing.T) {
 	options := mainWindowOptions(1.25)

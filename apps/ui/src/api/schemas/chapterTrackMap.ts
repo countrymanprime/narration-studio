@@ -92,7 +92,7 @@ const chaptersForTracksEntrySchema = z.object({
   error: z.string().optional(),
 }) satisfies z.ZodType<ChaptersForTracksEntry>;
 
-/** ChaptersForTracks' answer (diagnostics-delivery-and-cleanup-tools PRD Phase 8 remainder). */
+/** ChaptersForTracks' answer. */
 export const chaptersForTracksSchema = z.object({
   projectFile: z.string(),
   savedAt: z.string(),
@@ -163,7 +163,7 @@ export const chapterTrackLinksSchema = z.object({
 
 const chapterRegionKindSchema = z.enum(['opening', 'chapter', 'closing']);
 
-/** ChapterRegionsPreview's answer (reaper-automation-follow-through PRD Phase 7, credits-in-chapter-table PRD Phase 4). */
+/** ChapterRegionsPreview's answer. */
 export const chapterRegionPlanSchema = z.object({
   project: z.enum(['ready', 'none', 'choose', 'error']),
   message: z.string(),

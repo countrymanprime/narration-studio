@@ -10,14 +10,14 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-keyboard',
     description:
-      'Settings, Global scope / Keyboard & pedals category (input-commands-and-pedals.prd.md Phase 6, mockup 01): every command grouped by scope (Global, Page, Booth), gestures as Kbd chips, and Reset all to defaults',
+      'Settings, Global scope / Keyboard & pedals category: every command grouped by scope (Global, Page, Booth), gestures as Kbd chips, and Reset all to defaults',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-keyboard-recording',
     description:
-      'Settings, Keyboard & pedals: the recorder open inline under "Play or pause reading" after a captured Page Down (mockup 02, user flow step 2), its live region announcing the capture, Replace / Add as another key / Unbind / Reset to default / Cancel',
+      'Settings, Keyboard & pedals: the recorder open inline under "Play or pause reading" after a captured Page Down, its live region announcing the capture, Replace / Add as another key / Unbind / Reset to default / Cancel',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -25,7 +25,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-keyboard-conflict',
     description:
-      'Settings, Keyboard & pedals: the recorder over "Next paragraph", → captured and already bound to "Next word" (mockup 03, a real findConflicts page/page collision), the conflict alert, Replace / Try another key / Cancel',
+      'Settings, Keyboard & pedals: the recorder over "Next paragraph", → captured and already bound to "Next word" (a real findConflicts page/page collision), the conflict alert, Replace / Try another key / Cancel',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -46,8 +46,7 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'global-storybible-key-saved',
-    description:
-      'Settings, Global scope / Story Bible category after the narrator saved their own Merriam-Webster key: Key saved, Replace and Remove (prep-depth P9)',
+    description: 'Settings, Global scope / Story Bible category after the narrator saved their own Merriam-Webster key: Key saved, Replace and Remove',
     ...REFLOW,
   },
   {
@@ -61,7 +60,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'delivery-profile-editor',
     description:
-      "Settings / Delivery, a duplicate of ACX open in the profile editor (mockup 06): its name, each file rule on or off, the numbers of a rule with a range beside ACX's, a changed peak marked Changed, and a fixed rule that can only be turned off",
+      "Settings / Delivery, a duplicate of ACX open in the profile editor: its name, each file rule on or off, the numbers of a rule with a range beside ACX's, a changed peak marked Changed, and a fixed rule that can only be turned off",
     ...REFLOW,
   },
   {
@@ -89,15 +88,14 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'global-stage-recommendations',
-    description:
-      'Settings, Global scope / Stage suggestions category (chapter-stage-recommendations PRD Phase 6, Q8): the master switch and the recording signal choice (required/ignored)',
+    description: 'Settings, Global scope / Stage suggestions category: the master switch and the recording signal choice (required/ignored)',
     ...REFLOW,
   },
   { page: 'settings', state: 'global-tts', description: 'Settings, Global scope / TTS category', ...REFLOW },
   {
     page: 'settings',
     state: 'global-booth',
-    description: 'Settings, Global scope / Booth category (microphone, live engine and model choice; stage-navigation-and-page-replacement.prd.md Q11)',
+    description: 'Settings, Global scope / Booth category (microphone, live engine and model choice)',
     ...REFLOW,
   },
   { page: 'settings', state: 'global-about', description: 'Settings, Global scope / About and updates category (the version, nothing checked yet)', ...REFLOW },
@@ -220,14 +218,13 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'project-delivery',
     description:
-      'Settings, Project scope / Delivery category (?mockDeliveryProfile=custom, mockup 05): the profile this project is judged against, and the profiles, ACX built in and a custom copy with its numbers changed and rules off, Duplicate, Edit and Delete',
+      'Settings, Project scope / Delivery category (?mockDeliveryProfile=custom): the profile this project is judged against, and the profiles, ACX built in and a custom copy with its numbers changed and rules off, Duplicate, Edit and Delete',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'project-daw',
-    description:
-      'Settings, Project scope / DAW Integration category (PRD project-workspace-and-daw-link.prd.md W19, new: previously global-only): "REAPER project linked" and Change linked project file',
+    description: 'Settings, Project scope / DAW Integration category (new: previously global-only): "REAPER project linked" and Change linked project file',
     ...REFLOW,
   },
   {
@@ -241,29 +238,28 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'project-credits',
-    description:
-      'Settings, Project scope / Credits category (PRD audiobook-credits-templates.prd.md, Phase 1): template library, live preview and project credit values',
+    description: 'Settings, Project scope / Credits category: template library, live preview and project credit values',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'project-credits-detected',
     description:
-      'Settings, Project scope / Credits, every empty field with a manuscript-detected candidate captioned with its source (?mockCredits=detected): Title and Author from the title page, Year and Copyright holder from the copyright line, and a low-confidence Publisher marked "(check this)" (credits-token-setup-and-front-matter-detection.prd.md Phase 1)',
+      'Settings, Project scope / Credits, every empty field with a manuscript-detected candidate captioned with its source (?mockCredits=detected): Title and Author from the title page, Year and Copyright holder from the copyright line, and a low-confidence Publisher marked "(check this)"',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'project-credits-chapter-announcement',
     description:
-      'Settings, Project scope / Credits, a chapter announcement template selected (Phase 5): its body "[Chapter]{: [Chapter Title]}." previews as "Chapter 1: Down the Rabbit-Hole." with "Shown for Chapter 1, one of 12 chapters", and the kind hint names [Chapter] and [Chapter Title]',
+      'Settings, Project scope / Credits, a chapter announcement template selected: its body "[Chapter]{: [Chapter Title]}." previews as "Chapter 1: Down the Rabbit-Hole." with "Shown for Chapter 1, one of 12 chapters", and the kind hint names [Chapter] and [Chapter Title]',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'project-credits-retail-sample',
     description:
-      'Settings, Project scope / Credits scrolled to Retail sample (Phase 5, C10): the saved sample "Chapter 3, line 1 to Chapter 3, line 3" with its words and length, the start and end pickers, Save sample and Clear sample',
+      'Settings, Project scope / Credits scrolled to Retail sample: the saved sample "Chapter 3, line 1 to Chapter 3, line 3" with its words and length, the start and end pickers, Save sample and Clear sample',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

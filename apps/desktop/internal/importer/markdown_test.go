@@ -105,7 +105,7 @@ func TestMarkdownHeadingSubtitleReachesTheSectionForTheReview(t *testing.T) {
 	}
 }
 
-// TestMarkdownCharacterListActiveEndsAtTheNextChapterLevelHeading covers PRD import-structure-toc-and-characters Phase 1, S3: a
+// TestMarkdownCharacterListActiveEndsAtTheNextChapterLevelHeading covers a
 // heading after Characters that is not a "Chapter N"-shaped narrative marker (here, "Notes") used to stay classified reference and
 // become a spurious character candidate.
 func TestMarkdownCharacterListActiveEndsAtTheNextChapterLevelHeading(t *testing.T) {
@@ -121,7 +121,7 @@ func TestMarkdownCharacterListActiveEndsAtTheNextChapterLevelHeading(t *testing.
 	}
 }
 
-// TestMarkdownGluedHeadingSplitIsReportedAsANotice covers import-structure-toc-and-characters Phase 4 (S9): markdown.go used to
+// TestMarkdownGluedHeadingSplitIsReportedAsANotice covers a repaired heading: markdown.go used to
 // discard headingParts' glued flag, so a repaired heading (as docx.go already reports) was silently split with nothing telling
 // the narrator it happened.
 func TestMarkdownGluedHeadingSplitIsReportedAsANotice(t *testing.T) {
@@ -134,8 +134,7 @@ func TestMarkdownGluedHeadingSplitIsReportedAsANotice(t *testing.T) {
 	}
 }
 
-// TestMarkdownYAMLFrontMatterBecomesSourceMetadata covers credits-token-setup-and-front-matter-detection.prd.md
-// Phase 4: a leading YAML front matter fence's title/author/series keys are captured into Draft.SourceMetadata, and
+// TestMarkdownYAMLFrontMatterBecomesSourceMetadata covers a leading YAML front matter fence's title/author/series keys are captured into Draft.SourceMetadata, and
 // the fence itself never leaks into the visible manuscript as a Front Matter paragraph.
 func TestMarkdownYAMLFrontMatterBecomesSourceMetadata(t *testing.T) {
 	draft := importMarkdown(t, "---\ntitle: After the Applause\nauthor: Adrian Crow\nseries: Ember Trilogy\n---\n# Chapter One\nBody.\n")

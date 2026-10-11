@@ -2,7 +2,7 @@
 
 Follow-up to [Local Dependency Evaluation and License Plan](local-dependency-evaluation.md)'s
 [Evaluation protocol](local-dependency-evaluation.md#evaluation-protocol), run for Phase 1 of
-[`docs/prds/character-continuity-review.prd.md`](../prds/character-continuity-review.prd.md)
+`docs/prds/character-continuity-review.prd.md` (deleted)
 ("Acoustic feature trial and decision record"). Part of the
 [agent train](../operations/agent-train.md) (stream N-D22), see
 [#509](https://github.com/countrymanprime/narration-utils/issues/509).

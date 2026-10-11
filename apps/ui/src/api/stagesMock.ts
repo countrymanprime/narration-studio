@@ -1,6 +1,5 @@
-// The browser mock's chapter stage recommendations (the PRD was deleted; see
-// docs/architecture/stage-recommendations.md). It answers what
-// the host answers with only the recording signal wired: a chapter in recording is judged by its recording check (from its
+// The browser mock's chapter stage recommendations (see docs/architecture/stage-recommendations.md).
+// It answers what the host answers with only the recording signal wired: a chapter in recording is judged by its recording check (from its
 // recordedFraction unless seeded: all read is met, part read is not met, never checked is unknown), a chapter in editing or
 // proofing has no required signal yet, and a chapter not started or finalized is not evaluated. Confirm, Dismiss and Revert act
 // like the host's, refusals included; a seed can put a chapter in any state (each unknown cause, a live confirmation, a
@@ -24,16 +23,16 @@ import type {
 /** What the recording check of a chapter says: `met`, `not_met`, or `unknown` with its cause. */
 type StageRecordingScenario = 'met' | 'not_met' | { unknown: StageUnknownCause };
 
-/** What the editing check's empty-space signal says for a chapter (editing-readiness-analysis.prd.md Phase 6):
+/** What the editing check's empty-space signal says for a chapter:
  * `met`/`not_met`/`unknown` as `StageRecordingScenario`, plus an optional `reason` override for a cause worded more
  * than one way in real life (`measurement_unavailable` covers both "settings unset" and "unsupported items"). Click
- * and breath are not seeded per chapter: Phase 4 (the corpus validation of those two detectors) has not shipped, so
+ * and breath are not seeded per chapter: the corpus validation of those two detectors has not shipped, so
  * this mock, like the real engine, always reports them `unknown` with `measurement_unavailable` - a class this build
  * cannot vouch for is never `met`, seeded or not. */
 type StageEditingScenario = 'met' | 'not_met' | { unknown: StageUnknownCause; reason?: string };
 
 /** The proofing pickups roll-up, the only signal this mock seeds for the
- * proofing stage: the delivery checks (Phase 5) are never required by the default delivery profile, so they are left
+ * proofing stage: the delivery checks are never required by the default delivery profile, so they are left
  * out of every chapter's required set the same way the real engine's `FilterRequired` drops them (bindings_stages.go). */
 type StageProofingScenario = 'met' | 'not_met' | { unknown: StageUnknownCause; reason?: string };
 
@@ -41,7 +40,7 @@ export type StagesSeed = {
   /** The recording signal of these chapters, instead of the one their recordedFraction gives. */
   recording?: Record<string, StageRecordingScenario>;
   /** The editing check's empty-space signal of these chapters (only chapters already in Editing status are
-   * evaluated at all, matching the real engine's D3 gate); a chapter left out reads `never_analyzed`. */
+   * evaluated at all, matching the real engine); a chapter left out reads `never_analyzed`. */
   editing?: Record<string, StageEditingScenario>;
   /** The proofing pickups signal of these chapters (only chapters already in Proofing status are evaluated); a
    * chapter left out reads `never_analyzed`, matching a project with no current comparison. */
@@ -63,7 +62,7 @@ type Deps = {
   chapters: () => ManuscriptChapter[];
   setStatus: (chapterId: string, status: ChapterStatus) => void;
   seed?: StagesSeed;
-  /** Q6 (editing-readiness-analysis.prd.md Phase 8): the chapter's current editing source choice, read from the same
+  /** The chapter's current editing source choice, read from the same
    * store editingMock.ts's editingSourceChoice/editingSetSourceChoice write to (mockApi.ts wires the two together).
    * Omitted (most callers of this mock directly, outside mockApi.ts) reads every chapter as "items", the default. */
   editingSourceChoice?: (chapterId: string) => EditingSourceChoice;
@@ -121,7 +120,7 @@ const PROOFING_UNKNOWN_REASONS: Partial<Record<StageUnknownCause, string>> = {
   provider_error: 'could not check: the pickup results could not be read',
 };
 
-/** Q6's own "the evidence names which source was analyzed" requirement (editing-readiness-analysis.prd.md Phase 8),
+/** The evidence line naming which source was analyzed,
  * for both choices: every editing signal carries exactly one of these, always, whatever its state. */
 function editingSourceEvidence(sourceChoice: EditingSourceChoice) {
   return sourceChoice === 'render'
@@ -129,10 +128,10 @@ function editingSourceEvidence(sourceChoice: EditingSourceChoice) {
     : { kind: 'source', label: 'Source analyzed', value: "items on the chapter's track" };
 }
 
-/** Click and breath are never seeded (Phase 4's corpus validation has not shipped): every build, mock included,
+/** Click and breath are never seeded (their corpus validation has not shipped): every build, mock included,
  * reports them `unknown` so a narrator is never told a class it cannot vouch for is done. Choosing the rendered
- * source (Q6) adds a known click candidate to the click signal's own evidence - the mock's stand-in for Phase 8's
- * own success signal, "a render with a known click reports it": the signal itself still never reports `met`. */
+ * source adds a known click candidate to the click signal's own evidence - the mock's stand-in for "a render with a
+ * known click reports it": the signal itself still never reports `met`. */
 function unvalidatedSignal(id: 'editing.clicks' | 'editing.breaths', sourceChoice: EditingSourceChoice): StageSignal {
   const evidence: StageSignal['evidence'] = [editingSourceEvidence(sourceChoice)];
   if (sourceChoice === 'render' && id === 'editing.clicks') {
@@ -143,7 +142,7 @@ function unvalidatedSignal(id: 'editing.clicks' | 'editing.breaths', sourceChoic
     stage: 'editing',
     state: 'unknown',
     cause: 'measurement_unavailable',
-    reason: 'Not yet validated on the corpus: this build never reports it met (editing-readiness-analysis.prd.md Phase 4).',
+    reason: 'Not yet validated on the corpus: this build never reports it met.',
     evidence,
     basis: { ledgerRecordIds: [], fingerprint: '', projectFileModTime: MOCK_TIME },
     computedAt: MOCK_TIME,
@@ -161,8 +160,8 @@ function emptySpaceSignal(chapter: ManuscriptChapter, scenario: StageEditingScen
   };
   if (sourceChoice === 'render') {
     // This mock cannot simulate a real render decode; choosing render always reads as a clean, current check of the
-    // rendered file, so switching the source is visibly different from whatever the items scenario says (Phase 8's
-    // own success signal: "switching the chosen source changes the signal and the evidence names the source").
+    // rendered file, so switching the source is visibly different from whatever the items scenario says; the chosen
+    // source changes the signal, and the evidence names it.
     return { ...base, state: 'met', reason: 'Checked the rendered file; no open empty-space candidate remains.', evidence: [caveat, source], basis };
   }
   if (typeof scenario !== 'string') {
@@ -187,7 +186,7 @@ function emptySpaceSignal(chapter: ManuscriptChapter, scenario: StageEditingScen
 
 /** The proofing pickups roll-up (apps/desktop/internal/proofing/pickups.go):
  * one "source" evidence line summarizing Transcript Compare's open, dismissed and resolved counts, plus one "pickup"
- * evidence entry per open item on `not_met`. The delivery checks (Phase 5) are not in this signal: they are simply
+ * evidence entry per open item on `not_met`. The delivery checks are not in this signal: they are simply
  * left out of the chapter's required set (see `StagesSeed.proofing`'s comment), the same shape the real engine gives
  * a chapter whose delivery profile requires none of them. */
 function pickupsSignal(chapter: ManuscriptChapter, scenario: StageProofingScenario): StageSignal {
@@ -293,9 +292,9 @@ export function createStagesMock(deps: Deps): StagesApi {
     // chapter's own "Confirmed from Recording" / Revert display, StageSuggestion.tsx, depends on that `none` verdict
     // when nothing else is asked of it).
     if (status === 'editing' && editing.has(chapter.id)) {
-      // Click and breath are always `unknown` (Phase 4 is not shipped), so every required signal being met - the
+      // Click and breath are always `unknown` (their corpus validation has not shipped), so every required signal being met - the
       // only way to `recommended` - is not reachable yet; only empty space can move the verdict between `unknown`
-      // and `not_ready`, matching the real engine (D2: all three signals required by default, Q5).
+      // and `not_ready`, matching the real engine (all three signals are required by default).
       const scenario = editing.get(chapter.id)!;
       const sourceChoice = deps.editingSourceChoice?.(chapter.id) ?? 'items';
       const state = sourceChoice === 'render' ? 'met' : scenarioState(scenario);

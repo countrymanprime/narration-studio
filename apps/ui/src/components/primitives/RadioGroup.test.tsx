@@ -62,7 +62,7 @@ describe('RadioGroup', () => {
     expect(screen.getByRole('radio', { name: 'Front matter' }).getAttribute('aria-checked')).toBe('true');
   });
 
-  it('draws an unselected option with --surface-3 and a --border rim (mock-fidelity-primitives-and-components.prd.md Phase 6)', () => {
+  it('draws an unselected option with --surface-3 and a --border rim', () => {
     render(<Controlled />);
     const unselected = screen.getByRole('radio', { name: 'Front matter' });
     expect(unselected.className).toContain('bg-[var(--surface-3)]');

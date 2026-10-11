@@ -8,8 +8,7 @@ import { describe, expect, test } from 'vitest';
 // written outside `components/primitives/`, per file, and a file's count may only go down: a ceiling higher than the real
 // count fails, so the entry is lowered (or deleted at zero) in the same change, and a file with no entry may have none.
 //
-// The entries left are files other phases own (the PRD's ownership rule): the page-specific components (Phases 11 to 15)
-// and the shell (Phase 8). Each lowers its own when it composes the primitives.
+// The entries left are the page-specific components and the shell. Each lowers its own when it composes the primitives.
 const COPIES = {
   // A hand-drawn card: the frame Panel draws (`PANEL_FRAME_CLASS`).
   card: /rounded-lg border/g,
@@ -24,8 +23,8 @@ type Copy = keyof typeof COPIES;
 
 const CEILING: Record<Copy, Record<string, number>> = {
   card: {
-    // Page components the page phases own: the Booth's rail (13), Production (11), Proof's findings (12). The
-    // companion panel's own card dropped to 0 in the same phase (ADR 0659: full-bleed sections, not cards).
+    // Page components not yet on the primitives: the Booth's rail, Production and Proof's findings. The
+    // companion panel's own card is at 0 (ADR 0659: full-bleed sections, not cards).
     'src/components/booth/ReaderRail.tsx': 1,
     'src/components/proof/NotesStrip.tsx': 1,
     // Not cards. A warning on a tinted fill, which neither Panel nor InsetCard draws.
@@ -39,15 +38,15 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/proof/WaveformStrip.tsx': 1,
   },
   inset: {
-    // Proof's finding detail (Phase 12).
+    // Proof's finding detail.
     'src/components/proof/FindingDetail.tsx': 1,
     // The disagree choice's card, which is a button (the source and the sentence it names).
     'src/components/booth/ResumePrompt.tsx': 1,
   },
   eyebrow: {
-    // The shell's nav group headings and the header's Project label (Phase 8, which owns AppShell.tsx).
+    // The shell's nav group headings and the header's Project label.
     'src/components/layout/AppShell.tsx': 3,
-    // Page components the page phases own: the Booth (13), Master (14) and Script (15).
+    // Page components not yet on the primitives: the Booth, Master and Script.
     'src/components/booth/BoothView.tsx': 1,
     'src/components/booth/CompanionShell.tsx': 1,
     'src/components/booth/ReaderRail.tsx': 1,

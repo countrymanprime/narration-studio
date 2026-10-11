@@ -34,7 +34,7 @@ _LINK = re.compile(r'(!?\[[^\]\n]*\])\(([^)\s]+)((?:\s+"[^"]*")?)\)')
 # Elements whose content HTML parsers read as text up to a closing tag that prose never writes: a `<title>` in a sentence
 # ("named <title> progress") makes newer Python html.parser swallow the rest of the page, headings included. GitHub hides such a tag;
 # the site shows it as text.
-_RAW_TEXT_TAG = re.compile(r"<(/?)(title|textarea|script|style|iframe|noembed|noframes|noscript|plaintext|xmp)\b([^>\n]*)>", re.IGNORECASE)
+_RAW_TEXT_TAG = re.compile(r"<(/?)(title|textarea|script|style|iframe|noembed|noframes|noscript|plaintext|xmp)\b([^>]*)>", re.IGNORECASE)
 _REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$")
 _CODE = re.compile(r"^[ \t]*(`{3,}|~{3,})[^\n]*\n.*?(?:^[ \t]*\1[ \t]*$|\Z)|`[^`\n]+`", re.MULTILINE | re.DOTALL)
 _REFERENCE_DEFINITION = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(\S+)", re.MULTILINE)
@@ -202,7 +202,7 @@ def storybook_section(site_url: str, storybook_path: str) -> str:
 
 
 def demo_section(site_url: str, demo_path: str) -> str:
-    """The paragraph appended beside the Live Storybook section: a link to the running app demo (docs/prds/public-app-demo.prd.md), sample data only, nothing saved."""
+    """The paragraph appended beside the Live Storybook section: a link to the running app demo (ADR 0096), sample data only, nothing saved."""
     url = site_url.rstrip("/") + "/" + demo_path.lstrip("/")
     return (
         "\n\n## Live demo\n\n"

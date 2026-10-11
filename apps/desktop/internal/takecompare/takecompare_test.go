@@ -217,7 +217,7 @@ func TestGroupOfRefusesWhatCannotBeCompared(t *testing.T) {
 	}
 }
 
-// The PRD's disagreement fixtures (Phase 10 success signal): a take read word for word but noisy, a clean take with a
+// Disagreement fixtures: a take read word for word but noisy, a clean take with a
 // misread, and a clean take that skips a word are set side by side, each category on its own, and nothing orders them.
 func TestCompareSetsDisagreeingTakesSideBySideWithoutRankingThem(t *testing.T) {
 	fx := newFixture(t)

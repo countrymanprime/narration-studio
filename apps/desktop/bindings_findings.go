@@ -8,10 +8,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// The review bindings (review-dashboard-and-findings-adoption.prd.md Phase 4, ADR 0120): every analyzer's
+// The review bindings (ADR 0120): every analyzer's
 // findings are read and decided through these four, whatever wrote them (Transcript Compare, the Story
 // Bible, take review, and later the teleprompter's live flags), so a new analyzer needs no new binding.
-// Filtering, sorting and paging run in Go over findings.Query (Q9); the UI stays a view.
+// Filtering, sorting and paging run in Go over findings.Query; the UI stays a view.
 
 // maxReviewNoteRunes bounds a narrator's note on a decision. The history is append-only and read in full
 // on every save, so an unbounded note would grow every later read.

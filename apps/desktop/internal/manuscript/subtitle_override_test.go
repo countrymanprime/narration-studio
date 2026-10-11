@@ -11,7 +11,7 @@ import (
 )
 
 // commitHeadingMisread imports one of the constructed heading cases with the narrator's subtitle choices and returns the canonical
-// manuscript that was written (story-bible-and-import-ux-briefs PRD, Phase 5; tests/fixtures/heading-misreads).
+// manuscript that was written (tests/fixtures/heading-misreads).
 func commitHeadingMisread(t *testing.T, name string, choose func(importer.DraftSection) map[string]bool) map[string]any {
 	t.Helper()
 	service := New(t.TempDir())

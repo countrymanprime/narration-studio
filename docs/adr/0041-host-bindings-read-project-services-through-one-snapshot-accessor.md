@@ -6,7 +6,7 @@
 
 ## Context
 
-Attaching a project rebuilds seven service pointers on `Host` (`guide`, `manuscript`, `settings`, `teleprompter`, `transcript`, `tts`, `whisper`) under `h.mu.Lock()`. Before this decision 49 of the 65 Wails bindings plus `Bootstrap` read those pointers with no lock, so a project switch from the picker overlapping the UI's polling calls was a data race under the Go memory model. No user-visible failure was recorded (severity medium, latent), but nothing stopped the next binding, and several PRDs add bindings, from copying the pattern. The local gate could not catch it either: `go test -race` needs cgo, which the Windows developer machine does not have. The analysis and the per-binding count are in `docs/prds/host-binding-data-race.prd.md` (recover it with `git log --diff-filter=D -- docs/prds/host-binding-data-race.prd.md`; the PRD was deleted when the work was built, per [ADR 0028](0028-planned-work-is-specified-as-prds-and-deleted-when-built.md)). The owner adopted the PRD's recommendations for every open question (decision D22 of the implementation plan).
+Attaching a project rebuilds seven service pointers on `Host` (`guide`, `manuscript`, `settings`, `teleprompter`, `transcript`, `tts`, `whisper`) under `h.mu.Lock()`. Before this decision 49 of the 65 Wails bindings plus `Bootstrap` read those pointers with no lock, so a project switch from the picker overlapping the UI's polling calls was a data race under the Go memory model. No user-visible failure was recorded (severity medium, latent), but nothing stopped the next binding, and every binding added later, from copying the pattern. The local gate could not catch it either: `go test -race` needs cgo, which the Windows developer machine does not have.
 
 ## Decision
 

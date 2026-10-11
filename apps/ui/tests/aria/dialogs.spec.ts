@@ -132,7 +132,7 @@ test('the isolation check fails when the page behind a modal is exposed', async 
   await expect(page.locator('body')).not.toMatchAriaSnapshot({ name: 'confirm-delete-entry.aria.yml', timeout: 1000 });
 });
 
-// The right-click menu on the script (edit-and-proof-workspace.prd.md Phase 9): a menu of two menuitems, and with REAPER away
+// The right-click menu on the script: a menu of two menuitems, and with REAPER away
 // both are disabled and read with the reason as their description.
 test('the passage effects menu is a menu of two items, and each says why it is off when REAPER is away', async ({ page }) => {
   await openApp(page, DESKTOP, ['proof-chapter', 'effects-menu']);

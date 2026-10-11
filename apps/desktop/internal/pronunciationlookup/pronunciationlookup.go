@@ -1,10 +1,10 @@
 // Package pronunciationlookup builds the address of a one-click web lookup for a word, for the narrator's own browser
-// to open (prep-depth.prd.md Phase 2; provider-ports.prd.md Open Question Q5's BrowserLookup role). It never fetches,
+// to open (the BrowserLookup role of docs/architecture/provider-ports.md). It never fetches,
 // scrapes or caches any site's content: URL is a pure function, and this package constructs no HTTP client (checked
 // by a static import guard, pronunciationlookup_test.go's TestPackageNeverImportsNetHTTP).
 //
-// Each site's URL is one fixed template, read by hand against the live site (docs/research/, Phase 0) rather than an
-// API this package calls - narration-utils stays local-only. Until that note says the owner confirmed it, treat every
+// Each site's URL is one fixed template, recorded in docs/research/pronunciation-lookup-urls.md rather than an API
+// this package calls - narration-utils stays local-only. Until that note says the owner confirmed it, treat every
 // template here as unverified.
 package pronunciationlookup
 
@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// Source names one of the four sites this phase ships (PRD Open Question Q4: exactly these four for v1, D71).
+// Source names one of the four sites the app offers a lookup for.
 type Source string
 
 const (
@@ -23,7 +23,7 @@ const (
 	Howjsay        Source = "howjsay"
 )
 
-// Sources is every source this phase ships, in the order Look up buttons should offer them.
+// Sources is every source the app offers, in the order Look up buttons should offer them.
 func Sources() []Source { return []Source{Forvo, YouGlish, MerriamWebster, Howjsay} }
 
 // URL builds the address source's own fixed template gives for word: the page PronunciationLookupOpen opens in the
@@ -42,7 +42,7 @@ func URL(source Source, word string) (string, error) {
 	case MerriamWebster:
 		return "https://www.merriam-webster.com/dictionary/" + pathSegmentEscape(word), nil
 	case Howjsay:
-		// Assumption (Phase 0, unverified - docs/research/): Howjsay's "how-to-pronounce-<word>" slug reads as a
+		// Assumption, unverified (docs/research/pronunciation-lookup-urls.md): Howjsay's "how-to-pronounce-<word>" slug reads as a
 		// hyphenated phrase, not a query-escaped one, so a space becomes a hyphen before the rest is path-escaped.
 		hyphenated := strings.Join(strings.Fields(word), "-")
 		return "https://howjsay.com/how-to-pronounce-" + pathSegmentEscape(hyphenated), nil

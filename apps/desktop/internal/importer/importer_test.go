@@ -61,11 +61,11 @@ func TestTxtFixtureRetainsNarrativeChapters(t *testing.T) {
 	}
 }
 
-// TestTxtFixtureNarrationMatchesMarkdownFixture is the cross-format parity gate the PRD's Key Hypothesis names: alice.txt (a
+// TestTxtFixtureNarrationMatchesMarkdownFixture is the cross-format parity gate: alice.txt (a
 // Gutenberg-shaped, hard-wrapped, underscore-italic file) and alice.md must give the same narration text per chapter, after
 // whitespace normalization, even though their front-matter and Contents handling differ by format (alice.md's own book-title
 // heading becomes its own narration section, which alice.txt's front-matter/Contents classification does not reproduce - a
-// scoping judgement call recorded in the accompanying ADR rather than forced to match title-for-title).
+// scoping judgement call rather than forced to match title-for-title).
 func TestTxtFixtureNarrationMatchesMarkdownFixture(t *testing.T) {
 	mdDraft, err := BuildDraft(fixture("alice.md"), 1)
 	if err != nil {
@@ -78,12 +78,12 @@ func TestTxtFixtureNarrationMatchesMarkdownFixture(t *testing.T) {
 	for _, marker := range []string{"Rabbit-Hole", "Pool of Tears", "Caucus-Race"} {
 		md := chapterText(t, mdDraft, marker)
 		txt := chapterText(t, txtDraft, marker)
-		// alice.md's own generator (generate_alice.py, unrelated to this PRD) has a pre-existing bug: the LAST of its three kept
+		// alice.md's own generator (generate_alice.py, unrelated to the importer) has a pre-existing bug: the LAST of its three kept
 		// chapters ("Caucus-Race") has its content_end bounded by "THE END" instead of the next real chapter heading, so its
 		// paragraph list bleeds in the rest of the book as plain unmarked text - alice.txt's own generator fixes this, so its
 		// "Caucus-Race" chapter is correctly bounded and shorter. Comparing a prefix here, rather than requiring alice.md's
 		// inflated chapter to match exactly, is a deliberate scoping choice (flagged separately as a shared-fixture bug, not
-		// fixed in this PRD to avoid touching alice.docx/alice.pdf, which this environment cannot regenerate).
+		// fixed here to avoid touching alice.docx/alice.pdf, which this environment cannot regenerate).
 		if len(txt) < len(md) {
 			md = md[:len(txt)]
 		}

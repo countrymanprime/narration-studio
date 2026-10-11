@@ -6,9 +6,9 @@ type TimedToken = { tokenIndex: number; start: number; end: number };
 
 export type TokenIndex = ReadonlyMap<number, readonly TimedToken[]>;
 
-/** Groups every token that carries a time by its item index (edit-and-proof-workspace.prd.md Phase 2, "Token at
- * time"), so the highlight can look up only the current item's tokens instead of scanning the whole chapter. Build
- * once per alignment result (it never changes while the chapter's tokens don't) and reuse across frames. */
+/** Groups every token that carries a time by its item index, so the highlight can look up only the current item's tokens instead of scanning the whole
+ * chapter. Build once per alignment result (it never changes while the chapter's tokens don't) and reuse across
+ * frames. */
 export function buildTokenIndex(tokens: readonly WorkspaceToken[]): TokenIndex {
   const byItem = new Map<number, TimedToken[]>();
   tokens.forEach((token, tokenIndex) => {
@@ -58,8 +58,8 @@ export function currentTokenIndex(
   return timed[candidate].tokenIndex;
 }
 
-/** Where a click on `token` should seek the app player to: the item that read it and the pre-roll before its start
- * (EP5), clamped to the item's own played range. Undefined for a token with no recorded time (a skip, a head/tail
+/** Where a click on `token` should seek the app player to: the item that read it and the pre-roll before its start,
+ * clamped to the item's own played range. Undefined for a token with no recorded time (a skip, a head/tail
  * boundary) - there is nothing to play from. */
 export function seekTargetForToken(
   token: WorkspaceToken,

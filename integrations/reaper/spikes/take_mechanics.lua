@@ -1,10 +1,10 @@
--- Take-review PRD phase 1 spike: answers Q4 (how a take is created: which take becomes active, item-length
--- behaviour on a longer/shorter candidate, source-offset alignment, one-step undo) and Q5 (take provenance via
+-- Take-review spike: answers how a take is created (which take becomes active, item-length
+-- behaviour on a longer/shorter candidate, source-offset alignment, one-step undo) and how take provenance is stored (via
 -- namespaced take P_EXT plus a finding id, extending ADR 0026). Research tool, not product code: see
 -- docs/research/take-review-spike-p1-take-mechanics.md for the write-up.
 -- Run by run-reaper.ps1 inside an isolated REAPER (-cfgfile). Media come from make_media.py and make_length_media.py.
 
--- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
+-- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
 -- passed, and the audio device is closed.
 do
   local BACKSLASH = string.char(92)
@@ -50,7 +50,7 @@ local function take_guid(take)
 end
 -- Undo, redo and project reload replace REAPER's item/take objects (confirmed by the S0 spike and by this one):
 -- any script that mutates and then must read the result back needs to re-resolve by GUID, never keep the old
--- pointer. This is what the phase 6 Lua command must do after Undo_EndBlock2.
+-- pointer. This is what create_take (narration_take_review.lua) does after Undo_EndBlock2.
 local function find_item_by_guid(guid)
   for index = 0, reaper.CountMediaItems(0) - 1 do
     local item = reaper.GetMediaItem(0, index)
@@ -86,15 +86,15 @@ local function add_target_item(track, file, position, length, take_name)
   reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', take_name, true)
   return item, take
 end
--- Adds a candidate's source range as a new take, the mechanism Q4 evaluates. Does not call SetActiveTake and does
--- not touch D_LENGTH: this is exactly the sequence the phase 6 Lua command is expected to run.
+-- Adds a candidate's source range as a new take, the mechanism the spike evaluates. Does not call SetActiveTake and does
+-- not touch D_LENGTH: this is the sequence create_take (narration_take_review.lua) runs.
 local function add_candidate_take(item, file, take_name)
   local take = reaper.AddTakeToMediaItem(item)
   reaper.SetMediaItemTake_Source(take, reaper.PCM_Source_CreateFromFile('media/' .. file))
   reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', take_name, true)
   return take
 end
--- Provenance: namespaced take P_EXT plus the finding id (Q5). Mirrors ADR 0026's item-level key style
+-- Provenance: namespaced take P_EXT plus the finding id. Mirrors ADR 0026's item-level key style
 -- (narration_utils_<name>) but at take level and with a finding id key.
 local function write_provenance(take, finding_id, source_file, range_start, range_end)
   reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_finding_id', finding_id, true)

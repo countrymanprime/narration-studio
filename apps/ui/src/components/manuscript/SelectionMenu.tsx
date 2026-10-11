@@ -20,7 +20,7 @@ export function SelectionMenu({
 }: {
   selection: ManuscriptSelection;
   addNote: () => void;
-  // Opens the Mark up dialog for the selection (prep-depth.prd.md Phase 5); left out, the action is not offered.
+  // Opens the Mark up dialog for the selection; left out, the action is not offered.
   markUp?: () => void;
   addToStoryBible: () => void;
   // The entry is being created (a Python process, about half a second): the button says so and ignores a second press (ADR 0075).

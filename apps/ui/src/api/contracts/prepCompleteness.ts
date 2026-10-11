@@ -1,7 +1,6 @@
 /**
- * Prep completeness summary (docs/prds/prep-depth.prd.md Phase 7, Could): a per-chapter rollup of open pronunciation
- * queries (Phase 3) and unresolved markup staleness (Phase 5), read by the Production home's Prep column.
- * It reads Phases 3 and 5's own data and adds no store of its
+ * Prep completeness summary: a per-chapter rollup of open pronunciation queries and unresolved markup staleness,
+ * read by the Production home's Prep column. It reads those two existing stores and adds none of its
  * own. The host shape is apps/desktop/internal/prepcompleteness and apps/desktop/bindings_prepcompleteness.go.
  */
 

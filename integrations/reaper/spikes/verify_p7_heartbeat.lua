@@ -1,4 +1,4 @@
--- Manual verification for Phase 7 (project-workspace-and-daw-link PRD, ADR 0092/W10): loads the REAL
+-- Manual verification of the reachability heartbeat (ADR 0092): loads the REAL
 -- narration_ui_bridge.lua (not a spike simulation) against a real REAPER session directory, lets its tick loop run
 -- for a few real seconds, then reads events.log back and reports how many PROJECT_STATUS heartbeats were appended
 -- and what they said, so the periodic-rewrite behavior described in dawfacts.go/daw.Reachability can be checked
@@ -7,7 +7,7 @@
 -- Run with run-reaper.ps1 -Script verify_p7_heartbeat.lua -Project <a COPY of a narrator's .rpp in a temp folder>
 -- (never the original; see README.md).
 
--- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
+-- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
 -- passed, and the audio device is closed. A script started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)

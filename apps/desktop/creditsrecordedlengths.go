@@ -10,8 +10,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// CreditsRecordedLengths is a credits row's "actual recorded" (credits-in-chapter-table.prd.md Phase 3): the same
-// track-based measurement actual-recorded-column.prd.md gives every manuscript chapter (recordedLengthsFor), read
+// CreditsRecordedLengths is a credits row's "actual recorded": the same
+// track-based measurement every manuscript chapter gets (recordedLengthsFor), read
 // for the two credits ids. Never an estimate (ADR 0193): a credits id has its own confirmed link, or none, in the
 // same chapter-track-map.json every manuscript chapter uses (ADR 0333), so this reads it directly rather than
 // through manuscript.Service's own RecordedLengths hook, which only ever sees the manuscript's own chapter ids.

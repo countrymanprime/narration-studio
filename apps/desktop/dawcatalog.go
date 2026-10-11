@@ -23,7 +23,7 @@ type DawCatalogEntry struct {
 // DawCatalogList answers today's DAW catalog (REAPER only) with each entry's
 // detection state, so a narrator with nothing installed can see what to get
 // and a narrator who already has REAPER sees it confirmed. Detection runs
-// fresh on every call (on demand, not polled - PRD Open Question A7); it
+// fresh on every call (on demand, not polled); it
 // never blocks and never claims more certainty than
 // dawcatalog.Detect/DetectAll already give it (any detector error or empty
 // path is "not detected").
@@ -63,11 +63,10 @@ func dawCatalogList(detectors map[string]dawcatalog.Detector) []DawCatalogEntry 
 
 // DawCatalogOpenDownloadPage opens the catalog entry id's official download
 // page in the narrator's default browser, and nothing else: it never
-// downloads, verifies or executes an installer (PRD "What We're NOT
-// Building"). id crosses the Wails boundary, never a URL - the destination
+// downloads, verifies or executes an installer. id crosses the Wails boundary, never a URL - the destination
 // is always looked up server-side in the hardcoded dawcatalog.Catalog by
 // dawcatalog.Lookup, so nothing UI-supplied can pick an arbitrary
-// destination (PRD architecture notes; mirrors update.go's
+// destination (mirrors update.go's
 // openReleaseNotes, the same trusted-URL discipline for the same reason).
 func (h *Host) DawCatalogOpenDownloadPage(id string) (string, error) {
 	entry, ok := dawcatalog.Lookup(id)

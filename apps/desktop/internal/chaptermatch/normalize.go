@@ -1,8 +1,7 @@
 // Package chaptermatch matches manuscript chapters to REAPER tracks. It is
 // the one chapter-to-track matcher every consumer shares (the teleprompter's
 // resume, Home's measured duration, line identity, the review dashboard's
-// chapter grouping, the diagnostics DAW scan): teleprompter-manuscript-
-// integration PRD Phase 8, ADR 0110.
+// chapter grouping, the diagnostics DAW scan): ADR 0110.
 //
 // Two layers. FindChapterByTrackName (title.go) is a faithful port of
 // Transcript Compare's find_chapter_by_track_name

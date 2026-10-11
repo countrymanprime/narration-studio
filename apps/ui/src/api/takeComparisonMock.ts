@@ -1,9 +1,9 @@
-// The browser mock's take comparison (take review Phase 10), answering the way apps/desktop/takecompare_job.go does: the
+// The browser mock's take comparison, answering the way apps/desktop/takecompare_job.go does: the
 // same refusals, a running job whose percent and stage advance one step per poll (standing in for the sidecar's own
 // progress file, ADR 0015), and a finished comparison saved into the findings mock as a take_comparison finding, in the
-// shape tests/fixtures/contracts/findings-list-take-comparison.json pins. The reads disagree on purpose, as the PRD's
-// disagreement fixtures do: one reads every word but has a noisy room, another is clean but misreads a word and stops
-// early. Nothing here ranks them (Q9). `hold` keeps a started comparison part way through.
+// shape tests/fixtures/contracts/findings-list-take-comparison.json pins. The reads disagree on purpose, as the disagreement
+// fixtures do: one reads every word but has a noisy room, another is clean but misreads a word and stops
+// early. Nothing here ranks them. `hold` keeps a started comparison part way through.
 import type { Finding, JobEnded, TakeComparisonEvidence, TakeComparisonJob, TakeComparisonMember, TakeMetrics, TakeReviewApi } from '../types';
 import { takeReviewEvidenceSchema } from './schemas/takeReview';
 import { WIRE_TAKE_REVIEW_FINDINGS, wireClone } from './mockFixtures';
@@ -188,7 +188,7 @@ function mockTakeComparisonOf(group: Finding): Finding | undefined {
   };
 }
 
-/** A read of a workspace passage in the mock's comparison (edit-and-proof-workspace.prd.md Phase 6): where it is in its own file. */
+/** A read of a workspace passage in the mock's comparison: where it is in its own file. */
 export type MockPassageRead = { item_guid: string; take_guid: string; source_file: string; source_start: number; source_length: number };
 
 /**

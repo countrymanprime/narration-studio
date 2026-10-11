@@ -254,7 +254,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Keyboard & pedals');
     await openKeyboardRecorder(page, 'Next paragraph');
-    // ArrowRight is already "Next word"'s default, both `page` scope: a real findConflicts collision (mockup 03).
+    // ArrowRight is already "Next word"'s default, both `page` scope: a real findConflicts collision.
     await page.keyboard.press('ArrowRight');
     await page.getByText('→ already runs "Next word".').waitFor();
   },
@@ -292,7 +292,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Tracks and Proof read from the linked .rpp file.').waitFor();
   },
   'project-daw-not-linked': async (page) => {
-    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category (PRD W19)
+    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category
     // shows its unlinked copy and "Link a REAPER project file".
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
@@ -312,8 +312,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickVisible(page, 'tab', 'This Project');
     await clickSettingsCategory(page, 'Credits');
   },
-  // Every empty field with a manuscript-detected candidate shows its own source caption (credits-token-setup-and-
-  // front-matter-detection.prd.md Phase 1), not just Title and Author.
+  // Every empty field with a manuscript-detected candidate shows its own source caption, not just Title and Author.
   'project-credits-detected': async (page) => {
     await page.goto('/?mockCredits=detected');
     await settlePage(page);
@@ -327,7 +326,7 @@ export const settingsDrivers: Record<string, Driver> = {
     // caption sits below the fold, making the desktop capture pixel-identical to plain project-credits otherwise.
     await detected.scrollIntoViewIfNeeded();
   },
-  // Credits PRD Phase 5: the chapter announcement template ?mockCredits=extras adds, previewed for Chapter 1.
+  // The chapter announcement template ?mockCredits=extras adds, previewed for Chapter 1.
   'project-credits-chapter-announcement': async (page) => {
     await page.goto('/?mockCredits=extras');
     await settlePage(page);
@@ -382,7 +381,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'Proof');
     // The mock starts with no project override, so make one the way a narrator does: pick a value and save it. Only a
     // field that has an override shows Reset (the model select), and its row is the one that must not squeeze.
-    // exact: true (app-navigation-and-zoom-controls.prd.md Phase 2): the header's zoom readout is also named "Reset
+    // exact: true: the header's zoom readout is also named "Reset
     // zoom to 100% (now N%)", which a non-exact match treats as containing "Reset" too.
     await page.getByRole('combobox', { name: 'Default Whisper model' }).selectOption('large-v3');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -399,7 +398,7 @@ export const settingsDrivers: Record<string, Driver> = {
   },
 };
 
-// Opens a command's recorder on the Keyboard & pedals category (input-commands-and-pedals.prd.md Phase 6): the label
+// Opens a command's recorder on the Keyboard & pedals category: the label
 // span is its row's own header row's only direct text-node child (KeyboardPanel.tsx), so one level up from it is the
 // row scoped to exactly this command's own Change button, never another row's.
 async function openKeyboardRecorder(page: Page, label: string): Promise<void> {

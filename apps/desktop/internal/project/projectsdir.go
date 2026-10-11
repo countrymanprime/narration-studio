@@ -11,7 +11,7 @@ import (
 const DefaultDirName = "NarrationUtils"
 
 // DefaultDir resolves the Go-side computed default projects directory,
-// ~/NarrationUtils (PRD W7). It is deliberately not a value in
+// ~/NarrationUtils. It is deliberately not a value in
 // config/defaults.json: that file holds literal per-tool settings
 // (store_test.go's TestBuiltinDefaultsMatchRepoDefaultsFile keeps it in sync
 // with a hardcoded map), and a computed, per-machine home directory cannot be
@@ -46,7 +46,7 @@ func DefaultDir() (string, error) {
 // yet. It is safe to call on every startup (MkdirAll is a no-op when dir
 // already exists) and, like DefaultDir, is meant to be treated as non-fatal by
 // its caller: a failure here (an unwritable home, a redirected folder that
-// refuses new folders) is logged and the app still starts (PRD W7).
+// refuses new folders) is logged and the app still starts.
 func EnsureDir(dir string) error {
 	if dir == "" {
 		return fmt.Errorf("no projects directory to create")
@@ -58,7 +58,7 @@ func EnsureDir(dir string) error {
 }
 
 // ResolveDir returns the projects directory to use: override when it is
-// non-empty (the narrator's own global-only setting, W7 - it has no project
+// non-empty (the narrator's own global-only setting, so it has no project
 // or repo-default tier), otherwise the Go-computed default.
 func ResolveDir(override string) (string, error) {
 	if override != "" {

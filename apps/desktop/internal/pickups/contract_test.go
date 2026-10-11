@@ -9,10 +9,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The two PickupsState wire payloads apps/ui needs for its schema and mock (ADR 0069, reaper-automation-follow-
-// through PRD Phase 9). "pickups-idle" is what PickupsState answers before any run; "pickups-import-success" is
-// a completed import, so the UI's remaining-count and next states can be built and reviewed against a real shape.
-// runId is time-based (newRunID), so it is fixed here the way lineidentity/contract_test.go fixes its own.
+// The two PickupsState wire payloads apps/ui needs for its schema and mock (ADR 0069). "pickups-idle" is what
+// PickupsState answers before any run; "pickups-import-success" is a completed import, so the UI's remaining-count and
+// next states can be built and reviewed against a real shape. runId is time-based (newRunID), so it is fixed here the
+// way lineidentity/contract_test.go fixes its own.
 func stable(state map[string]any) map[string]any {
 	if state["runId"] != nil {
 		state["runId"] = "1790000000000000"

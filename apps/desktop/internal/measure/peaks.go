@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	// DefaultPeaksPerSecond is the waveform's resolution: 50 buckets a second, 20 ms each, which is
-	// finer than a word (edit-and-proof-workspace PRD Phase 5).
+	// DefaultPeaksPerSecond is the waveform's resolution: 50 buckets a second, 20 ms each, which is finer than a word.
 	DefaultPeaksPerSecond = 50
 	// MaxPeaksPerSecond bounds a zoomed-in request, so one call can never ask for more buckets than frames.
 	MaxPeaksPerSecond = 1000

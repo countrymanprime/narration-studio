@@ -17,11 +17,11 @@ import { clockText } from './boothProgress';
 import { MicrophoneField } from './MicrophoneField';
 import type { Recorder } from './useRecorder';
 
-// The Booth's built-in recorder (native-recording-suite PRD Phase 2, ADR 0455; D79: the Booth is the Record surface, no page
-// of its own). Mock 03's Record area, with the built-in recorder in REAPER's place: the status line's "REC" badge, input
+// The Booth's built-in recorder (ADR 0455): the Booth is the Record surface, with no page
+// of its own. Mock 03's Record area, with the built-in recorder in REAPER's place: the status line's "REC" badge, input
 // meter and "−14.2 pk" readout and engine chip ("Built-in · take 4" where the mock reads "REAPER · take 4"), the command
 // bar's Record toggle where "Record in REAPER" was, and the rail's session summary ("Recorded 41:12 · …") as the takes
-// list. The pre-session setup gains "Record with" and, for the built-in recorder, its input device (the shared picker, Q6).
+// list. The pre-session setup gains "Record with" and, for the built-in recorder, its input device (the shared picker).
 
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
@@ -108,8 +108,8 @@ export function RecordButton({ recorder }: { recorder: Recorder }) {
 
 /**
  * "Record with" (the pre-session setup): REAPER or the built-in recorder, the project's choice that also sets the engine
- * chip. The built-in recorder is Experimental (ADR 0357) and says so; for it, the input device (the teleprompter's picker,
- * Q6), a level check before the first take and where the takes are saved.
+ * chip. The built-in recorder is Experimental (ADR 0357) and says so; for it, the input device (the teleprompter's picker),
+ * a level check before the first take and where the takes are saved.
  */
 export function RecorderSetup({ recorder }: { recorder: Recorder }) {
   const { state } = recorder;

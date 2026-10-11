@@ -10,7 +10,7 @@ import (
 )
 
 // fakeRoles is a fake REAPER adapter declaring every capability Experimental, so its SilenceTrimmer and
-// GainAdjuster roles (built but never wired before DAW port PRD Phase 5b) are available to type-assert, the
+// GainAdjuster roles (ADR 0300) are available to type-assert, the
 // same way the composition root gets them from the real adapter (apps/desktop/app.go).
 func fakeRoles(t *testing.T) (*dawporttest.Fake, dawport.SilenceTrimmer, dawport.GainAdjuster) {
 	t.Helper()

@@ -1,9 +1,8 @@
 import type { GuideEntity, ManuscriptNote, ManuscriptParagraph, PrepMarkupSpan, TextSpan } from '../../types';
 
 // The character-offset annotations a paragraph carries: Story Bible entity mentions, note anchors, text formatting and the
-// narrator's script markup (prep-depth.prd.md Phase 5). The Manuscript reader (`ParagraphView`) composes all four; the read-aloud reader
-// (teleprompter-manuscript-integration.prd.md Phase 5) maps the entity and note ones onto its words
-// (`readerModel.marksOnWords`), so both readers find the same mentions and anchor a note the same way.
+// narrator's script markup. The Manuscript reader (`ParagraphView`) composes all four; the read-aloud reader
+// maps the entity and note ones onto its words (`readerModel.marksOnWords`), so both readers find the same mentions and anchor a note the same way.
 export type Annotation = {
   id: string;
   start: number;
@@ -102,7 +101,7 @@ export function noteAnnotations(paragraph: Pick<ManuscriptParagraph, 'text' | 'i
 }
 
 /** The narrator's script markup on this paragraph (matched by `paragraphId`). A stale span is never drawn on the text: its
- * offsets may no longer fit the words (prep-depth.prd.md Q6), so the reader says the text changed there instead. */
+ * offsets may no longer fit the words (ADR 0382), so the reader says the text changed there instead. */
 export function markupAnnotations(paragraph: Pick<ManuscriptParagraph, 'id' | 'text'>, spans: PrepMarkupSpan[]): Annotation[] {
   return spans
     .filter((span) => !span.stale && span.paragraphId === paragraph.id && span.start < span.end && span.end <= paragraph.text.length)

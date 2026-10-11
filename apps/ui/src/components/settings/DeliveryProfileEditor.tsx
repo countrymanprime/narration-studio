@@ -28,7 +28,7 @@ const adjustable = (rule: DeliveryRule) =>
   rule.scope === 'file' && rule.checkedBy !== 'listen' && (rule.min !== null || rule.max !== null) && rule.oneOf.length === 0;
 
 /**
- * Edit a custom delivery profile (delivery-platform-profiles.prd.md Phase 4, mockup 06): its name, each file rule on or off, and the
+ * Edit a custom delivery profile its name, each file rule on or off, and the
  * numbers of a rule that has a range, beside the built-in it is based on. A copy cannot add a kind of rule the app does not check,
  * and a rule with a fixed value (the sample rate, the MP3 format, the channels) can only be turned off; the book rules are kept
  * as they are. Saving makes the next revision, and every project using the profile is judged again without measuring.

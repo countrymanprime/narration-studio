@@ -44,8 +44,7 @@ func (c *StreamChild) StderrTail() string {
 }
 
 // captureStderr keeps the in-memory tail (for an error message) and, when sink is not nil, also copies every byte to
-// the run's own stderr file (docs/prds/tool-run-logging.prd.md phase 2): the tail alone is not "kept", only the last
-// 16 KiB of it.
+// the run's own stderr file (ADR 0251): the tail alone is not "kept", only the last 16 KiB of it.
 func (c *StreamChild) captureStderr(reader io.Reader, sink io.Writer) {
 	buffer := make([]byte, 4096)
 	for {

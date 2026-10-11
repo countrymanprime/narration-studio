@@ -17,9 +17,8 @@ type trackOption struct {
 	Index int    `json:"index"`
 }
 
-// chapterTrackMatch is ChapterTrackMatch's payload: which track holds a
-// chapter and where its recorded audio ends, from the selected .rpp as of its
-// last save (teleprompter-manuscript-integration PRD Phase 8, ADR 0110).
+// chapterTrackMatch is ChapterTrackMatch's payload: which track holds a chapter and where its recorded audio ends, from
+// the selected .rpp as of its last save (ADR 0110).
 type chapterTrackMatch struct {
 	ChapterID    string `json:"chapterId"`
 	ChapterTitle string `json:"chapterTitle"`
@@ -107,19 +106,16 @@ func matchInputs(svc hostServices) ([]chaptermatch.Chapter, tracks.Project, map[
 	return chapters, project, confirmed, nil
 }
 
-// chapterSuggestion is ChapterSuggestion's payload: the chapter the narrator
-// is most likely recording, read from the selected .rpp's armed (else
-// selected) track as of its last save (teleprompter-engines-and-input-devices
-// PRD Phase 11, ADR 0113).
+// chapterSuggestion is ChapterSuggestion's payload: the chapter the narrator is most likely recording, read from the
+// selected .rpp's armed (else selected) track as of its last save (ADR 0113).
 type chapterSuggestion struct {
 	ProjectFile string `json:"projectFile"`
 	SavedAt     string `json:"savedAt"`
 	chaptermatch.Suggestion
 }
 
-// chapterSuggestionFor suggests a chapter from the saved project. It only
-// reads: it never creates a track or a link, and never follows a running
-// REAPER (that is teleprompter-manuscript-integration PRD Phase 11).
+// chapterSuggestionFor suggests a chapter from the saved project. It only reads: it never creates a track or a link,
+// and never follows a running REAPER.
 func (h *Host) chapterSuggestionFor() (chapterSuggestion, error) {
 	chapters, project, confirmed, err := matchInputs(h.services())
 	if err != nil {
@@ -149,13 +145,10 @@ type chaptersForTracksResult struct {
 	Tracks      map[string]trackChapterEntry `json:"tracks"`
 }
 
-// chaptersForTracks is ForTrack (ADR 0113) run over every GUID in guids, in
-// bulk: the Review page's chapter grouping (diagnostics-delivery-and-cleanup-
-// tools PRD Phase 8) needs a chapter for findings that carry only a track,
-// item or take GUID (apps/desktop/internal/findings.Source) instead of a
-// manuscript-anchored chapter id, and it groups many findings, from many
-// analyzers, at once. A GUID may name a track directly, or an item or take on
-// one (resolved via resolveTrackGUID); one unresolved GUID never fails the
+// chaptersForTracks is ForTrack (ADR 0113) run over every GUID in guids, in bulk: the Review page's chapter grouping
+// needs a chapter for findings that carry only a track, item or take GUID (apps/desktop/internal/findings.Source)
+// instead of a manuscript-anchored chapter id, and it groups many findings, from many analyzers, at once. A GUID may
+// name a track directly, or an item or take on one (resolved via resolveTrackGUID); one unresolved GUID never fails the
 // others. It only reads: it never creates a track or a link.
 func (h *Host) chaptersForTracks(guids []string) (chaptersForTracksResult, error) {
 	chapters, project, confirmed, err := matchInputs(h.services())

@@ -20,10 +20,10 @@ func item(guid string, position, length float64, silences ...TimelineInterval) I
 	}
 }
 
-// TestComposeEmptySpaceInternalGap is Phase 3's fixture "a gap between
-// items": two fully-audible items with a 3 s timeline gap between them (no
-// item covers it at all), which must be reported as one gap candidate once
-// it crosses MaxGapSeconds.
+// TestComposeEmptySpaceInternalGap covers a gap between items:
+// two fully-audible items with a 3 s timeline gap between them (no item
+// covers it at all), which must be reported as one gap candidate once it
+// crosses MaxGapSeconds.
 func TestComposeEmptySpaceInternalGap(t *testing.T) {
 	items := []ItemAudible{item("a", 0, 5), item("b", 8, 5)} // gap [5,8), length 3
 	candidates, ok := ComposeEmptySpace(items, Policy{MaxGapSeconds: sec(2)})
@@ -59,9 +59,8 @@ func TestComposeEmptySpaceGapBelowMaxIsNotACandidate(t *testing.T) {
 	}
 }
 
-// TestComposeEmptySpaceMergesTailGapHead is the Phase 3 fixture explicitly
-// named in the PRD: "a tail plus a timeline gap plus a head composed above
-// the maximum while each part is below it". Item A has 1 s of trailing
+// TestComposeEmptySpaceMergesTailGapHead covers a tail plus a timeline gap plus a head that
+// compose above the maximum while each part is below it. Item A has 1 s of trailing
 // silence, then a 1 s timeline gap, then item B has 1 s of leading silence:
 // each part alone (1 s) is under a 2 s maximum gap, but merged they are 3 s,
 // above it, and must be reported as ONE candidate with all three parts.
@@ -127,10 +126,10 @@ func TestComposeEmptySpaceMutedItemIsEmptySpace(t *testing.T) {
 	}
 }
 
-// TestComposeEmptySpaceHeadAndTail covers head/tail limits on and off
-// (Phase 3's fixture list): head and tail are checked only when their own
-// policy value is set; an unset one produces no candidate for that boundary
-// at all, even when the stretch is long.
+// TestComposeEmptySpaceHeadAndTail covers head/tail limits on and off:
+// head and tail are checked only when their own policy value is set; an
+// unset one produces no candidate for that boundary at all, even when the
+// stretch is long.
 func TestComposeEmptySpaceHeadAndTail(t *testing.T) {
 	// Item starts at t=2 (head = [0,2) relative to the track span... but the
 	// track span floor is the earliest item's own start, so there is no
@@ -161,7 +160,7 @@ func TestComposeEmptySpaceHeadAndTail(t *testing.T) {
 			t.Fatalf("ok = false")
 		}
 		if len(candidates) != 0 {
-			t.Fatalf("candidates = %+v, want none: every policy value is unset (Q3 'not checked')", candidates)
+			t.Fatalf("candidates = %+v, want none: every policy value is unset (a limit that is not set is not checked)", candidates)
 		}
 	})
 
@@ -235,7 +234,7 @@ func TestPolicyFromSettingsUnsetByDefault(t *testing.T) {
 		t.Fatalf("PolicyFromSettings() error = %v", err)
 	}
 	if policy.MaxGapSeconds != nil || policy.HeadMaxSeconds != nil || policy.TailMaxSeconds != nil {
-		t.Fatalf("PolicyFromSettings(\"\",\"\",\"\") = %+v, want every field nil (no built-in default, Q2/Q3)", policy)
+		t.Fatalf("PolicyFromSettings(\"\",\"\",\"\") = %+v, want every field nil (no built-in default)", policy)
 	}
 }
 

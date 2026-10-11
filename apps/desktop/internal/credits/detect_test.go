@@ -104,7 +104,7 @@ func TestDetectFallsBackToFrontMatterWhenTheEPUBHasNoMetadata(t *testing.T) {
 }
 
 // manuscriptWithDocxSourceMetadata builds a manuscript.json whose front matter guesser would find a different Title
-// and Author than the sourceMetadata block (a DOCX Title-styled paragraph, Phase 4), so a test can tell which source
+// and Author than the sourceMetadata block (a DOCX Title-styled paragraph), so a test can tell which source
 // Detect actually used.
 func manuscriptWithDocxSourceMetadata() map[string]any {
 	return map[string]any{
@@ -137,7 +137,7 @@ func TestDetectPrefersSourceMetadataOverTheFrontMatterGuess(t *testing.T) {
 	}
 }
 
-// TestDetectSourceMetadataBeatsDocxCoreProperties covers the CS6 extension (Phase 4): a Title-styled paragraph is
+// TestDetectSourceMetadataBeatsDocxCoreProperties covers the source-metadata precedence: a Title-styled paragraph is
 // structure the narrator can see and edit, unlike docProps/core.xml (often an editor's or typesetter's name), so it
 // must win even when the document's own properties disagree.
 func TestDetectSourceMetadataBeatsDocxCoreProperties(t *testing.T) {

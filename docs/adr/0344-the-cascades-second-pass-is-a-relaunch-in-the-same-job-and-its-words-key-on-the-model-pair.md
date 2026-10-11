@@ -6,20 +6,20 @@
 
 ## Context
 
-The model cascade (the recording-check-model-cascade PRD, deleted and delivered; Phase 4) adds the Go
+The model cascade's host side adds the Go
 planner and the host orchestration that turns a first pass's missing regions into a second,
 stronger-model pass: a window planner (`plan.go`), and `internal/coverage/service.go`/`run.go`
-running both passes as the PRD's "one check (one job, one cancel, one `job:ended`)". Three
+running both passes as one check (one job, one cancel, one `job:ended`). Three
 questions came with wiring that into the existing single-sidecar-launch `job`/`watch`/`finish` (ADR
-0127) without changing the wire (Phase 5 owns the settings, dialog and result label; Phase 4 must
-not touch `coverage:state`'s shape):
+0127) without changing the wire (the settings, dialog and result label come later, see [ADR 0351](0351-the-cascades-settings-are-independent-and-the-recheck-gate-is-its-own-status.md); this
+change must not touch `coverage:state`'s shape):
 
 - **How one job runs more than one sidecar process.** `job.child` was always the run's one
   process; the cascade needs up to three in sequence (a first pass, then either a windows-only
   `--recheck` and an `--align-only` realign, or one whole-chapter fallback pass), sharing one run
   id, one results file and one cancel.
-- **What the words cache key does with a re-check model.** The PRD's Architecture notes say a
-  cascade's spliced words must "never seed a single-model check" (a plain check of the first pass's
+- **What the words cache key does with a re-check model.** A
+  cascade's spliced words must never seed a single-model check (a plain check of the first pass's
   own model reusing words a stronger model has already touched, unlabelled as such).
 - **How a region's bounds become a window when they cross an item.** ADR 0168's `before`/`after`
   are each an item and a source time; a region can span two items, or a whole muted-free item can
@@ -44,9 +44,9 @@ not touch `coverage:state`'s shape):
   whole run - are cached apart from a plain check of the same first-pass model, and apart from a
   cascade that pairs that model with a different second one. The coarser-than-per-file granularity
   (every item's cache entry moves, not only the ones a splice actually touched) was chosen over
-  tracking which items were actually spliced: the PRD's own wording ("the model pair") reads as
-  run-level, and per-item tracking would need the cache to understand `spans` (ADR 0341), which
-  Phase 4 does not touch.
+  tracking which items were actually spliced: the key is the model pair, which is run-level, and
+  per-item tracking would need the cache to understand `spans` (ADR 0341), which this change does
+  not touch.
 - **The planner windows a region per item it spans** (`regionWindows`, `plan.go`): one window when
   `before` and `after` sit in the same item, one per item between them otherwise (each edge item
   clipped to its own bound, any item wholly between windowed in full), and a nil bound (a chapter
@@ -63,16 +63,16 @@ not touch `coverage:state`'s shape):
   reusing a plain check's cache entry.
 - `coverage:state`'s shape is unchanged; a cascade run's stages are visible only as the existing
   `Stage`/`Message` fields restarting partway through, not as a new field naming which pass is
-  running. Phase 5's dialog and result labelling need their own wire change to say which models ran.
+  running. The dialog and result labelling need their own wire change to say which models ran.
 - Nothing yet reads a spliced file's `spans` on the host side: the realign stage's `--align-only`
   pass reads the words a splice already merged, and the result's `Model` field still names the
-  first pass's own model (the PRD's "stays the first-pass model for compatibility"), unchanged by
-  this phase.
+  first pass's own model (it stays the first-pass model for compatibility), unchanged by
+  this change.
 
 ## Alternatives considered
 
 - **A second `job` chained after the first**, rather than one job relaunching in place. Rejected:
-  the PRD asks for one job, one cancel and one `job:ended`; a second job would need its own
-  cancel-forwarding and either a second `job:ended` (against the PRD) or bespoke suppression of it.
-- **Keying the words cache per span** rather than per run. Rejected for Phase 4 as more machinery
-  than the phase needs; left as a possible refinement once the host reads `spans` at all.
+  the check is one job with one cancel and one `job:ended`; a second job would need its own
+  cancel-forwarding and either a second `job:ended` or bespoke suppression of it.
+- **Keying the words cache per span** rather than per run. Rejected as more machinery
+  than this change needs; left as a possible refinement once the host reads `spans` at all.

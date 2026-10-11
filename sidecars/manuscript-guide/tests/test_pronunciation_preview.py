@@ -1,4 +1,4 @@
-"""The Story Bible preview speaks a chosen pronunciation (story bible and import UX briefs PRD, phase 10, ADR 0680).
+"""The Story Bible preview speaks a chosen pronunciation (ADR 0680).
 
 Piper's own espeak-based grapheme-to-phoneme step would otherwise run on `canonical_name`/alias text, so an edited
 pronunciation would have no audible effect (the gap ADR 0091 recorded). Every pronunciation source now stores IPA (`providers.py`'s `arpabet_to_ipa` normalizes the CMU dictionary's ARPABET
@@ -123,7 +123,7 @@ class RenderAudioSpeaksThePronunciationTests(unittest.TestCase):
 
 
 class ChosenPronunciationRoundTripTests(unittest.TestCase):
-    """pronounce() -> a rebuild's merge_locked -> render_audio: the PRD's phase 10 success signal."""
+    """pronounce() -> a rebuild's merge_locked -> render_audio, so a chosen pronunciation survives a rebuild and is still spoken."""
 
     def test_a_pronunciation_chosen_then_rebuilt_is_still_spoken_by_render_audio(self):
         with tempfile.TemporaryDirectory() as temporary:

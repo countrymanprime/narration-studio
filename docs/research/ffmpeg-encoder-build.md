@@ -1,6 +1,6 @@
 # FFmpeg encoder build: choice and verification
 
-**Date:** 2026-09-27. **Stream:** N-V1, [render-encode-master](../prds/render-encode-master.prd.md) Phase 0. **Answers:** Q1 (what encodes the audio) at the level of an exact build: which FFmpeg, from where, under which licence class, and whether what it writes passes this app's own MP3 checks.
+**Date:** 2026-09-27. **Stream:** N-V1, render-encode-master (deleted PRD `render-encode-master`) Phase 0. **Answers:** Q1 (what encodes the audio) at the level of an exact build: which FFmpeg, from where, under which licence class, and whether what it writes passes this app's own MP3 checks.
 
 **Verdict: go, with two owner checks pending (below).** Catalog the FFmpeg 7.1 "essentials" static Windows build (gyan.dev, GPL-3.0-or-later build configuration) as it is published inside the `imageio-ffmpeg` 0.6.0 `win_amd64` wheel on PyPI, keep only `ffmpeg.exe` from it at install, and run it as a separate process. Encode MP3 with `libmp3lame` at a constant bit rate, with no Xing/Info frame and no ID3v2 tag (`-write_xing 0 -id3v2_version 0`): that output passes `acx.format` and `acx.sample_rate`, and both of the app's MP3 frame readers agree on its length to the microsecond. [ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md) (Proposed) records the decision.
 

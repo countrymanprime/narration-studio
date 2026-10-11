@@ -6,8 +6,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// daw_transport_changed (DAW port PRD Phase 9, ADR 0305) tells the UI whether the DAW is playing or recording, read from the
-// Heartbeat role the resolver hands out, so a consumer (input commands and pedals P10's quiet booth) no longer needs the
+// daw_transport_changed (ADR 0305) tells the UI whether the DAW is playing or recording, read from the
+// Heartbeat role the resolver hands out, so a consumer (the quiet booth) no longer needs the
 // click-refreshed ReadAloudReaperState.recording (ADR 0249). It is pushed only, like daw_capabilities_changed: there is no
 // binding to read it, and the first tick after launch pushes the current value. The wire schema, golden payloads,
 // wireContracts row and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).

@@ -1,10 +1,10 @@
--- Review-dashboard PRD Phase 6 check: the real navigate_item, loop_context, stop_loop and ping commands
+-- The navigation check: the real navigate_item, loop_context, stop_loop and ping commands
 -- (narration_navigation.lua, loaded through the real narration_ui_bridge.lua registry) and the GUIDs COMPARE_MARKER now
 -- carries, against a real REAPER, in a scratch project built from synthetic tones. Answers what the harness's fake
 -- cannot: whether REAPER's own time selection, loop points and repeat read back as set and restored, whether any of it
 -- makes an undo point or dirties the project, and whether the time selection and the loop points are linked.
 --
--- Playback is NOT started (owner decision D3: no script plays or records): OnPlayButton is replaced by a recorder
+-- Playback is NOT started (no script plays or records): OnPlayButton is replaced by a recorder
 -- before the bridge loads, so the check sees that the bridge asks REAPER to play without any audio device being used.
 -- Hearing the loop, and REAPER's own stop button, are left to the owner (docs/architecture/reaper-navigation.md).
 --
@@ -53,7 +53,7 @@ local function finish()
   reaper.Main_OnCommand(40004, 0) -- File: Quit REAPER
 end
 
--- No playback: record the bridge's request instead (D3).
+-- No playback: record the bridge's request instead (no script plays or records).
 local play_requests = 0
 reaper.OnPlayButton = function()
   play_requests = play_requests + 1
@@ -182,7 +182,7 @@ local ok, err = xpcall(function()
   check('2 ... and the loop points', close_to(lp[1], 10.5) and close_to(lp[2], 12.5), range_text(lp[1], lp[2]))
   check('2 ... repeat is on', reaper.GetSetRepeat(-1) == 1, reaper.GetSetRepeat(-1))
   check('2 ... the edit cursor is at the window start', close_to(reaper.GetCursorPosition(), 10.5), reaper.GetCursorPosition())
-  check('2 ... the bridge asked REAPER to play once (not executed, D3)', play_requests == 1, play_requests)
+  check('2 ... the bridge asked REAPER to play once (not executed)', play_requests == 1, play_requests)
   log('   project dirty after loop_context:', reaper.IsProjectDirty(0))
   local pong_looping = send('ping', 'p2')
   check('2 ... ping reports the loop held', first(pong_looping) == 'PONG|p2|1|1|0', first(pong_looping))

@@ -1,4 +1,4 @@
-// The built-in recorder's calls (native-recording-suite PRD Phase 2, ADR 0455): the Booth's Record surface with the project
+// The built-in recorder's calls (ADR 0455): the Booth's Record surface with the project
 // on "Built-in recorder" (components/booth/useRecorder.ts, BuiltinRecorder.tsx).
 import { row, startup, subscription } from './row';
 
@@ -137,7 +137,7 @@ export const recordingFeedback = {
     'inline',
     'yes',
     'ok',
-    "Assign writes the take's line identity (native-recording-suite PRD Phase 3's SetTakeLine, first reachable from the UI here); the take moves under that line's heading, and a refusal shows inline.",
+    "Assign writes the take's line identity (SetTakeLine); the take moves under that line's heading, and a refusal shows inline.",
   ),
   'src/components/proof/NativeTakesPanel.tsx::recorderSetTakeKeeper#1': row(
     'click',

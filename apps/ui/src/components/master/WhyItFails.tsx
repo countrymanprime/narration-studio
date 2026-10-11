@@ -51,8 +51,7 @@ function Verdict({ file, profile }: { file: MeasureFileResult; profile: Delivery
 
 /**
  * Mock 05's "04 · Why it fails": the chosen file's missed rules in words
- * with a suggested fix, beside the book's consistency; "Every rule" opens the file rule by rule (delivery-platform-profiles.prd.md
- * Phase 3). With no file chosen it is the book's consistency alone. Mock 05's "Quietest 5 s" and "Open in REAPER" are left out:
+ * with a suggested fix, beside the book's consistency; "Every rule" opens the file rule by rule. With no file chosen it is the book's consistency alone. Mock 05's "Quietest 5 s" and "Open in REAPER" are left out:
  * the host can neither play a stretch of a rendered file nor open one in the DAW yet.
  */
 export function WhyItFails({

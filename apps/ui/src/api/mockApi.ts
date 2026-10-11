@@ -52,7 +52,7 @@ import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
 
-// `?mockEngine=builtin` seeds the mock recorder's engine choice (native-recording P2, ADR 0455): the host answers the
+// `?mockEngine=builtin` seeds the mock recorder's engine choice (ADR 0455): the host answers the
 // project's engine in RecorderState, and the mock answers it from this flag, so the story, the visual rows and the demo
 // reach the "Built-in recorder" chip and the Booth's recorder without a click. No window (a node test) is REAPER.
 function mockEngineFromLocation(): 'daw' | 'builtin' {
@@ -108,7 +108,7 @@ export function createMockApi(
   } = createCoverageMock({
     chapters: () => s.chapters,
     assetRequired: assets.whisperAssetRequired,
-    // A finished check changes its chapter's status row, so chaptersync:state goes out again (auto-sync Phase 6).
+    // A finished check changes its chapter's status row, so chaptersync:state goes out again.
     endJob: (event) => {
       endJob(event);
       chapterTracks.publishChapterSync(chapterTracks.mockChapterSyncState(null));
@@ -135,7 +135,7 @@ export function createMockApi(
   const mastering = createMasteringMock(initial.mastering);
   // The engine chip's `?mockEngine=builtin` flag seeds the recorder's engine, so the chip and the Booth agree (ADR 0455).
   const recording = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
-  // Q6 (editing-readiness-analysis.prd.md Phase 8): shared between the stages mock (which signal a chapter's editing
+  // The per-chapter editing source choice: shared between the stages mock (which signal a chapter's editing
   // check reads) and the editing mock (editingSourceChoice/editingSetSourceChoice below), so switching a chapter's
   // source there is visible on its editing signals here, the same live wiring a real host has through the same
   // project sidecar.
@@ -149,10 +149,8 @@ export function createMockApi(
     editingSourceChoice: (chapterId) => editingChoices.get(chapterId) ?? 'items',
     seed: initial.stages,
   });
-  // A transcript_discrepancy finding for chapter-1's own deterministic mock misread (edit-and-proof-workspace.prd.md
-  // Phase 4): built from the same position workspaceMock.ts already timed it at, so this finding and the workspace's
-  // check-derived misread flag are the same event, merged by overlayFindings into one reviewable flag, exactly as
-  // mockups/edit-and-proof-workspace/02-flag-detail-open.webp shows. Computed fresh on every findings read
+  // A transcript_discrepancy finding for chapter-1's own deterministic mock misread: built from the same position workspaceMock.ts already timed it at, so this finding and the workspace's
+  // check-derived misread flag are the same event, merged by overlayFindings into one reviewable flag. Computed fresh on every findings read
   // (FindingsMockOptions.lazySeed), not once at boot: chapter-1 usually has no track link yet when this mock is
   // built (the narrator, or the visual suite's own driver, confirms one in the audio engine panel after the app has already
   // started), so a one-off boot-time computation would see no live item and never find this finding a home.
@@ -261,8 +259,8 @@ export function createMockApi(
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
     ...prepMarkup,
-    // prep-depth.prd.md Phase 7: read the same two calls the real host reads (Phase 3's queries, Phase 5's markup per
-    // chapter), never a third mock store.
+    // Read the same two calls the real host reads (the pronunciation queries and each chapter's markup), never a third
+    // mock store.
     prepCompletenessSummary: async () => {
       const queries = await storyBible.bindings.guidePronunciationQueries();
       const staleSpansByChapterId = new Map<string, number>();

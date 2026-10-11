@@ -1,4 +1,4 @@
-"""The dependency-review licence allow-list (docs security and hygiene PRD, phase 9; owner decisions D17 and Q14).
+"""The dependency-review licence allow-list.
 
 The action only judges dependencies a pull request adds or changes, so it cannot see what is already locked: this test is the other half. It
 holds the workflow to the policy (the allow-list names the GPL, AGPL and LGPL families that the AGPL project may bundle, and no

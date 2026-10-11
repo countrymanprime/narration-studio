@@ -15,11 +15,11 @@ type chapterKindResult struct {
 	ClearedLinks []evidence.TrackMapping `json:"clearedLinks"`
 }
 
-// manuscriptSetChapterKind is chapter-track-link-control PRD Phase 3's "Remove from recording" and "Restore": the
-// manuscript service rewrites only that chapter's kind (keeping every id, the paragraphs, the status, notes, findings
-// and check results), and a chapter that is no longer narration loses its track links, so the track is free for
-// another chapter and no hidden chapter holds one (TL5 A). Every recording surface already filters by kind. A link
-// clear that fails leaves the kind changed and reports the error; asking again clears them.
+// manuscriptSetChapterKind backs "Remove from recording" and "Restore": the manuscript service rewrites only that
+// chapter's kind (keeping every id, the paragraphs, the status, notes, findings and check results), and a chapter that
+// is no longer narration loses its track links, so the track is free for another chapter and no hidden chapter holds
+// one. Every recording surface already filters by kind. A link clear that fails leaves the kind changed and reports the
+// error; asking again clears them.
 func (h *Host) manuscriptSetChapterKind(chapterID, kind string) (chapterKindResult, error) {
 	svc := h.services()
 	if svc.manuscript == nil || svc.config.projectFolder == "" {

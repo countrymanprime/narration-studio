@@ -32,13 +32,13 @@ const MAPPING_REFUSALS = new Set<EditingRefusalReason>(['unmapped', 'multiple_tr
 
 const POLL_MS = 500;
 
-/** Q6 (editing-readiness-analysis.prd.md Phase 8): the two analysis sources a narrator can pick per chapter. */
+/** The two analysis sources a narrator can pick per chapter. */
 const SOURCE_CHOICE_OPTIONS = [
   { value: 'items', label: "Items on this chapter's track" },
   { value: 'render', label: 'The rendered file' },
 ] as const satisfies readonly { value: EditingSourceChoice; label: string }[];
 
-/** The chapter-track link, confirmed right here (analysis evidence ledger PRD, Phase 7): the same prompt the
+/** The chapter-track link, confirmed right here: the same prompt the
  * audio engine panel and the recording check show. */
 function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinked: () => void }) {
   const api = useApi();
@@ -88,8 +88,8 @@ function stateBadgeColor(state: StageSignalState): string | undefined {
 }
 
 /**
- * One editing class's summary (editing-readiness-analysis.prd.md Phase 6's signal, when it is available: only while
- * the chapter is in the Editing stage, apps/desktop/internal/stages engine D3): state, reason, and the saved-project
+ * One editing class's summary (the host's signal, when it is available: only while
+ * the chapter is in the Editing stage, apps/desktop/internal/stages): state, reason, and the saved-project
  * basis with its age. Outside the Editing stage the signal is not evaluated at all, so the summary falls back to a
  * plain candidate count from the last scan - never a state, since a state this build did not compute is not one it
  * can vouch for.
@@ -148,15 +148,14 @@ function ClassSummary({
 }
 
 /**
- * The editing check panel (editing-readiness-analysis.prd.md Phase 7): a `SlideOver` opened from SR's evidence
+ * The editing check panel: a `SlideOver` opened from the stage evidence
  * popover (`StageEvidence`'s "Open editing check") and from the audio engine panel's chapter list. It runs the scan
- * (Phase 5's job, cache-first, with real progress and Cancel), reads the three signals Phase 6 computes when the
+ * (the host's job, cache-first, with real progress and Cancel), reads the three signals the host computes when the
  * chapter is in the Editing stage, and lists every open candidate under its own class with a Hear control, Accept /
- * Dismiss / Defer through RD-4, and Go to / Loop in REAPER through RD Phase 7 when the bridge is connected. Analysis
- * never starts on its own (Q9): opening the panel only reads what is already known.
+ * Dismiss / Defer through `findingsReview`, and Go to / Loop in REAPER when the bridge is connected. Analysis
+ * never starts on its own: opening the panel only reads what is already known.
  *
- * There is no live event for the scan job (unlike the recording check's `coverage:state`, editing-readiness-analysis.prd.md
- * Phase 5's own note): the panel polls `editingState()` itself while a run for this chapter is going, so the panel
+ * There is no live event for the scan job (unlike the recording check's `coverage:state`): the panel polls `editingState()` itself while a run for this chapter is going, so the panel
  * stays open with its previous candidates visible underneath the progress bar rather than swapping to a separate
  * dialog the way the recording check does - the narrator can keep reading the last scan's candidates while a
  * re-check of a mostly-cached chapter finishes in a second or two.
@@ -369,8 +368,7 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
           ))}
         </div>
 
-        {/* Silence trim and item gain (booth-actions-enablement PRD Phase 5): its own row, appended per that PRD's
-         * Parallel-session table ("shares the Editing view; append its own row, do not restructure it"). */}
+        {/* Silence trim and item gain: its own row, appended below the candidates. */}
         <CleanupAction chapterId={chapter.id} notify={notify} />
       </div>
     </SlideOver>

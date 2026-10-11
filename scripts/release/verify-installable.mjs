@@ -23,7 +23,7 @@ if (previewRuntimeMissing.length) {
   throw new Error(`Release preview runtime is incomplete: ${previewRuntimeMissing.join(', ')}. Manuscript Guide must embed Piper and ONNX Runtime.`);
 }
 // The frozen Story Bible sidecar must carry the data its Piper voice and its pronunciations read: PyInstaller has no hook for
-// piper/espeak-ng-data or for cmudict (its dictionary and its package metadata), and losing them made previews fail (TTS PRD, cause 4).
+// piper/espeak-ng-data or for cmudict (its dictionary and its package metadata), so a freeze that misses them breaks previews.
 // `narration-utils --smoke` proves they load; this proves they are in the tree before it is embedded.
 const guideDataMissing = [
   ['piper', 'espeak-ng-data'],
@@ -47,7 +47,7 @@ if (process.platform === 'win32') {
   if (moonshineMissing.length) {
     throw new Error(`Release Moonshine engine is incomplete: moonshine_voice/${moonshineMissing.join(', moonshine_voice/')}. Manuscript Teleprompter must collect the moonshine_voice binaries (scripts/release/prepare-resources.py).`);
   }
-  // The built-in recorder's engine (the capture port's wasapi row, ADR 0357, native-recording Phase 2) is sounddevice, whose
+  // The built-in recorder's engine (the capture port's wasapi row, ADR 0357) is sounddevice, whose
   // PortAudio DLL ships in `_sounddevice_data/portaudio-binaries` and is loaded with ctypes: without it the row lists "cannot
   // list devices here" and nothing records.
   const portaudioDir = resolve(runtime, 'manuscript-teleprompter', '_internal', '_sounddevice_data', 'portaudio-binaries');

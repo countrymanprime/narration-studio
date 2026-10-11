@@ -22,7 +22,7 @@ const SHOW_LABELS: Record<TeleprompterFlagKind, string> = {
 
 /**
  * Where keeping the session's flags as findings stands (ADR 0117); shown so a failed save is never silent.
- * `not-kept` is the credits mode of the read-aloud dialog (manuscript-credits-card-parity.prd.md, Phase 2, MC8 a):
+ * `not-kept` is the credits mode of the Booth (ADR 0260):
  * credits carry no chapter id to keep a finding against, so their flags are shown during the session and never saved.
  */
 export type FlagSaveState =
@@ -47,9 +47,8 @@ function quoted(text: string): string {
 }
 
 /**
- * Punch and roll's confirm step (teleprompter-manuscript-integration.prd.md Phase 12, "UI showing resolved time, its
- * source... and pre-roll before moving"): a preview is fetched before the dialog opens, so nothing in REAPER moves
- * until the narrator presses Punch.
+ * Punch and roll's confirm step: a preview (the resolved time, its source and the pre-roll) is fetched before the dialog
+ * opens, so nothing in REAPER moves until the narrator presses Punch.
  */
 type PunchState =
   | { phase: 'idle' }
@@ -117,16 +116,15 @@ function SaveStatus({ save }: { save: FlagSaveState }) {
 }
 
 /**
- * The read-aloud rail's Flags tab (teleprompter-manuscript-integration.prd.md Phase 7): which kinds of suspected flag show in
- * the text, the one a mark opened (what the script says, what was heard, Dismiss, and "Punch from here" waiting on Phase 12),
+ * The read-aloud rail's Flags tab: which kinds of suspected flag show in
+ * the text, the one a mark opened (what the script says, what was heard, Dismiss and "Punch from here"),
  * and the session's flags as a list. Selecting one never moves the reading position or scrolls the text.
  */
 export function ReaderFlagsPanel({ flags, visibility, onVisibility, dismissed, onDismiss, selected, onSelect, textOf, save }: Props) {
   const headingId = useId();
   const api = useApi();
-  // Punch and roll moves the REAPER edit cursor to a flag (teleprompter-manuscript-integration.prd.md Phase 12): the
-  // DAW port's own capability entry explains why the button is off when `punch` is not available (DAW port PRD Phase
-  // 7, ADR 0360); once it is, the click resolves the flagged word's time (a preview, nothing moves yet) before
+  // Punch and roll moves the REAPER edit cursor to a flag: the
+  // DAW port's own capability entry explains why the button is off when `punch` is not available (ADR 0360); once it is, the click resolves the flagged word's time (a preview, nothing moves yet) before
   // confirming.
   const punchCapability = useCapability('punch');
   const [punch, setPunch] = useState<PunchState>({ phase: 'idle' });

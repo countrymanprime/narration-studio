@@ -39,7 +39,7 @@ function apiWith(result: PreviewResult, chapters: ManuscriptChapter[] = [CHAPTER
   });
 }
 
-describe('PreviewPanel (proofing-preview-suggestion.prd.md Phase 3)', () => {
+describe('PreviewPanel', () => {
   it('shows a computing message while the read is in flight', async () => {
     const hang = vi.fn(() => new Promise<PreviewResult>(() => {}));
     render(
@@ -142,7 +142,7 @@ describe('PreviewPanel (proofing-preview-suggestion.prd.md Phase 3)', () => {
   });
 });
 
-describe('PreviewPanel pin and adjust (proofing-preview-suggestion.prd.md Phase 8)', () => {
+describe('PreviewPanel pin and adjust', () => {
   const NOT_PINNED: PinnedPreview = { present: false, stale: false, canExtendStart: false, canShrinkStart: false, canExtendEnd: false, canShrinkEnd: false };
 
   const PINNED: PinnedPreview = {
@@ -243,7 +243,7 @@ describe('PreviewPanel pin and adjust (proofing-preview-suggestion.prd.md Phase 
     fireEvent.click(await screen.findByRole('button', { name: /extend the end by one paragraph/i }));
     expect(previewPinAdjust).toHaveBeenCalledWith('end', true);
 
-    // canExtendStart is false in PINNED: that edge's extend button is disabled but stays focusable (D6, WCAG 1.4.13).
+    // canExtendStart is false in PINNED: that edge's extend button is disabled but stays focusable (WCAG 1.4.13).
     const extendStart = screen.getByRole('button', { name: /extend the start by one paragraph/i });
     fireEvent.click(extendStart);
     expect(previewPinAdjust).toHaveBeenCalledTimes(1);

@@ -1,5 +1,5 @@
-// Package retakelanes is the host's end of "retakes as fixed lanes" (reaper-automation-follow-through PRD Phase 25,
-// ADR 0147, spike S7): it lists the retakes of each manuscript line that sit on fixed item lanes, from the saved
+// Package retakelanes is the host's end of "retakes as fixed lanes" (ADR 0147, spike S7 in
+// docs/research/reaper-spike-s7-fixed-lanes.md): it lists the retakes of each manuscript line that sit on fixed item lanes, from the saved
 // project the static reader parses, and asks REAPER over the file bridge (pick_retake_lane in
 // integrations/reaper/narration_retake_lanes.lua) to make the narrator's pick the only lane playing.
 //

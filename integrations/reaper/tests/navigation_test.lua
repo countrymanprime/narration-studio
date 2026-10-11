@@ -1,5 +1,5 @@
--- Going to and looping a finding by GUID: navigate_item, loop_context, stop_loop and ping (review-dashboard PRD
--- Phase 6, Q6; docs/architecture/reaper-navigation.md). Nothing here may ever fall back to a neighbouring item or to a
+-- Going to and looping a finding by GUID: navigate_item, loop_context, stop_loop and ping
+-- (docs/architecture/reaper-navigation.md). Nothing here may ever fall back to a neighbouring item or to a
 -- position the finding only had when it was made.
 
 local H = require('harness')

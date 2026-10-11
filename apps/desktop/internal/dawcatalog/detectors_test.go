@@ -2,11 +2,9 @@ package dawcatalog
 
 import "testing"
 
-// TestDefaultDetectorsWiresReaperToTheSharedLocator guards the PRD's own
-// reuse note (Technical Approach: "land the detection lookup in a package
-// that PRD's Phase 6 spike (W11) can import rather than re-solving 'where is
-// reaper.exe' a second time") the other way around: this package must reuse
-// apps/desktop/internal/daw's already-built locator, not grow a second one.
+// TestDefaultDetectorsWiresReaperToTheSharedLocator guards the rule that
+// this package reuses apps/desktop/internal/daw's already-built locator
+// rather than re-solving "where is reaper.exe" a second time.
 // It cannot assert which function is wired (Go has no reflection-friendly
 // function identity check worth relying on here), so it asserts the shape
 // that matters: a detector is present for REAPER's ID, it is callable
@@ -36,6 +34,6 @@ func TestDefaultDetectorsHasNoEntryForACatalogEntryWithNoRealSource(t *testing.T
 	detectors := DefaultDetectors()
 
 	if _, ok := detectors["audacity"]; ok {
-		t.Error(`DefaultDetectors() has an "audacity" entry, but Audacity is not in the catalog yet (PRD Decisions Log: deferred until its roadmap precondition is met)`)
+		t.Error(`DefaultDetectors() has an "audacity" entry, but Audacity is not in the catalog yet (it is deferred until its roadmap precondition is met)`)
 	}
 }

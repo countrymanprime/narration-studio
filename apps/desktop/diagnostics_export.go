@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/update"
 )
 
-// copyDiagnosticsWindow is the "last 30 minutes" scope (docs/prds/tool-run-logging.prd.md phase 7, Q5).
+// copyDiagnosticsWindow is the "last 30 minutes" scope of the copied diagnostics.
 const copyDiagnosticsWindow = 30 * time.Minute
 
 // SystemOpenLogFolder shows the run log's folder (logs/run.jsonl, host.log and logs/runs/) in the file manager, the
@@ -22,7 +22,7 @@ func (h *Host) SystemOpenLogFolder() (string, error) {
 	return encodeBinding(nil, update.OpenFolder(dir))
 }
 
-// CopyDiagnosticsScope is the choice Settings offers (PRD Q5): the last run's own host and sidecar records, or
+// CopyDiagnosticsScope is the choice Settings offers: the last run's own host and sidecar records, or
 // everything from the last 30 minutes.
 type CopyDiagnosticsScope string
 
@@ -32,7 +32,7 @@ const (
 )
 
 // SystemCopyDiagnostics saves scope's records as one .jsonl file in a folder the narrator chooses, and answers its
-// path (the UI copies it to the clipboard, Q5). "last_run" with no run yet logged is refused rather than saving an
+// path (the UI copies it to the clipboard). "last_run" with no run yet logged is refused rather than saving an
 // empty file with nothing to show for it.
 func (h *Host) SystemCopyDiagnostics(scope string) (string, error) {
 	path, err := h.copyDiagnostics(CopyDiagnosticsScope(scope))

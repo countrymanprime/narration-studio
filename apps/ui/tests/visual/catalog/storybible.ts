@@ -78,33 +78,32 @@ export const storybibleStates: StateEntry[] = [
     page: 'storybible',
     state: 'entry-pronunciation-work',
     description:
-      "Story Bible, an entry in edit mode after the narrator used their own pronunciation and marked it Query sent with a note: the status badge, the note, the dictionary's answer kept beside it and the switch back (prep-depth P1)",
+      "Story Bible, an entry in edit mode after the narrator used their own pronunciation and marked it Query sent with a note: the status badge, the note, the dictionary's answer kept beside it and the switch back",
   },
   {
     page: 'storybible',
     state: 'entry-pronunciation-online',
-    description:
-      "Story Bible, an entry's pronunciation details after Look up online: Merriam-Webster's respelling with Use this, on the narrator's own key (prep-depth P9)",
+    description: "Story Bible, an entry's pronunciation details after Look up online: Merriam-Webster's respelling with Use this, on the narrator's own key",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
     state: 'alias-pronunciation-editing',
     description:
-      'Story Bible, an entry in edit mode after the narrator worked on one alias’s own pronunciation (Generate/Replace, Pronunciation details, Use mine, the kept alternate): independent of the entity’s own pronunciation controls above it (story-bible-and-import-ux-briefs PRD phase 11)',
+      'Story Bible, an entry in edit mode after the narrator worked on one alias’s own pronunciation (Generate/Replace, Pronunciation details, Use mine, the kept alternate): independent of the entity’s own pronunciation controls above it',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
     state: 'pronunciation-queries',
     description:
-      'Story Bible, the Pronunciation queries slide-over: every name not yet author confirmed in reading order, the first marked sent, with the filter, the open/sent count, Export CSV and Mark sent / Mark answered (prep-depth P3)',
+      'Story Bible, the Pronunciation queries slide-over: every name not yet author confirmed in reading order, the first marked sent, with the filter, the open/sent count, Export CSV and Mark sent / Mark answered',
   },
   {
     page: 'storybible',
     state: 'pronunciation-queries-online-confirm',
     description:
-      'Story Bible, the notice before a batch online lookup: how many names it sends to Merriam-Webster, one at a time, and that nothing else leaves (prep-depth P9, Q11)',
+      'Story Bible, the notice before a batch online lookup: how many names it sends to Merriam-Webster, one at a time, and that nothing else leaves',
   },
 
   {
@@ -113,28 +112,26 @@ export const storybibleStates: StateEntry[] = [
     description: 'Story Bible, the inline error with Retry when the entities could not be read; navigation still works (ADR 0069)',
   },
 
-  // Character bible (character-continuity-review.prd.md Phase 6, non-acoustic part only; D87 on #509 benches
-  // every acoustic-drift binding, so there is no findings, drift comparison or audition here).
+  // Character bible, the non-acoustic part only: there are no findings, drift comparison or audition states here.
   {
     page: 'storybible',
     state: 'character-voice-references',
     description:
-      'Story Bible, a Character entry: Reference clips (an approved reference, one flagged changed since approval, approve-a-region picker) and Dialogue cues (an unattributed cue with its speaker correction control) (character-continuity-review P6)',
+      'Story Bible, a Character entry: Reference clips (an approved reference, one flagged changed since approval, approve-a-region picker) and Dialogue cues (an unattributed cue with its speaker correction control)',
   },
   {
     page: 'storybible',
     state: 'voice-data-panel',
-    description:
-      'Story Bible, the Voice data slide-over from the toolbar: approving a reference for plain Narration (Q9) and the Remove voice data action (Q7)',
+    description: 'Story Bible, the Voice data slide-over from the toolbar: approving a reference for plain Narration and the Remove voice data action',
   },
   {
     page: 'storybible',
     state: 'remove-voice-data-confirm',
-    description: 'Story Bible, the Voice data slide-over with the Remove voice data confirm dialog open (Q7, destructive, project-wide)',
+    description: 'Story Bible, the Voice data slide-over with the Remove voice data confirm dialog open (destructive, project-wide)',
   },
 
-  // Series tab (character-continuity-review.prd.md Phase 11, D79: a tab, no nav entry of its own; non-acoustic
-  // only, D87 on #509 - reference clips and their source book, no per-book drift evidence).
+  // Series tab (a tab, with no nav entry of its own; non-acoustic only: reference clips and their source book, no
+  // per-book drift evidence).
   {
     page: 'storybible',
     state: 'series-tab-empty',
@@ -144,6 +141,6 @@ export const storybibleStates: StateEntry[] = [
     page: 'storybible',
     state: 'series-tab-populated',
     description:
-      'Story Bible, the Series tab with a two-book series: characters grouped across books with their approved reference clips, each labeled by its source book (P11)',
+      'Story Bible, the Series tab with a two-book series: characters grouped across books with their approved reference clips, each labeled by its source book',
   },
 ];

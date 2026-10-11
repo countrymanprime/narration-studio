@@ -1,4 +1,4 @@
-// The provider ports' capability payload (provider-ports PRD Phase 14, ADR 0301): every provider this build can hand its sidecars,
+// The provider ports' capability payload (ADR 0301): every provider this build can hand its sidecars,
 // read from the host's Go registries (internal/asrport, ttsport, pronunciationport, captureport), whether it runs on this platform,
 // and, for one whose models or voices come from the asset catalog, how many are installed. apps/desktop/bindings_providers.go is
 // the binding. It is read-only and no screen reads it yet.

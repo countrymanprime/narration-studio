@@ -2,12 +2,12 @@
 
 How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt only says "read `docs/operations/agent-train.md` on `main` and run one pass", so changing the procedure is a normal pull request.
 
-It replaces the scheduling rules of [the implementation plan's section 8](../prds/implementation-plan.md#8-the-lane-train-2026-09-24) (the lane train of 2026-09-24):
+It replaces the scheduling rules of the lane train of 2026-09-24:
 
-- **Kept:** D40 (the coordinator merges), D43 (the light merge gate), D44 (the visual suite and atlas run in full once, at the end) and D46 (built UI is compared with its mock, amended by D97), plus the older D1–D39.
+- **Kept:** D40 (the coordinator merges), D43 (the light merge gate), D44 (the visual suite and atlas run in full once, at the end) and D46 (built UI is compared with its mock, amended by D97); all are in [Owner standing rules](#owner-standing-rules).
 - **Replaced:** D41 (three lanes) and D45 (hold on credits), by [Lanes](#lanes) and [Usage and autoscaling](#usage-and-autoscaling) below.
 
-The work it schedules comes from the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md), and then the older PRDs' remaining phases as filler.
+The work it schedules comes from the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md), and then the PRDs in `docs/prds/`.
 
 ## Where state lives
 
@@ -78,7 +78,7 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 3. the stream whose PRD phases unblock the most other phases;
 4. leaf features;
 5. documentation;
-6. filler from the older PRDs.
+6. filler: any pending phase of a PRD in `docs/prds/` that collides with nothing running.
 
 ## Safety net
 
@@ -147,7 +147,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 - **Launch a mockup-drafting session instead**, as its own lane entry, not a phase worker: `create_session` with `tags: ["agent-train", "mockup-design"]`, a model picked like any other lane (Opus for a screen with real interaction states — a recorder, conflict or error messaging, anything with more than static layout; Sonnet for a mostly-static screen), and a prompt that:
   - names the exact states the PRD's Phase Details and Visual Spec section describe;
   - points it at `docs/design/design-system.md` and the real tokens/primitives, never a generic style;
-  - points it at the seven benchmark mocks in `docs/research/mockups/audiobook-studio-benchmark/` for tone and format precedent (no other mock exists, [D96](#which-mocks-are-the-spec));
+  - points it at the Studio Next mock in `docs/research/mockups/studio-next/` for tone and format precedent ([D98](#which-mocks-are-the-spec));
   - says explicitly: **drafts only**, no product code for the gated phase, and the PRD's Visual Spec section is updated to list the new files as drafts pending the owner's approval — the session never marks its own work owner-approved;
   - tells it to open its own tracking issue and a normal PR, same as any worker, and never merge itself.
 - **Record it on #509** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.
@@ -156,23 +156,25 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 
 ## Which mocks are the spec
 
-Owner ruling, 2026-09-29, after workers kept building towards old mocks.
+Owner ruling D98, 2026-10-11 (it replaces D96, 2026-09-29).
 
-- **The spec is one folder: `docs/research/mockups/audiobook-studio-benchmark/`,** the seven benchmark mocks (01 Production, 02 Script, 03 Booth, 04 Proof, 05 Master & QC, 06 Series voice bible, 07 companion). They are light except the Booth (03) and the companion (07). `apps/ui/tests/visual/mock-match/mocks.ts` lists them and the state each is scored against.
-- **Every other mock is deleted (D96, 2026-09-29).** The deleted per-PRD sets that lived under `docs/prds/mockups/` (`read-aloud-control-bar`, `edit-and-proof-workspace`, `delivery-platform-profiles`, `home-combined`, `manuscript-*` and the rest), the `*-concept.webp` copies of the benchmark mocks and the deleted evidence crops in `docs/research/mock-fidelity/` and `visual-audit/` were drawn before the redesign, so they are gone, together with the visual mockup divergence audit and every link to them. Don't recreate them from `git log`: they are not a spec.
-- **Only work being built now has a mock beside the benchmark.** The repo keeps three kinds of image: the seven benchmark mocks, the current-state screenshots in `docs/images/ui/`, and a new mock for a phase being built right now. A new mock goes in `docs/prds/mockups/<prd>/`, is listed in its PRD's Visual Spec, and is deleted in the PR that merges the work (the PRD's close-out PR checks this). A PRD never copies a benchmark mock; it links the research file.
-- **Theme is one app-wide setting.** Capture a state in the theme its mock is drawn in and compare like with like: light against light, dark against dark. The dark equivalents of the light mocks are worked out later; until then a light mock is not compared with a dark capture.
-- **Layout and style are the spec, not the sample data.** Don't seed demo data to make a score higher, and don't change a real title or subtitle to the mock's wording.
-- **A mock that draws a page the app doesn't have yet** (06 is the Character Continuity review page, not the Story Bible) is unscored until its own PRD and mocks exist.
+- **The spec is the Studio Next mock: `docs/research/mockups/studio-next/`.** Layout, tokens, primitive sizes and behaviour of every page it covers are built to it. Where an older ADR, a benchmark mock, an existing page or a measured value differs, the mock wins and the older thing is superseded.
+- **If it is not in the mock, it is not built.** A worker does not add a control, state or feature the mock lacks, and does not widen a page beyond it.
+- **If the repo already has an equivalent of something in the mock, the old one is removed.** The slice that swaps a page in deletes the old page and anything only it used, in the same PR ([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) decision 1).
+- **Existing features with no equivalent in the mock are left as built:** the series voice bible and Series tab, the companion mode, and the stage timer, PFH and effective rate. They are not extended, removed or restyled.
+- **The benchmark mocks (`docs/research/mockups/audiobook-studio-benchmark/`) are no longer a build target for any page the Studio Next mock covers.** They remain only as the reference for the two pages it lacks (06 Series voice bible, 07 companion), and are deleted at cutover with the old pages.
+- **Theme is one app-wide setting.** Capture a state in the theme the mock page is drawn in and compare like with like: light against light, dark against dark.
+- **Layout and style are the spec, not the sample data.** Don't seed demo data to make a capture look closer, and don't change a real title or subtitle to the mock's wording.
+- **No other mock is a spec.** The per-PRD mock sets were deleted (D96) and are not recreated from `git log`. A new mock is added only for work being built now and is deleted in the PR that merges that work.
 
 ## UI PRs show their screenshots
 
 Permanent owner rule, 2026-09-29. A PR that changes what `apps/ui` draws must show the change as images in its body. Without them the work has failed: the owner rejects the PR, and the coordinator neither merges it nor counts it ready. The owner has to see that it looks better and will not trust a number.
 
-- **What to show.** A "Screenshots" section, one row per changed state at 1440×900: the benchmark mock | before (`main`) | after (the branch). Same state, viewport and fixture in the before and after captures, and the mock cropped or scaled to match. The match % for before and after sits beside each row; if the score fell, say so plainly.
+- **What to show.** A "Screenshots" section, one row per changed state at 1440×900: the Studio Next mock page | before (`main`) | after (the branch). Same state, viewport and fixture in the before and after captures, and the mock cropped or scaled to match. There is no match percentage for Studio Next pages; the owner looks at the images.
 - **Other viewports.** Small-desktop and tablet (and `reflow` at 390 px for Settings) as before/after pairs in a collapsed `<details>`.
 - **Where the images live.** On a branch named `pr-images/<the PR's branch>`, never on the PR's own branch, so they don't reach `main`. Embed with `https://github.com/countrymanprime/narration-utils/blob/pr-images/<branch>/<file>.png?raw=true`. Regenerate them after every push that changes the UI.
-- **How to capture.** `cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"` writes `apps/ui/screenshots/app/<page>/<state>/<viewport>.png` (gitignored). The mocks are in `docs/research/mockups/audiobook-studio-benchmark/`.
+- **How to capture.** `cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"` writes `apps/ui/screenshots/app/<page>/<state>/<viewport>.png` (gitignored). The mock runs from `docs/research/mockups/studio-next/` (`npm ci` there, then its Playwright scripts in `e2e/`); a worker without network lists the missing mock image in the PR and the owner supplies it.
 - **Who checks.** The worker adds them before it says the PR is ready. The coordinator checks the PR body for the images at every sweep, and does not merge a UI PR without them, whatever the score or the CI result.
 
 ## Owner standing rules
@@ -186,8 +188,8 @@ Decisions the owner made while the train ran (logged on #509). They bind the coo
 | **D65** | Owner-only, hardware and REAPER checks are flagged on #510 and marked pending. They never block a merge or a launch |
 | **D66** | Check the lane count on every pass, including passes spent mostly on merges or fixers, and launch before babysitting in-flight PRs |
 | **D67** | Mock-first behind every port. A feature builds against a mock that passes the schema; going to production is a swap behind the port; the mocks stay for the demo build and the tests. A UI phase blocked only by an unbuilt backend phase is ready once that contract is pinned. Serial points, nav entries among them, still land one at a time |
-| **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. This settles the conflict between the wave-0 writer rule and D61 |
-| **D69** | The audiobook studio benchmark's concept mocks are owner-approved as the build spec. **Dark mode is one app-wide theme,** on or off: no page or surface forces light or dark, and a dark mock shows the dark theme, not a per-page look. This supersedes ADR 0360 Q1's forced-dark booth surface |
+| **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. |
+| **D69** | *(Superseded by D98 for every page the Studio Next mock covers.)* The audiobook studio benchmark's concept mocks are owner-approved as the build spec. **Dark mode is one app-wide theme,** on or off: no page or surface forces light or dark, and a dark mock shows the dark theme, not a per-page look. This supersedes ADR 0360 Q1's forced-dark booth surface |
 | **D70** | Features still in development use public-domain or synthetic data instead of waiting for the owner's recordings. Results calibrated on it are **provisional**, and a re-run on the owner's own material goes on #510 as a QA item before it ships to users |
 | **D71** | **LibriVox** is the default source for real speech audio: public domain, many readers, and solo readings where one reader voices several characters. Record the source URL, reader, book and the public-domain statement; keep the audio out of git as ignored local data. Synthetic audio is the fallback |
 | **D72** | The privacy line is outbound user data, not inbound reference data. The app may call external APIs to **fetch** dictionary or pronunciation data (local first, online optional), but never sends the narrator's or authors' data out. An online lookup sends a single word, never passages, file names or project identifiers; it is narrator-initiated, or opt-in with a notice for a batch; results are cached locally; there is no telemetry and no project-run proxy. A service that needs a key uses the narrator's own key, stored locally and never logged |
@@ -195,9 +197,10 @@ Decisions the owner made while the train ran (logged on #509). They bind the coo
 | **D74** | Windows only, for now (2026-09-27). Linux and macOS support is removed until the app is in a steadier state or someone uses those systems; `Build (Windows)` stays the build gate. Linux CI runners remain as hosts for platform-neutral checks (docs, the Lua harness, the browser-based UI suites), which is not Linux support |
 | **D75** | The public GitHub Pages site (docs, Storybook, demo) is paused until the main app's development is done (2026-09-27): `pages.yml` no longer deploys on a push to `main`, and (narrowed 2026-09-27, [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) no longer runs on a pull request either. Workers keep the docs link-clean through `Docs / Links (offline)` (lychee, every pull request) and `Docs / Markdown lint (changed files)` (markdownlint-cli2 on the Markdown files a pull request adds or changes), not by building the site, and don't add work that only serves the published site |
 | **D82** | Every worker owns its PRs until they merge or close (2026-09-27): it stays subscribed, and on a merge-conflict notice or a red check it merges `main` into its own branch (never rebase), fixes, re-runs its targeted checks and pushes. It keeps an hourly `send_later` check-in while a PR is open. The coordinator launches no cascade fixers; a one-PR fixer only for a PR whose own session is archived or failed. The coordinator archives the session once all its PRs are merged or closed (D78) |
-| **D91** | *(Amended by D97 below.)* The approved mocks win, measured (2026-09-28): a screen an approved mock covers is built to that mock, captured at the mock's own size and theme with the app driven to the mock's state ([the seven benchmark mocks](#which-mocks-are-the-spec); `pnpm --dir apps/ui mock-match`, [verification tooling](verification-tooling.md#mock-match)). New primitives, tokens and style changes are in scope, and "the existing style is close enough" is not a reason: a difference a primitive causes is fixed in the primitive, so every consumer inherits it, never restyled locally. The 90% bar and the "reason the owner accepts" it required are gone (D97) |
-| **D96** | Only `docs/research/mockups/audiobook-studio-benchmark/` counts (2026-09-29). Every other mock is deleted from the repo and so is anything pointing at it. Keep only mocks for work actively in development, plus the current-state screenshots in `docs/images/ui/` ([Which mocks are the spec](#which-mocks-are-the-spec)) |
+| **D91** | *(Amended by D97 below; superseded by D98 for every page the Studio Next mock covers.)* The approved mocks win, measured (2026-09-28): a screen an approved mock covers is built to that mock, captured at the mock's own size and theme with the app driven to the mock's state ([the seven benchmark mocks](#which-mocks-are-the-spec); `pnpm --dir apps/ui mock-match`, [verification tooling](verification-tooling.md#mock-match)). New primitives, tokens and style changes are in scope, and "the existing style is close enough" is not a reason: a difference a primitive causes is fixed in the primitive, so every consumer inherits it, never restyled locally. The 90% bar and the "reason the owner accepts" it required are gone (D97) |
+| **D96** | *(Superseded by D98.)* Only `docs/research/mockups/audiobook-studio-benchmark/` counted (2026-09-29). Every other mock is deleted from the repo and so is anything pointing at it. Keep only mocks for work actively in development, plus the current-state screenshots in `docs/images/ui/` ([Which mocks are the spec](#which-mocks-are-the-spec)) |
 | **D97** | The 90% bar is no longer a gate (2026-09-29). Match % is a diagnostic, and it scores features and styles, not pixel-exact text or sample data (the tool paints glyphs out of both images first). No D91 reasons, no region-attribution tables, no Mockup check table. Finish building the pages; the owner does a fix-up pass afterwards. The screenshots-in-PR rule stands unchanged |
+| **D98** | The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec (2026-10-11). "The mocks are the gold standard and if it is not in the mock it doesn't get built. If it exists already and has an equivalent somewhere in the Studio Next mocks then get rid of the old." A page the mock covers is built to it, replacing its old counterpart in one PR with no flag; where an older ADR, benchmark mock, page or measured value differs, the mock wins; existing features with no equivalent (series voice bible, companion, stage timer / PFH) are left as built. Match % is not used for Studio Next pages. See [Which mocks are the spec](#which-mocks-are-the-spec) |
 
 ## The coordinator's pass
 
@@ -288,21 +291,21 @@ Fill in the `<>` fields.
 ```text
 You are worker stream <ID> (lane <L>: <lane name>) in the narration-utils agent train. Repo countrymanprime/narration-utils.
 No human is watching live; never wait for answers. Where a PRD leaves a question open, take its stated recommendation
-(implementation plan D22) and record anything that truly needs the owner as a Proposed ADR, plus a comment on #510.
+and record anything that truly needs the owner as a Proposed ADR, plus a comment on #510.
 
 READ FIRST: CLAUDE.md; docs/operations/agent-train.md ("The worker protocol", "Serial points", "Lanes"); then each PRD in
 scope, in full.
 SCOPE: <PRD path> phases <N…>: <one line each>.
-MOCKUPS (D46, D97): <per phase: exact docs/research/mockups/audiobook-studio-benchmark/... files, or "none">. Open each before
-coding and build to match. Older per-PRD mocks are deleted (D96); see "Which mocks are the spec". Compare light to light and dark to dark by the theme the mock is
+MOCKUPS (D46, D98): <per phase: the exact docs/research/mockups/studio-next/src/pages/... file and its state, or "none">. Open it
+and the running mock before coding and build to match. The Studio Next mock is the only spec (D98): if it is not in the mock, don't build it; if the repo
+already has an equivalent of something in it, the old one is removed in the swap. Compare light to light and dark to dark by the theme the mock page is
 drawn in. Layout and style are the spec, never the mock's sample data.
-Drive the app to the mock's state and data, capture at the mock's own size and theme, and look at it beside the mock (the mock and
-its target state in apps/ui/tests/visual/mock-match/mocks.ts, then `pnpm --dir apps/ui mock-match -g "<mock file>"`). The match % is
-a diagnostic, not a gate (D97): it ignores words and sample data, so build the features and styles the mock shows and don't chase
-the number. No reasons to write, no region tables, no Mockup check table. New primitives and tokens are in scope; existing styles are not a reason: when a
+Drive the app to the mock's state and data, capture at the mock's own size and theme, and look at it beside the mock. There is no match % for Studio Next
+pages: build the features and styles the mock shows and look at the images.
+No reasons to write, no region tables, no Mockup check table. New primitives and tokens are in scope; existing styles are not a reason: when a
 primitive, token or style doesn't draw what the mock shows, change the primitive (its <Name>.stories.tsx too, with
 design-spec-guard and an ADR for a changed design decision), don't restyle it locally on the page. The spec per
-primitive is docs/design/design-system.md (the PRD it came from was deleted at its close-out).
+primitive is docs/design/design-system.md.
 YOUR FILES: <the phases' rows from the PRD's Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
 a running stream on #509. If you need another lane's change, comment on #509.
 ADR BLOCK: <block>. Check docs/adr/ for the next free number inside it, at write time and again before your last push.
@@ -358,26 +361,10 @@ comment with a blank line, "---", then "_Generated by [Claude Code](https://clau
 
 Waves order the work, and the coordinator doesn't start a wave until everything it depends on has merged. Inside a wave, the ready-list rules above decide.
 
-| Wave | Streams |
-| --- | --- |
-| **0** | See the table below |
-| **1: contracts** | DAW port (PRD deleted, delivered) P1–P4 in lane K, one after another: N-K1 = P1 + P2, N-K2 = P3 + P4. [Provider ports](../architecture/provider-ports.md) phases after N-K1 (lane K, then B). Studio UI primitives (PRD deleted, delivered) token batch (alone), then `CapabilityGate` (lane U). [Input commands and pedals](../prds/input-commands-and-pedals.prd.md) registry core (lane U) |
-| **2: fan out** | DAW port P5a–P5d at the same time (lane B, four workers); the remaining primitives, file-disjoint (lane U, two workers); provider-port migrations (lane B); input sources and migrations (lane U); DAW port P6 and P7 |
-| **3: features** | The wave-0 PRDs, in benchmark order: booth actions enablement, booth mode and companion panel, closed-loop proofing, delivery profiles (extended), production tracking |
-| **4** | Prep depth, series voice bible, render, encode and master, native recording on the DAW port, Audacity 4. Then the final sweep (D43, D44, D46): the full `pnpm check`, visual suite, atlas, aria, a mockup pass, doc screenshots regenerated once |
-| **Filler** | Any lane with a free slot and nothing ready takes the next pending phase of the older PRDs in `docs/prds/`, if it collides with nothing running. The old queue's order (implementation plan §8) sets priority |
+The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md)) and the Studio Next series in `docs/prds/` is the plan. The series' dependency order is the graph in [Studio Next Rebuild](../prds/studio-next-rebuild.prd.md#technical-approach); no wave has been accepted for it yet.
 
-**Wave 0.** These streams can run together, since their files are disjoint.
-
-| ID | Lane | Model | Scope |
-| --- | --- | --- | --- |
-| N-D1 | D | Sonnet | Write PRDs from the benchmark's recommendations 1–3: **booth-actions-enablement** (reconciles read-aloud control bar P7, REAPER automation follow-through and the teleprompter integration's punch phases; promotes each verified command by declaration on the DAW port), **booth-mode-and-companion-panel**, **closed-loop-proofing** |
-| N-D2 | D | Sonnet | Write **production-tracking**, **prep-depth** and **render-encode-master**. Extend **delivery-platform-profiles** (recommendation 4: MP3 levels, delivery findings on the Review page, a book-wide spread), **character-continuity-review** (recommendation 8: a series bible) and **audacity-integration** (recommendation 9: re-scope for 4.x) |
-| N-X1 | X | Opus | Conflict-reduction refactor with no behaviour change: split `api/mockApi.ts`, the golden-to-schema rows of `wireContracts.test.ts`, `tests/visual/state-catalog.ts` and `app.drivers.ts`, and `interactionFeedback.catalog.ts` into per-domain or per-page files; generate the ADR index table in `docs/adr/README.md` from the ADR files, with a check in `pnpm check`; add `scripts/dev/bump-host-api.mjs` (bump the three files, regenerate `Host.*`) |
-| N-K1 | K | Opus | DAW port P1 + P2. New packages only, so it can start in wave 0 |
-
-**Rules for the wave-0 PRD writers (N-D1, N-D2):**
+**Rules for PRD writers:**
 - Use the template in `docs/prds/README.md`.
 - Add a **Ports used** column to the phase table, naming the capabilities and roles of the DAW port, the provider ports and the UI primitives each phase needs. That column is how the coordinator knows when a phase is unblocked.
-- Link the benchmark mocks the PRD uses from `docs/research/mockups/audiobook-studio-benchmark/`; don't copy them into the PRD (D96). A PRD that needs a mock the benchmark lacks adds it under `docs/prds/mockups/<prd>/` only for work being built now, and it is deleted when that work merges.
+- Link the Studio Next mock page the PRD builds to from `docs/research/mockups/studio-next/src/pages/`; don't copy it into the PRD (D98). A PRD never asks for something the mock lacks.
 - Give every open question a recommendation.

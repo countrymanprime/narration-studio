@@ -86,7 +86,7 @@ func changedFiles(before, after map[string][]byte) []string {
 }
 
 // Confirm changes the chapter status and the decisions file, and nothing else
-// in the project (the PRD's filesystem-diff success signal).
+// in the project (checked by diffing the project's files before and after).
 func TestConfirmWritesOnlyTheStatusAndTheDecisionsFile(t *testing.T) {
 	project := t.TempDir()
 	writeCanonical(t, project)

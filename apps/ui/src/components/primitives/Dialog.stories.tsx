@@ -200,7 +200,7 @@ export const AutoFocusChildWins: Story = {
   },
 };
 
-// teleprompter-manuscript-integration.prd.md Phase 1: `size="full"` fills the viewport with a 1rem margin and scrolls
+// `size="full"` fills the viewport with a 1rem margin and scrolls
 // its body; modality (Tab loop, Escape) is the one shell every size shares (ADR 0048), so this story reuses the same
 // Tab/Escape assertions as the default size instead of writing new ones.
 export const FullSize: Story = {
@@ -230,7 +230,7 @@ export const FullSize: Story = {
   },
 };
 
-// read-aloud-control-bar.prd.md Phase 3, amending ADR 0094: a `footer` region between the body and `actions` that never
+// Amending ADR 0094: a `footer` region between the body and `actions` that never
 // scrolls with the body - the read-aloud dialog's control bar (`ReadingControlBar`) renders here so Play/Stop and the
 // microphone stay visible while the chapter text scrolls.
 export const WithFooter: Story = {

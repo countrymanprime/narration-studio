@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { Dot as BareDot, StatusBadge, type StatusTone } from './StatusBadge';
 
 // A badge's fill is a tint of its tone (paletteContrast.test.ts checks it against surface, ADR 0362), the same
-// backdrop every real caller gives it (EntitySummary's badges, this PRD's mocks): a card, a table cell, a panel -
+// backdrop every real caller gives it (EntitySummary's badges, the benchmark mocks): a card, a table cell, a panel -
 // never the bare page background the atlas's own decorator otherwise renders a story on.
 const onSurface: Decorator = (Story) => (
   <div className="rounded-lg bg-[var(--surface)] p-6">
@@ -21,7 +21,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// One story per tone (Q6): a closed set of meanings, not one tone per stage name.
+// One story per tone: a closed set of meanings, not one tone per stage name.
 export const Neutral: Story = { args: { tone: 'neutral', label: 'Not started' } };
 export const Info: Story = {};
 export const Progress: Story = { args: { tone: 'progress', label: '41%' } };
@@ -111,7 +111,7 @@ export const WithIcon: Story = {
   },
 };
 
-// The dense-list mark (PRD "Could"): no visible text, named for a screen reader.
+// The dense-list mark: no visible text, named for a screen reader.
 export const Dot: Story = { args: { tone: 'success', label: 'This chapter: pass', variant: 'dot' } };
 
 export const AllTonesAsDots: Story = {

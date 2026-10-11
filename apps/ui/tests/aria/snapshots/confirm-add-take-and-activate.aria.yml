@@ -1,4 +1,4 @@
-# Choosing a read from another item in the Takes panel (edit-and-proof-workspace.prd.md Phase 6, EP7): the read is added as a
+# Choosing a read from another item in the Takes panel: the read is added as a
 # new take and made active, two undo steps, so it asks first. The page behind the confirm is aria-hidden, so <body> holds the
 # alert dialog and what Base UI leaves exposed on purpose (the zoom group, the two empty toast live regions).
 - /children: equal

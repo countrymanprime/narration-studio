@@ -37,9 +37,9 @@ export function fxDoneMessage(result: Exclude<WorkspaceFXResult, { outcome: 'ref
 }
 
 /**
- * The confirm step of applying an effect (edit-and-proof-workspace.prd.md Phase 9, ADR 0234): the narrator picks one of
+ * The confirm step of applying an effect (ADR 0234): the narrator picks one of
  * REAPER's installed plug-ins for the selected passage, or one of their FX chains for the chapter's track, and reads what
- * REAPER will do before anything is sent (EP10 A: each edit is sent when confirmed, nothing is queued). The favourites
+ * REAPER will do before anything is sent (each edit is sent when confirmed, nothing is queued). The favourites
  * (Settings > DAW) list first. What REAPER refuses is shown here, in the host's words, and nothing has changed; a success
  * closes the dialog and reports through `onDone`.
  */

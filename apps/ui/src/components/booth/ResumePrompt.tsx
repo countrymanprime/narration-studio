@@ -40,7 +40,7 @@ type Props = {
   active: boolean;
   /**
    * Sets where the next Start begins (`useTeleprompterSession.setStartWord`); null is the top. `label` is the control
-   * bar's start-point chip text (read-aloud-control-bar.prd.md Phase 3), a short quote starting at the chosen word;
+   * bar's start-point chip text, a short quote starting at the chosen word;
    * absent when the choice is "from the top" (word is null).
    */
   onStartWord: (word: number | null, label?: string) => void;
@@ -128,7 +128,7 @@ function PlaceQuote({ place }: { place: TeleprompterResumePlace }) {
   );
 }
 
-/** A compact notice's icon, text and links, wrapping at narrow widths (Q12): icon and text stay together on one line
+/** A compact notice's icon, text and links, wrapping at narrow widths: icon and text stay together on one line
  * that can grow, the links stay together beside them at `sm` and up, and drop to their own line below it. */
 function NoticeHeader({ icon, iconColor, children, links }: { icon: IconDefinition; iconColor: string; children: ReactNode; links: ReactNode }) {
   return (
@@ -142,7 +142,7 @@ function NoticeHeader({ icon, iconColor, children, links }: { icon: IconDefiniti
   );
 }
 
-/** The agreement notice (Proposed Solution, RD3, RD4): Start reading is already preset to `daw`'s word (see the effect in
+/** The agreement notice: Start reading is already preset to `daw`'s word (see the effect in
  * `ResumePrompt`) without settling the prompt, so the narrator sees why and can still Change (the same two-way choice as
  * `disagree`) or Start from the top. */
 function AgreeNotice({
@@ -172,7 +172,7 @@ function AgreeNotice({
   );
 }
 
-/** The compact two-way choice (Proposed Solution, RD1-RD3): REAPER and the last reading disagree, or Change revealed it from
+/** The compact two-way choice: REAPER and the last reading disagree, or Change revealed it from
  * an agreement; the narrator picks one, each a button naming its source, when it was and its word (one-based), plus Start
  * from the top and Pick a word. */
 function DisagreeChoice({
@@ -230,7 +230,7 @@ function DisagreeChoice({
   );
 }
 
-/** The prompter-only notice (RD8): no track, no recording, or no confident match, but the prompter remembers where it last
+/** The prompter-only notice: no track, no recording, or no confident match, but the prompter remembers where it last
  * stopped in this chapter. Offered, never taken silently - reading is not recording. */
 function PrompterOnlyNotice({ prompter, onChoose }: { prompter: TeleprompterResumePlace; onChoose: (word: number | null, label?: string) => void }) {
   return (
@@ -274,7 +274,7 @@ function Actions({ children, buttons }: { children: ReactNode; buttons: ReactNod
           text rather than squeezing the text to a word per line. */}
       <div className="min-w-[min(100%,16rem)] flex-1 space-y-1.5">{children}</div>
       {/* Shrinks to its line (never wider than it) so the buttons wrap inside a narrow column - the companion panel's 380 px
-          (booth-mode-and-companion-panel.prd.md Phase 7) - instead of running off its edge. */}
+          (ADR 0401) - instead of running off its edge. */}
       <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">{buttons}</div>
     </>
   );
@@ -348,7 +348,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
   const { match, track, located, verdict, lastReading } = result;
   const trackName = track?.name;
 
-  // Only one source has a place (RD8): offered in the same compact form regardless of why the other is missing (no
+  // Only one source has a place: offered in the same compact form regardless of why the other is missing (no
   // track, no recording, an unconfident guess) - this takes priority over every status-specific message below.
   if (verdict.kind === 'prompter_only' && verdict.prompter) return <PrompterOnlyNotice prompter={verdict.prompter} onChoose={onChoose} />;
 
@@ -381,8 +381,8 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
 
   const point = located?.word != null ? { word: located.word, sentence: located.sentence } : null;
 
-  // The host's reconciliation (teleprompter.Reconcile) replaces the Phase 1
-  // UI-side "complete" computation (word >= tokens): render its verdict, never recompute it.
+  // The host's reconciliation (teleprompter.Reconcile) replaces a UI-side
+  // "complete" computation (word >= tokens): render its verdict, never recompute it.
   if (verdict.kind === 'agree' && verdict.daw && verdict.prompter)
     return <AgreeOrChanged daw={verdict.daw} prompter={verdict.prompter} match={match} lastReading={lastReading} onChoose={onChoose} />;
   if (verdict.kind === 'disagree' && verdict.daw && verdict.prompter)
@@ -493,7 +493,7 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   const shown = !settled && !active;
   const preset = useRef(false);
 
-  // REAPER starting to play or record makes the prompt go away (RD7, ADR 0353):
+  // REAPER starting to play or record makes the prompt go away (ADR 0353):
   // the narrator is working in REAPER. The heartbeat's transport push (ADR 0305) says so within a tick, with no request;
   // the host's follow below says so too when that push is not there (an older bridge script). Nothing is chosen, so Start
   // reading keeps whatever it had.
@@ -505,7 +505,7 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   }, [api, shown]);
 
   // While the prompt shows for a track, the host follows REAPER (a bounded poll, never during a session) and says when it
-  // plays or records, or when its edit cursor settles on the recording (RD6): then the prompt looks again, and may preset
+  // plays or records, or when its edit cursor settles on the recording: then the prompt looks again, and may preset
   // Start again. Unfollowed the moment the prompt goes away, a session starts, or the dialog closes.
   const followTrack = lookup.state.kind === 'answered' && lookup.state.result.status !== 'asset_required' ? (lookup.state.result.track?.guid ?? null) : null;
   const { retry } = lookup;
@@ -527,9 +527,9 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
     };
   }, [api, chapterId, followTrack, retry, shown]);
 
-  // Agreement presets Start without settling the notice (RD3, RD4): the narrator sees why and can still Change or Start
-  // from the top. Only once per dialog open (this component's own lifetime), so it never fights a later Change or a
-  // narrator's own pick with a repeat preset. A cursor move REAPER reports re-opens it (Phase 5).
+  // Agreement presets Start without settling the notice: the narrator sees why and can still Change or Start
+  // from the top. Only once per mount (this component's own lifetime), so it never fights a later Change or a
+  // narrator's own pick with a repeat preset. A cursor move REAPER reports re-opens it.
   useEffect(() => {
     if (lookup.state.kind !== 'answered') return;
     const { result } = lookup.state;

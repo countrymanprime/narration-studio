@@ -114,15 +114,10 @@ func TestMediaMiddlewarePassesThroughEverythingElse(t *testing.T) {
 }
 
 // TestMediaMiddlewareAuthorizesEveryTakesSourceNotJustTheActiveOne proves
-// the take-review PRD's Phase 2 extension of the analysis evidence ledger's
-// Q10 (adopted there as "B: only the active take's source", with the PRD's
-// own note "TR Phase 2 asks for all takes; it can extend from B" - see
-// docs/prds/analysis-evidence-ledger.prd.md and
-// take-review-pickups-duplicates-take-intelligence.prd.md (now docs/utilities/take-review.md) Phase
-// 2). Take review's audition and comparison work (later phases) need to
-// play a candidate take's own source even when it is not the item's active
-// take, so every take of every item the selected project references is now
-// authorized, not only each item's active one.
+// that every take of every item the selected project references is
+// authorized, not only each item's active one. Take review's audition and
+// comparison (docs/utilities/take-review.md) need to play a candidate take's
+// own source even when it is not the item's active take.
 func TestMediaMiddlewareAuthorizesEveryTakesSourceNotJustTheActiveOne(t *testing.T) {
 	folder := t.TempDir()
 	writeFile(t, filepath.Join(folder, "Book.rpp"), multiTakeRppFixture("media/take_a.wav", "media/take_b.wav"))
@@ -153,10 +148,9 @@ func TestMediaMiddlewareAuthorizesEveryTakesSourceNotJustTheActiveOne(t *testing
 }
 
 // TestMediaMiddlewareAuthorizesEveryTakeOfARealReaperSavedMultiTakeItem
-// reuses the S0 spike's REAPER-saved fixture pack (three real takes on one
-// item, the second active) rather than a hand-written project, per the
-// take-review PRD's instruction to test the take-aware model against real
-// REAPER output.
+// reuses a REAPER-saved fixture pack (three real takes on one
+// item, the second active) rather than a hand-written project, so the
+// take-aware model is tested against real REAPER output.
 func TestMediaMiddlewareAuthorizesEveryTakeOfARealReaperSavedMultiTakeItem(t *testing.T) {
 	folder := t.TempDir()
 	copyReaperFixture(t, folder, "saved-cases.rpp", "Book.rpp")

@@ -74,7 +74,7 @@ func liveReachability() *daw.Reachability {
 
 func seconds(value float64) *float64 { return &value }
 
-// audioFinding is a Transcript Compare finding as the adapter writes it since Phase 6: its item and take GUIDs and its
+// audioFinding is a Transcript Compare finding as the adapter writes it: its item and take GUIDs and its
 // time inside the take's audio.
 func audioFinding(id, itemGUID string, sourceStart, sourceEnd *float64) findings.Finding {
 	finding := reviewFinding(id, "transcript-compare", "chapter-1", findings.SeverityWarning, confidenceOf(0.9))
@@ -270,8 +270,8 @@ func TestNavigatingAFindingTheProjectDoesNotHaveIsAnError(t *testing.T) {
 
 // configureLocked builds the navigator on the session's bridge client, next to the Transcript service, and a launch
 // with no session directory (the app opened on its own) is standalone.
-// TestConfigureBuildsTheNavigatorOnTheSessionsBridge is the "role comes from the resolver" test the DAW port PRD's
-// migration risk table calls for (P5a, ADR 0300): findingNavigation.navigator is now navigatorRole, resolved through
+// TestConfigureBuildsTheNavigatorOnTheSessionsBridge is the "role comes from the resolver" test (ADR 0300):
+// findingNavigation.navigator is navigatorRole, resolved through
 // h.dawPortResolver rather than wrapping the session's bridge client itself, and that resolver's adapter is REAPER's
 // only for a real session (p5aAdapter, over the same client configureLocked opened).
 func TestConfigureBuildsTheNavigatorOnTheSessionsBridge(t *testing.T) {

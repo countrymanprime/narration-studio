@@ -1,5 +1,5 @@
-// The golden payloads for the Master & QC export flow (render-encode-master.prd.md Phase 5): which schema owns each
-// file in tests/fixtures/contracts/ (see index.ts).
+// The golden payloads for the Master & QC export flow: which schema owns each file in
+// tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { exportJobSchema, multiPackageJobSchema, packageJobSchema } from '../schemas/renderEncodeMaster';
 import { measurePickResultSchema } from '../schemas/measure';

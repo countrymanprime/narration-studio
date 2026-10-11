@@ -5,7 +5,7 @@
 
 ## Context
 
-[Read Aloud Control Bar](../prds/read-aloud-control-bar.prd.md) redesigns the Read aloud dialog's configuration card as
+The Read aloud dialog's configuration card is redesigned as
 a compact bar with a microphone device picker and a Settings panel, each opened from a button inside a full-size
 `Dialog` (`size="full"`, [ADR 0094](0094-dialog-gains-a-full-size-variant-that-fills-the-viewport-with-a-margin.md)).
 Neither fits an existing primitive: `Menu` (ADR 0052) only holds a flat list of action items with no room for a
@@ -42,7 +42,7 @@ shape is right for a popup a person operates (a device list, a Refresh button, a
   with different focus and marker behaviour; `design-spec-guard` and this ADR are the record of why they differ, so a
   future primitive change does not merge them by mistake.
 - `Menu`'s `z-[55]` is unchanged: nothing here needs a `Menu` opened inside a dialog, so that fix stays with whichever
-  PRD needs it first.
+  change needs it first.
 - A future interactive layer above the dialog (a third kind of popup) should extend the same Escape-precedence check
   in `Dialog.tsx` rather than add a fourth ad hoc marker attribute; changing the layer order itself needs a new ADR
   that supersedes this one.

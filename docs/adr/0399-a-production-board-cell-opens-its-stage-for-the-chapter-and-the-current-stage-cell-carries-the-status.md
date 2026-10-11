@@ -5,7 +5,7 @@
 
 ## Context
 
-Stage navigation and page replacement (`docs/prds/stage-navigation-and-page-replacement.prd.md`, delivered and deleted) Phase 2 replaces Home with the **Production home** at `/`, built to mock 01. The mock's chapter pipeline says "every cell opens that stage for the chapter", and the PRD says the board's cells open "the surfaces Home opened (recording check, stage evidence, editing check, chapter track panel) with the same slide-overs". Three things were left to the phase:
+Stage navigation and page replacement replaces Home with the **Production home** at `/`, built to the benchmark mock. The mock's chapter pipeline says "every cell opens that stage for the chapter", and the board's cells open the surfaces Home opened (recording check, stage evidence, editing check, chapter track panel) with the same slide-overs. Three things were left open:
 
 - **Which cell opens which surface.** Home's table had a Track button, a status select with the stage suggestion under it (Confirm, Dismiss, Revert, Why), and a recording-check status button per row. The board has one cell per stage and no room for controls.
 - **Where the status override goes.** Home's status select was the narrator's way to set a chapter's stage by hand; the stage suggestion never moves a status on its own (ADR 0160). Losing it would be a lost capability (ADR 0407).
@@ -15,9 +15,9 @@ Stage navigation and page replacement (`docs/prds/stage-navigation-and-page-repl
 
 1. **Recorded** opens the chapter's track slide-over (`ChapterTrackPanel`), where the measured length comes from.
 2. **The chapter's current-stage cell** (its status's column, or Record for a chapter not started yet) opens the stage slide-over (`StageEvidence`). Its top carries the **status select**, the recording check's state, and **Recording check** and **Editing check**; the suggestion with Confirm, Dismiss and Revert follows. The cell reads the verdict: Ready, Not ready, Not checked, In progress, or Evidence changed.
-3. **A passed or later Record, Edit or Proof cell** opens that stage: the recording check, the editing check, or the chapter's Proof view. **Prep** opens the chapter on Script; **Delivery** opens nothing until Master & QC (Phase 8).
+3. **A passed or later Record, Edit or Proof cell** opens that stage: the recording check, the editing check, or the chapter's Proof view. **Prep** opens the chapter on Script; **Delivery** opens nothing until Master & QC exists.
 4. **A credits row's cell** opens a credits slide-over (`CreditsRowPanel`) with its template, words, estimated length, unresolved tokens, Open in Script and its status, written only through `setCreditsStatus`.
-5. The cells use mock 01's compact glyphs where main's copy-fix pass (#844, audit PR10) put them: ✓ for a passed stage and a dash for one ahead, for a not-started chapter's Record, and for Prep and Delivery. A current stage keeps its verdict word, and a Recorded cell with no length keeps its reason (No track, 2+ tracks, Track missing, No project), which carries Home's Actual recorded column.
+5. The cells use the mock's compact glyphs where main's copy-fix pass (#844, audit PR10) put them: ✓ for a passed stage and a dash for one ahead, for a not-started chapter's Record, and for Prep and Delivery. A current stage keeps its verdict word, and a Recorded cell with no length keeps its reason (No track, 2+ tracks, Track missing, No project), which carries Home's Actual recorded column.
 
 ## Consequences
 

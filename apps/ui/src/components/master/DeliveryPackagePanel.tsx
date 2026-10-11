@@ -34,8 +34,8 @@ function waitingOn(measure: MeasureJob | undefined, jobs: ExportJobs): string | 
 }
 
 /**
- * The delivery package for the platform chosen in Master & QC's tabs (mock
- * 05's side panel; render-encode-master.prd.md Phase 5): the book checklist, then once a package is built the checklist the
+ * The delivery package for the platform chosen in Master & QC's tabs (benchmark mock
+ * 05's side panel): the book checklist, then once a package is built the checklist the
  * packager judged and its outputs, the folder and every file it wrote. "Build packages" assembles the files already mastered and
  * encoded on this page. Mock 05's "Preview naming" is left out: nothing reports the package's file names before it is built.
  */

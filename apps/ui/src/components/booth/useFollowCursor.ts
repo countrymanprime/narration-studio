@@ -72,7 +72,7 @@ export type FollowCursor = {
 };
 
 /**
- * Following for the shared reader (teleprompter-engines-and-input-devices.prd.md Phase 10, ADR 0119). Following pauses when
+ * Following for the shared reader (ADR 0119). Following pauses when
  * the narrator scrolls - a wheel, a touch drag, a scrolling key or a press on the scrollbar, never a scroll event, because the
  * reader's own follow scrolling fires those too - and resumes by itself once the current word is back inside the follow band
  * (the narrator scrolled back, or read on until the word came into it), or at once from `resume`. Each session starts

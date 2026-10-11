@@ -1,9 +1,7 @@
 # Story Bible build after import
 
 An opt-in setting and per-import checkbox that chain a Story Bible build onto a successful manuscript import, so a
-narrator who always builds right after importing gets it without a second manual step. Delivered by the
-story-bible-and-import-ux-briefs PRD's B brief (phase 3); this page replaces that PRD now that it is deleted (its
-Open Questions B1-B3 hold the decisions' own reasoning and the measured build durations).
+narrator who always builds right after importing gets it without a second manual step.
 
 ## The path
 
@@ -23,10 +21,10 @@ Open Questions B1-B3 hold the decisions' own reasoning and the measured build du
 
 ## Decisions worth remembering
 
-- **On by default** (owner decision D8, overriding the PRD's own "off until measured" recommendation).
+- **On by default** (an owner decision).
   `ManuscriptGuide.build_after_import` is a normal Story Bible-category setting, global and project scope like every
   other one.
-- **UI-chained, not host-chained** (B3): no binding signature change; the frontend starts the build itself after the
+- **UI-chained, not host-chained**: no binding signature change; the frontend starts the build itself after the
   import job reports success, so a build failure is naturally its own, separate report.
 - **Measured cost** (Windows 11 dev venv, `en_core_web_sm`, p50 of 5 runs): import itself is under 0.1s regardless of
   manuscript size; the build is the real cost, roughly 5s of Python/model start-up plus about 1s per 10,000 words (a

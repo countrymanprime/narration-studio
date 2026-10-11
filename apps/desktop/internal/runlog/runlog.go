@@ -1,8 +1,8 @@
-// Package runlog is the host's structured, leveled run log (docs/prds/tool-run-logging.prd.md): JSON lines written
-// through log/slog to a capped, rotating file next to host.log. Every tool run gets a run id; the host writes a
-// `run.start` record when it begins and a `run.end` record when it finishes, and — once the debug switch is on — the
-// decision points in between. Content never enters this log at any level: ids, counts, hashes, paths, timings and
-// settings only, never manuscript or transcript text (ADR 0069's "where, not what", threat-model row 7a).
+// Package runlog is the host's structured, leveled run log (ADR 0251): JSON lines written through log/slog to a
+// capped, rotating file next to host.log. Every tool run gets a run id; the host writes a `run.start` record when it
+// begins and a `run.end` record when it finishes, and — once the debug switch is on — the decision points in between.
+// Content never enters this log at any level: ids, counts, hashes, paths, timings and settings only, never
+// manuscript or transcript text (threat-model row 7a).
 package runlog
 
 import (
@@ -68,7 +68,7 @@ func New(path string, maxBytes int64) *Logger {
 	return l
 }
 
-// DefaultPath is the run log, next to host.log (docs/prds/tool-run-logging.prd.md's Architecture section).
+// DefaultPath is the run log, next to host.log.
 func DefaultPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
 		return filepath.Join(value, "narration-utils", "logs", "run.jsonl")

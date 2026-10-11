@@ -1,6 +1,6 @@
 package main
 
-// The multi-platform export flow's bindings (render-encode-master.prd.md Phase 6): one mastered/encoded source
+// The multi-platform export flow's bindings: one mastered/encoded source
 // produces packages for several selected delivery profiles in one action, over the same export job's own encoded
 // files PackageStart (bindings_export.go) already uses. The orchestration is in multi_package_job.go.
 

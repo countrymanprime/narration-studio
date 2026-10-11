@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-// The DAW port boundary guard (DAW port PRD P6, ADR 0300): dawport is the only way the host reaches an audio engine, so
+// The DAW port boundary guard (ADR 0300): dawport is the only way the host reaches an audio engine, so
 //   - no package outside internal/bridge (the transport) and internal/dawport/reaper (the one adapter that wraps it) may hold a
 //     *bridge.Client or *bridge.Actions: a caller takes a role from a Resolver instead;
 //   - no code outside internal/dawport (any adapter, including the fake) may branch on a dawport.Kind or the DAW's own label
@@ -22,7 +22,7 @@ import (
 //
 // Both rules have a small, named exceptions list rather than zero tolerance, because the composition root itself must pick one
 // concrete adapter and one concrete transport for the launch (that is what "composition root" means). internal/dawadapter, the
-// seam this port replaced, was retired at P8: its own bridgeHolderExceptions and kindBranchExceptions entries went with it, and
+// seam this port replaced, was retired: its own bridgeHolderExceptions and kindBranchExceptions entries went with it, and
 // the guard's own dawadapter references below (dawadapterPkgDir, the fixture tests) are deliberately independent of whether that
 // package still exists, so the guard still proves its rules fire correctly with nothing real to check against. An exception is
 // not a loophole: every remaining entry names why it is still there, and TestEveryBoundaryExceptionIsStillNeeded fails the
@@ -43,9 +43,9 @@ var bridgeHolderExceptions = map[string]string{
 		"until every remaining holder reaches it through a role instead",
 	"services.go": "hostServices is the snapshot of the same fields app.go's Host carries, read under h.services() (hostguard_test.go)",
 	"bindings_navigation.go": "p5aAdapter hands out the shared navigator and actions object as roles rather than build a second " +
-		"dawport/reaper.Adapter over the same client, which would race its own run IDs against h.actions' (DAW port PRD P5a)",
+		"dawport/reaper.Adapter over the same client, which would race its own run IDs against h.actions'",
 	"internal/daw/reachability.go": "the Heartbeat role's one implementation; every holder of it is typed dawport.Heartbeat " +
-		"(DAW port PRD P5c), but the tracker itself still subscribes to the concrete client's own fan-out",
+		"but the tracker itself still subscribes to the concrete client's own fan-out",
 }
 
 // kindBranchExceptions name "<file> <function>" pairs allowed to branch on a dawport.Kind or a DAW label outside
@@ -53,11 +53,11 @@ var bridgeHolderExceptions = map[string]string{
 var kindBranchExceptions = map[string]string{
 	"app.go configureLocked": "the composition root: it alone decides which physical transport to open for the launch's DAW, " +
 		"and which review session (REAPER's bridge or Audacity's not-yet-available refusal) to build for it " +
-		"(DAW port PRD P2's OCP note: the composition root picks the factory by Kind)",
+		"(the composition root picks the factory by Kind)",
 	"bindings.go pickerSwitchDAW": "a picker switch keeps an Audacity launch Audacity and turns any other into Standalone: an " +
 		"identity choice a picked project's own DAW makes, not a capability, so it has no resolver equivalent",
 	"bindings_daw.go dawDeclarationFor": "the launch's declaration-only adapter, chosen by Kind the same way dawport.Register's " +
-		"factories are (DAW port PRD's OCP note), until the registry replaces every P4-era caller's own adapter",
+		"factories are, until the registry replaces every caller's own adapter",
 	"internal/daw/locate.go looksLikeReaper": "matches a Windows uninstall registry DisplayName against Cockos's own naming " +
 		"(\"REAPER\", \"REAPER (x64)\"); it locates an install on disk and never decides behaviour, so it is not a Kind branch",
 }

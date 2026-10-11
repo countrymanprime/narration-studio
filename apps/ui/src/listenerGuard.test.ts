@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0361 (input-commands-and-pedals.prd.md Phase 1): a command is registered with `useCommand`, never heard with a
+// ADR 0361: a command is registered with `useCommand`, never heard with a
 // feature's own `keydown` listener - the rule that made three listeners quietly disagree on modifiers, dialogs and
 // fields in the first place. This scan (in the style of rawNatives.test.ts) fails on `<target>.addEventListener('keydown', ...)`
 // outside `src/input/`, unless the file is in ALLOWLIST below, and each entry there must say why. A file dropped from
@@ -19,8 +19,8 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll (ADR 0119), not a command' },
 };
 
-// Temporary: a command listener not yet migrated onto `useCommand`. Each entry names the phase that migrates it and is
-// deleted in that phase's pull request. Empty (2026-10-11).
+// Temporary: a command listener not yet migrated onto `useCommand`. Each entry names what migrates it and is
+// deleted in the pull request that migrates it. Empty (2026-10-11).
 const TEMPORARY: Record<string, Reason> = {};
 
 const ALLOWLIST: Record<string, Reason> = { ...PERMANENT, ...TEMPORARY };

@@ -103,7 +103,7 @@ func TestDialogueCuesToleratesMissingGuideAndMissingKey(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(s.guidePath()), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	// A guide written before Phase 2 has entities but no dialogue_cues key at all.
+	// A guide written before dialogue cues existed has entities but no dialogue_cues key at all.
 	if err := os.WriteFile(s.guidePath(), []byte(`{"entities":[]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestAliasAndCreateOperationsUseCanonicalManuscriptWithoutLegacyESpeakPath(t
 	}
 }
 
-// story-bible-and-import-ux-briefs PRD phase 11 (the settings default): --default-source is left off build, an alias
+// TestDefaultPronunciationSourceIsOmittedWhenUnset pins the settings default: --default-source is left off build, an alias
 // edit and create entirely while the narrator has not set a preference, so every project's command line is unchanged
 // from before this setting existed; once set, it reaches all three, but never a field edit that does not touch aliases.
 func TestDefaultPronunciationSourceIsOmittedWhenUnset(t *testing.T) {

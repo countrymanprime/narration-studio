@@ -1,17 +1,16 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: a
-// second, whole-file analysis source for a chapter's rendered WAV (Q6),
-// alongside the played-range item source Phase 2 built (source.go,
-// decode.go). "Let the narrator check a render, without letting it silently
-// replace the item check" (Phase 8's own Goal): DecodeRender below is the
-// render path's one decode, exactly mirroring Decode's own shape and error
-// handling, but over the whole file - "no played range, no composition"
-// (Phase 8 Scope), so it passes measure.DiagnosticInput.Range as nil rather
-// than a range clipped to some item's SOFFS/LENGTH. The chapter-to-render
+// This file holds a second, whole-file analysis source for a chapter's
+// rendered WAV, alongside the played-range item source (source.go,
+// decode.go). It lets the narrator check a render without silently replacing
+// the item check (ADR 0550): DecodeRender below is the render path's one
+// decode, mirroring Decode's own shape and error handling, but over the
+// whole file, so it passes measure.DiagnosticInput.Range as nil rather than
+// a range clipped to some item's SOFFS/LENGTH. The chapter-to-render
 // association and its own fingerprint/staleness are owned entirely by
-// proofing-readiness-signals.prd.md Phase 4 (apps/desktop/internal/proofing,
-// RenderStore/EvaluateRender) and reused as-is - this file only ever decodes
+// apps/desktop/internal/proofing (RenderStore/EvaluateRender) and
+// reused as-is - this file only ever decodes
 // a path proofing has already told the caller is the chapter's current
 // render (render_signal.go, service.go).
+
 package editing
 
 import (

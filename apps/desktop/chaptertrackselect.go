@@ -9,10 +9,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// "Select in REAPER" (chapter-track-link-control.prd.md Phase 4, Could): from the chapter track slide-over's Link
-// section, brings the narrator's attention to a track without changing anything else. The Lua and bridge half
-// (select_track in narration_track_select.lua and bridge.Actions.SelectTrack, DAW port PRD's Track select role) is
-// already built and harness-tested; this file is the remaining caller. Sent only from a click, with the track GUID
+// "Select in REAPER": from the chapter track slide-over's Link section, brings the narrator's attention to a track
+// without changing anything else. The Lua and bridge half (select_track in narration_track_select.lua and
+// bridge.Actions.SelectTrack, the DAW port's Track select role) is harness-tested; this file is the caller. Sent only
+// from a click, with the track GUID
 // the slide-over already has (a linked or candidate track's guid, never a path, threat-model row 5j).
 
 // TrackSelectResult is what a select did, in the shape the slide-over reads. Outcome is "selected" or "refused"
@@ -44,7 +44,7 @@ func trackSelectConnectionMessage(connection string) string {
 	return messageTrackSelectStandalone
 }
 
-// trackSelectorFrom asks svc's DAW port resolver for the Track select role (DAW port PRD P5a, ADR 0300), the same
+// trackSelectorFrom asks svc's DAW port resolver for the Track select role (ADR 0300), the same
 // seam trackStateReaderFrom uses: nil when there is no resolver, no adapter, the capability is toggled off, or
 // REAPER is not reachable right now.
 func trackSelectorFrom(svc hostServices) dawport.TrackSelector {

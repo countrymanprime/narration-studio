@@ -89,7 +89,7 @@ var renderTimeout = 30 * time.Minute
 // dispatchEvery is how often a master waiting for its render reads what the engine reported.
 const dispatchEvery = 50 * time.Millisecond
 
-// dawChain is the DAW row (ADR 0306, render-encode-master PRD Phase 9). Master reads the chain the render will run
+// dawChain is the DAW row (ADR 0306). Master reads the chain the render will run
 // (master_chain_read), makes an empty folder for the run inside the app's project folder, asks the engine to render req.Region
 // through its FX there (render_with_fx) with a one-time approval token made from req.Approved, waits for the one file, and moves it
 // to req.Destination without ever replacing a file. It then answers Judge's verdict on that file, never a level the DAW reports.

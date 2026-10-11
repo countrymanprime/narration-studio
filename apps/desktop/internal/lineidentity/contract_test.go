@@ -10,9 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 )
 
-// The two LineIdentityState wire payloads apps/ui needs for its schema and mock (ADR 0069, reaper-automation-
-// follow-through PRD Phase 7: closing the wire-contract gap Phase 6 deliberately left open, since nothing called
-// these bindings from the frontend yet). "line-identity-idle" is what LineIdentityState answers before any run;
+// The two LineIdentityState wire payloads apps/ui needs for its schema and mock (ADR 0069). "line-identity-idle" is what LineIdentityState answers before any run;
 // "line-identity-read-success" is a completed Read with one row of every status the classifier produces, so the
 // UI's states (ok, drift, stale-source, removed, unrecognized, unknown never occurs once a manuscript is loaded)
 // can be built and reviewed against a real shape rather than a hand-typed guess. runId is time-based (newRunID),

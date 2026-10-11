@@ -1,6 +1,6 @@
 """
 Regenerates tests/fixtures/teleprompter-locate/, the recorded tails the tail-audio locate is measured on
-(teleprompter-manuscript-integration PRD Phase 9, ADR 0111).
+(ADR 0111).
 
 Each case is a narrator's recording of Chapter I of Alice's Adventures in Wonderland (tests/fixtures/alice.md,
 public domain) up to a known word: a Piper voice speaks the last couple of minutes of it, with the case's own
@@ -16,7 +16,7 @@ no model:
 
 Both assets are the app's own verified installs (the Whisper model is the teleprompter's default, tiny, the least
 accurate one it offers). The voice is synthetic, so this measures the locate against real recognition errors, not a
-human narrator's pacing; a real reading is still a manual check (see the PRD phase).
+human narrator's pacing; a real reading is still a manual check.
 """
 
 import argparse

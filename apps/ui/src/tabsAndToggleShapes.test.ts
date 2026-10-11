@@ -14,9 +14,8 @@ import { describe, expect, test } from 'vitest';
 type Shape = 'underline-tab' | 'segmented-group';
 
 const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {
-  // Four independent actions (Note, Mark up, Story Bible, Look up) glued into one strip by Phase 10's Toolbar wrapper — not
-  // a single choice among them, so it is a toolbar's look, not ToggleGroup's. Phase 5 measured this and corrected the PRD's
-  // "pretending to be a segmented group" line, which described the file before Phase 10 gave it real toolbar semantics.
+  // Four independent actions (Note, Mark up, Story Bible, Look up) glued into one strip by a Toolbar wrapper — not
+  // a single choice among them, so it is a toolbar's look, not ToggleGroup's.
   'src/components/manuscript/SelectionMenu.tsx': { 'segmented-group': 3, owner: 'none: independent toolbar actions, not a single-choice group' },
 };
 
@@ -53,7 +52,7 @@ const found = Object.fromEntries(
     .filter(([, counts]) => Object.keys(counts).length > 0),
 );
 
-describe('the underline tab and the segmented group are drawn by Tabs and ToggleGroup (Phase 5)', () => {
+describe('the underline tab and the segmented group are drawn by Tabs and ToggleGroup', () => {
   test('recognises the two hand-drawn shapes and not the primitive-shaped things around them', () => {
     expect(shapesOf('rounded px-2 py-1 font-semibold tracking-[0.08em] uppercase')).toEqual([]);
     expect(shapesOf('border-b-2 border-transparent px-[0.9rem] py-2 tracking-[0.08em] uppercase')).toEqual(['underline-tab']);

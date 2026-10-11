@@ -7,7 +7,7 @@
     "complete"
   ],
   "split": "held_out",
-  "description": "Paragraph two is read with a few words wrong (misreads count as present, the PRD's Definitions, Present); every paragraph is read.",
+  "description": "Paragraph two is read with a few words wrong (misreads count as present); every paragraph is read.",
   "recording": {
     "items": [
       {

@@ -1,4 +1,4 @@
-// The browser mock's delivery profiles (docs/prds/delivery-platform-profiles.prd.md, ADR 0179), answering the way
+// The browser mock's delivery profiles (ADR 0179), answering the way
 // apps/desktop/delivery_profiles.go and internal/deliveryprofile do: the built-in ACX profile (the same rules as
 // tests/fixtures/contracts/delivery-profiles.json pins, which wireContracts.test.ts checks), rule-by-rule evaluation of a
 // measured file and of the book, the Global default and the project's choice, and a custom profile's duplicate, edit and
@@ -223,7 +223,7 @@ export const MOCK_ACX: DeliveryProfile = {
 };
 
 /**
- * The custom profile `?mockDeliveryProfile=custom` chooses for the project (mockup 05): ACX with a lower RMS floor and a tighter
+ * The custom profile `?mockDeliveryProfile=custom` chooses for the project (benchmark mock 05): ACX with a lower RMS floor and a tighter
  * peak, and room tone at the head and the sample rate turned off (the narrator renders at 48 kHz and converts on export).
  */
 export function mockCustomProfile(): DeliveryProfile {
@@ -458,8 +458,8 @@ export function createDeliveryProfilesMock(
 
   return {
     current,
-    /** Every profile the narrator can choose from, built-in first (render-encode-master PRD Phase 6's own
-     * multi-select reads this, the same list `state()` already reports as `profiles`). */
+    /** Every profile the narrator can choose from, built-in first (the multi-platform export
+     * panel's multi-select reads this, the same list `state()` already reports as `profiles`). */
     all,
     deliveryProfiles: async () => state(),
     deliverySelectProfile: async (scope, id, version) => {

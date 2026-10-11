@@ -32,7 +32,7 @@ type Props = {
   /** What the narrator last opened, from a mark in the text or from the entry list here. */
   selected?: ReaderMarkTarget;
   onSelect: (target: ReaderMarkTarget) => void;
-  /** The Flags tab (Phase 7): the session's suspected flags, which kinds show, dismissal and the save status. */
+  /** The Flags tab: the session's suspected flags, which kinds show, dismissal and the save status. */
   flagPanel: Omit<ComponentProps<typeof ReaderFlagsPanel>, 'selected' | 'onSelect'>;
   /** Fill the column it is given instead of sizing itself: booth mode's `FocusShell` rail already has its own width, which
    * the normal dialog's fixed 19-20rem would overflow. */
@@ -40,9 +40,9 @@ type Props = {
 };
 
 /**
- * The read-aloud dialog's side rail (teleprompter-manuscript-integration.prd.md Phase 5): the key, the session's suspected
- * flags (Phase 7), the chapter's notes and its story bible entries, beside the text rather than over it, so opening one never covers, moves or scrolls the
- * text being read. It is sticky and scrolls on its own. Whether it is open and which tab shows are per-viewer
+ * The read-aloud dialog's side rail: the key, the session's suspected
+ * flags, the chapter's notes and its story bible entries, beside the text rather than over it, so opening one never
+ * covers, moves or scrolls the text being read. It is sticky and scrolls on its own. Whether it is open and which tab shows are per-viewer
  * preferences kept in browser storage (`readerPreferences.ts`); the owner of that state is `BoothSession`.
  */
 export function ReaderRail({ state, onTab, onToggle, seekable, entities, notes, selected, onSelect, flagPanel, fill = false }: Props) {

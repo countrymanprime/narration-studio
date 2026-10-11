@@ -30,16 +30,16 @@ export function ParagraphView({
   paragraphs: ManuscriptParagraph[];
   entities: GuideEntity[];
   notes: ManuscriptNote[];
-  /** The chapter's script markup (prep-depth.prd.md Phase 5): fresh spans are drawn on their line, stale ones listed beside it. */
+  /** The chapter's script markup: fresh spans are drawn on their line, stale ones listed beside it. */
   markup?: PrepMarkupSpan[];
   /** Removes one mark; left out, a stale mark is still said but offers no Remove. */
   removeMarkup?: (span: PrepMarkupSpan) => void;
   textClass: string;
   lineNumberPadding: string;
   jumpTarget?: number;
-  /** The retail sample's paragraphs (Phase 5, C10): their rows are marked, with a label where it starts and ends. */
+  /** The retail sample's paragraphs: their rows are marked, with a label where it starts and ends. */
   retailSample?: RetailSampleRange;
-  /** Speaker attribution (prep-depth.prd.md Phase 4): a dialogue line whose cue resolves to a known entity gets a
+  /** Speaker attribution: a dialogue line whose cue resolves to a known entity gets a
    * speaker chip; `unknown` and no-cue paragraphs render exactly as before. */
   dialogueCues?: DialogueCue[];
   openEntity: (entity: GuideEntity) => void;

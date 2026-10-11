@@ -312,7 +312,7 @@ func TestSmokeReportsTheFrozenTeleprompterCapabilities(t *testing.T) {
 	}
 }
 
-// The fault-detection case (PRD Success Metrics): a row Go's own registries declare for the platform, but the
+// The fault-detection case: a row Go's own registries declare for the platform, but the
 // sidecar's own report never lists, is exactly the class of freeze-silently-loses-a-dependency bug the capabilities
 // check exists to catch.
 func TestSmokeFailsWhenTheFrozenTeleprompterDidNotRegisterARowGoDeclaresForThePlatform(t *testing.T) {
@@ -374,7 +374,7 @@ func TestSmokeFailsWhenTheTeleprompterIsMissingSoItsCapabilitiesCannotBeChecked(
 	}
 }
 
-// --- Phase 2: manuscript-guide's and transcript-compare's own --capabilities checks (sidecar-capabilities-flag PRD) ---
+// --- manuscript-guide's and transcript-compare's own --capabilities checks ---
 
 func TestSmokeReportsTheFrozenGuideCapabilities(t *testing.T) {
 	run := &fakeRun{}
@@ -406,7 +406,7 @@ func TestSmokeReportsTheFrozenCompareCapabilities(t *testing.T) {
 	}
 }
 
-// The fault-detection case (PRD Success Metrics), generalized past the Teleprompter to the other two sidecars.
+// The fault-detection case, generalized past the Teleprompter to the other two sidecars.
 func TestSmokeFailsWhenTheFrozenGuideDidNotRegisterARowGoDeclaresForThePlatform(t *testing.T) {
 	missingPiper := `{"type": "capabilities", "tts": {}, "pronunciation": {"cmu": {"label": "CMU dictionary", "platforms": [], "modes": ["pronounce"], "loadable": null}, "espeak": {"label": "eSpeak NG", "platforms": [], "modes": ["pronounce"], "loadable": null}}}`
 	missingEspeak := `{"type": "capabilities", "tts": {"piper": {"label": "Piper", "platforms": [], "modes": [], "asset": "tts", "loadable": null}}, "pronunciation": {"cmu": {"label": "CMU dictionary", "platforms": [], "modes": ["pronounce"], "loadable": null}}}`

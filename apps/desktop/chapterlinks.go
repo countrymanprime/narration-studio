@@ -9,10 +9,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// This file is Phase 1 of docs/prds/chapter-track-link-control.prd.md: an
-// atomic "set this chapter's track" and "unlink this chapter", and one read of
-// every narration chapter's link state and track facts from a single parse of
-// the saved .rpp (ChapterTrackMatch per row would parse it once per chapter).
+// This file holds an atomic "set this chapter's track" and "unlink this
+// chapter", and one read of every narration chapter's link state and track
+// facts from a single parse of the saved .rpp (ChapterTrackMatch per row would
+// parse it once per chapter).
 
 // chapterTrackSetResult is ChapterTrackSet's payload: the link as written, the
 // link it displaced from another chapter (null when the track was free), and
@@ -25,7 +25,7 @@ type chapterTrackSetResult struct {
 
 // chapterTrackSet makes trackGUID chapterID's one confirmed link, replacing
 // any link the chapter had and taking the track from any chapter that held it
-// (TL3 A). Like mappingConfirm it refuses a chapter outside the manuscript, so
+// (a chapter has exactly one track, ADR 0207). Like mappingConfirm it refuses a chapter outside the manuscript, so
 // the stored title is always the real one.
 func (h *Host) chapterTrackSet(chapterID, trackGUID string) (chapterTrackSetResult, error) {
 	svc := h.services()
@@ -123,9 +123,8 @@ type chapterTrackLink struct {
 	// ChapterSubtitle is the chapter's subtitle field ("" when it has none). It
 	// never reaches the wire (json:"-"): the UI already builds its own display
 	// name with chapterName(). It exists so a host-side consumer that writes a
-	// chapter's name as plain text (chapterRegionPlanIn, Q7 of
-	// chapter-title-display-consistency.prd.md, owner decision D34) can follow
-	// the same rule without a new wire payload.
+	// chapter's name as plain text (chapterRegionPlanIn) can follow the same
+	// rule without a new wire payload.
 	ChapterSubtitle string `json:"-"`
 	chaptermatch.Result
 	Links       []evidence.TrackMapping `json:"links"`
@@ -173,8 +172,8 @@ func chapterTrackLinksIn(svc hostServices) (chapterTrackLinks, error) {
 	chapters := make([]chaptermatch.Chapter, 0, len(raw))
 	narration := make([]chaptermatch.Chapter, 0, len(raw))
 	// subtitles holds each chapter's subtitle by id, off to the side of chaptermatch.Chapter: the matcher compares
-	// titles only (chapter-title-display-consistency.prd.md, "No change to what the chapter matchers compare"), so
-	// the subtitle never joins the matched/narration lists above, only chapterTrackLink's own (non-wire) field below.
+	// titles only, so the subtitle never joins the matched/narration lists above, only chapterTrackLink's own
+	// (non-wire) field below.
 	subtitles := make(map[string]string, len(raw))
 	for _, chapter := range raw {
 		id, _ := chapter["id"].(string)

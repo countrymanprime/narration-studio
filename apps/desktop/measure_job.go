@@ -14,8 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// Measuring the narrator's rendered chapter files as a job (diagnostics-delivery-and-cleanup-tools.prd.md Phase 1,
-// ADR 0156). The narrator picks WAV files in the operating system's picker (MeasurePickFiles); MeasureAnalyze measures
+// Measuring the narrator's rendered chapter files as a job (ADR 0156). The narrator picks WAV files in the operating system's picker (MeasurePickFiles); MeasureAnalyze measures
 // only files picked that way in this session, one after another, with progress from the bytes really read (ADR 0015)
 // and a cancel that stops mid-file. Each file answers its internal/measure report and the fingerprint of the bytes it
 // was measured from, or why it could not be measured. Nothing is written anywhere: the files are opened read-only.

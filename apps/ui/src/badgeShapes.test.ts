@@ -6,26 +6,26 @@ import { describe, expect, test } from 'vitest';
 // Every pill is THE pill (ADR 0600): a status pill, a type tag, a
 // speaker tag, a summary chip and a status dot are drawn by `StatusBadge`/`Badge`/`Dot` (primitives/StatusBadge.tsx),
 // `SpeakerTag` or `Pill`, never by pasting the classes. The owner saw pills of 18 to 26 px side by side because each page
-// drew its own. The header's chips are `HeaderChip` (Phase 8, ADR 0635). This scan reads every class string outside the primitives and counts the three shapes a copy leaves
-// behind, per file:
+// drew its own. The header's chips are `HeaderChip` (ADR 0635). This scan reads every class string outside the primitives and counts
+// the three shapes a copy leaves behind, per file:
 // - a chip: `rounded-full` with side padding;
 // - a dot: `rounded-full` at a dot's size (6-8 px);
 // - a tag: a small fixed radius (0.1-0.29 rem) with side padding.
 // A file may only go down: a ceiling above its real count fails, so an entry is lowered (or deleted at zero) in the same
-// change. The entries left are the page-component copies the PRD gives to each page's own phase.
+// change. The entries left are page-component copies that are still to be moved onto the primitives, and the one that is not a copy.
 type Shape = 'chip' | 'dot' | 'tag';
 
 const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {
   // The Booth's control-bar chip (the start-point chip: a quoted sentence fragment with a nested clear button, which
   // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip) and BuiltinRecorder's
   // chip use `HeaderChip`/primitives and have no entry.
-  'src/components/booth/ReadingControlBar.tsx': { chip: 1, owner: 'Phase 13' },
+  'src/components/booth/ReadingControlBar.tsx': { chip: 1, owner: 'start-point chip' },
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
   // reuses this exact maroon (ADR 0656).
-  'src/components/booth/BoothView.tsx': { chip: 1, dot: 1, owner: 'Phase 13 (ADR 0656)' },
+  'src/components/booth/BoothView.tsx': { chip: 1, dot: 1, owner: 'REC pill, ADR 0656' },
   // The Proof notes header's sources line and the legend's dots.
-  'src/components/proof/NotesHeader.tsx': { chip: 1, owner: 'Phase 12' },
-  'src/components/proof/NotesStrip.tsx': { dot: 1, owner: 'Phase 12' },
+  'src/components/proof/NotesHeader.tsx': { chip: 1, owner: 'sources line' },
+  'src/components/proof/NotesStrip.tsx': { dot: 1, owner: 'legend dots' },
   // Not a copy to migrate: the script mark's character tag is CSS generated content (`before:`), never an element, so the
   // selection offsets see only the manuscript's text (ADR 0382); it is sized in em to ride the reading text.
   'src/components/manuscript/MarkupMark.tsx': { tag: 1, owner: 'none: generated content, ADR 0382' },

@@ -1,13 +1,12 @@
 // Package projectstate is the host's end of the REAPER live "project changed" indicator (the project_state
-// bridge command; see docs/prds/reaper-automation-follow-through.prd.md Phase 13, "Change-driven re-compare
-// indicator", and docs/prds/analysis-evidence-ledger.prd.md Open Question 12, answered (B)). It is a Could-tier,
-// coarse hint: REAPER's own edit counter (GetProjectStateChangeCount), read only while REAPER is open from this
+// bridge command; see "Live project-change indicator" in docs/architecture/reaper-bridge.md). It is a coarse
+// hint: REAPER's own edit counter (GetProjectStateChangeCount), read only while REAPER is open from this
 // app, alongside the saved .rpp file's modification time (stat'd here - Lua has no portable file-stat call, and
 // the host already reads paths like this one elsewhere).
 //
 // This package makes no staleness decision by itself: Check reports the live count and the saved file's mtime,
 // and ChangedSince compares a later count to a baseline a caller captured earlier. Any consumer that already has
-// a saved-file-mtime-based staleness check (for example, a future evaluator under apps/desktop/internal/evidence)
+// a saved-file-mtime-based staleness check (for example, the evaluator in apps/desktop/internal/evidence)
 // treats this only as an additional, optional live hint on top of its existing basis, never a replacement for it:
 // this package has no opinion on what "stale" means for another feature.
 package projectstate
@@ -39,7 +38,7 @@ type Service struct {
 // New builds the service and, when there is a reader, subscribes to PROJECT_STATE and ERROR events for its own
 // run (or, with no run, a session-level problem). The transcript, line-identity, pickups and render-config
 // services subscribe independently on the same client; Dispatch fans events out to all of them. reader is the DAW
-// port's project_state role (DAW port PRD P5c); nil is a standalone launch or a DAW with no such role, and every
+// port's project_state role (ADR 0300); nil is a standalone launch or a DAW with no such role, and every
 // Check then fails.
 func New(config Config, reader dawport.ProjectStateReader, changed func(map[string]any)) *Service {
 	s := &Service{config: config, reader: reader, changed: changed, state: empty()}
@@ -80,7 +79,7 @@ func (s *Service) Check() error {
 
 // ChangedSince reports whether current differs from a baseline captured earlier. REAPER's counter only ever
 // increases while a project stays open, so any difference means at least one edit happened since the baseline
-// was read; it is deliberately coarse (Phase 13's own scope: a label, never an automatic re-run) and says
+// was read; it is deliberately coarse (it drives a label, never an automatic re-run) and says
 // nothing about what changed or how much.
 func ChangedSince(current, baseline int) bool {
 	return current != baseline

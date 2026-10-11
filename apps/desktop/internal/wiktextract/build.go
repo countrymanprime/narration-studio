@@ -1,4 +1,4 @@
-// build.go builds the compact word -> {ipa, audio} pronunciation index this package installs (Q8): one pass over the
+// build.go builds the compact word -> {ipa, audio} pronunciation index this package installs: one pass over the
 // unpacked Wiktextract release's JSON Lines files, keeping only a single-word headword's first IPA transcription and
 // first Wikimedia Commons audio file name (docs/research/wiktextract-pronunciation-source.md). A multi-word headword is
 // skipped, the same "single-word lookups only" rule internal/dictionary's own WordNet index already follows (ADR 0097).
@@ -15,8 +15,8 @@ import (
 // IndexName is the derived index's file name inside the install: the only file the install keeps.
 const IndexName = "wiktextract-index.json"
 
-// WordEntry is what the derived index keeps for one headword. Audio (a Wikimedia Commons file name) is read here for
-// prep-depth Phase 10 to use later; Phase 8 itself only reads IPA.
+// WordEntry is what the derived index keeps for one headword. Audio (a Wikimedia Commons file name) is read for the
+// Commons audio link (WordAudioURL); the sidecar's lookup reads only IPA.
 type WordEntry struct {
 	IPA   string `json:"ipa"`
 	Audio string `json:"audio"`
@@ -83,7 +83,7 @@ func readLines(path string, words map[string]WordEntry) error {
 			continue // a multi-word headword is out of scope, matching internal/dictionary's own WordNet index
 		}
 		if _, already := words[word]; already {
-			continue // the first entry for a word wins (Q8: one pronunciation-only index, not every sense)
+			continue // the first entry for a word wins (the index is pronunciation-only, not every sense)
 		}
 		var ipa, audio string
 		for _, sound := range raw.Sounds {

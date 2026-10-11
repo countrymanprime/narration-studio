@@ -85,15 +85,14 @@ H.test('an unsaved project launches with an empty project folder and a placehold
   local command = calls_named(fake, 'ExecProcess')[1].command
   H.contains(command, "--project-folder ''")
   H.contains(command, "--project-name 'Unsaved REAPER project'")
-  -- W5: an unsaved REAPER project has no file to link, so the app gets an
+  -- An unsaved REAPER project has no file to link, so the app gets an
   -- empty --project-file and falls back to the picker instead of guessing.
   H.contains(command, "--project-file ''")
 end)
 
--- PRD project-workspace-and-daw-link.prd.md Phase 5: the launcher passes the
--- exact rpp path as --project-file so the app can map it back to whichever
--- project's manifest links it (W5), even when that project's folder is not
--- the rpp's own containing folder (W4).
+-- The launcher passes the exact rpp path as --project-file so the app can map
+-- it back to whichever project's manifest links it, even when that project's
+-- folder is not the rpp's own containing folder.
 H.test('the launcher passes the exact rpp path as --project-file', function()
   local fake, _, scripts = bundle()
   fake.project_path = H.join(H.join(H.join(fake.resource_path, '..'), 'Elsewhere'), 'Novel.rpp')
@@ -101,7 +100,7 @@ H.test('the launcher passes the exact rpp path as --project-file', function()
   local command = calls_named(fake, 'ExecProcess')[1].command
   H.contains(command, "--project-file '" .. fake.project_path .. "'")
   -- --project-folder still carries the rpp's own containing folder, unchanged:
-  -- the Go side is what maps --project-file back to the linked project (W4/W5),
+  -- the Go side is what maps --project-file back to the linked project,
   -- not the launcher.
   H.contains(command, "--project-folder '" .. H.join(H.join(fake.resource_path, '..'), 'Elsewhere') .. "'")
 end)

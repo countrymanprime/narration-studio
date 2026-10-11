@@ -1,5 +1,5 @@
--- The edit and proof workspace's REAPER actions, over the bridge (edit-and-proof-workspace PRD Phases 6, 8 and 9; the
--- calls are in docs/research/reaper-api-for-planned-commands.md): set_active_take ("Use this take", EP7 A), and FX as
+-- The edit and proof workspace's REAPER actions, over the bridge (the calls are in
+-- docs/research/reaper-api-for-planned-commands.md): set_active_take ("Use this take"), and FX as
 -- the owner decided on 2026-09-25 (ADR 0234): an FX chain goes on a track or the master track only (list_fx_chains,
 -- apply_fx_chain), and a passage of a take gets one installed plug-in at a time, never a chain (list_fx, add_take_fx).
 -- Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.

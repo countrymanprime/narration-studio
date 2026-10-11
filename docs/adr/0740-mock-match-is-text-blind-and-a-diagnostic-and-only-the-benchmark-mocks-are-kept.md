@@ -6,7 +6,7 @@
 
 ## Context
 
-Workers kept building towards the per-PRD mocks under `docs/prds/mockups/`, drawn before the redesign, although only the seven benchmark mocks are the spec. The owner ruled (D96) that every other mock is deleted, and that the repo keeps only mocks for work being built now plus the current-state screenshots in `docs/images/ui/`.
+Workers kept building towards the per-feature mocks under `docs/prds/mockups/`, drawn before the redesign, although only the seven benchmark mocks are the spec. The owner ruled (D96, [owner standing rules](../operations/agent-train.md#owner-standing-rules)) that every other mock is deleted, and that the repo keeps only mocks for work being built now plus the current-state screenshots in `docs/images/ui/`.
 
 The mock-match score also punished the wrong things: different sample words at the same size, weight and position lowered it, and the 90% bar with its written reasons and region tables (D91) pushed workers to chase the number. The owner ruled (D97) that the number is a diagnostic, that features and styles are what matter, and that there are no D91 reasons.
 

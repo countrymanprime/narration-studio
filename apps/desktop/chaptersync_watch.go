@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Watching the saved REAPER project (daw-chapter-track-auto-sync.prd.md Phase 4, S6 A and B, ADR 0210). While a
+// Watching the saved REAPER project (ADR 0210). While a
 // project with chapter sync on has a .rpp to read, the host stats that file every chapterSyncPollInterval. When its
 // modification time moves and then holds still for chapterSyncDebounce, the host re-runs the sync (trigger "watch"),
 // so a new track saved in REAPER for the next chapter is linked and announced without a click. REAPER's edit counter,
@@ -48,7 +48,7 @@ type chapterSyncWatcher struct {
 	// +checklocks:mu
 	unsavedEdits bool
 	// lastCount is the last edit counter seen, and lastActivity when the saved .rpp's modification time or that counter
-	// last moved: background recording checks wait until REAPER has been quiet (coverage.BackgroundQuiet, Phase 7).
+	// last moved: background recording checks wait until REAPER has been quiet (coverage.BackgroundQuiet).
 	// +checklocks:mu
 	lastCount int
 	// +checklocks:mu

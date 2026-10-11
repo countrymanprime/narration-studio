@@ -112,7 +112,7 @@ func (p *testProject) setCredits(kind, title, text string) {
 }
 
 // loadCredits is the testProject's Config.LoadCredits: a plain lookup into credits, refusing a kind that was never
-// seeded (CT5: the library has no template of that kind yet).
+// seeded (the library has no template of that kind yet).
 func (p *testProject) loadCredits(kind string) (string, string, error) {
 	template, ok := p.credits[kind]
 	if !ok {
@@ -214,7 +214,7 @@ type fakeSidecar struct {
 	paused     chan struct{}
 	resume     chan struct{}
 
-	// The model cascade PRD Phase 4's own stages, driven off which flags a launch carries.
+	// The model cascade's own stages, driven off which flags a launch carries.
 	rechecked           []string // words file names named by every --recheck windows file seen
 	recheckExitCode     int      // non-zero: --recheck fails with this code after writing an ERROR line
 	recheckErrorMessage string

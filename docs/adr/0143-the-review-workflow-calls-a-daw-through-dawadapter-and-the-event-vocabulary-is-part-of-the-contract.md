@@ -5,7 +5,7 @@
 
 ## Context
 
-The [Audacity integration PRD](../prds/audacity-integration.prd.md) (Phase 3, and its Decisions Log row "Extract a `DAWAdapter` boundary before adding a second DAW") asks for a behaviour-preserving Go seam before any Audacity code lands, so that a second DAW is a second implementation rather than `if daw == "REAPER"` branches in the host and UI. Owner decision Q2 (2026-09-23) puts the Audacity pipe client in a new Go package behind that interface.
+Adding Audacity as a second DAW needs a behaviour-preserving Go seam before any Audacity code lands, so that a second DAW is a second implementation rather than `if daw == "REAPER"` branches in the host and UI. The owner decided on 2026-09-23 that the Audacity pipe client lives in a new Go package behind that interface.
 
 Before this change `apps/desktop/internal/transcript.Service` (the review workflow: prepare, inspect, navigate, export) wrote REAPER bridge commands by name (`prepare_compare`, `inspect_compare_results`, `jump_to_compare_marker`, `export_compare_markers`) on a `*bridge.Client`, and read results as `COMPARE_*` and `ERROR` events from that client's fan-out ([ADR 0068](0068-bridge-events-fan-out-to-subscribers-by-tag-and-run-and-every-error-names-its-run.md)). Six other consumers hold the same client for REAPER-only work: pickups, line identity, project state, render config, take creation and reachability.
 
@@ -20,6 +20,6 @@ Two shapes were weighed. A fully DAW-neutral interface with its own result types
 ## Consequences
 
 - The REAPER path is unchanged on the wire (`internal/dawadapter/reaper_test.go` pins each command line byte for byte) and every existing bridge, transcript and harness test passes unmodified.
-- The Audacity client (PRD Phase 4 onward) implements four request methods and translates its pipe replies into the `COMPARE_*` events, instead of the transcript service growing a second code path. That translation is the cost: an adapter must produce REAPER-shaped events, including fields such as `projectTime` and `itemIndex` that Audacity will fill from its own model.
-- "Mark reviewed" and "export the reviewed set" (PRD Phases 7 and 8) have no REAPER command today; `InspectFindings` (a finding already carried as a marker) is the only reviewed-state signal. Those phases add methods to `Review` with a REAPER implementation, or a narrower interface, when they land.
+- The Audacity client implements four request methods and translates its pipe replies into the `COMPARE_*` events, instead of the transcript service growing a second code path. That translation is the cost: an adapter must produce REAPER-shaped events, including fields such as `projectTime` and `itemIndex` that Audacity will fill from its own model.
+- "Mark reviewed" and "export the reviewed set" have no REAPER command today; `InspectFindings` (a finding already carried as a marker) is the only reviewed-state signal. Adding them means new methods on `Review` with a REAPER implementation, or a narrower interface.
 - A future change that makes the events DAW-neutral types, or that moves another service behind an adapter, supersedes this ADR.

@@ -1,9 +1,7 @@
-"""Tests for the --find-repeats additive detector mode (take-review PRD
-phase 3, Q1/Q2): the repeated-span clustering, exact-copy detection by
-source identity, and the SPAN_GROUP/SPAN_MEMBER tagged output. Kept in a
-separate module from test_compare.py per the PRD's parallel-session note
-(new logic in a new module, `take-review-pickups-duplicates-take-intelligence.prd.md`
-"Parallel-session compatibility", phase 3 row)."""
+"""Tests for the --find-repeats additive detector mode: the repeated-span
+clustering, exact-copy detection by source identity, and the
+SPAN_GROUP/SPAN_MEMBER tagged output. Kept in a separate module from
+test_compare.py so new logic does not grow that file."""
 
 import argparse
 import importlib.util

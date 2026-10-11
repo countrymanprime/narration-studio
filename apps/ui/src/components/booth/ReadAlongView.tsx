@@ -12,20 +12,19 @@ type Props = {
   session: TeleprompterSession;
   /**
    * Following for the shared reader: computed by the caller and shared with
-   * `ReadingControlBar`'s Follow button (read-aloud-control-bar.prd.md Phase 3), which lives outside this view (the
+   * `ReadingControlBar`'s Follow button, which lives outside this view (the
    * dialog's non-scrolling footer, or the standalone page's own sticky bar).
    */
   follow: FollowCursor;
   /**
-   * Rendered first in the text column, on the text's own axis (read-aloud-control-bar.prd.md Phase 1): the read-aloud
-   * dialog's resume card. Absent when there is nothing to show (a running session, or credits mode).
+   * Rendered first in the text column, on the text's own axis: the resume card. Absent when there is nothing to show (a running session, or credits mode).
    */
   header?: ReactNode;
-  /** Story bible, note and flag marks by row key, and what opening one does (teleprompter-manuscript-integration.prd.md Phases 5 and 7; see `ReaderText`). */
+  /** Story bible, note and flag marks by row key, and what opening one does (see `ReaderText`). */
   marks?: Map<string, ReaderMark[]>;
   onOpenMark?: (mark: ReaderMark) => void;
   /**
-   * A side rail beside the text (the read-aloud dialog's Key, Notes and Story bible tabs, Phase 5). It sizes itself; the
+   * A side rail beside the text (the read-aloud dialog's Key, Notes and Story bible tabs). It sizes itself; the
    * key then lives in the rail instead of above the text. Absent (the standalone page): the layout is as before.
    */
   aside?: ReactNode;
@@ -36,21 +35,21 @@ type Props = {
    */
   hideKey?: boolean;
   /**
-   * The Booth's reading surface (mock 03, audit BO3): the text straight on the page, full-bleed and large, with no bordered
+   * The Booth's reading surface (mock 03): the text straight on the page, full-bleed and large, with no bordered
    * card around it. The companion panel keeps the card (its own mock 07).
    */
   fullBleed?: boolean;
   /** The companion's dense, unboxed reading size (mock 07). */
   dense?: boolean;
-  /** Speaker tags by row key (the Booth's gutter, audit BO4; see `ReaderText`). */
+  /** Speaker tags by row key (the Booth's gutter; see `ReaderText`). */
   speakers?: Map<string, string>;
 };
 
 /**
  * The reader text, status line and model-download prompt - everything a reading session shows once a chapter is chosen.
  * Mounted by `BoothView` (the Booth, which replaced the Teleprompter page
- * and the Read aloud dialog that shared it) and by `CompanionShell`. Chapter choice is not this component's job, and neither -
- * since read-aloud-control-bar.prd.md Phase 3 - is Start/Stop, the microphone or the engine/model choice: those moved
+ * and the Read aloud dialog that shared it) and by `CompanionShell`. Chapter choice is not this component's job, and neither
+ * is Start/Stop, the microphone or the engine/model choice: those moved
  * into `ReadingControlBar`, which the caller renders outside this view (a `Dialog` footer, or the page's own sticky bar).
  */
 export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, aside, hideKey = false, fullBleed = false, dense = false, speakers }: Props) {
@@ -120,7 +119,7 @@ export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, a
   // The rail is its own column, so opening an entry in an open rail never reflows or scrolls the text column. `h-full` gives
   // this grid the dialog body's own (definite, flexbox-computed) height, and `md:grid-rows-[minmax(0,1fr)]` makes the single
   // row match that height rather than the tallest item's content height, so `md:items-stretch` stretches the rail to exactly
-  // the visible body, top to bottom, whatever the chapter's length (read-aloud-control-bar.prd.md Phase 1). The text column's
+  // the visible body, top to bottom, whatever the chapter's length. The text column's
   // own content still overflows it normally; only the rail's box is bounded, sticky and scrolls on its own.
   return (
     <div className="grid h-full items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:grid-rows-[minmax(0,1fr)] md:items-stretch">

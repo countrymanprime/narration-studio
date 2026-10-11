@@ -1,12 +1,12 @@
-"""Character Continuity Review, Phase 2 (docs/prds/character-continuity-review.prd.md):
+"""Character Continuity Review, story-bible side:
 
-- stable entity ids across a rebuild, even when the canonical spelling choice shifts (CC-2)
+- stable entity ids across a rebuild, even when the canonical spelling choice shifts (ADR 0345)
 - alias split (the inverse of the existing `merge`)
 - chapter and scene appearance maps
 - rules-based dialogue cue extraction with an `unknown` speaker and evidence
 - narrator corrections to a cue's speaker that a rebuild never overwrites (mirrors ADR 0007's lock guard)
 
-Precision over recall applies throughout (ADR 0020): an ambiguous cue is `unknown`, never a guess.
+Precision over recall applies throughout (ADR 0020, ADR 0345): an ambiguous cue is `unknown`, never a guess.
 """
 
 import argparse
@@ -33,7 +33,7 @@ def _paragraphs(*rows: tuple[str, str, str]) -> list[dict[str, str]]:
 
 
 class StableIdReconciliationTests(unittest.TestCase):
-    """CC-2: 'Whether an unlocked, generated character keeps its id across a rebuild' - the PRD's own open TBD."""
+    """An unlocked, generated character keeps its id across a rebuild (ADR 0345)."""
 
     def test_an_unlocked_entity_keeps_its_id_when_a_title_prefixed_mention_first_appears(self):
         # Build 1: only the short form is in the text, so the id is hashed from "Arelian". The mentions are
@@ -360,7 +360,7 @@ class DialogueCueTests(unittest.TestCase):
 
 
 class MissingAndAmbiguousCueFixtureTests(unittest.TestCase):
-    """Named fixtures for the PRD's three required scenarios: ambiguous cues, overlapping speakers, missing cues."""
+    """Named fixtures for three scenarios: ambiguous cues, overlapping speakers, missing cues."""
 
     def _character_index(self, *names: str) -> dict[str, str]:
         return {guide.normalize_name(name): guide.entity_id(name) for name in names}

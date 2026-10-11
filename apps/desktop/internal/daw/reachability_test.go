@@ -144,7 +144,7 @@ func TestReachabilityChangeCountIsUnknownOnceTheHeartbeatIsStale(t *testing.T) {
 	}
 }
 
-// DAW port PRD Phase 9 (ADR 0305): the heartbeat's fifth and sixth fields are the transport, GetPlayState's bit field and
+// ADR 0305: the heartbeat's fifth and sixth fields are the transport, GetPlayState's bit field and
 // GetPlayPosition, so the host knows REAPER is playing or recording without asking it.
 func TestReachabilityTransportFollowsTheHeartbeat(t *testing.T) {
 	cases := []struct {

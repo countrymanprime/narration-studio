@@ -3,9 +3,9 @@ import type { WorkspaceItem, WorkspaceToken } from '../../api/contracts/workspac
 import { FLAG_LABEL, type Flag, type FlagKind } from './flags';
 
 /** The check-derived kinds a `transcript_discrepancy` or `duplicate_read` finding may attach to in place, rather than
- * spawning a second, redundant flag on the same words (edit-and-proof-workspace.prd.md Phase 4 architecture, "A
- * finding with an item GUID and a source range maps onto tokens ... same item, overlapping source time"): the check
- * already flagged the word or run from its own alignment (Phase 2); the finding is the same event, reviewable. */
+ * spawning a second, redundant flag on the same words (a finding with an item GUID and a source range maps onto the
+ * tokens of the same item whose source time overlaps it): the check already flagged the word or run from its own
+ * alignment; the finding is the same event, reviewable. */
 const ATTACHABLE_KIND: Partial<Record<string, readonly FlagKind[]>> = {
   transcript_discrepancy: ['misread', 'partial', 'skip', 'not_recorded'],
   duplicate_read: ['extra'],
@@ -53,7 +53,7 @@ function flagOverlaps(flag: Flag, tokenStart: number, tokenEnd: number): boolean
 }
 
 /**
- * Overlays the chapter's stored findings onto the check-derived flags (edit-and-proof-workspace.prd.md Phase 4):
+ * Overlays the chapter's stored findings onto the check-derived flags:
  * a `transcript_discrepancy` or `duplicate_read` finding whose item and source-time range overlap an existing flag's
  * tokens attaches to it in place (the flag becomes reviewable: `findingId`, `analyzer`, `confidence` are set on the
  * same flag object, nothing is duplicated); every other finding with an item GUID and a source range, of a category

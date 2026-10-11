@@ -1,8 +1,8 @@
-// The review bindings (review-dashboard-and-findings-adoption.prd.md Phase 4, ADR 0120): every analyzer's
+// The review bindings (ADR 0120): every analyzer's
 // findings, read and decided through one surface whatever wrote them. A Finding keeps the wire's own snake_case
 // (docs/architecture/findings-contract.md, apps/desktop/internal/findings.Finding); the binding envelopes around
 // it (the query, the page, the summary) are camelCase like every other binding. Filtering, sorting and paging run
-// in the host (Q9): the UI sends a FindingsQuery and shows the page it gets back.
+// in the host: the UI sends a FindingsQuery and shows the page it gets back.
 
 export type FindingSeverity = 'info' | 'warning' | 'error';
 
@@ -160,7 +160,7 @@ export type FindingReviewRequest = {
 };
 
 /**
- * Whether the Review page's REAPER controls can work now (review dashboard Phase 7, apps/desktop/bindings_navigation.go),
+ * Whether the Review page's REAPER controls can work now (apps/desktop/bindings_navigation.go),
  * read from the heartbeat REAPER's script already sends, so asking sends REAPER nothing. `standalone`: the app was opened
  * on its own; `not_running`: REAPER has gone quiet. `message` says so in plain words when not connected.
  */
@@ -190,7 +190,7 @@ export type FindingNavigation =
 export type FindingMarkerRefusal = FindingNavigationRefusal | 'not_accepted';
 
 /**
- * What adding the approved marker did (review dashboard Phase 8, ADR 0123): `added` (REAPER added the take marker `name`, in
+ * What adding the approved marker did (ADR 0123): `added` (REAPER added the take marker `name`, in
  * one undo point), `existing` (the take already had a marker of the same kind within 0.15 s, named `name`; nothing changed)
  * or `refused` (nothing in REAPER changed; `message` says why in the narrator's words). `sourceTime` is in the take's
  * source seconds.
@@ -211,11 +211,11 @@ export interface FindingsApi {
   findingsReaperStatus(): Promise<ReaperStatus>;
   /** Selects the finding's item in REAPER and puts the edit cursor on its spot (ADR 0121). */
   findingsGoTo(id: string): Promise<FindingNavigation>;
-  /** Loops the finding's context in REAPER: time selection, loop points, repeat on, Play (Q6). */
+  /** Loops the finding's context in REAPER: time selection, loop points, repeat on, Play. */
   findingsLoop(id: string): Promise<FindingNavigation>;
   /**
    * Go to for one read of a finding that groups several (a take-review pickup or duplicate read): `read` is its index in
-   * `evidence.members`, and REAPER goes to that read's own item and take (take review Phase 5).
+   * `evidence.members`, and REAPER goes to that read's own item and take.
    */
   findingsGoToRead(id: string, read: number): Promise<FindingNavigation>;
   /** Loop for one read of such a finding, over its own range; the loop is the finding's, so Stop loop stops it. */

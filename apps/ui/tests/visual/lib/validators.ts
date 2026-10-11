@@ -36,9 +36,9 @@ export interface EscapedAbsolute {
   bottom: number;
 }
 
-// Opt-in for the vertical-overflow and escaped-absolute checks (app-shell-vertical-overflow.prd.md). A project declares
+// Opt-in for the vertical-overflow and escaped-absolute checks. A project declares
 // `documentScroll = 'locked'` from its drivers once every page scrolls inside the shell's own scroll container and the
-// document itself never scrolls; there is no per-row escape hatch (Q3 A), because a real escape belongs to every window
+// document itself never scrolls; there is no per-row escape hatch, because a real escape belongs to every window
 // size and zoom level, not one row's problem.
 export type DocumentScrollMode = 'locked';
 

@@ -28,7 +28,7 @@ func newGatedSession(t *testing.T) (*Client, string) {
 	return client, dir
 }
 
-// Actions asks its gate about every command, by name, before anything is written (DAW port PRD P3): the gate, which the host
+// Actions asks its gate about every command, by name, before anything is written (ADR 0304): the gate, which the host
 // builds over the DAW port's resolver, is the only thing that decides whether an experimental command may be sent.
 func TestActionsAskTheGateAboutEachCommandByName(t *testing.T) {
 	var asked []string

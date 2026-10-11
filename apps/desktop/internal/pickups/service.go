@@ -28,11 +28,11 @@ type Service struct {
 	state map[string]any
 }
 
-// New builds the service over role (DAW port PRD Phase 5b: pickups depends on the PickupList role, never a
-// concrete bridge client, so a second engine's adapter can serve it unchanged). When there is a role it
-// subscribes to the events pickups owns: every PICKUPS_* and PICKUP_* tag, and ERROR events for its own run (or
-// with no run, a session-level problem). The transcript and line-identity services subscribe independently on
-// the same underlying client; Dispatch fans events to all three.
+// New builds the service over role (pickups depends on the PickupList role, never a concrete bridge client, so a second
+// engine's adapter can serve it unchanged). When there is a role it subscribes to the events pickups owns: every
+// PICKUPS_* and PICKUP_* tag, and ERROR events for its own run (or with no run, a session-level problem). The
+// transcript and line-identity services subscribe independently on the same underlying client; Dispatch fans events to
+// all three.
 func New(config Config, role dawport.PickupList, changed func(map[string]any)) *Service {
 	s := &Service{config: config, role: role, changed: changed, state: empty()}
 	if role != nil {

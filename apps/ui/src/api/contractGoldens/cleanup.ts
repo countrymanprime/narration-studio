@@ -1,4 +1,4 @@
-// The golden payloads for silence trim and item gain (booth-actions-enablement PRD Phase 5, apps/desktop/bindings_cleanup.go).
+// The golden payloads for silence trim and item gain (apps/desktop/bindings_cleanup.go).
 import type { z } from 'zod';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from '../schemas/cleanup';
 

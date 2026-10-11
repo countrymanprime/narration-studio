@@ -5,7 +5,7 @@
 
 ## Context
 
-[Render, Encode and Master](../prds/render-encode-master.prd.md) Phase 1 adds the first `Encoder` row, `ffmpeg`, which runs the FFmpeg build [ADR 0342](0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md) catalogues. The port promises that an encode never changes its WAV and leaves nothing at `dst` on a failure or a cancel (`internal/encodeport/encodeport.go`). The PRD asks for the same chain of custody that `internal/chaptertags` keeps ("new copy, never the source"). It also asks for tests that cancellation leaves no partial output and that a source path never equals a destination. An external encoder writes its output as it goes, so a killed process leaves half a file wherever it was told to write. FFmpeg also reads its input and output names as options or URLs as well as paths. Finally, the Phase 0 finding showed that FFmpeg's defaults can write an MP3 that the app's two readers disagree on.
+The first `Encoder` row is `ffmpeg`, which runs the FFmpeg build [ADR 0342](0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md) catalogues. The port promises that an encode never changes its WAV and leaves nothing at `dst` on a failure or a cancel (`internal/encodeport/encodeport.go`). An encode needs the same chain of custody that `internal/chaptertags` keeps ("new copy, never the source"), with tests that cancellation leaves no partial output and that a source path never equals a destination. An external encoder writes its output as it goes, so a killed process leaves half a file wherever it was told to write. FFmpeg also reads its input and output names as options or URLs as well as paths. Finally, FFmpeg's defaults can write an MP3 that the app's two readers disagree on (see ADR 0342).
 
 ## Decision
 
@@ -22,6 +22,6 @@
 
 - A cancelled, failed or timed-out encode leaves the destination folder as it was. The checks are pinned by `apps/desktop/internal/encodeport/ffmpeg_test.go`, which drives the real code path through a fake FFmpeg (the test binary itself), and by an opt-in run against a real FFmpeg (`NARRATION_UTILS_FFMPEG`).
 - Every MP3 the app writes has already passed the reader that `acx.format` judges. A future FFmpeg build that changes its output is refused at encode time rather than shipped.
-- Re-encoding over an earlier output needs an explicit delete or a new name. The packager and the export flow (Phases 4 and 5) decide how to offer that; the encoder does not.
+- Re-encoding over an earlier output needs an explicit delete or a new name. The packager and the export flow decide how to offer that; the encoder does not.
 - A second file briefly sits beside the destination during an encode. An app crash mid-encode can leave it behind (its name ends `.encoding`); it is never read as a delivery file.
 - Proposed until the owner has run an encode with the catalogued `ffmpeg.exe` on Windows (#510).

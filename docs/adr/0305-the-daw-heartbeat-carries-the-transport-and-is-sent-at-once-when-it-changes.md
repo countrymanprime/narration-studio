@@ -2,13 +2,13 @@
 
 **Status:** Accepted
 **Date:** 2026-09-27
-**Supersedes:** none. It extends the `PROJECT_STATUS` heartbeat of [ADR 0092](0092-reaper-executable-discovery-heartbeat-mechanism-and-script-plus-project-launch-are-resolved.md) and the `Heartbeat` role of [ADR 0300](0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md), for Phase 9 of the DAW port PRD (PRD deleted, delivered).
+**Supersedes:** none. It extends the `PROJECT_STATUS` heartbeat of [ADR 0092](0092-reaper-executable-discovery-heartbeat-mechanism-and-script-plus-project-launch-are-resolved.md) and the `Heartbeat` role of [ADR 0300](0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md), for the DAW port's transport state.
 
 ## Context
 
-[Input commands and pedals](../prds/input-commands-and-pedals.prd.md) Phase 10 must keep the booth silent while REAPER records. Today the only way the host learns that is `ReadAloudReaperState` ([ADR 0249](0249-read-aloud-asks-reaper-once-whether-the-chapters-linked-track-is-the-one-track-armed.md)): a `chapter_track_state` request the UI makes on a click. That request is Experimental and switched off by default, it waits for an answer, and it goes stale the moment the narrator presses Record in REAPER.
+Input commands and pedals must keep the booth silent while REAPER records. Today the only way the host learns that is `ReadAloudReaperState` ([ADR 0249](0249-read-aloud-asks-reaper-once-whether-the-chapters-linked-track-is-the-one-track-armed.md)): a `chapter_track_state` request the UI makes on a click. That request is Experimental and switched off by default, it waits for an answer, and it goes stale the moment the narrator presses Record in REAPER.
 
-The DAW port PRD's Phase 9 asks the `Heartbeat` role to report play and record state, so the answer is something the host already knows without asking. But the heartbeat REAPER sends (`PROJECT_STATUS`, every 1.5 s) carries only the project path, its unsaved flag and the edit counter. The PRD's "not building" list rules out new REAPER commands and Lua changes for the port refactor. This phase can't be done without changing what the heartbeat sends, so that rule is set aside here, for this one change and no new command.
+The DAW port asks the `Heartbeat` role to report play and record state, so the answer is something the host already knows without asking. But the heartbeat REAPER sends (`PROJECT_STATUS`, every 1.5 s) carries only the project path, its unsaved flag and the edit counter. The port refactor otherwise adds no REAPER commands and makes no Lua changes. This can't be done without changing what the heartbeat sends, so that rule is set aside here, for this one change and no new command.
 
 ## Decision
 
@@ -23,6 +23,6 @@ The DAW port PRD's Phase 9 asks the `Heartbeat` role to report play and record s
 
 - A consumer can know REAPER is recording within one host tick (150 ms) of REAPER's next defer cycle, with no Experimental command turned on and no request.
 - `position` moves on only with each heartbeat, so it is about 1.5 s coarse while playing. A consumer that needs the exact position still asks with `PlayPosition` (the `punch` role).
-- A subscriber that joins after launch, such as a page mounted later or a webview reload, hears nothing until the next change. If Phase 10 needs the current value on mount, it adds a `DawTransport()` binding (a `hostAPIVersion` bump) that reads the same payload.
+- A subscriber that joins after launch, such as a page mounted later or a webview reload, hears nothing until the next change. If the input layer needs the current value on mount, it adds a `DawTransport()` binding (a `hostAPIVersion` bump) that reads the same payload.
 - `events.log` gains one line per play, record or stop. The session folder and its protection are unchanged (threat model row 5).
 - Overriding this, for example to poll a command for the transport instead, needs a new ADR that supersedes this one.

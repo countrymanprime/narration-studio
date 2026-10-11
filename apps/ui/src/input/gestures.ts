@@ -1,6 +1,6 @@
 /**
  * A gesture is what any input device turns into once normalised (ADR 0361 decision 3): the same shape whether it
- * came from a key, a MIDI note/CC or an HID button. `code` is `KeyboardEvent.code` for a keyboard gesture (PRD Q1):
+ * came from a key, a MIDI note/CC or an HID button. `code` is `KeyboardEvent.code` for a keyboard gesture:
  * the physical key, stable across keyboard layouts, never the character it types (`event.key` would move on a
  * German keyboard).
  */
@@ -38,7 +38,7 @@ export function gesture(source: GestureSource, code: string, modifiers: readonly
   return { source, code, modifiers: sortModifiers(modifiers) };
 }
 
-/** `Mod` -> `Meta` on macOS, `Ctrl` elsewhere (Solution Detail). `isMac` is a parameter, not a `navigator` read, so
+/** `Mod` -> `Meta` on macOS, `Ctrl` elsewhere. `isMac` is a parameter, not a `navigator` read, so
  * this stays pure and testable; `keymap.ts` supplies the real platform at call time. */
 export function resolveGesture(def: DefaultGesture, isMac: boolean): Gesture {
   const modifiers = def.modifiers.map((modifier) => (modifier === 'Mod' ? (isMac ? 'Meta' : 'Ctrl') : modifier)) as ModifierKey[];
@@ -46,7 +46,7 @@ export function resolveGesture(def: DefaultGesture, isMac: boolean): Gesture {
 }
 
 /**
- * The stable string a gesture serialises to (Solution Detail): `Alt+ArrowLeft`, `midi:cc/1/64`,
+ * The stable string a gesture serialises to: `Alt+ArrowLeft`, `midi:cc/1/64`,
  * `hid:<vid>:<pid>/<button>`. Two gestures bind the same physical input iff their serialisation is equal - this is
  * the lookup and conflict key everywhere else in `src/input/` compares gestures.
  */
@@ -70,7 +70,7 @@ export function gestureFromKeyboardEvent(event: KeyboardModifierState & { code: 
 const MODIFIER_KEYS: ReadonlySet<string> = new Set(['Alt', 'Ctrl', 'Meta', 'Shift']);
 
 /**
- * The inverse of `serializeGesture` (Phase 6, the Keyboard & pedals recorder): turns a stored `Keymap.overrides`
+ * The inverse of `serializeGesture` (the Keyboard & pedals recorder): turns a stored `Keymap.overrides`
  * binding back into a `Gesture`. Throws on a string this app never produced (a hand-edited settings file, a future
  * app's gesture this version does not understand) - `keymapFromBindings` catches that per binding, so one bad entry
  * falls back to that command's default instead of failing every other override.

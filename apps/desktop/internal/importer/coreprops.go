@@ -17,8 +17,7 @@ type coreProperties struct {
 
 // ReadCoreProps reads a .docx file's docProps/core.xml (Word's own "title"
 // and "creator" document properties) without touching word/document.xml.
-// It is a read-only, best-effort lookup used only to suggest values (PRD
-// audiobook-credits-templates.prd.md, Open Question C3): ok is false whenever
+// It is a read-only, best-effort lookup used only to suggest values: ok is false whenever
 // the file cannot be opened, has no docProps/core.xml, or that part has
 // neither property set, and the caller must never write anything back into
 // the source file or the manuscript from this.

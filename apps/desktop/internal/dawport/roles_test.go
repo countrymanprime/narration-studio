@@ -6,7 +6,7 @@ import (
 )
 
 // Today's implementations already have each synchronous role's method set, so the REAPER adapter can hand them out as they are
-// (the PRD's capability table, checked against the code). The asynchronous roles are new method sets over bridge commands and are
+// (checked against the code). The asynchronous roles are new method sets over bridge commands and are
 // checked by the adapter's conformance run instead. The REAPER review session's own type (internal/dawport/reaper) is checked
 // there, where it lives, to avoid an import cycle.
 var (

@@ -14,7 +14,7 @@ type Env struct {
 	SessionDir string
 	// Allowed is the launch's Resolver.Allowed: whether the declaration and the narrator's settings permit a capability. An
 	// adapter whose transport gates its own commands (REAPER's bridge.Actions) asks it before each one, so the settings are
-	// decided by the resolver alone (DAW port PRD P3). The composition root builds the resolver over the adapter the factory
+	// decided by the resolver alone (ADR 0304). The composition root builds the resolver over the adapter the factory
 	// returns, so this is a closure over it. nil refuses every gated command.
 	Allowed func(Capability) error
 	// Log receives the transport's diagnostics (bridge.Client.SetLog); nil discards them.

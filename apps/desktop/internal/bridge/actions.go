@@ -9,11 +9,11 @@ import (
 	"time"
 )
 
-// Actions sends the REAPER bridge commands of stack S28 (docs/research/reaper-api-for-planned-commands.md) and waits for
+// Actions sends the REAPER bridge commands that docs/research/reaper-api-for-planned-commands.md plans and waits for
 // their answers. Every command it sends is on experimentalCommands until the owner and Claude have run the REAPER
-// verification pass for it (docs/operations/reaper-verification-pass.md, owner decision D38). Whether a command may be
+// verification pass for it (docs/operations/reaper-verification-pass.md). Whether a command may be
 // sent is its Gate's answer, asked before anything is written: the host builds the gate over the DAW port's resolver
-// (ADR 0300, DAW port PRD P3), so the narrator's per-capability settings decide it, and Actions does not check a
+// (ADR 0300, ADR 0304), so the narrator's per-capability settings decide it, and Actions does not check a
 // setting itself.
 //
 // Like Navigator, a request returns once its answer has been dispatched by the host's loop (Client.Dispatch), so a
@@ -89,7 +89,7 @@ type answerSet struct {
 	err    error
 }
 
-// NewActions subscribes to the answers of the S28 commands on client. gate is asked on every request; a nil gate
+// NewActions subscribes to the answers of its commands on client. gate is asked on every request; a nil gate
 // refuses every command with ErrExperimentalOff, so an Actions nobody gated sends nothing experimental. With a nil
 // client every request the gate lets through is ErrUnavailable.
 func NewActions(client *Client, gate Gate) *Actions {

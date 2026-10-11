@@ -5,12 +5,11 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 7 carries an owner decision (2026-09-23, overriding the
-recommendation to keep flags for the session only): the read-aloud dialog's suspected flags are written as findings with
+An owner decision (2026-09-23, overriding the recommendation to keep flags for the session only) is that the read-aloud dialog's suspected flags are written as findings with
 status `unreviewed` through `apps/desktop/internal/findings`, the shared contract (`docs/architecture/findings-contract.md`),
 not a parallel data model. [ADR 0115](0115-live-flags-are-suspected-judged-per-closed-segment-and-forgive-what-transcript-compare-forgives.md)
 already fixed the category mapping (misread, extra and skipped are `transcript_discrepancy`; a restart is `pickup` with
-`evidence.kind` `restart`) and kept flags out of the host's snapshot. Left to this phase: which side builds the finding, when
+`evidence.kind` `restart`) and kept flags out of the host's snapshot. Left open: which side builds the finding, when
 it is written, how a re-run avoids duplicates, how a dismiss is kept, and what a finding anchors to when no take is known.
 
 Two facts shape it. A flag names chapter word indices of the sidecar's script, and only the manuscript knows what those words
@@ -62,8 +61,8 @@ marks whatever it did not reproduce `not_in_latest_run`, which would hide the fi
   but not kept. A flag across two paragraphs is kept as one finding per paragraph.
 - Flags that arrive after a close while reading (the sidecar's last segment, flushed on stop) are not kept, because the
   dialog is gone; a session stopped with Stop first keeps them. A view opened mid-session does not see the flags raised
-  before it opened until the review surface reads the store (the review dashboard's read bindings, another PRD).
-- The standalone Teleprompter page draws no flags and keeps none; it is retired in Phase 13.
+  before it opened until the review surface reads the store (the generic findings bindings, [ADR 0120](0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md)).
+- The standalone Teleprompter page draws no flags and keeps none; it was retired in favour of the read-aloud dialog.
 - Hidden misreads are kept at the measured synthetic rate of about 2 per 100 words, so a long chapter can add dozens of
   unreviewed `transcript_discrepancy` findings; if that is too noisy for the review surface, keep only the kinds shown, which
   is a change to decision 6 only.

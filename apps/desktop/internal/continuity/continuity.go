@@ -1,23 +1,23 @@
-// Package continuity implements Phase 5 of
-// docs/prds/character-continuity-review.prd.md: baselines built only from
-// the narrator's approved voice references, candidate dialogue lines located
-// through the manuscript's dialogue cues and aligned words, the outlier rule
-// calibrated by the Phase 1 trial (Q6), the recording-chain check that
-// suppresses a drift flag instead of raising one, and the adapter that turns
-// what it measured into character_continuity findings.
+// Package continuity is the character continuity review's analyzer: baselines
+// built only from the narrator's approved voice references (ADR 0354),
+// candidate dialogue lines located through the manuscript's dialogue cues and
+// aligned words, the outlier rule calibrated by
+// docs/research/character-continuity-acoustic-trial.md, the recording-chain
+// check that suppresses a drift flag instead of raising one, and the adapter
+// that turns what it measured into character_continuity findings.
 //
 // Every finding is a neutral measurement - "this line measures outside the
 // approved reference" - with the reference ids, a per-feature table, the
 // sample size and a stated confidence reason. Nothing here identifies a
 // speaker from audio or judges a performance, and nothing leaves the
-// machine (D72).
+// machine.
 //
 // The package depends on roles, never on concrete adapters: a
 // ReferenceSource (character.Service), a ReferenceAudio resolver
-// (SavedProjectAudio over the saved .rpp), a CueAligner (TR-3's persisted
-// aligned words, not built yet, so production has no aligner and Phase 6
-// wires one in once it exists) and a ClipMeasurer (FileMeasurer over the
-// acoustic and measure packages).
+// (SavedProjectAudio over the saved .rpp), a CueAligner (aligned words for a
+// dialogue cue; no production implementation exists, so only tests build a
+// Config) and a ClipMeasurer (FileMeasurer over the acoustic and measure
+// packages).
 package continuity
 
 import (
@@ -63,7 +63,7 @@ type ReferenceAudio interface {
 }
 
 // CueAligner locates a dialogue cue in the recorded audio through aligned
-// words (TR-3). An unreliable alignment is not an error: it is reported
+// words. An unreliable alignment is not an error: it is reported
 // with Reliable false and a reason, and the line yields no candidate.
 type CueAligner interface {
 	Align(cue Cue) (Alignment, error)

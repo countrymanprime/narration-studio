@@ -1,9 +1,8 @@
--- Retakes on fixed lanes: pick_retake_lane (narration_retake_lanes.lua, docs/prds/reaper-automation-follow-through.prd.md
--- Phase 25, ADR 0147). The narrator's pick of a retake makes its lane the only one playing: one track value
--- (C_LANEPLAYS:<lane>=1) in one undo block, and nothing else. The load-bearing tests: exactly one value is set, on
--- the retake's own track; the lane mode, lane count, items, takes and every other track stay as they were; a track
--- not in fixed-lane mode is refused rather than converted; and a retake is named by line id plus item GUID, so a
--- stale GUID or an item that no longer carries the line changes nothing.
+-- Retakes on fixed lanes: pick_retake_lane (narration_retake_lanes.lua, ADR 0147). The narrator's pick of a retake
+-- makes its lane the only one playing: one track value (C_LANEPLAYS:<lane>=1) in one undo block, and nothing else. The
+-- load-bearing tests: exactly one value is set, on the retake's own track; the lane mode, lane count, items, takes and
+-- every other track stay as they were; a track not in fixed-lane mode is refused rather than converted; and a retake is
+-- named by line id plus item GUID, so a stale GUID or an item that no longer carries the line changes nothing.
 
 local H = require('harness')
 

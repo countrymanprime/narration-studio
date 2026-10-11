@@ -42,7 +42,7 @@ export const chapterSchema = z.object({
   paragraphIds: z.array(z.object({ id: z.string(), index: z.number() })).optional(),
 }) satisfies z.ZodType<ManuscriptChapter>;
 
-/** `ManuscriptSetChapterKind` (`apps/desktop/chapterkind.go`, chapter-track-link-control PRD Phase 3). */
+/** `ManuscriptSetChapterKind` (`apps/desktop/chapterkind.go`). */
 export const chapterKindResultSchema = z.object({
   chapter: chapterSchema,
   previousKind: contentKindSchema,

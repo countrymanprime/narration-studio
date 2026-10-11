@@ -5,10 +5,9 @@
 
 ## Context
 
-`docs/prds/review-dashboard-and-findings-adoption.prd.md` Phase 7 puts Go to, Loop and Stop on the Review page, on top
-of the bridge commands and `bridge.Navigator` of [ADR 0121](0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md).
-The PRD asks for "honest availability states" (standalone launch, REAPER not running, running, stale finding) and
-sets a boundary: no bridge command is sent without an explicit narrator action. Four things had to be settled:
+The Review page offers Go to, Loop and Stop on top of the bridge commands and `bridge.Navigator` of [ADR 0121](0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md).
+The page must show honest availability states (standalone launch, REAPER not running, running, stale finding), and no
+bridge command is sent without an explicit narrator action. Four things had to be settled:
 
 - **How the page knows REAPER is there.** Bootstrap's `dawReachable` is read once, at start and on a project attach, so
   it goes stale when REAPER closes. Asking REAPER (`ping`) on a timer would send a command the narrator did not ask for.

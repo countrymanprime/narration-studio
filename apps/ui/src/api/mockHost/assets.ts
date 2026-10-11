@@ -108,7 +108,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       spacyInstalled = true;
     },
   });
-  // The Teleprompter's second live engine (teleprompter-engines-and-input-devices.prd.md phase 7): the real catalog's tiny model
+  // The Teleprompter's second live engine: the real catalog's tiny model
   // (config/moonshine-assets.json), installed or not on the same seeds as the Whisper model.
   let moonshineInstalled = initial.assets === undefined || localAssetsSeed;
   const MOONSHINE_TINY_BYTES = 77748675;

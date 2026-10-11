@@ -12,9 +12,8 @@ import (
 )
 
 // previewSuggestProject writes a project folder with just a canonical manuscript
-// (proofing-preview-suggestion.prd.md Phase 2 needs nothing else: PreviewCandidates only ever reads the manuscript
-// service). manuscriptJSON is written verbatim at the path manuscript import itself writes to
-// (takeReviewManuscriptPath). Named "Suggest" (preview.Suggest, this PRD's own engine entry point) to avoid clashing
+// (PreviewCandidates only ever reads the manuscript service, so nothing else is needed). manuscriptJSON is written
+// verbatim at the path manuscript import itself writes to (takeReviewManuscriptPath). Named "Suggest" (preview.Suggest, the engine entry point) to avoid clashing
 // with guidepreview_test.go's unrelated previewHost/previewProject (GuidePreview's own test helpers).
 func previewSuggestProject(t *testing.T, manuscriptJSON string) string {
 	t.Helper()
@@ -45,9 +44,9 @@ func previewSuggestHost(t *testing.T, manuscriptJSON string) *Host {
 }
 
 // previewManuscriptOK is a small two-chapter narration manuscript: one paragraph of Chapter One has paired quotes
-// (the Q5 dialogue heuristic), so the "ok" fixture exercises both dialogue and no-dialogue reasons. Both chapters
-// are far short of the 5:00 default target, so both candidates answer honestly as Shorter (Success Metrics: "a named
-// state"), the same way a real, freshly-imported small manuscript would until the narrator writes more.
+// (the dialogue heuristic), so the "ok" fixture exercises both dialogue and no-dialogue reasons. Both chapters
+// are far short of the 5:00 default target, so both candidates answer honestly as Shorter (a named
+// state), the same way a real, freshly-imported small manuscript would until the narrator writes more.
 const previewManuscriptOK = `{"schemaVersion":1,"documentId":"doc-1","chapters":[` +
 	`{"id":"c-0001","title":"Chapter One","index":0,"contentKind":"narration"},` +
 	`{"id":"c-0002","title":"Chapter Two","index":1,"contentKind":"narration"}` +
@@ -59,9 +58,9 @@ const previewManuscriptOK = `{"schemaVersion":1,"documentId":"doc-1","chapters":
 	`{"id":"p-000005","chapterId":"c-0002","index":4,"text":"Its windows were dark, and nobody had lived there in years."}` +
 	`]}`
 
-// previewManuscriptNothingEligible has one chapter, but it is reference content (Q4): no eligible chapter has a
+// previewManuscriptNothingEligible has one chapter, but it is reference content: no eligible chapter has a
 // single narration paragraph, so Suggest must answer OutcomeNothingEligible rather than an empty OutcomeOK list
-// (Success Metrics: an empty candidates list must never be conflated with "nothing eligible").
+// (an empty candidates list must never be conflated with "nothing eligible").
 const previewManuscriptNothingEligible = `{"schemaVersion":1,"documentId":"doc-1","chapters":[` +
 	`{"id":"c-0001","title":"Appendix","index":0,"contentKind":"reference"}` +
 	`],"paragraphs":[` +
@@ -184,7 +183,7 @@ func previewManyParagraphManuscript(paragraphCount int) string {
 	return string(encoded)
 }
 
-// Phase 4's own success signal: "changing the target changes candidates deterministically". This chapter's 600
+// Changing the target changes candidates deterministically. This chapter's 600
 // words (30 paragraphs of 20) fall short of the 5:00 default target's lower tolerance bound, so the default answer
 // is the whole chapter, honestly marked Shorter (preview.Candidate.Shorter's own doc); a 60s target with 50%
 // tolerance asks for far less, so the engine picks a short in-tolerance sub-window instead - a different, smaller
@@ -228,7 +227,7 @@ func TestPreviewCandidatesChangesDeterministicallyWithTheTargetSetting(t *testin
 	}
 }
 
-// Phase 4's other success signal: "invalid values are rejected at the boundary" - a target outside numberSpecs'
+// Invalid values are rejected at the boundary: a target outside numberSpecs'
 // declared range never reaches the store (the same saveSettings boundary every other number field already enforces,
 // delivery_settings_test.go's TestSavingANumberSettingValidatesItAndStoresIt).
 func TestSavingAnOutOfRangePreviewTargetIsRejected(t *testing.T) {

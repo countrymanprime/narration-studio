@@ -6,11 +6,11 @@
 
 ## Context
 
-A narrator clicks something that talks to the Go host or a Python sidecar and cannot tell whether anything happened, whether it is still running, or when it finished if they looked away. The interaction feedback audit (a PRD, now steady state) enumerated every place the UI calls the host: 108 call sites in 14 files. When the catalog was first written 25 of them broke one of these rules (no acknowledgment, no guard against a second press, a failure that is unhandled, a completion that lives on one page), and 9 more belonged to the install flows.
+A narrator clicks something that talks to the Go host or a Python sidecar and cannot tell whether anything happened, whether it is still running, or when it finished if they looked away. The interaction feedback audit (now described in [interaction feedback](../architecture/interaction-feedback.md)) enumerated every place the UI calls the host: 108 call sites in 14 files. When the catalog was first written 25 of them broke one of these rules (no acknowledgment, no guard against a second press, a failure that is unhandled, a completion that lives on one page), and 9 more belonged to the install flows.
 
 The latency baseline ([interaction latency baseline](../research/interaction-latency-baseline.md)) measured the operations. Every Story Bible mutation takes 280 ms or more (each is a Python process), one Save is four processes (1.2 to 1.8 s), a build is 1 to 6 s, and every Go call is under 10 ms. So the standard cannot be "loading states for slow things" only: the cheapest Python-backed action is already three times the threshold at which a person stops feeling in control.
 
-Owner decision D22 adopts the PRD's recommendations for its open questions: the tiers below (question 1), a toast queue with sticky errors (question 2), acknowledgment first and latency work driven by data (question 4), a generic pending hook and a `pending` state on the buttons (question 9), and a guard against silent catches folded into the catalog ratchet (question 10).
+The owner decided on the tiers below, a toast queue with sticky errors, acknowledgment first and latency work driven by data, a generic pending hook and a `pending` state on the buttons, and a guard against silent catches folded into the catalog ratchet.
 
 ## Decision
 
@@ -29,7 +29,7 @@ Owner decision D22 adopts the PRD's recommendations for its open questions: the 
 | 1 | Under 100 ms | Nothing needed |
 | 2 | 100 ms to 1 s | Rule 1 and rule 2 (a busy control that ignores a second press) |
 | 3 | 1 to 10 s | Rules 1 and 2, an indeterminate indicator, and a completion signal (rule 3) |
-| 4 | Over 10 s | Real progress, cancel or dismiss, and eligibility for an operating system notification (the briefs PRD) |
+| 4 | Over 10 s | Real progress, cancel or dismiss, and eligibility for an operating system notification ([native notifications](../architecture/native-notifications.md)) |
 
 **Toasts.** The toast is a small own primitive (`components/primitives/Toast.tsx`, stories beside it), not a Base UI wrapper. Messages queue instead of replacing each other (up to four are visible; an identical message that is already showing restarts its timer instead of stacking). A success or information message dismisses itself after 5 seconds; **an error stays until it is dismissed**, and is announced assertively (`role="alert"`), while the rest are polite.
 
@@ -42,6 +42,6 @@ Owner decision D22 adopts the PRD's recommendations for its open questions: the 
 - Every new host call has to say where it stands against the standard, in the same pull request, or the test fails. The cost is one row.
 - `Button` and `IconButton` gain a `pending` prop (a primitive change, with stories and the atlas). A pending control stays focusable and `aria-disabled`, so a keyboard user does not lose their place when it turns busy.
 - Errors no longer vanish after 2.4 seconds. A narrator who triggers many failures sees up to four stacked until they dismiss them; that is the intended trade.
-- The install flows (voice and Whisper downloads) are release-readiness Phase 1's: their rows are `owned` and the rules apply to them when that work lands. The audit did not rebuild them.
+- The audit did not rebuild the install flows (voice and Whisper downloads): their rows were `owned` by the provisioning work and are `ok` now.
 - The tiers are measured on one machine with Defender off and synthetic manuscripts ([baseline](../research/interaction-latency-baseline.md)); a slower machine moves an operation up a tier, which only ever adds treatment, never removes it.
 - To change a rule or a threshold, write a new ADR that supersedes this one.

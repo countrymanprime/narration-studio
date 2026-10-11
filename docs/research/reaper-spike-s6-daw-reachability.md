@@ -1,6 +1,6 @@
 # REAPER spike S6: DAW reachability, executable discovery and auto-run
 
-**Status: done, 2026-09-22. Everything below was observed in REAPER 7.80 on Windows; a different version may differ.** Spike S6, phase 6 of the [project-workspace-and-daw-link PRD](../prds/project-workspace-and-daw-link.prd.md) (Open Questions W10, W11, W12). It answers the three questions Phases 7 and 8 need before they can be scoped, using the same isolated-launch method as [spike S0](reaper-spike-s0-item-extension-data.md).
+**Status: done, 2026-09-22. Everything below was observed in REAPER 7.80 on Windows; a different version may differ.** Spike S6, phase 6 of the project-workspace-and-daw-link PRD (deleted) (Open Questions W10, W11, W12). It answers the three questions Phases 7 and 8 need before they can be scoped, using the same isolated-launch method as [spike S0](reaper-spike-s0-item-extension-data.md).
 
 ## What it settles
 
@@ -20,7 +20,7 @@
   - **Run B** (no `-Project` argument, REAPER's own default blank project): the unsaved-project case.
 - **Registry evidence (W11)**, captured with PowerShell `Get-ItemProperty` before any REAPER script ran, on the Uninstall key and the `.rpp` ProgID:
 
-  ```
+  ```text
   HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{...}
     DisplayName      = REAPER (x64)
     InstallLocation  = C:\Program Files\REAPER (x64)

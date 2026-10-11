@@ -22,7 +22,7 @@ function renderTab(seed: MockApiSeed = {}) {
   return api;
 }
 
-describe('the Series tab (character-continuity-review P11)', () => {
+describe('the Series tab', () => {
   it('a project outside any series offers to name one, the honest empty state', async () => {
     renderTab({ seriesVoiceBible: 'not-in-series' });
     expect(await screen.findByText(/no other books in this series yet/i)).toBeTruthy();

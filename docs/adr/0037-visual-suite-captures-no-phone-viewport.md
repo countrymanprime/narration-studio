@@ -21,8 +21,8 @@ The app's own responsive CSS is unchanged. The mobile layout still exists; it is
 ## Consequences
 
 - The visual suite runs 222 tests instead of 300, and drops its slowest viewport.
-- A layout regression below 768px is no longer caught by CI. It could only show in a browser, since the shell's minimum width is 960px. The known example is the Settings layout at 390px (planned in `docs/prds/settings-mobile-layout.prd.md`), which no longer has an automated regression check.
-- Planned work that verifies at a phone viewport needs revisiting: `docs/prds/settings-mobile-layout.prd.md` (its assumption that narrators use narrow windows is answered here, and its success metrics count "all 300 captures" at four viewports) and the other PRDs that list `mobile` in their PNG review. This decision does not edit them; each is updated or closed when its work is picked up.
+- A layout regression below 768px is no longer caught by CI. It could only show in a browser, since the shell's minimum width is 960px. The known example is the Settings layout at 390px, which has no automated regression check here ([ADR 0061](0061-settings-states-are-also-captured-at-a-390px-reflow-width.md) later adds a 390px capture for the Settings states).
+- Planned work that verifies at a phone viewport needs revisiting: any plan that counts captures at four viewports or lists `mobile` in its PNG review is out of date. This decision does not edit those plans; each is updated or closed when its work is picked up.
 - The `tablet` viewport (768px) is kept, because the app is meant to work at tablet size and up. It is also below the shell's 960px minimum, so dropping it would be a further decision of its own.
 - The component atlas (`tests/atlas`) still checks components at a 390px `narrow` width; that is a component-level check and was not changed.
 - To capture a phone size again, add a viewport to `viewports.ts`, restore a state that opens the nav drawer, and write a new ADR that supersedes this one (see `docs/adr/README.md`).

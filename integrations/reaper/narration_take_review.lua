@@ -1,5 +1,5 @@
--- Take creation over the bridge: create_take (take-review-pickups-duplicates-take-intelligence.prd.md phase 6, the
--- phase 1 spike docs/research/take-review-spike-p1-take-mechanics.md, and ADR 0098). Loaded by
+-- Take creation over the bridge: create_take (the spike docs/research/take-review-spike-p1-take-mechanics.md and
+-- ADR 0098). Loaded by
 -- narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 
 local core = ...
@@ -68,8 +68,8 @@ local function read_create_take_payload(path)
   }
 end
 
--- Adds one candidate source range as a new take on the target item (Q4): AddTakeToMediaItem, set source, align
--- D_STARTOFFS to the matched span's start inside the candidate's own source, write the three provenance keys (Q5),
+-- Adds one candidate source range as a new take on the target item: AddTakeToMediaItem, set source, align
+-- D_STARTOFFS to the matched span's start inside the candidate's own source, write the three provenance keys (ADR 0098),
 -- all inside one Undo_BeginBlock2/Undo_EndBlock2 block. Never calls SetActiveTake (the previously active take stays
 -- active - nothing asks it to switch) and never touches the item's D_LENGTH, matching the spike's observations.
 -- Undo and redo replace REAPER's item/take Lua objects project-wide (the spike's warning), so this re-resolves the

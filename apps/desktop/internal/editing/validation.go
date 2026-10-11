@@ -1,12 +1,12 @@
-// This file is Phase 4 of docs/prds/editing-readiness-analysis.prd.md ("Click
-// and breath validation"): the detector versions the click and breath
-// records are stamped with, the recorded held-out runs of those versions, the
-// gate that lets a class signal say met only for a version with a qualifying
-// run (Q5), the per-class signal itself, and the scan defaults the tuning half
-// chose. The runs are produced by validationrun_test.go, which also fails if a
+// This file holds the click and breath validation: the detector versions the
+// click and breath records are stamped with, the recorded held-out runs of
+// those versions, the gate that lets a class signal say met only for a
+// version with a qualifying run (ADR 0510), the per-class signal itself, and
+// the scan defaults the tuning half chose (ADR 0511). The runs are produced by validationrun_test.go, which also fails if a
 // recorded number stops matching what the detector does now, so no number
 // here stands without the run behind it. The method and the numbers are in
 // docs/research/editing-click-breath-validation.md.
+
 package editing
 
 import (
@@ -18,8 +18,8 @@ import (
 )
 
 // ClickAnalyzerVersion and BreathAnalyzerVersion identify the click and breath
-// detectors as this package runs them: measure/cleanup.go's heuristics (DX
-// Phase 9 owns them) under DefaultScanOptions. Either changing - the heuristic
+// detectors as this package runs them: measure/cleanup.go's heuristics (the
+// measure package owns them) under DefaultScanOptions. Either changing - the heuristic
 // or the default - is a new version, recorded with its own run; the ledger
 // records and cache entries of the old one then read stale.
 const (
@@ -27,21 +27,22 @@ const (
 	BreathAnalyzerVersion = "editing-breath-v1"
 )
 
-// RecallTarget is the Success Metrics' proposed recall per class (an
-// assumption to calibrate, not a measured fact). A detector version is
+// RecallTarget is the proposed recall per class (ADR 0510; an assumption to
+// calibrate, not a measured fact). A detector version is
 // validated only when its held-out recall reaches it overall and in every
 // recording condition of the run.
 const RecallTarget = 0.9
 
-// DefaultScanOptions are the scan parameters the Phase 4 tuning half chose:
-// DX's own silence and cleanup defaults, except BreathBelowSpeechDB, lowered
+// DefaultScanOptions are the scan parameters the tuning half of the
+// validation run chose: the measure package's own silence and cleanup
+// defaults, except BreathBelowSpeechDB, lowered
 // from 12 to 8 dB because the tuning half's loud breaths (8 to 12 dB under
 // the speech peak) were missed at 12 and precision did not fall at 8. Clicks
 // keep ClickAboveSilenceDB 30: from 20 to 30 dB nothing changed, and 40 only
 // dropped plosive false positives at the same recall, which the selection
 // rule never trades for sensitivity (a precision gain measured on synthetic
 // audio is no reason to raise fewer candidates on real audio). Provisional
-// (D70): chosen on synthetic audio.
+// (ADR 0364): chosen on synthetic audio.
 func DefaultScanOptions() ScanOptions {
 	cleanup := measure.DefaultCleanupOptions()
 	cleanup.BreathBelowSpeechDB = 8
@@ -50,7 +51,7 @@ func DefaultScanOptions() ScanOptions {
 
 // CorpusKind is what a validation run was scored on. Only a permissioned
 // narrator corpus can validate a detector; synthetic audio is a regression
-// guard (Q10: "Synthetic breaths and clicks are not a validation").
+// guard (ADR 0364).
 type CorpusKind string
 
 const (
@@ -110,7 +111,7 @@ func (v DetectorValidation) Validated() bool {
 	return true
 }
 
-// recordedValidations are the Phase 4 runs, held-out half, 2026-09-28, on the
+// recordedValidations are the held-out half of the validation runs of 2026-09-28, on the
 // synthetic validation corpus (validationcorpus_test.go; no permissioned
 // corpus is on main). Clicks reach 38% held-out recall (mouth clicks next to a
 // word and clicks in room tone above the silence floor are missed); breaths
@@ -149,7 +150,7 @@ func DetectorValidations() []DetectorValidation {
 }
 
 // IsValidated reports whether validations hold a qualifying run for exactly
-// this analyzer and version (Q5): any other version, of either class, is not.
+// this analyzer and version: any other version, of either class, is not.
 func IsValidated(validations []DetectorValidation, analyzerID, analyzerVersion string) bool {
 	for _, v := range validations {
 		if v.AnalyzerID == analyzerID && v.AnalyzerVersion == analyzerVersion && v.Validated() {

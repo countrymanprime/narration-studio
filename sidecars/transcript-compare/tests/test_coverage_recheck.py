@@ -1,9 +1,8 @@
-"""Tests for the sidecar's windows-only recheck mode (model cascade Phase 3; PRD deleted, delivered -
-docs/utilities/recording-coverage.md#the-model-cascade is the steady state): `compare.py --coverage --recheck <windows.json>`
-transcribes only the given windows with `--model`, one model load for the run, and splices the new
+"""Tests for the sidecar's windows-only recheck mode (docs/utilities/recording-coverage.md, the model cascade): `compare.py
+--coverage --recheck <windows.json>` transcribes only the given windows with `--model`, one model load for the run, and splices the new
 words into each affected words file, recording per-range model provenance in a new `spans` list.
 It touches no manifest, chapter or timeline, and writes no results file. A plain check (not the
-windows path) also refuses to reuse a words file another model made (the Should item)."""
+windows path) also refuses to reuse a words file another model made."""
 
 import json
 import subprocess
@@ -457,7 +456,7 @@ def test_the_cli_recheck_exits_1_on_a_malformed_windows_file(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# the Should item: a plain check never silently reuses another model's words
+# a plain check never silently reuses another model's words
 
 
 def test_covers_also_checks_the_model_when_one_is_given():

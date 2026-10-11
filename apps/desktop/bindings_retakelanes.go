@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/retakelanes"
 )
 
-// The Phase 25 (retakes as fixed lanes) bindings for the reaper-automation-follow-through PRD, ADR 0147.
+// The retakes-as-fixed-lanes bindings (ADR 0147).
 // h.emitRetakeLanes (app.go) relays every state change as the "retakelanes:state" live event. The wire-contract
 // schemas, golden payloads and mock live in apps/ui/src/api.
 

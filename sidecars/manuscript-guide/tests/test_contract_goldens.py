@@ -39,7 +39,7 @@ class ContractGoldenTests(unittest.TestCase):
 
 
 class PronunciationDepthContractGoldenTests(unittest.TestCase):
-    """The narrator's own pronunciation, its alternate, a status and a note, as the sidecar writes them (prep-depth P1)."""
+    """The narrator's own pronunciation, its alternate, a status and a note, as the sidecar writes them."""
 
     def test_an_entity_with_the_narrators_pronunciation_work_matches_the_committed_contract_file(self):
         import argparse

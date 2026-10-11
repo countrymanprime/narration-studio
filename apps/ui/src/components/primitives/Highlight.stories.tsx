@@ -38,7 +38,7 @@ export const Review: Story = { args: { kind: 'Review', children: 'Cheshire' } };
 export const Note: Story = { args: { kind: 'Note', children: 'a note anchored to this sentence' } };
 // The Teleprompter's current word: a solid accent fill (not a tint) that reads as a position marker.
 export const Cursor: Story = { args: { kind: 'Cursor', children: 'beginning' } };
-// The read-aloud flags (teleprompter-manuscript-integration.prd.md Phase 7): decorations only, in the Transcript Compare colour of the
+// The read-aloud flags: decorations only, in the Transcript Compare colour of the
 // same kind, so the words keep the text colour.
 export const Misread: Story = { args: { kind: 'Misread', children: 'beginning', description: 'Heard: begging' } };
 export const Extra: Story = { args: { kind: 'Extra', children: 'tired', label: 'Suspected extra words', description: 'Heard: um' } };
@@ -99,7 +99,7 @@ export const StaticIsNotAButton: Story = {
   },
 };
 
-// The Booth's "Voices in scene" tags (booth/BoothView.tsx, D85 #6, ADR 0367): colorToken overrides the kind's own
+// The Booth's "Voices in scene" tags (booth/BoothView.tsx, ADR 0367): colorToken overrides the kind's own
 // colour with one of the seven declared speaker tokens (speakerColor.ts), while the mark keeps its Character kind
 // and behaviour - the same primitive, only its colour source changed.
 export const PerSpeakerColour: Story = {

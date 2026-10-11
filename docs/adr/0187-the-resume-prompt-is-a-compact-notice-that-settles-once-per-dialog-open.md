@@ -7,17 +7,17 @@
 ## Context
 
 The read-aloud dialog's resume card (ADR 0112) sat above the reading view as a bordered `Panel`, centred on the dialog
-body rather than the text column beside the reading panel (`read-aloud-control-bar.prd.md`). The owner reported it
+body rather than the text column beside the reading panel. The owner reported it
 differently: it never went away after a choice (it folded into a "Change" summary instead), it came back and asked
 again every time a session ended, and a fully recorded chapter was still offered a word to "resume" at, past the last
-word of the script (`docs/prds/read-aloud-resume-from-daw.prd.md`). Phase 1 of that PRD fixes the UI's behaviour and
-shape without yet reading REAPER's live state or a stored prompter position (its own Phases 2-5).
+word of the script. This ADR fixes the UI's behaviour and
+shape without yet reading REAPER's live state or a stored prompter position.
 
 ## Decision
 
 1. **The resume card becomes a resume prompt**: one compact bordered notice (`ResumePrompt.tsx`, replacing
    `ResumeCard.tsx`/`ResumeOffer.tsx`), not a `Panel`, rendered in the text column's `header` slot
-   (`read-aloud-control-bar.prd.md` Phase 1) so it shares the text's own left and right edges.
+   so it shares the text's own left and right edges.
 2. **It settles once and stays gone for the dialog's whole open.** `ResumePrompt` is mounted for the dialog's entire
    life (`ReadAloudDialog` no longer conditionally mounts it on `!session.active`), and it tracks its own `settled`
    flag: any of the three choices ("Resume from here", "Start from the top", "Pick a word") or a session starting sets
@@ -33,8 +33,7 @@ shape without yet reading REAPER's live state or a stored prompter position (its
 5. **Track linking leaves the resume area.** This amends ADR 0112 decision 4: instead of an inline track picker for an
    uncertain, ambiguous or missing match, and instead of an inline warning paragraph for a confirmed track that was
    renamed, missing or linked twice, the prompt shows one line naming the problem with a link to the Tracks page
-   (`/tracks`). Choosing a different track in place is [Chapter Track Link Control](../prds/chapter-track-link-control.prd.md)'s
-   job, not this dialog's.
+   (`/tracks`). Choosing a different track in place is the Tracks page's job, not this dialog's.
 
 ## Consequences
 
@@ -44,6 +43,6 @@ shape without yet reading REAPER's live state or a stored prompter position (its
   `dialog-read-aloud-resume.aria.yml` drops the card's heading (the prompt is named by `aria-label`, not a visible
   `<h2>`) and the "Another track" button.
 - A narrator who wants to read a different track than the one matched must go to the Tracks page; this is a narrower
-  affordance than before, deliberately, until Chapter Track Link Control's own picker exists.
+  affordance than before, deliberately, because the Tracks page owns linking.
 - The prompt still reads only the saved `.rpp` tail (ADR 0111); reading REAPER's live state, a stored prompter
-  position and reconciling the two are `read-aloud-resume-from-daw.prd.md` Phases 2-5, not built here.
+  position and reconciling the two are not built here; see [ADR 0206](0206-resume-reconciles-the-recording-with-the-prompters-last-word-in-the-host-and-asks-only-when-they-disagree.md) and [ADR 0349](0349-the-resume-locate-reads-reapers-live-cursor-and-items-first-and-falls-back-to-the-saved-project-never-to-a-guess.md).

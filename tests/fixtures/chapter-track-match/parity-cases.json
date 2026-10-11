@@ -1,5 +1,5 @@
 {
-  "_about": "Parity cases for find_chapter_by_track_name (sidecars/transcript-compare/core/compare.py) and its Go port (apps/desktop/internal/chaptermatch). Expected values are what the Python matcher returns; both test suites read this file. index is the matched chapter position or null; score is the matcher score. labelTokens pins label_tokens / LabelTokens, the chapter label pre-pass of the DAW chapter-track auto-sync PRD Phase 1; marker is '' (none), 'take', 'pickup' or 'credits'. labelTokens pins label_tokens / LabelTokens, the chapter label pre-pass of the DAW chapter-track auto-sync PRD Phase 1; marker is '' (none), 'take', 'pickup' or 'credits'.",
+  "_about": "Parity cases for find_chapter_by_track_name (sidecars/transcript-compare/core/compare.py) and its Go port (apps/desktop/internal/chaptermatch). Expected values are what the Python matcher returns; both test suites read this file. index is the matched chapter position or null; score is the matcher score. labelTokens pins label_tokens / LabelTokens, the chapter label pre-pass; marker is '' (none), 'take', 'pickup' or 'credits'.",
   "normalizedTokens": [
     {
       "input": "CHAPTER ONE",

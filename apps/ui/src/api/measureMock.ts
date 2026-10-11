@@ -1,4 +1,4 @@
-// The browser mock's measurement (diagnostics-delivery-and-cleanup-tools.prd.md Phase 1), answering the way
+// The browser mock's measurement, answering the way
 // apps/desktop/measure_job.go does: the same refusals (nothing chosen, a path the picker did not choose, one already
 // running), a running job that reads one more quarter of a file per poll (standing in for the bytes the host reads, ADR
 // 0015), and results in the shape tests/fixtures/contracts/measure-success.json pins: a chapter with every level, a
@@ -126,8 +126,7 @@ export type MockMeasureSeed = 'hold' | 'fails' | 'spread' | 'mock-05';
 
 const BROKE = 'runtime error: index out of range [4] with length 4';
 
-/** Six already-measured chapters with varied levels (delivery-platform-profiles.prd.md Phase 10, mockup 11 "Book
- * consistency"), all within ACX's bounds, so the book-wide spread has more than the single file `report()` above
+/** Six already-measured chapters with varied levels (the Book consistency view), all within ACX's bounds, so the book-wide spread has more than the single file `report()` above
  * gives every other mock scenario. `?mockMeasure=spread` seeds the job with these already ended, so the state can
  * be captured without measuring six files by hand. */
 const SPREAD_LEVELS: readonly { rms: number; peak: number; noiseFloor: number; lufs: number; duration: number }[] = [

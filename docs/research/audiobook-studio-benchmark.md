@@ -143,7 +143,7 @@ The competitive landscape by product, with the stages each covers.
 | TwistedWave (+ speech add-on) | Standalone single-track editor | Punch-and-roll; the script aligned to the audio; live speech recognition while recording (Whisper and others) [L13][L14] | Alignment only: no pickup list from comparing script and audio [L13] |
 | Adobe Audition | DAW | Native punch-and-roll with pre-roll and "Punch Again" [L15] | For years narrators needed Travis Baldree's extension [L16][L17] |
 | REAPER | DAW, heavily configured by narrators | Everything, after setup; cheap; ReaScripts; a web remote [L19][L27][W27] | "Steep learning curve", and a market of courses and config files just to make it usable [L26][L28] |
-| Audacity | Free editor, **our planned second host** | Punch-and-roll (5 s pre-roll, 10 ms crossfade); ACX Check plugin [L23][L24] | **Audacity 4.0.0 shipped on 2026-09-03** with punch-and-roll rebuilt for its new interface [L20] *(single source: a release page returned by search)*. The [Audacity PRD](../prds/audacity-integration.prd.md) targets 3.x only |
+| Audacity | Free editor, **our planned second host** | Punch-and-roll (5 s pre-roll, 10 ms crossfade); ACX Check plugin [L23][L24] | **Audacity 4.0.0 shipped on 2026-09-03** with punch-and-roll rebuilt for its new interface [L20] *(single source: a release page returned by search)*. The Audacity PRD (deleted) targets 3.x only |
 | Pozotron | Cloud AI proofing and script prep | Manuscript-to-narration comparison; character and pronunciation prep; **marker export** to 10 DAWs; a pickup recording tool [L6][L8][L9][L12] | False positives [L11]; backlash over data retention [L10]; about $99 a month for 16 finished hours [L7] *(single source)* |
 | Narrafix | Cloud automatic first edit | Removes repeats and retakes; outputs a REAPER project or AAF; 40+ languages [L21] | Critics say automatic editing cannot hear intent [L37] |
 | Punch Track | Browser DAW replacement | Punch-and-roll, a manuscript viewer, collaborative pickup review, roles [L32][L33] | New, browser-only; most material about it is its own marketing [L32] |
@@ -170,7 +170,7 @@ Status codes:
 - **Missing:** in neither.
 
 The code, not a PRD's phase table, decides the status. Several phase tables are behind the code. For example,
-[tool-run-logging](../prds/tool-run-logging.prd.md) marks P1–P4 and P7 as pending, but commits `31749b7`…`a9c001e` delivered them.
+tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pending, but commits `31749b7`…`a9c001e` delivered them.
 
 | Capability | Status | Where it stands |
 | --- | --- | --- |
@@ -181,10 +181,10 @@ The code, not a PRD's phase table, decides the status. Several phase tables are 
 | Pronunciation from the CMU dictionary or eSpeak, with a Piper preview | Shipped | `internal/guide` |
 | Narrator-edited pronunciation store; lookups in Forvo, YouGlish and Merriam-Webster; author queries | Planned / Missing | Only an offline WordNet lookup is shipped. There are no web-source lookups and no author-query export |
 | Speaker attribution for each line of dialogue; script markup for stress and pauses | Missing | Reader notes and bookmarks only |
-| A voice reference clip per character | Planned | [Character continuity](../prds/character-continuity-review.prd.md): all 8 phases pending |
+| A voice reference clip per character | Planned | Character continuity (deleted PRD `character-continuity-review`): all 8 phases pending |
 | **Recording** | | |
-| Recording without a DAW | Planned | [Native recording suite](../prds/native-recording-suite.prd.md): all 6 phases pending |
-| Arm, record and stop REAPER | Partial | Lua commands are built but experimental with no binding. "Record in REAPER" is always disabled ([read-aloud control bar](../prds/read-aloud-control-bar.prd.md) P7) |
+| Recording without a DAW | Planned | Native recording suite (deleted PRD `native-recording-suite`): all 6 phases pending |
+| Arm, record and stop REAPER | Partial | Lua commands are built but experimental with no binding. "Record in REAPER" is always disabled (read-aloud control bar (deleted PRD `read-aloud-control-bar`) P7) |
 | Punch-and-roll from a word | Partial | `narration_punch.lua` and `bridge/punch.go` are built but experimental. The UI shows "Punch from here" disabled |
 | Script follows the voice while recording | Shipped | Teleprompter: Whisper, or Moonshine on Windows; skip and restart flags; resume from the DAW tail |
 | Input meter and device choice | Shipped (Windows) | dshow capture only |
@@ -200,12 +200,12 @@ The code, not a PRD's phase table, decides the status. Several phase tables are 
 | **Editing and mastering** | | |
 | Pickup, restart and duplicate detection; add as take; A/B audition | Shipped | Take review, milestone 2 |
 | Silence trim and level normalisation | Partial | Built in the bridge, with no binding or UI |
-| FX chains, active take | Partial | Experimental Lua ([edit and proof workspace](../prds/edit-and-proof-workspace.prd.md)) |
+| FX chains, active take | Partial | Experimental Lua (edit and proof workspace (deleted PRD `edit-and-proof-workspace`)) |
 | Mastering chain or master-to-spec | Missing | The roadmap says the app never changes audio without the narrator's action, so this would be narrator-triggered |
 | **QC and delivery** | | |
 | Measurement: LUFS, true peak, RMS, noise floor, room-tone head and tail, diagnostics | Shipped (WAV only) | `internal/measure`. MP3 container checks only (ADR 0237). EBU and ACX Check validation pending |
 | ACX profile | Shipped | `acx@2026-09`, with rules marked verified, to verify, or conflicting |
-| INaudio, Google, Apple and Kobo profiles | Planned | [Delivery platform profiles](../prds/delivery-platform-profiles.prd.md) |
+| INaudio, Google, Apple and Kobo profiles | Planned | Delivery platform profiles (deleted PRD `delivery-platform-profiles`) |
 | Per-chapter render | Partial | The render is configured in REAPER, and the narrator presses Render there. Region creation is experimental with no UI |
 | ID3 chapter tags | Shipped | Written to a copy of a combined MP3 (ADR 0099) |
 | MP3 or M4B encoding, naming templates | Missing | |
@@ -312,7 +312,7 @@ Full screen and low glare, with nothing else on it:
   shown as evidence for the narrator to judge, not as a verdict, which follows the roadmap's own rule for milestone 3.
 - This mock shows the built-in recorder chip, to illustrate standalone mode.
 
-- **Planned:** the [character continuity PRD](../prds/character-continuity-review.prd.md).
+- **Planned:** the character continuity PRD (deleted).
 - **New:** sharing across a series.
 
 ### DAW companion panel
@@ -337,7 +337,7 @@ In priority order. Each is a candidate for a PRD, not a decision.
 1. **Switch on what is already built.** Finish the owner's verification in REAPER. Then promote from experimental, and give a UI
    to:
    - `punch_to` / `play_position`: "Punch from here" in the teleprompter and on pickups;
-   - `arm_only` / `record_start` / `record_stop`: [read-aloud control bar](../prds/read-aloud-control-bar.prd.md) P7;
+   - `arm_only` / `record_start` / `record_stop`: read-aloud control bar (deleted PRD `read-aloud-control-bar`) P7;
    - `create_regions`;
    - silence trim and level normalize.
 
@@ -372,7 +372,7 @@ In priority order. Each is a candidate for a PRD, not a decision.
    - A narrator-edited pronunciation store with its sources.
    - Author query export.
 7. **Standalone, after the above.**
-   - The [native recording suite](../prds/native-recording-suite.prd.md).
+   - The native recording suite (deleted PRD `native-recording-suite`).
    - Built-in render and encode (MP3, M4B).
    - A mastering chain.
    - PDF import.
@@ -393,91 +393,91 @@ The numbers match the two research passes: **L** = the tool landscape, **W** = t
 by a search on 2026-09-26. Its content is known only from search summaries (see Confidence above).
 
 **Landscape**
-- [L1] Hindenburg, audiobooks: https://hindenburg.com/products/audio-books/
-- [L4] Creator Stack Club, Hindenburg review: https://www.creatorstackclub.com/software/hindenburg
-- [L5] Punch Track vs Hindenburg Narrator: https://punchtrack.com/punch-track-vs-hindenburg-narrator
-- [L6] Pozotron features: https://www.pozotron.com/features
-- [L7] Pozotron Narrator's Plan: https://www.pozotron.com/support/docs/narrator's_plan/
-- [L8] Pozotron DAW markers: https://www.pozotron.com/support/docs/daw_markers/
-- [L9] Pozotron Script Prep: https://www.pozotron.com/scriptprep
-- [L10] VO Heroes, Pozotron responds on data retention: https://voheroes.com/pozotron-responds-to-narrator-concerns-about-data-retention/
-- [L11] Pozotron, common misconceptions: https://blog.pozotron.com/common-misconceptions-about-pozotron
-- [L12] Pozotron, latest feature releases: https://support.pozotron.com/helpcenter/latest-feature-releases
-- [L13] TwistedWave speech recognition: https://twistedwave.com/speech
-- [L14] TwistedWave store: https://twistedwave.com/store/order_desktop
-- [L15] Adobe Audition, recording audio: https://helpx.adobe.com/audition/desktop/importing-recording-and-playing/recording-audio.html
-- [L16] Travis Baldree, Audition punch and roll: https://www.travisbaldree.com/adobe-audition-punch-roll
-- [L17] Adobe community, punch and roll: https://community.adobe.com/questions-544/punch-roll-is-essential-to-audiobook-recording-157228
-- [L19] C.C. Hogan, punch and roll: https://cchogan.com/audiobook-tips-a-short-guide/punch-and-roll-recording/
-- [L20] Audacity 4.0.0 release: https://github.com/audacity/audacity/releases/tag/Audacity-4.0.0
-- [L21] Narrafix: https://narrafix.audio/
-- [L22] ChapterPass, free audiobook quality checker: https://chapterpass.com/blog/free-audiobook-quality-checker
-- [L23] Audacity, audiobook mastering: https://support.audacityteam.org/audio-editing/audiobook-mastering
-- [L24] Audacity 4, punch and roll: https://support.audacityteam.org/au4/manual/manual-index/punch-and-roll-recording
-- [L25] Auphonic, RMS normalization for ACX: https://auphonic.com/blog/2026/01/15/rms-loudness-normalization-for-audible-acx/
-- [L26] Scribecount, self-narrated audiobooks: https://scribecount.com/author-resource/audiobook-creation-guide/self-narrated-audiobooks
-- [L26b] Sonicstate, iZotope RX 12: https://sonicstate.com/news/2026/04/29/izotope-releases-rx-12/
-- [L27] ACX blog, Don't Fear the REAPER: https://www.acx.com/mp/blog/dont-fear-the-reaper
-- [L28] Reaper For Audiobooks: https://reaperforaudiobooks.com/
-- [L31] Studio One punch-and-roll tutorials: https://www.youtube.com/playlist?list=PLEkiX1v9vUsrpAgnnDsAmcQPsYMhDKGn5
-- [L32] Punch Track: https://punchtrack.com/
-- [L33] Punch Track for narrators: https://punchtrack.com/narrators
-- [L34] PreRead: https://prereadnow.com/
-- [L35] ACX PreCheck: https://precheck.vojumpstart.com/
-- [L36] VO Jumpstart: https://vojumpstart.com/about/
-- [L37] Travsonic, human editors and proofers: https://www.travsonic.com/human-editors-and-audiobook-proofers/
-- [L38] Just Ask Jim VO, ACX Audiolab: https://justaskjimvo.studio/is-acx-audiolab-helping-you/
-- [L42] ACX blog, narrator voice replicas beta: https://www.acx.com/mp/blog/now-in-beta-narrator-voice-replicas-on-acx
-- [L44] Narration Box, ACX specs 2025–2026: https://narrationbox.com/blog/acx-audio-specs-explained-2025-2026
-- [L46] Reedsy, Voices by INaudio review: https://reedsy.com/blog/voices-by-inaudio-review/
-- [L47] ChapterPass, Findaway Voices: https://chapterpass.com/for/findaway-voices
-- [L48] Google Play Books partner help: https://support.google.com/books/partner/answer/3424254?hl=en
-- [L49] Apple Books for Authors, digital narration: https://authors.apple.com/support/4973-get-started-digital-narration
-- [L53] Carol Beth Anderson, production spreadsheet: https://carolbethanderson.com/2021/10/22/audiobook-production-spreadsheet-a-tool-for-narrators-producers/
+- [L1] Hindenburg, audiobooks: <https://hindenburg.com/products/audio-books/>
+- [L4] Creator Stack Club, Hindenburg review: <https://www.creatorstackclub.com/software/hindenburg>
+- [L5] Punch Track vs Hindenburg Narrator: <https://punchtrack.com/punch-track-vs-hindenburg-narrator>
+- [L6] Pozotron features: <https://www.pozotron.com/features>
+- [L7] Pozotron Narrator's Plan: <https://www.pozotron.com/support/docs/narrator's_plan/>
+- [L8] Pozotron DAW markers: <https://www.pozotron.com/support/docs/daw_markers/>
+- [L9] Pozotron Script Prep: <https://www.pozotron.com/scriptprep>
+- [L10] VO Heroes, Pozotron responds on data retention: <https://voheroes.com/pozotron-responds-to-narrator-concerns-about-data-retention/>
+- [L11] Pozotron, common misconceptions: <https://blog.pozotron.com/common-misconceptions-about-pozotron>
+- [L12] Pozotron, latest feature releases: <https://support.pozotron.com/helpcenter/latest-feature-releases>
+- [L13] TwistedWave speech recognition: <https://twistedwave.com/speech>
+- [L14] TwistedWave store: <https://twistedwave.com/store/order_desktop>
+- [L15] Adobe Audition, recording audio: <https://helpx.adobe.com/audition/desktop/importing-recording-and-playing/recording-audio.html>
+- [L16] Travis Baldree, Audition punch and roll: <https://www.travisbaldree.com/adobe-audition-punch-roll>
+- [L17] Adobe community, punch and roll: <https://community.adobe.com/questions-544/punch-roll-is-essential-to-audiobook-recording-157228>
+- [L19] C.C. Hogan, punch and roll: <https://cchogan.com/audiobook-tips-a-short-guide/punch-and-roll-recording/>
+- [L20] Audacity 4.0.0 release: <https://github.com/audacity/audacity/releases/tag/Audacity-4.0.0>
+- [L21] Narrafix: <https://narrafix.audio/>
+- [L22] ChapterPass, free audiobook quality checker: <https://chapterpass.com/blog/free-audiobook-quality-checker>
+- [L23] Audacity, audiobook mastering: <https://support.audacityteam.org/audio-editing/audiobook-mastering>
+- [L24] Audacity 4, punch and roll: <https://support.audacityteam.org/au4/manual/manual-index/punch-and-roll-recording>
+- [L25] Auphonic, RMS normalization for ACX: <https://auphonic.com/blog/2026/01/15/rms-loudness-normalization-for-audible-acx/>
+- [L26] Scribecount, self-narrated audiobooks: <https://scribecount.com/author-resource/audiobook-creation-guide/self-narrated-audiobooks>
+- [L26b] Sonicstate, iZotope RX 12: <https://sonicstate.com/news/2026/04/29/izotope-releases-rx-12/>
+- [L27] ACX blog, Don't Fear the REAPER: <https://www.acx.com/mp/blog/dont-fear-the-reaper>
+- [L28] Reaper For Audiobooks: <https://reaperforaudiobooks.com/>
+- [L31] Studio One punch-and-roll tutorials: <https://www.youtube.com/playlist?list=PLEkiX1v9vUsrpAgnnDsAmcQPsYMhDKGn5>
+- [L32] Punch Track: <https://punchtrack.com/>
+- [L33] Punch Track for narrators: <https://punchtrack.com/narrators>
+- [L34] PreRead: <https://prereadnow.com/>
+- [L35] ACX PreCheck: <https://precheck.vojumpstart.com/>
+- [L36] VO Jumpstart: <https://vojumpstart.com/about/>
+- [L37] Travsonic, human editors and proofers: <https://www.travsonic.com/human-editors-and-audiobook-proofers/>
+- [L38] Just Ask Jim VO, ACX Audiolab: <https://justaskjimvo.studio/is-acx-audiolab-helping-you/>
+- [L42] ACX blog, narrator voice replicas beta: <https://www.acx.com/mp/blog/now-in-beta-narrator-voice-replicas-on-acx>
+- [L44] Narration Box, ACX specs 2025–2026: <https://narrationbox.com/blog/acx-audio-specs-explained-2025-2026>
+- [L46] Reedsy, Voices by INaudio review: <https://reedsy.com/blog/voices-by-inaudio-review/>
+- [L47] ChapterPass, Findaway Voices: <https://chapterpass.com/for/findaway-voices>
+- [L48] Google Play Books partner help: <https://support.google.com/books/partner/answer/3424254?hl=en>
+- [L49] Apple Books for Authors, digital narration: <https://authors.apple.com/support/4973-get-started-digital-narration>
+- [L53] Carol Beth Anderson, production spreadsheet: <https://carolbethanderson.com/2021/10/22/audiobook-production-spreadsheet-a-tool-for-narrators-producers/>
 - [L-synthesis] The landscape agent's reading across L1–L53; not a single source.
 
 **Workflow and specs**
-- [W1] ACX audio submission requirements: https://help.acx.com/s/article/what-are-the-acx-audio-submission-requirements
-- [W2] ACX, all mono or all stereo: https://help.acx.com/s/article/why-should-my-files-be-all-mono-or-all-stereo-is-one-better-than-the-other
-- [W3] ACX blog, mastering audiobooks: https://www.acx.com/mp/blog/mastering-audiobooks-with-alex-the-audio-scientist
-- [W4] ACX Audio Lab: https://www.acx.com/mp/audiolab
-- [W4c] ACX blog, Audio Analysis checks spacing: https://blog.acx.com/2021/12/03/turn-up-the-feedback-acx-audio-analysis-now-checks-spacing
-- [W5] ACX, the 15-minute checkpoint: https://help.acx.com/s/article/approve-the-15-minute-checkpoint
-- [W6] ACX blog, I Submit (retail sample): https://www.acx.com/mp/blog/i-submit-i-submit
-- [W7] HumanizeAudio, ACX credits: https://blog.humanizeaudio.com/acx-opening-and-closing-credits/
-- [W8] Voices by INaudio technical requirements: https://voices.inaudio.com/technical-requirements-for-assets
-- [W10] Jane Friedman, Findaway returns as INaudio: https://janefriedman.com/what-authors-need-to-know-about-the-return-of-findaway-as-inaudio/
-- [W12] Apple Books for Authors, audiobooks: https://authors.apple.com/audiobooks
-- [W13] Google Play, audiobook specs: https://support.google.com/books/partner/answer/7504302?hl=en
-- [W14] Kobo Writing Life, upload an audiobook: https://kobowritinglife.zendesk.com/hc/en-us/articles/360059385511
-- [W16] ID3v2 chapter frame addendum: https://id3.org/id3v2-chapters-1.0
-- [W17] Audacity manual, Punch and Roll Record: https://manual.audacityteam.org/man/punch_and_roll_record.html
-- [W18] Audiobook Editors, punch and roll: https://www.audiobookeditors.com/post/what-is-punch-and-roll-recording
-- [W19a] Narrators Roadmap, workflow: https://www.narratorsroadmap.com/audiobook-production-workflow/
-- [W19b] Narrators Roadmap, pronunciation research: https://www.narratorsroadmap.com/how-to-do-pronunciation-research/
-- [W19c] Narrators Roadmap, prep: https://www.narratorsroadmap.com/how-to-prep-a-book-for-recording/
-- [W19d] Narrators Roadmap, breaths: https://www.narratorsroadmap.com/should-i-remove-breaths-from-my-audiobook/
-- [W20] Pozotron, Script Prep guide: https://blog.pozotron.com/beginners-guide-to-pozotrons-script-prep-tools
-- [W20c] Pozotron, a realistic production timeline: https://blog.pozotron.com/a-realistic-audiobook-production-timeline
-- [W21] ST Mastering, audiobook proofing: https://stmastering.co.uk/audiobook-proofing/
-- [W22] Punch Track: https://punchtrack.com/
-- [W23] Hindenburg, uploading to ACX: https://arfield22.medium.com/record-an-audiobook-with-hindenburg-part-iv-uploading-to-acx-c99cf5150027
-- [W24] Rosie Akerman, a beginner's guide to narrating: https://www.rosieakermanvoiceover.com/2024/07/26/a-beginners-guide-to-narrating-audiobooks/
-- [W25] Backstage, PFH rates: https://www.backstage.com/magazine/article/pfh-audiobook-rates-explained-76681/
-- [W26] OSARA: https://osara.reaperaccessibility.com/
-- [W27] Jason Albert VO, tablet control of REAPER: https://jasonalbertvo.com/blogs/voiceover-podcasts/posts/7512897/using-a-tablet-to-control-reaper-remotely
-- [W29] Patchd, monitoring latency: https://patchd.studio/fix/mic-monitoring-latency
-- [W32] Jay Myers, consistent character voices: https://www.jaymyersvoiceover.com/blog-ideas/how-audiobook-narrators-make-characters-sound-distinct-believable-and-consistent
-- [W34] forScore, page turners: https://forscore.co/page-turners/
-- [W35] Nektar PACER footswitch: https://nektartech.com/pacer-midi-daw-footswitch-controller/
-- [W36] HomeRecording forum, noisy computer in the booth: https://homerecording.com/bbs/threads/help-with-recording-voice-over-audio-near-noisy-computer-fan.347541/
-- [W37] Punch Track glossary, proofer: https://punchtrack.com/glossary/proofer
-- [W38] Narrators Roadmap, proof listeners: https://www.narratorsroadmap.com/audiobook-proof-listeners/
-- [W39] Such A Voice, editing breaths: https://www.suchavoice.com/blog/2021/06/03/to-breathe-or-not-to-breathe-editing-breaths-101/
-- [W40] Tomevox, ACX rejection reasons: https://tomevox.com/blog-acx-rejection-reasons
-- [W41] Orso Labs, what is an M4B: https://orsolabs.dev/audiobo/guides/what-is-an-m4b-file/
-- [W42] KTC, monitor brightness in a dark room: https://us.ktcplay.com/blogs/support-tips/monitor-too-bright-dark-room-eye-strain
-- [W43] PMC, light vs dark mode visual fatigue: https://pmc.ncbi.nlm.nih.gov/articles/PMC12027292/
+- [W1] ACX audio submission requirements: <https://help.acx.com/s/article/what-are-the-acx-audio-submission-requirements>
+- [W2] ACX, all mono or all stereo: <https://help.acx.com/s/article/why-should-my-files-be-all-mono-or-all-stereo-is-one-better-than-the-other>
+- [W3] ACX blog, mastering audiobooks: <https://www.acx.com/mp/blog/mastering-audiobooks-with-alex-the-audio-scientist>
+- [W4] ACX Audio Lab: <https://www.acx.com/mp/audiolab>
+- [W4c] ACX blog, Audio Analysis checks spacing: <https://blog.acx.com/2021/12/03/turn-up-the-feedback-acx-audio-analysis-now-checks-spacing>
+- [W5] ACX, the 15-minute checkpoint: <https://help.acx.com/s/article/approve-the-15-minute-checkpoint>
+- [W6] ACX blog, I Submit (retail sample): <https://www.acx.com/mp/blog/i-submit-i-submit>
+- [W7] HumanizeAudio, ACX credits: <https://blog.humanizeaudio.com/acx-opening-and-closing-credits/>
+- [W8] Voices by INaudio technical requirements: <https://voices.inaudio.com/technical-requirements-for-assets>
+- [W10] Jane Friedman, Findaway returns as INaudio: <https://janefriedman.com/what-authors-need-to-know-about-the-return-of-findaway-as-inaudio/>
+- [W12] Apple Books for Authors, audiobooks: <https://authors.apple.com/audiobooks>
+- [W13] Google Play, audiobook specs: <https://support.google.com/books/partner/answer/7504302?hl=en>
+- [W14] Kobo Writing Life, upload an audiobook: <https://kobowritinglife.zendesk.com/hc/en-us/articles/360059385511>
+- [W16] ID3v2 chapter frame addendum: <https://id3.org/id3v2-chapters-1.0>
+- [W17] Audacity manual, Punch and Roll Record: <https://manual.audacityteam.org/man/punch_and_roll_record.html>
+- [W18] Audiobook Editors, punch and roll: <https://www.audiobookeditors.com/post/what-is-punch-and-roll-recording>
+- [W19a] Narrators Roadmap, workflow: <https://www.narratorsroadmap.com/audiobook-production-workflow/>
+- [W19b] Narrators Roadmap, pronunciation research: <https://www.narratorsroadmap.com/how-to-do-pronunciation-research/>
+- [W19c] Narrators Roadmap, prep: <https://www.narratorsroadmap.com/how-to-prep-a-book-for-recording/>
+- [W19d] Narrators Roadmap, breaths: <https://www.narratorsroadmap.com/should-i-remove-breaths-from-my-audiobook/>
+- [W20] Pozotron, Script Prep guide: <https://blog.pozotron.com/beginners-guide-to-pozotrons-script-prep-tools>
+- [W20c] Pozotron, a realistic production timeline: <https://blog.pozotron.com/a-realistic-audiobook-production-timeline>
+- [W21] ST Mastering, audiobook proofing: <https://stmastering.co.uk/audiobook-proofing/>
+- [W22] Punch Track: <https://punchtrack.com/>
+- [W23] Hindenburg, uploading to ACX: <https://arfield22.medium.com/record-an-audiobook-with-hindenburg-part-iv-uploading-to-acx-c99cf5150027>
+- [W24] Rosie Akerman, a beginner's guide to narrating: <https://www.rosieakermanvoiceover.com/2024/07/26/a-beginners-guide-to-narrating-audiobooks/>
+- [W25] Backstage, PFH rates: <https://www.backstage.com/magazine/article/pfh-audiobook-rates-explained-76681/>
+- [W26] OSARA: <https://osara.reaperaccessibility.com/>
+- [W27] Jason Albert VO, tablet control of REAPER: <https://jasonalbertvo.com/blogs/voiceover-podcasts/posts/7512897/using-a-tablet-to-control-reaper-remotely>
+- [W29] Patchd, monitoring latency: <https://patchd.studio/fix/mic-monitoring-latency>
+- [W32] Jay Myers, consistent character voices: <https://www.jaymyersvoiceover.com/blog-ideas/how-audiobook-narrators-make-characters-sound-distinct-believable-and-consistent>
+- [W34] forScore, page turners: <https://forscore.co/page-turners/>
+- [W35] Nektar PACER footswitch: <https://nektartech.com/pacer-midi-daw-footswitch-controller/>
+- [W36] HomeRecording forum, noisy computer in the booth: <https://homerecording.com/bbs/threads/help-with-recording-voice-over-audio-near-noisy-computer-fan.347541/>
+- [W37] Punch Track glossary, proofer: <https://punchtrack.com/glossary/proofer>
+- [W38] Narrators Roadmap, proof listeners: <https://www.narratorsroadmap.com/audiobook-proof-listeners/>
+- [W39] Such A Voice, editing breaths: <https://www.suchavoice.com/blog/2021/06/03/to-breathe-or-not-to-breathe-editing-breaths-101/>
+- [W40] Tomevox, ACX rejection reasons: <https://tomevox.com/blog-acx-rejection-reasons>
+- [W41] Orso Labs, what is an M4B: <https://orsolabs.dev/audiobo/guides/what-is-an-m4b-file/>
+- [W42] KTC, monitor brightness in a dark room: <https://us.ktcplay.com/blogs/support-tips/monitor-too-bright-dark-room-eye-strain>
+- [W43] PMC, light vs dark mode visual fatigue: <https://pmc.ncbi.nlm.nih.gov/articles/PMC12027292/>
 
 ## Method
 

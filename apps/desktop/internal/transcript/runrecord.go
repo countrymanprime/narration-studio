@@ -1,11 +1,11 @@
-// This file tells a run recorder how each comparison ended
-// (proofing-readiness-signals.prd.md Phase 2, Q5): the proofing signals write an
+// This file tells a run recorder how each comparison ended: the proofing signals write an
 // analysis evidence ledger record per finished run, so a clean run keeps its
 // chapter and chapter 2's result survives chapter 3's comparison. This package
 // only reports what it already knows; it does not depend on the ledger. It also
 // makes a clean, complete run count as a full run in the findings store, so the
 // findings an earlier run raised are marked not_in_latest_run instead of
 // staying current forever.
+
 package transcript
 
 import (

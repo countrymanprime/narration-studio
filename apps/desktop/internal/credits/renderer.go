@@ -1,14 +1,12 @@
 // Package credits renders audiobook opening/closing credit templates: bracketed
 // `[Token]` placeholders resolved from a flat value map, with `{...}` optional
 // segments that drop cleanly (their own punctuation and whitespace with them)
-// when any token inside them has no value (PRD audiobook-credits-templates.prd.md,
-// Open Questions C1-C12; C5's "optional segments yes"). One renderer is used by
-// every surface that shows credits text (the Settings preview; the estimate and
-// the teleprompter are planned), so what a narrator previews is exactly what
-// gets counted and read (PRD "Technical Approach").
+// when any token inside them has no value. One renderer is used by
+// every surface that shows credits text (the Settings preview, the estimate and
+// the teleprompter), so what a narrator previews is exactly what gets counted
+// and read.
 //
-// Callers: apps/desktop's credits bindings (creditsbindings.go, Phase 1); the
-// audiobook estimate and the teleprompter call this in later phases. Public API:
+// Callers: apps/desktop's credits bindings (creditsbindings.go). Public API:
 // Render, Result, ParseTokens.
 package credits
 
@@ -33,7 +31,7 @@ var tokenPattern = regexp.MustCompile(`\[([^\[\]{}]+)\]`)
 // Render fills template's `[Token]` placeholders from values and drops any
 // `{...}` optional segment whose own tokens are not all resolved. An unresolved
 // token outside an optional segment is left visible in the output (never
-// rendered as empty text, C6: "Read by ." on a recording is worse than a
+// rendered as empty text: "Read by ." on a recording is worse than a
 // warning) and named in Result.Unresolved. Segment syntax does not nest.
 func Render(template string, values map[string]string) Result {
 	var unresolved []string

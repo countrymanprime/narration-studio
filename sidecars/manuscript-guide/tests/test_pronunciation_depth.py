@@ -1,9 +1,9 @@
-"""Pronunciation status and the narrator's own pronunciation (prep-depth PRD, phase 1).
+"""Pronunciation status and the narrator's own pronunciation.
 
 A pronunciation carries a ``status`` (``researched``, ``query_sent``, ``author_confirmed``; absent reads as ``researched``) and an
 optional ``note``. The narrator can type their own pronunciation (source ``user``); it never asks CMU or eSpeak, and it sits beside
 the dictionary's answer instead of replacing it: the one not in use is kept as ``alternate``, so switching back is lossless and
-never re-runs a lookup (Q2). A rebuild keeps the status, the note and the alternate.
+never re-runs a lookup. A rebuild keeps the status, the note and the alternate.
 """
 
 import argparse

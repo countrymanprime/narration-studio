@@ -45,7 +45,7 @@ const MAX_REPLAY_SECONDS = 90;
 const REPLAY_SECONDS_PER_WORD = 0.45;
 const HEARD_WORDS = 6;
 const SEED_WORDS_INTO_TEXT = 30;
-// Punch and roll (teleprompter-manuscript-integration.prd.md Phase 12): a plausible reading pace and the repo default
+// Punch and roll: a plausible reading pace and the repo default
 // pre-roll (apps/desktop/settings_number.go), so "Punch from here" resolves a deterministic time and cursor without a
 // real anchors file.
 const MOCK_PUNCH_SECONDS_PER_WORD = 0.4;
@@ -59,7 +59,7 @@ const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
 
 /**
  * `ended` is a session that stopped itself at the end of the chapter (the host's auto-stop, ADR 0106); `flagged` is `listening`
- * further into the text, with a session's suspected flags already raised (Phase 7).
+ * further into the text, with a session's suspected flags already raised.
  */
 export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged';
 
@@ -200,9 +200,8 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
   }
 }
 
-// `?mockReaper=` doubles as ReadAloudArmOnly/ReadAloudRecordStart/ReadAloudRecordStop's mock (read-aloud-control-bar PRD Phase 7,
-// booth-actions-enablement PRD Phase 2), so a story or test that sets up a chapter as `not_armed` sees arming and starting agree with
-// the read-only state `readAloudReaperState` answers for the same chapter.
+// `?mockReaper=` doubles as ReadAloudArmOnly/ReadAloudRecordStart/ReadAloudRecordStop's mock, so a story or test that sets up a chapter as `not_armed` sees
+// arming and starting agree with the read-only state `readAloudReaperState` answers for the same chapter.
 function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 'stop', title: string): ReadAloudRecording {
   if (seed === 'unavailable')
     return {
@@ -275,7 +274,7 @@ const idle: TeleprompterState = {
 };
 
 function buildScript(chapter: ManuscriptChapter, paragraphs: ManuscriptParagraph[]): { script: TeleprompterScript; words: string[] } {
-  // The title span counts the title's own words only (chapter-title-display-consistency.prd.md Q9) - the same as the
+  // The title span counts the title's own words only - the same as the
   // real sidecar (chapter_script.py); the subtitle is shown but never tracked, so it must not shift word positions.
   const titleWords = tokenize(chapter.title);
   const words = [...titleWords];
@@ -474,7 +473,7 @@ function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
   };
 }
 
-/** A chapter's last reading as the host writes it at session end (ADR 0205), for the mock of Phase 3's locate result. */
+/** A chapter's last reading as the host writes it at session end (ADR 0205), for the mock of the locate result. */
 export function mockLastReading(chapterId: string, read: number, tokens: number): TeleprompterReading {
   return { version: 1, chapterId, read: Math.min(read, tokens), tokens, scriptHash: '0'.repeat(64), status: 'listening', endedAt: '2026-09-24T21:04:00Z' };
 }

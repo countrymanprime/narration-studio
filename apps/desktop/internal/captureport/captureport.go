@@ -8,10 +8,10 @@
 // platforms have a backend.
 //
 // Each row also says how far it is supported (Level): dshow is Supported; wasapi, the built-in recorder's engine
-// (native-recording-suite P1, docs/adr/0357), is Experimental until the owner's check with a real microphone (#510).
+// (ADR 0357), is Experimental until the owner's check with a real microphone (#510).
 //
-// Its callers are the provider capabilities binding (provider-ports P14), the packaged app's smoke test and the Booth's
-// "Built-in recorder" (native-recording-suite P2, docs/adr/0455), whose internal/recording engine records through the wasapi
+// Its callers are the provider capabilities binding, the packaged app's smoke test and the Booth's
+// "Built-in recorder" (ADR 0455), whose internal/recording engine records through the wasapi
 // row by its name; teleprompterinput.go's deviceLister stays the test seam for the teleprompter's device list.
 package captureport
 

@@ -16,11 +16,11 @@ import { countRootRules, forcedThemeRules, parseThemes, resolveContrast, rootRul
 const CSS = readFileSync(join(__dirname, 'styles.css'), 'utf8');
 const THEMES = parseThemes(CSS);
 // The app has exactly two themes, and every surface draws with the active one (ADR 0365, which superseded the booth's own
-// forced-dark block of ADR 0360 Q1): the booth and the companion are checked by the same pairs, in both themes.
+// forced-dark booth block of ADR 0360): the booth and the companion are checked by the same pairs, in both themes.
 const THEME_NAMES: Theme[] = ['light', 'dark'];
 
-// --row-selected is a table row's fill (Phase 0b), so everything a row holds is measured on it; --reading-bg is the booth's
-// reading surface (Phase 0b, Q6), so the reader's highlights and speaker colours are measured on it too.
+// --row-selected is a table row's fill, so everything a row holds is measured on it; --reading-bg is the booth's
+// reading surface, so the reader's highlights and speaker colours are measured on it too.
 const SURFACES = ['bg', 'surface', 'surface-2', 'surface-3', 'row-alt', 'row-selected'] as const;
 const PAGE_SURFACES = ['bg', 'surface', 'surface-2', 'row-selected'] as const;
 const READING_SURFACES = ['surface', 'row-alt', 'reading-bg'] as const;
@@ -51,7 +51,7 @@ const PAIRS: PairSpec[] = [
   text('text', 'body text', 'var(--text)', SURFACES),
   text('text-muted', 'secondary text, labels, helper text', 'var(--text-muted)', SURFACES),
   mark('non-text', 'icons, status dots, the info icon border and decorative glyphs: the one colour for what is seen and not read', 'var(--non-text)', SURFACES),
-  mark('bookmark', 'the bookmark icon: chapter header, chapter row badge and line/note bookmark rows, all on one token (R9)', 'var(--bookmark)', SURFACES),
+  mark('bookmark', 'the bookmark icon: chapter header, chapter row badge and line/note bookmark rows, all on one token', 'var(--bookmark)', SURFACES),
   text('toast', 'Toast: page colour on the text colour', 'var(--bg)', ['surface'], 'var(--text)'),
   text('on-accent', 'primary button and logo: accent-contrast on accent', 'var(--accent-contrast)', ['surface'], 'var(--accent)'),
   text('on-accent-strong', 'primary button hover: accent-contrast on accent-strong', 'var(--accent-contrast)', ['surface'], 'var(--accent-strong)'),
@@ -93,7 +93,7 @@ const PAIRS: PairSpec[] = [
   text('ok', 'a rule met on Master & QC: the text-safe ok colour', 'var(--ok-text)', PAGE_SURFACES),
   text(
     'experimental',
-    'the text-safe experimental colour: an ADR 0300 capability the host reports as experimental (studio-ui-primitives.prd.md Phase 1, ADR 0360 Q6)',
+    'the text-safe experimental colour: an ADR 0300 capability the host reports as experimental (ADR 0360)',
     'var(--experimental-text)',
     PAGE_SURFACES,
   ),
@@ -110,7 +110,7 @@ const PAIRS: PairSpec[] = [
   text('highlight-note', 'Highlight (note): the text colour on the note tint', 'var(--text)', READING_SURFACES, tint('note', 20)),
   text(
     'highlight-search',
-    "Highlight (search): the derived search text colour on the search kind's own 20% tint (R4)",
+    "Highlight (search): the derived search text colour on the search kind's own 20% tint",
     'var(--search-text)',
     READING_SURFACES,
     tint('search', 20),
@@ -138,8 +138,8 @@ const PAIRS: PairSpec[] = [
   ...[...KINDS, 'note', 'search'].map((kind) => mark(`mark-${kind}`, `the ${kind} highlight underline and category dot`, `var(--${kind})`, READING_SURFACES)),
   mark('mark-warn', 'the Editing status dot and meter segment, and the dotted underline of a skipped word: warn on the surface', 'var(--warn)', ['surface']),
   mark('mark-info', 'the Recording status dot and meter segment: info on the surface', 'var(--info)', ['surface']),
-  // LevelMeter's zones (Phase 1): aliases of --non-text/--ok/--warn/--danger (src/styles.css), each already a declared
-  // pair above; a dedicated row per zone protects the meter's own contrast if a later phase breaks the alias.
+  // LevelMeter's zones: aliases of --non-text/--ok/--warn/--danger (src/styles.css), each already a declared
+  // pair above; a dedicated row per zone protects the meter's own contrast if a later change breaks the alias.
   mark('meter-floor', 'LevelMeter: the below-floor zone, drawn as dim as an icon or a dot', 'var(--meter-floor)', ['surface']),
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
@@ -176,7 +176,7 @@ const PAIRS: PairSpec[] = [
   text('toast-tokens', 'Toast: the inverted pair', 'var(--toast-text)', ['surface'], 'var(--toast-bg)'),
   mark('waveform', "Proof's waveform bars on the card", 'var(--waveform)', ['surface']),
   mark('ok-zone-tick', "Master's book-consistency band: an accent chapter tick on the ok target zone", 'var(--accent)', ['surface'], 'var(--ok-zone)'),
-  // Per-speaker dialogue colours (D85 #6, ADR 0367): --speaker-1..7 alias the seven entity-kind tokens above, so these
+  // Per-speaker dialogue colours (ADR 0367): --speaker-1..7 alias the seven entity-kind tokens above, so these
   // rows are already covered by the highlight-<kind> pairs; a dedicated row per alias protects SpeakerTag/Highlight's
   // speaker use specifically, the same reasoning as the meter-zone rows above.
   ...([1, 2, 3, 4, 5, 6, 7] as const).map((n) =>
@@ -389,14 +389,14 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/manuscript/ChapterNav.tsx': { count: 1, what: 'a line-hit result row icon (faParagraph)' },
   'components/manuscript/ReaderCard.tsx': { count: 1, what: 'the idle chapter bookmark icon' },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
-  'components/settings/DawCatalogPanel.tsx': { count: 1, what: 'the not-detected DAW catalog entry dot (Phase 2)' },
+  'components/settings/DawCatalogPanel.tsx': { count: 1, what: 'the not-detected DAW catalog entry dot' },
   'components/settings/Settings.tsx': {
     count: 2,
-    what: 'the DAW link status dot in the project-scope panel when nothing is linked, and the global-scope reachability dot when REAPER has not sent a recent heartbeat (Phase 7)',
+    what: 'the DAW link status dot in the project-scope panel when nothing is linked, and the global-scope reachability dot when REAPER has not sent a recent heartbeat',
   },
   'components/storybible/Guide.tsx': { count: 1, what: 'the lock icon beside a locked entry' },
   'components/engine/EnginePanel.tsx': { count: 1, what: 'the dot of a track that has no colour' },
-  'styles.css': { count: 1, what: "LevelMeter's below-floor zone (Phase 1): --meter-floor is a derived alias of --non-text, not text" },
+  'styles.css': { count: 1, what: "LevelMeter's below-floor zone: --meter-floor is a derived alias of --non-text, not text" },
 };
 
 function nonTextMentions(): Record<string, number> {

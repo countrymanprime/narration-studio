@@ -27,9 +27,9 @@ func nextUpIDs(overview Overview) []string {
 	return ids
 }
 
-// The expected order of "Next up" on a fixture book (PRD success metric "Milestone risk", ADR 0404): a chapter held
-// back by a known problem first, then the other chapters in progress with the least advanced first, then the ones
-// ready to move on, then the ones not started in book order. Finalized chapters and non-narration content never show.
+// The expected order of "Next up" on a fixture book (ADR 0404): a chapter held back by a known problem first, then the
+// other chapters in progress with the least advanced first, then the ones ready to move on, then the ones not started
+// in book order. Finalized chapters and non-narration content never show.
 func TestNextUpOrdersChaptersByTheRiskTheyPutOnTheDeadline(t *testing.T) {
 	credits := chapter("credits", stages.StageRecording, stages.VerdictNotReady)
 	credits.ContentKind = "opening"
@@ -83,8 +83,8 @@ func TestNextUpIsEmptyWhenEveryChapterIsFinalized(t *testing.T) {
 	}
 }
 
-// PFH and the rate on the overview are exactly Phase 2's, measured only: an unmeasured chapter has no PFH and adds
-// nothing to the recorded total, and a book with no contracted amount has no rate (Q4 A, ADR 0320).
+// PFH and the rate on the overview are exactly pfh.go's, measured only: an unmeasured chapter has no PFH and adds
+// nothing to the recorded total, and a book with no contracted amount has no rate (ADR 0320).
 func TestTheOverviewsFiguresComeOnlyFromLoggedHoursAndMeasuredTime(t *testing.T) {
 	measured := chapter("c1", stages.StageEditing, stages.VerdictUnknown)
 	measured.RecordedSeconds = seconds(1800)
@@ -150,7 +150,7 @@ func TestTheDeadlineSaysHowManyDaysAreLeft(t *testing.T) {
 		}
 	}
 	if overview := BuildOverview(OverviewInput{Now: nineAM}); overview.Deadline != nil {
-		t.Fatalf("deadline = %+v, want none before one is set (Phase 3)", overview.Deadline)
+		t.Fatalf("deadline = %+v, want none before one is set", overview.Deadline)
 	}
 	broken := "2026-02-30"
 	if overview := BuildOverview(OverviewInput{Plan: Plan{Deadline: &broken}, Now: nineAM}); overview.Deadline != nil {
@@ -158,8 +158,8 @@ func TestTheDeadlineSaysHowManyDaysAreLeft(t *testing.T) {
 	}
 }
 
-// The overview never writes a chapter status: it only reads the stage recommendations' verdict (PRD success metric
-// "Board never invents a status").
+// The overview never writes a chapter status: it only reads the stage recommendations' verdict, so the board never
+// invents a status.
 func TestTheOverviewKeepsEachChaptersStatusAndReadinessAsGiven(t *testing.T) {
 	input := chapter("c1", stages.StageProofing, stages.VerdictNotReady)
 	input.Readiness.Target = stages.StageFinalized

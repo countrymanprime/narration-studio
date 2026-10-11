@@ -280,9 +280,9 @@ func TestOnRecordEndedClearsTheChapter(t *testing.T) {
 	}
 }
 
-// TestRecorderFromComesFromTheResolver is the "role comes from the resolver" test the DAW port PRD's migration risk
-// table calls for (P5a, ADR 0300): the Record bindings source their recorder through recorderFrom, which asks
-// svc.dawPortResolver for the Record role instead of holding a bridge client directly.
+// TestRecorderFromComesFromTheResolver pins that the role comes from the resolver (ADR 0300): the Record bindings
+// source their recorder through recorderFrom, which asks svc.dawPortResolver for the Record role instead of holding a
+// bridge client directly.
 func TestRecorderFromComesFromTheResolver(t *testing.T) {
 	fake := dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Supported))
 	resolver := dawport.NewResolver(dawport.ResolverConfig{

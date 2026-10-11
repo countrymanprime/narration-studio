@@ -1,16 +1,13 @@
-// Package series is Phase 9 of docs/prds/character-continuity-review.prd.md
-// (Q10, Q11): a narrator-authored, per-user list of series, each naming the
-// project folders that are its member books, plus read-only access to
-// another member project's own approved character references so a later
-// phase (11, the Series tab) can show a character's reference clips across
-// every book they appear in.
+// Package series is a narrator-authored, per-user list of series, each naming
+// the project folders that are its member books (ADR 0450), plus read-only
+// access to another member project's own approved character references so the
+// Series tab can show a character's reference clips across every book they
+// appear in (ADR 0565).
 //
-// Owner decision D87 on #509 benched the acoustic engine (Phase 5's
-// baselines never got wired up after the real-corpus trial failed its own
-// reject gate), so "cross-project reads of the calibrated baseline" from the
-// PRD's original Q11 wording is narrowed here to the reference data Phase 6
-// already ships (region GUID, snapshot, character id, note) - the only thing
-// a later phase can build against today.
+// Cross-project reads cover the reference data character.ReadOnly returns
+// (region GUID, snapshot, character id, note), not a calibrated baseline: the
+// acoustic baselines were never wired up after the real-corpus trial failed its
+// own reject gate (ADR 0450).
 package series
 
 import (
@@ -36,7 +33,7 @@ const seriesSchemaVersion = 1
 const what = "series"
 
 // Series is a narrator-named group of projects (books) that share character
-// references (Q10). MemberProjectPaths are absolute project folder paths, in
+// references. MemberProjectPaths are absolute project folder paths, in
 // the order the narrator added them.
 type Series struct {
 	ID                 string   `json:"id"`
@@ -49,7 +46,7 @@ type seriesFile struct {
 	Series        []Series `json:"series"`
 }
 
-// Store is the narrator's own series.json (Q10): one per-user file, beside
+// Store is the narrator's own series.json: one per-user file, beside
 // credit-templates.json and recent-projects.json, written with the same
 // write-to-temp-then-rename pattern.
 type Store struct {
@@ -80,7 +77,7 @@ func (s *Store) List() ([]Series, error) {
 // ForProject returns the series project belongs to, if any, matched case-insensitively against each series'
 // member paths (Windows filesystems are case-insensitive, matching recents.Store.Touch). A project that is not
 // any series' member reads as ok=false, not an error: this is the check a project-open path would make to stay
-// behaviourally unchanged for a narrator not using series (Phase 9's own success signal).
+// behaviourally unchanged for a narrator not using series.
 func (s *Store) ForProject(project string) (Series, bool, error) {
 	list, err := s.List()
 	if err != nil {
@@ -231,7 +228,7 @@ func (s *Store) writeLocked(file seriesFile) error {
 
 // newSeriesID returns 32 lowercase hex characters - the same shape as every other random id in this codebase
 // (findings, notes, ...), so a series id a contract golden captures is stabilized by internal/contractfile's own
-// 32-hex-character rule (Phase 11 is the first phase to put a series id on the wire; Phase 9 never did).
+// 32-hex-character rule.
 func newSeriesID() string {
 	buffer := make([]byte, 16)
 	if _, err := rand.Read(buffer); err != nil {

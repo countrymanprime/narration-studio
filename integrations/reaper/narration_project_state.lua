@@ -1,10 +1,8 @@
--- Reports REAPER's live project-change indicator over the bridge: project_state (see
--- docs/prds/reaper-automation-follow-through.prd.md Phase 13, "Change-driven re-compare indicator", and
--- docs/prds/analysis-evidence-ledger.prd.md Open Question 12, answered (B) - a Could-tier hint, read only while
--- REAPER is running, that something changed since a baseline was captured. It is deliberately coarse: any edit
--- (an item move, a marker, a render setting) increments REAPER's own counter, so this never labels *what*
--- changed, only *that* something did; nothing here starts an analysis or a re-compare on its own.
---
+-- Reports REAPER's live project-change indicator over the bridge: project_state (docs/architecture/reaper-bridge.md,
+-- "Live project-change indicator"), an on-demand hint, read only while REAPER is running, that something changed since
+-- a baseline was captured. It is deliberately coarse: any edit (an item move, a marker, a render setting) increments
+-- REAPER's own counter, so this never labels *what* changed, only *that* something did; nothing here starts an analysis
+-- or a re-compare on its own.
 -- Returns GetProjectStateChangeCount(0) and the path REAPER thinks the current project's .rpp lives at (the same
 -- EnumProjects(-1, '') call narration_compare.lua's prepare_compare already makes). The host stats that path
 -- itself for the saved file's modification time: Lua has no portable file-stat call, and the host already reads

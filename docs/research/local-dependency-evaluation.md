@@ -190,7 +190,7 @@ provenance record.
 
 ### FFmpeg encoder (render-encode-master: WAV to MP3, later M4B)
 
-Recorded in [render-encode-master](../prds/render-encode-master.prd.md) Phase 0 ([build verification](ffmpeg-encoder-build.md),
+Recorded in render-encode-master (deleted PRD `render-encode-master`) Phase 0 ([build verification](ffmpeg-encoder-build.md),
 [ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md), Proposed);
 catalogued in Phase 1 (`config/encoder-assets.json`, kind `encoder`, provider `ffmpeg`, id `ffmpeg-7.1-essentials-win64`). The wheel is downloaded, checked
 against the pinned hash and unpacked, and only the executable is kept, and only when its own hash is the pinned one.

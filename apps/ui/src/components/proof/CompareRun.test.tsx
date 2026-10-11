@@ -53,7 +53,7 @@ describe('CompareRun actions that answer late or fail (ADR 0075)', () => {
   });
 });
 
-describe('CompareRun DAW-link gating (PRD project-workspace-and-daw-link.prd.md, W16)', () => {
+describe('CompareRun DAW-link gating', () => {
   it('gates Start comparison without a linked DAW file, and lets it run once linked', async () => {
     const transcriptStart = vi.fn().mockResolvedValue({ status: 'started' });
     const props = {
@@ -86,7 +86,7 @@ describe('CompareRun DAW-link gating (PRD project-workspace-and-daw-link.prd.md,
     await waitFor(() => expect(transcriptStart).toHaveBeenCalledWith(expect.objectContaining({ chapterTitle: 'Chapter 1' })));
   });
 
-  // DAW port PRD Phase 7 (ADR 0360), moved from the retired Proofing nav item (stage-navigation Phase 5): once a file is linked,
+  // The DAW port's review capability (ADR 0360), moved from the retired Proofing nav item: once a file is linked,
   // whether a comparison can start comes from the `review` capability, so a REAPER that is not connected says so.
   it('gates Start comparison on the review capability when REAPER is not connected', async () => {
     render(
@@ -321,7 +321,7 @@ describe('CompareRun vocabulary suggestions', () => {
   });
 });
 
-describe('CompareRun "may have changed since comparison" (reaper-automation-follow-through PRD Phase 13)', () => {
+describe('CompareRun "may have changed since comparison"', () => {
   const resultsProps = (overrides: Partial<Parameters<typeof CompareRun>[0]> = {}) => ({
     chapterTitle: 'Chapter 1',
     state: { ...WIRE_TRANSCRIPT, phase: 'success' as const, rows: WIRE_DISCREPANCIES, projectChangeCount: 41 },
@@ -537,7 +537,7 @@ describe('CompareRun vocabulary hints feedback', () => {
   });
 });
 
-describe('the running phase progress bar (mock-fidelity-primitives-and-components.prd.md Phase 9)', () => {
+describe('the running phase progress bar', () => {
   it('is the real ProgressBar primitive, named and announcing its value, not a hand-drawn div', () => {
     render(
       <ApiProvider api={createMockApi()}>

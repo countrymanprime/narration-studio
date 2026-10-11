@@ -16,9 +16,8 @@ cursor reached each word than confirmed words alone would have), `backward_moves
 and `jumps` (for a read-through of the script these should be zero: anything
 else is a false restart or skip), `final_read` against `script_tokens`, and
 `flags`: on a clean read every flag is a false flag, so `per_100_heard_words`
-is the false-flag rate the teleprompter PRD's target (at most 1) is measured
-by; on a reading with seeded errors, `list` shows each flag against the script
-for a human to count.
+is the false-flag rate on a clean read (ADR 0115); on a reading with seeded errors, `list` shows each flag against
+the script for a human to count.
 """
 
 import argparse

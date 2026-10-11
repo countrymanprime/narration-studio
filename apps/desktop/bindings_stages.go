@@ -19,10 +19,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// The chapter stage recommendation bindings (chapter-stage-recommendations.prd.md Phase 4, delivered and deleted; see
-// docs/architecture/stage-recommendations.md). StageRecommendations only reads: it computes every narration chapter's
-// verdict from the evidence as it stands and never stores it or starts an analysis (D1, Q5, Q12). Only StageConfirm and
-// StageRevert change a chapter status, and only when the narrator clicks.
+// The chapter stage recommendation bindings (docs/architecture/stage-recommendations.md). StageRecommendations only
+// reads: it computes every narration chapter's verdict from the evidence as it stands and never stores it or starts an
+// analysis. Only StageConfirm and StageRevert change a chapter status, and only when the narrator clicks.
 
 // stageRefusal is why a Confirm, Dismiss or Revert changed nothing: the UI re-checks on basis_changed and says so on the
 // other two. Any other failure (a file that could not be read or written) is a rejected promise.
@@ -70,7 +69,7 @@ func (h *Host) StageConfirm(chapterID, target, basisKey string) (string, error) 
 	})
 }
 
-// StageDismiss hides the chapter's suggestion of target until its basis changes (Q7); the status is untouched.
+// StageDismiss hides the chapter's suggestion of target until its basis changes; the status is untouched.
 func (h *Host) StageDismiss(chapterID, target, basisKey string) (string, error) {
 	return h.stageDecision(func(ctx context.Context, service *stages.Service) (stages.ChapterRecommendation, error) {
 		return service.Dismiss(ctx, chapterID, stages.Stage(target), basisKey)
@@ -102,10 +101,10 @@ func (h *Host) stageDecision(decide func(context.Context, *stages.Service) (stag
 }
 
 // stagesService builds one project's stage recommendation service in configureLocked: the manuscript's status path, the
-// recording signal over the coverage service, the editing signals over the editing service (ER Phase 6), and the
-// coverage service's shared evidence view (both signal owners read the same saved project, parsed once). unavailable
-// says why a recording check cannot be run here now, read at evaluation time. extra are further stage providers (the
-// proofing signals, proofingProvider), appended after the recording and editing ones.
+// recording signal over the coverage service, the editing signals over the editing service, and the coverage service's
+// shared evidence view (both signal owners read the same saved project, parsed once). unavailable says why a recording
+// check cannot be run here now, read at evaluation time. extra are further stage providers (the proofing signals,
+// proofingProvider), appended after the recording and editing ones.
 func stagesService(project string, text *manuscript.Service, checks *coverage.Service, editingChecks *editing.Service, store *settings.Store, unavailable func() string, reporter *persist.Reporter, extra ...stages.Provider) *stages.Service {
 	providers := append([]stages.Provider{
 		coverage.NewSignalProvider(checks, coverage.SignalSources{
@@ -132,7 +131,7 @@ func stagesService(project string, text *manuscript.Service, checks *coverage.Se
 }
 
 // requiredFilter is a provider whose own evidence decides that some of its declared signals are not required right
-// now (the proofing delivery checks: a check needs a limit in the project's delivery profile, Q7 of the proofing PRD).
+// now (the proofing delivery checks: a check needs a limit in the project's delivery profile).
 type requiredFilter interface {
 	FilterRequired(required []string) []string
 }
@@ -155,12 +154,10 @@ type proofingSources struct {
 	lengthTolerance func() *float64
 }
 
-// proofingProvider is the proofing stage's provider (proofing-readiness-signals.prd.md, delivered and deleted; see
-// ADR 0525): the pickups roll-up
-// over the findings store's transcript_discrepancy, pickup and duplicate_read findings, with Transcript Compare's latest
-// run judged from the ledger records comparisonRecorder writes (Phase 2), and one delivery signal per check from the
-// chapter's chosen render, its stored measurement and the delivery profile (Phases 4 and 5). It reads only; it never
-// starts a comparison, a scan or a measurement.
+// proofingProvider is the proofing stage's provider (ADR 0525): the pickups roll-up over the findings store's
+// transcript_discrepancy, pickup and duplicate_read findings, with Transcript Compare's latest run judged from the
+// ledger records comparisonRecorder writes, and one delivery signal per check from the chapter's chosen render, its
+// stored measurement and the delivery profile. It reads only; it never starts a comparison, a scan or a measurement.
 func proofingProvider(store *findings.Store, sources proofingSources) stages.Provider {
 	config := proofing.Config{
 		Runs:    map[string]proofing.RunJudge{proofing.AnalyzerTranscriptCompare: proofing.ComparisonJudge},
@@ -176,7 +173,7 @@ func proofingProvider(store *findings.Store, sources proofingSources) stages.Pro
 }
 
 // renderLengthTolerance is the narrator's Proofing.render_length_tolerance_seconds, nil while unset (no default is
-// proposed until render-versus-project lengths are measured on real renders, Q9) or not a finite number at least 0.
+// proposed until render-versus-project lengths are measured on real renders) or not a finite number at least 0.
 func renderLengthTolerance(store *settings.Store) func() *float64 {
 	return func() *float64 {
 		text, _ := store.Effective("Proofing", "render_length_tolerance_seconds", "")
@@ -188,10 +185,10 @@ func renderLengthTolerance(store *settings.Store) func() *float64 {
 	}
 }
 
-// requiredStageSignals is the narrator's required set out of declared (Phase 6, Q8): every declared id is
-// required unless its own StageRecommendations setting is "ignored", and none is required while the master
-// switch (suggestions_enabled) is off. An empty result is not special-cased here: the engine's own
-// empty-required-set rule (stages.NoneNoRequiredSignals) is what keeps it from ever recommending.
+// requiredStageSignals is the narrator's required set out of declared: every declared id is required unless its own
+// StageRecommendations setting is "ignored", and none is required while the master switch (suggestions_enabled) is off.
+// An empty result is not special-cased here: the engine's own empty-required-set rule (stages.NoneNoRequiredSignals) is
+// what keeps it from ever recommending.
 func requiredStageSignals(store *settings.Store, declared []string) []string {
 	if enabled, _ := store.Effective("StageRecommendations", "suggestions_enabled", "true"); enabled != "true" {
 		return nil

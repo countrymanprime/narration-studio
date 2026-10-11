@@ -5,10 +5,9 @@ A source has two roles, declared separately (interface segregation):
 - ``pronounce``: ``pronounce(name)`` gives the name's pronunciation as the Story Bible stores it (``ipa``, ``source``,
   ``confidence``), a new dict each time since the caller marks it ``chosen`` in place. When the source has no entry for the name
   it raises a ``ValueError`` with a sentence for the narrator (a miss, not a ``NotSupportedError``).
-- ``browse`` (Q5, the ``BrowserLookup`` role): ``browser()`` gives an object whose ``url_for(name)`` is an https page on the
+- ``browse`` (the ``BrowserLookup`` role): ``browser()`` gives an object whose ``url_for(name)`` is an https page on the
   descriptor's ``browser_host`` for the host to open in the narrator's browser. The app never fetches it; the host can check a
-  URL against the declared host before opening it. No source takes this role yet: the web lookup belongs to benchmark
-  recommendation 6's PRD.
+  URL against the declared host before opening it. No source takes this role yet.
 
 A source raises ``descriptor.refuse(mode)`` for a role it does not declare. Callers look a source up in ``SOURCES`` by the name the
 narrator chose (``cmu``, ``espeak``) and never compare names; the build-time fallback tries ``SOURCES.fallback_order()``.

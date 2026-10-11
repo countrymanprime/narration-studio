@@ -24,10 +24,9 @@ type PushScope = (kind: Scope) => () => void;
 const ScopeStackContext = createContext<PushScope | undefined>(undefined);
 
 /**
- * Which scopes are active for the current stack of mounted `CommandScope` boundaries (Solution Detail, "Router";
- * ADR 0361 decision 4). `dialog`, `booth` and `page` are the three ways a screen can claim the surface, and a screen
- * claims at most one of them: `booth` can sit on a dialog (the read-aloud dialog, both) or stand alone as a full
- * page (the Teleprompter page), and either way it takes the surface from `page` the same way `dialog` does
+ * Which scopes are active for the current stack of mounted `CommandScope` boundaries (ADR 0361
+ * decision 4). `dialog`, `booth` and `page` are the three ways a screen can claim the surface, and a screen
+ * claims at most one of them: `booth` is the Booth page, a dialog can sit on top of it, and either way it takes the surface from `page` the same way `dialog` does
  * (`scopes.ts` explains why `page` and `booth` must stay mutually exclusive here for the default catalog to have
  * zero conflicts). `global` is active except behind a dialog, matching `App.tsx`'s modal-open rule today.
  */
@@ -44,10 +43,8 @@ export function activeScopes(stack: readonly Scope[]): ReadonlySet<Scope> {
 }
 
 /**
- * Marks a mounted boundary as one of the router's scopes: the read-aloud dialog and the Teleprompter page wrap
- * their content in `<CommandScope kind="booth">` (Phase 4), a dialog's own content in `kind="dialog"` (Phase 7), and
- * so on. Phase 1 builds the mechanism only; no feature uses it yet (Phases 2 to 4 migrate the three existing
- * listeners onto it).
+ * Marks a mounted boundary as one of the router's scopes: the Booth page wraps its content in
+ * `<CommandScope kind="booth">`, a dialog's own content in `kind="dialog"`, and so on.
  */
 export function CommandScope({ kind, children }: { kind: Scope; children: ReactNode }) {
   const push = useContext(ScopeStackContext);
@@ -69,13 +66,12 @@ export type CommandRouterProps = {
   catalog?: readonly CommandDescriptor[];
   /** Defaults to the platform default keymap; a test passes a fixed one so it does not depend on `navigator`. */
   keymap?: Keymap;
-  /** Phase 10's seam: while this returns true, a `noisy` command's handler does not run (PRD Q5). Defaults to never recording. */
+  /** While this returns true, a `noisy` command's handler does not run (ADR 0361 decision 7). Defaults to never recording. */
   isRecording?: () => boolean;
 };
 
 /**
- * Mounted once at the root (`main.tsx`), replacing the three hand-written `keydown` listeners this PRD removes.
- * Per gesture (Solution Detail, "Router"):
+ * Mounted once at the root (`main.tsx`), replacing the hand-written `keydown` listeners. Per gesture (ADR 0361):
  * 1. Resolves the active scopes from the mounted `CommandScope` boundaries (`activeScopes` above).
  * 2. For a gesture with no modifier held, applies the target guard (`targets.ts`) - a field or widget that owns the
  *    key keeps it, whatever scope is active.
@@ -83,7 +79,7 @@ export type CommandRouterProps = {
  *    gesture in an active scope.
  * 4. If a `noisy` command is found while `isRecording()` is true, the gesture is still consumed (so nothing else
  *    reacts to it) but the handler does not run. A suppressed press posts "Not while recording." to a status
- *    region instead (Phase 10, PRD Q5), so a narrator who cannot see the screen still gets feedback.
+ *    region instead (ADR 0361 decision 7), so a narrator who cannot see the screen still gets feedback.
  * 5. A gesture no command takes, and a command whose catalog row has nothing registered yet, are left untouched.
  */
 export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, keymap, isRecording = () => false }: CommandRouterProps) {
@@ -100,7 +96,7 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
 
   // A screen reader does not re-announce a live region whose text is unchanged, so two suppressed presses in a row
   // need two different strings to both be heard. Toggling a trailing zero-width space keeps the announced words the
-  // same while still changing the DOM text each time (Phase 10, PRD Q5).
+  // same while still changing the DOM text each time.
   const [announcement, setAnnouncement] = useState('');
   const announcementParity = useRef(false);
   const announceSuppressed = useCallback(() => {
@@ -151,11 +147,11 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
     <ScopeStackContext.Provider value={push}>
       <RegistryContext.Provider value={registry}>{children}</RegistryContext.Provider>
       {/* No role="status": the app already has one status region (Toast.tsx's ToastRegion), and a second would make
-          getByRole('status') ambiguous everywhere. Plain aria-live is enough to be announced (Phase 10, PRD Q5).
+          getByRole('status') ambiguous everywhere. Plain aria-live is enough to be announced.
           Not the `sr-only` class: it is `position: absolute`, and this router sits outside the app shell's own
           positioned containers (it wraps <App> as a sibling, not a descendant), so an absolutely positioned child
           here has no ancestor to be absolute against but <body> - exactly the escaped-containing-block problem the
-          visual suite's findEscapedAbsolutes check exists to catch (app-shell-vertical-overflow.prd.md). `fixed`
+          visual suite's findEscapedAbsolutes check exists to catch. `fixed`
           hides it the same way (clipped to nothing, off in a corner) without being `absolute`. */}
       <div
         aria-live="polite"

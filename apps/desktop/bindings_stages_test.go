@@ -114,9 +114,9 @@ func TestAChapterNeverCheckedIsUnknownAndCannotBeConfirmed(t *testing.T) {
 	pinStages(t, "stages-decision-refused", refused)
 }
 
-// TestAChapterInProofingIsJudgedByThePickupsRollUp is proofing-readiness-signals.prd.md Phase 1 through the host: the
-// proofing provider is registered, a chapter in proofing is judged by proofing.pickups against finalized, and an open
-// take review pickup for the chapter makes it not ready, listed by its finding id.
+// TestAChapterInProofingIsJudgedByThePickupsRollUp goes through the host: the proofing provider is registered, a
+// chapter in proofing is judged by proofing.pickups against finalized, and an open take review pickup for the chapter
+// makes it not ready, listed by its finding id.
 func TestAChapterInProofingIsJudgedByThePickupsRollUp(t *testing.T) {
 	host := stagesHost(t, 10)
 	if _, err := host.ManuscriptSetChapterStatus("c-0001", "proofing"); err != nil {
@@ -282,10 +282,10 @@ func TestConfirmRevertAndDismissThroughTheHost(t *testing.T) {
 	if confirmation, _ := chapter["confirmation"].(map[string]any); confirmation["from"] != "recording" || confirmation["evidenceChanged"] != false {
 		t.Fatalf("the confirmed chapter carries its live confirmation: %v", chapter)
 	}
-	// Editing now has three required signals of its own (ER Phase 6): empty-space has never been checked (no editing
+	// Editing now has three required signals of its own: empty-space has never been checked (no editing
 	// scan has run in this fixture) and clicks/breaths can never be met at all while their detector stays
-	// unvalidated (Phase 4 has not run) - so the chapter's own editing evaluation reads unknown, never recommended,
-	// but for a different reason than before this phase landed (there is a required set now; it just cannot be met).
+	// unvalidated - so the chapter's own editing evaluation reads unknown, never recommended: there is a required
+	// set, it just cannot be met.
 	if chapter["verdict"] != "unknown" {
 		t.Fatalf("chapter = %v", chapter)
 	}

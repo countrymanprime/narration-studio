@@ -10,15 +10,14 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Record in REAPER (read-aloud-control-bar.prd.md Phase 7, booth-actions-enablement.prd.md Phase 2): arming a
-// chapter's linked track, and starting and stopping a REAPER recording alongside a reading session. The Lua and
-// bridge half (arm_only, record_start, record_stop in narration_transport.lua and bridge.Actions, DAW port PRD
-// Phase 7's Recorder role) is already built and harness-tested; this file is the remaining caller. Every command is
-// sent only from a click (or the Space shortcut on Play, ReadingControlBar.tsx), with the track GUID taken from the
-// chapter-track mapping the same way ReadAloudReaperState reads it, never from the UI (threat-model row 5j).
+// Record in REAPER: arming a chapter's linked track, and starting and stopping a REAPER recording alongside a reading
+// session. The Lua and bridge half (arm_only, record_start, record_stop in narration_transport.lua and bridge.Actions,
+// and the DAW port's Recorder role) is already built and harness-tested; this file is the remaining caller. Every
+// command is sent only from a click (or the Space shortcut on Play, ReadingControlBar.tsx), with the track GUID taken
+// from the chapter-track mapping the same way ReadAloudReaperState reads it, never from the UI (threat-model row 5j).
 
-// readAloudRecordStartTimeout bounds how long RecordStart waits for REAPER to report recording (read-aloud-control-
-// bar.prd.md Phase 7): on a timeout nothing starts listening and the bar says why, the same as any other refusal.
+// readAloudRecordStartTimeout bounds how long RecordStart waits for REAPER to report recording: on a timeout nothing
+// starts listening and the bar says why, the same as any other refusal.
 const readAloudRecordStartTimeout = 3 * time.Second
 
 // ReadAloudRecording is what an arm, a record start or a record stop did, in the shape the control bar reads. Outcome
@@ -39,9 +38,8 @@ func readAloudRefused(reason, message string) ReadAloudRecording {
 	return ReadAloudRecording{Outcome: "refused", Reason: reason, Message: message}
 }
 
-// recorderFrom asks svc's DAW port resolver for the Record role (DAW port PRD P5a, ADR 0300), the same seam
-// trackStateReaderFrom uses: nil when there is no resolver, no adapter, the capability is toggled off, or REAPER is
-// not reachable right now.
+// recorderFrom asks svc's DAW port resolver for the Record role (ADR 0300), the same seam trackStateReaderFrom uses:
+// nil when there is no resolver, no adapter, the capability is toggled off, or REAPER is not reachable right now.
 func recorderFrom(svc hostServices) dawport.Recorder {
 	if svc.dawPortResolver == nil {
 		return nil
@@ -103,7 +101,7 @@ func readAloudRecordRefusal(err error) ReadAloudRecording {
 	return readAloudRefused(refusedFailed, "REAPER could not do that: "+err.Error()+".")
 }
 
-// readAloudArmOnlyIn arms chapterID's linked track and disarms every other one (Q7 A's "Arm Chapter N only"),
+// readAloudArmOnlyIn arms chapterID's linked track and disarms every other one (the "Arm Chapter N only" action),
 // refusing while REAPER records. It changes nothing in the reading session. recorder is nil exactly when
 // recorderFrom would answer nil (no resolver, the capability off, or REAPER not reachable).
 func readAloudArmOnlyIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (ReadAloudRecording, error) {

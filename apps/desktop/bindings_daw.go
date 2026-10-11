@@ -8,16 +8,16 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
-// DawCapabilities and its live event daw_capabilities_changed (DAW port PRD P4, ADR 0300) are the UI's one picture of what the
+// DawCapabilities and its live event daw_capabilities_changed (ADR 0300) are the UI's one picture of what the
 // launch's DAW can do right now: the adapter's declaration, the bridge's reachability, and the narrator's DAW.capability.<name>
-// toggles, combined by a dawport.Resolver the same way h.actions' gate already is (P3). The wire schema, golden payloads,
+// toggles, combined by a dawport.Resolver the same way h.actions' gate already is. The wire schema, golden payloads,
 // wireContracts row and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
 //
 // This binding builds its own resolver rather than share h.actions' (configureLocked): that one has no Runtime input, since
 // bridge.Actions never needed a reachability check (it fails on its own when REAPER is not answering, resolver.go). The
 // capabilities payload does need Runtime, to report "REAPER is not answering" instead of claiming a command would work.
-// P5a's registry adapters give every consumer, this one included, the same resolver; until then each caller builds its own
-// over the same declaration-only adapters.
+// The shared h.dawPortResolver (app.go) serves the consumers that act through a role; each caller here builds its own
+// over the declaration-only adapters.
 
 // DawCapabilities answers the launch's DAW, whether it is reachable, and every capability's level, availability and (when
 // unavailable) reason and message.
@@ -50,7 +50,7 @@ func dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runtime) {
 }
 
 // dawDeclarationFor is the launch's adapter, declaration only: reaper.Declaration() and audacity.Declaration() hold no transport of
-// their own (the registry's live adapters do, DAW port PRD P2), and a standalone launch (KindNone) has no adapter at all,
+// their own (the registry's live adapters do), and a standalone launch (KindNone) has no adapter at all,
 // which the resolver reports as every capability unsupported.
 func dawDeclarationFor(kind dawport.Kind) dawport.Adapter {
 	switch kind {
@@ -87,8 +87,8 @@ func dawCapabilitiesPayload(resolver *dawport.Resolver, runtime dawport.Runtime)
 }
 
 // pollDawCapabilities is one tick of transcriptLoop (app.go): it emits daw_capabilities_changed only when the resolver's
-// answer actually changed since the last tick, never on every tick (DAW port PRD P4's risk table: "Resolver recomputed on
-// every heartbeat is noisy" / "the event is emitted only when the computed map changes"). saveSettings also calls it
+// answer actually changed since the last tick, never on every tick, since recomputing on every heartbeat would be
+// noisy. saveSettings also calls it
 // directly right after a DAW settings save, so a toggle takes effect on the wire without waiting for the next tick.
 func (h *Host) pollDawCapabilities() {
 	resolver, runtime := h.dawResolver()

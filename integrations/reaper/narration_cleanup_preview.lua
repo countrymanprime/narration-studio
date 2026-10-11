@@ -1,5 +1,5 @@
--- Preview markers and approve-to-apply trims for silence cleanup candidates (diagnostics-delivery-and-cleanup-tools
--- PRD Phase 10, ADR 0251). A candidate is `measure.CleanupCandidate` (ADR 0238) mapped onto a live item by the host
+-- Preview markers and approve-to-apply trims for silence cleanup candidates (ADR 0251). A candidate is
+-- `measure.CleanupCandidate` (ADR 0238) mapped onto a live item by the host
 -- (apps/desktop/internal/cleanupmap): item and take GUID, a class, and a cut range in source-file seconds - the same
 -- units and the same source-to-project mapping narration_navigation.lua's project_time already uses, so a candidate
 -- stays correctly placed even if the item moved on the timeline since the host last read the project.

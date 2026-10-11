@@ -1,6 +1,6 @@
 # Manuscript Teleprompter
 
-**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record; open and planned work is specified in [teleprompter-engines-and-input-devices.prd.md](../prds/teleprompter-engines-and-input-devices.prd.md) and [teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record. Work still open is named where it applies: the default engine ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)), how a flag is confirmed later, punch-and-roll from a word, and per-character reference clips.
 
 ## Problem
 
@@ -11,7 +11,7 @@ edits text or audio automatically. Everything else — how position tracking
 behaves, which ASR approach is realistic in real time, how flags surface for
 review, and how the UI renders — was undefined. This document records how
 those questions were resolved for the shipped feature; the flag and review
-questions are specified in the PRDs linked above.
+behavior is under [Flags](#flags).
 
 ## Intended experience
 
@@ -35,7 +35,7 @@ Nothing about this view edits the manuscript or the audio. It only tracks
 position and produces reviewable flags, same as every other analyzer in this
 product.
 
-## Position-tracking behavior (resolves decisions #2 and #3 from initial planning)
+## Position-tracking behavior
 
 Neither a hard gate ("don't advance until you say it exactly right") nor a
 blind expected-pace clock with rewind. Both were considered and rejected:
@@ -64,7 +64,7 @@ offline in `InlineDiffRow.tsx` / `compare.py`, and:
 
 Timing is entirely driven by recognized speech — there is no assumed pace.
 
-## ASR approach (resolves decisions #2 continued)
+## ASR approach
 
 **Port, do not depend on, WhisperLive's streaming core.**
 [WhisperLive](https://github.com/collabora/WhisperLive) (MIT) already solves
@@ -224,14 +224,14 @@ fuzzy matching against the script is the ordinary open-source pattern.
    land in the same range; Moonshine's expected edge is flat cost as a
    segment grows, cheaper short update intervals, and `set_context()`.
 4. **Default engine.** Evaluating both engines in the real UI and recording
-   the default and its rationale in an ADR is planned in
-   [teleprompter-engines-and-input-devices.prd.md](../prds/teleprompter-engines-and-input-devices.prd.md).
+   the default and its rationale in an ADR is still open
+   ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)).
    `faster-whisper` stays for offline Transcript Compare either way.
 
-## Engine evaluation protocol and lag-capture aid (teleprompter-engines-and-input-devices PRD, Phase 8)
+## Engine evaluation protocol and lag-capture aid
 
 **Goal.** Decide the default engine (whisper vs. moonshine) with evidence, per
-the Decisions Log's numeric gate (median cursor lag at least 25% lower than
+the numeric gate in ADR 0414 (median cursor lag at least 25% lower than
 Whisper tiny, no more false jumps or backward moves, on at least 3 readings
 across at least 2 microphones) plus the owner's judgment. This section is the
 protocol and the launch aid; a results table lands once runs exist (see
@@ -245,15 +245,14 @@ to the sidecar's arguments (`internal/teleprompter/service.go`'s
 `planSession`), whichever engine or model it names and whether the session
 reads a live `--mic` or replays a `--wav` file. It is developer/evaluation
 only: nothing in Settings or the UI can turn it on, and it changes no
-contract the UI reads. This closes the gap the PRD's Architecture Notes
-flagged: `--timing`/`--log` existed in `live_asr.py` already, but the host
+contract the UI reads. This closes a gap: `--timing`/`--log` existed in `live_asr.py` already, but the host
 passed neither.
 
 **Two passes, not one — read this before running anything.** `iter_wav_chunks`
 (`live_asr.py`) explicitly feeds a `--wav` file "as fast as the CPU allows, so
 it checks accuracy but not real-time lag" — a `--wav` replay session is
 useful and fast, but its `--timing` lag numbers are meaningless (the sidecar
-races through the file, unpaced). The Success Metrics' "Cursor lag" gate is a
+races through the file, unpaced). The "cursor lag" gate is a
 *wall-clock* number and needs the sidecar's `--mic` path, timed against a real
 input device, whether that device is a live microphone or an audio-loopback
 device fed by a real-time playback of a recording:
@@ -264,7 +263,7 @@ device fed by a real-time playback of a recording:
    session's NDJSON, `--stream`) and reports `coverage`, `backward_moves`,
    `jumps`, `waiting_events` and flag counts — never `speculation_lead_seconds`
    as a lag figure, and never the Moonshine spike's old position-matched lag
-   metric (rejected by this PRD). Use this to confirm the tracker behaves
+   metric (rejected: it matched words by position). Use this to confirm the tracker behaves
    (reaches the end, no false restarts) before spending a real-time pass on a
    combination.
 2. **Real-time pass (`--mic`, the actual gate).** The same recording played
@@ -303,7 +302,7 @@ device fed by a real-time playback of a recording:
   the write-up.
 
 **Results table.** Not yet populated — no real-time pass has been run in any
-environment this PRD's work has had access to so far (network policy denied
+environment this protocol's author has had access to (network policy denied
 both the audio source and the model-weight hosts in the cloud session that
 wrote this protocol and the lag-capture aid). A results table goes here, and
 in ADR 0414's Consequences, once a real-time pass exists; until then the
@@ -344,10 +343,9 @@ or `pickup` for a restart) when the session ends ([ADR 0117](../adr/0117-live-fl
 opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
 printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
 words by kind, which on a clean read is the false-flag rate. How a flag is
-confirmed later (recheck on click, a trailing confirmation pass) is deferred
-in [teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+confirmed later (recheck on click, a trailing confirmation pass) is not built yet.
 
-## Streaming subprocess support (resolves decision #5)
+## Streaming subprocess support
 
 `apps/desktop/internal/process.Supervisor.Start` drains stdout/stderr to `io.Discard`
 for the two batch sidecars (Manuscript Guide, Transcript Compare) — see
@@ -369,7 +367,7 @@ snapshot so a view that opens mid-session catches up. The `Host` exposes
 Transcript Compare and defaults to the `tiny` model, because live
 transcription has to keep up with speech. It launches the engine the request
 names (Whisper by default; Moonshine on Windows only, from its verified catalog
-install, teleprompter-engines-and-input-devices PRD phase 7), and its gate answer names the engine.
+install), and its gate answer names the engine.
 
 **Stopping.** Go cannot send Ctrl+C to the sidecar, and the other sidecars use
 `.cancel` sentinel files, so the sidecar accepts `--stop-file`: once that file
@@ -433,13 +431,12 @@ engine too ([ADR 0107](../adr/0107-moonshine-ships-inside-the-windows-teleprompt
 `ctypes`-loaded `moonshine.dll` and `onnxruntime.dll` are collected by hand and
 required by `verify-installable.mjs`, and `narration-utils --smoke` runs
 `manuscript-teleprompter --capabilities --verify` to prove they load
-(sidecar-capabilities-flag PRD Phase 3 folded the bespoke `--check-moonshine`
-flag into this generic one; [ADR 0403](../adr/0403-the-capabilities-flag-reports-what-registered-not-what-loads.md)). The frozen
+(this generic flag replaced the bespoke `--check-moonshine`; [ADR 0403](../adr/0403-the-capabilities-flag-reports-what-registered-not-what-loads.md)). The frozen
 sidecar runs Moonshine only from a `--model-dir` holding every file of
 `config/moonshine-assets.json` (`core/moonshine_engine.py`); it never uses the
 library's downloader. Freezing it in cost 24.1 MB (+9.4%).
 
-## Where listening runs (resolves decision #1)
+## Where listening runs
 
 Inside the native Wails host, consistent with
 [daw-integration.md](daw-integration.md)'s "no loopback server" rule. The
@@ -449,10 +446,10 @@ selection plumbing, and relaying streamed events to the React frontend.
 REAPER Lua is not involved in the live loop at all — same boundary the DAW
 integration doc already draws for take/marker mutation.
 
-## Device enumeration (teleprompter-engines-and-input-devices PRD, Phase 1)
+## Device enumeration
 
-The PRD's "Where device enumeration runs" open question asked whether PyAV can
-list `dshow` devices without shelling out to ffmpeg directly (option (a)); the
+The question was whether PyAV can
+list `dshow` devices without shelling out to ffmpeg directly; the
 spike confirmed it can. `sidecars/manuscript-teleprompter/core/devices.py`
 adds `--list-devices` to `live_asr.py`: it opens `dshow` with the
 `list_devices` option (which always raises - that mode is a listing, not a
@@ -465,7 +462,7 @@ level is None (ffmpeg logging off), so the capture only receives it if the
 level lets INFO through. `capture_dshow_log` raises the level to INFO for the
 listing (leaving a more verbose level alone) and restores the previous level
 in a `finally`, so the rest of the sidecar never relays ffmpeg's log. Without
-that step the sidecar listed no devices at all on Windows, which the Phase 1
+that step the sidecar listed no devices at all on Windows, which the first
 tests missed because they inject a finished capture; `test_devices.py` now
 pins the level handling and, on a Windows machine with an active microphone,
 runs the real PyAV listing.
@@ -495,7 +492,7 @@ comes back as an empty list plus a message, never a rejected call, so the UI
 always gets a result to react to. `useTeleprompterSession.ts` calls it and
 `apps/ui/src/components/booth/MicrophoneField.tsx` is the picker.
 
-## Input level and the meter (read-aloud-control-bar PRD, Phase 4)
+## Input level and the meter
 
 Every session reports the microphone's level beside its words:
 `{"type": "level", "peak": -12.3, "rms": -24.1}` for every 100 ms of audio,
@@ -542,9 +539,7 @@ boots part-way through a chapter for the visual suite (`ended` boots a session t
 of the chapter).
 
 **Still open:** punch-and-roll from a word beyond the flag's "Punch from here", and the per-character reference clips
-the rail reserves a place for, are specified in
-[teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md) and
-[character-continuity-review.prd.md](../prds/character-continuity-review.prd.md).
+the rail reserves a place for, are not built yet.
 
 ## Resume: where REAPER is and where the prompter was
 
@@ -630,12 +625,8 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 
 ## Tracker placement and limits
 
-The remaining open items (engine choice and default, Moonshine provisioning and
-packaging, microphone selection, and the audio source for reviewing a flag) are
-specified in
-[teleprompter-engines-and-input-devices.prd.md](../prds/teleprompter-engines-and-input-devices.prd.md)
-and
-[teleprompter-manuscript-integration.prd.md](../prds/teleprompter-manuscript-integration.prd.md).
+The default engine is still open ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)).
+Moonshine provisioning and packaging and microphone selection have shipped (see above).
 
 - Script tracker placement and source: decided. The sidecar hosts it and reads
   the script from a chapter of the project's canonical `manuscript.json`

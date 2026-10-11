@@ -7,9 +7,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5, Open Question Q2): the narrator's remap
-// changes from the input registry's default keymap, global scope only (Q3: a narrator's pedal belongs to the booth,
-// not the book).
+// Keymap.overrides: the narrator's remap changes from the input registry's default keymap, global scope only (a
+// narrator's pedal belongs to the booth, not the book).
 func newTestHostForKeymapSettings(t *testing.T, projectFolder string) *Host {
 	t.Helper()
 	appData := t.TempDir()

@@ -28,9 +28,9 @@ function humanList(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-// The caption under a prefilled field: its source, which of the manuscript's lines it came from (CS1's mockup:
+// The caption under a prefilled field: its source, which of the manuscript's lines it came from (e.g.
 // "From the title page, lines 1–3: AFTER / THE / APPLAUSE"), whether an all-capitals line was recased for the field
-// (CS3) and, for a low-confidence guess, "(check this)" (Solution Detail, Confidence table).
+// and, for a low-confidence guess, "(check this)".
 function candidateCaption(candidate: DetectedCandidate): string {
   let caption = `From ${candidate.source}`;
   if (candidate.lines && candidate.lines.length > 0) {
@@ -43,12 +43,12 @@ function candidateCaption(candidate: DetectedCandidate): string {
 }
 
 /**
- * "Set up the credits" (credits-token-setup-and-front-matter-detection.prd.md, Phase 2; CS1 C / D35, ADR 0208): a
+ * "Set up the credits" (ADR 0208): a
  * dialog shown once per project when `CreditsSetupState.needed` is true. Every field is prefilled from its detected
- * candidate (CS6) and captioned with its source, so the narrator sees exactly what will be written before they write
- * it (mockups/credits-token-setup-and-front-matter-detection/01-setup-dialog-on-open.webp). Save fills only the
+ * candidate and captioned with its source, so the narrator sees exactly what will be written before they write
+ * it. Save fills only the
  * fields the narrator confirms (`creditsSetupSave` never replaces a value already set); "Not now" dismisses for this
- * session only, and "Don't ask for this project" dismisses until a Replace manuscript (CS2).
+ * session only, and "Don't ask for this project" dismisses until a Replace manuscript.
  */
 export function CreditsSetupDialog({
   state,
@@ -59,7 +59,7 @@ export function CreditsSetupDialog({
   state: CreditsSetupState;
   /** Called with the host's answer after any of the three actions, so the caller (the Production home) can drop the dialog. */
   onDone: (next: CreditsSetupState) => void;
-  /** "Settings > Credits" (CS4's "More fields" link): the fields this dialog does not ask for, detected but waiting there. */
+  /** "Settings > Credits" (the "More fields" link): the fields this dialog does not ask for, detected but waiting there. */
   onMoreFields: () => void;
   notify: Notify;
 }) {
@@ -67,7 +67,7 @@ export function CreditsSetupDialog({
   const [values, setValues] = useState<Partial<Record<keyof CreditValues, string>>>(() =>
     Object.fromEntries(state.fields.map((field) => [field.field, field.candidate?.value ?? ''])),
   );
-  // CS7 B: offered only while the global default is empty (the only reason Narrator is ever among `fields`, see Evidence),
+  // Offered only while the global default is empty (the only reason Narrator is ever among `fields`),
   // checked by default so a first answer becomes every project's default.
   const [useForAllProjects, setUseForAllProjects] = useState(true);
   const [busy, setBusy] = useState(false);

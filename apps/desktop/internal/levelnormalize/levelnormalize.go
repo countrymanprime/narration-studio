@@ -1,5 +1,5 @@
 // Package levelnormalize computes the gain a REAPER item needs to bring a measured level onto the narrator's own
-// target, within their tolerance (diagnostics-delivery-and-cleanup-tools PRD Phase 11's level-normalize half, ADR
+// target, within their tolerance (ADR
 // 0252). It never measures anything itself (that is internal/measure's AnalyzeRange, already used by
 // internal/measure/takemetrics.go over one item's range) and it never touches REAPER: it only turns a measured value
 // and a target into a gain decision, the same "measure first, decide, then one caller applies it" shape

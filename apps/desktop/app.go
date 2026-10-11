@@ -75,24 +75,24 @@ type Host struct {
 	diagnostic string
 	version    string
 	config     config
-	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go, DAW
-	// port PRD P4): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
+	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go, ADR
+	// 0300): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
 	// answer actually changed, never on every transcriptLoop tick.
 	// +checklocks:mu
 	dawCapabilitiesSnapshot string
-	// dawTransportSnapshot is the last daw_transport_changed payload (bindings_daw_transport.go, DAW port PRD P9), compared
+	// dawTransportSnapshot is the last daw_transport_changed payload (bindings_daw_transport.go, ADR 0305), compared
 	// the same way.
 	// +checklocks:mu
 	dawTransportSnapshot string
 	// readAloudRecordingChapter is the chapter id of a REAPER recording this app started with ReadAloudRecordStart and
-	// has not yet stopped (bindings_readaloud_record.go, read-aloud-control-bar.prd.md Phase 7): empty when none, so
+	// has not yet stopped (bindings_readaloud_record.go): empty when none, so
 	// ServiceShutdown knows whether to stop one before the app quits.
 	// +checklocks:mu
 	readAloudRecordingChapter string
 	manuscript                *manuscript.Service
 	sidecars                  *process.Supervisor
 	settings                  *settings.Store
-	// resumeFollowCancel stops the resume prompt's REAPER poll (resumefollow.go, read-aloud-resume-from-daw.prd.md Phase 5):
+	// resumeFollowCancel stops the resume prompt's REAPER poll (resumefollow.go):
 	// nil when none runs.
 	// +checklocks:mu
 	resumeFollowCancel context.CancelFunc
@@ -119,10 +119,10 @@ type Host struct {
 	// diagnosticsJob runs the windowed diagnostics over picked files (diagnostics_job.go, the Diagnostics view); it
 	// accepts the same picked paths as measureJob. h.mu guards the pointer; it is not per project.
 	diagnosticsJob *diagnosticsJob
-	// exportJob masters (optionally) and encodes the narrator's picked files (export_job.go, render-encode-master
-	// PRD Phase 5); exportPicked is every path its own picker chose this session, mirroring measurePicked's own
+	// exportJob masters (optionally) and encodes the narrator's picked files (export_job.go);
+	// exportPicked is every path its own picker chose this session, mirroring measurePicked's own
 	// discipline (ADR 0156). packageJob assembles one profile's package from an export's own encoded files
-	// (package_job.go, Phase 4's internal/packager). h.mu guards all three; none is per project.
+	// (package_job.go, over internal/packager). h.mu guards all three; none is per project.
 	// +checklocks:mu
 	exportJob *exportJob
 	// +checklocks:mu
@@ -130,40 +130,38 @@ type Host struct {
 	// +checklocks:mu
 	packageJob *packageJobState
 	// multiPackageJob builds several profiles' packages from one export's own encoded files in one action
-	// (multi_package_job.go, render-encode-master PRD Phase 6). h.mu guards the pointer; it is not per project, and
+	// (multi_package_job.go, ADR 0480). h.mu guards the pointer; it is not per project, and
 	// it and packageJob never run at the same time (each start site checks the other's running state).
 	// +checklocks:mu
 	multiPackageJob *multiPackageJobState
 	transcript      *transcript.Service
 	// coverage is the recording-coverage service (docs/utilities/recording-coverage.md, ADR 0128): it reads the saved .rpp and
 	// runs the Transcript Compare sidecar's --coverage mode. Swapped on every project switch like transcript; the Coverage* bindings
-	// reach it (Phase 5, bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
+	// reach it (bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
 	coverage *coverage.Service
-	// stages is the chapter stage recommendation service (chapter-stage-recommendations.prd.md Phase 4, bindings_stages.go):
+	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
-	// project switch; it computes on read and stores no recommendation (D1).
+	// project switch; it computes on read and stores no recommendation.
 	stages *stages.Service
-	// production is the project's stage timer and time log (production-tracking.prd.md, bindings_production.go). Swapped
+	// production is the project's stage timer and time log (bindings_production.go). Swapped
 	// on every project switch; nil with no project folder, so nothing is ever logged outside a project.
 	production *production.Service
-	// editing is the editing-readiness scan service (docs/prds/editing-readiness-analysis.prd.md Phase 5,
-	// bindings_editing.go): played-range empty-space analysis over the chapter's confirmed track, cache-first, with its
-	// own ledger records and silence_cleanup findings. Swapped on every project switch like coverage; it starts only on
-	// the narrator's own request (Q9), never in the background.
+	// editing is the editing-readiness scan service (bindings_editing.go): played-range empty-space analysis over the
+	// chapter's confirmed track, cache-first, with its own ledger records and silence_cleanup findings. Swapped on every
+	// project switch like coverage; it starts only on the narrator's own request, never in the background.
 	editing *editing.Service
-	// character is the region-approval and reference service (character-continuity-review.prd.md Phase 3,
-	// bindings_character.go). Swapped with editing on every project switch; it produces no findings and does no
-	// acoustic analysis - Phase 6's non-acoustic bindings only (owner decision D87 on #509 benches the acoustic half).
+	// character is the region-approval and reference service (bindings_character.go). Swapped with
+	// editing on every project switch; it produces no findings and does no acoustic analysis (the acoustic half is
+	// benched, owner decision on #509).
 	character *character.Service
 	// findings is the project's findings store: Transcript Compare's and the
-	// Guide's adapters save into it on every completed run
-	// (review-dashboard-and-findings-adoption.prd.md Phases 2-3), and
+	// Guide's adapters save into it on every completed run, and
 	// take-review's scan binding (takereview.go) writes and reads it back,
 	// all through the same swap-on-project-switch pattern as
 	// guide/manuscript/transcript.
 	findings *findings.Store
-	// reachability tracks the current project's bridge client PROJECT_STATUS heartbeat (ADR 0092, Phase 7), behind the
-	// DAW port's Heartbeat role (dawport.Heartbeat, DAW port PRD P5c) rather than the concrete *daw.Reachability, so a
+	// reachability tracks the current project's bridge client PROJECT_STATUS heartbeat (ADR 0092), behind the
+	// DAW port's Heartbeat role (dawport.Heartbeat, ADR 0300) rather than the concrete *daw.Reachability, so a
 	// caller depends on the role, not the REAPER-only type. Swappable like transcript: configureLocked rebuilds it on
 	// every project switch. Never a true nil interface: with no bridge client it is daw.NewReachability(nil), which
 	// always reports unreachable.
@@ -171,7 +169,7 @@ type Host struct {
 	// navigation is the Review page's REAPER navigator on the same bridge client (bindings_navigation.go); swappable
 	// like transcript. Never nil once configured: with no bridge client it is standalone and refuses every request.
 	navigation *findingNavigation
-	// dawPortResolver is the DAW port's resolver over p5aAdapter (DAW port PRD P5a, ADR 0300): bindings_navigation.go,
+	// dawPortResolver is the DAW port's resolver over p5aAdapter (ADR 0300): bindings_navigation.go,
 	// readaloudreaper.go, teleprompterinput.go and chapterregions.go ask it for their roles instead of holding
 	// *bridge.Client or *bridge.Actions themselves. Swappable like navigation and actions; nil with no bridge client.
 	dawPortResolver *dawport.Resolver
@@ -186,38 +184,37 @@ type Host struct {
 	cleanupTools    *cleanuptools.Service
 	retakeLanes     *retakelanes.Service
 	teleprompter    *teleprompter.Service
-	// recorder is the built-in recorder (native-recording-suite P2, docs/adr/0455), rebuilt with the project like teleprompter.
+	// recorder is the built-in recorder (ADR 0455), rebuilt with the project like teleprompter.
 	recorder *recording.Service
 	// bridge is the REAPER session's file-based IPC client (nil when launched
 	// without a REAPER session directory); take-review's create-take action
 	// (takereview.go) is its first direct consumer outside transcript.Service,
 	// which is handed the same client rather than building its own.
 	bridge *bridge.Client
-	// takeCreator is the DAW port's take_create role over the same bridge client (DAW port PRD P5c); takereview.go's
+	// takeCreator is the DAW port's take_create role over the same bridge client (ADR 0300); takereview.go's
 	// take-creation binding asks for it instead of holding bridge directly. Nil (a true nil interface) with no bridge
 	// client or no such role.
 	takeCreator dawport.TakeCreator
-	// actions is the S28 commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
+	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
 	recents *recents.Store
-	// creditTemplates is the narrator's own credit-template library (audiobook-credits-templates.prd.md, Phase 1):
+	// creditTemplates is the narrator's own credit-template library,
 	// user-level like recents, set once in NewHost and never swapped by a project switch.
 	creditTemplates *credits.TemplateStore
 	// creditsSetupSession is the credits setup prompt's "Not now" for this run of the app (creditsetup.go, ADR 0208).
 	creditsSetupSession creditsSetupSession
-	// deliveryProfiles is the narrator's custom delivery profiles and their Global default (delivery-platform-profiles.prd.md,
-	// ADR 0179): user-level like creditTemplates, set once in NewHost and never swapped by a project switch.
+	// deliveryProfiles is the narrator's custom delivery profiles and their Global default (ADR 0179): user-level like creditTemplates, set once in NewHost and never swapped by a project switch.
 	deliveryProfiles *deliveryprofile.Store
-	// series is the narrator's own series.json (character-continuity-review.prd.md Phase 9/11, Q10): user-level
+	// series is the narrator's own series.json: user-level
 	// like recents and creditTemplates, set once in NewHost and never swapped by a project switch.
 	series *series.Store
 	// deliveryFindingsMu keeps one save of the delivery review findings at a time (delivery_findings.go), so a profile
 	// change and a measurement ending together cannot leave the findings of the profile that lost the race.
 	deliveryFindingsMu sync.Mutex
 	log                *hostlog.Log
-	// runLog is the structured, leveled run log (docs/prds/tool-run-logging.prd.md, ADR 0251): every host job and
-	// sidecar launch wraps itself in runLog.Begin/Run.End (phase 3); set once in NewHost and never swapped.
+	// runLog is the structured, leveled run log (ADR 0251): every host job and sidecar launch wraps itself in
+	// runLog.Begin/Run.End; set once in NewHost and never swapped.
 	runLog *runlog.Logger
 	// jobRuns is runLog's other half for most job kinds (runlog_jobs.go): the run each carries from its own start
 	// site to publishJobEnded, which ends it. Its zero value is ready to use, like installJobs.
@@ -230,16 +227,16 @@ type Host struct {
 	// pickAudioFiles and measureFile are seams for tests (measure_job.go): nil means the operating system's multiple-file
 	// picker and measure.MeasureFile.
 	pickAudioFiles func() ([]string, error)
-	// pronunciationOnline is the Merriam-Webster lookup (prep-depth P9, bindings_pronunciationonline.go): user-level like
+	// pronunciationOnline is the Merriam-Webster lookup (bindings_pronunciationonline.go): user-level like
 	// recents, set once in NewHost and never swapped by a project switch, so it is read directly.
 	pronunciationOnline *pronunciationonline.Service
 	// pickRenderFile is a seam for tests (bindings_proofing_render.go): nil means the operating system's single-file
 	// picker for a chapter's rendered file.
 	pickRenderFile func() (string, error)
-	// wiktextractManager is a seam for tests (bindings_wiktextract_commons.go, prep-depth Phase 10): nil means a
+	// wiktextractManager is a seam for tests (bindings_wiktextract_commons.go): nil means a
 	// manager built fresh over the checkout's or the packaged release's own catalog and the per-user asset cache,
-	// the same way as every other asset kind (assetcache.go). This binding is a light, occasional reader of Phase
-	// 8's own install, not a project service, and is not yet part of the asset registry Settings wires up (#782's
+	// the same way as every other asset kind (assetcache.go). This binding is a light, occasional reader of the
+	// wiktextract install, not a project service, and is not yet part of the asset registry Settings wires up (#782's
 	// own deferred fast-follow), so there is no cached Host field to keep in sync with a repaired or reinstalled
 	// asset - set only before Startup, like platform.
 	// +checklocks:mu
@@ -263,7 +260,7 @@ type Host struct {
 	// h.profileStore().Resolve. It exists so a test can resolve a selection to a synthetic profile - for example one
 	// requiring a format no built-in or persistable custom profile can yet, since deliveryprofile's own store
 	// validates a custom profile's rules against a known-metric whitelist - without touching internal/deliveryprofile
-	// itself (render-encode-master PRD Phase 6, ADR 0480).
+	// itself (ADR 0480).
 	resolveProfile func(deliveryprofile.Ref) (deliveryprofile.Profile, bool, error)
 	// updates asks GitHub for a newer release and remembers the answer (ADR 0072). It is set once in NewHost and never swapped, so it is
 	// read directly, like recents.
@@ -328,7 +325,7 @@ type Host struct {
 	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator (ADR 0069).
 	persist *persist.Reporter
 	// notifySender is a seam for tests: nil means the real Wails notification API. notifyInitOnce guards the lazy
-	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go, N2).
+	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go).
 	notifySender   notificationSender
 	notifyInitOnce sync.Once
 }
@@ -361,11 +358,10 @@ type config struct {
 	sessionDir    string
 	projectFolder string
 	projectName   string
-	// projectFile is the REAPER-launched rpp's own path (PRD
-	// project-workspace-and-daw-link.prd.md Phase 5, --project-file). It maps
+	// projectFile is the REAPER-launched rpp's own path (--project-file). It maps
 	// back to whichever project's manifest links it (resolveProjectFile),
 	// which may not be projectFolder: the launcher only ever sets projectFolder
-	// to the rpp's own containing folder (W4/W6), and the two can diverge once
+	// to the rpp's own containing folder, and the two can diverge once
 	// the rpp is linked from a project that lives elsewhere.
 	projectFile                             string
 	daw                                     string
@@ -438,8 +434,7 @@ func recentProjectsPath() string {
 }
 
 // creditTemplatesPath resolves the per-user credit-templates file, alongside
-// recent-projects.json (PRD audiobook-credits-templates.prd.md, Open Question
-// C7). Like recentProjectsPath, this mirrors settings.Store's own %APPDATA%-
+// recent-projects.json. Like recentProjectsPath, this mirrors settings.Store's own %APPDATA%-
 // with-%USERPROFILE%-fallback chain rather than sharing it, since it is only
 // a few lines and user-level storage is not project-scoped.
 func creditTemplatesPath() string {
@@ -452,7 +447,7 @@ func creditTemplatesPath() string {
 	return filepath.Join("AppData", "Roaming", "narration-utils", "credit-templates.json")
 }
 
-// seriesPath resolves the per-user series file (character-continuity-review.prd.md Q10), alongside
+// seriesPath resolves the per-user series file, alongside
 // recent-projects.json and credit-templates.json. Like creditTemplatesPath, this mirrors settings.Store's own
 // %APPDATA%-with-%USERPROFILE%-fallback chain rather than sharing it.
 func seriesPath() string {
@@ -544,7 +539,7 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetPersist(h.persist)
 	h.guide.SetFindings(h.findings)
 	// The session directory is REAPER's file bridge (NarrationUtils_Launcher.lua makes it). An Audacity launch never opens it,
-	// even when one is passed, so nothing on that launch writes REAPER bridge commands (audacity-integration PRD Phase 5).
+	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	var client *bridge.Client
 	if h.config.sessionDir != "" && dawport.Classify(h.config.daw) != dawport.KindAudacity {
 		client, _ = bridge.New(h.config.sessionDir)
@@ -570,7 +565,7 @@ func (h *Host) configureLocked(next config) {
 		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
 		ProjectFile:    func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		LoadManuscript: h.manuscript.Load,
-		// A credits row's check (credits-in-chapter-table.prd.md Phase 3) measures the same first-of-kind template
+		// A credits row's check measures the same first-of-kind template
 		// render the Home row and the teleprompter show (h.creditsScript, ADR 0093, ADR 0150), never manuscript
 		// paragraphs.
 		LoadCredits: func(kind string) (string, string, error) {
@@ -581,23 +576,23 @@ func (h *Host) configureLocked(next config) {
 			return script.Title, script.Text, nil
 		},
 		Reporter: h.persist,
-		// DAW port PRD Phase 5d: reads the saved .rpp through the port's offline role instead of tracks.Parse directly.
+		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: reaper.ProjectReader{},
 	}, h.coverageLauncherLocked(), h.emitCoverage)
-	// A chapter's recordedFraction is the measured share of its words from a current, complete check, and absent otherwise (D11,
-	// Q12 A); reading it never starts a check (Q14).
+	// A chapter's recordedFraction is the measured share of its words from a current, complete check, and absent otherwise;
+	// reading it never starts a check.
 	h.manuscript.SetRecordedFractions(coverageRecordedFractions(h.coverage, settingsStore))
-	// A chapter's recordedSeconds is its one confirmed track's recorded length in the saved .rpp, and a reason otherwise
-	// (actual-recorded-column PRD Phase 2); never an estimate.
+	// A chapter's recordedSeconds is its one confirmed track's recorded length in the saved .rpp, and a reason otherwise;
+	// never an estimate.
 	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript))
 	h.editing = editing.New(editing.Config{
 		Project:     h.config.projectFolder,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		Policy:      func() editing.Policy { return editingPolicy(settingsStore) },
 		Reporter:    h.persist,
-		// DAW port PRD Phase 5d: reads the saved .rpp through the port's offline role instead of tracks.Parse directly.
+		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: reaper.ProjectReader{},
-		// Q6 (editing-readiness-analysis.prd.md Phase 8): the render association PS Phase 4 already owns, reused as-is,
+		// The render association the proofing stage already owns, reused as-is,
 		// plus this package's own per-chapter source choice.
 		Renders: proofing.NewRenderStore(h.config.projectFolder),
 		Choices: editing.NewChoiceStore(h.config.projectFolder),
@@ -605,10 +600,10 @@ func (h *Host) configureLocked(next config) {
 	h.character = character.New(character.Config{
 		Project:     h.config.projectFolder,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
-		// DAW port PRD Phase 5d: reads the saved .rpp through the port's offline role instead of tracks.Parse directly.
+		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: reaper.ProjectReader{},
 	})
-	// Every finished comparison is recorded for the proofing pickups signal (proofing-readiness-signals PRD Phase 2).
+	// Every finished comparison is recorded for the proofing pickups signal.
 	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.manuscript, settingsStore, h.persist))
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
@@ -618,11 +613,11 @@ func (h *Host) configureLocked(next config) {
 	if h.config.projectFolder != "" {
 		h.production = production.New(production.Config{Project: h.config.projectFolder, Reporter: h.persist, Recorded: productionRecorded(h.manuscript)})
 	}
-	// The S28 commands (internal/bridge/actions.go) are one more consumer of the same client. Whether each may be sent
-	// is the DAW port resolver's answer, asked before anything is written (DAW port PRD P3, ADR 0300): the narrator's
+	// The action commands (internal/bridge/actions.go) are one more consumer of the same client. Whether each may be sent
+	// is the DAW port resolver's answer, asked before anything is written (ADR 0300): the narrator's
 	// DAW.capability.<name> toggles, with DAW.experimental_reaper_actions still turning on every Experimental one left
-	// on auto (owner decision D38, ADR 0230). The resolver is over REAPER's declaration alone until P5a moves these
-	// consumers onto the adapter's roles.
+	// on auto (ADR 0230). This resolver is over REAPER's declaration alone; the one below, over p5aAdapter, serves the
+	// consumers that take their roles from the adapter.
 	dawResolver := dawport.NewResolver(dawport.ResolverConfig{
 		Adapter:      reaper.Declaration(),
 		Toggle:       dawport.SettingsToggles(settingsStore.Effective),
@@ -630,10 +625,10 @@ func (h *Host) configureLocked(next config) {
 	})
 	h.actions = bridge.NewActions(client, reaper.Gate(dawResolver.Allowed))
 	// The retake-lane, project-state and take-creation roles below come from a live REAPER adapter over the same
-	// client (DAW port PRD P5c), gated by the same resolver.Allowed as h.actions: a nil client (no session) or a
+	// client (ADR 0300), gated by the same resolver.Allowed as h.actions: a nil client (no session) or a
 	// capability the adapter does not declare leaves the role nil, which each service already treats as "no bridge".
-	// P5a's registry adapter will later give every P5 consumer one shared adapter; until then this is this phase's
-	// own, over the same client (bindings_daw.go's dawResolverFor makes the same tradeoff for DawCapabilities).
+	// This adapter is its own, over the same client, rather than one shared with p5aAdapter below (bindings_daw.go's
+	// dawResolverFor makes the same tradeoff for DawCapabilities).
 	var retakePicker dawport.RetakeLanePicker
 	var projectStateReader dawport.ProjectStateReader
 	if dawAdapter, err := reaper.New(client, dawResolver.Allowed); err == nil {
@@ -643,10 +638,10 @@ func (h *Host) configureLocked(next config) {
 	} else {
 		h.takeCreator = nil
 	}
-	// The Review page's Go to, Loop and Stop (review dashboard PRD Phase 7, bindings_navigation.go), the read-aloud and
+	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,
 	// chapterregions.go) now take their roles from h.dawPortResolver instead of holding the bridge navigator or h.actions
-	// directly (DAW port PRD P5a, ADR 0300). p5aAdapter wraps the same navigator and h.actions this project already
+	// directly (ADR 0300). p5aAdapter wraps the same navigator and h.actions this project already
 	// built, rather than a second dawport/reaper.Adapter over the client: two *bridge.Actions on one client would race
 	// each other's run IDs (bridge/actions.go). A standalone or Audacity launch (client nil, exactly when the bridge
 	// client above was never built) has no adapter, which the resolver reports as every capability unsupported.
@@ -666,15 +661,14 @@ func (h *Host) configureLocked(next config) {
 	})
 	h.navigation = newFindingNavigation(h.dawPortResolver, client)
 	// The pickup, line-identity, render-config and cleanup-tool services take the DAW port's roles instead of the
-	// raw bridge client (DAW port PRD Phase 5b): each now depends on dawport.PickupList, LineStamper,
+	// raw bridge client (ADR 0300): each depends on dawport.PickupList, LineStamper,
 	// RenderConfigurer or CleanupLauncher, never a concrete adapter, so a second engine can serve them unchanged.
 	// reaper.New wraps the same client the actions gate above already shares (dawport.Adapter.Role never opens a
 	// new one), so this adds no new consumer of the session's bridge; a nil client (a standalone or Audacity
 	// launch) leaves every role nil, which each service already treats as "the REAPER bridge is unavailable".
-	// Silence trim and level matching (built in P2, never wired to anything) take their SilenceTrimmer and
+	// Silence trim and level matching take their SilenceTrimmer and
 	// GainAdjuster roles the same way, so internal/cleanuptools can call them once a narrator-facing trigger
-	// exists (diagnostics-delivery-and-cleanup-tools PRD Phases 10-11 left that for later work). P5a's shared
-	// resolver replaces this per-consumer adapter once every P5 migration has landed.
+	// exists.
 	var pickupsRole dawport.PickupList
 	var lineStamperRole dawport.LineStamper
 	var renderConfigurerRole dawport.RenderConfigurer
@@ -690,29 +684,28 @@ func (h *Host) configureLocked(next config) {
 		gainAdjusterRole, _ = reaperAdapter.Role(dawport.CapItemGain).(dawport.GainAdjuster)
 	}
 	// The line-identity service is the second consumer of the same bridge client (bridge.Client fans events
-	// out by tag and run, ADR 0068), so pollTranscript's Drain call already pumps its events too. Phase 7
-	// (reaper-automation-follow-through PRD) is the UI trigger, so it now emits h.emitLineIdentity the way
+	// out by tag and run, ADR 0068), so pollTranscript's Drain call already pumps its events too. The UI
+	// triggers it, so it emits h.emitLineIdentity the way
 	// h.transcript emits h.emitTranscript.
 	h.lineIdentity = lineidentity.New(lineidentity.Config{Project: h.config.projectFolder, SessionDir: h.config.sessionDir}, lineStamperRole, h.manuscript, h.emitLineIdentity)
-	// The pickup-list service (reaper-automation-follow-through PRD Phase 9) is the bridge's third real
+	// The pickup-list service is the bridge's third real
 	// consumer: pollTranscript's Drain call already pumps its events too, the same way it does for line
 	// identity above.
 	h.pickups = pickups.New(pickups.Config{SessionDir: h.config.sessionDir}, pickupsRole, h.emitPickups)
-	// The render-config service (reaper-automation-follow-through PRD Phase 11) is the bridge's fourth real
+	// The render-config service is the bridge's fourth real
 	// consumer: pollTranscript's Drain call already pumps its events too, the same way it does for line identity
 	// and pickups above.
 	h.renderConfig = renderconfig.New(renderconfig.Config{SessionDir: h.config.sessionDir}, renderConfigurerRole, h.emitRenderConfig)
-	// The cleanup-launcher service (reaper-automation-follow-through PRD Phase 23, ADR 0146) is one more consumer of
+	// The cleanup-launcher service (ADR 0146) is one more consumer of
 	// the same bridge client: pollTranscript's Drain call pumps its events too. It only ever sends an allow-listed
 	// tool key, and the dialog it opens in REAPER is the narrator's to drive.
 	h.cleanupTools = cleanuptools.New(cleanuptools.Config{SessionDir: h.config.sessionDir}, cleanupLauncherRole, silenceTrimmerRole, gainAdjusterRole, h.emitCleanupTools)
-	// The retake-lane service (reaper-automation-follow-through PRD Phase 25, ADR 0147) is one more consumer of the
-	// same bridge client, over its retake_lanes role (DAW port PRD P5c). It only ever asks REAPER to make one listed
+	// The retake-lane service (ADR 0147) is one more consumer of the
+	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
 	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, h.emitRetakeLanes)
-	// The project-state service (reaper-automation-follow-through PRD Phase 13, "Change-driven re-compare
-	// indicator"; analysis-evidence-ledger PRD Open Question 12, answered (B)) is the bridge's fifth real
-	// consumer, over its project_state role (DAW port PRD P5c): pollTranscript's Drain call already pumps its events
+	// The project-state service (the change-driven re-compare indicator) is the bridge's fifth real
+	// consumer, over its project_state role: pollTranscript's Drain call already pumps its events
 	// too, the same way it does above. It is a Could-tier, on-demand check (Check/ProjectStateCheck), not a poll of
 	// its own.
 	h.projectState = projectstate.New(projectstate.Config{SessionDir: h.config.sessionDir}, projectStateReader, h.emitProjectState)
@@ -720,11 +713,11 @@ func (h *Host) configureLocked(next config) {
 	if teleprompterDir == "" {
 		teleprompterDir = filepath.Join(os.TempDir(), "narration-utils")
 	}
-	// NARRATION_TELEPROMPTER_EVAL=1 is the Phase 8 evaluation aid (teleprompter-engines-and-input-devices PRD):
+	// NARRATION_TELEPROMPTER_EVAL=1 is the teleprompter evaluation aid:
 	// a developer/evaluation-only opt-in, same pattern as NARRATION_DEBUG (runlog), never a Settings toggle.
 	h.teleprompter = teleprompter.New(teleprompter.Config{Project: h.config.projectFolder, SessionDir: teleprompterDir, Python: h.config.teleprompterPython, Backend: h.config.teleprompterBackend, Platform: h.platform, EvalTiming: os.Getenv("NARRATION_TELEPROMPTER_EVAL") == "1"}, h.sidecars, h.emitTeleprompterEvent, h.emitTeleprompterState)
 	h.teleprompter.SetLog(func(kind, message string) { _ = h.log.Report(kind, message) })
-	// The built-in recorder (native-recording-suite P2, docs/adr/0455) runs the same sidecar with --record over the capture
+	// The built-in recorder (ADR 0455) runs the same sidecar with --record over the capture
 	// port's wasapi row. An attach waits while a take records (idleLocked), so the old one can only be metering: it is stopped.
 	if h.recorder != nil {
 		h.recorder.StopMeter()
@@ -920,7 +913,7 @@ func (h *Host) emitTeleprompterState(state map[string]any) {
 	}
 }
 
-// emitLineIdentity relays a lineidentity.Service snapshot to the frontend (Phase 7's "Link chapters" flow and
+// emitLineIdentity relays a lineidentity.Service snapshot to the frontend (the "Link chapters" flow and
 // its stale/conflict/drift states), the same simple relay emitTeleprompterState uses: line identity is a narrator-
 // triggered stamp or read, not a long background job, so it needs no job:ended tracking of its own.
 func (h *Host) emitLineIdentity(state map[string]any) {
@@ -932,7 +925,7 @@ func (h *Host) emitLineIdentity(state map[string]any) {
 	}
 }
 
-// emitPickups relays a pickups.Service snapshot to the frontend (Phase 9's pickup list view): a narrator-
+// emitPickups relays a pickups.Service snapshot to the frontend (the pickup list view): a narrator-
 // triggered import, export, jump, resolve or count, the same simple relay emitLineIdentity uses.
 func (h *Host) emitPickups(state map[string]any) {
 	h.mu.RLock()
@@ -943,7 +936,7 @@ func (h *Host) emitPickups(state map[string]any) {
 	}
 }
 
-// emitRenderConfig relays a renderconfig.Service snapshot to the frontend (Phase 11's "Prepare chapter render"
+// emitRenderConfig relays a renderconfig.Service snapshot to the frontend (the "Prepare chapter render"
 // action), the same simple relay emitPickups uses.
 func (h *Host) emitRenderConfig(state map[string]any) {
 	h.mu.RLock()
@@ -954,7 +947,7 @@ func (h *Host) emitRenderConfig(state map[string]any) {
 	}
 }
 
-// emitRetakeLanes relays a retakelanes.Service snapshot to the frontend (Phase 25's retake-lane pick), the same
+// emitRetakeLanes relays a retakelanes.Service snapshot to the frontend (the retake-lane pick), the same
 // simple relay emitCleanupTools uses.
 func (h *Host) emitRetakeLanes(state map[string]any) {
 	h.mu.RLock()
@@ -965,7 +958,7 @@ func (h *Host) emitRetakeLanes(state map[string]any) {
 	}
 }
 
-// emitCleanupTools relays a cleanuptools.Service snapshot to the frontend (Phase 23's cleanup launchers), the same
+// emitCleanupTools relays a cleanuptools.Service snapshot to the frontend (the cleanup launchers), the same
 // simple relay emitRenderConfig uses.
 func (h *Host) emitCleanupTools(state map[string]any) {
 	h.mu.RLock()
@@ -976,7 +969,7 @@ func (h *Host) emitCleanupTools(state map[string]any) {
 	}
 }
 
-// emitProjectState relays a projectstate.Service snapshot to the frontend (Phase 13's live "project changed
+// emitProjectState relays a projectstate.Service snapshot to the frontend (the live "project changed
 // since this check" hint), the same simple relay emitRenderConfig uses. The UI's subscribeProjectState reads it and
 // compares the count with the comparison's baseline (TranscriptState.projectChangeCount).
 func (h *Host) emitProjectState(state map[string]any) {
@@ -1137,18 +1130,17 @@ func hasArgument(arguments []string, wanted string) bool {
 }
 
 // resolveProjectFile maps next.projectFile (the REAPER-launched rpp's own
-// path, PRD project-workspace-and-daw-link.prd.md Phase 5) back to whichever
-// project's manifest links it, scanning projectsDir with
-// project.FindByDawFile (W5: "match by linked file"). A match always wins
+// path) back to whichever project's manifest links it, scanning projectsDir
+// with project.FindByDawFile ("match by linked file"). A match always wins
 // over next.projectFolder/projectName, because those are only ever the rpp's
 // own containing folder as the launcher sees it (Lua has no notion of the
-// link, W4): once a project has claimed this rpp, later launches must keep
+// link): once a project has claimed this rpp, later launches must keep
 // attaching that project even if the rpp now lives outside its folder.
 //
 // With no match - an rpp nothing has linked yet, or projectFile empty (an
-// unsaved REAPER project, W5) - next is returned unchanged, so the caller's
+// unsaved REAPER project) - next is returned unchanged, so the caller's
 // existing behaviour keeps working: an existing REAPER session with no link
-// still attaches the rpp's own folder (W6), and an unsaved project (empty
+// still attaches the rpp's own folder, and an unsaved project (empty
 // projectFolder too) still falls through to the picker.
 func resolveProjectFile(reporter *persist.Reporter, projectsDir string, next config) config {
 	if next.projectFile == "" {
@@ -1164,7 +1156,7 @@ func resolveProjectFile(reporter *persist.Reporter, projectsDir string, next con
 }
 
 // resolveProjectFileLocked resolves the real projects directory and applies
-// resolveProjectFile. A failure to resolve the projects directory (W7: an
+// resolveProjectFile. A failure to resolve the projects directory (an
 // unresolvable home folder) is non-fatal here too, matching every other use
 // of project.ResolveDir: next is returned unchanged and the caller's existing
 // fallback takes over.
@@ -1176,14 +1168,9 @@ func (h *Host) resolveProjectFileLocked(next config) config {
 	return resolveProjectFile(h.persist, projectsDir, next)
 }
 
-// startupProjectFileReason is the narrator-facing explanation emitted (W5)
-// when a REAPER launch could not be resolved to any project: an unsaved
-// REAPER project has no file to match at all, and a saved one may simply not
-// be linked to a Narration Utils project yet. Either way the picker (already
-// shown whenever projectFolder is empty) is where the narrator resolves it.
 // unresolvedLaunchReason reports what to tell the narrator when a REAPER launch (--daw REAPER, set unconditionally by
 // NarrationUtils_Launcher.lua) still has no project folder after matching, so they land on the picker with nothing chosen for
-// them (W5): an unsaved rpp (next.projectFile empty) or a saved one no project has linked yet. Any other launch without a
+// them: an unsaved rpp (next.projectFile empty) or a saved one no project has linked yet. Any other launch without a
 // folder, an Audacity one included, lands on the picker silently: both reasons are about a REAPER project it does not have.
 func unresolvedLaunchReason(next config) (string, bool) {
 	if next.projectFolder != "" || !dawport.IsREAPERLaunch(next.daw) {
@@ -1192,6 +1179,11 @@ func unresolvedLaunchReason(next config) (string, bool) {
 	return startupProjectFileReason(next.projectFile), true
 }
 
+// startupProjectFileReason is the narrator-facing explanation emitted when a
+// REAPER launch could not be resolved to any project: an unsaved REAPER
+// project has no file to match at all, and a saved one may simply not be
+// linked to a Narration Utils project yet. Either way the picker (already
+// shown whenever projectFolder is empty) is where the narrator resolves it.
 func startupProjectFileReason(projectFile string) string {
 	if projectFile == "" {
 		return "This REAPER project has not been saved yet, so it has no file to link. Save it in REAPER, or choose or create a Narration Studio project."
@@ -1329,8 +1321,8 @@ func (h *Host) Bootstrap() map[string]any {
 	return map[string]any{
 		"apiVersion": hostAPIVersion, "diagnosticId": h.diagnostic, "version": h.version,
 		"projectFolder": config.projectFolder, "projectName": config.projectName, "daw": config.daw,
-		// dawFileLinked/dawReachable/dawProjectMatches are the three separate facts PRD
-		// project-workspace-and-daw-link.prd.md W13 asks for, modeled apart from `daw` (see dawfacts.go).
+		// dawFileLinked/dawReachable/dawProjectMatches are three separate facts,
+		// modeled apart from `daw` (see dawfacts.go).
 		"dawFileLinked": dawFileLinked, "dawReachable": dawReachable, "dawProjectMatches": dawProjectMatches,
 		"manuscript": imported, "manuscriptCandidate": manuscriptCandidate,
 		"runtime": map[string]any{
@@ -1411,7 +1403,7 @@ func resolveTeleprompterModelID(options map[string]string) string {
 }
 
 // resolveTeleprompterEngine picks the live engine the same way: the request's, else Whisper, the default until the
-// engine evaluation records another (docs/prds/teleprompter-engines-and-input-devices.prd.md phase 8). The UI sends
+// engine evaluation records another. The UI sends
 // the Teleprompter.engine setting it read, so the host never guesses the narrator's choice.
 func resolveTeleprompterEngine(options map[string]string) string {
 	if value := strings.TrimSpace(options["engine"]); value != "" {
@@ -1426,21 +1418,19 @@ type fieldSchema struct {
 }
 
 var fieldSchemas = map[string][]fieldSchema{
-	// narrator_name is the global default for the [Narrator] credits token (PRD audiobook-credits-templates.prd.md,
-	// Open Questions C2 and C7: "a flat General.narrator_name text setting"); a project's own credits values may
+	// narrator_name is the global default for the [Narrator] credits token (a flat text setting); a project's own credits values may
 	// override it (project.Manifest.Credits.Narrator, credits.Values.Resolve). credits_room_tone_seconds is the room tone
-	// the estimate adds to each opening and closing credits file (C9, Phase 5, ADR 0151): the narrator's own figure,
+	// the estimate adds to each opening and closing credits file (ADR 0151): the narrator's own figure,
 	// defaulting to 0, since published room-tone guidance disagrees (ADR 0025).
-	// debug_logging turns on the run log's debug-level decision records (docs/prds/tool-run-logging.prd.md Q1, ADR
-	// 0251): global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
+	// debug_logging turns on the run log's debug-level decision records (ADR 0251): global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
 	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
-	// default_pronunciation_source (story-bible-and-import-ux-briefs PRD phase 11) is which pronunciation source a new
+	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the
 	// existing CMU-then-Wiktionary-then-eSpeak fallback unchanged, and a source is still tried through the rest of the
 	// chain if the preferred one has nothing for the name (manuscript_guide.py's pronunciation()). It never affects the
-	// entity/alias Generate-Replace control's own explicit choice (GuideDetail.tsx, D13/B9-B11).
+	// entity/alias Generate-Replace control's own explicit choice (GuideDetail.tsx).
 	"ManuscriptGuide": {
 		{"spacy_model", "spaCy model", "choice", []string{"en_core_web_sm", "en_core_web_lg"}},
 		{"build_after_import", "Build the Story Bible after import", "bool", nil},
@@ -1449,37 +1439,33 @@ var fieldSchemas = map[string][]fieldSchema{
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
 	"Updates":           {{"check_on_startup", "Check for updates on startup", "bool", nil}, {"channel", "Update channel", "choice", []string{"candidates", "stable"}}},
 	"TranscriptCompare": {{"model_size", "Default Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}}, {"chunk_seconds", "Default chunk length", "choice", []string{"30", "60", "300", "600"}}, {"color_misread", "Misread marker color", "color", nil}, {"color_skipped", "Skipped marker color", "color", nil}, {"color_extra", "Extra marker color", "color", nil}},
-	// Global scope only (docs/prds/teleprompter-engines-and-input-devices.prd.md, "Where the device, engine and model
-	// choices are stored"): the device, engine and model are machine facts (hardware and CPU wired to this computer),
+	// Global scope only: the device, engine and model are machine facts (hardware and CPU wired to this computer),
 	// not a per-project preference. The chosen capture device is validated only as free text - the sidecar's own open
 	// call is what proves a device name is real; the "text" kind already accepts any string, including empty (unset).
 	// The engine choices here are only a placeholder: settingsSchemas fills in the engines this platform can launch
 	// (teleprompter.Engines: Whisper everywhere, Moonshine on Windows only, ADR 0107). The model choice is tiny and small
-	// for either engine (the PRD's "Model choices exposed per engine" recommendation), since only those have measured
-	// live-lag data and both catalogs have them.
+	// for either engine, since both catalogs have them and larger models are unmeasured for live use.
 	"Teleprompter": {
 		{"input_device", "Microphone", "text", nil},
 		{"engine", "Live engine", "choice", []string{teleprompter.EngineWhisper}},
 		{"model", "Model", "choice", []string{"tiny", "small"}},
-		// punch_preroll_seconds is the punch-and-roll fallback (teleprompter-manuscript-integration.prd.md Phase 12,
-		// booth-actions-enablement PRD Phase 3): "Punch from here" moves REAPER's edit cursor to the word's resolved
-		// time minus this many seconds. Reading REAPER's own pre-roll preference first is the owner-gated spike this
-		// phase does not run; until it does, every punch uses this setting.
+		// punch_preroll_seconds is the punch-and-roll fallback: "Punch from here" moves REAPER's edit cursor to the word's resolved
+		// time minus this many seconds. Reading REAPER's own pre-roll preference first is an owner-gated spike that
+		// has not been run; until it is, every punch uses this setting.
 		{"punch_preroll_seconds", "Punch pre-roll (seconds)", "number", nil},
 	},
 	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, apps/desktop/internal/daw).
-	// DAW.auto_start_launcher is owner decision D10 (docs/prds/implementation-plan.md section 1): the app may pass
-	// NarrationUtils_Launcher.lua as REAPER's trailing script argument when it starts REAPER (Phase 8, ADR 0092
-	// W12), so the bridge is live without the narrator running the action by hand - but only when this is on, and
+	// DAW.auto_start_launcher: the app may pass NarrationUtils_Launcher.lua as REAPER's trailing script argument when
+	// it starts REAPER (ADR 0092), so the bridge is live without the narrator running the action by hand - but only when this is on, and
 	// it defaults off.
-	// DAW.experimental_reaper_actions is owner decision D38: the REAPER bridge commands built before the owner's
+	// DAW.experimental_reaper_actions is an owner decision (ADR 0230): the REAPER bridge commands built before the owner's
 	// verification pass (docs/operations/reaper-verification-pass.md) are refused by the host while it is off, unless the
-	// narrator turns their capability on with its DAW.capability.<name> row (dawport's resolver decides, DAW port PRD P3),
+	// narrator turns their capability on with its DAW.capability.<name> row (dawport's resolver decides, ADR 0300),
 	// and it defaults off (bridge.ExperimentalSettingTool/Key, internal/bridge/actions.go).
-	// The per-capability toggles (DAW port PRD P4) come after the three above, from capabilityFieldSchemas: one
+	// The per-capability toggles come after the three above, from capabilityFieldSchemas: one
 	// choice field per dawport.Capability, labeled with the port's own narrator-facing label, so Settings lists and
 	// saves every DAW.capability.<name> row through this same generic mechanism.
-	// fx_favourites is the narrator's favourite REAPER effects (edit-and-proof-workspace PRD Phase 8, EP8 B, ADR
+	// fx_favourites is the narrator's favourite REAPER effects (ADR
 	// 0234): names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
 	// rather than two, since a chain and a plug-in are just two shapes of name (a chain always ends ".RfxChain";
 	// ADR 0234's add_take_fx already refuses that suffix as a plug-in name, so the two are never confused). It
@@ -1493,13 +1479,13 @@ var fieldSchemas = map[string][]fieldSchema{
 	}, capabilityFieldSchemas()...),
 	// RecordingCoverage is the recording check's four settings (docs/utilities/recording-coverage.md Q3, ADR 0131),
 	// read by coverage.ResolveSettings. The two thresholds judge a stored result on read; the two alignment settings are
-	// in a result's parameter hash, so changing one makes older results stale (Q13 B). Their defaults are Proposed and
-	// uncalibrated (Q15) until Phase 8. background_checks lets the host re-check a changed chapter on its own while REAPER
-	// is idle, not recording and the computer is on mains power (DAW chapter-track auto-sync Phase 7, D27, ADR 0211).
-	// cascade_enabled, cascade_first_pass_model and cascade_recheck_model are the model cascade's own three settings
-	// (recording-check-model-cascade PRD Phase 5, MC1, MC2), read by coverage.ResolveSettings into Settings.Cascade.
+	// in a result's parameter hash, so changing one makes older results stale. Their defaults are Proposed and
+	// uncalibrated until measured on a real corpus. background_checks lets the host re-check a changed chapter on its own while REAPER
+	// is idle, not recording and the computer is on mains power (ADR 0211).
+	// cascade_enabled, cascade_first_pass_model and cascade_recheck_model are the model cascade's own three settings,
+	// read by coverage.ResolveSettings into Settings.Cascade.
 	// The cascade defaults off; while it is off, CoverageStart keeps reading TranscriptCompare.model_size exactly as
-	// it did before this phase. The two model choices are independent of TranscriptCompare's own model_size, from
+	// it did before the cascade existed. The two model choices are independent of TranscriptCompare's own model_size, from
 	// the same approved Whisper catalog.
 	"RecordingCoverage": {
 		{"min_paragraph_present", "Share of each paragraph that must be read", "number", nil},
@@ -1511,28 +1497,28 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_first_pass_model", "First-pass Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
 		{"cascade_recheck_model", "Re-check Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
 	},
-	// StageRecommendations (chapter-stage-recommendations.prd.md Phase 6, Q8, deleted; see docs/architecture/stage-recommendations.md) chooses which signals must be
+	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's
-	// requiredStageSignals reads it), "required" or "ignored", plus the optional master switch. Only the recording
-	// signal exists today (coverage.RecordingSignalID); the editing and proofing signal PRDs add their own keys here
-	// in their own phases, the way this list already grows with each analyzer.
+	// requiredStageSignals reads it), "required" or "ignored", plus the optional master switch. One key per
+	// signal a provider declares: the recording signal (coverage.RecordingSignalID), then the editing and proofing
+	// signals below; a new analyzer's signal adds its own key here.
 	"StageRecommendations": {
 		{"suggestions_enabled", "Suggest stage advances", "bool", nil},
 		{coverage.RecordingSignalID, "Text present in order (recording)", "choice", []string{"required", "ignored"}},
-		// The editing signal PRD's own three ids (ER Phase 6): clicks and breaths can never actually be met yet (Phase
-		// 4, the corpus validation that would gate them, has not run), so they are offered here like any other
-		// declared signal, but choosing "required" for either one, while its detector stays unvalidated, means the
-		// stage can never be recommended - the honest cost of the D22 default, not a bug.
+		// The editing signal's three ids: clicks and breaths can never actually be met yet (the corpus validation that
+		// would gate them has not run), so they are offered here like any other declared signal, but choosing
+		// "required" for either one, while its detector stays unvalidated, means the stage can never be recommended -
+		// the honest cost of the default, not a bug.
 		{editing.EmptySpaceSignalID, "No empty space left to trim", "choice", []string{"required", "ignored"}},
 		{editing.ClickSignalID, "No clicks left (not yet validated)", "choice", []string{"required", "ignored"}},
 		{editing.BreathSignalID, "No loud breaths left (not yet validated)", "choice", []string{"required", "ignored"}},
-		// The proofing signal PRD's pickup roll-up (PS Phase 1): open Transcript Compare discrepancies, take review
+		// The proofing pickup roll-up: open Transcript Compare discrepancies, take review
 		// pickups and repeated reads and read-aloud flags for the chapter, with a current comparison to vouch for it.
 		{proofing.PickupsSignalID, "No pickups left to clear up (proofing)", "choice", []string{"required", "ignored"}},
-		// The proofing delivery checks (PS Phase 5), one per metric proofing.DeliveryChecks lists, plus the render length
+		// The proofing delivery checks, one per metric proofing.DeliveryChecks lists, plus the render length
 		// check. Choosing "required" here is necessary but not enough: a metric check is required only while the project's
 		// delivery profile has a required rule for it turned on, and the length check only while a tolerance is set
-		// (bindings_stages.go filterRequired, Q7 B), so a narrator with no limit on a metric is never blocked by it.
+		// (bindings_stages.go filterRequired), so a narrator with no limit on a metric is never blocked by it.
 		{"proofing.delivery.integrated_lufs", "Rendered file: integrated loudness (proofing)", "choice", []string{"required", "ignored"}},
 		{"proofing.delivery.rms_dbfs", "Rendered file: RMS (proofing)", "choice", []string{"required", "ignored"}},
 		{"proofing.delivery.sample_peak_dbfs", "Rendered file: sample peak (proofing)", "choice", []string{"required", "ignored"}},
@@ -1544,19 +1530,17 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"proofing.delivery.tail_room_tone_seconds", "Rendered file: room tone, tail (proofing)", "choice", []string{"required", "ignored"}},
 		{proofing.RenderLengthSignalID, "Rendered file: length matches the chapter (proofing)", "choice", []string{"required", "ignored"}},
 	},
-	// Proofing is the proofing signals' own setting (proofing-readiness-signals.prd.md Q9 C, delivered and deleted;
-	// see ADR 0525): how far, in
-	// seconds, a chapter's rendered file may differ in length from its items' span before the render length check is not
+	// Proofing is the proofing signals' own setting (ADR 0525): how far, in seconds, a chapter's rendered file may differ in length from its items' span before the render length check is not
 	// met. Unset by default and then the check is not required: no default is proposed until render-versus-project
 	// lengths are measured on real renders (tails, padding).
 	"Proofing": {
 		{"render_length_tolerance_seconds", "Render length tolerance", "number", nil},
 	},
-	// Editing is the editing-readiness analysis's own policy (docs/prds/editing-readiness-analysis.prd.md Phase 3, Q2,
-	// Q3): the empty-space signal's maximum gap and optional head/tail limits. Every one of the three is unset by
-	// default (numberSpecs below has no builtinDefaults/config-defaults.json entry to match): D22's own recommendation
-	// is "unknown until the narrator sets a value", since no number in the repo has a cited source and a guessed
-	// default risks a false "done" in one direction or an unreachable "done" in the other (Q2's Decisions Log entry).
+	// Editing is the editing-readiness analysis's own policy: the empty-space signal's maximum gap and optional
+	// head/tail limits. Every one of the three is unset by default (numberSpecs below has no
+	// builtinDefaults/config-defaults.json entry to match): the check stays unknown until the narrator sets a value,
+	// since no number in the repo has a cited source and a guessed default risks a false "done" in one direction or an
+	// unreachable "done" in the other.
 	// A number field left unset reads back as "" (Store.Effective's own fallback, never "0"), which editing.PolicyFromSettings
 	// treats as "not checked" for that part, not as zero seconds.
 	"Editing": {
@@ -1564,7 +1548,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"head_max_seconds", "Maximum leading silence (head)", "number", nil},
 		{"tail_max_seconds", "Maximum trailing silence (tail)", "number", nil},
 	},
-	// Preview is the proofing-preview-suggestion PRD's Phase 4 settings: the narrator's target length, tolerance,
+	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates
 	// call. Defaults (5:00, 10%, "sample", ending exclusion off) mirror preview.DefaultSettings.
 	"Preview": {
@@ -1573,25 +1557,22 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"preset", "Preset", "choice", []string{"sample", "spot_check"}},
 		{"exclude_ending_fraction", "Exclude the ending (fraction of chapters)", "number", nil},
 	},
-	// Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5, Open Question Q2): one row of kind
-	// "text", global scope, holding a versioned JSON document `{"version":1,"bindings":{"<command id>":["<gesture>",
-	// ...]}}` of the narrator's changes from the input registry's default keymap. It is a generic field like any
-	// other, but no Settings category names its tool yet, so it stays off the generic Settings page - Phase 6 adds
-	// the dedicated "Keyboard & pedals" screen with its own remap-by-pressing UI. saveSettings caps its size and
-	// keeps it global-only (Q3).
+	// Keymap.overrides: one row of kind "text", global scope, holding a versioned JSON document
+	// `{"version":1,"bindings":{"<command id>":["<gesture>", ...]}}` of the narrator's changes from the input
+	// registry's default keymap. It is a generic field like any other, but it is one JSON document, so it stays off the
+	// generic Settings fields form: KeyboardPanel reads and writes it. saveSettings caps its size and keeps it
+	// global-only.
 	"Keymap": {{"overrides", "Keyboard shortcut overrides", "text", nil}},
-	// ReadAloud.record_in_reaper and record_confirmed are the Record-in-REAPER toggle's own memory (read-aloud-
-	// control-bar.prd.md Phase 7, Q9; booth-actions-enablement.prd.md Phase 2): whether the narrator turned recording
+	// ReadAloud.record_in_reaper and record_confirmed are the Record-in-REAPER toggle's own memory: whether the narrator turned recording
 	// on for this project, and whether they have already seen the first-time confirm naming the track and what Play
-	// and Stop do. Project scope only (saveSettings below) - Q9's recommendation A rejected a global memory, since it
+	// and Stop do. Project scope only (saveSettings below), because a global memory
 	// would carry the choice into a project with no REAPER link. Like Keymap, no Settings category names this tool,
 	// so it stays off the generic Settings page; the read-aloud control bar's own toggle is where a narrator sets it.
 	"ReadAloud": {
 		{"record_in_reaper", "Record in REAPER", "bool", nil},
 		{"record_confirmed", "Seen the Record in REAPER confirm", "bool", nil},
 	},
-	// Cleanup is the silence cleanup analyzer's own thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9
-	// remainder, ADR 0238 decision 4): measure.CleanupOptions field for field, read by cleanupSettings
+	// Cleanup is the silence cleanup analyzer's own thresholds (ADR 0238): measure.CleanupOptions field for field, read by cleanupSettings
 	// (cleanup_settings.go) and passed to measure.DiagnosticInput.Cleanup when a diagnostics check runs. Every key has
 	// a config/defaults.json entry mirroring measure.DefaultCleanupOptions, so an untouched store already answers the
 	// same values the analyzer would use on its own; a saved preset is this set of values at a layer, like every
@@ -1605,9 +1586,9 @@ var fieldSchemas = map[string][]fieldSchema{
 	},
 }
 
-// capabilityFieldSchemas is one choice field (auto/on/off) per DAW port capability (dawport.Capabilities(), DAW port PRD
-// P4), labeled with the port's own narrator-facing label so it never drifts from the resolver's own catalog. The resolver
-// already reads DAW.capability.<name> (P3); this only exposes the row Settings needs to list and save it.
+// capabilityFieldSchemas is one choice field (auto/on/off) per DAW port capability (dawport.Capabilities()),
+// labeled with the port's own narrator-facing label so it never drifts from the resolver's own catalog. The resolver
+// already reads DAW.capability.<name>; this only exposes the row Settings needs to list and save it.
 func capabilityFieldSchemas() []fieldSchema {
 	specs := dawport.Capabilities()
 	fields := make([]fieldSchema, 0, len(specs))
@@ -1617,7 +1598,7 @@ func capabilityFieldSchemas() []fieldSchema {
 	return fields
 }
 
-// keymapOverridesMaxBytes bounds Keymap.overrides (docs/prds/input-commands-and-pedals.prd.md Phase 5): a
+// keymapOverridesMaxBytes bounds Keymap.overrides: a
 // generous cap for a document holding one short gesture list per command, well short of anything that would
 // slow down loading or saving settings.
 const keymapOverridesMaxBytes = 64 * 1024
@@ -1635,7 +1616,7 @@ func (h *Host) settingsSchemas() map[string][]fieldSchema {
 		schemas["ManuscriptGuide"] = withChoices(schemas["ManuscriptGuide"], "spacy_model", models.IDs())
 	}
 	schemas["Teleprompter"] = withChoices(schemas["Teleprompter"], "engine", teleprompter.Engines(teleprompter.PlatformOrCurrent(h.platform)))
-	// The TTS provider choices are the voice engines the TTS port declares for this platform (provider-ports P9); the Piper row in
+	// The TTS provider choices are the voice engines the TTS port declares for this platform (docs/architecture/provider-ports.md); the Piper row in
 	// fieldSchemas is only a placeholder.
 	schemas["Piper"] = withChoices(schemas["Piper"], "tts_provider", ttsport.Names(teleprompter.PlatformOrCurrent(h.platform)))
 	return schemas
@@ -1726,7 +1707,7 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	}
 	if tool == "DAW" {
 		// A capability toggle (or the old experimental switch) takes effect on the wire now, rather than waiting for
-		// transcriptLoop's next tick (DAW port PRD P4).
+		// transcriptLoop's next tick.
 		h.pollDawCapabilities()
 	}
 	return nil

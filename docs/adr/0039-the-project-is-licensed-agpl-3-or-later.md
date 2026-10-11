@@ -10,7 +10,7 @@ The repository was MIT-licensed from its first commit. The maintainer builds Nar
 
 MIT lets anyone take the code into a closed, paid product. A copyleft license closes that door. The maintainer is the only human author (`git shortlog` shows one person plus Dependabot), so relicensing needs no one else's consent.
 
-The shipped Guide sidecar already imports GPL-3.0-or-later packages (`piper-tts`, `phonemizer`, and eSpeak NG underneath). Under MIT that was an open question in `docs/research/local-dependency-evaluation.md` and in the docs-security PRD; under a GPL-family license it is not one.
+The shipped Guide sidecar already imports GPL-3.0-or-later packages (`piper-tts`, `phonemizer`, and eSpeak NG underneath). Under MIT that was an open question in `docs/research/local-dependency-evaluation.md`; under a GPL-family license it is not one.
 
 ## Decision
 
@@ -26,6 +26,6 @@ Narration Utils is licensed under the GNU Affero General Public License v3.0 or 
 
 - The Piper, phonemizer and eSpeak NG question ends. No separate-download split is needed for license reasons.
 - Anyone who distributes a modified build, or runs one as a network service, must offer its source under the same terms. The license does not forbid selling copies; it guarantees that every copy stays free to use, study, change and share.
-- The dependency allow-list in the docs-security PRD gains GPL, LGPL and AGPL entries, and third-party notices plus a source offer ship with releases (docs-security phases 7, 9 and 10).
+- The [dependency licence allow-list](../operations/github-workflow.md#the-dependency-licence-allow-list) gains GPL, LGPL and AGPL entries, and [third-party notices](../operations/ci-and-releases.md#third-party-notices) plus a source offer ship with releases.
 - A future move back to a permissive license would need every contributor's consent, which is deliberate: it keeps the commitment hard to undo.
 - To change this decision, write a new ADR that supersedes this one.

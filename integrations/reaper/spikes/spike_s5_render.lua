@@ -1,4 +1,4 @@
--- Spike S5 (Phase 10, docs/prds/reaper-automation-follow-through.prd.md): render details.
+-- Spike S5: render details (docs/research/reaper-spike-s5-render-details.md).
 -- Verifies, against a real REAPER: RENDER_STATS/RENDER_STATS_SUMMARY key format, $region naming in RENDER_PATTERN for
 -- per-region ("chapter") rendering, the current IDs of the actions research section 2 and 6 named, and whether a
 -- render can be previewed/validated without writing files. Run by run-reaper.ps1 inside an isolated REAPER
@@ -6,9 +6,8 @@
 -- scratch NARRATION_UTILS_SPIKE_OUT folder (never the project's own folder); the caller deletes that folder after
 -- reading report.txt.
 
--- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
--- passed, and the audio device is closed. A script that is started any other way stops here instead of touching real
--- settings.
+-- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1 passed, and the audio
+-- device is closed. A script that is started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
   local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')

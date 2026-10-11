@@ -10,10 +10,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// This file is Phase 3 of the production tracking PRD (delivered and deleted; ADR 0028): the book's
-// deadline, contracted amount and milestones (Q3 A, Q5 A), kept on the
-// project manifest so they survive a manuscript replace, and checked here
-// before they are saved. Dates are calendar dates, "YYYY-MM-DD" (ADR 0323).
+// This file checks the book's deadline, contracted amount and milestones before
+// they are saved to the project manifest, where they survive a manuscript
+// replace. Dates are calendar dates, "YYYY-MM-DD" (ADR 0323).
 
 const (
 	dateLayout = "2006-01-02"
@@ -71,11 +70,10 @@ func CheckAmount(amount *float64) error {
 	return nil
 }
 
-// CleanMilestones trims every milestone's fields and refuses the list when
-// any milestone has no name, has no real date, or is too long, or when there
-// are too many. Their order is the narrator's own. Nothing else about a
-// milestone is validated (Q5 A): the ACX 15-minute checkpoint is a name like
-// any other.
+// CleanMilestones trims every milestone's fields and refuses the list when any
+// milestone has no name, has no real date, or is too long, or when there are
+// too many. Their order is the narrator's own. Nothing else about a milestone
+// is validated: the ACX 15-minute checkpoint is a name like any other.
 func CleanMilestones(milestones []project.Milestone) ([]project.Milestone, error) {
 	if len(milestones) > maxMilestones {
 		return nil, fmt.Errorf("a book can have at most %d milestones", maxMilestones)

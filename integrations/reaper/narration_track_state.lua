@@ -1,5 +1,4 @@
--- The live state of REAPER and one track, over the bridge: chapter_track_state (read-aloud-resume PRD Phase 4,
--- read-aloud-control-bar PRD Phase 6 and the command half of teleprompter-manuscript-integration PRD Phase 11; the
+-- The live state of REAPER and one track, over the bridge: chapter_track_state (the
 -- calls are in docs/research/reaper-api-for-planned-commands.md). Loaded by narration_ui_bridge.lua, which passes the
 -- shared helpers as the chunk argument.
 --
@@ -10,7 +9,7 @@
 --
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
 -- inputDevice, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|sourceFile|muted per item (at
--- most ITEM_LIMIT; muted is appended, read-aloud-resume PRD Phase 4), then TRACK_STATE_END|run|listed|total.
+-- most ITEM_LIMIT; muted is the last field), then TRACK_STATE_END|run|listed|total.
 
 local core = ...
 local event = core.event

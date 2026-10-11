@@ -20,9 +20,9 @@ const TOOLS: { key: CleanupToolKey; label: string; description: string }[] = [
   },
 ];
 
-/** Cleanup launchers (reaper-automation-follow-through PRD, Phase 23, ADR 0146): opens a repair tool in REAPER on the
- * items selected there. The app changes nothing itself; the tool's own dialog does the work. Reachable from the Tracks
- * page next to "Prepare chapter render…", not a new nav item. */
+/** Cleanup launchers (ADR 0146): opens a repair tool in REAPER on the
+ * items selected there. The app changes nothing itself; the tool's own dialog does the work. Reachable from the audio
+ * engine panel next to "Prepare chapter render…", not a new nav item. */
 export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
   const [state, setState] = useState<CleanupToolsState>(IDLE);

@@ -1,14 +1,13 @@
-// This file is Phase 1 of docs/prds/editing-readiness-analysis.prd.md
-// ("Editing corpus and evaluation harness"): "a Go harness computing
-// per-class recall, precision and a sensitivity sweep on a tuning half and
-// a held-out half." It scores DX Phase 9's real, already-shipped cleanup
-// detector (measure.CleanupFindings' own candidates, apps/desktop/internal/
-// measure/cleanup.go) against a labeled corpus (labels_test.go's format), on
-// whichever corpus is at hand: the committed synthetic one
-// (syntheticcorpus_test.go, always available) and, when
-// NARRATION_EDITING_CORPUS names a directory, a real one (D70/D71:
-// permissioned narrator audio, outside the repo, provisional). No product
-// code changes: this only calls the detector that already ships.
+// This file is a Go harness computing per-class recall, precision and a
+// sensitivity sweep on a tuning half and a held-out half (ADR 0329). It
+// scores the shipped cleanup detector (measure.CleanupFindings' own
+// candidates, apps/desktop/internal/measure/cleanup.go) against a labeled
+// corpus (labels_test.go's format), on whichever corpus is at hand: the
+// committed synthetic one (syntheticcorpus_test.go, always available) and,
+// when NARRATION_EDITING_CORPUS names a directory, a real one (permissioned
+// or LibriVox audio, kept outside the repo, provisional). It changes no
+// product code: it only calls the detector that already ships.
+
 package editing
 
 import (
@@ -23,8 +22,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// detectorClassFor names the measure.CleanupClass DX Phase 9's detector uses
-// for one of Phase 1's three positive label classes. Only positiveClasses()
+// detectorClassFor names the measure.CleanupClass the shipped detector uses
+// for one of the three positive label classes. Only positiveClasses()
 // (labels_test.go) are ever passed in.
 func detectorClassFor(class LabelClass) measure.CleanupClass {
 	switch class {
@@ -41,8 +40,8 @@ func detectorClassFor(class LabelClass) measure.CleanupClass {
 
 // ClassMetrics is one class's recall and precision over one scored split.
 // FalsePositivesIntentional is the subset of FalsePositives that overlap a
-// "keep_" negative label (Q4/Q7: expected, and paid for by dismissal, not a
-// detector bug) - reported separately so a table can show both.
+// "keep_" negative label (expected, and paid for by dismissal, not a detector
+// bug) - reported separately so a table can show both.
 type ClassMetrics struct {
 	Class                     LabelClass
 	TruePositives             int
@@ -78,8 +77,7 @@ func (m ClassMetrics) Precision() float64 {
 type scoringInterval struct{ start, end float64 }
 
 // overlapsWithTolerance reports whether a and b overlap once each is padded
-// by tolerance seconds on both sides - Phase 1 Scope's "within a labeled
-// tolerance": neither a label's boundary nor a detector's is exact to the
+// by tolerance seconds on both sides: neither a label's boundary nor a detector's is exact to the
 // sample, so an exact-overlap requirement would undercount recall on
 // correctly-found events whose edges simply differ by a few tens of
 // milliseconds.
@@ -88,11 +86,10 @@ func overlapsWithTolerance(a, b scoringInterval, tolerance float64) bool {
 }
 
 // scoreCorpus decodes every source file split's labels name (via
-// measure.DiagnoseFile, the same entry point DX Phase 9's own findings use)
+// measure.DiagnoseFile, the same entry point the shipped findings use)
 // and accumulates recall/precision per positive class. It is the harness's
 // only entry point into the detector: neither editing.Decode nor a Source is
-// needed, since Phase 1 scores whole files, not played ranges (Phase 2's own
-// scope).
+// needed, since the harness scores whole files, not played ranges.
 func scoreCorpus(t *testing.T, dir string, labels []CorpusLabel, opts measure.DiagnosticOptions, cleanup measure.CleanupOptions, split LabelSplit, tolerance float64) map[LabelClass]*ClassMetrics {
 	t.Helper()
 	metrics := map[LabelClass]*ClassMetrics{}
@@ -131,7 +128,7 @@ func scoreCorpus(t *testing.T, dir string, labels []CorpusLabel, opts measure.Di
 // be blamed as a false positive against a negative label). Order per class:
 // match real positives first (recall), then check whatever is left over
 // against the class's negative label (an intentional pause or kept breath,
-// Q4/Q7) before finally counting any still-unmatched candidate as an
+// before finally counting any still-unmatched candidate as an
 // unexplained false positive.
 func scoreSource(labels []CorpusLabel, candidates []measure.CleanupCandidate, tolerance float64, metrics map[LabelClass]*ClassMetrics) {
 	matched := make([]bool, len(candidates))
@@ -192,8 +189,7 @@ func matchOne(label CorpusLabel, candidates []measure.CleanupCandidate, candidat
 	return false
 }
 
-// printMetricsTable is Phase 1's own success signal: "the harness runs...
-// and prints a per-class table."
+// printMetricsTable logs the per-class recall and precision table.
 func printMetricsTable(t *testing.T, label string, metrics map[LabelClass]*ClassMetrics) {
 	t.Helper()
 	t.Logf("%s:", label)
@@ -205,19 +201,18 @@ func printMetricsTable(t *testing.T, label string, metrics map[LabelClass]*Class
 	}
 }
 
-// scoringTolerance is the boundary slack overlap matching allows (Phase 1
-// Scope: "within a labeled tolerance"). It is generous relative to the
+// scoringTolerance is the boundary slack overlap matching allows (a
+// label's and a candidate's edges rarely agree exactly). It is generous relative to the
 // detector's own 10 ms window (cleanup.go's cleanupWindowSeconds) so a
 // candidate whose edge lands a window or two from a hand-drawn label
 // boundary still counts as the same event.
 const scoringTolerance = 0.05
 
-// TestClassRecallPrecisionOnSyntheticCorpus is Phase 1's success signal
-// applied to the corpus every checkout has: "synthetic unit tests pass."
-// It is a regression guard on DX Phase 9's detector and this harness's own
-// matching, not a calibration: the Success Metrics' proposed 90% recall
-// target is scored on real, permissioned audio once Phase 1's corpus plan
-// (docs/research/editing-corpus-and-harness.md) has material, per D70/D71.
+// TestClassRecallPrecisionOnSyntheticCorpus runs the harness on the corpus
+// every checkout has. It is a regression guard on the shipped detector and
+// this harness's own matching, not a calibration: a recall target is scored
+// on real audio once the corpus plan in
+// docs/research/editing-corpus-and-harness.md has material (ADR 0364).
 func TestClassRecallPrecisionOnSyntheticCorpus(t *testing.T) {
 	dir := t.TempDir()
 	labels := writeSyntheticCorpus(t, dir)
@@ -240,18 +235,18 @@ func TestClassRecallPrecisionOnSyntheticCorpus(t *testing.T) {
 	// apart), so the detector is expected to fire on them - proving
 	// precision is imperfect by construction, never that this is a bug.
 	if got := heldOut[LabelSilenceToTrim].FalsePositivesIntentional; got == 0 {
-		t.Error("held-out set: expected at least one silence_to_trim false positive against the keep_pause label (Q4/Q7 - an intentional pause still gets flagged, and the narrator's dismissal is the exit)")
+		t.Error("held-out set: expected at least one silence_to_trim false positive against the keep_pause label (an intentional pause still gets flagged, and the narrator's dismissal is the exit)")
 	}
 	if got := heldOut[LabelBreath].FalsePositivesIntentional; got == 0 {
 		t.Error("held-out set: expected at least one breath false positive against the keep_breath label")
 	}
 }
 
-// TestSensitivitySweepOnTuningHalf is Phase 1's other success signal: "a
-// sensitivity sweep on a tuning half." It never touches the held-out split
-// (scoreCorpus is called only with SplitTune below), matching Phase 4's own
-// later job of actually choosing values from a sweep like this one on real
-// data - Phase 1 only proves the harness can run one.
+// TestSensitivitySweepOnTuningHalf runs a sensitivity sweep on the tuning
+// half. It never touches the held-out split (scoreCorpus is called only with
+// SplitTune below), so choosing values from a sweep like this one stays
+// separate from judging them (validationrun_test.go); this test only proves
+// the harness can run a sweep.
 func TestSensitivitySweepOnTuningHalf(t *testing.T) {
 	dir := t.TempDir()
 	labels := writeSyntheticCorpus(t, dir)
@@ -278,13 +273,12 @@ func TestSensitivitySweepOnTuningHalf(t *testing.T) {
 	}
 }
 
-// TestClassRecallPrecisionOnRealCorpus is Phase 1's real-corpus run: skipped
-// unless NARRATION_EDITING_CORPUS names a directory holding a labels.csv
-// (labels_test.go's format) and the WAV files it names (D71: LibriVox or
-// another permissioned source, audio kept out of git). Its numbers are
-// PROVISIONAL (D70) until re-run on the owner's own recordings, tracked on
-// #510 - this test only runs and reports, per D12 ("no threshold is a fact
-// before Phase 4"): it never fails on a low number.
+// TestClassRecallPrecisionOnRealCorpus is the harness's real-corpus run:
+// skipped unless NARRATION_EDITING_CORPUS names a directory holding a
+// labels.csv (labels_test.go's format) and the WAV files it names (LibriVox
+// or another permissioned source, audio kept out of git). Its numbers are
+// PROVISIONAL until re-run on the owner's own recordings, tracked on #510.
+// This test only runs and reports: it never fails on a low number.
 func TestClassRecallPrecisionOnRealCorpus(t *testing.T) {
 	dir := os.Getenv("NARRATION_EDITING_CORPUS")
 	if dir == "" {
@@ -303,8 +297,8 @@ func TestClassRecallPrecisionOnRealCorpus(t *testing.T) {
 	const realCorpusTolerance = 0.1
 
 	tune := scoreCorpus(t, dir, labels, opts, cleanup, SplitTune, realCorpusTolerance)
-	printMetricsTable(t, "PROVISIONAL (D70/D71): real corpus, tuning half", tune)
+	printMetricsTable(t, "PROVISIONAL: real corpus, tuning half", tune)
 	heldOut := scoreCorpus(t, dir, labels, opts, cleanup, SplitHeldOut, realCorpusTolerance)
-	printMetricsTable(t, "PROVISIONAL (D70/D71): real corpus, held-out half", heldOut)
+	printMetricsTable(t, "PROVISIONAL: real corpus, held-out half", heldOut)
 	t.Log("record these held-out numbers, the corpus conditions and the source provenance in docs/research/editing-corpus-and-harness.md, and file the real re-run as a QA item on #510 before this ships to users")
 }

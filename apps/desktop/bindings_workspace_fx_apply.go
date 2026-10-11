@@ -9,9 +9,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Apply FX to a passage (edit-and-proof-workspace.prd.md Phase 9, ADR 0234, ADR 0705). Two actions, both sent only
-// after the narrator confirms them, both through the DAW port's FXManager role (dawport.CapFXChains, experimental,
-// ADR 0230):
+// Apply FX to a passage (ADR 0234, ADR 0705). Two actions, both sent only after the narrator confirms them, both
+// through the DAW port's FXManager role (dawport.CapFXChains, experimental, ADR 0230):
 //
 //   - WorkspaceAddTakeFX puts one installed plug-in on a passage of a take (add_take_fx): the page sends a chapter id,
 //     a token range and a plug-in name from WorkspaceListFX, and the host resolves the range to one bridge.Passage from
@@ -21,7 +20,7 @@ import (
 //     is the one the chapter's newest check covered, never a value from the page; the Lua resolves the chain by name
 //     inside FXChains (threat model row 5h).
 //
-// Nothing is queued (EP10 A): a REAPER that is not listening refuses, and nothing acts later.
+// Nothing is queued: a REAPER that is not listening refuses, and nothing acts later.
 
 const (
 	refusedCrossesItems = "crosses_items"

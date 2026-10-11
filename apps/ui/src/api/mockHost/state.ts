@@ -60,11 +60,11 @@ export type MockApiSeed = {
   noManuscript?: boolean;
   manuscriptCandidate?: { path: string; name: string };
   teleprompter?: TeleprompterSeed;
-  /** The project's own credits values at boot (the credits on the teleprompter with every token resolved, Phase 4). */
+  /** The project's own credits values at boot (the credits on the teleprompter with every token resolved). */
   creditValues?: CreditValues;
-  /** Adds a chapter announcement template with this body to the library at boot (Phase 5). */
+  /** Adds a chapter announcement template with this body to the library at boot. */
   chapterAnnouncement?: string;
-  /** Drops the closing credit templates from the seeded library (credits-in-chapter-table.prd.md Phase 2, CT5): the
+  /** Drops the closing credit templates from the seeded library the
    * Home table's Closing credits row then shows "Not set up" with a link to Settings > Credits. */
   creditsMissingClosing?: boolean;
   /** The credits rows' statuses at boot (`?mockFidelity=01` draws mock 01's opening credits finished). */
@@ -72,15 +72,14 @@ export type MockApiSeed = {
   /** Chapter statuses at boot, by chapter id, over the Alice fixture's own (`?mockFidelity=01`, mock 01's board). */
   chapterStatuses?: Record<string, ChapterStatus>;
   /** Widens `creditsProjectValues().detected` past Title/Author to every token the front matter parser can find
-   * (credits-token-setup-and-front-matter-detection.prd.md Phase 1), including one low-confidence candidate, so
+   * including one low-confidence candidate, so
    * Settings > Credits' per-field source caption can be seen on every field, not just the two the default mock
    * always detects. */
   creditsDetected?: boolean;
-  /** Boots a project whose credits setup prompt asks (credits-token-setup-and-front-matter-detection.prd.md Phase 2,
-   * `?mockCredits=setup`). Without it the mock boots as if the narrator already chose "Don't ask", so the prompt never
+  /** Boots a project whose credits setup prompt asks (`?mockCredits=setup`). Without it the mock boots as if the narrator already chose "Don't ask", so the prompt never
    * covers the other states. */
   creditsSetup?: boolean;
-  /** The project's retail sample at boot (Phase 5): by paragraph id, or by lines of the chapter at this index in the
+  /** The project's retail sample at boot: by paragraph id, or by lines of the chapter at this index in the
    * manuscript once it has loaded (the bundled text replaces the seed's paragraph ids). */
   retailSample?: { startParagraphId: string; endParagraphId: string } | { chapterIndex: number; startLine: number; endLine: number };
   /** Makes every Story Bible preview fail with this text once the voice is installed. */
@@ -117,23 +116,22 @@ export type MockApiSeed = {
   reaperInput?: MockReaperInputSeed;
   /** Which resume card state `teleprompterLocate` answers for every chapter (see `MockResumeSeed`). */
   resume?: MockResumeSeed;
-  /** Boots with the manuscript's last narration chapter already removed from recording (chapter-track-link-control PRD
-   * Phase 3), so the "Removed from recording" list and its Restore can be seen without driving a removal. */
+  /** Boots with the manuscript's last narration chapter already removed from recording, so the "Removed from recording" list and its Restore can be seen without driving a removal. */
   removedChapter?: boolean;
-  /** Chapter sync's consent at boot (daw-chapter-track-auto-sync PRD Phase 3): `ask` has not been asked yet (the consent
+  /** Chapter sync's consent at boot: `ask` has not been asked yet (the consent
    * dialog shows), `off` answered Not now, and `linked` is on and, once something subscribes, runs a sync that links the
    * confident chapters and sends the batch for the toast. `unsaved` is on, with REAPER holding unsaved edits and a Sync
-   * activity row from a save in REAPER (Phase 4). `pickups` is on, with the first chapter's pickup track changed since its
-   * last take-review scan (Phase 8). `activity` is on, with Chapter 1 linked by sync and Chapter 2 by the narrator, and a Sync
-   * activity list of three batches (the engine panel's mockup-02 state, stage navigation Phase 6). Unset, sync is on and has run before with nothing new, so no dialog or
+   * activity row from a save in REAPER. `pickups` is on, with the first chapter's pickup track changed since its
+   * last take-review scan. `activity` is on, with Chapter 1 linked by sync and Chapter 2 by the narrator, and a Sync
+   * activity list of three batches (the engine panel's activity state). Unset, sync is on and has run before with nothing new, so no dialog or
    * toast covers the other states. */
   chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'background';
-  /** Whether the mock project boots with a linked DAW project file (PRD W13/W14). Defaults to true. */
+  /** Whether the mock project boots with a linked DAW project file. Defaults to true. */
   dawFileLinked?: boolean;
-  /** Makes the next `linkDawFile()` call behave like a chosen file outside the project folder (PRD W15): refused, not linked. */
+  /** Makes the next `linkDawFile()` call behave like a chosen file outside the project folder: refused, not linked. */
   dawLinkMismatch?: boolean;
   /**
-   * Simulates a live REAPER heartbeat whose open project disagrees with the linked file (Phase 7, ADR 0092): the
+   * Simulates a live REAPER heartbeat whose open project disagrees with the linked file (ADR 0092): the
    * mock otherwise never grows a heartbeat, so `dawReachable`/`dawProjectMatches` stay false. Used by the engine
    * chip's "Wrong REAPER project open" state.
    */
@@ -143,7 +141,7 @@ export type MockApiSeed = {
    * Defaults to true; false shows the not-detected state and its "Get REAPER" button.
    */
   dawCatalogInstalled?: boolean;
-  /** Seeds the confirmed chapter-track mapping (analysis evidence ledger PRD, Phase 5/7), so a link's state (a
+  /** Seeds the confirmed chapter-track mapping, so a link's state (a
    * missing track, in particular) can be seen without going through Confirm in the UI first. */
   chapterTrackMappings?: TrackMapping[];
   /** The mock .rpp's record-armed track GUIDs, which `chapterSuggestion` reads (ADR 0113). Defaults to none, so the
@@ -157,7 +155,7 @@ export type MockApiSeed = {
   renderConfig?: 'success' | 'no-regions' | 'error';
   /** Boots CleanupToolsState already at this result, so the cleanup launcher's states can be seen without a launch. 'error' also makes every launch fail. */
   cleanupTools?: 'launched' | 'error';
-  /** How a project-state check answers (follow-through PRD Phase 13): 'changed' (count 42, one more than the last
+  /** How a project-state check answers 'changed' (count 42, one more than the last
    * comparison's 41, the default), 'unchanged' (41), or 'error' (REAPER is not open from this app). */
   projectState?: 'changed' | 'unchanged' | 'error';
   /** Boots the retake-lane list and RetakeLanesState at this result, so "Retakes on lanes" states can be seen without a pick. 'none' lists a project with no lane tracks; 'error' also makes every pick fail. */
@@ -185,62 +183,61 @@ export type MockApiSeed = {
   findingsRerun?: boolean;
   /** What the Review page's REAPER does for Go to, Loop and Stop; connected when not given. */
   reaper?: MockReaper;
-  /** Holds a started pickup and duplicate scan part way through, so its real progress can be looked at (take review Phase 5). */
+  /** Holds a started pickup and duplicate scan part way through, so its real progress can be looked at. */
   takeReviewScanHold?: boolean;
-  /** Holds a started take comparison part way through, so its real progress can be looked at (take review Phase 10). */
+  /** Holds a started take comparison part way through, so its real progress can be looked at. */
   takeComparisonHold?: boolean;
-  /** Holds a started measurement part way through, so its real progress can be looked at, or breaks it (diagnostics PRD Phases 1 and 5). */
+  /** Holds a started measurement part way through, so its real progress can be looked at, or breaks it. */
   measure?: MockMeasureSeed;
-  /** Holds a started export part way through, so its real progress can be looked at (render-encode-master PRD Phase 5). */
+  /** Holds a started export part way through, so its real progress can be looked at. */
   renderExport?: MockExportSeed;
-  /** Holds a started multi-platform package build part way through, so its per-profile progress can be looked at
-   * (render-encode-master PRD Phase 6), separately from `renderExport` (which would also hold the export job itself
+  /** Holds a started multi-platform package build part way through, so its per-profile progress can be looked at,
+   * separately from `renderExport` (which would also hold the export job itself
    * mid-run, leaving no completed files to build packages from). */
   renderPackageMulti?: MockExportSeed;
-  /** Holds a started diagnostics check part way through, or breaks it (diagnostics PRD Phase 6). */
+  /** Holds a started diagnostics check part way through, or breaks it. */
   diagnostics?: MockDiagnosticsSeed;
   /** Seeds the editing-readiness check mock (a refusal, a held-running state, or seeded candidates), see `EditingSeed`. */
   editing?: EditingSeed;
   cleanupAction?: CleanupActionSeed;
-  /** Script markup spans already placed on the manuscript (prep-depth PRD Phase 5), including stale ones, see `PrepMarkupSeed`. */
+  /** Script markup spans already placed on the manuscript including stale ones, see `PrepMarkupSeed`. */
   prepMarkup?: PrepMarkupSeed;
   /** Seeds the preview-candidates mock (an outcome or seeded candidates), see `PreviewSeed`. */
   preview?: PreviewSeed;
   /** Seeds the production mock: a plan (deadline, contracted amount, milestones) and optionally a time log, see `ProductionSeed`. */
   production?: ProductionSeed;
-  /** The project's Delivery limits, by key (`true_peak_dbtp_max: '-3'`), set as if saved in Settings (diagnostics PRD Phase 5). */
+  /** The project's Delivery limits, by key (`true_peak_dbtp_max: '-3'`), set as if saved in Settings. */
   deliveryLimits?: Record<string, string>;
   /**
    * `mixed` adds a buttonless Front Matter chapter (contentKind 'opening', a 3-digit word count) before the Alice
    * chapters and raises one chapter's word count to 5 digits, so the header alignment mock has a mix of 3-, 4- and
    * 5-digit counts and a row with no Read aloud button alongside rows that have one
-   * (manuscript-chapter-header-alignment.prd.md), plus four heading shapes - source capitals with a subtitle, no
-   * subtitle, a long subtitle, a title already ending in a colon - for chapterName()/TitleSubtitle
-   * (chapter-title-display-consistency.prd.md). Off by default so every existing screenshot is unchanged.
+   * plus four heading shapes - source capitals with a subtitle, no
+   * subtitle, a long subtitle, a title already ending in a colon - for chapterName()/TitleSubtitle.
+   * Off by default so every existing screenshot is unchanged.
    */
   mockManuscript?: 'mixed';
-  /** Boots with a custom delivery profile chosen for the project (delivery-platform-profiles.prd.md); ACX judges otherwise. */
+  /** Boots with a custom delivery profile chosen for the project; ACX judges otherwise. */
   deliveryProfile?: MockDeliveryProfileSeed;
-  /** Seeds the DAW capabilities mock (which DAW, reachability, per-capability toggles), see `DawMockSeed` (DAW port PRD Phase 4). */
+  /** Seeds the DAW capabilities mock (which DAW, reachability, per-capability toggles), see `DawMockSeed`. */
   daw?: DawMockSeed;
-  /** Seeds the provider capabilities mock (platform, installed asset counts), see `ProvidersMockSeed` (provider-ports PRD Phase 14). */
+  /** Seeds the provider capabilities mock (platform, installed asset counts), see `ProvidersMockSeed`. */
   providers?: ProvidersMockSeed;
   /**
-   * Boots the character bible with no approved references and no saved-project regions yet
-   * (character-continuity-review.prd.md Phase 6), so its empty state can be seen. Unset boots with
+   * Boots the character bible with no approved references and no saved-project regions yet,
+   * so its empty state can be seen. Unset boots with
    * `WIRE_CHARACTER_REGIONS` and `WIRE_CHARACTER_REFERENCES` (one changed-since-approval reference among them).
    */
   characterContinuity?: 'empty';
   /**
-   * Boots the current project outside any series (character-continuity-review.prd.md Phase 11), so the Series
-   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books), matching the
-   * approved concept mock (06-series-voice-bible-concept.webp).
+   * Boots the current project outside any series, so the Series
+   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
    */
   seriesVoiceBible?: 'not-in-series' | 'single-book';
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed` (ADR 0306). */
   mastering?: MasteringMockSeed;
-  /** `?mockZoom=`: the window's real zoom level at boot, as a fraction (1.25 is 125%; app-navigation-and-zoom-controls.prd.md
-   * Phase 2). Defaults to 1.0, the same as a fresh window before Phase 3 remembers a level across launches. */
+  /** `?mockZoom=`: the window's real zoom level at boot, as a fraction (1.25 is 125%).
+   * Defaults to 1.0, a fresh window. */
   zoom?: number;
   /** Seeds the built-in recorder mock (engine, takes, a take recording, devices), see `RecordingMockSeed` (ADR 0455). */
   recording?: RecordingMockSeed;
@@ -248,8 +245,8 @@ export type MockApiSeed = {
 
 export const wireContext = (payload: string) => ({ boundary: 'host.binding', payload });
 
-// The confirmed chapter-track mapping (analysis evidence ledger PRD, Phase 5): keyed to one mock documentId, since the
-// mock always has exactly one manuscript document loaded.
+// The confirmed chapter-track mapping is keyed to one mock documentId, since the mock always has exactly one
+// manuscript document loaded.
 export const mockDocumentId = 'mock-document-1';
 
 /** The host state more than one domain reads or writes, kept in one place so every domain sees the same values. */
@@ -263,13 +260,13 @@ export type MockState = {
   chapterTrackMappings: TrackMapping[];
   jobEndListeners: Set<(event: JobEnded) => void>;
   endJob: (event: JobEnded) => void;
-  /** The Story Bible's dialogue cues (character-continuity-review.prd.md Phase 2). */
+  /** The Story Bible's dialogue cues. */
   dialogueCues: GuideDialogueCue[];
-  /** The saved REAPER project's regions, for approving one as a voice reference (Phase 3/6). */
+  /** The saved REAPER project's regions, for approving one as a voice reference. */
   regions: CharacterRegion[];
-  /** Every approved (or previously approved) voice reference (Phase 3/6). */
+  /** Every approved (or previously approved) voice reference. */
   characterReferences: ApprovedCharacterReference[];
-  /** The narrator's own series list (Phase 9/11, Q10). */
+  /** The narrator's own series list. */
   series: Series[];
 };
 

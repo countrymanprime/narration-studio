@@ -6,9 +6,9 @@
 
 ## Context
 
-[Delivery Platform Profiles](../prds/delivery-platform-profiles.prd.md) Phase 6 (ADR 0237) measures an MP3's container from its frame headers only, and leaves `acx.rms`/`acx.peak`/`acx.noise_floor` "not checked": decoding compressed audio is out of that phase's scope, and the diagnostics PRD's DX-2 owns it. Phase 8 (P11) closes DX-2 for this PRD, recommendation (A): decode through the same encoder dependency [render-encode-master](../prds/render-encode-master.prd.md) already needs (one dependency, one license record, not a second MP3 decoder), then measure the decoded PCM with `internal/measure`'s own hand-written meters, unchanged (ADR 0025's "no third runtime" is about the measurement algorithms, not about turning compressed bytes into samples).
+ADR 0237 measures an MP3's container from its frame headers only, and leaves `acx.rms`/`acx.peak`/`acx.noise_floor` "not checked": decoding compressed audio was out of its scope. This ADR adds it: decode through the same encoder dependency the MP3 render already needs (one dependency, one license record, not a second MP3 decoder), then measure the decoded PCM with `internal/measure`'s own hand-written meters, unchanged (ADR 0025's "no third runtime" is about the measurement algorithms, not about turning compressed bytes into samples).
 
-Render-encode-master Phase 1 (PR #746, stream N-V1) shipped the `Encoder` interface's encode direction only (`internal/encodeport`, WAV to MP3). Its decode direction did not exist yet when this phase started, and Phase 8 depends on it. Rather than block on a second render-encode-master pull request, this phase adds the decode side itself, as a new file inside the same package, reusing the FFmpeg executable and process-supervision plumbing `UseFFmpeg`/`ffmpegRow` already wires in at start.
+The `Encoder` interface (PR #746) shipped its encode direction only (`internal/encodeport`, WAV to MP3). Its decode direction did not exist yet, and decoding levels depends on it. Rather than wait for a separate change, this ADR adds the decode side itself, as a new file inside the same package, reusing the FFmpeg executable and process-supervision plumbing `UseFFmpeg`/`ffmpegRow` already wires in at start.
 
 ## Decision
 
@@ -20,8 +20,8 @@ Render-encode-master Phase 1 (PR #746, stream N-V1) shipped the `Encoder` interf
 
 ## Consequences
 
-- ACX's RMS, peak and noise-floor rules can be met, not met, or not measurable on an MP3, not only "not checked", on any machine with the catalogued FFmpeg encoder installed (Windows only, matching render-encode-master's own scope); DX-2 (diagnostics PRD) closes.
-- The book-wide spread (Phase 10, PR #763) and the Review-page findings (Phase 9, PR #748) both read these same rule results and need no change of their own: an MP3's levels start contributing to both the moment they are measured, exactly as those phases' own code already expected once Phase 8 landed.
-- `internal/encodeport` now exposes a decode direction render-encode-master's own PRD did not scope into its Phase 1; that PRD's later phases (2, 4) should treat `decode.go` as already there rather than re-adding it, and its own `feature-cleanup` should fold this ADR's record into its history rather than write a duplicate one.
+- ACX's RMS, peak and noise-floor rules can be met, not met, or not measurable on an MP3, not only "not checked", on any machine with the catalogued FFmpeg encoder installed (Windows only, matching the MP3 render's own scope).
+- The book-wide spread (PR #763) and the Review-page findings (PR #748, [ADR 0322](0322-delivery-findings-are-saved-for-review-per-measured-file-versioned-by-the-audio-and-the-rules-bound.md)) both read these same rule results and need no change of their own: an MP3's levels start contributing to both the moment they are measured.
+- `internal/encodeport` now exposes a decode direction beside the encode direction; later encoder work should treat `decode.go` as already there rather than re-adding it.
 - Decoding reaches FFmpeg's full MP3 demuxer and decoder, a larger attack surface than ADR 0237's own bounded header-only Go parser (threat model row 1g, added alongside this ADR). No privilege is crossed: the process runs with the narrator's own rights, in the existing Job Object, on a file already validated as a well-formed MP3 by the bounded parser first.
 - Superseding this needs a new ADR, for example if a second decode path (a different codec, or a pure-Go decoder) is added later.

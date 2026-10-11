@@ -1,5 +1,5 @@
 -- Recording in REAPER for the Read Aloud control bar, over the bridge: arm_only, record_start and record_stop
--- (read-aloud-control-bar PRD Phase 7, owner decision D28; the calls are in
+-- (the calls are in
 -- docs/research/reaper-api-for-planned-commands.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers
 -- as the chunk argument. The read side (which tracks are armed, whether REAPER records) is chapter_track_state in
 -- narration_track_state.lua; this file holds only the commands that change the transport or the arms.

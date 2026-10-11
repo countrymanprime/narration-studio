@@ -13,7 +13,7 @@ import (
 var tokenOrder = []string{TokenTitle, TokenSubtitle, TokenAuthor, TokenSeries, TokenBookNumber, TokenYear, TokenCopyrightHolder, TokenPublisher}
 
 // machineDefaultValues are document-property values that name the software or a generic role rather than a real
-// person (CS6): Word's own placeholder when no account name is set, and other generic labels seen in the wild.
+// person: Word's own placeholder when no account name is set, and other generic labels seen in the wild.
 var machineDefaultValues = map[string]bool{
 	"microsoft office user": true, "author": true, "title": true, "user": true, "owner": true, "unknown": true, "administrator": true,
 }
@@ -37,10 +37,10 @@ func looksLikeMachineDefault(value, sourceFileName string) bool {
 	return lower == strings.ToLower(sourceFileName) || (base != "" && lower == base)
 }
 
-// Detect returns one candidate per credits token it can find from the current project's imported manuscript
-// (credits-token-setup-and-front-matter-detection.prd.md, Phase 1): the front matter of its opening chapters, and the
-// stored source file's own metadata (EPUB OPF <metadata>, or DOCX core properties filtered for machine defaults).
-// Precedence when sources disagree (CS6): EPUB metadata beats the front matter; the front matter beats DOCX
+// Detect returns one candidate per credits token it can find from the current project's imported manuscript:
+// the front matter of its opening chapters, and the stored source file's own metadata (EPUB OPF <metadata>, or
+// DOCX core properties filtered for machine defaults).
+// Precedence when sources disagree: EPUB metadata beats the front matter; the front matter beats DOCX
 // properties; DOCX properties are used only when the front matter found nothing for that token, and never when the
 // value looks like a machine default. It never writes anything; every candidate is only ever offered.
 func Detect(projectFolder string) []Candidate {
@@ -81,7 +81,7 @@ func Detect(projectFolder string) []Candidate {
 	return candidates
 }
 
-// mergeEPUBMetadata overwrites byToken with the EPUB's own metadata, which beats the front matter outright (CS6):
+// mergeEPUBMetadata overwrites byToken with the EPUB's own metadata, which beats the front matter outright:
 // publishers fill it in on purpose. dc:creator with role "aut" is an explicit marker (High, per the confidence table),
 // as is the title itself; a value that already agrees with the front matter stays High either way.
 func mergeEPUBMetadata(byToken map[string]Candidate, metadata importer.EPUBMetadata) {
@@ -111,7 +111,7 @@ func mergeEPUBMetadata(byToken map[string]Candidate, metadata importer.EPUBMetad
 }
 
 // mergeDocxProperties adds a DOCX's own docProps/core.xml title/creator, but only for a token the front matter found
-// nothing for, and never a value that looks like a machine default (CS6).
+// nothing for, and never a value that looks like a machine default.
 func mergeDocxProperties(byToken map[string]Candidate, title, author, sourceFileName string) {
 	if _, exists := byToken[TokenTitle]; !exists && !looksLikeMachineDefault(title, sourceFileName) {
 		byToken[TokenTitle] = Candidate{Token: TokenTitle, Value: title, Source: "the document's own properties", Confidence: ConfidenceLow}
@@ -122,9 +122,9 @@ func mergeDocxProperties(byToken map[string]Candidate, title, author, sourceFile
 }
 
 // mergeSourceMetadata overwrites byToken with structure the importer captured directly from the source's own markup
-// at import time (Markdown YAML front matter, DOCX Title/Subtitle styles - Phase 4). It is an explicit marker the
+// at import time (Markdown YAML front matter, DOCX Title/Subtitle styles). It is an explicit marker the
 // narrator can see on the page, so it beats the front matter parser's plain-text guess the same way an explicit
-// "Title:" prefix or a byline's "by" does (CS6, confidence table), and - unlike DOCX's docProps/core.xml - it is
+// "Title:" prefix or a byline's "by" does, and - unlike DOCX's docProps/core.xml - it is
 // never a machine default, so it always outranks that source too (mergeDocxProperties below only fills a token this
 // leaves absent).
 func mergeSourceMetadata(byToken map[string]Candidate, metadata sourceMetadataDoc) {

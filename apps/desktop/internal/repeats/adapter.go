@@ -16,7 +16,7 @@ const AnalyzerName = "take-review"
 
 // DefaultFullCoverageThreshold is the conservative built-in cutoff between a
 // "full" re-read of a manuscript span and a "partial" one (a pickup of only
-// part of it), mirrored in config/defaults.json's TakeReview tool (Q12).
+// part of it), mirrored in config/defaults.json's TakeReview tool.
 // Callers outside the takereview scan service that have no settings.Store
 // handy (a unit test, a one-off tool) can use DefaultThresholds().
 const DefaultFullCoverageThreshold = 0.9
@@ -24,10 +24,10 @@ const DefaultFullCoverageThreshold = 0.9
 // DefaultNearDuplicateQualityThreshold is the conservative built-in cutoff
 // above which every member of a full-coverage group is judged a clean,
 // near-identical re-read (duplicate_read) rather than a restart (pickup):
-// see classify's doc comment for the Q11 category mapping this decides.
+// see classify's doc comment for the category mapping this decides.
 const DefaultNearDuplicateQualityThreshold = 0.97
 
-// Thresholds are the Q12 detection thresholds a caller resolves from
+// Thresholds are the detection thresholds a caller resolves from
 // layered project settings (see internal/takereview) and passes in, so this
 // package stays independent of the settings store and easy to unit-test.
 type Thresholds struct {
@@ -41,15 +41,14 @@ type Thresholds struct {
 }
 
 // DefaultThresholds returns the conservative built-in cutoffs, for callers
-// with no settings.Store to resolve Q12's layered thresholds from.
+// with no settings.Store to resolve layered thresholds from.
 func DefaultThresholds() Thresholds {
 	return Thresholds{FullCoverage: DefaultFullCoverageThreshold, NearDuplicateQuality: DefaultNearDuplicateQualityThreshold}
 }
 
 // ToFindings adapts parsed repeated-span groups into findings.Finding
-// records. Per Q11 (recommendation A, adopted since it was still an open
-// question and this phase settles it - see the PRD's Decisions Log), this
-// milestone adds no new finding category: every group becomes either
+// records. There is no finding category beyond the two already in the
+// findings contract: every group becomes either
 // CategoryPickup (evidence.kind "restart", "pickup" or "exact_copy") or
 // CategoryDuplicateRead (evidence.kind "near_duplicate", for a clean,
 // near-identical full re-read). manuscript names the chapter the groups
@@ -58,13 +57,13 @@ func DefaultThresholds() Thresholds {
 // (defensive: the sidecar's own group_repeated_spans() never emits one).
 //
 // This is intentionally a *thin* adapter: it has no target item (the
-// narrator picks one explicitly, per Q4/Q8), so SuggestedAction carries no
+// narrator picks one explicitly), so SuggestedAction carries no
 // parameters yet, and Source is only ever the group's best-quality member
 // (a convenience for display, not a claim about which member is "right").
 // Full per-member Source/TimeRange resolution against the live project
 // model, and wiring these findings into a findings store, are the
-// internal/takereview scan service's job (phase 4) - this function stays
-// independent of both so it can be unit-tested and reused.
+// internal/takereview scan service's job - this function stays independent of
+// both so it can be unit-tested and reused.
 func ToFindings(groups []Group, project findings.Project, manuscript findings.Manuscript, thresholds Thresholds) []findings.Finding {
 	out := make([]findings.Finding, 0, len(groups))
 	for _, g := range groups {
@@ -137,15 +136,13 @@ func groupFinding(g Group, project findings.Project, manuscript findings.Manuscr
 			Kind:                 "create_take",
 			RequiresConfirmation: true,
 			// No target item or source range is proposed yet: the
-			// narrator chooses the target explicitly (Q4/Q8); ranked
-			// suggestions over this same evidence are phase 5/6 UI work.
+			// narrator chooses the target explicitly.
 		},
 		Review: findings.ReviewState{Status: findings.StatusUnreviewed},
 	}
 }
 
-// classify maps a group's members onto the fixed category list, per Q11
-// recommendation A (adopted this phase): category pickup covers
+// classify maps a group's members onto the fixed category list: category pickup covers
 // evidence.kind "restart", "pickup" and "exact_copy" - every case where the
 // narrator re-recorded the line, whether byte-identical, a clean restart
 // from the top, or only part of the span - and category duplicate_read is
@@ -185,10 +182,9 @@ func classify(members []Member, thresholds Thresholds) (kind string, category fi
 
 // confidence averages member match quality (the fraction of aligned
 // tokens that matched the manuscript exactly, from the sidecar's diff) -
-// a simple, reproducible, explainable stand-in until phase 4 calibrates
-// against the annotated set (PRD Success Metrics). This is a confidence in
-// the *grouping itself*, not a ranking of which take is better (Q9: no
-// composite score).
+// a simple, reproducible, explainable stand-in, not yet calibrated against
+// an annotated set. This is a confidence in the *grouping itself*, not a
+// ranking of which take is better, and not a composite score.
 func confidence(members []Member) (float64, string) {
 	sum := 0.0
 	for _, m := range members {
@@ -208,7 +204,7 @@ func confidence(members []Member) (float64, string) {
 // but come from different takes don't collide.
 //
 // This key leans on ItemGUID/TakeGUID for that uniqueness, which a REAPER
-// read always has. A native take (native-recording-suite PRD Phase 3) has
+// read always has. A native take (ADR 0485) has
 // neither (recording.Take.Source() leaves both ""), so two native members
 // that share an offset and length fold to the same key regardless of
 // SourceFile - see native_source_test.go's
@@ -217,9 +213,8 @@ func confidence(members []Member) (float64, string) {
 // GUID-less Member today (internal/takereview only ever reads a REAPER
 // tracks.Project), and widening this key would also reshape every
 // existing REAPER-sourced finding's id and evidence_version. Whoever wires
-// native takes into the take-review scan (a later phase; take-review UI is
-// out of this phase's scope) should settle a stable per-member native id
-// first.
+// native takes into the take-review scan (ADR 0545 keeps them out of it for
+// now) should settle a stable per-member native id first.
 func memberKey(members []Member) string {
 	keys := make([]string, 0, len(members))
 	for _, m := range members {

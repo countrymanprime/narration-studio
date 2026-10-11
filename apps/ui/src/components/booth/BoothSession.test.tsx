@@ -247,7 +247,7 @@ const findMark = async (kind: string) => {
   return document.querySelector<HTMLElement>(`[data-highlight="${kind}"][role="button"]`)!;
 };
 
-describe('BoothSession story bible and note marks (teleprompter-manuscript-integration.prd.md Phase 5)', () => {
+describe('BoothSession story bible and note marks', () => {
   it('marks story bible mentions and note anchors in the text before a session starts, with the key open in the rail', async () => {
     renderMarked();
 
@@ -309,7 +309,7 @@ describe('BoothSession story bible and note marks (teleprompter-manuscript-integ
     expect(document.querySelector('[data-word="8"] [data-highlight="Cursor"]')).toBeTruthy();
   });
 
-  // teleprompter-engines-and-input-devices.prd.md Phase 10: 0 pull-backs after a user scroll until following resumes.
+  // 0 pull-backs after a user scroll until following resumes.
   it('never pulls the text back after the narrator scrolls, until Follow is pressed', async () => {
     const user = userEvent.setup();
     const scrollIntoView = vi.fn();
@@ -389,7 +389,7 @@ async function renderListening(overrides: Partial<NarrationApi> = {}) {
   return view;
 }
 
-describe('BoothSession flags (teleprompter-manuscript-integration.prd.md Phase 7)', () => {
+describe('BoothSession flags', () => {
   it('shows skipped and restart flags by default, and misreads once the narrator turns them on', async () => {
     const user = userEvent.setup();
     await renderListening();
@@ -416,7 +416,7 @@ describe('BoothSession flags (teleprompter-manuscript-integration.prd.md Phase 7
     expect(within(rail).getByRole('tab', { name: 'Flags', selected: true })).toBeTruthy();
     const detail = within(rail).getByRole('region', { name: 'Suspected skipped words' });
     expect(within(detail).getByText('“door”')).toBeTruthy();
-    // Gated by the DAW port's `punch` capability (DAW port PRD Phase 7): experimental and off by default, so it stays
+    // Gated by the DAW port's `punch` capability: experimental and off by default, so it stays
     // aria-disabled - never the native `disabled`, since the gate itself, not the browser, has to stop the press.
     const punch = within(detail).getByRole('button', { name: 'Punch from here' });
     await waitFor(() => expect(punch.getAttribute('aria-disabled')).toBe('true'));
@@ -488,14 +488,14 @@ describe('BoothSession flags (teleprompter-manuscript-integration.prd.md Phase 7
   });
 });
 
-describe('BoothSession credits mode (manuscript-credits-card-parity.prd.md, Phase 2)', () => {
-  it('names the credits kind in its status line, with no resume prompt (MC9)', async () => {
+describe('BoothSession credits mode', () => {
+  it('names the credits kind in its status line, with no resume prompt', async () => {
     renderCredits();
     expect(within(await screen.findByRole('region', { name: 'Status' })).getByText('Opening credits')).toBeTruthy();
     expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull();
   });
 
-  it("shows the C6 unresolved-token warning with a working Fill them in Settings, in the resume prompt's slot", async () => {
+  it("shows the unresolved-token warning with a working Fill them in Settings, in the resume prompt's slot", async () => {
     const user = userEvent.setup();
     const onFixCredits = vi.fn();
     renderCredits({}, vi.fn(), CREDITS_PREVIEW, onFixCredits);
@@ -532,7 +532,7 @@ describe('BoothSession credits mode (manuscript-credits-card-parity.prd.md, Phas
     expect(teleprompterStart).toHaveBeenCalledWith({ credits: 'opening', device: DEVICE_NAME, engine: 'whisper', model: 'tiny' });
   });
 
-  it('shows flags during the session but never keeps them (MC8 a), saying so in the Flags tab', async () => {
+  it('shows flags during the session but never keeps them, saying so in the Flags tab', async () => {
     const user = userEvent.setup();
     const teleprompterSaveFlags = vi.fn();
     const { setState, emit } = renderCredits({ teleprompterSaveFlags });
@@ -614,7 +614,7 @@ describe('BoothSession credits mode (manuscript-credits-card-parity.prd.md, Phas
   });
 });
 
-describe('Record in REAPER (Phase 7)', () => {
+describe('Record in REAPER', () => {
   const daw: DawMockSeed = { toggles: { record: 'on' } };
 
   it('turning the toggle on for the first time in this project opens a confirm naming the chapter', async () => {
@@ -624,7 +624,7 @@ describe('Record in REAPER (Phase 7)', () => {
     const toggle = await screen.findByRole('button', { name: 'Record in REAPER: Chapter 1 armed' });
     await user.click(toggle);
 
-    // Read-aloud-control-bar mock 05's title and its "never stopped" and "asked once" sentences (audit fix-list item 1).
+    // The confirm's title and its "never stopped" and "asked once" sentences.
     const confirm = await screen.findByRole('alertdialog', { name: 'Record in REAPER when you press Play?' });
     expect(within(confirm).getByText(/Chapter 1.*Down the Rabbit-Hole/)).toBeTruthy();
     expect(
@@ -720,7 +720,7 @@ describe('Record in REAPER (Phase 7)', () => {
   });
 });
 
-describe('Record in REAPER while recording (read-aloud-control-bar mocks 07 and 10, Q8)', () => {
+describe('Record in REAPER while recording', () => {
   const daw: DawMockSeed = { toggles: { record: 'on' } };
 
   async function startRecording(user: ReturnType<typeof userEvent.setup>, overrides: Partial<NarrationApi> = {}) {
@@ -779,7 +779,7 @@ describe('Record in REAPER while recording (read-aloud-control-bar mocks 07 and 
   });
 });
 
-describe('BoothSession layout (stage-navigation-and-page-replacement.prd.md Phase 4, mock 03)', () => {
+describe('BoothSession layout', () => {
   it("lays the session out on FocusShell, with the reading controls as the Booth's command bar and the rail in its own landmark", async () => {
     renderDialog();
     const commands = await screen.findByRole('region', { name: 'Booth commands' });
@@ -804,7 +804,7 @@ describe('BoothSession layout (stage-navigation-and-page-replacement.prd.md Phas
   });
 });
 
-describe('BoothSession companion mode (booth-mode-and-companion-panel.prd.md Phase 7; entered from the Booth header)', () => {
+describe('BoothSession companion mode (entered from the Booth header)', () => {
   it('Companion shows CompanionShell and narrows the window; Full app keeps the running session and brings the Booth back', async () => {
     const user = userEvent.setup();
     const teleprompterStop = vi.fn().mockResolvedValue(undefined);
@@ -826,7 +826,7 @@ describe('BoothSession companion mode (booth-mode-and-companion-panel.prd.md Pha
   });
 });
 
-describe('BoothSession speaker rail (booth-mode-and-companion-panel.prd.md Phase 3)', () => {
+describe('BoothSession speaker rail', () => {
   it("lists the chapter's characters in the booth rail and opens one in the Story bible tab", async () => {
     const user = userEvent.setup();
     renderDialog({ manuscriptParagraphs: async () => PARAGRAPHS }, vi.fn(), { entities: [HALE], notes: [NOTE] });

@@ -1,4 +1,4 @@
--- Selecting a chapter's track in REAPER (chapter-track-link-control PRD Phase 4, Could): "Select in REAPER" in the
+-- Selecting a chapter's track in REAPER: "Select in REAPER" in the
 -- chapter track slide-over, so a narrator who wants to look at the track themselves does not have to hunt for it.
 -- Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --

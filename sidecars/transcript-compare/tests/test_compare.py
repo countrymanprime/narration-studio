@@ -183,7 +183,7 @@ def test_an_invented_name_spelled_another_way_is_a_misread_until_it_has_an_equiv
     assert after == []
 
 
-# --- the command line (compare.py --capabilities), sidecar-capabilities-flag PRD Phase 2 -------------------------------------
+# --- the command line (compare.py --capabilities) -------------------------------------------------------------------------
 # --manuscript is required by argparse for every invocation (see compare.py's module docstring) but unused here.
 # PYTHONUNBUFFERED is stripped from the subprocess's environment: dev shells often set it, which forces line-by-line
 # flushing and would mask a real bug this test exists to catch - a real (frozen or plain `python`) process's stdout is

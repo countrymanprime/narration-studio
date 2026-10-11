@@ -1,8 +1,8 @@
-// Package prepcompleteness is prep-depth.prd.md Phase 7's per-chapter rollup: a chapter's still-open pronunciation
-// queries (Phase 3, guide.Service.PronunciationQueries) and its markup spans the manuscript text has since outgrown
-// (Phase 5's staleness check, prepmarkup.Service.List). It reads those two phases' own data and adds no store of its
-// own, the same way production.BuildOverview only arranges what the host already read: Build is pure and keeps no
-// state, so a project switch mid-call never mixes two projects' figures.
+// Package prepcompleteness is the per-chapter prep rollup: a chapter's still-open pronunciation queries
+// (guide.Service.PronunciationQueries) and its markup spans the manuscript text has since outgrown (the staleness
+// check, prepmarkup.Service.List). It reads those two services' own data and adds no store of its own, the same way
+// production.BuildOverview only arranges what the host already read: Build is pure and keeps no state, so a project
+// switch mid-call never mixes two projects' figures.
 package prepcompleteness
 
 // Chapter is one manuscript chapter as the host resolved it: its id and title, how many of its names still have an
@@ -25,10 +25,10 @@ type ChapterCompleteness struct {
 	Complete         bool   `json:"complete"`
 }
 
-// Totals are the book-wide figures a board's KPI row wants. UnattributedQueries is folded into OpenQueries (nothing
-// a narrator asked about is left out of the count), but names no chapter: it is a query whose recorded chapter title
-// no longer matches a current chapter (the name never occurs in the text, or the chapter that used it was renamed or
-// deleted since Phase 3 last read it).
+// Totals are the book-wide figures a board's KPI row wants. UnattributedQueries is folded into OpenQueries (nothing a
+// narrator asked about is left out of the count), but names no chapter: it is a query whose recorded chapter title no
+// longer matches a current chapter (the name never occurs in the text, or the chapter that used it was renamed or
+// deleted since the query was recorded).
 type Totals struct {
 	Chapters            int `json:"chapters"`
 	CompleteChapters    int `json:"completeChapters"`

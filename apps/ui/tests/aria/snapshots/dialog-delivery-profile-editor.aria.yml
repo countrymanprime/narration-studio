@@ -1,4 +1,4 @@
-# The delivery profile editor (delivery-platform-profiles.prd.md Phase 4, ADR 0180): a modal dialog named "Edit profile", what the
+# The delivery profile editor (ADR 0180): a modal dialog named "Edit profile", what the
 # copy is based on, its name as a labelled field, a named table of the file rules where each rule has an on/off switch named for the
 # rule, number boxes named for the rule and the bound (with the unit), a fixed rule that can only be turned off, and Cancel and
 # Save profile. The page behind it is aria-hidden.

@@ -2,10 +2,9 @@ package main
 
 import "github.com/countrymanprime/narration-utils/shell/internal/prepcompleteness"
 
-// The prep completeness summary (docs/prds/prep-depth.prd.md Phase 7, Could): a per-chapter rollup of open
-// pronunciation queries (Phase 3, guide.Service.PronunciationQueries) and unresolved markup staleness (Phase 5,
-// prepmarkup.Service.List), read by the Production home's Prep column (stage-navigation-and-page-replacement.prd.md
-// D79). It adds no store and no binding beyond this one read; every figure comes from the two phases' own data.
+// The prep completeness summary: a per-chapter rollup of open pronunciation queries
+// (guide.Service.PronunciationQueries) and unresolved markup staleness (prepmarkup.Service.List). It adds no store
+// and no binding beyond this one read; every figure comes from those two services' own data.
 
 // PrepCompletenessSummary reads every manuscript chapter and answers one row each: how many of its names still have
 // an open pronunciation query, and how many of its markup spans are stale, plus the book-wide totals. With no project

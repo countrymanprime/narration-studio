@@ -7,11 +7,11 @@
 
 The layered settings store (`apps/desktop/app.go` `fieldSchemas`, `saveSettings`) validated only the `text`, `choice`,
 `color` and `bool` kinds. Two features need numbers a narrator can type: the delivery limits of
-[the diagnostics PRD](../prds/diagnostics-delivery-and-cleanup-tools.prd.md) Phase 2, and the four threshold settings of
-[the recording check](../utilities/recording-coverage.md) (recording-coverage analysis Phase 7) ("DX-2's numeric kind"). The diagnostics
-PRD's Open Questions 1 and 9 are unanswered by the owner; per rule D22 of `docs/prds/implementation-plan.md` this change
-takes their recommendations: limits only, no built-in numeric preset (Q1 A, as ADR 0025 already requires), stored as a
-`Delivery` section of the layered settings, one limit set per layer (Q9 a).
+the diagnostics tools, and the four threshold settings of
+[the recording check](../utilities/recording-coverage.md). The owner has not answered whether delivery limits ship with a
+built-in numeric preset or as named, switchable sets, so this change takes the conservative answer: limits only, no
+built-in numeric preset (as ADR 0025 already requires), stored as a `Delivery` section of the layered settings, one limit
+set per layer.
 
 ## Decision
 
@@ -39,8 +39,8 @@ takes their recommendations: limits only, no built-in numeric preset (Q1 A, as A
 
 - Any feature can add a numeric setting by adding a `number` field to `fieldSchemas` and its range to `numberSpecs`, with
   validation, the page's rendering and the wire check already in place.
-- The diagnostics and cleanup analyzer thresholds the PRD lists (clipping ceiling, long-pause length, level-shift step,
-  silence floor, minimum silence and breath length, pad/hold time) are added with the analyzers that read them (Phases 4
-  and 9), not ahead of them, so no setting exists that changes nothing.
-- Named, switchable limit sets (Q9 b) are not possible: one set per layer. Revisit only if narrators need several per book.
-- Owner review: this ADR is Proposed because it records D22 defaults for questions the owner has not answered.
+- The diagnostics and cleanup analyzer thresholds (clipping ceiling, long-pause length, level-shift step,
+  silence floor, minimum silence and breath length, pad/hold time) are added with the analyzers that read them, not
+  ahead of them, so no setting exists that changes nothing.
+- Named, switchable limit sets are not possible: one set per layer. Revisit only if narrators need several per book.
+- Owner review: this ADR is Proposed because it records defaults for questions the owner has not answered.

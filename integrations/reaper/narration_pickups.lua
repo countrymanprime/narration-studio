@@ -1,13 +1,12 @@
 -- Pickup list over the bridge: import_pickups, export_pickups, next_pickup, resolve_pickup and count_pickups (see
 -- docs/architecture/reaper-bridge.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers as the
--- chunk argument. This PRD owns the pickup marker convention (Open Question 6); the take-review PRD only consumes
--- the markers it creates.
+-- chunk argument. This file owns the pickup marker convention.
 --
 -- A pickup is a project marker named `PICKUP: <body>` while open and `PICKUP_DONE: <body>` once resolved, reusing
 -- the `PREFIX:` naming convention (narration_compare.lua's marker_kind, duplicated below so this file stays a
 -- self-contained feature). `<body>` is the note, or `[tag] note` when the payload row carried a tag, so export can
--- round-trip a pickup through one marker name with no second file (Open Question 5: generic CSV first - start
--- time, note, optional tag). A note that itself starts with a bracketed prefix is not distinguishable from a tag;
+-- round-trip a pickup through one marker name with no second file (the export is a generic CSV of start
+-- time, note and optional tag). A note that itself starts with a bracketed prefix is not distinguishable from a tag;
 -- an accepted limit of the MVP format.
 
 local core = ...

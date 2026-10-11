@@ -3,9 +3,9 @@ import type { StateEntry } from '../lib/types';
 import { REFLOW } from './shared';
 
 export const shellStates: StateEntry[] = [
-  // The header's page history (app-navigation-and-zoom-controls.prd.md Phase 1, Q1 A): the default states
+  // The header's page history: the default states
   // already show both Back and Forward disabled at the first page, so that needs no row of its own. Captured
-  // at the reflow width too (ADR 0061's declared extension, PRD Solution Detail): the header at 390px is what
+  // at the reflow width too (ADR 0061's declared extension): the header at 390px is what
   // the narrator sees at high zoom, and no shell state was captured there before.
   {
     page: 'shell',
@@ -21,7 +21,7 @@ export const shellStates: StateEntry[] = [
     page: 'shell',
     state: 'engine-builtin',
     description:
-      'Header engine chip in its "Built-in recorder" state: the project records with the built-in recorder (native-recording P2, RecorderState.engine; ?mockEngine=builtin seeds the mock recorder)',
+      'Header engine chip in its "Built-in recorder" state: the project records with the built-in recorder (RecorderState.engine; ?mockEngine=builtin seeds the mock recorder)',
     ...REFLOW,
   },
   {
@@ -30,9 +30,9 @@ export const shellStates: StateEntry[] = [
     description: 'Header engine chip reading "Wrong REAPER project open": a live heartbeat disagrees with the linked file',
     ...REFLOW,
   },
-  // The zoom group (Phase 2, Q1/Q9): the default states already show it at 100% with Zoom out disabled and the
-  // readout itself disabled (Q9 A), so only a non-100% level gets its own row. Reflow (ADR 0061's declared
-  // extension, PRD Solution Detail): the header at 390px is what the narrator sees at high real zoom.
+  // The zoom group: the default states already show it at 100% with Zoom out disabled and the
+  // readout itself disabled, so only a non-100% level gets its own row. Reflow (ADR 0061's declared
+  // extension): the header at 390px is what the narrator sees at high real zoom.
   {
     page: 'shell',
     state: 'zoom-level',

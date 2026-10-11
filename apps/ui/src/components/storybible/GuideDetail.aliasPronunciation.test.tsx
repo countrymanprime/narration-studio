@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// Alias pronunciation controls (story-bible-and-import-ux-briefs PRD, phase 11): every alias gets the same edit-mode
+// Alias pronunciation controls: every alias gets the same edit-mode
 // Generate/Replace control, preview and pronunciation-work panel the entity already has (ADR 0018), scoped to its own
-// aliasIndex. The host and mock already accept an aliasIndex on every pronunciation call (story bible phase 3, B8-B11);
+// aliasIndex. The host and mock already accept an aliasIndex on every pronunciation call;
 // this only wires the UI to it.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -50,7 +50,7 @@ function renderDetail(entity: GuideEntity, overrides: Record<string, unknown> = 
 
 const aliasRow = (aliasText: string) => screen.getByRole('row', { name: new RegExp(aliasText) });
 
-describe('alias Generate and Replace (phase 11)', () => {
+describe('alias Generate and Replace', () => {
   it('offers no Generate or Replace control for an alias in the read view', () => {
     renderDetail(withUngeneratedAlias());
     expect(screen.queryByRole('button', { name: 'Generate alias pronunciation' })).toBeNull();
@@ -103,7 +103,7 @@ describe('alias Generate and Replace (phase 11)', () => {
   });
 });
 
-describe('alias pronunciation work panel (phase 11)', () => {
+describe('alias pronunciation work panel', () => {
   it('opens its own details panel independent of the entity and other aliases, and saves the alias index', async () => {
     const user = userEvent.setup();
     const entity = withAliasPronunciation();

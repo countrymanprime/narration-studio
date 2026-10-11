@@ -1,6 +1,6 @@
-// The golden payloads for the online pronunciation lookup (prep-depth P9): which schema owns each file in
+// The golden payloads for the online pronunciation lookup: which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts). The Go test bindings_pronunciationonline_test.go writes them from the fake
-// dictionary (D67).
+// dictionary.
 import type { z } from 'zod';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from '../schemas/pronunciationOnline';
 

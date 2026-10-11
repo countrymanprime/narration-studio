@@ -52,14 +52,11 @@ func (h *Host) mediaMiddleware(next http.Handler) http.Handler {
 // the file that gets opened is always one the parsed project vouched for.
 //
 // It authorizes every take of every item, not only each item's active take
-// (item.SourceFile): the analysis evidence ledger PRD's Q10 deliberately
-// scoped its own Phase 1 to the active take only ("TR Phase 2 asks for all
-// takes; it can extend from B" - docs/prds/analysis-evidence-ledger.prd.md),
-// and this is that extension, needed so the take-review PRD's audition and
-// comparison work (later phases) can play a candidate take's own source
-// without first making it the active take in REAPER.
+// (item.SourceFile): take review's audition and comparison (docs/utilities/take-review.md)
+// play a candidate take's own source without first making it the active take
+// in REAPER.
 func (h *Host) authorizedMediaSource(requested string) (string, bool) {
-	// A take of the built-in recorder (native-recording-suite P2): only a file its Recordings list names, as its own path.
+	// A take of the built-in recorder: only a file its Recordings list names, as its own path.
 	if recorder := h.services().recorder; recorder != nil {
 		if path, ok := recorder.TakePath(requested); ok {
 			return path, true

@@ -6,12 +6,9 @@
 
 ## Context
 
-[Render, Encode and Master](../prds/render-encode-master.prd.md) Phase 3 adds a built-in mastering chain, in ACX's own order: EQ, then a limiter, then gain into the RMS window [W3]. The PRD took these recommendations under D22:
+The app has a built-in mastering chain, in ACX's own order: EQ, then a limiter, then gain into the RMS window. It is a Go chain, not a REAPER FX chain, with fixed parameters and its targets read from the selected delivery profile.
 
-- Q3: a built-in Go chain, not a REAPER FX chain.
-- Q4: fixed parameters, with the targets read from the selected delivery profile.
-
-Implementing it needed choices the PRD left open:
+Implementing it needed these choices:
 
 - what the EQ does;
 - which RMS and peak definitions the chain aims at;
@@ -31,7 +28,7 @@ A chain that mastered to any other definition, such as speech-gated RMS, LUFS or
 
 `apps/desktop/internal/mastering` is the chain. `Master(ctx, Request{Source, Destination, Profile}, Options)` runs it.
 
-- **Targets come from the profile's rules, found by metric.** The chain reads the file rule with metric `rms_dbfs` and the one with `sample_peak_dbfs`. A rule counts only when it is measured by the app and not turned off. The chain does not look rules up by ID or profile, so a custom copy of ACX with other numbers, or a later platform's profile, masters to its own numbers with no code change (PRD Q4).
+- **Targets come from the profile's rules, found by metric.** The chain reads the file rule with metric `rms_dbfs` and the one with `sample_peak_dbfs`. A rule counts only when it is measured by the app and not turned off. The chain does not look rules up by ID or profile, so a custom copy of ACX with other numbers, or a later platform's profile, masters to its own numbers with no code change.
 - **Where the chain aims:**
   - It aims at the middle of the RMS window: −20.5 dBFS for ACX.
   - With a one-sided bound it aims 2 dB inside that bound.
@@ -74,6 +71,6 @@ A chain that mastered to any other definition, such as speech-gated RMS, LUFS or
 - Gain raises the noise floor with the voice. A quiet recording mastered up into the window can fail the profile's noise-floor rule, and the judgement says so. The chain has no noise reduction or gate, by design, so it does not repair what it did not record.
 - The chain limits the sample peak, not the true peak. On the analytic fixtures, ACX's −3 dBTP advice was met with 0.1 dB to spare. On real speech an intersample peak can exceed it, and the checker already shows that as advice. Holding the true peak would need an oversampled detector in this package, since `measure`'s is unexported. That would be a follow-up if the owner's listening check or the MP3 encode shows overshoot.
 - PCM output is rounded, not dithered. At 24-bit that is inaudible. At 16-bit it adds quantisation distortion on very quiet passages. TPDF dither is a small later addition.
-- Mastering reads the source several times, about 3 to 7 passes. For a chapter-length WAV that is disk-bound work of seconds, which Phase 5's job progress covers (`Options.Progress`).
-- The fixed parameters (80 Hz corner, 5 ms look-ahead, 100 ms release, 0.5 dB margin, window middle) are tuned by numbers, not by ear. Whether the result sounds acceptable is an owner listening check (PRD risk table), filed on #510. Changing a parameter is a new ADR that supersedes this one.
-- No binding, UI or wire contract is added here; Phase 5 adds them, along with the threat-model row for the narrator-chosen destination path.
+- Mastering reads the source several times, about 3 to 7 passes. For a chapter-length WAV that is disk-bound work of seconds, which the export job's progress covers (`Options.Progress`, [ADR 0366](0366-the-export-job-combines-mastering-and-encoding-and-intermediates-live-in-the-sidecar-tree.md)).
+- The fixed parameters (80 Hz corner, 5 ms look-ahead, 100 ms release, 0.5 dB margin, window middle) are tuned by numbers, not by ear. Whether the result sounds acceptable is an owner listening check (an open risk), filed on #510. Changing a parameter is a new ADR that supersedes this one.
+- No binding, UI or wire contract is added here; the export job adds them, along with the threat-model row for the narrator-chosen destination path.

@@ -1,6 +1,5 @@
 """Piper, CMU, Wiktextract and eSpeak as provider-ports adapters (ADR 0301, provider-ports P8; the wiktextract row is
-prep-depth Phase 8, ADR 0405): each row passes its port's conformance suite, exercised with the same fakes
-test_pronounce.py and test_manuscript_guide.py already patch phonemizer and Piper with, and (for Wiktextract) a tiny
+ADR 0405): each row passes its port's conformance suite, exercised with the same fakes test_pronounce.py and test_manuscript_guide.py already patch phonemizer and Piper with, and (for Wiktextract) a tiny
 hand-built index file standing in for the Go asset manager's derived one (docs/research/wiktextract-pronunciation-source.md).
 """
 
@@ -31,7 +30,7 @@ def test_importing_the_module_registers_piper_cmu_wiktextract_and_espeak_once_ea
 
 
 def test_the_build_time_fallback_tries_cmu_then_wiktextract_then_espeak(monkeypatch):
-    # D72/Q7: a better dictionary (wiktextract) is tried before the letter-to-sound guess (espeak), CMU staying the default.
+    # A better dictionary (wiktextract) is tried before the letter-to-sound guess (espeak), CMU staying the default.
     assert SOURCES.fallback_order() == ["cmu", "wiktextract", "espeak"]
 
 
@@ -52,7 +51,7 @@ def test_the_build_time_fallback_logs_each_failed_source_in_its_own_words(monkey
 
 
 def test_a_narrators_default_source_is_tried_first(monkeypatch):
-    # story-bible-and-import-ux-briefs PRD phase 11 (the settings default): the narrator's preferred source moves to
+    # The settings default: the narrator's preferred source moves to
     # the front of the fallback chain; the rest of the chain, in its usual order, is still there if it fails.
     import manuscript_guide
 

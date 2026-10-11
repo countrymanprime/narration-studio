@@ -1,11 +1,10 @@
 import type { ChapterStatus } from './manuscript';
 
-// Chapter stage recommendations (the PRD was delivered and deleted; see docs/architecture/stage-recommendations.md,
-// ADR 0160 and ADR 0161): every narration chapter's suggestion to advance one stage, computed on read from the evidence as it
-// stands and never stored (D1). Only Confirm and Revert change a chapter status, and only when the narrator clicks. The host
+// Chapter stage recommendations (see docs/architecture/stage-recommendations.md, ADR 0160 and ADR 0161): every narration chapter's suggestion to advance one stage, computed on read from the evidence as it
+// stands and never stored. Only Confirm and Revert change a chapter status, and only when the narrator clicks. The host
 // shapes are apps/desktop/internal/stages (types.go, engine.go, service.go) and apps/desktop/bindings_stages.go.
 
-/** A signal's tri-state answer (D2): only `met` can recommend; `unknown` is never read as met. */
+/** A signal's tri-state answer: only `met` can recommend; `unknown` is never read as met. */
 export type StageSignalState = 'met' | 'not_met' | 'unknown';
 
 /** Why a signal is unknown; the UI routes the action that resolves it from this (stages/types.go). */
@@ -27,7 +26,7 @@ export type StageUnknownCause =
  */
 export type StageVerdict = 'recommended' | 'not_ready' | 'unknown' | 'dismissed' | 'none';
 
-/** `stage_not_evaluated`: the chapter is not started or finalized (Q4). `no_required_signals`: its stage has no required check yet. */
+/** `stage_not_evaluated`: the chapter is not started or finalized. `no_required_signals`: its stage has no required check yet. */
 export type StageNoneReason = 'stage_not_evaluated' | 'no_required_signals';
 
 /** One typed fact behind a signal. `kind` is the signal's own (the recording signal: coverage, region, paragraph, items, analysis, stale). */
@@ -64,7 +63,7 @@ export type StageConfirmation = {
   target: ChapterStatus;
   basisKey: string;
   at: string;
-  /** The signals that justified it no longer give the confirmed basis: shown quietly, no notice (Q10). */
+  /** The signals that justified it no longer give the confirmed basis: shown quietly, no notice. */
   evidenceChanged: boolean;
 };
 
@@ -98,11 +97,11 @@ export type StageRefusalReason = 'basis_changed' | 'not_recommended' | 'nothing_
 export type StageDecisionResult = { status: 'ok'; chapter: StageChapterRecommendation } | { status: 'refused'; reason: StageRefusalReason; message: string };
 
 export interface StagesApi {
-  /** Every narration chapter's verdict, in manuscript order. Reads stored evidence only; never starts an analysis (Q12). */
+  /** Every narration chapter's verdict, in manuscript order. Reads stored evidence only; never starts an analysis. */
   stageRecommendations(): Promise<StageRecommendations>;
   /** Sets the chapter's status to `target` and records the basis, if `basisKey` is still the one the evidence gives. */
   stageConfirm(chapterId: string, target: ChapterStatus, basisKey: string): Promise<StageDecisionResult>;
-  /** Hides the chapter's suggestion of `target` until its basis changes (Q7); the status is untouched. */
+  /** Hides the chapter's suggestion of `target` until its basis changes; the status is untouched. */
   stageDismiss(chapterId: string, target: ChapterStatus, basisKey: string): Promise<StageDecisionResult>;
   /** Returns a chapter with a live confirmation to the stage it was confirmed from. */
   stageRevert(chapterId: string): Promise<StageDecisionResult>;

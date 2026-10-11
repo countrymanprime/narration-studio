@@ -5,8 +5,7 @@ import (
 )
 
 // testdata/reaper/fixed-lanes.rpp was written by REAPER 7.80 during spike S7 (docs/research/reaper-spike-s7-fixed-lanes.md).
-// A lane is only the item's YPOS line and the track's FREEMODE, ITEMLANES and LANESOLO lines. Phase 25 of the reaper
-// automation follow-through PRD (ADR 0147) taught the parser to read them, so retakes on lanes are no longer seen as
+// A lane is only the item's YPOS line and the track's FREEMODE, ITEMLANES and LANESOLO lines. The parser reads them (ADR 0147), so retakes on lanes are no longer seen as
 // overlapping items; LINKEDLANE (comp areas) and LANENAME are still not read.
 
 const lineIDKey = "narration_utils_line_id"

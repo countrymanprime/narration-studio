@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// Background recording checks (daw-chapter-track-auto-sync.prd.md Phase 7, S7, D27, ADR 0211). Every
+// Background recording checks (ADR 0211). Every
 // backgroundCheckInterval the host asks coverage.NextBackground whether a linked chapter whose recording changed since
 // its check may be checked now, and starts it through the same coverage.Start as a narrator's press, marked Background.
 // A narrator's own start pre-empts it (coverageStart), and a chapter the host already tried at its current change is

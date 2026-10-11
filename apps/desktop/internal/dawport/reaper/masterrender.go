@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// The mastering port's DAW row (ADR 0306, render-encode-master PRD Phase 9): render_with_fx and master_chain_read
+// The mastering port's DAW row (ADR 0306): render_with_fx and master_chain_read
 // (integrations/reaper/narration_master_render.lua).
 
 var (

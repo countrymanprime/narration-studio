@@ -1,8 +1,7 @@
-// Package chaptertags is the host's local-file half of Phase 12 (chapter tag embedding) of the
-// reaper-automation-follow-through PRD. It never talks to REAPER or the bridge: it reads already-rendered MP3
-// files, computes a chapter timeline from them, and writes ID3v2 CHAP/CTOC frames into a NEW copy of a
-// narrator-supplied MP3 - never the file it is given, and never the per-chapter render files it reads durations
-// from. See docs/adr/0099-chapter-tags-are-embedded-with-bogem-id3v2-and-a-hand-built-ctoc-frame.md for why
+// Package chaptertags is the host's local-file half of chapter tag embedding. It never talks to REAPER or the bridge: it reads
+// already-rendered MP3 files, computes a chapter timeline from them, and writes ID3v2 CHAP/CTOC frames into a NEW
+// copy of a narrator-supplied MP3 - never the file it is given, and never the per-chapter render files it reads
+// durations from. See docs/adr/0099-chapter-tags-are-embedded-with-bogem-id3v2-and-a-hand-built-ctoc-frame.md for why
 // bogem/id3v2 (MIT) was picked and why CTOC is built by hand.
 package chaptertags
 

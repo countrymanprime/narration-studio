@@ -23,7 +23,7 @@ const DANGER = { color: 'var(--danger-text)' };
 
 type Load = { status: 'loading' } | { status: 'ready'; overview: ProductionOverview } | { status: 'error'; message: string };
 
-/** The KPI row (mock 01): every figure measured or logged; the only estimate, the target runtime, says it is one. */
+/** The KPI row (the benchmark's 01-production-home mock): every figure measured or logged; the only estimate, the target runtime, says it is one. */
 function Figures({ overview }: { overview: ProductionOverview }) {
   const totals: ProductionTotals = overview.totals;
   const target = estimateFinishedHours(totals.wordCount);
@@ -40,7 +40,7 @@ function Figures({ overview }: { overview: ProductionOverview }) {
       label: 'Finished audio',
       value: formatClock(totals.recordedSeconds, 'seconds'),
       unit: target > 0 ? `/ ~${formatClock(target, 'hours')}` : undefined,
-      // One line, as mock 01's tile: the "~" on the target says it is estimated (from the words).
+      // One line, as the benchmark mock's tile: the "~" on the target says it is estimated (from the words).
       hint: `${totals.measuredChapters} of ${totals.chapters} chapters measured`,
       progress: target > 0 ? Math.min(1, totals.recordedSeconds / 3600 / target) : undefined,
     },
@@ -63,7 +63,7 @@ function Figures({ overview }: { overview: ProductionOverview }) {
       progress: totals.chapters > 0 ? totals.finalizedChapters / totals.chapters : undefined,
     },
   ];
-  // Mock 01 draws the six figures as one card, its tiles divided by rules (StatStrip, ADR 0615).
+  // The benchmark mock draws the six figures as one card, its tiles divided by rules (StatStrip, ADR 0615).
   return <StatStrip label="Production figures" items={tiles.map((tile) => ({ key: tile.label, ...tile }))} />;
 }
 
@@ -96,7 +96,7 @@ function NextUp({
           Every chapter is finalized.
         </p>
       ) : (
-        // Mock 01's list: each item a bold line and a muted one, split by rules. Stacked above the board (below 1280 px) it runs in
+        // The benchmark mock's list: each item a bold line and a muted one, split by rules. Stacked above the board (below 1280 px) it runs in
         // two columns, so the board still starts on the first screen.
         <ol aria-label="Next up" className="-my-2 grid gap-x-6 min-[768px]:grid-cols-2 min-[1280px]:grid-cols-1">
           {items.map((item) => {
@@ -134,10 +134,9 @@ function NextUp({
 }
 
 /**
- * The Production home at `/` (mock 01; production tracking PRD Phase 4,
- * delivered and deleted, ADR 0028): the book's figures, the chapter pipeline whose cells open each stage for the chapter, and the
+ * The Production home at `/` (the benchmark's 01-production-home mock): the book's figures, the chapter pipeline whose cells open each stage for the chapter, and the
  * chapters that most threaten the delivery date. It replaced Home: with no manuscript yet it is the import, and the import and the
- * credits prompt stay here. It reads one overview when it opens and after anything that changes it (Q8 A); readiness is the stage
+ * credits prompt stay here. It reads one overview when it opens and after anything that changes it; readiness is the stage
  * suggestions' own verdict, never recomputed here. Only the stage timer and the narrator's own choices on the board write.
  */
 export function ProductionPage({
@@ -241,9 +240,9 @@ export function ProductionPage({
       : 'Import the manuscript to plan, record and deliver this book.';
 
   return (
-    // Mock 01's content fills the window beside the rail (1176 px at 1440); the cap only keeps a very wide window readable.
+    // The benchmark mock's content fills the window beside the rail (1176 px at 1440); the cap only keeps a very wide window readable.
     <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
-      {/* Mock 01 lines the actions up with the foot of the title and its subtitle. */}
+      {/* The benchmark mock lines the actions up with the foot of the title and its subtitle. */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <Heading title="Production">
@@ -308,7 +307,7 @@ export function ProductionPage({
       {overview && (
         <>
           <Figures overview={overview} />
-          {/* Mock 01 (ADR 0645): the board with Next up in a column beside it, once the board's six columns fit beside a 340 px
+          {/* The benchmark mock (ADR 0645): the board with Next up in a column beside it, once the board's six columns fit beside a 340 px
               column; stacked below that, Next up leads (it is where a timer starts). minmax(0, 1fr) lets the board's panel
               shrink to the window, its grid scrolling inside it. */}
           <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_21.25rem]">

@@ -1,7 +1,6 @@
 """Parity cases shared with the Go port of find_chapter_by_track_name
-(apps/desktop/internal/chaptermatch, teleprompter-manuscript-integration PRD
-Phase 8). Both suites read tests/fixtures/chapter-track-match/parity-cases.json,
-so a change to either matcher that the other does not follow fails one of them."""
+(apps/desktop/internal/chaptermatch). Both suites read
+tests/fixtures/chapter-track-match/parity-cases.json, so a change to either matcher that the other does not follow fails one of them."""
 
 import csv
 import importlib.util

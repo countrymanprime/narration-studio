@@ -1,7 +1,7 @@
--- The edit and proof workspace's REAPER actions (narration_workspace.lua; edit-and-proof-workspace PRD Phases 6, 8 and
--- 9): set_active_take ("Use this take", EP7 A); FX (ADR 0234, the owner's 2026-09-25 decision): an FX chain goes on a
--- track or the master track only (list_fx_chains, apply_fx_chain), and a passage of a take gets one installed plug-in
--- at a time, never a chain (list_fx, add_take_fx: split at the passage's edges, the plug-in on the middle piece).
+-- The edit and proof workspace's REAPER actions (narration_workspace.lua): set_active_take ("Use this take"); FX (ADR
+-- 0234, the owner's 2026-09-25 decision): an FX chain goes on a track or the master track only (list_fx_chains,
+-- apply_fx_chain), and a passage of a take gets one installed plug-in at a time, never a chain (list_fx, add_take_fx:
+-- split at the passage's edges, the plug-in on the middle piece).
 
 local H = require('harness')
 

@@ -11,8 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/series"
 )
 
-// What SeriesVoiceBible sends the UI (character-continuity-review.prd.md Phase 11, D87 benches every
-// acoustic-drift binding, so this is reference data only).
+// What SeriesVoiceBible sends the UI (reference data only: every acoustic-drift binding is benched, ADR 0565).
 
 func TestContractSeriesVoiceBible(t *testing.T) {
 	root := t.TempDir()

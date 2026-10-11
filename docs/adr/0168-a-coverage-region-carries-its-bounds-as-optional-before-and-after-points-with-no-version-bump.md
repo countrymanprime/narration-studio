@@ -6,11 +6,11 @@
 
 ## Context
 
-The model cascade (the recording-check-model-cascade PRD, deleted and delivered; Phase 2) re-checks each missing region with a stronger model over a window of audio. The window has to be bounded by the words the first pass did match on either side of the gap, because the missing text can only be between them. [ADR 0127](0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md) gives a region one point in the audio, `position`: the start of the transcript word at the region's audio index, or the end of the last word for a tail. One point cannot say where a gap starts and ends, and it is not always a matched word: for a region of different text it is the first word of the speech said in its place. The alignment knows the matched words on either side, but the sidecar did not write them.
+The model cascade (a stronger-model second pass, [ADR 0344](0344-the-cascades-second-pass-is-a-relaunch-in-the-same-job-and-its-words-key-on-the-model-pair.md)) re-checks each missing region with a stronger model over a window of audio. The window has to be bounded by the words the first pass did match on either side of the gap, because the missing text can only be between them. [ADR 0127](0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md) gives a region one point in the audio, `position`: the start of the transcript word at the region's audio index, or the end of the last word for a tail. One point cannot say where a gap starts and ends, and it is not always a matched word: for a region of different text it is the first word of the speech said in its place. The alignment knows the matched words on either side, but the sidecar did not write them.
 
 Three questions came with the new fields:
 
-- Which matched words bound a region. A read title is optional text (Q11); a chance match of a heading word could land anywhere in the audio, and a window bounded by it could leave out the audio where a misheard first paragraph really is.
+- Which matched words bound a region. A read title is optional text; a chance match of a heading word could land anywhere in the audio, and a window bounded by it could leave out the audio where a misheard first paragraph really is.
 - How a bound names a place. `position` maps a joined-timeline time back to an item, so a time exactly where one item ends and the next starts falls into the next item.
 - Whether the change needs a version. `RESULT_SCHEMA_VERSION`, the host's `AnalyzerVersion` (part of the parameter hash) and `wordsVersion` (part of the words cache key) could each go up.
 
@@ -24,7 +24,7 @@ Every `COVERAGE_REGION` payload gains two keys, `before` and `after`, each `{ite
 
 ## Consequences
 
-- The re-check planner (cascade Phase 4) can bound each window in one item's source seconds without re-aligning, and a region split across two items reads as `before` in one and `after` in the next.
+- The re-check planner can bound each window in one item's source seconds without re-aligning, and a region split across two items reads as `before` in one and `after` in the next.
 - A result made before this change has no bounds. A reader that needs them, the planner, must treat a missing bound as the edge of the item's played range, as it would for a head or a tail, or run the check again. Nothing forces that re-run.
 - The UI and the stage recommendations do not show the bounds yet; `position` still names the place in the Home dialog and the signal's evidence.
 - The bounds are data the host reads from a sidecar's file ([threat model](../architecture/threat-model.md) row 4e): they are labels until the planner uses them, and the planner must check them against the manifest's items before it turns one into a slice of audio.

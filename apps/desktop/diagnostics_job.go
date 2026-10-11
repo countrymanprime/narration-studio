@@ -13,13 +13,12 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// The Diagnostics view's job (diagnostics-delivery-and-cleanup-tools.prd.md Phase 6). It runs the windowed analyzers
+// The Diagnostics view's job. It runs the windowed analyzers
 // (measure.DiagnoseFile, ADR 0158) over files the narrator chose in the measurement picker this session (the same
 // allowlist as MeasureAnalyze, ADR 0156), one after another, with progress from the audio bytes really read (ADR 0015)
 // and a cancel that stops mid-file. Each file answers a summary and its findings, every one with the thresholds that
 // raised it and whether the audio is a raw recording or a processed render. It is read-only: the files are opened
-// read-only, nothing is saved (the findings store keeps no diagnostics until the review dashboard ingests them, PRD Open
-// Question 4, so every finding is unreviewed), and nothing runs or plays in REAPER.
+// read-only, nothing is saved (so every finding is unreviewed), and nothing runs or plays in REAPER.
 
 // The status words of one file in a diagnostics check.
 const (
@@ -47,7 +46,7 @@ type DiagnosticsFileResult struct {
 
 // DiagnosticsJob is the check as the UI sees it, in the shape of the other host jobs. SourceKind is what the narrator
 // said the files are (null before any check); Thresholds are the ones the analyzers use, shown even before a check so
-// they are never hidden. CleanupThresholds are the silence cleanup analyzer's own thresholds (Phase 9 remainder, ADR
+// they are never hidden. CleanupThresholds are the silence cleanup analyzer's own thresholds (ADR
 // 0238 decision 4), read from the narrator's settings (cleanup_settings.go) and shown the same way, before a check
 // as after one.
 type DiagnosticsJob struct {
@@ -67,8 +66,8 @@ type DiagnosticsJob struct {
 
 type diagnoseFileFunc func(ctx context.Context, path string, in measure.DiagnosticInput) (measure.Diagnostics, error)
 
-// diagnosticThresholds are the thresholds a check uses: ADR 0158's starting values until the narrator's own settings for
-// them exist (the PRD's Phase 9 brings the analyzer thresholds into the layered settings).
+// diagnosticThresholds are the thresholds a check uses: ADR 0158's starting values. The narrator's settings do not change
+// them; only the silence cleanup thresholds are settable (cleanup_settings.go).
 func diagnosticThresholds() measure.DiagnosticOptions {
 	return measure.DefaultDiagnosticOptions()
 }

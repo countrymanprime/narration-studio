@@ -11,7 +11,7 @@ import (
 )
 
 // A chapter's kind can change after import: "Remove from recording" reclassifies it as reference material and Restore
-// makes it narration again (chapter-track-link-control PRD Phase 3, TL2, TL5).
+// makes it narration again.
 
 var kindTime = time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
 

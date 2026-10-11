@@ -9,9 +9,9 @@
 The shared reader (`ReaderText`, used by the Teleprompter page and the read-aloud dialog through `ReadAlongView`) scrolls the
 current word to the middle whenever it leaves the 25%-70% band of the viewport, on every cursor change while a session runs.
 ADR 0024 records the consequence: a narrator who scrolls to look ahead or back is pulled back at the next word.
-`docs/prds/teleprompter-engines-and-input-devices.prd.md` Phase 10 asks for manual scroll without the pull-back, and the owner
-answered its open question on 2026-09-23: pause on a user scroll, resume automatically when the current word is back inside
-the follow band, plus a visible Follow control, with scroll intent detected from input rather than from scroll events.
+The owner asked on 2026-09-23 for manual scroll without the pull-back: pause on a user scroll, resume automatically when
+the current word is back inside the follow band, plus a visible Follow control, with scroll intent detected from input
+rather than from scroll events.
 
 ## Decision
 

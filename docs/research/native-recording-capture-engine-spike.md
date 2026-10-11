@@ -1,6 +1,6 @@
 # Native Recording Capture Engine Spike: WASAPI Through PortAudio in the Sidecar
 
-**Status:** spike report, 2026-09-28 ([Native Recording Suite](../prds/native-recording-suite.prd.md) Phase 1, stream N-B37, [#842](https://github.com/countrymanprime/narration-utils/issues/842)). The decision it informs is [ADR 0357](../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+**Status:** spike report, 2026-09-28 (Native Recording Suite (deleted PRD `native-recording-suite`) Phase 1, stream N-B37, [#842](https://github.com/countrymanprime/narration-utils/issues/842)). The decision it informs is [ADR 0357](../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
 
 **Question (PRD Q3 and Q7):** Can this stack capture a narrator's microphone to a correct WAV file with no dropouts, at an acceptable cost, and which engine should do it? What does that mean for monitoring?
 

@@ -9,8 +9,8 @@ import { describe, expect, test } from 'vitest';
 // string that only mentions `<mark>` is fine, and it sees `createElement('mark')` and the compiled `jsx('mark')` calls as well
 // as JSX. A tag held in a variable (`const Tag = 'mark'`) or passed as a prop (`as="mark"`) is not seen.
 //
-// A test and not an ESLint `no-restricted-syntax` rule: the PRD planned the lint rule, but the config-protection hook of
-// the tooling refuses edits to `eslint.config.js`, and ADR 0047 already keeps the Base UI boundary in this style, with a
+// A test and not an ESLint `no-restricted-syntax` rule: the config-protection hook of the tooling refuses edits
+// to `eslint.config.js`, and ADR 0047 already keeps the Base UI boundary in this style, with a
 // bad fixture per form of the violation. Should the lint rule be wanted later, the selector is
 // `JSXOpeningElement[name.name='mark']`.
 const HOME = 'src/components/primitives/Highlight.tsx';

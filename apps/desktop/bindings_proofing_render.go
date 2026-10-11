@@ -11,14 +11,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// The chapter-to-render association bindings (proofing-readiness-signals.prd.md Phase 6): the narrator chooses which
-// rendered file a chapter's delivery checks are about (Q9), and can clear the choice. The checks themselves are read
-// through StageRecommendations, which already reads the same proofing.RenderStore (bindings_stages.go's
-// proofingProvider); these bindings only let the narrator change what it points at. Measuring the chosen file reuses
-// the existing measurement job (MeasureAnalyze/MeasureState in bindings_measure.go): ProofingChooseRender marks the
-// picked path measurable the same way MeasurePickFiles does, so Measure needs no second picker, and
-// renderMeasurementRecorder (proofing_host.go), already wired into every measurement job, records the result against
-// this chapter's association the moment the file finishes.
+// The chapter-to-render association bindings: the narrator chooses which rendered file a chapter's delivery checks are
+// about, and can clear the choice. The checks themselves are read through StageRecommendations, which already reads the
+// same proofing.RenderStore (bindings_stages.go's proofingProvider); these bindings only let the narrator change what
+// it points at. Measuring the chosen file reuses the existing measurement job (MeasureAnalyze/MeasureState in
+// bindings_measure.go): ProofingChooseRender marks the picked path measurable the same way MeasurePickFiles does, so
+// Measure needs no second picker, and renderMeasurementRecorder (proofing_host.go), already wired into every
+// measurement job, records the result against this chapter's association the moment the file finishes.
 
 // errProofingRenderNoProject is the answer of every render-association binding before a project is open.
 var errProofingRenderNoProject = errors.New("open a project before choosing a chapter's rendered file")
@@ -86,7 +85,7 @@ func (h *Host) ProofingRenderState(chapterID string) (string, error) {
 }
 
 // ProofingChooseRender opens the native file picker for the chapter's rendered file and, once one is chosen, attests
-// it was made from the chapter as the saved project has it now (Q9 A). It answers {status: "cancelled"} when the
+// it was made from the chapter as the saved project has it now. It answers {status: "cancelled"} when the
 // narrator closes the dialog without choosing, {status: "refused", message} when the file could not be read or the
 // chapter has no one confirmed track in the saved project, or {status: "ok", render} with the render evaluated again.
 func (h *Host) ProofingChooseRender(chapterID string) (string, error) {

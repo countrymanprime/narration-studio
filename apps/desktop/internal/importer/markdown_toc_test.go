@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// A Markdown table of contents is a list of links to the manuscript's own headings (import-structure PRD, Phase 4). It is
+// A Markdown table of contents is a list of links to the manuscript's own headings. It is
 // matched as a docx's is (ADR 0089): by anchor, then normalised text, then position, and becomes the chapter list when 80%
 // of its entries match.
 

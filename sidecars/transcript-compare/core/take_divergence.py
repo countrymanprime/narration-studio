@@ -1,15 +1,15 @@
 """Where one take of a fixed manuscript span diverges from the manuscript.
 
-Take review (`docs/utilities/take-review.md`), its PRD's Phase 9, and ADR 0141. The
+Take review (`docs/utilities/take-review.md`) and ADR 0141. The
 take's timed words (free ASR words with Whisper's word timestamps, ADR 0008) are aligned to the
 span's words with the take markers' own diff (`compare.diff_and_build_markers`), so a take's
 divergences and its markers can never disagree about what was said. The result says, for every
 manuscript word of the span, whether the take read it (`matched`), said something else there
 (`misread`), left it out between words it did read (`skipped`) or never reached it because the
 take starts late or stops early (`unread`); and it lists each divergence as a span of manuscript
-words with the time range of the take it happened in, which Phase 10's comparison view shades.
+words with the time range of the take it happened in, which the comparison view shades.
 
-Nothing here ranks takes or turns fidelity into a verdict (PRD Q9): the counts are evidence.
+Nothing here ranks takes or turns fidelity into a verdict: the counts are evidence.
 
 This module does not import `compare.py`: every function that tokenizes or aligns is handed the
 loaded module as `engine`, so the result uses exactly the tokenizing of the process it runs in.

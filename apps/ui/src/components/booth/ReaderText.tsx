@@ -15,7 +15,7 @@ const NO_SKIPPED: SkippedRange[] = [];
 const separator = (gap: string): string => (gap.includes('\n') ? '\n' : ' ');
 
 // Every mark goes through `Highlight` (ADR 0016/0017): an entity in its Story Bible category colour, a note in the note
-// colour, exactly as the Manuscript reader draws them, and a suspected flag (Phase 7) in the flag kind of the same name.
+// colour, exactly as the Manuscript reader draws them, and a suspected flag in the flag kind of the same name.
 const FLAG_HIGHLIGHT: Record<TeleprompterFlagKind, HighlightKind> = { misread: 'Misread', extra: 'Extra', skipped: 'Skipped', restart: 'Restart' };
 function markHighlight(target: ReaderMarkTarget): HighlightKind {
   if (target.kind === 'flag') return FLAG_HIGHLIGHT[target.flag.kind];
@@ -38,9 +38,9 @@ type RowWordsProps = {
   start: number | null;
   local: number;
   skipped: SkippedRange[];
-  /** Click-to-seek (Phase 4), reachable only while a session is running (`useTeleprompterSession.seek` rejects otherwise). Absent: words are plain text. */
+  /** Click-to-seek, reachable only while a session is running (`useTeleprompterSession.seek` rejects otherwise). Absent: words are plain text. */
   onSeek?: (word: number) => void;
-  /** This row's story bible and note marks (Phase 5) and flag marks (Phase 7); a stable array per row so memo still skips the rows not being read. */
+  /** This row's story bible and note marks and flag marks; a stable array per row so memo still skips the rows not being read. */
   marks: ReaderMark[];
   /** Opens a mark's entry in the side rail. Absent: marks are drawn but not interactive. It never seeks or scrolls the reader. */
   onOpenMark?: (mark: ReaderMark) => void;
@@ -49,7 +49,7 @@ type RowWordsProps = {
 };
 
 // One word, dimmed once read (unless `dim` is false: see renderMarkedSegment), underlined when skipped, filled when current. `seekable` is false inside a mark: a mark is
-// one button that opens the rail (Phase 5), so the words under it are never also seek buttons (no nested controls, and a
+// one button that opens the rail, so the words under it are never also seek buttons (no nested controls, and a
 // mark click can never move the tracker). `withGap` keeps the gap after the word inside its span, as before marks existed;
 // the last word of a marked segment leaves its gap to `renderMarkedSegment`.
 function renderWord(row: RowWordsProps, index: number, seekable: boolean, withGap: boolean, dim = true): ReactNode {
@@ -144,8 +144,7 @@ function renderMarkedSegment(
 // The rows above and below the cursor keep the same props on every step, so
 // memo lets React skip all of them: only the row being read re-renders.
 // `onSeek` and `onOpenMark` must be stable function references (or undefined) across renders - a fresh closure every
-// render would defeat that memoization for every row, not just the active one (teleprompter-manuscript-integration.prd.md
-// Phase 4).
+// render would defeat that memoization for every row, not just the active one.
 const RowWords = memo(function RowWords(row: RowWordsProps) {
   const { words, marks } = row;
   const segments = useMemo(() => segmentWords(words.length, marks), [words.length, marks]);
@@ -233,21 +232,21 @@ export function ReaderText({
   cursor: number;
   skipped: SkippedRange[];
   follow: boolean;
-  /** Click-to-seek (teleprompter-manuscript-integration.prd.md Phase 4). Pass a stable reference (see `RowWords`); omit to render plain, unclickable text (no session, or one not yet active). */
+  /** Click-to-seek. Pass a stable reference (see `RowWords`); omit to render plain, unclickable text (no session, or one not yet active). */
   onSeek?: (word: number) => void;
-  /** Story bible and note marks by row key (`readerMarks`, Phase 5), with any flag marks (`readerFlags.withMarks`, Phase 7). Keep the map's identity stable while its content is. */
+  /** Story bible and note marks by row key (`readerMarks`), with any flag marks (`readerFlags.withMarks`). Keep the map's identity stable while its content is. */
   marks?: Map<string, ReaderMark[]>;
-  /** Opens a mark's entry (Phase 5); a stable reference, like `onSeek`. It must not move the cursor or scroll the reader. */
+  /** Opens a mark's entry; a stable reference, like `onSeek`. It must not move the cursor or scroll the reader. */
   onOpenMark?: (mark: ReaderMark) => void;
-  /** The reader element, for `useFollowCursor` (engines PRD Phase 10), which pauses `follow` while the narrator scrolls by hand. */
+  /** The reader element, for `useFollowCursor`, which pauses `follow` while the narrator scrolls by hand. */
   readerRef?: RefObject<HTMLDivElement | null>;
   /**
-   * The speaker of each attributed paragraph, by row key (the Booth, mock 03, audit BO4: prep-depth's speaker attribution,
+   * The speaker of each attributed paragraph, by row key (the Booth, mock 03: the speaker attribution,
    * the same `speakerLabelForParagraph` the Script reader shows). When at least one row has a speaker, every row gets a
    * gutter so the text keeps one left edge; an unattributed row's gutter stays empty, never a guessed name.
    */
   speakers?: Map<string, string>;
-  /** The Booth's full-bleed reading size (mock 03, audit BO3): larger type with more air between lines. */
+  /** The Booth's full-bleed reading size (mock 03): larger type with more air between lines. */
   large?: boolean;
   /** The companion's reading size (mock 07): 16 px on a 27 px line, for a 380 px column beside the DAW. */
   dense?: boolean;
@@ -261,7 +260,7 @@ export function ReaderText({
   }, [container, cursor, follow]);
 
   const gutter = Boolean(speakers?.size);
-  // The Booth's type is the measured spec (mock 03 Q6):
+  // The Booth's type is the measured spec (mock 03):
   // `--font-size-booth-script` (26 px), never below WCAG's large text at any width. With no card, a read word's muted
   // colour on a single mark's tint sits over the reading surface, which still clears large-text contrast.
   const typeClass = dense
@@ -293,7 +292,7 @@ export function ReaderText({
             </div>
           );
         return row.kind === 'title' ? (
-          // Source casing, never CSS capitals (chapter-title-display-consistency.prd.md Q2/Q9): what is read aloud is
+          // Source casing, never CSS capitals (ADR 0191): what is read aloud is
           // what is shown. Stacked, like TitleSubtitle's own layout: the subtitle is a muted line under the title,
           // with a visually hidden " — " between them so the two lines still read as one name to a screen reader.
           <h2 key={row.key} className={`font-['Barlow_Condensed',sans-serif] leading-tight tracking-[0.02em] normal-case ${gutter ? 'lg:pl-[8.25rem]' : ''}`}>

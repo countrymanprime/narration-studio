@@ -8,10 +8,9 @@ import (
 )
 
 // alignedResults is a results file with the chapter's per-token alignment
-// (edit-and-proof-workspace PRD Phase 1, ADR 0242) for the fixture chapter's
-// one paragraph, "Alice was beginning to get very tired.": item A carries the
-// first five words, item B the last two, one of them a misread, plus one run
-// of extra words after the chapter ends.
+// (ADR 0242) for the fixture chapter's one paragraph, "Alice was beginning to
+// get very tired.": item A carries the first five words, item B the last two,
+// one of them a misread, plus one run of extra words after the chapter ends.
 var alignedResults = []string{
 	`COVERAGE|{"schemaVersion":1,"chapterId":"c-0001","bodyTokens":7,"presentTokens":7,"missingTokens":0,"extraTokens":1,"longestMissingRun":0,"alignment":{"maxMisreadRun":8,"minAnchorRun":3},"items":{"analyzed":2,"muted":0,"playedSeconds":16.0,"transcribed":0,"reused":2},"analysis":{"model":"small","language":"en","equivalencesHash":null}}`,
 	`COVERAGE_ITEM|{"index":0,"itemGuid":"{ITEM-A}","status":"analyzed","words":"reused","playedSeconds":10.0,"wordCount":5,"model":"small","language":"en"}`,
@@ -28,7 +27,7 @@ var alignedResults = []string{
 }
 
 // liveItem is the saved project's current played range for guid, as
-// Service.Alignment must join it in (tracks.Item's Phase 1 fields).
+// Service.Alignment must join it in (tracks.Item's TakeGUID, SourceStart and PlayRate).
 func liveItem(t *testing.T, p *testProject, guid string) AlignmentItem {
 	t.Helper()
 	project, err := tracks.Parse(p.rpp)

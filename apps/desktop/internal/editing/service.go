@@ -1,14 +1,14 @@
-// This file is Phase 5 of docs/prds/editing-readiness-analysis.prd.md: the
-// narrator-triggered scan. It resolves a chapter to its confirmed track and
-// items (D5), decodes only what the cache does not already answer
-// (Architecture Notes: "cache lookup per item, decode only misses in one
-// pass writing the three ledger records"), composes empty space over the
-// result (Phase 3), persists silence_cleanup findings, and reports real
+// This file runs the narrator-triggered scan. It resolves a chapter to its
+// confirmed track and items, decodes only what the cache does not already
+// answer (a cache lookup per item, then one pass over the misses writing the
+// three ledger records), composes empty space over the result
+// (empty_space.go), persists silence_cleanup findings, and reports real
 // progress with a cancel button (ADR 0015). Unlike the recording coverage
 // service (apps/desktop/internal/coverage), there is no sidecar: every
 // decode is this package's own Decode (decode.go), so the job is a plain Go
 // goroutine over context cancellation rather than a supervised child
 // process.
+
 package editing
 
 import (
@@ -47,7 +47,7 @@ const (
 	ReasonNoProjectFile      Reason = "no_project_file"
 	ReasonProjectUnreadable  Reason = "project_unreadable"
 	ReasonBusy               Reason = "busy"
-	// ReasonNoRender: the chapter's source choice is SourceRender (Q6, Phase 8)
+	// ReasonNoRender means the chapter's source choice is SourceRender
 	// but no render is associated with it at all (proofing.RenderNone) - the
 	// only render-choice case that refuses to start, mirroring "an unconfirmed
 	// mapping refuses to start" for the item path (render_service.go's own
@@ -91,8 +91,8 @@ const (
 	PhaseFailed    Phase = "failed"
 )
 
-// State is the running job as the UI will see it (Phase 5's bindings expose
-// this; Phase 7's panel reads it).
+// State is the running job as the UI sees it (the EditingState binding
+// returns it; the editing check panel reads it).
 type State struct {
 	RunID       string     `json:"runId,omitempty"`
 	ChapterID   string     `json:"chapterId,omitempty"`
@@ -125,17 +125,15 @@ type Config struct {
 	Policy      func() Policy
 	ScanOptions func() ScanOptions
 	Reporter    *persist.Reporter
-	// ProjectReader reads the saved .rpp ProjectFile resolves (DAW port PRD Phase 5d); nil falls back to tracks.Parse
-	// directly, so a Config literal built before this field existed - every caller and test but the one proving this
-	// field is honoured - keeps reading exactly as it did before.
+	// ProjectReader reads the saved .rpp ProjectFile resolves (see readProject); nil falls back to tracks.Parse
+	// directly.
 	ProjectReader dawport.ProjectReader
-	// Renders is PS Phase 4's chapter-to-render association store (Q6, Phase 8 of this PRD): reused as-is, never
-	// duplicated, for "which file is the chapter's current render, and is it stale". A nil Renders (a Config literal
-	// built before this field existed, or a project with no proofing service) makes a render-choice Start() refuse
-	// with ReasonNoRender rather than panicking - the same defensive nil handling ProjectReader above already gets.
+	// Renders is proofing's chapter-to-render association store, reused as-is, never duplicated, for "which file is
+	// the chapter's current render, and is it stale". A nil Renders (a Config literal that leaves it out, or a project
+	// with no proofing service) makes a render-choice Start() refuse with ReasonNoRender rather than panicking.
 	Renders *proofing.RenderStore
-	// Choices is this package's own per-chapter source choice (choice.go, Q6): nil reads as every chapter's own
-	// default, SourceItems (sourceChoice, render_service.go) - "no choice made yet" is never an error or a panic.
+	// Choices is this package's own per-chapter source choice (choice.go): nil reads as the default, SourceItems
+	// (sourceChoice, render_service.go) - "no choice made yet" is never an error or a panic.
 	Choices *ChoiceStore
 }
 
@@ -219,8 +217,7 @@ func (s *Service) Cancel() {
 // that succeeds, starts scanning in the background. It refuses (an error
 // ReasonOf can read) rather than starting anything when the chapter is
 // unmapped, multiply mapped, or its mapped track is missing from the saved
-// project - Phase 5's own scope: "an unconfirmed mapping refuses to start
-// and reports why."
+// project; an unconfirmed mapping refuses to start and reports why.
 func (s *Service) Start(ctx context.Context, request Request) (State, error) {
 	s.mu.Lock()
 	if s.busy {
@@ -292,7 +289,7 @@ func (s *Service) startJob(request Request, itemsTotal int, message string, work
 	return state
 }
 
-// resolveChapter resolves request's chapter to its confirmed track (D5) and
+// resolveChapter resolves request's chapter to its confirmed track and
 // the saved project it lives in.
 func (s *Service) resolveChapter(request Request) (tracks.Track, tracks.Project, evidence.LedgerProjectFile, error) {
 	if s.config.Project == "" {
@@ -314,7 +311,7 @@ func (s *Service) resolveChapter(request Request) (tracks.Track, tracks.Project,
 	return tracks.Track{}, tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonMappedTrackMissing, "the track this chapter is linked to is no longer in the saved project")
 }
 
-// confirmedTrackGUID is D5's own rule: exactly one confirmed track for the
+// confirmedTrackGUID applies one rule: exactly one confirmed track for the
 // chapter, or the mapping is unknown to this analyzer (ReasonUnmapped for
 // zero, ReasonMultipleTracks for more than one).
 func (s *Service) confirmedTrackGUID(documentID, chapterID string) (string, error) {
@@ -357,8 +354,8 @@ func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, er
 	return project, evidence.LedgerProjectFile{Path: path, ModTime: modTime}, nil
 }
 
-// readProject is the dawport.ProjectReader role over path (DAW port PRD Phase 5d): nil falls back to tracks.Parse
-// directly.
+// readProject is the dawport.ProjectReader role over path (see Config.ProjectReader): nil falls back to
+// tracks.Parse directly.
 func (s *Service) readProject(path string) (tracks.Project, error) {
 	if s.config.ProjectReader == nil {
 		return tracks.Parse(path)

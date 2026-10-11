@@ -111,8 +111,8 @@ export const deliveryQcEvidenceSchema = z.object({
   allowed: z.array(z.number()).optional(),
   available: z.boolean().optional(),
   advice: z.string().optional(),
-  // Added when the finding is saved for the Review page (deliveryprofile.ReviewFindings, delivery-platform-profiles.prd.md
-  // Phase 9), which has no profile to look the rule up in: its label, the requirement it enforces, the profile's title, the unit.
+  // Added when the finding is saved for the Review page (deliveryprofile.ReviewFindings), which has no profile to look
+  // the rule up in: its label, the requirement it enforces, the profile's title, the unit.
   rule_label: z.string().optional(),
   requirement: z.string().optional(),
   profile_name: z.string().optional(),

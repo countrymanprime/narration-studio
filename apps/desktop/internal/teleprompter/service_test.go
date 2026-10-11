@@ -249,7 +249,7 @@ func scriptOptions() map[string]string {
 
 var closingCredits = Script{ID: "credits-closing", Title: "Closing credits", Text: "You have been listening to Alice.\nThe End."}
 
-// The credits (audiobook-credits-templates.prd.md Phase 4, ADR 0150) are not a manuscript chapter: the host hands the
+// The credits (ADR 0150) are not a manuscript chapter: the host hands the
 // sidecar the text it rendered as a --script file named with --script-id/--script-title, and no --manuscript/--chapter.
 func TestStartScriptLaunchesTheSidecarOnAScriptFileHoldingTheText(t *testing.T) {
 	f := newFixture(t, "stream")
@@ -676,7 +676,7 @@ func TestADeveloperCanReplayARecordingInsteadOfUsingAMicrophone(t *testing.T) {
 	}
 }
 
-// The Phase 8 evaluation aid (teleprompter-engines-and-input-devices PRD): opting in launches the sidecar with
+// The evaluation aid: opting in launches the sidecar with
 // --timing and --log <session dir>/teleprompter_<stamp>.log, so a host-launched session (live mic or --wav replay)
 // yields the lag numbers the A/B protocol needs. It never turns on by itself.
 func TestEvalTimingOptInAddsTimingAndLogFlags(t *testing.T) {

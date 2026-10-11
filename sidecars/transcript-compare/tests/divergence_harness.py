@@ -1,7 +1,7 @@
-"""Evaluation harness for per-take divergence (take-review PRD Phase 9, Q10 as answered 2026-09-23).
+"""Evaluation harness for per-take divergence.
 
-Q10 asks whether diff plus ASR word timestamps (ADR 0008) localize where inside a take it goes
-wrong precisely enough, or whether forced alignment is needed. The owner chose synthetic,
+The question is whether diff plus ASR word timestamps (ADR 0008) localize where inside a take it
+goes wrong precisely enough, or whether forced alignment is needed. The owner chose synthetic,
 constructed fixtures over an annotated corpus: `fixtures/divergence/cases.json` holds a span of
 manuscript and, per case, a scripted take with a known flub, restart, skip or substitution at a
 known word. The protocol and the results are in `docs/research/take-divergence-evaluation.md`.

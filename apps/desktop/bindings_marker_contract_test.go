@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// What FindingsAddMarker sends (review dashboard Phase 8), over a finding the real Transcript Compare adapter writes
+// What FindingsAddMarker sends, over a finding the real Transcript Compare adapter writes
 // (contractReviewHost) once the narrator accepted it: added, already there, and the refusal the page words for itself
 // (not accepted) and a REAPER one (stale). REAPER's side is a fake navigator; bridge.Navigator's own tests pin the file
 // protocol.

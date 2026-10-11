@@ -12,7 +12,7 @@ import (
 )
 
 // fakeReview is a DAW that is not REAPER: it records what the review workflow asked of it and delivers the events a test queues,
-// so these tests prove the service drives the review loop through dawport.ReviewSession alone (audacity-integration PRD, Phase 3).
+// so these tests prove the service drives the review loop through dawport.ReviewSession alone.
 type fakeReview struct {
 	calls         []string
 	colors        dawport.MarkerColors
@@ -167,8 +167,7 @@ func TestNoAdapterIsTheUnavailableBridgeError(t *testing.T) {
 	}
 }
 
-// The app's project folder, not the .rpp's, is where REAPER reads the manuscript and writes the diffs (project-workspace
-// PRD Phase 5, W4): Start passes the folder it has just checked the manuscript in.
+// The app's project folder, not the .rpp's, is where REAPER reads the manuscript and writes the diffs: Start passes the folder it has just checked the manuscript in.
 func TestStartPassesTheAppsProjectFolderToTheDAW(t *testing.T) {
 	service, fake := adapterService(t)
 	if err := service.Start(map[string]string{}); err != nil {

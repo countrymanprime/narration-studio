@@ -6,12 +6,12 @@ name: Pages
 #
 # Publishes the public site to GitHub Pages, by hand: the docs (tools/docs-site, ADR 0083, built from docs/ by MkDocs)
 # at the root, the Storybook component atlas (apps/ui) under /storybook/, and a browser-runnable demo of the app
-# (apps/ui built with VITE_USE_MOCK_API=1, docs/prds/public-app-demo.prd.md) under /demo/. It is served at
+# (apps/ui built with VITE_USE_MOCK_API=1) under /demo/. It is served at
 # https://<owner>.github.io/narration-utils/ once the owner sets Settings > Pages > Source to "GitHub Actions" (an
 # owner-only setting, see docs/operations/github-workflow.md); until then the deploy job fails with GitHub's "Pages is not
 # enabled" message and the build job still proves the site builds.
 #
-# To resume after D75: restore both triggers below and drop the `narrowed further` clause above.
+# To resume after D75: restore both triggers below.
 #   on:
 #     push:
 #       branches: [main]
@@ -68,7 +68,7 @@ jobs:
       - name: Build Storybook
         run: pnpm --dir apps/ui run build-storybook
       # The mock build (apps/ui/.env.demo, VITE_USE_MOCK_API=1) run through Vite's `demo` mode so its own base path
-      # resolves assets under /narration-utils/demo/ (docs/prds/public-app-demo.prd.md D3). No backend, no secret: same
+      # resolves assets under /narration-utils/demo/. No backend, no secret: same
       # mock API and fixture data the Playwright visual suite and Storybook already build against.
       - name: Build the demo
         run: pnpm --dir apps/ui run build:demo

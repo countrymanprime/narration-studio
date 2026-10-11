@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// Line identity for a native take (native-recording-suite PRD Phase 3, Open Question 8, answered by D86): REAPER
+// Line identity for a native take (ADR 0485): REAPER
 // has an item to stamp line identity onto (docs/adr/0026-manuscript-line-identity-in-item-extension-data.md); a
 // native take has no item, so its line identity lives instead in a project-owned sidecar file next to the takes
 // themselves, keyed by take name. ComposeLineID and ParseLineID mirror internal/lineidentity's composed-id scheme
@@ -98,7 +98,7 @@ func writeIdentities(folder string, identities map[string]string) error {
 }
 
 // SetTakeLine assigns folder's takeName the manuscript line entityID at the manuscript's current sourceSHA256, or
-// clears its assignment when entityID is "". It never touches the take's audio file (Q5): only this sidecar.
+// clears its assignment when entityID is "". It never touches the take's audio file: only this sidecar.
 func setTakeLine(folder, takeName, entityID, sourceSHA256 string) error {
 	if takeName == "" {
 		return errors.New("choose a take before assigning it a manuscript line")

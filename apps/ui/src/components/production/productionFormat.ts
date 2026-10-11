@@ -53,10 +53,10 @@ export function deadlineFigure(deadline: ProductionDeadline | null, unfinished: 
 type BoardColumn = { name: string; kind: 'recorded' } | { name: string; kind: 'stage'; stage: ChapterStatus } | { name: string; kind: 'unavailable' };
 
 /**
- * The board's columns, in mock 01's order (ADR 0645): the length, then the stages in the order the work goes. Record, Edit and
- * Proof come from the chapter's status and its current stage's readiness (the stage recommendations, read live, Q8 A). Prep and
+ * The board's columns, in the order of ADR 0645: the length, then the stages in the order the work goes. Record, Edit and
+ * Proof come from the chapter's status and its current stage's readiness (the stage recommendations, read live). Prep and
  * Delivery have no per-chapter producer yet (prep depth, and a delivery check tied to a chapter's file), so they are a dash rather
- * than a guess (the PRD's risk table).
+ * than a guess.
  */
 export const BOARD_COLUMNS: readonly BoardColumn[] = [
   { name: 'Recorded', kind: 'recorded' },
@@ -67,7 +67,7 @@ export const BOARD_COLUMNS: readonly BoardColumn[] = [
   { name: 'Delivery', kind: 'unavailable' },
 ];
 
-// Why a chapter has no Recorded length, short enough for a board cell (actual-recorded-column.prd.md's reasons).
+// Why a chapter has no Recorded length, short enough for a board cell.
 const UNRECORDED: Record<RecordedUnavailable, StageGridCell> = {
   unlinked: { tone: 'neutral', label: 'No track' },
   multiple_tracks: { tone: 'warning', label: '2+ tracks' },
@@ -86,7 +86,7 @@ export function isCurrentStage(chapter: Pick<ProductionChapter, 'status'>, colum
 export type LiveCell = { checkingPercent?: number | null; contradiction?: boolean };
 
 /** One board cell. It only reads the chapter: the board never sets a status. Done and empty cells are the mock's compact
- * glyphs (PR10); a stage still being worked keeps its full word, and so does a Recorded cell that says why it has no length. */
+ * glyphs; a stage still being worked keeps its full word, and so does a Recorded cell that says why it has no length. */
 export function boardCell(chapter: ProductionChapter, column: BoardColumn, live: LiveCell = {}): StageGridCell {
   if (column.kind === 'unavailable') return { tone: 'neutral', label: DASH };
   if (column.kind === 'recorded') {
@@ -95,7 +95,7 @@ export function boardCell(chapter: ProductionChapter, column: BoardColumn, live:
       : { tone: 'neutral', label: formatLength(chapter.recordedSeconds) };
   }
   if (column.stage === 'recording' && live.checkingPercent !== undefined) {
-    // The percent alone, as mock 01 draws a stage under way: the cell is 58 px (ADR 0645) and the slide-over says what runs.
+    // The percent alone, for a stage under way: the cell is 58 px (ADR 0645) and the slide-over says what runs.
     return { tone: 'progress', label: live.checkingPercent === null ? 'Checking' : `${Math.floor(live.checkingPercent)}%` };
   }
   const at = STATUS_ORDER.indexOf(chapter.status);
@@ -116,7 +116,7 @@ export function boardCell(chapter: ProductionChapter, column: BoardColumn, live:
   }
 }
 
-/** A credits row's cell (credits-in-chapter-table.prd.md): its status, and, since Phase 3, its own measured Recorded
+/** A credits row's cell: its status and its own measured Recorded
  * figure - the same track-based measurement a manuscript row's Recorded cell shows (ADR 0193), never an estimate. */
 export function creditsCell(
   row: { status: ChapterStatus; template?: unknown; recordedSeconds?: number; recordedUnavailable?: RecordedUnavailable },
@@ -154,7 +154,7 @@ export function nextUpLine(item: ProductionNextUpItem): { action: string; reason
   return { action, reason: readiness?.reason || 'In progress.' };
 }
 
-/** The page subtitle's delivery part (mock 01: "delivery due Oct 14 (18 days)"); empty with no delivery date set. */
+/** The page subtitle's delivery part ("delivery due Oct 14 (18 days)"); empty with no delivery date set. */
 export function deliveryDue(deadline: ProductionDeadline | null): string {
   if (deadline === null) return '';
   const due = new Date(`${deadline.date}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });

@@ -13,13 +13,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// The built-in recorder's bindings (native-recording-suite PRD Phase 2, docs/adr/0455): the Booth records with REAPER or
-// with the built-in recorder, a per-project choice that sets the engine chip. The recorder itself is internal/recording over
-// the capture port's wasapi row (Experimental, ADR 0357); every state change goes out as the "recording:state" live event and
-// every level report as "recording:level". The choice and the remembered device are the project settings rows
-// Recording.engine and Recording.device, written only here (like Mastering.provider, bindings_mastering.go): not generic
-// Settings fields, so the Settings page neither lists nor saves them. The wire schema, golden payloads, wireContracts rows and
-// mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+// The built-in recorder's bindings (docs/adr/0455): the Booth records with REAPER or with the built-in recorder, a
+// per-project choice that sets the engine chip. The recorder itself is internal/recording over the capture port's
+// wasapi row (Experimental, ADR 0357); every state change goes out as the "recording:state" live event and every level
+// report as "recording:level". The choice and the remembered device are the project settings rows Recording.engine and
+// Recording.device, written only here (like Mastering.provider, bindings_mastering.go): not generic Settings fields, so
+// the Settings page neither lists nor saves them. The wire schema, golden payloads, wireContracts rows and mock live in
+// apps/ui/src/api (docs/architecture/wire-contracts.md).
 const (
 	recordingSettingsTool = "Recording"
 	recordingEngineKey    = "engine"
@@ -138,11 +138,10 @@ func (h *Host) RecorderStop() (string, error) {
 	return encodeBinding(h.recorderState(svc, nil), nil)
 }
 
-// RecorderSetTakeLine assigns takeName the manuscript paragraph or chapter entityId as its line identity (Phase 3,
-// ADR 0485), so it joins the review pipeline the same way a REAPER item's stamped line id does (native-recording-suite
-// PRD Phase 4, "take review integration" - Phase 3 built SetTakeLine with no UI caller yet). entityId "" clears the
-// assignment. The manuscript's current source checksum is read here, never sent by the caller, so a stale UI can
-// never stamp a wrong one.
+// RecorderSetTakeLine assigns takeName the manuscript paragraph or chapter entityId as its line identity (ADR 0485), so
+// it joins the review pipeline the same way a REAPER item's stamped line id does. entityId "" clears the assignment.
+// The manuscript's current source checksum is read here, never sent by the caller, so a stale UI can never stamp a
+// wrong one.
 func (h *Host) RecorderSetTakeLine(takeName, entityId string) (string, error) {
 	svc := h.services()
 	if svc.recorder == nil {
@@ -161,9 +160,8 @@ func (h *Host) RecorderSetTakeLine(takeName, entityId string) (string, error) {
 	return encodeBinding(h.recorderState(svc, nil), nil)
 }
 
-// RecorderSetTakeKeeper marks or unmarks takeName the keeper among the takes assigned to its line (Phase 4, Q5):
-// narrator-confirmed, and always undoable by marking it again with keeper false or by marking a different take of the
-// same line.
+// RecorderSetTakeKeeper marks or unmarks takeName the keeper among the takes assigned to its line: narrator-confirmed,
+// and always undoable by marking it again with keeper false or by marking a different take of the same line.
 func (h *Host) RecorderSetTakeKeeper(takeName string, keeper bool) (string, error) {
 	svc := h.services()
 	if svc.recorder == nil {

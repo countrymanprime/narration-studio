@@ -1,8 +1,8 @@
-"""A chapter's name as plain text, by the app's one rule (chapter-title-display-consistency PRD, ADR 0191).
+"""A chapter's name as plain text, by the app's one rule (ADR 0191).
 
 The title and the subtitle join with " — " in the book's own casing. This mirrors apps/ui/src/chapterName.ts and
 apps/desktop/internal/chaptername; tests/fixtures/chapter-names.json, written by the Go test, pins all three to the
-same output. Plain-text outputs a consumer may not take an em dash in use form="plain", " - " (owner decision D34).
+same output. Plain-text outputs a consumer may not take an em dash in use form="plain", " - ".
 
 It is for text a person reads: logs, headings, lists. A matching key (a title compared with what another program
 wrote) keeps its own form, so matching never changes with the display rule.

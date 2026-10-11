@@ -14,12 +14,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Chapter sync's consent and first sync (daw-chapter-track-auto-sync.prd.md Phase 3, ADR 0209). The narrator is asked
-// once per project, when it has both a manuscript and a linked DAW project (S1); the answer lives on the manifest
-// (S2). With consent, every link path (the answer itself, a DAW link, an import, a project attach) runs one sync:
-// chaptersync.Build over the narration chapters and the saved .rpp, MappingStore.AutoLink for the confident two-way
-// matches (ADR 0202), and the snapshot stored for the next sync. Each run tells the UI through chaptersync:state.
-// Watching the saved .rpp for changes (Phase 4) is chaptersync_watch.go.
+// Chapter sync's consent and first sync (ADR 0209). The narrator is asked once per project, when it has both a
+// manuscript and a linked DAW project; the answer lives on the manifest. With consent, every link path (the answer
+// itself, a DAW link, an import, a project attach) runs one sync: chaptersync.Build over the narration chapters and the
+// saved .rpp, MappingStore.AutoLink for the confident two-way matches (ADR 0202), and the snapshot stored for the next
+// sync. Each run tells the UI through chaptersync:state. Watching the saved .rpp for changes is chaptersync_watch.go.
 
 const chapterSyncEvent = "chaptersync:state"
 
@@ -37,7 +36,7 @@ const (
 	syncTriggerImport  = "import"
 	syncTriggerAttach  = "attach"
 	syncTriggerUndo    = "undo"
-	// syncTriggerWatch: the watcher saw the saved .rpp change and settle (chaptersync_watch.go, Phase 4).
+	// syncTriggerWatch: the watcher saw the saved .rpp change and settle (chaptersync_watch.go).
 	syncTriggerWatch = "watch"
 )
 
@@ -51,18 +50,18 @@ type chapterSyncCounts struct {
 	PickupTracks int `json:"pickupTracks"`
 }
 
-// chapterSyncBatch is what one sync just did, for the toast (S12): the links it made (each undoable with
-// ChapterSyncUndo) and the tracks new since the last sync that match no chapter (listed quietly, never toasted). The
-// same entry heads the stored activity list (Phase 4), so a batch and an activity row have one shape.
+// chapterSyncBatch is what one sync just did, for the toast: the links it made (each undoable with ChapterSyncUndo) and
+// the tracks new since the last sync that match no chapter (listed quietly, never toasted). The same entry heads the
+// stored activity list, so a batch and an activity row have one shape.
 type chapterSyncBatch = chaptersync.Activity
 
 // chapterSyncState is ChapterSyncState's payload and what chaptersync:state carries. Ask says to show the consent
 // dialog. Project is the saved .rpp's state (ready, none, choose, error) with its file and save time. LastSync is the
 // last stored snapshot's time (null before the first sync). Batch is set only on the answer or event of a sync that
 // linked something or found a new unmatched track. UnsavedEdits says REAPER, running this project, has edits since the
-// last sync that are not saved yet (Phase 4: the heartbeat's edit counter moved; a sync reads only the saved file).
+// last sync that are not saved yet (the heartbeat's edit counter moved; a sync reads only the saved file).
 // Activity is the stored list of batches, newest first (the audio engine panel's Sync activity). Chapters is one row per
-// narration chapter with its link and the status of its recording check (Phase 6), when the manuscript and the saved
+// narration chapter with its link and the status of its recording check, when the manuscript and the saved
 // .rpp can be read; empty otherwise.
 type chapterSyncState struct {
 	Consent      string                 `json:"consent"`
@@ -80,20 +79,19 @@ type chapterSyncState struct {
 	UnsavedEdits bool                   `json:"unsavedEdits"`
 	Activity     []chaptersync.Activity `json:"activity"`
 	Chapters     []chapterSyncChapter   `json:"chapters"`
-	// Background is whether background recording checks are on and why none runs now (Phase 7, ADR 0211).
+	// Background is whether background recording checks are on and why none runs now (ADR 0211).
 	Background chapterSyncBackground `json:"background"`
 }
 
-// chapterSyncChapter is one narration chapter's status without a click (daw-chapter-track-auto-sync.prd.md Phase 6,
-// S14): its link (TrackGUID, TrackName and Origin are empty when it has none), whether its recording check is current,
-// stale (Reasons say why) or never run, from the recording check's own evaluation against the saved .rpp (no check is
-// started, Q14), when that check last finished, and whether one is running now. The last change is the later of two
-// times: TrackChangedAt, the sync at which the linked track's items last changed (chaptersync.TrackState.ChangedAt;
-// null until a sync after the first sees a change), and NewestSourceAt, the newest modification time of an audio file
-// the track plays (a new recording writes a new file). PickupTrackGUID and PickupTrackName name the chapter's pickup
-// track ("Chapter 6 (pickups)", Phase 8: recognised by name, never a link); PickupsScannedAt is the last take-review
-// scan that included it, and PickupsChanged says the track has items that scan has not seen (it changed since, or was
-// never scanned).
+// chapterSyncChapter is one narration chapter's status without a click: its link (TrackGUID, TrackName and Origin are
+// empty when it has none), whether its recording check is current, stale (Reasons say why) or never run, from the
+// recording check's own evaluation against the saved .rpp (no check is started), when that check last finished, and
+// whether one is running now. The last change is the later of two times: TrackChangedAt, the sync at which the linked
+// track's items last changed (chaptersync.TrackState.ChangedAt; null until a sync after the first sees a change), and
+// NewestSourceAt, the newest modification time of an audio file the track plays (a new recording writes a new file).
+// PickupTrackGUID and PickupTrackName name the chapter's pickup track ("Chapter 6 (pickups)": recognised by name, never
+// a link); PickupsScannedAt is the last take-review scan that included it, and PickupsChanged says the track has items
+// that scan has not seen (it changed since, or was never scanned).
 type chapterSyncChapter struct {
 	ChapterID      string     `json:"chapterId"`
 	ChapterTitle   string     `json:"chapterTitle"`

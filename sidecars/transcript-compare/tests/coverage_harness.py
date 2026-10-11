@@ -41,8 +41,8 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "coverage"
 LABELS = ("present", "partial", "missing")
 REGION_KINDS = ("head", "tail", "skip", "short_read", "different_text")
 SPLITS = ("tune", "held_out")
-# The conditions the PRD's Phase 1 lists, plus three it names elsewhere (misread, unrelated speech
-# for chance matches, and text the item's trim hides). Every one needs a committed case.
+# The conditions a recording check has to tell apart, including a misread, unrelated speech (for
+# chance matches) and text the item's trim hides. Every one needs a committed case.
 CONDITIONS = (
     "complete",
     "truncated_tail",
@@ -240,7 +240,7 @@ def _load_chapters(directory: Path) -> dict[str, Chapter]:
     return {
         chapter["id"]: Chapter(chapter["id"], chapter.get("title", ""), chapter.get("subtitle", ""), tuple(paragraphs.get(chapter["id"], ())))
         for chapter in data["chapters"]
-        if chapter.get("contentKind", "narration") == "narration"  # the targets compare.py loads (PRD Q4)
+        if chapter.get("contentKind", "narration") == "narration"  # the targets compare.py loads (Q4)
     }
 
 
@@ -302,7 +302,7 @@ def _load_case(path: Path, directory: Path, chapters: Mapping[str, Chapter]) -> 
 def build_case(spec: Mapping, chapter: Chapter, directory: Path = FIXTURE_DIR, where: str | None = None) -> Case:
     """A case from its JSON form, for one chapter: renders the recording and checks the labels.
 
-    `load_corpus` uses it for committed files; generated cases (the Phase 2 spike's stress set)
+    `load_corpus` uses it for committed files; generated cases (the stress set of `coverage_spike.py`)
     use it directly, so they obey the same labeling rules."""
     where = where or str(spec.get("id"))
     item_specs = spec.get("recording", {}).get("items") or []
@@ -427,7 +427,7 @@ def _normalized(text: str) -> list[str]:
 def presence_stub(chapter: Chapter, items: tuple[Item, ...]) -> Report:
     """An order-blind stand-in: a paragraph is present when its words were heard anywhere.
 
-    It exists so the harness runs before the real analyzer (Phase 2) does, and it is wrong on
+    It lets the harness run without the real analyzer, and it is wrong on
     purpose where order matters: a pickup at the end or a refrain read once looks complete."""
     if any(item.words is None for item in items):
         raise NeedsAudio("the presence stub reads transcript words, not audio")

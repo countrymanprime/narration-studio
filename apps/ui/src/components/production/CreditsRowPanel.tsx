@@ -18,10 +18,10 @@ const UNRECORDED_TEXT: Record<NonNullable<CreditsRow['recordedUnavailable']>, st
   no_project: 'No REAPER project open',
 };
 
-// Credits run well under a minute, so seconds are shown below one (audiobook-credits-templates.prd.md, Open Question C9).
+// Credits run well under a minute, so seconds are shown below one.
 const creditsLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
 
-// A single unresolved token reads as its own name (credits-in-chapter-table mock 04); several as a count and list.
+// A single unresolved token reads as its own name; several as a count and list.
 const unresolvedWarning = (unresolved: string[]): string | undefined => {
   if (unresolved.length === 0) return undefined;
   if (unresolved.length === 1) return `${unresolved[0]} not filled in`;
@@ -29,7 +29,7 @@ const unresolvedWarning = (unresolved: string[]): string | undefined => {
 };
 
 /**
- * An Opening or Closing credits row's slide-over on the Production board (credits-in-chapter-table.prd.md Phase 2): its template, words and estimated length, the
+ * An Opening or Closing credits row's slide-over on the Production board: its template, words and estimated length, the
  * tokens still to fill in, and its status, which only `setCreditsStatus` writes (credits are never a manuscript chapter and the
  * stage engine does not assess them).
  */
@@ -46,7 +46,7 @@ export function CreditsRowPanel({
   label: string;
   onStatus: (status: ChapterStatus) => void;
   /** Opens the same recording-check dialog a manuscript row's Record cell opens, over a synthetic chapter for this
-   * credits row (credits-in-chapter-table.prd.md Phase 3). */
+   * credits row. */
   onCheck: () => void;
   onClose: () => void;
 }) {

@@ -94,7 +94,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 	}
 	pin(t, "manuscript-reader", reader)
 
-	// A chapter the recording coverage measured carries recordedFraction (docs/utilities/recording-coverage.md D11);
+	// A chapter the recording coverage measured carries recordedFraction (docs/utilities/recording-coverage.md);
 	// the others still carry none.
 	service.SetRecordedFractions(func() map[string]float64 { return map[string]float64{first: 0.75} })
 	measured, err := service.Chapters()
@@ -103,8 +103,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 	}
 	pin(t, "manuscript-chapters-measured", measured)
 
-	// A chapter with a linked track carries recordedSeconds, one without carries why not (actual-recorded-column PRD
-	// Phase 2); a chapter the provider leaves out carries neither.
+	// A chapter with a linked track carries recordedSeconds, one without carries why not; a chapter the provider leaves out carries neither.
 	service.SetRecordedFractions(nil)
 	service.SetRecordedLengths(func() map[string]RecordedLength {
 		return map[string]RecordedLength{first: {Seconds: 2520.5}, text(chapters[1], "id"): {Unavailable: RecordedUnlinked}}
@@ -180,7 +179,7 @@ func TestContractImportPreviewCarriesRepairs(t *testing.T) {
 }
 
 // A plain-text heading's second line is a line of text, so its preview says the subtitle returns to the body when the narrator
-// turns it off (subtitleOff "body"; story-bible-and-import-ux-briefs PRD, Phase 5). The Markdown preview above pins "title".
+// turns it off (subtitleOff "body"). The Markdown preview above pins "title".
 func TestContractImportPreviewWithAPlainTextSubtitleLine(t *testing.T) {
 	project := t.TempDir()
 	source := filepath.Join(project, "book.txt")

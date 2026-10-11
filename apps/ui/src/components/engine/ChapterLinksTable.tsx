@@ -23,7 +23,7 @@ const STATE_COLOR: Record<ChapterLinkState, string> = {
   missing_track: 'var(--danger-text)',
 };
 
-// The audio engine panel's list of every chapter-track link (analysis evidence ledger PRD, Phase 7, Q7 option A: the "whole
+// The audio engine panel's list of every chapter-track link (the "whole
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
 // narration chapter whether or not it has a confirmed link, so an unlinked chapter and a link pointing at a track
 // that no longer exists are both visible in one place, not just the one chapter a narrator happens to be checking.
@@ -54,7 +54,7 @@ export function ChapterLinksTable({ tracks, refreshKey, notify }: { tracks: Trac
   }, [reload, refreshKey]);
 
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it
-  // (chapter-track-link-control PRD Phase 1), so a Change never leaves the chapter linked to two tracks.
+  // so a Change never leaves the chapter linked to two tracks.
   const confirm = (chapterId: string, trackGuid: string) => {
     setBusyChapterId(chapterId);
     setError('');
@@ -77,7 +77,7 @@ export function ChapterLinksTable({ tracks, refreshKey, notify }: { tracks: Trac
   };
 
   const rows = chapterTrackRows(chapters, tracks, mappings);
-  // Nothing to link before a manuscript is imported: the mapping is scoped to a document (Q6).
+  // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
   return (

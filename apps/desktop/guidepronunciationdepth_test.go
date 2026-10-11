@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// Prep-depth phase 1: the narrator's own pronunciation, switching to the kept alternate, and a pronunciation's status and note. Each
+// The narrator's own pronunciation, switching to the kept alternate, and a pronunciation's status and note. Each
 // is one sidecar call; free text goes as --ipa=VALUE / --note=VALUE so a value starting with "-" stays a value.
 
 func TestGuidePronounceUserSendsTheTextAsOneArgument(t *testing.T) {

@@ -20,7 +20,7 @@ export const POPUP_ANCHORED_AT_FIRST_WIDTH = { reloadPerViewport: true } as cons
 export const LIVE_PROGRESS_MOVES_ON = { reloadPerViewport: true } as const;
 export const TOAST_FADES_OUT = { reloadPerViewport: true } as const;
 export const FREEZES_THE_CLOCK = { reloadPerViewport: true } as const;
-// The Script page's rail is a column from `2xl` and a panel below it (stage navigation Phase 3, ADR 0392), so its driver opens it
+// The Script page's rail is a column from `2xl` and a panel below it (ADR 0392), so its driver opens it
 // the way the width shows it (resizing one load would keep the panel open where the column shows), and its rows are also captured
-// at the wide width, the one where mock 02's three columns show.
+// at the wide width, the one where its three columns show.
 export const RAIL_DEPENDS_ON_WIDTH = { reloadPerViewport: true as const, extraViewports: [WIDE_VIEWPORT] };

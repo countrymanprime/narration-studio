@@ -1,7 +1,6 @@
--- Recording in REAPER for the Read Aloud control bar (read-aloud-control-bar PRD Phase 7, owner decision D28):
--- arm_only, record_start and record_stop (narration_transport.lua). Arming the chapter's track disarms every other
--- track and remembers the arms the narrator had; they come back when a recording the app started stops, whoever
--- stops it. The app only ever stops a recording it started.
+-- Recording in REAPER for the Read Aloud control bar: arm_only, record_start and record_stop (narration_transport.lua).
+-- Arming the chapter's track disarms every other track and remembers the arms the narrator had; they come back when a
+-- recording the app started stops, whoever stops it. The app only ever stops a recording it started.
 
 local H = require('harness')
 

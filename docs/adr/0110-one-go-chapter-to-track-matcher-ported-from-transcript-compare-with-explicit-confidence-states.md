@@ -5,15 +5,15 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 8 needs "given a chapter, find its track and where the
+The teleprompter manuscript integration needs "given a chapter, find its track and where the
 recorded audio ends", and the same answer is wanted by Home's measured duration, line identity, the review
-dashboard's chapter grouping, teleprompter-engines Phase 11 and the diagnostics DAW scan. Where the matcher lives was
-settled in the PRD (Open Question, option a): a Go port of Transcript Compare's `find_chapter_by_track_name`
+dashboard's chapter grouping, the teleprompter's chapter suggestion ([ADR 0113](0113-the-teleprompter-suggests-a-chapter-from-the-saved-armed-track-and-preselects-only-a-confident-match.md)) and the diagnostics DAW scan. Where the matcher lives was
+settled in the plan: a Go port of Transcript Compare's `find_chapter_by_track_name`
 (`sidecars/transcript-compare/core/compare.py`), number-word merge included, with shared parity cases, replacing the
 exact-title placeholder in `apps/desktop/internal/evidence/mapping.go`, and with [ADR 0100](0100-analysis-evidence-is-two-hash-keys-one-ledger-record-per-run-and-a-narrator-confirmed-track-map.md)'s
 `chapter-track-map.json` as the manual override.
 
-What the PRD left open: how faithful the port is, how a track-name-to-chapter matcher answers the reverse question
+What the plan left open: how faithful the port is, how a track-name-to-chapter matcher answers the reverse question
 (chapter to track), how region names take part, and what "never silently picks between near-equal candidates" means
 in numbers. The Python matcher itself does pick silently: several whole-token prefix matches return the shortest
 title at 0.9, and its fuzzy fallback accepts any ratio from 0.75, so "Chapter 1" against a manuscript with only
@@ -62,4 +62,4 @@ title at 0.9, and its fuzzy fallback accepts any ratio from 0.75, so "Chapter 1"
 - Roman numerals are not merged ("Chapter I" is the token `i`), as in Transcript Compare; whole-token prefix matching
   still pairs "Chapter I" with "Chapter I: Down the Rabbit-Hole" and not with "Chapter II".
 - Stretch markers, looped sources and unsaved recording make the source time inexact; the result says so rather than
-  guessing, and live REAPER state (PRD Phase 11) is the later refinement.
+  guessing, and live REAPER state is the later refinement ([ADR 0349](0349-the-resume-locate-reads-reapers-live-cursor-and-items-first-and-falls-back-to-the-saved-project-never-to-a-guess.md)).

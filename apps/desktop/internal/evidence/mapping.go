@@ -1,27 +1,16 @@
-// This file is Phase 5 of the analysis evidence ledger PRD
-// (docs/prds/analysis-evidence-ledger.prd.md#phase-5---confirmed-chapter-track-mapping,
-// Q6, Q7, Q9, D5): the narrator-confirmed trackGuid -> chapterId mapping
-// store, plus the pure suggestion helper over TM Phase 8's chapter-to-track
-// matcher (internal/chaptermatch). Q6 (option A): one
-// JSON file per project, narration-utils/chapter-track-map.json, keyed by
-// the manuscript's documentId, holding each mapping's chapter title and
-// confirmedAt beside the id - the stored title is what lets a re-import
-// re-suggest a link instead of asking again (Q9, see SuggestFromPrevious).
-// Q7 (mapping confirm UI) and the "currentness read for the UI's basis
-// label" (staleness) are Phase 6/7, not built here. Importers/callers: no
-// production code imports this yet; apps/desktop/{mapping.go,bindings.go}
-// will bind List/Confirm/Clear once this lands, and
-// apps/desktop/internal/manuscript/service.go's resetDerived adds
-// MappingFile to the paths a manuscript reset clears (Q9 option A: cleared,
-// then re-suggested). Public API added here: TrackMapping, MappingFile,
-// MappingStore, NewMappingStore, MappingStore's Confirm/Clear/List/Get
-// methods, ChapterCandidate, TrackCandidate, MappingSuggestion, Suggester,
-// SuggesterFunc, MatchSuggester and SuggestFromPrevious. Data schema: the
+// This file holds the narrator-confirmed trackGuid -> chapterId mapping store
+// (ADR 0100), plus the pure suggestion helper over the chapter-to-track matcher
+// (internal/chaptermatch). It is one JSON file per project,
+// narration-utils/chapter-track-map.json, keyed by the manuscript's documentId
+// and holding each mapping's chapter title and confirmedAt beside the id - the
+// stored title is what lets a re-import re-suggest a link instead of asking
+// again (see SuggestFromPrevious).
+//
+// Callers: apps/desktop/mapping.go binds List/Confirm/Clear;
+// apps/desktop/internal/manuscript/service.go's resetDerived adds MappingFile
+// to the paths a manuscript reset clears. The data schema is the
 // mappingFileShape JSON below, versioned by its own SchemaVersion field
-// (mappingSchemaVersion). User's instruction (verbatim): "you should have
-// everythign you need to make decisions. anything that you think you need
-// my decision on, create an open ADR for and keep going. callout any new
-// adrs on the pr that you created them so i can review."
+// (mappingSchemaVersion).
 package evidence
 
 import (
@@ -43,19 +32,18 @@ import (
 // newer app and is treated as absent, never as an error the narrator has to
 // fix (the same unknown-version rule LedgerStore and CacheStore follow).
 //
-// Version 2 (daw-chapter-track-auto-sync PRD Phase 2, ADR 0202) adds each
+// Version 2 (ADR 0202) adds each
 // link's Origin and Match, the Rejected pairs an Undo leaves behind and the
 // Previous links a re-import carries forward. A version 1 file reads as
 // manual links with nothing rejected, so no narrator-made link changes kind.
 const mappingSchemaVersion = 2
 
-// TrackMapping is one narrator-confirmed trackGuid -> chapterId link (Q6).
+// TrackMapping is one narrator-confirmed trackGuid -> chapterId link.
 // ChapterTitle is stored beside the id, not just the id, because chapter ids
 // reset on every manuscript re-import (Evidence: ids are "c-%04d" and
 // regenerate with a new documentId) - the remembered title is what
 // SuggestFromPrevious matches against the new chapter list so re-linking
-// costs one confirmation instead of asking the narrator to redo the search
-// (Q9).
+// costs one confirmation instead of asking the narrator to redo the search.
 //
 // Origin says who made the link: the narrator (OriginManual, through Confirm
 // or SetChapter) or chapter sync (OriginAuto, through AutoLink, once the
@@ -128,8 +116,8 @@ type CarryOver struct {
 }
 
 // mappingFileShape is chapter-track-map.json's on-disk shape: every
-// confirmed link for one manuscript document. DocumentID is the guard Q6's
-// "keyed by documentId" describes - a file whose DocumentID does not match
+// confirmed link for one manuscript document. DocumentID is the guard that
+// keys the file by document - a file whose DocumentID does not match
 // the caller's current documentId is read as empty, never as another
 // document's links, so a mapping never survives a re-import that
 // resetDerived did not get a chance to clear first (a killed process
@@ -145,9 +133,8 @@ type mappingFileShape struct {
 	Previous      []TrackMapping `json:"previous,omitempty"`
 }
 
-// MappingFile is the confirmed mapping's storage path under a project (Q6
-// recommendation A: narration-utils/chapter-track-map.json, a single file,
-// not a directory of records like LedgerDir/CacheDir - there is one active
+// MappingFile is the confirmed mapping's storage path under a project
+// (narration-utils/chapter-track-map.json, a single file, not a directory of records like LedgerDir/CacheDir - there is one active
 // mapping set per project at a time). It is exported so
 // manuscript.resetDerived can clear it without this package depending on
 // the manuscript package.
@@ -155,7 +142,7 @@ func MappingFile(project string) string {
 	return filepath.Join(project, "narration-utils", "chapter-track-map.json")
 }
 
-// MappingStore is the chapter-track mapping described by Q6: the links the
+// MappingStore is the chapter-track mapping: the links the
 // narrator made (Confirm, SetChapter) and, since ADR 0202, the ones chapter
 // sync made with the narrator's consent (AutoLink), each labelled by its
 // Origin. A suggestion (see Suggester below) is never written here by
@@ -177,9 +164,9 @@ func NewMappingStore(project string) *MappingStore {
 // Confirm records that trackGUID is linked to chapterID (named chapterTitle
 // at confirmation time) for documentID, stamping ConfirmedAt now. Confirming
 // again for a trackGUID that already has a link replaces it (one confirmed
-// chapter per track; two tracks may still point at the same chapter - D5's
-// "may hold several links, consumers treat that as unknown" is a consumer
-// rule, not a constraint this store enforces). It returns the mapping as
+// chapter per track; two tracks may still point at the same chapter -
+// consumers treat a chapter with several links as unknown, a consumer rule
+// this store does not enforce). It returns the mapping as
 // written.
 func (s *MappingStore) Confirm(documentID, trackGUID, chapterID, chapterTitle string) (TrackMapping, error) {
 	if documentID == "" || trackGUID == "" || chapterID == "" {
@@ -230,12 +217,12 @@ type ChapterLinkSet struct {
 	Displaced *TrackMapping `json:"displaced"`
 }
 
-// SetChapter makes trackGUID chapterID's one confirmed link
-// (chapter-track-link-control PRD Phase 1, TL3 A: one track per chapter). In
-// one locked write it removes every link chapterID holds and every link on
-// trackGUID, then appends the new one, so a relink replaces rather than adds
-// (Confirm's upsert by track left the old track linked too). A link the
-// track held for a different chapter is returned as Displaced.
+// SetChapter makes trackGUID chapterID's one confirmed link (a chapter has
+// exactly one track, ADR 0207). In one locked write it removes every link
+// chapterID holds and every link on trackGUID, then appends the new one, so a
+// relink replaces rather than adds (Confirm's upsert by track left the old
+// track linked too). A link the track held for a different chapter is returned
+// as Displaced.
 func (s *MappingStore) SetChapter(documentID, chapterID, chapterTitle, trackGUID string) (ChapterLinkSet, error) {
 	if documentID == "" || trackGUID == "" || chapterID == "" {
 		return ChapterLinkSet{}, fmt.Errorf("a confirmed mapping needs a document, a track and a chapter")
@@ -386,8 +373,8 @@ func (s *MappingStore) Previous(documentID string) ([]TrackMapping, error) {
 }
 
 // Carry starts documentID's mapping file after a manuscript re-import with no
-// links, carry's links as Previous and its rejections kept (Q9 option A:
-// cleared, then re-suggested - now re-linked by sync when it is on). An
+// links, carry's links as Previous and its rejections kept (cleared,
+// then re-suggested - or re-linked by sync when it is on). An
 // empty carry writes nothing.
 func (s *MappingStore) Carry(documentID string, carry CarryOver) error {
 	if documentID == "" {
@@ -582,7 +569,7 @@ type TrackCandidate struct {
 // MappingSuggestion is a proposed trackGuid -> chapterId link the narrator
 // has not yet confirmed. Suggesting one never writes to a MappingStore -
 // only MappingStore.Confirm does that - so "an unconfirmed suggestion is
-// never treated as a link" (D2: unconfirmed reads as unknown, never met).
+// never treated as a link": an unconfirmed chapter reads as unknown, never met.
 // Score is the chapter-to-track matcher's score (chaptermatch.ScoreExact or
 // chaptermatch.ScoreContained).
 type MappingSuggestion struct {
@@ -593,9 +580,7 @@ type MappingSuggestion struct {
 }
 
 // Suggester proposes candidate links for a set of tracks against a set of
-// chapters, without persisting anything (Phase 5's scope: "a suggestion
-// adapter that calls TM Phase 8's matcher and returns candidates without
-// persisting them"). MatchSuggester below is the implementation this package
+// chapters, without persisting anything. MatchSuggester below is the implementation this package
 // ships with.
 type Suggester interface {
 	Suggest(tracks []TrackCandidate, chapters []ChapterCandidate) []MappingSuggestion
@@ -611,8 +596,7 @@ func (f SuggesterFunc) Suggest(tracks []TrackCandidate, chapters []ChapterCandid
 
 // MatchSuggester is the Suggester backed by the shared chapter-to-track
 // matcher (internal/chaptermatch, the port of Transcript Compare's
-// find_chapter_by_track_name that teleprompter-manuscript-integration PRD
-// Phase 8 built, replacing Phase 5's exact-title placeholder). It proposes a
+// find_chapter_by_track_name). It proposes a
 // link only for a confident match - an exact token match ("CHAPTER ONE" and
 // "Chapter 1") or the one title a name is a whole-token prefix of ("Chapter
 // 1" and "Chapter 1: The Beginning") - never for the matcher's ambiguous-prefix
@@ -645,16 +629,15 @@ func suggestByMatch(tracks []TrackCandidate, chapters []ChapterCandidate) []Mapp
 	return suggestions
 }
 
-// SuggestFromPrevious re-suggests links after a manuscript re-import (Q9):
-// it takes a snapshot of TrackMapping records read before resetDerived
+// SuggestFromPrevious re-suggests links after a manuscript re-import: it
+// takes a snapshot of TrackMapping records read before resetDerived
 // cleared the store (a caller reads MappingStore.List, keeps the result,
 // then lets the re-import proceed and resetDerived clear the file) and
 // matches each one's remembered ChapterTitle against the new chapter list,
 // so a chapter whose title survives the re-import unchanged is suggested
 // again without asking the narrator to redo work resetDerived did not need
-// to force (Q9 option A's "re-suggested from stored titles"). It never
-// writes anything; the narrator still confirms each suggestion through
-// MappingStore.Confirm.
+// to force. It never writes anything; the narrator still confirms each
+// suggestion through MappingStore.Confirm.
 func SuggestFromPrevious(previous []TrackMapping, chapters []ChapterCandidate) []MappingSuggestion {
 	tracks := make([]TrackCandidate, 0, len(previous))
 	for _, mapping := range previous {

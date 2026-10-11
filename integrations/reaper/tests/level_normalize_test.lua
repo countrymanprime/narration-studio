@@ -1,5 +1,5 @@
 -- Applying a per-item gain change to match a narrator-set loudness target: apply_item_gain
--- (diagnostics-delivery-and-cleanup-tools PRD Phase 11's level-normalize half, ADR 0252).
+-- (ADR 0252).
 
 local H = require('harness')
 

@@ -111,7 +111,7 @@ export function MasterQcPage({ openSettings, focus }: { openSettings: () => void
   const [rulesOpen, setRulesOpen] = useState(false);
   const [problem, setProblem] = useState<string>();
   const [checking, setChecking] = useState(false);
-  // A delivery finding on Proof opened here (delivery-platform-profiles.prd.md Phase 9, P12): its file is opened rule by rule once
+  // A delivery finding on Proof opened here: its file is opened rule by rule once
   // the measurement is read, or the page says the file is not in it. Applied once per file and rule, so the narrator can close it.
   const [focusNote, setFocusNote] = useState<{ found: boolean; text: string }>();
   const appliedFocus = useRef<string | undefined>(undefined);

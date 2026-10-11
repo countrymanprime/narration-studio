@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// ProjectStateChangedSince's answer (reaper-automation-follow-through PRD Phase 13): the "changed since comparison"
+// ProjectStateChangedSince's answer: the "changed since comparison"
 // label compares REAPER's count now against the one the comparison started from (TranscriptState.projectChangeCount).
 func TestProjectStateChangedSinceComparesTheCountAgainstTheBaseline(t *testing.T) {
 	host := &Host{}

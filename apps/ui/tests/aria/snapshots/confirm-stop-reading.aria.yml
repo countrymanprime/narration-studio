@@ -1,4 +1,4 @@
-# Leaving the Booth while it listens (stage-navigation-and-page-replacement.prd.md Phase 4): the page behind the confirm is
+# Leaving the Booth while it listens: the page behind the confirm is
 # aria-hidden, so <body> holds the alert dialog and what Base UI leaves exposed on purpose - the two empty toast live regions
 # and the ancestors of the reading controls' own status line, a live region too, so a session that stops is still announced.
 - /children: equal

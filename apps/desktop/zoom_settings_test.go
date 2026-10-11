@@ -7,10 +7,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// Appearance.zoom (app-navigation-and-zoom-controls.prd.md Phase 3, Q4 A): the remembered webview zoom level, global
-// scope only - it belongs to this computer's window, not a project. No fieldSchemas entry exists for it (Q4 C was
-// not taken), so it is saved and read through bindings_window.go's own saveZoom/startupZoom, not the generic
-// saveSettings path; these tests mirror keymap_settings_test.go's shape for that reason.
+// Appearance.zoom is the remembered webview zoom level, global scope only: it belongs to this computer's window, not a
+// project. No fieldSchemas entry exists for it, so it is saved and read through bindings_window.go's own
+// saveZoom/startupZoom, not the generic saveSettings path; these tests mirror keymap_settings_test.go's shape for that
+// reason.
 func newTestHostForZoomSettings(t *testing.T, projectFolder string) *Host {
 	t.Helper()
 	appData := t.TempDir()

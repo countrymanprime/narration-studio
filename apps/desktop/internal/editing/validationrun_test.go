@@ -1,6 +1,6 @@
-// This file is Phase 4's run of docs/prds/editing-readiness-analysis.prd.md:
-// DX Phase 9's click and breath detectors (measure/cleanup.go, exercised,
-// never changed here) swept on the tuning half of the validation corpus
+// This file is the validation run for the click and breath detectors
+// (ADR 0510): the detectors in measure/cleanup.go, exercised and never
+// changed here, swept on the tuning half of the validation corpus
 // (validationcorpus_test.go), scored on the held-out half per class and
 // condition, and one fixture per failure the run found. Its tests pin the
 // product to the run: the shipped defaults must be what the sweep chooses, and
@@ -8,6 +8,7 @@
 // scores now. A change to the detector that moves a number fails here, and
 // the fix is a new analyzer version with a new recorded run, not an edited
 // number. docs/research/editing-click-breath-validation.md reports it.
+
 package editing
 
 import (
@@ -20,7 +21,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// validatedClasses are the two classes Phase 4 validates, with the analyzer
+// validatedClasses are the two classes the run validates, with the analyzer
 // each one's record belongs to.
 var validatedClasses = []struct {
 	label    LabelClass
@@ -85,9 +86,9 @@ func breathSweep() []sweepStep {
 	return out
 }
 
-// chooseConservative is Phase 4's selection rule on the tuning half: the
+// chooseConservative is the selection rule on the tuning half: the
 // highest recall (a missed click or breath is the false-"done" risk); among
-// those, only values at least as sensitive as DX's default (for both knobs, a
+// those, only values at least as sensitive as the measure package's default (for both knobs, a
 // lower value raises more candidates), since precision measured on synthetic
 // audio never justifies giving up recall margin on real audio; then the
 // highest precision; then the value nearest DX's default. tune scores one
@@ -196,7 +197,7 @@ func TestRecordedValidationsAreTheHeldOutRun(t *testing.T) {
 // failure has a name and a regression test. editorWants is whether a careful
 // editor cuts it; detectorFinds is what the shipped detector does today. The
 // fixtures where the two differ are the failures; the two where they agree
-// are the Phase Details' named hard cases the detector gets right.
+// are the named hard cases the detector gets right.
 type failureFixture struct {
 	name          string
 	class         measure.CleanupClass
@@ -277,8 +278,8 @@ func failureFixtures() []failureFixture {
 }
 
 // TestDetectorFailureFixtures pins every failure the run found (and the named
-// hard cases it passes) against the shipped detector. When DX Phase 9 fixes
-// one, this fails on purpose: update the fixture, bump the class's analyzer
+// hard cases it passes) against the shipped detector. When a change to the
+// measure package fixes one, this fails on purpose: update the fixture, bump the class's analyzer
 // version and record a new run.
 func TestDetectorFailureFixtures(t *testing.T) {
 	for _, fx := range failureFixtures() {

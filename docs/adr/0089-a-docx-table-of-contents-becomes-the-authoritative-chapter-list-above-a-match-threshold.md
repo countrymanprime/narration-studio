@@ -6,12 +6,11 @@
 ## Context
 
 The importer discovers chapters only by guessing at headings (`apps/desktop/internal/importer/docx.go`, `model.go`), even when the
-manuscript already carries its own table of contents. The import-structure-toc-and-characters PRD's Open Question S6 asked how
-strongly a docx's own TOC should override that heuristic, given that a stale or hand-typed TOC is common: "docx wins only when at
-least a set fraction of entries match body headings (bookmark, then normalised text, then ordinal), otherwise fall back and
-report" was the PRD's own recommendation, adopted by `implementation-plan.md` D22. No real user manuscript with a Word TOC field
-was available while this stack ran (`tests/fixtures/alice.docx` has no `fldChar`, `instrText`, `w:hyperlink`, `bookmarkStart` or
-`_Toc` bookmarks - confirmed in the PRD's Evidence section), so this decision and its implementation are verified against a
+manuscript already carries its own table of contents. The open question was how strongly a docx's own TOC should override that
+heuristic, given that a stale or hand-typed TOC is common. The recommendation the owner took: the docx wins only when at least a set
+fraction of entries match body headings (bookmark, then normalised text, then ordinal), otherwise fall back and report. No real
+user manuscript with a Word TOC field was available when this was built (`tests/fixtures/alice.docx` has no `fldChar`,
+`instrText`, `w:hyperlink`, `bookmarkStart` or `_Toc` bookmarks), so this decision and its implementation are verified against a
 hand-built OOXML fixture with real `_Toc` bookmarks and an inert TOC field wrapper (`docx_test.go`), not a real manuscript.
 
 ## Decision
@@ -23,7 +22,7 @@ hand-built OOXML fixture with real `_Toc` bookmarks and an inert TOC field wrapp
 - Entries are matched to the heading heuristic's own chapter titles in three passes, in order: by bookmark anchor, then by
   normalised heading text, then by position among whatever remains unmatched (the ordinal fallback pairs entries with titles
   positionally once the first two passes are exhausted, so even a mostly-unrelated TOC can accumulate more "matches" than the
-  entries that actually name a real chapter - this is accepted as the PRD's own recommended tie-break, not a bug).
+  entries that actually name a real chapter - this is accepted as the recommended tie-break, not a bug).
 - The TOC becomes authoritative - its own order replaces the heuristic's `chapterTitles` - only when at least **80%** of its own
   entries matched something at all. Below that, the heuristic's chapter list is kept unchanged, and a notice
   ("The table of contents listed N entries; M matched a chapter in the manuscript.") is always added whenever the two counts
@@ -36,12 +35,10 @@ hand-built OOXML fixture with real `_Toc` bookmarks and an inert TOC field wrapp
 
 ## Consequences
 
-- The 80% threshold is an implementation judgement call within the PRD's own recommended shape ("at least a set fraction"), not a
-  value the PRD or the owner specified; it is documented here rather than left as a magic number in `docx.go`. It can be revisited
-  once a real manuscript's TOC is available to tune against (see the owner-only input the PRD Evidence and
-  `implementation-plan.md` section 2 both name: "a real manuscript with a Word TOC field").
-- Markdown import does not yet read its own table of contents (a `[text](#slug)` link list); the PRD marks this "Should," not
-  "Must," and it is deferred with a follow-up issue rather than built here.
-- Nothing in this stack has been verified against a real Word-authored table of contents; the hand-built OOXML fixture proves the
-  parsing and matching logic, not that real-world TOC fields always take this exact shape. Treat this as "awaiting a real
-  manuscript" per the PRD's own Evidence section.
+- The 80% threshold is an implementation judgement call within the recommended shape ("at least a set fraction"), not a value the
+  owner specified; it is documented here rather than left as a magic number in `docx.go`. It can be revisited once a real
+  manuscript's TOC is available to tune against (the owner-only input is a real manuscript with a Word TOC field).
+- Markdown import does not yet read its own table of contents (a `[text](#slug)` link list); it was rated "Should", not "Must",
+  and is deferred with a follow-up issue rather than built here.
+- Nothing here has been verified against a real Word-authored table of contents; the hand-built OOXML fixture proves the parsing
+  and matching logic, not that real-world TOC fields always take this exact shape. Treat this as awaiting a real manuscript.

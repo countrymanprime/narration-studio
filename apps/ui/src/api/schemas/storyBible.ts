@@ -50,7 +50,7 @@ const pronunciationSchema = z
     confidence: z.string().default(''),
     /** Set by `pronounce()` when the narrator explicitly chose this value; a rebuild's `merge_locked` keeps it (B11). Absent on an auto-generated value. */
     chosen: z.boolean().optional(),
-    /** Absent on an entry written before status existed (prep-depth P1), which reads as researched. */
+    /** Absent on an entry written before status existed, which reads as researched. */
     status: pronunciationStatusSchema.default('researched'),
     note: z.string().optional(),
     alternate: pronunciationValueSchema.optional(),
@@ -98,7 +98,7 @@ const guideEntitySchema = z.object({
   context: optionalFromNull(z.string()),
   /** Set by the sidecar on an entry the narrator wrote by hand; the page does not read it. */
   manual: z.boolean().optional(),
-  /** Additive (character-continuity-review PRD, phase 2); a file written before it existed reads as an empty list. Not yet read by this page. */
+  /** Additive; a file written before it existed reads as an empty list. Not yet read by this page. */
   appearances: listFromNull(appearanceSchema),
 }) satisfies z.ZodType<GuideEntity>;
 

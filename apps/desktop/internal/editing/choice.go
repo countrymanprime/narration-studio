@@ -1,13 +1,13 @@
-// This file is Phase 8 of docs/prds/editing-readiness-analysis.prd.md: Q6's
-// per-chapter choice of which analysis source counts, items (the default) or
-// a chapter's rendered file. ChoiceStore mirrors
-// apps/desktop/internal/proofing/renders.go's own RenderStore exactly (same
+// This file holds the per-chapter choice of which analysis source counts,
+// items (the default) or a chapter's rendered file (ADR 0550). ChoiceStore
+// mirrors apps/desktop/internal/proofing/renders.go's own RenderStore (same
 // sidecar shape, same atomic temp-file-then-rename write, same "a file a
 // newer version wrote is refused, not silently ignored" read rule) - a small,
 // deliberate duplication rather than a shared helper, since the two stores
 // keep different value types (a RenderAssociation struct versus a bare
 // SourceChoice string) and this package must never import proofing's own
 // store type just to reuse its write path.
+
 package editing
 
 import (
@@ -19,9 +19,9 @@ import (
 	"sync"
 )
 
-// SourceChoice is Q6's per-chapter pick of which source counts for the
-// editing signals: SourceItems (the default - "editing happens on items") or
-// SourceRender (an explicit second source, never a silent replacement).
+// SourceChoice is the per-chapter pick of which source counts for the
+// editing signals: SourceItems (the default, since editing happens on items)
+// or SourceRender (an explicit second source, never a silent replacement).
 type SourceChoice string
 
 const (

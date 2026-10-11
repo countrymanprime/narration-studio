@@ -1,11 +1,11 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
-// `Cursor` is the Teleprompter's current word (mock 03): the
+// `Cursor` is the Teleprompter's current word (the benchmark's 03-booth mock): the
 // accent tint with a 2 px leading caret, so it reads as a position marker and never as an entity or note. Its only
 // consumer is `booth/ReaderText.tsx`, so this is safe to measure against the mock without moving any other reader.
-// `Misread`, `Extra`, `Skipped` and `Restart` are the read-aloud dialog's suspected flags (teleprompter-manuscript-integration.prd.md
-// Phase 7): a decoration in the Transcript Compare colour of the same kind, never a tint, so they layer over an entity or note mark.
-// `Search` is a manuscript search hit's matched term (reader search and controls PRD, R4) - never
+// `Misread`, `Extra`, `Skipped` and `Restart` are the read-aloud dialog's suspected flags:
+// a decoration in the Transcript Compare colour of the same kind, never a tint, so they layer over an entity or note mark.
+// `Search` is a manuscript search hit's matched term - never
 // reached through highlightKind below (nothing maps a Story Bible category to it); callers pass it
 // directly.
 export type HighlightKind =
@@ -78,7 +78,7 @@ const TEXT_TOKEN: Partial<Record<HighlightKind, string>> = {
 // background fills the whole line height rather than just the glyph box.
 //
 // `colorToken` (a bare custom-property name, e.g. `--speaker-3` from speakerColor.ts) overrides the kind's own colour
-// for the Booth's per-speaker "Voices in scene" tags (D85 #6, ADR 0367): the mark keeps its kind's `data-highlight`
+// for the Booth's per-speaker "Voices in scene" tags (ADR 0367): the mark keeps its kind's `data-highlight`
 // and behaviour, only which colour it draws with changes, so it needs no new HighlightKind of its own.
 function highlightStyle(kind: HighlightKind, colorToken?: string): CSSProperties {
   const resolvedToken = colorToken ?? TOKEN[kind];

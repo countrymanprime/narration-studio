@@ -1,8 +1,8 @@
-// Package cleanupmap maps a silence-cleanup candidate onto the REAPER items that can host it (diagnostics-delivery-
-// and-cleanup-tools PRD Phase 10, ADR 0251). measure.Diagnostics.CleanupFindings (ADR 0238) knows only the measured
-// file and a cut range in that file's own seconds - it never imports REAPER - so before a candidate can become a
-// preview marker or a trim, something has to say which live item plays that file, and whether the mapping from file
-// seconds to project time can be trusted for it. This package only reads the parsed .rpp (internal/tracks); it never
+// Package cleanupmap maps a silence-cleanup candidate onto the REAPER items that can host it (ADR 0251).
+// measure.Diagnostics.CleanupFindings (ADR 0238) knows only the measured file and a cut range in that file's own
+// seconds - it never imports REAPER - so before a candidate can become a preview marker or a trim, something has to
+// say which live item plays that file, and whether the mapping from file seconds to project time can be trusted
+// for it. This package only reads the parsed .rpp (internal/tracks); it never
 // talks to REAPER and never changes anything.
 package cleanupmap
 

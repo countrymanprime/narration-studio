@@ -5,12 +5,11 @@
 
 ## Context
 
-`docs/prds/teleprompter-manuscript-integration.prd.md` Phase 5 puts the Story Bible and note marks of the Manuscript reader
-into the read-aloud dialog, opening in a side rail (Key, Notes, Story bible), and requires that clicking a mark never moves
-the cursor or the scroll. The Manuscript reader (`ParagraphView`) annotates by character offsets and splits text wherever
-an annotation starts or ends; the read-aloud reader (`ReaderText`) renders whitespace tokens, because the tracker's
-position and Phase 4's click-to-seek are per word ([ADR 0024](0024-teleprompter-highlight-follows-the-sidecars-spans.md),
-[ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md)). So the phase has to decide
+The Story Bible and note marks of the Manuscript reader are to appear in the read-aloud dialog, opening in a side rail
+(Key, Notes, Story bible), and clicking a mark must never move the cursor or the scroll. The Manuscript reader
+(`ParagraphView`) annotates by character offsets and splits text wherever an annotation starts or ends; the read-aloud reader (`ReaderText`) renders whitespace tokens, because the tracker's
+position and the click-to-seek are per word ([ADR 0024](0024-teleprompter-highlight-follows-the-sidecars-spans.md),
+[ADR 0104](0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md)). So the design has to decide
 how a character range becomes words, what a click on a marked word does when every word is already a seek button, and
 what to do when marks overlap: `ParagraphView` nests one `role="button"` mark inside another, which axe reports as
 `nested-interactive` (the open #155, carried as debt in `apps/ui/tests/visual/axe-debt.ts`, which may not grow).
@@ -29,13 +28,13 @@ what to do when marks overlap: `ParagraphView` nests one `role="button"` mark in
    into the next one, so a tint is unbroken.
 3. A marked word is not a seek button: the mark is the one control over its words, and opening it only changes the rail
    (tab and selection). It never calls the seek, never changes `cursor` or `follow` (the only inputs to `ReaderText`'s
-   scroll), and never moves focus. Words outside marks keep Phase 4's "Start here" / "Go back to here".
+   scroll), and never moves focus. Words outside marks keep the "Start here" / "Go back to here".
 4. Marks use existing `Highlight` kinds only (an entity's category colour, `Note`), and no CSS of their own shadowing it
    ([ADR 0016](0016-highlight-primitive.md), [ADR 0017](0017-no-legacy-css-shadowing-tailwind.md)). Mark
-   targets are a union (`ReaderMarkTarget`) carried generically (`TextMark<T>`, `WordMark<T>`), so Phase 7's flag marks
-   join the same path.
+   targets are a union (`ReaderMarkTarget`) carried generically (`TextMark<T>`, `WordMark<T>`), so the flag marks
+   join the same path ([ADR 0118](0118-read-aloud-flags-are-highlight-kinds-with-an-inline-hint-and-skips-and-restarts-show-by-default.md)).
 5. The rail's open state and tab are per-viewer layout, kept in browser storage under `narration.readAloud.rail` with every
-   access guarded and a default when it fails (the PRD's Decisions Log, owner decision 2026-09-23). The selection is not
+   access guarded and a default when it fails (an owner decision of 2026-09-23). The selection is not
    kept.
 
 ## Consequences

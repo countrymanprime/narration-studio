@@ -12,7 +12,7 @@ import (
 )
 
 // CleanupCandidate is one silence-cleanup candidate ready to send to REAPER (integrations/reaper/
-// narration_cleanup_preview.lua, diagnostics-delivery-and-cleanup-tools PRD Phase 10, ADR 0251): the item (and,
+// narration_cleanup_preview.lua, ADR 0251): the item (and,
 // optionally, the take - empty means the active one) cleanupmap.ForFile resolved, and the cut range in source-file-
 // relative seconds, the same units measure.CleanupCandidate reports. Cut times are turned into project time inside
 // REAPER, the same mapping narration_navigation.lua's own project_time already applies, so a candidate stays

@@ -1,10 +1,9 @@
 // Package renderconfig is the host's end of the per-chapter render configuration command over the REAPER file
 // bridge (configure_chapter_render; see docs/architecture/reaper-bridge.md and
-// docs/research/reaper-spike-s5-render-details.md). It is the bridge's fourth real consumer, mirroring
-// pickups.Service and lineidentity.Service.
+// docs/research/reaper-spike-s5-render-details.md). It mirrors pickups.Service and
+// lineidentity.Service.
 //
-// Phase 11 (reaper-automation-follow-through PRD) / Open Question 7, answered (a): configure only. This package
-// never sends a command that renders anything - it only asks Lua to set RENDER_FILE, RENDER_PATTERN and
+// The scope is configure only. This package never sends a command that renders anything - it only asks Lua to set RENDER_FILE, RENDER_PATTERN and
 // RENDER_BOUNDSFLAG and to read RENDER_TARGETS back, so the narrator can see the resulting file names before
 // pressing Render themselves in REAPER (Ctrl+Alt+R or File > Render). The S5 spike found that a render action's
 // ID passed to the RENDER_STATS getter can trigger a real render, so nothing in this package, the Lua command it
@@ -37,10 +36,9 @@ type Service struct {
 	state map[string]any
 }
 
-// New builds the service over role (DAW port PRD Phase 5b: render config depends on the RenderConfigurer role,
-// never a concrete bridge client). When there is a role it subscribes to RENDER_CONFIGURED and ERROR events for
-// its own run (or, with no run, a session-level problem). The transcript, line-identity and pickups services
-// subscribe independently on the same underlying client; Dispatch fans events out to all four.
+// New builds the service over role (render config depends on the RenderConfigurer role, never a concrete bridge
+// client; ADR 0300). When there is a role it subscribes to RENDER_CONFIGURED and ERROR events for its
+// own run (or, with no run, a session-level problem). The transcript, line-identity and pickups services subscribe independently on the same underlying client; Dispatch fans events out to all of them.
 func New(config Config, role dawport.RenderConfigurer, changed func(map[string]any)) *Service {
 	s := &Service{config: config, role: role, changed: changed, state: empty()}
 	if role != nil {

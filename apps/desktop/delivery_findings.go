@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// Delivery findings on the Review page (delivery-platform-profiles.prd.md Phase 9, P12). Each file a measurement
+// Delivery findings on the Review page . Each file a measurement
 // measured is judged against the project's delivery profile and its missed and unmeasurable rules are saved into the
 // project's findings store, one scope per file (deliveryprofile.ReviewFindings), so the Review page lists and decides
 // them through the same four bindings as every other category. A change of profile re-judges the last measurement and

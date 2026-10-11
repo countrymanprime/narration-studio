@@ -257,7 +257,7 @@ func (p dictionaryProvider) install(ctx context.Context, id string, options asse
 func (p dictionaryProvider) verify(id string) (string, error) { return p.manager.Verify(id) }
 func (p dictionaryProvider) remove(id string) error           { return p.manager.Remove(id) }
 
-// encoderProvider serves the FFmpeg build the MP3 encoder runs (render-encode-master Phase 1, ADR 0342). Its install unpacks the
+// encoderProvider serves the FFmpeg build the MP3 encoder runs (ADR 0342). Its install unpacks the
 // pinned wheel and keeps only the executable (internal/ffmpeg), so what it takes on disk is ffmpeg.exe, not the download. It is
 // offered on Windows only: the catalog has no build for another platform.
 type encoderProvider struct{ manager *ffmpeg.Manager }

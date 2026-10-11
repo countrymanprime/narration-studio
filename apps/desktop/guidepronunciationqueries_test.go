@@ -12,9 +12,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// Prep-depth phase 3: the query list and its CSV are read-only bindings over the Story Bible file; neither starts the sidecar.
+// The query list and its CSV are read-only bindings over the Story Bible file; neither starts the sidecar.
 
-// countingGuideWithEntities is countingGuide plus a Story Bible file already on disk, for a phase 6 import test: it
+// countingGuideWithEntities is countingGuide plus a Story Bible file already on disk, for an import test: it
 // needs both a real list to match against and the recording fake sidecar phase 1's pronunciation-status calls go through.
 func countingGuideWithEntities(t *testing.T, entities any) (*guide.Service, func() [][]string) {
 	t.Helper()
