@@ -92,6 +92,13 @@ export const SILENT_CATCHES: Record<string, string> = {
   // the debounced persistence write, added after the three above.
   'src/hooks/useZoom.ts#4':
     'The debounced persist of the settled level; a failure just leaves the next launch opening at the last successfully saved level, and the narrator sees no error from a header control that already did what they asked.',
+  'src/components/production/report/ReportDialog.tsx#1':
+    'Only decides whether the dialog offers the amount line; without the plan the line is left off and the report itself reports its own errors.',
+  'src/components/proof/frame/WaveformWindow.tsx#1':
+    'Pointer capture is not available in every environment; the overview still follows the pointer events it gets without it.',
+  'src/components/proof/frame/WaveformWindow.tsx#2':
+    'Pointer capture is not available in every environment; the edge handle still follows the pointer events it gets without it.',
+  'src/studio/commands/bookmarks.ts#1': 'Reloads the bookmarks slot after a change; the store records a failed load and the change that was made stands.',
   'src/App.tsx#6':
     "The jump menu's chapter list (the store's chapters slot): a failed read keeps the last list, every page still shows, and the pages that need the chapters report the real error.",
   'src/App.tsx#7': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',

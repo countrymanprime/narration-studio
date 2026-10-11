@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Heading } from '../../primitives/Heading';
 import type { ProofProgress } from '../proof.selectors';
 
 /**
@@ -8,7 +9,7 @@ import type { ProofProgress } from '../proof.selectors';
 export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress; chapterBar: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <h1 className="text-lg font-semibold text-[var(--text)]">Proof</h1>
+      <Heading title="Proof" />
       {chapterBar}
       <span className="flex-1" />
       {progress.total > 0 ? (

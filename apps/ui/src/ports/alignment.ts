@@ -26,14 +26,14 @@ export interface HeardWord {
   timing?: WorkspaceWordTiming;
 }
 
-export interface Heard {
+interface Heard {
   engine: { id: string; name: string };
   /** In reading order. */
   words: HeardWord[];
 }
 
 /** What was heard, or null with why nothing was. */
-export type HeardAnswer = { heard: Heard } | { heard: null; reason: string; reasons: CoverageReason[] };
+type HeardAnswer = { heard: Heard } | { heard: null; reason: string; reasons: CoverageReason[] };
 
 export interface AlignmentPort {
   heard(chapterId: string): Promise<HeardAnswer>;
@@ -46,7 +46,7 @@ const NEVER = 'Nothing has been transcribed yet: run the check on this chapter.'
 const ALIGN_AGAIN = 'The check ran before words were aligned: align the chapter again to read what was heard.';
 
 /** The heard words of a stored alignment, or null with the reason; a pure function of the binding's answer. */
-export function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
+function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
   const reasons = result.reasons;
   if (result.state === 'never') return { heard: null, reason: NEVER, reasons };
   if (result.needsAlignAgain) return { heard: null, reason: ALIGN_AGAIN, reasons };
