@@ -96,6 +96,12 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 
 The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×900, dark) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons, D98).
 
+## Gate stamp
+
+`scripts/ci/gate-stamp.mjs` ties "the full gate passed" to an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `--hook` is written as a `Stop` and `SubagentStop` hook: it exits 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match the tree. It lets a stop through when `stop_hook_active` is set, and when the last message says `Gate: skipped — <reason>` (an agent-train worker runs the targeted set its template names, not the full gate).
+
+The script is not wired in yet: `.claude/settings.json` does not register the hook, and `pnpm check` does not call `record`, so nothing is blocked today.
+
 ## Reading a run
 
 Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\narration-utils\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text, [ADR 0251](../adr/0251-tool-runs-are-logged-as-json-lines-through-slog-with-a-run-id-and-content-is-never-logged.md)), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).
