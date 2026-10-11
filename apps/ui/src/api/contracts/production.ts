@@ -135,6 +135,20 @@ export type ProductionReportExport = {
 };
 
 /**
+ * The document one export would write now (ProductionStatusReportPreview, ADR 0843): the host's own HTML page and JSON
+ * text, byte for byte what the export writes for the same project state, and the folder and file stem it would use
+ * now (a later second may name it differently). Nothing is written. The HTML is the host's escaped template output with
+ * no script, so a dialog can show it in a sandboxed frame.
+ */
+export type ProductionReportPreview = {
+  html: string;
+  json: string;
+  folder: string;
+  stem: string;
+  contractedAmountIncluded: boolean;
+};
+
+/**
  * One calendar date of the book's logged-hours burndown (ProductionBurndown): every hour logged by the end of that day, added up from every earlier day. Data only - a chart
  * primitive would plot it; none does yet.
  */
@@ -166,6 +180,12 @@ export interface ProductionApi {
    * without a project.
    */
   productionStatusReport(includeContractedAmount: boolean): Promise<ProductionReportExport>;
+  /**
+   * The status report an export would write now, built by the host from the same model as `productionStatusReport`,
+   * so the preview is the written file. Writes nothing; `includeContractedAmount` is the same opt-in. Rejects without
+   * a project.
+   */
+  productionStatusReportPreview(includeContractedAmount: boolean): Promise<ProductionReportPreview>;
   /** The book's logged hours by day, one point per day from the first stopped session to the last; empty until one
    * is logged. Data only, for a chart primitive that does not exist yet. */
   productionBurndown(): Promise<ProductionBurndownPoint[]>;

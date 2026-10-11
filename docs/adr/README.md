@@ -383,4 +383,5 @@ The table is generated from each ADR's heading and Status line ([ADR 0410](0410-
 | [0810](0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md) | A DAW call answers one result object, and a capability reports whether it is destructive and its mode | Accepted (owner ruling 2026-10-11; ADR row A7 in the ADR register) |
 | [0820](0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | A bookmark is a spot kept in a project sidecar, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) | The recording check names its gaps missing, extra or misread, and a confidence is null with a reason until words are scored | Proposed |
+| [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
 <!-- adr-index:end -->
