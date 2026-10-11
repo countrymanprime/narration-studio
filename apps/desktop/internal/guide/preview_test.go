@@ -43,6 +43,10 @@ func runFakeSidecar(mode string) int {
 			_ = file.Close()
 		}
 	}
+	if mode == "candidate" {
+		fmt.Println(`{"ok":true,"say":"wɹɛn"}`)
+		return 0
+	}
 	target := filepath.Join(flagValue(os.Args[1:], "--audio-dir"), flagValue(os.Args[1:], "--output-name"))
 	_ = os.MkdirAll(filepath.Dir(target), 0o755)
 	switch mode {
@@ -199,7 +203,7 @@ func TestPreviewCacheIsKeyedOnTheVoice(t *testing.T) {
 func TestPreviewCacheIsKeyedOnTheChosenPronunciation(t *testing.T) {
 	rig := newPreviewRig(t, "wav")
 	rig.writeGuide(t, `{"entities":[{"id":"e1","canonical_name":"Dawnspire","aliases":[],
-		"pronunciation":{"ipa":"dawn","source":"user","confidence":"narrator","chosen":true}}]}`)
+		"pronunciation":{"ipa":"dawn","source":"manual","confidence":"narrator","chosen":true}}]}`)
 	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +220,7 @@ func TestPreviewInvalidatesTheCacheWhenAPronunciationIsChosen(t *testing.T) {
 		t.Fatal(err)
 	}
 	rig.writeGuide(t, `{"entities":[{"id":"e1","canonical_name":"Dawnspire","aliases":[],
-		"pronunciation":{"ipa":"dawn","source":"user","confidence":"narrator","chosen":true}}]}`)
+		"pronunciation":{"ipa":"dawn","source":"manual","confidence":"narrator","chosen":true}}]}`)
 	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
 		t.Fatal(err)
 	}
