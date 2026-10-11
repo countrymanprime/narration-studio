@@ -111,6 +111,7 @@ export function createMockApi(
     chapters: () => s.chapters,
     assetRequired: assets.whisperAssetRequired,
     engines: assets.coverageEngines,
+    saveFinding: (finding) => saveFinding(finding),
     // A finished check changes its chapter's status row, so chaptersync:state goes out again.
     endJob: (event) => {
       endJob(event);
