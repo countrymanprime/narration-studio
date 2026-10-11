@@ -16,7 +16,7 @@ import {
 export const productionDrivers: Record<string, Driver> = {
   'no-data': async (page) => {
     await openProduction(page);
-    await page.getByText('No delivery date set yet').waitFor();
+    await page.getByText('Set a due date').waitFor();
   },
   'on-pace': async (page) => {
     await openProduction(page, '?mockProduction=on-pace');
@@ -28,7 +28,10 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'at-risk': async (page) => {
     await openProduction(page, '?mockProduction=at-risk');
-    await page.getByText(/^Due 29 Sep/).waitFor();
+    await page
+      .getByRole('list', { name: 'Production figures' })
+      .getByText(/Sep 29/)
+      .waitFor();
   },
 
   'live-updates-degraded': async (page) => {
@@ -39,7 +42,7 @@ export const productionDrivers: Record<string, Driver> = {
   'no-manuscript': async (page) => {
     await page.goto('/?mockNoManuscript=1');
     await settlePage(page);
-    await page.getByRole('region', { name: 'No imported manuscript' }).getByRole('button', { name: 'Import manuscript' }).waitFor();
+    await page.getByRole('region', { name: 'Import your manuscript' }).getByRole('button', { name: 'Import manuscript' }).waitFor();
   },
   'daw-not-linked': async (page) => {
     // Reload with the mock's no-linked-DAW seam (see main.tsx): the header's engine chip picks it up at once.
