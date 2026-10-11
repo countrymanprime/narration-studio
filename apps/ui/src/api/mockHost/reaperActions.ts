@@ -81,7 +81,8 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
           { position: 9.25, tag: 'narrator', note: 'Mispronounced "labyrinthine"' },
           { position: 42, tag: '', note: 'Dog barked in the background' },
         ];
-  let pickupsResolvedCount = 0;
+  // The pickups resolved in this mock session (`PICKUP_DONE:` markers), which Reopen puts back and ListMarkers lists.
+  let pickupsDone: PickupsMoment[] = [];
   // The 'error' seed models a broken REAPER script (the recurring cause a real ERROR event reports), not a
   // one-off: every action keeps failing the same way until the narrator fixes REAPER and reopens, the same as
   // a real session import_pickups/next_pickup/etc. would if the script itself is what's wrong.
@@ -222,7 +223,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
             message: `Imported ${added.length} pickup${added.length === 1 ? '' : 's'}.`,
             importReport: { added: added.length, existing: 0, invalid: 0 },
             remaining: pickupsOpen.length,
-            total: pickupsOpen.length + pickupsResolvedCount,
+            total: pickupsOpen.length + pickupsDone.length,
           };
         });
       }, 300);
@@ -242,7 +243,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
             message: `Exported ${pickupsOpen.length} pickup${pickupsOpen.length === 1 ? '' : 's'}.`,
             csv,
             remaining: pickupsOpen.length,
-            total: pickupsOpen.length + pickupsResolvedCount,
+            total: pickupsOpen.length + pickupsDone.length,
           };
         });
       }, 300);
@@ -275,16 +276,56 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
           } else {
             const resolved = pickupsOpen[index];
             pickupsOpen = pickupsOpen.filter((_, candidateIndex) => candidateIndex !== index);
-            pickupsResolvedCount += 1;
+            pickupsDone = [...pickupsDone, resolved];
             pickups = {
               ...pickups,
               phase: 'success',
               message: 'Marked this pickup done.',
               resolved,
               remaining: pickupsOpen.length,
-              total: pickupsOpen.length + pickupsResolvedCount,
+              total: pickupsOpen.length + pickupsDone.length,
             };
           }
+        });
+      }, 300);
+      return { status: 'started' };
+    },
+    pickupsReopen: async (position) => {
+      if (!Number.isFinite(position) || position < 0) throw new Error('the pickup position must be a number of seconds, zero or more');
+      beginPickups('reopening', 'Reopening this pickup…');
+      publishPickups();
+      setTimeout(() => {
+        if (pickups.phase !== 'reopening') return;
+        settlePickups(() => {
+          const index = pickupsDone.findIndex((row) => Math.abs(row.position - position) <= 0.15);
+          if (index < 0) {
+            pickups = { ...pickups, phase: 'error', message: 'No resolved pickup was found at that position.' };
+            return;
+          }
+          pickupsOpen = [...pickupsOpen, pickupsDone[index]].sort((a, b) => a.position - b.position);
+          pickupsDone = pickupsDone.filter((_, candidateIndex) => candidateIndex !== index);
+          pickups = { ...pickups, phase: 'success', message: 'Marked this pickup open again.' };
+        });
+      }, 300);
+      return { status: 'started' };
+    },
+    pickupsListMarkers: async () => {
+      beginPickups('listing', 'Reading the pickup markers from REAPER…');
+      publishPickups();
+      setTimeout(() => {
+        if (pickups.phase !== 'listing') return;
+        settlePickups(() => {
+          const markers = [
+            ...pickupsOpen.map((row) => ({ start: row.position, state: 'open' as const, tag: row.tag, note: row.note })),
+            ...pickupsDone.map((row) => ({ start: row.position, state: 'done' as const, tag: row.tag, note: row.note })),
+          ].sort((a, b) => a.start - b.start);
+          const done = pickupsDone.length;
+          pickups = {
+            ...pickups,
+            phase: 'success',
+            message: `Read ${markers.length} pickup marker${markers.length === 1 ? '' : 's'}: ${markers.length - done} open, ${done} done.`,
+            markers,
+          };
         });
       }, 300);
       return { status: 'started' };
@@ -296,7 +337,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
         if (pickups.phase !== 'counting') return;
         settlePickups(() => {
           const remaining = pickupsOpen.length;
-          const total = remaining + pickupsResolvedCount;
+          const total = remaining + pickupsDone.length;
           pickups = { ...pickups, phase: 'success', message: `${remaining} pickup${remaining === 1 ? '' : 's'} remaining of ${total}.`, remaining, total };
         });
       }, 300);

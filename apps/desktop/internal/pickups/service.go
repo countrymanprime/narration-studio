@@ -4,6 +4,8 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,7 +19,7 @@ import (
 // Config is the session path the service needs to talk to REAPER over the file bridge.
 type Config struct{ SessionDir string }
 
-// Service is the state machine for one pickup-list run at a time (import, export, jump, resolve or count),
+// Service is the state machine for one pickup-list run at a time (import, export, jump, resolve, reopen, list or count),
 // mirroring transcript.Service and lineidentity.Service.
 type Service struct {
 	mu      sync.RWMutex
@@ -26,6 +28,9 @@ type Service struct {
 	changed func(map[string]any)
 	// +checklocks:mu
 	state map[string]any
+	// listPath is the file the current ListMarkers run asked REAPER to write; the answer is read from here only.
+	// +checklocks:mu
+	listPath string
 }
 
 // New builds the service over role (pickups depends on the PickupList role, never a concrete bridge client, so a second
@@ -37,7 +42,8 @@ func New(config Config, role dawport.PickupList, changed func(map[string]any)) *
 	s := &Service{config: config, role: role, changed: changed, state: empty()}
 	if role != nil {
 		role.Subscribe(dawport.Subscription{
-			Tags:    []string{"PICKUPS_IMPORTED", "PICKUPS_EXPORTED", "PICKUPS_COUNTED", "PICKUP_NEXT", "PICKUP_RESOLVED", "ERROR"},
+			Tags: []string{"PICKUPS_IMPORTED", "PICKUPS_EXPORTED", "PICKUPS_COUNTED", "PICKUP_NEXT", "PICKUP_RESOLVED", "PICKUP_REOPENED",
+				"PICKUP_MARKERS_LISTED", "ERROR"},
 			Owns:    s.ownsRun,
 			Handle:  func(event dawport.Event) { s.Handle(event.Fields) },
 			Invalid: s.handleInvalid,
@@ -54,6 +60,8 @@ func empty() map[string]any {
 		"resolved":     nil,
 		"importReport": nil,
 		"csv":          "",
+		// The pickup markers REAPER holds, open and done, from the last ListMarkers (SN-D44); empty otherwise.
+		"markers": []any{},
 	}
 }
 
@@ -144,6 +152,48 @@ func (s *Service) Resolve(position float64) error {
 	return nil
 }
 
+// Reopen puts the resolved pickup nearest position back to open (PICKUP:), keeping its body, in one undo step: the
+// inverse of Resolve. A position that is not a finite number of seconds, zero or more, is refused before anything is sent.
+func (s *Service) Reopen(position float64) error {
+	if s.role == nil {
+		return fmt.Errorf("the REAPER bridge is unavailable")
+	}
+	if math.IsNaN(position) || math.IsInf(position, 0) || position < 0 {
+		return fmt.Errorf("the pickup position must be a number of seconds, zero or more")
+	}
+	runID := newRunID()
+	s.begin(runID, "reopening", "Reopening this pickup…")
+	if err := s.role.ReopenPickup(runID, position); err != nil {
+		s.fail(err.Error())
+		return err
+	}
+	s.notify()
+	return nil
+}
+
+// ListMarkers asks REAPER for every pickup marker, open or done (list_pickup_markers is read-only), into a file under the
+// session folder; once PICKUP_MARKERS_LISTED arrives Handle reads that file back into the state's markers (readMarkers).
+func (s *Service) ListMarkers() error {
+	if s.role == nil {
+		return fmt.Errorf("the REAPER bridge is unavailable")
+	}
+	if err := os.MkdirAll(s.config.SessionDir, 0o755); err != nil {
+		return fmt.Errorf("could not prepare the REAPER session directory: %w", err)
+	}
+	runID := newRunID()
+	path := filepath.Join(s.config.SessionDir, "pickups_markers_"+runID+".txt")
+	s.begin(runID, "listing", "Reading the pickup markers from REAPER…")
+	s.mu.Lock()
+	s.listPath = path
+	s.mu.Unlock()
+	if err := s.role.ListPickupMarkers(runID, path); err != nil {
+		s.fail(err.Error())
+		return err
+	}
+	s.notify()
+	return nil
+}
+
 // Count asks REAPER how many pickups remain versus the total (open plus resolved); read-only.
 func (s *Service) Count() error {
 	if s.role == nil {
@@ -222,7 +272,7 @@ func (s *Service) handleInvalid(event dawport.Event, reason error) {
 
 func runInProgress(state map[string]any) bool {
 	switch state["phase"] {
-	case "importing", "exporting", "jumping", "resolving", "counting":
+	case "importing", "exporting", "jumping", "resolving", "reopening", "listing", "counting":
 		return true
 	}
 	return false
@@ -287,6 +337,22 @@ func (s *Service) Handle(fields []string) {
 			s.state["phase"], s.state["message"] = "success", "Marked this pickup done."
 			changed = true
 		}
+	case "PICKUP_REOPENED":
+		if len(fields) >= 5 && s.state["phase"] == "reopening" {
+			s.state["phase"], s.state["message"] = "success", "Marked this pickup open again."
+			changed = true
+		}
+	case "PICKUP_MARKERS_LISTED":
+		if len(fields) >= 5 && s.state["phase"] == "listing" {
+			markers, skipped, problem := readMarkers(s.listPath, textAt(fields, 2))
+			if problem != "" {
+				s.state["phase"], s.state["message"] = "error", problem
+			} else {
+				s.state["markers"] = markers
+				s.state["phase"], s.state["message"] = "success", markersSummary(markers, skipped)
+			}
+			changed = true
+		}
 	case "PICKUPS_COUNTED":
 		if len(fields) >= 4 && s.state["phase"] == "counting" {
 			remaining, total := intAt(fields, 2), intAt(fields, 3)
@@ -341,6 +407,64 @@ func readExportedCSV(path string) (string, error) {
 		return "", err
 	}
 	return builder.String(), nil
+}
+
+// maxMarkerFile bounds what readMarkers reads: a pickup line is well under 1 KiB, so this is far past any real project.
+const maxMarkerFile = 8 << 20
+
+// readMarkers reads list_pickup_markers' start|state|tag|note file (the note is last, so it may hold pipes) from want, the
+// path this run asked for, never from a path the event names. Each line passes the CSV import's own validateRow and a
+// state of exactly open or done; a line that fails is counted in skipped, never guessed at. A file it cannot read is problem,
+// the sentence the state shows.
+func readMarkers(want, listed string) (markers []any, skipped int, problem string) {
+	if want == "" || filepath.Clean(listed) != filepath.Clean(want) {
+		return nil, 0, "Could not read the pickup markers REAPER listed: it wrote a different file than the one this app asked for."
+	}
+	file, err := os.Open(want)
+	if err != nil {
+		return nil, 0, fmt.Sprintf("Could not read the pickup markers REAPER listed (%v).", err)
+	}
+	defer func() { _ = file.Close() }()
+	content, err := io.ReadAll(io.LimitReader(file, maxMarkerFile+1))
+	if err != nil {
+		return nil, 0, fmt.Sprintf("Could not read the pickup markers REAPER listed (%v).", err)
+	}
+	if len(content) > maxMarkerFile {
+		return nil, 0, "Could not read the pickup markers REAPER listed: the file is too large."
+	}
+	markers = []any{}
+	for _, raw := range strings.Split(string(content), "\n") {
+		raw = strings.TrimRight(raw, "\r")
+		if raw == "" {
+			continue
+		}
+		fields := splitPipeFields(raw, 4)
+		if len(fields) != 4 || (fields[1] != "open" && fields[1] != "done") {
+			skipped++
+			continue
+		}
+		row, problem := validateRow([]string{fields[0], fields[3], fields[2]})
+		if problem != "" {
+			skipped++
+			continue
+		}
+		markers = append(markers, map[string]any{"start": row.Start, "state": fields[1], "tag": row.Tag, "note": row.Note})
+	}
+	return markers, skipped, ""
+}
+
+func markersSummary(markers []any, skipped int) string {
+	open := 0
+	for _, marker := range markers {
+		if marker.(map[string]any)["state"] == "open" {
+			open++
+		}
+	}
+	summary := fmt.Sprintf("Read %d pickup marker%s: %d open, %d done.", len(markers), plural(len(markers)), open, len(markers)-open)
+	if skipped > 0 {
+		summary += fmt.Sprintf(" %d unreadable line%s skipped.", skipped, plural(skipped))
+	}
+	return summary
 }
 
 // splitPipeFields splits value into at most count fields on "|"; the last field is the remainder, so it may

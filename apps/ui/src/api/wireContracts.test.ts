@@ -1541,6 +1541,30 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     }
   });
 
+  it('the pickups state through reopen and list markers: a resolved pickup reopens and the markers carry both states', async () => {
+    vi.useFakeTimers();
+    const api = createMockApi({}, { pickups: 'import-success' });
+    const seen: unknown[] = [];
+    api.subscribePickups((state) => seen.push(structuredClone(state)));
+    await api.pickupsResolve(42);
+    await vi.advanceTimersByTimeAsync(300);
+    expectMatches(pickupsStartResultSchema, await api.pickupsListMarkers(), 'mock list markers start');
+    await vi.advanceTimersByTimeAsync(300);
+    expect((await api.pickupsState()).markers).toEqual([
+      { start: 9.25, state: 'open', tag: 'narrator', note: 'Mispronounced "labyrinthine"' },
+      { start: 42, state: 'done', tag: '', note: 'Dog barked in the background' },
+    ]);
+    expectMatches(pickupsStartResultSchema, await api.pickupsReopen(42.1), 'mock reopen start');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(await api.pickupsState()).toMatchObject({ phase: 'success', message: 'Marked this pickup open again.', markers: [] });
+    await api.pickupsReopen(42);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(await api.pickupsState()).toMatchObject({ phase: 'error', message: 'No resolved pickup was found at that position.' });
+    for (const state of seen) expectMatches(pickupsStateSchema, state, 'mock pickups:state');
+    await expect(api.pickupsReopen(-1)).rejects.toThrow(/pickup position/);
+    await expect(api.pickupsReopen(Number.NaN)).rejects.toThrow(/pickup position/);
+  });
+
   it('pickupsImport reports every unusable row and throws when none are usable', async () => {
     const api = createMockApi();
     await expect(api.pickupsImport('not-a-number,First\n')).rejects.toThrow(/no valid pickups/);
@@ -3209,6 +3233,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pickupsExport',
       'pickupsNext',
       'pickupsResolve',
+      'pickupsReopen',
+      'pickupsListMarkers',
       'pickupsCount',
       'pickupsState',
       'renderConfigConfigure',
@@ -3452,6 +3478,15 @@ describe('one deliberately broken sample per boundary fails with a specific mess
     const flags = (readGolden('teleprompter-events.json') as Array<{ type: string; kind?: string }>).filter((event) => event.type === 'flag');
     expect(new Set(flags.map((flag) => flag.kind))).toEqual(new Set(['misread', 'extra', 'skipped', 'restart']));
     expect(failure(teleprompterEventSchema, { ...flags[0], kind: 'mumbled' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['kind']);
+  });
+
+  it('a state snapshot (a pickup marker state the UI does not know)', () => {
+    const listed = readGolden('pickups-markers-listed.json') as { markers: object[] };
+    const broken = { ...listed, markers: [{ ...listed.markers[0], state: 'maybe' }] };
+    expect(failure(pickupsStateSchema, broken, 'pickups:state').issues.map((issue) => issue.path)).toEqual(['markers[0].state']);
+    const withoutMarkers: Record<string, unknown> = { ...listed };
+    delete withoutMarkers.markers;
+    expect(failure(pickupsStateSchema, withoutMarkers, 'pickups:state').issues.map((issue) => issue.path)).toEqual(['markers']);
   });
 
   it('a state snapshot (a transcript phase the UI does not know)', () => {

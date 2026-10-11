@@ -1,0 +1,25 @@
+{
+  "csv": "",
+  "importReport": null,
+  "markers": [
+    {
+      "note": "Mispronounced",
+      "start": 1.5,
+      "state": "done",
+      "tag": "narrator"
+    },
+    {
+      "note": "Second pickup",
+      "start": 9.25,
+      "state": "open",
+      "tag": ""
+    }
+  ],
+  "message": "Read 2 pickup markers: 1 open, 1 done.",
+  "next": null,
+  "phase": "success",
+  "remaining": 0,
+  "resolved": null,
+  "runId": "1790000000000000",
+  "total": 0
+}

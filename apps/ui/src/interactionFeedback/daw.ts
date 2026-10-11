@@ -24,4 +24,15 @@ export const dawFeedback = {
   'src/ports/daw.ts::readAloudRecordStop#1': adapter('Forwards Stop recording.'),
   'src/ports/daw.ts::workspaceUseTake#1': adapter('Forwards Use this take.'),
   'src/ports/daw.ts::findingsAddMarker#1': adapter('Forwards Add marker.'),
+  // The pickup marker methods (SN-D44): each reads the pickups capability first, refusing with its sentence, then starts one pickups run and
+  // waits for that run's finished pickups:state.
+  'src/ports/daw.ts::dawCapabilities#2': adapter(
+    'Reads the pickups capability before a pickup marker call, so a DAW that does not answer is refused with its sentence.',
+  ),
+  'src/ports/daw.ts::pickupsState#1': adapter('Reads the run id before a pickup marker call, so the answer is the next run to finish.'),
+  'src/ports/daw.ts::subscribePickups#1': adapter('Waits for the pickup run to finish and unsubscribes once it has.'),
+  'src/ports/daw.ts::pickupsImport#1': adapter('Forwards adding pickup markers.'),
+  'src/ports/daw.ts::pickupsResolve#1': adapter('Forwards marking a pickup done.'),
+  'src/ports/daw.ts::pickupsReopen#1': adapter('Forwards marking a pickup open again.'),
+  'src/ports/daw.ts::pickupsListMarkers#1': adapter('Forwards reading the pickup markers.'),
 };

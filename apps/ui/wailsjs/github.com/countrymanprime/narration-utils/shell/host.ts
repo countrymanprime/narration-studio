@@ -1468,6 +1468,14 @@ export function PickupsImport(csvText: string): $CancellablePromise<string> {
     return $Call.ByID(2264841114, csvText);
 }
 
+/**
+ * PickupsListMarkers asks REAPER for every pickup marker, open or done; read-only. The validated markers arrive in the
+ * "pickups:state" event's markers.
+ */
+export function PickupsListMarkers(): $CancellablePromise<string> {
+    return $Call.ByID(2406048942);
+}
+
 export function PickupsNext(): $CancellablePromise<string> {
     return $Call.ByID(1607807066);
 }
@@ -1477,6 +1485,14 @@ export function PickupsNext(): $CancellablePromise<string> {
  */
 export function PickupsPunch(position: number): $CancellablePromise<string> {
     return $Call.ByID(3486630797, position);
+}
+
+/**
+ * PickupsReopen puts the resolved pickup nearest position (seconds) back to open, the inverse of PickupsResolve (SN-D44). A
+ * position that is not a finite number of seconds, zero or more, is refused before anything is sent.
+ */
+export function PickupsReopen(position: number): $CancellablePromise<string> {
+    return $Call.ByID(978522106, position);
 }
 
 export function PickupsResolve(position: number): $CancellablePromise<string> {
