@@ -150,7 +150,7 @@ A chapter's name (its title and, when it has one, its subtitle) is drawn one way
 
 ## Motion
 
-See [`motion-and-animation.md`](motion-and-animation.md) — not yet a formal system. Motion is a `motion-safe:` utility (`MeterBar`'s segment transition, `WorkDialog`'s fill), and `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer ([ADR 0057](../adr/0057-a-running-job-that-cannot-be-cancelled-keeps-its-dialog-blocking-and-says-so.md)).
+See [`motion-and-animation.md`](motion-and-animation.md) — not yet a formal system. Motion is a `motion-safe:` utility (`ProgressBar`'s fill, `LevelMeter`, `Disclosure`, `Toast`), and `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer ([ADR 0057](../adr/0057-a-running-job-that-cannot-be-cancelled-keeps-its-dialog-blocking-and-says-so.md)).
 
 ## What the suites do not prove
 

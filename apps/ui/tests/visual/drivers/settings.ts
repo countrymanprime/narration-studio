@@ -292,8 +292,8 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Tracks and Proof read from the linked .rpp file.').waitFor();
   },
   'project-daw-not-linked': async (page) => {
-    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category (new in this phase,
-    // PRD W19 - previously global-only) shows its unlinked copy and "Link a REAPER project file".
+    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category (PRD W19)
+    // shows its unlinked copy and "Link a REAPER project file".
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await goToPage(page, 'Settings');

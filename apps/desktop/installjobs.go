@@ -23,8 +23,7 @@ const (
 	installKindEncoder    = "encoder"
 )
 
-// The phases of an asset install, the words the UI polls for (apps/ui/src/api/contracts/assets.ts). Whisper used to say "running"; every
-// asset now speaks the update download's vocabulary.
+// The phases of an asset install, the words the UI polls for (apps/ui/src/api/contracts/assets.ts). Every asset uses the update download's vocabulary.
 const (
 	installPhaseDownloading = "downloading"
 	installPhaseVerifying   = "verifying"

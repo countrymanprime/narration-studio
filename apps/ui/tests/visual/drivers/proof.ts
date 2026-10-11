@@ -70,7 +70,7 @@ export const proofDrivers: Record<string, Driver> = {
   },
   filtered: async (page) => {
     await openProof(page);
-    // Mock 04 draws no filter row (mock-fidelity-primitives-and-components.prd.md Phase 12): open the popover, so
+    // Mock 04 draws no filter row: open the popover, so
     // the capture shows which filters are narrowing the list rather than just the narrowed list on its own.
     await page.getByRole('button', { name: /^Filters/ }).click();
     await page.getByRole('combobox', { name: 'Check' }).selectOption({ label: 'Local AI compare' });

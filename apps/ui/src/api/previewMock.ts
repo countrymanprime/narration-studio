@@ -1,4 +1,4 @@
-// The browser mock's preview candidates (proofing-preview-suggestion.prd.md Phase 2), answering the shape
+// The browser mock's preview candidates, answering the shape
 // apps/desktop/bindings_preview.go's PreviewCandidates does. It is a simplified, deterministic stand-in for Phase
 // 1's real Go ranking engine (apps/desktop/internal/preview), not a port of it: good enough to drive every named
 // state (`ok` with candidates, `no_manuscript`, `nothing_eligible`) for the Phase 3 panel and its tests, not to

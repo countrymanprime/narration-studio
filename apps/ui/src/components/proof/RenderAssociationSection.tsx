@@ -6,7 +6,7 @@ import { useProofingRender } from './useProofingRender';
 const baseName = (path: string) => path.split(/[\\/]/).pop() ?? path;
 
 /**
- * A chapter's chosen rendered file (proofing-readiness-signals.prd.md Phase 6): what the delivery checks above are
+ * A chapter's chosen rendered file: what the delivery checks above are
  * about, and the actions that change it - Choose (or re-choose after it goes stale, missing or unsupported), Clear,
  * and Measure, which reuses the existing measurement job (DX-1) and needs no second file picker (the choice made
  * here is enough). Nothing here evaluates a signal itself; StageEvidence's "What was checked" already shows each

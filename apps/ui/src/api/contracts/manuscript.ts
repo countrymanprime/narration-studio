@@ -94,7 +94,7 @@ export type ManuscriptImportSection = {
   /**
    * Where the subtitle's line goes if the narrator says it is not a subtitle: `title` joins it to the title (a title wrapped onto two
    * lines), `body` makes it the chapter's first paragraph (a line of plain text under a plain-text heading, an epigraph say). Sent with
-   * every subtitle, omitted with none (story-bible-and-import-ux-briefs PRD, Phase 5).
+   * every subtitle, omitted with none.
    */
   subtitleOff?: 'title' | 'body';
   contentKind: ManuscriptContentKind;

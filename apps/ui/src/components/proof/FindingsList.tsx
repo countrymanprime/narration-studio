@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { analyzerLabel, chapterLabel, confidenceLabel, evidenceKindLabel, findingSummary, formatTime } from './findingFormat';
 import { resolutionOf } from './resolution';
 
-// The note's type as mock 04 draws it (stage-navigation-and-page-replacement.prd.md Phase 5): a chip coloured by what
+// The note's type as mock 04 draws it: a chip coloured by what
 // kind of fix it asks for, never by colour alone (the chip says the category in words).
 export const CATEGORY_TONE: Record<string, StatusTone> = {
   transcript_discrepancy: 'danger',

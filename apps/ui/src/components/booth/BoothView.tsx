@@ -42,7 +42,7 @@ type Props = {
   marks?: Map<string, ReaderMark[]>;
   onOpenMark?: (mark: ReaderMark) => void;
   header?: ReactNode;
-  /** The pre-session setup (stage-navigation-and-page-replacement.prd.md Phase 4: the chapter picker, the REAPER
+  /** The pre-session setup (the chapter picker, the REAPER
    * suggestion and the credits warning), shown above the text only while no session runs. */
   setup?: ReactNode;
   /** The `ReaderRail` element `BoothSession` builds: `FocusShell` gives it its own landmark. */
@@ -132,7 +132,7 @@ function BoothStatus({
     <>
       <span className="flex-none">
         {rec ? (
-          // The mock's own REC pill (mock-fidelity-primitives-and-components.prd.md Phase 13, mock 03): its
+          // The mock's own REC pill (mock 03): its
           // `--rec-fill`/`--rec-text` are a fixed maroon, not a status tone, so it draws outside `StatusBadge`.
           <span
             className="inline-flex min-h-7 items-center gap-1.5 rounded-full px-3 font-['Barlow_Condensed',sans-serif] text-[0.8125rem] font-bold tracking-[0.13em] uppercase"
@@ -185,7 +185,7 @@ function BoothStatus({
 const SECTION_LABEL = "font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase";
 
 /**
- * The rail's "Voices in scene" section (booth-mode-and-companion-panel.prd.md Phase 3): the chapter's Story Bible
+ * The rail's "Voices in scene" section: the chapter's Story Bible
  * characters as speaker tags, each opening its entry in the rail's Story bible tab. Each tag draws in its own
  * per-speaker colour (D85 #6, ADR 0367) via `Highlight`'s `colorToken` override, keyed by the same canonical name the
  * Script reader's `SpeakerTag` hashes (manuscript/ParagraphView.tsx), so a speaker's colour matches on both pages -
@@ -264,7 +264,7 @@ function BoothComingUp({ names, onOpen }: { names: ComingUpName[]; onOpen?: (ent
 }
 
 /**
- * The Booth page's surface (stage-navigation-and-page-replacement.prd.md Phase 4, mock 03), built on `FocusShell`: the
+ * The Booth page's surface (mock 03), built on `FocusShell`: the
  * status line, the chapter text (with the pre-session setup above it while idle), the rail and, as the command bar, the
  * same `ReadingControlBar` the read-aloud dialog used - Play/Pause (Space), Stop, Follow, the microphone, Record in
  * REAPER and the engine and model - so nothing the dialog offered is lost in the one surface that replaces it. It

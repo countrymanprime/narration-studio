@@ -2,7 +2,7 @@ import { Toggle } from '@base-ui/react/toggle';
 import { TooltipTarget } from './Tooltip';
 
 /** `chip` is a standalone toggle (the Whisper model, chunk length): 32 px, its own border, the label in capitals. `segmented`
- * is one segment of a `ToggleGroup look="segmented"` container (mock-fidelity-primitives-and-components.prd.md Phase 5): no
+ * is one segment of a `ToggleGroup look="segmented"` container: no
  * border of its own (the container draws it), the label in its own case, and the height fills the container's inset. */
 export type PillLook = 'chip' | 'segmented';
 

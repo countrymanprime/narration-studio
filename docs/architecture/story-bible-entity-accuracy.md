@@ -4,14 +4,14 @@
 
 **Policy: precision over recall, chosen deliberately by the user.** Direct quote: "i would rather miss a few due to being stricter than picking up half the dictionary in single words because we let anything in." Every rule below trades missed names for fewer junk entries. A real name that gets missed can be added by hand (manual entities); junk that floods the Story Bible cannot be reviewed away one entry at a time.
 
-## Failure modes this addressed
+## Failure modes
 
 1. **Common-word false positives.** The `CAPITALIZED` regex matches any capitalized word, including sentence-initial descriptive words ("Abandoned", "Adorable", "Afraid", "Active") and ALL-CAPS words ("ACCEPTABLE"). The hand-maintained `STOPWORDS` list cannot cover every English word.
 2. **Filler-word contamination.** "About S-Dawn" survived as a name because "S-Dawn" alone is not a stopword.
 3. **Proximity-heuristic misclassification.** `classify()` guessed Character/Place from words within 28 characters, so an unexplained term like "S-Dawn" could land as a Character.
 4. **Repetition implies legitimacy.** Anything seen twice survived regardless of whether it was a name.
 
-## Rules that shipped
+## Rules
 
 **Shared signals (computed once per build by `word_stats`).**
 
@@ -26,13 +26,13 @@
 
 **Rules-only fallback (`rule_candidates`, used when the spaCy model is unavailable).** A cleaned candidate is accepted only if it is multi-word, or a single word that passes the common-word test (no spaCy override here) **and** either appears capitalized mid-sentence at least twice or is the short form of an accepted title-prefixed name ("Arelian" after "Captain Arelian"). Sentence-initial-only words are therefore rejected.
 
-**Classification (`classify`).** The explicit rules are unchanged (ORG_WORDS, PLACE_WORDS, TITLE_WORDS, spaCy labels). The `PERSON_WORDS`/`PLACE_WORDS` proximity guess now applies only to multi-word names. Anything else returns `"Needs Review"` instead of defaulting toward Character. When an entity's occurrences vote for several categories, a confident category beats "Needs Review" votes.
+**Classification (`classify`).** The explicit rules (ORG_WORDS, PLACE_WORDS, TITLE_WORDS, spaCy labels) come first. The `PERSON_WORDS`/`PLACE_WORDS` proximity guess applies only to multi-word names. Anything else returns `"Needs Review"` instead of defaulting toward Character. When an entity's occurrences vote for several categories, a confident category beats "Needs Review" votes.
 
-**Build filter (`build_entities`).** A `"Needs Review"` entity is dropped unless it has at least 3 occurrences (was: dropped only when rule-based with fewer than 2).
+**Build filter (`build_entities`).** A `"Needs Review"` entity is dropped unless it has at least 3 occurrences.
 
 **Proofing vocabulary (`vocabulary_candidates`).** Excludes every `"Needs Review"` entity and any single-word entity that is neither locked nor manual and has fewer than 3 occurrences, so "Suggest from manuscript" is not polluted.
 
-**What Suggest actually offers (`guide.VocabularyCandidates`, Go).** The stored `vocabulary_candidates` list is only an addition: only `build()` writes it (`create()` seeds it empty, and `edit`, `merge`, `delete` and `rescan` never refresh it), so choosing it whenever it existed made Suggest return nothing on a freshly imported project and miss every name added after the last build. The host therefore always derives names from the current entities and merges them with the stored list, one spelling per case-insensitive name. Derived names follow the rule above with one relaxation: a locked or manual entity is always offered, whatever its category, because it is the narrator's own. Auto-extracted Needs Review and Draft entities stay out, and a lone word that is neither locked nor manual still needs 3 occurrences (an entity from a guide too old to carry occurrence data is kept). Whether auto-extracted Needs Review entities should also be offered is an open question recorded in the Proposed [ADR 0042](../adr/0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md). Names containing a comma or a line break are skipped, because the hints reach the recognizer as one comma-joined string.
+**What Suggest actually offers (`guide.VocabularyCandidates`, Go).** The stored `vocabulary_candidates` list is only an addition: only `build()` writes it (`create()` seeds it empty, and `edit`, `merge`, `delete` and `rescan` never refresh it), so choosing it whenever it existed made Suggest return nothing on a freshly imported project and miss every name added after the last build. The host therefore always derives names from the current entities and merges them with the stored list, one spelling per case-insensitive name. Derived names follow the rule above with one relaxation: a locked or manual entity is always offered, whatever its category, because it is the narrator's own. Auto-extracted Needs Review and Draft entities stay out, and a lone word that is neither locked nor manual still needs 3 occurrences (an entity from a guide too old to carry occurrence data is kept). The owner decided that auto-extracted Needs Review entities stay out ([ADR 0042](../adr/0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md)). Names containing a comma or a line break are skipped, because the hints reach the recognizer as one comma-joined string.
 
 **Unchanged.** Locked and manual entities are never touched by these rules: `merge_locked` still preserves them (including ones a rebuild would no longer extract), and `edit()` still rejects field changes on locked entities (ADR-0007).
 

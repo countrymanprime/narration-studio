@@ -38,8 +38,8 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'exempt',
     'Renders the first opening- and closing-kind template (ADR 0093) with the project values for the credits in the picker, their text and the unresolved-token warning; a failed render leaves that credits out of the picker rather than a toast over the page.',
   ),
-  // The Booth's marks in the text (stage-navigation-and-page-replacement.prd.md Phase 4): the page loads the Story Bible
-  // entries and notes the Manuscript used to hand the read-aloud dialog.
+  // The Booth's marks in the text: the page loads the Story Bible
+  // entries and notes.
   'src/components/booth/BoothPage.tsx::guideEntities#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only marks Story Bible mentions in the text and fills the rail; without them the chapter still reads.'),
   'src/components/booth/BoothPage.tsx::noteList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only marks note anchors in the text and fills the Notes tab; without them the chapter still reads.'),
   'src/components/booth/useTeleprompterSession.ts::subscribeTeleprompterEvent#1': subscription('The live session events.'),
@@ -170,7 +170,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'ok',
     "The chosen microphone (global settings, docs/prds/teleprompter-engines-and-input-devices.prd.md Phase 2) is saved as it is picked or typed; a save failure shows as the inline error (the page's or the ReadAloudDialog modal's), and the value picked stays selected in the field either way.",
   ),
-  // Companion mode (booth-mode-and-companion-panel.prd.md Phase 7, ADR 0401): CompanionShell narrows and pins the one window
+  // Companion mode (ADR 0401): CompanionShell narrows and pins the one window
   // while it is mounted and gives it back on unmount, and shows REAPER's playhead from the DAW port's live transport.
   'src/components/booth/CompanionShell.tsx::companionModeEnter#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Narrows and pins the window as the companion panel mounts; the panel itself is the acknowledgment, and a failure is an inline alert above its sections, with the panel still fully usable (Full app still works).'),
   'src/components/booth/CompanionShell.tsx::companionModeExit#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Gives the window its size, position and stacking back as the companion panel unmounts (Full app, the double Escape, the dialog closing). Nothing is left mounted to tell, and the host\'s exit is a no-op when nothing was entered (SILENT_CATCHES).'),

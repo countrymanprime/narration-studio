@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { InsetCard } from '../primitives/InsetCard';
 
 /**
- * RS4 A (recording-check-summary.prd.md Phase 3): the chapter's unreviewed take-review pickups - repeated reads
+ * RS4 A: the chapter's unreviewed take-review pickups - repeated reads
  * already recorded, needing comping - as a count line with Open Proof (take review's groups are Proof's notes, not the proofer's list on the Pickups page), always shown (`01-slideover-not-complete.webp`,
  * `02-slideover-passes.webp`: "Repeated reads (Review): 1 group not reviewed yet" and "... none waiting", each in its
  * own dashed box) rather than only when positive, so the narrator can always tell there is nothing here to chase, not

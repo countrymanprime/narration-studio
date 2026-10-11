@@ -15,7 +15,7 @@ export type StageGridCell = { tone: StatusTone; label: string; look?: 'badge' | 
 const STAGE_PAD = 'px-1';
 const WIDTH_REM = { rowHeader: 15.25, text: 7, badge: 4.125 };
 
-// A chapter x stage production grid (studio-ui-primitives.prd.md Phase 8, mock 01): rows are chapters, columns are
+// A chapter x stage production grid (mock 01): rows are chapters, columns are
 // stages, every cell a `StatusBadge`. Follows the WAI-ARIA grid pattern: one tab stop (roving tabindex, on the last
 // focused cell), arrow keys move focus cell to cell, Home/End move to the current row's ends, Ctrl+Home/End to the
 // grid's corners, Enter or Space activates the focused cell. `rows` and `columns` name the row and column headers

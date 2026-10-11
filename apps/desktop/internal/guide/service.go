@@ -348,8 +348,8 @@ func (s *Service) buildArgs(progress, log, model string) []string {
 }
 
 // defaultPronunciationSourceArgs is --default-source <value> when the narrator set a preferred pronunciation source
-// (Settings > Story Bible, story-bible-and-import-ux-briefs PRD phase 11); omitted (not passed as an explicit empty
-// value) when unset, so every project's build/edit/create command line is unchanged from before this setting existed.
+// (Settings > Story Bible); omitted (not passed as an explicit empty
+// value) when unset, so the build/edit/create command line carries no extra flag.
 // It only reorders the sidecar's own build-time fallback (manuscript_guide.py's pronunciation()); it never limits the
 // entity/alias Generate-Replace control's own explicit --source choice (Pronounce, below).
 func (s *Service) defaultPronunciationSourceArgs() []string {
@@ -489,7 +489,7 @@ func (s *Service) CreateDescribed(name, category string, aliases []string, descr
 }
 
 // CreateFull creates an entity with its description and its properties in one sidecar process. The import of a manuscript's cast blocks
-// uses it for the labelled facts of a character (import structure PRD, phase 3).
+// uses it for the labelled facts of a character.
 func (s *Service) CreateFull(name, category string, aliases []string, description string, properties []Property) (string, error) {
 	out, err := s.Run(s.createArgs(name, category, aliases, description, properties)...)
 	if err != nil {
@@ -738,7 +738,7 @@ func chosenPronunciationKey(entities []map[string]any, id string, alias *int) st
 }
 
 // cachedPreview returns a previously rendered WAV. A file with no samples
-// (a run that failed before this check existed) is a miss, not audio.
+// (a run that failed) is a miss, not audio.
 func cachedPreview(path string) ([]byte, bool) {
 	audio, err := os.ReadFile(path)
 	if err != nil || len(audio) <= wavHeaderBytes {

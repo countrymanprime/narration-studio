@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { StageGrid, type StageGridCell } from './StageGrid';
 import type { StatusTone } from './StatusBadge';
 
-// Shaped like the production home concept mock (studio-ui-primitives.prd.md mock 01): chapters down, stages across,
+// Shaped like the production home concept mock (mock 01): chapters down, stages across,
 // every cell a `StatusBadge` reached by grid keyboard navigation rather than one tab stop per cell. Chapter 2 is the current
 // row, drawn in bold as the mock draws the chapter the work is on.
 const CHAPTERS = ['Chapter 1', 'Chapter 2', 'Chapter 3', 'Chapter 4'];
@@ -65,7 +65,7 @@ export const Small: Story = {
 };
 
 // One tab stop, moved by the arrow keys, Home/End to the row's ends and Ctrl+Home/End to the grid's corners, WAI-ARIA
-// grid pattern (studio-ui-primitives.prd.md Phase 8).
+// grid pattern.
 export const KeyboardNavigation: Story = {
   render: () => <ProductionBoard />,
   play: async ({ canvasElement }) => {
@@ -122,7 +122,7 @@ export const NamesRowsAndColumns: Story = {
   },
 };
 
-// The header and rows are Table's, measured on mock 01 (mock-fidelity-primitives-and-components.prd.md Phase 3): a 31 px
+// The header and rows are Table's, measured on mock 01: a 31 px
 // header row and 34 px body rows.
 export const RowsMatchTheMock: Story = {
   play: async ({ canvasElement }) => {

@@ -102,7 +102,7 @@ export type WaveformStripProps = {
 };
 
 /** The chapter workspace's waveform strip (edit-and-proof-workspace.prd.md Phase 5, ADR 0520): `Timeline`'s own
- * ruler and playhead (its `backdrop` prop, reserved for exactly this, studio-ui-primitives.prd.md mock 04) over
+ * ruler and playhead (its `backdrop` prop, reserved for exactly this,  mock 04) over
  * host-computed peaks (measure.ComputePeaks, EP12 A), with the check's flags marked on a `TimelineLane` so they
  * share NotesStrip.tsx's own accessible, keyboard-navigable markers rather than a second, bespoke implementation
  * (mockups/edit-and-proof-workspace/01-playing-follow.webp). Selection (Phase 9, an FX context menu over a

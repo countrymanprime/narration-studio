@@ -23,8 +23,7 @@ const noop = () => {};
 const recordedLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
 
 /**
- * The track slide-over a chapter's Recorded cell on the Production board opens (chapter-track-link-control.prd.md Phase 2,
- * moved from Home's track button by stage-navigation-and-page-replacement.prd.md Phase 2): what the saved
+ * The track slide-over a chapter's Recorded cell on the Production board opens (chapter-track-link-control.prd.md Phase 2): what the saved
  * project knows about the chapter's track as of its last save, and the narrator's link/relink/unlink actions. Reuses
  * MappingConfirm for the track picker, so Change/Clear behave the same way here as on the Tracks page - one host
  * operation (`chapterTrackSet`) makes a relink atomic (Phase 1), so a narrator can never end up with two links.

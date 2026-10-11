@@ -10,8 +10,8 @@ const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
 
 /**
- * The status report export (production-tracking.prd.md Phase 5, user flow step 5), a slide-over opened from the Production home's
- * header button (mock 01's "Export status report"; stage-navigation-and-page-replacement.prd.md Phase 2): an explicit action that writes an
+ * The status report export (user flow step 5), a slide-over opened from the Production home's
+ * header button (mock 01's "Export status report"): an explicit action that writes an
  * HTML page anyone can open and a JSON file with the same figures the page just showed (hours by stage, PFH, the
  * deadline and milestone status, book-wide readiness counts), into the project's own sidecar folder. The contracted
  * amount and effective rate are left out unless the narrator ticks the box: a status report is often the one thing a

@@ -3,7 +3,7 @@ import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH } from './shared';
 
 export const scriptStates: StateEntry[] = [
-  // Script (stage-navigation-and-page-replacement.prd.md Phase 3, which replaced the Manuscript page)
+  // Script (which replaced the Manuscript page)
   { page: 'script', state: 'reader-text-small', description: 'Script, small text size' },
   { page: 'script', state: 'reader-text-medium', description: 'Script, medium text size' },
   { page: 'script', state: 'reader-text-large', description: 'Script, large text size' },
@@ -118,7 +118,7 @@ export const scriptStates: StateEntry[] = [
     description:
       'Script, Chapter 3, a dialogue line spoken by a character with no Story Bible entry (the Mouse) - the recorded demo cue has no resolved speaker, so no chip and no placeholder name (Success Metrics: "unknown renders as unattributed, never a fabricated name")',
   },
-  // Mock 02's rail (stage-navigation-and-page-replacement.prd.md Phase 3, ADR 0393, superseding ADR 0392): a column from
+  // Mock 02's rail (ADR 0393, superseding ADR 0392): a column from
   // 1440 px (the desktop width and up), a panel opened from the band's Prep rail button below it. The driver picks by what
   // the width shows, so each width loads afresh.
   {

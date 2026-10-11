@@ -25,8 +25,7 @@ import (
 const healthySelfCheck = `{"ok": true, "checks": [{"name": "cmudict", "ok": true, "detail": "hello = HH AH0 L OW1"}, {"name": "espeak", "ok": true, "detail": "hello = həlˈoʊ"}]}`
 
 // healthyCapabilities is what the frozen Teleprompter's `--capabilities --verify` prints on a healthy build (options.Moonshine
-// is true in smokeOptionsFor, so checkCapabilities asks for --verify by default; moonshine's loadable/detail mirror what
-// --check-moonshine used to print alone before Phase 3 folded that guarantee into this flag).
+// is true in smokeOptionsFor, so checkCapabilities asks for --verify by default).
 const healthyCapabilities = `{"type": "capabilities", "asr": {"whisper": {"label": "Whisper", "platforms": [], "modes": ["live"], "asset": "whisper", "loadable": null}, "moonshine": {"label": "Moonshine", "platforms": ["windows"], "modes": ["live"], "asset": "moonshine", "loadable": true, "detail": "moonshine-voice 0.1.5: native library loaded, 10 language(s)"}}, "capture": {"dshow": {"label": "DirectShow", "platforms": ["windows"], "modes": [], "loadable": null}, "wasapi": {"label": "WASAPI", "platforms": ["windows"], "modes": [], "loadable": null}}}`
 
 const healthyGuideCapabilities = `{"type": "capabilities", "tts": {"piper": {"label": "Piper", "platforms": [], "modes": [], "asset": "tts", "loadable": null}}, "pronunciation": {"cmu": {"label": "CMU dictionary", "platforms": [], "modes": ["pronounce"], "loadable": null}, "wiktextract": {"label": "Wiktionary (via Wiktextract)", "platforms": [], "modes": ["pronounce"], "loadable": null}, "espeak": {"label": "eSpeak NG", "platforms": [], "modes": ["pronounce"], "loadable": null}}}`
@@ -257,8 +256,8 @@ func TestSmokeWithoutAVoiceNeverNeedsOne(t *testing.T) {
 	}
 }
 
-// TestSmokeProvesTheFrozenTeleprompterCanRunMoonshine: sidecar-capabilities-flag PRD Phase 3 folded --check-moonshine's
-// guarantee into --capabilities --verify (ADR 0403), so proving Moonshine works is now part of the capabilities check.
+// TestSmokeProvesTheFrozenTeleprompterCanRunMoonshine: --capabilities --verify (ADR 0403) proves Moonshine's native
+// library loads, as part of the capabilities check.
 func TestSmokeProvesTheFrozenTeleprompterCanRunMoonshine(t *testing.T) {
 	run := &fakeRun{}
 	report := smoke(context.Background(), smokeOptionsFor(t, healthyTree(t), run))
@@ -314,8 +313,8 @@ func TestSmokeReportsTheFrozenTeleprompterCapabilities(t *testing.T) {
 }
 
 // The fault-detection case (PRD Success Metrics): a row Go's own registries declare for the platform, but the
-// sidecar's own report never lists, is exactly the class of freeze-silently-loses-a-dependency bug --check-moonshine
-// exists to catch, generalized past Moonshine.
+// sidecar's own report never lists, is exactly the class of freeze-silently-loses-a-dependency bug the capabilities
+// check exists to catch.
 func TestSmokeFailsWhenTheFrozenTeleprompterDidNotRegisterARowGoDeclaresForThePlatform(t *testing.T) {
 	missingWhisper := `{"type": "capabilities", "asr": {"moonshine": {"label": "Moonshine", "platforms": ["windows"], "modes": ["live"], "asset": "moonshine", "loadable": null}}, "capture": {"dshow": {"label": "DirectShow", "platforms": ["windows"], "modes": [], "loadable": null}}}`
 	missingMoonshineAndDshow := `{"type": "capabilities", "asr": {"whisper": {"label": "Whisper", "platforms": [], "modes": ["live"], "asset": "whisper", "loadable": null}}, "capture": {}}`

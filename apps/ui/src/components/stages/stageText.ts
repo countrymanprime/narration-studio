@@ -1,4 +1,4 @@
-// The words of a chapter's stage suggestion (chapter-stage-recommendations.prd.md Phase 5, deleted, ADR 0160 and 0161): what each
+// The words of a chapter's stage suggestion (deleted, ADR 0160 and 0161): what each
 // verdict says in the breakdown row, what each unknown cause means and what resolves it, and the summary the estimate card shows.
 // Pure functions, so StageSuggestion, StageEvidence and StageSummary only lay them out.
 import { STATUS_LABELS } from '../../chapterStatus';
@@ -9,7 +9,7 @@ export const stageLabel = (stage: ChapterStatus) => STATUS_LABELS[stage];
 
 /**
  * How a cause is resolved. `check`: the chapter's recording check dialog, which also links a track and offers the Whisper model;
- * `engine`: the audio engine panel (stage-navigation-and-page-replacement.prd.md Phase 6, which replaced the Tracks page); `wait`: nothing to do but let the running check end; `check-now`: read the evidence again.
+ * `engine`: the audio engine panel; `wait`: nothing to do but let the running check end; `check-now`: read the evidence again.
  */
 export type StageCauseAction = 'check' | 'engine' | 'wait' | 'check-now';
 
@@ -44,7 +44,7 @@ const EDITING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; act
   provider_error: { short: 'the evidence could not be read', action: 'Check now to read it again.', resolve: 'check-now' },
 };
 
-/** The same causes, worded for the proofing signals instead (proofing-readiness-signals.prd.md Phases 1 and 5): there
+/** The same causes, worded for the proofing signals instead: there
  * is no per-chapter "proofing check" dialog to open (unlike recording and editing), so every resolvable cause routes
  * to the audio engine panel, a wait, or Check now - never `resolve: 'check'`, which `StageEvidence` would otherwise wire to
  * the wrong dialog. Each cause's `reason` (from the signal itself) already names the real action - run Transcript
@@ -63,7 +63,7 @@ const PROOFING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; ac
   provider_error: { short: 'the evidence could not be read', action: 'Check now to read it again.', resolve: 'check-now' },
 };
 
-/** The delivery checks' own causes (proofing-readiness-signals.prd.md Phase 5), including the render length check:
+/** The delivery checks' own causes, including the render length check:
  * `never_analyzed`, `stale` and `measurement_unavailable` are all about the chosen render, resolved in the
  * "Rendered file" section of this same panel (Phase 6's Choose, Clear and Measure), so `resolve: 'check-now'` would
  * be misleading here - there is nothing to re-check until the render is chosen or measured. The mapping causes stay

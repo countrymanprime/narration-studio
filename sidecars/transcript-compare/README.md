@@ -1,9 +1,11 @@
 # Transcript Compare
 
-Transcribes a chapter's narration track, matches it against the correspondingly-named chapter
-in a Word script, diffs the two, and drops color-coded **take markers** at every
-misread/skipped/extra word — plus saves a single diff file of the script text vs. what was
-actually said.
+Transcribes a chapter's narration with a local Whisper model, matches it to the chapter of the
+canonical manuscript, and diffs the two. The result is a list of misread, skipped and extra words
+(the host turns them into findings and, on request, take markers) plus a unified diff file of the
+script text against what was said. The workflow is documented in
+[Transcript Compare](../../docs/utilities/transcript-compare.md) and the
+[Proof guide](../../docs/guides/using-the-app/proof.md).
 
 ## Layout
 
@@ -24,8 +26,8 @@ actually said.
   (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), and the
   alignment spike that scores `core/recording_coverage.py` on them (`coverage_spike.py`); see
   `docs/research/recording-coverage-fixtures.md`.
-- REAPER integration is centralized in `integrations/reaper/narration_ui_bridge.lua`; a future Audacity
-  driver has placeholder notes under `integrations/audacity/transcript-compare/`.
+- REAPER integration is in `integrations/reaper/`; a future Audacity driver has placeholder notes under
+  `integrations/audacity/transcript-compare/`.
 
 ## Pieces
 
@@ -50,155 +52,28 @@ actually said.
 - `core/common_words.txt` — a stoplist of ordinary English words, used only by the config
   screen's **Suggest...** button (see "Handling invented names/words" below) to avoid
   suggesting common words that just happen to be capitalized mid-sentence.
-- The React Narration Utils workspace owns this workflow and settings: its Settings page opens
-  **Global**/**This Project** values for the default Whisper model and
-  take-marker colors. Python runtimes are fixed local checkout dependencies
-  managed by `pnpm run bootstrap`.
-- Pick or replace the Word manuscript from the workspace Home page.
+- The desktop app owns the workflow and settings (`apps/desktop/internal/transcript`). Python runs from the
+  checkout `.venv` that `pnpm run bootstrap` creates.
 
-## Install as REAPER actions
+## Project files
 
-In REAPER: **Actions → Show action list → New action → Load ReaScript...** and load just one
-file, `integrations/reaper/NarrationUtils_Launcher.lua` (it does **not** need to live inside REAPER's
-own Scripts folder) — it's the only script either tool needs imported into REAPER's Action
-list. Running it opens the persistent, centered **Narration Utils** workspace.
+Settings are layered: a repo-wide default, a per-user **Global** value in
+`%APPDATA%\narration-utils\global-settings.json`, and an optional **This Project** override in
+`<project folder>\narration-utils\settings.json`. Both files are plain JSON, not REAPER ExtState.
 
-Optionally assign the launcher a keyboard shortcut or toolbar button from the same action list
-dialog.
+Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 
-Runtime dependencies are derived from this checkout's own location, so they
-always use repo-managed local environments. Default model size is
-`small`; use workspace Settings to change defaults or choose a one-run model
-in the Transcript Compare page.
+- `vocabulary_hints.txt` — comma-separated names and terms passed to Whisper as `hotwords`. Best-effort.
+  `compare.py --hints-out` writes suggested terms (capitalized words that are not sentence-initial, minus
+  `core/common_words.txt`) for the user to review; it never saves hints itself.
+- `equivalences.csv` — custom spelling equivalences, one comma-separated group per line, like the built-in
+  homophone groups but per manuscript. Only single words match, since matching is word by word.
+- `diffs/<track name>_<run number>.diff` — the unified diff of manuscript against transcript, with a plain
+  `.manuscript.txt` / `.recorded.txt` pair beside it for two-pane viewers.
 
-### Settings: global vs. this project
-
-Everything set through the workspace (model size and marker colors) is layered:
-a repo-wide
-default, a per-user **Global** value, and an optional **This Project** override,
-in that order. Global values live in
-`%APPDATA%\narration-utils\global-settings.json`; a project override lives in
-`<project folder>\narration-utils\settings.json`, alongside (not inside) the per-tool
-`TranscriptCompare\` output folder. Both are DAW-agnostic plain JSON, not REAPER ExtState, so a
-future Audacity adapter can reuse the same settings store instead of needing its own.
-
-## How it's organized
-
-**One track = one chapter.** The track's name is matched (exact, or closest fuzzy match)
-against a heading in the Word document — so name your tracks to match your chapter headings
-(e.g. track "Chapter 1" ↔ Word heading "Chapter 1"). Chapters are detected from Word's built-in
-**Heading** styles; if none are found, you'll get a clear error listing what the doc actually
-contains instead of silently comparing against the whole document. If the track name doesn't
-confidently match any heading, the run pauses and the window shows a clickable list of every
-detected chapter to pick from instead of failing outright — this check happens *before*
-decoding/transcribing the audio, so a bad match (or a bad manuscript path) doesn't cost you a
-multi-minute wait first.
-
-## Using it
-
-1. Select the **track** for the chapter you want checked. All items on that track are picked
-   up automatically, in position order — no need to glue or render first, even if the take is
-   split across several items (punch-ins, retakes, etc. all get stitched together for
-   transcription).
-2. Run **Narration Utils** from the action list, open **Transcript Compare**, and choose
-   **Start comparison**.
-3. The first time you run it in a project, import a DOCX or Markdown manuscript from Home. New PDF import is fail-closed pending corpus parity; existing canonical v1 data remains readable.
-   It is normalized into `<project folder>\narration-utils\manuscript\manuscript.json`; every run
-   reuses that canonical data with no source-file parsing. (The project must be saved
-   at least once, since the manuscript is stored alongside the project file; for an unsaved
-   project it falls back to prompting every run instead.)
-4. The same responsive companion window stays open for the whole run
-   — it's never closed and replaced by a separate dialog. It shows the track name, item count,
-   and exact selected duration (so it's unambiguous that only your selection is being
-   processed) while it resolves the manuscript, then shows a **config screen** before anything
-   expensive starts:
-   - **Manuscript** — the resolved path, with a **Change...** button to pick a
-     different/updated one on the spot (same effect as the launcher's Select Manuscript entry).
-   - **Model** — chip buttons for `tiny`/`base`/`small`/`medium`/`large-v3`; hover any chip for
-     a tooltip explaining its speed/accuracy/memory tradeoff. Picking one here is a one-time
-     override for this run only - it doesn't change the saved default. Click **Save as
-     Default** next to the chips to make the current pick the new default instead (equivalent
-     to setting it via **Configure**, without leaving this screen).
-   - **Chunk** — `Whole file` (default, today's behavior) or a fixed duration
-     (`30s`/`1m`/`5m`/`15m`/`1hr`) to transcribe in pieces instead of one pass over the whole
-     recording. Useful for very long recordings - smaller units of work are more resilient to a
-     mid-run failure and give much finer-grained progress. The diff/marker step is unaffected
-     either way - it still runs once, over the full assembled transcript, so chunking doesn't
-     change *when* markers appear, just how the transcription itself is done internally.
-   - **Workers** (only shown once a chunk duration is picked) — how many chunks to transcribe
-     at once, in parallel OS processes: `1`/`2`/`4`/`8` or `Auto` (picks a safe number based on
-     the selected model size, since each worker loads its own full copy of the model into
-     memory).
-   - **Hints** — optional vocabulary hints (see "Handling invented names/words" below), plus a
-     **Suggest...** button that scans the manuscript for likely candidate terms.
-
-   Every field above has a hover tooltip explaining it, and **Cancel** / **Start** buttons at
-   the bottom - Cancel here just closes the window, since nothing has been launched yet (same
-   as closing the window itself).
-
-   Click **Start** to actually begin. From there: a live progress bar through decode → model
-   load → transcribe → match → diff, elapsed time, and a scrolling log of every step taken
-   (including the backend's own detailed log — decoding each item, model loading, which
-   chapter matched and why, warnings, etc.). The backend runs in the background the whole
-   time, so REAPER's UI stays responsive. First run of a given model size downloads model
-   weights once (cached after that). There's a Cancel button while running (or just close the
-   window) to abort a run cleanly — no markers get added. Overall timeout: 30 minutes. The
-   progress bar disappears once the run finishes (a static full bar left sitting there reads as
-   stuck) — the outcome shows instead as a small DONE/ERROR/CANCELLED label next to the elapsed
-   time.
-5. When it finishes, the **same window**'s elapsed timer freezes. It defaults to showing the
-   discrepancy table on success (white text on a black background:
-   `Track | Time | Type | Manuscript | Recorded`) and the run log otherwise, but **Log** /
-   **Table** / **Diff** / **Add Equiv** tabs above that pane act at will, in any run state:
-   - **Log**/**Table** switch which one's showing.
-   - **Diff** opens the saved diff (see below).
-   - **Add Equiv** adds the currently-selected table row (click a row to select it) to the
-     per-manuscript equivalence list - see "Handling invented names/words" below.
-
-   The Manuscript and Recorded columns are separate, each showing that row's full text with
-   only the actual difference colored — green in Manuscript ("this is what it should have
-   said"), red in Recorded ("this is what was actually said") — shared words stay plain white.
-   Both the table and the log scroll with the mouse wheel, and clicking a table row also
-   selects that item and moves the edit cursor to it, so you can jump straight to any
-   discrepancy. Nothing pops up as a separate dialog; click Close (or the window's own close
-   button) when you're done reading it.
-6. The workspace lists each discrepancy and whether a matching take marker already exists. Click **Export markers** when you want to add the new ones. Exported **take markers** appear directly on that track's items (not across the whole project),
-   colored by kind:
-   - `MISREAD: 'X' as 'Y'` (default red) — manuscript said X, you said Y
-   - `SKIPPED: 'X'` — in the doc, not said (default amber)
-   - `EXTRA: 'Y'` — said, not in the doc (default blue)
-
-   A result is shown as already marked when the same active take contains a marker with the same
-   `MISREAD:`, `SKIPPED:`, or `EXTRA:` prefix within ~0.15s. Export rechecks that condition before
-   every add, skips duplicates, and reports the added/skipped counts.
-7. A single **diff file** is saved to
-   `<project folder>\TranscriptCompare\diffs\<track name>_<run number>.diff` on every run (in
-   real unified-diff syntax - `---`/`+++`/`-`/`+` - so it's readable on its own in any editor
-   with no external tool needed), but it's only *opened* when you click the **Diff** tab - not
-   automatically. That tries a real interactive two-pane view first (`code --diff` against a
-   plain manuscript/recorded text pair saved alongside it, if the `code` CLI is available), then
-   also opens the standalone `.diff` file with whatever's associated with it. The exact saved
-   path is always in the log either way.
-
-## Handling invented names/words
-
-Sci-fi/fantasy narration means character names, places, and invented terms that don't exist in
-any dictionary — Whisper has no way to spell those consistently, and no model size fully fixes
-that (a bigger model helps with real vocabulary it's just mishearing, not words it has
-genuinely never seen). Two tools for this, both stored in `<project folder>\TranscriptCompare\`:
-
-- **Vocabulary hints** (`vocabulary_hints.txt`) — set from the config screen before a run ("Set
-  hints..."). A comma-separated list of names/terms passed to Whisper as `hotwords`, nudging it
-  to recognize and spell them consistently. Best-effort, not a guarantee. The **Suggest...**
-  button next to it scans the manuscript for capitalized words that aren't just
-  sentence-initial (a decent proxy for invented names/terms), filters out ordinary words via
-  `common_words.txt`, and pre-fills the hint editor with the results for you to
-  review/edit/remove before saving - it never saves anything on its own.
-- **Custom equivalence list** (`equivalences.csv`) — click **Add Equiv** on a selected
-  single-word MISREAD row to append that exact spelling pair (e.g. "arelian, arelion") so it's
-  never flagged again, starting with the next run. One group per line, comma-separated, like
-  the built-in homophone groups, just per-manuscript instead of global. Only single words work, since matching happens one word at
-  a time - a multi-word MISREAD row shows a reminder in the log instead of adding anything.
+One track is one chapter: the track name is matched (exact, then closest fuzzy match) against the
+manuscript's chapter headings, and the run asks for a pick when no heading matches confidently. This
+happens before audio is decoded.
 
 ## Notes / limitations
 

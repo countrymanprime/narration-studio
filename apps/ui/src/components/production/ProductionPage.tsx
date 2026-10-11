@@ -134,7 +134,7 @@ function NextUp({
 }
 
 /**
- * The Production home at `/` (stage-navigation-and-page-replacement.prd.md Phase 2, mock 01; production tracking PRD Phase 4,
+ * The Production home at `/` (mock 01; production tracking PRD Phase 4,
  * delivered and deleted, ADR 0028): the book's figures, the chapter pipeline whose cells open each stage for the chapter, and the
  * chapters that most threaten the delivery date. It replaced Home: with no manuscript yet it is the import, and the import and the
  * credits prompt stay here. It reads one overview when it opens and after anything that changes it (Q8 A); readiness is the stage

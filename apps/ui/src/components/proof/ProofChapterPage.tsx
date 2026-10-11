@@ -60,15 +60,15 @@ type ChapterViewProps = {
   goToManuscript: (chapter: string, paragraph?: number) => void;
   /** Opens a Story Bible entry, for a note about one (a note's detail, as on the book level). */
   goToStoryBible: (entityId: string) => void;
-  /** Changes after a manuscript import or replacement, so the stage panel reads again (chapter-stage-recommendations.prd.md Phase 8). */
+  /** Changes after a manuscript import or replacement, so the stage panel reads again. */
   refreshKey: string;
 };
 
 /**
  * Proof's chapter view, `/proof/:chapterId`, led by mock 04 (D85 #2 on #509, ADR 0470): the Sources line, a strip of the
  * chapter's notes over its recording (NotesStrip), the chapter's notes table and a note's detail with Play ±3 s, and the
- * recording-check card (D85 #11). Under it, as before (stage-navigation-and-page-replacement.prd.md Phase 5): the chapter
- * workspace of edit-and-proof-workspace.prd.md at its new address, with the retired Proofing page folded in. It plays
+ * recording-check card (D85 #11). Under it: the chapter
+ * workspace of edit-and-proof-workspace.prd.md, with the compare run folded in. It plays
  * the chapter's recorded audio in the app, honouring each item's played range, follows the script with a karaoke
  * highlight and auto-scroll, shows the check's flags inline, and seeks on a click (EP5), with Go to/Loop in REAPER
  * for the word at the playhead (Phase 3, `useWorkspaceReaper`). The chapter's stored findings are overlaid on the same

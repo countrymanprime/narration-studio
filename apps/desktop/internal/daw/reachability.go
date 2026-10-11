@@ -12,13 +12,13 @@ import (
 
 // heartbeatTimeout is how long since the last PROJECT_STATUS event still counts as "REAPER is running" (Phase 7,
 // W10). It only has to outlast one missed tick of both sides: narration_ui_bridge.lua's own heartbeat interval
-// (heartbeatIntervalSeconds in narration_ui_bridge.lua, currently 1.5s) and the host's poll cadence
+// (M.HEARTBEAT_INTERVAL_SECONDS in narration_ui_bridge.lua, 1.5s) and the host's poll cadence
 // (transcriptLoop, 150ms). Five seconds gives generous margin for a slow tick without taking long to notice REAPER
 // closing.
 const heartbeatTimeout = 5 * time.Second
 
 // Reachability tracks the last PROJECT_STATUS heartbeat a REAPER bridge session broadcast (ADR 0092, W10): the
-// events.log line narration_ui_bridge.lua's tick loop now appends periodically with an empty run ID, delivered
+// events.log line narration_ui_bridge.lua's tick loop appends periodically with an empty run ID, delivered
 // through events.go's existing fan-out (a run-less event reaches every subscriber) rather than a second polled
 // file. It answers the three Bootstrap facts dawfacts.go needs: whether REAPER is reachable at all, and whether
 // its open project matches a linked file.

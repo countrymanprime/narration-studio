@@ -7,7 +7,7 @@ const VariantContext = createContext<TabsVariant>('underline');
 
 // A strip of underlined labels (the Story Bible categories, Settings' scope), or a list of side labels (Settings' categories).
 // The classes are mutually exclusive by state (ADR 0017) and take the selected look from Base UI's `data-active`. Measured
-// on the benchmark mocks (mock-fidelity-primitives-and-components.prd.md Phase 5): the underline tab's selected label is
+// on the benchmark mocks: the underline tab's selected label is
 // `--accent-strong` (B02; the dark sets draw it muted or `--text`, and the benchmark wins, D91's Q1), its 2 px `--accent`
 // underline sits over the strip's 1 px `--border` rule and spans the label plus 10 px each side, and its type is
 // `--tracking-button` (0.06 em, the button-type tracking the mock's ≈0.08–0.1 em rounds to at this size). The sidebar tab's

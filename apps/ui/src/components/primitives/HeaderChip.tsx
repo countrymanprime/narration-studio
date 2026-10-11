@@ -7,8 +7,7 @@ import { Dot } from './StatusBadge';
  */
 export type HeaderChipTone = 'neutral' | 'success' | 'warning';
 
-// The fill and text per tone, the benchmark mocks' own (mock 01's header, mock-fidelity-primitives-and-components.prd.md
-// Phase 8): the timer on `--surface-2` in `--text`, "REAPER linked" on `--ok-soft` in `--ok-text`. Each pair is one the
+// The fill and text per tone, the benchmark mocks' own (mock 01's header): the timer on `--surface-2` in `--text`, "REAPER linked" on `--ok-soft` in `--ok-text`. Each pair is one the
 // palette guard already checks (ADR 0590).
 const TONE: Record<HeaderChipTone, { background: string; color: string }> = {
   neutral: { background: 'var(--surface-2)', color: 'var(--text)' },

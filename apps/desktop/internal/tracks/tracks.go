@@ -24,12 +24,8 @@ import (
 // "Link chapters" preview names, by GUID, exactly which item each stamp
 // would write to (never a position or an index), and LineIdentityStamp's
 // rows are keyed by item GUID. TakeGUID, SourceStart and PlayRate (the
-// played range) joined it in the edit-and-proof-workspace PRD's Phase 1. The
-// remaining fields are the parser superset
-// (EL Phase 1) added for that PRD and its siblings; they are not yet part of
-// the wire contract (json:"-") because no UI or binding surface consumes
-// them in this phase - a later phase (5, 6 or 7) decides how much of this an
-// analyzer or the UI sees.
+// played range) are also on the wire. The remaining fields are the parser
+// superset for in-process readers and stay off the wire (json:"-").
 type Item struct {
 	Position        float64 `json:"position"`
 	Length          float64 `json:"length"`

@@ -1,6 +1,6 @@
 package importer
 
-// The narrator's answer to "is this heading's second line its subtitle?" (story-bible-and-import-ux-briefs PRD, Phase 5, I2). The
+// The narrator's answer to "is this heading's second line its subtitle?" The
 // importer's guess is always yes: every line after a heading's first, and the second line of a two-line plain-text heading, becomes
 // the subtitle (headingParts, classifyTxtHeading). A no means one of two things, which the preview says per section in
 // DraftSection.SubtitleOff so the review can show the result before the commit (docs/research/import-heading-misreads.md):

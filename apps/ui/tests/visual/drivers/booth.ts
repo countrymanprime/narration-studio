@@ -89,7 +89,7 @@ export const boothDrivers: Record<string, Driver> = {
     await openResumePrompt(page, '?mockResume=complete');
     await page.getByText('This chapter is recorded to the end. Play reads from the top.').waitFor();
   },
-  // Reconciliation (read-aloud-resume-from-daw.prd.md Phase 3): agree presets Start reading without a click.
+  // Reconciliation: agree presets Start reading without a click.
   'resume-agree': async (page) => {
     await openResumePrompt(page, '?mockResume=agree');
     await page.getByText(/REAPER and your last reading agree/).waitFor();
@@ -102,7 +102,7 @@ export const boothDrivers: Record<string, Driver> = {
     await openResumePrompt(page, '?mockResume=prompter_only');
     await page.getByText(/Your last reading stopped at/).waitFor();
   },
-  // Live DAW state (read-aloud-resume-from-daw.prd.md Phase 4): the REAPER place read from REAPER now, and a recording.
+  // Live DAW state: the REAPER place read from REAPER now, and a recording.
   'resume-disagree-live': async (page) => {
     await openResumePrompt(page, '?mockResume=disagree_live');
     await page.getByText(/in REAPER now/).waitFor();
@@ -127,7 +127,7 @@ export const boothDrivers: Record<string, Driver> = {
     await openResumePrompt(page, '?mockResume=error');
     await page.getByRole('button', { name: 'Try again' }).waitFor();
   },
-  // The prompt is gone the instant a choice is made (read-aloud-resume-from-daw.prd.md Phase 1): no summary, no Change.
+  // The prompt is gone the instant a choice is made: no summary, no Change.
   'resume-after-choice': async (page) => {
     await openResumePrompt(page);
     await page.getByRole('button', { name: 'Resume from here' }).click();
@@ -144,7 +144,7 @@ export const boothDrivers: Record<string, Driver> = {
     await controlBar(page).getByRole('button', { name: 'Play' }).waitFor();
     await page.getByRole('region', { name: 'Where you stopped' }).waitFor({ state: 'detached' });
   },
-  // REAPER playing makes the prompt go away by itself (read-aloud-resume-from-daw.prd.md Phase 5, RD7): the DAW mock pushes
+  // REAPER playing makes the prompt go away by itself (RD7): the DAW mock pushes
   // its seeded transport (playing) on subscribe, as the host's heartbeat push would when REAPER starts.
   'resume-after-reaper-plays': async (page) => {
     await openBooth(page, '?mockDawPlayhead=12');
@@ -342,7 +342,7 @@ export const boothDrivers: Record<string, Driver> = {
     await openResumePrompt(page);
     await page.getByRole('button', { name: 'Resume from here' }).waitFor();
   },
-  // Companion mode (booth-mode-and-companion-panel.prd.md Phase 7): the Booth header's Companion opens the same session in
+  // Companion mode: the Booth header's Companion opens the same session in
   // CompanionShell, which covers the whole window.
   'companion-default': async (page) => {
     await openResumePrompt(page);

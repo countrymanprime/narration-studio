@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Fixed lead-in/trail-off around a matched span, matching the "pre/post roll" Q7 of
-// take-review-pickups-duplicates-take-intelligence.prd.md asks for. Not a setting (YAGNI): nothing
+//  asks for. Not a setting (YAGNI): nothing
 // in the PRD calls for narrator tuning, and a constant keeps both audition sides consistent.
 export const AUDITION_PRE_ROLL_SECONDS = 1.5;
 export const AUDITION_POST_ROLL_SECONDS = 1.5;

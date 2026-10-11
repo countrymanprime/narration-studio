@@ -97,7 +97,7 @@ export type MockApiSeed = {
   rebuildRunning?: boolean;
   /**
    * How the next Story Bible build behaves: `hold` starts it and keeps it running at 30 percent, and `fails` starts it and has the host
-   * report it failed at the first poll, so the chained build after an import (story-bible-and-import-ux-briefs PRD, Phase 3) can be seen
+   * report it failed at the first poll, so the chained build after an import can be seen
    * running and failing without a host. Without it a build finishes at once.
    */
   build?: 'hold' | 'fails';
@@ -135,7 +135,7 @@ export type MockApiSeed = {
   /**
    * Simulates a live REAPER heartbeat whose open project disagrees with the linked file (Phase 7, ADR 0092): the
    * mock otherwise never grows a heartbeat, so `dawReachable`/`dawProjectMatches` stay false. Used by the engine
-   * chip's "Wrong REAPER project open" state (stage-navigation-and-page-replacement.prd.md Phase 1).
+   * chip's "Wrong REAPER project open" state.
    */
   dawEngineMismatch?: boolean;
   /**
@@ -172,11 +172,11 @@ export type MockApiSeed = {
   coverage?: CoverageSeed;
   /** Seeds the stage recommendations mock (a chapter's recording evidence, a live confirmation, a dismissal), see `StagesSeed`. */
   stages?: StagesSeed;
-  /** Seeds a chapter's chosen render (proofing-readiness-signals.prd.md Phase 6), see `ProofingRenderSeed`. */
+  /** Seeds a chapter's chosen render, see `ProofingRenderSeed`. */
   proofingRender?: ProofingRenderSeed;
   /**
    * Boots without the offline dictionary (`missing`) or with one that fails its check (`damaged`), so a lookup answers with its first-use
-   * gate (story-bible-and-import-ux-briefs.prd.md Phases 7-8). A download seed of `assets` boots without it too.
+   * gate. A download seed of `assets` boots without it too.
    */
   dictionary?: 'missing' | 'damaged';
   /** Seeds the findings store the review bindings answer from; defaults to `WIRE_FINDINGS` (an empty list is an empty queue). */

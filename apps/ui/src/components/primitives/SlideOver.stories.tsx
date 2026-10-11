@@ -41,7 +41,7 @@ export const LongContent: Story = {
   },
 };
 
-// ADR 0430: the wide panel, for a slide-over that holds what a page used to (the engine panel's tables and lists).
+// ADR 0430: the wide panel, for a slide-over that holds what would otherwise be a page (the engine panel's tables and lists).
 export const Wide: Story = {
   args: { size: 'wide', headingLevel: 2, title: 'Audio engine' },
   play: async () => {

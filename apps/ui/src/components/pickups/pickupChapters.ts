@@ -6,10 +6,9 @@ import { buildPlaylist } from '../proof/playlist';
 export type PickupChapter = { chapterId: string; title: string; elapsed: number };
 
 /**
- * Which chapters a pickup marker at `position` (project seconds) falls in (stage-navigation-and-page-replacement.prd.md
- * Phase 7, "a pickup opens its Proof chapter view"): every chapter whose linked track has a playable item under that
+ * Which chapters a pickup marker at `position` (project seconds) falls in ("a pickup opens its Proof chapter view"): every chapter whose linked track has a playable item under that
  * time. Chapter tracks can overlap in time, so this returns every match in chapter order and never picks one
- * (recording-check-summary.prd.md RS5 B's reason for keeping the count project-wide). `elapsed` is the pickup's place
+ * (the count is project-wide). `elapsed` is the pickup's place
  * on the chapter player's own timeline, built by the same `buildPlaylist` the Proof chapter view plays.
  */
 export function chaptersAtPosition(

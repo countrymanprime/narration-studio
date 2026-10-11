@@ -10,7 +10,7 @@ import type { DictionaryAnswer, DictionaryGate } from './WordLookup';
 export const LOOKUP_ACTION = 'lookup';
 
 /**
- * The reader's Look up (story-bible-and-import-ux-briefs.prd.md Phase 8): asks the host's offline dictionary about one word and keeps what
+ * The reader's Look up: asks the host's offline dictionary about one word and keeps what
  * the reader shows next, either the answer (for the look-up panel) or the first-use gate (for the download question). Nothing is downloaded
  * until the narrator confirms that question; once the download succeeds, the same word is looked up again, so the narrator gets the answer
  * they asked for. A lookup that fails is a toast, and the selection stays so they can try again.

@@ -10,8 +10,7 @@ import (
 
 // epubBlock is one block-level element read from a spine content document: a
 // heading (level 1-6) or an ordinary paragraph-shaped element, with its
-// normalized text and inline spans already built (txt-and-epub-import PRD,
-// Phase 2, "XHTML to paragraphs"). Heading paragraphs are never emitted as
+// normalized text and inline spans already built. Heading paragraphs are never emitted as
 // body paragraphs, matching the DOCX and Markdown importers.
 type epubBlock struct {
 	heading int
@@ -37,8 +36,8 @@ var epubItalicTags = map[string]bool{"i": true, "em": true}
 var epubBoldTags = map[string]bool{"b": true, "strong": true}
 
 // epubSkipTags never contribute text: scripts, styles and embedded/alternate
-// content the PRD's "What We're NOT Building" excludes (images, SVG, audio,
-// video, scripts; alt text is not read).
+// content that is not read (images, SVG, audio, video, scripts; alt text is
+// not read either).
 var epubSkipTags = map[string]bool{"script": true, "style": true, "img": true, "svg": true, "audio": true, "video": true}
 
 // parseEPUBXHTML turns one spine content document into an ordered list of

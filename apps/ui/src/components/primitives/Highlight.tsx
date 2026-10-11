@@ -1,6 +1,6 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
-// `Cursor` is the Teleprompter's current word (mock-fidelity-primitives-and-components.prd.md Phase 13, mock 03): the
+// `Cursor` is the Teleprompter's current word (mock 03): the
 // accent tint with a 2 px leading caret, so it reads as a position marker and never as an entity or note. Its only
 // consumer is `booth/ReaderText.tsx`, so this is safe to measure against the mock without moving any other reader.
 // `Misread`, `Extra`, `Skipped` and `Restart` are the read-aloud dialog's suspected flags (teleprompter-manuscript-integration.prd.md

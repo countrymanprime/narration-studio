@@ -24,7 +24,7 @@ export const ACX_CHECKPOINT: ProductionMilestone = {
 type Saving = 'plan' | 'milestones' | undefined;
 
 /**
- * The book's delivery plan (production-tracking.prd.md Phase 3's bindings, set from the Production page in Phase 4): the delivery
+ * The book's delivery plan (set from the Production page): the delivery
  * date and contracted amount the figures above use, and the milestones. The host checks every date and amount and refuses a bad
  * one whole (internal/production/plan.go); the page only turns the amount's text into a number.
  */

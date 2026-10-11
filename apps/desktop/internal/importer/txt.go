@@ -18,7 +18,7 @@ import (
 // txtWithProgress builds a Draft from a plain-text manuscript. It shares
 // richBuilder (whitespace and spans), isNarrativeMarker, isChapterNumber,
 // headingParts/splitGluedHeading, classifyPreHeading and isNonChapterHeading
-// with the DOCX and Markdown importers (txt-and-epub-import PRD, Phase 1).
+// with the DOCX and Markdown importers.
 func txtWithProgress(path string, progress Progress) (Draft, error) {
 	progress.report(5, "Reading text file %s", filepath.Base(path))
 	raw, err := os.ReadFile(path)

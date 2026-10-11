@@ -46,7 +46,7 @@ export type CoverageSeed = {
   /** Chapters with a current check that found this share of their words, as if checked in this session (instead of their fixture's). */
   measured?: Record<string, number>;
   /** Chapters whose report gets two interior pickups (a skip and a short read) plus a small tail, instead of the
-   * default tail-only split (recording-check-summary.prd.md Phase 1, RS2/RS8): so the summary's headline, "Recorded
+   * default tail-only split (RS2/RS8): so the summary's headline, "Recorded
    * to" line and Pickups list can all be seen together. */
   pickups?: string[];
   /** Chapters whose check ran the model cascade (recording-check-model-cascade PRD Phase 5, MC5): the result names
@@ -150,7 +150,7 @@ function reportFor(chapter: ManuscriptChapter, fraction: number): CoverageReport
 }
 
 /** A report with two interior pickups (a skip and a short read) plus a small tail, so the summary's headline, "Recorded
- * to" line and Pickups list can all be seen together (recording-check-summary.prd.md, mockups 01b/03b). Built from the
+ * to" line and Pickups list can all be seen together (mockups 01b/03b). Built from the
  * same proportional paragraph split as reportFor, so it stays sane for whichever chapter is seeded. */
 function pickupsReportFor(chapter: ManuscriptChapter): CoverageReport {
   const bodyTokens = chapter.wordCount;

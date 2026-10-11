@@ -97,7 +97,7 @@ export const proofFeedback: Record<string, FeedbackRow> = {
   'src/components/proof/PreviewPanel.tsx::previewPinAdjust#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'no', 'ok', 'The pinned section\'s Start/End +/- controls: disabled once that edge already reaches the chapter\'s boundary or the range is down to one paragraph (canExtendStart etc.), so a press here always changes something. Same shared busy flag and toast-on-refusal as previewPinSet.'),
   'src/components/proof/PreviewPanel.tsx::previewPinClear#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'no', 'ok', 'The pinned section\'s ✕, or Unpin on the pinned candidate\'s own row; clearing when nothing is pinned is not an error, though the buttons that would do it are not shown then.'),
   'src/components/proof/PreviewPanel.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Read alongside previewCandidates, only to resolve a candidate\'s paragraph ids to a global index for "open in reader" and "copy range"; a failed read shares the same inline alert as previewCandidates above.'),
-  // The readiness panel's rendered-file section (proofing-readiness-signals.prd.md Phase 6): the chapter itself is
+  // The readiness panel's rendered-file section: the chapter itself is
   // the parent ChapterView's own load, so this panel reads no chapter list of its own.
   'src/components/proof/useProofingRender.ts::proofingRenderState#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s render association on mount and after Choose, Clear or Measure; a failed read shows an inline alert instead of a stale "Rendered file" section.'),
   'src/components/proof/useProofingRender.ts::proofingChooseRender#1': row('click', 'os-dialog', 'pending', 'pending', 'ui', 'toast', 'na', 'ok', 'Choose is busy while the native file dialog is open and the file is attested; a cancelled dialog changes nothing, and a refusal (an unreadable file, no confirmed track) is a toast.'),
@@ -105,7 +105,7 @@ export const proofFeedback: Record<string, FeedbackRow> = {
   'src/components/proof/useProofingRender.ts::measureAnalyze#1': row('click', 'job', 'pending', 'pending', 'poll', 'toast', 'na', 'ok', 'Measure starts the existing measurement job (DX-1) on the chosen render, already marked measurable by Choose; Measure is busy while it polls measureState to the end, then the association is read again to show the recorded result.'),
   'src/components/proof/useProofingRender.ts::measureState#1': row('timer', 'instant', 'pending', 'pending', 'poll', 'toast', 'na', 'ok', 'Polled every 500 ms while Measure runs (DeliveryPage.tsx\'s own POLL_MS); a failed poll ends Measure with a toast, and a job that itself errors is announced by its own message.'),
 
-  // Transcript Compare's results as the chapter view's flags (stage-navigation-and-page-replacement.prd.md Phase 5), moved
+  // Transcript Compare's results as the chapter view's flags, moved
   // from the retired Proofing page's Results table: marker export stays with the run, the per-row actions sit in the flag
   // detail (FlagsPanel.tsx's CompareActions).
   'src/components/proof/CompareRun.tsx::transcriptExportMarkers#1': row('click', 'job', 'disabled', 'disabled', 'ui', 'toast', 'na', 'ok', 'The button turns into "Exporting…" and disables from the transcript state event.'),

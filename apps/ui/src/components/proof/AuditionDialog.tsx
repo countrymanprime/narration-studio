@@ -63,7 +63,7 @@ function AuditionSide({ side, members, label, selected, onSelect, player, onTogg
 }
 
 /**
- * Side-by-side A/B audition (phase 7 of take-review-pickups-duplicates-take-intelligence.prd.md,
+ * Side-by-side A/B audition (phase 7 of
  * Q7 option A), opened from a take-review finding on the Review page (phase 5): plays two of the finding's own reads from their own raw source file, each with a
  * fixed pre/post roll, over the same `/media` route the audio engine panel player streams from
  * (apps/desktop/media.go's authorizedMediaSource already covers every take's own source, phase 2).

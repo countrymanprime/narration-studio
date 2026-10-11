@@ -31,7 +31,7 @@ export function RadioGroup<Value extends string>({
             <Radio.Root
               value={option.value}
               // Unselected fill is --surface-3 with the --border rim, not --surface (mock-fidelity-primitives-and-
-              // components.prd.md Phase 6, D91).
+              // D91).
               className="inline-flex size-4 flex-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)] data-[checked]:border-[var(--accent)]"
             >
               <Radio.Indicator className="size-2 rounded-full bg-[var(--accent)] data-[unchecked]:hidden" />

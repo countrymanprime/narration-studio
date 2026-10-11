@@ -19,8 +19,8 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll (ADR 0119), not a command' },
 };
 
-// Temporary: today's three command listeners this PRD replaces. Each entry names the phase that migrates it onto
-// `useCommand` and is deleted in that phase's pull request.
+// Temporary: a command listener not yet migrated onto `useCommand`. Each entry names the phase that migrates it and is
+// deleted in that phase's pull request. Empty (2026-10-11).
 const TEMPORARY: Record<string, Reason> = {};
 
 const ALLOWLIST: Record<string, Reason> = { ...PERMANENT, ...TEMPORARY };

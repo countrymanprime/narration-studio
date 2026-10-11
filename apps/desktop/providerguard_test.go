@@ -28,9 +28,8 @@ import (
 
 // providerGuardExceptions are the functions, as "<file relative to apps/desktop> <function>", that compare a provider name
 // for a reason other than choosing one. Each needs a written reason, and an entry that stops being needed fails the guard.
-// checkFrozenMoonshine (its own exception, "checks the frozen sidecar's --check-moonshine report names the engine it was
-// asked about") was retired in sidecar-capabilities-flag PRD Phase 3: checkCapabilities's verify check reads the sidecar's
-// moonshine row by map key (parsed.Asr["moonshine"]), never comparing a provider name, so it needs no exception here.
+// checkCapabilities's verify check reads the sidecar's moonshine row by map key (parsed.Asr["moonshine"]), never comparing
+// a provider name, so it needs no exception here.
 var providerGuardExceptions = map[string]string{}
 
 // providerNames are the names in every provider registry.

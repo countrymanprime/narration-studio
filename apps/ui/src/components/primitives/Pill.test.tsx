@@ -44,7 +44,7 @@ describe('Pill', () => {
     expect(select).toHaveBeenCalledTimes(2);
   });
 
-  // The segmented look (mock-fidelity-primitives-and-components.prd.md Phase 5) is still a pressed toggle underneath —
+  // The segmented look is still a pressed toggle underneath —
   // only ToggleGroup's container draws the border, so a segment carries none of its own.
   it('is still a pressed toggle in the segmented look, without its own border', () => {
     render(<Pill label="ACX" active look="segmented" />);

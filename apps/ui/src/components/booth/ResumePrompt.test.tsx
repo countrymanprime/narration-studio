@@ -10,7 +10,7 @@ import { CommandRouter } from '../../input/router';
 import { WIRE_TELEPROMPTER_DEVICES } from '../../api/mockFixtures';
 import type { DawTransport, NarrationApi, TeleprompterLocateResult, TeleprompterResumeFollowEvent, TeleprompterState } from '../../types';
 
-// The read-aloud dialog's resume prompt (read-aloud-resume-from-daw.prd.md Phase 1): a compact notice or choice for where
+// The read-aloud dialog's resume prompt: a compact notice or choice for where
 // the chapter's recording ends (TeleprompterLocate, ADR 0111). It never starts anything by itself, and it settles - and
 // stays gone - the moment the narrator makes a choice or a session starts, for the rest of this dialog's open.
 

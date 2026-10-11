@@ -2,8 +2,7 @@ import { Input } from '@base-ui/react/input';
 import type { ComponentPropsWithRef } from 'react';
 import type { ControlNaming } from './controlNaming';
 
-// The look every text control shares. It was copied into each page (and a `FIELD_CLASS` in the Teleprompter, a `controlClass`
-// in Settings) and, before that, applied to bare `input` elements by a global rule; the wrapper owns it now (ADR 0053).
+// The look every text control shares; the wrapper owns it, not a global rule or a per-page copy (ADR 0053).
 // The size is set separately (SANS_CLASSES/MONO_CLASSES): a `text-*` utility can't be layered safely, since two of them in one
 // className race for the same CSS property.
 const BASE_CLASSES =
@@ -12,8 +11,7 @@ const BASE_CLASSES =
 const COLOR_CLASSES =
   'size-[2.35rem] rounded-[0.35rem] border border-[var(--border)] bg-[var(--surface)] p-[0.2rem] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]';
 const SANS_CLASSES = 'text-[0.88rem]';
-// Values that are code, not prose - a hex colour, an id, a number - read a touch larger than body text (mock-fidelity-
-// primitives-and-components.prd.md Phase 6: ~15px on the mocks' numeric fields).
+// Values that are code, not prose - a hex colour, an id, a number - read a touch larger than body text (~15px on the mocks' numeric fields).
 const MONO_CLASSES = "text-[0.9375rem] font-['IBM_Plex_Mono',ui-monospace,monospace]";
 // A value the app computed that the narrator can read and copy but not edit (Phase 6's migrated fake fields): the same
 // control, on --surface-2 instead of --surface, cursor-default, no focus ring.

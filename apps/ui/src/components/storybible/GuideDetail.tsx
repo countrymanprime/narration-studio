@@ -76,7 +76,7 @@ export function GuideDetail({
   // A brand-new entity with no backend record yet - see Guide.tsx's
   // pendingNewEntity/emptyGuideEntity. Nothing is written until a category
   // is chosen, so navigating away just discards it instead of orphaning a
-  // "Draft"-category record the way an immediate create-on-click used to.
+  // "Draft"-category record.
   isNewDraft?: boolean;
   onDiscardNewDraft?: () => void;
   onCreatedNewDraft?: (id: string) => void;
