@@ -74,7 +74,7 @@ export function SlideOver({
               {/* tabIndex: the body scrolls when content is tall, and a scrolling region must be reachable by keyboard. */}
               <div
                 tabIndex={0}
-                className="scroll-chrome-hidden flex-1 overflow-y-auto p-[1.1rem] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset"
+                className="scroll-chrome-hidden flex-1 overflow-y-auto p-[1.1rem] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset"
               >
                 {children}
               </div>
