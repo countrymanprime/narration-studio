@@ -1,5 +1,5 @@
-"""The tail-audio locate (locate.py, teleprompter-manuscript-integration PRD Phase 9, ADR 0111): placing a recording's
-last words in the chapter, the sentence shown for confirmation, the audio cut, and the `--locate` CLI the host drives."""
+"""The tail-audio locate (locate.py, ADR 0111): placing a recording's last words in the
+chapter, the sentence shown for confirmation, the audio cut, and the `--locate` CLI the host drives."""
 
 import importlib.util
 import io

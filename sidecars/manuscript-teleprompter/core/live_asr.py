@@ -73,9 +73,8 @@ turns them into these three event types:
         only with --capabilities: every row this process has actually
         registered in ENGINES and BACKENDS (see capabilities_report, below),
         keyed by port then name; registration only by default, so "loadable"
-        is null unless --verify is also given (sidecar-capabilities-flag PRD,
-        ADR 0403). With --verify, the rows _VERIFY_HOOKS names (today: just
-        moonshine) also get "loadable" true/false and a
+        is null unless --verify is also given (ADR 0403). With --verify, the rows
+        _VERIFY_HOOKS names (today: just moonshine) also get "loadable" true/false and a
         "detail" string, and the process exits 1 if any of them is false.
         Prints once and exits 0 otherwise. The packaged app's smoke test
         (checkCapabilities) reads it to catch a row Go declares for this
@@ -614,14 +613,14 @@ def _load_engine(args) -> EventStream:
 
 
 def _verify_moonshine() -> dict:
-    """The verify hook for asr/moonshine: whether this build's Moonshine native library actually loads, (sidecar-capabilities-flag PRD Phase 3, ADR 0403)."""
+    """The verify hook for asr/moonshine: whether this build's Moonshine native library actually loads (ADR 0403)."""
     from moonshine_engine import self_check
 
     return self_check()
 
 
-# Which (port, name) rows --capabilities --verify can additionally prove actually load, not just registered (Q2/Q3,
-# ADR 0403) - today only moonshine. A future engine needing the same guarantee adds one row here, the
+# Which (port, name) rows --capabilities --verify can additionally prove actually load, not just registered
+# (ADR 0403) - today only moonshine. A future engine needing the same guarantee adds one row here, the
 # same one-row-not-a-rewritten-call-site shape ENGINES/BACKENDS already have; looked up by key, never compared, so
 # this needs no provider-guard exception (libs/python/tests/test_provider_guard.py).
 _VERIFY_HOOKS: dict[tuple[str, str], Callable[[], dict]] = {("asr", "moonshine"): _verify_moonshine}
@@ -631,7 +630,7 @@ def _capability_row(port: str, descriptor, verify: bool) -> dict:
     """One row of a --capabilities report: a Descriptor's label, platforms and modes, plus its asset kind when it
     has one (AsrDescriptor only) - the same "include only when non-empty" rule bindings_providers.go's providerEntry
     uses. "loadable" is null unless `verify` is set and _VERIFY_HOOKS names this (port, descriptor.name) row, in
-    which case the hook's own "ok"/"detail" fill "loadable"/"detail" (Q2/Q3, ADR 0403)."""
+    which case the hook's own "ok"/"detail" fill "loadable"/"detail" (ADR 0403)."""
     row = {"label": descriptor.label, "platforms": list(descriptor.platforms), "modes": list(descriptor.modes), "loadable": None}
     asset_kind = getattr(descriptor, "asset_kind", "")
     if asset_kind:
@@ -649,7 +648,7 @@ def capabilities_report(engines=ENGINES, backends=BACKENDS, verify: bool = False
     (capture) by the time this runs - after asr_adapters and capture_dshow's module-level registration, before any
     engine, model or device is touched. `engines`/`backends` are overridable so a test can stand in a reduced
     registry for "an adapter failed to register" without needing a real broken import. `verify` (--capabilities
-    --verify) additionally proves each _VERIFY_HOOKS row actually loads, not just that it registered (Phase 3)."""
+    --verify) additionally proves each _VERIFY_HOOKS row actually loads, not just that it registered."""
     return {
         "type": "capabilities",
         "asr": {engine.descriptor.name: _capability_row("asr", engine.descriptor, verify) for engine in engines},
@@ -828,7 +827,7 @@ _SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_w
 
 def _run_meter(ap: argparse.ArgumentParser, args) -> None:
     """--meter: report the microphone's level (levels.py) until the stop file appears. No model loads and no script is
-    read, so it starts in about the time the device takes to open (read-aloud-control-bar PRD Phase 4, Q6 A)."""
+    read, so it starts in about the time the device takes to open."""
     from levels import LevelMeter, metered
 
     if not args.mic:
@@ -891,7 +890,7 @@ def _run_list_devices(ap: argparse.ArgumentParser, args) -> None:
 def _run_record(ap: argparse.ArgumentParser, args) -> None:
     """--record PATH --mic NAME --stop-file F: record one take of NAME into PATH through the capture row --capture names
     (wasapi by default), printing `level` events while it runs and one `recorded` event with the take's numbers when it
-    ends (native-recording-suite PRD Phase 2). PATH must not exist yet: the writer never overwrites (ADR 0357, Q5). It
+    ends. PATH must not exist yet: the writer never overwrites (ADR 0357). It
     ends when the stop file appears, or on its own when the device or the disk fails; either way the audio written so
     far is kept and `recorded` says why in `error`. A take that could not start at all exits 1 with the reason on
     stderr, and prints no `recorded`."""

@@ -130,11 +130,11 @@ TITLE_WORDS = {
     "sir",
 }
 # A paragraph made only of this punctuation (***, - - -, # # #, a bullet or dash) is a scene break: it starts a
-# new scene and is not itself part of any scene. Character Continuity Review phase 2 (CC-2).
+# new scene and is not itself part of any scene.
 SCENE_BREAK = re.compile(r"^[*#\-–—•·\s]+$")
 # Verbs that mark a name next to a quotation as its speaker. Deliberately narrower than PERSON_WORDS above
 # (which also accepts "smiled"/"walked"/"looked"/"thought" as a proximity signal for classifying an entity's
-# category) - a cue's attribution is precision-first (ADR 0020, Q4): only an unambiguous speech verb counts.
+# category) - a cue's attribution is precision-first (ADR 0020): only an unambiguous speech verb counts.
 SPEECH_VERBS = {
     "said",
     "asked",
@@ -452,7 +452,7 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
     """Gets a pronunciation from exactly one named source, raising when that source has nothing for ``name``.
 
     Unlike ``pronunciation()`` (the automatic CMU-then-eSpeak fallback used at build time, which never raises), this
-    is what the narrator's explicit Generate/Replace control uses (B10): the narrator chose the source, so a miss is
+    is what the narrator's explicit Generate/Replace control uses: the narrator chose the source, so a miss is
     reported, not silently swallowed into "not generated".
     """
     engine = SOURCES.lookup(source)
@@ -508,7 +508,7 @@ def carry_pronunciation_work(prior: dict[str, Any] | None, fresh: dict[str, Any]
 
 
 def set_pronunciation(prior: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]:
-    """Puts ``new`` in use in place of ``prior``, keeping the narrator's own and the dictionary's answers side by side (Q2).
+    """Puts ``new`` in use in place of ``prior``, keeping the narrator's own and the dictionary's answers side by side.
 
     The ``alternate`` is the most recent pronunciation of the other kind (the narrator's own or a dictionary's): when ``prior`` is of the
     other kind and has an IPA it becomes the alternate, otherwise ``prior``'s alternate is kept. So switching back never re-runs a
@@ -541,7 +541,7 @@ def pronunciation(name: str, espeak_library: str | None, default_source: str | N
     # Read-only/generated-only: there is no user-editable "say it as" respelling
     # any more, so this never needs to round-trip anything but the IPA itself.
     order = SOURCES.fallback_order()
-    # default_source (story-bible-and-import-ux-briefs PRD phase 11, the settings default) only reorders the chain: an
+    # default_source (the settings default) only reorders the chain: an
     # unregistered value (a stale setting from a removed source) is ignored rather than raising, and every other
     # source is still tried afterwards in its usual order if the preferred one has nothing for this name.
     if default_source and default_source in order:
@@ -817,12 +817,12 @@ def merge_locked(generated: list[dict[str, Any]], old: dict[str, Any] | None) ->
     previous = {entity["id"]: entity for entity in old.get("entities", [])}
     absorbed_names: dict[str, str] = old.get("absorbed_names", {})
 
-    # CC-2 (character-continuity-review.prd.md phase 2): an entity's id is a hash of whichever spelling gets
-    # picked as canonical_name (entity_id()), and that pick can shift between builds - e.g. a title-prefixed
-    # mention ("Captain Arelian") joining a group that previously only had the short form ("Arelian") makes the
-    # long form win as canonical_name, hashing to a different id. Reconcile by name overlap, not only by exact
-    # id, so a freshly generated entity that shares ANY spelling with a previous one (locked/manual or not)
-    # reclaims that previous entity's id and its reviewed history, instead of silently orphaning both.
+    # An entity's id is a hash of whichever spelling gets picked as canonical_name (entity_id()), and that pick can
+    # shift between builds - e.g. a title-prefixed mention ("Captain Arelian") joining a group that previously only had
+    # the short form ("Arelian") makes the long form win as canonical_name, hashing to a different id. Reconcile by name
+    # overlap, not only by exact id, so a freshly generated entity that shares ANY spelling with a previous one
+    # (locked/manual or not) reclaims that previous entity's id and its reviewed history, instead of silently orphaning
+    # both.
     previous_id_by_name_key: dict[str, str] = {}
     for previous_id, previous_entity in previous.items():
         for key in entity_name_keys(previous_entity):
@@ -1170,11 +1170,11 @@ def _load_guide_for_edit(path: str) -> dict[str, Any]:
 
 
 def pronounce(args: argparse.Namespace) -> None:
-    """Sets the pronunciation of an entity's own name, or one of its aliases, from one named engine (D13/B9/B10).
+    """Sets the pronunciation of an entity's own name, or one of its aliases, from one named engine.
 
     Refused on a locked entity, the same as every other edit (ADR 0007). The value is marked ``chosen`` so a later
-    rebuild's ``merge_locked`` keeps it instead of overwriting it with a freshly generated one (B11). A narrator's own
-    pronunciation it replaces is kept as the ``alternate`` (prep-depth Q2).
+    rebuild's ``merge_locked`` keeps it instead of overwriting it with a freshly generated one. A narrator's own
+    pronunciation it replaces is kept as the ``alternate``.
     """
     guide = _load_guide_for_edit(args.guide)
     holder, name = _pronunciation_holder(guide, args.entity_id, args.alias_index)
@@ -1400,7 +1400,7 @@ def extract_cues_from_text(text: str, character_index: dict[str, str], chapter_i
 
 
 def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dict[str, str]) -> list[dict[str, Any]]:
-    """Rules-based cue extraction (CC-2, Q4 option A): quote spans, adjacent speech-verb tags resolved
+    """Rules-based cue extraction (precision-first, ADR 0020): quote spans, adjacent speech-verb tags resolved
     against known Character names/aliases, and per-scene continuation for exactly two active speakers.
     A scene-break paragraph resets who is "active" - continuation never crosses one. Three or more active
     speakers in a scene, or only one so far, leaves an untagged quote `unknown` rather than guessing which
@@ -1603,7 +1603,7 @@ def unrelate(args: argparse.Namespace) -> None:
 def _phoneme_block(ipa: str) -> str | None:
     """Piper's own inline raw-phoneme escape (``"[[ ... ]]"``, ``PiperVoice.phonemize``) skips its espeak
     text-to-phoneme step, speaking exactly the stored symbols instead of re-guessing them from the spelled name
-    (Phase 10, ADR 0680). ``None`` when ``ipa`` is empty or would break out of the block early.
+    (ADR 0680). ``None`` when ``ipa`` is empty or would break out of the block early.
     """
     text = ipa.strip()
     if not text or "]]" in text:
@@ -1727,7 +1727,7 @@ def self_check(args: argparse.Namespace) -> None:
 def _capability_row(descriptor) -> dict:
     """One row of a `capabilities` report: a Descriptor's label, platforms and modes, plus its asset kind when it
     has one (TtsDescriptor only). "loadable" is always null: this reports registration only, never whether the row
-    actually loads (sidecar-capabilities-flag PRD Q2, ADR 0403) - the same shape live_asr.py's --capabilities uses."""
+    actually loads (ADR 0403) - the same shape live_asr.py's --capabilities uses."""
     row = {"label": descriptor.label, "platforms": list(descriptor.platforms), "modes": list(descriptor.modes), "loadable": None}
     asset_kind = getattr(descriptor, "asset_kind", "")
     if asset_kind:
@@ -1871,7 +1871,7 @@ def main() -> None:
     args = parser.parse_args()
     wiktextract_index = getattr(args, "wiktextract_index", "") or None
     if wiktextract_index:
-        # Set once per process on the registered singleton (D72, Q7-Q8): the path never changes between calls within one
+        # Set once per process on the registered singleton: the path never changes between calls within one
         # invocation, so there is nothing to gain from threading it through pronunciation()/pronounce_source() the way
         # --espeak-library is, and every call site that already builds a pronunciation keeps working unchanged.
         SOURCES.lookup("wiktextract").index_path = wiktextract_index

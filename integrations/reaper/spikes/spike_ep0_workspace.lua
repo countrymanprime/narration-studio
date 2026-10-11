@@ -1,15 +1,15 @@
--- Edit and proof workspace PRD, Phase 0 (spike SF and the undo questions): the real set_active_take, list_fx_chains,
+-- Edit and proof workspace spike (REAPER actions and the undo questions): the real set_active_take, list_fx_chains,
 -- list_fx, apply_fx_chain and add_take_fx commands (narration_workspace.lua, loaded through the real
 -- narration_ui_bridge.lua registry) against a real REAPER, in a scratch project built from synthetic tones. It scripts
--- rows A6, A7, A8, A8b and A10 of docs/operations/reaper-verification-pass.md, and answers the PRD's own questions a fake
+-- rows A6, A7, A8, A8b and A10 of docs/operations/reaper-verification-pass.md, and answers what a fake
 -- cannot:
 --   - does SetActiveTake leave exactly one undo point, and does one Undo restore the previous take;
 --   - does TrackFX_AddByName load a .RfxChain by its full path onto a track and the master track;
 --   - what does a split do to take FX, take markers, the item's and the take's extension data, the item GUIDs and the
 --     fades, and does one Undo rejoin the item;
---   - what REAPER's own peaks (GetMediaItemTake_Peaks, EP12 C) give for a known tone, to cross-check the host's peaks.
+--   - what REAPER's own peaks (GetMediaItemTake_Peaks) give for a known tone, to cross-check the host's peaks.
 --
--- No playback and no recording (owner decision D3): nothing here calls OnPlayButton or records. The FXChains files are
+-- No playback and no recording (no script plays or records): nothing here calls OnPlayButton or records. The FXChains files are
 -- written into the isolated -Cfg resource folder, never the owner's.
 --
 -- Research tool, not product code. Run by run-reaper.ps1 (-Cfg an isolated resource folder, -Out a scratch folder
@@ -457,7 +457,7 @@ local ok, err = xpcall(function()
   check('S2 the saved project has a <TAKEFX> chunk', saved:find('<TAKEFX', 1, true) ~= nil)
 
   -----------------------------------------------------------------------
-  section("REAPER's own peaks for a known tone (EP12 C, observation only)")
+  section("REAPER's own peaks for a known tone (observation only)")
   -----------------------------------------------------------------------
   -- take_a.wav is a 220 Hz sine at 9000/32768 (0.2747) of full scale, 8 kHz mono. The host's peaks (measure.Peaks) give
   -- 0.2747 for every 20 ms bucket; this records what REAPER's peak builder answers for the same take.

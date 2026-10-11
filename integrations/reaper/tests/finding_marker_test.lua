@@ -1,4 +1,4 @@
--- Adding one approved marker for a finding: add_finding_marker (review-dashboard PRD Phase 8, Q8;
+-- Adding one approved marker for a finding: add_finding_marker (ADR 0123;
 -- docs/architecture/reaper-navigation.md). The one command in narration_navigation.lua that changes the project: it
 -- adds one take marker inside one undo block, skips a marker the take already has (the 0.15 s, same-prefix rule the
 -- Transcript Compare export uses), and like Go to never falls back to a neighbouring item.

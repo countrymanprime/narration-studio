@@ -1,6 +1,6 @@
--- Going to and looping a finding over the bridge: navigate_item, loop_context, stop_loop and ping (review-dashboard
--- PRD Phase 6 and its Q6 answer; docs/architecture/reaper-navigation.md, ADR 0121), and add_finding_marker, the one
--- approved marker for a finding (Phase 8, Q8, ADR 0123). Loaded by narration_ui_bridge.lua, which passes the shared
+-- Going to and looping a finding over the bridge: navigate_item, loop_context, stop_loop and ping
+-- (docs/architecture/reaper-navigation.md, ADR 0121), and add_finding_marker, the one approved marker for a finding
+-- (ADR 0123). Loaded by narration_ui_bridge.lua, which passes the shared
 -- helpers as the chunk argument.
 --
 -- A finding is found by its item GUID (and take GUID when it has one), and its time is a source time inside that
@@ -111,8 +111,8 @@ local function playing()
   return reaper.GetPlayState() % 2 == 1
 end
 
--- Leaves only `item` selected, item by item with SetMediaItemSelected. The first scripted REAPER 7.80 run of the Phase 6
--- check saw an "Unselect all items" undo point after a navigation that used SelectAllMediaItems (a later run did not);
+-- Leaves only `item` selected, item by item with SetMediaItemSelected. The first scripted REAPER 7.80 run of the navigation
+-- check (spikes/navigation_check.lua) saw an "Unselect all items" undo point after a navigation that used SelectAllMediaItems (a later run did not);
 -- SetMediaItemSelected left none, and going somewhere is not an edit.
 local function select_only(item)
   for index = reaper.CountSelectedMediaItems(0) - 1, 0, -1 do

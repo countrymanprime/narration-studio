@@ -7,7 +7,7 @@ markers can never disagree) and reports, per paragraph (`p-NNNNNN`), how many bo
 read in place, the longest run of missing tokens, and typed regions of missing text naming their
 first and last words and the matched transcript tokens that bound them (ADR 0168).
 
-The rules (the Definitions of the delivered PRD, now "What counts as read" in that page):
+The rules, as that page states them:
 
 - **Anchors.** An `equal` block of at least `min_anchor_run` tokens is read text. A shorter one
   with non-equal neighbours on both sides is a chance match (the odd "the" inside unrelated
@@ -363,7 +363,7 @@ def _paragraphs(aligned: AlignedChapter, status: Sequence[str | None], runs: Seq
 
 
 # ---------------------------------------------------------------------------
-# token by token (the edit and proof workspace, PRD Phase 1)
+# token by token (the edit and proof workspace)
 
 
 READ = "read"

@@ -1,4 +1,4 @@
-"""The coverage mode's word alignment (edit-and-proof-workspace PRD Phase 1, EP3 C).
+"""The coverage mode's word alignment (ADR 0242).
 
 Beside its measurements, `compare.py --coverage` writes one `COVERAGE_TOKEN` line per chapter token
 (the manuscript word it came from, its status as the check judged it, and where it was heard in its

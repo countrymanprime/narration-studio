@@ -1,11 +1,11 @@
--- The verification pass, Part A (docs/operations/reaper-verification-pass.md; booth actions enablement PRD Phase 6): the
+-- The verification pass, Part A (docs/operations/reaper-verification-pass.md): the
 -- unattended rows, run in a real REAPER against the real bridge. It builds a scratch project from make_media.py's tones,
 -- starts the real bridge loop (narration_ui_bridge.lua from NARRATION_UTILS_REAPER_DIR) on a scratch session folder,
 -- and sends each row's commands through the same file protocol the Go host uses, then checks what REAPER reads back.
 -- The rows themselves are pass_part_a_lib.lua's, proved against the harness's fake by tests/pass_part_a_test.lua.
 -- Rows A6-A8b are spike_ep0_workspace.lua's: run-pass-part-a.ps1 runs it first and this script merges its report.
 --
--- Safety (owner decision D3):
+-- Safety:
 --   - it stops unless REAPER's resource path is the scratch -Cfg folder and the audio device is closed;
 --   - it opens no project of the owner's: the project is built and saved in -Out, and every file it writes goes through
 --     assert_scratch (inside -Out or -Cfg, never under "REAPER Media");
@@ -63,7 +63,7 @@ local function read_file(file)
   return text
 end
 
--- Part A never records (D28 leaves the one test recording to Part B).
+-- Part A never records; the one test recording is Part B's.
 local record_requests = 0
 reaper.CSurf_OnRecord = function()
   record_requests = record_requests + 1

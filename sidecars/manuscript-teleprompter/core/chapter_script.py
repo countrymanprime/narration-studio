@@ -111,10 +111,9 @@ _LINE_BREAK = re.compile(r"\r\n|\r|\n")
 
 def text_script(text: str, script_id: str, title: str) -> ChapterScript:
     """The script for text that is not a manuscript chapter: the opening or
-    closing credits the host renders (audiobook-credits-templates.prd.md Phase
-    4, ADR 0150). Every line with words is one paragraph span, `<script_id>-<n>`
-    counted from 1 over those lines only, with no manuscript index; there is no
-    title span, because the script's name ("Opening credits") is not read aloud.
+    closing credits the host renders (ADR 0150). Every line with words is one paragraph span, `<script_id>-<n>`
+    counted from 1 over those lines only, with no manuscript index; there is no title span, because the script's
+    name ("Opening credits") is not read aloud.
     The reader splits the same text the same way (`readerModel.ts`)."""
     tokens: list[str] = []
     spans: list[Span] = []

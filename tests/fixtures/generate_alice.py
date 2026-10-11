@@ -48,8 +48,8 @@ def parse_chapters(raw_path: Path) -> list[tuple[str, list[str]]]:
         # Bound the LAST kept chapter's content at the next real chapter heading in the full
         # match list (not the truncated one) - using body.index("THE END") here would bleed
         # every chapter beyond CHAPTER_LIMIT into this one as plain, unmarked paragraph text
-        # (txt-and-epub-import PRD, Phase 1: the TXT importer's own heading heuristic exposed
-        # this by correctly reading those bled-in "CHAPTER IV."-shaped lines as real headings).
+        # (the TXT importer's own heading heuristic exposed this by correctly reading those
+        # bled-in "CHAPTER IV."-shaped lines as real headings).
         content_end = all_matches[i + 1].start() if i + 1 < len(all_matches) else body.index("THE END")
         raw_paragraphs = body[content_start:content_end].strip("\n").split("\n\n")
         paragraphs = []
@@ -190,12 +190,12 @@ def epub_em(text: str) -> str:
     EPUB fixture's chapter text matches alice.md's after the Markdown
     importer strips its own underscore-emphasis markers - otherwise the
     literal underscores would stay in the EPUB's plain text and break the
-    Go parity test (txt-and-epub-import PRD, Phase 2)."""
+    Go parity test."""
     return epub_italic_re.sub(r"<em>\1</em>", text)
 
 
 def write_epub(chapters: list[tuple[str, list[str]]], out_path: Path) -> None:
-    """Writes alice.epub (txt-and-epub-import PRD, Phase 2): an EPUB 3 book with
+    """Writes alice.epub: an EPUB 3 book with
     both a nav.xhtml table of contents (EPUB 3) and a toc.ncx (EPUB 2), as many
     real EPUB 3 exporters ship both for backwards compatibility, so one fixture
     exercises the nav-preferred path while a from-scratch NCX-only variant

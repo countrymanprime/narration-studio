@@ -1,5 +1,5 @@
--- Regions for chapters and credits: create_regions (narration_regions.lua). One command serves the chapter regions of
--- the follow-through PRD's Phase 7 (RF-7) and the credits regions of credits-in-chapter-table Phase 4: the host sends a
+-- Regions for chapters and credits: create_regions (narration_regions.lua). One command serves the chapter regions and
+-- the credits regions: the host sends a
 -- row per region, credits rows named like the chapter table's row labels. It replaced create_chapter_regions, whose
 -- behaviour (verified in REAPER 7.80 by spikes/checklist.lua) it keeps; the update flag is new.
 

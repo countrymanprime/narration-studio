@@ -1,12 +1,12 @@
 """The sidecar's per-take divergence mode: `compare.py --take-divergence`.
 
-Take review (`docs/utilities/take-review.md`), its PRD's Phase 9, and ADR 0141. For one
+Take review (`docs/utilities/take-review.md`) and ADR 0141. For one
 fixed manuscript span (a chapter, found by id, and a run of its sentence units, numbered as
 `--find-repeats` numbers a repeated span) and the takes the host lists in a JSON manifest, this
 mode transcribes each take's range with Whisper word timestamps, aligns it to the span with the
 take markers' own diff (`core/take_divergence.py`) and writes, per take, every span word's status
-and time and every divergence as manuscript words plus source seconds. Phase 10 reads it to shade
-where each take goes wrong. It writes evidence only: no ranking and no verdict (PRD Q9).
+and time and every divergence as manuscript words plus source seconds. The comparison view reads it
+to shade where each take goes wrong. It writes evidence only: no ranking and no verdict.
 
 Manifest (JSON, written by the host, a trust boundary: `docs/architecture/threat-model.md` row 4f):
 

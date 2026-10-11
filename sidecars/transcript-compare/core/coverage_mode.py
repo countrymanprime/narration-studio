@@ -13,17 +13,17 @@ skipped, Q5 and Q10), this mode:
 3. writes the measurements, never a verdict (the narrator's thresholds are applied later, on
    read, by the host), as tagged lines with one JSON object each: `COVERAGE|` (the chapter),
    `COVERAGE_ITEM|` (one per manifest item), `COVERAGE_PARAGRAPH|` and `COVERAGE_REGION|`; then
-   the word alignment the edit and proof workspace reads (PRD Phase 1, ADR 0242): one
+   the word alignment the edit and proof workspace reads (ADR 0242): one
    `COVERAGE_TOKEN|` per chapter token and one `COVERAGE_EXTRA|` per run of words heard that the
    chapter does not account for. The results file is written atomically, so it exists only when
    the run finished.
 
 With `--align-only` the mode never transcribes: it re-aligns from the words files alone and fails
-before decoding anything when an item's words do not cover its played range (EP3 C). A plain check,
+before decoding anything when an item's words do not cover its played range. A plain check,
 `--align-only` included, refuses to reuse a words file another model made (`covers`), so a model
 change is a re-transcription, never a silent stale reuse.
 
-`--recheck <windows.json>` is a separate, windows-only mode (`run_recheck`, model cascade Phase 3):
+`--recheck <windows.json>` is a separate, windows-only mode (`run_recheck`):
 instead of the manifest and chapter above, it takes a checked list of windows, each bounded audio
 in one item's source and the words file to update, transcribes each with `--model` (one model load
 for the run) and splices the result into that words file (`splice_window`), reattributing the
@@ -110,7 +110,7 @@ class ManifestItem:
 
 @dataclass(frozen=True)
 class Span:
-    """One range of a words file attributed to one model (model cascade Phase 3): `[start, end]`
+    """One range of a words file attributed to one model: `[start, end]`
     in the file's own source seconds. A plain file (never spliced by `--recheck`) carries none;
     `spans_or_default` gives it one span, the whole file under its `model`."""
 
@@ -655,13 +655,13 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> Non
 
 
 # ---------------------------------------------------------------------------
-# the windows-only recheck mode (model cascade Phase 3)
+# the windows-only recheck mode
 
 
 @dataclass(frozen=True)
 class Window:
     """One window of audio to re-check with a stronger model, bounded by the words the first pass
-    matched on either side of a missing region (planned by the host, model cascade Phase 4)."""
+    matched on either side of a missing region (planned by the host)."""
 
     item_index: int
     item_guid: str
@@ -718,7 +718,7 @@ def read_windows(path: str | os.PathLike) -> tuple[Window, ...]:
 def _drop_edge_words(words: Sequence[Word], start: float, end: float) -> list[Word]:
     """A window's own newly transcribed words, dropping any whose start or end touches the
     window's edge: the window's own decode may have cut such a word short, so it is never trusted
-    over what was already there (a risk noted in the PRD's Architecture notes)."""
+    over what was already there."""
     return [word for word in words if word[1] > start and word[2] < end]
 
 
@@ -748,7 +748,7 @@ def _overwrite_spans(spans: Sequence[Span], start: float, end: float, model: str
 def splice_window(existing: ItemWords, window: Window, new_words: Sequence[Word], model: str) -> ItemWords:
     """`existing` with `window`'s range re-checked: the words it replaced are gone, the window's
     own new words stand in for them (edge words dropped), and the range is reattributed to `model`
-    in `spans` (model cascade Phase 3). `existing.model` is left as it was, for compatibility."""
+    in `spans`. `existing.model` is left as it was, for compatibility."""
     kept = _drop_replaced_words(existing.words, window.start, window.end)
     added = _drop_edge_words(new_words, window.start, window.end)
     words = tuple(sorted(kept + added, key=lambda word: word[1]))
@@ -757,7 +757,7 @@ def splice_window(existing: ItemWords, window: Window, new_words: Sequence[Word]
 
 
 def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None) -> None:
-    """The windows-only recheck mode (`--coverage --recheck`, model cascade Phase 3): transcribes
+    """The windows-only recheck mode (`--coverage --recheck`): transcribes
     only the given windows with `--model`, one model load for the run, and splices the new words
     into each affected words file. Touches no manifest, chapter or timeline, and writes no results
     file. Raises `engine.Cancelled` on cancel; any other exception is a failure."""

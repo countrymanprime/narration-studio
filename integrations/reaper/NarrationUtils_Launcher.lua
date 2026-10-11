@@ -40,10 +40,9 @@ local BUNDLE_ROOT = join(join(SHARED, '..'), '..')
 local configured_app = common.read_file(SHARED .. SEP .. 'narration-utils-app-path.txt'):gsub('[\r\n]+$', '')
 
 -- Returns the rpp's own containing folder, a display name, and the rpp's own
--- exact path (PRD project-workspace-and-daw-link.prd.md Phase 5,
--- --project-file). An unsaved project has no file at all, so the third value
--- is also empty: the app then has nothing to match and falls back to its
--- picker (W5) instead of guessing.
+-- exact path (passed to the app as --project-file). An unsaved project has no
+-- file at all, so the third value is also empty: the app then has nothing to
+-- match and falls back to its picker instead of guessing.
 local function project_context()
   local _, rpp = reaper.EnumProjects(-1, '')
   if not rpp or rpp == '' then

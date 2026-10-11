@@ -1,5 +1,5 @@
 """
-Spike: measure the built-in recorder's capture engine (native-recording-suite PRD Phase 1, ADR 0357). This is not
+Spike: measure the built-in recorder's capture engine (ADR 0357). This is not
 shipped code. It drives the same `capture_wasapi` row and `narration_common.recording.Recorder` the app will use, and
 prints one JSON report, which the research note (docs/research/native-recording-capture-engine-spike.md) records.
 
@@ -16,7 +16,7 @@ It measures four things:
      its callbacks. It reports the same numbers plus a bit-exact comparison of the file with the tone that was fed in;
   4. throughput: the same pipeline unpaced, for --throughput-seconds of audio. It reports how many times faster than
      real time the writer runs, which is its headroom against a slow disk.
-It writes only under --out and sends nothing anywhere (D72).
+It writes only under --out and sends nothing anywhere.
 """
 
 import argparse

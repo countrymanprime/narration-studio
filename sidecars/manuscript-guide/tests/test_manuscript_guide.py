@@ -266,7 +266,7 @@ class ManuscriptGuideTests(unittest.TestCase):
             self.assertEqual(2, len(entity["aliases"][0]["occurrences"]))
 
     def test_a_new_aliass_pronunciation_prefers_the_narrators_default_source(self):
-        # story-bible-and-import-ux-briefs PRD phase 11 (the settings default): --default-source reaches apply_edit's
+        # The settings default: --default-source reaches apply_edit's
         # own pronunciation() call for a freshly added alias, the same way it reaches build and create. eSpeak may not
         # be installed in every environment this test runs in, so the source is stubbed the way test_providers.py does.
         with tempfile.TemporaryDirectory() as temporary:
@@ -923,7 +923,7 @@ class SelfCheckTests(unittest.TestCase):
 
 
 class CapabilitiesTests(unittest.TestCase):
-    """`capabilities` (sidecar-capabilities-flag PRD Phase 2) mirrors live_asr.py's --capabilities: every row this
+    """`capabilities` (ADR 0403) mirrors live_asr.py's --capabilities: every row this
     process has actually registered in ENGINES (voice engines) and SOURCES (pronunciation), by port then name,
     registration only - never whether the row actually loads."""
 
@@ -974,7 +974,7 @@ class CapabilitiesTests(unittest.TestCase):
         self.assertIsNone(report["tts"]["piper"]["loadable"])
 
     def test_capabilities_report_only_lists_what_actually_registered(self):
-        # The fault-detection case (PRD Success Metrics): a row an adapter failed to register never reaches ENGINES/
+        # The fault-detection case: a row an adapter failed to register never reaches ENGINES/
         # SOURCES, so it is simply absent here too - reading the registry as it stands is the whole mechanism.
         from narration_common.ports.tts import TtsDescriptor
 

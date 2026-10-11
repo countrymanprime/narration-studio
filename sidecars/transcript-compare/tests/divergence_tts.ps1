@@ -3,7 +3,7 @@
 Renders the per-take divergence cases to speech with a known onset for every word.
 
 .DESCRIPTION
-Take-review PRD Phase 9 (Q10): the manual, real-ASR half of the divergence evaluation
+The manual, real-ASR half of the divergence evaluation
 (docs/research/take-divergence-evaluation.md). Reads the texts written by
 `divergence_harness.py --tts-plan <plan.json>` and, for each case, speaks it with a Windows
 System.Speech voice into <OutDir>\<case>.wav (16 kHz, 16-bit, mono) and writes

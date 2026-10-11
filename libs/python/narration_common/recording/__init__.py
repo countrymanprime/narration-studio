@@ -1,9 +1,9 @@
-"""The built-in recorder's engine-neutral core (native-recording-suite PRD Phase 1, ADR 0357).
+"""The built-in recorder's engine-neutral core (ADR 0357).
 
 A capture engine (``capture_wasapi.py`` in the teleprompter sidecar, or ``SyntheticSource`` in a test) hands blocks of
 ``float32`` frames to a ``Recorder``, which writes them to a WAV file at the device's own rate (``wav``), reports input
 levels (``meter``) and counts every dropout it can see. ``framing`` turns the same blocks into the capture port's
-16 kHz mono chunks. Nothing here opens a device, imports an audio library or touches the network (D72): it is numpy and
+16 kHz mono chunks. Nothing here opens a device, imports an audio library or touches the network: it is numpy and
 the standard library, so it runs, and is tested, on any host.
 """
 

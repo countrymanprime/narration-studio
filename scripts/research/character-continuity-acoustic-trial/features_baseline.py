@@ -1,9 +1,8 @@
-"""Dependency-free acoustic features (character-continuity-review PRD, Open Question Q1
-option A): pitch distribution, speaking rate, energy distribution, coarse spectral summary.
+"""Dependency-free acoustic features: pitch distribution, speaking rate, energy distribution, coarse spectral summary.
 
 Hand-written, numpy-only (numpy is already a repository dependency; this trial script is
 not the shipped implementation - the MVP is Go per ADR 0025 - it exists to decide whether
-Q1 option A's *kind* of feature is worth building there at all). No torch, no scipy, no
+this *kind* of feature is worth building there at all). No torch, no scipy, no
 librosa: consistent with ADR 0008 (no PyTorch dependency).
 """
 
@@ -42,9 +41,9 @@ def _frame(samples: np.ndarray, sr: int) -> tuple[np.ndarray, int, int]:
 
 
 def _autocorrelation_f0(frame: np.ndarray, sr: int) -> float | None:
-    """A minimal autocorrelation pitch tracker: the classic, explainable baseline the
-    PRD's Q1 recommends (with the caveat that a hand-written tracker has known
-    octave-error failure modes, which is exactly what this trial is meant to quantify)."""
+    """A minimal autocorrelation pitch tracker: the classic, explainable baseline
+    (a hand-written tracker has known octave-error failure modes, which is exactly what this trial is meant to
+    quantify)."""
     windowed = frame * np.hanning(frame.shape[0])
     corr = np.correlate(windowed, windowed, mode="full")[frame.shape[0] - 1 :]
     if corr[0] <= 1e-9:
@@ -63,8 +62,8 @@ def _autocorrelation_f0(frame: np.ndarray, sr: int) -> float | None:
 
 def _spectral_bands(frame: np.ndarray, sr: int) -> tuple[float, float, float, float]:
     """Coarse spectral summary: centroid plus energy fraction in three bands, from a
-    hand-written FFT call (numpy.fft; a shipped Go build would hand-roll the FFT itself,
-    per Q1 - the trial only needs the same *shape* of feature, not the same code)."""
+    hand-written FFT call (numpy.fft; a shipped Go build would hand-roll the FFT itself;
+    the trial only needs the same *shape* of feature, not the same code)."""
     windowed = frame * np.hanning(frame.shape[0])
     spectrum = np.abs(np.fft.rfft(windowed))
     freqs = np.fft.rfftfreq(frame.shape[0], d=1.0 / sr)
@@ -139,7 +138,7 @@ def extract(path: Path) -> ClipFeatures:
 
 def feature_vector(f: ClipFeatures) -> np.ndarray | None:
     """A comparable numeric vector for distance-based separability tests. None when the
-    clip had no measurable pitch (the PRD's "unavailable evidence" path, never a
+    clip had no measurable pitch (unavailable evidence, never a
     fabricated number)."""
     if f.f0_median is None:
         return None

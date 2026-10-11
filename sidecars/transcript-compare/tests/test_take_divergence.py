@@ -1,5 +1,5 @@
 """Tests for core/take_divergence.py: localizing where one take of a fixed span diverges
-(take-review PRD phase 9). Transcripts here are hand-timed words, so every expected time is exact."""
+(docs/utilities/take-review.md). Transcripts here are hand-timed words, so every expected time is exact."""
 
 import importlib.util
 import sys

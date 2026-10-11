@@ -1,5 +1,5 @@
--- The verification pass's Part A driver (integrations/reaper/spikes/pass_part_a_lib.lua, booth actions enablement PRD
--- Phase 6) against the fake: its protocol, scratch-path guard, scheduler and report on their own, then every row it
+-- The verification pass's Part A driver (integrations/reaper/spikes/pass_part_a_lib.lua)
+-- against the fake: its protocol, scratch-path guard, scheduler and report on their own, then every row it
 -- scripts run through the real bridge's file protocol on the harness's fake REAPER. A row that passes here has the
 -- logic right; what REAPER itself answers is the owner's run (docs/operations/reaper-verification-pass.md).
 --

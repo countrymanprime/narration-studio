@@ -1,5 +1,5 @@
--- The logic of the verification pass's Part A driver (booth actions enablement PRD Phase 6,
--- docs/operations/reaper-verification-pass.md): the report and its results file, the file protocol the driver speaks to
+-- The logic of the verification pass's Part A driver
+-- (docs/operations/reaper-verification-pass.md): the report and its results file, the file protocol the driver speaks to
 -- the real bridge, the scratch-path guard, a small defer scheduler, and every Part A row it scripts. It touches no
 -- `reaper` global: pass_part_a.lua (run in REAPER) and tests/pass_part_a_test.lua (run against the harness's fake)
 -- each hand the rows a context, so the harness proves the rows' logic and REAPER only answers what REAPER does.
@@ -9,7 +9,7 @@
 -- PROJECT_STATUS sent after the call; `ctx.sleep(seconds)` waits; `ctx.fx` names the fixture (track, item and take
 -- GUIDs); `ctx.daw` is the probe (M.new_probe) the row reads REAPER through and acts as the narrator with. `r` is the
 -- report: r:check(label, ok, detail), r:note(text) for a value the row records without judging, and r:not_run(label,
--- why) for a step Part A cannot take (a recording is Part B's, D28).
+-- why) for a step Part A cannot take (a recording is Part B's).
 --
 -- Research tool, not product code (integrations/reaper/spikes/README.md).
 
@@ -79,7 +79,7 @@ end
 
 -- Answers `path` when it is inside one of `roots` (the scratch -Out and -Cfg folders), and raises otherwise, or when it
 -- is under a "REAPER Media" folder or climbs out with "..". Every file the driver writes and the project it saves go
--- through this, so a wrong path stops the pass instead of touching the owner's files (owner decision D3).
+-- through this, so a wrong path stops the pass instead of touching the owner's files.
 function M.assert_scratch(path, roots)
   local wanted = comparable(path)
   if wanted:find('reaper media', 1, true) then
@@ -730,7 +730,7 @@ function rows.A9b(ctx, r)
   r:check('A9b.5 processed is not behind heard', gap >= 0, string.format('%.6f', gap))
   r:note(string.format('processed ahead of heard by %.6f s (the output latency with the device closed)', gap))
   daw.stop()
-  r:not_run('A9b.6 state 5 while recording', 'Part B: it needs a recording on a copy (D28)')
+  r:not_run('A9b.6 state 5 while recording', 'Part B: it needs a recording on a copy')
   r:check('A9b.7 no undo point', daw.undo_label() == undo_before, daw.undo_label())
 end
 
@@ -854,7 +854,7 @@ function rows.A9c(ctx, r)
   end
   local clamped = find(ctx.send('punch_to', '1.25', '3'), 'PUNCHED')
   r:check('A9c.4 1.25 with pre-roll 3 stops at 0', clamped[3] == '0.000000' and close_to(daw.cursor(), 0), tostring(clamped[3]))
-  r:not_run('A9c.5 refused while recording', 'Part B: it needs a recording on a copy (D28)')
+  r:not_run('A9c.5 refused while recording', 'Part B: it needs a recording on a copy')
   local bad = refusal(ctx.send('punch_to', '42', '11'))
   r:check(
     'A9c.6 a pre-roll of 11 is refused and the cursor stays',

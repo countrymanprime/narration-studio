@@ -1,4 +1,4 @@
--- Selecting a chapter's track in REAPER (narration_track_select.lua; chapter-track-link-control PRD Phase 4, Could):
+-- Selecting a chapter's track in REAPER (narration_track_select.lua):
 -- from the chapter track slide-over, "Select in REAPER" brings the narrator's attention to the linked track without
 -- changing anything else. It deselects every other track and selects the named one; a GUID that no longer resolves
 -- is TRACK_STALE, exactly as chapter_track_state reports it, and nothing is selected in that case.

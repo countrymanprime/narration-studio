@@ -81,7 +81,7 @@ def test_the_event_stream_matches_the_committed_contract_file(tmp_path):
 
 
 def test_the_credits_script_event_matches_the_committed_contract_file():
-    # A --script named with --script-id/--script-title (the credits, audiobook-credits-templates.prd.md Phase 4, ADR 0150):
+    # A --script named with --script-id/--script-title (the credits, ADR 0150):
     # no title span, one paragraph span per line, no manuscript index.
     text = "You have been listening to Alice, written by Lewis Carroll,\nnarrated by Ada Finch.\n\nThe End."
     contract_files.check("teleprompter-credits-script", chapter_script.script_event(chapter_script.text_script(text, "credits-closing", "Closing credits")))

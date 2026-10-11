@@ -1,4 +1,4 @@
--- The mastering port's DAW row over the bridge (ADR 0306, owner decision D86; render-encode-master PRD Phase 9):
+-- The mastering port's DAW row over the bridge (ADR 0306):
 -- master_chain_read and render_with_fx.
 --
 -- master_chain_read lists the FX a render with FX runs, every track's and then the master track's, so the app can show

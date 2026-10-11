@@ -1,12 +1,12 @@
--- Spike S7 (reaper-automation-follow-through PRD phase 24): how fixed item lanes behave through the API, before phase 25
--- (retakes as fixed lanes) designs on them. Covers I_FREEMODE=2 and UpdateTimeline(), I_NUMFIXEDLANES, I_FIXEDLANE,
+-- Spike S7: how fixed item lanes behave through the API, before retakes are designed
+-- as fixed lanes. Covers I_FREEMODE=2 and UpdateTimeline(), I_NUMFIXEDLANES, I_FIXEDLANE,
 -- C_LANEPLAYS (track and item), C_ALLLANESPLAY, P_LANENAME, B_FIXEDLANE_HIDDEN, how takes (the take-review path,
 -- ADR 0098) and lanes convert into each other, comp lanes, undo, and what the saved .rpp records.
 -- Research tool, not product code: see docs/research/reaper-spike-s7-fixed-lanes.md for the write-up.
 -- Run by run-reaper.ps1 inside an isolated REAPER (-cfgfile). Media come from make_media.py. Nothing is armed,
 -- recorded or played: recording into lanes needs audio hardware and stays pending.
 
--- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
+-- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
 -- passed, and the audio device is closed.
 do
   local BACKSLASH = string.char(92)

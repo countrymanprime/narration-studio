@@ -5,7 +5,7 @@ local core = ...
 local join, dirname, file_exists, safe_name, color, pipe_fields, event =
   core.join, core.dirname, core.file_exists, core.safe_name, core.color, core.pipe_fields, core.event
 
--- app_folder is the app's own project folder when the host passes one (project-workspace PRD Phase 5, W4): the .rpp may
+-- app_folder is the app's own project folder when the host passes one: the .rpp may
 -- live elsewhere, so the manuscript is read and the diffs are written there, never beside the .rpp. An older host passes
 -- none, and the .rpp's folder is used as before.
 local function prepare_compare(session_dir, runs, run_id, app_folder)
@@ -103,7 +103,7 @@ local function prepare_compare(session_dir, runs, run_id, app_folder)
   reaper.RecursiveCreateDirectory(diffs, 0)
   local diff_path = join(diffs, safe_name(track_name) .. '_' .. run_id .. '.diff')
   runs[run_id] = { mapping = mapping, track = track_name, diff_path = diff_path, rows = {} }
-  -- The comparison's baseline for the "changed since comparison" label (follow-through PRD Phase 13): REAPER's own edit
+  -- The comparison's baseline for the "changed since comparison" label: REAPER's own edit
   -- counter, read with the audio it describes. A REAPER without the call answers the six fields it always did.
   if reaper.APIExists('GetProjectStateChangeCount') then
     local changes = tostring(reaper.GetProjectStateChangeCount(0))
@@ -166,7 +166,7 @@ local function inspect_results(session_dir, runs, run_id, path)
           marker_state,
           existing_name or '',
           srcpos,
-          -- Appended, never reordered (review-dashboard PRD Phase 6): the host navigates a finding by these GUIDs.
+          -- Appended, never reordered: the host navigates a finding by these GUIDs.
           entry.item_guid,
           entry.take_guid,
           entry.track_guid

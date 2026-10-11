@@ -1,4 +1,4 @@
-"""Settings-store smoke test for a second DAW (audacity-integration PRD, Phase 5).
+"""Settings-store smoke test for a second DAW.
 
 config.py's docstring promises that a non-REAPER adapter gets layered settings
 for free. This proves it for an Audacity-shaped project folder (an .aup3, no

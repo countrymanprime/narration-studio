@@ -1,6 +1,6 @@
 """Writes THIRD-PARTY-NOTICES.txt: every third-party component the Windows release ships, its licence and its licence text.
 
-Docs security and hygiene PRD, phase 7 (docs/architecture/model-provenance.md, docs/operations/ci-and-releases.md#third-party-notices).
+See docs/architecture/model-provenance.md and docs/operations/ci-and-releases.md#third-party-notices (ADR 0085).
 
     python scripts/licenses/notices.py --version 0.1.0 --out THIRD-PARTY-NOTICES.txt
 

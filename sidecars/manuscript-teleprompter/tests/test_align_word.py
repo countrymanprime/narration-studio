@@ -1,6 +1,5 @@
-"""Punch and roll's offline word-time alignment (align_word.py, teleprompter-manuscript-integration PRD Phase 12,
-ADR 0560): timing one script word from a stretch of recording, the `--align-word` CLI the host drives, and its
-accuracy on real narration (the LibriVox Alice readings, ADR 0416)."""
+"""Punch and roll's offline word-time alignment (align_word.py, ADR 0560): timing one script word from a stretch of
+recording, the `--align-word` CLI the host drives, and its accuracy on real narration (the LibriVox Alice readings, ADR 0416)."""
 
 import importlib.util
 import json

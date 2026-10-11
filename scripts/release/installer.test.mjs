@@ -67,7 +67,7 @@ test('the Start Menu entry is always made and the desktop shortcut is its own ch
 });
 
 // Audacity cannot start a program itself (docs/research/audacity-launcher-feasibility.md), so the Audacity launcher is a Start Menu
-// entry beside the app's own (audacity-integration PRD Phase 10). It passes exactly `--daw Audacity`: no project path and nothing
+// entry beside the app's own (ADR 0145). It passes exactly `--daw Audacity`: no project path and nothing
 // else, since the narrator picks the project in the app.
 test('the Start Menu always gets a "for Audacity" entry that starts the program with --daw Audacity and nothing else', () => {
   const [program, desktop] = code.split(/^Section /m).slice(1);
@@ -120,7 +120,7 @@ test('the installer makes no network request of its own', () => {
   assert.doesNotMatch(code, /inetc|NSISdl|nsisdl|InetLoad|https?:\/\/|ExecWait|Exec |ExecShell /i);
 });
 
-test('the installer signs nothing: signing is the owner decision D7 keeps out of every workflow', () => {
+test('the installer signs nothing: signing is an owner decision, so no workflow signs it (ADR 0082)', () => {
   assert.doesNotMatch(definition, /^\s*!(finalize|uninstfinalize)|signtool/im);
 });
 

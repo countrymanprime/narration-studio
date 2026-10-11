@@ -1,4 +1,4 @@
--- Punch and roll over the bridge (teleprompter-manuscript-integration PRD Phase 12): play_position, the read-only
+-- Punch and roll over the bridge (ADR 0246): play_position, the read-only
 -- position the host polls during a live reading to anchor words in project time, and punch_to, which moves only the
 -- edit cursor to a word's time minus the pre-roll (see narration_punch.lua).
 

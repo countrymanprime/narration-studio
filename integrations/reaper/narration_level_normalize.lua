@@ -1,5 +1,4 @@
--- Applies a per-item gain change to match a narrator-set loudness target (diagnostics-delivery-and-cleanup-tools PRD
--- Phase 11's level-normalize half, ADR 0252): apply_item_gain. The host (apps/desktop/internal/levelnormalize)
+-- Applies a per-item gain change to match a narrator-set loudness target (ADR 0252): apply_item_gain. The host (apps/desktop/internal/levelnormalize)
 -- decides whether an item needs a change and by how much, from a measurement over its range
 -- (internal/measure.AnalyzeRange); this file only carries that decision out, on the whole item's own volume
 -- (D_VOL, linear), and reports what it was and what it became so a before/after report needs no second measurement

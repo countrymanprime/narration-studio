@@ -1,9 +1,9 @@
 """
-Tail-audio locate for the Manuscript Teleprompter (teleprompter-manuscript-integration PRD Phase 9, ADR 0111): turn
+Tail-audio locate for the Manuscript Teleprompter (ADR 0111): turn
 the last seconds of a chapter's recorded audio into the script word to resume from.
 
 The host (apps/desktop/internal/teleprompter, `Service.Locate`) finds where the chapter's recorded audio ends
-(Phase 8, `tracks.RecordedEnd`) and runs this sidecar once, through `live_asr.py --locate`:
+(`tracks.RecordedEnd`) and runs this sidecar once, through `live_asr.py --locate`:
 
     python live_asr.py --locate --wav take.wav --tail-start 812.4 --tail-end 842.4 \\
         --manuscript manuscript.json --chapter c1 --model tiny --model-dir DIR

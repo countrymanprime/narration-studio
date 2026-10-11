@@ -71,8 +71,7 @@ function M.new_registry()
   return registry
 end
 
--- How often the reachability heartbeat (PROJECT_STATUS) is appended, in reaper.time_precise() seconds (Phase 7,
--- ADR 0092 W10): frequent enough that the Go host's own poll (transcriptLoop, 150ms) notices REAPER closing
+-- How often the reachability heartbeat (PROJECT_STATUS) is appended, in reaper.time_precise() seconds (ADR 0092): frequent enough that the Go host's own poll (transcriptLoop, 150ms) notices REAPER closing
 -- quickly, rare enough not to grow events.log without bound over a long session.
 M.HEARTBEAT_INTERVAL_SECONDS = 1.5
 
@@ -92,7 +91,7 @@ function M.run(session_dir, registry)
   -- should not wait a full interval after REAPER starts before it can tell REAPER is running.
   local last_heartbeat_at = nil
   -- last_play_state is GetPlayState's value in the last heartbeat sent: a change (play, record, stop) sends one at once,
-  -- so the host learns REAPER started recording without waiting out the interval (DAW port PRD Phase 9, ADR 0305).
+  -- so the host learns REAPER started recording without waiting out the interval (ADR 0305).
   local last_play_state = nil
   local function heartbeat()
     local now = reaper.time_precise()
@@ -107,11 +106,11 @@ function M.run(session_dir, registry)
     -- delivers to every subscriber regardless of which run they own (Subscription.wants).
     local _, rpp = reaper.EnumProjects(-1, '')
     rpp = rpp or ''
-    -- The fourth field is REAPER's edit counter (GetProjectStateChangeCount), appended for DAW chapter-track auto-sync
-    -- Phase 4, so the host can tell the project changed before it is saved. It is empty on a REAPER without the call,
+    -- The fourth field is REAPER's edit counter (GetProjectStateChangeCount), appended for DAW chapter-track auto-sync,
+    -- so the host can tell the project changed before it is saved. It is empty on a REAPER without the call,
     -- and wire.go treats it as optional, so an older script's three-field heartbeat still passes.
     local change_count = reaper.APIExists('GetProjectStateChangeCount') and reaper.GetProjectStateChangeCount(0) or ''
-    -- The fifth and sixth fields are the transport (Phase 9): GetPlayState's bit field (1 playing, 2 paused, 4 recording)
+    -- The fifth and sixth fields are the transport: GetPlayState's bit field (1 playing, 2 paused, 4 recording)
     -- and GetPlayPosition in seconds. wire.go treats both as optional, so an older script's heartbeat still passes.
     local play_position = string.format('%.6f', reaper.GetPlayPosition() or 0)
     ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)

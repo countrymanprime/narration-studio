@@ -1,4 +1,4 @@
-"""The input level meter (levels.py, read-aloud-control-bar PRD Phase 4): peak and RMS in dBFS about ten times a second."""
+"""The input level meter (levels.py): peak and RMS in dBFS about ten times a second."""
 
 import importlib.util
 from pathlib import Path

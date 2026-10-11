@@ -19,9 +19,9 @@ jobs:
         with:
           fail-on-severity: high
           # Only runtime dependencies block: the dev tools (test runners, linters, the docs generator) are not shipped, and the
-          # licence gate is about what a narrator receives (docs security and hygiene PRD, phase 9; owner decision Q14).
+          # licence gate is about what a narrator receives.
           fail-on-scopes: runtime
-          # SPDX ids. The project is AGPL-3.0-or-later (ADR 0039, owner decision D17), so the GPL, AGPL and LGPL families it may
+          # SPDX ids. The project is AGPL-3.0-or-later (ADR 0039), so the GPL, AGPL and LGPL families it may
           # bundle are allowed and GPL-2.0-only is not (incompatible). The permissive and attribution licences are the ones the
           # notices already list (`scripts/licenses/notices.py`); a licence outside the list needs a person to read it and then add
           # it here, in the same pull request that adds the dependency. The action judges only what a pull request adds or

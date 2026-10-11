@@ -1,4 +1,4 @@
-"""Generate/replace pronunciation controls (story bible entries PRD, phase 3, D13/B9/B10/B11).
+"""Generate/replace pronunciation controls.
 
 `pronounce_source` gets a pronunciation from one named engine and raises when that engine has nothing for the name,
 instead of the automatic-fallback ``pronunciation()`` that quietly reports "not generated". The ``pronounce`` command

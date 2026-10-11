@@ -1,4 +1,4 @@
-# The pages of docs/ that the public site publishes (ADR 0083; owner decision Q9 of the release-readiness PRD).
+# The pages of docs/ that the public site publishes (ADR 0083).
 #
 # One path or glob per line, relative to docs/. Anything not listed is not built: it stays in the repository, and a link to
 # it from a published page becomes a link to its GitHub file view (hooks.py). Adding a page to the public site is a reviewed
