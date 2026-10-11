@@ -1,6 +1,6 @@
--- The live project-change indicator: project_state (see narration_project_state.lua and
--- the deleted reaper-automation-follow-through PRD Phase 13). Coarse: it only reports REAPER's own edit counter
--- (GetProjectStateChangeCount) and the current project's saved-file path; it never triggers anything itself.
+-- The live project-change indicator: project_state (see narration_project_state.lua). Coarse: it only reports REAPER's
+-- own edit counter (GetProjectStateChangeCount) and the current project's saved-file path; it never triggers anything
+-- itself.
 
 local H = require('harness')
 

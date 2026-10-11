@@ -1,6 +1,5 @@
-// This file is the real-speech follow-up to Phase 4 of
-// the deleted editing-readiness-analysis PRD: validationrun_test.go's
-// selection rule and scoring, run on the LibriVox Alice signal corpus
+// This file is the real-speech follow-up to validationrun_test.go:
+// its selection rule and scoring, run on the LibriVox Alice signal corpus
 // (tests/fixtures/audio/librivox-alice, `build.py signal`) as a second
 // evaluation set beside the synthetic one. That corpus is Kara Shallenberg's
 // real reading of Chapter IX with 2 ms clicks added at known times in her
@@ -10,6 +9,7 @@
 // NARRATION_SIGNAL_CORPUS names a built corpus, like measure's
 // TestLibriVoxSignalCorpus. docs/research/editing-click-breath-validation.md
 // reports it; ADR 0575 says what the set can and cannot decide.
+
 package editing
 
 import (
@@ -34,9 +34,10 @@ const librivoxSignalCorpusEnv = "NARRATION_SIGNAL_CORPUS"
 // CLICK_SECONDS): a click label runs from at_s for this long.
 const librivoxClickSeconds = 0.002
 
-// minLabelsPerSplit is the PRD's proposed corpus size per class and split
-// (TestValidationCorpusShape holds the synthetic corpus to it too). A set
-// under it can report a rate but never meet the target.
+// minLabelsPerSplit is the corpus size per class and split that a set needs
+// before it can open the gate (ADR 0575; TestValidationCorpusShape holds the
+// synthetic corpus to it too). A set under it can report a rate but never
+// meet the target.
 const minLabelsPerSplit = 25
 
 // librivoxSignalCase is the part of one labels.json case this run reads.
@@ -142,7 +143,7 @@ func (r *librivoxRun) diagnose(file string, cleanup measure.CleanupOptions) meas
 }
 
 // clicks scores the click labels that keep says to, file by file, with the
-// Phase 1 harness's own matching (scoreSource). Only the true positives and
+// harness's own matching (scoreSource, harness_test.go). Only the true positives and
 // false negatives mean anything here: the candidates of a file are shared by
 // labels in both halves, so precision is taken per case instead.
 func (r *librivoxRun) clicks(labels []librivoxClickLabel, cleanup measure.CleanupOptions, keep func(librivoxClickLabel) bool) ClassMetrics {

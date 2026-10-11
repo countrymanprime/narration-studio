@@ -1,8 +1,6 @@
--- Cleanup launchers over the bridge: launch_cleanup_tool (the deleted reaper-automation-follow-through PRD Phase 23,
--- ADR 0146). Opens REAPER's own Repair Pops/Clicks dialog, or the narrator's own installed Magnolius DeClick script,
--- on the items the narrator has selected. The dialog does the work and the narrator drives it; this file changes
--- nothing itself.
---
+-- Cleanup launchers over the bridge: launch_cleanup_tool (ADR 0146, docs/architecture/reaper-bridge.md). Opens REAPER's
+-- own Repair Pops/Clicks dialog, or the narrator's own installed Magnolius DeClick script, on the items the narrator
+-- has selected. The dialog does the work and the narrator drives it; this file changes nothing itself.
 -- SAFETY (load-bearing):
 -- - Only a tool named in TOOLS can be launched. The host sends a tool key, never an action ID or name, so the bridge
 --   cannot be used to run an arbitrary REAPER action (a render, an FX apply, a script).

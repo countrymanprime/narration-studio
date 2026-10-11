@@ -1,13 +1,12 @@
-// Package editing is Phase 2 of the deleted editing-readiness-analysis PRD
-// (ER): a read-only editing-chore scan for one chapter's confirmed track.
-// This file is Phase 2's own scope: turning a parsed tracks.Item into an
-// analysis Source (its active take's file and played range, EL Phase 2's
-// evidence.ItemPlayedRange) or a stable typed reason it cannot be analyzed at
-// all - never a guess, never a silent skip that would later read as a false
-// "done" (Problem Statement: "the analysis must prefer to say unknown or not
-// done whenever it cannot be sure"). Importers/callers: decode.go (Phase 2),
-// the empty-space composition (Phase 3, empty_space.go) and the scan job
-// (Phase 5, service.go).
+// Package editing is a read-only editing-chore scan for one chapter's
+// confirmed track.
+//
+// This file turns a parsed tracks.Item into an analysis Source (its active
+// take's file and played range, evidence.ItemPlayedRange) or a stable typed
+// reason it cannot be analyzed at all - never a guess, never a silent skip
+// that would later read as a false "done": the analysis says unknown or not
+// done whenever it cannot be sure. Callers: decode.go, the empty-space
+// composition (empty_space.go) and the scan job (scan.go, service.go).
 package editing
 
 import (
@@ -16,26 +15,23 @@ import (
 )
 
 // UnknownReason is a stable, typed reason one item's audio could not be
-// analyzed (Architecture Notes: "Every other item that cannot be analyzed
-// gets a stable typed reason, and each reason becomes unknown"). It is never
+// analyzed. Each reason makes the item unknown. It is never
 // set on an Excluded item: a muted or non-audio item is left out of the
 // analysis entirely, not refused, so it never makes the chapter's signal
 // unknown by itself.
 type UnknownReason string
 
 const (
-	// ReasonPlayRateNotOne: the played take's rate is not 1 (Q1's WAV-only
+	// ReasonPlayRateNotOne: the played take's rate is not 1 (the WAV-only
 	// decoder and this analyzer's timeline math both assume playback at the
-	// source's own rate; Success Metrics lists "playrate-not-1" as a case
-	// that must always read unknown).
+	// source's own rate, so this case always reads unknown).
 	ReasonPlayRateNotOne UnknownReason = "playrate_not_one"
 	// ReasonStretchMarkers: the take has one or more stretch markers, which
 	// bend the mapping from source time to timeline time in a way this
 	// analyzer does not model (tracks.Take.StretchMarkerCount is evidence
 	// only, per its own doc comment - "not full stretch-marker semantics").
 	ReasonStretchMarkers UnknownReason = "stretch_markers"
-	// ReasonUnsupportedFormat: the source is not a WAV (Q1 option A for v1 -
-	// MP3, FLAC, OGG, AIFF and WavPack are all "Supported" by the tracks
+	// ReasonUnsupportedFormat: the source is not a WAV (MP3, FLAC, OGG, AIFF and WavPack are all "Supported" by the tracks
 	// parser but none of them decodes through measure.NewWAVReader).
 	ReasonUnsupportedFormat UnknownReason = "format_not_analyzable"
 	// ReasonMultiChannel: the source has more than two channels; measure's
@@ -60,21 +56,17 @@ const (
 	// analyzer can tell a reversed take apart from a forward one.
 	//
 	// tracks.Item and tracks.Take carry no "reversed" or play-direction
-	// field as of this writing (apps/desktop/internal/tracks/tracks.go
-	// grepped for "revers" turns up nothing) - a documented gap this PRD's
-	// Architecture Notes calls out explicitly ("There does not appear to be
-	// a reversed source field anywhere in this package"). A take REAPER
+	// field (apps/desktop/internal/tracks has no field for it). A take REAPER
 	// plays backwards is therefore analyzed forwards, silently: its silence
 	// runs and click/breath candidates are still reported, just against the
 	// wrong direction of playback. This is a real, un-mitigated limitation,
-	// not a rounding error, and is called out again in this package's tests
-	// and in the Phase 2 commit message rather than being hidden behind a
-	// reason that implies detection.
+	// and source_test.go pins that this reason has no UI-facing text, rather
+	// than hiding the gap behind a reason that implies detection.
 	ReasonReversedSource UnknownReason = "reversed_source_undetected"
 )
 
-// reasonText is a short, stable, human string for each reason. SR's evidence
-// and the findings this package writes show it verbatim, so it stays plain
+// reasonText is a short, stable, human string for each reason. The stage
+// signals' evidence and the findings this package writes show it verbatim, so it stays plain
 // and specific rather than a generic "could not analyze".
 var reasonText = map[UnknownReason]string{
 	ReasonPlayRateNotOne:    "the item plays at a rate other than 1",
@@ -97,10 +89,10 @@ func (r UnknownReason) Text() string {
 }
 
 // Source is one item's audio input to the editing analysis: its active
-// take's file and played range (evidence.ItemPlayedRange, EL Phase 2),
+// take's file and played range (evidence.ItemPlayedRange),
 // SourceStart already folding in a <SOURCE SECTION> wrapper's own offset
-// (tracks.Take.SourceStart), plus the evidence Architecture Notes ask for
-// (take or track FX-chain presence, stretch marker count).
+// (tracks.Take.SourceStart), plus evidence about it (take or track FX-chain
+// presence, stretch marker count).
 type Source struct {
 	ItemGUID           string
 	TakeGUID           string
@@ -128,13 +120,12 @@ func (r Resolution) Analyzable() bool { return !r.Excluded && r.Reason == "" }
 // Resolve turns one parsed item into a Resolution. trackHasFXChain is the
 // item's own track's <FXCHAIN> presence (tracks.Track.HasFXChain); it is
 // folded into Source.HasFXChain alongside the take's own <TAKEFX>, since
-// either can gate source dead air or mask a source click (Architecture
-// Notes' processed-audio caveat) whether or not the narrator has looked at
+// either can gate source dead air or mask a source click (the
+// processed-audio caveat, signals.go) whether or not the narrator has looked at
 // the chain. A muted item, or one the tracks parser could not resolve to a
 // playable audio kind (Item.Supported false - MIDI, an unresolved source
 // kind), is Excluded: it never contributes and never makes the chapter's
-// signal read unknown by itself (Architecture Notes: "excluded from the
-// analysis, not refused"). Every other item is analyzable unless it hits one
+// signal read unknown by itself. Every other item is analyzable unless it hits one
 // of the typed reasons above, checked in the order a narrator would find
 // cheapest to fix first: the play rate and stretch markers are read straight
 // off the take without touching the file system; the format, file presence
@@ -168,8 +159,8 @@ func Resolve(item tracks.Item, trackHasFXChain bool) Resolution {
 	}
 }
 
-// ResolveTrack resolves every item of one track (Architecture Notes: "unmuted
-// audio items on the chapter's confirmed track"), in item order.
+// ResolveTrack resolves every item of one track (the unmuted
+// audio items on the chapter's confirmed track), in item order.
 func ResolveTrack(track tracks.Track) []Resolution {
 	resolutions := make([]Resolution, len(track.Items))
 	for i, item := range track.Items {

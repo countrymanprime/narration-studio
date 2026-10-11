@@ -1,26 +1,17 @@
-// This file is Phase 4 of the analysis evidence ledger PRD
-// (the deleted analysis-evidence-ledger PRD,
-// Q5, D8): the per-item result cache. Q5's recommendation (option A) is what
-// this stores - per-source features (a silence run over the whole source, a
-// transcript's words over the whole source), sliced to an item's played
-// range on read, not per-played-range results. A trim changes the played
-// range; a per-range entry would miss after every trim, while a whole-source
-// entry survives it, because the cache key deliberately excludes the played
-// range for a sliceable analyzer. Importers/callers: the recording coverage
-// service (apps/desktop/internal/coverage, words.go) keeps each source's
-// transcript words here; apps/desktop/internal/manuscript/service.go's
-// resetDerived adds CacheDir to the directories a manuscript reset clears.
-// Public API added here: CacheDir, CacheEntryKey, CacheStore, NewCacheStore,
-// CacheStore's Write/Read/Delete/Prune/Hits/Misses methods, TimedFeature and
-// SliceFeatures. Data schema: a small JSON envelope (see cacheEnvelope)
-// wrapping an opaque blob, versioned by its own SchemaVersion field
-// (cacheSchemaVersion) - the store never looks inside the blob itself
-// (Architecture Notes: "Cache blobs are opaque. The store keys and stores
-// bytes; RC's words files and ER's silence and click features define their
-// own formats (D8)"). User's instruction (verbatim): "you should have
-// everythign you need to make decisions. anything that you think you need
-// my decision on, create an open ADR for and keep going. callout any new
-// adrs on the pr that you created them so i can review."
+// This file holds the per-item result cache (ADR 0100): per-source features (a
+// silence run over the whole source, a transcript's words over the whole
+// source), sliced to an item's played range on read, not per-played-range
+// results. A trim changes the played range; a per-range entry would miss after
+// every trim, while a whole-source entry survives it, because the cache key
+// deliberately excludes the played range for a sliceable analyzer.
+//
+// Callers: the recording coverage service (apps/desktop/internal/coverage,
+// words.go) keeps each source's transcript words here;
+// apps/desktop/internal/manuscript/service.go's resetDerived adds CacheDir to
+// the directories a manuscript reset clears. The data schema is a small JSON
+// envelope (see cacheEnvelope) wrapping an opaque blob, versioned by its own
+// SchemaVersion field (cacheSchemaVersion). The store never looks inside the
+// blob: it keys and stores bytes, and each analyzer defines its own format.
 package evidence
 
 import (
@@ -39,21 +30,19 @@ import (
 
 // cacheSchemaVersion is the schema version every entry written by this
 // package carries. A file written by a newer version of the app reads as a
-// miss, never as an error the narrator has to fix (Architecture Notes:
-// "Each entry carries a schema version; an unknown version is treated as
-// absent").
+// miss, never as an error the narrator has to fix: an unknown version is
+// treated as absent.
 const cacheSchemaVersion = 1
 
-// CacheEntryKey identifies one cache entry per Q5's recommendation: a
+// CacheEntryKey identifies one cache entry: a
 // source's identity, which analyzer produced the entry and at what version,
 // and the analyzer's parameter hash. PlayedRange is nil for a sliceable
-// entry (Q5 option A: a whole-source feature set an analyzer slices itself
+// entry (a whole-source feature set an analyzer slices itself
 // on read, per SliceFeatures below) - deliberately excluding the played
 // range from the key so a trim, which only narrows or moves the played
 // range, keeps hitting the same entry. PlayedRange is set only for a
-// B-style analyzer that cannot slice its own result and instead caches one
-// blob per played range (Q5's option B, kept as an escape hatch, not the
-// recommended shape): such an entry is correctly invalidated by a trim,
+// analyzer that cannot slice its own result and instead caches one blob per
+// played range (an escape hatch, not the intended shape): such an entry is correctly invalidated by a trim,
 // because the trim changes PlayedRange and therefore the key.
 type CacheEntryKey struct {
 	Source          SourceIdentity
@@ -87,7 +76,7 @@ func (k CacheEntryKey) hash() string {
 }
 
 // cacheEnvelope is the on-disk shape of one cache file: an opaque blob (the
-// analyzer's own format, per D8) plus enough metadata for CacheStore.Prune
+// analyzer's own format) plus enough metadata for CacheStore.Prune
 // and CacheStore.Read to do their job without ever looking inside Blob.
 // encoding/json encodes a []byte field as base64 automatically, so Blob's
 // bytes round-trip exactly regardless of what they hold.
@@ -98,15 +87,15 @@ type cacheEnvelope struct {
 }
 
 // CacheDir is the result cache's storage directory under a project
-// (Architecture Notes: "narration-utils/analysis/cache/"). It is exported so
+// (narration-utils/analysis/cache/). It is exported so
 // manuscript.resetDerived can clear it without this package depending on the
 // manuscript package.
 func CacheDir(project string) string {
 	return filepath.Join(project, "narration-utils", "analysis", "cache")
 }
 
-// CacheStore is the per-item result cache described by Q5 and D8: an opaque,
-// keyed blob store under a project, one JSON file per entry, written
+// CacheStore is the per-item result cache: an opaque, keyed blob store under a
+// project, one JSON file per entry, written
 // temp-file-then-rename (the same pattern as LedgerStore.Write). Zero value
 // is not usable; construct with NewCacheStore.
 type CacheStore struct {
@@ -124,7 +113,7 @@ func NewCacheStore(project string) *CacheStore {
 
 // Write stores blob under key, replacing any existing entry for the same
 // key. The store never inspects blob; it is the analyzer's own opaque
-// format (D8).
+// format.
 func (s *CacheStore) Write(key CacheEntryKey, blob []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -153,7 +142,7 @@ func (s *CacheStore) Write(key CacheEntryKey, blob []byte) error {
 // schema than this package supports - every one of those is a cache miss,
 // never an error the caller has to handle specially, matching LedgerStore's
 // own unknown-version rule. Every call updates the Hits/Misses counters
-// Phase 4's success signal and ER's Phase 5 measurement read.
+// callers read to measure how often the cache hits.
 func (s *CacheStore) Read(key CacheEntryKey) ([]byte, bool) {
 	var blob []byte
 	outcome := s.Reporter.ReadJSON(s.entryPath(key), "analysis cache entry", persist.Disposable, func(raw []byte) error {
@@ -195,10 +184,8 @@ func (s *CacheStore) Hits() int64 { return s.hits.Load() }
 func (s *CacheStore) Misses() int64 { return s.misses.Load() }
 
 // Prune deletes the store's oldest entries (by WrittenAt) until the total
-// size of what remains is at or under maxBytes, per the Architecture Notes'
-// "size-bounded pruning" retention rule (exact bound TBD - measured on the
-// corpus per the PRD; the bound itself is the caller's decision, this is the
-// mechanism). A file this store cannot read (corrupt, wrong schema, a stray
+// size of what remains is at or under maxBytes (size-bounded pruning; the
+// bound itself is the caller's decision, this is the mechanism). A file this store cannot read (corrupt, wrong schema, a stray
 // .tmp from an interrupted write) is left alone: Prune only removes entries
 // it can positively identify as its own valid, datable files, the same
 // "never delete a name it cannot positively rule out as safe" rule
@@ -286,11 +273,11 @@ func (s *CacheStore) readEnvelope(path string) (cacheEnvelope, bool) {
 }
 
 // TimedFeature is one entry of a sliceable analyzer's whole-source cache
-// blob (Q5 option A): a silence run or a transcript word, positioned by its
+// blob: a silence run or a transcript word, positioned by its
 // own Start/End in the source file's own seconds - the same units and same
 // origin as PlayedRange (fingerprint.go), so a feature and an item's played
 // range are directly comparable. Payload is the analyzer's own per-feature
-// data (D8: the store, and this helper, stay opaque to what a feature
+// data (the store, and this helper, stay opaque to what a feature
 // means); this package only ever looks at Start and End.
 type TimedFeature struct {
 	Start   float64         `json:"start"`
@@ -299,7 +286,7 @@ type TimedFeature struct {
 }
 
 // SliceFeatures returns the entries of features that overlap played, in the
-// order given, so a caller who cached a source's features once (Q5 option A)
+// order given, so a caller who cached a source's features once
 // can read the subset relevant to one item's current played range without
 // recomputing anything - including after a trim moves that range, which is
 // exactly the case CacheEntryKey.hash is built to survive (it does not

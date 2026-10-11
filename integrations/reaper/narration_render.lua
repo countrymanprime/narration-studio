@@ -1,11 +1,10 @@
 -- Per-chapter render configuration over the bridge: configure_chapter_render (see
--- docs/research/reaper-spike-s5-render-details.md, Phase 10, and the deleted reaper-automation-follow-through PRD
--- Phase 11 / Open Question 7, answered (a): configure only, the narrator presses Render themselves.
+-- docs/research/reaper-spike-s5-render-details.md and docs/architecture/reaper-bridge.md). It configures only; the
+-- narrator presses Render themselves.
 --
 -- Sets the render bounds to all regions (RENDER_BOUNDSFLAG=3), the naming pattern to the region name ($region) and
 -- the output folder, then reads RENDER_TARGETS back so the narrator can see the resulting file names before
--- rendering. RENDER_FORMAT is never touched: the narrator's last-used sink format stands (Architecture Notes,
--- "Render").
+-- rendering. RENDER_FORMAT is never touched: the narrator's last-used sink format stands.
 --
 -- SAFETY (load-bearing): this file must never call reaper.Main_OnCommand, and must never read the RENDER_STATS or
 -- RENDER_STATS_SUMMARY project-info keys. The S5 spike found that passing a real, file-writing render action's ID

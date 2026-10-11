@@ -1,16 +1,14 @@
-// This file is Phase 3 of the deleted editing-readiness-analysis PRD: the
-// empty-space composition. Architecture Notes: "Empty space is the
-// complement of speech-bearing audio. For each analyzed item, the
-// speech-bearing intervals are the played range minus its silence runs,
-// mapped to timeline time. The union across unmuted items on the track is
-// the audible content; every complement interval inside the chapter span is
-// empty space... Head and tail are the complement before the first and
-// after the last audible interval." ComposeEmptySpace below is exactly that:
-// a pure function over already-decoded per-item silence runs (Decode,
-// decode.go) mapped to timeline time by the caller (Phase 5's job or a
-// caller feeding cached results), so a policy change (maximum gap, head or
-// tail limit) re-evaluates with 0 decodes (Success Metrics: "Policy change
-// costs no decode").
+// This file composes empty space. Empty space is the complement of
+// speech-bearing audio. For each analyzed item, the speech-bearing intervals
+// are the played range minus its silence runs, mapped to timeline time. The
+// union across unmuted items on the track is the audible content; every
+// complement interval inside the chapter span is empty space. Head and tail
+// are the complement before the first and after the last audible interval.
+// ComposeEmptySpace below is a pure function over already-decoded per-item
+// silence runs (Decode, decode.go) mapped to timeline time by the caller
+// (the scan job, scan.go, or a caller feeding cached results), so a policy
+// change (maximum gap, head or tail limit) re-evaluates with no decode.
+
 package editing
 
 import (
@@ -40,7 +38,7 @@ func (iv TimelineInterval) overlaps(other TimelineInterval) bool {
 
 // ItemAudible is one unmuted, analyzable item's contribution to empty-space
 // composition: its own PlayedRange and file (for the finding's source-
-// relative identity, Q7), where it sits on the timeline (Extent), and its
+// relative identity), where it sits on the timeline (Extent), and its
 // own silence runs mapped to timeline time. Silences must already be mapped
 // from Decode's source-relative-to-the-played-range convention to timeline
 // time by the caller: TimelineSilenceStart = item.Position + (source-relative
@@ -102,11 +100,9 @@ func (item ItemAudible) audibleIntervals() []TimelineInterval {
 	return out
 }
 
-// Policy is the narrator's empty-space settings (Q2, Q3): nil means unset,
-// which a caller must read as "not checked" for that part, never a silent
-// default (D10: "policy values unset by default"; Q2/Q3's D22 default is
-// exactly this - unknown until the narrator sets a value, never a guessed
-// number).
+// Policy is the narrator's empty-space settings: nil means unset, which a
+// caller must read as "not checked" for that part. A value is unknown until
+// the narrator sets it, never a guessed default number.
 type Policy struct {
 	MaxGapSeconds  *float64
 	HeadMaxSeconds *float64
@@ -155,12 +151,11 @@ const (
 	PartTrackGap    PartKind = "track_gap"
 )
 
-// CandidatePart is one contiguous segment of a composed candidate (Architecture
-// Notes: "A candidate records its parts (item tail, gap, item head) and the
-// item GUIDs"). For an item_silence part, SourceStart/SourceEnd are that
-// item's own played-range-relative source seconds (Q7 B: a dismissal's
-// identity is anchored to source-relative range, not the item's timeline
-// position), computed from the item's PlayedRange and its own Extent -
+// CandidatePart is one contiguous segment of a composed candidate (item
+// tail, gap or item head). For an item_silence part, SourceStart/SourceEnd
+// are that item's own played-range-relative source seconds, so a dismissal's
+// identity is anchored to the source-relative range, not the item's timeline
+// position. They are computed from the item's PlayedRange and its own Extent -
 // meaningful only because every analyzable item plays at rate 1.
 type CandidatePart struct {
 	Kind        PartKind
@@ -182,7 +177,7 @@ const (
 
 // EmptySpaceCandidate is one composed stretch of empty space that crossed
 // the narrator's policy: its outer timeline range, which boundary it is,
-// its parts (Architecture Notes), and the distinct item GUIDs it touches, in
+// its parts, and the distinct item GUIDs it touches, in
 // timeline order.
 type EmptySpaceCandidate struct {
 	Range     TimelineInterval
@@ -191,17 +186,15 @@ type EmptySpaceCandidate struct {
 	ItemGUIDs []string
 }
 
-// ComposeEmptySpace is Phase 3's own pure function (Architecture Notes:
-// "Scan measures, evaluation decides... Evaluation is pure and
-// deterministic"). Given every unmuted, analyzable item's own silence runs
+// ComposeEmptySpace is a pure, deterministic function: the scan measures and
+// this decides. Given every unmuted, analyzable item's own silence runs
 // (already in timeline time, ItemAudibleFromItem) and the narrator's policy,
 // it unions the items' speech-bearing intervals, takes the complement across
 // the whole track span (from the earliest item's start to the latest item's
 // end - nothing before or after any item exists to trim), classifies each
 // complement stretch as head, an internal gap, or tail, and keeps only the
 // ones that cross the relevant policy value, set. A policy value left unset
-// (nil) means that boundary is not checked at all (Q3 option A: "unset means
-// head and tail not checked") - it never produces a candidate and never
+// (nil) means that boundary is not checked at all - it never produces a candidate and never
 // blocks the others. items with no analyzable items at all is (nil, ok=false):
 // there is no track span to compose against.
 func ComposeEmptySpace(items []ItemAudible, policy Policy) (candidates []EmptySpaceCandidate, ok bool) {

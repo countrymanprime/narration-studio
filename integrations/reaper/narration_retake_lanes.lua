@@ -1,6 +1,6 @@
--- Retakes on fixed lanes over the bridge: pick_retake_lane (the deleted reaper-automation-follow-through PRD
--- Phase 25, ADR 0147, spike S7 docs/research/reaper-spike-s7-fixed-lanes.md). The narrator picks one retake of a
--- line, recorded on a fixed item lane, and that lane becomes the only one playing on its track.
+-- Retakes on fixed lanes over the bridge: pick_retake_lane (ADR 0147, spike S7
+-- docs/research/reaper-spike-s7-fixed-lanes.md). The narrator picks one retake of a line, recorded on a fixed item
+-- lane, and that lane becomes the only one playing on its track.
 --
 -- SAFETY (load-bearing):
 -- - The one value this file changes is the retake's track C_LANEPLAYS:<lane>, set to 1 (plays exclusively), in one

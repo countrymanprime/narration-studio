@@ -53,7 +53,7 @@ function sourceLine(profile: DeliveryProfile, basedOn?: string): string {
 }
 
 /**
- * The delivery profile the project is judged against (the deleted delivery-platform-profiles PRD Phase 3, mockup 01): which
+ * The delivery profile the project is judged against: which
  * profile and version, whether it is built in, how many rules the app checks, does not check and leaves to listening, and every
  * rule with what the platform requires, how the app checks it and how the requirement was verified. "Change profile" opens
  * Settings at its Delivery category.

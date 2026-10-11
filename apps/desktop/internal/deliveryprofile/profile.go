@@ -1,5 +1,5 @@
 // Package deliveryprofile holds the delivery profiles a project's rendered files are judged against
-// (the deleted delivery-platform-profiles PRD): a named, versioned set of rules, each citing the platform requirement it
+// (ADR 0179): a named, versioned set of rules, each citing the platform requirement it
 // enforces and saying whether the app checks it, cannot check it yet, or leaves it to the narrator's ears. One built-in
 // profile ships, ACX (acx@2026-09); a custom profile is a copy of a built-in with changed numbers or rules turned off.
 //

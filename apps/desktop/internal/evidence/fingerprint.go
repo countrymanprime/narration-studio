@@ -9,20 +9,17 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// This file is the analysis evidence ledger PRD's Phase 2
-// (the deleted analysis-evidence-ledger PRD):
-// the played range, the analysis key and the item/track fingerprints, over
-// a canonical encoding. It builds on tracks.Item/tracks.Take (Phase 1) and
-// SourceIdentity (Phase 1, identity.go). It writes nothing and reads no
-// file itself; every input here is already in memory.
+// This file holds the played range, the analysis key and the item/track
+// fingerprints, over a canonical encoding (ADR 0100). It builds on
+// tracks.Item/tracks.Take and SourceIdentity (identity.go). It writes nothing
+// and reads no file itself; every input here is already in memory.
 
 // PlayedRange is the portion of a take's source file that actually plays,
 // in the source file's own seconds: [Start, End). It is the unit the Lua
-// manifest already emits per item (integrations/reaper/narration_ui_bridge.lua:151,
-// "index|source_file|startoffs|length*rate") and the PRD's Solution Detail
-// names it by, because non-destructive edits (split, trim, fade) change
-// item state, never source bytes (D6): the played range is what tells two
-// items with the same source file apart.
+// manifest already emits per item (integrations/reaper/narration_compare.lua,
+// "index|source_file|startoffs|length*rate"), because non-destructive edits
+// (split, trim, fade) change item state, never source bytes: the played range
+// is what tells two items with the same source file apart.
 type PlayedRange struct {
 	Start float64
 	End   float64
@@ -50,7 +47,7 @@ func ItemPlayedRange(item tracks.Item) PlayedRange {
 // AnalysisKey identifies what audio content an item's active take plays:
 // the source file's identity, the played range within it, and the playback
 // rate. Two items with equal analysis keys read the same audio the same
-// way, so Phase 4's per-item result cache (keyed by the analysis key) hits
+// way, so the per-item result cache (keyed by the analysis key) hits
 // across a position-only move, a mute toggle or an active-take switch to
 // an otherwise-identical take.
 //
@@ -58,9 +55,9 @@ func ItemPlayedRange(item tracks.Item) PlayedRange {
 // identity.ModTime: a source file that is merely touched (mtime changes,
 // content and PartialHash do not) must not always read as "changed" - the
 // edit-type table's "Source touched, identical content" row says the
-// analysis key "changes only if the hash policy sees it" (Q1), i.e.
+// analysis key "changes only if the hash policy sees it", i.e.
 // depends on the file's sampled content, not on when it was last written.
-// ModTime still matters (to the ledger's staleness warning, Phase 6/Q8),
+// ModTime still matters (to the staleness warning on the evaluator's basis),
 // just not to what audio content this key names.
 type AnalysisKey string
 
@@ -82,18 +79,17 @@ func ComputeAnalysisKey(identity SourceIdentity, played PlayedRange, playRate fl
 }
 
 // ItemFingerprint identifies what an item is on the timeline right now: its
-// AnalysisKey plus the fields the Open Questions' Q2 recommendation (option
-// A) puts in scope - GUID, position, length, mute and active-take index.
+// AnalysisKey plus the fields ADR 0100 puts in scope - GUID, position, length, mute and active-take index.
 // Item volume, fades and FX-chain presence are recorded as evidence
 // elsewhere (tracks.Take.HasFXChain, tracks.Take.StretchMarkerCount) but
-// deliberately excluded here, per Q2: analyses read source audio, so a
+// deliberately excluded here: analyses read source audio, so a
 // cosmetic REAPER change (colour, name, notes, gain, a fade curve) must not
 // make a signal read "stale" and teach the narrator to ignore staleness.
 type ItemFingerprint string
 
 // ComputeItemFingerprint hashes key with item's GUID, position, length,
 // mute and active-take index. key is passed in rather than recomputed here
-// so a caller that already has it (for example Phase 4's cache, which
+// so a caller that already has it (for example the result cache, which
 // looks results up by AnalysisKey before it ever needs the fingerprint)
 // pays for the hash once.
 func ComputeItemFingerprint(key AnalysisKey, item tracks.Item) ItemFingerprint {
@@ -109,9 +105,7 @@ func ComputeItemFingerprint(key AnalysisKey, item tracks.Item) ItemFingerprint {
 
 // TrackFingerprint identifies a track's (or, scoped by the caller, a
 // chapter's) played content as a whole: the ordered ItemFingerprints of its
-// unmuted, supported (audio) items, per the Solution Detail's data model
-// ("Track fingerprint: the ordered item fingerprints of the chapter's
-// unmuted audio items"). Deleting, adding, muting or unmuting an item all
+// unmuted, supported (audio) items. Deleting, adding, muting or unmuting an item all
 // change it, even when no remaining item's own fingerprint does.
 type TrackFingerprint string
 
@@ -139,13 +133,12 @@ func ComputeTrackFingerprint(entries []TrackFingerprintEntry) TrackFingerprint {
 
 // secondsPrecision is the canonical encoding's fixed decimal precision for
 // every time-like value (position, length, SOFFS-derived range edges, play
-// rate), microsecond resolution. The PRD's Architecture Notes flag the
-// exact precision REAPER's own re-save rounding needs as TBD pending
-// measurement; microsecond precision is far finer than any audible edit and
-// the no-op re-save fixture pair (testdata/reaper/{saved-cases,resave-noop}.rpp)
-// round-trips every item-level float this package reads unchanged at that
-// precision (see fingerprint_test.go), so it is the working value until a
-// real re-save is found that disagrees.
+// rate), microsecond resolution. Microsecond precision is far finer than any
+// audible edit and the no-op re-save fixture pair
+// (testdata/reaper/{saved-cases,resave-noop}.rpp) round-trips every item-level
+// float this package reads unchanged at that precision (see
+// fingerprint_test.go), so it is the working value until a real re-save is
+// found that disagrees.
 const secondsPrecision = 6
 
 func formatSeconds(value float64) string {

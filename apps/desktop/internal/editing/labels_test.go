@@ -1,14 +1,13 @@
-// This file is Phase 1 of the deleted editing-readiness-analysis PRD ("Editing
-// corpus and evaluation harness"). Its own scope: "A labeling format (CSV:
-// source file identity, start, end, class among silence_to_trim, click,
-// breath, keep_pause, keep_breath, note) with negative labels for
-// intentional pauses and kept breaths." Test-only (this package's harness
-// consumes it, no product code): the corpus itself - a permissioned
-// narrator's chapters, per D71 built from LibriVox - lives outside the repo,
-// pointed to by the NARRATION_EDITING_CORPUS directory variable
-// (harness_test.go), mirroring ADR 0125's NARRATION_COVERAGE_CORPUS
-// precedent. This file only defines and validates the row format; it never
-// reads that variable itself.
+// This file defines the labeling format for the editing corpus (ADR 0329): a
+// CSV of source file identity, start, end, class (silence_to_trim, click,
+// breath, keep_pause, keep_breath) and note, with negative labels for
+// intentional pauses and kept breaths. It is test-only: this package's
+// harness consumes it. The corpus itself, built from LibriVox or a
+// permissioned narrator's chapters, lives outside the repo, pointed to by the
+// NARRATION_EDITING_CORPUS directory variable (harness_test.go), mirroring
+// ADR 0125's NARRATION_COVERAGE_CORPUS precedent. This file only defines and
+// validates the row format; it never reads that variable itself.
+
 package editing
 
 import (
@@ -21,12 +20,11 @@ import (
 )
 
 // LabelClass is what a labeled corpus location is. The three positive
-// classes name a chore this PRD's detectors report ("silence_to_trim" is
-// DX Phase 9's CleanupSilence, "click" its CleanupClick, "breath" its
+// classes name a chore the shipped detector reports ("silence_to_trim" is
+// measure.CleanupSilence, "click" is CleanupClick, "breath" is
 // CleanupBreath); the two negative classes mark a location a narrator wants
-// kept - a meant dramatic pause, a breath left in on purpose - so a detector
-// firing there counts against precision, never against recall (Phase 1
-// Scope: "negative labels for intentional pauses and kept breaths").
+// kept, a meant dramatic pause or a breath left in on purpose, so a detector
+// firing there counts against precision, never against recall.
 type LabelClass string
 
 const (
@@ -38,7 +36,7 @@ const (
 )
 
 // validLabelClasses is every class ParseCorpusLabels accepts, in the
-// canonical order they are documented (Phase 1 Scope's own list).
+// canonical order they are documented.
 var validLabelClasses = []LabelClass{LabelSilenceToTrim, LabelClick, LabelBreath, LabelKeepPause, LabelKeepBreath}
 
 func (c LabelClass) valid() bool {
@@ -57,8 +55,8 @@ func (c LabelClass) valid() bool {
 func positiveClasses() []LabelClass { return []LabelClass{LabelSilenceToTrim, LabelClick, LabelBreath} }
 
 // negativeClassFor names the "keep_" class whose overlap counts against c's
-// precision, or "" when c has none (click has no negative: Phase 1 Scope
-// lists negatives only for "intentional pauses and kept breaths").
+// precision, or "" when c has none (click has no negative: negatives
+// exist only for intentional pauses and kept breaths).
 func negativeClassFor(c LabelClass) LabelClass {
 	switch c {
 	case LabelSilenceToTrim:
@@ -70,11 +68,10 @@ func negativeClassFor(c LabelClass) LabelClass {
 	}
 }
 
-// LabelSplit is Phase 1's tuning/held-out split ("a Go harness computing
-// per-class recall, precision and a sensitivity sweep on a tuning half and a
-// held-out half"), recorded per row so one corpus directory holds both
-// halves without a second directory convention, following the "tune |
-// held_out" split named in ADR 0125's own labeling precedent.
+// LabelSplit is the tuning/held-out split of the corpus, recorded per row so
+// one corpus directory holds both halves without a second directory
+// convention, following the "tune | held_out" split named in ADR 0125's own
+// labeling precedent.
 type LabelSplit string
 
 const (
@@ -85,8 +82,7 @@ const (
 func (s LabelSplit) valid() bool { return s == SplitTune || s == SplitHeldOut }
 
 // CorpusLabel is one labeled location: which source file (a name or relative
-// path stable within one corpus directory - "source file identity", Phase 1
-// Scope), its start and end in that source's own seconds, its class, which
+// path stable within one corpus directory), its start and end in that source's own seconds, its class, which
 // split it belongs to, and a free-text note (provenance, or why a location
 // is ambiguous).
 type CorpusLabel struct {
@@ -103,7 +99,7 @@ type CorpusLabel struct {
 // corpus directory's file is self-describing to a human labeling it by hand.
 var corpusLabelHeader = []string{"source", "start_seconds", "end_seconds", "class", "split", "note"}
 
-// ParseCorpusLabels reads Phase 1's CSV labeling format: a header row
+// ParseCorpusLabels reads the CSV labeling format: a header row
 // matching corpusLabelHeader exactly, then one row per labeled location. It
 // validates as it parses - never a silent skip of a bad row - because a
 // mislabeled corpus would silently understate or overstate recall and
@@ -163,7 +159,7 @@ func parseCorpusLabelRow(record []string) (CorpusLabel, error) {
 	return CorpusLabel{Source: source, Start: start, End: end, Class: class, Split: split, Note: note}, nil
 }
 
-// WriteCorpusLabels writes labels back out in Phase 1's CSV format, in the
+// WriteCorpusLabels writes labels back out in the CSV labeling format, in the
 // order given. It is the inverse of ParseCorpusLabels (round-tripped by
 // TestParseCorpusLabels_RoundTrips) and is also how the synthetic corpus
 // (syntheticcorpus_test.go) turns its generated labels into the same file
@@ -221,10 +217,9 @@ func sampleCorpusLabels() []CorpusLabel {
 	}
 }
 
-// TestParseCorpusLabels_RoundTrips is Phase 1's own success signal: "labels
-// validate against the format." WriteCorpusLabels then ParseCorpusLabels
-// must reproduce the same rows, in the same order, for every documented
-// class and split.
+// TestParseCorpusLabels_RoundTrips checks that WriteCorpusLabels then
+// ParseCorpusLabels reproduces the same rows, in the same order, for every
+// documented class and split.
 func TestParseCorpusLabels_RoundTrips(t *testing.T) {
 	want := sampleCorpusLabels()
 	var buf strings.Builder

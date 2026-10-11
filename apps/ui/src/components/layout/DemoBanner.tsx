@@ -1,6 +1,6 @@
 const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 
-// The public demo (the deleted public-app-demo PRD) is the only build that sets VITE_DEMO: the
+// The public demo (ADR 0096) is the only build that sets VITE_DEMO: the
 // regular `mock` build used by Vitest, the Playwright visual suite and Storybook does not, so this
 // banner never appears in a captured app state or an atlas story. AGPL-3.0-or-later (ADR 0039)
 // requires that a modified copy interacted with over a network offer its source (section 13); the
@@ -9,8 +9,7 @@ const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 const isDemoBuild = import.meta.env.VITE_DEMO === '1';
 
 // Rendered unconditionally by every top-level screen (StartupScreen, ProjectPicker, AppShell) so
-// it shows before and after a project loads, per the deleted public-app-demo PRD Phase 1 ("every
-// page of the demo shows it is a demo"). Self-gates on isDemoBuild so callers never branch on it.
+// it shows before and after a project loads, so every page of the demo says it is a demo. Self-gates on isDemoBuild so callers never branch on it.
 export function DemoBanner() {
   if (!isDemoBuild) return null;
   return (

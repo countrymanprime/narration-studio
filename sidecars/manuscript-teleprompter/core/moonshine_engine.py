@@ -1,7 +1,7 @@
 """
-Loads the Moonshine streaming engine for live_asr.py (the Manuscript Teleprompter's second live engine, ADR 0021; see
-the deleted teleprompter-engines-and-input-devices PRD Phase 6). live_asr.py turns the loaded Transcriber's line events into
-the same partial/word/segment_end events the Whisper engine produces; this module only decides WHICH model files are loaded.
+Loads the Moonshine streaming engine for live_asr.py (the Manuscript Teleprompter's second live engine, ADR 0021, ADR 0107).
+live_asr.py turns the loaded Transcriber's line events into the same partial/word/segment_end events the Whisper engine
+produces; this module only decides WHICH model files are loaded.
 
 Two ways in:
 - The desktop host (and so the frozen, shipped sidecar) passes --model-dir: a directory the host installed from the hashed
@@ -45,7 +45,7 @@ def missing_model_files(model_dir: str | Path) -> list[str]:
 def self_check() -> dict:
     """Whether this build carries a working Moonshine, as one `{ok, detail}` report. Called by live_asr.py's `_verify_moonshine`
     (the asr/moonshine row of --capabilities --verify's `_VERIFY_HOOKS`, for the packaged app's smoke test, apps/desktop/smoke.go)
-    (sidecar-capabilities-flag PRD Phase 3, ADR 0403).
+    (ADR 0403).
     moonshine_voice loads its native moonshine.dll (and the onnxruntime.dll beside it) with ctypes, which PyInstaller cannot see,
     so a freeze that lost them still starts; asking the native library for its language catalog proves it loads and answers, with
     no model and no network. Transcriber is imported too, since the package imports it lazily."""

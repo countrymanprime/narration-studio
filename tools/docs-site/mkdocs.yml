@@ -85,7 +85,7 @@ extra:
   # Where the Storybook build is published beside this site (pages.yml copies it to <site>/storybook/).
   storybook_path: storybook/
   storybook_page: ui/atlas/index.md
-  # Where the app demo is published beside this site (pages.yml copies it to <site>/demo/; the deleted public-app-demo PRD).
+  # Where the app demo is published beside this site (pages.yml copies it to <site>/demo/, ADR 0096).
   # Linked from the same page as Storybook (storybook_page) rather than a new nav entry.
   demo_path: demo/
 

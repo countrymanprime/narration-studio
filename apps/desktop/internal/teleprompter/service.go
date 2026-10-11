@@ -32,8 +32,8 @@ const (
 	EngineMoonshine = asrport.Moonshine
 )
 
-// DefaultModel is the live model a request that names none gets: tiny is the one model with measured live lag
-// (the deleted teleprompter-engines-and-input-devices PRD), and both engines' catalogs have it.
+// DefaultModel is the live model a request that names none gets: tiny is the smallest model, and both
+// engines' catalogs have it.
 const DefaultModel = "tiny"
 
 // Engines are the live engines the desktop host can launch on platform (a GOOS value), default first, as the ASR registry
@@ -334,8 +334,7 @@ type devicesResult struct {
 // Devices asks the sidecar to list input devices, honoring ctx's deadline and caching nothing (a fresh list every
 // call). It returns a Go error only for a setup problem (the service is not configured); every sidecar-side or
 // process-level failure - a bad exit code, a timeout, unparseable output - is folded into the returned message
-// instead, the same "never block Start" contract the sidecar's own {"devices": [], "error": ...} shape gives (see
-// the deleted teleprompter-engines-and-input-devices PRD, Architecture Notes).
+// instead, the same "never block Start" contract the sidecar's own {"devices": [], "error": ...} shape gives.
 func (s *Service) Devices(ctx context.Context) ([]Device, string, error) {
 	s.mu.RLock()
 	python, backend, sidecars := s.config.Python, s.config.Backend, s.sidecars

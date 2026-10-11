@@ -64,7 +64,7 @@ export function App() {
   // no-op basename there. The demo serves under /narration-utils/demo/: without a matching basename
   // react-router compares its routes ('/', '/proof', ...) against the full pathname and matches
   // nothing, so every page renders blank apart from the app shell (found by loading the built demo
-  // and reading the console: "No routes matched location ...", the deleted public-app-demo PRD D3).
+  // and reading the console: "No routes matched location ...", ADR 0096).
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AppRoutes />

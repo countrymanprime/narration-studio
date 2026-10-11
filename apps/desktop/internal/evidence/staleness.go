@@ -1,24 +1,15 @@
-// This file is Phase 6 of the analysis evidence ledger PRD
-// (the deleted analysis-evidence-ledger PRD,
-// Q4, Q8): the staleness evaluator. Given a chapter's current fingerprints
-// (from a live/saved .rpp parse, Phase 1/2) and the ledger's latest complete
-// record for that (analyzer, chapter) (Phase 3), it answers Q4's currentness
-// rule - a complete chapter-level record whose fingerprints equal the
-// current ones is current, anything else is stale or never - with typed
-// reasons and a recomposable flag, plus Q8's "saved project, file modified
-// <time>" basis label and its staleness warning. It writes nothing and
-// starts no analysis (Architecture Notes: "Evaluator is a pure read").
-// Importers/callers: the recording coverage service's result reader
-// (apps/desktop/internal/coverage, read.go) is the first; ER, PS and SR's
-// engine are to call it too. Public API added here: EvaluatorState and its three values,
-// EvaluatorReason and its twelve values, EvaluatorResult, EvaluationBasis,
-// ChapterEvaluationRequest, SourceIdentifier, EvaluateFingerprints,
-// ComputeChapterFingerprint, BuildBasis and EvaluateChapter. No data schema
-// change of its own beyond ledger.go's ItemFacts addition (see that file's
-// header). User's instruction (verbatim): "you should have everythign you
-// need to make decisions. anything that you think you need my decision on,
-// create an open ADR for and keep going. callout any new adrs on the pr that
-// you created them so i can review."
+// This file holds the staleness evaluator (ADR 0100). Given a chapter's current
+// fingerprints (from a saved .rpp parse) and the ledger's latest complete
+// record for that (analyzer, chapter), it answers whether the result is
+// current: a complete chapter-level record whose fingerprints equal the
+// current ones is current, anything else is stale or never, with typed reasons
+// and a recomposable flag. It also states a basis label, "saved project, file
+// modified <time>", and a staleness warning. It writes nothing and starts no
+// analysis: the evaluator is a pure read.
+//
+// Callers: the recording coverage service's result reader
+// (apps/desktop/internal/coverage, read.go). The data schema is unchanged
+// beyond ledger.go's ItemFacts addition (see that file's header).
 package evidence
 
 import (
@@ -30,15 +21,15 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// EvaluatorState is the staleness evaluator's top-level answer (Solution
-// Detail's "Evaluator result" data model): current, stale or never.
+// EvaluatorState is the staleness evaluator's top-level answer: current, stale
+// or never.
 type EvaluatorState string
 
 const (
 	// StateCurrent means a complete ledger record exists for this (analyzer,
 	// chapter) whose fingerprint equals the chapter's current one, its
 	// analyzer version and parameter hash match, and its confirmed mapping is
-	// unchanged (Q4 recommendation A).
+	// unchanged.
 	StateCurrent EvaluatorState = "current"
 	// StateStale means a record exists but something about it - an item, the
 	// mapping, the analyzer or its parameters - no longer matches the current
@@ -50,8 +41,8 @@ const (
 	StateNever EvaluatorState = "never"
 )
 
-// EvaluatorReason is one typed reason a result is stale or never, from the
-// Solution Detail's data model and the edit-type table's Evaluator column.
+// EvaluatorReason is one typed reason a result is stale or never, named by the
+// edit-type table's Evaluator column (fingerprint_test.go's TestEditTypeTable).
 type EvaluatorReason string
 
 const (
@@ -88,33 +79,31 @@ var reasonOrder = map[EvaluatorReason]int{
 	ReasonProjectUnreadable:  11,
 }
 
-// EvaluatorResult is the Solution Detail's "Evaluator result": state,
-// reasons, whether a stale result can be recomposed from the cache without
-// re-decoding, the ledger record it compared against (nil for StateNever
-// when nothing was ever found), and the item GUIDs that changed.
+// EvaluatorResult is the evaluator's answer: state, reasons, whether a stale
+// result can be recomposed from the cache without re-decoding, the ledger
+// record it compared against (nil for StateNever when nothing was ever found),
+// and the item GUIDs that changed.
 type EvaluatorResult struct {
 	State   EvaluatorState
 	Reasons []EvaluatorReason
 	// Recomposable is true only when every reason is item_moved or
-	// item_muted (Solution Detail: "true when only position, mute or order
-	// changed") - the cases where every item's AnalysisKey, and therefore
-	// its Phase 4 cache entry, is unaffected. Always false for StateCurrent
+	// item_muted (only position, mute or order changed) - the cases where every
+	// item's AnalysisKey, and therefore its result cache entry, is unaffected. Always false for StateCurrent
 	// and StateNever.
 	Recomposable     bool
 	Record           *LedgerRecord
 	ChangedItemGUIDs []string
 }
 
-// EvaluationBasis is Q8's basis every result states, regardless of State:
+// EvaluationBasis is the basis every result states, regardless of State:
 // the saved project file and its modified time, a fixed label, and a
 // warning flag for the common "record, edit, check without saving" case.
 type EvaluationBasis struct {
 	ProjectFile LedgerProjectFile
-	// Label is always "saved project, file modified <time>" (Q8 option A) -
-	// the live REAPER state is never the basis (D6), so this text never
-	// varies by State.
+	// Label is always "saved project, file modified <time>" - the live
+	// REAPER state is never the basis, so this text never varies by State.
 	Label string
-	// Stale warns (Q8 option B) when ProjectFile.ModTime is older than the
+	// Stale warns when ProjectFile.ModTime is older than the
 	// newest ledger record for this chapter (any analyzer) or than a source
 	// file the chapter's mapped track currently references - the case where
 	// the narrator recorded evidence or edited audio after the last save.
@@ -128,11 +117,11 @@ type EvaluationBasis struct {
 // EvaluateChapter).
 type SourceIdentifier func(sourceFile string) (SourceIdentity, error)
 
-// ChapterEvaluationRequest bundles what EvaluateChapter needs to answer Q4
-// and Q8 for one chapter: the already-parsed project (Phase 1's tracks.Parse
-// - the evaluator never parses the .rpp itself), which analyzer is asking,
-// and the saved project file's own path and modified time (D6's basis,
-// stat'd by the caller since it already opened the file to parse it).
+// ChapterEvaluationRequest bundles what EvaluateChapter needs to answer
+// for one chapter: the already-parsed project (tracks.Parse - the evaluator
+// never parses the .rpp itself), which analyzer is asking, and the saved
+// project file's own path and modified time (the basis, stat'd by the caller
+// since it already opened the file to parse it).
 type ChapterEvaluationRequest struct {
 	Project         tracks.Project
 	ProjectFolder   string
@@ -144,11 +133,11 @@ type ChapterEvaluationRequest struct {
 	ParamHash       string
 }
 
-// ComputeChapterFingerprint computes a chapter's LedgerFingerprint (Phase 3's
-// shape, plus Phase 6's ItemFacts) from its live REAPER track items right
+// ComputeChapterFingerprint computes a chapter's LedgerFingerprint (including
+// ItemFacts) from its live REAPER track items right
 // now, so EvaluateChapter can compare "current" against a stored record
 // using exactly the encoding a writer would use. It returns the newest
-// active-take source ModTime it saw (zero if none), for Q8's warning. An
+// active-take source ModTime it saw (zero if none), for the basis warning. An
 // item that is unsupported (no playable source, for example MIDI) or whose
 // source cannot be identified (deleted, moved, or an empty source path) is
 // skipped entirely - it is absent from every map and from the track
@@ -210,16 +199,16 @@ func sourceIdentitySummary(identity SourceIdentity) string {
 	return hashParts(identity.Path, strconv.FormatInt(identity.Size, 10), identity.PartialHash)
 }
 
-// EvaluateFingerprints is the evaluator's pure comparison (Q4): given the
+// EvaluateFingerprints is the evaluator's pure comparison: given the
 // ledger's record and the chapter's current fingerprint, it decides
 // current/stale/never and why, without touching disk. EvaluateChapter below
 // is the disk-reading wrapper that finds record and current and calls this.
 // currentTrackGUID is the chapter's confirmed mapping right now (so a
 // changed mapping since the record ran is caught even when every item
-// fingerprint still matches, per D5).
+// fingerprint still matches).
 func EvaluateFingerprints(record LedgerRecord, current LedgerFingerprint, currentTrackGUID, analyzerVersion, paramHash string) EvaluatorResult {
-	// Success Metrics: "a partial or failed run is never read as current" -
-	// checked first and unconditionally, before any fingerprint comparison.
+	// A partial or failed run is never read as current: checked first and
+	// unconditionally, before any fingerprint comparison.
 	if record.Outcome != LedgerComplete {
 		return EvaluatorResult{State: StateNever}
 	}
@@ -237,7 +226,7 @@ func EvaluateFingerprints(record LedgerRecord, current LedgerFingerprint, curren
 
 	itemReasons, changed := diffItemFingerprints(record.Fingerprint, current)
 	reasons = append(reasons, itemReasons...)
-	// A pure reorder (Solution Detail: "order changed") leaves every item's
+	// A pure reorder (the order changed) leaves every item's
 	// own fingerprint untouched but changes TrackFingerprint, since
 	// ComputeTrackFingerprint hashes entries in order - diffItemFingerprints
 	// alone would miss it, so fall back to a recomposable item_moved.
@@ -299,13 +288,13 @@ func diffItemFingerprints(record, current LedgerFingerprint) ([]EvaluatorReason,
 // with a different ItemFingerprint) changed, per the edit-type table:
 //
 //   - AnalysisKey unchanged: only position, mute or active-take-index could
-//     have moved the fingerprint (Q2), and active-take switches almost always
+//     have moved the fingerprint, and active-take switches almost always
 //     change the AnalysisKey too (a different take is a different source or
 //     played range) - so an unchanged key is the recomposable case, and
 //     ItemFacts.Muted disambiguates a mute toggle from a plain move.
 //   - AnalysisKey changed: ItemFacts.ActiveTake tells a take switch apart
 //     from a trim or playrate change; ItemFacts.SourceIdentity tells a
-//     replaced source file apart from either. When a record predates Phase 6
+//     replaced source file apart from either. When a record predates ItemFacts
 //     and carries no ItemFacts for this item, the evaluator cannot
 //     disambiguate and reports the safe generic reason for that branch
 //     (item_moved when the key is unchanged, item_trimmed when it changed) -
@@ -333,9 +322,9 @@ func itemChangeReason(record, current LedgerFingerprint, guid string) EvaluatorR
 	return ReasonItemTrimmed
 }
 
-// isRecomposable applies the Solution Detail's rule: true only when every
-// reason is item_moved or item_muted, the cases where no item's AnalysisKey
-// changed and its Phase 4 cache entry (if any) is still valid.
+// isRecomposable is true only when every reason is item_moved or item_muted,
+// the cases where no item's AnalysisKey changed and its result cache entry (if
+// any) is still valid.
 func isRecomposable(reasons []EvaluatorReason) bool {
 	if len(reasons) == 0 {
 		return false
@@ -366,7 +355,7 @@ func dedupeReasons(reasons []EvaluatorReason) []EvaluatorReason {
 	return unique
 }
 
-// BuildBasis computes Q8's EvaluationBasis: the label is always shown, and
+// BuildBasis computes the EvaluationBasis: the label is always shown, and
 // Stale warns when projectFile's ModTime is older than newestRecordTime (any
 // analyzer's newest record for the chapter) or newestSourceModTime (the
 // chapter's mapped track's newest source file) - whichever of those two is
@@ -382,16 +371,15 @@ func BuildBasis(projectFile LedgerProjectFile, newestRecordTime, newestSourceMod
 	}
 }
 
-// EvaluateChapter is Phase 6's staleness evaluator entry point - the one
-// call the signal PRDs (RC, ER, PS) and SR are expected to make. Given
-// req.Project (already parsed by the caller, Phase 1's tracks.Parse - this
-// function never reads the .rpp itself), it: finds the chapter's confirmed
+// EvaluateChapter is the staleness evaluator's entry point. Given
+// req.Project (already parsed by the caller with tracks.Parse - this function
+// never reads the .rpp itself), it: finds the chapter's confirmed
 // track (mapping.List), computes the chapter's current fingerprints
 // (ComputeChapterFingerprint, one stat plus a partial read per source),
 // finds the latest complete ledger record for (req.AnalyzerID,
 // req.ChapterID), and returns the EvaluatorResult plus the EvaluationBasis
-// every result states (Q8). It reads the ledger and mapping stores; it never
-// writes to either (Architecture Notes: "Evaluator is a pure read").
+// every result states. It reads the ledger and mapping stores; it never writes
+// to either.
 func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEvaluationRequest) (EvaluatorResult, EvaluationBasis, error) {
 	recordTime, err := newestRecordTime(ledger, req.ChapterID)
 	if err != nil {
@@ -402,9 +390,8 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 	if err != nil {
 		return EvaluatorResult{}, EvaluationBasis{}, err
 	}
-	// D5: v1 is one confirmed track per chapter; zero or more than one
-	// confirmed track for this chapter is a consumer-level "unknown" (D5's
-	// "consumers treat that as unknown"), reported here as StateNever since
+	// A chapter has one confirmed track; zero or more than one confirmed track
+	// for it is a consumer-level "unknown", reported here as StateNever since
 	// there is no single track to compute a current fingerprint against.
 	link, ok := singleMappingFor(links, req.ChapterID)
 	if !ok {
@@ -439,7 +426,7 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 }
 
 // singleMappingFor returns links' one entry whose ChapterID is chapterID,
-// and false when there is not exactly one (D5).
+// and false when there is not exactly one.
 func singleMappingFor(links []TrackMapping, chapterID string) (TrackMapping, bool) {
 	var match TrackMapping
 	count := 0
@@ -465,7 +452,7 @@ func findTrack(project tracks.Project, trackGUID string) (tracks.Track, bool) {
 // latestCompleteRecord returns the newest record for (analyzerID, chapterID)
 // whose Outcome is LedgerComplete - ledger.List already sorts newest first,
 // so this is the first complete one, skipping any newer partial or failed
-// run (Success Metrics: "a partial or failed run is never read as current").
+// run (a partial or failed run is never read as current).
 func latestCompleteRecord(ledger *LedgerStore, analyzerID, chapterID string) (LedgerRecord, bool, error) {
 	records, err := ledger.List(analyzerID, chapterID)
 	if err != nil {
@@ -481,7 +468,7 @@ func latestCompleteRecord(ledger *LedgerStore, analyzerID, chapterID string) (Le
 
 // newestRecordTime returns the latest CompletedAt (or StartedAt when
 // CompletedAt is zero, for example a partial or failed run) across every
-// analyzer's record for chapterID, for Q8's warning - deliberately not
+// analyzer's record for chapterID, for the basis warning - deliberately not
 // scoped to one analyzer, since any recorded evidence after the last save is
 // what the warning cares about, not only the one analyzer currently asking.
 func newestRecordTime(ledger *LedgerStore, chapterID string) (time.Time, error) {

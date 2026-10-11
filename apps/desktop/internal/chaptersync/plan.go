@@ -1,11 +1,11 @@
-// Package chaptersync is the host side of the DAW chapter-track auto-sync PRD
-// (the deleted daw-chapter-track-auto-sync PRD). Phase 2 is here: Build, a
-// pure planner that answers "what should be linked" from the manuscript's
-// chapters, the saved REAPER project, the stored links and the last sync's
-// snapshot, and Store, which keeps that snapshot in
+// Package chaptersync is the host side of the DAW chapter-track auto-sync
+// (ADR 0202). It holds Build, a pure planner that answers "what should be
+// linked" from the manuscript's chapters, the saved REAPER project, the stored
+// links and the last sync's snapshot, and Store, which keeps that snapshot in
 // narration-utils/chapter-sync.json. Nothing here writes a link: the sync
-// service (Phase 3) hands Plan.Requests to evidence.MappingStore.AutoLink once
-// the narrator has consented for the project (ADR 0202).
+// service (apps/desktop/chaptersync.go) hands Plan.Requests to
+// evidence.MappingStore.AutoLink once the narrator has consented for the
+// project.
 package chaptersync
 
 import (

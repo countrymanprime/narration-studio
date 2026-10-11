@@ -152,7 +152,7 @@ func TestContractDictionaryLookup(t *testing.T) {
 	contractfile.Check(t, "system-lookup-asset-required", dictionaryAssetRequired(entry, "not_installed", "C:/Users/narrator/AppData/Local/narration-utils/assets/dictionary/oewn/oewn-2025/2025"))
 }
 
-// TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape (the deleted tool-run-logging PRD phase 7).
+// TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape.
 func TestContractCopyDiagnostics(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := NewHost()
@@ -555,7 +555,7 @@ func TestContractProjectLinkDawFile(t *testing.T) {
 	contractfile.Check(t, "daw-link-cancelled", map[string]any{"selected": false, "linked": false})
 }
 
-// DawLaunch's result (Phase 8, the deleted project-workspace-and-daw-link PRD).
+// TestContractDawLaunch pins DawLaunch's result shape.
 func TestContractDawLaunch(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir()) // never read the real machine's global-settings.json
 	folder := t.TempDir()

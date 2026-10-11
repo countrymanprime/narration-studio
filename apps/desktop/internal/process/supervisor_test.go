@@ -21,7 +21,7 @@ func echoExitCommand() (string, []string) {
 }
 
 // envEchoCommand writes NARRATION_RUN_ID and NARRATION_LOG_LEVEL to stderr, so a test can prove they reached the
-// child's environment (the deleted tool-run-logging PRD phase 2) without a second helper-process test binary.
+// child's environment (ADR 0251) without a second helper-process test binary.
 func envEchoCommand() (string, []string) {
 	if runtime.GOOS == "windows" {
 		return "cmd.exe", []string{"/c", "echo run=%NARRATION_RUN_ID% level=%NARRATION_LOG_LEVEL% 1>&2"}

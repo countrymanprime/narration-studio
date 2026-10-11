@@ -1,13 +1,12 @@
 // Package projectstate is the host's end of the REAPER live "project changed" indicator (the project_state
-// bridge command; see the deleted reaper-automation-follow-through PRD Phase 13, "Change-driven re-compare
-// indicator", and the deleted analysis-evidence-ledger PRD Open Question 12, answered (B)). It is a Could-tier,
-// coarse hint: REAPER's own edit counter (GetProjectStateChangeCount), read only while REAPER is open from this
+// bridge command; see "Live project-change indicator" in docs/architecture/reaper-bridge.md). It is a coarse
+// hint: REAPER's own edit counter (GetProjectStateChangeCount), read only while REAPER is open from this
 // app, alongside the saved .rpp file's modification time (stat'd here - Lua has no portable file-stat call, and
 // the host already reads paths like this one elsewhere).
 //
 // This package makes no staleness decision by itself: Check reports the live count and the saved file's mtime,
 // and ChangedSince compares a later count to a baseline a caller captured earlier. Any consumer that already has
-// a saved-file-mtime-based staleness check (for example, a future evaluator under apps/desktop/internal/evidence)
+// a saved-file-mtime-based staleness check (for example, the evaluator in apps/desktop/internal/evidence)
 // treats this only as an additional, optional live hint on top of its existing basis, never a replacement for it:
 // this package has no opinion on what "stale" means for another feature.
 package projectstate

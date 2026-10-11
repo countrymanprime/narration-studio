@@ -2,9 +2,7 @@ import type { CapabilityEntry } from './components/primitives/CapabilityGate';
 
 /**
  * Which requirements a disabled control is missing, so its tooltip can name all of them at once instead of just the
- * first (the deleted project-workspace-and-daw-link PRD, Open Question W17: "a combined reason listing what is
- * missing"). The two are independent - a page can need a manuscript, a linked DAW project file, or both, and the
- * single shared `MANUSCRIPT_REQUIRED_REASON` string this repo has today (AppShell.tsx) cannot express the second.
+ * first. The two are independent - a page can need a manuscript, a linked DAW project file, or both.
  */
 export interface MissingRequirements {
   manuscript: boolean;
@@ -17,12 +15,12 @@ const REQUIREMENT_PHRASES: { key: keyof MissingRequirements; phrase: string }[] 
 ];
 
 /**
- * Builds the single sentence a disabled nav item, route or button shows for what unlocks it (W17). `missing` names
+ * Builds the single sentence a disabled nav item, route or button shows for what unlocks it. `missing` names
  * which requirements are currently unmet; a requirement the caller does not care about is simply passed as `false`.
  * Returns `undefined` when nothing is missing, meaning the caller has no reason to disable anything.
  *
- * `dawFile` here means "not linked" (a stored fact, PRD W13/W14): whether the DAW is reachable or has the matching
- * project open are separate facts that Phase 6 of the PRD adds and are not part of this reason yet.
+ * `dawFile` here means "not linked" (a stored fact): whether the DAW is reachable or has the matching
+ * project open are separate facts and are not part of this reason; `dawCapabilityGate` below covers them.
  */
 export function combinedRequiredReason(missing: MissingRequirements): string | undefined {
   const phrases = REQUIREMENT_PHRASES.filter(({ key }) => missing[key]).map(({ phrase }) => phrase);
@@ -32,7 +30,7 @@ export function combinedRequiredReason(missing: MissingRequirements): string | u
 }
 
 /**
- * Whether a `requiresDaw` nav item is disabled, and why (DAW port PRD Phase 7, ADR 0360's "the nav's `requiresDaw`
+ * Whether a `requiresDaw` nav item is disabled, and why (ADR 0360's "the nav's `requiresDaw`
  * move onto the gate"). The stored setup facts (a manuscript imported, a project file linked) take precedence over
  * `capability`, since they are unrelated to what the DAW can do right now and `combinedRequiredReason` already
  * names them; once they are met, whether the page is actually usable comes from the DAW port's own capability entry

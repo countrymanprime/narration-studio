@@ -330,7 +330,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(state.runId).toBe('1789000000000000');
   });
 
-  // The Keymap.overrides row (the deleted input-commands-and-pedals PRD Phase 5, Q2) carries a JSON document as its
+  // The Keymap.overrides row carries a JSON document as its
   // text value; parseWireJson and keymapOverridesSchema are the one way to read it (never a bare JSON.parse).
   it('the golden Keymap.overrides default has no bindings yet, read with parseWireJson and its own schema', () => {
     const settings = parseWire(settingsForScopeSchema, readGolden('settings-global.json'), ctx('settings global'));

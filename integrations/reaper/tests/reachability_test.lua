@@ -1,8 +1,7 @@
--- The PROJECT_STATUS reachability heartbeat narration_ui_bridge.lua's tick loop appends (Phase 7,
--- the deleted project-workspace-and-daw-link PRD, ADR 0092/W10): the mechanism spike S6
--- (docs/research/reaper-spike-s6-daw-reachability.md) proved, wired into the same command loop compare_test.lua
--- and launcher_test.lua already exercise. Uses Session:all_events() (not :events(), which filters this tag out
--- for every other test file's sake - see harness.lua).
+-- The PROJECT_STATUS reachability heartbeat narration_ui_bridge.lua's tick loop appends (ADR 0092): the mechanism spike
+-- S6 (docs/research/reaper-spike-s6-daw-reachability.md) proved, wired into the same command loop compare_test.lua and
+-- launcher_test.lua already exercise. Uses Session:all_events() (not :events(), which filters this tag out for every
+-- other test file's sake - see harness.lua).
 
 local H = require('harness')
 
@@ -78,8 +77,8 @@ H.test('the heartbeat sends an empty edit counter on a REAPER without the call, 
   H.eq(only_event(s), { 'PROJECT_STATUS', '', 'C:\\Projects\\Book\\Book.rpp', '0', '', '0', '0.000000' })
 end)
 
--- DAW port PRD Phase 9 (ADR 0305): the heartbeat also carries the transport, so the host knows REAPER is playing or recording
--- without asking (the Heartbeat role reads; ReadAloudReaperState.recording was a click-refreshed read, ADR 0249).
+-- ADR 0305: the heartbeat also carries the transport, so the host knows REAPER is playing or recording without asking
+-- (the Heartbeat role reads; ReadAloudReaperState.recording was a click-refreshed read, ADR 0249).
 
 H.test('the heartbeat carries GetPlayState and the play position as its fifth and sixth fields', function()
   local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })

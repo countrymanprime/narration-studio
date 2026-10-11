@@ -1,4 +1,4 @@
-// The browser mock's delivery profiles (the deleted delivery-platform-profiles PRD, ADR 0179), answering the way
+// The browser mock's delivery profiles (ADR 0179), answering the way
 // apps/desktop/delivery_profiles.go and internal/deliveryprofile do: the built-in ACX profile (the same rules as
 // tests/fixtures/contracts/delivery-profiles.json pins, which wireContracts.test.ts checks), rule-by-rule evaluation of a
 // measured file and of the book, the Global default and the project's choice, and a custom profile's duplicate, edit and

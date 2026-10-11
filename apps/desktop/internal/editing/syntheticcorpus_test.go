@@ -1,11 +1,10 @@
-// This file is Phase 1 of the deleted editing-readiness-analysis PRD: the
-// "synthetic generators (known silence lengths, impulses at known
-// positions)" its Scope calls for, committed to the repo because they are
-// code-generated, unlike real audio (Q10 recommendation: "synthetic
-// generators for unit tests only. Synthetic breaths and clicks are not a
-// validation."). Everything here builds small WAV fixtures with a label at
-// every synthesized event, so harness_test.go always knows exactly what a
-// case contains and where.
+// This file holds the synthetic generators (known silence lengths, impulses
+// at known positions), generated in code because, unlike real audio, they
+// can be committed to the repo. They are for unit tests only: synthetic
+// breaths and clicks are not a validation (ADR 0364). Everything here builds
+// small WAV fixtures with a label at every synthesized event, so
+// harness_test.go always knows exactly what a case contains and where.
+
 package editing
 
 import (
@@ -141,7 +140,7 @@ func buildSyntheticVariantCase(v syntheticVariant) ([]float64, []CorpusLabel) {
 }
 
 // writeSyntheticCorpus renders every variant into dir as "<id>.wav" and
-// writes their combined labels as dir/labels.csv in Phase 1's own CSV
+// writes their combined labels as dir/labels.csv in the CSV labeling
 // format (labels_test.go), so a synthetic corpus directory has exactly the
 // shape a real, permissioned one would (harness_test.go's scoring never
 // special-cases either). It returns the labels for tests that score in
@@ -184,12 +183,11 @@ func readCorpusLabels(t *testing.T, path string) []CorpusLabel {
 	return labels
 }
 
-// TestSyntheticCorpusLabelsMatchAudio is Phase 1's success signal "labels
-// validate against the format": every generated label must parse back out
-// of labels.csv unchanged, name a file that exists, and fall entirely
-// within that file's own duration - the guarantee buildSyntheticCase's
-// running-sample-count derivation makes, checked here so a future edit to
-// the segment list cannot silently break it.
+// TestSyntheticCorpusLabelsMatchAudio checks that every generated label
+// parses back out of labels.csv unchanged, names a file that exists, and
+// falls entirely within that file's own duration - the guarantee
+// buildSyntheticCase's running-sample-count derivation makes, checked here so
+// a future edit to the segment list cannot silently break it.
 func TestSyntheticCorpusLabelsMatchAudio(t *testing.T) {
 	dir := t.TempDir()
 	labels := writeSyntheticCorpus(t, dir)

@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// editingPolicy reads the Editing settings section (Q2, Q3): every value
+// editingPolicy reads the Editing settings section: every value
 // unset until the narrator sets one (no builtinDefaults entry to fall back
 // to), so store.Effective's own fallback ("") is exactly PolicyFromSettings's
 // own "not checked" convention.
@@ -23,7 +23,7 @@ func editingPolicy(store *settings.Store) editingpkg.Policy {
 		// already validates every number through numberSpecs before it is
 		// ever written) is read as unset rather than panicking or blocking
 		// the scan - the same fail-safe-to-unknown spirit as the rest of
-		// this PRD.
+		// the editing check.
 		return editingpkg.Policy{}
 	}
 	return policy
@@ -33,19 +33,11 @@ func editingPolicy(store *settings.Store) editingpkg.Policy {
 // project is open (mirrors bindings_stages.go's errStagesNoProject).
 var errEditingNoProject = errors.New("open a project before checking editing")
 
-// The editing-readiness check bindings (the deleted editing-readiness-analysis PRD
-// Phase 5). A check runs only when the narrator asks (Q9): nothing here
-// starts one on its own. Unlike CoverageStart/CoverageState, these bindings
-// are plain poll-style calls with no live event and no OS-notification job
-// tracking yet - Phase 7's panel (out of this pass's scope) is expected to
-// wire that up the way bindings_coverage.go does for coverage:state, once a
-// real apps/ui build (with the wails3 CLI available to regenerate
-// apps/ui/wailsjs) can also add the matching jobKindEditing to
-// apps/ui/src/api/contracts/system.ts. Calling these four methods from Go
-// works today (Wails binds every exported *Host method by reflection); the
-// JS-callable wrapper for them does not exist until
-// `pnpm --dir apps/desktop bindings` is run somewhere the wails3 CLI is
-// installed - it is not in this sandbox (command -v wails3 fails here).
+// The editing-readiness check bindings. A check runs only when the narrator
+// asks: nothing here starts one on its own. Unlike CoverageStart/CoverageState,
+// these bindings are plain poll-style calls with no live event and no
+// OS-notification job tracking (there is no jobKindEditing in
+// apps/ui/src/api/contracts/system.ts).
 
 // editingIdle is the state reported when no project (so no editing service)
 // is open.
@@ -53,7 +45,7 @@ var editingIdle = editingpkg.State{Phase: editingpkg.PhaseIdle, Message: "Open a
 
 // EditingStart starts an editing-readiness scan of one chapter: played-range
 // empty-space (and, cached alongside it, click/breath candidates - always
-// unknown until Phase 4 validates them). It answers {status: "started",
+// unknown until their gate opens, ADR 0510). It answers {status: "started",
 // state} or {status: "refused", reason, message} when the chapter cannot be
 // resolved to exactly one confirmed track and its items in the saved
 // project (nothing was run or written); any other error is a rejected
@@ -94,8 +86,7 @@ func (h *Host) EditingCancel() (string, error) {
 // EditingCandidates lists the chapter's current empty-space findings
 // (silence_cleanup, evidence.class "silence"): what a scan found, in the
 // review-dashboard findings shape, so the narrator can hear and act on each
-// one (Phase 7's own scope; this binding only reads what a scan already
-// persisted).
+// one. It only reads what a scan already persisted.
 func (h *Host) EditingCandidates(chapterID string) (string, error) {
 	service := h.services().editing
 	if service == nil {
@@ -108,11 +99,10 @@ func (h *Host) EditingCandidates(chapterID string) (string, error) {
 	return encodeBinding(found, nil)
 }
 
-// The Q6 per-chapter source-choice bindings (the deleted editing-readiness-analysis PRD
-// Phase 8): which analysis source counts for a chapter's editing check, items
-// on its track (the default) or its rendered file. Choosing render never
-// silently replaces the item check - it is an explicit, per-chapter pick the
-// narrator makes and can change back.
+// The per-chapter source-choice bindings (ADR 0550): which analysis source
+// counts for a chapter's editing check, items on its track (the default) or its
+// rendered file. Choosing render never silently replaces the item check - it is
+// an explicit, per-chapter pick the narrator makes and can change back.
 
 // EditingSourceChoice reads chapterID's current source choice ("items", the
 // default, or "render"). A missing project or store answers "items" rather
@@ -130,7 +120,7 @@ func (h *Host) EditingSourceChoice(chapterID string) (string, error) {
 	return encodeBinding(string(choice), nil)
 }
 
-// EditingSetSourceChoice sets chapterID's source choice (Q6: the narrator
+// EditingSetSourceChoice sets chapterID's source choice (the narrator
 // chooses per chapter) and answers the choice as stored, the same bare
 // string shape EditingSourceChoice reads back. choice must be "items" or
 // "render"; anything else is a rejected promise, the same as any other

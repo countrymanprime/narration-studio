@@ -57,7 +57,7 @@ func (s *Store) Effective(tool, key, fallback string) (string, string) {
 // which rendered #000000 for every color. store_test.go keeps the two in sync.
 var builtinDefaults = map[string]Values{
 	// notifications defaults on (D8: OS notifications on by default, opt-out in Settings, N2). debug_logging defaults
-	// off (the deleted tool-run-logging PRD Q1, ADR 0251): decision records are opt-in, on the Settings page or with
+	// off (ADR 0251): decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
 	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
 	// build_after_import defaults on (D8: build the Story Bible after import by default, B1-B3).
@@ -136,11 +136,10 @@ var builtinDefaults = map[string]Values{
 		"preset":                  "sample",
 		"exclude_ending_fraction": "0",
 	},
-	// Keymap.overrides (the deleted input-commands-and-pedals PRD Phase 5, Open Question Q2): the narrator's remap
-	// changes from the input registry's default keymap, as a versioned JSON document of only the gestures that
-	// differ from the defaults. Empty bindings is the fresh-install default: every command keeps its shipped
-	// gesture until the narrator remaps it (Phase 6). Global scope only (Q3: a narrator's pedal belongs to the
-	// booth, not the book), enforced in apps/desktop/app.go's saveSettings.
+	// Keymap.overrides: the narrator's remap changes from the input registry's default keymap, as a versioned JSON
+	// document of only the gestures that differ from the defaults. Empty bindings is the fresh-install default: every
+	// command keeps its shipped gesture until the narrator remaps it. Global scope only (a narrator's pedal belongs
+	// to the booth, not the book), enforced in apps/desktop/app.go's saveSettings.
 	"Keymap": {"overrides": `{"version":1,"bindings":{}}`},
 	// Cleanup mirrors measure.DefaultCleanupOptions (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
 	// ADR 0238 decision 4): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings

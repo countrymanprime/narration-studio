@@ -1,17 +1,16 @@
-// This file is Phase 4 of the deleted editing-readiness-analysis PRD
-// ("Click and breath validation"): the corpus the click and breath detectors
-// are tuned and held out on. No permissioned narrator audio exists on main
-// (D70/D71; the LibriVox Alice signal set labels clicks only and runs
-// separately, librivoxvalidation_test.go), so, like Phase 1's
-// syntheticcorpus_test.go, it is generated in code - but unlike Phase 1's four
-// clean cases it is built to hurt: every event sits in one of four recording
-// conditions, and the Phase Details' named hard cases (breath after a plosive,
-// click inside silence, soft onset, plosive versus click) are all in it, with
-// levels drawn at random over a realistic range rather than placed where the
-// detector's defaults happen to catch them. Q10 still applies to everything
-// here: "Synthetic breaths and clicks are not a validation." Its numbers are
-// provisional (D70) and never open the validated-version gate on their own
-// (validation.go).
+// This file holds the corpus the click and breath detectors are tuned and
+// held out on. No permissioned narrator audio exists in the repo (the
+// LibriVox Alice signal set labels clicks only and runs separately,
+// librivoxvalidation_test.go), so, like syntheticcorpus_test.go, it is
+// generated in code - but unlike that file's clean cases it is built to
+// hurt: every event sits in one of four recording conditions, and the hard
+// cases (breath after a plosive, click inside silence, soft onset, plosive
+// versus click) are all in it, with levels drawn at random over a realistic
+// range rather than placed where the detector's defaults happen to catch
+// them. Synthetic breaths and clicks are not a validation (ADR 0364): its
+// numbers are provisional and never open the validated-version gate on their
+// own (validation.go).
+
 package editing
 
 import (
@@ -26,11 +25,11 @@ import (
 
 // validationRate is 16 kHz: a 10 ms detector window is exactly 160 frames, so
 // every segment below (each a whole number of milliseconds times ten) lands on
-// a window boundary, and clicks keep more bandwidth than Phase 1's 8 kHz.
+// a window boundary, and clicks keep more bandwidth than syntheticcorpus_test.go's 8 kHz.
 const validationRate = 16000
 
-// recordingCondition is one room and read the corpus is scored under (the
-// PRD's Technical Risks: "results labeled by conditions"). backgroundPeakDB
+// recordingCondition is one room and read the corpus is scored under (results
+// are labeled by condition). backgroundPeakDB
 // is the room tone under the whole file (its RMS runs about 4.8 dB lower,
 // uniform noise); math.Inf(-1) is digital silence.
 type recordingCondition struct {
@@ -88,7 +87,7 @@ func validationHardCases() []hardCase {
 // validationFilesPerSplit is how many files each condition gets per split;
 // every file holds validationRepeats of every hard case, so each split has
 // 4 conditions x 2 files x 2 repeats x 2 positive cases = 32 labeled clicks
-// and 32 labeled breaths, past the PRD's proposed 25 per class.
+// and 32 labeled breaths, past the 25 per class that ADR 0575 sets as the bar.
 const (
 	validationFilesPerSplit = 2
 	validationRepeats       = 2
@@ -186,8 +185,8 @@ func validationSeed(conditionIndex int, split LabelSplit, index int) uint64 {
 }
 
 // writeValidationCorpus renders every file of both splits into dir with a
-// labels.csv in Phase 1's format, the same directory shape a real corpus has
-// (NARRATION_EDITING_CORPUS), and returns the labels.
+// labels.csv in the harness's format, the same directory shape a real corpus
+// has (NARRATION_EDITING_CORPUS), and returns the labels.
 func writeValidationCorpus(t *testing.T, dir string) []CorpusLabel {
 	t.Helper()
 	var all []CorpusLabel
@@ -215,7 +214,7 @@ func writeValidationCorpus(t *testing.T, dir string) []CorpusLabel {
 
 // TestValidationCorpusShape guards the corpus itself: every label round-trips
 // through labels.csv, falls inside its file, and each split has at least the
-// PRD's proposed 25 labeled locations per validated class.
+// 25 labeled locations per validated class that ADR 0575 sets as the bar.
 func TestValidationCorpusShape(t *testing.T) {
 	dir := t.TempDir()
 	labels := writeValidationCorpus(t, dir)

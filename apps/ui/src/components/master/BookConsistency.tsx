@@ -1,8 +1,7 @@
-// The book-wide spread (the deleted delivery-platform-profiles PRD Phase 10, mockup 11 "Book consistency"): below the
-// per-file table, one strip per numeric per-file level rule (RMS, peak, noise floor) showing the measured book's min,
-// median and max, and where each judged file falls between them. No new chart primitive (
-// keeps charts feature-local): a plain track built from the page's own design tokens, so it reads correctly in light and
-// dark without forcing either (dark mode is a global theme only, D69 on #509).
+// The book-wide spread: below the per-file table, one strip per numeric per-file level rule (RMS, peak, noise floor)
+// showing the measured book's min, median and max, and where each judged file falls between them. There is no chart
+// primitive: it is a plain track built from the page's own design tokens, so it reads correctly in light and dark
+// without forcing either (the theme is one global setting, ADR 0365).
 import { useId } from 'react';
 import type { DeliveryProfile, DeliveryRule, MeasureFileResult } from '../../types';
 import { type BookSpreadStat, bookSpreadRows } from './bookSpread';
@@ -86,10 +85,10 @@ function SpreadRow({ rule, values, stat, compact = false }: { rule: DeliveryRule
 }
 
 /**
- * The book-wide spread (Phase 10), drawn as mock 05's "Book consistency" beside why a file fails (stage navigation Phase 8): min,
+ * The book-wide spread, drawn beside why a file fails: min,
  * median and max across every measured file, for RMS, peak and noise floor - the numeric per-file level rules a profile carries,
  * whichever it has turned on. A rule reads only the files the app has actually judged it for (`met` or `not_met`); a file whose
- * value is `not_checked` (an MP3 before Phase 8) or `not_measurable` (silence, too short) never contributes, so an unmeasured book
+ * value is `not_checked` (an MP3 whose levels are not decoded) or `not_measurable` (silence, too short) never contributes, so an unmeasured book
  * shows "No measurements yet" rather than a zero or a guess. It is a section inside its caller's panel, not a panel of its own.
  */
 export function BookConsistency({ profile, files, titled = true }: { profile: DeliveryProfile; files: readonly MeasureFileResult[]; titled?: boolean }) {

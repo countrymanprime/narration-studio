@@ -52,7 +52,7 @@ export type ProjectAttachState = { attached: boolean; reason?: string };
  */
 export type JobEnded = { id: string; kind: string; outcome: 'success' | 'error' | 'cancelled'; message: string; durationMs: number };
 
-/** SystemCopyDiagnostics's answer (the deleted tool-run-logging PRD phase 7, Q5): the .jsonl file it saved. Empty
+/** SystemCopyDiagnostics's answer: the .jsonl file it saved. Empty
  * when the narrator cancelled the folder picker — no file was written. */
 export type CopyDiagnosticsResult = { path: string };
 
@@ -78,9 +78,9 @@ export interface SystemApi {
   subscribeJobEnded(onEnded: (event: JobEnded) => void): () => void;
   /** Calls `onDegraded` once when live updates from the host have been failing, so the app can say what is on screen may be out of date. */
   subscribeLiveUpdateHealth(onDegraded: () => void): () => void;
-  /** Shows the run log's folder (the deleted tool-run-logging PRD phase 7) in the file manager. */
+  /** Shows the run log's folder in the file manager. */
   systemOpenLogFolder(): Promise<void>;
-  /** Saves scope's run log records ("last_run" or "last_30_minutes", phase 7 Q5) as one .jsonl file in a folder the
+  /** Saves scope's run log records ("last_run" or "last_30_minutes") as one .jsonl file in a folder the
    * narrator chooses, and answers its path so the UI can copy it to the clipboard. Throws for "last_run" when
    * nothing has run yet this session. */
   systemCopyDiagnostics(scope: 'last_run' | 'last_30_minutes'): Promise<CopyDiagnosticsResult>;

@@ -50,7 +50,7 @@ export const jobEndedSchema = z.object({
   durationMs: z.number(),
 }) satisfies z.ZodType<JobEnded>;
 
-/** SystemCopyDiagnostics's answer (the deleted tool-run-logging PRD phase 7). */
+/** SystemCopyDiagnostics's answer. */
 export const copyDiagnosticsResultSchema = z.object({ path: z.string() }) satisfies z.ZodType<CopyDiagnosticsResult>;
 
 /** WindowZoom's and WindowSetZoom's answer (app-navigation-and-zoom-controls.prd.md Phase 2). */

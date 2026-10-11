@@ -10,7 +10,7 @@ import (
 )
 
 // sentinelWord stands in for manuscript content: if it ever reaches the run log, a decision record picked up a field
-// it should not have (the deleted tool-run-logging PRD's content rule, ADR 0251, threat-model row 7a). ChapterTitle
+// it should not have (the content rule of ADR 0251, threat-model row 7a). ChapterTitle
 // is the one field on Request that carries narrator-authored text through Scan.
 const sentinelWord = "SENTINEL-Xk3q9-do-not-log-this-chapter-title"
 

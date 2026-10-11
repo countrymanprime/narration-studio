@@ -1,11 +1,10 @@
-// This file is Phase 8 of the deleted editing-readiness-analysis PRD: the
-// render-sourced signal and evidence (Q6). It mirrors signals.go's own
-// item-path shape - a pure decision function over already-gathered input, no
-// decode, no store access - but judges the chapter's rendered file instead:
-// proofing.EvaluateRender (proofing-readiness-signals.prd.md Phase 4) owns
-// whether the render is still the chapter's own, current association; this
+// This file holds the render-sourced signal and evidence (ADR 0550). It
+// mirrors signals.go's own item-path shape - a pure decision function over
+// already-gathered input, no decode, no store access - but judges the
+// chapter's rendered file instead: proofing.EvaluateRender owns whether the render is still the chapter's own, current association; this
 // file adds only the second, editing-specific question of whether this
 // package has actually scanned that exact file (RenderScanState).
+
 package editing
 
 import (
@@ -37,8 +36,7 @@ const (
 // duration is both its PlayedRange and its timeline Extent - there is no
 // item position for a render, no played-range offset either - and its
 // silence runs map straight across to timeline time since source time
-// equals timeline time here (Phase 8 Scope: "no played range, no
-// composition").
+// equals timeline time here.
 func renderAudible(path string, scan RenderScan) ItemAudible {
 	audible := ItemAudible{
 		File:        path,
@@ -56,9 +54,8 @@ func renderAudible(path string, scan RenderScan) ItemAudible {
 // it a single-item slice is deliberate, not a shortcut: with one item there
 // are no cross-item gaps to compose, so head/gap/tail classification
 // degenerates for free to "head and tail of the one file, no internal gaps
-// possible" - satisfying Phase 8's "no composition" scope by construction,
-// while reusing the tested composition code instead of a second, parallel
-// implementation.
+// possible". This reuses the tested composition code instead of a second,
+// parallel implementation.
 func ComposeRenderEmptySpace(path string, scan RenderScan, policy Policy) ([]EmptySpaceCandidate, bool) {
 	return ComposeEmptySpace([]ItemAudible{renderAudible(path, scan)}, policy)
 }
@@ -74,8 +71,8 @@ type RenderEmptySpaceInput struct {
 	ComputedAt time.Time
 }
 
-// RenderEmptySpaceSignal is Q6's render-sourced empty-space signal: the same
-// tri-state rule EmptySpaceSignal (signals.go) applies (D2), judged against
+// RenderEmptySpaceSignal is the render-sourced empty-space signal: the same
+// tri-state rule EmptySpaceSignal (signals.go) applies, judged against
 // the chapter's rendered file instead of its items. It defers first to
 // in.Render (proofing.EvaluateRender's own answer): a render that is not
 // RenderCurrent - none, missing, stale or an unsupported format - reads
@@ -121,7 +118,7 @@ func RenderEmptySpaceSignal(in RenderEmptySpaceInput) stages.Signal {
 }
 
 // RenderClassSignalInput is everything RenderClassSignal reads for the
-// render path's click or breath signal (Q6): the same validated-detector
+// render path's click or breath signal: the same validated-detector
 // gate ClassSignal (validation.go) applies to the item path - a detector is
 // validated or not, whatever audio it reads - judged against the chapter's
 // rendered file instead of its items once that gate is open.

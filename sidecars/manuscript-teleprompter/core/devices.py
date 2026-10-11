@@ -1,11 +1,8 @@
 """
 Input device enumeration for the Manuscript Teleprompter live sidecar (see
-docs/architecture/manuscript-teleprompter.md and
-the deleted teleprompter-engines-and-input-devices PRD, Phase 1 and the
-"Where device enumeration runs" open question).
+docs/architecture/manuscript-teleprompter.md, "Device enumeration").
 
-Spike outcome (recommendation (a) confirmed): PyAV *can* list Windows
-`dshow` devices without shelling out to ffmpeg directly. FFmpeg's
+Spike outcome: PyAV *can* list Windows `dshow` devices without shelling out to ffmpeg directly. FFmpeg's
 "list_devices" mode is not a real capture - opening it always raises after
 printing the device list to its own log - but PyAV's log capture
 (`av.logging.Capture`) receives that log text as a sequence of
@@ -36,7 +33,7 @@ device-manager "Alternative name" (a stable `@device_...` path). This module
 records it per device (`Device.alternative_name`) but nothing yet opens a
 device by that path instead of its friendly name - no duplicate audio
 device names were observed on the development machine to test the collision
-case against. Recorded as a follow-up for the phase that builds the picker.
+case against.
 """
 
 import re
@@ -116,8 +113,7 @@ def capture_dshow_log() -> list[LogEntry]:
 
 def list_input_devices(capture: Callable[[], list[LogEntry]] = capture_dshow_log) -> tuple[list[Device], str | None]:
     """The audio input devices the capture path (`iter_microphone_chunks`) can open, listed by the same name dshow opens
-    them under. Never raises: a listing failure returns an empty list and a message instead, so it can never block Start
-    (see the architecture note in the PRD)."""
+    them under. Never raises: a listing failure returns an empty list and a message instead, so it can never block Start."""
     try:
         entries = capture()
     except Exception as error:  # noqa: BLE001 - defensive: a missing ffmpeg/dshow backend (e.g. off Windows) must not crash the sidecar

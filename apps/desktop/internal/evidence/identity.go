@@ -1,13 +1,10 @@
-// Package evidence is the analysis evidence ledger PRD's own small
-// platform (the deleted analysis-evidence-ledger PRD): source identity,
-// fingerprints, the analysis ledger, a per-item result cache, and the
-// confirmed chapter-track mapping. Phase 1 lands only SourceIdentity and
-// its hash policy (Q1): the piece diagnostics-delivery-and-cleanup-tools'
-// own Phase 1 fingerprint evidence needs too (Q11a - "EL Phase 1 owns
-// SourceIdentity and DX Phase 1 calls it", written here because DX Phase 1
-// had not started this helper when EL Phase 1 landed). The analysis key,
-// item and track fingerprints (what changed about an item on the
-// timeline, not just its source file) are Phase 2 and are not built here.
+// Package evidence is the analysis evidence platform (ADR 0100): source
+// identity, fingerprints, the analysis ledger, a per-item result cache, the
+// staleness evaluator and the confirmed chapter-track mapping. It answers which
+// audio a stored result describes and whether that is still the audio the
+// narrator has, without ever attributing a result to the wrong track.
+//
+// This file holds SourceIdentity and its hash policy.
 package evidence
 
 import (
@@ -22,9 +19,8 @@ import (
 )
 
 // SourceIdentity answers "which audio file is this" stably across REAPER's
-// own non-destructive edits, which never touch the source file (D6 of the
-// evidence ledger PRD): split, trim and fade change item state only. Q1's
-// recommendation (option C) is a cheap sample - size, modification time and
+// own non-destructive edits, which never touch the source file: split, trim
+// and fade change item state only. The identity is a cheap sample - size, modification time and
 // a hash of the file's head, middle and tail blocks - rather than hashing
 // every byte on every read, which would cost seconds per file on an
 // hour-long recording on every Home load.
@@ -43,8 +39,7 @@ type SourceIdentity struct {
 // whole thing.
 const partialBlockSize = 64 * 1024
 
-// Identify reads path's size, modification time and PartialHash (Q1 option
-// C) without reading the whole file. projectFolder, when non-empty, makes
+// Identify reads path's size, modification time and PartialHash without reading the whole file. projectFolder, when non-empty, makes
 // the returned Path project-relative when path is inside it; pass "" to
 // always get an absolute Path.
 func Identify(path, projectFolder string) (SourceIdentity, error) {
@@ -75,12 +70,11 @@ func Identify(path, projectFolder string) (SourceIdentity, error) {
 	}, nil
 }
 
-// FullHash reads the whole file for a content hash (Q1 option B) - the
-// expensive fallback a caller pays for only when PartialHash leaves a real
-// question (for example two files agreeing on size, modification time and
-// PartialHash). This package does not cache or persist anything itself:
-// Q1's "computed lazily and cached by (path, size, mtime)" is the analysis
-// ledger and cache's job (Phases 3 and 4), not this identity helper's.
+// FullHash reads the whole file for a content hash - the expensive fallback a
+// caller pays for only when PartialHash leaves a real question (for example
+// two files agreeing on size, modification time and PartialHash). This package
+// does not cache or persist anything here: that is the ledger's and the
+// cache's job, not this identity helper's.
 func FullHash(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {

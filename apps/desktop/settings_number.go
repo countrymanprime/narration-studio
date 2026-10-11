@@ -10,8 +10,8 @@ import (
 // numberSpec is the range of a "number" setting: an inclusive minimum and maximum, a step the value must sit on
 // (counted from the minimum, or from zero when there is none), and the unit the page shows beside the box. A nil bound
 // or step is unbounded. It is kept beside fieldSchemas, keyed by tool and key, rather than in fieldSchema itself, so
-// adding the kind did not rewrite every existing field literal (the deleted diagnostics-delivery-and-cleanup-tools PRD
-// Phase 2); TestEveryNumberFieldHasARangeAndEveryRangeAField keeps the two in step.
+// adding the kind did not rewrite every existing field literal (ADR 0155);
+// TestEveryNumberFieldHasARangeAndEveryRangeAField keeps the two in step.
 type numberSpec struct {
 	min, max, step *float64
 	unit           string
@@ -28,11 +28,10 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"max_misread_run":       {min: bound(0), max: bound(200), step: bound(1), unit: "words"},
 		"min_anchor_run":        {min: bound(1), max: bound(50), step: bound(1), unit: "words"},
 	},
-	// Editing's three policy values (the deleted editing-readiness-analysis PRD Phase 3, Q2, Q3) are seconds, at
-	// least 0 (a negative gap makes no sense) with no declared maximum (a narrator's own tolerance for a long dramatic
-	// pause is not this range's business to cap) and a 0.1 s step, fine enough for a hold that is itself in the tens
-	// or hundreds of milliseconds. Leaving the field blank (no builtinDefaults entry for "Editing") is what keeps it
-	// unset (Store.Effective's own fallback), never validated as a number until the narrator actually sets one.
+	// Editing's three policy values are seconds, at least 0 (a negative gap makes no sense) with no declared maximum
+	// (a narrator's own tolerance for a long dramatic pause is not this range's business to cap) and a 0.1 s step,
+	// fine enough for a hold that is itself in the tens or hundreds of milliseconds. Leaving the field blank (no builtinDefaults
+	// entry for "Editing") is what keeps it unset (Store.Effective's own fallback), never validated as a number until the narrator actually sets one.
 	"Editing": {
 		"max_gap_seconds":  {min: bound(0), step: bound(0.1), unit: "s"},
 		"head_max_seconds": {min: bound(0), step: bound(0.1), unit: "s"},

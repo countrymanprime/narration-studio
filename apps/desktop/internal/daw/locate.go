@@ -1,13 +1,11 @@
 // Package daw locates the REAPER executable on the host machine
-// (the deleted project-workspace-and-daw-link PRD Phase 6 spike, W11) so a
-// future launch action (Phase 8) never needs the narrator to type a path by
-// hand. The evidence behind the two auto-detect sources this package tries is
+// so the launch action (Host.DawLaunch) never needs the narrator to type a
+// path by hand. The evidence behind the two auto-detect sources this package tries is
 // recorded in docs/research/reaper-spike-s6-daw-reachability.md and
 // docs/adr/0092-reaper-executable-discovery-heartbeat-mechanism-and-script-plus-project-launch-are-resolved.md.
 //
 // Auto-detect is preferred over asking the narrator, and a Settings override
-// always wins when it points at a real file (Resolve below): the owner
-// recommendation from Open Question W11.
+// always wins when it points at a real file (Resolve below), per ADR 0092.
 package daw
 
 import (

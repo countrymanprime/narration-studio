@@ -1,11 +1,10 @@
-// Package character implements Phase 3 of
-// the deleted character-continuity-review PRD: listing a saved REAPER
-// project's regions with identity, and letting the narrator approve or
-// revoke one as a voice reference for a character (or for plain narration,
-// Q9). No acoustic analysis happens here - approving a reference is the only
-// gate this package enforces, and it produces no findings and never touches
-// audio. Phases 4 and 5 (feature extraction, baselines and findings) build
-// on this package's References; they are not built yet.
+// Package character is the character continuity review's reference store:
+// listing a saved REAPER project's regions with identity, and letting the
+// narrator approve or revoke one as a voice reference for a character (or for
+// plain narration). No acoustic analysis happens here - approving a reference
+// is the only gate this package enforces, and it produces no findings and
+// never touches audio. Feature extraction (internal/acoustic) and baselines
+// and findings (internal/continuity) build on this package's References.
 package character
 
 import (
@@ -25,7 +24,7 @@ import (
 )
 
 // NarrationCharacterID is the reserved character id for plain narration as a
-// first-class reference subject (Q9): the narrator approves a region as
+// first-class reference subject: the narrator approves a region as
 // "Narration" exactly the way they approve one for a character. It is a
 // plain string, like every other character id this package handles, and
 // never collides with a Story Bible entity id (ADR 0018's ids are content
@@ -43,7 +42,7 @@ const what = "character reference approvals"
 // manuscript.resetDerived clears it on a re-import or an explicit Clear: a
 // reference names a region of the REAPER project accompanying one specific
 // manuscript, and a replaced manuscript's chapters and characters are not
-// the ones a stale reference was approved against (Q7).
+// the ones a stale reference was approved against.
 func Dir(project string) string {
 	return filepath.Join(project, "narration-utils", "characters")
 }
@@ -53,11 +52,11 @@ func referencesPath(project string) string {
 }
 
 // RegionSnapshot is what an approval remembers of the region it names, taken
-// at approval time (Q2): the region's own name and time range. A live region
+// at approval time: the region's own name and time range. A live region
 // later found by the same GUID is compared against this snapshot, never
 // trusted blindly, so moving, renaming or deleting the region after approval
 // is visible as "changed since approval" rather than silently changing what
-// a later baseline (phase 5) would be built from.
+// a later baseline would be built from.
 type RegionSnapshot struct {
 	Name  string  `json:"name"`
 	Start float64 `json:"start"`
@@ -80,7 +79,7 @@ type Reference struct {
 }
 
 // ApprovedReference is a stored Reference alongside whether the region it
-// names still matches what was approved (Q2).
+// names still matches what was approved.
 type ApprovedReference struct {
 	Reference
 	// ChangedSinceApproval is true when the saved project's region no longer
@@ -93,8 +92,7 @@ type ApprovedReference struct {
 
 // referencesFile is references.json: every reference this package has ever
 // approved for one project. There is no separate "revoked" list - Revoke
-// removes a reference outright (Q7: "revoking removes it and its derived
-// features").
+// removes a reference outright.
 type referencesFile struct {
 	SchemaVersion int         `json:"schemaVersion"`
 	References    []Reference `json:"references"`
@@ -106,7 +104,7 @@ type referencesFile struct {
 type Config struct {
 	Project     string
 	ProjectFile func() (string, error)
-	// ProjectReader reads the saved .rpp ProjectFile resolves (DAW port PRD Phase 5d); nil falls back to tracks.Parse
+	// ProjectReader reads the saved .rpp ProjectFile resolves; nil falls back to tracks.Parse
 	// directly, so a Config literal built before this field existed keeps reading exactly as it did before.
 	ProjectReader dawport.ProjectReader
 }
@@ -127,7 +125,7 @@ func New(config Config) *Service {
 	return &Service{config: config, now: time.Now}
 }
 
-// ListRegions returns the saved project's regions (Q3 option A: parsed
+// ListRegions returns the saved project's regions (parsed
 // directly from the saved .rpp, never a live bridge command), in file order.
 func (s *Service) ListRegions() ([]tracks.Region, error) {
 	project, err := s.savedProject()
@@ -154,7 +152,7 @@ func (s *Service) savedProject() (tracks.Project, error) {
 	return project, nil
 }
 
-// readProject is the dawport.ProjectReader role over path (DAW port PRD Phase 5d): nil falls back to tracks.Parse
+// readProject is the dawport.ProjectReader role over path: nil falls back to tracks.Parse
 // directly.
 func (s *Service) readProject(path string) (tracks.Project, error) {
 	if s.config.ProjectReader == nil {
@@ -235,8 +233,7 @@ func (s *Service) Approve(characterID, regionGUID, note string) (Reference, erro
 	return reference, nil
 }
 
-// Revoke removes a reference entirely (Q7): the record and, once phases 4
-// and 5 exist, everything derived from it. Revoking an id that is not (or no
+// Revoke removes a reference entirely. Revoking an id that is not (or no
 // longer) stored is not an error, so a caller need not first check whether
 // its own revoke already ran.
 func (s *Service) Revoke(id string) error {
@@ -261,11 +258,9 @@ func (s *Service) Revoke(id string) error {
 }
 
 // RemoveAll revokes every stored reference for the project in one write
-// (character-continuity-review.prd.md Q7's "Remove voice analysis data"
-// action, delivered in Phase 6 rather than Phase 7 per owner decision D87 on
-// #509): the data-layer effect Q7 already documents as equivalent to
-// revoking each reference one at a time, done atomically instead of in a
-// read-then-loop-revoke race.
+// (the "Remove voice analysis data" action): equivalent to revoking each
+// reference one at a time, done atomically instead of in a read-then-loop-revoke
+// race.
 func (s *Service) RemoveAll() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -273,7 +268,7 @@ func (s *Service) RemoveAll() error {
 }
 
 // References lists every stored reference, each annotated with whether the
-// region it names has changed since it was approved (Q2).
+// region it names has changed since it was approved.
 func (s *Service) References() ([]ApprovedReference, error) {
 	s.mu.Lock()
 	file, err := s.readLocked()

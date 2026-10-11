@@ -1,7 +1,6 @@
 """Generate a synthetic "solo dramatic reading" corpus for the character-continuity acoustic trial.
 
-Fallback route (docs/research/local-dependency-evaluation.md, Phase 1 of
-the deleted character-continuity-review PRD): the sandbox's egress proxy denies
+Fallback route (docs/research/local-dependency-evaluation.md): the sandbox's egress proxy denies
 librivox.org and archive.org (403 policy denial, not a fixable client/cert issue -
 see docs/research/character-continuity-acoustic-trial.md "Corpus route"), so this
 script builds controlled pitch/rate/formant variants of one source voice instead of

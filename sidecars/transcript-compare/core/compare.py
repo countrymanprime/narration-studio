@@ -41,7 +41,7 @@ and exit codes).
 this process has actually registered in ENGINES (batch ASR), e.g.
 {"type": "capabilities", "asr": {"whisper": {"label": "Whisper (faster-whisper)",
 "platforms": [], "modes": ["batch"], "asset": "whisper", "loadable": null}}} -
-registration only, never verified (sidecar-capabilities-flag PRD, ADR 0403).
+registration only, never verified (ADR 0403).
 --manuscript is still required by argparse (as it is for --coverage and
 --take-divergence too) but unused here; the packaged app's smoke test
 (checkCompareCapabilities) reads this to catch a batch ASR row Go declares
@@ -837,7 +837,7 @@ def normalized_tokens(s):
     return tokens
 
 
-# --- Chapter label pre-pass (the deleted daw-chapter-track-auto-sync PRD Phase 1, S5, S9) ---
+# --- Chapter label pre-pass (ADR 0175) ---
 # The same pass as apps/desktop/internal/chaptermatch/label.go's LabelTokens: a track named "Ch. 6", "Ch6", "06",
 # "Sixth Chapter", "Chapter VI" or "Chapter 6 v2" reads as the chapter label it is before find_chapter_by_track_name
 # compares it, headings alike. tests/fixtures/chapter-track-match/parity-cases.json's labelTokens cases pin the two.
@@ -1617,8 +1617,7 @@ def read_repeat_segments(manifest_path):
     item_guid/take_guid are opaque strings supplied by the Go caller (a
     REAPER item/take GUID); this module never interprets them beyond
     equality and pass-through, since take identity is REAPER's, not this
-    sidecar's (see compare.py module docstring and the take-review PRD's
-    Q2). Segments keep manifest order (unlike read_segments, which is only
+    sidecar's (see compare.py module docstring). Segments keep manifest order (unlike read_segments, which is only
     ever used for one concatenated stream and sorts by item_index)."""
     segments = []
     with open(manifest_path, "r", encoding="utf-8") as f:
@@ -1735,7 +1734,7 @@ def find_repeated_spans(args):
     so the existing readers (the Lua bridge and the Go transcript service)
     that only understand SUMMARY/MARKER/NEED_CHAPTER keep working unchanged
     against this same --out file contract (see compare.py's module
-    docstring and the take-review PRD's Q2 evidence)."""
+    docstring)."""
     progress_path = args.progress
 
     write_progress(progress_path, "START", 0, "Starting...")
@@ -1916,7 +1915,7 @@ def run(args):
 def _capability_row(descriptor) -> dict:
     """One row of a --capabilities report: a Descriptor's label, platforms and modes, plus its asset kind when it
     has one (AsrDescriptor only). "loadable" is always null: this reports registration only, never whether the row
-    actually loads (sidecar-capabilities-flag PRD Q2, ADR 0403) - the same shape live_asr.py's --capabilities uses."""
+    actually loads (ADR 0403) - the same shape live_asr.py's --capabilities uses."""
     row = {"label": descriptor.label, "platforms": list(descriptor.platforms), "modes": list(descriptor.modes), "loadable": None}
     asset_kind = getattr(descriptor, "asset_kind", "")
     if asset_kind:
@@ -2010,7 +2009,7 @@ def main():
     ap.add_argument(
         "--recheck",
         default=None,
-        help="With --coverage, instead of a full check (model cascade Phase 3): transcribe only the windows named in this JSON "
+        help="With --coverage, instead of a full check (the cascade's second pass, ADR 0344): transcribe only the windows named in this JSON "
         "file with --model, one model load for the run, and splice the new words into each affected words file in --words-dir; "
         "writes no --out report",
     )
@@ -2069,8 +2068,8 @@ def main():
 
 
 def _main_coverage(ap, args):
-    """--coverage: check its own arguments, then run core/coverage_mode.py. --recheck (model
-    cascade Phase 3) is a separate, windows-only mode: it takes only --words-dir and --model,
+    """--coverage: check its own arguments, then run core/coverage_mode.py. --recheck (the cascade's
+    second pass, ADR 0344) is a separate, windows-only mode: it takes only --words-dir and --model,
     never a manifest, chapter or --out, and is mutually exclusive with --align-only."""
     for flag, given in [("--find-repeats", args.find_repeats), ("--chunk-seconds", args.chunk_seconds)]:
         if given:
