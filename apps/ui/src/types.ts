@@ -39,6 +39,7 @@ export * from './api/contracts/bookmarks';
 export * from './api/contracts/passageMap';
 export * from './api/contracts/editLog';
 export * from './api/contracts/marks';
+export * from './api/contracts/extraction';
 export * from './api/contracts/editCuts';
 export * from './api/contracts/wordFx';
 export * from './api/contracts/workspace';
@@ -94,6 +95,7 @@ import type { BookmarksApi } from './api/contracts/bookmarks';
 import type { PassageMapApi } from './api/contracts/passageMap';
 import type { EditLogApi } from './api/contracts/editLog';
 import type { MarksApi } from './api/contracts/marks';
+import type { ExtractionApi } from './api/contracts/extraction';
 import type { EditCutsApi } from './api/contracts/editCuts';
 import type { EditWordFxApi } from './api/contracts/wordFx';
 import type { WorkspaceApi } from './api/contracts/workspace';
@@ -155,6 +157,7 @@ export interface NarrationApi
     PassageMapApi,
     EditLogApi,
     MarksApi,
+    ExtractionApi,
     EditCutsApi,
     EditWordFxApi,
     WorkspaceApi,

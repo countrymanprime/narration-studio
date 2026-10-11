@@ -41,6 +41,7 @@ import type { BookmarksApi } from '../api/contracts/bookmarks';
 import type { PassageMapApi } from '../api/contracts/passageMap';
 import type { EditLogApi } from '../api/contracts/editLog';
 import type { MarksApi } from '../api/contracts/marks';
+import type { ExtractionApi } from '../api/contracts/extraction';
 import type { EditCutsApi } from '../api/contracts/editCuts';
 import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { WorkspaceApi } from '../api/contracts/workspace';
@@ -107,6 +108,7 @@ export type {
   PassageMapApi,
   EditLogApi,
   MarksApi,
+  ExtractionApi,
   EditCutsApi,
   EditWordFxApi,
   WorkspaceApi,
@@ -169,6 +171,7 @@ export interface PortMap {
   passageMap: PassageMapApi;
   editLog: EditLogApi;
   marks: MarksApi;
+  extraction: ExtractionApi;
   editCuts: EditCutsApi;
   editWordFx: EditWordFxApi;
   workspace: WorkspaceApi;

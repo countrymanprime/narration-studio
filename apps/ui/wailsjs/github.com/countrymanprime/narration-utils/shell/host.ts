@@ -836,6 +836,45 @@ export function ExportState(): $CancellablePromise<string> {
 }
 
 /**
+ * ExtractionAccept makes a suggestion the narrator's and applies it. text, when given, replaces what the suggestion
+ * says (an entry's name, a name, a value, a relation, a claim or a speaker) and is applied as given.
+ */
+export function ExtractionAccept(id: string, text: string | null): $CancellablePromise<string> {
+    return $Call.ByID(427273059, id, text);
+}
+
+/**
+ * ExtractionList returns every suggestion, rejected ones included, entries first and then by kind in the mock's
+ * order, each kind in the order it was stored.
+ */
+export function ExtractionList(): $CancellablePromise<string> {
+    return $Call.ByID(3440388679);
+}
+
+/**
+ * ExtractionReject takes back what a suggestion changed and keeps it as a tombstone, so it is not offered again.
+ */
+export function ExtractionReject(id: string): $CancellablePromise<string> {
+    return $Call.ByID(1685583868, id);
+}
+
+/**
+ * ExtractionReopen is the undo of accept, reject and review: the suggestion goes back to the status the 75% rule gives
+ * it now. An automatic acceptance stays applied and is flagged Review again; one that needs verification has what the
+ * decision applied taken back. An edited text stays as edited.
+ */
+export function ExtractionReopen(id: string): $CancellablePromise<string> {
+    return $Call.ByID(1021499254, id);
+}
+
+/**
+ * ExtractionReview makes an automatic acceptance the narrator's and clears the Review flag it set.
+ */
+export function ExtractionReview(id: string): $CancellablePromise<string> {
+    return $Call.ByID(908023175, id);
+}
+
+/**
  * FindingsAddMarker adds one take marker in REAPER at an accepted finding's spot, on its take, named like the marker
  * Transcript Compare's export adds (approvedMarker). A finding not accepted, one with no item or no time in its audio,
  * and a REAPER that is not listening are refused before anything is sent.

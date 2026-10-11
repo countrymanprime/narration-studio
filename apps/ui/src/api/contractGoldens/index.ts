@@ -36,6 +36,7 @@ import { bookmarksGoldens } from './bookmarks';
 import { passageMapGoldens } from './passageMap';
 import { editLogGoldens } from './editLog';
 import { marksGoldens } from './marks';
+import { extractionGoldens } from './extraction';
 import { editCutsGoldens } from './editCuts';
 import { wordFxGoldens } from './wordFx';
 import { productionGoldens } from './production';
@@ -79,6 +80,7 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   passageMapGoldens,
   editLogGoldens,
   marksGoldens,
+  extractionGoldens,
   editCutsGoldens,
   wordFxGoldens,
   productionGoldens,

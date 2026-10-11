@@ -35,6 +35,7 @@ import { createBookmarksMock } from './bookmarksMock';
 import { createPassageMapMock } from './passageMapMock';
 import { createEditLogMock } from './editLogMock';
 import { createMarksMock } from './marksMock';
+import { createExtractionMock } from './extractionMock';
 import { createEditCutsMock } from './editCutsMock';
 import { createWordFxMock } from './wordFxMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
@@ -285,6 +286,7 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
+    ...createExtractionMock(),
     ...createEditCutsMock(
       manuscriptReady,
       () => s.chapters,
