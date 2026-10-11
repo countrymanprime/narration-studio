@@ -625,6 +625,12 @@ the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_pa
   stop, or the marks are out of time order.
 - **Limits.** At most 1000 marks a run and 200 runs a chapter; chapter and paragraph ids at most 64 bytes with no control
   characters. Every field is a number, an id or a kind, never a path or free text.
+- **The Booth's writer.** `usePassageMapWriter` (`apps/ui/src/components/booth/passagemap`) keeps a take's marks in memory:
+  `begin` writes the start at `placeOf` the reading position, `roll` adds a roll with `prev` the place the take had reached,
+  and `stop` closes the run and sends it once. `sec` is the take's start offset plus its elapsed seconds, never wall clock.
+  A run the host refuses is kept, its sentence is toasted once, and it is sent again, in order, at the next stop.
+  `useBoothLeaveGuard` calls `flush()` after a confirmed stop and before navigating, so a take stopped by leaving is
+  logged too.
 - **Stamping.** The UI never sends an id the DAW gave. When the run is stored, the host reads them: with the built-in
   recorder, the take's name (`Take 004`) for the item and every take; with the DAW, the chapter's one linked track through
   the track state role (as Read Aloud does), its last item's GUID on every mark and that item's active take GUID. Mark `i`

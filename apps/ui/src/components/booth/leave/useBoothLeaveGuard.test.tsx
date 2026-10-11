@@ -82,6 +82,50 @@ describe('useBoothLeaveGuard', () => {
     expect(order).toEqual(['stop', 'go']);
   });
 
+  it('a-leave-mid-take-flushes-the-run: a confirmed stop flushes the passage map after the stop and before the navigation', async () => {
+    const order: string[] = [];
+    const flushRun = vi.fn(async () => {
+      order.push('flush');
+    });
+    const { go, hook, dialog } = setup({ flush: flushRun }, async () => {
+      order.push('stop');
+      return ok;
+    });
+    go.mockImplementation(() => order.push('go'));
+    let done: Promise<void> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.leave('/script', go);
+    });
+    act(() => dialog()!.answer(true));
+    await act(() => done);
+    expect(order).toEqual(['stop', 'flush', 'go']);
+  });
+
+  it('a-leave-mid-take-flushes-the-run: nothing is flushed when the stop is refused, the question is declined, or the app did not start the take', async () => {
+    const refusal: DawResult = { ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' };
+    const refused = setup({ flush: vi.fn(async () => {}) }, async () => refusal);
+    let a: Promise<void> = Promise.resolve();
+    act(() => {
+      a = refused.hook.result.current.leave('/script', refused.go);
+    });
+    act(() => refused.dialog()!.answer(true));
+    await flush();
+    await flush();
+    act(() => refused.dialog()!.answer(false));
+    await act(() => a);
+    expect(refused.session.flush).not.toHaveBeenCalled();
+
+    const foreign = setup({ startedByApp: false, flush: vi.fn(async () => {}) });
+    let b: Promise<void> = Promise.resolve();
+    act(() => {
+      b = foreign.hook.result.current.leave('/script', foreign.go);
+    });
+    act(() => foreign.dialog()!.answer(true));
+    await act(() => b);
+    expect(foreign.go).toHaveBeenCalledWith('/script');
+    expect(foreign.session.flush).not.toHaveBeenCalled();
+  });
+
   it('a refused stop keeps the question open with the host sentence and does not leave', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'REAPER would not stop.', undoSteps: 0, refused: 'REAPER would not stop.' };
     const { go, hook, dialog, stopRecording } = setup({}, async () => refusal);
