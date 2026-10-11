@@ -1,6 +1,6 @@
 ---
 name: phase-planner
-description: Turns a PRD phase (or several) into a delivery plan for this repo's agent train: whether it is ready, its lane, files, collisions with running streams, serial points, ADR block, mockup gate and a filled worker prompt. Use before starting a phase or when the coordinator needs a launch decision. Read-only.
+description: Turns a PRD phase (or several) into a delivery plan for this repo's agent train, covering readiness, lane, files, collisions with running streams, serial points, ADR block, mockup gate and a filled worker prompt. Use before starting a phase or when the coordinator needs a launch decision. Read-only.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

@@ -1,6 +1,6 @@
 ---
 name: standards-auditor
-description: Periodic read-only sweep of whether the repo still follows its own standards: merged work against Accepted ADRs, Proposed-ADR backlog, skills and docs that contradict each other or the code, and gates that have gone quiet. Use on a schedule or before a release, not per change.
+description: Periodic read-only sweep of whether the repo still follows its own standards, covering merged work against Accepted ADRs, Proposed-ADR backlog, skills and docs that contradict each other or the code, and gates that have gone quiet. Use on a schedule or before a release, not per change.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
