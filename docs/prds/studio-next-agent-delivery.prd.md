@@ -4,7 +4,7 @@
 
 **Builds on:** [The agent train](../operations/agent-train.md) (the coordinator's procedure, switches, lanes, serial points, owner standing rules, worker protocol and templates), [Tracking work on GitHub](../operations/github-workflow.md), [CLAUDE.md](../../CLAUDE.md), and the implementation plan (deleted PRD `implementation-plan`) sections 3 and 8. It does not replace the train; it fits the series into it and lists every place it would extend or change it.
 
-**Status (2026-10-11):** draft; every owner question is decided (see Decisions). The extensions and deviations in the table "Deviations from the agent train" are accepted by the owner's standing instruction to take reasonable defaults, and they are in force: SNA-3 wrote them into `docs/operations/agent-train.md`, and ADR 0865 records the daily cap and the seven-day default.
+**Status (2026-10-11):** draft; every owner question is decided (see Decisions). The extensions and deviations in the table "Deviations from the agent train" are accepted by the owner's standing instruction to take reasonable defaults, and they are in force: SNA-3 wrote them into `docs/operations/agent-train.md`.
 
 ## Problem Statement
 
