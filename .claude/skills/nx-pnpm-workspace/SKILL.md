@@ -29,7 +29,7 @@ One gate (`pnpm check`) runs Go, Python, Lua, TypeScript and docs checks through
 | `check` (the full gate) | `docs-impact`, `docs-slop`, `docs-references --strict`, then `nx run-many -t lint format architecture knip test test-node build --skip-nx-cache --parallel=1 --nx-bail`, then `gate-stamp record`. |
 | `.github/actions/nx-run` + `scripts/ci/nx-scope.sh` | CI runs the same targets, never from the Nx cache. On a pull request it runs only `nx show projects --affected` unless a workspace-wide file changed (the regex in `nx-scope.sh`: `nx.json`, `package.json`, the lockfiles, `pnpm-workspace.yaml`, `pyproject.toml`, `project.json`, `scripts/quality.mjs` and others), the caller passes `always: true`, or the event is not a pull request. |
 | `lint-staged.config.mjs`, `.husky/pre-commit` | On commit: ui prettier and eslint, ruff, gofmt and vet, StyLua, `markdownlint-cli2 --fix`. A commit message is checked by commitlint (conventional commits; keep body lines short). |
-| `scripts/ci/gate-stamp.mjs` | Ties "the full gate passed" to the exact working tree. A `Stop` hook refuses to end a session with changed code and no matching stamp. |
+| `scripts/ci/gate-stamp.mjs` | Records that the full gate passed on the exact working tree. Informational: no hook or CI job reads it, and `pnpm check` is not a precondition for a push (`full-verification-gate`). |
 
 ## What to do
 
