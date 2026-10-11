@@ -129,7 +129,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ### Phase Details
 
-- **Phase 5.** Carried over: the ACX page reading by the owner and the EBU validation run (owner-side, #510); neither blocks a merge.
+- **Phase 5.** Carried over: the ACX page reading by the owner and the EBU validation run (owner-side, #992); neither blocks a merge.
 
 ### Parallelism Notes
 

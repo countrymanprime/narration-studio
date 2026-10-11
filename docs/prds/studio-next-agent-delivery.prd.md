@@ -4,7 +4,7 @@
 
 **Builds on:** [The agent train](../operations/agent-train.md) (the coordinator's procedure, switches, lanes, serial points, owner standing rules, worker protocol and templates), [Tracking work on GitHub](../operations/github-workflow.md), [CLAUDE.md](../../CLAUDE.md), and the implementation plan (deleted PRD `implementation-plan`) sections 3 and 8. It does not replace the train; it fits the series into it and lists every place it would extend or change it.
 
-**Status (2026-10-11):** draft; every owner question is decided (see Decisions). The extensions and deviations in the table "Deviations from the agent train" are accepted by the owner's standing instruction to take reasonable defaults, but none is in force until the change lands in `docs/operations/agent-train.md` (SNA-3), with an ADR where it settles a decision. Until then the train runs as written.
+**Status (2026-10-11):** draft; every owner question is decided (see Decisions). The extensions and deviations in the table "Deviations from the agent train" are accepted by the owner's standing instruction to take reasonable defaults, and they are in force: SNA-3 wrote them into `docs/operations/agent-train.md`, and ADR 0865 records the daily cap and the seven-day default.
 
 ## Problem Statement
 
@@ -21,7 +21,7 @@ What the train already gives (all cited from `docs/operations/agent-train.md`):
 | Need | The train today | Gap for this series |
 | --- | --- | --- |
 | Live state | Issue #509 "Train control" (body rewritten by the coordinator); #510 "Owner queue" ([Where state lives](../operations/agent-train.md#where-state-lives)) | One body for 8 workers is fine; for 150 slices it needs a per-program status view |
-| Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](../operations/agent-train.md#switches-on-509), [Usage and autoscaling](../operations/agent-train.md#usage-and-autoscaling)) | No way to pause only this program |
+| Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](../operations/agent-train.md#switches-on-989), [Usage and autoscaling](../operations/agent-train.md#usage-and-autoscaling)) | No way to pause only this program |
 | Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](../operations/agent-train.md#lanes)) | The new directories of this series have no lane (`apps/ui/src/studio/`, `ports/`, `overlay/`) |
 | Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](../operations/agent-train.md#serial-points)) | Fine; slices must name which they touch |
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../operations/agent-train.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
@@ -239,7 +239,7 @@ Nothing here is application code. The changes are: a `slice.yml` issue form and 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Slice contract | Issue form, labels, header spec, `slice-lint`, templates for the worker `SLICE:` block | complete | 2 | SN0-1 | 0.8 | - |
 | 2 | Groomer | Prompt, rules for cutting slices, first grooming of SNF and SNS | pending | 1 | SN0-1 | 0.6 | - |
-| 3 | Train amendments | The accepted deviations in `agent-train.md` | in progress (ADR 0865 proposed; train edit SN-A31) | - | 1 | 0.6 | - |
+| 3 | Train amendments | The accepted deviations in `agent-train.md` | done | - | 1 | 0.6 | - |
 | 4 | Decisions register | Register issue, seeding, polling rule in the worker template | pending | 1 | SN0-1 | 0.4 | - |
 | 5 | Status issue and reports | Status issue, daily and weekly extensions | pending | 4 | 1 | 0.5 | - |
 | 6 | Dry run | Run the train on SNF and SNS slices with `TARGET` 2 for a week; measure the metrics | pending | - | 1 to 5 | 1.0 | - |

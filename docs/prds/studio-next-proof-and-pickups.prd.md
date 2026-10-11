@@ -149,7 +149,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 - **Phase 5.** Fixtures are synthetic or public-domain (D70/D71); thresholds stay provisional.
 - **Phase 8.** Pickups only points to the Booth. The old Punch from here is deleted with the old page in the swap (phase 9), which follows the Booth pickup session (SNO-8).
-- **Phase 9.** The carried-over REAPER checks (go to, loop, approved marker) are owner steps on #510.
+- **Phase 9.** The carried-over REAPER checks (go to, loop, approved marker) are owner steps on #992.
 
 ### Parallelism Notes
 
