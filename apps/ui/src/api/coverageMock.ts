@@ -11,9 +11,13 @@ import type {
   CoverageReport,
   CoverageJudgement,
   CoverageResult,
+  CoverageEngines,
+  CoverageGapReview,
+  CoverageGapReviews,
   CoverageStartOptions,
   CoverageStartResult,
   CoverageState,
+  Finding,
   JobEnded,
   ManuscriptChapter,
 } from '../types';
@@ -62,7 +66,11 @@ export type CoverageSeed = {
 type Deps = {
   chapters: () => ManuscriptChapter[];
   assetRequired: () => AssetRequired | undefined;
+  /** The engines a check can run: the mock's approved Whisper catalog (ADR 0841). */
+  engines: () => CoverageEngines;
   endJob: (event: JobEnded) => void;
+  /** Where an accepted gap's finding is saved: the findings mock the review page reads (ADR 0842). */
+  saveFinding: (finding: Finding) => void;
   seed?: CoverageSeed;
 };
 
@@ -287,6 +295,32 @@ export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS):
   return judged('not_met', `${plural(report.longestMissingRun, 'word')} in a row not read.`);
 }
 
+/** The finding an accepted gap becomes (apps/desktop/internal/gapreview): a pickup of the gap's line, accepted, with a null
+ * confidence and its reason. */
+function gapFinding(chapterId: string, gap: CoverageGap, recordId: string): Finding {
+  const expected = gap.kind === 'extra' ? '' : gap.lastWord && gap.lastWord !== gap.firstWord ? `${gap.firstWord} … ${gap.lastWord}` : gap.firstWord;
+  return {
+    schema_version: 1,
+    id: `recording-check:${chapterId}:${gap.id}:${recordId}`,
+    analyzer: 'recording-check',
+    project: {},
+    source: gap.position?.itemGuid ? { item_guid: gap.position.itemGuid } : {},
+    manuscript: {
+      chapter_id: chapterId,
+      ...(expected ? { expected } : {}),
+      ...(gap.text ? { recorded: gap.text } : {}),
+      ...(gap.paragraphIds[0] ? { span: { paragraph_id: gap.paragraphIds[0] } } : {}),
+    },
+    category: 'pickup',
+    severity: 'info',
+    confidence: gap.confidence,
+    confidence_reason: gap.confReason,
+    evidence_version: `${gap.kind}:${gap.tokenCount}:${gap.firstWord}:${gap.lastWord}`,
+    evidence: { kind: gap.kind, gap_id: gap.id, evidence_key: recordId, token_count: gap.tokenCount, first_word: gap.firstWord, last_word: gap.lastWord },
+    review: { status: 'accepted', timestamp: MOCK_TIME },
+  };
+}
+
 export function createCoverageMock(deps: Deps): CoverageApi & {
   /** The chapter as the host sends it: recordedFraction only from a current check. */
   withMeasurement: (chapter: ManuscriptChapter) => ManuscriptChapter;
@@ -334,7 +368,26 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
 
   const refuse = (reason: CoverageRefusalReason): CoverageStartResult => ({ status: 'refused', reason, message: COVERAGE_REFUSAL_MESSAGES[reason] });
 
+  // The narrator's calls on the gaps of each chapter's current check, by chapter and gap id. A new run is a new evidence
+  // key in the host, so it starts with none (ADR 0842).
+  const gapReviews = new Map<string, { decision: CoverageGapReview; finding?: Finding }>();
+  const gapKey = (chapterId: string, gapId: string) => `${chapterId}\u0000${gapId}`;
+  const dropGapReviews = (chapterId: string) => {
+    for (const key of [...gapReviews.keys()]) if (key.startsWith(`${chapterId}\u0000`)) gapReviews.delete(key);
+  };
+  // The host's refusals: nothing is decided unless the chapter's check is current and holds the gap.
+  const reviewable = (chapterId: string, gapId: string): { gap: CoverageGap; recordId: string } => {
+    const current = result(chapterId);
+    if (current.state !== 'current' || !current.result || !current.record) {
+      throw new Error("This chapter's recording check is out of date or was never run, so there is nothing to accept or ignore; check the recording again");
+    }
+    const gap = (current.result.gaps ?? []).find((item) => item.id === gapId);
+    if (!gap) throw new Error("That gap is not in this chapter's latest recording check");
+    return { gap, recordId: current.record.id };
+  };
+
   const finish = (chapter: ManuscriptChapter, runId: string, startedAt: number) => {
+    dropGapReviews(chapter.id);
     const fraction = measured.get(chapter.id) ?? chapter.recordedFraction ?? 1;
     measured.set(chapter.id, fraction);
     stale.delete(chapter.id);
@@ -363,11 +416,37 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       delete unmeasured.recordedFraction;
       return unmeasured;
     },
+    coverageEngines: async () => deps.engines(),
+    coverageGapAccept: async (chapterId, gapId) => {
+      const { gap, recordId } = reviewable(chapterId, gapId);
+      const existing = gapReviews.get(gapKey(chapterId, gapId));
+      if (existing?.finding) return existing.finding;
+      if (existing) throw new Error('That gap was ignored; it stays ignored until the recording is checked again');
+      const finding = gapFinding(chapterId, gap, recordId);
+      deps.saveFinding(finding);
+      gapReviews.set(gapKey(chapterId, gapId), { decision: 'accepted', finding });
+      return finding;
+    },
+    coverageGapIgnore: async (chapterId, gapId) => {
+      reviewable(chapterId, gapId);
+      const existing = gapReviews.get(gapKey(chapterId, gapId));
+      if (existing?.finding) throw new Error('That gap is already a note; decide it there');
+      if (!existing) gapReviews.set(gapKey(chapterId, gapId), { decision: 'ignored' });
+    },
+    coverageGapReviews: async (chapterId) => {
+      const reviews: CoverageGapReviews = {};
+      if (result(chapterId).state !== 'current') return reviews;
+      for (const [key, review] of gapReviews) if (key.startsWith(`${chapterId}\u0000`)) reviews[key.slice(chapterId.length + 1)] = review.decision;
+      return reviews;
+    },
     coverageStart: async (chapterId, options?: CoverageStartOptions) => {
+      if (options?.model && !deps.engines().engines.some((engine) => engine.id === options.model)) {
+        throw new Error('the selected Whisper model is not in the approved catalog');
+      }
       if (deps.seed?.refusal) return refuse(deps.seed.refusal);
       const required = deps.assetRequired();
       if (required) return required;
-      if (deps.seed?.recheckAssetRequired && !options?.skipRecheck) {
+      if (deps.seed?.recheckAssetRequired && !options?.skipRecheck && !options?.model) {
         return {
           status: 'recheck_asset_required',
           model: mockRecheckModelIdentity,

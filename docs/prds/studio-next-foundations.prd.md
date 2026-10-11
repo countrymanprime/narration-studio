@@ -125,7 +125,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 5 | Form primitives | `Slider`, `NumberInput`, `Swatch` (three parallel slices) | pending | 3, 4 | 2 | 1.5 | - |
 | 6 | Layout rules | Container and media queries, rail collapse, `useLayoutClass` if needed, visual rows | pending | 5 | 2 | 0.9 | - |
 | 7 | Raw-control gate | `native-control-ok` mechanism and per-page ceilings to zero as pages swap | pending | - | 5 | 0.4 | - |
-| 8 | Close-out | `design-system.md` rows, atlas docs regenerated once | pending | - | 2 to 7 | 0.4 | - |
+| 8 | Close-out | `design-system.md` rows, atlas docs regenerated once | in progress (design-system rows done; atlas docs in SN-F82) | - | 2 to 7 | 0.4 | - |
 
 ### Phase Details
 

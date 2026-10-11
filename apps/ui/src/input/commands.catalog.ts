@@ -108,11 +108,170 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'workspace.paragraph.next', label: 'Next paragraph', scope: 'page', defaults: [key('ArrowDown')], group: 'Workspace', surfaces: ['help', 'settings'] },
   { id: 'workspace.flag.prev', label: 'Previous flag', scope: 'page', defaults: [key('BracketLeft')], group: 'Workspace', surfaces: ['help', 'settings'] },
   { id: 'workspace.flag.next', label: 'Next flag', scope: 'page', defaults: [key('BracketRight')], group: 'Workspace', surfaces: ['help', 'settings'] },
+  // The Editing page's keys (SNE-3, mock `Editing.tsx` `registerKeys('editing')`). The seven `workspace.*` rows above keep their ids so a saved binding
+  // survives the swap; the new page drives them (Up and Down step a phrase, `[` and `]` step flags) and the group label becomes "Editing" in the swap.
+  // The rows below are new, page scope, and repeat no default of an existing page row. Handlers come from `useEditingKeys`; a row whose handler the page
+  // has not supplied is inert. The Delete row also takes Backspace as the mock does. The router keeps a plain key out of a field or a widget.
+  {
+    id: 'editing.word.extend.prev',
+    label: 'Extend the selection one word left',
+    scope: 'page',
+    defaults: [key('ArrowLeft', ['Shift'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.word.extend.next',
+    label: 'Extend the selection one word right',
+    scope: 'page',
+    defaults: [key('ArrowRight', ['Shift'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.phrase.prev',
+    label: 'Previous phrase',
+    scope: 'page',
+    defaults: [key('ArrowLeft', ['Mod'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'editing.phrase.next', label: 'Next phrase', scope: 'page', defaults: [key('ArrowRight', ['Mod'])], group: 'Editing', surfaces: ['help', 'settings'] },
+  {
+    id: 'editing.delete',
+    label: 'Delete the selected words and audio',
+    scope: 'page',
+    defaults: [key('Delete'), key('Backspace')],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.mute',
+    label: 'Mute the selected words (keep the audio)',
+    scope: 'page',
+    defaults: [key('KeyM')],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'editing.fx', label: 'Add FX to the selected words', scope: 'page', defaults: [key('KeyF')], group: 'Editing', surfaces: ['help', 'settings'] },
+  { id: 'editing.takes.next', label: 'Next take of the line', scope: 'page', defaults: [key('KeyT')], group: 'Editing', surfaces: ['help', 'settings'] },
+  {
+    id: 'editing.takes.prev',
+    label: 'Previous take of the line',
+    scope: 'page',
+    defaults: [key('KeyT', ['Shift'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.keep',
+    label: 'Keep the take the keys are on, or open the card of a flagged word',
+    scope: 'page',
+    defaults: [key('Enter')],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.hide-others',
+    label: 'Hide or show the other takes',
+    scope: 'page',
+    defaults: [key('KeyH')],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'editing.strip', label: 'Show or hide the timeline', scope: 'page', defaults: [key('KeyS')], group: 'Editing', surfaces: ['help', 'settings'] },
+  {
+    id: 'editing.drawer',
+    label: 'Open or close the cleanup drawer',
+    scope: 'page',
+    defaults: [key('KeyC', ['Mod', 'Shift'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.escape',
+    label: 'Close the card, clear the selection, then leave the text',
+    scope: 'page',
+    defaults: [key('Escape')],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'editing.menu',
+    label: 'Open the menu of the cursor word',
+    scope: 'page',
+    defaults: [key('F10', ['Shift'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'editing.chapter.next', label: 'Next chapter', scope: 'page', defaults: [key('ArrowDown', ['Alt'])], group: 'Editing', surfaces: ['help', 'settings'] },
+  {
+    id: 'editing.chapter.prev',
+    label: 'Previous chapter',
+    scope: 'page',
+    defaults: [key('ArrowUp', ['Alt'])],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
+  // Bookmarks (SNB-6a). The Script page and the Booth register the handlers with `useBookmarkCommands`; until then these rows are inert.
+  // `B` is a plain key, so typing in a field never fires it. The mock binds plain `[` and `]` too, but `workspace.flag.*` holds those in page
+  // scope (the Proof page) and the catalogue cannot tell two pages apart, so the steps are Alt+[ and Alt+] until the flag keys move. They list in the sheet and Settings and not the jump menu,
+  // whose "Bookmark here", "Next bookmark" and "Previous bookmark" entries come from the provider only while a page has the handlers.
+  { id: 'bookmark.here', label: 'Bookmark here', scope: 'page', defaults: [key('KeyB')], group: 'Bookmarks', surfaces: ['help', 'settings'] },
+  { id: 'bookmark.next', label: 'Next bookmark', scope: 'page', defaults: [key('BracketRight', ['Alt'])], group: 'Bookmarks', surfaces: ['help', 'settings'] },
+  {
+    id: 'bookmark.prev',
+    label: 'Previous bookmark',
+    scope: 'page',
+    defaults: [key('BracketLeft', ['Alt'])],
+    group: 'Bookmarks',
+    surfaces: ['help', 'settings'],
+  },
   // Not noisy: it starts or pauses the live listening/transcription session (`useTeleprompterSession`), which plays
   // no audio of its own - unlike `workspace.play`, a recorded-audio player (ADR 0361 decision 7).
-  { id: 'reading.toggle', label: 'Play or pause reading', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // The Booth's keys (mock `Booth.tsx` `registerKeys('booth')`). They act on the open page, so they list in the sheet and Settings
+  // and not the jump menu. Handlers come from `useCommand` in the Booth; until then these rows are inert. There is no F or P
+  // binding (nothing is flagged or sent to Pickups from the Booth) and no Ctrl or Meta default, so a modified press is never theirs.
+  // Space stays the one record action: a pedal's only default is Space. "+" is Shift+Equal, which would also fire while typing, so
+  // the larger-text keys are Equal and the numpad plus.
+  { id: 'reading.toggle', label: 'Record or stop', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.phrase.next', label: 'Next phrase', scope: 'booth', defaults: [key('ArrowDown')], group: 'Booth', surfaces: ['help', 'settings'] },
+  {
+    id: 'booth.phrase.prev',
+    label: 'Previous phrase',
+    scope: 'booth',
+    defaults: [key('ArrowUp'), key('Backspace')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'booth.word.next', label: 'Next word in the booth', scope: 'booth', defaults: [key('ArrowRight')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.word.prev', label: 'Previous word in the booth', scope: 'booth', defaults: [key('ArrowLeft')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.text.larger', label: 'Larger text', scope: 'booth', defaults: [key('Equal'), key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
+  {
+    id: 'booth.text.smaller',
+    label: 'Smaller text',
+    scope: 'booth',
+    defaults: [key('Minus'), key('NumpadSubtract')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'booth.exit', label: 'Leave the Booth', scope: 'booth', defaults: [key('Escape')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.pickup.next', label: 'Next pickup', scope: 'booth', defaults: [key('KeyN')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.pickup.prev', label: 'Previous pickup', scope: 'booth', defaults: [key('KeyN', ['Shift'])], group: 'Booth', surfaces: ['help', 'settings'] },
   // Mock 03 fills the whole window (owner call, 2026-09-29): F11 also takes the window fullscreen, the platform's own key for it.
   { id: 'booth.fullscreen', label: 'Toggle full screen', scope: 'booth', defaults: [key('F11')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // SNO-10a: the Companion has its own route, opened from the jump menu (no rail item; Mod+Alt+C is its only key). The app shell runs it.
+  {
+    id: 'companion.open',
+    label: 'Open Companion',
+    scope: 'global',
+    defaults: [key('KeyC', ['Mod', 'Alt'])],
+    group: 'Booth',
+    surfaces: ['jumpMenu', 'help', 'settings'],
+  },
   // "?" is Shift+Slash on a US layout (gestures are bound by physical key, so ShortcutSheet.tsx labels it back from
   // `code` for display). `global` so it opens from any screen; `findConflicts.test.ts`'s zero-conflicts
   // check over the real catalog covers it against every other command.

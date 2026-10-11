@@ -1,12 +1,15 @@
 package guide
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/port"
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
@@ -229,5 +232,61 @@ func TestDefaultPronunciationSourceReachesBuildAliasEditAndCreate(t *testing.T) 
 	}
 	if got := s.editArgs("entity-1", map[string]string{"description": "New."}); slices.Contains(got, "--default-source") {
 		t.Fatalf("a field edit that is not aliases must not include --default-source: %#v", got)
+	}
+}
+
+func TestEntitiesIgnoresAStoredStatusAndReadsTheLegacyUserSourceAsManual(t *testing.T) {
+	entities := []any{map[string]any{
+		"id": "e1",
+		"pronunciation": map[string]any{
+			"ipa": "wɹɛn", "source": "user", "confidence": "narrator", "status": "query_sent", "note": "Asked.",
+			"alternate": map[string]any{"ipa": "x", "source": "user", "confidence": "narrator", "status": "author_confirmed"},
+		},
+		"aliases": []any{map[string]any{"text": "Wrennie", "pronunciation": map[string]any{"ipa": "y", "source": "cmu", "status": "author_confirmed"}}},
+	}}
+	got, err := serviceWithGuideFile(t, entities).Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := got[0]["pronunciation"].(map[string]any)
+	if value["source"] != "manual" || value["note"] != "Asked." || value["ipa"] != "wɹɛn" {
+		t.Fatalf("value = %#v", value)
+	}
+	if _, has := value["status"]; has {
+		t.Fatalf("status returned: %#v", value)
+	}
+	alternate := value["alternate"].(map[string]any)
+	if _, has := alternate["status"]; has || alternate["source"] != "manual" {
+		t.Fatalf("alternate = %#v", alternate)
+	}
+	alias := got[0]["aliases"].([]any)[0].(map[string]any)["pronunciation"].(map[string]any)
+	if _, has := alias["status"]; has || alias["source"] != "cmu" {
+		t.Fatalf("alias = %#v", alias)
+	}
+}
+
+func TestCandidateRefusesAnUnregisteredSourceBeforeStartingTheSidecar(t *testing.T) {
+	rig := newPreviewRig(t, "candidate")
+	_, err := rig.service.Candidate("Wren", "forvo")
+	if !errors.Is(err, port.ErrNotSupported) {
+		t.Fatalf("err = %v, want a *port.NotSupportedError", err)
+	}
+	if got := rig.invocations(t); got != 0 {
+		t.Fatalf("sidecar started %d times", got)
+	}
+}
+
+func TestCandidateTrimsTheWordAndPassesItAsOneWordArgument(t *testing.T) {
+	rig := newPreviewRig(t, "candidate")
+	got, err := rig.service.Candidate("  -Wren ", "cmu")
+	if err != nil || !got.OK || got.Say != "wɹɛn" {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	raw, err := os.ReadFile(rig.log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if line := strings.TrimSpace(string(raw)); !strings.Contains(line, "candidate --word=-Wren --source cmu") {
+		t.Fatalf("command line = %q", line)
 	}
 }

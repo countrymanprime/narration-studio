@@ -96,6 +96,8 @@ import type { RecordingApi } from './api/contracts/recording';
 import type { PronunciationLookupApi } from './api/contracts/pronunciationLookup';
 import type { PronunciationCommonsAudioApi } from './api/contracts/wiktextractCommonsAudio';
 import type { PronunciationOnlineApi } from './api/contracts/pronunciationOnline';
+import type { PronunciationSourcesApi } from './api/contracts/pronunciationSources';
+import type { TakeEvidenceApi } from './api/contracts/takeEvidence';
 import type { ProofingRenderApi } from './api/contracts/proofingRender';
 import type { PrepCompletenessApi } from './api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from './api/contracts/renderEncodeMaster';
@@ -150,6 +152,8 @@ export interface NarrationApi
     PronunciationLookupApi,
     PronunciationCommonsAudioApi,
     PronunciationOnlineApi,
+    PronunciationSourcesApi,
+    TakeEvidenceApi,
     ProofingRenderApi,
     PrepCompletenessApi,
     RenderEncodeMasterApi {}

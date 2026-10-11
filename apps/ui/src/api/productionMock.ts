@@ -14,6 +14,7 @@ import type {
   ProductionNextUpItem,
   ProductionOverview,
   ProductionPayment,
+  ProductionRateBasis,
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
@@ -118,6 +119,7 @@ function checkDate(value: string): string {
 }
 
 const PAYMENTS: readonly ProductionPayment[] = ['per_finished_hour', 'royalty_share', 'none'];
+const RATE_BASES: readonly ProductionRateBasis[] = ['standard', 'own'];
 const MEASURE = /^(custom|rec|edit|proof|editproof|checkpoint|all|ch[1-9][0-9]{0,3}|min[1-9][0-9]{0,3})$/;
 const TEMPLATE = /^[a-z0-9_-]{1,64}$/;
 
@@ -132,6 +134,7 @@ function answer(stored: StoredPlan): ProductionPlan {
     deadline: stored.deadline,
     contractedAmount: payment === 'per_finished_hour' ? stored.contractedAmount : null,
     payment,
+    ...(stored.rateBasis === 'own' ? { rateBasis: 'own' as const } : {}),
     milestones: stored.milestones.map((milestone) => ({ ...milestone })),
   };
 }
@@ -336,6 +339,12 @@ export function createProductionMock(deps: Deps): ProductionApi {
       const checked = PAYMENTS.find((known) => known === payment.trim());
       if (!checked) throw new Error(`"${payment}" is not a payment type: choose per_finished_hour, royalty_share or none`);
       plan = { ...plan, payment: checked, contractedAmount: checked === 'per_finished_hour' ? plan.contractedAmount : null };
+      return answer(plan);
+    },
+    setProductionRateBasis: async (basis) => {
+      const checked = RATE_BASES.find((known) => known === basis.trim());
+      if (!checked) throw new Error(`"${basis}" is not a schedule basis: choose standard or own`);
+      plan = { ...plan, rateBasis: checked };
       return answer(plan);
     },
     saveProductionMilestones: async (milestones) => {

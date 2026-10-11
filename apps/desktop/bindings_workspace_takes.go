@@ -85,6 +85,23 @@ func (h *Host) WorkspaceTakes(chapterID string, firstToken int, lastToken int) (
 	return encodeBinding(resolved.View, err)
 }
 
+// takeEvidenceMeasures keeps every take range's figures while its file is unchanged, for every project: a range is
+// named by its file, so one project's entries never answer another's.
+var takeEvidenceMeasures = passagetakes.NewMeasureCache(passagetakes.MeasureRange)
+
+// WorkspaceTakeEvidence answers, for each take WorkspaceTakes offers for the same passage and in the same order, the
+// share of the passage's script words it read as written (from the stored alignment of its range), what its own
+// source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
+// measured) and where its place came from ("aligned"; ADR 0140). It reads only and starts no job; a take whose file
+// cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
+func (h *Host) WorkspaceTakeEvidence(chapterID string, firstToken int, lastToken int) (string, error) {
+	resolved, _, err := h.workspaceTakesResolved(h.services(), chapterID, firstToken, lastToken)
+	if err != nil {
+		return "", err
+	}
+	return encodeBinding(passagetakes.Evidence(resolved, takeEvidenceMeasures), nil)
+}
+
 // WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job (ADR 0165, ADR 0700):
 // the same sidecar mode, state and cancel as a take-review group's comparison (TakeComparisonState and
 // TakeComparisonCancel answer for it, with the passage's id as the job's FindingID), with a manifest built from the

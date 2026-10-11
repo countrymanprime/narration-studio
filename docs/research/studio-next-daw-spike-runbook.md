@@ -2,7 +2,7 @@
 
 **Status: written 2026-10-11. Nothing in this note was run.** The slice that wrote it had no REAPER and no Audacity. Every "Expected" line below is a hypothesis taken from [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) or from the API's documented behaviour, not an observation. Every Lua and Python block is untested until your run: a script error is itself a result, so send back the report file even when a spike fails.
 
-Tracking: issue #1096, part of #1016. The run is one entry on #992, not one per spike. Phase 1 of the PRD stays pending until you return the table.
+Tracking: issue #1096, part of #1016. The run is one entry on #992, not one per spike. Phase 1 of the PRD stays pending until you return the table. Spikes 1a to 1e are recorded in [the REAPER results note](studio-next-daw-spike-results-reaper.md), which reads "results pending" until the table comes back.
 
 ## What you return
 

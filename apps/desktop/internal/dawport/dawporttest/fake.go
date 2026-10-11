@@ -243,7 +243,7 @@ type recordRole struct{ role }
 func (r recordRole) ArmOnly(context.Context, string) (dawport.Armed, error) {
 	return dawport.Armed{}, r.do("ArmOnly")
 }
-func (r recordRole) RecordStart(context.Context, string) (dawport.RecordStarted, error) {
+func (r recordRole) RecordStart(context.Context, string, dawport.RecordOptions) (dawport.RecordStarted, error) {
 	return dawport.RecordStarted{}, r.do("RecordStart")
 }
 func (r recordRole) RecordStop(context.Context) (dawport.RecordStopped, error) {

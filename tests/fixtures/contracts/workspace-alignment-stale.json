@@ -5,6 +5,10 @@
     "stale": false
   },
   "chapterId": "c-0001",
+  "engine": {
+    "id": "whisper:small",
+    "name": "Whisper small"
+  },
   "extras": [
     {
       "afterToken": 6,
@@ -19,7 +23,19 @@
         "sourceTime": 0.6
       },
       "text": "um",
-      "tokens": 1
+      "tokens": 1,
+      "words": [
+        {
+          "added": true,
+          "conf": null,
+          "confReason": "no_word_scores",
+          "end": 0.8,
+          "item": 1,
+          "start": 0.6,
+          "text": "um",
+          "timing": "spread"
+        }
+      ]
     }
   ],
   "items": [
@@ -55,6 +71,8 @@
   "state": "stale",
   "tokens": [
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 5.3,
       "heard": null,
       "i": 0,
@@ -66,6 +84,8 @@
       "w": 0
     },
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 5.5,
       "heard": null,
       "i": 1,
@@ -77,6 +97,8 @@
       "w": 1
     },
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 6,
       "heard": "begging",
       "i": 2,
@@ -88,6 +110,8 @@
       "w": 2
     },
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 6.1,
       "heard": null,
       "i": 3,
@@ -99,6 +123,8 @@
       "w": 3
     },
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 6.3,
       "heard": null,
       "i": 4,
@@ -110,6 +136,8 @@
       "w": 4
     },
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 0.3,
       "heard": null,
       "i": 5,
@@ -121,6 +149,8 @@
       "w": 5
     },
     {
+      "conf": null,
+      "confReason": "no_word_scores",
       "end": 0.6,
       "heard": null,
       "i": 6,

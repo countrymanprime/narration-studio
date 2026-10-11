@@ -81,10 +81,51 @@ export type FindingSuggestedAction = {
   requires_confirmation: boolean;
 };
 
+/** The ten kinds of problem a narrator can say a finding is, in the select's order (findings.NoteTypes, ADR 0844). */
+export const FINDING_NOTE_TYPES = ['misread', 'skip', 'mouth', 'pron', 'pacing', 'repeat', 'plosive', 'noise', 'takes', 'breath'] as const;
+
+export type FindingNoteType = (typeof FINDING_NOTE_TYPES)[number];
+
+/**
+ * The word shown for a finding while the narrator has not chosen one: its category, refined by evidence.kind where the
+ * category covers more than one word. The same mapping as findings.DefaultNoteType (ADR 0844); choosing this word
+ * again returns the finding to "not chosen".
+ */
+export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'>): FindingNoteType {
+  const kind = typeof finding.evidence?.kind === 'string' ? finding.evidence.kind.toLowerCase() : '';
+  switch (finding.category) {
+    case 'transcript_discrepancy':
+      return kind === 'skipped' ? 'skip' : 'misread';
+    case 'pronunciation':
+    case 'entity':
+    case 'character_continuity':
+      return 'pron';
+    case 'duplicate_read':
+      return 'repeat';
+    case 'take_comparison':
+      return 'takes';
+    case 'pacing':
+    case 'silence_cleanup':
+      return 'pacing';
+    case 'audio_quality':
+      if (kind === 'mouth_click' || kind === 'mouth') return 'mouth';
+      if (kind === 'plosive') return 'plosive';
+      if (kind === 'breath') return 'breath';
+      return 'noise';
+    case 'delivery_qc':
+    case 'level_consistency':
+      return 'noise';
+    default:
+      return 'misread';
+  }
+}
+
 export type FindingReviewState = {
   status: FindingReviewStatus;
   note?: string;
   timestamp?: string;
+  /** The kind the narrator chose (ADR 0844); absent until chosen, then the analyzer's own word applies. Not a decision. */
+  type?: FindingNoteType;
 };
 
 export type Finding = {
@@ -209,6 +250,11 @@ export interface FindingsApi {
   findingsGet(id: string): Promise<Finding>;
   /** Records the narrator's decision (append-only) and answers the finding as the host now holds it. */
   findingsReview(request: FindingReviewRequest): Promise<Finding>;
+  /**
+   * Records the kind the narrator says a finding is (ADR 0844), against the evidence version they saw, and answers the finding
+   * (review.type absent when they chose the analyzer's own word). Not a decision: status, note and the counts stay.
+   */
+  findingsSetType(id: string, evidenceVersion: string, type: FindingNoteType): Promise<Finding>;
   /** Counts by status and the analyzers, categories and chapters present. */
   findingsSummary(): Promise<FindingsSummary>;
   /** Whether REAPER is there for Go to and Loop; sends REAPER nothing, so the page may poll it. */

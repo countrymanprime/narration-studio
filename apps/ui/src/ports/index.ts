@@ -49,13 +49,17 @@ import type { ProductionApi } from '../api/contracts/production';
 import type { PronunciationLookupApi } from '../api/contracts/pronunciationLookup';
 import type { PronunciationCommonsAudioApi } from '../api/contracts/wiktextractCommonsAudio';
 import type { PronunciationOnlineApi } from '../api/contracts/pronunciationOnline';
+import type { PronunciationSourcesApi } from '../api/contracts/pronunciationSources';
+import type { TakeEvidenceApi } from '../api/contracts/takeEvidence';
 import type { ProofingRenderApi } from '../api/contracts/proofingRender';
 import type { PrepCompletenessApi } from '../api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from '../api/contracts/renderEncodeMaster';
 import type { DawClient } from './daw';
 import type { MeasurementsPort } from './measurements';
+import type { AlignmentPort } from './alignment';
+import type { TakesPort } from './takes';
 
-export type { DawClient, MeasurementsPort };
+export type { DawClient, MeasurementsPort, AlignmentPort, TakesPort };
 
 export type {
   SystemApi,
@@ -105,6 +109,8 @@ export type {
   PronunciationLookupApi,
   PronunciationCommonsAudioApi,
   PronunciationOnlineApi,
+  PronunciationSourcesApi,
+  TakeEvidenceApi,
   ProofingRenderApi,
   PrepCompletenessApi,
   RenderEncodeMasterApi,
@@ -159,6 +165,8 @@ export interface PortMap {
   pronunciationLookup: PronunciationLookupApi;
   pronunciationCommonsAudio: PronunciationCommonsAudioApi;
   pronunciationOnline: PronunciationOnlineApi;
+  pronunciationSources: PronunciationSourcesApi;
+  takeEvidence: TakeEvidenceApi;
   proofingRender: ProofingRenderApi;
   prepCompleteness: PrepCompletenessApi;
   renderEncodeMaster: RenderEncodeMasterApi;
@@ -168,6 +176,8 @@ export interface PortMap {
 export interface ClientPortMap {
   daw: DawClient;
   measurements: MeasurementsPort;
+  alignment: AlignmentPort;
+  takes: TakesPort;
 }
 
 export type PortName = keyof PortMap | keyof ClientPortMap;

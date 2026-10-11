@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
 import type { ProjectStateState } from './contracts/projectstate';
-import { WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
@@ -13,6 +13,8 @@ import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } fr
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
+import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import { takeEvidenceResultSchema, takeFigureSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { WIRE_TAKE_COMPARISON_FINDING } from './takeComparisonMock';
 import { MOCK_MEASURE_PATHS } from './measureMock';
@@ -49,7 +51,15 @@ import {
   takeReviewEvidenceSchema,
   takeReviewScanJobSchema,
 } from './schemas/takeReview';
-import { COVERAGE_EVALUATOR_REASONS, COVERAGE_REFUSAL_REASONS, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from './schemas/coverage';
+import {
+  COVERAGE_EVALUATOR_REASONS,
+  COVERAGE_REFUSAL_REASONS,
+  coverageEnginesSchema,
+  coverageGapReviewsSchema,
+  coverageResultSchema,
+  coverageStartResultSchema,
+  coverageStateSchema,
+} from './schemas/coverage';
 import {
   workspaceAlignmentResultSchema,
   workspaceFXChainsResultSchema,
@@ -112,6 +122,7 @@ import {
   pronunciationQueriesCsvSchema,
   pronunciationQueriesSchema,
   queryImportResultSchema,
+  guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
@@ -185,6 +196,73 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const declared = z.object({ refusal: z.array(z.string()), evaluator: z.array(z.string()) }).parse(readGolden('coverage-reasons.json'));
     expect([...COVERAGE_REFUSAL_REASONS]).toEqual(declared.refusal);
     expect([...COVERAGE_EVALUATOR_REASONS]).toEqual(declared.evaluator);
+  });
+
+  it('the recording check engines: the golden parses, the mock answers the same engines and refuses the same unknown model (ADR 0841)', async () => {
+    const golden = readGolden('coverage-engines.json');
+    const parsed = parseWire(coverageEnginesSchema, golden, ctx('coverage engines'));
+    expect(parsed.engines.map((engine) => engine.id)).toContain(parsed.default);
+    expect(parsed.engines.every((engine) => engine.family === 'whisper')).toBe(true);
+    expect(() => parseWire(coverageEnginesSchema, { ...parsed, extra: 1 }, ctx('coverage engines'))).toThrow();
+    expect(() => parseWire(coverageEnginesSchema, { ...parsed, engines: [{ ...parsed.engines[0], family: 'moonshine' }] }, ctx('coverage engines'))).toThrow();
+    expect(() => parseWire(coverageEnginesSchema, { ...parsed, engines: [{ ...parsed.engines[0], extra: 1 }] }, ctx('coverage engines'))).toThrow();
+
+    const api = createMockApi();
+    const mocked = await api.coverageEngines();
+    expectMatches(coverageEnginesSchema, mocked, 'mock coverage engines');
+    expect(mocked.engines.map((engine) => engine.id)).toContain(mocked.default);
+    await expect(api.coverageStart('any-chapter', { model: 'moonshine-tiny' })).rejects.toThrow('not in the approved catalog');
+    const chapters = await api.manuscriptChapters();
+    const chapter = chapters.find((item) => item.recordedFraction !== undefined);
+    if (!chapter) throw new Error('the mock chapters carry a measured recordedFraction');
+    expect((await api.coverageStart(chapter.id, { model: mocked.default })).status).toBe('started');
+  });
+
+  it('a recording check gap review: the goldens parse, the mock answers the same shapes and refuses what the host refuses (ADR 0842)', async () => {
+    const note = parseWire(findingSchema, readGolden('coverage-gap-review-accepted.json'), ctx('accepted gap'));
+    expect(note).toMatchObject({ analyzer: 'recording-check', category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    const reviews = parseWire(coverageGapReviewsSchema, readGolden('coverage-gap-review-reviews.json'), ctx('gap reviews'));
+    expect(Object.values(reviews)).toEqual(['accepted']);
+    expect(() => parseWire(coverageGapReviewsSchema, { a: 'dismissed' }, ctx('gap reviews'))).toThrow();
+    expect(() => parseWire(coverageGapReviewsSchema, { a: 1 }, ctx('gap reviews'))).toThrow();
+
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    const chapterId = measured.id;
+    const api = createMockApi({}, { coverage: { pickups: [chapterId] } });
+    const checked = await api.coverageResult(chapterId);
+    const gaps = checked.result?.gaps ?? [];
+    expect(checked.state).toBe('current');
+    expect(gaps.length).toBeGreaterThan(1);
+    const [first, second] = gaps;
+    if (!first || !second) throw new Error('the mock check has two gaps');
+    expect(await api.coverageGapReviews(chapterId)).toEqual({});
+
+    const before = (await api.findingsSummary()).total;
+    const accepted = await api.coverageGapAccept(chapterId, first.id);
+    expectMatches(findingSchema, accepted, 'mock accepted gap');
+    expect(accepted).toMatchObject({ category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+    expect(await api.coverageGapAccept(chapterId, first.id)).toEqual(accepted);
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+
+    await api.coverageGapIgnore(chapterId, second.id);
+    expect((await api.findingsSummary()).total).toBe(before + 1);
+    const read = await api.coverageGapReviews(chapterId);
+    expectMatches(coverageGapReviewsSchema, read, 'mock gap reviews');
+    expect(read).toEqual({ [first.id]: 'accepted', [second.id]: 'ignored' });
+
+    await expect(api.coverageGapAccept(chapterId, 'missing:nope:1')).rejects.toThrow('not in this chapter');
+    await expect(api.coverageGapIgnore(chapterId, '../../x')).rejects.toThrow('not in this chapter');
+    await expect(api.coverageGapAccept(chapterId, second.id)).rejects.toThrow('stays ignored');
+    await expect(api.coverageGapIgnore(chapterId, first.id)).rejects.toThrow('already a note');
+    await expect(api.coverageGapAccept('never-checked', first.id)).rejects.toThrow('out of date or was never run');
+
+    // A new check is a new evidence key: the old reviews no longer match, the accepted note stays a note.
+    expect((await api.coverageStart(chapterId)).status).toBe('started');
+    await vi.waitFor(async () => expect((await api.coverageState()).phase).toBe('complete'), { timeout: 5000 });
+    expect(await api.coverageGapReviews(chapterId)).toEqual({});
+    expect((await api.findingsSummary()).total).toBe(before + 1);
   });
 
   it('a coverage region keeps its bounds, and a missing bound reads as absent (ADR 0168)', () => {
@@ -2127,6 +2205,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(findingSchema, await api.findingsGet(shown.id), 'mock findings get');
     const reviewed = await api.findingsReview({ id: shown.id, evidenceVersion: shown.evidence_version ?? '', status: 'deferred', note: 'Check tomorrow.' });
     expectMatches(findingSchema, reviewed, 'mock findings review');
+    const retyped = await api.findingsSetType(shown.id, shown.evidence_version ?? '', 'breath');
+    expectMatches(findingSchema, retyped, 'mock findings retype');
+    expect(retyped.review).toMatchObject({ status: 'deferred', type: 'breath' });
     expectMatches(findingsSummarySchema, await api.findingsSummary(), 'mock findings summary');
     const empty = createMockApi({}, { findings: [] });
     expectMatches(findingsPageSchema, await empty.findingsList({}), 'mock findings list, empty queue');
@@ -2305,6 +2386,41 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const unknown = await api.workspaceAlignment('no-such-chapter');
     expectMatches(workspaceAlignmentResultSchema, unknown, 'mock workspace alignment, never');
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
+  });
+
+  it('the heard words (ADR 0855): a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
+    const golden = JSON.parse(readFileSync(`${GOLDEN_DIR}workspace-alignment-added-words.json`, 'utf8'));
+    const parsed = workspaceAlignmentResultSchema.parse(golden);
+    expect(parsed.engine).toEqual({ id: 'whisper:small', name: 'Whisper small' });
+    expect(parsed.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(parsed.extras.flatMap((extra) => extra.words ?? []).map((word) => word.timing)).toEqual(['spread', 'spread', 'unplaced', 'unplaced', 'spread']);
+
+    const withToken = (patch: Record<string, unknown>) => ({ ...golden, tokens: [{ ...golden.tokens[0], ...patch }] });
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: 'no_word_scores' })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: null, confReason: null })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ added: true })).success).toBe(false);
+    // A later score needs no wire change: a number beside no reason is accepted.
+    expect(workspaceAlignmentResultSchema.safeParse(withToken({ conf: 0.9, confReason: null })).success).toBe(true);
+
+    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    // A confirmed link to a live item, so the mock times its words (as the workspace peaks row below seeds it).
+    const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
+    const link = {
+      trackGuid: linkedTrack.guid,
+      chapterId: measured.id,
+      chapterTitle: measured.title,
+      confirmedAt: '2026-09-24T09:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const mock = await createMockApi({}, { chapterTrackMappings: [link] }).workspaceAlignment(measured.id);
+    expectMatches(workspaceAlignmentResultSchema, mock, 'mock workspace alignment, heard words');
+    expect(mock.engine).toBeDefined();
+    expect(mock.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(mock.tokens.some((token) => token.status === 'misread')).toBe(true);
+    expect(mock.extras.flatMap((extra) => extra.words ?? []).every((word) => word.added && word.timing === 'spread')).toBe(true);
+    expect(mock.extras.flatMap((extra) => extra.words ?? []).length).toBeGreaterThan(0);
   });
 
   it("the workspace peaks answer the live item's waveform, deterministically", async () => {
@@ -2796,9 +2912,26 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(productionPlanSchema.safeParse({ ...older, milestones: [{ name: 'M', dueDate: '2026-10-15', done: 'yes' }] }).success).toBe(false);
   });
 
+  it('the production plan schedule basis: own is stored, standard is the absent field, an unknown basis saves nothing', async () => {
+    const api = createMockApi();
+    expect(await api.productionPlan()).not.toHaveProperty('rateBasis');
+    const own = await api.setProductionRateBasis('own');
+    expectMatches(productionPlanSchema, own, 'mock production plan, own pace');
+    expect(own.rateBasis).toBe('own');
+    expect((await api.productionPlan()).rateBasis).toBe('own');
+    await expect(api.setProductionRateBasis('fast' as never)).rejects.toThrow('not a schedule basis');
+    expect((await api.productionPlan()).rateBasis).toBe('own');
+    expect(await api.setProductionRateBasis('standard')).not.toHaveProperty('rateBasis');
+    expect(productionPlanSchema.safeParse({ deadline: null, contractedAmount: null, milestones: [], rateBasis: 'fast' }).success).toBe(false);
+  });
+
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
+      'coverageEngines',
+      'coverageGapAccept',
+      'coverageGapIgnore',
+      'coverageGapReviews',
       'exportPickFiles',
       'exportStart',
       'exportState',
@@ -2841,6 +2974,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingAcceptedList',
       'editingAccept',
       'editingUnaccept',
+      'pronunciationSources',
+      'pronunciationCandidate',
       'manuscriptReader',
       'readerState',
       'readerStateSave',
@@ -2955,6 +3090,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceApplyFXChain',
       'workspaceLoop',
       'workspaceTakes',
+      'workspaceTakeEvidence',
       'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePeaks',
@@ -2966,6 +3102,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionPlan',
       'setProductionDeadline',
       'setProductionPayment',
+      'setProductionRateBasis',
       'saveProductionMilestones',
       'stageRecommendations',
       'stageConfirm',
@@ -3009,6 +3146,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'findingsList',
       'findingsGet',
       'findingsReview',
+      'findingsSetType',
       'findingsSummary',
       'findingsReaperStatus',
       'findingsGoTo',
@@ -3251,6 +3389,101 @@ describe('the production tracking mock', () => {
     for (const chapter of overview.chapters.filter((row) => row.recordedSeconds === null)) expect(chapter.pfh).toBeNull();
     expect(overview.nextUp.length).toBeGreaterThan(0);
     expect(overview.nextUp.every((item) => item.stage !== 'finalized')).toBe(true);
+  });
+});
+
+// The pronunciation sources and candidate (SNB-2b, ADR 0792): the mock answers through the same schemas as the host's goldens.
+describe('the pronunciation sources bindings', () => {
+  it('the mock lists the sources and answers a candidate from fixture data, offline, through the schemas', async () => {
+    const api = createMockApi();
+    const list = await api.pronunciationSources();
+    expectMatches(pronunciationSourcesSchema, list, 'mock pronunciation sources');
+    expect(list.sources.at(-1)?.id).toBe('manual');
+    expect(list.sources.find((source) => source.id === list.default)?.available).toBe(true);
+    const hit = await api.pronunciationCandidate('Croquet', list.default);
+    expectMatches(pronunciationCandidateSchema, hit, 'mock candidate');
+    expect(hit.ok).toBe(true);
+    for (const [word, source] of [
+      ['croquet', 'manual'],
+      ['croquet', 'forvo'],
+      ['zzzz', 'cmu'],
+      ['  ', 'cmu'],
+      ['a'.repeat(81), 'cmu'],
+    ] as const) {
+      const miss = await api.pronunciationCandidate(word, source);
+      expectMatches(pronunciationCandidateSchema, miss, `mock candidate miss for ${source}`);
+      expect(miss.ok).toBe(false);
+    }
+  });
+
+  it('the schemas parse the host goldens and refuse an unknown kind, an unknown key and ok:true without say', () => {
+    const list = parseWire(pronunciationSourcesSchema, readGolden('pronunciation-sources.json'), ctx('pronunciation sources'));
+    expect(list.sources.map((source) => source.id)).toContain('manual');
+    const source = list.sources[0];
+    expect(pronunciationSourceSchema.safeParse({ ...source, kind: 'scraped' }).success).toBe(false);
+    expect(pronunciationSourceSchema.safeParse({ ...source, icon: 'globe' }).success).toBe(false);
+    expect(pronunciationSourcesSchema.safeParse({ ...list, path: '/etc' }).success).toBe(false);
+    const ok = parseWire(pronunciationCandidateSchema, readGolden('pronunciation-candidate-ok.json'), ctx('pronunciation candidate ok'));
+    const miss = parseWire(pronunciationCandidateSchema, readGolden('pronunciation-candidate-miss.json'), ctx('pronunciation candidate miss'));
+    expect(ok.ok).toBe(true);
+    expect(miss.ok).toBe(false);
+    expect(pronunciationCandidateSchema.safeParse({ ok: true }).success).toBe(false);
+    expect(pronunciationCandidateSchema.safeParse({ ok: false }).success).toBe(false);
+    expect(pronunciationCandidateSchema.safeParse({ ...ok, extra: 1 }).success).toBe(false);
+  });
+
+  it('the story bible pronunciation takes source manual and still takes the older user, status, note and alternate', () => {
+    const entity = (source: string) => ({
+      ipa: 'x',
+      source,
+      confidence: 'narrator',
+      status: 'author_confirmed',
+      note: 'n',
+      alternate: { ipa: 'y', source: 'user', confidence: '' },
+    });
+    for (const source of ['manual', 'user', 'cmu']) {
+      expect(guidePronunciationSchema.parse(entity(source))).toMatchObject({ source, status: 'author_confirmed', note: 'n', alternate: { source: 'user' } });
+    }
+  });
+});
+
+// The evidence of a passage's takes (SNE-5a, ADR 0140): the host's goldens parse, a figure is a value or a reason and never
+// both, the answer names no file or GUID field, and the mock answers through the same schema.
+describe('the take evidence binding', () => {
+  it('the schema parses the host goldens and refuses a figure that is both or neither, and a field the host never sends', () => {
+    const full = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-full.json'), ctx('take evidence full'));
+    const partial = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-partial.json'), ctx('take evidence partial'));
+    const none = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-none.json'), ctx('take evidence none'));
+    expect(full.takes.every((take) => take.measure.rms.ok && take.measure.nf.ok && take.matched.ok)).toBe(true);
+    expect(partial.takes.some((take) => !take.measure.rms.ok)).toBe(true);
+    expect(none.takes).toEqual([]);
+    expect(none.message).toMatch(/wasn't heard/);
+    for (const take of [...full.takes, ...partial.takes]) {
+      expect(take.measure.clarity).toEqual({ ok: false, reason: 'Not measured' });
+      expect(take.via).toBe('aligned');
+    }
+    expect(takeFigureSchema.safeParse({ ok: true, value: 1, reason: 'x' }).success).toBe(false);
+    expect(takeFigureSchema.safeParse({ ok: false, value: 1, reason: 'x' }).success).toBe(false);
+    expect(takeFigureSchema.safeParse({ ok: true }).success).toBe(false);
+    expect(takeEvidenceResultSchema.safeParse({ ...full, takes: [{ ...full.takes[0], sourceFile: 'a.wav' }] }).success).toBe(false);
+    expect(takeEvidenceResultSchema.safeParse({ ...full, takes: [{ ...full.takes[0], via: 'guessed' }] }).success).toBe(false);
+  });
+
+  it('the mock answers one entry per offered take through the schema, and refuses what workspaceTakes refuses', async () => {
+    const [chapter] = WIRE_CHAPTERS;
+    const [track] = WIRE_TRACKS_PROJECT.tracks;
+    const api = createMockApi(
+      {},
+      {
+        chapterTrackMappings: [
+          { trackGuid: track.guid, chapterId: chapter.id, chapterTitle: chapter.title, confirmedAt: '2026-10-11T09:00:00Z', origin: 'manual', match: null },
+        ],
+      },
+    );
+    const evidence = await api.workspaceTakeEvidence(chapter.id, 0, 1);
+    expectMatches(takeEvidenceResultSchema, evidence, 'mock take evidence');
+    expect(evidence.takes.map((take) => take.id)).toEqual((await api.workspaceTakes(chapter.id, 0, 1)).candidates.map((candidate) => candidate.id));
+    await expect(api.workspaceTakeEvidence(chapter.id, 0, 99999)).rejects.toThrow(/not in this chapter's alignment/);
   });
 });
 

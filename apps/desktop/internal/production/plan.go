@@ -44,15 +44,24 @@ var measurePattern = regexp.MustCompile(`^(custom|rec|edit|proof|editproof|check
 // templatePattern is a template id: a short lower-case word such as "checkpoint15".
 var templatePattern = regexp.MustCompile(`^[a-z0-9_-]+$`)
 
+// The schedule basis: the standard rate or the narrator's own pace. The host stores the narrator's choice only; whether
+// own pace is measured, and the fall-back to the standard rate while it is not, are the UI's (SNP-Q6).
+const (
+	RateBasisStandard = "standard"
+	RateBasisOwn      = "own"
+)
+
 // Plan is the book's deadline, contracted amount, payment type and milestones as
 // the bindings answer them. Deadline and ContractedAmount are nil when unset, and
 // ContractedAmount is nil whenever Payment is not per finished hour; Payment is
-// always one of the three types; Milestones is never nil.
+// always one of the three types; Milestones is never nil. RateBasis is "own" when the narrator chose their own pace and
+// absent otherwise, which reads as the standard rate (additive, ADR 0800).
 type Plan struct {
 	Deadline         *string             `json:"deadline"`
 	ContractedAmount *float64            `json:"contractedAmount"`
 	Payment          string              `json:"payment"`
 	Milestones       []project.Milestone `json:"milestones"`
+	RateBasis        string              `json:"rateBasis,omitempty"`
 }
 
 // PlanOf reads manifest's plan fields into a Plan that shares nothing with
@@ -72,6 +81,9 @@ func PlanOf(manifest *project.Manifest) Plan {
 		plan.ContractedAmount = &amount
 	}
 	plan.Milestones = append(plan.Milestones, manifest.Milestones...)
+	if RateBasisOf(manifest) == RateBasisOwn {
+		plan.RateBasis = RateBasisOwn
+	}
 	return plan
 }
 
@@ -98,6 +110,24 @@ func CheckPayment(payment string) (string, error) {
 		return trimmed, nil
 	}
 	return "", fmt.Errorf("%q is not a payment type: choose per_finished_hour, royalty_share or none", payment)
+}
+
+// RateBasisOf is the manifest's schedule basis: "own" only when it was chosen, else the standard rate, including for a
+// manifest written before the field existed or edited to an unknown value.
+func RateBasisOf(manifest *project.Manifest) string {
+	if manifest != nil && manifest.RateBasis == RateBasisOwn {
+		return RateBasisOwn
+	}
+	return RateBasisStandard
+}
+
+// CheckRateBasis returns basis, trimmed, when it is "standard" or "own", and an error otherwise.
+func CheckRateBasis(basis string) (string, error) {
+	switch trimmed := strings.TrimSpace(basis); trimmed {
+	case RateBasisStandard, RateBasisOwn:
+		return trimmed, nil
+	}
+	return "", fmt.Errorf("%q is not a schedule basis: choose standard or own", basis)
 }
 
 // CheckDate returns value, trimmed, when it is a real calendar date written

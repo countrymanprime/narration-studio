@@ -40,8 +40,8 @@ func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
 }
 
 func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
-	if hostAPIVersion != 88 {
-		t.Fatalf("host API version = %d, want 88; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
+	if hostAPIVersion != 93 {
+		t.Fatalf("host API version = %d, want 93; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
 	}
 }
 
@@ -706,5 +706,50 @@ func TestTheProjectSettingsStoreReportsACorruptFileToTheNarrator(t *testing.T) {
 
 	if len(notices) != 1 || !strings.Contains(notices[0], "settings") {
 		t.Fatalf("notices = %v: the store configureLocked builds must report to the narrator", notices)
+	}
+}
+
+func TestAReaperTakeTheAppStartedBlocksAProjectSwitch(t *testing.T) {
+	host := NewHost()
+	if !host.idle() || !host.canAttach() {
+		t.Fatal("a host with no take and every job idle must allow a project switch")
+	}
+	host.readAloudRecordingChapter = "ch-1"
+	host.mu.RLock()
+	idle, canAttach := host.idleLocked(), host.canAttachLocked()
+	host.mu.RUnlock()
+	if idle || canAttach {
+		t.Fatalf("idleLocked() = %v, canAttachLocked() = %v with a take running, want both false", idle, canAttach)
+	}
+	if host.idle() {
+		t.Fatal("idle() gates the update swap and must be false while the take runs")
+	}
+	next := host.config
+	next.projectFolder = t.TempDir()
+	host.mu.Lock()
+	attached, reason := host.attachProjectLocked(next)
+	host.mu.Unlock()
+	if attached || reason != attachBusyReason {
+		t.Fatalf("attachProjectLocked() = (%v, %q), want the busy-host refusal", attached, reason)
+	}
+}
+
+func TestATakeTheAppDidNotStartDoesNotBlockAProjectSwitch(t *testing.T) {
+	host := NewHost()
+	// REAPER recording on its own leaves readAloudRecordingChapter empty: the app holds no handle to stop it (ADR 0232).
+	if !host.canAttach() {
+		t.Fatal("a take the app did not start must not block a project switch")
+	}
+}
+
+func TestTheProjectSwitchBlockLiftsWhenTheTakeEnds(t *testing.T) {
+	host := NewHost()
+	host.readAloudRecordingChapter = "ch-1"
+	if host.canAttach() {
+		t.Fatal("the take must block the switch")
+	}
+	host.clearReadAloudRecording()
+	if !host.canAttach() || !host.idle() {
+		t.Fatal("clearing the take must make the host idle again")
 	}
 }

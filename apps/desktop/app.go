@@ -62,7 +62,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 88
+const hostAPIVersion = 93
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1024,7 +1024,7 @@ func (h *Host) ServiceShutdown() error {
 		_ = recorder.Close(stopContext)
 		cancelStop()
 	}
-	// A REAPER recording this app started is stopped before the app quits (threat-model row 5j): otherwise REAPER
+	// A REAPER recording this app started is stopped before the app quits (threat-model row 5k): otherwise REAPER
 	// keeps recording with nothing left open to stop it.
 	h.stopReadAloudRecordingOnShutdown()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
@@ -1199,7 +1199,7 @@ func (h *Host) canAttachLocked() bool {
 }
 
 // idleLocked reports whether nothing is running that a restart or a project switch would displace: an import draft, a Story Bible
-// build, a download, a comparison, a measurement, a diagnostics check or a teleprompter session. The caller holds h.mu.
+// build, a download, a comparison, a measurement, a diagnostics check, a teleprompter session or a REAPER take this app started. The caller holds h.mu.
 func (h *Host) idleLocked() bool {
 	if h.manuscript != nil && !h.manuscript.CanSwitchProject() {
 		return false
@@ -1245,7 +1245,17 @@ func (h *Host) idleLocked() bool {
 	if h.recorder != nil && h.recorder.Busy() {
 		return false
 	}
+	if h.isReadAloudRecordingLocked() {
+		return false
+	}
 	return true
+}
+
+// isReadAloudRecordingLocked reports whether a REAPER take this app started is still recording. A switch or an update swap would
+// drop the only handle that can stop it (ADR 0232 decision 4); a take REAPER records on its own is not counted, the app cannot stop
+// it. The caller holds h.mu.
+func (h *Host) isReadAloudRecordingLocked() bool {
+	return h.readAloudRecordingChapter != ""
 }
 
 // idle is idleLocked under a read lock. The update install asks it again just before the swap; the update job itself is not work

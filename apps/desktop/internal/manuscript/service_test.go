@@ -13,6 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
 	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 	"github.com/countrymanprime/narration-utils/shell/internal/importer"
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
@@ -631,6 +632,48 @@ func TestReplaceAndClearRemoveTheBookmarksFile(t *testing.T) {
 	}
 	if _, err := os.Stat(bookmarks.File(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the bookmarks behind: %v", err)
+	}
+}
+
+// Gap reviews name chapter ids and a check's gaps, so a confirmed replace and Clear project data remove them (ADR 0842);
+// an import that resets nothing keeps them.
+func TestReplaceAndClearRemoveTheGapReviewsFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := service.Commit(job.ID, confirmedReset, Choices{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeReviews := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(gapreview.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(gapreview.File(project), []byte(`{"schemaVersion":1,"reviews":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeReviews()
+	importAlice(false)
+	if _, err := os.Stat(gapreview.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the gap reviews: %v", err)
+	}
+	importAlice(true)
+	if _, err := os.Stat(gapreview.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the gap reviews behind: %v", err)
+	}
+	writeReviews()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(gapreview.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the gap reviews behind: %v", err)
 	}
 }
 

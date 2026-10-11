@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import type {
+  CoverageEngine,
+  CoverageEngines,
   CoverageEvaluatorReason,
+  CoverageGapReview,
+  CoverageGapReviews,
   CoverageItem,
   CoverageRefusalReason,
   CoverageGap,
@@ -11,7 +15,7 @@ import type {
   CoverageState,
 } from '../contracts/coverage';
 import { listFromNull, optionalFromNull } from './base';
-import { modelAssetRequiredSchema } from './whisper';
+import { modelAssetRequiredSchema, whisperInstallStateSchema } from './whisper';
 
 // The recording coverage payloads (docs/utilities/recording-coverage.md, ADR 0129). The reason lists are pinned
 // against the host by tests/fixtures/contracts/coverage-reasons.json, which a Go test writes from coverage.RefusalReasons.
@@ -75,6 +79,26 @@ export const coverageStateSchema = z.object({
   recheckModel: z.string().optional(),
   recheckWindows: z.number().optional(),
 }) satisfies z.ZodType<CoverageState>;
+
+const coverageEngineSchema = z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  family: z.literal('whisper'),
+  installState: whisperInstallStateSchema,
+}) satisfies z.ZodType<CoverageEngine>;
+
+/** The engines a recording check can run (ADR 0841); the golden is tests/fixtures/contracts/coverage-engines.json. */
+export const coverageEnginesSchema = z.strictObject({
+  engines: listFromNull(coverageEngineSchema),
+  default: z.string(),
+}) satisfies z.ZodType<CoverageEngines>;
+
+/** The reviews of a chapter's current check by gap id (ADR 0842); the golden is tests/fixtures/contracts/coverage-gap-review-reviews.json.
+ * The answer of an accept is a Finding (findingSchema; its golden is coverage-gap-review-accepted.json). */
+export const coverageGapReviewsSchema = z.record(
+  z.string(),
+  z.enum(['accepted', 'ignored']) satisfies z.ZodType<CoverageGapReview>,
+) satisfies z.ZodType<CoverageGapReviews>;
 
 export const coverageStartResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('started'), state: coverageStateSchema }),

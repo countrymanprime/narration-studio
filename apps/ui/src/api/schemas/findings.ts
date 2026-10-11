@@ -15,6 +15,7 @@ import type {
   FindingNavigation,
   ReaperStatus,
 } from '../contracts/findings';
+import { FINDING_NOTE_TYPES } from '../contracts/findings';
 import { listFromNull } from './base';
 
 const findingProjectSchema = z.object({
@@ -63,6 +64,7 @@ const findingReviewStateSchema = z.object({
   status: findingReviewStatusSchema,
   note: z.string().optional(),
   timestamp: z.string().optional(),
+  type: z.enum(FINDING_NOTE_TYPES).optional(),
 }) satisfies z.ZodType<FindingReviewState>;
 
 export const findingSchema = z.object({

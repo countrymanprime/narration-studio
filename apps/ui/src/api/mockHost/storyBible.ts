@@ -25,7 +25,8 @@ function parseMockProperties(text: string): GuideProperty[] {
 const MOCK_PREVIEW_WAV_BASE64 =
   'UklGRuwAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
-const isUser = (value: { source?: string }) => value.source === 'user';
+// A pronunciation the narrator typed: `manual` (ADR 0792), or `user` in a file written before it.
+const isUser = (value: { source?: string }) => value.source === 'user' || value.source === 'manual';
 
 function setPronunciation(prior: GuidePronunciation, next: GuidePronunciation): GuidePronunciation {
   const value: GuidePronunciation = { ipa: next.ipa, source: next.source, confidence: next.confidence, chosen: next.chosen };
@@ -173,7 +174,7 @@ function pronunciationQueriesCsv(queries: PronunciationQuery[]): string {
       row.chapter,
       row.excerpt,
       row.ipa,
-      row.source === 'user' ? 'Yours' : row.source,
+      isUser(row) ? 'Yours' : row.source,
       row.status,
       row.note,
       row.entityId,
@@ -412,7 +413,9 @@ export function createStoryBibleMock(
       const value: GuidePronunciation =
         source === 'cmu'
           ? { ipa: '/mɒk kjuː ɛm juː/', source: 'CMU dictionary', confidence: 'medium', chosen: true }
-          : { ipa: '/mɒk iː spiːk/', source: 'eSpeak NG', confidence: 'low', chosen: true };
+          : source === 'wiktextract'
+            ? { ipa: '/mɒk wɪkʃənɛri/', source: 'Wiktionary (via Wiktextract)', confidence: 'high', chosen: true }
+            : { ipa: '/mɒk iː spiːk/', source: 'eSpeak NG', confidence: 'low', chosen: true };
       changePronunciation(id, aliasIndex, (prior) => setPronunciation(prior, value));
     },
     guidePronunciationQueries: async () => pronunciationQueriesOf(s.entities),

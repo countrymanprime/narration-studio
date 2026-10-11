@@ -19,7 +19,7 @@ Slice SNE-4 ([#1245](https://github.com/countrymanprime/narration-utils/issues/1
 5. **Reading order.** A chapter's records come back by line, then ordinal; a record whose line is gone goes last.
 6. **Clearing on replace.** Replacing the manuscript (`ManuscriptImportCommit` with `confirmedReset`) and Clear project data remove the files (`resetDerived` in `apps/desktop/internal/manuscript/service.go` names each file, and already removes the folder). An import that resets nothing keeps them.
 7. **Nothing reaches the DAW.** The records are the app's own: accepting, cutting or putting an effect on a word writes these files only, and clearing them deletes nothing from the DAW or the recording. What a cut or an effect does to the audio is the cut and effects slices' to decide.
-8. **The wire.** `AcceptedWord`, `AcceptedWords`, `AcceptedWordsChange` and `EditLogApi` (`apps/ui/src/api/contracts/editLog.ts`), strict schemas in `apps/ui/src/api/schemas/editLog.ts`, the goldens `edit-accepted-*.json` written by `bindings_editlog_contract_test.go`, the `EditLogPort` (`apps/ui/src/ports/editLog.ts`), and host API 88.
+8. **The wire.** `AcceptedWord`, `AcceptedWords`, `AcceptedWordsChange` and `EditLogApi` (`apps/ui/src/api/contracts/editLog.ts`), strict schemas in `apps/ui/src/api/schemas/editLog.ts`, the goldens `edit-accepted-*.json` written by `bindings_editlog_contract_test.go`, the `EditLogPort` (`apps/ui/src/ports/editLog.ts`), and host API 93.
 
 ## Consequences
 

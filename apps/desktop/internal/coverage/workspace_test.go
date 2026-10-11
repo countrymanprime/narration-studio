@@ -1,6 +1,10 @@
 package coverage
 
 import (
+	"encoding/json"
+	"math"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
@@ -161,4 +165,109 @@ func TestChapterTrackGUIDIsTheTrackTheNewestCheckCovered(t *testing.T) {
 	if got := service.ChapterTrackGUID(testChapter); got != testTrack {
 		t.Fatalf("track = %q, want %q", got, testTrack)
 	}
+}
+
+// addedWordsResults is alignedResults with two more extra runs: one said before anything was heard (no afterToken)
+// and one that starts on item A and ends on item B, so it has no single source timeline to spread its words over.
+var addedWordsResults = append(append([]string{}, alignedResults[:len(alignedResults)-1]...),
+	`COVERAGE_EXTRA|{"text":"chapter one","tokens":2,"start":{"itemIndex":0,"itemGuid":"{ITEM-A}","sourceTime":4.0},"end":{"itemIndex":0,"itemGuid":"{ITEM-A}","sourceTime":4.6},"afterToken":null}`,
+	`COVERAGE_EXTRA|{"text":"sorry very","tokens":2,"start":{"itemIndex":0,"itemGuid":"{ITEM-A}","sourceTime":6.3},"end":{"itemIndex":1,"itemGuid":"{ITEM-B}","sourceTime":0.0},"afterToken":4}`,
+	alignedResults[len(alignedResults)-1],
+)
+
+func TestViewCarriesTheEngine(t *testing.T) {
+	p := newTestProject(t)
+	never := alignmentOf(t, p.service(&fakeSidecar{}))
+	if never.Engine != nil {
+		t.Fatalf("a chapter never checked names no engine: %+v", never.Engine)
+	}
+	old := p.service(&fakeSidecar{})
+	run(t, old, testRequest())
+	if view := alignmentOf(t, old); !view.NeedsAlignAgain || view.Engine != nil {
+		t.Fatalf("a result stored before the lines existed names no engine: %+v", view.Engine)
+	}
+
+	aligned := p.service(&fakeSidecar{results: alignedResults})
+	run(t, aligned, testRequest())
+	view := alignmentOf(t, aligned)
+	if view.Engine == nil || *view.Engine != (AlignmentEngine{ID: "whisper:small", Name: "Whisper small"}) {
+		t.Fatalf("engine = %+v", view.Engine)
+	}
+	raw, _ := json.Marshal(never)
+	if strings.Contains(string(raw), `"engine"`) {
+		t.Fatalf("the engine is absent, not empty, when nothing ran: %s", raw)
+	}
+}
+
+func TestEveryWordScoreIsNullWithAReason(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: addedWordsResults})
+	run(t, service, testRequest())
+	view := alignmentOf(t, service)
+
+	for _, token := range view.WireTokens() {
+		if token.Conf != nil || token.ConfReason != ConfNoWordScores {
+			t.Errorf("token %d: conf %v, reason %q", token.Index, token.Conf, token.ConfReason)
+		}
+	}
+	for _, extra := range view.WireExtras() {
+		for _, word := range extra.Words {
+			if word.Conf != nil || word.ConfReason != ConfNoWordScores {
+				t.Errorf("extra word %q: conf %v, reason %q", word.Text, word.Conf, word.ConfReason)
+			}
+		}
+	}
+	raw, _ := json.Marshal(view.WireTokens()[0])
+	if !strings.Contains(string(raw), `"conf":null`) || !strings.Contains(string(raw), `"confReason":"no_word_scores"`) {
+		t.Fatalf("wire = %s", raw)
+	}
+	// The same guard ADR 0830 added for gaps (TestNoGapScoreExistsWhileTheWordsFileCarriesNoProbabilities): a sidecar
+	// that starts writing probabilities must be met by a deliberate change here, not by a number nobody reads.
+	source, err := os.ReadFile("../../../../sidecars/transcript-compare/core/coverage_mode.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(source), "probability") {
+		t.Fatal("the words file now carries probabilities: score heard words from them and amend ADR 0855")
+	}
+}
+
+func TestExtraRunsBecomeAddedWordsInOrder(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: addedWordsResults})
+	run(t, service, testRequest())
+	extras := alignmentOf(t, service).WireExtras()
+	if len(extras) != 3 {
+		t.Fatalf("extras = %+v", extras)
+	}
+
+	start := extras[0]
+	if start.AfterToken != nil || len(start.Words) != 2 {
+		t.Fatalf("the run before anything was heard: %+v", start)
+	}
+	want := []ExtraWord{
+		{Text: "chapter", Item: 0, Start: 4.0, End: 4.3, Added: true, Timing: TimingSpread, ConfReason: ConfNoWordScores},
+		{Text: "one", Item: 0, Start: 4.3, End: 4.6, Added: true, Timing: TimingSpread, ConfReason: ConfNoWordScores},
+	}
+	for i, word := range start.Words {
+		if !closeWord(word, want[i]) {
+			t.Fatalf("word %d = %+v, want %+v", i, word, want[i])
+		}
+	}
+
+	across := extras[1]
+	for _, word := range across.Words {
+		if !word.Added || word.Timing != TimingUnplaced || word.Item != 0 || word.Start != 6.3 || word.End != 6.3 {
+			t.Fatalf("a run across two items is placed at its start and claims no duration: %+v", word)
+		}
+	}
+	if um := extras[2].Words; len(um) != 1 || !closeWord(um[0], ExtraWord{Text: "um", Item: 1, Start: 0.6, End: 0.8, Added: true, Timing: TimingSpread, ConfReason: ConfNoWordScores}) {
+		t.Fatalf("um = %+v", um)
+	}
+}
+
+func closeWord(got, want ExtraWord) bool {
+	near := func(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
+	return got.Text == want.Text && got.Item == want.Item && near(got.Start, want.Start) && near(got.End, want.End) &&
+		got.Added == want.Added && got.Timing == want.Timing && got.Conf == nil && got.ConfReason == want.ConfReason
 }

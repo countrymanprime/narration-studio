@@ -52,6 +52,51 @@ afterEach(() => {
 });
 
 describe('wailsClient', () => {
+  it('lists the recording check engines and sends a named model as the model option', async () => {
+    const engines = { engines: [{ id: 'small', label: 'Small', family: 'whisper', installState: 'installed' }], default: 'small' };
+    const start = vi.fn().mockResolvedValue(JSON.stringify({ status: 'refused', reason: 'busy', message: 'A check is already running.' }));
+    standInHost({ CoverageEngines: () => Promise.resolve(JSON.stringify(engines)), CoverageStart: start });
+
+    await expect(wailsClient.coverageEngines()).resolves.toEqual(engines);
+    await wailsClient.coverageStart('c-1', { model: 'base' });
+    await wailsClient.coverageStart('c-1', { skipRecheck: true, model: 'small' });
+    await wailsClient.coverageStart('c-1');
+    expect(start.mock.calls).toEqual([
+      ['c-1', { model: 'base' }],
+      ['c-1', { skipRecheck: 'true', model: 'small' }],
+      ['c-1', {}],
+    ]);
+  });
+
+  it('accepts, ignores and reads the reviews of a recording check gap by ids only', async () => {
+    const finding = {
+      schema_version: 1,
+      id: 'f-1',
+      analyzer: 'recording-check',
+      project: {},
+      source: {},
+      category: 'pickup',
+      severity: 'info',
+      confidence: null,
+      confidence_reason: 'no_word_scores',
+      review: { status: 'accepted' },
+    };
+    const accept = vi.fn().mockResolvedValue(JSON.stringify(finding));
+    const ignore = vi.fn().mockResolvedValue('null');
+    const reviews = vi.fn().mockResolvedValue(JSON.stringify({ 'missing:p-1:3': 'accepted', 'extra:p-1:9': 'ignored' }));
+    standInHost({ CoverageGapAccept: accept, CoverageGapIgnore: ignore, CoverageGapReviews: reviews });
+
+    await expect(wailsClient.coverageGapAccept('c-1', 'missing:p-1:3')).resolves.toMatchObject({ id: 'f-1', category: 'pickup' });
+    await expect(wailsClient.coverageGapIgnore('c-1', 'extra:p-1:9')).resolves.toBeUndefined();
+    await expect(wailsClient.coverageGapReviews('c-1')).resolves.toEqual({ 'missing:p-1:3': 'accepted', 'extra:p-1:9': 'ignored' });
+    expect(accept).toHaveBeenCalledWith('c-1', 'missing:p-1:3');
+    expect(ignore).toHaveBeenCalledWith('c-1', 'extra:p-1:9');
+    expect(reviews).toHaveBeenCalledWith('c-1');
+
+    reviews.mockResolvedValueOnce(JSON.stringify({ gap: 'dismissed' }));
+    await expect(wailsClient.coverageGapReviews('c-1')).rejects.toThrow();
+  });
+
   it('uses generated Wails methods rather than an operation-string transport', async () => {
     const select = vi.fn().mockResolvedValue(JSON.stringify({ selected: true, jobId: 'import-1' }));
     standInHost({ Ready: () => Promise.resolve({ apiVersion: 1, diagnosticId: 'native' }), ManuscriptSelectFile: select });
@@ -370,6 +415,18 @@ describe('wailsClient', () => {
     await expect(wailsClient.productionStatusReportPreview(false)).rejects.toBeInstanceOf(WireError);
   });
 
+  it('sets the schedule basis through the plan schema and refuses an unknown one in the reply', async () => {
+    const plan = { deadline: null, contractedAmount: null, payment: 'none', rateBasis: 'own', milestones: [] };
+    const productionSetRateBasis = vi.fn().mockResolvedValue(JSON.stringify(plan));
+    standInHost({ ProductionSetRateBasis: productionSetRateBasis });
+
+    await expect(wailsClient.setProductionRateBasis('own')).resolves.toEqual(plan);
+    expect(productionSetRateBasis).toHaveBeenCalledWith('own');
+
+    standInHost({ ProductionSetRateBasis: vi.fn().mockResolvedValue(JSON.stringify({ ...plan, rateBasis: 'fast' })) });
+    await expect(wailsClient.setProductionRateBasis('own')).rejects.toBeInstanceOf(WireError);
+  });
+
   it('lists recent projects from the native binding', async () => {
     const recents = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z' }];
     const projectRecents = vi.fn().mockResolvedValue(JSON.stringify(recents));
@@ -503,7 +560,14 @@ describe('wailsClient', () => {
     const list = vi.fn().mockResolvedValue(JSON.stringify({ findings: null, total: 0 }));
     const get = vi.fn().mockResolvedValue(JSON.stringify(finding));
     const review = vi.fn().mockResolvedValue(JSON.stringify(finding));
-    standInHost({ FindingsList: list, FindingsGet: get, FindingsReview: review, FindingsSummary: vi.fn().mockResolvedValue(JSON.stringify(summary)) });
+    const setType = vi.fn().mockResolvedValue(JSON.stringify({ ...finding, review: { ...finding.review, type: 'pron' } }));
+    standInHost({
+      FindingsList: list,
+      FindingsGet: get,
+      FindingsReview: review,
+      FindingsSetType: setType,
+      FindingsSummary: vi.fn().mockResolvedValue(JSON.stringify(summary)),
+    });
 
     await expect(wailsClient.findingsList({ sort: 'confidence', limit: 50 })).resolves.toEqual({ findings: [], total: 0 });
     expect(list).toHaveBeenCalledWith({ sort: 'confidence', limit: 50 });
@@ -513,6 +577,8 @@ describe('wailsClient', () => {
       review: { status: 'dismissed' },
     });
     expect(review).toHaveBeenCalledWith('f1', 'v1', 'dismissed', 'noise');
+    await expect(wailsClient.findingsSetType('f1', 'v1', 'pron')).resolves.toMatchObject({ review: { type: 'pron' } });
+    expect(setType).toHaveBeenCalledWith('f1', 'v1', 'pron');
     await expect(wailsClient.findingsSummary()).resolves.toMatchObject({ dismissed: 1, analyzers: [], chapters: [] });
   });
 
@@ -743,6 +809,67 @@ describe('live events (ADR 0069: dropped and counted, never thrown inside the ca
       TeleprompterState: () => Promise.resolve(JSON.stringify({ phase: 'idle', message: 'Choose', engine: null, chapter: null, script: null, position: null })),
     });
     await expect(client.teleprompterState()).resolves.toMatchObject({ phase: 'idle', engine: null });
+  });
+});
+
+describe('the pronunciation sources bindings', () => {
+  it('calls the two host methods with their arguments and decodes each answer', async () => {
+    const sources = vi
+      .fn()
+      .mockResolvedValue(JSON.stringify({ sources: [{ id: 'cmu', label: 'CMU dictionary', kind: 'lookup', available: true }], default: 'cmu' }));
+    const candidate = vi
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify({ ok: true, say: 'krō-ˈkā' }))
+      .mockResolvedValueOnce(JSON.stringify({ ok: false, reason: 'Type it in.' }));
+    standInHost({ PronunciationSources: sources, PronunciationCandidate: candidate });
+
+    await expect(wailsClient.pronunciationSources()).resolves.toMatchObject({ default: 'cmu' });
+    await expect(wailsClient.pronunciationCandidate('croquet', 'merriam_webster')).resolves.toEqual({ ok: true, say: 'krō-ˈkā' });
+    expect(candidate).toHaveBeenCalledWith('croquet', 'merriam_webster');
+    await expect(wailsClient.pronunciationCandidate('croquet', 'manual')).resolves.toEqual({ ok: false, reason: 'Type it in.' });
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ PronunciationCandidate: () => Promise.resolve(JSON.stringify({ ok: true })) });
+    await expect(wailsClient.pronunciationCandidate('croquet', 'cmu')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
+describe('the take evidence binding', () => {
+  const answer = {
+    chapterId: 'c-1',
+    firstToken: 0,
+    lastToken: 3,
+    firstParagraph: 0,
+    lastParagraph: 0,
+    takes: [
+      {
+        id: 'take:a:b',
+        matched: { ok: true, value: 75 },
+        measure: {
+          pause: { ok: true, value: 1.2 },
+          rms: { ok: true, value: -16.9 },
+          nf: { ok: false, reason: 'No 500 ms window of the take holds signal.' },
+          clarity: { ok: false, reason: 'Not measured' },
+          breaths: { ok: true, value: 0 },
+        },
+        via: 'aligned',
+      },
+    ],
+  };
+
+  it('calls WorkspaceTakeEvidence with the chapter and token range and decodes the answer', async () => {
+    const evidence = vi.fn().mockResolvedValue(JSON.stringify(answer));
+    standInHost({ WorkspaceTakeEvidence: evidence });
+    await expect(wailsClient.workspaceTakeEvidence('c-1', 0, 3)).resolves.toEqual(answer);
+    expect(evidence).toHaveBeenCalledWith('c-1', 0, 3);
+  });
+
+  it('refuses a figure that is both a value and a reason', async () => {
+    const both = structuredClone(answer);
+    Object.assign(both.takes[0].matched, { reason: 'x' });
+    standInHost({ WorkspaceTakeEvidence: () => Promise.resolve(JSON.stringify(both)) });
+    await expect(wailsClient.workspaceTakeEvidence('c-1', 0, 3)).rejects.toBeInstanceOf(WireError);
   });
 });
 

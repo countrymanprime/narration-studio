@@ -702,3 +702,86 @@ func TestListSortsByChapterThenIDAndTreatsAMissingManuscriptAsAnEmptyChapter(t *
 		}
 	}
 }
+
+func TestRecordTypeRoundTripsAndTheDefaultClearsIt(t *testing.T) {
+	project := t.TempDir()
+	store := NewStore(project)
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	got, found, err := store.RecordType("f1", "v1", NotePron, "2026-09-19T10:00:00Z")
+	if err != nil || !found || got.Review.Type != NotePron || got.Review.Status != StatusUnreviewed {
+		t.Fatalf("RecordType = %+v, %v, %v", got.Review, found, err)
+	}
+	again, _, err := NewStore(project).Get("f1")
+	if err != nil || again.Review.Type != NotePron {
+		t.Fatalf("a new store over the folder read type %q (%v)", again.Review.Type, err)
+	}
+	if _, _, err := store.RecordType("f1", "v1", "", "2026-09-19T10:01:00Z"); err != nil {
+		t.Fatal(err)
+	}
+	cleared, _, _ := store.Get("f1")
+	if cleared.Review.Type != "" {
+		t.Fatalf("type after choosing the default = %q, want absent", cleared.Review.Type)
+	}
+}
+
+func TestRecordTypeRefusesAnUnknownWordOrEmptyIDAndWritesNothing(t *testing.T) {
+	project := t.TempDir()
+	store := NewStore(project)
+	if _, _, err := store.RecordType("f1", "v1", "loud", "t"); err == nil {
+		t.Fatal("expected an unknown type to be refused")
+	}
+	if _, _, err := store.RecordType("", "v1", NotePron, "t"); err == nil {
+		t.Fatal("expected an empty id to be refused")
+	}
+	if _, err := os.Stat(store.reviewPath()); !os.IsNotExist(err) {
+		t.Fatalf("review.json written by a refused retype: %v", err)
+	}
+}
+
+func TestTypeHistoryIsAppendOnlyAndInterleavesWithDecisions(t *testing.T) {
+	project := t.TempDir()
+	store := NewStore(project)
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordType("f1", "v1", NotePron, "t1"); err != nil {
+		t.Fatal(err)
+	}
+	decided, _, err := store.RecordDecision("f1", "v1", StatusDeferred, "later", "t2")
+	if err != nil || decided.Review.Type != NotePron || decided.Review.Status != StatusDeferred {
+		t.Fatalf("a decision after a retype = %+v (%v), want the type kept", decided.Review, err)
+	}
+	retyped, _, err := store.RecordType("f1", "v1", NoteSkip, "t3")
+	if err != nil || retyped.Review.Type != NoteSkip || retyped.Review.Status != StatusDeferred || retyped.Review.Note != "later" {
+		t.Fatalf("a retype after a decision = %+v (%v), want status and note kept", retyped.Review, err)
+	}
+	history, err := store.readHistory()
+	if err != nil || len(history.Types) != 2 || history.Types[0].Type != NotePron || len(history.Decisions) != 1 {
+		t.Fatalf("history = %+v (%v), want both type entries and the decision", history, err)
+	}
+	// A re-run of the analyzer on unchanged evidence keeps the type; changed evidence drops it.
+	same, _ := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v1")})
+	if same[0].Review.Type != NoteSkip {
+		t.Fatalf("type lost on an unchanged re-run: %+v", same[0].Review)
+	}
+	changed, _ := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v2")})
+	if changed[0].Review.Type != "" {
+		t.Fatalf("type kept across changed evidence: %+v", changed[0].Review)
+	}
+}
+
+func TestDefaultNoteTypeMapsEveryCategoryToOneOfTheTen(t *testing.T) {
+	for _, category := range Categories() {
+		if got := DefaultNoteType(Finding{Category: category}); !validNoteType(got) {
+			t.Errorf("%s maps to %q, not one of the ten", category, got)
+		}
+	}
+	if got := DefaultNoteType(Finding{Category: CategoryTranscriptDiscrepancy, Evidence: map[string]any{"kind": "SKIPPED"}}); got != NoteSkip {
+		t.Errorf("SKIPPED maps to %q, want skip", got)
+	}
+	if got := DefaultNoteType(Finding{Category: CategoryAudioQuality, Evidence: map[string]any{"kind": "plosive"}}); got != NotePlosive {
+		t.Errorf("plosive maps to %q", got)
+	}
+}

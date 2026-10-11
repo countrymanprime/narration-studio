@@ -179,11 +179,8 @@ describe('the repo-only colour tokens stay declared in both themes', () => {
 
 describe('no token is added without a reader (no-unused-token)', () => {
   const ADDED = ['line-strong', 'btn-line', 'focus'];
-  // A token the mock needs and the repo's primitives do not read yet: Button.tsx and the other controls are outside this slice's
-  // files (no component edit), so their consumers land with the primitive slices that swap them to the mock.
-  const PENDING_CONSUMER: Record<string, string> = {
-    'btn-line': 'the default .btn outline, read when SNF-5 swaps Button to the mock',
-  };
+  // A token the mock needs and the repo's primitives do not read yet; its consumer lands with the primitive slice that swaps to the mock.
+  const PENDING_CONSUMER: Record<string, string> = {};
 
   function sources(path: string): string[] {
     if (!existsSync(path)) return [];

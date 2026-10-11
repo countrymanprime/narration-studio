@@ -1,3 +1,4 @@
+import type { Finding } from './findings';
 import type { WhisperInstallState, WhisperModel } from './whisper';
 
 // Recording coverage (docs/utilities/recording-coverage.md, ADR 0129): a check of one chapter's saved recording
@@ -92,8 +93,15 @@ export type CoverageStartResult =
   | ({ status: 'recheck_asset_required' } & ModelAssetRequired);
 
 /** CoverageStart's own options: skipRecheck starts a cascade-enabled chapter with the first pass alone -
- * "Check with tiny only" - regardless of what the re-check settings or its install state are. */
-export type CoverageStartOptions = { skipRecheck?: boolean };
+ * "Check with tiny only" - regardless of what the re-check settings or its install state are. model names one of
+ * the engines coverageEngines lists to run alone, replacing the cascade for that run (ADR 0841). */
+export type CoverageStartOptions = { skipRecheck?: boolean; model?: string };
+
+/** One engine a recording check can run: an approved Whisper model (ADR 0841). Moonshine is the Booth's, not offered. */
+export type CoverageEngine = { id: string; label: string; family: 'whisper'; installState: WhisperInstallState };
+
+/** The engines a recording check can run, in catalog order, and the id a start naming none would use (always listed). */
+export type CoverageEngines = { engines: CoverageEngine[]; default: string };
 
 export type CoverageAlignment = { maxMisreadRun: number; minAnchorRun: number };
 
@@ -206,14 +214,30 @@ export type CoverageJudgement = {
   thresholds: { minParagraphPresent: number; maxMissingRun: number };
 };
 
+/** The narrator's call on one gap of a current check (ADR 0842): accepted became a note, ignored is remembered. */
+export type CoverageGapReview = 'accepted' | 'ignored';
+
+/** The gaps of a chapter's current check that have a review, by gap id; a gap without one is to review. */
+export type CoverageGapReviews = Record<string, CoverageGapReview>;
+
 export interface CoverageApi {
   /** Starts a recording check of one chapter: the narrator's Transcript Compare model, or, with the model cascade on,
    * its own two models - unless options.skipRecheck asks for the first pass alone. */
   coverageStart(chapterId: string, options?: CoverageStartOptions): Promise<CoverageStartResult>;
+  /** The engines a recording check can run and the one a start naming none would use; needs no project. */
+  coverageEngines(): Promise<CoverageEngines>;
   coverageState(): Promise<CoverageState>;
   /** Asks a running check to stop; the items it finished stay cached. */
   coverageCancel(): Promise<void>;
   /** Reads a chapter's newest complete check back; never runs one. */
   coverageResult(chapterId: string): Promise<CoverageResult>;
   subscribeCoverage(onUpdate: (state: CoverageState) => void): () => void;
+  /** Turns one gap of the chapter's current check into a note with the accepted decision and answers that finding
+   * (ADR 0842). The same gap again answers the same finding. Rejects, writing nothing, when the check is out of date or
+   * was never run, the gap is not in it, or the gap was ignored. A check never calls this. */
+  coverageGapAccept(chapterId: string, gapId: string): Promise<Finding>;
+  /** Remembers that the narrator passed on one gap of the chapter's current check; no note is made. Rejects like coverageGapAccept. */
+  coverageGapIgnore(chapterId: string, gapId: string): Promise<void>;
+  /** The reviews of the chapter's current check by gap id; empty while the check is out of date or after a new run. */
+  coverageGapReviews(chapterId: string): Promise<CoverageGapReviews>;
 }
