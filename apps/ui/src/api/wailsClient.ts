@@ -125,7 +125,7 @@ import {
 import type { TeleprompterStartOptions } from './contracts/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
@@ -540,6 +540,11 @@ export const wailsClient: NarrationApi = {
   pickupsCount: () => decode(pickupsStartResultSchema, 'PickupsCount', host.PickupsCount()),
   pickupsPunch: (position) => decode(pickupsPunchResultSchema, 'PickupsPunch', host.PickupsPunch(position)),
   pickupsState: () => decode(pickupsStateSchema, 'PickupsState', host.PickupsState()),
+  pickupsList: () => decode(pickupListSchema, 'PickupsList', host.PickupsList()),
+  pickupsAdd: (chapterId, time, line) => decode(pickupListSchema, 'PickupsAdd', host.PickupsAdd(chapterId, time, line)),
+  pickupsRemove: (id) => decode(pickupListSchema, 'PickupsRemove', host.PickupsRemove(id)),
+  pickupsSetIncluded: (id, included) => decode(pickupListSchema, 'PickupsSetIncluded', host.PickupsSetIncluded(id, included)),
+  pickupsSetDone: (id, done) => decode(pickupListSchema, 'PickupsSetDone', host.PickupsSetDone(id, done)),
   subscribePickups: (onUpdate) => subscribeChecked('pickups:state', pickupsStateSchema, onUpdate),
   renderConfigConfigure: (outputFolder) => decode(renderConfigStartResultSchema, 'RenderConfigConfigure', host.RenderConfigConfigure(outputFolder)),
   renderConfigSuggestFolder: () => decode(renderConfigSuggestedFolderSchema, 'RenderConfigSuggestFolder', host.RenderConfigSuggestFolder()),
