@@ -61,6 +61,35 @@ export function AssetsVerify(kind: string, id: string): $CancellablePromise<stri
     return $Call.ByID(2412149070, kind, id);
 }
 
+/**
+ * BookmarksAdd bookmarks a spot: offset is UTF-16 units into the line's text, from 0 to its length. A spot that already has
+ * a bookmark returns that one.
+ */
+export function BookmarksAdd(chapterID: string, paragraphID: string, offset: number): $CancellablePromise<string> {
+    return $Call.ByID(1504217234, chapterID, paragraphID, offset);
+}
+
+/**
+ * BookmarksList returns every bookmark in reading order, each checked against the current manuscript.
+ */
+export function BookmarksList(): $CancellablePromise<string> {
+    return $Call.ByID(733127631);
+}
+
+/**
+ * BookmarksRemove deletes a bookmark by id and returns the bookmarks left, in reading order.
+ */
+export function BookmarksRemove(id: string): $CancellablePromise<string> {
+    return $Call.ByID(973615307, id);
+}
+
+/**
+ * BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits ADR 0820 states.
+ */
+export function BookmarksUpdate(id: string, label: string, note: string): $CancellablePromise<string> {
+    return $Call.ByID(3562503062, id, label, note);
+}
+
 export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(2880307428).then(($result: any) => {
         return $$createType0($result);
