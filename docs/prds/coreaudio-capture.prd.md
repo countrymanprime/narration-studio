@@ -1,6 +1,6 @@
 # CoreAudio Capture
 
-**Source:** [Provider Ports](../architecture/provider-ports.md#not-built-here-and-where-it-went) P15/#696's "Not built here" table ("No PRD yet: the app is Windows first"); the owner has since said the un-PRD'd Coulds are wanted work, not backlog (#509, 2026-09-27: "I want to do everything it proposed... if nothing else is going on, then we pick up the nice to haves as well"). This PRD fills that row.
+**Source:** [Provider Ports](../architecture/provider-ports.md#not-built) P15/#696's "Not built here" table ("No PRD yet: the app is Windows first"); the owner has since said the un-PRD'd Coulds are wanted work, not backlog (#509, 2026-09-27: "I want to do everything it proposed... if nothing else is going on, then we pick up the nice to haves as well"). This PRD fills that row.
 
 **Tracking:** [#711](https://github.com/countrymanprime/narration-utils/issues/711).
 
