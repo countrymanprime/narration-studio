@@ -42,7 +42,7 @@ export function Menu({
       </BaseMenu.Trigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[55]">
-          <BaseMenu.Popup className="w-44 rounded-[0.4rem] border border-[var(--border)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
+          <BaseMenu.Popup className="w-44 rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
             {items.map((item) => (
               <BaseMenu.Item
                 key={item.key}

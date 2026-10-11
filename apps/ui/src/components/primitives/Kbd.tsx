@@ -20,7 +20,7 @@ export function Kbd({ keys, label, size = 'sm' }: { keys: string[]; label?: stri
           {index > 0 && <span className="text-[var(--text-muted)]">+</span>}
           {/* The bottom edge is 2 px, a shade deeper than the 1 px top/left/right border, so the cap reads as a pressed key (B03, B07). */}
           <kbd
-            className={`box-border inline-flex items-center justify-center rounded-[0.25rem] border border-b-2 border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] ${KBD_SIZE_CLASSES[size]}`}
+            className={`box-border inline-flex items-center justify-center rounded-[0.25rem] border border-b-2 border-[var(--line-strong)] bg-[var(--surface-2)] text-[var(--text)] ${KBD_SIZE_CLASSES[size]}`}
           >
             {key}
           </kbd>
