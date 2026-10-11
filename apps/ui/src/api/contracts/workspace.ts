@@ -24,6 +24,28 @@ export type WorkspaceToken = {
   item?: number;
   start?: number;
   end?: number;
+  /** The recogniser's score for the word, 0 to 1, or null with `confReason` (ADR 0855): null with 'no_word_scores'
+   * until the words file carries Whisper word probabilities. Absent in a payload from before ADR 0855. */
+  conf?: number | null;
+  confReason?: string;
+  /** Never set: a token is in the script. Only an extra run's words are added. */
+  added?: never;
+};
+
+/** How an added word's times were found (ADR 0855): spread evenly between its run's two ends, or, for a run whose
+ * ends are on two items, placed at the run's start with no duration. */
+export type WorkspaceWordTiming = 'spread' | 'unplaced';
+
+/** One word of an extra run: said, and not in the script. start and end are seconds of item's source. */
+export type WorkspaceExtraWord = {
+  text: string;
+  item: number;
+  start: number;
+  end: number;
+  added: true;
+  timing: WorkspaceWordTiming;
+  conf: number | null;
+  confReason?: string;
 };
 
 /** A point in the audio: an item and a time in its source file (as coverage's RegionPosition). */
@@ -37,6 +59,8 @@ export type WorkspaceExtra = {
   start: WorkspaceAudioPosition;
   end: WorkspaceAudioPosition;
   afterToken?: number;
+  /** The run's words, in order (ADR 0855); empty in a payload from before it. */
+  words?: WorkspaceExtraWord[];
 };
 
 export type WorkspaceParagraph = { id: string; text: string };
@@ -68,6 +92,8 @@ export type WorkspaceAlignmentResult = {
   tokens: WorkspaceToken[];
   extras: WorkspaceExtra[];
   items: WorkspaceItem[];
+  /** The recogniser whose words the alignment came from; absent when there is no stored alignment. */
+  engine?: { id: string; name: string };
 };
 
 /** The narrator's FX chains, from REAPER's FXChains folder (ADR 0234): by

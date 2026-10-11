@@ -17,6 +17,7 @@ import type {
   WorkspaceAlignmentResult,
   WorkspaceApi,
   WorkspaceExtra,
+  WorkspaceExtraWord,
   WorkspaceFXChainsResult,
   WorkspaceFXPluginsResult,
   WorkspaceFXRefusalReason,
@@ -74,6 +75,28 @@ const FX_MESSAGES = {
 /** A narration pace, for the mock's token times only (matches coverageMock.ts's own). */
 const WORDS_PER_MINUTE = 155;
 const SECONDS_PER_WORD = 60 / WORDS_PER_MINUTE;
+
+/** The mock's recogniser, named as the host names a first pass with the default model (coverage.engineOf). */
+const MOCK_ENGINE = { id: 'whisper:small', name: 'Whisper small' };
+/** Why every word score is null (ADR 0855): the words file carries no Whisper word probabilities. */
+const NO_WORD_SCORES = 'no_word_scores';
+
+/** An extra run's words spread evenly between its ends, as the host's coverage.extraWords does for a run on one item. */
+function mockExtraWords(extra: WorkspaceExtra): WorkspaceExtraWord[] {
+  const texts = extra.text.split(/\s+/).filter(Boolean);
+  const from = extra.start.sourceTime;
+  const step = (extra.end.sourceTime - from) / Math.max(texts.length, 1);
+  return texts.map((text, k) => ({
+    text,
+    item: extra.start.itemIndex,
+    start: from + step * k,
+    end: from + step * (k + 1),
+    added: true,
+    timing: 'spread',
+    conf: null,
+    confReason: NO_WORD_SCORES,
+  }));
+}
 
 /** A cheap, deterministic stand-in for "what Whisper heard" on one demonstration word - not a real ASR confusion,
  * just something a screenshot can show next to the correct word. */
@@ -247,13 +270,15 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
         ...extra,
         start: { ...extra.start, itemGuid: liveItem?.itemGuid ?? '' },
         end: { ...extra.end, itemGuid: liveItem?.itemGuid ?? '' },
+        words: mockExtraWords(extra),
       }));
       return {
         ...base,
         paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })),
-        tokens,
+        tokens: tokens.map((token) => ({ ...token, conf: null, confReason: NO_WORD_SCORES })),
         extras: resolvedExtras,
         items: liveItem ? [liveItem] : [],
+        ...(tokens.length ? { engine: MOCK_ENGINE } : {}),
       };
     },
     workspaceGoTo: async (chapterId, tokenIndex) => {

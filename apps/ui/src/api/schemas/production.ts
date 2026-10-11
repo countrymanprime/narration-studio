@@ -6,6 +6,7 @@ import type {
   ProductionNextUpItem,
   ProductionOverview,
   ProductionPayment,
+  ProductionRateBasis,
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
@@ -35,10 +36,13 @@ const productionMilestoneSchema = z.object({
 
 const productionPaymentSchema = z.enum(['per_finished_hour', 'royalty_share', 'none']) satisfies z.ZodType<ProductionPayment>;
 
+const productionRateBasisSchema = z.enum(['standard', 'own']) satisfies z.ZodType<ProductionRateBasis>;
+
 export const productionPlanSchema = z.object({
   deadline: calendarDate.nullable(),
   contractedAmount: z.number().nonnegative().nullable(),
   payment: productionPaymentSchema.optional(),
+  rateBasis: productionRateBasisSchema.optional(),
   milestones: listFromNull(productionMilestoneSchema),
 }) satisfies z.ZodType<ProductionPlan>;
 

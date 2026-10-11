@@ -53,8 +53,9 @@ import type { PrepCompletenessApi } from '../api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from '../api/contracts/renderEncodeMaster';
 import type { DawClient } from './daw';
 import type { MeasurementsPort } from './measurements';
+import type { AlignmentPort } from './alignment';
 
-export type { DawClient, MeasurementsPort };
+export type { DawClient, MeasurementsPort, AlignmentPort };
 
 export type {
   SystemApi,
@@ -165,6 +166,7 @@ export interface PortMap {
 export interface ClientPortMap {
   daw: DawClient;
   measurements: MeasurementsPort;
+  alignment: AlignmentPort;
 }
 
 export type PortName = keyof PortMap | keyof ClientPortMap;

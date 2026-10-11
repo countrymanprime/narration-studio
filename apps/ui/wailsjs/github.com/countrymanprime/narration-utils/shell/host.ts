@@ -794,6 +794,17 @@ export function FindingsReview(id: string, evidenceVersion: string, status: stri
 }
 
 /**
+ * FindingsSetType records the kind the narrator says a finding is (ADR 0844), made against evidenceVersion
+ * like a decision, and answers the finding as the store now holds it (review.type set, or absent when the
+ * narrator chose the analyzer's own word). noteType is one of findings.NoteTypes. It is not a decision:
+ * status, note and the review counts stay as they were. A stale evidenceVersion is refused as FindingsReview
+ * refuses it.
+ */
+export function FindingsSetType(id: string, evidenceVersion: string, noteType: string): $CancellablePromise<string> {
+    return $Call.ByID(1148867604, id, evidenceVersion, noteType);
+}
+
+/**
  * FindingsStopLoop stops the loop and puts back the time selection, loop points and repeat the narrator had, keeping
  * any they changed while it played. With no loop of this app's running it changes nothing.
  */
@@ -1300,6 +1311,15 @@ export function ProductionSetDeadline(deadline: string, contractedAmount: number
  */
 export function ProductionSetPayment(payment: string): $CancellablePromise<string> {
     return $Call.ByID(4238984903, payment);
+}
+
+/**
+ * ProductionSetRateBasis sets the schedule basis: "standard" or "own" (the narrator's own pace). It stores the choice
+ * only; it never reads the take log or the chapter lengths, so falling back to the standard rate while nothing is
+ * measured is the UI's. An unknown basis is refused and nothing is written.
+ */
+export function ProductionSetRateBasis(basis: string): $CancellablePromise<string> {
+    return $Call.ByID(325936073, basis);
 }
 
 /**

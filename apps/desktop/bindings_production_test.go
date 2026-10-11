@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -504,5 +505,78 @@ func TestProductionSetPaymentRefusesAnUnknownTypeAndWritesNothing(t *testing.T) 
 	after, err := os.ReadFile(project.Path(host.config.projectFolder))
 	if err != nil || string(after) != string(before) {
 		t.Fatalf("a refused call must write nothing:\nbefore %s\nafter  %s", before, after)
+	}
+}
+
+// rate-basis-round-trip: each basis reads back, from a new service over the same folder; the standard basis is the
+// absent field. old-manifest-reads-as-standard: a project.json with no rateBasis answers no override.
+func TestProductionSetRateBasisRoundTripsAcrossARestart(t *testing.T) {
+	host := hostWithCredits(t)
+	for _, basis := range []string{production.RateBasisOwn, production.RateBasisStandard} {
+		saved, err := host.ProductionSetRateBasis(basis)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reread, err := host.ProductionPlan()
+		if err != nil || reread != saved {
+			t.Fatalf("%s: want the saved plan back, saved %s reread %s %v", basis, saved, reread, err)
+		}
+		manifest, _, err := project.Load(host.persist, host.config.projectFolder)
+		if err != nil || production.RateBasisOf(manifest) != basis {
+			t.Fatalf("%s: want it on the manifest, got %+v %v", basis, manifest, err)
+		}
+		if basis == production.RateBasisOwn && !strings.Contains(saved, `"rateBasis":"own"`) {
+			t.Fatalf("want rateBasis own in %s", saved)
+		}
+		if basis == production.RateBasisStandard && strings.Contains(saved, "rateBasis") {
+			t.Fatalf("the standard basis is the absent field, got %s", saved)
+		}
+	}
+	if production.RateBasisOf(&project.Manifest{}) != production.RateBasisStandard || production.RateBasisOf(nil) != production.RateBasisStandard {
+		t.Fatal("a manifest with no rateBasis reads as standard")
+	}
+}
+
+// unknown-basis-is-refused: any other string is refused with a sentence and nothing is written.
+func TestProductionSetRateBasisRefusesAnUnknownBasisAndWritesNothing(t *testing.T) {
+	host := hostWithCredits(t)
+	if _, err := host.ProductionSetRateBasis("own"); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(project.Path(host.config.projectFolder))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"", "Own", "fast"} {
+		if _, err := host.ProductionSetRateBasis(bad); err == nil || !strings.Contains(err.Error(), "not a schedule basis") {
+			t.Errorf("%q: want a sentence refusal, got %v", bad, err)
+		}
+	}
+	after, err := os.ReadFile(project.Path(host.config.projectFolder))
+	if err != nil || string(after) != string(before) {
+		t.Fatalf("a refused call must write nothing:\nbefore %s\nafter  %s", before, after)
+	}
+}
+
+// save-goes-through-the-existing-guarded-write: a corrupt manifest is handled as the other plan setters handle it
+// (persist keeps the corrupt file aside and the save starts from a fresh manifest), never overwritten in place.
+func TestProductionSetRateBasisHandlesACorruptManifestLikeThePaymentSetter(t *testing.T) {
+	outcome := func(set func(*Host) error) (string, int) {
+		host := hostWithCredits(t)
+		path := project.Path(host.config.projectFolder)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("{not json"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		err := set(host)
+		entries, _ := os.ReadDir(filepath.Dir(path))
+		return fmt.Sprint(err == nil), len(entries)
+	}
+	wantErr, wantFiles := outcome(func(h *Host) error { _, err := h.ProductionSetPayment("none"); return err })
+	gotErr, gotFiles := outcome(func(h *Host) error { _, err := h.ProductionSetRateBasis("own"); return err })
+	if gotErr != wantErr || gotFiles != wantFiles {
+		t.Fatalf("want the payment setter's outcome (ok=%s, %d files), got ok=%s, %d files", wantErr, wantFiles, gotErr, gotFiles)
 	}
 }
