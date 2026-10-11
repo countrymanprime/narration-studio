@@ -1142,6 +1142,48 @@ describe('the marks bindings', () => {
   });
 });
 
+describe('the word effects bindings', () => {
+  const request = {
+    pid: 'p-000001',
+    takeId: 't-1',
+    keys: ['p-000001:5'],
+    text: 'Queen',
+    a: 12,
+    b: 13,
+    off0: 2,
+    off1: 3,
+    chainId: 'Voice/Polish.RfxChain',
+    chainName: 'Voice polish',
+    source: 'Your REAPER FX chains',
+    fadeMs: 8,
+    daw: 'reaper',
+    guid: '{FX-1}',
+  } as const;
+  const fx = { ...request, id: 'fx1', chapterId: 'c-0001', words: ['Queen'], at: '2026-10-11T10:00:00Z', paragraph: 0, stale: false };
+  const effects = { chapterId: 'c-0001', effects: [fx] };
+
+  it('calls the three host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(effects));
+    const record = vi.fn().mockResolvedValue(JSON.stringify({ ...effects, changed: ['fx1'], over: [] }));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', effects: [], changed: ['fx1'], over: [] }));
+    standInHost({ EditingWordFxList: list, EditingWordFxRecord: record, EditingWordFxRemove: remove });
+
+    await expect(wailsClient.editingWordFxList('c-0001')).resolves.toEqual(effects);
+    expect(list).toHaveBeenCalledWith('c-0001');
+    await expect(wailsClient.editingWordFxRecord('c-0001', { ...request, keys: [...request.keys] })).resolves.toMatchObject({ changed: ['fx1'], over: [] });
+    expect(record).toHaveBeenCalledWith('c-0001', request);
+    await expect(wailsClient.editingWordFxRemove('c-0001', 'fx1')).resolves.toMatchObject({ effects: [] });
+    expect(remove).toHaveBeenCalledWith('c-0001', 'fx1');
+  });
+
+  it('refuses an answer its schema does not accept, a chain named by a path among them', async () => {
+    standInHost({ EditingWordFxList: () => Promise.resolve(JSON.stringify({ ...effects, effects: [{ ...fx, a: -1 }] })) });
+    await expect(wailsClient.editingWordFxList('c-0001')).rejects.toBeInstanceOf(WireError);
+    standInHost({ EditingWordFxList: () => Promise.resolve(JSON.stringify({ ...effects, effects: [{ ...fx, chainId: 'C:\\FX\\Polish.RfxChain' }] })) });
+    await expect(wailsClient.editingWordFxList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {

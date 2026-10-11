@@ -1,17 +1,26 @@
 import type { EditCut, EditCutsApi } from '../api/contracts/editCuts';
 import type { AcceptedWord, EditLogApi } from '../api/contracts/editLog';
+import type { EditWordFxApi, WordFx } from '../api/contracts/wordFx';
 
 // The Editing records port (ADR 0856): the words the narrator kept as read, and later the cuts and word effects, each kept by
 // the host in the project's editing/ folder and checked against the current text on every read. A page reads and changes
 // them through this port only. A later Editing slice adds its methods here together with its binding (ISP).
 
-/** What a page asks of the Editing records: the accepted words and the cuts. */
-export type EditLogPort = EditLogApi & EditCutsApi;
+/** What a page asks of the Editing records: the accepted words, the cuts and the word effects. */
+export type EditLogPort = EditLogApi & EditCutsApi & EditWordFxApi;
 
 /** The `NarrationApi` methods the host adapter calls. */
 export type EditLogHostApi = Pick<
   EditLogPort,
-  'editingAcceptedList' | 'editingAccept' | 'editingUnaccept' | 'editingCutsList' | 'editingCutRecord' | 'editingCutRemove'
+  | 'editingAcceptedList'
+  | 'editingAccept'
+  | 'editingUnaccept'
+  | 'editingCutsList'
+  | 'editingCutRecord'
+  | 'editingCutRemove'
+  | 'editingWordFxList'
+  | 'editingWordFxRecord'
+  | 'editingWordFxRemove'
 >;
 
 /** The port over the host's bindings (or the mock's): the answers pass through as the schemas decoded them. */
@@ -23,6 +32,9 @@ export function createHostEditLog(api: EditLogHostApi): EditLogPort {
     editingCutsList: (chapterId) => api.editingCutsList(chapterId),
     editingCutRecord: (chapterId, cut) => api.editingCutRecord(chapterId, cut),
     editingCutRemove: (chapterId, id) => api.editingCutRemove(chapterId, id),
+    editingWordFxList: (chapterId) => api.editingWordFxList(chapterId),
+    editingWordFxRecord: (chapterId, fx) => api.editingWordFxRecord(chapterId, fx),
+    editingWordFxRemove: (chapterId, id) => api.editingWordFxRemove(chapterId, id),
   };
 }
 
@@ -40,4 +52,19 @@ export function acceptedKeys(words: readonly AcceptedWord[]): Set<string> {
  */
 export function cutKeys(cuts: readonly EditCut[]): Set<string> {
   return new Set(cuts.filter((cut) => !cut.stale).flatMap((cut) => cut.keys));
+}
+
+/**
+ * The effect each word carries for the underline and its menu: the first recorded effect on the word that still matches the
+ * text. A stale effect's words changed since it was added, so it is reported and never drawn onto the words that took their
+ * place.
+ */
+export function wordFxByKey(effects: readonly WordFx[]): Map<string, WordFx> {
+  const byKey = new Map<string, WordFx>();
+  const live = effects.filter((effect) => !effect.stale);
+  // Ids number the effects in the order they were recorded (fx1, fx2, ... fx10).
+  for (const fx of live.sort((x, y) => x.id.localeCompare(y.id, 'en', { numeric: true }))) {
+    for (const key of fx.keys) if (!byKey.has(key)) byKey.set(key, fx);
+  }
+  return byKey;
 }
