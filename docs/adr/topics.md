@@ -18,7 +18,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
 | [Assets, models and downloads](#assets-and-downloads) | 10 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 55 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 54 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 49 |
 | [Persistence and project files](#persistence-and-project-files) | 9 |

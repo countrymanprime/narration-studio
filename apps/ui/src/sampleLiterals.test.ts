@@ -19,6 +19,8 @@ const CEILING: Record<string, number> = {
   'src/components/booth/side/fixture.ts': 2,
   'src/components/editing/script/scriptFixtures.ts': 1,
   'src/components/proof/notes/testNotes.ts': 5,
+  // Component-side fixture of the bookmark ribbon (SN-B62); it moves to src/fixtures/ with #1119.
+  'src/components/script/bookmarks/ui/bookmarkFixtures.ts': 3,
 };
 
 const uiRoot = join(__dirname, '..');

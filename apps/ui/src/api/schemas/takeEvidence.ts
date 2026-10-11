@@ -7,11 +7,11 @@ export const takeFigureSchema = z.discriminatedUnion('ok', [
   z.object({ ok: z.literal(false), reason: z.string().min(1) }).strict(),
 ]) satisfies z.ZodType<TakeFigure>;
 
-export const takeEvidenceMeasureSchema = z
+const takeEvidenceMeasureSchema = z
   .object({ pause: takeFigureSchema, rms: takeFigureSchema, nf: takeFigureSchema, clarity: takeFigureSchema, breaths: takeFigureSchema })
   .strict() satisfies z.ZodType<TakeEvidenceMeasure>;
 
-export const takeEvidenceSchema = z
+const takeEvidenceSchema = z
   .object({ id: z.string().min(1), matched: takeFigureSchema, measure: takeEvidenceMeasureSchema, via: z.enum(['map', 'aligned']) })
   .strict() satisfies z.ZodType<TakeEvidence>;
 
