@@ -45,3 +45,12 @@ describe('the jump menu row', () => {
     expect(row?.surfaces).not.toContain('jumpMenu');
   });
 });
+
+describe('the history row', () => {
+  it('history-open-row: Mod+Shift+H, global, in the jump menu, never Mod+Z', () => {
+    const row = findCommand('history.open');
+    expect(row?.scope).toBe('global');
+    expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+Shift+KeyH']);
+    expect(row?.surfaces).toEqual(['jumpMenu', 'help', 'settings']);
+  });
+});

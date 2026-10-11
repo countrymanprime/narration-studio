@@ -51,7 +51,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'no-daw-link',
     description:
-      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link a REAPER project file" instead of "Link a different REAPER project file" and the header chip "No REAPER project linked" - the panel stays usable since it reads its .rpp through its own discovery flow',
+      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link a REAPER project file" instead of "Link a different REAPER project file" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
   },
   {
     page: 'engine',

@@ -1,25 +1,30 @@
-# The icon-only rail (768 to 1399 px): a named complementary of buttons, the page list pinned exactly and in order.
-# It has no navigation landmark, unlike the sidebar and the drawer; that gap is tracked in #159, and this snapshot changes when it is fixed.
-# Grouped by production stage (ADR 0407 item 3): the visible
-# divider between groups is decorative (aria-hidden) and does not appear here; each group keeps its accessible name
-# through aria-label instead of a visible heading, since the rail has no room for one.
+# The collapsed rail (768 to 1359 px) is the same panel as the sidebar, 64 px wide until hovered or focused: a named complementary
+# holding the navigation landmark of grouped buttons, so a group heading is read as text even while its label is hidden by size.
+# The page list is pinned exactly and in order (ADR 0407 item 3). A count badge is spoken with the name ("Proof, 3"); the number is the host's, so it is matched.
 - complementary "Primary navigation":
-  - /children: equal
-  - group "Production":
+  - navigation:
     - /children: equal
-    - button "Production"
-  - group "Prep":
-    - /children: equal
-    - button "Script"
-    - button "Story Bible"
-  - group "Record":
-    - /children: equal
-    - button "Booth"
-  - group "Review":
-    - /children: equal
-    - button "Proof"
-    - button "Pickups"
-  - group "Finish":
-    - /children: equal
-    - button "Master & QC"
+    - group "Production":
+      - /children: equal
+      - text: Production
+      - button "Production"
+    - group "Prep":
+      - /children: equal
+      - text: Prep
+      - button "Script"
+      - button /Story Bible, \d+/
+    - group "Record":
+      - /children: equal
+      - text: Record
+      - button "Booth"
+    - group "Review":
+      - /children: equal
+      - text: Review
+      - button /Proof, \d+/
+      - button "Pickups"
+    - group "Finish":
+      - /children: equal
+      - text: Finish
+      - button "Master & QC"
+  - button "Dark theme"
   - button "Settings"

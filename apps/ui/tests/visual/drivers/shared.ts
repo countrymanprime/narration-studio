@@ -491,7 +491,7 @@ export async function openEditingCheck(page: Page, query: string) {
 export async function openEnginePanel(page: Page): Promise<Locator> {
   await page
     .locator('header')
-    .getByRole('button', { name: /^(REAPER linked|No REAPER project linked|Wrong REAPER project open) — / })
+    .getByRole('button', { name: /^REAPER: / })
     .click();
   const panel = page.getByRole('dialog', { name: 'Audio engine' });
   await panel.getByRole('region', { name: 'REAPER project' }).waitFor();

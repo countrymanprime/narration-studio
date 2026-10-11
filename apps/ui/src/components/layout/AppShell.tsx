@@ -1,10 +1,11 @@
-import { Fragment, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft,
   faArrowRight,
   faBars,
   faBookOpen,
+  faClockRotateLeft,
   faCircleDot,
   faFileLines,
   faFolder,
@@ -12,16 +13,23 @@ import {
   faGear,
   faHouse,
   faMicrophone,
+  faMagnifyingGlass,
   faMinus,
+  faMoon,
   faPlus,
   faRotateLeft,
+  faSun,
   faWaveSquare,
 } from '@fortawesome/free-solid-svg-icons';
+import { ContextMenuHost } from './ContextMenuHost';
+import type { ContextMenuItem } from '../primitives/ContextMenu';
 import { NavButton } from '../primitives/NavButton';
 import { NavDrawer } from '../primitives/NavDrawer';
 import { IconButton } from '../primitives/IconButton';
 import { Button } from '../primitives/Button';
+import { KeyChord } from '../primitives/KeyCap';
 import { TooltipTarget } from '../primitives/Tooltip';
+import type { DawKind } from '../../api/contracts/daw';
 import { dawCapabilityGate } from '../../dawAvailability';
 import { DemoBanner } from './DemoBanner';
 import { EngineChip, type EngineState } from './EngineChip';
@@ -61,6 +69,12 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: 'Review', items: [PROOF, PICKUPS] },
   { label: 'Finish', items: [MASTER_QC] },
 ];
+/** The pages "Go to <page>" can open: the rail's items and Settings, minus the ones a project with no manuscript cannot show. */
+export function shellPages(hasManuscript: boolean): { id: string; label: string }[] {
+  return [...NAV_GROUPS.flatMap((group) => group.items), { name: 'Settings', path: '/settings', requiresManuscript: false }]
+    .filter((item) => hasManuscript || !item.requiresManuscript)
+    .map((item) => ({ id: item.path, label: item.name }));
+}
 const isActivePath = (pathname: string, path: string) => (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`));
 
 export function AppShell({
@@ -74,10 +88,16 @@ export function AppShell({
   onOpenEnginePanel,
   linkingDawFile = false,
   engine = 'daw',
+  daw,
   timer = null,
   navCounts = {},
   history,
   zoom,
+  onOpenJump,
+  onOpenHistory,
+  undo,
+  theme,
+  contextMenu,
   children,
 }: {
   pathname: string;
@@ -95,6 +115,8 @@ export function AppShell({
   linkingDawFile?: boolean;
   /** Which engine the header's chip shows; UI-only until native recording picks 'builtin'. */
   engine?: EngineState;
+  /** Which DAW backs the session, from the DAW capabilities; the header's chip names it. */
+  daw?: DawKind;
   /** The production stage timer while it runs; null hides the chip. */
   timer?: RunningTimer | null;
   /** The rail's count badges, from useNavCounts: a missing or zero count draws none. */
@@ -103,6 +125,16 @@ export function AppShell({
   history: { canGoBack: boolean; canGoForward: boolean; back: () => void; forward: () => void };
   /** The header's zoom group: `useZoom`'s own state and actions. */
   zoom: { percent: number; canZoomOut: boolean; canZoomIn: boolean; zoomIn: () => void; zoomOut: () => void; reset: () => void; announcement: string };
+  /** Opens the jump menu: the header's "Jump to or run…" button (Ctrl+K opens it from anywhere). */
+  onOpenJump: () => void;
+  /** Opens the undo history panel from the header's History button. */
+  onOpenHistory: () => void;
+  /** The header's Undo: `disabledReason` is set while the journal has nothing to undo. */
+  undo: { disabledReason?: string; run: () => void };
+  /** The foot's Theme item (the mock's rail): absent draws none. */
+  theme?: { dark: boolean; toggle: () => void };
+  /** The menu on empty space in `<main>`, then the items every menu ends with (ADR 0780 decision 5). */
+  contextMenu?: { fallback: (target: Element) => ContextMenuItem[]; tail: ContextMenuItem[] };
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -139,7 +171,7 @@ export function AppShell({
         <span className="flex size-[1.875rem] flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[0.875rem] text-[var(--accent-contrast)]">
           <FontAwesomeIcon icon={faMicrophone} fixedWidth />
         </span>
-        <span className="pb-[0.125rem] font-['Barlow_Condensed',sans-serif] leading-none uppercase">
+        <span className="brand-name pb-[0.125rem] font-['Barlow_Condensed',sans-serif] leading-none uppercase">
           <b className="block text-[0.8125rem] font-bold tracking-[0.11em]">Narration</b>
           <span className="mt-[0.4375rem] block text-[0.625rem] font-semibold tracking-[0.1em] text-[var(--text-muted)]">Studio</span>
         </span>
@@ -174,7 +206,12 @@ export function AppShell({
         ))}
       </nav>
       {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above. */}
-      <div className="flex-none border-t border-[var(--border)] px-3 py-[0.625rem]">
+      <div className="flex flex-none flex-col gap-[0.1875rem] border-t border-[var(--border)] px-3 py-[0.625rem]">
+        {theme && (
+          <NavButton active={false} icon={theme.dark ? faSun : faMoon} onClick={theme.toggle}>
+            {theme.dark ? 'Light theme' : 'Dark theme'}
+          </NavButton>
+        )}
         <NavButton active={settingsActive} icon={faGear} onClick={() => go('/settings')}>
           Settings
         </NavButton>
@@ -196,37 +233,12 @@ export function AppShell({
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
       <DemoBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="hidden w-54 flex-none flex-col border-r border-[var(--border)] bg-[var(--surface)] min-[1400px]:flex">{navigation}</aside>
-        <aside
-          className="medium-rail hidden w-14 flex-none flex-col gap-1 border-r border-[var(--border)] bg-[var(--surface)] p-2 md:max-[1399px]:flex"
-          aria-label="Primary navigation"
-        >
-          {NAV_GROUPS.map((group, index) => (
-            <Fragment key={group.label}>
-              {/* Icon-only rail: a thin divider between groups, not a text heading; the group keeps its accessible
-                  name via aria-label so a screen reader still hears the stage. The divider is decorative only. */}
-              {index > 0 && <div aria-hidden="true" className="m-1 border-t border-[var(--border)]" />}
-              <div role="group" aria-label={group.label} className="flex flex-col gap-1">
-                {group.items.map((item) => (
-                  <NavButton
-                    key={item.name}
-                    active={isActivePath(pathname, item.path)}
-                    icon={item.icon}
-                    onClick={() => go(item.path)}
-                    iconOnly
-                    disabled={isDisabled(item)}
-                    disabledReason={requiredReason(item)}
-                  >
-                    {item.name}
-                  </NavButton>
-                ))}
-              </div>
-            </Fragment>
-          ))}
-          <div className="mt-auto">
-            <NavButton active={settingsActive} icon={faGear} onClick={() => go('/settings')} iconOnly>
-              Settings
-            </NavButton>
+        {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it (ADR 0761). Below 1360 the panel inside
+            is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
+            markup, hidden by size, so every item keeps its name. */}
+        <aside className="relative hidden w-16 flex-none min-[1360px]:w-54 md:flex" aria-label="Primary navigation">
+          <div className="flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:z-30 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[1360px]:static min-[1360px]:w-54 md:max-[1359px]:absolute md:max-[1359px]:inset-y-0 md:max-[1359px]:left-0 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.8125rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.8125rem] max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
+            {navigation}
           </div>
         </aside>
         <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
@@ -234,7 +246,7 @@ export function AppShell({
         </NavDrawer>
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
-          <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm md:px-5">
+          <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
             <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="hidden max-md:inline-flex">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
@@ -258,6 +270,36 @@ export function AppShell({
               <span className="section-label max-md:hidden">Project</span>
               <FontAwesomeIcon icon={faFolder} style={{ color: 'var(--non-text)' }} className="max-md:hidden" />
               <span className="truncate font-medium">{projectName}</span>
+            </div>
+            {/* The mock's top bar: the jump menu opens from here, and the journal's Undo and History sit beside it. */}
+            <TooltipTarget text="Jump to a page or chapter, or run a command (Ctrl+K)">
+              <button
+                type="button"
+                onClick={onOpenJump}
+                aria-label="Jump to or run…"
+                aria-keyshortcuts="Control+K"
+                className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-md:size-8 max-md:justify-center max-md:px-0"
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+                <span className="max-md:hidden">Jump to or run…</span>
+                <span className="max-lg:hidden">
+                  <KeyChord keys={['Ctrl', 'K']} />
+                </span>
+              </button>
+            </TooltipTarget>
+            {/* Below `md` there is no room for these two beside the zoom group at 390 px: the jump menu lists "Open the undo history" there, and each
+                history row has its own Undo. */}
+            <div className="flex flex-none items-center gap-1 max-md:hidden" role="group" aria-label="Undo history">
+              <TooltipTarget text={undo.disabledReason ?? 'Undo the last change'}>
+                <IconButton label="Undo" disabledReason={undo.disabledReason} onClick={undo.run}>
+                  <FontAwesomeIcon icon={faRotateLeft} />
+                </IconButton>
+              </TooltipTarget>
+              <TooltipTarget text="History: every change you can undo (Ctrl+Shift+H)">
+                <IconButton label="History" aria-keyshortcuts="Control+Shift+H" onClick={onOpenHistory}>
+                  <FontAwesomeIcon icon={faClockRotateLeft} />
+                </IconButton>
+              </TooltipTarget>
             </div>
             {timer && <TimerChip timer={timer} />}
             {/* The zoom group (ADR 0407): after a running timer chip, before the engine chip. */}
@@ -289,6 +331,7 @@ export function AppShell({
               </div>
             </div>
             <EngineChip
+              daw={daw}
               engine={engine}
               dawFileLinked={dawFileLinked}
               dawReachable={dawReachable}
@@ -297,7 +340,13 @@ export function AppShell({
               linkingDawFile={linkingDawFile}
             />
           </header>
-          <div className={`scroll-chrome-hidden relative flex-1 overflow-y-auto ${isActivePath(pathname, '/script') ? 'p-0' : 'p-4 md:p-6'}`}>{children}</div>
+          <ContextMenuHost
+            className={`scroll-chrome-hidden relative flex-1 overflow-y-auto ${isActivePath(pathname, '/script') ? 'p-0' : 'p-4 md:p-6'}`}
+            fallback={contextMenu?.fallback}
+            tail={contextMenu?.tail}
+          >
+            {children}
+          </ContextMenuHost>
         </main>
       </div>
     </div>

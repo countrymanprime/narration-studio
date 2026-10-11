@@ -134,6 +134,16 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['help', 'settings'],
   },
+  // The History panel (SNR-Q5): opened from the header's History button and from the jump menu. Not Mod+Z: the mock binds that to
+  // undo, but the router lets a modified gesture through a text field, so a global Mod+Z would take the field's own undo.
+  {
+    id: 'history.open',
+    label: 'Open the undo history',
+    scope: 'global',
+    defaults: [key('KeyH', ['Mod', 'Shift'])],
+    group: 'View',
+    surfaces: ['jumpMenu', 'help', 'settings'],
+  },
 ];
 
 export function findCommand(id: CommandId): CommandDescriptor | undefined {

@@ -16,7 +16,7 @@ test('the drawer is a named modal dialog with the same list, and hides the page 
   await expect(page.locator('body')).toMatchAriaSnapshot({ name: 'navigation-drawer.aria.yml' });
 });
 
-test('the icon rail is a named region of buttons (no navigation landmark yet, #159)', async ({ page }) => {
+test('the collapsed rail is the same named navigation as the sidebar', async ({ page }) => {
   await openApp(page, RAIL);
   await expect(page.getByRole('complementary', { name: 'Primary navigation' })).toMatchAriaSnapshot({ name: 'navigation-rail.aria.yml' });
 });

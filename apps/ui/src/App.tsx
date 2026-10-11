@@ -2,7 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
-import { AppShell } from './components/layout/AppShell';
+import { AppShell, shellPages } from './components/layout/AppShell';
+import { openJumpMenu } from './components/layout/JumpMenu';
+import { openHistoryPanel } from './components/layout/HistoryPanel';
+import { useGoToCommands } from './components/layout/useGoToCommands';
+import { useJournalEntries } from './components/layout/useJournalEntries';
+import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
+import { dawShortName, StudioProvider, useJournal } from './studio/StudioProvider';
+import type { Journal } from './studio/journal/createJournal';
+import type { ContextMenuItem } from './components/primitives/ContextMenu';
+import type { ManuscriptChapter } from './api/contracts/manuscript';
+import { useDawKind } from './useDawKind';
+import { useTheme } from './theme/ThemeContext';
+import { useUserKeymap } from './input/useUserKeymap';
 import { useNavCounts } from './components/layout/useNavCounts';
 import { StartupScreen, type StartupState } from './components/layout/StartupScreen';
 import { ToastRegion, type ToastTone } from './components/primitives/Toast';
@@ -58,7 +70,7 @@ const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not
 // dialogs claim the scope generically.
 const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'));
 
-export function App() {
+export function App({ journal }: { journal?: Journal } = {}) {
   // Every build except the demo serves from the site root (base: '/', vite.config.ts), so this is a
   // no-op basename there. The demo serves under /narration-utils/demo/: without a matching basename
   // react-router compares its routes ('/', '/proof', ...) against the full pathname and matches
@@ -66,7 +78,15 @@ export function App() {
   // and reading the console: "No routes matched location ...", ADR 0096).
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <AppRoutes />
+      {/* The journal and the overlay host are mounted once, here: a page asks the overlay for a confirm, a dialog or a toast by calling the service (ADR 0781). */}
+      <StudioProvider journal={journal}>
+        {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}
+        <div className="relative h-full">
+          <OverlayProvider>
+            <AppRoutes />
+          </OverlayProvider>
+        </div>
+      </StudioProvider>
     </BrowserRouter>
   );
 }
@@ -82,6 +102,13 @@ function AppRoutes() {
   const location = useLocation();
   const history = useAppHistory();
   const zoom = useZoom(api);
+  const journal = useJournal();
+  const overlay = useOverlay();
+  const dawKind = useDawKind();
+  const theme = useTheme();
+  const toggleTheme = () => theme.setPreference(theme.resolved === 'dark' ? 'light' : 'dark');
+  const keymap = useUserKeymap();
+  const journalRows = useJournalEntries(journal);
   // The latest guarded back/forward, read by the one document-level listener below (mounted once) instead
   // of resubscribing it on every render.
   const guardedBackRef = useRef<() => void>(() => {});
@@ -90,6 +117,7 @@ function AppRoutes() {
   // The compare run's phase, read by the pop-recovery effect below without resubscribing it on every transcript event.
   const transcriptPhaseRef = useRef<string>('idle');
   const [data, setData] = useState<Bootstrap>();
+  const hasManuscript = Boolean(data?.manuscript);
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
   // an error stays until it is dismissed (ADR 0075). `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
   const { messages, notify: setNotice, dismiss: dismissMessage } = useToasts();
@@ -387,6 +415,70 @@ function AppRoutes() {
   // Back/Forward, since both are always-available app-level commands rather than a feature's own.
   useCommand('help.shortcuts', () => setShortcutsOpen(true));
 
+  // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>" (ADR 0780). The chapters come from the manuscript, read again when
+  // a manuscript arrives; a failed read leaves the list empty, as the menu still has every page.
+  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  useEffect(() => {
+    if (!hasManuscript) {
+      setChapters([]);
+      return;
+    }
+    let live = true;
+    api
+      .manuscriptChapters()
+      .then((list) => live && setChapters(list))
+      .catch(() => live && setChapters([]));
+    return () => {
+      live = false;
+    };
+  }, [api, hasManuscript]);
+  const guardedNavigateRef = useRef<(next: string) => void>(() => {});
+  const goToScriptRef = useRef<(chapter: string) => void>(() => {});
+  useGoToCommands({
+    pages: shellPages(hasManuscript),
+    chapters,
+    go: (target) => (target.kind === 'page' ? guardedNavigateRef.current(target.id) : goToScriptRef.current(target.id)),
+  });
+  const dawName = () => (dawKind ? dawShortName(dawKind) : 'the DAW');
+  const openHistory = () => void openHistoryPanel(overlay, journal, dawName);
+  // What the jump menu's catalogue rows run: the same actions as the keys and the header's buttons. A page's own command stays its own.
+  const shellCommands = useRef<Record<string, () => void>>({});
+  shellCommands.current = {
+    'nav.back': () => guardedBackRef.current(),
+    'nav.forward': () => guardedForwardRef.current(),
+    'zoom.in': () => void zoom.zoomIn(),
+    'zoom.out': () => void zoom.zoomOut(),
+    'zoom.reset': () => void zoom.reset(),
+    'help.shortcuts': () => setShortcutsOpen(true),
+    'history.open': openHistory,
+  };
+  const openJump = (initialTerm?: string) => void openJumpMenu({ keymap, runCommand: (id) => shellCommands.current[id]?.(), initialTerm, service: overlay });
+  useCommand('jump.open', () => {
+    if (!isModalOpen()) openJump();
+  });
+  useCommand('history.open', () => {
+    if (!isModalOpen()) openHistory();
+  });
+  const undoLast = async () => {
+    const [newest] = await journal.entries();
+    const result = await journal.undoLast();
+    overlay.toast(result.ok ? `Undid ${newest?.label ?? 'the last change'}` : result.refusal.reason);
+  };
+  // The menu on empty space in <main> (the mock's page menu): where to go, the jump menu, view. Zoom steps are the header's own.
+  const contextMenu = {
+    fallback: (): ContextMenuItem[] => [
+      { key: 'go-to', label: 'Go to…', onSelect: () => openJump('Go to ') },
+      { key: 'zoom-in', label: 'Zoom in', unavailable: zoom.canZoomIn ? undefined : 'Already at the largest size', onSelect: () => void zoom.zoomIn() },
+      { key: 'zoom-out', label: 'Zoom out', unavailable: zoom.canZoomOut ? undefined : 'Already at the smallest size', onSelect: () => void zoom.zoomOut() },
+      { key: 'zoom-reset', label: 'Reset zoom', unavailable: zoom.percent === 100 ? 'Already 100%' : undefined, onSelect: () => void zoom.reset() },
+      { key: 'theme', label: theme.resolved === 'dark' ? 'Use the light theme' : 'Use the dark theme', onSelect: toggleTheme },
+    ],
+    tail: [
+      { key: 'jump', label: 'Jump menu…', onSelect: () => openJump() },
+      { key: 'find', label: 'Find a page, chapter or command', onSelect: () => openJump() },
+    ] satisfies ContextMenuItem[],
+  };
+
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
   // despite `preventDefault`, if that happens). The move already took effect; if it left
   // Settings dirty, push Settings back and ask, so the change is not lost silently. Leaving a Proof chapter view with
@@ -451,7 +543,23 @@ function AppRoutes() {
   // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
   const goToBooth = (target: { chapter: string } | { credits: CreditsKind }) => guardedNavigate(`/booth${boothQuery(target)}`);
 
+  // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
+  // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
   const guardedNavigate = (next: string) => {
+    const nextPath = next.split(/[?#]/)[0] || '/';
+    const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
+    if (verdict === 'allow') {
+      moveTo(next);
+      return;
+    }
+    void overlay.confirm({ title: verdict.ask.title, body: verdict.ask.body, confirmLabel: verdict.ask.confirmLabel }).then((confirmed) => {
+      if (confirmed) moveTo(next);
+    });
+  };
+  guardedNavigateRef.current = guardedNavigate;
+  goToScriptRef.current = (chapter) => goToScript(chapter);
+
+  const moveTo = (next: string) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     // A Proof chapter view reads the chapter's paragraphs and alignment, both manuscript-scoped, same as the fixed
     // routes below (a parameterised path, so it needs its own startsWith check rather than joining the exact-match list).
@@ -504,8 +612,14 @@ function AppRoutes() {
             onOpenEnginePanel={openEnginePanel}
             linkingDawFile={dawLink.isBusy}
             engine={engine}
+            daw={dawKind}
             timer={runningTimer}
             navCounts={navCounts}
+            onOpenJump={() => openJump()}
+            onOpenHistory={openHistory}
+            undo={{ disabledReason: journalRows && journalRows.length > 0 ? undefined : 'Nothing to undo', run: () => void undoLast() }}
+            theme={{ dark: theme.resolved === 'dark', toggle: toggleTheme }}
+            contextMenu={contextMenu}
             history={{ canGoBack: history.canGoBack, canGoForward: history.canGoForward, back: guardedBack, forward: guardedForward }}
             zoom={{
               percent: zoom.percent,

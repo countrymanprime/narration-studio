@@ -5,6 +5,10 @@
 - main:
   - alert
   - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
 - alertdialog "Remove Chapter 1 from recording?":
   - heading "Remove Chapter 1 from recording?" [level=2]
   - button "Close"

@@ -29,7 +29,7 @@ export const shellDrivers: Record<string, Driver> = {
     await page.goto('/?mockEngine=builtin');
     await settlePage(page);
     await productionLoaded(page);
-    await page.getByLabel('Built-in recorder').waitFor();
+    await page.getByLabel(/^Built-in: Recording happens in the app/).waitFor();
   },
   // The header's mismatch state, simulating a live REAPER heartbeat whose open project disagrees with the
   // linked file (ADR 0092) - the mock never grows one on its own (see main.tsx).
@@ -37,7 +37,7 @@ export const shellDrivers: Record<string, Driver> = {
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await productionLoaded(page);
-    await page.getByRole('button', { name: /Wrong REAPER project open/ }).waitFor();
+    await page.getByRole('button', { name: /^REAPER: A different project is open/ }).waitFor();
   },
   // The zoom group at a non-100% level (?mockZoom=125), so the enabled readout, Zoom out and reset can be
   // seen without driving Ctrl+wheel or a click first.
@@ -46,5 +46,22 @@ export const shellDrivers: Record<string, Driver> = {
     await settlePage(page);
     await productionLoaded(page);
     await page.getByRole('button', { name: /Reset zoom to 100% \(now 125%\)/ }).waitFor();
+  },
+  // The jump menu, opened from the header's button as a narrator would.
+  'jump-menu-open': async (page) => {
+    await productionLoaded(page);
+    await page.getByRole('button', { name: /Jump to or run/ }).click();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor();
+  },
+  // A right-click on the page's padding, where no provider owns the target: the shell's fallback menu.
+  'context-menu-open': async (page) => {
+    await productionLoaded(page);
+    await page.locator('main .scroll-chrome-hidden').click({ button: 'right', position: { x: 6, y: 6 } });
+    await page.getByRole('menu').waitFor();
+  },
+  'history-panel-open': async (page) => {
+    await productionLoaded(page);
+    await page.getByRole('button', { name: 'History' }).click();
+    await page.getByRole('dialog', { name: 'Undo history' }).waitFor();
   },
 };

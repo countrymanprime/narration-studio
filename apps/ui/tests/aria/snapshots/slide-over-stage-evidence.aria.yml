@@ -5,6 +5,10 @@
 - main:
   - alert
   - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
 - 'dialog "Stage suggestion: Chapter 4 — The Rabbit Sends in a Little Bill"':
   - 'heading "Stage suggestion: Chapter 4 — The Rabbit Sends in a Little Bill" [level=3]'
   - button "Close"
