@@ -1,6 +1,6 @@
 # 0640. Panel draws the mocks' card header with a divider and a padded or flush body, and the eyebrow and the inset card are primitives
 
-**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Supersedes:**
 

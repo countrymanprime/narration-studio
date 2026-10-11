@@ -1,6 +1,6 @@
 # 0407. A new page replaces its old counterpart in the same change, and the navigation is grouped by production stage
 
-**Status:** Accepted
+**Status:** Accepted (its decision 5 is superseded by [ADR 0802](0802-schedule-and-delivery-are-pages-with-their-own-rail-items.md))
 **Date:** 2026-09-27
 
 ## Context

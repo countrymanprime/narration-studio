@@ -1,6 +1,6 @@
 # 0740. Mock match is text-blind and a diagnostic, and only the benchmark mocks are kept
 
-**Status:** Accepted (owner rulings D96 and D97 on [#509](https://github.com/countrymanprime/narration-utils/issues/509), 2026-09-29; stream N-M1)
+**Status:** Accepted (owner rulings D96 and D97 on [#509](https://github.com/countrymanprime/narration-utils/issues/509), 2026-09-29; stream N-M1; superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-29
 **Supersedes:** the 90% bar of D91 and the pass-or-fail marks in [ADR 0585](0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md) (its measure, capture and no-gate decisions stand)
 

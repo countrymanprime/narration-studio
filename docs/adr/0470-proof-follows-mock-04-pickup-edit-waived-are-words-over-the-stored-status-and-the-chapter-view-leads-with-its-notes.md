@@ -1,6 +1,6 @@
 # 0470. Proof follows mock 04: Pickup, Edit and Waived are words over the stored status, and the chapter view leads with its notes
 
-**Status:** Proposed (the worker's choices in carrying out the owner's D85 #2, #7, #8 and #11 on #509; the owner confirms them on #510)
+**Status:** Proposed (the worker's choices in carrying out the owner's D85 #2, #7, #8 and #11 on #509; the owner confirms them on #510; its "open means anything not dismissed" part is superseded by [ADR 0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md))
 **Date:** 2026-09-28
 **Supersedes:** none. It changes how [ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)'s Proof page words and lays out what it already shows, and keeps the findings contract ([findings-contract.md](../architecture/findings-contract.md)) as it is.
 

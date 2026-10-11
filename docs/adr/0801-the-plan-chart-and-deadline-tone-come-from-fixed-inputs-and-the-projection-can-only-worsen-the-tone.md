@@ -1,6 +1,6 @@
 # 0801. The plan chart and deadline tone come from fixed inputs, and the projection can only worsen the tone
 
-**Status:** Proposed (register row DQ-4 and ADR row A12 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; register row DQ-4 and ADR row A12 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** [ADR 0404](0404-production-next-up-ranks-chapters-by-held-back-readiness-then-stage-and-the-deadline-is-shown-not-projected.md) to the extent that its "the deadline is shown, not projected" part yields (register row DQ-4). [ADR 0015](0015-real-progress-only.md) is kept.
 

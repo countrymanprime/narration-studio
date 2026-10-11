@@ -1,6 +1,6 @@
 # 0803. An extraction suggestion at 75 percent or more is applied and flagged Review, and one under 75 percent needs verification
 
-**Status:** Proposed (register row DQ-10 and ADR row A14 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; register row DQ-10 and ADR row A14 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** [ADR 0020](0020-entity-extraction-precision-over-recall.md) and [ADR 0042](0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md), to the extent that this rule replaces them (register row DQ-10). [ADR 0079](0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md) is extended, not replaced.
 

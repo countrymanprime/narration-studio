@@ -1,6 +1,6 @@
 # 0388. The Booth is a page keyed by its address, and only Exit booth stops a live session
 
-**Status:** Proposed
+**Status:** Proposed (its decision 3 is superseded by [ADR 0790](0790-leaving-the-booth-while-recording-asks-to-stop-the-recording-the-app-started-and-a-reading-only-session-keeps-running.md) while a recording runs)
 **Date:** 2026-09-27
 
 ## Context

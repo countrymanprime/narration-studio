@@ -1,6 +1,6 @@
 # 0020. Story Bible entity extraction favors precision over recall
 
-**Status:** Accepted
+**Status:** Accepted (superseded in part by [ADR 0803](0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md), where the 75% rule replaces it)
 **Date:** 2026-09-18
 
 ## Context

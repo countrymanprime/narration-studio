@@ -1,6 +1,6 @@
 # 0042. Proofing's "Suggest from manuscript" derives names from the current Story Bible and leaves out auto-extracted Needs Review entries
 
-**Status:** Accepted
+**Status:** Accepted (superseded in part by [ADR 0803](0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md), where the 75% rule replaces it)
 **Date:** 2026-09-20
 **Supersedes:**
 

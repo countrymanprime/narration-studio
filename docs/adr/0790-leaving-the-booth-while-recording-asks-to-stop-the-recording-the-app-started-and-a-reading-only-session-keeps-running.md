@@ -1,6 +1,6 @@
 # 0790. Leaving the Booth while recording asks to stop the recording the app started, and a reading-only session keeps running
 
-**Status:** Proposed (register row A10 in the [ADR register](../prds/studio-next-adr-register.prd.md), the rebuild PRD's A10; the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; register row A10 in the [ADR register](../prds/studio-next-adr-register.prd.md), the rebuild PRD's A10)
 **Date:** 2026-10-11
 **Supersedes:** [ADR 0388](0388-the-booth-is-a-page-keyed-by-its-address-and-only-exit-booth-stops-a-live-session.md) decision 3, while a recording runs only. Amends [ADR 0232](0232-arming-for-a-recording-remembers-the-narrators-arms-makes-no-undo-point-and-the-app-stops-only-the-recording-it-started.md).
 

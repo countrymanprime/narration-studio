@@ -1,6 +1,6 @@
 # 0761. Layout rules read the reported width, the icon vocabulary is a data module, and key caps are pictures in a new KeyCap leaf
 
-**Status:** Proposed (owner rulings SN0-Q7, SNF-Q1 and SNF-Q2 of 2026-10-11, register row A16; SNF-Q1 and SNF-Q2 were taken as defaults under the standing instruction, for acceptance on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; owner rulings SN0-Q7, SNF-Q1 and SNF-Q2 of 2026-10-11, register row A16; SNF-Q1 and SNF-Q2 were taken as defaults under the standing instruction)
 **Date:** 2026-10-11
 **Supersedes:** none. It extends [ADR 0620](0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md) and keeps [ADR 0037](0037-visual-suite-captures-no-phone-viewport.md), [ADR 0061](0061-settings-states-are-also-captured-at-a-390px-reflow-width.md) and [ADR 0201](0201-app-zoom-under-wails-v3-on-windows-runs-from-100-to-200-percent-and-reads-the-level-back-from-the-window.md)
 

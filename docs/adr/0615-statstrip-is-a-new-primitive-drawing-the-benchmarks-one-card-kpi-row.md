@@ -1,6 +1,6 @@
 # 0615. StatStrip is a new primitive drawing the benchmark's one-card KPI row
 
-**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the 16 px tile padding and the stacking below `sm` are superseded by [ADR 0645](0645-the-production-board-draws-mock-01s-cells-columns-and-layout-and-the-mock-wins-the-open-audit-layout-questions.md), which wraps the strip into full rows)
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the 16 px tile padding and the stacking below `sm` are superseded by [ADR 0645](0645-the-production-board-draws-mock-01s-cells-columns-and-layout-and-the-mock-wins-the-open-audit-layout-questions.md), which wraps the strip into full rows; superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Supersedes:** none
 

@@ -1,6 +1,6 @@
 # 0635. The nav rail and header take the benchmark sizes, and every header chip is one HeaderChip primitive
 
-**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the benchmark shell's lower score against the 2026-09-24 sets, and mock 01's rail, are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the benchmark shell's lower score against the 2026-09-24 sets, and mock 01's rail, are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Amends:** [ADR 0059](0059-text-colours-meet-wcag-aa-with-two-text-levels-a-non-text-token-and-derived-on-tint-text.md)'s "accent tint" behind the current nav item, which becomes the `--accent-soft` token
 

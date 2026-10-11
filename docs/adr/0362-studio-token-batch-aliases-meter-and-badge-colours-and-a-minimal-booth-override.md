@@ -1,6 +1,6 @@
 # 0362. The studio token batch aliases meter and badge colours, and the booth block overrides only what it must
 
-**Status:** Proposed (its booth block decision, and checking that block as a third theme map, are superseded by [ADR 0365](0365-the-theme-is-one-global-setting-and-the-booth-and-companion-follow-it.md); its badge-fill clause by [ADR 0590](0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md), whose opaque `--<tone>-soft` fills replace the 14% tints; the meter aliases and `experimental` tone stand)
+**Status:** Proposed (its booth block decision, and checking that block as a third theme map, are superseded by [ADR 0365](0365-the-theme-is-one-global-setting-and-the-booth-and-companion-follow-it.md); its badge-fill clause by [ADR 0590](0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md), whose opaque `--<tone>-soft` fills replace the 14% tints; the meter aliases and `experimental` tone stand; superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-26
 **Supersedes:**
 

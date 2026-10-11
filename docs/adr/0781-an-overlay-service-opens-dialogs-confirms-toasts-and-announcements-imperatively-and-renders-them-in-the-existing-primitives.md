@@ -1,6 +1,6 @@
 # 0781. An overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the existing primitives
 
-**Status:** Proposed (owner ruling SNR-Q4 of 2026-10-11 and the PRD's Decisions Log row "Overlay API is imperative, rendering is declarative", register row A4; taken as defaults under the standing instruction, for acceptance on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; owner ruling SNR-Q4 of 2026-10-11 and the PRD's Decisions Log row "Overlay API is imperative, rendering is declarative", register row A4; taken as defaults under the standing instruction)
 **Date:** 2026-10-11
 **Supersedes:** none. It extends [ADR 0048](0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md), [ADR 0172](0172-popover-is-an-interactive-layer-above-the-dialog-and-escape-defers-to-the-topmost-one.md) and [ADR 0630](0630-overlays-keep-the-mocks-frame-a-nested-dialog-dims-the-page-and-a-combobox-popup-is-a-listbox-not-a-popover.md) and keeps their rules.
 
