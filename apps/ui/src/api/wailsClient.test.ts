@@ -1142,6 +1142,51 @@ describe('the marks bindings', () => {
   });
 });
 
+describe('the extraction bindings', () => {
+  const suggestion = {
+    id: 's3',
+    kind: 'alias',
+    payload: { kind: 'alias', entry: 'White Rabbit', alias: 'Rabbit' },
+    entryId: 'white-rabbit',
+    evidence: [],
+    confidence: 0.5,
+    source: 'rules',
+    status: 'accepted',
+    fp: 'alias|white rabbit|rabbit',
+    applied: { entryId: 'white-rabbit', aliases: ['Rabbit'] },
+    createdAt: '2026-10-11T09:00:00Z',
+  };
+  const decision = { suggestion, settled: [], entryIds: ['white-rabbit'] };
+
+  it('calls the five host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify([suggestion]));
+    const accept = vi.fn().mockResolvedValue(JSON.stringify(decision));
+    const reject = vi.fn().mockResolvedValue(JSON.stringify(decision));
+    const review = vi.fn().mockResolvedValue(JSON.stringify(decision));
+    const reopen = vi.fn().mockResolvedValue(JSON.stringify(decision));
+    standInHost({ ExtractionList: list, ExtractionAccept: accept, ExtractionReject: reject, ExtractionReview: review, ExtractionReopen: reopen });
+
+    await expect(wailsClient.extractionList()).resolves.toEqual([suggestion]);
+    await expect(wailsClient.extractionAccept('s3')).resolves.toEqual(decision);
+    expect(accept).toHaveBeenCalledWith('s3', null);
+    await expect(wailsClient.extractionAccept('s3', 'Bunny')).resolves.toEqual(decision);
+    expect(accept).toHaveBeenLastCalledWith('s3', 'Bunny');
+    await expect(wailsClient.extractionReject('s3')).resolves.toEqual(decision);
+    expect(reject).toHaveBeenCalledWith('s3');
+    await expect(wailsClient.extractionReview('s3')).resolves.toEqual(decision);
+    expect(review).toHaveBeenCalledWith('s3');
+    await expect(wailsClient.extractionReopen('s3')).resolves.toEqual(decision);
+    expect(reopen).toHaveBeenCalledWith('s3');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ ExtractionList: () => Promise.resolve(JSON.stringify([{ ...suggestion, status: 'maybe' }])) });
+    await expect(wailsClient.extractionList()).rejects.toBeInstanceOf(WireError);
+    standInHost({ ExtractionReview: () => Promise.resolve(JSON.stringify({ ...decision, suggestion: { ...suggestion, confidence: 2 } })) });
+    await expect(wailsClient.extractionReview('s3')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {

@@ -1,0 +1,201 @@
+[
+  {
+    "confidence": 0.9,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": null,
+    "evidence": [],
+    "fp": "entry|the dodo",
+    "id": "s2",
+    "kind": "entry",
+    "payload": {
+      "description": "A bird who runs the race.",
+      "kind": "entry",
+      "name": "The Dodo",
+      "type": "Character"
+    },
+    "source": "rules",
+    "status": "rejected"
+  },
+  {
+    "applied": {
+      "aliases": [
+        "Rabbit"
+      ],
+      "entryId": "white-rabbit"
+    },
+    "confidence": 0.5,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "white-rabbit",
+    "evidence": [],
+    "fp": "alias|white rabbit|rabbit",
+    "id": "s3",
+    "kind": "alias",
+    "payload": {
+      "alias": "Rabbit",
+      "entry": "White Rabbit",
+      "kind": "alias"
+    },
+    "source": "rules",
+    "status": "accepted"
+  },
+  {
+    "confidence": 0.4,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "white-rabbit",
+    "evidence": [],
+    "fp": "alias|white rabbit|alice",
+    "id": "s9",
+    "kind": "alias",
+    "payload": {
+      "alias": "Alice",
+      "entry": "White Rabbit",
+      "kind": "alias"
+    },
+    "reason": "Confidence is under the threshold.",
+    "source": "rules",
+    "status": "needs-verification"
+  },
+  {
+    "confidence": null,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "alice",
+    "evidence": [],
+    "fp": "relationship|alice|follows|white rabbit",
+    "id": "s5",
+    "kind": "relationship",
+    "payload": {
+      "entry": "Alice",
+      "kind": "relationship",
+      "relation": "follows",
+      "to": "White Rabbit"
+    },
+    "reason": "No confidence was given.",
+    "source": "imported",
+    "status": "needs-verification"
+  },
+  {
+    "applied": {
+      "entryId": "white-rabbit"
+    },
+    "chapterId": "c-0001",
+    "confidence": 0.9,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "white-rabbit",
+    "evidence": [
+      {
+        "end": 35,
+        "paragraphId": "p-000001",
+        "start": 19,
+        "text": "I shall be late!"
+      }
+    ],
+    "fp": "claim|white rabbit|talk|worries about being late",
+    "id": "s1",
+    "kind": "claim",
+    "payload": {
+      "claim": "talk",
+      "entry": "White Rabbit",
+      "kind": "claim",
+      "text": "Worries about being late"
+    },
+    "source": "rules",
+    "status": "accepted-auto"
+  },
+  {
+    "applied": {
+      "entryId": "alice"
+    },
+    "confidence": 0.93,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "alice",
+    "evidence": [
+      {
+        "end": 71,
+        "paragraphId": "p-000002",
+        "start": 43,
+        "text": "Alice thought it rather rude"
+      }
+    ],
+    "fp": "property|alice|habit|finds things rude",
+    "id": "s4",
+    "kind": "property",
+    "payload": {
+      "entry": "Alice",
+      "key": "Habit",
+      "kind": "property",
+      "value": "Finds things rude"
+    },
+    "source": "rules",
+    "status": "accepted-auto"
+  },
+  {
+    "confidence": 0.95,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "duchess",
+    "evidence": [
+      {
+        "end": 25,
+        "paragraphId": "p-000002",
+        "start": 12,
+        "text": "spoke sternly"
+      }
+    ],
+    "fp": "property|the duchess|manner|stern",
+    "id": "s7",
+    "kind": "property",
+    "payload": {
+      "entry": "The Duchess",
+      "key": "Manner",
+      "kind": "property",
+      "value": "Stern"
+    },
+    "reason": "The entry is locked.",
+    "source": "rules",
+    "status": "needs-verification"
+  },
+  {
+    "confidence": 0.8,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": null,
+    "evidence": [],
+    "fp": "claim|zed|know|knows a secret",
+    "id": "s8",
+    "kind": "claim",
+    "payload": {
+      "claim": "know",
+      "entry": "Zed",
+      "kind": "claim",
+      "text": "Knows a secret"
+    },
+    "reason": "quote not found The entry is not in the Story Bible.",
+    "source": "local-model",
+    "status": "needs-verification",
+    "unverifiedQuote": "a line that is not in the book"
+  },
+  {
+    "confidence": 0.6,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": null,
+    "evidence": [
+      {
+        "end": 35,
+        "paragraphId": "p-000001",
+        "start": 1,
+        "text": "Oh dear! Oh dear! I shall be late!"
+      }
+    ],
+    "flag": "duplicate",
+    "fp": "speaker|oh dear! oh dear! i shall be late!|white rabbit",
+    "id": "s6",
+    "kind": "speaker",
+    "note": "Also offered as the Rabbit.",
+    "payload": {
+      "kind": "speaker",
+      "quote": "Oh dear! Oh dear! I shall be late!",
+      "speaker": "White Rabbit"
+    },
+    "reason": "Confidence is under the threshold.",
+    "source": "gliner",
+    "status": "needs-verification"
+  }
+]

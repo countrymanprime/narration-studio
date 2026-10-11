@@ -24,6 +24,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
+	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/guide"
 	"github.com/countrymanprime/narration-utils/shell/internal/hostlog"
@@ -62,7 +63,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 98
+const hostAPIVersion = 99
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -230,6 +231,8 @@ type Host struct {
 	// pronunciationOnline is the Merriam-Webster lookup (bindings_pronunciationonline.go): user-level like
 	// recents, set once in NewHost and never swapped by a project switch, so it is read directly.
 	pronunciationOnline *pronunciationonline.Service
+	// extractionBible is a seam for tests (bindings_extraction.go): nil means the Story Bible of h.guide.
+	extractionBible apply.Bible
 	// pickRenderFile is a seam for tests (bindings_proofing_render.go): nil means the operating system's single-file
 	// picker for a chapter's rendered file.
 	pickRenderFile func() (string, error)

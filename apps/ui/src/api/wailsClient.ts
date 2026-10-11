@@ -135,6 +135,7 @@ import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
+import { extractionDecisionSchema, extractionSuggestionsSchema } from './schemas/extraction';
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
@@ -422,6 +423,11 @@ export const wailsClient: NarrationApi = {
   marksAdd: (chapterId, paragraphId, start, end, type, text) => decode(markSchema, 'MarksAdd', host.MarksAdd(chapterId, paragraphId, start, end, type, text)),
   marksRemove: (id) => decode(marksSchema, 'MarksRemove', host.MarksRemove(id)),
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),
+  extractionList: () => decode(extractionSuggestionsSchema, 'ExtractionList', host.ExtractionList()),
+  extractionAccept: (id, text) => decode(extractionDecisionSchema, 'ExtractionAccept', host.ExtractionAccept(id, text ?? null)),
+  extractionReject: (id) => decode(extractionDecisionSchema, 'ExtractionReject', host.ExtractionReject(id)),
+  extractionReview: (id) => decode(extractionDecisionSchema, 'ExtractionReview', host.ExtractionReview(id)),
+  extractionReopen: (id) => decode(extractionDecisionSchema, 'ExtractionReopen', host.ExtractionReopen(id)),
   marksReply: (id, who, text) => decode(markSchema, 'MarksReply', host.MarksReply(id, who, text)),
   marksEditMessage: (id, index, text) => decode(markSchema, 'MarksEditMessage', host.MarksEditMessage(id, index, text)),
   marksDeleteMessage: (id, index) => decode(markThreadDeletedSchema, 'MarksDeleteMessage', host.MarksDeleteMessage(id, index)),

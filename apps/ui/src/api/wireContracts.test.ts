@@ -14,6 +14,7 @@ import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
+import { extractionDecisionSchema, extractionSuggestionSchema, extractionSuggestionsSchema } from './schemas/extraction';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -3036,6 +3037,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'marksDeleteMessage',
       'marksRestoreMessage',
       'marksSetStatus',
+      'extractionList',
+      'extractionAccept',
+      'extractionReject',
+      'extractionReview',
+      'extractionReopen',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -3959,5 +3965,87 @@ describe('the marks bindings', () => {
     const after = (await api.marksList()).marks.find((mark) => mark.id === question.id);
     expect(after?.thread.map((entry) => entry.text)).toEqual(['Yes.']);
     expect(after?.status).toBe('open');
+  });
+});
+
+// The Story Bible's extraction suggestions: the host's goldens parse, the schemas refuse what the host never sends, and the mock decides
+// through the same schemas, refusing what the host refuses with nothing changed.
+describe('the extraction bindings', () => {
+  it('the schemas read the goldens: one of each kind and status, the empty list and an accept', () => {
+    const list = parseWire(extractionSuggestionsSchema, readGolden('extraction-list.json'), ctx('extraction list'));
+    expect(new Set(list.map((s) => s.kind))).toEqual(new Set(['entry', 'alias', 'property', 'relationship', 'claim', 'speaker']));
+    expect(new Set(list.map((s) => s.status))).toEqual(new Set(['accepted-auto', 'needs-verification', 'accepted', 'rejected']));
+    expect(list[0]?.kind).toBe('entry');
+    expect(list.some((s) => s.confidence === null)).toBe(true);
+    expect(parseWire(extractionSuggestionsSchema, readGolden('extraction-list-empty.json'), ctx('extraction list empty'))).toEqual([]);
+    const accepted = parseWire(extractionDecisionSchema, readGolden('extraction-accept.json'), ctx('extraction accept'));
+    expect(accepted.suggestion.status).toBe('accepted');
+    expect(accepted.entryIds).toEqual(['white-rabbit']);
+  });
+
+  it('the schema refuses an unknown kind, status or source, a confidence outside 0..1, a mismatched payload and an unknown key', () => {
+    const [first] = parseWire(extractionSuggestionsSchema, readGolden('extraction-list.json'), ctx('extraction list'));
+    const good = readGolden('extraction-list.json') as Array<Record<string, unknown>>;
+    const raw = good[0] ?? {};
+    expect(first).toBeDefined();
+    expect(extractionSuggestionSchema.safeParse(raw).success).toBe(true);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, kind: 'rumour' }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, status: 'maybe' }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, source: 'web' }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, confidence: 1.2 }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, confidence: -0.1 }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, kind: 'alias' }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, path: '/etc/passwd' }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, payload: { kind: 'entry', name: 'X', extra: true } }).success).toBe(false);
+    expect(extractionSuggestionSchema.safeParse({ ...raw, evidence: [{ paragraphId: 'p', start: 4, end: 2, text: 'ab' }] }).success).toBe(false);
+  });
+
+  it('the mock answers the five methods through their schemas and decides as the host does', async () => {
+    const api = createMockApi();
+    const list = await api.extractionList();
+    expectMatches(extractionSuggestionsSchema, list, 'mock extraction list');
+    expect(new Set(list.map((s) => s.kind)).size).toBe(6);
+    expect(new Set(list.map((s) => s.status)).size).toBe(4);
+    const byText = (text: string) => {
+      const found = list.find((s) => JSON.stringify(s.payload).includes(text));
+      if (!found) throw new Error(text);
+      return found;
+    };
+
+    const rabbit = byText('"alias":"Rabbit"');
+    const accepted = await api.extractionAccept(rabbit.id);
+    expectMatches(extractionDecisionSchema, accepted, 'mock extraction accept');
+    expect(accepted).toMatchObject({ suggestion: { status: 'accepted' }, entryIds: ['white-rabbit'] });
+    const reopened = await api.extractionReopen(rabbit.id);
+    expectMatches(extractionDecisionSchema, reopened, 'mock extraction reopen');
+    expect(reopened.suggestion.status).toBe('needs-verification');
+    expect(reopened.suggestion.applied).toBeUndefined();
+
+    const habit = byText('Smokes a hookah');
+    const edited = await api.extractionAccept(habit.id, '  Smokes a long hookah  ');
+    expect(edited.suggestion.payload).toMatchObject({ value: 'Smokes a long hookah' });
+
+    const dodo = byText('The Dodo');
+    const rejected = await api.extractionReject(dodo.id);
+    expectMatches(extractionDecisionSchema, rejected, 'mock extraction reject');
+    expect(rejected.suggestion).toMatchObject({ status: 'rejected' });
+    expect((await api.extractionReopen(dodo.id)).suggestion.status).toBe('accepted-auto');
+    const reviewed = await api.extractionReview(dodo.id);
+    expectMatches(extractionDecisionSchema, reviewed, 'mock extraction review');
+    expect(reviewed.suggestion.status).toBe('accepted');
+  });
+
+  it('the mock refuses what the host refuses and changes nothing', async () => {
+    const api = createMockApi();
+    const before = await api.extractionList();
+    const id = (text: string) => before.find((s) => JSON.stringify(s.payload).includes(text))?.id ?? '';
+    await expect(api.extractionAccept('s999')).rejects.toThrow('That suggestion is gone.');
+    await expect(api.extractionAccept(id('"alias":"the Queen"'))).rejects.toThrow('is already a name of Queen of Hearts');
+    await expect(api.extractionAccept(id('Pleasant in this chapter'))).rejects.toThrow('The entry is locked.');
+    await expect(api.extractionAccept(id('Smokes a hookah'), '   ')).rejects.toThrow('The text is empty.');
+    await expect(api.extractionAccept(id('Smokes a hookah'), 'x'.repeat(8193))).rejects.toThrow('The text is too long.');
+    await expect(api.extractionReview(id('"alias":"Rabbit"'))).rejects.toThrow('Nothing to review.');
+    await expect(api.extractionReopen(id('"alias":"Rabbit"'))).rejects.toThrow('not decided');
+    expect(await api.extractionList()).toEqual(before);
   });
 });

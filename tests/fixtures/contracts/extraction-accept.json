@@ -1,0 +1,28 @@
+{
+  "entryIds": [
+    "white-rabbit"
+  ],
+  "settled": [],
+  "suggestion": {
+    "applied": {
+      "aliases": [
+        "Rabbit"
+      ],
+      "entryId": "white-rabbit"
+    },
+    "confidence": 0.5,
+    "createdAt": "2026-09-21T10:00:00Z",
+    "entryId": "white-rabbit",
+    "evidence": [],
+    "fp": "alias|white rabbit|rabbit",
+    "id": "s3",
+    "kind": "alias",
+    "payload": {
+      "alias": "Rabbit",
+      "entry": "White Rabbit",
+      "kind": "alias"
+    },
+    "source": "rules",
+    "status": "accepted"
+  }
+}
