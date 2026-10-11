@@ -253,8 +253,12 @@ func TestExtractionReviewMakesItTheNarrators(t *testing.T) {
 	if e, _ := entryOf(t, bible, "The Dodo"); e.FlaggedEntry {
 		t.Fatal("the Review flag is still set")
 	}
-	if _, err := host.ExtractionReview(suggestionAbout(t, host, "Rabbit").ID); err == nil {
-		t.Fatal("a suggestion that needs verification was reviewed")
+	rabbit := suggestionAbout(t, host, "Rabbit")
+	if _, err := host.ExtractionReview(rabbit.ID); err == nil || err.Error() != "Nothing to review." {
+		t.Fatalf("review of a suggestion that needs verification = %v", err)
+	}
+	if after := suggestionAbout(t, host, "Rabbit"); !jsonEqual(t, after, rabbit) {
+		t.Fatal("a refused review changed the suggestion")
 	}
 }
 
