@@ -783,6 +783,29 @@ describe('live events (ADR 0069: dropped and counted, never thrown inside the ca
   });
 });
 
+describe('the pronunciation sources bindings', () => {
+  it('calls the two host methods with their arguments and decodes each answer', async () => {
+    const sources = vi
+      .fn()
+      .mockResolvedValue(JSON.stringify({ sources: [{ id: 'cmu', label: 'CMU dictionary', kind: 'lookup', available: true }], default: 'cmu' }));
+    const candidate = vi
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify({ ok: true, say: 'krō-ˈkā' }))
+      .mockResolvedValueOnce(JSON.stringify({ ok: false, reason: 'Type it in.' }));
+    standInHost({ PronunciationSources: sources, PronunciationCandidate: candidate });
+
+    await expect(wailsClient.pronunciationSources()).resolves.toMatchObject({ default: 'cmu' });
+    await expect(wailsClient.pronunciationCandidate('croquet', 'merriam_webster')).resolves.toEqual({ ok: true, say: 'krō-ˈkā' });
+    expect(candidate).toHaveBeenCalledWith('croquet', 'merriam_webster');
+    await expect(wailsClient.pronunciationCandidate('croquet', 'manual')).resolves.toEqual({ ok: false, reason: 'Type it in.' });
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ PronunciationCandidate: () => Promise.resolve(JSON.stringify({ ok: true })) });
+    await expect(wailsClient.pronunciationCandidate('croquet', 'cmu')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the bookmarks bindings', () => {
   const bookmark = {
     id: 'b1',

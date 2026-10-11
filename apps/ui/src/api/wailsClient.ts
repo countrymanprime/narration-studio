@@ -32,6 +32,7 @@ import {
 import { dawCatalogListSchema } from './schemas/dawCatalog';
 import { dawCapabilitiesSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
+import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -557,6 +558,8 @@ export const wailsClient: NarrationApi = {
   pronunciationOnlineKeyClear: () => decode(pronunciationOnlineKeyStatusSchema, 'PronunciationOnlineKeyClear', host.PronunciationOnlineKeyClear()),
   pronunciationOnlineSignUpOpen: () => decode(voidResult, 'PronunciationOnlineSignUpOpen', host.PronunciationOnlineSignUpOpen()),
   pronunciationOnlineLookup: (word) => decode(pronunciationOnlineResultSchema, 'PronunciationOnlineLookup', host.PronunciationOnlineLookup(word)),
+  pronunciationSources: () => decode(pronunciationSourcesSchema, 'PronunciationSources', host.PronunciationSources()),
+  pronunciationCandidate: (word, source) => decode(pronunciationCandidateSchema, 'PronunciationCandidate', host.PronunciationCandidate(word, source)),
   pronunciationOnlineLookupBatch: (words, confirmedCount) =>
     decode(pronunciationOnlineBatchResultSchema, 'PronunciationOnlineLookupBatch', host.PronunciationOnlineLookupBatch(words, confirmedCount)),
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),
