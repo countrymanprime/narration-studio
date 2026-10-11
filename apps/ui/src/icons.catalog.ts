@@ -48,6 +48,7 @@ import {
   faMagnifyingGlassMinus,
   faMagnifyingGlassPlus,
   faMicrophone,
+  faMicrophoneLines,
   faMoon,
   faPen,
   faPlay,
@@ -168,6 +169,7 @@ export const CATALOG = {
   goTo: action(faArrowRight, 'go on', 'Go to the next step'),
   list: action(faListUl, 'show a list', 'Show the results'),
   chapters: action(faListOl, 'chapter list', 'Show the chapter list'),
+  levels: action(faMicrophoneLines, 'recording levels', 'Show the recording levels'),
   sidePanel: action(faTableColumns, 'side panel', 'Toggle the side panel'),
   openFullApp: action(faUpRightAndDownLeftFromCenter, 'open the full app', 'Open the full app'),
 
