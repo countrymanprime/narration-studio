@@ -231,11 +231,11 @@ export function PickupsTable({
         </div>
       ) : pickups.length > 0 && scope !== ALL_SCOPE ? (
         <div className="p-6 text-center">
-          <h3 className="font-semibold">No pickups for this chapter</h3>
+          <h2 className="font-semibold">No pickups for this chapter</h2>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 p-6 text-center">
-          <h3 className="font-semibold">No pickups queued</h3>
+          <h2 className="font-semibold">No pickups queued</h2>
           <span className="text-[var(--text-muted)]">Mark a proof note “Needs pickup” and it appears here.</span>
           <IconButton action="goTo" label="Go to Proof" onClick={() => onGoToProof()} />
         </div>
