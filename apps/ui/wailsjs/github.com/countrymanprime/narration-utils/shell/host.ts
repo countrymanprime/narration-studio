@@ -13,6 +13,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as editlog$0 from "./internal/editlog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as liveflags$0 from "./internal/liveflags/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -690,6 +693,29 @@ export function EditingCancel(): $CancellablePromise<string> {
  */
 export function EditingCandidates(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(435807084, chapterID);
+}
+
+/**
+ * EditingCutRecord stores a cut after the DAW accepted the deleteRange: it carries the DAW's guid and undo steps, and is
+ * refused, with nothing saved, when its words are not in the paragraph's current text, its range or options are not ones the
+ * app sends, or it overlaps a cut already stored on the same take.
+ */
+export function EditingCutRecord(chapterID: string, cut: editlog$0.CutRequest): $CancellablePromise<string> {
+    return $Call.ByID(2579032923, chapterID, cut);
+}
+
+/**
+ * EditingCutRemove forgets a chapter's cut: the inverse the journal calls when the DAW change is undone in the session.
+ */
+export function EditingCutRemove(chapterID: string, id: string): $CancellablePromise<string> {
+    return $Call.ByID(709373290, chapterID, id);
+}
+
+/**
+ * EditingCutsList returns a chapter's cuts in the original recording's time order, each checked against the current text.
+ */
+export function EditingCutsList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1011505999, chapterID);
 }
 
 /**

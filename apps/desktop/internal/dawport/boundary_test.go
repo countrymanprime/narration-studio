@@ -225,10 +225,10 @@ func TestEveryBridgeHolderExceptionIsStillNeeded(t *testing.T) {
 }
 
 // kindConstantNames are dawadapter.Kind's constants, also reachable through dawport's aliases (adapter.go).
-var kindConstantNames = map[string]bool{"KindNone": true, "KindREAPER": true, "KindAudacity": true}
+var kindConstantNames = map[string]bool{"KindNone": true, "KindREAPER": true, "KindAudacity": true, "KindBuiltIn": true}
 
 // dawLabels are the DAW-identifying strings dawadapter.Kind.String() returns.
-var dawLabels = map[string]bool{"REAPER": true, "Audacity": true}
+var dawLabels = map[string]bool{"REAPER": true, "Audacity": true, "Built-in": true}
 
 // namesKindOrLabel reports whether expression is a dawadapter.Kind (or dawport-aliased) constant, or a string literal spelling a
 // DAW's own label.

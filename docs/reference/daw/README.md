@@ -9,6 +9,7 @@ What each digital audio workstation (DAW) can do for the app, and what each capa
 | [REAPER](reaper.md) | How the app reaches REAPER, the behaviour a fake cannot prove, version rules |
 | [Audacity 3.x](audacity-3.md) | The scripting pipe the adapter speaks and the workarounds it carries |
 | [Audacity 4.x](audacity-4.md) | Why nothing is reachable there, and what would change that |
+| [Built-in recorder](builtin-recorder.md) | The app's own recorder as an engine: what it declares and why |
 
 ## Using it
 

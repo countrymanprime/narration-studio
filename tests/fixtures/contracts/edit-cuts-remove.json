@@ -1,0 +1,36 @@
+{
+  "changed": [
+    "cut2"
+  ],
+  "chapterId": "c-0001",
+  "cuts": [
+    {
+      "a": 20,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 21,
+      "chapterId": "c-0001",
+      "daw": "reaper",
+      "fadeMs": 0,
+      "guid": "{CUT-2}",
+      "id": "cut1",
+      "keys": [
+        "p-000002:2",
+        "p-000002:3"
+      ],
+      "mode": "gap",
+      "off0": 10,
+      "off1": 11,
+      "paragraph": 1,
+      "pid": "p-000002",
+      "stale": true,
+      "staleReason": "text_changed",
+      "takeId": "t-1",
+      "text": "were silent.",
+      "undoSteps": 2,
+      "words": [
+        "were",
+        "silent."
+      ]
+    }
+  ]
+}

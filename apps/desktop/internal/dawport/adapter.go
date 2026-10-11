@@ -17,6 +17,9 @@ const (
 	KindREAPER
 	// KindAudacity is `--daw Audacity` (ADR 0144).
 	KindAudacity
+	// KindBuiltIn is the app's own recorder (internal/recording, ADR 0455) as the launch's engine: a launch with no DAW whose
+	// project chose the built-in recorder (LaunchKind), or `--daw Built-in`.
+	KindBuiltIn
 )
 
 func (k Kind) String() string {
@@ -25,6 +28,8 @@ func (k Kind) String() string {
 		return "REAPER"
 	case KindAudacity:
 		return "Audacity"
+	case KindBuiltIn:
+		return "Built-in"
 	default:
 		return "none"
 	}
@@ -39,9 +44,21 @@ func Classify(label string) Kind {
 		return KindREAPER
 	case "audacity":
 		return KindAudacity
+	case "built-in", "builtin", "built in":
+		return KindBuiltIn
 	default:
 		return KindNone
 	}
+}
+
+// LaunchKind is the launch's engine: the DAW label names, or, when it names none, the built-in recorder if the project chose it
+// as its engine (the Recording.engine row, which the host reads). The host asks this in one place (bindings_daw.go) so nothing
+// else decides the launch's kind.
+func LaunchKind(label string, builtinChosen bool) Kind {
+	if kind := Classify(label); kind != KindNone || !builtinChosen {
+		return kind
+	}
+	return KindBuiltIn
 }
 
 // IsREAPERLaunch reports whether daw (the launch's own `daw` fact) names a live REAPER launch. It is the one place outside this
