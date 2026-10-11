@@ -515,7 +515,14 @@ describe('wailsClient', () => {
     const list = vi.fn().mockResolvedValue(JSON.stringify({ findings: null, total: 0 }));
     const get = vi.fn().mockResolvedValue(JSON.stringify(finding));
     const review = vi.fn().mockResolvedValue(JSON.stringify(finding));
-    standInHost({ FindingsList: list, FindingsGet: get, FindingsReview: review, FindingsSummary: vi.fn().mockResolvedValue(JSON.stringify(summary)) });
+    const setType = vi.fn().mockResolvedValue(JSON.stringify({ ...finding, review: { ...finding.review, type: 'pron' } }));
+    standInHost({
+      FindingsList: list,
+      FindingsGet: get,
+      FindingsReview: review,
+      FindingsSetType: setType,
+      FindingsSummary: vi.fn().mockResolvedValue(JSON.stringify(summary)),
+    });
 
     await expect(wailsClient.findingsList({ sort: 'confidence', limit: 50 })).resolves.toEqual({ findings: [], total: 0 });
     expect(list).toHaveBeenCalledWith({ sort: 'confidence', limit: 50 });
@@ -525,6 +532,8 @@ describe('wailsClient', () => {
       review: { status: 'dismissed' },
     });
     expect(review).toHaveBeenCalledWith('f1', 'v1', 'dismissed', 'noise');
+    await expect(wailsClient.findingsSetType('f1', 'v1', 'pron')).resolves.toMatchObject({ review: { type: 'pron' } });
+    expect(setType).toHaveBeenCalledWith('f1', 'v1', 'pron');
     await expect(wailsClient.findingsSummary()).resolves.toMatchObject({ dismissed: 1, analyzers: [], chapters: [] });
   });
 

@@ -2126,6 +2126,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(findingSchema, await api.findingsGet(shown.id), 'mock findings get');
     const reviewed = await api.findingsReview({ id: shown.id, evidenceVersion: shown.evidence_version ?? '', status: 'deferred', note: 'Check tomorrow.' });
     expectMatches(findingSchema, reviewed, 'mock findings review');
+    const retyped = await api.findingsSetType(shown.id, shown.evidence_version ?? '', 'breath');
+    expectMatches(findingSchema, retyped, 'mock findings retype');
+    expect(retyped.review).toMatchObject({ status: 'deferred', type: 'breath' });
     expectMatches(findingsSummarySchema, await api.findingsSummary(), 'mock findings summary');
     const empty = createMockApi({}, { findings: [] });
     expectMatches(findingsPageSchema, await empty.findingsList({}), 'mock findings list, empty queue');
@@ -3054,6 +3057,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'findingsList',
       'findingsGet',
       'findingsReview',
+      'findingsSetType',
       'findingsSummary',
       'findingsReaperStatus',
       'findingsGoTo',

@@ -153,6 +153,7 @@ var stressReaders = []stressReader{
 	{"FindingsList", func(h *Host) { _, _ = h.FindingsList(FindingsQuery{}) }},
 	{"FindingsGet (unknown finding)", func(h *Host) { _, _ = h.FindingsGet("missing") }},
 	{"FindingsReview (unknown finding)", func(h *Host) { _, _ = h.FindingsReview("missing", "", "accepted", "") }},
+	{"FindingsSetType (unknown finding)", func(h *Host) { _, _ = h.FindingsSetType("missing", "", "pron") }},
 	{"FindingsSummary", func(h *Host) { _, _ = h.FindingsSummary() }},
 	{"FindingsReaperStatus", func(h *Host) { _, _ = h.FindingsReaperStatus() }},
 	{"FindingsGoTo (unknown finding)", func(h *Host) { _, _ = h.FindingsGoTo("missing") }},
