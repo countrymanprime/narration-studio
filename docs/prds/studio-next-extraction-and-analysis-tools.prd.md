@@ -122,7 +122,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 2 | ADR and schema | A14; suggestion contract, store, rule, evidence verification | in progress (rule, evidence check and fingerprint SNX-2a [#1080](https://github.com/countrymanprime/narration-utils/issues/1080); store, schema, golden and binding SNX-2b) | 1 | SN0-1 | 1.5 | - |
 | 3 | Rules tier into suggestions | Sidecar adapter emits suggestions | pending | 4 | 2 | 1.0 | - |
 | 4 | Suggested UI | Rows, chips, accept, reject, review, needs-verification | pending | 3 | 2, SNB-3 | 1.3 | - |
-| 5 | Import and prompt | Host parser, preview, UI dialog, prompt template | pending | 4 | 2 | 1.2 | - |
+| 5 | Import and prompt | Host parser, preview, UI dialog, prompt template | in progress (parser, plan and prompt SNX-5a [#1086](https://github.com/countrymanprime/narration-utils/issues/1086); binding, dialog and threat-model row SNX-5b) | 4 | 2 | 1.2 | - |
 | 6 | Consent and registry rows | Consent screen, assets for the tools, Settings section, first-scan prompt | pending | 4 | 1 | 1.2 | - |
 | 7 | Tool adapters | GLiNER, BookNLP sidecar adapters, conformance | pending | - | 1, 6 | 1.3 | - |
 | 8 | Evaluation | Harness, calibration table, default review | pending | - | 7 | 0.5 | - |
