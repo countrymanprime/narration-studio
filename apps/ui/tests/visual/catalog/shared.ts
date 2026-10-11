@@ -1,9 +1,13 @@
 // The row metadata (extra viewports, reloadPerViewport reasons) the page files under catalog/ share.
-import { COMPANION_VIEWPORT, REFLOW_VIEWPORT, WIDE_VIEWPORT } from '../viewports';
+import { COMPANION_VIEWPORT, MEDIUM_ONLY_VIEWPORT, RAIL_ONLY_VIEWPORT, REFLOW_VIEWPORT, WIDE_VIEWPORT } from '../viewports';
 
 // The Settings row stacks below `md`, so every Settings state is also captured at the reflow width (ADR 0061) and the
 // collapsed-control check runs there.
 export const REFLOW = { extraViewports: [REFLOW_VIEWPORT] };
+
+// Rows whose layout changes inside the two bands the matrix skips (rail collapsed only, medium only; viewports.ts) also
+// capture them. A row that also has `REFLOW` lists both: `extraViewports: [...REFLOW.extraViewports, ...LAYOUT_BANDS.extraViewports]`.
+export const LAYOUT_BANDS = { extraViewports: [RAIL_ONLY_VIEWPORT, MEDIUM_ONLY_VIEWPORT] };
 
 // Companion mode's rows are also captured at the width the host narrows the window to (COMPANION_VIEWPORT).
 export const COMPANION = { extraViewports: [COMPANION_VIEWPORT] };
