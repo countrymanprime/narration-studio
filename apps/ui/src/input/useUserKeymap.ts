@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { useApi } from '../api/ApiContext';
+import { usePort } from '../ports/usePort';
 import { EMPTY_KEYMAP_OVERRIDES, keymapOverridesSchema } from '../api/schemas/keymap';
 import { parseWireJson } from '../api/wire/parseWire';
 import { COMMAND_CATALOG, type CommandDescriptor } from './commands.catalog';
@@ -42,7 +42,7 @@ function subscribe(listener: () => void): () => void {
  * through the API's `settingsForScope`, and the defaults stand until that returns or if it fails.
  */
 export function useUserKeymap(documentText?: string, catalog: readonly CommandDescriptor[] = COMMAND_CATALOG): Keymap {
-  const api = useApi();
+  const api = usePort('system');
   const readRevision = useSyncExternalStore(
     subscribe,
     () => revision,
