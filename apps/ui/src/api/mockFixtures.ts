@@ -238,8 +238,8 @@ export const WIRE_CHAPTERS: ManuscriptChapter[] = aliceChapters.map((chapter, in
   })),
   wordCount: chapter.paragraphs.join(' ').split(/\s+/).length * 4,
   // Chapters 1-3 were checked and read in full, 4-6 were checked with a third of their text still to record, the rest were never
-  // checked (docs/utilities/recording-coverage.md D11, Q12). The share only drives the recording check and stage suggestions;
-  // Home's Actual recorded column does not estimate from it (actual-recorded-column.prd.md Phase 1).
+  // checked (docs/utilities/recording-coverage.md). The share only drives the recording check and stage suggestions;
+  // Home's Actual recorded column does not estimate from it.
   ...(index < 6 ? { recordedFraction: index < 3 ? 1 : 0.65 } : {}),
   status: index < 3 ? 'finalized' : index < 6 ? 'recording' : index < 8 ? 'editing' : index < 10 ? 'proofing' : 'not_started',
 }));
@@ -382,7 +382,7 @@ export const WIRE_ENTITIES: GuideEntity[] = [
   },
 ];
 
-// character-continuity-review.prd.md Phase 6 (non-acoustic part only; D87 benches every acoustic-drift binding).
+// Character references, non-acoustic part only (no acoustic-drift binding reads them).
 // The saved REAPER project's regions the narrator can approve as voice references: three candidates, none yet
 // approved by default (`characterReferences` below is where an approval lives), so the "approve a reference"
 // flow itself has something to point at.
@@ -415,8 +415,7 @@ export const WIRE_CHARACTER_REFERENCES: ApprovedCharacterReference[] = [
   },
 ];
 
-// character-continuity-review.prd.md Phase 11 (D87 benches every acoustic-drift binding, so this is reference data
-// only): a two-book series so the Series tab has something to show by default. The current project
+// Series, reference data only (no acoustic-drift binding reads it): a two-book series so the Series tab has something to show by default. The current project
 // (DEFAULT_PROJECT_FOLDER, 'C:/Projects/Alice-in-Wonderland') is Book 1; the second member is a sibling project this
 // mock never actually opens - its own reference clips are canned in WIRE_SERIES_SIBLING_CLIPS below rather than
 // simulated through a second MockState, since the mock always represents exactly one open project.
@@ -634,7 +633,7 @@ const deliveryLimit = (key: string, label: string, min: number, unit: string): S
   effectiveSource: 'hardcoded',
   number: { min, max: 0, step: 0.1, unit },
 });
-// A recording check setting as the host sends it with nothing set: its Proposed, uncalibrated default (recording-coverage PRD Q3, Q15).
+// A recording check setting as the host sends it with nothing set: its Proposed, uncalibrated default.
 const recordingCheck = (key: string, label: string, value: string, number: ScopedSettingField['number']): ScopedSettingField => ({
   key,
   label,
@@ -677,7 +676,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   ManuscriptGuide: [
     choice('spacy_model', 'spaCy model', ['en_core_web_sm', 'en_core_web_lg'], 'en_core_web_sm'),
     bool('build_after_import', 'Build the Story Bible after import', 'true'),
-    // story-bible-and-import-ux-briefs PRD phase 11: "" (Automatic) is the unset default, matching app.go's fieldSchemas.
+    // "" (Automatic) is the unset default, matching app.go's fieldSchemas.
     choice('default_pronunciation_source', 'Default pronunciation source', ['', 'cmu', 'wiktextract', 'espeak'], ''),
   ],
   TranscriptCompare: [
@@ -741,8 +740,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: 'tiny',
       effectiveSource: 'repo default',
     },
-    // Punch and roll's pre-roll (teleprompter-manuscript-integration.prd.md Phase 12, booth-actions-enablement PRD
-    // Phase 3), mirroring the host's fieldSchemas and numberSpecs: 0-10 s, default 3 s.
+    // Punch and roll's pre-roll, mirroring the host's fieldSchemas and numberSpecs: 0-10 s, default 3 s.
     recordingCheck('punch_preroll_seconds', 'Punch pre-roll (seconds)', '3', { min: 0, max: 10, step: 0.5, unit: 's' }),
   ],
   Updates: [
@@ -758,7 +756,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     },
     choice('channel', 'Update channel', ['candidates', 'stable'], 'candidates'),
   ],
-  // DAW.reaper_path/auto_start_launcher (Phase 8): keyed "DAW" to match apps/desktop/app.go's fieldSchemas, not
+  // DAW.reaper_path/auto_start_launcher: keyed "DAW" to match apps/desktop/app.go's fieldSchemas, not
   // the "Daw" Settings category key (which is a UI label, not the settings tool name).
   DAW: [
     {
@@ -791,7 +789,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: 'false',
       effectiveSource: 'repo default',
     },
-    // DAW.fx_favourites (edit-and-proof-workspace PRD Phase 8, ADR 0234): the narrator's favourite FX chains and
+    // DAW.fx_favourites (ADR 0234): the narrator's favourite FX chains and
     // plug-ins, a comma-joined "tags" field, mirroring apps/desktop/app.go's fieldSchemas.
     {
       key: 'fx_favourites',
@@ -803,7 +801,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'repo default',
     },
-    // One choice field (auto/on/off) per DAW port capability (DAW port PRD Phase 4), mirroring apps/desktop/app.go's
+    // One choice field (auto/on/off) per DAW port capability, mirroring apps/desktop/app.go's
     // capabilityFieldSchemas: every row starts unset, its repo default "auto", like auto_start_launcher above.
     ...DAW_CAPABILITIES.map(({ key, label }): ScopedSettingField => ({
       key: `capability.${key}`,
@@ -834,17 +832,16 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('max_missing_run', 'Longest run of missing words allowed', '3', { min: 0, max: 200, step: 1, unit: 'words' }),
     recordingCheck('max_misread_run', 'Longest misread still counted as read', '8', { min: 0, max: 200, step: 1, unit: 'words' }),
     recordingCheck('min_anchor_run', 'Shortest match that counts as read', '3', { min: 1, max: 50, step: 1, unit: 'words' }),
-    // Background checks of changed chapters (daw-chapter-track-auto-sync PRD Phase 7, ADR 0211), on by default.
+    // Background checks of changed chapters (ADR 0211), on by default.
     bool('background_checks', 'Check changed chapters in the background', 'true'),
-    // The model cascade's own three settings (recording-check-model-cascade PRD Phase 5, MC1/MC2): off by default,
+    // The model cascade's own three settings: off by default,
     // tiny for the first pass, large-v3-turbo for the re-check.
     bool('cascade_enabled', "Two-pass check (fast first pass, then re-check what's missing)", 'false'),
     choice('cascade_first_pass_model', 'First-pass Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'tiny'),
     choice('cascade_recheck_model', 'Re-check Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'large-v3-turbo'),
   ],
-  // The silence cleanup analyzer's five thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
-  // ADR 0238 decision 4), mirroring the host's fieldSchemas and numberSpecs: measure.DefaultCleanupOptions' own
-  // starting values, all still unset at every scope (repo default only) the way a fresh install reads them.
+  // The silence cleanup analyzer's five thresholds (ADR 0238 decision 4), mirroring the host's fieldSchemas and numberSpecs:
+  // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.
   Cleanup: [
     recordingCheck('pad_seconds', 'Hold kept at each side of a cut silence', '0.15', { min: 0, max: 2, step: 0.01, unit: 's' }),
     recordingCheck('min_breath_seconds', 'Shortest run read as a breath', '0.12', { min: 0.01, max: 5, step: 0.01, unit: 's' }),
@@ -1185,7 +1182,7 @@ export const WIRE_CLEANUP_TOOLS_ERROR: CleanupToolsState = {
 };
 
 /** Two lines of Chapter 1 recorded as retakes on fixed lanes, lane 1 (index 0) playing in the saved project. Same shape
- * as tests/fixtures/contracts/retake-lanes-list.json, which is the S7 spike project and so has test-case track names. */
+ * as tests/fixtures/contracts/retake-lanes-list.json, which is built from a REAPER 7.80 fixture project (apps/desktop/internal/tracks/testdata/reaper/README.md) and so has test-case track names. */
 export const WIRE_RETAKE_LANES_LIST: RetakeLanesList = {
   laneTracks: 1,
   lines: [
@@ -1265,11 +1262,11 @@ export const WIRE_CHAPTER_TAGS_EMBED_SUCCESS: ChapterTagsEmbedResult = {
   outputPath: 'C:\\Books\\Alice\\renders\\Alice in Wonderland.chapters.mp3',
 };
 
-// What a pickup and duplicate scan of "Chapter 1" of WIRE_TRACKS_PROJECT saves (take review Phase 5): one partial pickup (a
+// What a pickup and duplicate scan of "Chapter 1" of WIRE_TRACKS_PROJECT saves: one partial pickup (a
 // re-read of part of the span, below the near-duplicate quality bar) and one near-identical duplicate_read, in the shape
 // apps/desktop/contract_test.go's TestContractTakeReviewFindings pins as tests/fixtures/contracts/findings-list-take-review.json.
 // The mock scan saves them into the findings store, so they reach the Review page the way the host's do. No composite score
-// anywhere in this fixture (Q9): only per-category evidence.
+// anywhere in this fixture: only per-category evidence.
 export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
   {
     schema_version: 1,
@@ -1369,11 +1366,11 @@ export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
   },
 ];
 
-// The review bindings' findings store (review dashboard Phase 4), shaped like
+// The review bindings' findings store, shaped like
 // tests/fixtures/contracts/findings-list.json: Transcript Compare discrepancies (one already dismissed, one with no
 // numeric confidence), a Story Bible entity and pronunciation (no time range by design), and a pronunciation the
 // latest Story Bible run no longer flags, so every state the Review page shows has data behind it. The two Chapter 1
-// discrepancies carry the REAPER item, take and track GUIDs Go to and Loop need (Phase 6); the Chapter 2 one comes from
+// discrepancies carry the REAPER item, take and track GUIDs Go to and Loop need; the Chapter 2 one comes from
 // an older comparison that recorded none, so its REAPER controls say why they are off.
 export const WIRE_FINDINGS: Finding[] = [
   {
@@ -1534,7 +1531,7 @@ export function takeReviewPickupFor(chapterId: string, chapterTitle: string): Fi
   };
 }
 
-/** One unreviewed empty-space candidate for chapterId (editing-readiness-analysis.prd.md Phase 3, matching
+/** One unreviewed empty-space candidate for chapterId (matching
  * apps/desktop/internal/editing.EmptySpaceFinding's shape exactly): a gap between two phrases past the narrator's
  * maximum gap, with a source-relative range a Hear control can play. `index` spaces two or more candidates out in
  * time so the panel's earliest-first order is visible. */

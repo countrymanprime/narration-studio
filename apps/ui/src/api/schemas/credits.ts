@@ -88,8 +88,8 @@ const creditsStatusSchema = z.enum(['not_started', 'recording', 'editing', 'proo
 
 export const creditsStatusesSchema = z.record(z.string(), creditsStatusSchema) satisfies z.ZodType<CreditsStatuses>;
 
-// Mirrors apps/ui/src/api/schemas/manuscript.ts's recordedSeconds/recordedUnavailable pair (actual-recorded-column
-// PRD): exactly one of the two is present, never both.
+// Mirrors apps/ui/src/api/schemas/manuscript.ts's recordedSeconds/recordedUnavailable pair: exactly one of the
+// two is present, never both.
 const creditsRecordedLengthSchema = z.union([
   z.object({ recordedSeconds: z.number().nonnegative() }),
   z.object({ recordedUnavailable: z.enum(['unlinked', 'multiple_tracks', 'track_missing', 'no_project']) }),

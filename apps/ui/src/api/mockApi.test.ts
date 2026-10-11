@@ -3,12 +3,11 @@ import { applyMixedManuscriptMock, createMockApi } from './mockApi';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../types';
 
 // createMockApi() is the mock host used by the browser demo and by most component tests (imported by
-// ApiProvider). Its credits functions are a JS mirror of apps/desktop/internal/credits.Render (PRD
-// audiobook-credits-templates.prd.md, Open Questions C5/C6), and its install-job and template-library edge
+// ApiProvider). Its credits functions are a JS mirror of apps/desktop/internal/credits.Render, and its install-job and template-library edge
 // cases are otherwise only reached indirectly, if at all, through component tests. These exercise that
 // behavior directly, against the public NarrationApi surface, rather than through a rendered component.
 
-describe('applyMixedManuscriptMock (?mockManuscript=mixed, manuscript-chapter-header-alignment.prd.md)', () => {
+describe('applyMixedManuscriptMock (?mockManuscript=mixed)', () => {
   const chapters: ManuscriptChapter[] = [
     { id: 'c1', title: 'Chapter 1', index: 0, wordCount: 3182, status: 'not_started', contentKind: 'narration' },
     { id: 'c2', title: 'Chapter 2', index: 1, wordCount: 2044, status: 'not_started', contentKind: 'narration' },
@@ -60,7 +59,7 @@ describe('mockApi credits preview (renderMockCredits)', () => {
 
     const result = await api.creditsPreview('[Title], written by [Author]{, narrated by [Narrator]}.');
 
-    // The dropped segment's own token never counts as unresolved: it was optional, not missing (Open Question C6).
+    // The dropped segment's own token never counts as unresolved: it was optional, not missing.
     expect(result.text).toBe('Neon, written by A. Writer.');
     expect(result.unresolved).toEqual([]);
   });

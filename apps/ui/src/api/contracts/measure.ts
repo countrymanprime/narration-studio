@@ -1,4 +1,4 @@
-// Measurement (diagnostics-delivery-and-cleanup-tools.prd.md Phase 1, ADR 0156): the narrator picks rendered audio
+// Measurement (ADR 0156): the narrator picks rendered audio
 // files in the operating system's picker, and the host measures them as a job with real progress (ADR 0015). Field
 // names inside a report and a fingerprint are the wire's own snake_case, as internal/measure writes them; the job
 // around them is camelCase like the host's other jobs.
@@ -42,10 +42,10 @@ export type MeasureReport = {
   /** Set only for an MP3, read for its container. */
   mp3?: MeasureMP3;
   /**
-   * True once an MP3's audio was actually decoded and its levels measured from the decoded samples (delivery-platform-
-   * profiles Phase 8). Distinguishes "not checked" (no decoder was available, so the level fields above are still null
-   * exactly as before this phase) from "not measurable" (a decode was attempted and found nothing usable): both leave
-   * every level field null, so this is the only way to tell them apart. Always false, or absent, for a WAV.
+   * True once an MP3's audio was actually decoded and its levels measured from the decoded samples. Distinguishes
+   * "not checked" (no decoder was available, so the level fields above are still null) from "not measurable" (a decode
+   * was attempted and found nothing usable): both leave every level field null, so this is the only way to tell them
+   * apart. Always false, or absent, for a WAV.
    */
   mp3_levels_decoded?: boolean;
   range?: MeasureRange;
@@ -114,7 +114,7 @@ export type MeasureJob = Omit<WorkJob, 'kind' | 'phase' | 'preview' | 'requiresR
 export type MeasurePickResult = { paths: string[] };
 
 /**
- * What one report export wrote (DeliveryExportReport, diagnostics PRD Phase 7): the folder relative to the project
+ * What one report export wrote (DeliveryExportReport): the folder relative to the project
  * (`narration-utils/delivery`), the two file names in it, and what the report counts. `openFindings` are the findings not
  * dismissed.
  */

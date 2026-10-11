@@ -15,7 +15,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'profile-rules',
     description:
-      'Master & QC, the delivery profile\'s "Rules and their sources" opened (delivery profiles mockup 01) - every ACX rule with what ACX requires, how the app checks it and a verified, to verify or conflicting-sources mark',
+      'Master & QC, the delivery profile\'s "Rules and their sources" opened - every ACX rule with what ACX requires, how the app checks it and a verified, to verify or conflicting-sources mark',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -30,7 +30,7 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC, three files checked against ACX (mock 05) - length, RMS, true peak, noise floor and head / tail per file, the 48 kHz render failed in words as well as colour with "1 to check yourself", a silent render not judged, a file it could not read with why, and "Chapter 01.wav · Why it fails" with its suggested fix beside the book consistency',
   },
-  // mock-fidelity-primitives-and-components.prd.md Q5: benchmark mock 05's own data, the state the pixel-match tool scores.
+  // Benchmark mock 05's own data, the state the pixel-match tool scores.
   {
     page: 'master',
     state: 'mock-fidelity-05',
@@ -41,14 +41,14 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'file-rules',
     description:
-      "Master & QC, the failing file's Every rule opened (delivery profiles mockup 04) - each rule's result, this file's value, what ACX requires and how that was verified, loudness as information",
+      "Master & QC, the failing file's Every rule opened - each rule's result, this file's value, what ACX requires and how that was verified, loudness as information",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'master',
     state: 'book-spread',
     description:
-      'Master & QC, six chapters already checked against ACX (?mockMeasure=spread, delivery profiles mockup 11) - every file passing, so the panel below the checks is the book consistency alone: RMS, peak and noise floor each as a min-to-max band with a median tick and one tick per chapter',
+      'Master & QC, six chapters already checked against ACX (?mockMeasure=spread) - every file passing, so the panel below the checks is the book consistency alone: RMS, peak and noise floor each as a min-to-max band with a median tick and one tick per chapter',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -68,7 +68,7 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC, a check that broke (?mockMeasure=fails) - the alert asking to choose the files again, the reason on the file it broke on, the files after it not read',
   },
-  // Master & QC, Diagnostics (diagnostics-delivery-and-cleanup-tools.prd.md Phase 6): a section below the chain, scrolled to
+  // Master & QC, Diagnostics: a section below the chain, scrolled to
   {
     page: 'master',
     state: 'diagnostics-empty',
@@ -103,7 +103,7 @@ export const masterStates: StateEntry[] = [
       'Master & QC / Diagnostics, a check that broke (?mockDiagnostics=fails) - the alert asking to choose the files again, the reason on the file it broke on, the files after it not read',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Master & QC, the report export (diagnostics-delivery-and-cleanup-tools.prd.md Phase 7)
+  // Master & QC, the report export
   {
     page: 'master',
     state: 'report-exported',
@@ -117,7 +117,7 @@ export const masterStates: StateEntry[] = [
     description: 'Master & QC, Export report before anything was checked - the host’s refusal as an alert, and nothing written (scrolled to the Report panel)',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Master & QC, "Master all to spec…" and the package (render-encode-master.prd.md Phase 5, mock 05)
+  // Master & QC, "Master all to spec…" and the package (mock 05)
   {
     page: 'master',
     state: 'to-spec-picked',
@@ -139,7 +139,7 @@ export const masterStates: StateEntry[] = [
       'Master & QC, the ACX package built from the five encoded files (mock 05\'s delivery package) - the packager\'s checklist with every rule included, the OUTPUTS folder and the files written, and "Built the acx package"',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Master & QC, multi-platform export (render-encode-master.prd.md Phase 6): several profiles' packages from one
+  // Master & QC, multi-platform export: several profiles' packages from one
   // mastered/encoded source, in one action, beside the single-platform Delivery package above
   {
     page: 'master',
@@ -168,7 +168,7 @@ export const masterStates: StateEntry[] = [
       'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - a per-profile result row for each: its name, Built, the output folder and how many files it wrote',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Delivery findings on Proof (delivery-platform-profiles.prd.md Phase 9, P12): "Open in Master & QC" lands here
+  // Delivery findings on Proof: "Open in Master & QC" lands here
   {
     page: 'master',
     state: 'from-proof',

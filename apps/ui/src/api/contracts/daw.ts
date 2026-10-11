@@ -1,4 +1,4 @@
-// The DAW port's capability payload (DAW port PRD Phase 4, ADR 0300): what the launch's DAW can do right now, computed by
+// The DAW port's capability payload (ADR 0300): what the launch's DAW can do right now, computed by
 // the host's dawport.Resolver from the adapter's declaration, the bridge's reachability and the narrator's
 // DAW.capability.<name> settings. apps/desktop/bindings_daw.go is the binding and the daw_capabilities_changed event;
 // apps/desktop/internal/dawport/capability.go is the capability catalog this file's DAW_CAPABILITIES mirrors.
@@ -88,7 +88,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'macro_render', label: 'Mastering with an effect macro' },
 ];
 
-/** The DAW's transport as of its last heartbeat (daw_transport_changed, DAW port PRD Phase 9, ADR 0305;
+/** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
  * apps/desktop/bindings_daw_transport.go). `recording` counts a paused recording too; `playing` is REAPER's play bit, so it
  * is also true while recording. `position` (project seconds, moving on about every 1.5 s) is sent only while playing or
  * recording. With no DAW, a DAW not answering, or a bridge script too old to report it, both are false. */

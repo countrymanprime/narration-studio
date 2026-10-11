@@ -33,8 +33,7 @@ export async function openBooth(page: Page, query = ''): Promise<void> {
   await goToPage(page, 'Booth');
 }
 
-// Opens the Booth and waits for its resume prompt to have answered (wording
-// updated by Phase 3): the lookup's "Checking..." line is gone.
+// Opens the Booth and waits for its resume prompt to have answered (the lookup's "Checking..." line is gone.
 export async function openResumePrompt(page: Page, query = ''): Promise<void> {
   await openBooth(page, query);
   const card = page.getByRole('region', { name: 'Where you stopped' });
@@ -46,7 +45,7 @@ export async function openResumePrompt(page: Page, query = ''): Promise<void> {
 // elsewhere on the page (the Booth's nav rail also has a "Settings" link).
 export const controlBar = (page: Page) => page.getByRole('toolbar', { name: 'Reading controls' });
 
-// The microphone picker sits behind the control bar's popover (read-aloud-control-bar.prd.md Phase 3): its combobox
+// The microphone picker sits behind the control bar's popover: its combobox
 // does not exist in the DOM until the trigger button is clicked (Popover unmounts its content while closed).
 export async function openMicPopover(page: Page): Promise<void> {
   await controlBar(page)
@@ -55,7 +54,7 @@ export async function openMicPopover(page: Page): Promise<void> {
   await page.getByRole('combobox', { name: 'Microphone' }).waitFor();
 }
 
-// Engine and Model sit behind the control bar's Settings popover (Phase 3), same reasoning as `openMicPopover`.
+// Engine and Model sit behind the control bar's Settings popover, same reasoning as `openMicPopover`.
 export async function openSettingsPopover(page: Page): Promise<void> {
   await controlBar(page).getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('group', { name: 'Model' }).waitFor();
@@ -78,7 +77,7 @@ export const PAGE_HEADING: Record<AppPage, string> = {
   Production: 'Production',
   Script: 'Script',
   'Story Bible': 'Story Bible',
-  // A visually hidden <h1>: the Booth's own status line names the chapter (mock 03).
+  // A visually hidden <h1>: the Booth's own status line names the chapter (benchmark mock 03).
   Booth: 'Booth',
   Proof: 'Proof',
   Pickups: 'Pickups',
@@ -182,7 +181,7 @@ export async function waitForFindingRows(page: Page, count: number): Promise<voi
 // The first transcript difference's detail title (WIRE_FINDINGS[0], a misread at 0:12.4).
 export const MISREAD_DETAIL = '0:12.4 · Misread';
 
-// Selects a finding by its row text and waits for its detail, a region named by its title: mock 04's "0:12.4 · Misread" for a
+// Selects a finding by its row text and waits for its detail, a region named by its title: benchmark mock 04's "0:12.4 · Misread" for a
 // note with a time, its category for one without. On the stacked layout (below `xl`) the detail sits under the list, so its
 // title is scrolled into view for the picture.
 export async function openFindingRow(page: Page, text: RegExp, kind: string | RegExp): Promise<void> {
@@ -215,7 +214,7 @@ export async function pressInReaper(page: Page, name: string, answer: Locator): 
   await showReaperControls(page, answer);
 }
 
-// Marks the open finding for a pickup (only an accepted finding gets an approved marker, review dashboard Phase 8) and opens the
+// Marks the open finding for a pickup (only an accepted finding gets an approved marker) and opens the
 // Add a marker in REAPER confirm.
 export async function confirmApprovedMarker(page: Page): Promise<Locator> {
   await openReaperControls(page);
@@ -228,8 +227,7 @@ export async function confirmApprovedMarker(page: Page): Promise<Locator> {
 }
 
 // Opens Master & QC (after a reload with mock seams, when given) and waits for the delivery profile and the mastering chain to
-// have been read, so the page shows what it judges against and masters with (stage-navigation-and-page-replacement.prd.md
-// Phase 8; delivery-platform-profiles.prd.md Phase 3).
+// have been read, so the page shows what it judges against and masters with.
 export async function openMaster(page: Page, query = ''): Promise<void> {
   if (query) {
     await page.goto(`/${query}`);
@@ -240,8 +238,7 @@ export async function openMaster(page: Page, query = ''): Promise<void> {
   await page.getByRole('list', { name: 'Mastering steps' }).waitFor();
 }
 
-// Opens the Production home, with a `?mockProduction=` seed when given, once its board is drawn (stage-navigation-and-page-replacement.prd.md
-// Phase 2: it is the app's page at `/`).
+// Opens the Production home, with a `?mockProduction=` seed when given, once its board is drawn (the app's page at `/`).
 export async function openProduction(page: Page, query = ''): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
@@ -257,7 +254,7 @@ export async function measureOnMaster(page: Page, query = ''): Promise<void> {
   await page.getByRole('table', { name: 'Per-file checks' }).waitFor();
 }
 
-// Opens Master & QC's Diagnostics section (diagnostics PRD Phase 6), after a reload with mock seams when given, once its
+// Opens Master & QC's Diagnostics section, after a reload with mock seams when given, once its
 // thresholds are read, and scrolls it to the top of the window: it sits below the checks and the mastering chain.
 export async function openDiagnostics(page: Page, query = ''): Promise<void> {
   await openMaster(page, query);
@@ -272,7 +269,7 @@ export async function scrollToTop(page: Page, region: Locator): Promise<void> {
 }
 
 // Picks the mock's five files (opening/closing credits, two chapters, a retail sample) with Master & QC's "Master all to spec…"
-// (render-encode-master.prd.md Phase 5) and assigns the three non-chapter roles the mock picker cannot infer on its own.
+// and assigns the three non-chapter roles the mock picker cannot infer on its own.
 export async function pickFilesToMaster(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Master all to spec…' }).click();
   await page.getByRole('table', { name: 'Files to export' }).waitFor();
@@ -305,7 +302,7 @@ export async function measurementEnded(page: Page, message: string | RegExp): Pr
   await dismissToast.waitFor({ state: 'detached' });
 }
 
-// Opens Find pickups and duplicates (take review Phase 5) once the tracks have filled the form.
+// Opens Find pickups and duplicates once the tracks have filled the form.
 export async function openScanDialog(page: Page): Promise<Locator> {
   await openProof(page);
   await page.getByRole('button', { name: 'Find pickups and duplicates…' }).click();
@@ -371,7 +368,7 @@ export async function productionLoaded(page: Page): Promise<void> {
 
 // The board's columns, in order (components/production/productionFormat.ts BOARD_COLUMNS).
 const BOARD_COLUMN = { Recorded: 0, Prep: 1, Record: 2, Edit: 3, Proof: 4, Delivery: 5 } as const;
-// A passed stage's glyph (productionFormat.ts boardCell, PR10): a row's current stage, the one cell that opens its stage suggestion, is
+// A passed stage's glyph (productionFormat.ts boardCell): a row's current stage, the one cell that opens its stage suggestion, is
 // its first Record, Edit or Proof cell not marked passed (a chapter not started yet reads a dash under Record).
 const PASSED = '✓';
 
@@ -423,8 +420,7 @@ export async function openImportReview(page: Page, preview?: 'markdown' | 'repai
   return dialog;
 }
 
-// Opens a chapter's recording check from its Record cell on the Production board (docs/utilities/recording-coverage.md, ADR 0130;
-// stage-navigation-and-page-replacement.prd.md Phase 2), optionally booted with a mock seed (main.tsx), and waits until the stored
+// Opens a chapter's recording check from its Record cell on the Production board (docs/utilities/recording-coverage.md, ADR 0130), optionally booted with a mock seed (main.tsx), and waits until the stored
 // result has been read into the slide-over. A chapter still recording has Record as its current stage, whose cell opens the stage
 // slide-over instead: its "Recording check" button is the way on. Returns the slide-over.
 export async function openRecordingCheck(page: Page, chapter: string, seed?: string) {
@@ -435,8 +431,8 @@ export async function openRecordingCheck(page: Page, chapter: string, seed?: str
   await productionLoaded(page);
   await clickBoardCell(page, chapter, 'Record');
   const stage = page.getByRole('dialog', { name: new RegExp(`^Stage suggestion: ${chapter}\\b`) });
-  // A prefix match: the panel's full name also carries the chapter's subtitle when it has one
-  // (chapter-title-display-consistency.prd.md Q6), which this helper's callers do not all pass.
+  // A prefix match: the panel's full name also carries the chapter's subtitle when it has one,
+  // which this helper's callers do not all pass.
   const dialog = page.getByRole('dialog', { name: new RegExp(`^Recording check: ${chapter}\\b`) });
   await stage.or(dialog).first().waitFor();
   if (await stage.isVisible()) await stage.getByRole('button', { name: 'Recording check', exact: true }).click();
@@ -445,14 +441,14 @@ export async function openRecordingCheck(page: Page, chapter: string, seed?: str
   return dialog;
 }
 
-// Opens a chapter's track slide-over from its Recorded cell (chapter-track-link-control.prd.md Phase 2), booted with a mock seed
+// Opens a chapter's track slide-over from its Recorded cell, booted with a mock seed
 // (main.tsx's `?mockChapterLink=`), and waits for its saved-project facts to have loaded. Returns the dialog.
 export async function openTrackPanel(page: Page, chapter: string, seed: string) {
   await page.goto(`/?${seed}`);
   await settlePage(page);
   await productionLoaded(page);
   await clickBoardCell(page, chapter, 'Recorded');
-  // The slide-over's name carries the chapter's subtitle after " — " (chapter-title-display-consistency.prd.md Q6).
+  // The slide-over's name carries the chapter's subtitle after " — ".
   const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}( — |$)`) });
   await dialog.getByText('Reading the saved project…').waitFor({ state: 'detached' });
   return dialog;
@@ -475,7 +471,7 @@ export async function openStageEvidence(page: Page, chapter: string) {
   return view;
 }
 
-// Opens Chapter 7's editing check panel from its stage slide-over's "Editing check" (editing-readiness-analysis.prd.md Phase 7),
+// Opens Chapter 7's editing check panel from its stage slide-over's "Editing check",
 // booted with a mock seed (`?mockEditingSignal=`/`?mockEditing=`/`?mockEditingCandidates=1`, main.tsx). Unlike openStageEvidence
 // this never uses the `mixed` seed: Chapter 7 is `mixed`'s own "evidence changed" demo - a query-string seed instead gives
 // Chapter 7 (already in Editing status in the fixture) a plain, uncontested editing signal. Returns the panel.
@@ -503,8 +499,7 @@ export async function openEnginePanel(page: Page): Promise<Locator> {
   return panel;
 }
 
-// Opens Chapter 1's editing check panel from the engine panel's Chapter links list (the second entry point editing readiness
-// Phase 7 names; the Tracks page's until stage navigation Phase 6), booted with a mock seed. Returns the panel.
+// Opens Chapter 1's editing check panel from the engine panel's Chapter links list (the editing check's second entry point), booted with a mock seed. Returns the panel.
 export async function openEditingCheckFromEngine(page: Page, query: string) {
   await page.goto(`/?${query}`);
   await settlePage(page);
@@ -524,7 +519,7 @@ export async function clickSettingsCategory(page: Page, name: string): Promise<v
   await page.locator('.settings-nav').getByRole('tab', { name, exact: true }).click();
 }
 
-// Settings > Story Bible with the narrator's own Merriam-Webster key saved in the mock (prep-depth P9): the panel then says Key saved.
+// Settings > Story Bible with the narrator's own Merriam-Webster key saved in the mock: the panel then says Key saved.
 export async function saveOnlineDictionaryKey(page: Page): Promise<void> {
   await goToPage(page, 'Settings');
   await clickVisible(page, 'tab', 'Global');
@@ -546,15 +541,15 @@ export async function openLocalAssets(page: Page, seed?: string): Promise<void> 
   await page.getByRole('heading', { level: 3, name: 'Small', exact: true }).waitFor();
 }
 
-// The Booth on the `flagged` mock session (teleprompter-manuscript-integration.prd.md Phase 7), once its first
+// The Booth on the `flagged` mock session, once its first
 // default-visible flag (a skip) is drawn as a control in the text. extraQuery adds more mock params (for example
-// `&mockPunchCapabilityOn=1`, booth-actions-enablement PRD Phase 3) to the same navigation.
+// `&mockPunchCapabilityOn=1`) to the same navigation.
 export async function openFlaggedBooth(page: Page, extraQuery = '') {
   await openBooth(page, `?mockTeleprompter=flagged${extraQuery}`);
   await page.locator('[data-highlight="Skipped"][role="button"]').first().waitFor();
 }
 
-// A real mouse wheel over the reader text (teleprompter-engines-and-input-devices.prd.md Phase 10), far enough that the
+// A real mouse wheel over the reader text, far enough that the
 // highlighted word leaves the view, then waits for "Following paused" and for the smooth scroll to finish, so the shot
 // shows where the narrator left the text rather than a frame mid-scroll.
 export async function scrollReaderByHand(page: Page): Promise<void> {
@@ -622,7 +617,7 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
         // A real selection is always on screen already (a narrator can only drag-select what they can see) - this
         // programmatic one is not, so it scrolls the words into view first. Without this, a chapter whose card sits
         // far enough down the page (a narrower reader card wraps its header cluster below the title, taking a second
-        // row per card above it - the Script page's mock-02 three columns, D85 #3 on issue #509) can select text
+        // row per card above it - the Script page's three columns) can select text
         // below the fold, and SelectionMenu's popup (`fixed`, placed from the selection's own viewport rect) then
         // renders off-screen too, since it does not itself scroll anything into view.
         paragraph.scrollIntoView({ block: 'center' });
@@ -651,14 +646,14 @@ export async function lookUpInReader(page: Page, word: string, url?: string): Pr
 
 /** Links a chapter to its first available track from the engine panel's Chapter links table (the same real-UI path
  * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" link and waits for its Proof chapter view to
- * render (edit-and-proof-workspace.prd.md Phase 2: no chapter starts linked by default in the mock; the link goes to
- * `/proof/:chapterId` since stage-navigation-and-page-replacement.prd.md Phase 5). */
+ * render: no chapter starts linked by default in the mock; the link goes to
+ * `/proof/:chapterId`). */
 export async function openLinkedProofChapter(page: Page, chapterTitle: string): Promise<void> {
   await openEnginePanel(page);
   const table = page.getByRole('table', { name: 'Chapter links' });
   await table.scrollIntoViewIfNeeded();
   // An anchored-name cell match, not `hasText` (a substring): "Chapter 1" is also a substring of "Chapter 10"-"Chapter 12".
-  // The cell's full name may carry the chapter's subtitle after " — " (chapter-title-display-consistency.prd.md Q6), so
+  // The cell's full name may carry the chapter's subtitle after " — ", so
   // the match allows that suffix rather than requiring an exact "Chapter 1".
   const row = table.locator('tbody tr').filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapterTitle}( — |$)`) }) });
   await row.getByRole('combobox').selectOption({ index: 0 });
@@ -672,7 +667,7 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
 // are left out here on purpose - the catalog entry is simply skipped.
 
 // Measures the mock's three files on Master & QC, then opens the 48 kHz render's sample-rate finding on Proof's notes, where the
-// measurement saved it (delivery-platform-profiles.prd.md Phase 9).
+// measurement saved it.
 export async function openDeliveryFindingOnProof(page: Page): Promise<void> {
   await measureOnMaster(page);
   await measurementEnded(page, /^Measured 2 of 3 files; 1 could not be measured\./);

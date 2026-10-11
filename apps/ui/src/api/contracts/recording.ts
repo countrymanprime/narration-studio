@@ -1,4 +1,4 @@
-// The built-in recorder (native-recording-suite PRD Phase 2, ADR 0455): the Booth records with REAPER or with the built-in
+// The built-in recorder (ADR 0455): the Booth records with REAPER or with the built-in
 // recorder, which records a take of the chosen input device into the project's Recordings folder through the capture port's
 // wasapi row (Experimental, ADR 0357). Mirrors apps/desktop/bindings_recording.go's RecorderState exactly.
 import type { DawCapabilitySupport } from './daw';
@@ -24,7 +24,7 @@ export type RecorderTake = {
   unfinished: boolean;
   /** The manuscript line this take is assigned to (a composed line id), null when it carries none yet. */
   lineId: string | null;
-  /** Whether the narrator marked this take the keeper of its line (native-recording-suite PRD Phase 4, Q5):
+  /** Whether the narrator marked this take the keeper of its line:
    * narrator-confirmed, and always undoable by marking it false again or by marking a different take of the same
    * line. A take with no line assigned yet can still be marked alone, with no group to clear. */
   keeper: boolean;
@@ -37,7 +37,7 @@ export type RecorderLastTake = {
   /** Blocks the engine lost or the recorder dropped. */
   dropouts: number;
   clipped: number;
-  /** The engine's reported input latency (hardware monitoring is the recommendation, Q7). */
+  /** The engine's reported input latency (hardware monitoring is the recommendation). */
   latencyMs: number;
   /** Why it ended by itself, or why it kept its partial name; null for a clean take. */
   error: string | null;

@@ -1,7 +1,7 @@
 import type { ChapterTrackCandidate, ChapterTrackLinksProject, TrackLinkMatch, TrackMapping } from './chapterTrackMap';
 
 /**
- * Chapter sync (daw-chapter-track-auto-sync PRD Phase 3, ADR 0209): the narrator's one consent per project to link chapters to
+ * Chapter sync (ADR 0209): the narrator's one consent per project to link chapters to
  * tracks by name, the preview behind it, and what each sync did.
  */
 
@@ -9,7 +9,7 @@ import type { ChapterTrackCandidate, ChapterTrackLinksProject, TrackLinkMatch, T
 export type ChapterSyncConsent = 'undecided' | 'on' | 'off';
 
 /** What made a sync run: the consent itself, a DAW link (or a different .rpp chosen), an import, a project attach, an Undo, or
- * the watcher seeing the saved .rpp change (Phase 4: the narrator saved in REAPER). */
+ * the watcher seeing the saved .rpp change (the narrator saved in REAPER). */
 export type ChapterSyncTrigger = 'consent' | 'daw-link' | 'import' | 'attach' | 'undo' | 'watch';
 
 /** Why a chapter was not linked on its own: a tie, only a guess, only a region, a pair the narrator undid, or the track
@@ -28,7 +28,7 @@ export type ChapterSyncTrackRef = { guid: string; name: string; index: number; m
 export type ChapterSyncFreshness = 'current' | 'stale' | 'never';
 
 /**
- * One narration chapter's status without a click (Phase 6, S14): Home's row reads it instead of a Check button. The link
+ * One narration chapter's status without a click: Home's row reads it instead of a Check button. The link
  * (`trackGuid`, `trackName` and `origin` are empty when the chapter has none); `freshness` and `reasons` from the recording
  * check's own evaluation against the saved project (reading it never starts a check); `checkedAt`, when the stored check
  * finished; `checking`, a check runs now. `lastChanged` is the later of `trackChangedAt` (the sync at which the track's
@@ -47,7 +47,7 @@ export type ChapterSyncChapter = {
   trackChangedAt: string | null;
   newestSourceAt: string | null;
   lastChanged: string | null;
-  /** The chapter's pickup track ("Chapter 6 (pickups)", Phase 8: recognised by name, never a link; '' when none). Prefill the
+  /** The chapter's pickup track ("Chapter 6 (pickups)": recognised by name, never a link; '' when none). Prefill the
    * take-review scan's pickup track with `pickupTrackName`. `pickupsScannedAt`: the last scan that included it.
    * `pickupsChanged`: it has items that scan has not seen, so offer the scan. */
   pickupTrackGuid: string;
@@ -57,17 +57,17 @@ export type ChapterSyncChapter = {
 };
 
 /**
- * What one sync just did, for the toast (S12: one toast per batch, "Linked track 'Ch. 7' to Chapter 7" with Undo through
+ * What one sync just did, for the toast (one toast per batch, "Linked track 'Ch. 7' to Chapter 7" with Undo through
  * `chapterSyncUndo(link.trackGuid)`). `newTracks` are tracks new since the last sync that match no chapter: list them
  * quietly, never in a toast. The same shape is one row of the Sync activity list (`ChapterSyncState.activity`). A batch whose
  * trigger is `watch` arrived while the narrator was in REAPER: also raise it through `systemNotify` when the window is not
- * focused (S12 B; the host never knows focus).
+ * focused (the host never knows focus).
  */
 export type ChapterSyncBatch = { at: string; trigger: ChapterSyncTrigger; linked: TrackMapping[]; newTracks: ChapterSyncTrackRef[] };
 
 /**
  * `ChapterSyncState`'s answer, and what the `chaptersync:state` event carries. `ask`: show the consent dialog (not asked yet,
- * with a manuscript and a linked DAW project, S1). `project`: the saved .rpp's state, with `message` when it is not ready.
+ * with a manuscript and a linked DAW project). `project`: the saved .rpp's state, with `message` when it is not ready.
  * `lastSync`: the last sync's time, or null before the first. `batch`: set only on the answer or event of a sync that linked
  * something or found a new unmatched track. `unsavedEdits`: REAPER, running this project, has edits the saved file does not
  * have yet ("Unsaved changes in REAPER": sync reads the saved file, so they are picked up on the next save). `activity`: the
@@ -88,9 +88,9 @@ export type ChapterSyncState = {
   batch: ChapterSyncBatch | null;
   unsavedEdits: boolean;
   activity: ChapterSyncBatch[];
-  /** One row per narration chapter (Phase 6), empty while the manuscript or the saved .rpp cannot be read. */
+  /** One row per narration chapter, empty while the manuscript or the saved .rpp cannot be read. */
   chapters: ChapterSyncChapter[];
-  /** Background recording checks (Phase 7, ADR 0211): on or off (`RecordingCoverage.background_checks`), and why none runs
+  /** Background recording checks (ADR 0211): on or off (`RecordingCoverage.background_checks`), and why none runs
    * now; `wait` is '' before the host has looked or when one just started. */
   background: { enabled: boolean; wait: ChapterSyncBackgroundWait };
 };

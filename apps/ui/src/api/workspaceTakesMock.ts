@@ -1,9 +1,9 @@
-// The browser mock's Takes panel (edit-and-proof-workspace.prd.md Phase 6, ADR 0700), answering the way
+// The browser mock's Takes panel (ADR 0700), answering the way
 // apps/desktop/bindings_workspace_takes.go and internal/passagetakes do: the passage snaps out to whole paragraphs, the
 // item it was heard on has other takes, its line has another retake on a fixed lane, and a take-review group set a
-// read from another item beside it (one candidate from each of EP6's sources, in the shape
+// read from another item beside it (one candidate from each source, in the shape
 // tests/fixtures/contracts/workspace-takes.json pins). Choosing a take moves what plays, in the mock's memory, and the
-// REAPER refusals use the host's own words. Nothing here ranks the takes (take review Q9).
+// REAPER refusals use the host's own words. Nothing here ranks the takes.
 import type {
   Finding,
   ManuscriptParagraph,

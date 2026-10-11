@@ -25,16 +25,15 @@ export type Bootstrap = {
   projectFolder: string;
   projectName: string;
   daw: string;
-  /** Whether the project's manifest records a DAW project file that still resolves to a file on disk (PRD project-workspace-and-daw-link.prd.md, W13). */
+  /** Whether the project's manifest records a DAW project file that still resolves to a file on disk. */
   dawFileLinked: boolean;
   /**
-   * Whether a running DAW can be confirmed reachable right now. Always `false` ("unknown") until Phase 6 of the PRD lands a bridge
-   * liveness check (W10) - there is no heartbeat today, so this can never yet be `true`.
+   * Whether a running DAW can be confirmed reachable right now, from the bridge's live heartbeat (ADR 0092). `false`
+   * means "unknown", including when no heartbeat has arrived.
    */
   dawReachable: boolean;
   /**
-   * Whether the DAW project currently open matches the linked file. Always `false` ("unknown") for the same reason as `dawReachable`
-   * (PRD Phase 6/7, W10, W14).
+   * Whether the DAW project currently open matches the linked file. `false` means "unknown", for the same reason as `dawReachable`.
    */
   dawProjectMatches: boolean;
   manuscript: { id: string; format: string; sourceName: string; importedAt: string; narratableWordCount: number; narratableChapterCount: number } | null;
@@ -56,7 +55,7 @@ export type JobEnded = { id: string; kind: string; outcome: 'success' | 'error' 
  * when the narrator cancelled the folder picker — no file was written. */
 export type CopyDiagnosticsResult = { path: string };
 
-/** The window's real webview zoom level as a fraction (1.25 is 125%), whatever set it (app-navigation-and-zoom-controls.prd.md Phase 2). */
+/** The window's real webview zoom level as a fraction (1.25 is 125%), whatever set it. */
 export type WindowZoom = { level: number };
 
 export interface SystemApi {
@@ -90,16 +89,16 @@ export interface SystemApi {
   companionModeEnter(): Promise<void>;
   /** Puts the window back where `companionModeEnter` found it and un-pins it; a no-op when companion mode is not on. */
   companionModeExit(): Promise<void>;
-  /** Reads the window's current real zoom level (app-navigation-and-zoom-controls.prd.md Phase 2, ADR 0201 item 3):
+  /** Reads the window's current real zoom level (ADR 0201 item 3):
    * the UI calls this when it sees the page's own zoom change (a devicePixelRatio or resize event), since Wails v3
    * surfaces no zoom-changed callback on Windows. */
   windowZoom(): Promise<WindowZoom>;
   /** Sets the window's zoom, snapped to the nearest of the header's steps and clamped to [1.0, 2.0] host-side
-   * regardless of what factor is sent (Q6, ADR 0201). Called from the header's buttons, Ctrl+=/-/0, reset, and the
+   * regardless of what factor is sent (ADR 0201). Called from the header's buttons, Ctrl+=/-/0, reset, and the
    * "set back to 200%" clamp the UI runs when it sees an external (Ctrl+wheel or pinch) zoom above the ceiling. */
   windowSetZoom(factor: number): Promise<WindowZoom>;
-  /** Persists the window's zoom level so the next launch opens at it (app-navigation-and-zoom-controls.prd.md Phase
-   * 3, Q4 A: one app-wide level, not per project). Called from the header's useZoom hook, debounced, whenever the
+  /** Persists the window's zoom level so the next launch opens at it
+   * (one app-wide level, not per project). Called from the header's useZoom hook, debounced, whenever the
    * level settles - a button, a shortcut, or the resize re-read that picks up an external Ctrl+wheel/pinch change. */
   windowSaveZoom(level: number): Promise<void>;
 }

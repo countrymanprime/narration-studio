@@ -1,5 +1,5 @@
-// The mock host (mockApi.ts): character-continuity-review.prd.md Phase 6 (non-acoustic part only; D87 benches
-// every acoustic-drift binding). Region listing and reference approvals over the mock's `regions`/
+// The mock host (mockApi.ts) for character references (non-acoustic part only; no acoustic-drift binding reads
+// them). Region listing and reference approvals over the mock's `regions`/
 // `characterReferences` state (state.ts), mirroring apps/desktop/internal/character's rules closely enough for a
 // component test: an opaque character id, a snapshot taken at approval, "changed since approval" computed
 // against the current mock regions, and revoking an id that is not stored is not an error.

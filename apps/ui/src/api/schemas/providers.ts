@@ -14,7 +14,7 @@ const providerEntrySchema = z.object({
   platforms: listFromNull(z.string()),
   modes: listFromNull(z.string()),
   asset: optionalFromNull(providerAssetSchema),
-  // The DAW port's Support schema (provider-ports PRD Phase 14): one way to say "not supported, and why" for every port.
+  // The DAW port's Support schema: one way to say "not supported, and why" for every port.
   support: dawCapabilitySupportSchema,
 }) satisfies z.ZodType<ProviderEntry>;
 

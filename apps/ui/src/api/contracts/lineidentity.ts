@@ -1,5 +1,4 @@
-// Manuscript line identity (reaper-automation-follow-through PRD, Phase 7: "Link chapters" and its stale/conflict/
-// drift states). Mirrors apps/desktop/internal/lineidentity.Service.Snapshot() exactly: one Stamp/Read run at a
+// Manuscript line identity ("Link chapters" and its stale/conflict/drift states). Mirrors apps/desktop/internal/lineidentity.Service.Snapshot() exactly: one Stamp/Read run at a
 // time, reported by phase.
 
 /** One row of LineIdentityStamp's input: an item GUID, the manuscript entity ID it should carry, and that entity's current text. */

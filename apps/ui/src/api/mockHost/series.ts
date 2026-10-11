@@ -1,5 +1,4 @@
-// The mock host (mockApi.ts): character-continuity-review.prd.md Phase 11 (D87 benches every acoustic-drift
-// binding, so this is reference data only). Series membership over `s.series`, and the voice bible pooled from the
+// The mock host (mockApi.ts) for series (reference data only: no acoustic-drift binding reads it). Series membership over `s.series`, and the voice bible pooled from the
 // current project's own `s.characterReferences` plus WIRE_SERIES_SIBLING_CLIPS - a second book this mock never
 // actually opens, so its clips are canned rather than simulated through a second MockState.
 import type { NarrationApi, Series, SeriesVoiceBible, SeriesVoiceBibleCharacter, SeriesVoiceBibleClip } from '../../types';

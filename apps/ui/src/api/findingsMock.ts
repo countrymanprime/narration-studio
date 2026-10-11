@@ -112,7 +112,7 @@ const rerun = (findings: Finding[]): Finding[] =>
   findings.map((finding) => ({ ...finding, evidence_version: `${finding.evidence_version ?? ''}-rerun`, review: { ...finding.review, status: 'unreviewed' } }));
 
 /**
- * What the mock's REAPER is doing (review dashboard Phase 7): connected, not there at all, or connected and refusing every Go to and
+ * What the mock's REAPER is doing: connected, not there at all, or connected and refusing every Go to and
  * Loop for one reason, so each state the Review page words differently can be seen without REAPER.
  */
 export type MockReaper = 'connected' | 'standalone' | 'not-running' | 'stale' | 'recording' | 'outdated';
@@ -126,7 +126,7 @@ export const REAPER_MESSAGES = {
   stale: "This finding's item is no longer in the REAPER project, so nothing was moved. Run the check again to find it where it is now.",
   recording: 'REAPER is recording, so nothing was moved. Stop recording first.',
   outdated: "The Narration Utils script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again.",
-  // The approved marker's own words (apps/desktop/bindings_marker.go, review dashboard Phase 8).
+  // The approved marker's own words (apps/desktop/bindings_marker.go).
   notAccepted: 'Accept this finding first. Only a finding you accepted gets a marker in REAPER.',
   markerNoItem: 'This finding has no REAPER item to mark, because it came from an older check. Run the check again to record one.',
   markerNoSourceTime: 'This finding has no time in its audio to put a marker at.',
@@ -161,8 +161,8 @@ type FindingsMockOptions = {
   /** What the mock's REAPER does; `connected` when not given. */
   reaper?: MockReaper;
   /**
-   * Findings computed from state that can change after this mock is built (edit-and-proof-workspace.prd.md Phase 4's
-   * workspaceOverlayFinding, mockApi.ts: chapter-1's track link, made only once the narrator confirms one in the audio engine panel,
+   * Findings computed from state that can change after this mock is built (mockApi.ts's
+   * workspaceOverlayFinding: chapter-1's track link, made only once the narrator confirms one in the audio engine panel,
    * a mock API call the visual suite's own driver makes after boot - not at createMockApi's boot-time seed). Called
    * fresh before every read, and any not already in the store (by id) are folded in once, keeping any decision a
    * later read or review made on one - the same rule saveAnalyzerFindings/saveFinding keep.
@@ -215,7 +215,7 @@ function createReaperMock(mode: MockReaper, find: (id: string) => Finding) {
       const range = finding.time_range ?? { start: 0, end: 0 };
       return { outcome: 'looping', loopStart: Math.max(range.start - LOOP_PADDING_SECONDS, 0), loopEnd: range.end + LOOP_PADDING_SECONDS };
     },
-    // One read of a take-review group (take review Phase 5): placed by the read's own item and range, refused like the finding.
+    // One read of a take-review group: placed by the read's own item and range, refused like the finding.
     findingsGoToRead: async (id: string, read: number): Promise<FindingNavigation> => {
       const { finding, start } = readOf(id, read);
       return refusalOf(finding, false) ?? { outcome: 'navigated', projectTime: start };

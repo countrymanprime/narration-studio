@@ -101,7 +101,7 @@ export const workspaceFXResultSchema = z.discriminatedUnion('outcome', [
   z.object({ outcome: z.literal('refused'), reason: z.enum(workspaceFXRefusalReasons), message: z.string() }),
 ]) satisfies z.ZodType<WorkspaceFXResult>;
 
-// The waveform strip's peaks (edit-and-proof-workspace PRD Phase 5, ADR 0520): apps/desktop/bindings_workspace_peaks.go.
+// The waveform strip's peaks (ADR 0520): apps/desktop/bindings_workspace_peaks.go.
 const peaksSchema = z.object({
   startSeconds: z.number(),
   bucketsPerSecond: z.number(),
@@ -122,7 +122,7 @@ export const workspacePeaksResultSchema = z.object({
   items: listFromNull(peaksEntrySchema),
 }) satisfies z.ZodType<WorkspacePeaksResult>;
 
-// The Takes panel (edit-and-proof-workspace PRD Phase 6, ADR 0700): apps/desktop/internal/passagetakes.
+// The Takes panel (ADR 0700): apps/desktop/internal/passagetakes.
 const passageTakeSchema = z.object({
   id: z.string(),
   source: z.enum(['item_take', 'lane_retake', 'take_review']),

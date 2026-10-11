@@ -1,5 +1,4 @@
-// The `pickups` rows of STATE_CATALOG: the Pickups page (stage-navigation-and-page-replacement.prd.md Phase 7; the Tracks
-// page's Pickups dialog, `tracks/pickups-*`, until then) (see state-catalog.ts), in the order they are captured.
+// The `pickups` rows of STATE_CATALOG: the Pickups page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
 
 export const pickupsStates: StateEntry[] = [
@@ -22,7 +21,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'next',
     description:
-      'Pickups after "Next pickup" with no chapter linked to a track - the pickup\'s time, tag and note, "Not on a linked chapter track" in place of a Proof link, "Punch from here" (gated on the DAW port\'s punch capability, booth-actions-enablement PRD Phase 3 - experimental and off by default, shown disabled here) and "Mark this pickup done"',
+      'Pickups after "Next pickup" with no chapter linked to a track - the pickup\'s time, tag and note, "Not on a linked chapter track" in place of a Proof link, "Punch from here" (gated on the DAW port\'s punch capability, experimental and off by default, shown disabled here) and "Mark this pickup done"',
   },
   {
     page: 'pickups',
@@ -34,7 +33,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'next-punch-enabled',
     description:
-      'Pickups after "Next pickup" with the punch capability turned on directly (booth-actions-enablement PRD Phase 3, ?mockPunchCapabilityOn=1) - "Punch from here" enabled, moving REAPER\'s edit cursor straight to the pickup\'s own position with no preview step',
+      'Pickups after "Next pickup" with the punch capability turned on directly (?mockPunchCapabilityOn=1) - "Punch from here" enabled, moving REAPER\'s edit cursor straight to the pickup\'s own position with no preview step',
   },
   {
     page: 'pickups',

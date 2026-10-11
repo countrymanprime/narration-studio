@@ -1,4 +1,4 @@
-// Retakes as fixed lanes (reaper-automation-follow-through PRD, Phase 25, ADR 0147): list the retakes of each
+// Retakes as fixed lanes (ADR 0147): list the retakes of each
 // manuscript line that sit on fixed item lanes in the saved REAPER project, and make the narrator's pick the only lane
 // playing on its track. The app changes nothing else: it never turns lanes on, converts takes and lanes, or builds
 // comps. Mirrors apps/desktop/internal/retakelanes (List and Service.Snapshot()) exactly.

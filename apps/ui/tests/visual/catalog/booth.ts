@@ -9,20 +9,20 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      'Booth (stage-navigation-and-page-replacement.prd.md Phase 4, mock 03), before a session - on FocusShell: a status line (Ready, the chapter, a decorative Input meter, Companion and Exit booth Esc), the pre-session setup above the text (with "Record with": REAPER chosen, the built-in recorder offered as Experimental, native-recording Phase 2), the text itself full-bleed and large with no card around it (audit BO3) (the Chapter picker, credits included), the resume prompt (read-aloud-resume-from-daw.prd.md Phase 1) offering where the recording ends - the matched track, "as of the project\'s last save", the sentence, and Resume from here / Start from the top / Pick a word - the rail (Voices in scene, Coming up - the next names with a Story Bible pronunciation, audit BO8 - then the reading panel) and, as the command bar, the reading controls with Play, Stop reading, the microphone, Record in REAPER ("Chapter 1 armed", mock 06) and Settings',
+      'Booth (benchmark mock 03), before a session - on FocusShell: a status line (Ready, the chapter, a decorative Input meter, Companion and Exit booth Esc), the pre-session setup above the text (with "Record with": REAPER chosen, the built-in recorder offered as Experimental), the text itself full-bleed and large with no card around it (the Chapter picker, credits included), the resume prompt offering where the recording ends - the matched track, "as of the project\'s last save", the sentence, and Resume from here / Start from the top / Pick a word - the rail (Voices in scene, Coming up - the next names with a Story Bible pronunciation - then the reading panel) and, as the command bar, the reading controls with Play, Stop reading, the microphone, Record in REAPER ("Chapter 1 armed") and Settings',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'chapter-suggested',
     description:
-      'Booth, the chapter preselected from REAPER (teleprompter-engines-and-input-devices.prd.md Phase 11, ADR 0113) - the saved .rpp\'s armed track "Chapter 2" is named for Chapter 2, so the picker opens on it with "Chosen from REAPER\'s armed track ... as of its last save" beneath (?mockChapterSuggestion=matched)',
+      'Booth, the chapter preselected from REAPER (ADR 0113) - the saved .rpp\'s armed track "Chapter 2" is named for Chapter 2, so the picker opens on it with "Chosen from REAPER\'s armed track ... as of its last save" beneath (?mockChapterSuggestion=matched)',
   },
   {
     page: 'booth',
     state: 'chapter-suggestion-choices',
     description:
-      'Booth, two armed tracks naming different chapters (Phase 11, ADR 0113) - nothing is preselected (the picker keeps Chapter 1) and the other suggested chapter is offered as a button beneath, "could be for more than one chapter" (?mockChapterSuggestion=ambiguous)',
+      'Booth, two armed tracks naming different chapters (ADR 0113) - nothing is preselected (the picker keeps Chapter 1) and the other suggested chapter is offered as a button beneath, "could be for more than one chapter" (?mockChapterSuggestion=ambiguous)',
   },
   {
     page: 'booth',
@@ -40,35 +40,35 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'resume-agree',
     description:
-      "Booth, the resume prompt when REAPER's recording and the prompter's last reading agree (read-aloud-resume-from-daw.prd.md Phase 3, RD3/RD4, ?mockResume=agree) - a one-line notice presets Start reading to the DAW word without asking, with Change and Start from the top as links; the control bar's start-point chip shows the same preset with no click made",
+      "Booth, the resume prompt when REAPER's recording and the prompter's last reading agree (?mockResume=agree) - a one-line notice presets Start reading to the DAW word without asking, with Change and Start from the top as links; the control bar's start-point chip shows the same preset with no click made",
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'resume-disagree',
     description:
-      'Booth, the resume prompt when REAPER and the last reading are far apart (Phase 3, RD1, ?mockResume=disagree) - a compact two-way choice, REAPER and Last reading side by side with their own sentence and word number, plus Start from the top and Pick a word',
+      'Booth, the resume prompt when REAPER and the last reading are far apart (?mockResume=disagree) - a compact two-way choice, REAPER and Last reading side by side with their own sentence and word number, plus Start from the top and Pick a word',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'resume-prompter-only',
     description:
-      'Booth, the resume prompt when only the prompter remembers a last reading - no track, no recording (Phase 3, RD8, ?mockResume=prompter_only) - one line, "Your last reading stopped at … Continue there?", never taken silently',
+      'Booth, the resume prompt when only the prompter remembers a last reading - no track, no recording (?mockResume=prompter_only) - one line, "Your last reading stopped at … Continue there?", never taken silently',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'resume-disagree-live',
     description:
-      'Booth, the resume prompt disagreeing when the REAPER place comes from REAPER\'s live edit cursor, not the saved project (read-aloud-resume-from-daw.prd.md Phase 4, RD2, ADR 0349, ?mockResume=disagree_live) - the REAPER card reads "in REAPER now" instead of "as of the project\'s last save", as in the approved 02-disagree mockup',
+      'Booth, the resume prompt disagreeing when the REAPER place comes from REAPER\'s live edit cursor, not the saved project (ADR 0349, ?mockResume=disagree_live) - the REAPER card reads "in REAPER now" instead of "as of the project\'s last save", as in the approved 02-disagree mockup',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'resume-recording',
     description:
-      'Booth, the resume prompt while REAPER records onto the chapter\'s track (Phase 4, ?mockResume=recording) - "in REAPER now", nothing located because the take is still being written, reading starts from the top; no resume button',
+      'Booth, the resume prompt while REAPER records onto the chapter\'s track (?mockResume=recording) - "in REAPER now", nothing located because the take is still being written, reading starts from the top; no resume button',
     ...REFLOW,
   },
   {
@@ -109,25 +109,25 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'resume-after-reaper-plays',
     description:
-      'Booth opened while REAPER plays (read-aloud-resume-from-daw.prd.md Phase 5, RD7, ADR 0350, ?mockDawPlayhead=12) - the resume prompt has gone away by itself and nothing was preset: the text starts at the top of the text column and Play begins at the top, as in the approved 04-after-play-prompt-gone mockup',
+      'Booth opened while REAPER plays (ADR 0350, ?mockDawPlayhead=12) - the resume prompt has gone away by itself and nothing was preset: the text starts at the top of the text column and Play begins at the top, as in the approved 04-after-play-prompt-gone mockup',
   },
   {
     page: 'booth',
     state: 'listening',
     description:
-      'Booth mid-session and listening (?mockTeleprompter=listening) - the status badge reads Reading, the status line\'s progress ("¶ 1 of N · n% · ~m:ss finished left", audit BO5) beside the chapter, the command bar shows Listening, the word count, Pause, Stop reading and Follow (disabled, following), the setup above the text is gone, the current word highlighted and read words dimmed',
+      'Booth mid-session and listening (?mockTeleprompter=listening) - the status badge reads Reading, the status line\'s progress ("¶ 1 of N · n% · ~m:ss finished left") beside the chapter, the command bar shows Listening, the word count, Pause, Stop reading and Follow (disabled, following), the setup above the text is gone, the current word highlighted and read words dimmed',
   },
   {
     page: 'booth',
     state: 'following-paused',
     description:
-      'Booth listening after the narrator scrolled the text by hand (teleprompter-engines-and-input-devices.prd.md Phase 10) - "Following paused" and an enabled Follow button beside Stop, the highlighted word scrolled out of view',
+      'Booth listening after the narrator scrolled the text by hand - "Following paused" and an enabled Follow button beside Stop, the highlighted word scrolled out of view',
   },
   {
     page: 'booth',
     state: 'paused',
     description:
-      'Booth after pressing Pause mid-session (read-aloud-control-bar.prd.md Phase 5, Q3, ADR 0248) - the control bar\'s toggle shows Play (not pressed), the status reads "Paused", and the session keeps its place rather than stopping',
+      'Booth after pressing Pause mid-session (ADR 0248) - the control bar\'s toggle shows Play (not pressed), the status reads "Paused", and the session keeps its place rather than stopping',
     ...REFLOW,
   },
   {
@@ -151,44 +151,43 @@ export const boothStates: StateEntry[] = [
   {
     page: 'booth',
     state: 'seek-back',
-    description:
-      'Booth after clicking an earlier word ("Go back to here", teleprompter-manuscript-integration.prd.md Phase 4) - the highlight has jumped back to the clicked word without restarting the session',
+    description: 'Booth after clicking an earlier word ("Go back to here") - the highlight has jumped back to the clicked word without restarting the session',
   },
   {
     page: 'booth',
     state: 'story-bible-entry',
     description:
-      'Booth listening, after clicking a Story Bible name in the text (teleprompter-manuscript-integration.prd.md Phase 5) - the rail switches to its Story bible tab with the entry, read-only; the highlight and the text stay where they were',
+      'Booth listening, after clicking a Story Bible name in the text - the rail switches to its Story bible tab with the entry, read-only; the highlight and the text stay where they were',
   },
   {
     page: 'booth',
     state: 'note-open',
-    description: 'Booth before a session, after clicking a note mark (Phase 5) - the rail switches to its Notes tab with that note current',
+    description: 'Booth before a session, after clicking a note mark - the rail switches to its Notes tab with that note current',
   },
   {
     page: 'booth',
     state: 'rail-hidden',
-    description: 'Booth with its reading panel hidden (Phase 5) - the text takes the width, a "Show reading panel" button stays at the side',
+    description: 'Booth with its reading panel hidden - the text takes the width, a "Show reading panel" button stays at the side',
   },
   {
     page: 'booth',
     state: 'mic-popover',
     description:
-      "Booth with the control bar's microphone popover open (read-aloud-control-bar.prd.md Phases 3-4) - the device list, the selected device, Refresh, and a live input-level meter (a fixed -18 dBFS reading, ?mockLevel=-18, ADR 0247) both inside the popover and, decoratively, in the bar's own microphone button",
+      "Booth with the control bar's microphone popover open - the device list, the selected device, Refresh, and a live input-level meter (a fixed -18 dBFS reading, ?mockLevel=-18, ADR 0247) both inside the popover and, decoratively, in the bar's own microphone button",
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'settings-popover',
     description:
-      'Booth with the control bar\'s Settings popover open (read-aloud-control-bar.prd.md Phase 3) - Engine (when the host offers more than one) and Model as toggle groups, and a "More in Settings" link',
+      'Booth with the control bar\'s Settings popover open - Engine (when the host offers more than one) and Model as toggle groups, and a "More in Settings" link',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'reaper-not-armed',
     description:
-      "Booth with the command bar's REAPER state showing the chapter's linked track not armed (Phase 6, ?mockReaperState=not_armed); the mock's default, the track armed and ready, is setup's",
+      "Booth with the command bar's REAPER state showing the chapter's linked track not armed (?mockReaperState=not_armed); the mock's default, the track armed and ready, is setup's",
     sameAs: {
       of: 'booth/setup',
       viewports: ['tablet'],
@@ -200,64 +199,64 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'reaper-confirm',
     description:
-      'Booth, Record in REAPER pressed for the first time in this project with the record capability on (?mockRecordCapabilityOn=1) - the confirm in read-aloud-control-bar mock 05\'s words: "Record in REAPER when you press Play?", the track linked to the chapter, "a recording you started in REAPER yourself is never stopped by the app" and "You will be asked this once for this project"',
+      'Booth, Record in REAPER pressed for the first time in this project with the record capability on (?mockRecordCapabilityOn=1) - the confirm reads: "Record in REAPER when you press Play?", the track linked to the chapter, "a recording you started in REAPER yourself is never stopped by the app" and "You will be asked this once for this project"',
   },
   {
     page: 'booth',
     state: 'reaper-rec',
     description:
-      'Booth reading while REAPER records the take this app started (read-aloud-control-bar mock 07): Record in REAPER on, Play pressed, and the toggle showing "REC 06:42" in the danger colour (the page clock held 6 min 42 s after REAPER confirmed); the status badge reads REC · P&R',
+      'Booth reading while REAPER records the take this app started: Record in REAPER on, Play pressed, and the toggle showing "REC 06:42" in the danger colour (the page clock held 6 min 42 s after REAPER confirmed); the status badge reads REC · P&R',
     ...FREEZES_THE_CLOCK,
   },
   {
     page: 'booth',
     state: 'finished-still-recording',
     description:
-      'Booth after reading reached the end and stopped itself while REAPER goes on recording (read-aloud-control-bar mock 10, Q8 Done B, D28/D39) - "Reading finished. REAPER is still recording", "Press Stop when you are done; nothing is cut off until you do.", Stop reading enabled and highlighted, and the toggle at "REC 14:08"',
+      'Booth after reading reached the end and stopped itself while REAPER goes on recording - "Reading finished. REAPER is still recording", "Press Stop when you are done; nothing is cut off until you do.", Stop reading enabled and highlighted, and the toggle at "REC 14:08"',
     ...FREEZES_THE_CLOCK,
   },
   {
     page: 'booth',
     state: 'speaker-tags',
     description:
-      "Booth on Chapter 3, the chapter prep-depth's recorded dialogue cues attribute (audit BO4, mock 03) - each attributed paragraph carries its speaker tag (ALICE) in a gutter left of the text, the unattributed ones leave it empty rather than guess; below `lg` the tag sits above its paragraph",
+      "Booth on Chapter 3, the chapter prep-depth's recorded dialogue cues attribute - each attributed paragraph carries its speaker tag (ALICE) in a gutter left of the text, the unattributed ones leave it empty rather than guess; below `lg` the tag sits above its paragraph",
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'reaper-recording',
     description:
-      "Booth with the control bar's read-only REAPER state showing REAPER already recording elsewhere, marked in the danger colour (Phase 6, ?mockReaperState=recording_elsewhere)",
+      "Booth with the control bar's read-only REAPER state showing REAPER already recording elsewhere, marked in the danger colour (?mockReaperState=recording_elsewhere)",
   },
   {
     page: 'booth',
     state: 'flags',
     description:
-      'Booth listening with suspected flags raised (teleprompter-manuscript-integration.prd.md Phase 7) - by default only skipped words (dotted underline) and restarts (dashed underline on the word read again from) show; misreads and extra words wait behind toggles (?mockTeleprompter=flagged)',
+      'Booth listening with suspected flags raised - by default only skipped words (dotted underline) and restarts (dashed underline on the word read again from) show; misreads and extra words wait behind toggles (?mockTeleprompter=flagged)',
   },
   {
     page: 'booth',
     state: 'flag-open',
     description:
-      'Booth after clicking a restart flag (Phase 7) - the rail switches to its Flags tab: what the script says and what was heard, Dismiss, "Punch from here" gated on the DAW port\'s punch capability (DAW port PRD Phase 7; wired to dawport.Puncher by booth-actions-enablement PRD Phase 3) - experimental and off by default, so shown disabled here - and the session’s flags',
+      'Booth after clicking a restart flag - the rail switches to its Flags tab: what the script says and what was heard, Dismiss, "Punch from here" gated on the DAW port\'s punch capability (wired to dawport.Puncher) - experimental and off by default, so shown disabled here - and the session’s flags',
   },
   {
     page: 'booth',
     state: 'flag-punch-confirm',
     description:
-      'Booth after clicking "Punch from here" on an open restart flag with the punch capability turned on (booth-actions-enablement PRD Phase 3, ?mockPunchCapabilityOn=1) - a confirm dialog names the resolved time, its source and the pre-roll before anything moves in REAPER',
+      'Booth after clicking "Punch from here" on an open restart flag with the punch capability turned on (?mockPunchCapabilityOn=1) - a confirm dialog names the resolved time, its source and the pre-roll before anything moves in REAPER',
   },
   {
     page: 'booth',
     state: 'flags-all-kinds',
     description:
-      'Booth with misreads and extra words turned on in the Flags tab (Phase 7) - a misread is a wavy underline, extra words heard are an insertion bar before the word they came before',
+      'Booth with misreads and extra words turned on in the Flags tab - a misread is a wavy underline, extra words heard are an insertion bar before the word they came before',
   },
   {
     page: 'booth',
     state: 'credits-opening',
     description:
-      'Booth, "Opening credits" chosen (audiobook-credits-templates.prd.md Phase 4) - first in the picker, before the chapters; the credits the host rendered from the first opening template are the text below, every token filled (?mockCredits=filled), no warning',
+      'Booth, "Opening credits" chosen - first in the picker, before the chapters; the credits the host rendered from the first opening template are the text below, every token filled (?mockCredits=filled), no warning',
   },
   {
     page: 'booth',
@@ -292,13 +291,13 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'dark',
     description:
-      'Booth (as setup) with Dark selected in Settings > Appearance - the Booth follows the app theme and forces neither light nor dark (D69, ADR 0365), so this differs from setup only in the palette',
+      'Booth (as setup) with Dark selected in Settings > Appearance - the Booth follows the app theme and forces neither light nor dark (ADR 0365), so this differs from setup only in the palette',
   },
   {
     page: 'booth',
     state: 'companion-default',
     description:
-      'Booth, Companion pressed in its header (booth-mode-and-companion-panel.prd.md Phase 7, stage navigation Q9): the same session in CompactShell, the whole window (the host narrows it to 380 px and pins it beside the DAW, ADR 0401; also captured at that companion width) - the Companion heading with REAPER\'s playhead badge ("Playhead stopped") and Full app, then the Script (chapter title, Play Kbd-labelled Space, Stop reading, the resume prompt and the text in its own scroll box), the Pickups section, the Hotkeys that work while this window has focus, and the reserved Note at playhead and This chapter sections ("Coming soon")',
+      'Booth, Companion pressed in its header: the same session in CompactShell, the whole window (the host narrows it to 380 px and pins it beside the DAW, ADR 0401; also captured at that companion width) - the Companion heading with REAPER\'s playhead badge ("Playhead stopped") and Full app, then the Script (chapter title, Play Kbd-labelled Space, Stop reading, the resume prompt and the text in its own scroll box), the Pickups section, the Hotkeys that work while this window has focus, and the reserved Note at playhead and This chapter sections ("Coming soon")',
     ...COMPANION,
   },
   {
@@ -308,20 +307,20 @@ export const boothStates: StateEntry[] = [
       'Booth, the companion panel mid-session (same mock seam and word as listening) with REAPER playing (?mockDawPlayhead=134.6) - the header badge reads "Playhead 2:14.6", the Script shows Pause (Kbd Space), Stop reading and Follow, and the current word highlighted in its scroll box',
     ...COMPANION,
   },
-  // The built-in recorder (native-recording-suite Phase 2, ADR 0455; D79: the Booth is the Record surface, no page of its own),
-  // with the project on "Built-in recorder" (?mockEngine=builtin) and the mock recorder (D67) standing in for the microphone.
+  // The built-in recorder (ADR 0455; the Booth is the Record surface, with no page of its own),
+  // with the project on "Built-in recorder" (?mockEngine=builtin) and the mock recorder standing in for the microphone.
   {
     page: 'booth',
     state: 'recorder-builtin',
     description:
-      'Booth recording with the built-in recorder (mock 03\'s Record area with the built-in recorder in REAPER\'s place) - the status line\'s Input meter and "— pk" readout and the "Built-in · 3 takes" chip; the setup\'s "Record with" (REAPER / Built-in recorder, Experimental), the Recorder input picker (the shared device picker, Q6), Check level and where the takes are saved; the command bar\'s Record where "Record in REAPER" was; the rail\'s Takes (mock 03\'s "Recorded 41:12 · …": "Recorded 01:55 · 3 takes", newest first, the unfinished partial marked)',
+      'Booth recording with the built-in recorder (the benchmark Booth mock\'s Record area with the built-in recorder in REAPER\'s place) - the status line\'s Input meter and "— pk" readout and the "Built-in · 3 takes" chip; the setup\'s "Record with" (REAPER / Built-in recorder, Experimental), the Recorder input picker (the shared device picker), Check level and where the takes are saved; the command bar\'s Record where "Record in REAPER" was; the rail\'s Takes (the benchmark Booth mock\'s "Recorded 41:12 · …": "Recorded 01:55 · 3 takes", newest first, the unfinished partial marked)',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'recorder-recording',
     description:
-      'Booth, a built-in recorder take 42 s in (?mockRecorder=recording, the page clock held) - the status badge "REC · Built-in", the meter at mock 03\'s "−14.2 pk", the chip "Built-in · take 4" (the mock\'s "REAPER · take 4"), the command bar\'s Record now "REC 00:42" in the danger colour, "Record with" and Check level disabled while the take runs',
+      'Booth, a built-in recorder take 42 s in (?mockRecorder=recording, the page clock held) - the status badge "REC · Built-in", the meter at the benchmark Booth mock\'s "−14.2 pk", the chip "Built-in · take 4" (the mock\'s "REAPER · take 4"), the command bar\'s Record now "REC 00:42" in the danger colour, "Record with" and Check level disabled while the take runs',
     ...REFLOW,
     ...FREEZES_THE_CLOCK,
   },

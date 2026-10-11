@@ -1,4 +1,4 @@
-// The browser mock's delivery findings on the Review page (delivery-platform-profiles.prd.md Phase 9), answering the way
+// The browser mock's delivery findings on the Review page, answering the way
 // apps/desktop/delivery_findings.go and deliveryprofile.ReviewFindings do: when a measurement ends, and when the project's
 // profile changes, every measured file's rules that are not met or could not be measured are saved into the findings
 // store, one finding per rule per file with the id Master & QC gives it; a rule met again resolves its finding

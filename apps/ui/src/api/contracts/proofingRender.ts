@@ -3,13 +3,13 @@ import type { StageUnknownCause } from './stages';
 
 // A chapter's chosen rendered file (apps/desktop/bindings_proofing_render.go,
 // apps/desktop/internal/proofing/renders.go): what the proofing delivery-check signals (`proofing.delivery.*`,
-// `proofing.delivery.render_length`) on StageRecommendations are about, and whether it is still current. This PRD adds
-// only the bindings to change the choice (choose, clear); the checks themselves are read through StageRecommendations
-// (schemas/stages.ts), which already reads the same association.
+// `proofing.delivery.render_length`) on StageRecommendations are about, and whether it is still current. The bindings here only change the choice
+// (choose, clear); the checks themselves are read through StageRecommendations (schemas/stages.ts), which reads the same
+// association.
 
 /** Where a chapter's render stands. `none`: nothing chosen yet. `current`: matches the association exactly.
  * `stale`: the file or the chapter's items changed since it was chosen. `missing`: the file can no longer be read.
- * `unsupported`: not a WAV file, so it cannot be measured (MP3 renders, DX Q2). */
+ * `unsupported`: not a WAV file, so it cannot be measured (MP3 renders). */
 export type ProofingRenderState = 'none' | 'current' | 'stale' | 'missing' | 'unsupported';
 
 /** A chapter's render association and its latest measurement of exactly that file, or none. `cause` and `reason`

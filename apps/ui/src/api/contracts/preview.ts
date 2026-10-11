@@ -1,9 +1,8 @@
-// The proofing-preview-suggestion PRD's preview candidates: up to three ranked ~five-minute excerpts computed on
-// read from the imported manuscript (Phase 1's pure Go engine, apps/desktop/internal/preview; Phase 2's own read
-// binding, apps/desktop/bindings_preview.go's PreviewCandidates). Read-only: it never runs anything and stores
-// nothing (SR D1), and it is recomputed fresh from the manuscript's current chapters and paragraphs on every call, at
-// the engine's default settings until a later phase adds a narrator setting for target length, tolerance, preset and
-// ending exclusion (Phase 4).
+// The proofing preview candidates: up to three ranked ~five-minute excerpts computed on read from the imported
+// manuscript (the pure Go engine in apps/desktop/internal/preview, read through apps/desktop/bindings_preview.go's
+// PreviewCandidates). Read-only: it never runs anything and stores nothing, and it is recomputed fresh from the
+// manuscript's current chapters and paragraphs on every call, at the narrator's Preview settings (target length,
+// tolerance, preset and ending exclusion).
 
 /** A manuscript-wide state with no ranked candidates to show, distinct from an empty `candidates` list under `ok`
  * (preview.Outcome's own doc: an empty list must never be conflated with "nothing eligible"). */
@@ -38,8 +37,8 @@ export type PreviewPinStaleReason = 'text_changed' | 'paragraph_missing';
 
 /** The narrator's pinned window, always present (never null) with `present` naming whether one exists - the same
  * named-state convention `PreviewResult.outcome` uses, rather than a nullable payload every caller has to
- * null-check. A pin is a narrator decision, never a computed verdict (SR D1): it is never suggested, only kept
- * when the narrator asks, and it is one per book (Q9) - setting a new one replaces whatever was pinned before. */
+ * null-check. A pin is a narrator decision, never a computed verdict: it is never suggested, only kept
+ * when the narrator asks, and it is one per book - setting a new one replaces whatever was pinned before. */
 export type PinnedPreview = {
   present: boolean;
   /** The pin's window, recomputed fresh against the manuscript's current text on every read, the same evidence a

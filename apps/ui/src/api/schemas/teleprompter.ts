@@ -278,9 +278,8 @@ const teleprompterFlagFindingSchema = z.object({
 export const teleprompterFlagFindingsSchema = z.array(teleprompterFlagFindingSchema);
 
 /**
- * `TeleprompterPunchPreview`/`TeleprompterPunch` (`apps/desktop/teleprompterpunch.go`, teleprompter-manuscript-
- * integration PRD Phase 12, booth-actions-enablement PRD Phase 3): a preview never carries `cursor`, and only a
- * successful punch does.
+ * `TeleprompterPunchPreview`/`TeleprompterPunch` (`apps/desktop/teleprompterpunch.go`): a preview never carries `cursor`, and
+ * only a successful punch does.
  */
 export const teleprompterPunchResultSchema = z
   .object({
@@ -308,8 +307,7 @@ export const readAloudReaperStateSchema = z.object({
 }) satisfies z.ZodType<ReadAloudReaperState>;
 
 /**
- * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStop` (`apps/desktop/bindings_readaloud_record.go`, read-aloud-control-bar
- * PRD Phase 7): what arming, starting or stopping a REAPER recording did.
+ * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStop` (`apps/desktop/bindings_readaloud_record.go`): what arming, starting or stopping a REAPER recording did.
  */
 export const readAloudRecordingSchema = z.object({
   outcome: z.enum(['armed', 'started', 'stopped', 'refused']),

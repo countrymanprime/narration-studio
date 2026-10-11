@@ -1,12 +1,12 @@
-/** One narrator-confirmed trackGuid -> chapterId link (analysis evidence ledger PRD, Phase 5, Q6). ChapterTitle is the
+/** One narrator-confirmed trackGuid -> chapterId link (the analysis evidence ledger). ChapterTitle is the
  * chapter's title *at confirmation time*, stored beside the id because chapter ids reset on every manuscript
- * re-import; it is what a future re-suggestion (Q9) matches against the new chapter list. */
+ * re-import; it is what a re-suggestion can match against the new chapter list. */
 export type TrackMapping = {
   trackGuid: string;
   chapterId: string;
   chapterTitle: string;
   confirmedAt: string;
-  /** Who made the link (daw-chapter-track-auto-sync PRD Phase 2, ADR 0202): the narrator, or chapter sync once the narrator
+  /** Who made the link (ADR 0202): the narrator, or chapter sync once the narrator
    * consented for the project. Both are links. The host always sends it; it is optional here only so hand-built fixtures that
    * predate it still type-check, and a missing one means `manual`. */
   origin?: TrackLinkOrigin;
@@ -23,14 +23,14 @@ export type TrackLinkMatch = {
   kind: 'exact' | 'contained' | 'previous-link';
 };
 
-/** Every confirmed link for one manuscript document (Q6: the store is keyed by `documentId`). */
+/** Every confirmed link for one manuscript document (the store is keyed by `documentId`). */
 export type ChapterTrackMapping = {
   documentId: string;
   mappings: TrackMapping[];
 };
 
-/** How sure the chapter-to-track matcher is of a chapter's track (teleprompter manuscript integration PRD Phase 8,
- * ADR 0110): a narrator-confirmed link, a confident name match, a guess the narrator must confirm, a tie, or nothing. */
+/** How sure the chapter-to-track matcher is of a chapter's track (ADR 0110): a narrator-confirmed link, a confident name
+ * match, a guess the narrator must confirm, a tie, or nothing. */
 export type ChapterTrackMatchStatus = 'confirmed' | 'matched' | 'uncertain' | 'ambiguous' | 'none';
 
 /** What made a track a candidate. */
@@ -92,8 +92,8 @@ export type ChapterCandidate = {
 /** Which saved tracks a suggestion was read from: the record-armed ones, else the selected ones, else none. */
 export type ChapterSuggestionBasis = 'armed' | 'selected' | 'none';
 
-/** ChapterSuggestion's answer (teleprompter-engines-and-input-devices PRD Phase 11, ADR 0113): the chapter the narrator is
- * most likely recording, read from the selected .rpp as of its last save. `chapter` is set only when `status` is
+/** ChapterSuggestion's answer (ADR 0113): the chapter the narrator is most likely recording, read from the selected .rpp
+ * as of its last save. `chapter` is set only when `status` is
  * confirmed or matched; otherwise `candidates` are choices to offer, never to preselect. `track` is the one track read,
  * or null when several were (or none). */
 export type ChapterSuggestion = {
@@ -119,18 +119,17 @@ export type ChaptersForTracksEntry = {
   error?: string;
 };
 
-/** ChaptersForTracks' answer (diagnostics-delivery-and-cleanup-tools PRD Phase 8 remainder): the Review page's
- * chapter grouping for findings that carry only a track, item or take GUID (apps/desktop/internal/findings.Source)
- * rather than a manuscript-anchored chapter id. `tracks` is keyed by exactly the GUID requested (a track, item or
- * take GUID all resolve through the item's or take's own track). */
+/** ChaptersForTracks' answer: the Review page's chapter grouping for findings that carry only a track, item or take GUID
+ * (apps/desktop/internal/findings.Source) rather than a manuscript-anchored chapter id. `tracks` is keyed by exactly the
+ * GUID requested (a track, item or take GUID all resolve through the item's or take's own track). */
 export type ChaptersForTracksResult = {
   projectFile: string;
   savedAt: string;
   tracks: Record<string, ChaptersForTracksEntry>;
 };
 
-/** ChapterTrackSet's answer (chapter-track-link-control PRD Phase 1): the chapter's one link as written, the link the
- * track held for another chapter before (null when the track was free), and every link that remains. */
+/** ChapterTrackSet's answer: the chapter's one link as written, the link the track held for
+ * another chapter before (null when the track was free), and every link that remains. */
 export type ChapterTrackSetResult = {
   documentId: string;
   link: TrackMapping;
@@ -138,9 +137,9 @@ export type ChapterTrackSetResult = {
   mappings: TrackMapping[];
 };
 
-/** TrackSelectInReaper's answer (chapter-track-link-control PRD Phase 4, Could): "Select in REAPER" from the chapter
- * track slide-over. `refused` reasons mirror ReadAloudRecording's connection and experimental-switch cases, plus
- * `track_missing` for a track no longer in the project; nothing in REAPER changes for a refusal. */
+/** TrackSelectInReaper's answer: "Select in REAPER" from the chapter track
+ * slide-over. `refused` reasons mirror ReadAloudRecording's connection and experimental-switch cases, plus `track_missing`
+ * for a track no longer in the project; nothing in REAPER changes for a refusal. */
 export type TrackSelectOutcome = 'selected' | 'refused';
 export type TrackSelectReason = 'track_missing' | 'standalone' | 'not_running' | 'experimental_off' | 'failed';
 export type TrackSelectResult = {
@@ -195,8 +194,7 @@ export type ChapterTrackLinks = {
   chapters: ChapterTrackLink[];
 };
 
-/** What a planned region is: the opening or closing credits (named like the chapter table's rows) or a narration chapter
- * (reaper-automation-follow-through PRD Phase 7, credits-in-chapter-table PRD Phase 4). */
+/** What a planned region is: the opening or closing credits (named like the chapter table's rows) or a narration chapter. */
 export type ChapterRegionKind = 'opening' | 'chapter' | 'closing';
 
 /** What create_regions is expected to do with a row, judged against the saved .rpp's regions: add it, leave a matching

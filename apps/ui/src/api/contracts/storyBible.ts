@@ -40,7 +40,7 @@ export type GuideEntity = {
   locked: boolean;
   review_state: string;
   context?: string;
-  /** Which chapters and scenes this entry's evidence touches (character-continuity-review PRD, phase 2). Absent on a file written before it existed. */
+  /** Which chapters and scenes this entry's evidence touches (see `GuideDialogueCue`). Absent on a file written before it existed. */
   appearances?: GuideAppearance[];
 };
 
@@ -101,7 +101,7 @@ export type GuideBuildResult =
   | { status: 'started'; job: WorkJob }
   | { status: 'asset_required'; model: LanguageModel; installState: AssetInstallState; downloadSize: number; diskSize: number; installPath: string };
 
-/** One entry of the Story Bible's dialogue_cues (character-continuity-review.prd.md Phase 2): a quoted span with
+/** One entry of the Story Bible's dialogue_cues: a quoted span with
  * its resolved (or unknown) speaker. A document-level list, a sibling of the entity list, not per-entity data. */
 export type GuideDialogueCueEvidence = { chapterId: string; paragraphId: string; excerpt: string; tag: string };
 export type GuideDialogueCueSpeakerSource = 'tag' | 'continuation' | 'unknown' | 'correction';
@@ -137,7 +137,7 @@ export interface StoryBibleApi {
   guidePreview(id: string, aliasIndex?: number): Promise<GuidePreview>;
   /**
    * Sets the pronunciation of the entry's own name (`aliasIndex` omitted) or one of its aliases from exactly `source`
-   * ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it (D13, B9-B11). Refused
+   * ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it. Refused
    * on a locked entity, and when the chosen engine has nothing for the name.
    */
   guidePronounce(id: string, source: 'cmu' | 'espeak', aliasIndex?: number): Promise<void>;
@@ -158,7 +158,7 @@ export interface StoryBibleApi {
    * line, never dropped.
    */
   guidePronunciationImportQueriesCsv(csvText: string): Promise<QueryImportResult>;
-  /** The Story Bible's extracted dialogue cues (character-continuity-review.prd.md Phase 2): one entry per quoted
+  /** The Story Bible's extracted dialogue cues: one entry per quoted
    * span, with its resolved or unknown speaker. */
   guideDialogueCues(): Promise<GuideDialogueCue[]>;
   /**

@@ -53,7 +53,7 @@ async function measureVerticalOverflow(page: Page): Promise<number> {
 
 // Absolutely positioned elements under #root whose containing block escaped the shell: rendered, position: absolute, and
 // offsetParent is <body> or null (no positioned ancestor caught it). Structural, so it finds a zoom-only escape that no
-// captured viewport happens to overflow at (app-shell-vertical-overflow.prd.md).
+// captured viewport happens to overflow at.
 async function findEscapedAbsolutes(page: Page): Promise<EscapedAbsolute[]> {
   return page.evaluate(() => {
     const root = document.getElementById('root');

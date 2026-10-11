@@ -1,7 +1,7 @@
 import type { TrackMapping } from './chapterTrackMap';
 export type ChapterStatus = 'not_started' | 'recording' | 'editing' | 'proofing' | 'finalized';
 export type ManuscriptContentKind = 'narration' | 'opening' | 'reference';
-/** Why a chapter has no recorded length (actual-recorded-column PRD AR3): no linked track, several, the linked track is
+/** Why a chapter has no recorded length (ADR 0193): no linked track, several, the linked track is
  * not in the saved project, or no saved project could be read. */
 export type RecordedUnavailable = 'unlinked' | 'multiple_tracks' | 'track_missing' | 'no_project';
 export type ManuscriptChapter = {
@@ -19,7 +19,7 @@ export type ManuscriptChapter = {
   status: ChapterStatus;
   /** Omitted by manuscripts imported before structural classification. */
   contentKind?: ManuscriptContentKind;
-  /** When the chapter's kind was changed after import (`manuscriptSetChapterKind`, chapter-track-link-control PRD Phase 3). */
+  /** When the chapter's kind was changed after import (`manuscriptSetChapterKind`). */
   kindChangedAt?: string;
   /** Set while a chapter imported as narration has been removed from recording: list it under "Removed from recording"
    * with Restore (`manuscriptSetChapterKind(id, 'narration')`). */
@@ -28,8 +28,8 @@ export type ManuscriptChapter = {
 };
 
 /**
- * `manuscriptSetChapterKind`'s answer (chapter-track-link-control PRD Phase 3): the chapter as the chapter list now sends it,
- * the kind it had before, and the track links a removal cleared (TL5 A; empty on Restore or when it had none).
+ * `manuscriptSetChapterKind`'s answer: the chapter as the chapter list now sends it,
+ * the kind it had before, and the track links a removal cleared (empty on Restore or when it had none).
  */
 export type ManuscriptChapterKindResult = {
   chapter: ManuscriptChapter;
@@ -75,8 +75,8 @@ export type ReaderBookmark = {
 };
 export type ReaderState = { activeChapter?: string; activeSourceLine?: number; expandedChapters?: string[]; bookmarks: ReaderBookmark[] };
 // `matchStart` is the excerpt's own match offset (UTF-16 code units), added for the windowing helper
-// (reader search and controls PRD, Phase 3) - additive, so no hostAPIVersion bump (this shape carries
-// inside a map[string]any-style payload, not a fixed binding signature).
+// - additive, so no hostAPIVersion bump (this shape carries inside a map[string]any-style payload, not a fixed
+// binding signature).
 export type SearchHit = {
   chapter: string;
   chapterId?: string;
@@ -119,7 +119,6 @@ export type ManuscriptImportSelection = {
 export type ManuscriptImportPreview = {
   // `pdf` remains readable for a pre-migration canonical manuscript, but the
   // native picker and shipped importer currently reject new PDF imports.
-  // `txt` is Phase 1 and `epub` is Phase 2 of the txt-and-epub-import PRD.
   format: 'docx' | 'markdown' | 'txt' | 'epub' | 'pdf';
   sourceName: string;
   paragraphCount: number;

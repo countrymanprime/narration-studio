@@ -1,32 +1,32 @@
-// The `proof` rows of STATE_CATALOG: Proof's book level, the notes (the `review` page key until stage-navigation-and-page-replacement.prd.md Phase 5) (see state-catalog.ts), in the order they are captured.
+// The `proof` rows of STATE_CATALOG: Proof's book level, the notes (formerly the `review` page key) (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL } from './shared';
 
 export const proofStates: StateEntry[] = [
-  // Proof's notes (review-dashboard-and-findings-adoption.prd.md Phase 5, restyled as mock 04's notes table by stage navigation Phase 5)
+  // Proof's notes, drawn as benchmark mock 04's notes table
   {
     page: 'proof',
     state: 'default',
     description:
-      'Proof, the latest run of every check in one list under mock 04\'s notes header ("Notes · 4", a chip per resolution, Import proofer sheet, Export for proofer), the Sources line, and a prompt to select a finding',
+      'Proof, the latest run of every check in one list under benchmark mock 04\'s notes header ("Notes · 4", a chip per resolution, Import proofer sheet, Export for proofer), the Sources line, and a prompt to select a finding',
   },
   {
     page: 'proof',
     state: 'no-recording',
     description:
-      "Proof with no chapter linked to a track - the waveform card draws a greyed placeholder waveform labelled as not the chapter's audio (ADR 0750, D100), the notes of every chapter listed under it",
+      "Proof with no chapter linked to a track - the waveform card draws a greyed placeholder waveform labelled as not the chapter's audio (ADR 0750), the notes of every chapter listed under it",
   },
   {
     page: 'proof',
     state: 'chapter-selected',
     description:
-      "Proof, Chapter 1 (linked) picked in the waveform card's selector - its stored waveform, the notes table narrowed to that chapter and Show all chapters beside the selector (ADR 0750, D100)",
+      "Proof, Chapter 1 (linked) picked in the waveform card's selector - its stored waveform, the notes table narrowed to that chapter and Show all chapters beside the selector (ADR 0750)",
   },
   {
     page: 'proof',
     state: 'chapter-filtered',
     description:
-      'Proof, Chapter 2 (no recording) picked in the waveform card - the placeholder waveform and the notes table narrowed to Chapter 2 with Show all chapters offered (ADR 0750, D100)',
+      'Proof, Chapter 2 (no recording) picked in the waveform card - the placeholder waveform and the notes table narrowed to Chapter 2 with Show all chapters offered (ADR 0750)',
   },
   {
     page: 'proof',
@@ -48,7 +48,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'detail-open',
     description:
-      'Proof, a transcript difference selected - mock 04\'s "0:12.4 · Misread" title, Play ±3 s, what the script says and what was recorded, where, the evidence, the confidence reason, and Pickup, Waive and Defer',
+      'Proof, a transcript difference selected - benchmark mock 04\'s "0:12.4 · Misread" title, Play ±3 s, what the script says and what was recorded, where, the evidence, the confidence reason, and Pickup, Waive and Defer',
     ...KEEPS_DESKTOP_SCROLL,
   },
 
@@ -72,7 +72,7 @@ export const proofStates: StateEntry[] = [
     description: 'Proof, findings the latest run did not repeat included, and one selected - the "did not find this again" notice over its evidence',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Review in REAPER (review-dashboard-and-findings-adoption.prd.md Phase 7): Go to, Loop and Stop, and why they are off
+  // Review in REAPER: Go to, Loop and Stop, and why they are off
   {
     page: 'proof',
     state: 'reaper-go-to',
@@ -106,7 +106,7 @@ export const proofStates: StateEntry[] = [
       'Proof, the app opened on its own rather than from REAPER - Go to and Loop disabled, and how to connect REAPER (reached via the ?mockReaper=standalone mock seam)',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // The approved marker (review-dashboard-and-findings-adoption.prd.md Phase 8): one take marker for an accepted finding, after a confirm
+  // The approved marker: one take marker for an accepted finding, after a confirm
   {
     page: 'proof',
     state: 'reaper-marker-confirm',
@@ -123,8 +123,7 @@ export const proofStates: StateEntry[] = [
   {
     page: 'proof',
     state: 'take-review-scan-form',
-    description:
-      'Proof, Find pickups and duplicates pressed - the scan dialog with the track to scan and the optional pickup track or stretch of the timeline (Q3)',
+    description: 'Proof, Find pickups and duplicates pressed - the scan dialog with the track to scan and the optional pickup track or stretch of the timeline',
   },
   {
     page: 'proof',
@@ -135,7 +134,7 @@ export const proofStates: StateEntry[] = [
   {
     page: 'proof',
     state: 'take-review-results',
-    description: 'Proof, a scan of Chapter 1 closed - the list narrowed to take review, one partial pickup and one near duplicate, no ranking column (Q9)',
+    description: 'Proof, a scan of Chapter 1 closed - the list narrowed to take review, one partial pickup and one near duplicate, no ranking column',
   },
   {
     page: 'proof',
@@ -154,13 +153,13 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'take-review-audition',
     description:
-      'Proof, Audition reads pressed on a pickup group - the side-by-side A/B dialog with the "Raw source, no FX or edits applied" label and Read A/Read B pickers (phase 7, Q7)',
+      'Proof, Audition reads pressed on a pickup group - the side-by-side A/B dialog with the "Raw source, no FX or edits applied" label and Read A/Read B pickers (phase 7)',
   },
   {
     page: 'proof',
     state: 'take-review-add-take',
     description:
-      'Proof, a pickup group accepted and Add as take pressed - the confirm with the target item and the candidate read chosen by the narrator, never preselected (Q4/Q8)',
+      'Proof, a pickup group accepted and Add as take pressed - the confirm with the target item and the candidate read chosen by the narrator, never preselected',
   },
   // Take comparison on Proof
   {
@@ -173,7 +172,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'take-comparison',
     description:
-      'Proof, a take comparison finished and opened - each read of the span word by word, the misread and unreached words marked and listed with their times, each read with Go to and Loop; no ranking (Q9)',
+      'Proof, a take comparison finished and opened - each read of the span word by word, the misread and unreached words marked and listed with their times, each read with Go to and Loop; no ranking',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -183,7 +182,7 @@ export const proofStates: StateEntry[] = [
       "Proof, a take comparison's audio table - clipping, room noise, level, length and pauses, a row each with what it measures and a column per read, an unavailable figure with its reason; nothing adds the rows up",
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Dashboard integration for an Audacity-sourced project (audacity-integration.prd.md Phase 9): take management (Go
+  // Dashboard integration for an Audacity-sourced project: take management (Go
   // to/Loop/Add marker in REAPER, take review, take comparison) has no Audacity analog, so it is left out entirely
   // rather than shown disabled - everything else about a finding is unchanged.
   {
@@ -193,7 +192,7 @@ export const proofStates: StateEntry[] = [
       'Proof, the same transcript difference as detail-open, but the app is talking to Audacity - no "In REAPER" section, and Play ±3 s, Show in Script and the decision controls work exactly as they do for REAPER',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Delivery findings on Proof (delivery-platform-profiles.prd.md Phase 9, P12)
+  // Delivery findings on Proof
   {
     page: 'proof',
     state: 'delivery-finding',

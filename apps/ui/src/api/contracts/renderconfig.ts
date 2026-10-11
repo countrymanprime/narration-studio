@@ -1,5 +1,4 @@
-// Per-chapter render configuration (reaper-automation-follow-through PRD, Phase 11, Open Question 7 answered
-// (a)): configure only. Sets the render bounds to all regions, the naming pattern to the region name, and the
+// Per-chapter render configuration: configure only. Sets the render bounds to all regions, the naming pattern to the region name, and the
 // output folder, then reports the resulting file names. This never triggers a render: the narrator presses
 // Render themselves in REAPER (Ctrl+Alt+R or File > Render). Mirrors
 // apps/desktop/internal/renderconfig.Service.Snapshot() exactly: one configure run at a time, reported by phase.

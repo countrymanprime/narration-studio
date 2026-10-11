@@ -36,7 +36,7 @@ export const pickupsImportResultSchema = z.object({
     .transform((value) => value ?? []),
 }) satisfies z.ZodType<PickupsImportResult>;
 
-/** `PickupsPunch` (`apps/desktop/pickupspunch.go`, booth-actions-enablement PRD Phase 3). */
+/** `PickupsPunch` (`apps/desktop/pickupspunch.go`). */
 export const pickupsPunchResultSchema = z
   .object({
     outcome: z.enum(['punched', 'refused']),

@@ -12,31 +12,30 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home (Phase 6, Q3 A): the linked Alice.rpp and "Link a different REAPER project file", the six REAPER tools, Chapter sync, the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Link a different REAPER project file", the six REAPER tools, Chapter sync, the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
   },
   {
     page: 'engine',
     state: 'sync-activity',
     description:
-      'The engine panel, Chapter sync as daw-chapter-track-auto-sync mockup 02 draws it (?mockChapterSync=activity): "On · last synced … from the saved Alice.rpp · 1 chapter linked automatically, 1 by you" and the Sync activity list, newest first, with Undo on the link sync made (audit fix-list item 8)',
+      'The engine panel, Chapter sync (?mockChapterSync=activity): "On · last synced … from the saved Alice.rpp · 1 chapter linked automatically, 1 by you" and the Sync activity list, newest first, with Undo on the link sync made',
   },
   {
     page: 'engine',
     state: 'from-tracks-link',
     description:
-      "An old /tracks link or bookmark (Q8 A): it lands on Proof, query and hash kept, with the engine panel open over it, since that is where the Tracks page's project, tracks and tools went",
+      "An old /tracks link or bookmark: it lands on Proof, query and hash kept, with the engine panel open over it, since that is where the Tracks page's project, tracks and tools went",
   },
   {
     page: 'engine',
     state: 'sync-off',
-    description:
-      'The engine panel, the Chapter sync section with sync turned off (?mockChapterSync=off, daw-chapter-track-auto-sync.prd.md Phase 3, mockup 02)',
+    description: 'The engine panel, the Chapter sync section with sync turned off (?mockChapterSync=off)',
   },
   {
     page: 'engine',
     state: 'sync-background-wait',
     description:
-      'The engine panel, Chapter sync with background recording checks on but waiting (?mockChapterSync=background, daw-chapter-track-auto-sync.prd.md Phase 7, ADR 0211): "Background checks: waiting, REAPER is recording." - the heartbeat\'s recording bit this stream lands',
+      'The engine panel, Chapter sync with background recording checks on but waiting (?mockChapterSync=background, ADR 0211): "Background checks: waiting, REAPER is recording."',
   },
   {
     page: 'engine',
@@ -52,13 +51,13 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'no-daw-link',
     description:
-      'The engine panel with no linked REAPER project file (?mockNoDaw=1, PRD W19): the panel’s own DAW-link control reads "Link a REAPER project file" instead of "Link a different REAPER project file" and the header chip "No REAPER project linked" - the panel stays usable since it reads its .rpp through its own discovery flow',
+      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link a REAPER project file" instead of "Link a different REAPER project file" and the header chip "No REAPER project linked" - the panel stays usable since it reads its .rpp through its own discovery flow',
   },
   {
     page: 'engine',
     state: 'chapter-link-confirmed',
     description:
-      'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear (analysis evidence ledger PRD, Phase 7)',
+      'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

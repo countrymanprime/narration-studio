@@ -1,6 +1,6 @@
-// The Master & QC export flow (render-encode-master.prd.md Phase 5): the narrator picks rendered chapter (and
-// credits, and retail sample) WAV files, optionally masters them (internal/mastering, Phase 3), encodes them
-// (internal/encodeport, Phases 1-2) and assembles one delivery profile's package (internal/packager, Phase 4).
+// The Master & QC export flow: the narrator picks rendered chapter (and credits, and retail sample) WAV files,
+// optionally masters them (internal/mastering), encodes them (internal/encodeport) and assembles one delivery
+// profile's package (internal/packager).
 // Mastering and encoding run together as one job (ExportStart/State/Cancel), matching the narrator's one "Master &
 // encode" action; packaging is its own job (PackageStart/State/Cancel) over an export's own encoded files.
 
@@ -83,7 +83,7 @@ export type PackageJob = {
 };
 
 /** One platform the narrator checked to build a package for, in the multi-platform export panel's own selection
- * (render-encode-master.prd.md Phase 6: several profiles, one action, built on Phase 5's own export/package split). */
+ * (several profiles, one action, over the same export/package split). */
 export type ProfileSelection = { profileId: string; profileVersion: string };
 
 /** What PackageStartMulti is asked to build: every selected platform, and the same encoded items a single

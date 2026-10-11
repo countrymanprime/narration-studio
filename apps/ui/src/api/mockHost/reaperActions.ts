@@ -136,7 +136,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
   const retakeLanesAlwaysErrors = initial.retakeLanes === 'error';
   const retakeLanesSubscribers = new Set<(state: RetakeLanesState) => void>();
   const publishRetakeLanes = () => retakeLanesSubscribers.forEach((fn) => fn(wireClone(retakeLanes)));
-  // Chapter tag embedding (Phase 12) never talks to REAPER: its preview is a fixed seed, not derived from
+  // Chapter tag embedding never talks to REAPER: its preview is a fixed seed, not derived from
   // renderConfig's live state, since the two are independent bindings on the real host too (ChapterTagsPreview
   // reads renderConfig.Snapshot() itself, server-side).
   const chapterTagsPreview: ChapterTagsPreview = wireClone(
@@ -303,7 +303,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       return { status: 'started' };
     },
     pickupsState: async () => wireClone(pickups),
-    // "Punch from here" on a pickup (booth-actions-enablement PRD Phase 3): the position is already known, so this
+    // "Punch from here" on a pickup: the position is already known, so this
     // just moves the mock cursor there minus the repo default pre-roll (Teleprompter.punch_preroll_seconds).
     pickupsPunch: async (position) => ({ outcome: 'punched', cursor: Math.max(0, position - PICKUPS_MOCK_PUNCH_PREROLL) }),
     subscribePickups: (onUpdate) => {

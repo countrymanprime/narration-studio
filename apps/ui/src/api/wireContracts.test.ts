@@ -460,7 +460,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     await expect(api.teleprompterLocate('not-a-real-chapter')).rejects.toThrow();
   });
 
-  it('the TeleprompterResumeFollow and Unfollow answers (read-aloud-resume-from-daw PRD Phase 5)', async () => {
+  it('the TeleprompterResumeFollow and Unfollow answers', async () => {
     const api = createMockApi();
     const chapters = await api.manuscriptChapters();
     const tracked = await api.teleprompterResumeFollow(chapters[0].id);
@@ -474,8 +474,7 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     await expect(api.teleprompterResumeFollow('not-a-real-chapter')).rejects.toThrow();
   });
 
-  // `?mockResume=` (main.tsx) reaches every resume card state on the first chapter (teleprompter-manuscript-integration.prd.md
-  // Phase 10); each answer is still one the real host could send.
+  // `?mockResume=` (main.tsx) reaches every resume card state on the first chapter; each answer is still one the real host could send.
   it.each([
     ['low_confidence', 'low_confidence'],
     ['not_found', 'not_found'],
@@ -583,8 +582,8 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(chapterSchema, await api.manuscriptSetChapterStatus(chapters[0]?.id ?? '', 'recording'), 'mock chapter status');
   });
 
-  // daw-chapter-track-auto-sync.prd.md Phases 3, 4 and 6: consent, the first sync and its batch, Undo, chaptersync:state,
-  // unsaved edits, the Sync activity and each chapter's status.
+  // Consent, the first sync and its batch, Undo, chaptersync:state, unsaved edits,
+  // the Sync activity and each chapter's status.
   it('chapter sync answers and events', async () => {
     const quiet = await createMockApi().chapterSyncState();
     expectMatches(chapterSyncStateSchema, quiet, 'mock chapter sync, synced before');
@@ -609,32 +608,32 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     for (const state of seen) expectMatches(chapterSyncStateSchema, state, 'mock chaptersync:state');
     expect(seen.length).toBeGreaterThanOrEqual(2);
 
-    // Phase 4: REAPER holds unsaved edits, and the Sync activity keeps a row from a save in REAPER.
+    // REAPER holds unsaved edits, and the Sync activity keeps a row from a save in REAPER.
     const unsaved = await createMockApi({}, { chapterSync: 'unsaved' }).chapterSyncState();
     expectMatches(chapterSyncStateSchema, unsaved, 'mock chapter sync, unsaved edits');
     expect(unsaved).toMatchObject({ consent: 'on', unsavedEdits: true, batch: null });
     expect(unsaved.activity.map((row) => row.trigger)).toEqual(['watch']);
 
-    // The engine panel's Sync activity (stage navigation Phase 6): three batches, one automatic and one manual link.
+    // The engine panel's Sync activity: three batches, one automatic and one manual link.
     const activity = await createMockApi({}, { chapterSync: 'activity' }).chapterSyncState();
     expectMatches(chapterSyncStateSchema, activity, 'mock chapter sync, the engine panel activity');
     expect(activity.activity.map((row) => row.trigger)).toEqual(['watch', 'watch', 'consent']);
     expect(activity.chapters.slice(0, 2).map((row) => row.origin)).toEqual(['auto', 'manual']);
 
-    // Phase 6: a status row per narration chapter, the recording check's own answer, with no Check press.
+    // A status row per narration chapter, the recording check's own answer, with no Check press.
     expect(quiet.chapters.length).toBeGreaterThan(0);
     const staleApi = createMockApi({}, { coverage: { stale: [quiet.chapters[0].chapterId] } });
     const staleState = await staleApi.chapterSyncState();
     expectMatches(chapterSyncStateSchema, staleState, 'mock chapter sync, a stale row');
     expect(staleState.chapters[0]).toMatchObject({ freshness: 'stale', reasons: ['item_trimmed'] });
 
-    // Phase 8: a chapter's pickup track, changed since its last scan.
+    // A chapter's pickup track, changed since its last scan.
     const pickups = await createMockApi({}, { chapterSync: 'pickups' }).chapterSyncState();
     expectMatches(chapterSyncStateSchema, pickups, 'mock chapter sync, pickups changed');
     expect(pickups.chapters.filter((row) => row.pickupsChanged)).toHaveLength(1);
   });
 
-  // chapter-track-link-control.prd.md Phase 3: Remove from recording clears the chapter's links, and Restore brings it back.
+  // Remove from recording clears the chapter's links, and Restore brings it back.
   it('a chapter removed from recording and restored', async () => {
     const api = createMockApi();
     const [first] = await api.manuscriptChapters();
@@ -669,7 +668,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.prepMarkupSave(chapter?.id ?? '', paragraph?.id ?? '', 0, 5, 'pause', '')).rejects.toThrow('short or long');
   });
 
-  // prep-depth.prd.md Phase 7: the per-chapter rollup reads the same two calls above, never a third store.
+  // The per-chapter rollup reads the same two calls above, never a third store.
   it('the prep completeness summary rolls up open queries and stale markup per chapter', async () => {
     const api = createMockApi({}, { prepMarkup: [{ chapter: 0, line: 0, words: 'Alice', kind: 'stress', stale: { reason: 'text_changed', was: 'Queen' } }] });
     const chapters = await api.manuscriptChapters();
@@ -866,7 +865,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(copyDiagnosticsResultSchema, await api.systemCopyDiagnostics('last_run'), 'mock copy diagnostics');
   });
 
-  it('the window zoom binding reads and sets a level (app-navigation-and-zoom-controls.prd.md Phase 2)', async () => {
+  it('the window zoom binding reads and sets a level', async () => {
     const api = createMockApi();
     const idle = await api.windowZoom();
     expectMatches(windowZoomSchema, idle, 'mock window zoom, idle');
@@ -897,11 +896,11 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(dawLinkResultSchema, await createMockApi({}, { dawLinkMismatch: true }).linkDawFile(), 'mock link, folder mismatch');
   });
 
-  it('the DAW launch binding answers (Phase 8)', async () => {
+  it('the DAW launch binding answers', async () => {
     expectMatches(dawLaunchResultSchema, await createMockApi().launchDaw(), 'mock launch');
   });
 
-  it('the credits template library, project values and preview answers (audiobook-credits-templates.prd.md, Phase 1)', async () => {
+  it('the credits template library, project values and preview answers', async () => {
     const api = createMockApi();
     const templates = await api.creditsTemplates();
     expectMatches(creditTemplatesSchema, templates, 'mock credit templates');
@@ -926,7 +925,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect(preview.unresolved).toEqual(['Narrator']);
   });
 
-  // credits-token-setup-and-front-matter-detection.prd.md Phase 2: the prompt asks, "Not now", and a save that only fills.
+  // The prompt asks, "Not now", and a save that only fills.
   it('the credits setup prompt answers', async () => {
     const quiet = await createMockApi().creditsSetupState();
     expectMatches(creditsSetupStateSchema, quiet, 'mock credits setup, answered before');
@@ -948,7 +947,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect((await api.creditsProjectValues()).values.title).toBe('My Own Title');
   });
 
-  it('the chapter announcements and retail sample answers (audiobook-credits-templates.prd.md, Phase 5)', async () => {
+  it('the chapter announcements and retail sample answers', async () => {
     const api = createMockApi();
     const announcements = await api.creditsChapterAnnouncements('[Chapter]{: [Chapter Title]}.');
     expectMatches(creditsAnnouncementsSchema, announcements, 'mock chapter announcements');
@@ -965,7 +964,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(retailSampleAnswerSchema, await api.saveCreditsRetailSample('', ''), 'mock cleared retail sample');
   });
 
-  it('the credits row statuses (credits-in-chapter-table.prd.md, Phase 1)', async () => {
+  it('the credits row statuses', async () => {
     const api = createMockApi();
     expectMatches(creditsStatusesSchema, await api.creditsStatuses(), 'mock credits statuses, empty');
     expect(await api.creditsStatuses()).toEqual({});
@@ -980,7 +979,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect(await api.creditsStatuses()).toEqual(afterClosing);
   });
 
-  it('the credits rows recorded lengths, never leaking a manuscript chapter link (credits-in-chapter-table.prd.md, Phase 3)', async () => {
+  it('the credits rows recorded lengths, never leaking a manuscript chapter link', async () => {
     const api = createMockApi();
     const unlinked = await api.creditsRecordedLengths();
     expectMatches(creditsRecordedLengthsSchema, unlinked, 'mock credits recorded lengths, neither linked');
@@ -1000,7 +999,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect(chapters.every((chapter) => chapter.recordedUnavailable === 'unlinked')).toBe(true);
   });
 
-  it('the DAW catalog list and open-download-page answers, detected and not detected (Phase 2)', async () => {
+  it('the DAW catalog list and open-download-page answers, detected and not detected', async () => {
     const detected = await createMockApi().dawCatalogList();
     expectMatches(dawCatalogListSchema, detected, 'mock catalog, detected');
     expect(detected[0]?.installed).toBe(true);
@@ -1012,7 +1011,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(createMockApi().dawCatalogOpenDownloadPage('not-a-real-daw')).rejects.toThrow(/Unknown DAW catalog entry/);
   });
 
-  it('pronunciation lookup opens for a known source and refuses an unknown one (prep-depth Phase 2)', async () => {
+  it('pronunciation lookup opens for a known source and refuses an unknown one', async () => {
     const api = createMockApi();
     await expect(api.pronunciationLookupOpen('forvo', 'Mock Turtle')).resolves.toBeUndefined();
     await expect(api.pronunciationLookupOpen('youglish', 'café')).resolves.toBeUndefined();
@@ -1022,14 +1021,14 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.pronunciationLookupOpen('wiktionary', 'croquet')).rejects.toThrow(/Unknown pronunciation lookup source/);
   });
 
-  it('the Commons audio link opens for a word the fixture index has, and refuses one it does not (prep-depth Phase 10)', async () => {
+  it('the Commons audio link opens for a word the fixture index has, and refuses one it does not', async () => {
     const api = createMockApi();
     await expect(api.pronunciationCommonsAudioOpen('Happy')).resolves.toBeUndefined();
     await expect(api.pronunciationCommonsAudioOpen('gloomy')).rejects.toThrow(/No Wikimedia Commons audio file/);
     await expect(api.pronunciationCommonsAudioOpen('   ')).rejects.toThrow(/empty word/);
   });
 
-  it('the online pronunciation lookup: the key status, a lookup, the cache and a confirmed batch (prep-depth Phase 9)', async () => {
+  it('the online pronunciation lookup: the key status, a lookup, the cache and a confirmed batch', async () => {
     const api = createMockApi();
     const absent = await api.pronunciationOnlineKeyStatus();
     expectMatches(pronunciationOnlineKeyStatusSchema, absent, 'mock key status');
@@ -1458,7 +1457,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.retakeLanesPick('line-000099', line.retakes[0].itemGuid)).rejects.toThrow(/not on a fixed-lane track/);
   });
 
-  it('the project-state check against the last comparison baseline (follow-through Phase 13)', async () => {
+  it('the project-state check against the last comparison baseline', async () => {
     vi.useFakeTimers();
     try {
       const api = createMockApi();
@@ -1484,7 +1483,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi().cleanupToolsLaunch('40209' as never)).rejects.toThrow(/unknown cleanup tool/);
   });
 
-  it('dawCapabilities and its subscribe emit the same picture, and match the host goldens for every launch kind (DAW port PRD Phase 4)', async () => {
+  it('dawCapabilities and its subscribe emit the same picture, and match the host goldens for every launch kind', async () => {
     const api = createMockApi();
     expectMatches(dawCapabilitiesSchema, await api.dawCapabilities(), 'mock daw capabilities (default REAPER seed)');
     const seen: unknown[] = [];
@@ -1526,7 +1525,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(turnedOff.capabilities.punch).toMatchObject({ available: false, reason: 'turned_off' });
   });
 
-  it('providerCapabilities matches the host goldens on Windows and on the Linux development host (provider-ports PRD Phase 14)', async () => {
+  it('providerCapabilities matches the host goldens on Windows and on the Linux development host', async () => {
     const windows = await createMockApi().providerCapabilities();
     expectMatches(providerCapabilitiesSchema, windows, 'mock provider capabilities (default Windows seed)');
     expect(windows).toEqual(readGolden('provider-capabilities-windows.json'));
@@ -1556,11 +1555,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const chosen = await api.masteringChooseProvider('builtin');
     expectMatches(masteringProvidersSchema, chosen, 'mock mastering chains (builtin chosen)');
     expect(chosen).toEqual(readGolden('mastering-providers-builtin-chosen.json'));
-    // The DAW row is Experimental (render-encode-master Phase 9): it can be chosen, and the project masters with it.
+    // The DAW row is Experimental: it can be chosen, and the project masters with it.
     const daw = await api.masteringChooseProvider('daw');
     expectMatches(masteringProvidersSchema, daw, 'mock mastering chains (daw chosen)');
     expect(daw).toEqual(readGolden('mastering-providers-daw-chosen.json'));
-    // The Audacity row is Experimental too (render-encode-master Phase 10, ADR 0460): it can be chosen the same way.
+    // The Audacity row is Experimental too (ADR 0460): it can be chosen the same way.
     const audacity = await api.masteringChooseProvider('audacity');
     expectMatches(masteringProvidersSchema, audacity, 'mock mastering chains (audacity chosen)');
     expect(audacity).toEqual(readGolden('mastering-providers-audacity-chosen.json'));
@@ -1574,7 +1573,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
   });
 
-  it('the built-in recorder matches the host goldens and records a take (native recording P2, ADR 0455)', async () => {
+  it('the built-in recorder matches the host goldens and records a take (ADR 0455)', async () => {
     const none = await createMockApi({}, { recording: { hasProject: false } }).recorderState();
     expectMatches(recorderStateSchema, none, 'mock recorder (no project)');
     expect(none).toEqual(readGolden('recorder-state-no-project.json'));
@@ -1609,7 +1608,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi({}, { recording: { unavailable: true } }).recorderChooseEngine('builtin')).rejects.toThrow('not available');
   });
 
-  it('recorderSetTakeLine and recorderSetTakeKeeper mark and undo (native recording P4, take review integration)', async () => {
+  it('recorderSetTakeLine and recorderSetTakeKeeper mark and undo', async () => {
     const api = createMockApi({}, { recording: { engine: 'builtin' } });
     const seeded = await api.recorderState();
     const [first, second] = seeded.takes;
@@ -1638,7 +1637,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi({}, { recording: { hasProject: false } }).recorderSetTakeKeeper('Take 001', true)).rejects.toThrow('open a project');
   });
 
-  it('subscribeDawTransport pushes the seeded transport once, and matches the host goldens (DAW port PRD Phase 9)', () => {
+  it('subscribeDawTransport pushes the seeded transport once, and matches the host goldens', () => {
     const seen = (seed: Parameters<typeof createMockApi>[1]): unknown[] => {
       const events: unknown[] = [];
       createMockApi({}, seed).subscribeDawTransport((state) => events.push(structuredClone(state)))();
@@ -1804,8 +1803,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it(
-    "packageStartMulti reuses one profile's encoded files for a matching format and re-encodes once for a " +
-      'differing one (render-encode-master PRD Phase 6), in the shape the host pins',
+    "packageStartMulti reuses one profile's encoded files for a matching format and re-encodes once for a " + 'differing one, in the shape the host pins',
     async () => {
       const api = createMockApi();
       expectMatches(multiPackageJobSchema, await api.packageMultiState(), 'mock multi-package, idle');
@@ -1822,8 +1820,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       while (job.phase === 'running') job = await api.exportState();
       const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 
-      // Two selections of the same (mp3-requiring) built-in profile reuse the same encoded files: the PRD's own
-      // "two profiles sharing MP3 at the same bitrate reuse one encoded file" test requirement.
+      // Two selections of the same (mp3-requiring) built-in profile reuse one encoded file per format and bitrate.
       const built = await api.packageStartMulti({
         selections: [
           { profileId: acx.id, profileVersion: acx.version },
@@ -1846,8 +1843,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   );
 
   it(
-    "the mock's own multi-package re-encode logic runs once per differing format, not once per selected profile " +
-      '(render-encode-master PRD Phase 6): a synthetic profile requiring M4B (no built-in profile asks for anything ' +
+    "the mock's own multi-package re-encode logic runs once per differing format, not once per selected profile: " +
+      'a synthetic profile requiring M4B (no built-in profile asks for anything ' +
       'but MP3 today) turns credits and retail sample off so it can be judged from chapters alone',
     async () => {
       const m4b = structuredClone(MOCK_ACX);
@@ -2182,7 +2179,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(gated.status).toBe('asset_required');
   });
 
-  it('the model cascade names both models, gates on the re-check model, and "Check with tiny only" skips it (Phase 5)', async () => {
+  it('the model cascade names both models, gates on the re-check model, and "Check with tiny only" skips it', async () => {
     const api = createMockApi();
     const chapters = await api.manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
@@ -2229,7 +2226,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
   });
 
-  it("the workspace peaks answer the live item's waveform, deterministically (edit-and-proof-workspace PRD Phase 5)", async () => {
+  it("the workspace peaks answer the live item's waveform, deterministically", async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
@@ -2267,7 +2264,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(unknown.items).toEqual([]);
   });
 
-  it('the workspace REAPER bindings answers, every outcome and refusal (edit-and-proof-workspace PRD Phase 3)', async () => {
+  it('the workspace REAPER bindings answers, every outcome and refusal', async () => {
     const api = createMockApi();
     const chapters = await api.manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
@@ -2286,7 +2283,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     for (const [name, answer] of answers) expectMatches(findingNavigationSchema, await answer, `mock workspace ${name}`);
   });
 
-  it("workspaceListFXChains lists the narrator's FX chains, and rejects when REAPER is not connected (edit-and-proof-workspace PRD Phase 8)", async () => {
+  it("workspaceListFXChains lists the narrator's FX chains, and rejects when REAPER is not connected", async () => {
     const chains = await createMockApi().workspaceListFXChains();
     expectMatches(workspaceFXChainsResultSchema, chains, 'mock workspace FX chains');
     expect(chains.names.length).toBeGreaterThan(0);
@@ -2295,7 +2292,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi({}, { reaper: 'standalone' }).workspaceListFXChains()).rejects.toThrow();
   });
 
-  it('the passage effects: the plug-in list, add-to-passage and chain-on-track answer the schema, and refuse what the host refuses (edit-and-proof-workspace PRD Phase 9)', async () => {
+  it('the passage effects: the plug-in list, add-to-passage and chain-on-track answer the schema, and refuse what the host refuses', async () => {
     const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
     // A live item needs a confirmed chapter link (the peaks test above seeds the same one).
@@ -2336,7 +2333,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await answers[2][1]).toMatchObject({ outcome: 'refused', reason: 'bad_range' });
   });
 
-  it('the Takes panel bindings answer: the passage takes, their comparison and every outcome of using one (edit-and-proof-workspace PRD Phase 6)', async () => {
+  it('the Takes panel bindings answer: the passage takes, their comparison and every outcome of using one', async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
     if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
@@ -2431,7 +2428,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(nothingEligible).toEqual({ outcome: 'nothing_eligible', candidates: [] });
   });
 
-  it('the preview pin: not present, set, adjust and clear (proofing-preview-suggestion.prd.md Phase 8)', async () => {
+  it('the preview pin: not present, set, adjust and clear', async () => {
     const api = createMockApi();
     const notPinned = await api.previewPin();
     expectMatches(pinnedPreviewSchema, notPinned, 'mock preview pin, none');
@@ -2620,7 +2617,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.levelMatchPreview(chapterId, 'rms_dbfs', -6, 1)).rejects.toThrow();
   });
 
-  it('the editing source choice defaults to items and round-trips through Set (Q6, editing-readiness-analysis.prd.md Phase 8)', async () => {
+  it('the editing source choice defaults to items and round-trips through Set', async () => {
     const api = createMockApi();
     const chapterId = 'chapter-7'; // WIRE_CHAPTERS[6] is the fixture's one Editing-status chapter.
 

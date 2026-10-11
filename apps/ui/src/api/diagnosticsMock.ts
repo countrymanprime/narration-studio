@@ -1,4 +1,4 @@
-// The browser mock's diagnostics check (diagnostics-delivery-and-cleanup-tools.prd.md Phase 6), answering the way
+// The browser mock's diagnostics check, answering the way
 // apps/desktop/diagnostics_job.go does: the same refusals (an unknown source kind, nothing chosen, a path the measurement
 // picker did not choose, one already running), a running job that reads one more quarter of a file per poll (standing in
 // for the bytes the host reads, ADR 0015), and results in the shape tests/fixtures/contracts/diagnostics-success.json

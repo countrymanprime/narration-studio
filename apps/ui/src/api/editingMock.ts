@@ -1,4 +1,4 @@
-// The browser mock's editing-readiness check (editing-readiness-analysis.prd.md Phase 5, stepped for Phase 7's panel).
+// The browser mock's editing-readiness check, stepped for the editing panel.
 // A start steps through real-looking progress over a few items, exactly like coverageMock's TRANSCRIBE/ALIGN steps: a
 // held run freezes partway (so the panel's Cancel affordance, and a cancel's `partial` result, can be seen without a
 // host or a race), and every reason answers a refusal instead of running.
@@ -47,7 +47,7 @@ const idle: EditingState = {
   failed: 0,
 };
 
-/** Q6's per-chapter source choice (Phase 8), shared with stagesMock.ts's own `editingSourceChoice` dep
+/** The per-chapter source choice (rendered file or items), shared with stagesMock.ts's own `editingSourceChoice` dep
  * (mockApi.ts wires the two together) so switching a chapter's choice here is visible on its editing signals
  * there. Callers that do not care (most tests) get a private map of their own. */
 export type EditingChoices = Map<string, EditingSourceChoice>;

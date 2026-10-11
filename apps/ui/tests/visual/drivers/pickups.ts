@@ -1,4 +1,4 @@
-// How to reach each `pickups` state (the Pickups page, stage-navigation-and-page-replacement.prd.md Phase 7) in STATE_CATALOG
+// How to reach each `pickups` state (the Pickups page) in STATE_CATALOG
 // (see app.drivers.ts).
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
@@ -45,7 +45,7 @@ export const pickupsDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Next pickup');
     await page.getByRole('link', { name: /Open Chapter 1 .* in Proof/ }).waitFor();
   },
-  // "Punch from here" wired to dawport.Puncher (booth-actions-enablement PRD Phase 3): the punch capability is turned on
+  // "Punch from here" wired to dawport.Puncher: the punch capability is turned on
   // directly (?mockPunchCapabilityOn=1), the same bypass mockRegionsCapabilityOn uses.
   'next-punch-enabled': async (page) => {
     await openPickups(page, '?mockPickups=import-success&mockPunchCapabilityOn=1');

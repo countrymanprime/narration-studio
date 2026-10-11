@@ -1,6 +1,6 @@
-// The mocks the pixel-match tool scores (D91 on #509, owner rulings of 2026-09-29). THE SPEC IS ONE FOLDER:
-//   docs/research/mockups/audiobook-studio-benchmark/   (the seven benchmark mocks, approved as the build spec, D69)
-// Every other mock is deleted (D96, 2026-09-29): the per-PRD sets under docs/prds/mockups/ and the crops beside them predated the
+// The mocks the pixel-match tool scores (owner rulings of 2026-09-29). THE SPEC IS ONE FOLDER:
+//   docs/research/mockups/audiobook-studio-benchmark/   (the seven benchmark mocks, approved as the build spec)
+// Every other mock is deleted (2026-09-29): the per-feature mock sets and the crops beside them predated the
 // redesign and are gone. A new mock is added only for work being built now and is deleted when that work merges.
 // Theme: the theme is one app-wide setting, so a state is captured in the theme its mock is drawn in and compared with it:
 // light against light, dark against dark. The benchmark mocks are light except the Booth (03) and the companion (07); their
@@ -20,7 +20,7 @@ export interface ApprovedMock {
   file: string;
   /** The visual-suite state (tests/visual/state-catalog.ts) that shows this screen; its driver reaches it. */
   target?: { page: string; state: string };
-  /** The theme the mock is drawn in: the capture uses it too, so a theme is never counted as a difference (D69). */
+  /** The theme the mock is drawn in: the capture uses it too, so a theme is never counted as a difference. */
   theme: 'light' | 'dark';
   /**
    * Compare only this part of the mock, captured at its size: a mock that draws the app beside something that is not the
@@ -39,7 +39,7 @@ export interface ApprovedMock {
 export const SPEC_DIR = 'docs/research/mockups/audiobook-studio-benchmark';
 
 export const APPROVED_MOCKS: ApprovedMock[] = [
-  // Scored against its own data (?mockFidelity=01, Q5).
+  // Scored against its own data (?mockFidelity=01).
   { file: '01-production-home.webp', target: { page: 'production', state: 'mock-fidelity-01' }, theme: 'light' },
   { file: '02-prep-script.webp', target: { page: 'script', state: 'prep-rail-pronunciations' }, theme: 'light' },
   { file: '03-booth.webp', target: { page: 'booth', state: 'speaker-tags' }, theme: 'dark' },
@@ -50,7 +50,7 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
     file: '06-series-voice-bible.webp',
     theme: 'light',
     unscored:
-      'the Character Continuity review page, not the Story Bible (multi-book series is out of scope: one project is one book); it needs its own PRD and mocks, and so does the real Story Bible',
+      'the Character Continuity review page, not the Story Bible (multi-book series is out of scope: one project is one book); it needs its own mock, and so does the real Story Bible',
   },
   {
     file: '07-daw-companion.webp',
@@ -78,7 +78,7 @@ export interface ChromeRegion extends Region {
 // of its own panel (07).
 const NO_SHELL = ['03-booth.webp', '07-daw-companion.webp'];
 
-/** Whether the mock's chrome is the chrome's spec: every mock in the spec folder is (D92). */
+/** Whether the mock's chrome is the chrome's spec: every mock in the spec folder is. */
 export function isChromeSpec(_mock: ApprovedMock): boolean {
   return true;
 }

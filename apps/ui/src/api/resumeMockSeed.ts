@@ -2,8 +2,7 @@ import type { ChapterTrackMatch } from './contracts/chapterTrackMap';
 import type { TeleprompterLocateResult, TeleprompterModelRequired, TeleprompterReading } from './contracts/teleprompter';
 
 /**
- * `?mockResume=` (main.tsx): which resume state (teleprompter-manuscript-integration.prd.md Phase 10,
- * read-aloud-resume-from-daw.prd.md Phase 3) the mock's TeleprompterLocate answers for any chapter, so each can be seen on
+ * `?mockResume=` (main.tsx): which resume state the mock's TeleprompterLocate answers for any chapter, so each can be seen on
  * the first chapter without a real REAPER project, recording or Whisper run. Unset, the mock project's own tracks decide
  * (Chapter 1 found, Chapter 2's source missing, the last chapter no track) and no last reading is stored, so the verdict is
  * `daw_only`. `agree` and `disagree` add a last reading near to or far from the recording; `prompter_only` has no track and
@@ -111,8 +110,8 @@ export function seedLocateResult(result: LocateDraft, seed: MockResumeSeed | und
       };
     case 'low_confidence':
       return result.located ? { ...result, located: { ...result.located, confidence: LOW_CONFIDENCE, confident: false }, status: 'low_confidence' } : result;
-    // The recording already reaches the chapter's last word (read-aloud-resume-from-daw.prd.md Phase 1: a placed word with
-    // no script words after it is complete, and must never be offered as a place to resume).
+    // The recording already reaches the chapter's last word (a placed word with no script words after it is
+    // complete, and must never be offered as a place to resume).
     case 'complete':
       return result.located ? { ...result, located: { ...result.located, word: result.located.tokens } } : result;
     case 'not_found':

@@ -1,4 +1,4 @@
-// Diagnostics (diagnostics-delivery-and-cleanup-tools.prd.md Phase 6): the windowed analyzers (ADR 0158) over files the
+// Diagnostics: the windowed analyzers (ADR 0158) over files the
 // narrator picked for measuring (MeasurePickFiles, ADR 0156), as a job with real progress (ADR 0015). Each file answers
 // a summary and its findings; every finding carries the threshold that raised it and whether the audio is a raw
 // recording or a processed render. Field names inside the thresholds, a summary and a finding are the wire's own
@@ -12,8 +12,7 @@ import type { MeasureJob } from './measure';
 export type DiagnosticsSourceKind = 'raw_recording' | 'processed_render';
 
 /**
- * The silence cleanup analyzer's own thresholds (diagnostics-delivery-and-cleanup-tools.prd.md Phase 9 remainder,
- * ADR 0238 decision 4; internal/measure.CleanupOptions), read from the narrator's settings ("Cleanup" tool) and
+ * The silence cleanup analyzer's own thresholds (ADR 0238 decision 4; internal/measure.CleanupOptions), read from the narrator's settings ("Cleanup" tool) and
  * shown the same way as `thresholds`: even before a check, so they are never hidden.
  */
 export type DiagnosticsCleanupThresholds = {

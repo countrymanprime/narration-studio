@@ -30,7 +30,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
   playing: async (page) => {
     await openLinkedProofChapter(page, 'Chapter 1');
     await clickVisible(page, 'button', 'Play');
-    // The transport sits under mock 04's notes (ADR 0470), below the fold at the smaller widths, so it is scrolled into view
+    // The transport sits under benchmark mock 04's notes (ADR 0470), below the fold at the smaller widths, so it is scrolled into view
     // at each one (KEEPS_DESKTOP_SCROLL on the row): otherwise small-desktop shows only the notes, the same as `current`.
     const pause = page.getByRole('button', { name: 'Pause' });
     await pause.waitFor();
@@ -38,8 +38,8 @@ export const proofChapterDrivers: Record<string, Driver> = {
   },
   'flag-selected': async (page) => {
     // ?mockCoverage=pickups replaces the default findings seed with one scoped to Chapter 4 (main.tsx), so Chapter
-    // 1's own misread flag here carries no finding - a plain, read-only flag straight from the check's alignment
-    // (Phase 2), distinct from flag-finding-open below (the same flag, Phase 4's default seed, finding-backed).
+    // 1's own misread flag here carries no finding - a plain, read-only flag straight from the check's alignment,
+    // distinct from flag-finding-open below (the same flag, from the default seed, finding-backed).
     await page.goto('/?mockCoverage=pickups');
     await settlePage(page);
     await openLinkedProofChapter(page, 'Chapter 1');
@@ -56,7 +56,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await detail.waitFor();
     await detail.scrollIntoViewIfNeeded();
   },
-  // edit-and-proof-workspace.prd.md Phase 4: Chapter 1's mock seeds a transcript_discrepancy finding at the same
+  // Chapter 1's mock seeds a transcript_discrepancy finding at the same
   // misread the check already flags (mockApi.ts's workspaceOverlayFinding), so "Next flag" selects the one flag on
   // this chapter and it is finding-backed - the "From"/Decision section shown here is the merge, not a second flag.
   'flag-finding-open': async (page) => {
@@ -83,13 +83,13 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openLinkedProofChapter(page, 'Chapter 1');
     await page.getByText('Check current').waitFor();
-    // Phase 3: Go to/Loop are disabled once useReaperStatus's first poll answers 'standalone'. The transport is scrolled into
+    // Go to/Loop are disabled once useReaperStatus's first poll answers 'standalone'. The transport is scrolled into
     // view at each width, as `playing` does.
     const goTo = page.getByRole('button', { name: 'Go to in REAPER' });
     await goTo.waitFor();
     await goTo.scrollIntoViewIfNeeded();
   },
-  // The Takes panel (edit-and-proof-workspace.prd.md Phase 6): Chapter 1's first paragraph heard, its takes listed.
+  // The Takes panel: Chapter 1's first paragraph heard, its takes listed.
   'takes-list': async (page) => {
     await openTakes(page);
   },
@@ -136,7 +136,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     // Use this take waits for the first REAPER status poll before it can say why it is off.
     await page.getByRole('button', { name: 'Use take 2' }).and(page.locator(':disabled')).waitFor();
   },
-  // Effects on a passage (edit-and-proof-workspace.prd.md Phase 9): a right click on the first heard word of the script opens the menu.
+  // Effects on a passage: a right click on the first heard word of the script opens the menu.
   'effects-menu': async (page) => {
     await openScriptMenu(page);
   },
@@ -155,7 +155,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await page.getByRole('menuitem', { name: /Put an FX chain on the chapter/ }).click();
     await page.getByRole('combobox', { name: 'FX chain' }).waitFor();
   },
-  // The compare run (the retired Proofing page, stage-navigation-and-page-replacement.prd.md Phase 5), on Chapter 1 opened from
+  // The compare run (the retired Proofing page), on Chapter 1 opened from
   // Proof's chapter picker with no track linked, scrolled so the run fills the picture.
   'compare-setup': async (page) => {
     await openCompare(page);
@@ -184,7 +184,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await finishComparison(page);
     await compareRun(page).scrollIntoViewIfNeeded();
   },
-  // "May have changed since comparison" (reaper-automation-follow-through PRD Phase 13): reviewing the last completed
+  // "May have changed since comparison": reviewing the last completed
   // comparison (its mock fixture carries a baseline count of 41), whose default background check answers 42 - no
   // seam needed. Live just-finished results carry no baseline in this mock (the real host sets one at prepare_compare),
   // so this state goes through "Last narrated take" rather than a fresh run, same path as compare-no-daw-review.
@@ -244,7 +244,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Start comparison' }).and(page.locator('[aria-disabled="true"]')).waitFor();
   },
   'compare-no-daw-review': async (page) => {
-    // Offline review of the last completed comparison stays reachable with no linked DAW file (PRD W16): "Last narrated take" in the
+    // Offline review of the last completed comparison stays reachable with no linked DAW file: "Last narrated take" in the
     // run's setup shows its results as flags, where Play recorded audio and Export are off.
     await openCompare(page, '/?mockNoDaw=1');
     await clickVisible(page, 'button', /Last narrated take/);
@@ -274,7 +274,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
   'preview-warnings': async (page) => {
     await openPanel(page, '/?mockPreviewCandidates=warnings', page.getByText(/imported before chapters were classified/));
   },
-  // proofing-readiness-signals.prd.md Phase 6: the panel is this one chapter's own readiness, so `?mockProofingStages=mixed`'s
+  // The panel is this one chapter's own readiness, so `?mockProofingStages=mixed`'s
   // two seeded chapters (main.tsx: Chapter 9 met, Chapter 10 not_met) are opened on their own chapter view, not a shared table.
   'stage-panel-suggestions': async (page) => {
     await openPanel(page, '/?mockProofingStages=mixed', page.getByText('Suggested: Finalized'), 'Chapter 9');
@@ -294,7 +294,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', /^Why: /);
     await page.getByRole('button', { name: 'Open the audio engine panel' }).waitFor();
   },
-  // The rendered file section (Phase 6): choosing, then Measure, on an unseeded Proofing chapter (Chapter 9's own
+  // The rendered file section: choosing, then Measure, on an unseeded Proofing chapter (Chapter 9's own
   // delivery checks stay unknown until a render is chosen and measured, matching the mock's default).
   'render-none': async (page) => {
     await openPanel(page, '/', page.getByText('Proofing readiness'), 'Chapter 9');
@@ -329,7 +329,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await stale.waitFor();
     await stale.scrollIntoViewIfNeeded();
   },
-  // Native takes (native-recording-suite PRD Phase 4): ?mockEngine=builtin seeds the built-in recorder's default
+  // Native takes: ?mockEngine=builtin seeds the built-in recorder's default
   // three takes, all unassigned to a line, offered against Chapter 1's own paragraphs.
   'native-takes-unassigned': async (page) => {
     await page.goto('/?mockEngine=builtin');

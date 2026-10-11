@@ -1,8 +1,8 @@
-// The browser mock's Master & QC export flow (render-encode-master.prd.md Phase 5), answering the way
+// The browser mock's Master & QC export flow, answering the way
 // apps/desktop/export_job.go and package_job.go do: the same refusals (nothing picked, a path the picker did not
 // choose, one already running, packaging a path that was not encoded this session), a running export that finishes
 // one file per poll (standing in for the bytes the host reads), and a package whose checklist is built from the
-// project's own delivery profile's book rules the way packager.Assemble reads them (D67: mock-first, tests and the
+// project's own delivery profile's book rules the way packager.Assemble reads them (tests and the
 // demo build share this file; the real host swaps in internal/encodeport, internal/mastering and internal/packager).
 import type {
   DeliveryProfile,
@@ -101,7 +101,7 @@ function packageNameForFormat(item: PackageItem, index: number, format: string):
  * `picked` is the export picker's allowlist (mirrors ADR 0156's own discipline); `encoded` is the last export's own
  * encoded paths, package's own allowlist (mirrors the host's own "was it encoded this session" check).
  *
- * `profiles` is every profile a multi-platform selection may pick from (Phase 6, D67: the same list
+ * `profiles` is every profile a multi-platform selection may pick from (the same list
  * deliveryProfilesMock.ts's own `all()` already exposes for the single-profile tabs), defaulting to ACX alone.
  * `multiPackageSeed` freezes the multi-platform job at "running" on its own (separately from `seed`, which would
  * also freeze the export job itself mid-run, leaving no completed files to build packages from).

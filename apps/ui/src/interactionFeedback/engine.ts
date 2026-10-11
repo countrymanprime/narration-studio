@@ -1,4 +1,4 @@
-// The interaction feedback rows for the engine panel's call sites (stage-navigation-and-page-replacement.prd.md Phase 6; the Tracks page's until then) (see interactionFeedback.catalog.ts for what a row says).
+// The interaction feedback rows for the engine panel's call sites (see interactionFeedback.catalog.ts for what a row says).
 import { type FeedbackRow, row, startup, subscription } from './row';
 
 // prettier-ignore
@@ -8,13 +8,13 @@ export const engineFeedback: Record<string, FeedbackRow> = {
   'src/components/engine/EnginePanel.tsx::chapterTrackMapList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only names each track\'s chapter in the track list; without it the column reads "Not linked", and the Chapter links table under it reports its own read failure.'),
   'src/components/engine/EnginePanel.tsx::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Parsing a 100 KB project file takes about 2 ms (docs/research/interaction-latency-baseline.md).'),
   'src/components/engine/EnginePanel.tsx::tracksSelect#1': row('click', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A small file write.'),
-  'src/components/engine/ChapterLinksTable.tsx::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Loaded beside the confirmed mappings to build the chapter-link list (evidence ledger PRD, Phase 7).'),
+  'src/components/engine/ChapterLinksTable.tsx::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Loaded beside the confirmed mappings to build the chapter-link list.'),
   'src/components/engine/ChapterLinksTable.tsx::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The confirmed links for the current manuscript document.'),
   'src/components/engine/ChapterLinksTable.tsx::chapterTrackSet#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'Confirm on a chapter\'s MappingConfirm; the row is busy until the link replaces the chapter\'s old one and is re-listed, and a refusal (an unknown chapter) is written inline.'),
   'src/components/engine/ChapterLinksTable.tsx::chapterTrackUnlink#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'Clear on a chapter\'s MappingConfirm; the row is busy until every link the chapter holds is removed and re-listed.'),
-  'src/components/engine/ChapterSyncPanel.tsx::chapterSyncPreview#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Fills the Needs-you and not-chapters lists (daw-chapter-track-auto-sync.prd.md Phase 3, mockup 02), read again on mount and after each sync; a failed read is a toast and the panel keeps its last list.'),
+  'src/components/engine/ChapterSyncPanel.tsx::chapterSyncPreview#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Fills the Needs-you and not-chapters lists, read again on mount and after each sync; a failed read is a toast and the panel keeps its last list.'),
   'src/components/engine/ChapterSyncPanel.tsx::chapterSyncSetEnabled#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'na', 'ok', 'Turn on / Turn off on the panel; the button is busy until the state (and, turning on, the first sync) comes back, and a failure is a toast that leaves the switch as it was.'),
-  'src/components/engine/ChapterSyncPanel.tsx::chapterSyncUndo#1': row('click', 'file-io', 'disabled', 'disabled', 'toast', 'toast', 'no', 'ok', 'Undo on a Sync activity line (mockup 02); the word is disabled until the host answers, "Link undone. Sync will not make it again." confirms it, a failure is a toast, and chaptersync:state redraws the list without the Undo.'),
+  'src/components/engine/ChapterSyncPanel.tsx::chapterSyncUndo#1': row('click', 'file-io', 'disabled', 'disabled', 'toast', 'toast', 'no', 'ok', 'Undo on a Sync activity line; the word is disabled until the host answers, "Link undone. Sync will not make it again." confirms it, a failure is a toast, and chaptersync:state redraws the list without the Undo.'),
   'src/components/engine/ChapterSyncPanel.tsx::chapterTrackSet#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'no', 'ok', 'Link on a Needs-you row, the same binding as Chapter links below; the row\'s Link button is busy until it returns, "Track linked." confirms it, and the list is read again.'),
   'src/components/engine/EnginePanel.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only decides whether the "Link chapters…" button shows; without it the button is absent, same as a project with no chapters.'),
   'src/components/engine/LinkChaptersDialog.tsx::lineIdentityState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever stamp or read was already in flight when the dialog reopened; the live event follows anyway.'),
@@ -43,7 +43,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Configuration only (Phase 11, Open Question 7): sets the render bounds, pattern and output folder, never triggers a render. A completed run shows the resulting file names and the manual-render instruction; a failure shows inline as an alert.',
+    'Configuration only: sets the render bounds, pattern and output folder, never triggers a render. A completed run shows the resulting file names and the manual-render instruction; a failure shows inline as an alert.',
   ),
   'src/components/engine/CleanupToolsDialog.tsx::cleanupToolsState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever launch was already in flight when the dialog reopened; the live event follows anyway.'),
   'src/components/engine/CleanupToolsDialog.tsx::subscribeCleanupTools#1': subscription('The cleanup-tools state event, for the launch this dialog starts.'),
@@ -56,7 +56,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Opens an allow-listed repair dialog in REAPER (Phase 23, ADR 0146) and changes nothing itself. The pressed tool shows pending and the other is disabled until REAPER answers; the opened state or REAPER\'s refusal (no selection, not installed) shows inline.',
+    'Opens an allow-listed repair dialog in REAPER (ADR 0146) and changes nothing itself. The pressed tool shows pending and the other is disabled until REAPER answers; the opened state or REAPER\'s refusal (no selection, not installed) shows inline.',
   ),
   'src/components/engine/RetakeLanesDialog.tsx::subscribeRetakeLanes#1': subscription('The retake-lane state event, for the pick this dialog starts.'),
   'src/components/engine/RetakeLanesDialog.tsx::retakeLanesState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever pick was already in flight when the dialog reopened; the live event follows anyway.'),
@@ -70,7 +70,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Makes one retake\'s lane the only one playing on its track (Phase 25, ADR 0147), one REAPER undo step and nothing else. The pressed lane shows pending and every other lane and Close are disabled until REAPER answers; the new play state or REAPER\'s refusal (stale retake, lanes off) shows inline.',
+    'Makes one retake\'s lane the only one playing on its track (ADR 0147), one REAPER undo step and nothing else. The pressed lane shows pending and every other lane and Close are disabled until REAPER answers; the new play state or REAPER\'s refusal (stale retake, lanes off) shows inline.',
   ),
   'src/components/engine/ChapterTagsDialog.tsx::chapterTagsPreview#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loads the known chapters from the last chapter render; a failure shows inline instead of the chapter list.'),
   'src/components/engine/ChapterTagsDialog.tsx::chapterTagsEmbed#1': row(
@@ -82,7 +82,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Phase 12: writes ID3 CHAP/CTOC tags into a new copy of the narrator-chosen file. Gated on the confirm checkbox and a non-blank destination; the button and the confirm checkbox stay disabled while it runs. A success shows the new file path, a failure shows inline as an alert.',
+    'Writes ID3 CHAP/CTOC tags into a new copy of the narrator-chosen file. Gated on the confirm checkbox and a non-blank destination; the button and the confirm checkbox stay disabled while it runs. A success shows the new file path, a failure shows inline as an alert.',
   ),
   'src/components/engine/CreateChapterRegionsDialog.tsx::chapterRegionsPreview#1': row(
     'effect',
@@ -104,7 +104,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Recomputes the plan and sends it to REAPER in one undo step (booth-actions-enablement.prd.md Phase 4, ADR 0245). The button is busy until it returns; a completed run shows the sent/created/existing/updated/ambiguous/failed counts, a failure shows inline as an alert and creates nothing.',
+    'Recomputes the plan and sends it to REAPER in one undo step (ADR 0245). The button is busy until it returns; a completed run shows the sent/created/existing/updated/ambiguous/failed counts, a failure shows inline as an alert and creates nothing.',
   ),
   'src/components/engine/CreateChapterRegionsDialog.tsx::chapterRegionsPreview#2': row(
     'click',

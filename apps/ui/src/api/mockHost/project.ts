@@ -5,7 +5,7 @@ import type { MockApiSeed } from './state';
 
 const DEFAULT_PROJECT_FOLDER = 'C:/Projects/Alice-in-Wonderland';
 const DEFAULT_PROJECT_NAME = 'Alice’s Adventures in Wonderland';
-// Mirrors the Go host's Phase 1 default (`~/NarrationUtils`, project.DefaultDirName): what an empty parent
+// Mirrors the Go host's default (`~/NarrationUtils`, project.DefaultDirName): what an empty parent
 // resolves to in ProjectCreateIn.
 const DEFAULT_PROJECTS_DIRECTORY = 'C:/Users/Mock/NarrationUtils';
 
@@ -19,13 +19,13 @@ export function createProjectMock(initial: MockApiSeed) {
   let projectFolder = initial.projectFolder ?? DEFAULT_PROJECT_FOLDER;
   let projectName = initial.projectFolder === undefined ? DEFAULT_PROJECT_NAME : basename(projectFolder);
   let daw = 'REAPER';
-  // Whether the mock project has a linked DAW project file (PRD W13/W14/W19), independent of `daw`: real Bootstrap
+  // Whether the mock project has a linked DAW project file, independent of `daw`: real Bootstrap
   // computes this from the manifest, not the label. Defaults to true so the existing default-linked mock scenarios
   // (App.test.tsx clicking into Proofing) keep working; attaching a different project resets it, like a fresh
   // project would have no link yet.
   let dawFileLinked = initial.dawFileLinked ?? true;
   let dawRppPath = `${projectFolder}/${basename(projectFolder)}.rpp`;
-  // Independent of dawFileLinked/dawReachable: a Phase 1 detection fact about the machine, not about this
+  // Independent of dawFileLinked/dawReachable: a detection fact about the machine, not about this
   // project's link (docs/architecture/daw-integration.md). Defaults to true so the default capture shows
   // REAPER detected; ?mockDawNotDetected=1 flips it for the not-detected + "Get REAPER" state.
   const dawCatalogInstalled = initial.dawCatalogInstalled ?? true;
@@ -82,8 +82,8 @@ export function createProjectMock(initial: MockApiSeed) {
       dawFileLinked = true;
       return { selected: true, linked: true, path: dawRppPath };
     },
-    // The mock never grows a real heartbeat (dawReachable stays whatever Bootstrap already reports, ADR 0092
-    // Phase 7 is Go/Lua only): this just answers as if REAPER accepted the launch.
+    // The mock never grows a real heartbeat (dawReachable stays whatever Bootstrap already reports; the live heartbeat of
+    // ADR 0092 exists only in the host and the Lua bridge): this just answers as if REAPER accepted the launch.
     launchDaw: async () => ({ launched: true, path: 'C:/Program Files/REAPER (x64)/reaper.exe', source: 'uninstall_registry' }),
     dawCatalogList: async () => wireClone(DAW_CATALOG),
     dawCatalogOpenDownloadPage: async (id) => {

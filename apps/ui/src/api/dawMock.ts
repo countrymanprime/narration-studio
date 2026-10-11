@@ -1,4 +1,4 @@
-// The mock's DAW port capabilities (DAW port PRD Phase 4): a stand-in for the host's dawport.Resolver, over the same
+// The mock's DAW port capabilities: a stand-in for the host's dawport.Resolver, over the same
 // three inputs (a declaration per DAW kind, the narrator's per-capability toggles, and reachability) and the same
 // refusal order (declaration, then toggle, then runtime) as apps/desktop/internal/dawport/resolver.go. It has no
 // action of its own to trigger a live update from - it always answers the seeded picture - so subscribeDawCapabilities
@@ -72,7 +72,7 @@ const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER i
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
 const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
 const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
-/** ADR 0144's sentence, for what an Audacity launch does not build (audacity-integration PRD). */
+/** ADR 0144's sentence, for what an Audacity launch does not build. */
 const MESSAGE_AUDACITY_NOT_YET =
   "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
 /** An Audacity launch's built but Experimental capabilities while no page opens the pipe (ADR 0355,
@@ -99,7 +99,7 @@ export type DawMockSeed = {
   toggles?: Partial<Record<DawCapabilityKey, DawToggle>>;
   /** The old DAW.experimental_reaper_actions switch: while true, every Experimental capability left on 'auto' is on. */
   experimentalOn?: boolean;
-  /** The transport daw_transport_changed reports (DAW port PRD Phase 9); defaults to stopped. Only a connected, reachable
+  /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
   transport?: DawTransport;
 };

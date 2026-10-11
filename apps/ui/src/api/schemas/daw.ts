@@ -27,7 +27,7 @@ export const dawCapabilitiesSchema = z.object({
   capabilities: z.record(z.string(), dawCapabilitySupportSchema),
 }) satisfies z.ZodType<DawCapabilities>;
 
-/** daw_transport_changed (DAW port PRD Phase 9): position is absent while stopped. */
+/** daw_transport_changed: position is absent while stopped. */
 export const dawTransportSchema = z.object({
   playing: z.boolean(),
   recording: z.boolean(),

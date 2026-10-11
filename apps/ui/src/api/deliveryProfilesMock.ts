@@ -223,7 +223,7 @@ export const MOCK_ACX: DeliveryProfile = {
 };
 
 /**
- * The custom profile `?mockDeliveryProfile=custom` chooses for the project (mockup 05): ACX with a lower RMS floor and a tighter
+ * The custom profile `?mockDeliveryProfile=custom` chooses for the project (benchmark mock 05): ACX with a lower RMS floor and a tighter
  * peak, and room tone at the head and the sample rate turned off (the narrator renders at 48 kHz and converts on export).
  */
 export function mockCustomProfile(): DeliveryProfile {
@@ -458,8 +458,8 @@ export function createDeliveryProfilesMock(
 
   return {
     current,
-    /** Every profile the narrator can choose from, built-in first (render-encode-master PRD Phase 6's own
-     * multi-select reads this, the same list `state()` already reports as `profiles`). */
+    /** Every profile the narrator can choose from, built-in first (the multi-platform export
+     * panel's multi-select reads this, the same list `state()` already reports as `profiles`). */
     all,
     deliveryProfiles: async () => state(),
     deliverySelectProfile: async (scope, id, version) => {

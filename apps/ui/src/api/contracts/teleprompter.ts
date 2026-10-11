@@ -36,7 +36,7 @@ export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
 export type TeleprompterFlag = { type: 'flag'; id: number; kind: TeleprompterFlagKind; start: number; end: number; heard: string };
 
 /**
- * One flag as the read-aloud dialog sends it to be kept (`TeleprompterSaveFlags`, Phase 7, ADR 0117): its words within one
+ * One flag as the read-aloud dialog sends it to be kept (`TeleprompterSaveFlags`, ADR 0117): its words within one
  * manuscript paragraph (`[wordStart, wordEnd)`, the reader's own word split; an `extra` covers the one word it was heard
  * before), the event's chapter word indices as evidence, what was heard, and whether the narrator dismissed it. The host
  * reads the paragraph itself, so the expected text and the finding's id come from the manuscript.
@@ -82,7 +82,7 @@ export type TeleprompterFlagFinding = {
 export type HeardWord = { word: string; start: number; end: number };
 
 /**
- * The microphone's input level (`levels.py`, read-aloud-control-bar PRD Phase 4): every 100 ms of audio, the peak sample and the
+ * The microphone's input level (`levels.py`): every 100 ms of audio, the peak sample and the
  * loudest 50 ms RMS, in dBFS from -100 (silence) to 0 (full scale). A session sends it beside its words; the meter
  * (`teleprompterMeterStart`) sends only this. It is for a meter, never for the session model.
  */
@@ -124,7 +124,7 @@ export type TeleprompterStartOptions = (
     }
   | {
       /**
-       * Read the opening or closing credits instead of a chapter (audiobook-credits-templates.prd.md Phase 4, ADR 0150).
+       * Read the opening or closing credits instead of a chapter (ADR 0150).
        * The host renders the text itself from the first template of that kind (ADR 0093), so only the kind is sent; the
        * session's `chapter` and its `script` event's `chapter.id` are then `credits-<kind>`.
        */
@@ -173,7 +173,7 @@ export type TeleprompterLocated = {
 };
 
 /**
- * Why a locate has a resume word or not (teleprompter manuscript integration PRD Phase 9, ADR 0111): `found` and
+ * Why a locate has a resume word or not (ADR 0111): `found` and
  * `low_confidence` carry one (only `found` is confident); `not_found` heard nothing that fits; `no_track` has no confirmed
  * or confident track (the narrator picks one from `match`); `no_recording` has nothing audible on the track; `source_missing`
  * and `source_unsupported` cannot read the last item's source file.
@@ -237,7 +237,7 @@ export type TeleprompterResumeVerdictKind = 'agree' | 'disagree' | 'complete' | 
 /**
  * One source's place: `word` is the zero-based next word to read (what `startWord` takes), `number` the same word one-based
  * for display, and `sentence` the sentence holding the last word read before it (token range `[start, end)`). `source` is
- * set on the DAW place: `saved` is the saved project ("as of the project's last save"), `live` REAPER's answer ("in REAPER now", Phase 4).
+ * set on the DAW place: `saved` is the saved project ("as of the project's last save"), `live` REAPER's answer ("in REAPER now").
  */
 export type TeleprompterResumePlace = {
   word: number;
@@ -268,7 +268,7 @@ export type TeleprompterLocateOptions = {
 /** One input device the sidecar's `--list-devices` reported, by the exact name its capture path opens it under. */
 /** Where the prompter last was in a chapter (ADR 0205): the host writes it when a
  * chapter session ends and reads it back only while the chapter's text is unchanged (`scriptHash`). `read` is the index
- * space of a position event's `read` and of locate's `word`. Phase 3 carries it on the locate result as `lastReading`. */
+ * space of a position event's `read` and of locate's `word`. The locate result carries it as `lastReading`. */
 export type TeleprompterReading = {
   version: 1;
   chapterId: string;
@@ -289,7 +289,7 @@ export type TeleprompterDevice = { name: string };
 export type TeleprompterDevicesResult = { devices: TeleprompterDevice[]; error: string | null };
 
 /**
- * Whether REAPER is ready to record a chapter with reading (`ReadAloudReaperState`, read-aloud-control-bar PRD Phase 6, ADR 0249):
+ * Whether REAPER is ready to record a chapter with reading (`ReadAloudReaperState`, ADR 0249):
  * `ready` only when the chapter's linked track is the one track armed and REAPER is not recording. `reason` qualifies `no_link`
  * (`unlinked`, `several_links`, `track_missing`) and `unavailable` (`standalone`, `not_running`, `experimental_off`, `failed`).
  * `armedCount`, `playing` and `recording` are what REAPER said; `armedCount` is absent when it was not asked.
@@ -307,8 +307,8 @@ export type ReadAloudReaperState = {
 };
 
 /**
- * What arming a track, starting or stopping a REAPER recording did (`ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStop`,
- * read-aloud-control-bar PRD Phase 7, booth-actions-enablement PRD Phase 2): `armed` (the track REAPER armed, how many others it
+ * What arming a track, starting or stopping a REAPER recording did (`ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStop`):
+ * `armed` (the track REAPER armed, how many others it
  * disarmed, and whether anything changed), `started` (the track REAPER records on and the position, in project seconds, where it
  * began), `stopped` (how many arms came back and how many stayed changed) or `refused` (`reason` and `message` say why; nothing in
  * REAPER changed). `reason` carries `ReadAloudReaperReason`'s cases plus the ones only a record command refuses with.
@@ -329,7 +329,7 @@ export type ReadAloudRecording = {
 };
 
 /**
- * Which microphone REAPER records from (`TeleprompterReaperInput`, teleprompter-manuscript-integration PRD Phase 11, ADR 0250). The
+ * Which microphone REAPER records from (`TeleprompterReaperInput`, ADR 0250). The
  * picker preselects `device` only when `status` is `matched`, and shows `message` as the reason; `uncertain` names the `candidates`
  * that fit equally well; `no_match` and `unavailable` (with a `reason`) leave the list and the narrator's choice alone.
  */
@@ -343,8 +343,8 @@ export type TeleprompterReaperInput = {
 };
 
 /**
- * Punch and roll's "Punch from here" answer (`TeleprompterPunchPreview`/`TeleprompterPunch`, teleprompter-manuscript-
- * integration PRD Phase 12, booth-actions-enablement PRD Phase 3): `resolved` (a preview only, nothing moved) or
+ * Punch and roll's "Punch from here" answer (`TeleprompterPunchPreview`/`TeleprompterPunch`):
+ * `resolved` (a preview only, nothing moved) or
  * `punched` (`cursor` is where REAPER's edit cursor landed), each with `resolvedTime`, `source` (an exact or
  * interpolated anchor, or an estimate past every anchor's range) and `preRoll` so the UI can show them before and
  * after moving; or `refused` (`message` says why, nothing moved: no live chapter, no anchor near this word yet, or no
@@ -395,7 +395,7 @@ export interface TeleprompterApi {
   teleprompterPause(paused: boolean): Promise<void>;
   /** Ask REAPER, once, whether it is ready to record `chapterId` with reading; read-only. Ask on open, toggle, Play and Refresh, never on a timer. */
   readAloudReaperState(chapterId: string): Promise<ReadAloudReaperState>;
-  /** Arm `chapterId`'s linked track and disarm every other one ("Arm Chapter N only", Q7 A); refused while REAPER records. */
+  /** Arm `chapterId`'s linked track and disarm every other one ("Arm Chapter N only"); refused while REAPER records. */
   readAloudArmOnly(chapterId: string): Promise<ReadAloudRecording>;
   /** Start REAPER recording on `chapterId`'s linked track, which must already be the one armed track; refuses or times out otherwise. */
   readAloudRecordStart(chapterId: string): Promise<ReadAloudRecording>;

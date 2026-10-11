@@ -62,14 +62,14 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'chapter-header-columns',
     description:
-      'Script, mixed chapter rows (?mockManuscript=mixed): a Front Matter row with no Record in Booth and 3-, 4- and 5-digit word counts - the stats and the buttons in two aligned columns, a chevron last (manuscript-chapter-header-alignment.prd.md, manuscript-credits-card-parity.prd.md)',
+      'Script, mixed chapter rows (?mockManuscript=mixed): a Front Matter row with no Record in Booth and 3-, 4- and 5-digit word counts - the stats and the buttons in two aligned columns, a chevron last',
   },
   { page: 'script', state: 'add-note-dialog', description: 'Script, Add Note dialog open after selecting text' },
   {
     page: 'script',
     state: 'script-markup',
     description:
-      'Script, script markup on Chapter 3 (prep-depth PRD Phase 5): stress underlines, a breath and a pause after words, Mouse and Lory speaker chips, a "Text changed here" notice beside a line whose marked words changed, and a mark whose line is gone listed above the chapter',
+      'Script, script markup on Chapter 3: stress underlines, a breath and a pause after words, Mouse and Lory speaker chips, a "Text changed here" notice beside a line whose marked words changed, and a mark whose line is gone listed above the chapter',
   },
   {
     page: 'script',
@@ -84,27 +84,26 @@ export const scriptStates: StateEntry[] = [
   {
     page: 'script',
     state: 'credits-entries',
-    description:
-      'Script, the Opening credits pseudo-entry expanded before Chapter 1 with an unresolved-token chip (audiobook-credits-templates.prd.md Phase 3)',
+    description: 'Script, the Opening credits pseudo-entry expanded before Chapter 1 with an unresolved-token chip',
   },
   {
     page: 'script',
     state: 'credits-entries-fill-in',
     description:
-      'Script, the credits-setup banner above the Opening credits card and its own "Fill in" button beside the unresolved-token line (credits-token-setup-and-front-matter-detection.prd.md Phase 3, ?mockCredits=setup, mockups/credits-token-setup-and-front-matter-detection/03-manuscript-banner-and-fill-in.webp)',
+      'Script, the credits-setup banner above the Opening credits card and its own "Fill in" button beside the unresolved-token line (?mockCredits=setup, mockups/credits-token-setup-and-front-matter-detection/03-manuscript-banner-and-fill-in.webp)',
   },
   {
     page: 'script',
     state: 'retail-sample',
     description:
-      'Script, the retail sample picked on lines 1-3 of Chapter 3 (?mockCredits=extras, audiobook-credits-templates.prd.md Phase 5): a "Retail sample" tag on the chapter header, the sampled lines marked with a left rule, "Retail sample starts · about ..." above the first and "Retail sample ends" above the last',
+      'Script, the retail sample picked on lines 1-3 of Chapter 3 (?mockCredits=extras): a "Retail sample" tag on the chapter header, the sampled lines marked with a left rule, "Retail sample starts · about ..." above the first and "Retail sample ends" above the last',
   },
 
   {
     page: 'script',
     state: 'speaker-attribution-single-speaker',
     description:
-      'Script, Chapter 3, a dialogue line whose recorded demo cue (prep-depth.prd.md Phase 4, Q1 fixture-then-real) is tagged directly to a known character - a speaker chip reading "Alice" beside the line (docs/prds/mockups/prep-depth/02-prep-script-concept.webp)',
+      'Script, Chapter 3, a dialogue line whose recorded demo cue is tagged directly to a known character - a speaker chip reading "Alice" beside the line',
   },
   {
     page: 'script',
@@ -125,21 +124,21 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'prep-rail-pronunciations',
     description:
-      "Script, the rail's default Pronunciations tab (mock 02): word, how to say it and its status, opened without a tab click since Pronunciations shows first. A column beside the reader at the wide width, the Prep panel below it",
+      "Script, the rail's default Pronunciations tab (benchmark mock 02): word, how to say it and its status, opened without a tab click since Pronunciations shows first. A column beside the reader at the wide width, the Prep panel below it",
     ...RAIL_DEPENDS_ON_WIDTH,
   },
   {
     page: 'script',
     state: 'prep-rail-characters',
     description:
-      "Script, the rail's Characters tab (mock 02): the Story Bible's characters with their first description line; a name opens its summary. A column beside the reader at the wide width, the Prep panel below it",
+      "Script, the rail's Characters tab (benchmark mock 02): the Story Bible's characters with their first description line; a name opens its summary. A column beside the reader at the wide width, the Prep panel below it",
     ...RAIL_DEPENDS_ON_WIDTH,
   },
   {
     page: 'script',
     state: 'prep-rail-queries',
     description:
-      "Script, the rail's Queries tab (mock 02): every name the author has not confirmed, with where it is first heard and its status (one marked Query sent), and Manage queries for the Story Bible's queries panel; the chapter list counts each chapter's names still to confirm",
+      "Script, the rail's Queries tab (benchmark mock 02): every name the author has not confirmed, with where it is first heard and its status (one marked Query sent), and Manage queries for the Story Bible's queries panel; the chapter list counts each chapter's names still to confirm",
     ...RAIL_DEPENDS_ON_WIDTH,
   },
   {

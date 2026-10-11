@@ -1,4 +1,4 @@
-// Cleanup launchers (reaper-automation-follow-through PRD, Phase 23, ADR 0146): open REAPER's own Repair Pops/Clicks
+// Cleanup launchers (ADR 0146): open REAPER's own Repair Pops/Clicks
 // dialog, or the narrator's installed Magnolius DeClick script, on the items selected in REAPER. The app changes
 // nothing itself. Mirrors apps/desktop/internal/cleanuptools.Service.Snapshot() exactly: one launch at a time,
 // reported by phase.

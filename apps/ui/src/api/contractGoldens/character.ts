@@ -1,5 +1,5 @@
-// The golden payloads for character-continuity-review.prd.md Phase 6 (non-acoustic part only; D87 on #509 benches
-// every acoustic-drift binding): which schema owns each file in tests/fixtures/contracts/ (see index.ts).
+// The golden payloads for character region listing and reference approval (ADR 0431: the acoustic-drift bindings are
+// benched, so none is here): which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from '../schemas/character';
 

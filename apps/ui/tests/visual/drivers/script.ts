@@ -92,10 +92,10 @@ export const scriptDrivers: Record<string, Driver> = {
     await goToPage(page, 'Script');
     await clickVisible(page, 'button', 'Collapse all chapters');
   },
-  // manuscript-chapter-header-alignment.prd.md: the stat block (words, read time) and the action slot (Read aloud,
+  // The stat block (words, read time) and the action slot (Read aloud,
   // empty on Front Matter) are fixed-width columns, so every row's stat block ends at the same x and every Read
   // aloud button starts at the same x, whether or not that row has a button. Collapsed, so every header in view at
-  // once; the assertion below is the "driver assertion" the PRD calls for, not just a screenshot.
+  // once; the assertion below checks it, not just a screenshot.
   'chapter-header-columns': async (page) => {
     await page.goto('/?mockManuscript=mixed');
     await settlePage(page);
@@ -136,7 +136,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await lookUpInReader(page, 'bank', '/?mockDictionary=damaged');
     await page.getByRole('alertdialog', { name: 'Repair the dictionary?' }).waitFor();
   },
-  // prep-depth.prd.md Phase 5: the `?mockMarkup=1` seed (main.tsx) on Chapter 3's dialogue - every way a mark shows,
+  // The `?mockMarkup=1` seed (main.tsx) on Chapter 3's dialogue - every way a mark shows,
   // including both stale kinds. The other chapters are collapsed, like 'retail-sample': Chapter 1's overlapping
   // highlights are the tracked nested-interactive debt (#155, axe-debt.ts), which this state would otherwise inherit.
   'script-markup': async (page) => {
@@ -197,8 +197,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Opening credits');
     await page.getByText(/unresolved token/).waitFor();
   },
-  // The credits-setup banner and the credits card's own Fill in button (credits-token-setup-and-front-matter-
-  // detection.prd.md Phase 3): the mock's setup seam, with the real chapters collapsed for the same reason as
+  // The credits-setup banner and the credits card's own Fill in button: the mock's setup seam, with the real chapters collapsed for the same reason as
   // 'credits-entries' above.
   'credits-entries-fill-in': async (page) => {
     await page.goto('/?mockCredits=setup');
@@ -212,7 +211,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByText(/The credits need 3 values/).waitFor();
     await page.getByRole('button', { name: 'Fill in' }).first().waitFor();
   },
-  // The retail sample (credits PRD Phase 5): ?mockCredits=extras picks lines 1-3 of Chapter 3; the chapter is opened so
+  // The retail sample: ?mockCredits=extras picks lines 1-3 of Chapter 3; the chapter is opened so
   // the marked lines show, the rest collapsed (overlapping marks elsewhere are the tracked axe debt of other states, #155).
   'retail-sample': async (page) => {
     await page.goto('/?mockCredits=extras');
@@ -222,7 +221,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('heading', { name: /^Chapter 3 / }).click();
     await page.getByText(/Retail sample starts/).waitFor();
   },
-  // Speaker attribution (prep-depth.prd.md Phase 4): Chapter 3 carries the recorded demo cues (dialogueCues.ts),
+  // Speaker attribution: Chapter 3 carries the recorded demo cues (dialogueCues.ts),
   // matched by exact quote text - opening it is enough, no mock query param needed. Chapter 3 is picked
   // deliberately over the mockup's own Chapter 8: its other speakers are not Story Bible entities, and unlike
   // nearly every other chapter it never mentions a registered entity whose alias is a substring of another
@@ -253,7 +252,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await row.waitFor();
   },
   'prep-rail-pronunciations': async (page) => {
-    // The rail's default tab (mock 02): no tab click, since Pronunciations opens first.
+    // The rail's default tab (benchmark mock 02): no tab click, since Pronunciations opens first.
     const rail = await openPrepRail(page);
     await rail.getByRole('table', { name: 'Pronunciations' }).waitFor();
   },
@@ -289,7 +288,7 @@ export const scriptDrivers: Record<string, Driver> = {
   },
 };
 
-// The Script page's rail as the width shows it (Phase 3): the Prep column from `xl`, or the Prep panel from the band's Prep rail
+// The Script page's rail as the width shows it: the Prep column from `xl`, or the Prep panel from the band's Prep rail
 // button below it. Returns the rail's container.
 async function openPrepRail(page: Page, load = true) {
   if (load) {

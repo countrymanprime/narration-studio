@@ -4,7 +4,7 @@ import type { ManuscriptImportPreview, ManuscriptImportSection } from './contrac
  * Which manuscript the mock host says the narrator picked: a Word file, a Markdown one (which has the heading-level choice), a Word
  * file whose headings had a title and subtitle run together, which the importer split and reports as a repair, or a plain-text file
  * whose first chapter has an epigraph on the line under its heading, which the importer read as the subtitle (a line that returns to
- * the text when the narrator turns the subtitle off, story-bible-and-import-ux-briefs PRD, Phase 5).
+ * the text when the narrator turns the subtitle off).
  */
 export type MockImportKind = 'docx' | 'markdown' | 'repaired' | 'text';
 

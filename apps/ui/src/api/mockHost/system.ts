@@ -80,12 +80,11 @@ export function createSystemMock(
       projectFolder: project.projectFolder(),
       projectName: project.projectName(),
       daw: project.daw(),
-      // Its own mutable state, not derived from `daw` (PRD W13): the real host computes this from the project's
-      // manifest link, independent of the DAW label. reachable/matches stay false/unknown until Phase 6 (W14).
+      // Its own mutable state, not derived from `daw`: the real host computes this from the project's
+      // manifest link, independent of the DAW label.
       dawFileLinked: project.dawFileLinked(),
-      // Its own mutable state, not derived from `daw` (PRD W13): the real host computes this from a live
-      // heartbeat (Phase 7, ADR 0092). The mock never grows one on its own; `dawEngineMismatch` (Phase 1 of
-      // stage-navigation-and-page-replacement.prd.md) simulates the one case anything reads today - the engine chip's
+      // Its own mutable state, not derived from `daw`: the real host computes this from a live
+      // heartbeat (ADR 0092). The mock never grows one on its own; `dawEngineMismatch` simulates the one case anything reads today - the engine chip's
       // mismatch state - without pretending to a full heartbeat.
       dawReachable: initial.dawEngineMismatch ?? false,
       dawProjectMatches: false,
@@ -112,15 +111,14 @@ export function createSystemMock(
     companionModeEnter: async () => {},
     companionModeExit: async () => {},
     systemCopyDiagnostics: async () => ({ path: 'C:/Users/narrator/Documents/diagnostics-20260926T120000.jsonl' }),
-    // The mock has no real webview zoom to read, so it keeps its own level in memory (`?mockZoom=`, app-navigation-and-
-    // zoom-controls.prd.md Phase 2). Unlike the real host it does not snap to the header's steps: the mock only ever
+    // The mock has no real webview zoom to read, so it keeps its own level in memory (`?mockZoom=`). Unlike the real host it does not snap to the header's steps: the mock only ever
     // sees the exact values the UI's own hook computes.
     windowZoom: async () => ({ level: zoom }),
     windowSetZoom: async (factor) => {
       zoom = Math.min(2, Math.max(1, factor));
       return { level: zoom };
     },
-    // The mock has no disk to persist to (app-navigation-and-zoom-controls.prd.md Phase 3): it only proves the UI
+    // The mock has no disk to persist to: it only proves the UI
     // calls it, the same way companionModeEnter/Exit do nothing for a mock with no real window.
     windowSaveZoom: async () => {},
     subscribeNotices: (onNotice) => {

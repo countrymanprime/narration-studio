@@ -1,9 +1,8 @@
-// character-continuity-review.prd.md Phase 11 (D87 benches every acoustic-drift binding, so this is reference data
-// only, Q11): the Series tab of the Story Bible. A series is a narrator-named group of projects (books, Q10); the
-// voice bible pools each member book's approved character reference clips by character, and says which book each
+// The Series tab of the Story Bible, reference data only (no acoustic-drift binding reads it). A series is a
+// narrator-named group of projects (books); the voice bible pools each member book's approved character reference clips by character, and says which book each
 // clip came from.
 
-/** A narrator-named group of projects that share character references (Q10). */
+/** A narrator-named group of projects that share character references. */
 export type Series = { id: string; name: string; memberProjectPaths: string[] };
 
 /** One approved reference clip in the series voice bible, flattened from a character.Reference so a sibling book's

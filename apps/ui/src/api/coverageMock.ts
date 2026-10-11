@@ -2,7 +2,7 @@
 // states the host does: a chapter whose fixture carries a recordedFraction has a current check with that share of its
 // words present, any other chapter was never checked, a seeded chapter reads stale (and so loses its recordedFraction),
 // a started check steps through real-looking progress to a result and one job end, and a seeded refusal answers every
-// start with that reason. Nothing runs on its own (Q14).
+// start with that reason. Nothing runs on its own.
 import type {
   CoverageApi,
   CoverageRefusalReason,
@@ -19,7 +19,7 @@ import { MOCK_ASSET_ROOT } from './mockHost/assets';
 
 type AssetRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
 
-/** The model cascade's own re-check model (recording-check-model-cascade PRD Phase 5, MC2's default), for the
+/** The model cascade's own re-check model (the cascade's default), for the
  * recheckAssetRequired seed's "Download model" prompt - its own identity, distinct from mockWhisperIdentity's small
  * (the Transcript Compare / first-pass default), so the two are never confused on screen. */
 const mockRecheckModelIdentity = {
@@ -49,10 +49,10 @@ export type CoverageSeed = {
    * default tail-only split (RS2/RS8): so the summary's headline, "Recorded
    * to" line and Pickups list can all be seen together. */
   pickups?: string[];
-  /** Chapters whose check ran the model cascade (recording-check-model-cascade PRD Phase 5, MC5): the result names
+  /** Chapters whose check ran the model cascade: the result names
    * both models and one re-checked passage, and every pickup shown was confirmed by the re-check model. */
   cascade?: string[];
-  /** The next start (without options.skipRecheck) answers recheck_asset_required instead of running (MC4), so the
+  /** The next start (without options.skipRecheck) answers recheck_asset_required instead of running, so the
    * "Download model" / "Check with tiny only" choice can be seen without a host. */
   recheckAssetRequired?: boolean;
 };
@@ -150,7 +150,7 @@ function reportFor(chapter: ManuscriptChapter, fraction: number): CoverageReport
 }
 
 /** A report with two interior pickups (a skip and a short read) plus a small tail, so the summary's headline, "Recorded
- * to" line and Pickups list can all be seen together (mockups 01b/03b). Built from the
+ * to" line and Pickups list can all be seen together. Built from the
  * same proportional paragraph split as reportFor, so it stays sane for whichever chapter is seeded. */
 function pickupsReportFor(chapter: ManuscriptChapter): CoverageReport {
   const bodyTokens = chapter.wordCount;
@@ -271,7 +271,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
   const stale = new Set(deps.seed?.stale ?? []);
   const pickupChapters = new Set(deps.seed?.pickups ?? []);
   const cascadeChapters = new Set(deps.seed?.cascade ?? []);
-  // MC5: one window, large-v3-turbo, of a chapter's own pace - close to what a real cascade re-checks, not a round number.
+  // One window, large-v3-turbo, of a chapter's own pace - close to what a real cascade re-checks, not a round number.
   const withCascade = (report: CoverageReport): CoverageReport => ({
     ...report,
     recheck: { model: 'large-v3-turbo', wholeChapter: false, windows: 1, seconds: Math.max(25, Math.round(report.missingTokens / (WORDS_PER_MINUTE / 60))) },

@@ -1,7 +1,7 @@
-// The browser mock's edit-and-proof workspace alignment (edit-and-proof-workspace.prd.md Phases 1 and 2). It shares the
+// The browser mock's edit-and-proof workspace alignment. It shares the
 // coverage mock's state, reasons and basis (an alignment is only ever as current as the coverage result it came
 // from) and builds tokens from the mock manuscript's real paragraph text, one per whitespace word, read in order at
-// a narration pace. It never runs anything (Q14). The played-range join (WorkspaceItem.live) is real when the
+// a narration pace. It never runs anything. The played-range join (WorkspaceItem.live) is real when the
 // chapter has a confirmed, still-live track link (mockChapterLink=confirmed, or chapterTrackMappings seeded some
 // other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
 // (mockAudioSource, apps/ui/src/api/mockApi.ts) against, same as Tracks' player does.
@@ -34,16 +34,16 @@ type Deps = {
   coverageResult: (chapterId: string) => CoverageResult;
   project: TracksProject;
   mappings: () => TrackMapping[];
-  /** What the mock's REAPER does for Go to and Loop (edit-and-proof-workspace PRD Phase 3), shared with the Review
+  /** What the mock's REAPER does for Go to and Loop, shared with the Review
    * page's own mock REAPER (`initial.reaper`, mockApi.ts); `connected` when not given. */
   reaper?: MockReaper;
   /** Mirrors `findingNavigation.loopingID` (bindings_navigation.go): mockApi.ts reads this after a successful
    * workspaceLoop to answer `findingsReaperStatus`'s `loopingFindingId` and to let `findingsStopLoop` clear it, so
    * the workspace's own loop is remembered the same way a finding's is (across a poll, a leave and a return). */
   looping?: { current: string | undefined };
-  /** The narrator's FX chains for workspaceListFXChains (Phase 8): a small realistic sample when not given. */
+  /** The narrator's FX chains for workspaceListFXChains: a small realistic sample when not given. */
   fxChains?: string[];
-  /** REAPER's installed plug-ins for workspaceListFX (Phase 9): a small realistic sample when not given. */
+  /** REAPER's installed plug-ins for workspaceListFX: a small realistic sample when not given. */
   fxPlugins?: string[];
 };
 
@@ -76,7 +76,7 @@ const WORDS_PER_MINUTE = 155;
 const SECONDS_PER_WORD = 60 / WORDS_PER_MINUTE;
 
 /** A cheap, deterministic stand-in for "what Whisper heard" on one demonstration word - not a real ASR confusion,
- * just something a screenshot can show next to the correct word (mockups/edit-and-proof-workspace/02-flag-detail-open.webp). */
+ * just something a screenshot can show next to the correct word. */
 function mockMisheard(text: string): string {
   const letters = text.replace(/[^A-Za-z]/g, '');
   if (letters.length < 3) return `${text}h`;
@@ -139,7 +139,7 @@ function mockTokens(
         // One deterministic misread, for the flag legend and detail panel to have something real to show.
         tokens.push({ i: index, p: paragraph.id, w: ordinal, text: word, status: 'misread', heard: mockMisheard(word), item: itemIndex, start, end });
         misheardPlaced = true;
-        // A short repeat right after it (edit-and-proof-workspace.prd.md flags table, "extra words, repeats"): the
+        // A short repeat right after it (the "extra words, repeats" flag): the
         // narrator said the previous word again before moving on.
         extras.push({
           text: word,
@@ -172,11 +172,10 @@ function tokensFor(deps: Deps, chapterId: string): { tokens: WorkspaceToken[]; l
 }
 
 /** The one deterministic misread token's real position for chapterId (mockTokens's single seeded misread, above): the
- * live item's real GUID and the misread word's source time range, for a Phase 4 `transcript_discrepancy` mock finding
+ * live item's real GUID and the misread word's source time range, for a `transcript_discrepancy` mock finding
  * to carry - so the mock Review-page finding and the mock workspace's own check-derived misread flag are the same
- * event, merged by `overlayFindings` in the workspace exactly as mockups/edit-and-proof-workspace/02-flag-detail-open.webp
- * shows, rather than two mock fixtures whose numbers happen to agree. Undefined when the chapter has no confirmed
- * live item or its check placed no misread (mockTokens never times a token without one). */
+ * event, merged by `overlayFindings` in the workspace, rather than two mock fixtures whose numbers happen to agree.
+ * Undefined when the chapter has no confirmed live item or its check placed no misread (mockTokens never times a token without one). */
 export function mockMisreadFindingSource(deps: Deps, chapterId: string): { itemGuid: string; start: number; end: number; heard: string } | undefined {
   const { tokens, liveItem } = tokensFor(deps, chapterId);
   const misread = tokens.find(
@@ -198,7 +197,7 @@ function reaperRefusal(mode: MockReaper): FindingNavigation | undefined {
   return undefined;
 }
 
-/** A deterministic stand-in for measure.ComputePeaks (edit-and-proof-workspace.prd.md Phase 5, ADR 0520): a smooth
+/** A deterministic stand-in for measure.ComputePeaks (ADR 0520): a smooth
  * envelope rather than real sample data, but the same bucket rate and byte layout the host sends, and identical
  * from one call to the next - the visual suite masks a waveform state only when its content is non-deterministic
  * (state-catalog.ts), and this mock's is not. */

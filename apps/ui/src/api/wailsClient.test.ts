@@ -557,7 +557,7 @@ describe('wailsClient', () => {
     });
   });
 
-  it('sends the credits kind, not a chapter, to TeleprompterStart for the credits (credits PRD Phase 4)', async () => {
+  it('sends the credits kind, not a chapter, to TeleprompterStart for the credits', async () => {
     const start = vi.fn().mockResolvedValue(JSON.stringify({ status: 'started' }));
     standInHost({ TeleprompterStart: start });
 
