@@ -137,6 +137,10 @@ class TestUnsafeInput:
         text = 'named "<title> progress" and <script src="x.js"></script> here'
         assert hooks.escape_raw_text_tags(text) == 'named "&lt;title&gt; progress" and &lt;script src="x.js"&gt;&lt;/script&gt; here'
 
+    def test_a_raw_text_tag_whose_attributes_span_lines_is_escaped_too(self):
+        text = 'before <script\n src="x.js"\n></script> after'
+        assert hooks.escape_raw_text_tags(text) == 'before &lt;script\n src="x.js"\n&gt;&lt;/script&gt; after'
+
     def test_a_raw_text_tag_in_code_is_an_example_and_stays_as_written(self):
         text = "Write `<title>` in a code span:\n\n```html\n<title>Page</title>\n```\n"
         assert hooks.escape_raw_text_tags(text) == text

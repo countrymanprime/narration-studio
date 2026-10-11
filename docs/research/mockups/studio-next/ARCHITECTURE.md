@@ -5,7 +5,7 @@ Read this first. It is the contract every page follows.
 ## What this is
 
 A data-driven rebuild of the single-file mock at
-`/tmp/claude-0/-home-user-narration-utils/af1a83ba-1a93-5f2f-9822-2dde169a851a/scratchpad/narration-studio-proposal.html`
+the earlier single-file proposal (`narration-studio-proposal.html`, not kept in the repo)
 (vanilla JS, ~1,940 lines, **the spec**). Same screens, same behaviour, same look — but every screen
 reads from typed data through selectors, nothing is hard-coded, and the UI is React + TypeScript with
 Font Awesome Free icons.

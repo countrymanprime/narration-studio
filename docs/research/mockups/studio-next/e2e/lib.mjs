@@ -2,7 +2,8 @@
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-const require = createRequire('/home/user/narration-utils/apps/ui/package.json')
+// The mock does not install Playwright itself: PLAYWRIGHT_FROM names a package.json that resolves it, else the checkout's apps/ui.
+const require = createRequire(process.env.PLAYWRIGHT_FROM || fileURLToPath(new URL('../../../../../apps/ui/package.json', import.meta.url)))
 const { chromium } = require('@playwright/test')
 const here = path.dirname(fileURLToPath(import.meta.url))
 export const SCRATCH = path.resolve(here, '../..')
