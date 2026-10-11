@@ -25,9 +25,10 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/production/ChapterBoard.tsx`
 - `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportReview.tsx`
+- `src/components/proof/ApplyFxDialog.tsx`
 - `src/components/proof/AuditionDialog.tsx`
+- `src/components/proof/ChapterWaveformCard.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
-- `src/components/proof/ProofPage.tsx`
 - `src/components/proof/ReviewFilters.tsx`
 - `src/components/proof/TakeReviewReads.tsx`
 - `src/components/proof/TakeReviewScanDialog.tsx`

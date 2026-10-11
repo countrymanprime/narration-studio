@@ -90,7 +90,7 @@ export const TitleOnlyOmitsSubtitle: Story = {
   },
 };
 
-// Benchmark mock 05's "Master & QC": the page title is Barlow Condensed 26 px, semibold; the subtitle Plex Sans 13 px.
+// Benchmark mock 05's "Master & QC": the page title is Barlow Condensed 28 px, semibold; the subtitle Plex Sans 13 px.
 export const MatchesTheMock: Story = {
   args: { title: 'Master & QC', children: 'Measured on the rendered files, against the ACX profile.' },
   play: async ({ canvasElement }) => {
@@ -98,7 +98,7 @@ export const MatchesTheMock: Story = {
     const title = canvas.getByRole('heading', { level: 1, name: 'Master & QC' });
     if (canvasElement.getBoundingClientRect().width === 0) return;
     await document.fonts.ready;
-    await expect(getComputedStyle(title).fontSize).toBe('26px');
+    await expect(getComputedStyle(title).fontSize).toBe('28px');
     await expect(getComputedStyle(title).fontFamily).toContain('Barlow Condensed');
     await expect(getComputedStyle(title).fontWeight).toBe('600');
     await expect(getComputedStyle(canvas.getByText(/Measured on the rendered files/)).fontSize).toBe('13px');

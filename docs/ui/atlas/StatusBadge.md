@@ -30,6 +30,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/booth/BoothView.tsx`
 - `src/components/booth/BuiltinRecorder.tsx`
 - `src/components/booth/CompanionShell.tsx`
+- `src/components/booth/CompanionThisChapter.tsx`
 - `src/components/booth/ReaderRail.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/engine/EnginePanel.tsx`
@@ -48,6 +49,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/proof/NotesHeader.tsx`
 - `src/components/proof/NotesStrip.tsx`
 - `src/components/proof/ScriptView.tsx`
+- `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/resolution.ts`
 - `src/components/script/ScriptChapterList.tsx`
 - `src/components/script/ScriptPage.tsx`

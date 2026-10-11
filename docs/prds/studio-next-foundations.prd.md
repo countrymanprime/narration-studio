@@ -119,7 +119,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Base ADRs | A1 and A16 as Proposed (A1 needs no owner answer); token and primitive diff note in `docs/research/` | in review | 2 | SN0-1 | 0.5 | - |
-| 2 | Token batch | Add missing tokens, `PAIRS` rows, dark values; runs alone | pending | - | 1 | 0.8 | - |
+| 2 | Token batch | Add missing tokens, `PAIRS` rows, dark values; runs alone | in review | - | 1 | 0.8 | - |
 | 3 | Icon wrapper and catalogue | `Icon`, `icons.catalog.ts`, ratchet test, stories | pending | 4, 5 | 1 | 0.9 | - |
 | 4 | Key caps and hints | `KeyCap`, `KeyChord`, `KeyHints` footer, stories | pending | 3, 5 | 1 | 0.8 | - |
 | 5 | Form primitives | `Slider`, `NumberInput`, `Swatch` (three parallel slices) | pending | 3, 4 | 2 | 1.5 | - |

@@ -93,6 +93,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/project/NewProjectDialog.tsx`
 - `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/AuditionDialog.tsx`
+- `src/components/proof/ChapterWaveformCard.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/FindingDetail.tsx`
 - `src/components/proof/FindingsList.tsx`
@@ -108,6 +109,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/proof/TakeComparisonView.tsx`
 - `src/components/proof/TakeReviewReads.tsx`
 - `src/components/proof/TakeReviewScanDialog.tsx`
+- `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/TransportBar.tsx`
 - `src/components/script/ScriptPage.tsx`
 - `src/components/script/ScriptRail.tsx`
