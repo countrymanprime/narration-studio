@@ -48,7 +48,10 @@ describe('the search registry', () => {
       throw new Error('index not ready');
     });
     registry.register(() => [hit('still here')]);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(registry.searchAll('still').map((h) => h.title)).toEqual(['still here']);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
 

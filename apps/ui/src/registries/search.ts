@@ -37,8 +37,9 @@ export function createSearchRegistry(): SearchRegistry {
       for (const source of sources) {
         try {
           hits.push(...source(trimmed));
-        } catch {
-          // One broken source must not blank the menu; the others still answer.
+        } catch (error) {
+          // One broken source must not blank the menu, so the others still answer; the failure is said, not swallowed.
+          console.warn('A search source failed and was skipped.', error);
         }
       }
       return hits;
