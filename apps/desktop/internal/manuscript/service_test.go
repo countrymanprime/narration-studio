@@ -16,6 +16,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 	"github.com/countrymanprime/narration-utils/shell/internal/importer"
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-utils/shell/internal/marks"
+	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
@@ -635,6 +637,54 @@ func TestReplaceAndClearRemoveTheBookmarksFile(t *testing.T) {
 	}
 }
 
+// The passage map names chapter and paragraph ids and word indexes, so replacing the manuscript (a commit with a confirmed
+// reset) and Clear project data remove it; an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveThePassageMapFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeMap := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(passagemap.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(passagemap.File(project), []byte(`{"schemaVersion":1,"marks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeMap()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(passagemap.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the passage map: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(passagemap.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the passage map behind: %v", err)
+	}
+	writeMap()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(passagemap.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the passage map behind: %v", err)
+	}
+}
+
 // Gap reviews name chapter ids and a check's gaps, so a confirmed replace and Clear project data remove them (ADR 0842);
 // an import that resets nothing keeps them.
 func TestReplaceAndClearRemoveTheGapReviewsFile(t *testing.T) {
@@ -728,5 +778,161 @@ func TestReplaceAndClearRemoveTheAcceptedWordsFile(t *testing.T) {
 	}
 	if _, err := os.Stat(editlog.AcceptedFile(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the accepted words behind: %v", err)
+	}
+}
+
+// Cuts name chapter and paragraph ids and word ordinals too, so replacing the manuscript and Clear project data remove
+// editing/cuts.json as well (ADR 0856); an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheCutsFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeCuts := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.CutsFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.CutsFile(project), []byte(`{"schemaVersion":1,"cuts":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeCuts()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the cuts: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the cuts: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the cuts behind: %v", err)
+	}
+	writeCuts()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.CutsFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the cuts behind: %v", err)
+	}
+}
+
+// Marks name chapter and line ids and UTF-16 ranges in them, so a confirmed replace and Clear project data remove the file;
+// an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheMarksFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeMarks := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(marks.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(marks.File(project), []byte(`{"schemaVersion":1,"migratedNotes":true,"types":[],"marks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeMarks()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(marks.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the marks: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(marks.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the marks behind: %v", err)
+	}
+	writeMarks()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marks.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the marks behind: %v", err)
+	}
+}
+
+// Word effects name chapter and paragraph ids and word ordinals too, so replacing the manuscript and Clear project data
+// remove editing/wordfx.json as well (ADR 0856); an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheWordFxFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeWordFx := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.WordFxFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.WordFxFile(project), []byte(`{"schemaVersion":1,"effects":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeWordFx()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the word effects: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the word effects: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the word effects behind: %v", err)
+	}
+	writeWordFx()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the word effects behind: %v", err)
 	}
 }

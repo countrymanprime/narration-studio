@@ -11,6 +11,8 @@ export type BoothLeaveSession = {
   startedByApp?: boolean;
   daw: { name: string };
   stopRecording: () => Promise<DawResult>;
+  /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
+  flush?: () => Promise<void>;
 };
 
 type Deps = {
@@ -21,7 +23,7 @@ type Deps = {
 /**
  * Registers the Booth's leave guard while a take records and returns `leave`, the one way out the Booth's own exits take
  * (Escape, the setup chip, a chapter opened in Script). `leave(next, go)` asks "Stop recording?" once, holds the take until
- * the narrator answers, stops the recording the app started, and only then calls `go` with the same destination. Keep
+ * the narrator answers, stops the recording the app started, flushes the passage map's run, and only then calls `go` with the same destination. Keep
  * recording changes nothing. A refused stop keeps the question open with the host's sentence. The guard is removed when
  * the recording ends or the Booth unmounts.
  */
@@ -56,7 +58,10 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           if (!(await overlay.confirm({ title: spec.title, body: spec.body, confirmLabel: spec.confirmLabel }))) return;
           if (!startedByApp) break;
           const result = await sessionRef.current.stopRecording();
-          if (result.ok) break;
+          if (result.ok) {
+            await sessionRef.current.flush?.();
+            break;
+          }
           // The stop was refused: nothing changed, so the take still runs and the question stays, now with the host's sentence.
           spec = { ...spec, body: result.refused ?? (result.message || spec.body) };
         }

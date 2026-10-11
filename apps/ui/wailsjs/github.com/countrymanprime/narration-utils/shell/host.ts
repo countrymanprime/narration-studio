@@ -13,7 +13,13 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as editlog$0 from "./internal/editlog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as liveflags$0 from "./internal/liveflags/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as marks$0 from "./internal/marks/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as project$0 from "./internal/project/models.js";
@@ -693,6 +699,29 @@ export function EditingCandidates(chapterID: string): $CancellablePromise<string
 }
 
 /**
+ * EditingCutRecord stores a cut after the DAW accepted the deleteRange: it carries the DAW's guid and undo steps, and is
+ * refused, with nothing saved, when its words are not in the paragraph's current text, its range or options are not ones the
+ * app sends, or it overlaps a cut already stored on the same take.
+ */
+export function EditingCutRecord(chapterID: string, cut: editlog$0.CutRequest): $CancellablePromise<string> {
+    return $Call.ByID(2579032923, chapterID, cut);
+}
+
+/**
+ * EditingCutRemove forgets a chapter's cut: the inverse the journal calls when the DAW change is undone in the session.
+ */
+export function EditingCutRemove(chapterID: string, id: string): $CancellablePromise<string> {
+    return $Call.ByID(709373290, chapterID, id);
+}
+
+/**
+ * EditingCutsList returns a chapter's cuts in the original recording's time order, each checked against the current text.
+ */
+export function EditingCutsList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1011505999, chapterID);
+}
+
+/**
  * EditingSetSourceChoice sets chapterID's source choice (the narrator
  * chooses per chapter) and answers the choice as stored, the same bare
  * string shape EditingSourceChoice reads back. choice must be "items" or
@@ -738,6 +767,32 @@ export function EditingState(): $CancellablePromise<string> {
  */
 export function EditingUnaccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
     return $Call.ByID(4156351737, chapterID, keys);
+}
+
+/**
+ * EditingWordFxList returns a chapter's word effects in the original recording's time order, each checked against the
+ * current text.
+ */
+export function EditingWordFxList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2254069476, chapterID);
+}
+
+/**
+ * EditingWordFxRecord stores an effect after the DAW accepted applyFxToRange. It is refused, with nothing saved, when its
+ * words are not in one paragraph's current text, its range is not one the app sends, the DAW's result is missing, or its
+ * chain id or name could be a path (editlog.ErrBadChainName). An effect on words that already carry one is recorded, and the
+ * answer's over names the effects underneath.
+ */
+export function EditingWordFxRecord(chapterID: string, fx: editlog$0.WordFxRequest): $CancellablePromise<string> {
+    return $Call.ByID(1820074073, chapterID, fx);
+}
+
+/**
+ * EditingWordFxRemove forgets a chapter's effect: the inverse the journal calls when the DAW change is undone, or the record
+ * of the DAW taking the chain off.
+ */
+export function EditingWordFxRemove(chapterID: string, id: string): $CancellablePromise<string> {
+    return $Call.ByID(3159591436, chapterID, id);
 }
 
 /**
@@ -1134,6 +1189,74 @@ export function ManuscriptSetChapterStatus(chapter: string, status: string): $Ca
 }
 
 /**
+ * MarksAdd marks a range of one line: start and end are UTF-16 units into the line's text, start before end. A type that
+ * asks needs text (its question), and its mark starts open.
+ */
+export function MarksAdd(chapterID: string, paragraphID: string, start: number, end: number, typeKey: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(2254080295, chapterID, paragraphID, start, end, typeKey, text);
+}
+
+/**
+ * MarksDeleteMessage removes the thread's message at index and returns {mark, message}: the mark as it now is and the
+ * message removed, for MarksRestoreMessage to put back.
+ */
+export function MarksDeleteMessage(id: string, index: number): $CancellablePromise<string> {
+    return $Call.ByID(3641817430, id, index);
+}
+
+/**
+ * MarksEditMessage replaces the text of the thread's message at index and returns the mark.
+ */
+export function MarksEditMessage(id: string, index: number, text: string): $CancellablePromise<string> {
+    return $Call.ByID(2522762815, id, index, text);
+}
+
+/**
+ * MarksList returns the mark types in the narrator's order and every mark in reading order, each checked against the
+ * current manuscript. The first read of a project with no marks file brings the reader's old notes across once.
+ */
+export function MarksList(): $CancellablePromise<string> {
+    return $Call.ByID(4070620708);
+}
+
+/**
+ * MarksRemove deletes a mark by id and returns the types and the marks left.
+ */
+export function MarksRemove(id: string): $CancellablePromise<string> {
+    return $Call.ByID(2233717324, id);
+}
+
+/**
+ * MarksReply adds a message to the end of a mark's thread and returns the mark. who is "you", "author" or "proofer"; an empty
+ * reply is refused.
+ */
+export function MarksReply(id: string, who: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(2924112552, id, who, text);
+}
+
+/**
+ * MarksRestoreMessage puts a deleted message back at index (0 to the thread's length) and returns the mark.
+ */
+export function MarksRestoreMessage(id: string, index: number, message: marks$0.Message): $CancellablePromise<string> {
+    return $Call.ByID(3946024165, id, index, message);
+}
+
+/**
+ * MarksSaveTypes replaces the mark types, in the narrator's order; a type with no key is new. At least one is kept, and
+ * removing a type that marks use is refused with the count unless removeUses is set, which removes those marks too.
+ */
+export function MarksSaveTypes(types: marks$0.MarkType[], removeUses: boolean): $CancellablePromise<string> {
+    return $Call.ByID(2927622342, types, removeUses);
+}
+
+/**
+ * MarksSetStatus resolves or reopens a question: status is "open" or "resolved", and a mark whose kind does not ask refuses.
+ */
+export function MarksSetStatus(id: string, status: string): $CancellablePromise<string> {
+    return $Call.ByID(4108478942, id, status);
+}
+
+/**
  * MasteringChooseProvider saves the current project's mastering row and answers the rows again. An empty name clears the choice,
  * so the project masters with the default row. A row that is not registered, or not available on this computer yet, is refused
  * with its sentence, and nothing is saved.
@@ -1233,6 +1356,22 @@ export function PackageStartMulti(req: $models.MultiPackageRequest): $Cancellabl
  */
 export function PackageState(): $CancellablePromise<string> {
     return $Call.ByID(2792423179);
+}
+
+/**
+ * PassageMapList returns a chapter's marks, runs in the order they were recorded, each checked against the current
+ * manuscript: a mark whose paragraph is gone or whose word is past its end comes back stale, never moved.
+ */
+export function PassageMapList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1224168480, chapterID);
+}
+
+/**
+ * PassageMapRecordRun stores one recording's run of marks for chapterID (a start, any rolls and a stop, in time order) and
+ * returns the marks as stored, stamped with the DAW's ids. A run that breaks a rule is refused and nothing is saved.
+ */
+export function PassageMapRecordRun(chapterID: string, run: $models.PassageMapMarkInput[]): $CancellablePromise<string> {
+    return $Call.ByID(1060330002, chapterID, run);
 }
 
 export function PickupsCount(): $CancellablePromise<string> {

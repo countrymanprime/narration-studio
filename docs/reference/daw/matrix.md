@@ -2,35 +2,35 @@
 
 # DAW capability matrix
 
-What each engine declares for each capability today. The levels are the adapters' static declarations (`Declares()`); what a narrator can use at a given moment is the resolver's answer, which also depends on the engine answering and on the `DAW.capability.<name>` setting. What each capability returns, and what has been checked, is in [capabilities](capabilities.md). The Audacity 4.x column is a fixed statement, not a declaration ([Audacity 4](audacity-4.md)).
+What each engine declares for each capability today. The levels are the adapters' static declarations (`Declares()`); what a narrator can use at a given moment is the resolver's answer, which also depends on the engine answering and on the `DAW.capability.<name>` setting. What each capability returns, and what has been checked, is in [capabilities](capabilities.md). The Audacity 4.x column is a fixed statement, not a declaration ([Audacity 4](audacity-4.md)). The built-in recorder is the app's own ([built-in recorder](builtin-recorder.md)).
 
-| Capability | Role | Needs | REAPER 7.x | Audacity 3.x | Audacity 4.x |
-| --- | --- | --- | --- | --- | --- |
-| `review` | `ReviewSession` | Engine answering | Supported | Not yet available | Not reachable |
-| `navigate` | `Navigator` | Engine answering | Supported | Experimental | Not reachable |
-| `markers` | `MarkerWriter` | Engine answering | Supported | Experimental | Not reachable |
-| `pickups` | `PickupList` | Engine answering | Supported | Not yet available | Not reachable |
-| `line_identity` | `LineStamper` | Engine answering | Supported | Not yet available | Not reachable |
-| `render_config` | `RenderConfigurer` | Engine answering | Supported | Not yet available | Not reachable |
-| `cleanup_tools` | `CleanupLauncher` | Engine answering | Supported | Not yet available | Not reachable |
-| `retake_lanes` | `RetakeLanePicker` | Engine answering | Supported | Not yet available | Not reachable |
-| `project_state` | `ProjectStateReader` | Engine answering | Supported | Not yet available | Not reachable |
-| `take_create` | `TakeCreator` | Engine answering | Supported | Not yet available | Not reachable |
-| `heartbeat` | `Heartbeat` | A bridge, answering or not | Supported | Not yet available | Not reachable |
-| `project_read` | `ProjectReader` | Nothing (works offline) | Supported | Not yet available | Not reachable |
-| `track_state` | `TrackStateReader` | Engine answering | Experimental | Not yet available | Not reachable |
-| `track_select` | `TrackSelector` | Engine answering | Experimental | Not yet available | Not reachable |
-| `record` | `Recorder` | Engine answering | Experimental | Not yet available | Not reachable |
-| `punch` | `Puncher` | Engine answering | Experimental | Not yet available | Not reachable |
-| `regions` | `RegionWriter` | Engine answering | Experimental | Not yet available | Not reachable |
-| `takes` | `TakeSelector` | Engine answering | Experimental | Not yet available | Not reachable |
-| `fx_chains` | `FXManager` | Engine answering | Experimental | Not yet available | Not reachable |
-| `silence_trim` | `SilenceTrimmer` | Engine answering | Experimental | Not yet available | Not reachable |
-| `item_gain` | `GainAdjuster` | Engine answering | Experimental | Not yet available | Not reachable |
-| `render_with_fx` | `FXRenderer` | Engine answering | Experimental | Not yet available | Not reachable |
-| `master_chain_read` | `MasterChainReader` | Engine answering | Experimental | Not yet available | Not reachable |
-| `macro_render` | `MacroRenderer` | Engine answering | Unsupported | Experimental | Not reachable |
-| `cut_range` | `RangeCutter` | Engine answering | Not yet available | Not yet available | Not reachable |
-| `fx_range` | `RangeFXApplier` | Engine answering | Not yet available | Not yet available | Not reachable |
-| `stack_takes` | `TakeStacker` | Engine answering | Not yet available | Not yet available | Not reachable |
-| `backups` | `BackupKeeper` | Engine answering | Not yet available | Not yet available | Not reachable |
+| Capability | Role | Needs | REAPER 7.x | Audacity 3.x | Audacity 4.x | Built-in recorder |
+| --- | --- | --- | --- | --- | --- | --- |
+| `review` | `ReviewSession` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `navigate` | `Navigator` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
+| `markers` | `MarkerWriter` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
+| `pickups` | `PickupList` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `line_identity` | `LineStamper` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `render_config` | `RenderConfigurer` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `cleanup_tools` | `CleanupLauncher` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `retake_lanes` | `RetakeLanePicker` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `project_state` | `ProjectStateReader` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `take_create` | `TakeCreator` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `heartbeat` | `Heartbeat` | A bridge, answering or not | Supported | Not yet available | Not reachable | Unsupported |
+| `project_read` | `ProjectReader` | Nothing (works offline) | Supported | Not yet available | Not reachable | Unsupported |
+| `track_state` | `TrackStateReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `track_select` | `TrackSelector` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `record` | `Recorder` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
+| `punch` | `Puncher` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
+| `regions` | `RegionWriter` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `takes` | `TakeSelector` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
+| `fx_chains` | `FXManager` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `silence_trim` | `SilenceTrimmer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `item_gain` | `GainAdjuster` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `render_with_fx` | `FXRenderer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `master_chain_read` | `MasterChainReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `macro_render` | `MacroRenderer` | Engine answering | Unsupported | Experimental | Not reachable | Unsupported |
+| `cut_range` | `RangeCutter` | Engine answering | Not yet available | Not yet available | Not reachable | Not yet available |
+| `fx_range` | `RangeFXApplier` | Engine answering | Not yet available | Not yet available | Not reachable | Not yet available |
+| `stack_takes` | `TakeStacker` | Engine answering | Not yet available | Not yet available | Not reachable | Not yet available |
+| `backups` | `BackupKeeper` | Engine answering | Not yet available | Not yet available | Not reachable | Unsupported |

@@ -33,7 +33,11 @@ import { masteringGoldens } from './mastering';
 import { recordingGoldens } from './recording';
 import { prepMarkupGoldens } from './prepMarkup';
 import { bookmarksGoldens } from './bookmarks';
+import { passageMapGoldens } from './passageMap';
 import { editLogGoldens } from './editLog';
+import { marksGoldens } from './marks';
+import { editCutsGoldens } from './editCuts';
+import { wordFxGoldens } from './wordFx';
 import { productionGoldens } from './production';
 import { pronunciationOnlineGoldens } from './pronunciationOnline';
 import { pronunciationSourcesGoldens } from './pronunciationSources';
@@ -72,7 +76,11 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   recordingGoldens,
   prepMarkupGoldens,
   bookmarksGoldens,
+  passageMapGoldens,
   editLogGoldens,
+  marksGoldens,
+  editCutsGoldens,
+  wordFxGoldens,
   productionGoldens,
   pronunciationOnlineGoldens,
   pronunciationSourcesGoldens,

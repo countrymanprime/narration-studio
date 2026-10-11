@@ -5,11 +5,17 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
 import type { ProjectStateState } from './contracts/projectstate';
+import type { EditCutRequest } from './contracts/editCuts';
+import type { WordFxRequest } from './contracts/wordFx';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
+import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
+import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
+import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -1635,6 +1641,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawCapabilitiesSchema, audacity, 'mock daw capabilities (Audacity)');
     expect(audacity).toEqual(readGolden('daw-capabilities-audacity.json'));
 
+    const builtIn = await createMockApi({}, { daw: { daw: 'Built-in' } }).dawCapabilities();
+    expectMatches(dawCapabilitiesSchema, builtIn, 'mock daw capabilities (built-in recorder)');
+    expect(builtIn).toEqual(readGolden('daw-capabilities-builtin.json'));
+
     // The host's own "daw-capabilities-reaper" golden is a REAPER launch with no live bridge at all (Bridge: false); the
     // mock's disconnected seed is the same shape.
     const disconnectedReaper = await createMockApi({}, { daw: { daw: 'REAPER', connected: false } }).dawCapabilities();
@@ -3011,9 +3021,26 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksAdd',
       'bookmarksUpdate',
       'bookmarksRemove',
+      'passageMapRecordRun',
+      'passageMapList',
       'editingAcceptedList',
       'editingAccept',
       'editingUnaccept',
+      'editingCutsList',
+      'editingCutRecord',
+      'editingCutRemove',
+      'editingWordFxList',
+      'editingWordFxRecord',
+      'editingWordFxRemove',
+      'marksList',
+      'marksAdd',
+      'marksRemove',
+      'marksSaveTypes',
+      'marksReply',
+      'marksEditMessage',
+      'marksDeleteMessage',
+      'marksRestoreMessage',
+      'marksSetStatus',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -3586,6 +3613,89 @@ describe('the bookmarks bindings', () => {
   });
 });
 
+// The Booth's passage map (docs/architecture/manuscript-teleprompter.md#the-passage-map): the mock answers through the same
+// schema as the host's goldens, refuses what the host refuses, and the schema refuses what the host never sends.
+describe('the passage map bindings', () => {
+  const runOn = (pid: string, words: number) => [
+    { pid, word: 0, sec: 0, kind: 'start' as const },
+    { pid, word: 1, sec: 2.5, kind: 'roll' as const, prev: { pid, word: 2 } },
+    { pid, word: words, sec: 6, kind: 'stop' as const, prev: { pid, word: words } },
+  ];
+
+  it('the mock answers PassageMapRecordRun and PassageMapList through their schema, recordings in order', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
+    const words = (line?.text.match(/\S+/g) ?? []).length;
+    expectMatches(passageMapSchema, await api.passageMapList(chapter?.id ?? ''), 'mock passage map list (empty)');
+    const first = await api.passageMapRecordRun(chapter?.id ?? '', runOn(line?.id ?? '', words));
+    expectMatches(passageMapSchema, first, 'mock passage map record');
+    expect(first.map((mark) => mark.kind)).toEqual(['start', 'roll', 'stop']);
+    expect(first.every((mark) => mark.itemGuid !== '' && mark.takeGuid === mark.itemGuid && !mark.stale)).toBe(true);
+    const second = await api.passageMapRecordRun(chapter?.id ?? '', runOn(line?.id ?? '', words));
+    const listed = await api.passageMapList(chapter?.id ?? '');
+    expectMatches(passageMapSchema, listed, 'mock passage map list');
+    expect(listed.map((mark) => mark.run)).toEqual([...first, ...second].map((mark) => mark.run));
+    expect(new Set(listed.map((mark) => mark.run)).size).toBe(2);
+  });
+
+  it('the mock refuses what the host refuses, and keeps nothing of a refused run', async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
+    const otherLine = (await api.manuscriptParagraphs(other?.id ?? ''))[0];
+    const words = (line?.text.match(/\S+/g) ?? []).length;
+    const id = chapter?.id ?? '';
+    const pid = line?.id ?? '';
+    const run = () => runOn(pid, words);
+    await expect(api.passageMapRecordRun('no-such-chapter', run())).rejects.toThrow('not in the manuscript');
+    await expect(api.passageMapRecordRun(id, runOn(otherLine?.id ?? '', 0))).rejects.toThrow('not in this chapter');
+    await expect(api.passageMapRecordRun(id, runOn(pid, words + 1))).rejects.toThrow('not in the paragraph');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 1 ? { ...mark, sec: -1 } : mark)),
+      ),
+    ).rejects.toThrow('seconds');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 1 ? { ...mark, sec: Number.NaN } : mark)),
+      ),
+    ).rejects.toThrow('seconds');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 1 ? { ...mark, sec: 9 } : mark)),
+      ),
+    ).rejects.toThrow('time order');
+    await expect(
+      api.passageMapRecordRun(
+        id,
+        run().map((mark, i) => (i === 2 ? { pid, word: 0, sec: 6, kind: 'stop' as const } : mark)),
+      ),
+    ).rejects.toThrow('where the take before');
+    await expect(api.passageMapRecordRun(id, run().slice(1))).rejects.toThrow('begins with a start');
+    await expect(api.passageMapRecordRun(id, run().slice(0, 1))).rejects.toThrow('a start and a stop');
+    await expect(api.passageMapRecordRun('c'.repeat(65), run())).rejects.toThrow('chapter id');
+    await expect(api.passageMapRecordRun(id, runOn('p\u0007', 0))).rejects.toThrow('paragraph id');
+    expect(await api.passageMapList(id)).toEqual([]);
+  });
+
+  it('the schema reads the goldens, a stale mark among them, and refuses a negative word, an unknown kind or key', () => {
+    const listed = parseWire(passageMapSchema, readGolden('passagemap-list.json'), ctx('passage map list'));
+    expect(listed.map((mark) => mark.staleReason ?? null)).toEqual(['paragraph_missing', 'paragraph_missing', null]);
+    const [mark] = parseWire(passageMapSchema, readGolden('passagemap-record.json'), ctx('passage map record'));
+    expect(passageMarkSchema.safeParse(mark).success).toBe(true);
+    expect(passageMarkSchema.safeParse({ ...mark, word: -1 }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, word: 1.5 }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, kind: 'pause' }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, path: '/etc/passwd' }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, staleReason: 'moved' }).success).toBe(false);
+    expect(passageMarkSchema.safeParse({ ...mark, prev: { pid: 'p', word: 0, extra: 1 } }).success).toBe(false);
+  });
+});
+
 // The narrator's accepted words (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the
 // host refuses, and the schemas refuse what the host never sends.
 describe('the accepted words bindings', () => {
@@ -3643,5 +3753,305 @@ describe('the accepted words bindings', () => {
     expect(acceptedWordSchema.safeParse({ ...word, key: '../x' }).success).toBe(false);
     expect(acceptedWordSchema.safeParse({ ...word, staleReason: 'moved' }).success).toBe(false);
     expect(acceptedWordsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+  });
+});
+
+// The narrator's cuts (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the host
+// refuses, and the schemas refuse what the host never sends.
+describe('the cuts bindings', () => {
+  const firstLine = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
+  };
+  const request = (pid: string, a: number, b: number): EditCutRequest => ({
+    pid,
+    takeId: 't-1',
+    keys: [`${pid}:1`, `${pid}:0`],
+    text: 'two words',
+    a,
+    b,
+    off0: 0,
+    off1: b - a,
+    mode: 'close',
+    fadeMs: 12,
+    daw: 'reaper',
+    guid: '{CUT}',
+    undoSteps: 1,
+  });
+
+  it('the mock answers EditingCutsList, Record and Remove through their schemas, in time order', async () => {
+    const { api, chapterId, line } = await firstLine();
+    expectMatches(editCutsSchema, await api.editingCutsList(chapterId), 'mock cuts list (empty)');
+    expectMatches(editCutsChangeSchema, await api.editingCutRecord(chapterId, { ...request(line.id, 20, 21), keys: [`${line.id}:2`] }), 'mock record');
+    const recorded = await api.editingCutRecord(chapterId, request(line.id, 12, 13.5));
+    expectMatches(editCutsChangeSchema, recorded, 'mock record');
+    expect(recorded.changed).toEqual(['cut2']);
+    expect(recorded.cuts.map((cut) => cut.id)).toEqual(['cut2', 'cut1']);
+    expect(recorded.cuts[0]).toMatchObject({
+      keys: [`${line.id}:0`, `${line.id}:1`],
+      words: line.text.split(/\s+/).filter(Boolean).slice(0, 2),
+      a: 12,
+      stale: false,
+    });
+    const removed = await api.editingCutRemove(chapterId, 'cut2');
+    expectMatches(editCutsChangeSchema, removed, 'mock remove');
+    expect(removed.changed).toEqual(['cut2']);
+    expect((await api.editingCutRemove(chapterId, 'cut2')).changed).toEqual([]);
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstLine();
+    const good = request(line.id, 12, 13);
+    await expect(api.editingCutRecord('no-such-chapter', good)).rejects.toThrow('not in the manuscript');
+    await expect(api.editingCutRecord(otherId, good)).rejects.toThrow('not in this chapter');
+    await expect(api.editingCutRecord(chapterId, { ...good, keys: ['../../etc/passwd:0'] })).rejects.toThrow('all be in its paragraph');
+    await expect(api.editingCutRecord(chapterId, { ...good, b: 12 })).rejects.toThrow('end after it starts');
+    await expect(api.editingCutRecord(chapterId, { ...good, a: -1 })).rejects.toThrow('seconds from the start');
+    await expect(api.editingCutRecord(chapterId, { ...good, mode: 'erase' as 'close' })).rejects.toThrow('closes the gap or leaves it');
+    await expect(api.editingCutRecord(chapterId, { ...good, fadeMs: 13 })).rejects.toThrow('crossfade');
+    await expect(api.editingCutRecord(chapterId, { ...good, guid: '' })).rejects.toThrow('after the DAW made it');
+    expect((await api.editingCutsList(chapterId)).cuts).toEqual([]);
+    await api.editingCutRecord(chapterId, good);
+    await expect(api.editingCutRecord(chapterId, { ...good, a: 12.5, b: 14 })).rejects.toThrow('cut1');
+  });
+
+  it('the schemas read the goldens and refuse a negative time, an unknown key or a fade the host never sends', () => {
+    const list = parseWire(editCutsSchema, readGolden('edit-cuts-list.json'), ctx('cuts list'));
+    expect(list.cuts.map((cut) => [cut.id, cut.stale, cut.staleReason])).toEqual([
+      ['cut2', false, undefined],
+      ['cut1', true, 'text_changed'],
+    ]);
+    const change = parseWire(editCutsChangeSchema, readGolden('edit-cuts-record.json'), ctx('cut record'));
+    expect(change.changed).toEqual(['cut2']);
+    expect(parseWire(editCutsChangeSchema, readGolden('edit-cuts-remove.json'), ctx('cut remove')).changed).toEqual(['cut2']);
+    const cut = change.cuts[0];
+    expect(editCutSchema.safeParse({ ...cut, a: -1 }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, b: cut.a }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, fadeMs: 13 }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, path: '/etc/passwd' }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...cut, words: ['one'] }).success).toBe(false);
+    expect(editCutsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+  });
+});
+
+// The Script page's marks: the mock answers through the same schemas as the host's goldens, refuses what the host refuses, and
+// the schemas refuse what the host never sends.
+describe('the marks bindings', () => {
+  const firstLine = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.length >= 12) ?? { id: '', text: '', index: 0 };
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line };
+  };
+
+  it('the mock answers MarksList, Add, Remove and SaveTypes through their schemas, in reading order', async () => {
+    const { api, chapterId, line } = await firstLine();
+    const empty = await api.marksList();
+    expectMatches(marksSchema, empty, 'mock marks list (empty)');
+    expect(empty.types.map((type) => type.key)).toEqual(['stress', 'breath', 'pace', 'emo', 'note', 'ask']);
+    const later = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
+    const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', '  Is this right?  ');
+    expectMatches(markSchema, question, 'mock marks add');
+    expect(question).toMatchObject({ quote: line.text.slice(0, 4), text: 'Is this right?', status: 'open', thread: [], stale: false, paragraph: line.index });
+    const listed = await api.marksList();
+    expectMatches(marksSchema, listed, 'mock marks list');
+    expect(listed.marks.map((mark) => mark.id)).toEqual([question.id, later.id]);
+    const removed = await api.marksRemove(question.id);
+    expectMatches(marksSchema, removed, 'mock marks remove');
+    expect(removed.marks.map((mark) => mark.id)).toEqual([later.id]);
+    const withoutStress = removed.types.filter((type) => type.key !== 'stress');
+    await expect(api.marksSaveTypes(withoutStress, false)).rejects.toThrow('1 mark uses');
+    const saved = await api.marksSaveTypes([...withoutStress, { key: '', name: 'Accent', colour: 'info', style: 'box', asks: false }], true);
+    expectMatches(marksSchema, saved, 'mock marks types');
+    expect(saved.marks).toEqual([]);
+    expect(saved.types.at(-1)?.key).not.toBe('');
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstLine();
+    await expect(api.marksAdd('no-such-chapter', line.id, 0, 3, 'stress', '')).rejects.toThrow('not in the manuscript');
+    await expect(api.marksAdd(otherId, line.id, 0, 3, 'stress', '')).rejects.toThrow('not in this chapter');
+    await expect(api.marksAdd(chapterId, line.id, 3, 3, 'stress', '')).rejects.toThrow('choose some words');
+    await expect(api.marksAdd(chapterId, line.id, 0, line.text.length + 1, 'stress', '')).rejects.toThrow('not in the line');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'ask', ' ')).rejects.toThrow('write the question');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'nope', '')).rejects.toThrow('no longer there');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'note', 'bell\u0007')).rejects.toThrow('only text');
+    await expect(api.marksAdd(chapterId, line.id, 0, 3, 'note', 'x'.repeat(2001))).rejects.toThrow('at most 2000');
+    await expect(api.marksSaveTypes([], true)).rejects.toThrow('at least one');
+    expect((await api.marksList()).marks).toEqual([]);
+  });
+
+  it('the schemas read stale marks and refuse an unknown colour, style, key or stale reason', () => {
+    const list = parseWire(marksSchema, readGolden('marks-list.json'), ctx('marks list'));
+    expect(list.marks.map((mark) => mark.staleReason ?? null)).toEqual([null, 'text_changed', 'paragraph_missing']);
+    const added = parseWire(markSchema, readGolden('marks-add.json'), ctx('marks add'));
+    expect(added).toMatchObject({ status: 'open', thread: [] });
+    expect(parseWire(marksSchema, readGolden('marks-remove.json'), ctx('marks remove')).marks).toHaveLength(2);
+    expect(parseWire(marksSchema, readGolden('marks-types.json'), ctx('marks types')).types.at(-1)?.key).toBe('accent');
+    const type = list.types[0];
+    expect(markTypeSchema.safeParse({ ...type, colour: 'pink' }).success).toBe(false);
+    expect(markTypeSchema.safeParse({ ...type, style: 'zigzag' }).success).toBe(false);
+    expect(markTypeSchema.safeParse({ ...type, key: '../x' }).success).toBe(false);
+    expect(markTypeSchema.safeParse({ ...type, extra: true }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, path: '/etc/passwd' }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, staleReason: 'moved' }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, start: 9, end: 2 }).success).toBe(false);
+    expect(markSchema.safeParse({ ...added, status: 'closed' }).success).toBe(false);
+    expect(marksSchema.safeParse({ ...list, types: [] }).success).toBe(false);
+  });
+
+  it('the thread goldens parse, and the schemas refuse an unknown author, an empty message or an unknown key', () => {
+    const threaded = parseWire(markSchema, readGolden('marks-thread.json'), ctx('marks thread'));
+    expect(threaded.thread.map((message) => message.who)).toEqual(['author', 'proofer']);
+    const deleted = parseWire(markThreadDeletedSchema, readGolden('marks-thread-deleted.json'), ctx('marks thread deleted'));
+    expect(deleted.mark.thread).toHaveLength(1);
+    expect(deleted.message.who).toBe('proofer');
+    const message = threaded.thread[0];
+    expect(threadMessageSchema.safeParse(message).success).toBe(true);
+    expect(threadMessageSchema.safeParse({ ...message, who: 'editor' }).success).toBe(false);
+    expect(threadMessageSchema.safeParse({ ...message, text: '' }).success).toBe(false);
+    expect(threadMessageSchema.safeParse({ ...message, text: 'x'.repeat(2001) }).success).toBe(false);
+    expect(threadMessageSchema.safeParse({ ...message, html: '<b>' }).success).toBe(false);
+    expect(markSchema.safeParse({ ...threaded, thread: [{ ...message, who: 'narrator' }] }).success).toBe(false);
+    expect(markThreadDeletedSchema.safeParse({ ...deleted, index: 1 }).success).toBe(false);
+  });
+
+  it('the mock keeps a thread: reply, edit, delete and restore, resolve and reopen, through the schemas', async () => {
+    const { api, chapterId, line } = await firstLine();
+    const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', 'Is this right?');
+    await api.marksReply(question.id, 'author', ' Yes. ');
+    const replied = await api.marksReply(question.id, 'proofer', 'Clipped at 2:14.');
+    expectMatches(markSchema, replied, 'mock marks reply');
+    expect(replied.thread.map((message) => [message.who, message.text])).toEqual([
+      ['author', 'Yes.'],
+      ['proofer', 'Clipped at 2:14.'],
+    ]);
+    expect(replied.thread[0]?.at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    const edited = await api.marksEditMessage(question.id, 0, 'Yes, the live ones.');
+    expectMatches(markSchema, edited, 'mock marks edit message');
+    expect(edited.thread.map((message) => message.text)).toEqual(['Yes, the live ones.', 'Clipped at 2:14.']);
+    const deleted = await api.marksDeleteMessage(question.id, 0);
+    expectMatches(markThreadDeletedSchema, deleted, 'mock marks delete message');
+    expect(deleted.message.text).toBe('Yes, the live ones.');
+    expect(deleted.mark.thread).toHaveLength(1);
+    const restored = await api.marksRestoreMessage(question.id, 0, deleted.message);
+    expectMatches(markSchema, restored, 'mock marks restore message');
+    expect(restored.thread).toEqual(edited.thread);
+    expect((await api.marksSetStatus(question.id, 'resolved')).status).toBe('resolved');
+    expect((await api.marksSetStatus(question.id, 'open')).status).toBe('open');
+  });
+
+  it('the mock refuses in a thread what the host refuses and changes nothing', async () => {
+    const { api, chapterId, line } = await firstLine();
+    const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', 'Is this right?');
+    const stress = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
+    await api.marksReply(question.id, 'author', 'Yes.');
+    await expect(api.marksReply(question.id, 'you', '  ')).rejects.toThrow('write the reply or note first');
+    await expect(api.marksReply('missing', 'you', 'Hi')).rejects.toThrow('no longer there');
+    await expect(api.marksReply(question.id, 'you', 'x'.repeat(2001))).rejects.toThrow('at most 2000');
+    await expect(api.marksReply(question.id, 'you', 'bell\u0007')).rejects.toThrow('only text');
+    await expect(api.marksEditMessage(question.id, 1, 'x')).rejects.toThrow('no longer there');
+    await expect(api.marksEditMessage(question.id, 0, ' ')).rejects.toThrow('write the message first');
+    await expect(api.marksDeleteMessage(question.id, -1)).rejects.toThrow('no longer there');
+    const message = { who: 'you', text: 'Hi', at: '2026-10-11T10:00:00Z' } as const;
+    await expect(api.marksRestoreMessage(question.id, 2, message)).rejects.toThrow('no longer there');
+    await expect(api.marksRestoreMessage(question.id, 0, { ...message, text: '' })).rejects.toThrow('needs its text');
+    await expect(api.marksSetStatus(stress.id, 'resolved')).rejects.toThrow('only a question');
+    const after = (await api.marksList()).marks.find((mark) => mark.id === question.id);
+    expect(after?.thread.map((entry) => entry.text)).toEqual(['Yes.']);
+    expect(after?.status).toBe('open');
+  });
+});
+
+// The narrator's word effects (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the
+// host refuses, and the schemas refuse what the host never sends, a chain named by a path among them.
+describe('the word effects bindings', () => {
+  const firstLine = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
+  };
+  const request = (pid: string, a: number, b: number): WordFxRequest => ({
+    pid,
+    takeId: 't-1',
+    keys: [`${pid}:1`, `${pid}:0`],
+    text: 'two words',
+    a,
+    b,
+    off0: 0,
+    off1: b - a,
+    chainId: 'Voice/Polish.RfxChain',
+    chainName: 'Voice polish (EQ, compressor, de-esser)',
+    source: 'Your REAPER FX chains',
+    fadeMs: 8,
+    daw: 'reaper',
+    guid: '{FX}',
+  });
+
+  it('the mock answers EditingWordFxList, Record and Remove through their schemas, in time order, and says what an effect is over', async () => {
+    const { api, chapterId, line } = await firstLine();
+    expectMatches(wordFxListSchema, await api.editingWordFxList(chapterId), 'mock word effects list (empty)');
+    expectMatches(wordFxChangeSchema, await api.editingWordFxRecord(chapterId, { ...request(line.id, 20, 21), keys: [`${line.id}:2`] }), 'mock record');
+    const recorded = await api.editingWordFxRecord(chapterId, request(line.id, 12, 13.5));
+    expectMatches(wordFxChangeSchema, recorded, 'mock record');
+    expect(recorded.changed).toEqual(['fx2']);
+    expect(recorded.over).toEqual([]);
+    expect(recorded.effects.map((fx) => fx.id)).toEqual(['fx2', 'fx1']);
+    expect(recorded.effects[0]).toMatchObject({
+      keys: [`${line.id}:0`, `${line.id}:1`],
+      words: line.text.split(/\s+/).filter(Boolean).slice(0, 2),
+      a: 12,
+      chainId: 'Voice/Polish.RfxChain',
+      stale: false,
+    });
+    const onTop = await api.editingWordFxRecord(chapterId, { ...request(line.id, 13, 13.5), keys: [`${line.id}:1`], chainId: 'Deesser.RfxChain' });
+    expect(onTop.changed).toEqual(['fx3']);
+    expect(onTop.over).toEqual(['fx2']);
+    const removed = await api.editingWordFxRemove(chapterId, 'fx3');
+    expectMatches(wordFxChangeSchema, removed, 'mock remove');
+    expect(removed.changed).toEqual(['fx3']);
+    expect((await api.editingWordFxRemove(chapterId, 'fx3')).changed).toEqual([]);
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstLine();
+    const good = request(line.id, 12, 13);
+    await expect(api.editingWordFxRecord('no-such-chapter', good)).rejects.toThrow('not in the manuscript');
+    await expect(api.editingWordFxRecord(otherId, good)).rejects.toThrow('not in this chapter');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, keys: ['../../etc/passwd:0'] })).rejects.toThrow('more than one take');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, b: 12 })).rejects.toThrow('end after it starts');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, a: -1 })).rejects.toThrow('seconds from the start');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, guid: '' })).rejects.toThrow('after the DAW added it');
+    for (const name of ['C:\\FXChains\\Polish.RfxChain', '/etc/passwd', '../Polish.RfxChain', 'Voice/../../x', ''])
+      await expect(api.editingWordFxRecord(chapterId, { ...good, chainId: name })).rejects.toThrow('not the name of an effect chain');
+    expect((await api.editingWordFxList(chapterId)).effects).toEqual([]);
+  });
+
+  it('the schemas read the goldens and refuse a negative time, an unknown key or a chain named by a path', () => {
+    const list = parseWire(wordFxListSchema, readGolden('edit-wordfx-list.json'), ctx('word effects list'));
+    expect(list.effects.map((fx) => [fx.id, fx.stale, fx.staleReason])).toEqual([
+      ['fx2', false, undefined],
+      ['fx3', false, undefined],
+      ['fx1', true, 'text_changed'],
+    ]);
+    const change = parseWire(wordFxChangeSchema, readGolden('edit-wordfx-record.json'), ctx('word effect record'));
+    expect(change.changed).toEqual(['fx3']);
+    expect(change.over).toEqual(['fx2']);
+    expect(parseWire(wordFxChangeSchema, readGolden('edit-wordfx-remove.json'), ctx('word effect remove')).changed).toEqual(['fx3']);
+    const fx = change.effects[0];
+    expect(wordFxSchema.safeParse({ ...fx, a: -1 }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, b: fx.a }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, chainId: 'C:\\FX\\Polish.RfxChain' }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, chainName: '../Polish' }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, path: '/etc/passwd' }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, words: [] }).success).toBe(false);
+    expect(wordFxChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+    expect(wordFxChangeSchema.safeParse({ chapterId: change.chapterId, effects: change.effects, changed: change.changed }).success).toBe(false);
   });
 });

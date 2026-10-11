@@ -1,0 +1,79 @@
+[
+  {
+    "chapterId": "c-0001",
+    "confidence": null,
+    "note": "The rules give no score for this.",
+    "payload": {
+      "alias": "Captain Arelian",
+      "entry": "Arelian",
+      "kind": "alias"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "rule": "known-spelling",
+    "source": "rules"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": null,
+    "note": "The rules give no score for this.",
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Council of Ash",
+      "type": "Organization"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "rule": "new-name",
+    "source": "rules"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": null,
+    "note": "The rules give no score for this.",
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Dawnspire",
+      "type": ""
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "rule": "new-name",
+    "source": "rules"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": 0.96,
+    "payload": {
+      "kind": "speaker",
+      "quote": "“We ride at dawn,”",
+      "speaker": "Ada"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000003",
+        "text": "“We ride at dawn,” Ada said"
+      }
+    ],
+    "rule": "speech-tag",
+    "source": "rules"
+  }
+]
