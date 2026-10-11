@@ -228,3 +228,16 @@ describe('toast queue', () => {
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['boom', 'info 2', 'info 3', 'info 4']);
   });
 });
+
+describe('overlay.open headerless', () => {
+  it('overlay-dialog-spec-passes-headerless-through: the flag mounts the headerless Dialog, its absence the headed one', () => {
+    mount();
+    act(() => void service.open({ kind: 'dialog', title: 'Bare', headerless: true, render: () => <p>x</p> }));
+    expect(screen.getByRole('dialog', { name: 'Bare' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    cleanup();
+    mount();
+    act(() => void service.open({ kind: 'dialog', title: 'Headed', render: () => <p>x</p> }));
+    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+  });
+});

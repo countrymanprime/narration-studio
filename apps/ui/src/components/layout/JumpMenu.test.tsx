@@ -175,8 +175,10 @@ describe('JumpMenu', () => {
     expect(asked).not.toHaveBeenCalled();
     await user.type(field(), 'torm');
     const hit = screen.getByRole('option', { name: /The storm broke/ });
-    expect(hit.textContent).toContain('Script');
+    expect(hit.textContent).not.toContain('Script');
     expect(hit.textContent).toContain('Chapter 2, line 4');
+    // The group is a heading before the run, not part of the row.
+    expect(within(screen.getByRole('listbox')).getByText('Script').getAttribute('role')).toBe('presentation');
   });
 
   it('shows Nothing matches when nothing does', async () => {
@@ -193,5 +195,23 @@ describe('JumpMenu', () => {
     act(() => void open());
     expect(screen.getByRole('dialog', { name: 'Jump menu' })).toBeTruthy();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
+  });
+
+  it('jump-menu-uses-group-headings-and-no-header: no Close button, a group count at the right, a key cap for a command', async () => {
+    provide(command('t.ch3', 'Go to', 'Go to chapter 3'));
+    const { open } = mount();
+    act(() => void open());
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(screen.getAllByRole('presentation').some((el) => el.textContent === 'Commands')).toBe(true);
+    expect(screen.getByRole('option', { name: /^Go to/ }).textContent).toMatch(/\d+ ›$/);
+  });
+
+  it('jump-menu-keeps-the-field-focused-and-named', async () => {
+    provide(...GO_TO);
+    const { open } = mount();
+    act(() => void open());
+    await vi.waitFor(() => expect(document.activeElement).toBe(field()));
+    expect(screen.getByRole('dialog', { name: 'Jump menu' })).toBeTruthy();
+    expect(field().getAttribute('aria-activedescendant')).toBe(screen.getAllByRole('option')[0]?.id);
   });
 });

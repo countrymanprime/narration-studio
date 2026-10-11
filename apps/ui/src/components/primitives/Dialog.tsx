@@ -21,6 +21,9 @@ type DialogProps = {
   // reading modal, ADR 0094). Modality (focus trap, Escape, initial focus,
   // hidden siblings) is unchanged by size: both variants are the one shell ADR 0048 describes.
   size?: 'default' | 'full';
+  // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
+  // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
+  headerless?: boolean;
   // null when there is nothing to press (a running job that cannot be cancelled): no empty action row is drawn.
   actions: ReactNode;
   // WorkDialog only ever shows one action at a time - 'between' would strand
@@ -59,6 +62,7 @@ export function Dialog({
   description,
   variant = 'dialog',
   size = 'default',
+  headerless = false,
   actions,
   actionsAlign = 'between',
   footer,
@@ -118,19 +122,23 @@ export function Dialog({
             }}
           >
             {/* 59 px and a 1 px divider in every mock, with or without the Close button. */}
-            <div className="flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-[0.85rem]">
-              <Parts.Title className="font-semibold">{title}</Parts.Title>
-              {onClose && (
-                <IconButton label="Close" onClick={onClose}>
-                  <FontAwesomeIcon icon={faXmark} />
-                </IconButton>
-              )}
-            </div>
+            {headerless ? (
+              <Parts.Title className="sr-only">{title}</Parts.Title>
+            ) : (
+              <div className="flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-[0.85rem]">
+                <Parts.Title className="font-semibold">{title}</Parts.Title>
+                {onClose && (
+                  <IconButton label="Close" onClick={onClose}>
+                    <FontAwesomeIcon icon={faXmark} />
+                  </IconButton>
+                )}
+              </div>
+            )}
             {/* tabIndex: the body scrolls when content is tall, and a scrolling region must be reachable by keyboard. */}
             <div
               ref={bodyRef}
               tabIndex={0}
-              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-[1.1rem] break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset"
+              className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${headerless ? '' : 'p-[1.1rem]'} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {hasContent(description) && (
                 <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="text-sm text-[var(--text-muted)]">
