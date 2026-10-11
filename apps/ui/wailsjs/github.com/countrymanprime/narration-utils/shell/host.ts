@@ -778,6 +778,32 @@ export function EditingUnaccept(chapterID: string, keys: string[]): $Cancellable
 }
 
 /**
+ * EditingWordFxList returns a chapter's word effects in the original recording's time order, each checked against the
+ * current text.
+ */
+export function EditingWordFxList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2254069476, chapterID);
+}
+
+/**
+ * EditingWordFxRecord stores an effect after the DAW accepted applyFxToRange. It is refused, with nothing saved, when its
+ * words are not in one paragraph's current text, its range is not one the app sends, the DAW's result is missing, or its
+ * chain id or name could be a path (editlog.ErrBadChainName). An effect on words that already carry one is recorded, and the
+ * answer's over names the effects underneath.
+ */
+export function EditingWordFxRecord(chapterID: string, fx: editlog$0.WordFxRequest): $CancellablePromise<string> {
+    return $Call.ByID(1820074073, chapterID, fx);
+}
+
+/**
+ * EditingWordFxRemove forgets a chapter's effect: the inverse the journal calls when the DAW change is undone, or the record
+ * of the DAW taking the chain off.
+ */
+export function EditingWordFxRemove(chapterID: string, id: string): $CancellablePromise<string> {
+    return $Call.ByID(3159591436, chapterID, id);
+}
+
+/**
  * ExportCancel stops a running export; files already prepared keep their results. With none running it changes
  * nothing.
  */

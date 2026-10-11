@@ -1,0 +1,69 @@
+{
+  "changed": [
+    "fx3"
+  ],
+  "chapterId": "c-0001",
+  "effects": [
+    {
+      "a": 12,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 13.5,
+      "chainId": "Voice/Polish.RfxChain",
+      "chainName": "Voice polish (EQ, compressor, de-esser)",
+      "chapterId": "c-0001",
+      "daw": "reaper",
+      "fadeMs": 8,
+      "guid": "{FX-1}",
+      "id": "fx2",
+      "keys": [
+        "p-000001:4",
+        "p-000001:5",
+        "p-000001:6"
+      ],
+      "off0": 2,
+      "off1": 3.5,
+      "paragraph": 0,
+      "pid": "p-000001",
+      "source": "Your REAPER FX chains",
+      "stale": false,
+      "takeId": "t-1",
+      "text": "the Queen shouted.",
+      "words": [
+        "the",
+        "Queen",
+        "shouted."
+      ]
+    },
+    {
+      "a": 20,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 21,
+      "backupId": "bk1",
+      "chainId": "Room tone.RfxChain",
+      "chainName": "Room tone match",
+      "chapterId": "c-0001",
+      "daw": "reaper",
+      "fadeMs": 8,
+      "guid": "{FX-3}",
+      "id": "fx1",
+      "keys": [
+        "p-000002:2",
+        "p-000002:3"
+      ],
+      "off0": 10,
+      "off1": 11,
+      "paragraph": 1,
+      "pid": "p-000002",
+      "source": "Your REAPER FX chains",
+      "stale": true,
+      "staleReason": "text_changed",
+      "takeId": "t-1",
+      "text": "were silent.",
+      "words": [
+        "were",
+        "silent."
+      ]
+    }
+  ],
+  "over": []
+}

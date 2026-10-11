@@ -86,5 +86,90 @@ export class CutRequest {
     }
 }
 
+/**
+ * WordFxRequest is what the app sends after the DAW accepted applyFxToRange: the words, the range, the chain as the DAW
+ * lists it, and the DAW's answer. A, B, Off0 and Off1 are in the chapter recording as it was before any cut (the app
+ * converts them with origTime), so a later cut moves where the effect is shown, not what is stored.
+ */
+export class WordFxRequest {
+    "pid": string;
+    "takeId"?: string;
+    "keys": string[];
+    "text": string;
+    "a": number;
+    "b": number;
+    "off0": number;
+    "off1": number;
+
+    /**
+     * ChainID is the DAW's own id for the chain (REAPER: its name relative to FXChains, from list_fx_chains), ChainName how
+     * the list shows it and Source the list's title. None is ever a path.
+     */
+    "chainId": string;
+    "chainName": string;
+    "source": string;
+    "fadeMs": number;
+    "daw": string;
+    "guid": string;
+    "backupId"?: string;
+
+    /** Creates a new WordFxRequest instance. */
+    constructor($$source: Partial<WordFxRequest> = {}) {
+        if (!("pid" in $$source)) {
+            this["pid"] = "";
+        }
+        if (!("keys" in $$source)) {
+            this["keys"] = [];
+        }
+        if (!("text" in $$source)) {
+            this["text"] = "";
+        }
+        if (!("a" in $$source)) {
+            this["a"] = 0;
+        }
+        if (!("b" in $$source)) {
+            this["b"] = 0;
+        }
+        if (!("off0" in $$source)) {
+            this["off0"] = 0;
+        }
+        if (!("off1" in $$source)) {
+            this["off1"] = 0;
+        }
+        if (!("chainId" in $$source)) {
+            this["chainId"] = "";
+        }
+        if (!("chainName" in $$source)) {
+            this["chainName"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("fadeMs" in $$source)) {
+            this["fadeMs"] = 0;
+        }
+        if (!("daw" in $$source)) {
+            this["daw"] = "";
+        }
+        if (!("guid" in $$source)) {
+            this["guid"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new WordFxRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): WordFxRequest {
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("keys" in $$parsedSource) {
+            $$parsedSource["keys"] = $$createField2_0($$parsedSource["keys"]);
+        }
+        return new WordFxRequest($$parsedSource as Partial<WordFxRequest>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);

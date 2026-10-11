@@ -6,8 +6,10 @@ import { createMockApi } from '../api/mockApi';
 import type { EditCutRequest } from '../api/contracts/editCuts';
 import { editCutsChangeSchema, editCutsSchema } from '../api/schemas/editCuts';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from '../api/schemas/editLog';
+import type { WordFxRequest } from '../api/contracts/wordFx';
+import { wordFxChangeSchema, wordFxListSchema } from '../api/schemas/wordFx';
 import { parseWire } from '../api/wire/parseWire';
-import { acceptedKeys, createHostEditLog, cutKeys, type EditLogHostApi, type EditLogPort } from './editLog';
+import { acceptedKeys, createHostEditLog, cutKeys, type EditLogHostApi, type EditLogPort, wordFxByKey } from './editLog';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
 // One suite over both adapters: the mock over its own manuscript, and the host adapter fed by the goldens the Go host wrote
@@ -23,6 +25,9 @@ const GOLDEN_FILES = [
   'edit-cuts-list.json',
   'edit-cuts-record.json',
   'edit-cuts-remove.json',
+  'edit-wordfx-list.json',
+  'edit-wordfx-record.json',
+  'edit-wordfx-remove.json',
 ] as const;
 const goldens: Goldens = Object.fromEntries(GOLDEN_FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 
@@ -30,6 +35,8 @@ const list = (file: string) => parseWire(acceptedWordsSchema, goldens[file], { b
 const change = (file: string) => parseWire(acceptedWordsChangeSchema, goldens[file], { boundary: 'editLog contract', payload: file });
 const cutsList = (file: string) => parseWire(editCutsSchema, goldens[file], { boundary: 'editLog contract', payload: file });
 const cutsChange = (file: string) => parseWire(editCutsChangeSchema, goldens[file], { boundary: 'editLog contract', payload: file });
+const fxList = (file: string) => parseWire(wordFxListSchema, goldens[file], { boundary: 'editLog contract', payload: file });
+const fxChange = (file: string) => parseWire(wordFxChangeSchema, goldens[file], { boundary: 'editLog contract', payload: file });
 
 /** The goldens' manuscript: chapter c-0001, and how many words each of its lines has. */
 const HOST_CHAPTER = 'c-0001';
@@ -62,6 +69,20 @@ function checkCut(chapterId: string, cut: EditCutRequest): void {
   if (cut.keys.some((key) => key.slice(0, key.lastIndexOf(':')) !== cut.pid)) throw new Error("a cut's words must all be in its paragraph");
 }
 
+/** The host's refusals of a word effect, in its order (apps/desktop/internal/editlog/wordfx.go). */
+function checkWordFx(chapterId: string, fx: WordFxRequest): void {
+  if (!fx.guid.trim() || !fx.daw.trim()) throw new Error('an effect is recorded only after the DAW added it: its result is missing');
+  const listName = (name: string) =>
+    name.trim() !== '' && !/[\\:\p{Cc}]/u.test(name) && name.split('/').every((part) => part !== '' && part !== '.' && part !== '..');
+  if (!listName(fx.chainId) || !listName(fx.chainName)) throw new Error('that is not the name of an effect chain the DAW lists, so nothing was saved');
+  if (!fx.source.trim()) throw new Error('an effect must name the list it came from');
+  if (!(fx.a >= 0) || !(fx.b >= 0)) throw new Error("an effect's times must be seconds from the start of the recording");
+  if (fx.b <= fx.a) throw new Error('an effect must end after it starts');
+  checkKeys(chapterId, fx.keys);
+  if (fx.keys.some((key) => key.slice(0, key.lastIndexOf(':')) !== fx.pid))
+    throw new Error('these words sit in more than one take: an effect needs words from one take');
+}
+
 const reject = (error: unknown) => Promise.reject(error instanceof Error ? error : new Error(String(error)));
 
 const hostApi = (): EditLogHostApi => ({
@@ -75,6 +96,16 @@ const hostApi = (): EditLogHostApi => ({
     return Promise.resolve(cutsChange('edit-cuts-record.json'));
   },
   editingCutRemove: () => Promise.resolve(cutsChange('edit-cuts-remove.json')),
+  editingWordFxList: (chapterId) => Promise.resolve(chapterId === HOST_CHAPTER ? fxList('edit-wordfx-list.json') : { chapterId, effects: [] }),
+  editingWordFxRecord: (chapterId, fx) => {
+    try {
+      checkWordFx(chapterId, fx);
+    } catch (error) {
+      return reject(error);
+    }
+    return Promise.resolve(fxChange('edit-wordfx-record.json'));
+  },
+  editingWordFxRemove: () => Promise.resolve(fxChange('edit-wordfx-remove.json')),
   editingAcceptedList: (chapterId) => Promise.resolve(chapterId === HOST_CHAPTER ? list('edit-accepted-list.json') : { chapterId, words: [] }),
   editingAccept: (chapterId, keys) => {
     try {
@@ -116,6 +147,31 @@ const cutOf = (paragraph: string): EditCutRequest => ({
   guid: '{CUT}',
   undoSteps: 1,
 });
+
+/** An effect on a line's first word, as the app sends it after the DAW accepted applyFxToRange. */
+const fxOf = (paragraph: string): WordFxRequest => ({
+  pid: paragraph,
+  keys: [`${paragraph}:0`],
+  text: 'the word',
+  a: 12,
+  b: 13,
+  off0: 0,
+  off1: 1,
+  chainId: 'Voice/Polish.RfxChain',
+  chainName: 'Voice polish',
+  source: 'Your REAPER FX chains',
+  fadeMs: 8,
+  daw: 'reaper',
+  guid: '{FX}',
+});
+
+/** Records an effect with `change` applied to the request, on a word each adapter has. */
+const recordFx =
+  (change: Partial<WordFxRequest>) =>
+  async (port: EditLogPort, { adapter }: { adapter: 'mock' | 'host' }) => {
+    const { chapterId, paragraph } = await wordOf(adapter);
+    return port.editingWordFxRecord(chapterId, { ...fxOf(paragraph), ...change });
+  };
 
 const cases: ReadonlyArray<ContractCase<EditLogPort>> = [
   {
@@ -201,6 +257,41 @@ const cases: ReadonlyArray<ContractCase<EditLogPort>> = [
     name: 'a-cut-in-an-unknown-chapter-is-refused-alike',
     observe: async (port, { adapter }) => port.editingCutRecord('no-such-chapter', cutOf((await wordOf(adapter)).paragraph)),
   },
+  {
+    name: 'word-fx-answers-are-the-wire-shape',
+    check: async (port, { adapter }) => {
+      const { chapterId, paragraph } = await wordOf(adapter);
+      wordFxListSchema.parse(await port.editingWordFxList(chapterId));
+      const recorded = wordFxChangeSchema.parse(await port.editingWordFxRecord(chapterId, fxOf(paragraph)));
+      wordFxChangeSchema.parse(await port.editingWordFxRemove(chapterId, recorded.changed[0] ?? ''));
+    },
+  },
+  {
+    name: 'an-effect-the-daw-added-is-recorded-alike',
+    observe: async (port, { adapter }) => {
+      const { chapterId, paragraph } = await wordOf(adapter);
+      const answer = await port.editingWordFxRecord(chapterId, fxOf(paragraph));
+      const fx = answer.effects.find((effect) => effect.id === answer.changed[0]);
+      return { changed: answer.changed.length, listed: !!fx && !fx.stale };
+    },
+  },
+  { name: 'an-effect-without-a-daw-result-is-refused-alike', observe: recordFx({ guid: '' }) },
+  { name: 'an-effect-that-ends-before-it-starts-is-refused-alike', observe: recordFx({ b: 11 }) },
+  { name: 'an-effect-at-a-negative-time-is-refused-alike', observe: recordFx({ a: -1 }) },
+  { name: 'a-chain-named-by-a-windows-path-is-refused-alike', observe: recordFx({ chainId: 'C:\\FXChains\\Polish.RfxChain' }) },
+  { name: 'a-chain-named-by-an-absolute-path-is-refused-alike', observe: recordFx({ chainId: '/etc/passwd' }) },
+  { name: 'a-chain-name-that-climbs-out-is-refused-alike', observe: recordFx({ chainName: '../Polish.RfxChain' }) },
+  {
+    name: 'an-effect-on-words-in-two-takes-is-refused-alike',
+    observe: async (port, { adapter }) => {
+      const { chapterId, paragraph } = await wordOf(adapter);
+      return port.editingWordFxRecord(chapterId, { ...fxOf(paragraph), keys: [`${paragraph}:0`, 'p-other:0'] });
+    },
+  },
+  {
+    name: 'an-effect-in-an-unknown-chapter-is-refused-alike',
+    observe: async (port, { adapter }) => port.editingWordFxRecord('no-such-chapter', fxOf((await wordOf(adapter)).paragraph)),
+  },
   { name: 'no-key-is-refused-alike', observe: async (port, { adapter }) => port.editingAccept((await wordOf(adapter)).chapterId, []) },
 ];
 
@@ -218,5 +309,14 @@ describe('cutKeys', () => {
   it('stale-cut-is-reported-not-moved: a stale cut strikes no word', () => {
     const golden = cutsList('edit-cuts-list.json');
     expect([...cutKeys(golden.cuts)]).toEqual(['p-000001:4', 'p-000001:5', 'p-000001:6']);
+  });
+});
+
+describe('wordFxByKey', () => {
+  it('stale-effect-is-reported-not-moved: a stale effect underlines no word, and a word under two takes the first', () => {
+    const golden = fxList('edit-wordfx-list.json');
+    const byKey = wordFxByKey(golden.effects);
+    expect([...byKey.keys()].sort()).toEqual(['p-000001:4', 'p-000001:5', 'p-000001:6']);
+    expect(byKey.get('p-000001:6')?.id).toBe('fx2');
   });
 });

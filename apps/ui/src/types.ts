@@ -40,6 +40,7 @@ export * from './api/contracts/passageMap';
 export * from './api/contracts/editLog';
 export * from './api/contracts/marks';
 export * from './api/contracts/editCuts';
+export * from './api/contracts/wordFx';
 export * from './api/contracts/workspace';
 export * from './api/contracts/preview';
 export * from './api/contracts/daw';
@@ -94,6 +95,7 @@ import type { PassageMapApi } from './api/contracts/passageMap';
 import type { EditLogApi } from './api/contracts/editLog';
 import type { MarksApi } from './api/contracts/marks';
 import type { EditCutsApi } from './api/contracts/editCuts';
+import type { EditWordFxApi } from './api/contracts/wordFx';
 import type { WorkspaceApi } from './api/contracts/workspace';
 import type { PreviewApi } from './api/contracts/preview';
 import type { DawCapabilitiesApi } from './api/contracts/daw';
@@ -154,6 +156,7 @@ export interface NarrationApi
     EditLogApi,
     MarksApi,
     EditCutsApi,
+    EditWordFxApi,
     WorkspaceApi,
     PreviewApi,
     DawCapabilitiesApi,

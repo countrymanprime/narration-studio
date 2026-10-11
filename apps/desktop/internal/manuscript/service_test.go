@@ -882,3 +882,57 @@ func TestReplaceAndClearRemoveTheMarksFile(t *testing.T) {
 		t.Fatalf("Clear project data left the marks behind: %v", err)
 	}
 }
+
+// Word effects name chapter and paragraph ids and word ordinals too, so replacing the manuscript and Clear project data
+// remove editing/wordfx.json as well (ADR 0856); an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheWordFxFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeWordFx := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.WordFxFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.WordFxFile(project), []byte(`{"schemaVersion":1,"effects":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeWordFx()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the word effects: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the word effects: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the word effects behind: %v", err)
+	}
+	writeWordFx()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.WordFxFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the word effects behind: %v", err)
+	}
+}
