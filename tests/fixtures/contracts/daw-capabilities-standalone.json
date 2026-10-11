@@ -1,12 +1,30 @@
 {
   "capabilities": {
+    "backups": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
     "cleanup_tools": {
       "available": false,
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
+    "cut_range": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
     "fx_chains": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
+    "fx_range": {
       "available": false,
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
@@ -115,6 +133,12 @@
       "reason": "standalone"
     },
     "silence_trim": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
+    "stack_takes": {
       "available": false,
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",

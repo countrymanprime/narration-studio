@@ -153,7 +153,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Spikes | SND-S1..S5 scripted, S6 pending hardware, S7 Audacity | pending | all | SN0-1 | 2.5 | - |
 | 2 | Result and capability wire | `Result`, `destructive`, `mode`, schemas, goldens, `DawClient` and mock setups | done (wire half [#1034](https://github.com/countrymanprime/narration-utils/issues/1034); `DawClient` is SND-2b, [#1062](https://github.com/countrymanprime/narration-utils/issues/1062)) | 3 | SN0-1 | 2.0 | - |
-| 3 | Catalogue and conformance | New capabilities, roles, `dawporttest` cases, declarations | pending | 2 | 2 | 1.5 | - |
+| 3 | Catalogue and conformance | New capabilities, roles, `dawporttest` cases, declarations | done ([#1147](https://github.com/countrymanprime/narration-utils/issues/1147)) | 2 | 2 | 1.5 | - |
 | 4 | Project state and stale | `DawProjectState`, `savedAt`, uniform `stale` refusal, pickup write-through | pending | - | 2 | 1.5 | - |
 | 5 | Take commands | `hide_takes`; `set_active_take` result mapping | pending | 6 | 3, S-results | 1.0 | - |
 | 6 | Roll and range commands | `roll`, `delete_range`, `apply_fx_range` | pending | 5 | 3, S1..S3 | 2.5 | - |

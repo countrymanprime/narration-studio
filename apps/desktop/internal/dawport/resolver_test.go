@@ -382,3 +382,24 @@ func TestSupportWithoutADescriberReportsNoDepth(t *testing.T) {
 		t.Fatalf("Support(punch) = %+v, want no depth from an adapter that declares none", got)
 	}
 }
+
+// The edit capabilities ship NotYetAvailable on every engine until their command lands: never usable, whatever the toggle, and
+// the message names the capability's own label.
+func TestTheEditCapabilitiesResolveNotYetWhileDeclaredSo(t *testing.T) {
+	declares := map[Capability]Level{CapCutRange: NotYetAvailable, CapFXRange: NotYetAvailable, CapStackTakes: NotYetAvailable, CapBackups: NotYetAvailable}
+	r := NewResolver(ResolverConfig{
+		Adapter: plainAdapter{stubAdapter{kind: KindREAPER, declares: declares}},
+		Runtime: func() Runtime { return Runtime{Bridge: true, Reachable: true} },
+		Toggle:  togglesOf(map[Capability]Toggle{CapCutRange: ToggleOn, CapFXRange: ToggleOn, CapStackTakes: ToggleOn, CapBackups: ToggleOn}),
+	})
+	for c := range declares {
+		spec, _ := SpecOf(c)
+		s := r.Support(c)
+		if s.Available || s.Reason != ReasonNotYet || !strings.Contains(s.Message, spec.Label) {
+			t.Errorf("Support(%s) = %+v, want not_yet naming %q", c, s, spec.Label)
+		}
+		if _, err := Role[any](r, c); !errors.Is(err, ErrNotSupported) {
+			t.Errorf("Role(%s) = %v while not yet available, want ErrNotSupported", c, err)
+		}
+	}
+}

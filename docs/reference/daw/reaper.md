@@ -29,6 +29,10 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([ADR 00
 | The ReaScript calls behind each planned command, from the documentation and cross-checked against five third-party REAPER MCP servers read for approach only | [ReaScript calls](../../research/reaper-api-for-planned-commands.md) |
 | A survey of the wider automation surface | [Automation surface](../../research/reaper-automation-surface.md) |
 
+## Not yet available
+
+`cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. Each command slice flips its own row to Experimental ([capabilities](capabilities.md#cut_range)).
+
 ## Version rules
 
 - **Lua 5.4 subset.** No `goto`, no integer division, no bit operators: the code must run in REAPER 7's Lua and in the harness ([reaper-command-add](../../../.claude/skills/reaper-command-add/SKILL.md)).

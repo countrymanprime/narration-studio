@@ -457,6 +457,62 @@
       "kind": "choice",
       "label": "Mastering with an effect macro",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.cut_range",
+      "kind": "choice",
+      "label": "Cut words and audio",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.fx_range",
+      "kind": "choice",
+      "label": "Add an effect to words",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.stack_takes",
+      "kind": "choice",
+      "label": "Stack takes",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.backups",
+      "kind": "choice",
+      "label": "Audio backups",
+      "value": ""
     }
   ],
   "Editing": [

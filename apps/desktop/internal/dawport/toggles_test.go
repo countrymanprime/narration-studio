@@ -109,3 +109,23 @@ func TestDefaultsHaveAnAutoRowForEveryCapability(t *testing.T) {
 		}
 	}
 }
+
+func TestTheEditCapabilitiesHaveTheirOwnRows(t *testing.T) {
+	toggles := SettingsToggles(settingsOf(map[string]string{
+		"DAW.capability.cut_range": "on", "DAW.capability.fx_range": "off", "DAW.capability.backups": "auto",
+	}))
+	for c, want := range map[Capability]Toggle{
+		CapCutRange: ToggleOn, CapFXRange: ToggleOff, CapBackups: ToggleAuto, CapStackTakes: ToggleAuto,
+	} {
+		if got := toggles(c); got != want {
+			t.Errorf("toggle(%s) = %q, want %q", c, got, want)
+		}
+	}
+	for c, key := range map[Capability]string{
+		CapCutRange: "capability.cut_range", CapFXRange: "capability.fx_range", CapStackTakes: "capability.stack_takes", CapBackups: "capability.backups",
+	} {
+		if got := ToggleKey(c); got != key {
+			t.Errorf("ToggleKey(%s) = %q, want %q", c, got, key)
+		}
+	}
+}

@@ -3,8 +3,9 @@ import { DAW_CAPABILITIES } from '../api/contracts/daw';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
-// only capabilities the Go catalogue has today; `cut_range`, `fx_range`, `stack_takes` and `backups` join with SND-3. The sentences
-// are the host's own wording (dawport resolver and adapters), so a refusal here reads as the real one.
+// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it, not yet available on
+// any engine until their command slices land. The sentences are the host's own wording (dawport resolver and adapters), so a refusal
+// here reads as the real one.
 
 export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'audacity-backups';
 
@@ -41,6 +42,10 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   render_with_fx: 'experimental',
   master_chain_read: 'experimental',
   macro_render: 'unsupported',
+  cut_range: 'not_yet_available',
+  fx_range: 'not_yet_available',
+  stack_takes: 'not_yet_available',
+  backups: 'not_yet_available',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
@@ -51,15 +56,26 @@ const everyCapability = (otherwise: (key: DawCapabilityKey) => DawCapabilitySupp
 
 const macroUnsupported: DawCapabilitySupport = { level: 'unsupported', available: false, reason: 'unsupported', message: MACRO_UNSUPPORTED };
 
-const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), { macro_render: macroUnsupported });
+const notYet = (message: string): DawCapabilitySupport => ({ level: 'not_yet_available', available: false, reason: 'not_yet', message });
+
+/** The edit rows REAPER declares not yet available (no bridge command yet), with the resolver's sentence: checked before reachability. */
+const REAPER_NOT_YET: Rows = Object.fromEntries(
+  DAW_CAPABILITIES.filter(({ key }) => REAPER_LEVELS[key] === 'not_yet_available').map(({ key, label }) => [
+    key,
+    notYet(`${label} is not available with REAPER yet.`),
+  ]),
+);
+
+const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
+  macro_render: macroUnsupported,
+  ...REAPER_NOT_YET,
+});
 
 /** REAPER that does not answer: everything that needs it waits, and reading the saved project still works. */
 const REAPER_OFF_CAPABILITIES = everyCapability(
   (key) => ({ level: REAPER_LEVELS[key], available: false, reason: 'not_running', message: REAPER_NOT_RUNNING }),
-  { project_read: { level: 'supported', available: true }, macro_render: macroUnsupported },
+  { project_read: { level: 'supported', available: true }, macro_render: macroUnsupported, ...REAPER_NOT_YET },
 );
-
-const notYet = (message: string): DawCapabilitySupport => ({ level: 'not_yet_available', available: false, reason: 'not_yet', message });
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
 
 /** Audacity today: labels and navigation work, and nothing else is built. A roll replaces audio there, so `punch` is destructive. */
