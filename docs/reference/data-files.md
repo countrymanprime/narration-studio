@@ -10,7 +10,7 @@ Every file on this page is written by the app and read back by the app for the s
 
 On read, the host checks the file before using it: its shape, its version where it carries one, and the limits named in its row. A file written by a newer version of the app is refused and left alone. A file that does not decode is handled by the class of data in it, disposable or narrator data, as [Persisted files](../architecture/wire-contracts.md#persisted-files-appsdesktopinternalpersist) describes (`apps/desktop/internal/persist`). A row's notes say where a file departs from that.
 
-A hand edit of one of these files can change only the narrator's own data the app shows or judges by: a note, a mark, a status, a verdict. It must not make the app run a program, open or write a path, fetch a URL, or put markup into the page. A file that can do any of those is a vulnerability; report it as [SECURITY.md](../../SECURITY.md) says. A file that names a path the host opens, a command it runs or a URL it fetches also has its own row in the threat model.
+A hand edit of one of these files can change only the narrator's own data the app shows or judges by: a note, a mark, a status, a verdict. It must not make the app run a program, open or write a path, fetch a URL, or put markup into the page; a file that can is a vulnerability, reported as [SECURITY.md](../../SECURITY.md) says. The exception is a file whose job is to name a path the host opens, a command it runs or a URL it fetches: its row says so, and it also has its own row in the threat model, which bounds what the named target can do.
 
 ## Columns
 
