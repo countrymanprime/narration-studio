@@ -143,7 +143,7 @@ Shared and kept: `findingFormat.ts` (five importers outside `proof/`: `booth/Rea
 
 ## Workspace parts
 
-Marked **Editing swap (SNE-9) deletes**. None has an importer outside `apps/ui/src/components/proof/`, and none is imported by `ProofPage`, `NotesHeader`, `NotesStrip`, `FindingDetail` or `FindingsList`. [SN-E1](studio-next-script-based-editing.prd.md) lists the same folder from the Editing side; if the lists differ, the later note corrects the earlier.
+Marked **Editing swap (SNE-9) deletes**. None has an importer outside `apps/ui/src/components/proof/`, and none is imported by `ProofPage`, `NotesHeader`, `NotesStrip`, `FindingDetail` or `FindingsList`. [SN-E1](../prds/studio-next-script-based-editing.prd.md) lists the same folder from the Editing side; if the lists differ, the later note corrects the earlier.
 
 | File | Importers | SNE-9 deletes | Proof's notes or takes lanes need it |
 | - | - | - | - |
