@@ -17,6 +17,7 @@ import type {
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
+  ProductionReportPreview,
   ProductionSession,
 } from './contracts/production';
 import type { StageRecommendations } from './contracts/stages';
@@ -370,6 +371,27 @@ export function createProductionMock(deps: Deps): ProductionApi {
         folder: 'narration-utils/production/reports',
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
+        contractedAmountIncluded: includeContractedAmount,
+      };
+    },
+    // The host's own document (ADR 0843) in miniature: the mock builds the page from the same overview it answers, leaves
+    // the contracted amount and rate out unless asked, and says "Not available" for a figure it cannot give.
+    productionStatusReportPreview: async (includeContractedAmount): Promise<ProductionReportPreview> => {
+      const { totals, deadline } = await overview();
+      const figure = (value: number | null) => (value === null ? 'Not available' : value.toFixed(2));
+      const rows: [string, string][] = [
+        ['Hours logged', totals.hoursLogged.toFixed(1)],
+        ['Book PFH', figure(totals.bookPfh)],
+        ['Deadline', deadline === null ? 'Not available' : deadline.date],
+      ];
+      if (includeContractedAmount) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
+      const html = `<!doctype html><html><body><h1>Production status</h1><dl>${rows.map(([name, value]) => `<dt>${name}</dt><dd>${value}</dd>`).join('')}</dl></body></html>\n`;
+      const json = `${JSON.stringify(Object.fromEntries(rows), null, 2)}\n`;
+      return {
+        html,
+        json,
+        folder: 'narration-utils/production/reports',
+        stem: 'production-status-20260921-100000Z',
         contractedAmountIncluded: includeContractedAmount,
       };
     },
