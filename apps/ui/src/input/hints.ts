@@ -14,6 +14,10 @@ const NAMED_CODES: Record<string, string> = {
   BracketLeft: '[',
   BracketRight: ']',
   Slash: '/',
+  Equal: '=',
+  Minus: '-',
+  NumpadAdd: 'Num +',
+  NumpadSubtract: 'Num -',
   Space: 'Space',
   BrowserBack: 'Browser Back',
   BrowserForward: 'Browser Forward',
@@ -24,6 +28,7 @@ const NAMED_CODES: Record<string, string> = {
 export function codeLabel(code: string): string {
   if (code.startsWith('Key')) return code.slice(3);
   if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Numpad') && code.length === 7) return `Num ${code.slice(6)}`;
   return NAMED_CODES[code] ?? code;
 }
 

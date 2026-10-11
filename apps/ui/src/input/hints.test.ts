@@ -17,6 +17,12 @@ describe('codeLabel', () => {
     expect(codeLabel('BrowserForward')).toBe('Browser Forward');
   });
 
+  it('names the zoom keys a narrator reads on the cap', () => {
+    expect(codeLabel('Equal')).toBe('=');
+    expect(codeLabel('NumpadAdd')).toBe('Num +');
+    expect(codeLabel('Numpad0')).toBe('Num 0');
+  });
+
   it('falls back to the raw code for one it does not know', () => {
     expect(codeLabel('F13')).toBe('F13');
   });
