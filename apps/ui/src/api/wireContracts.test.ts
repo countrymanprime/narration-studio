@@ -2101,6 +2101,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(findingsSummarySchema, await empty.findingsSummary(), 'mock findings summary, empty queue');
   });
 
+  it('the findings summary schema rejects a negative or fractional decided or cleared count', () => {
+    const summary = {
+      total: 1,
+      unreviewed: 0,
+      accepted: 0,
+      dismissed: 1,
+      deferred: 0,
+      decided: 1,
+      cleared: 1,
+      notInLatestRun: 0,
+      analyzers: [],
+      categories: [],
+      chapters: [],
+    };
+    expect(findingsSummarySchema.safeParse(summary).success).toBe(true);
+    expect(findingsSummarySchema.safeParse({ ...summary, cleared: -1 }).success).toBe(false);
+    expect(findingsSummarySchema.safeParse({ ...summary, decided: 0.5 }).success).toBe(false);
+  });
+
   it('the review REAPER bindings answers, every outcome and refusal', async () => {
     const api = createMockApi();
     const { findings } = await api.findingsList({ includeNotInLatestRun: true });

@@ -9,6 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/guide"
+	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
 )
 
@@ -126,4 +127,45 @@ func checkBindingContract(t *testing.T, name, payload string) {
 		t.Fatal(err)
 	}
 	contractfile.Check(t, name, stable)
+}
+
+// TestFindingsSummaryClearedAgreesWithTheStageEngineForOneChapter settles ADR 0793 point 6 for findings: the stage
+// engine's proofing.pickups (proofing.PickupItem.Open) treats a finding as open unless it is dismissed, and the
+// summary's cleared counts exactly the dismissed ones, so for one chapter the open count the rail shows
+// (total - cleared) equals the engine's open items. They can still differ in two ways this test does not close: the
+// engine also counts REAPER PICKUP: markers (the rail adds pickupsState().remaining for those), and it treats a
+// finding a complete later run did not reproduce as resolved (the summary leaves it out of every count).
+func TestFindingsSummaryClearedAgreesWithTheStageEngineForOneChapter(t *testing.T) {
+	store := findings.NewStore(t.TempDir())
+	var chapter []findings.Finding
+	for _, id := range []string{"a", "b", "c", "d"} {
+		f := reviewFinding(id, "transcript-compare", "chapter-1", findings.SeverityInfo, nil)
+		f.EvidenceVersion = "v1"
+		chapter = append(chapter, f)
+	}
+	if _, err := store.SaveAnalyzerFindings("transcript-compare", "chapter-1", chapter); err != nil {
+		t.Fatal(err)
+	}
+	for id, status := range map[string]findings.Status{"a": findings.StatusAccepted, "b": findings.StatusDismissed, "c": findings.StatusDeferred} {
+		if _, _, err := store.RecordDecision(id, "v1", status, "", "2026-09-23T10:00:00Z"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	summary, err := store.Summary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed, err := store.List(findings.Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	engineOpen := 0
+	for _, f := range listed {
+		if (proofing.PickupItem{FindingID: f.ID, Status: f.Review.Status, NotInLatestRun: f.NotInLatestRun}).Open() {
+			engineOpen++
+		}
+	}
+	if got := summary.Total - summary.Cleared; got != engineOpen || got != 3 {
+		t.Fatalf("summary open = %d, engine open = %d, want both 3 (accepted, deferred and unreviewed stay open)", got, engineOpen)
+	}
 }

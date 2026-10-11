@@ -226,3 +226,49 @@ func TestSummaryFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 		t.Fatal("Summary must report a scope file it cannot read, not undercount")
 	}
 }
+
+func TestSummaryCountsDecidedAndCleared(t *testing.T) {
+	store := NewStore(t.TempDir())
+	var fresh []Finding
+	for _, id := range []string{"a", "b", "c", "d", "e", "gone"} {
+		fresh = append(fresh, testFinding(id, "c-0001", "v1"))
+	}
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", fresh); err != nil {
+		t.Fatal(err)
+	}
+	for id, status := range map[string]Status{"a": StatusAccepted, "b": StatusDismissed, "c": StatusDeferred, "gone": StatusDismissed} {
+		if _, _, err := store.RecordDecision(id, "v1", status, "", "2026-09-23T10:00:00Z"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// "gone" is no longer reproduced: it counts in neither decided nor cleared.
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", fresh[:5]); err != nil {
+		t.Fatal(err)
+	}
+	summary, err := store.Summary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// accepted and deferred are decided and open; dismissed is decided and cleared; d and e are undecided.
+	if summary.Total != 5 || summary.Unreviewed != 2 || summary.Decided != 3 || summary.Cleared != 1 || summary.NotInLatestRun != 1 {
+		t.Fatalf("summary = %+v, want total 5, unreviewed 2, decided 3, cleared 1, notInLatestRun 1", summary)
+	}
+}
+
+func TestClearedNeverInventsAFix(t *testing.T) {
+	// No host signal says an accepted finding was fixed (the store keeps decisions only), so accepting never clears.
+	store := NewStore(t.TempDir())
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("a", "c-0001", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordDecision("a", "v1", StatusAccepted, "", "2026-09-23T10:00:00Z"); err != nil {
+		t.Fatal(err)
+	}
+	summary, err := store.Summary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Decided != 1 || summary.Cleared != 0 {
+		t.Fatalf("summary = %+v, want an accepted finding decided and still open", summary)
+	}
+}

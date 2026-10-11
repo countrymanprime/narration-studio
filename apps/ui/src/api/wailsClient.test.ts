@@ -469,7 +469,19 @@ describe('wailsClient', () => {
       evidence_version: 'v1',
       review: { status: 'dismissed', note: 'noise', timestamp: '2026-09-23T10:00:00Z' },
     };
-    const summary = { total: 1, unreviewed: 0, accepted: 0, dismissed: 1, deferred: 0, notInLatestRun: 0, analyzers: null, categories: null, chapters: null };
+    const summary = {
+      total: 1,
+      unreviewed: 0,
+      accepted: 0,
+      dismissed: 1,
+      deferred: 0,
+      decided: 1,
+      cleared: 1,
+      notInLatestRun: 0,
+      analyzers: null,
+      categories: null,
+      chapters: null,
+    };
     const list = vi.fn().mockResolvedValue(JSON.stringify({ findings: null, total: 0 }));
     const get = vi.fn().mockResolvedValue(JSON.stringify(finding));
     const review = vi.fn().mockResolvedValue(JSON.stringify(finding));

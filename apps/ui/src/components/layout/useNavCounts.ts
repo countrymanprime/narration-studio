@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
+import { proofProgress } from '../proof/proof.selectors';
 
 /** The rail's count badges (mock 05: "3" on Story Bible, "14" on Proof, "9" on Pickups). A key is absent when the host has no
  * count to give, and the rail then draws no badge: a number is never made up. */
@@ -7,7 +8,7 @@ export type NavCounts = { storyBible?: number; proof?: number; pickups?: number 
 
 /**
  * What waits on each page, read from the host: the open pronunciation queries (Story Bible's list of names the author has not
- * confirmed), the notes still to review (Proof's summary) and the pickups REAPER last reported remaining. It reads again on
+ * confirmed), the notes still open (Proof's summary, through the one `proofProgress` selector: not cleared, which is more than unreviewed) and the pickups REAPER last reported remaining. It reads again on
  * every page move, so a decision made on a page shows on the rail as the narrator leaves it. It only reads: the pickups count
  * is what REAPER last reported, and the hook never asks REAPER to count.
  */
@@ -29,7 +30,7 @@ export function useNavCounts(pathname: string, hasManuscript: boolean): NavCount
     }
     api
       .findingsSummary()
-      .then((summary) => set({ proof: summary.unreviewed }))
+      .then((summary) => set({ proof: proofProgress(summary, 0).open }))
       .catch(clear('proof'));
     api
       .pickupsState()

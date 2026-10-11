@@ -354,6 +354,8 @@ describe('ProofPage', () => {
                 accepted: 0,
                 dismissed: 0,
                 deferred: 0,
+                decided: 0,
+                cleared: 0,
                 notInLatestRun: 0,
                 analyzers: [],
                 categories: [],

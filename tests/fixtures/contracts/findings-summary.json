@@ -15,6 +15,8 @@
       "title": "Chapter One"
     }
   ],
+  "cleared": 1,
+  "decided": 1,
   "deferred": 0,
   "dismissed": 1,
   "notInLatestRun": 1,

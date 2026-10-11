@@ -57,11 +57,16 @@ type Page struct {
 // by review status, how many earlier findings the latest run did not
 // reproduce, and the facets present for the Review page's filters.
 type Summary struct {
-	Total          int            `json:"total"`
-	Unreviewed     int            `json:"unreviewed"`
-	Accepted       int            `json:"accepted"`
-	Dismissed      int            `json:"dismissed"`
-	Deferred       int            `json:"deferred"`
+	Total      int `json:"total"`
+	Unreviewed int `json:"unreviewed"`
+	Accepted   int `json:"accepted"`
+	Dismissed  int `json:"dismissed"`
+	Deferred   int `json:"deferred"`
+	// Decided counts the latest run's findings with a resolution (accepted, dismissed or deferred). Cleared counts
+	// those that are closed (ADR 0793): dismissed, which includes "waived". The store holds no fact that an accepted
+	// finding was fixed or a take kept, so an accepted or deferred finding is decided and still open.
+	Decided        int            `json:"decided"`
+	Cleared        int            `json:"cleared"`
 	NotInLatestRun int            `json:"notInLatestRun"`
 	Analyzers      []string       `json:"analyzers"`
 	Categories     []Category     `json:"categories"`
@@ -211,9 +216,13 @@ func countStatus(summary *Summary, f Finding) {
 		summary.Unreviewed++
 	case StatusAccepted:
 		summary.Accepted++
+		summary.Decided++
 	case StatusDismissed:
 		summary.Dismissed++
+		summary.Decided++
+		summary.Cleared++
 	case StatusDeferred:
 		summary.Deferred++
+		summary.Decided++
 	}
 }

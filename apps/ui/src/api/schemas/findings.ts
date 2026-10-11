@@ -94,12 +94,16 @@ const findingChapterFacetSchema = z.object({
   title: z.string().optional(),
 }) satisfies z.ZodType<FindingChapterFacet>;
 
+const count = z.number().int().nonnegative();
+
 export const findingsSummarySchema = z.object({
   total: z.number(),
   unreviewed: z.number(),
   accepted: z.number(),
   dismissed: z.number(),
   deferred: z.number(),
+  decided: count,
+  cleared: count,
   notInLatestRun: z.number(),
   analyzers: listFromNull(z.string()),
   categories: listFromNull(z.string()),
