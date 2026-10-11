@@ -128,11 +128,7 @@ func inFilesystemRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := filepath.VolumeName(wd) + string(os.PathSeparator)
-	if fileExists(filepath.Join(root, "pnpm-workspace.yaml")) {
-		t.Skip("the filesystem root holds a pnpm-workspace.yaml")
-	}
-	t.Chdir(root)
+	t.Chdir(filepath.VolumeName(wd) + string(os.PathSeparator))
 }
 
 func TestDirFailsWhenNoWorkspaceFileIsAbove(t *testing.T) {
