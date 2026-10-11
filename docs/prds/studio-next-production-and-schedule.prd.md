@@ -138,7 +138,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 5 | Target pace popover | Info affordance and popover | pending | 6 | 4 | 0.4 | - |
 | 6 | Readiness and report | Chip, slide-over, report dialog parity | in progress (readiness half [#1078](https://github.com/countrymanprime/narration-utils/issues/1078); the report dialog is SNP-6b) | 5 | SNS-2 | 0.9 | - |
 | 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | pending | 6 | 1 | 1.0 | - |
-| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | pending | - | 3 to 7 | 0.5 | - |
+| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | pending (audit: [docs/research/studio-next-production-audit.md](../research/studio-next-production-audit.md), [#1136](https://github.com/countrymanprime/narration-utils/issues/1136), in review) | - | 3 to 7 | 0.5 | - |
 
 ### Phase Details
 
