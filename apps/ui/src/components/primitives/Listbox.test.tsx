@@ -40,4 +40,37 @@ describe('Listbox', () => {
     expect(screen.getByText('No matches.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Add alias' }).closest('[role="listbox"]')).toBeNull();
   });
+
+  describe('group headings', () => {
+    const GROUPED = [
+      { id: 'a', label: 'Alpha', group: 'Script' },
+      { id: 'b', label: 'Beta', group: 'Script' },
+      { id: 'c', label: 'Gamma', group: 'Commands' },
+    ];
+
+    it('listbox-draws-a-heading-at-each-new-group: once per run, never between two options of one group', () => {
+      render(<Listbox id="g" label="Hits" options={GROUPED} onPick={vi.fn()} />);
+      const list = screen.getByRole('listbox');
+      const kids = Array.from(list.children).map((el) => `${el.getAttribute('role')}:${el.textContent}`);
+      expect(kids).toEqual(['presentation:Script', 'option:Alpha', 'option:Beta', 'presentation:Commands', 'option:Gamma']);
+    });
+
+    it('listbox-headings-do-not-break-the-combobox-contract: ids, active descendant and option indexes ignore headings', () => {
+      render(<Listbox id="g" label="Hits" options={GROUPED} activeIndex={2} onPick={vi.fn()} />);
+      const options = screen.getAllByRole('option');
+      expect(options.map((o) => o.id)).toEqual(['a', 'b', 'c'].map((id) => listboxOptionId('g', id)));
+      expect(options.map((o) => o.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true']);
+      expect(screen.queryByRole('option', { name: 'Script' })).toBeNull();
+    });
+
+    it('listbox-without-groups-is-unchanged: no heading rows', () => {
+      render(<Listbox id="g" label="Hits" options={OPTIONS} onPick={vi.fn()} />);
+      expect(screen.getByRole('listbox').querySelectorAll('[role="presentation"]')).toHaveLength(0);
+    });
+
+    it('draws a trailing note at the right of the row', () => {
+      render(<Listbox id="g" label="Hits" options={[{ id: 'a', label: 'Alpha', trailing: '3 ›' }]} onPick={vi.fn()} />);
+      expect(within(screen.getByRole('option')).getByText('3 ›')).toBeTruthy();
+    });
+  });
 });

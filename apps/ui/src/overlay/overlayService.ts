@@ -14,6 +14,8 @@ type ConfirmSpec = {
 type DialogSpec = {
   kind: 'dialog' | 'slideOver';
   title: string;
+  /** A dialog without a header row; the title still names it for assistive technology. */
+  headerless?: boolean;
   render: (api: { close: () => void }) => ReactNode;
 };
 type ToastOptions = { tone?: ToastTone; action?: ToastAction };

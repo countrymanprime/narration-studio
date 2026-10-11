@@ -264,3 +264,17 @@ export const WithFooter: Story = {
     await expect(bar).toBeVisible();
   },
 };
+
+// No header row and no Close button (the jump menu, D98): the title names the dialog, visually hidden.
+export const Headerless: Story = {
+  args: {
+    title: 'Jump menu',
+    headerless: true,
+    actions: null,
+    children: <input aria-label="Search" className="w-full p-3" placeholder="Search, or jump to a page" />,
+  },
+  play: async () => {
+    await expect(await screen.findByRole('dialog', { name: 'Jump menu' })).toBeInTheDocument();
+    await expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+  },
+};

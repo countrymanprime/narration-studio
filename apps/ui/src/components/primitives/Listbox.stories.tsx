@@ -56,3 +56,21 @@ export const Matches: Story = {
 
 // Nothing matches: the message stands in for an empty listbox.
 export const Empty: Story = { args: { options: [], empty: 'No matching Story Bible entries.' } };
+
+// The jump menu's palette (D98): a heading before each run of one group, a muted count or key cap at the right.
+export const Grouped: Story = {
+  args: {
+    label: 'Jump menu results',
+    activeIndex: 1,
+    options: [
+      { id: 'storm', label: 'The storm broke', trailing: 'Chapter 2, line 4', group: 'Script' },
+      { id: 'zoom', label: 'Zoom in', trailing: '+', group: 'View' },
+      { id: 'fit', label: 'Fit to width', trailing: '0', group: 'View' },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const list = within(canvasElement).getByRole('listbox', { name: 'Jump menu results' });
+    await expect(within(list).getAllByRole('option')).toHaveLength(3);
+    await expect(within(list).getByText('View')).toHaveAttribute('role', 'presentation');
+  },
+};
