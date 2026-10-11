@@ -12,12 +12,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// Production plan bindings: the book's deadline, contracted amount
+// Production plan bindings: the book's deadline, contracted amount, payment type
 // and milestones, stored on the project manifest beside Credits so they survive Replace manuscript and Clear derived
 // data. Each answers the whole plan (production.Plan), so the page never merges a partial answer into what it holds.
 
-// ProductionPlan reads this project's deadline, contracted amount and milestones. A project that has set none answers
-// an empty plan: no deadline, no amount, no milestones.
+// ProductionPlan reads this project's deadline, contracted amount, payment type and milestones. A project that has set
+// none answers an empty plan: no deadline, no amount, payment "none", no milestones. Reading never rewrites the
+// manifest; one written before the payment type reads it from its contracted amount (production.PaymentOf).
 func (h *Host) ProductionPlan() (string, error) {
 	projectFolder := h.services().config.projectFolder
 	if projectFolder == "" {
@@ -32,7 +33,7 @@ func (h *Host) ProductionPlan() (string, error) {
 
 // ProductionSetDeadline sets the book's delivery date ("YYYY-MM-DD"; empty clears it) and contracted amount (a number
 // of zero or more in the narrator's own currency; nil clears it). An invalid date or amount is refused and nothing is
-// written.
+// written, and so is an amount while the payment type is royalty share or none, which carry no figure (ADR 0800).
 func (h *Host) ProductionSetDeadline(deadline string, contractedAmount *float64) (string, error) {
 	if deadline != "" {
 		checked, err := production.CheckDate(deadline)
@@ -44,35 +45,57 @@ func (h *Host) ProductionSetDeadline(deadline string, contractedAmount *float64)
 	if err := production.CheckAmount(contractedAmount); err != nil {
 		return "", err
 	}
-	return h.saveProductionPlan("the deadline", func(manifest *project.Manifest) {
+	return h.saveProductionPlan("the deadline", func(manifest *project.Manifest) error {
+		if contractedAmount != nil && manifest.Payment != "" && production.PaymentOf(manifest) != production.PaymentPerFinishedHour {
+			return errors.New("a royalty share or no payment carries no contracted amount: choose per finished hour first")
+		}
 		manifest.Deadline = deadline
 		manifest.ContractedAmount = nil
 		if contractedAmount != nil {
 			amount := *contractedAmount
 			manifest.ContractedAmount = &amount
 		}
+		return nil
+	})
+}
+
+// ProductionSetPayment sets how the book pays: "per_finished_hour", "royalty_share" or "none" (ADR 0800). Royalty
+// share and none carry no figure, so choosing either clears the contracted amount; per finished hour keeps it. An
+// unknown type is refused and nothing is written.
+func (h *Host) ProductionSetPayment(payment string) (string, error) {
+	checked, err := production.CheckPayment(payment)
+	if err != nil {
+		return "", err
+	}
+	return h.saveProductionPlan("the payment type", func(manifest *project.Manifest) error {
+		manifest.Payment = checked
+		if checked != production.PaymentPerFinishedHour {
+			manifest.ContractedAmount = nil
+		}
+		return nil
 	})
 }
 
 // ProductionSaveMilestones replaces the book's milestones with milestones, in the narrator's order. Each needs a name
-// and a real date ("YYYY-MM-DD"); a note is optional. A list with any invalid milestone is refused whole and nothing
-// is written.
+// and a real date ("YYYY-MM-DD"); a note, a measure, an estimate, the done flag and a template id are optional
+// (production.CleanMilestones). A list with any invalid milestone is refused whole and nothing is written.
 func (h *Host) ProductionSaveMilestones(milestones []project.Milestone) (string, error) {
 	cleaned, err := production.CleanMilestones(milestones)
 	if err != nil {
 		return "", err
 	}
-	return h.saveProductionPlan("the milestones", func(manifest *project.Manifest) {
+	return h.saveProductionPlan("the milestones", func(manifest *project.Manifest) error {
 		manifest.Milestones = cleaned
 		if len(cleaned) == 0 {
 			manifest.Milestones = nil
 		}
+		return nil
 	})
 }
 
 // saveProductionPlan loads the manifest (a fresh one for a project that has none yet), applies change, saves it and
-// answers the whole plan.
-func (h *Host) saveProductionPlan(what string, change func(*project.Manifest)) (string, error) {
+// answers the whole plan. A change that answers an error writes nothing.
+func (h *Host) saveProductionPlan(what string, change func(*project.Manifest) error) (string, error) {
 	svc := h.services()
 	projectFolder := svc.config.projectFolder
 	if projectFolder == "" {
@@ -85,7 +108,9 @@ func (h *Host) saveProductionPlan(what string, change func(*project.Manifest)) (
 	if !ok || manifest == nil {
 		manifest = project.New(svc.config.projectName, time.Now())
 	}
-	change(manifest)
+	if err := change(manifest); err != nil {
+		return "", err
+	}
 	if err := manifest.Save(projectFolder); err != nil {
 		return "", fmt.Errorf("could not save %s: %w", what, err)
 	}

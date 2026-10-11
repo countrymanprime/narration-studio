@@ -1,6 +1,7 @@
-// The production tracking mock. Phase 3: the plan (deadline, contracted amount, milestones), answering the shape
-// apps/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline and ProductionSaveMilestones do, with the same
-// refusals (internal/production/plan.go): an impossible date, a negative amount, a milestone with no name. Phase 4: the same
+// The production tracking mock. Phase 3: the plan (deadline, contracted amount, payment type, milestones), answering the shape
+// apps/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline, ProductionSetPayment and ProductionSaveMilestones
+// do, with the same refusals (internal/production/plan.go): an impossible date, a negative amount, an amount under a royalty share
+// or none, an unknown payment type, a milestone with no name or a bad measure, estimate or template. Phase 4: the same
 // arithmetic and "Next up" order as the host (apps/desktop/internal/production/overview.go, ADR 0404) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
@@ -12,6 +13,7 @@ import type {
   ProductionMilestone,
   ProductionNextUpItem,
   ProductionOverview,
+  ProductionPayment,
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
@@ -114,8 +116,54 @@ function checkDate(value: string): string {
   return trimmed;
 }
 
-function copy(plan: ProductionPlan): ProductionPlan {
-  return { ...plan, milestones: plan.milestones.map((milestone) => ({ ...milestone })) };
+const PAYMENTS: readonly ProductionPayment[] = ['per_finished_hour', 'royalty_share', 'none'];
+const MEASURE = /^(custom|rec|edit|proof|editproof|checkpoint|all|ch[1-9][0-9]{0,3}|min[1-9][0-9]{0,3})$/;
+const TEMPLATE = /^[a-z0-9_-]{1,64}$/;
+
+/** What the mock stores: the payment type is null until one is chosen, as on a manifest written before it. */
+type StoredPlan = Omit<ProductionPlan, 'payment'> & { payment: ProductionPayment | null };
+
+/** The plan as the host answers it (production.PlanOf): a stored type, else per finished hour with an amount and none
+ * without; an amount only under per finished hour. */
+function answer(stored: StoredPlan): ProductionPlan {
+  const payment = stored.payment ?? (stored.contractedAmount !== null ? 'per_finished_hour' : 'none');
+  return {
+    deadline: stored.deadline,
+    contractedAmount: payment === 'per_finished_hour' ? stored.contractedAmount : null,
+    payment,
+    milestones: stored.milestones.map((milestone) => ({ ...milestone })),
+  };
+}
+
+/** One milestone as production.CleanMilestones saves it, or a refusal naming it. */
+function cleanMilestone(milestone: ProductionMilestone, index: number): ProductionMilestone {
+  const name = milestone.name.trim();
+  if (!name) throw new Error(`milestone ${index + 1} needs a name`);
+  const note = milestone.note?.trim();
+  const measure = milestone.measure?.trim() ?? '';
+  const estimate = milestone.estimate?.trim() ?? '';
+  const template = milestone.template?.trim() ?? '';
+  const refuse = (why: string) => new Error(`milestone ${index + 1} (${name}): ${why}`);
+  if (measure && !MEASURE.test(measure)) throw refuse(`"${measure}" is not a measure`);
+  if (estimate && (!measure || measure === 'custom')) throw refuse('a custom milestone has no estimate');
+  if (template && !TEMPLATE.test(template)) throw refuse(`"${template}" is not a template id`);
+  let due: string;
+  let estimated: string;
+  try {
+    due = checkDate(milestone.dueDate);
+    estimated = estimate ? checkDate(estimate) : '';
+  } catch (error) {
+    throw refuse(error instanceof Error ? error.message : String(error));
+  }
+  return {
+    name,
+    dueDate: due,
+    ...(note ? { note } : {}),
+    ...(measure ? { measure } : {}),
+    ...(estimated ? { estimate: estimated } : {}),
+    ...(milestone.done ? { done: true } : {}),
+    ...(template ? { template } : {}),
+  };
 }
 
 const daysLeft = (date: string) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${MOCK_TODAY}T00:00:00Z`)) / 86_400_000);
@@ -199,7 +247,12 @@ function nextUp(chapters: ProductionChapter[]): ProductionNextUpItem[] {
 
 export function createProductionMock(deps: Deps): ProductionApi {
   const seed = deps.seed ?? {};
-  let plan: ProductionPlan = copy({ deadline: seed.deadline ?? null, contractedAmount: seed.contractedAmount ?? null, milestones: seed.milestones ?? [] });
+  let plan: StoredPlan = {
+    deadline: seed.deadline ?? null,
+    contractedAmount: seed.contractedAmount ?? null,
+    payment: seed.payment ?? null,
+    milestones: (seed.milestones ?? []).map((milestone) => ({ ...milestone })),
+  };
   const log = seed.log ? LOGS[seed.log] : undefined;
   const sessions: ProductionSession[] = log ? seededSessions(log) : [];
   // The seeded running session began 42 minutes before the mock was made, so the header's timer chip reads like a real session
@@ -244,6 +297,7 @@ export function createProductionMock(deps: Deps): ProductionApi {
     for (const session of sessions) {
       if (session.endedAt !== undefined) hoursByStage[session.stage] = (hoursByStage[session.stage] ?? 0) + hoursOf(session);
     }
+    const { contractedAmount } = answer(plan);
     return {
       chapters,
       totals: {
@@ -255,8 +309,8 @@ export function createProductionMock(deps: Deps): ProductionApi {
         hoursLogged,
         hoursByStage,
         bookPfh: perFinishedHour(hoursLogged, recordedSeconds),
-        contractedAmount: plan.contractedAmount,
-        effectiveRate: plan.contractedAmount !== null && hoursLogged > 0 ? plan.contractedAmount / hoursLogged : null,
+        contractedAmount,
+        effectiveRate: contractedAmount !== null && hoursLogged > 0 ? contractedAmount / hoursLogged : null,
       },
       deadline: plan.deadline === null ? null : { date: plan.deadline, daysLeft: daysLeft(plan.deadline) },
       running: running(),
@@ -265,24 +319,28 @@ export function createProductionMock(deps: Deps): ProductionApi {
   };
 
   return {
-    productionPlan: async () => copy(plan),
+    productionPlan: async () => answer(plan),
     setProductionDeadline: async (deadline, contractedAmount) => {
       const checked = deadline === '' ? null : checkDate(deadline);
       if (contractedAmount !== null && !(Number.isFinite(contractedAmount) && contractedAmount >= 0)) {
         throw new Error('the contracted amount must be a number of zero or more');
       }
+      if (contractedAmount !== null && plan.payment !== null && plan.payment !== 'per_finished_hour') {
+        throw new Error('a royalty share or no payment carries no contracted amount: choose per finished hour first');
+      }
       plan = { ...plan, deadline: checked, contractedAmount };
-      return copy(plan);
+      return answer(plan);
+    },
+    setProductionPayment: async (payment) => {
+      const checked = PAYMENTS.find((known) => known === payment.trim());
+      if (!checked) throw new Error(`"${payment}" is not a payment type: choose per_finished_hour, royalty_share or none`);
+      plan = { ...plan, payment: checked, contractedAmount: checked === 'per_finished_hour' ? plan.contractedAmount : null };
+      return answer(plan);
     },
     saveProductionMilestones: async (milestones) => {
-      const cleaned: ProductionMilestone[] = milestones.map((milestone, index) => {
-        const name = milestone.name.trim();
-        if (!name) throw new Error(`milestone ${index + 1} needs a name`);
-        const note = milestone.note?.trim();
-        return { name, dueDate: checkDate(milestone.dueDate), ...(note ? { note } : {}) };
-      });
+      const cleaned = milestones.map(cleanMilestone);
       plan = { ...plan, milestones: cleaned };
-      return copy(plan);
+      return answer(plan);
     },
     productionOverview: overview,
     productionStartTimer: async (chapterId, stage) => {

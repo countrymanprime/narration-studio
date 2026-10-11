@@ -457,6 +457,7 @@ export const wailsClient: NarrationApi = {
   productionPlan: () => decode(productionPlanSchema, 'ProductionPlan', host.ProductionPlan()),
   setProductionDeadline: (deadline, contractedAmount) =>
     decode(productionPlanSchema, 'ProductionSetDeadline', host.ProductionSetDeadline(deadline, contractedAmount)),
+  setProductionPayment: (payment) => decode(productionPlanSchema, 'ProductionSetPayment', host.ProductionSetPayment(payment)),
   saveProductionMilestones: (milestones) => decode(productionPlanSchema, 'ProductionSaveMilestones', host.ProductionSaveMilestones(milestones)),
   lineIdentityStamp: (rows, overwrite) => decode(lineIdentityStartResultSchema, 'LineIdentityStamp', host.LineIdentityStamp(rows, overwrite)),
   lineIdentityRead: () => decode(lineIdentityStartResultSchema, 'LineIdentityRead', host.LineIdentityRead()),

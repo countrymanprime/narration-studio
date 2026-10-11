@@ -2,19 +2,36 @@ import type { ChapterStatus, ManuscriptContentKind, RecordedUnavailable } from '
 import type { StageVerdict } from './stages';
 
 /**
- * Production tracking: the book's deadline, contracted amount and
+ * Production tracking: the book's deadline, contracted amount, payment type and
  * milestones, stored on the project manifest (apps/desktop/bindings_production.go) so they survive Replace manuscript.
  * Dates are calendar dates written "YYYY-MM-DD" (ADR 0323), never a time of day.
  */
 
-/** One dated checkpoint: the ACX 15-minute checkpoint is a milestone like any other. */
-export type ProductionMilestone = { name: string; dueDate: string; note?: string };
+/** How the book pays (ADR 0800). Only `per_finished_hour` carries a contracted amount; the other two are labels. */
+export type ProductionPayment = 'per_finished_hour' | 'royalty_share' | 'none';
+
+/**
+ * One dated checkpoint. `measure` is what it measures (`custom`, `rec`, `edit`, `proof`, `editproof`, `checkpoint`, `all`,
+ * `ch<N>` or `min<N>`, the Studio Next mock's measures), `estimate` an estimated date a custom milestone never has, `done` set
+ * by the narrator, `template` the template it came from. Each is absent on a milestone saved before them.
+ */
+export type ProductionMilestone = {
+  name: string;
+  dueDate: string;
+  note?: string;
+  measure?: string;
+  estimate?: string;
+  done?: boolean;
+  template?: string;
+};
 
 /** The book's plan. `deadline` and `contractedAmount` are null when unset; `contractedAmount` is a bare number in the
- * narrator's own currency, never converted or formatted by the host. */
+ * narrator's own currency, never converted or formatted by the host, and null unless `payment` is per finished hour.
+ * `payment` is absent only from a host older than the payment type. */
 export type ProductionPlan = {
   deadline: string | null;
   contractedAmount: number | null;
+  payment?: ProductionPayment;
   milestones: ProductionMilestone[];
 };
 
@@ -127,10 +144,14 @@ export interface ProductionApi {
   /** Reads this project's deadline, contracted amount and milestones; an empty plan when none are set. */
   productionPlan(): Promise<ProductionPlan>;
   /** Sets the deadline ("YYYY-MM-DD", or "" to clear) and the contracted amount (null to clear); answers the whole plan.
-   * An impossible date or a negative amount is refused and nothing is saved. */
+   * An impossible date or a negative amount is refused and nothing is saved, and so is an amount while the payment type
+   * is royalty share or none. */
   setProductionDeadline(deadline: string, contractedAmount: number | null): Promise<ProductionPlan>;
-  /** Replaces the milestones, in this order; answers the whole plan. A milestone with no name or no real date refuses
-   * the whole list and nothing is saved. */
+  /** Sets how the book pays; royalty share and none clear the contracted amount. An unknown type is refused and nothing
+   * is saved. Answers the whole plan. */
+  setProductionPayment(payment: ProductionPayment): Promise<ProductionPlan>;
+  /** Replaces the milestones, in this order; answers the whole plan. A milestone with no name, no real date, an unknown
+   * measure, a bad estimate or template id refuses the whole list and nothing is saved. */
   saveProductionMilestones(milestones: ProductionMilestone[]): Promise<ProductionPlan>;
   /** The Production page's board, KPI figures and "Next up" list. Reads only; never changes a chapter status. */
   productionOverview(): Promise<ProductionOverview>;

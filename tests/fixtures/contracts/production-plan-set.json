@@ -11,5 +11,6 @@
       "dueDate": "2026-12-01",
       "name": "Final delivery"
     }
-  ]
+  ],
+  "payment": "per_finished_hour"
 }

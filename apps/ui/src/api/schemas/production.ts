@@ -5,6 +5,7 @@ import type {
   ProductionMilestone,
   ProductionNextUpItem,
   ProductionOverview,
+  ProductionPayment,
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
@@ -19,15 +20,24 @@ import { listFromNull, optionalFromNull } from './base';
 
 const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+// The milestone measure, estimate, done flag and template and the plan's payment type are optional so a host older than
+// them (ADR 0800) still parses.
 const productionMilestoneSchema = z.object({
   name: z.string(),
   dueDate: calendarDate,
   note: z.string().optional(),
+  measure: z.string().optional(),
+  estimate: calendarDate.optional(),
+  done: z.boolean().optional(),
+  template: z.string().optional(),
 }) satisfies z.ZodType<ProductionMilestone>;
+
+const productionPaymentSchema = z.enum(['per_finished_hour', 'royalty_share', 'none']) satisfies z.ZodType<ProductionPayment>;
 
 export const productionPlanSchema = z.object({
   deadline: calendarDate.nullable(),
   contractedAmount: z.number().nonnegative().nullable(),
+  payment: productionPaymentSchema.optional(),
   milestones: listFromNull(productionMilestoneSchema),
 }) satisfies z.ZodType<ProductionPlan>;
 

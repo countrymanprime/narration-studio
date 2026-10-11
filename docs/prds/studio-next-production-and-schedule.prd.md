@@ -132,7 +132,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADR | A12 Proposed (rulings DQ-3, DQ-4, DQ-14 recorded) | pending | - | SN0-1 | 0.3 | - |
-| 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | pending | 4 | 1 | 0.9 | - |
+| 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | in review ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040)) | 4 | 1 | 0.9 | - |
 | 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | pending | 4 | 2, SNF-3 | 1.0 | - |
 | 4 | Sourced numbers | `MeasurementsPort`, `Measured`, This week, chart line, room tone | pending | 2, 3 | SNS-4 | 1.2 | - |
 | 5 | Target pace popover | Info affordance and popover | pending | 6 | 4 | 0.4 | - |
@@ -165,7 +165,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
 | SNP-1 | Phase 1 | SN0-1 | yes | ADR index |
-| SNP-2 | Phase 2 | SNP-1 | yes | Go and golden tests; wire row; mock passes |
+| SNP-2 | Phase 2 ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040), in review) | SNP-1 | yes | Go and golden tests; wire row; mock passes |
 | SNP-3 | Phase 3 | SNP-2, SNF-3 | yes | Component tests; visual rows; aria |
 | SNP-4 | Phase 4 | SNS-4 | yes | Parity suite; scan for literals |
 | SNP-5 | Phase 5 | SNP-4 | yes | Popover test; visual row |
