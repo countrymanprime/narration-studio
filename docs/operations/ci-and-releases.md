@@ -172,7 +172,10 @@ D22, question 12). Findings show under **Security > Code scanning** (categories 
 the run log; a fork or Dependabot pull request scans but does not upload, because its token is read-only.
 
 - **govulncheck** (Windows, the version pinned in `scripts/toolchain.json`) reports only Go vulnerabilities the code can
-  reach, so it is the low-noise one. Run it by hand with `govulncheck -C apps/desktop ./...`.
+  reach, so it is the low-noise one. Run it by hand with `govulncheck -C apps/desktop ./...`. v1.8.0 repeats identical
+  entries in a result's `stacks`, which SARIF forbids and Code scanning rejects, so the workflow runs
+  `scripts/ci/dedupe-sarif-stacks.mjs` on the file before the upload (it drops exact duplicates only). The text run prints
+  even when the upload fails.
 - **OSV-Scanner** (`google/osv-scanner-action`, pinned by SHA) checks `pnpm-lock.yaml`, `uv.lock` and
   `apps/desktop/go.mod` against the OSV database; `uv.lock` is read natively, so Python is covered without `pip-audit`
   (which does not read it). On a pull request it reports only advisories the pull request adds; on `main` and weekly it
