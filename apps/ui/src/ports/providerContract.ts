@@ -21,7 +21,9 @@ type CaseContext = {
 
 /**
  * One behaviour of the port. A `check` case asserts and runs on each adapter as its own test. An `observe` case returns
- * what the port answers (or throws): the mock and the host must both accept with equal answers, or both reject.
+ * what the port answers (or throws): the mock and the host must both accept with equal answers, or both reject. Only an
+ * `observe` case compares the two adapters, so accept-or-reject behaviour (an input the host refuses) belongs in one: a
+ * `check` case that does not assert the refusal passes on a mock that accepts everything.
  */
 export type ContractCase<P> =
   { name: string; check: (port: P, context: CaseContext) => unknown } | { name: string; observe: (port: P, context: CaseContext) => unknown };
