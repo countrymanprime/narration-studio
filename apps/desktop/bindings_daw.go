@@ -5,6 +5,7 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport/builtin"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
@@ -31,17 +32,21 @@ func (h *Host) DawCapabilities() (string, error) {
 // dawport.Resolver holds no state of its own, so building one per call is cheap; runtime is returned alongside it so a caller
 // can report the same "reachable" fact the resolver used, without a second read of the (possibly swapped) services.
 func (h *Host) dawResolver() (*dawport.Resolver, dawport.Runtime) {
-	return dawResolverFor(h.services())
+	return h.dawResolverFor(h.services())
 }
 
 // dawResolverFor is dawResolver over a snapshot the caller already holds, so a caller that also reads another service
 // (bindings_daw_transport.go reads the heartbeat) sees the same project's state in both.
-func dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runtime) {
-	kind := dawport.Classify(svc.config.daw)
+func (h *Host) dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runtime) {
+	adapter := dawDeclarationFor(h.dawLaunchKind(svc))
 	client, reach, store := svc.bridge, svc.reachability, svc.settings
 	runtime := dawport.Runtime{Bridge: client != nil, Reachable: reach != nil && reach.Reachable()}
+	// An engine that is part of the app (the built-in recorder) reports its own runtime: it has no bridge to connect.
+	if own, ok := adapter.(interface{ Runtime() dawport.Runtime }); ok {
+		runtime = own.Runtime()
+	}
 	resolver := dawport.NewResolver(dawport.ResolverConfig{
-		Adapter:      dawDeclarationFor(kind),
+		Adapter:      adapter,
 		Runtime:      func() dawport.Runtime { return runtime },
 		Toggle:       dawport.SettingsToggles(store.Effective),
 		Experimental: dawport.SettingsExperimental(store.Effective),
@@ -49,15 +54,24 @@ func dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runtime) {
 	return resolver, runtime
 }
 
-// dawDeclarationFor is the launch's adapter, declaration only: reaper.Declaration() and audacity.Declaration() hold no transport of
-// their own (the registry's live adapters do), and a standalone launch (KindNone) has no adapter at all,
-// which the resolver reports as every capability unsupported.
+// dawLaunchKind is the one place the host reads the launch's kind for the DAW port: the --daw label's DAW, or, on a launch with
+// none, the built-in recorder when the project records with it (recordingEngine, the Recording.engine row). The choice is the
+// host's own settings row, never a label from the page (docs/architecture/threat-model.md, row 6f).
+func (h *Host) dawLaunchKind(svc hostServices) dawport.Kind {
+	return dawport.LaunchKind(svc.config.daw, h.recordingEngine(svc) == engineBuiltin)
+}
+
+// dawDeclarationFor is the launch's adapter, declaration only: reaper.Declaration(), audacity.Declaration() and
+// builtin.Declaration() hold no transport of their own (the registry's live adapters do), and a standalone launch (KindNone) has
+// no adapter at all, which the resolver reports as every capability unsupported.
 func dawDeclarationFor(kind dawport.Kind) dawport.Adapter {
 	switch kind {
 	case dawport.KindREAPER:
 		return reaper.Declaration()
 	case dawport.KindAudacity:
 		return audacity.Declaration()
+	case dawport.KindBuiltIn:
+		return builtin.Declaration()
 	default:
 		return nil
 	}

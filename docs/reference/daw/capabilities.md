@@ -2,7 +2,7 @@
 
 The DAW-neutral catalog behind [the DAW port](../../architecture/daw-integration.md#the-daw-port). One section per capability, in the order of `dawport.Capabilities()`. Each states the intent, the result a conforming engine returns, how each engine maps to it, and where it was checked. [The matrix](matrix.md) says which engine declares which level. A test fails when this page and the port's catalog list different capabilities (`apps/desktop/internal/dawport/dawportdoc/reference_doc_test.go`).
 
-Facts about REAPER and Audacity are copied from the pages linked in each section. Each "Checked" line separates three kinds of evidence: the **harness** (a fake `reaper` under Lua 5.4, which proves the bridge's logic and nothing about REAPER), a **run in the engine** (a spike or a scripted pass, with its version), and the **verification pass row**, which defines the expected result and has not run yet where the line says pending. Where a line says "not checked", no run in the engine backs the statement: it comes from published documentation or from the code.
+Facts about REAPER, Audacity and the built-in recorder are copied from the pages linked in each section. Each "Checked" line separates three kinds of evidence: the **harness** (a fake `reaper` under Lua 5.4, which proves the bridge's logic and nothing about REAPER), a **run in the engine** (a spike or a scripted pass, with its version), and the **verification pass row**, which defines the expected result and has not run yet where the line says pending. Where a line says "not checked", no run in the engine backs the statement: it comes from published documentation or from the code.
 
 ## Rules every capability follows
 
@@ -122,6 +122,7 @@ Facts about REAPER and Audacity are copied from the pages linked in each section
 - **Result:** the project's tracks, chapter links and items. Needs no running engine.
 - **REAPER:** the Go `tracks` package parses the `.rpp` file ([Tracks](../../utilities/tracks.md)).
 - **Audacity:** not built; Audacity's project format is not read.
+- **Built-in recorder:** Unsupported, with "The built-in recorder keeps no saved project.": its takes are files in the project's Recordings folder ([built-in recorder](builtin-recorder.md)).
 - **Checked:** REAPER, Go tests in `apps/desktop/internal/tracks`.
 
 ### `track_state`
@@ -149,6 +150,7 @@ Facts about REAPER and Audacity are copied from the pages linked in each section
 - **Result:** `ARMED` with how many other tracks were disarmed, `RECORD_STARTED` with the position once the engine reports recording, `RECORD_STOPPED`, or `RECORD_NOT_OURS` when no recording this bridge started is running. If the narrator stops it in the engine, `RECORD_ENDED` follows. Recording is refused with two tracks armed, with a different track armed, and while playing. Arming makes no "Narration Utils" undo point.
 - **REAPER:** `arm_only`, `record_start`, `record_stop`.
 - **Audacity:** not built.
+- **Built-in recorder:** Experimental. `ArmOnly` arms nothing (no track); `RecordStart` records a new take on the narrator's chosen microphone and ignores the track and start rule; `RecordStop` asks the take to end; `OnRecordEnded` never fires ([built-in recorder](builtin-recorder.md)). Not checked with a device: the owner's microphone pass is pending on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
 - **Checked:** harness (`transport_test.lua`); expected result is rows A4 and A5 (unattended) and Part B (with an audio device); the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `punch`
@@ -176,6 +178,7 @@ Facts about REAPER and Audacity are copied from the pages linked in each section
 - **Result:** `ACTIVE_TAKE_SET` with whether it changed; a take or item that is gone answers `ITEM_STALE` with the reason and changes nothing. One undo point.
 - **REAPER:** `set_active_take`.
 - **Audacity:** not built.
+- **Built-in recorder:** Experimental. `SetActiveTake(line, take)` marks the named take the keeper of its line; the audio file is not touched ([built-in recorder](builtin-recorder.md)).
 - **Checked:** harness (`workspace_test.lua`); expected result is row A6; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `fx_chains`
