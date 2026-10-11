@@ -31,6 +31,7 @@ import { renderEncodeMasterGoldens } from './renderEncodeMaster';
 import { masteringGoldens } from './mastering';
 import { recordingGoldens } from './recording';
 import { prepMarkupGoldens } from './prepMarkup';
+import { bookmarksGoldens } from './bookmarks';
 import { productionGoldens } from './production';
 import { pronunciationOnlineGoldens } from './pronunciationOnline';
 import { prepCompletenessGoldens } from './prepCompleteness';
@@ -65,6 +66,7 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   masteringGoldens,
   recordingGoldens,
   prepMarkupGoldens,
+  bookmarksGoldens,
   productionGoldens,
   pronunciationOnlineGoldens,
   prepCompletenessGoldens,
