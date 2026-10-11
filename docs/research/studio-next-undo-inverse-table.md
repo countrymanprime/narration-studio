@@ -84,7 +84,7 @@ Bindings were read from the `func (h *Host)` methods in `apps/desktop/*.go` and 
 | None | 16 (2, 3, 4, 6, 12, 21, 22, 23, 24, 25, 27, 28, 31, 33, 35, 39) | 4 (2, 3, 33, 35) |
 | **Total** | **44** | **23** |
 
-No mock command is wholly UI-only in the real app: every one changes data the host owns. Four carry a UI part (rows 21, 29 and 41 restore a selection; row 12 is not carried over), which the journal restores with a copy-on-write closure ([ADR 0770](../adr/0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md)).
+No mock command is wholly UI-only in the real app: every one changes data the host owns. Three carry a UI part (rows 21, 29 and 41 restore a selection), which the journal restores with a copy-on-write closure ([ADR 0770](../adr/0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md)).
 
 ## What the counts say about the PRD's targets
 
