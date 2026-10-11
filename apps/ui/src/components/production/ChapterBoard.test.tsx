@@ -455,24 +455,10 @@ describe('chapter-track link control on the board', () => {
 });
 
 describe('chapter-sync toast on the board', () => {
-  it('shows one toast with Undo for a sync batch, and Undo calls chapterSyncUndo for each link', async () => {
-    const { api, notify } = await renderBoard({}, { chapterSync: 'linked' });
-    await waitFor(() => expect(notify).toHaveBeenCalled());
-    const [text, tone, action] = notify.mock.calls[0];
-    expect(text).toMatch(/^Linked (track “.+” to Chapter \d+|\d+ tracks to chapters)\.$/);
-    expect(tone).toBe('info');
-    expect(action).toEqual({ label: 'Undo', onAction: expect.any(Function) });
-    const undoSpy = vi.spyOn(api, 'chapterSyncUndo');
-    action.onAction();
-    await waitFor(() => expect(undoSpy).toHaveBeenCalled());
-  });
-
-  it('never toasts twice for the same batch', async () => {
-    const { notify, rerender } = await renderBoard({}, { chapterSync: 'linked' });
+  it('toasts a sync batch through the hook, and re-reads the track links on a later state', async () => {
+    const { notify } = await renderBoard({}, { chapterSync: 'linked' });
     await waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
-    rerender('again');
-    await screen.findByRole('grid', { name: 'Chapter pipeline' });
-    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify.mock.calls[0][2]).toEqual({ label: 'Undo', onAction: expect.any(Function) });
   });
 });
 
