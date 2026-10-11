@@ -145,7 +145,8 @@ export const DAW_PROJECT: DawProject = {
   findingIds: ['finding-1'],
 };
 
-/** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json). */
+/** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
+ * `noTrack` and `staleTake` are the host's stale answers, so the mock refuses them with code `stale` (ADR 0861). */
 export const DAW_ANSWERS = {
   noTrack: 'The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel.',
   staleTake: "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now.",

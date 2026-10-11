@@ -28,23 +28,26 @@ export type DawHostApi = Pick<
   'dawCapabilities' | 'dawProjectState' | 'readAloudRecordStart' | 'readAloudRecordStop' | 'workspaceUseTake' | 'findingsAddMarker'
 >;
 
-/** A refused call changed nothing; `refused` holds the sentence and `message` repeats it. */
-function refused(sentence: string | undefined, call: string): DawResult {
+/** A refused call changed nothing; `refused` holds the sentence and `message` repeats it. `stale` adds the one code (ADR 0861). */
+function refused(sentence: string | undefined, call: string, stale = false): DawResult {
   if (!sentence) throw new Error(`${call} was refused with no sentence to show`);
-  return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+  const result: DawResult = { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+  return stale ? { ...result, code: 'stale' } : result;
 }
 
 /** The host sends no sentence with a plain success, so `message` is empty then rather than worded here. */
 const done = (changed: boolean, undoSteps: number, message = ''): DawResult => ({ ok: true, changed, message, undoSteps });
 
-/** Maps today's host results to `DawResult`. A record start or stop is a transport action, not an edit, so it adds no undo point. */
+/** Maps today's host results to `DawResult`. A record start or stop is a transport action, not an edit, so it adds no undo point.
+ * A host refusal whose `reason` is `stale` (or, for a record start, `track_missing`: the linked track is gone) answers code
+ * `stale` with the host's own sentence. */
 export function createHostDawClient(api: DawHostApi): DawClient {
   return {
     capabilities: () => api.dawCapabilities(),
     projectState: () => api.dawProjectState(),
     async recordStart(chapterId) {
       const result = await api.readAloudRecordStart(chapterId);
-      return result.outcome === 'refused' ? refused(result.message, 'recordStart') : done(true, 0, result.message);
+      return result.outcome === 'refused' ? refused(result.message, 'recordStart', result.reason === 'track_missing') : done(true, 0, result.message);
     },
     async recordStop() {
       const result = await api.readAloudRecordStop();
@@ -52,12 +55,12 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     async useTake(chapterId, firstToken, lastToken, candidateId) {
       const result = await api.workspaceUseTake(chapterId, firstToken, lastToken, candidateId);
-      if (result.outcome === 'refused') return refused(result.message, 'useTake');
+      if (result.outcome === 'refused') return refused(result.message, 'useTake', result.reason === 'stale');
       return done(result.changed, result.changed ? 1 : 0, result.message);
     },
     async addMarker(findingId) {
       const result = await api.findingsAddMarker(findingId);
-      if (result.outcome === 'refused') return refused(result.message, 'addMarker');
+      if (result.outcome === 'refused') return refused(result.message, 'addMarker', result.reason === 'stale');
       return result.outcome === 'added' ? done(true, 1) : done(false, 0);
     },
   };
@@ -84,7 +87,7 @@ export function createMockDawClient(
     async recordStart(chapterId) {
       const sentence = unavailable(setup, 'record', 'recordStart');
       if (sentence) return refused(sentence, 'recordStart');
-      if (!project.chapterIds.includes(chapterId)) return refused(DAW_ANSWERS.noTrack, 'recordStart');
+      if (!project.chapterIds.includes(chapterId)) return refused(DAW_ANSWERS.noTrack, 'recordStart', true);
       return done(true, 0);
     },
     async recordStop() {
@@ -94,7 +97,7 @@ export function createMockDawClient(
     async useTake(chapterId, _firstToken, _lastToken, candidateId) {
       const sentence = unavailable(setup, 'takes', 'useTake');
       if (sentence) return refused(sentence, 'useTake');
-      if (!project.chapterIds.includes(chapterId) || !project.candidateIds.includes(candidateId)) return refused(DAW_ANSWERS.staleTake, 'useTake');
+      if (!project.chapterIds.includes(chapterId) || !project.candidateIds.includes(candidateId)) return refused(DAW_ANSWERS.staleTake, 'useTake', true);
       return done(true, 1, DAW_ANSWERS.takeUsed);
     },
     async addMarker(findingId) {

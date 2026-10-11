@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
+import { DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
 import type {
   DawCapabilities,
   DawCapabilityLevel,
@@ -62,12 +62,13 @@ export const dawProjectStateSchema = z.strictObject({
   playPosition: z.number().nonnegative(),
 }) satisfies z.ZodType<DawProjectState>;
 
-/** dawport.Result: refused and steps are absent unless set. */
+/** dawport.Result: refused, code and steps are absent unless set; code is one of DAW_REFUSAL_CODES (ADR 0861). */
 export const dawResultSchema = z.object({
   ok: z.boolean(),
   changed: z.boolean(),
   message: z.string(),
   undoSteps: z.number().int().min(0).max(DAW_RESULT_MAX_UNDO_STEPS),
   refused: optionalFromNull(z.string()),
+  code: optionalFromNull(z.enum(DAW_REFUSAL_CODES)),
   steps: optionalFromNull(z.array(z.string())),
 }) satisfies z.ZodType<DawResult>;

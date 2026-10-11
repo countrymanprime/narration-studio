@@ -154,7 +154,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | Spikes | SND-S1..S5 scripted, S6 pending hardware, S7 Audacity | pending | all | SN0-1 | 2.5 | - |
 | 2 | Result and capability wire | `Result`, `destructive`, `mode`, schemas, goldens, `DawClient` and mock setups | done (wire half [#1034](https://github.com/countrymanprime/narration-utils/issues/1034); `DawClient` is SND-2b, [#1062](https://github.com/countrymanprime/narration-utils/issues/1062)) | 3 | SN0-1 | 2.0 | - |
 | 3 | Catalogue and conformance | New capabilities, roles, `dawporttest` cases, declarations | done ([#1147](https://github.com/countrymanprime/narration-utils/issues/1147)) | 2 | 2 | 1.5 | - |
-| 4 | Project state and stale | `DawProjectState`, `savedAt`, uniform `stale` refusal, pickup write-through | in progress (`DawProjectState` is SND-4a, [#1163](https://github.com/countrymanprime/narration-utils/issues/1163), done in its PR) | - | 2 | 1.5 | - |
+| 4 | Project state and stale | `DawProjectState`, `savedAt`, uniform `stale` refusal, pickup write-through | in progress (`DawProjectState` is SND-4a, [#1163](https://github.com/countrymanprime/narration-utils/issues/1163), done; the uniform `stale` code is SND-4c, [#1164](https://github.com/countrymanprime/narration-utils/issues/1164), done in its PR, [ADR 0861](../adr/0861-a-refused-daw-call-carries-one-code-stale-beside-its-sentence.md)) | - | 2 | 1.5 | - |
 | 5 | Take commands | `hide_takes`; `set_active_take` result mapping | pending | 6 | 3, S-results | 1.0 | - |
 | 6 | Roll and range commands | `roll`, `delete_range`, `apply_fx_range` | pending | 5 | 3, S1..S3 | 2.5 | - |
 | 7 | Stacking | `stack_takes`, `unstack_takes` | pending | 6 | 3, S4 | 1.0 | - |

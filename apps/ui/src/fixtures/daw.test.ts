@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import { dawCapabilitiesSchema, dawProjectStateSchema } from '../api/schemas/daw';
 import { parseWire } from '../api/wire/parseWire';
-import { DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId } from './daw';
+import { DAW_ANSWERS, DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId } from './daw';
 
 const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity', 'audacity-backups'];
 
@@ -98,5 +98,12 @@ describe('the mock DAW setups', () => {
       if (host.reason === 'experimental_off') expect(setup.available, name).toBe(true);
       else expect(setup, name).toEqual(host);
     }
+  });
+
+  it("mock-refuses-stale-the-same-way: the mock's stale answers are the host's stale sentences, word for word", () => {
+    const golden = (file: string): Record<string, unknown> =>
+      JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
+    expect(golden('workspace-use-take-refused.json')).toMatchObject({ reason: 'stale', message: DAW_ANSWERS.staleTake });
+    expect(golden('read-aloud-recordings.json')['track_missing.start']).toMatchObject({ reason: 'track_missing', message: DAW_ANSWERS.noTrack });
   });
 });
