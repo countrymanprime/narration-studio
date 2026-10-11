@@ -175,7 +175,7 @@ Regenerate with \`node scripts/ci/studio-next-rulings.mjs --write\`: it rewrites
 `;
 
 export function renderIndex(rows) {
-  const out = [INTRO, `| ${HEADER.join(' | ')} |`, `| ${HEADER.map(() => '---').join(' | ')} |`];
+  const out = [`${INTRO.trimEnd()}\n`, `| ${HEADER.join(' | ')} |`, `| ${HEADER.map(() => '---').join(' | ')} |`];
   for (const row of rows) {
     const ruling = row.text + (row.pointer ? POINTER + row.pointer : '');
     out.push(`| ${[row.id, row.section, row.status, ruling, row.slice, row.test].map(escapeCell).join(' | ')} |`);
