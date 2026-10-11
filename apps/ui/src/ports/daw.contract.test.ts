@@ -2,13 +2,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import type { DawResult } from '../api/contracts/daw';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
 import { findingMarkerSchema } from '../api/schemas/findings';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
 import { workspaceUseTakeResultSchema } from '../api/schemas/workspace';
 import { parseWire } from '../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../api/wire/standardSchema';
-import { DAW_PROJECT, DAW_PROJECT_STATES, DAW_SETUPS } from '../fixtures/daw';
+import { DAW_ANSWERS, DAW_PROJECT, DAW_PROJECT_STATES, DAW_SETUPS } from '../fixtures/daw';
 import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
@@ -56,6 +57,9 @@ function hostApi(): DawHostApi {
       known.findingIds.includes(id) ? Promise.resolve(read('findings-add-marker.json', findingMarkerSchema)) : Promise.reject(new Error(`no finding ${id}`)),
   };
 }
+
+/** The stale refusal (ADR 0861): the host's own sentence in `refused` and `message`, and the one code. */
+const staleRefusal = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence, code: 'stale' });
 
 /** What every `DawResult` holds: a refusal changed nothing, repeats its sentence in `message`, and adds no undo point. */
 function expectWellFormed(result: unknown): void {
@@ -107,6 +111,19 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   { name: 'unknown-chapter-is-refused-alike', observe: (daw) => daw.recordStart('no-such-chapter') },
   { name: 'known-chapter-is-accepted-alike', observe: (daw) => daw.recordStart('chapter-1') },
   { name: 'stale-take-is-refused-alike', observe: (daw) => daw.useTake('chapter-1', 0, 4, 'stale-take') },
+  {
+    name: 'mock-refuses-stale-the-same-way: an old take or a missing track changes nothing and answers code stale',
+    check: async (daw) => {
+      for (const result of [
+        await daw.useTake('chapter-1', 0, 4, 'stale-take'),
+        await daw.useTake('chapter-9', 0, 4, 'take-1'),
+        await daw.recordStart('no-such-chapter'),
+      ]) {
+        expectWellFormed(result);
+        expect(result).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+      }
+    },
+  },
   { name: 'current-take-is-accepted-alike', observe: (daw) => daw.useTake('chapter-1', 0, 4, 'take-1') },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
@@ -120,17 +137,34 @@ describeProviderContract<DawClient>('daw', { mock: () => createMockDawClient(DAW
 describe('the host adapter maps each existing golden', () => {
   const daw = createHostDawClient(hostApi());
 
-  it('host-adapter-maps-the-existing-results: a refusal carries the host sentence in refused and message', async () => {
-    const stale = read('workspace-use-take-refused.json', workspaceUseTakeResultSchema);
-    expect(await daw.useTake('chapter-1', 0, 4, 'stale-take')).toEqual({
-      ok: false,
-      changed: false,
-      message: stale.message,
-      undoSteps: 0,
-      refused: stale.message,
-    });
+  it('host-adapter-maps-every-stale-path: a stale take, a stale finding and a missing track answer code stale with the host sentence', async () => {
+    const staleTake = read('workspace-use-take-refused.json', workspaceUseTakeResultSchema);
+    expect(staleTake.reason).toBe('stale');
+    expect(await daw.useTake('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(staleTake.message));
     const missing = recording('track_missing.start');
-    expect(await daw.recordStart('no-such-chapter')).toEqual({ ok: false, changed: false, message: missing.message, undoSteps: 0, refused: missing.message });
+    expect(await daw.recordStart('no-such-chapter')).toEqual(staleRefusal(missing.message ?? ''));
+    const staleFinding = read('findings-add-marker-stale.json', findingMarkerSchema);
+    if (staleFinding.outcome !== 'refused') throw new Error('findings-add-marker-stale.json is not a refusal');
+    expect(staleFinding.reason).toBe('stale');
+    const marker = createHostDawClient({ ...hostApi(), findingsAddMarker: () => Promise.resolve(staleFinding) });
+    expect(await marker.addMarker('finding-1')).toEqual(staleRefusal(staleFinding.message));
+  });
+
+  it('host-adapter-maps-every-stale-path: any other refusal keeps its sentence and carries no code', async () => {
+    const sentence = 'Stop the recording in REAPER first.';
+    const take = createHostDawClient({
+      ...hostApi(),
+      workspaceUseTake: () => Promise.resolve({ outcome: 'refused', reason: 'recording', message: sentence, changed: false }),
+    });
+    expect(await take.useTake('chapter-1', 0, 4, 'take-1')).toEqual({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
+    const off = recording('experimental_off.start');
+    const record = createHostDawClient({ ...hostApi(), readAloudRecordStart: () => Promise.resolve(off) });
+    expect(await record.recordStart('chapter-1')).not.toHaveProperty('code');
+    const standalone = createHostDawClient({
+      ...hostApi(),
+      findingsAddMarker: () => Promise.resolve({ outcome: 'refused', reason: 'standalone', message: 'Open a REAPER project first.' }),
+    });
+    expect(await standalone.addMarker('finding-1')).not.toHaveProperty('code');
   });
 
   it('host-adapter-maps-the-existing-results: an accepted take, marker and recording answer ok with their undo points', async () => {
@@ -155,6 +189,11 @@ describe('the mock setups', () => {
     for (const result of [await mock.recordStart('chapter-1'), await mock.recordStop()]) {
       expect(result).toEqual({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
     }
+  });
+
+  it('mock-refuses-stale-the-same-way: the stale take answer is DAW_ANSWERS.staleTake with code stale', async () => {
+    expect(await createMockDawClient(DAW_SETUPS.reaper).useTake('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.staleTake));
+    expect(await createMockDawClient(DAW_SETUPS.reaper).recordStart('no-such-chapter')).toEqual(staleRefusal(DAW_ANSWERS.noTrack));
   });
 
   it('refusal-carries-the-capabilitys-sentence: take and marker calls use their own capability sentence', async () => {

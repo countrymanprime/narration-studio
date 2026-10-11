@@ -2,6 +2,7 @@ package dawport
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -97,11 +98,47 @@ func TestARefusalErrorMapsToItsCapabilitysOwnSentence(t *testing.T) {
 	}
 }
 
+// result-has-an-optional-code: a stale refusal is Refused with code "stale"; success and every other refusal carry no code.
+func TestResultHasAnOptionalCodeThatOnlyAStaleRefusalSets(t *testing.T) {
+	sentence := "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now."
+	stale := RefusedStale(sentence)
+	want := Refused(sentence)
+	want.Code = CodeStale
+	if !reflect.DeepEqual(stale, want) {
+		t.Fatalf("RefusedStale = %+v, want %+v", stale, want)
+	}
+	if got := marshalResult(t, stale)["code"]; got != "stale" {
+		t.Fatalf(`json code = %v, want "stale"`, got)
+	}
+	for name, r := range map[string]Result{
+		"a success":         OK("Marker added.", true),
+		"a plain refusal":   Refused("REAPER is not answering."),
+		"a multi-step edit": OK("Pickup rolled in.", true).WithSteps([]string{"split"}),
+	} {
+		if _, has := marshalResult(t, r)["code"]; has {
+			t.Errorf("%s sends a code: only a stale refusal has one", name)
+		}
+	}
+}
+
+// result-has-an-optional-code: RefusedFrom maps capability refusals only, so it never sets a code. A stale answer comes
+// from the bridge as its own error, which a caller maps with RefusedStale and the host's sentence (ADR 0861).
+func TestRefusedFromNeverSetsACode(t *testing.T) {
+	support := Support{Level: Unsupported, Reason: ReasonUnsupported, Message: "Punch and roll is not something Audacity can do."}
+	got, ok := RefusedFrom(&NotSupportedError{Capability: CapPunch, Support: support})
+	if !ok || got.Code != "" {
+		t.Fatalf("RefusedFrom = %+v, %v; want a refusal with no code", got, ok)
+	}
+	if _, ok := RefusedFrom(fmt.Errorf("item: %w", errors.New("stale"))); ok {
+		t.Fatal("RefusedFrom mapped a non-capability error; a stale answer is mapped with RefusedStale")
+	}
+}
+
 // go-golden-result: UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-result-*.json; otherwise drift fails.
 func TestDawResultGoldenIsCurrent(t *testing.T) {
 	for name, r := range map[string]Result{
 		"daw-result-ok": OK("Marker added.", true),
-		"daw-result-refused-stale": Refused(
+		"daw-result-refused-stale": RefusedStale(
 			"The project changed in REAPER since this was read. Read it again, then try again."),
 		"daw-result-multi-step": OK("Pickup rolled in.", true).
 			WithSteps([]string{"Split the item at the pickup", "Delete the old take", "Paste the pickup"}).

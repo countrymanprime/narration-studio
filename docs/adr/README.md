@@ -391,4 +391,5 @@ The table is generated from each ADR's heading and Status line ([ADR 0410](0410-
 | [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
 | [0856](0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | The Editing records are one file per kind, keyed by word with its text, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md) | The take suggestion is evidence first, and its confidence is null with a reason until the takes are comparable | Proposed |
+| [0861](0861-a-refused-daw-call-carries-one-code-stale-beside-its-sentence.md) | A refused DAW call carries one code, `stale`, beside its sentence | Proposed |
 <!-- adr-index:end -->

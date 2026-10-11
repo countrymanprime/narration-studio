@@ -33,15 +33,21 @@ export type DawCapabilitySupport = {
 /** The most undo points one DawResult reports (dawport.MaxUndoSteps in Go). */
 export const DAW_RESULT_MAX_UNDO_STEPS = 12;
 
+/** The refusal codes a page branches on (dawport.CodeStale in Go, ADR 0861). `stale`: the call named an item, track or finding
+ * the DAW no longer has where the app read it, so read the project again. A later ADR adds a value. */
+export const DAW_REFUSAL_CODES = ['stale'] as const;
+export type DawRefusalCode = (typeof DAW_REFUSAL_CODES)[number];
+
 /** What one call to the DAW answered (dawport.Result in Go, ADR 0810). A refused call changed nothing: `refused` holds the
  * reason and `message` repeats it. `undoSteps` is 0 for a cursor move and 1 for one command; `steps` lists, in order, the
- * edits a multi-step change made. */
+ * edits a multi-step change made. `code` is set only on a refusal the page branches on, never instead of the sentence (ADR 0861). */
 export type DawResult = {
   ok: boolean;
   changed: boolean;
   message: string;
   undoSteps: number;
   refused?: string;
+  code?: DawRefusalCode;
   steps?: string[];
 };
 

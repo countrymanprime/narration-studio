@@ -1682,6 +1682,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawResultSchema.safeParse({ ...ok, undoSteps: 1.5 }).success).toBe(false);
   });
 
+  // SN-D42 (ADR 0861): one refusal code, `stale`, beside the sentence.
+  it('schema-accepts-the-code-and-nothing-else: dawResult takes code "stale" and rejects any other code', () => {
+    const golden = dawResultSchema.parse(readGolden('daw-result-refused-stale.json'));
+    expect(golden.code).toBe('stale');
+    expect(golden.refused).toBe(golden.message);
+    const sentence = 'The project changed in REAPER since this was read. Read it again, then try again.';
+    const stale = { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence, code: 'stale' };
+    expect(dawResultSchema.safeParse(stale).success).toBe(true);
+    expect(dawResultSchema.parse({ ...stale, code: null }).code).toBeUndefined();
+    for (const code of ['Stale', 'track_missing', 'recording', '']) expect(dawResultSchema.safeParse({ ...stale, code }).success, code).toBe(false);
+    expect(dawResultSchema.safeParse({ ...stale, undoSteps: 13 }).success).toBe(false);
+  });
+
   it('dawCapabilities carries destructive and mode only where the declaration sets them, and rejects an unknown mode', async () => {
     const api = createMockApi({}, { daw: { toggles: { punch: 'off' }, depth: { punch: { destructive: true, mode: 'steps' }, record: { mode: 'native' } } } });
     const state = await api.dawCapabilities();

@@ -15,7 +15,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
 | [Documentation and process](#docs-and-process) | 8 |
 | [Ports and providers](#ports-and-providers) | 14 |
-| [DAW integration (REAPER and Audacity)](#daw-integration) | 31 |
+| [DAW integration (REAPER and Audacity)](#daw-integration) | 32 |
 | [Assets, models and downloads](#assets-and-downloads) | 10 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 56 |
@@ -236,6 +236,7 @@ The DAW port, the REAPER Lua file bridge and its harness, the Audacity pipe, and
 | [0460](0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md) | The Audacity mastering row is its own row, not `daw`, and imports the source as its own track before the macro | Proposed |
 | [0560](0560-punch-and-roll-times-a-word-past-the-anchors-by-aligning-it-in-the-recording-before-falling-back-to-the-reading-pace.md) | Punch and roll times a word past the anchors by aligning it in the recording, before falling back to the reading pace | Proposed |
 | [0660](0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) | Audacity's finding detail hides REAPER's take management instead of disabling it through `CapabilityGate` | Proposed |
+| [0861](0861-a-refused-daw-call-carries-one-code-stale-beside-its-sentence.md) | A refused DAW call carries one code, `stale`, beside its sentence | Proposed |
 
 <a id="assets-and-downloads"></a>
 

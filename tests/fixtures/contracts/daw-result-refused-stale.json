@@ -1,5 +1,6 @@
 {
   "changed": false,
+  "code": "stale",
   "message": "The project changed in REAPER since this was read. Read it again, then try again.",
   "ok": false,
   "refused": "The project changed in REAPER since this was read. Read it again, then try again.",
