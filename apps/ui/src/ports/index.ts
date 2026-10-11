@@ -38,7 +38,9 @@ import type { EditingApi } from '../api/contracts/editing';
 import type { CleanupActionApi } from '../api/contracts/cleanup';
 import type { PrepMarkupApi } from '../api/contracts/prepMarkup';
 import type { BookmarksApi } from '../api/contracts/bookmarks';
+import type { PassageMapApi } from '../api/contracts/passageMap';
 import type { EditLogApi } from '../api/contracts/editLog';
+import type { EditCutsApi } from '../api/contracts/editCuts';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
 import type { DawCapabilitiesApi } from '../api/contracts/daw';
@@ -99,7 +101,9 @@ export type {
   CleanupActionApi,
   PrepMarkupApi,
   BookmarksApi,
+  PassageMapApi,
   EditLogApi,
+  EditCutsApi,
   WorkspaceApi,
   PreviewApi,
   DawCapabilitiesApi,
@@ -156,7 +160,9 @@ export interface PortMap {
   cleanupAction: CleanupActionApi;
   prepMarkup: PrepMarkupApi;
   bookmarks: BookmarksApi;
+  passageMap: PassageMapApi;
   editLog: EditLogApi;
+  editCuts: EditCutsApi;
   workspace: WorkspaceApi;
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;

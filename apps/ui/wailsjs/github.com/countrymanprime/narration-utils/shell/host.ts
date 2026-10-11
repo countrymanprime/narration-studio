@@ -13,6 +13,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as editlog$0 from "./internal/editlog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as liveflags$0 from "./internal/liveflags/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -693,6 +696,29 @@ export function EditingCandidates(chapterID: string): $CancellablePromise<string
 }
 
 /**
+ * EditingCutRecord stores a cut after the DAW accepted the deleteRange: it carries the DAW's guid and undo steps, and is
+ * refused, with nothing saved, when its words are not in the paragraph's current text, its range or options are not ones the
+ * app sends, or it overlaps a cut already stored on the same take.
+ */
+export function EditingCutRecord(chapterID: string, cut: editlog$0.CutRequest): $CancellablePromise<string> {
+    return $Call.ByID(2579032923, chapterID, cut);
+}
+
+/**
+ * EditingCutRemove forgets a chapter's cut: the inverse the journal calls when the DAW change is undone in the session.
+ */
+export function EditingCutRemove(chapterID: string, id: string): $CancellablePromise<string> {
+    return $Call.ByID(709373290, chapterID, id);
+}
+
+/**
+ * EditingCutsList returns a chapter's cuts in the original recording's time order, each checked against the current text.
+ */
+export function EditingCutsList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1011505999, chapterID);
+}
+
+/**
  * EditingSetSourceChoice sets chapterID's source choice (the narrator
  * chooses per chapter) and answers the choice as stored, the same bare
  * string shape EditingSourceChoice reads back. choice must be "items" or
@@ -1233,6 +1259,22 @@ export function PackageStartMulti(req: $models.MultiPackageRequest): $Cancellabl
  */
 export function PackageState(): $CancellablePromise<string> {
     return $Call.ByID(2792423179);
+}
+
+/**
+ * PassageMapList returns a chapter's marks, runs in the order they were recorded, each checked against the current
+ * manuscript: a mark whose paragraph is gone or whose word is past its end comes back stale, never moved.
+ */
+export function PassageMapList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(1224168480, chapterID);
+}
+
+/**
+ * PassageMapRecordRun stores one recording's run of marks for chapterID (a start, any rolls and a stop, in time order) and
+ * returns the marks as stored, stamped with the DAW's ids. A run that breaks a rule is refused and nothing is saved.
+ */
+export function PassageMapRecordRun(chapterID: string, run: $models.PassageMapMarkInput[]): $CancellablePromise<string> {
+    return $Call.ByID(1060330002, chapterID, run);
 }
 
 export function PickupsCount(): $CancellablePromise<string> {

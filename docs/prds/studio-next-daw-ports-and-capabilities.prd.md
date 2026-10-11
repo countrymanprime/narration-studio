@@ -159,7 +159,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 6 | Roll and range commands | `roll`, `delete_range`, `apply_fx_range` | pending | 5 | 3, S1..S3 | 2.5 | - |
 | 7 | Stacking | `stack_takes`, `unstack_takes` | pending | 6 | 3, S4 | 1.0 | - |
 | 8 | Audacity backups | Backups table, restore, capability flips, retention | pending | - | 3, S7 | 1.5 | - |
-| 9 | Built-in recorder row | Adapter declaration, capabilities, engine chip | pending | - | 3 | 0.8 | - |
+| 9 | Built-in recorder row | Adapter declaration, capabilities, engine chip | done (adapter row, declaration and golden [#1149](https://github.com/countrymanprime/narration-utils/issues/1149); the engine chip is the Booth's) | - | 3 | 0.8 | - |
 | 10 | Close-out | Docs, threat model, promotion plan | pending | - | all | 0.2 | - |
 
 ### Phase Details

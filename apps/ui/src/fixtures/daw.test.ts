@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import { dawCapabilitiesSchema } from '../api/schemas/daw';
@@ -71,5 +73,20 @@ describe('the mock DAW setups', () => {
   it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {
     expect(DAW_SETUPS['audacity-backups'].capabilities.backups).toEqual(DAW_SETUPS.audacity.capabilities.backups);
     expect(DAW_SETUPS['audacity-backups'].capabilities.backups.level).toBe('not_yet_available');
+  });
+
+  // Like the Audacity setups, the built-in one has its Experimental rows switched on; every other row is the host's own.
+  it("mock-setup-agrees-with-the-host: the built-in setup has the golden's level for every capability, and its reason and sentence wherever both refuse", () => {
+    const golden = parseWire(
+      dawCapabilitiesSchema,
+      JSON.parse(readFileSync(fileURLToPath(new URL('../../../../tests/fixtures/contracts/daw-capabilities-builtin.json', import.meta.url)), 'utf8')),
+      { boundary: 'fixtures', payload: 'daw-capabilities-builtin.json' },
+    );
+    for (const [name, host] of Object.entries(golden.capabilities)) {
+      const setup = DAW_SETUPS.builtin.capabilities[name];
+      expect(setup.level, name).toBe(host.level);
+      if (host.reason === 'experimental_off') expect(setup.available, name).toBe(true);
+      else expect(setup, name).toEqual(host);
+    }
   });
 });

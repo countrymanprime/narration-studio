@@ -953,6 +953,38 @@ describe('the bookmarks bindings', () => {
   });
 });
 
+describe('the passage map bindings', () => {
+  const run = [
+    { pid: 'p-000001', word: 0, sec: 0, kind: 'start' as const },
+    { pid: 'p-000002', word: 9, sec: 11.25, kind: 'stop' as const, prev: { pid: 'p-000002', word: 9 } },
+  ];
+  const marks = run.map((mark, index) => ({
+    ...mark,
+    id: `c-0001.1.${index}`,
+    run: 'c-0001.1',
+    chapterId: 'c-0001',
+    itemGuid: 'Take 001',
+    takeGuid: 'Take 001',
+    stale: false,
+  }));
+
+  it('calls both host methods with their arguments and decodes each answer', async () => {
+    const record = vi.fn().mockResolvedValue(JSON.stringify(marks));
+    const list = vi.fn().mockResolvedValue(JSON.stringify(marks));
+    standInHost({ PassageMapRecordRun: record, PassageMapList: list });
+
+    await expect(wailsClient.passageMapRecordRun('c-0001', run)).resolves.toEqual(marks);
+    expect(record).toHaveBeenCalledWith('c-0001', run);
+    await expect(wailsClient.passageMapList('c-0001')).resolves.toEqual(marks);
+    expect(list).toHaveBeenCalledWith('c-0001');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ PassageMapList: () => Promise.resolve(JSON.stringify([{ ...marks[0], kind: 'pause' }])) });
+    await expect(wailsClient.passageMapList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the accepted words bindings', () => {
   const word = {
     key: 'p-000001:5',
@@ -982,6 +1014,63 @@ describe('the accepted words bindings', () => {
   it('refuses an answer its schema does not accept', async () => {
     standInHost({ EditingAcceptedList: () => Promise.resolve(JSON.stringify({ ...words, words: [{ ...word, ordinal: -1 }] })) });
     await expect(wailsClient.editingAcceptedList('c-0001')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
+describe('the cuts bindings', () => {
+  const cut = {
+    id: 'cut1',
+    chapterId: 'c-0001',
+    pid: 'p-000001',
+    keys: ['p-000001:5'],
+    words: ['Queen'],
+    text: 'Queen',
+    a: 12,
+    b: 13,
+    off0: 2,
+    off1: 3,
+    mode: 'close',
+    fadeMs: 12,
+    daw: 'reaper',
+    guid: '{CUT-1}',
+    undoSteps: 1,
+    at: '2026-10-11T10:00:00Z',
+    paragraph: 0,
+    stale: false,
+  } as const;
+  const cuts = { chapterId: 'c-0001', cuts: [cut] };
+  const request = {
+    pid: 'p-000001',
+    keys: ['p-000001:5'],
+    text: 'Queen',
+    a: 12,
+    b: 13,
+    off0: 2,
+    off1: 3,
+    mode: 'close',
+    fadeMs: 12,
+    daw: 'reaper',
+    guid: '{CUT-1}',
+    undoSteps: 1,
+  } as const;
+
+  it('calls the three host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(cuts));
+    const record = vi.fn().mockResolvedValue(JSON.stringify({ ...cuts, changed: ['cut1'] }));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', cuts: [], changed: ['cut1'] }));
+    standInHost({ EditingCutsList: list, EditingCutRecord: record, EditingCutRemove: remove });
+
+    await expect(wailsClient.editingCutsList('c-0001')).resolves.toEqual(cuts);
+    expect(list).toHaveBeenCalledWith('c-0001');
+    await expect(wailsClient.editingCutRecord('c-0001', { ...request, keys: [...request.keys] })).resolves.toMatchObject({ changed: ['cut1'] });
+    expect(record).toHaveBeenCalledWith('c-0001', request);
+    await expect(wailsClient.editingCutRemove('c-0001', 'cut1')).resolves.toMatchObject({ cuts: [] });
+    expect(remove).toHaveBeenCalledWith('c-0001', 'cut1');
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ EditingCutsList: () => Promise.resolve(JSON.stringify({ ...cuts, cuts: [{ ...cut, a: -1 }] })) });
+    await expect(wailsClient.editingCutsList('c-0001')).rejects.toBeInstanceOf(WireError);
   });
 });
 

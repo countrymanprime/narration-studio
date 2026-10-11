@@ -97,6 +97,14 @@ const MESSAGE_AUDACITY_NOT_YET =
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested.";
 /** What the Audacity adapter builds, Experimental until the owner's verification pass (ADR 0355); the rest is not_yet_available. */
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['navigate', 'markers', 'macro_render']);
+/** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
+export const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
+export const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
+export const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
+/** What the built-in recorder declares (dawport/builtin): record and takes Experimental until the owner's pass, punch and the
+ * edits the app will make itself not yet available, everything else unsupported. */
+const BUILTIN_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes']);
+const BUILTIN_NOT_YET: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['punch', 'cut_range', 'fx_range', 'stack_takes']);
 
 type DawToggle = 'auto' | 'on' | 'off';
 
@@ -104,7 +112,8 @@ export type DawMockSeed = {
   /** Which DAW the launch is talking to; defaults to 'REAPER'. */
   daw?: DawKind;
   /** Whether there is a live REAPER file bridge at all (dawport.Runtime.Bridge); defaults to true for 'REAPER',
-   * ignored for 'Audacity' and 'none' (neither ever opens one). false models "REAPER declared but not connected":
+   * ignored for 'Audacity' and 'none' (neither ever opens one) and for 'Built-in' (the app's own recorder, always there).
+   * false models "REAPER declared but not connected":
    * every NeedsBridge/NeedsRunning capability answers 'standalone', the same message as no DAW at all. */
   connected?: boolean;
   /** Whether the connected bridge is answering (dawport.Runtime.Reachable, the heartbeat); defaults to `connected`'s
@@ -131,6 +140,14 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
       DAW_CAPABILITIES.map(({ key }) => [key, AUDACITY_EXPERIMENTAL.has(key) ? ('experimental' as const) : ('not_yet_available' as const)]),
     );
   }
+  if (daw === 'Built-in') {
+    return Object.fromEntries(
+      DAW_CAPABILITIES.map(({ key }) => [
+        key,
+        BUILTIN_EXPERIMENTAL.has(key) ? ('experimental' as const) : BUILTIN_NOT_YET.has(key) ? ('not_yet_available' as const) : ('unsupported' as const),
+      ]),
+    );
+  }
   return Object.fromEntries(DAW_CAPABILITIES.map(({ key }) => [key, 'unsupported' as const]));
 }
 
@@ -138,6 +155,10 @@ function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySuppo
   if (daw === 'Audacity') {
     if (reason === 'not_yet') return MESSAGE_AUDACITY_NOT_YET;
     if (reason === 'standalone' || reason === 'not_running') return MESSAGE_AUDACITY_NOT_CONNECTED;
+  }
+  if (daw === 'Built-in') {
+    if (reason === 'unsupported') return key === 'project_read' ? MESSAGE_BUILTIN_NO_SAVED_PROJECT : MESSAGE_BUILTIN_UNSUPPORTED;
+    if (reason === 'not_yet') return MESSAGE_BUILTIN_NOT_YET;
   }
   if (daw === 'REAPER') {
     if (reason === 'standalone') return MESSAGE_STANDALONE_REAPER;
@@ -184,8 +205,9 @@ function withDepth(support: DawCapabilitySupport, depth: { destructive?: boolean
 
 function currentCapabilities(seed: DawMockSeed): DawCapabilities {
   const daw = seed.daw ?? 'REAPER';
-  const connected = daw === 'REAPER' && (seed.connected ?? true);
-  const reachable = connected && (seed.reachable ?? true);
+  // The built-in recorder is part of the app: always there and answering (builtin.go's Runtime).
+  const connected = daw === 'Built-in' || (daw === 'REAPER' && (seed.connected ?? true));
+  const reachable = daw === 'Built-in' || (connected && (seed.reachable ?? true));
   const capabilities: Record<string, DawCapabilitySupport> = {};
   for (const { key } of DAW_CAPABILITIES) capabilities[key] = withDepth(supportFor(daw, key, seed, connected, reachable), seed.depth?.[key]);
   return { daw, reachable, capabilities };

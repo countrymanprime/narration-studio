@@ -253,6 +253,76 @@ export class PackageRequest {
 }
 
 /**
+ * PassageMapMarkInput is one mark of PassageMapRecordRun's run: where a take began, how many seconds into the chapter
+ * recording, its kind (start, roll or stop) and, for a roll or a stop, where the take before it ended.
+ */
+export class PassageMapMarkInput {
+    "pid": string;
+    "word": number;
+    "sec": number;
+    "kind": string;
+    "prev"?: PassageMapMarkPlace | null;
+
+    /** Creates a new PassageMapMarkInput instance. */
+    constructor($$source: Partial<PassageMapMarkInput> = {}) {
+        if (!("pid" in $$source)) {
+            this["pid"] = "";
+        }
+        if (!("word" in $$source)) {
+            this["word"] = 0;
+        }
+        if (!("sec" in $$source)) {
+            this["sec"] = 0;
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PassageMapMarkInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PassageMapMarkInput {
+        const $$createField4_0 = $$createType7;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("prev" in $$parsedSource) {
+            $$parsedSource["prev"] = $$createField4_0($$parsedSource["prev"]);
+        }
+        return new PassageMapMarkInput($$parsedSource as Partial<PassageMapMarkInput>);
+    }
+}
+
+/**
+ * PassageMapMarkPlace is a paragraph id and a word index in it.
+ */
+export class PassageMapMarkPlace {
+    "pid": string;
+    "word": number;
+
+    /** Creates a new PassageMapMarkPlace instance. */
+    constructor($$source: Partial<PassageMapMarkPlace> = {}) {
+        if (!("pid" in $$source)) {
+            this["pid"] = "";
+        }
+        if (!("word" in $$source)) {
+            this["word"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PassageMapMarkPlace instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PassageMapMarkPlace {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PassageMapMarkPlace($$parsedSource as Partial<PassageMapMarkPlace>);
+    }
+}
+
+/**
  * ProfileSelection is one platform the narrator checked to build a package for.
  */
 export class ProfileSelection {
@@ -316,3 +386,5 @@ const $$createType2 = ProfileSelection.createFrom;
 const $$createType3 = $Create.Array($$createType2);
 const $$createType4 = PackageItem.createFrom;
 const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = PassageMapMarkPlace.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
