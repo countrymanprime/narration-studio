@@ -48,6 +48,11 @@ describe('JumpMenu', () => {
     act(() => void open());
     expect(screen.getAllByRole('option').length).toBeLessThanOrEqual(10);
     expect(screen.getAllByRole('option', { name: /^Go to/ })).toHaveLength(1);
+    // One row per group: the catalogue's groups plus the provider's, none repeated.
+    const rows = names();
+    expect(rows).toHaveLength(new Set(rows).size);
+    expect(rows.some((row) => row.startsWith('Zoom'))).toBe(true);
+    expect(rows.some((row) => row.startsWith('View'))).toBe(true);
     expect(screen.queryByText('Go to Production')).toBeNull();
   });
 
@@ -106,7 +111,9 @@ describe('JumpMenu', () => {
     expect(field().getAttribute('aria-activedescendant')).toBe(alpha?.id);
     await user.keyboard('{ArrowDown}');
     expect(field().getAttribute('aria-activedescendant')).toBe(beta?.id);
-    await user.keyboard('{ArrowUp}{ArrowDown}');
+    await user.keyboard('{ArrowUp}');
+    expect(field().getAttribute('aria-activedescendant')).toBe(alpha?.id);
+    await user.keyboard('{ArrowDown}');
     expect(field().getAttribute('aria-activedescendant')).toBe(beta?.id);
     await user.keyboard('{Enter}');
     expect(run).toHaveBeenCalledTimes(1);

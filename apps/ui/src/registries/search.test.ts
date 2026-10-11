@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react';
+import { createElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSearchRegistry, searchAll, useSearchSource, type SearchHit, type SearchSource } from './search';
 
@@ -57,9 +58,10 @@ describe('useSearchSource', () => {
     useSearchSource(source);
     return null;
   }
+  const page = () => createElement(Page);
 
   it('registers the source while the component is mounted and removes it on unmount', () => {
-    const { unmount } = render(<Page />);
+    const { unmount } = render(page());
     expect(searchAll('page').map((h) => h.title)).toEqual(['from a page']);
     unmount();
     expect(searchAll('page')).toEqual([]);
