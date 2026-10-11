@@ -4,6 +4,8 @@ import type {
   CleanupToolsState,
   LineIdentityState,
   NarrationApi,
+  PickupItem,
+  PickupList,
   PickupsMoment,
   PickupsState,
   ProjectStateState,
@@ -11,6 +13,7 @@ import type {
   RetakeLanesState,
 } from '../../types';
 import {
+  WIRE_CHAPTERS,
   WIRE_CHAPTER_TAGS_EMBED_SUCCESS,
   WIRE_CHAPTER_TAGS_PREVIEW_IDLE,
   WIRE_CHAPTER_TAGS_PREVIEW_NOT_RENDERED,
@@ -27,6 +30,7 @@ import {
   WIRE_PICKUPS_IDLE,
   WIRE_PICKUPS_IMPORT_SUCCESS,
   WIRE_PICKUPS_NEXT_SUCCESS,
+  WIRE_PARAGRAPHS,
   WIRE_PROJECT_STATE_CHECKED,
   WIRE_PROJECT_STATE_IDLE,
   WIRE_RENDER_CONFIG_ERROR,
@@ -479,6 +483,142 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       if (chapterTagsEmbedAlwaysErrors) throw new Error('could not write chapter tags to the new copy');
       return wireClone(WIRE_CHAPTER_TAGS_EMBED_SUCCESS);
     },
+    ...createPickupListMock(),
   } satisfies Partial<NarrationApi>;
   return { bindings };
+}
+
+/** The sample pickups of the Studio Next mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines. */
+function samplePickups(): PickupItem[] {
+  const lines = WIRE_PARAGRAPHS.filter((paragraph) => paragraph.chapterId === 'chapter-3');
+  const at = (index: number) => lines[Math.min(index, lines.length - 1)];
+  const sample = (
+    index: number,
+    item: Omit<PickupItem, 'chapterId' | 'paragraphId' | 'paragraph' | 'context' | 'included' | 'done' | 'waiting'>,
+  ): PickupItem => ({
+    ...item,
+    chapterId: 'chapter-3',
+    paragraphId: at(index).id,
+    paragraph: at(index).index,
+    context: at(index).text,
+    included: true,
+    done: false,
+    waiting: false,
+  });
+  return [
+    sample(0, {
+      id: `speech:chapter-3:misread:${at(0).id}:0`,
+      time: 131,
+      at: 131,
+      type: 'misread',
+      gap: 'misread',
+      script: at(0).text.slice(0, 80),
+      source: 'speech',
+      confidence: 0.97,
+      confReason: '',
+    }),
+    sample(1, {
+      id: `speech:chapter-3:missing:${at(1).id}:0`,
+      time: 348.2,
+      at: 348.2,
+      type: 'missing',
+      gap: 'missing',
+      script: at(1).text.slice(0, 80),
+      source: 'speech',
+      confidence: 0.93,
+      confReason: '',
+    }),
+    sample(3, {
+      id: 'finding:sample-noise',
+      time: 450.9,
+      at: 450.9,
+      type: 'noise',
+      script: at(3).text.slice(0, 80),
+      source: 'audio',
+      confidence: null,
+      confReason: 'not_scored',
+      findingId: 'sample-noise',
+    }),
+  ];
+}
+
+const PICKUP_ID = /^(speech|finding|you):[A-Za-z0-9:._-]{1,240}$/;
+const PICKUP_LINE_MAX = 500;
+
+/** The host's pickup list (`bindings_pickuplist.go`, ADR 0840) with the same refusals: ids only, one plain line of text, a known
+ * chapter, a time zero or more. With no DAW in the mock, a done state is kept, as the host keeps it while the DAW is away. */
+function createPickupListMock(): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd' | 'pickupsRemove' | 'pickupsSetIncluded' | 'pickupsSetDone'> {
+  let items = samplePickups();
+  const removed = new Set<string>();
+  const list = (): PickupList => ({
+    pickups: wireClone(items.filter((item) => !removed.has(item.id))),
+    leftOut: WIRE_CHAPTERS.filter((chapter) => chapter.id !== 'chapter-3').map((chapter) => ({
+      chapterId: chapter.id,
+      state: 'never',
+      reasons: ['not_checked'],
+    })),
+  });
+  const known = (id: string, removedOk = false) => {
+    if (!PICKUP_ID.test(id) || (!items.some((item) => item.id === id) && !(removedOk && removed.has(id))) || (!removedOk && removed.has(id))) {
+      throw new Error('that pickup is not in the list');
+    }
+  };
+  const update = (id: string, change: Partial<PickupItem>) => {
+    items = items.map((item) => (item.id === id ? { ...item, ...change } : item));
+  };
+  return {
+    pickupsList: async () => list(),
+    pickupsAdd: async (chapterId, time, line) => {
+      const text = line.trim();
+      if (!text) throw new Error('type the line first');
+      if ([...text].length > PICKUP_LINE_MAX) throw new Error(`a line can be at most ${PICKUP_LINE_MAX} characters`);
+      if (/\p{Cc}/u.test(text)) throw new Error('the line must be one line of plain text');
+      if (!WIRE_CHAPTERS.some((chapter) => chapter.id === chapterId)) throw new Error('that chapter is not in the manuscript');
+      if (!Number.isFinite(time) || time < 0) throw new Error("the time is outside the chapter's recording");
+      const id = `you:${chapterId}-${[...`${chapterId}:${text.toLowerCase()}`].reduce((hash, char) => (hash * 31 + char.codePointAt(0)!) >>> 0, 7).toString(16)}`;
+      removed.delete(id);
+      if (!items.some((item) => item.id === id)) {
+        const needle = [...text.toLowerCase()].slice(0, 24).join('');
+        const paragraph = WIRE_PARAGRAPHS.find((row) => row.chapterId === chapterId && row.text.trim().toLowerCase().startsWith(needle));
+        items = [
+          ...items,
+          {
+            id,
+            chapterId,
+            paragraphId: paragraph?.id ?? null,
+            paragraph: paragraph?.index ?? null,
+            time,
+            at: null,
+            type: 'misread',
+            script: text,
+            context: paragraph?.text ?? text,
+            source: 'you',
+            confidence: null,
+            confReason: 'added_by_hand',
+            included: true,
+            done: false,
+            waiting: false,
+          },
+        ];
+      }
+      return list();
+    },
+    pickupsRemove: async (id) => {
+      known(id, true);
+      removed.add(id);
+      update(id, { included: true, done: false, waiting: false });
+      return list();
+    },
+    pickupsSetIncluded: async (id, included) => {
+      known(id);
+      update(id, { included });
+      return list();
+    },
+    pickupsSetDone: async (id, done) => {
+      known(id);
+      const item = items.find((row) => row.id === id);
+      update(id, { done, waiting: item?.at !== null });
+      return list();
+    },
+  };
 }
