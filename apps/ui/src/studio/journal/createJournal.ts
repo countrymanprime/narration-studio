@@ -9,7 +9,7 @@
 import { createLeaveGuard, type LeaveGuardStore } from './leaveGuard';
 
 /** Structural on purpose: the shared `Refusal` schema belongs to the contract kit, and the compositions unify the two. */
-export type Refusal = { code: string; reason: string };
+type Refusal = { code: string; reason: string };
 
 export type Result<R> = { ok: true; value: R } | { ok: false; refusal: Refusal };
 
@@ -37,7 +37,7 @@ export type JournalOptions = {
 };
 
 /** One history row. `refusal` is the sentence Undo would give right now, or null when Undo would go ahead. */
-export type HistoryRow = {
+type HistoryRow = {
   id: number;
   label: string;
   daw: boolean;

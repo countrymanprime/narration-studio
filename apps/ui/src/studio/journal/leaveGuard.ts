@@ -6,9 +6,9 @@
 export type ConfirmSpec = { title: string; body: string; confirmLabel: string; cancelLabel?: string };
 
 /** The answer to "may the narrator leave for `next`?": go ahead, or ask this first. */
-export type LeaveVerdict = 'allow' | { ask: ConfirmSpec };
+type LeaveVerdict = 'allow' | { ask: ConfirmSpec };
 
-export type LeaveGuard = (next: string) => LeaveVerdict;
+type LeaveGuard = (next: string) => LeaveVerdict;
 
 export type LeaveGuardStore = {
   /** Replaces the guard; `null` removes it. */
