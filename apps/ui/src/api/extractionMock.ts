@@ -6,6 +6,7 @@
 // SCAN_OFFERS as the rules; scanning again offers nothing twice. An import reads a small JSON or CSV text in memory under the host's
 // caps and plans it the way apps/desktop/bindings_extraction_import.go does (add, merge, skip, a row about no one is an error); the
 // commit plans again from the text. Offline: nothing is read and nothing is fetched.
+import { z } from 'zod';
 import { SUGGESTION_TEXT_MAX_BYTES } from './contracts/extraction';
 import type {
   ExtractionApi,
@@ -24,6 +25,7 @@ import type {
 } from './contracts/extraction';
 import type { JobEnded } from './contracts/system';
 import { wireClone } from './mockFixtures';
+import { parseWireJson } from './wire/parseWire';
 
 type MockEntry = { id: string; name: string; aliases: string[]; locked: boolean; flagged: boolean };
 
@@ -213,6 +215,9 @@ const IMPORT_EXAMPLE_JSON = `{
 const IMPORT_EXAMPLE_CSV = `record,name,type,aliases,confidence
 entry,The Mad Hatter,Character,Hatter,0.9`;
 
+/** An import file's top level: an object with `entries` and `speakers`, or a bare list read as `entries`. */
+const importDocument = z.union([z.array(z.unknown()), z.record(z.string(), z.unknown())]);
+
 /** One row the mock's import read: the fields of a payload, a confidence and the quote it gives, if any. */
 type ImportRow = { row: number; where: string; payload: SuggestionPayload; confidence: number | null; quote?: string };
 
@@ -244,7 +249,7 @@ function parseImport(text: string, hint?: ImportFormat): { format?: ImportFormat
     const confidence = confidenceOf(cells.confidence);
     const payload = make();
     if (typeof confidence === 'string' || typeof payload === 'string') {
-      errors.push({ row: n, where, reason: typeof confidence === 'string' ? confidence : (payload as string) });
+      errors.push({ row: n, where, reason: typeof confidence === 'string' ? confidence : typeof payload === 'string' ? payload : '' });
       return;
     }
     rows.push({ row: n, where, payload, confidence, ...(quote ? { quote } : {}) });
@@ -283,15 +288,15 @@ function parseImport(text: string, hint?: ImportFormat): { format?: ImportFormat
   const speaker = (where: string, c: Record<string, unknown>) =>
     add(where, c, () => need(c, 'quote', 'speaker')?.concat(' is required') ?? { kind: 'speaker', quote: str(c.quote), speaker: str(c.speaker) }, str(c.quote));
   if (format === 'json') {
-    let doc: unknown;
+    let doc: z.infer<typeof importDocument>;
     try {
-      doc = JSON.parse(body);
+      doc = parseWireJson(importDocument, body, { boundary: 'mock import', payload: 'storybible-import' });
     } catch {
       return refuse('The file is not valid JSON.');
     }
     const objects = (value: unknown): Record<string, unknown>[] =>
       Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null) : [];
-    const top = typeof doc === 'object' && doc !== null && !Array.isArray(doc) ? (doc as Record<string, unknown>) : { entries: doc };
+    const top: Record<string, unknown> = Array.isArray(doc) ? { entries: doc } : doc;
     objects(top.entries).forEach((e, i) => {
       entry(`entries[${i}]`, e);
       const owner = str(e.name);
