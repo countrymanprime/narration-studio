@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import {
+  PICKUP_GAP_KINDS,
   PICKUP_MARKER_STATES,
+  PICKUP_SOURCES,
+  type PickupItem,
+  type PickupLeftOutChapter,
+  type PickupList,
   type PickupMarker,
   type PickupsImportReport,
   type PickupsImportResult,
@@ -64,3 +69,38 @@ export const pickupsPunchResultSchema = z
     message: 'a punch cursor comes with outcome "punched", and only with it',
     path: ['cursor'],
   }) satisfies z.ZodType<PickupsPunchResult>;
+
+const pickupItemSchema = z
+  .object({
+    id: z.string().min(1),
+    chapterId: z.string().min(1),
+    paragraphId: z.string().nullable(),
+    paragraph: z.number().int().nullable(),
+    time: z.number().nullable(),
+    at: z.number().nullable(),
+    type: z.string(),
+    gap: z.enum(PICKUP_GAP_KINDS).optional(),
+    script: z.string(),
+    context: z.string(),
+    source: z.enum(PICKUP_SOURCES),
+    confidence: z.number().min(0).max(1).nullable(),
+    confReason: z.string(),
+    findingId: z.string().optional(),
+    included: z.boolean(),
+    done: z.boolean(),
+    waiting: z.boolean(),
+  })
+  .strict()
+  .refine((item) => item.confidence !== null || item.confReason !== '', {
+    message: 'a pickup without a confidence says why',
+    path: ['confReason'],
+  }) satisfies z.ZodType<PickupItem>;
+
+const pickupLeftOutChapterSchema = z
+  .object({ chapterId: z.string().min(1), state: z.string().min(1), reasons: z.array(z.string()) })
+  .strict() satisfies z.ZodType<PickupLeftOutChapter>;
+
+/** `PickupsList`, `PickupsAdd`, `PickupsRemove`, `PickupsSetIncluded` and `PickupsSetDone` (`apps/desktop/bindings_pickuplist.go`). */
+export const pickupListSchema = z
+  .object({ pickups: z.array(pickupItemSchema), leftOut: z.array(pickupLeftOutChapterSchema) })
+  .strict() satisfies z.ZodType<PickupList>;
