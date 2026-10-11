@@ -21,6 +21,9 @@ import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threa
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordFlagSchema, scriptWordSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
+  extractionImportPlanSchema,
+  extractionImportPromptSchema,
+  extractionImportResultSchema,
   extractionScanJobSchema,
   extractionSourceSchema,
   extractionSourcesSchema,
@@ -3146,6 +3149,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'extractionScan',
       'extractionScanState',
       'extractionScanCancel',
+      'extractionImportPreview',
+      'extractionImportCommit',
+      'extractionImportPrompt',
       'pronunciationSources',
       'pronunciationCandidate',
       'manuscriptReader',
@@ -4082,6 +4088,86 @@ describe('the marks bindings', () => {
     const after = (await api.marksList()).marks.find((mark) => mark.id === question.id);
     expect(after?.thread.map((entry) => entry.text)).toEqual(['Yes.']);
     expect(after?.status).toBe('open');
+  });
+});
+
+// The Story Bible's import: the host's goldens parse, the schemas refuse what the host never sends, and the mock reads a small file in
+// memory under the same caps, plans it and adds it through the same schemas (apps/desktop/bindings_extraction_import.go).
+describe('the extraction import bindings', () => {
+  it('parses the host goldens', () => {
+    const plan = parseWire(extractionImportPlanSchema, readGolden('extraction-import-preview.json'), ctx('extraction import preview'));
+    expect(new Set(plan.lines.map((line) => line.action))).toEqual(new Set(['add', 'merge', 'skip']));
+    expect(plan.errors.length).toBeGreaterThan(0);
+    const errors = parseWire(extractionImportPlanSchema, readGolden('extraction-import-preview-errors.json'), ctx('extraction import errors'));
+    expect(errors).toMatchObject({ format: 'csv', lines: [], offered: 0 });
+    const result = parseWire(extractionImportResultSchema, readGolden('extraction-import-commit.json'), ctx('extraction import commit'));
+    expect(result.suggestions.every((s) => s.source === 'imported')).toBe(true);
+    const prompt = parseWire(extractionImportPromptSchema, readGolden('extraction-import-prompt.json'), ctx('extraction import prompt'));
+    expect(prompt).toMatchObject({ format: 'json', maxBytes: 2097152 });
+  });
+
+  it('refuses what the host never sends', () => {
+    const plan = readGolden('extraction-import-preview.json') as { lines: Array<Record<string, unknown>> } & Record<string, unknown>;
+    expect(extractionImportPlanSchema.safeParse({ ...plan, path: 'C:/book.csv' }).success).toBe(false);
+    expect(extractionImportPlanSchema.safeParse({ ...plan, offered: 99 }).success).toBe(false);
+    expect(extractionImportPlanSchema.safeParse({ ...plan, format: 'xlsx' }).success).toBe(false);
+    const [line] = plan.lines;
+    expect(extractionImportPlanSchema.safeParse({ ...plan, lines: [{ ...line, action: 'delete' }] }).success).toBe(false);
+    expect(extractionImportPlanSchema.safeParse({ ...plan, lines: [{ ...line, status: undefined }] }).success).toBe(false);
+    const result = readGolden('extraction-import-commit.json') as { suggestions: Array<Record<string, unknown>> } & Record<string, unknown>;
+    expect(extractionImportResultSchema.safeParse({ ...result, plan: [] }).success).toBe(false);
+    expect(extractionImportResultSchema.safeParse({ ...result, suggestions: [{ ...result.suggestions[0], source: 'rules' }] }).success).toBe(false);
+    const prompt = readGolden('extraction-import-prompt.json') as Record<string, unknown>;
+    expect(extractionImportPromptSchema.safeParse({ ...prompt, maxBytes: 0 }).success).toBe(false);
+    expect(extractionImportPromptSchema.safeParse({ ...prompt, url: 'https://example.com' }).success).toBe(false);
+  });
+
+  it('the mock previews, commits and refuses through the same schemas', async () => {
+    const api = createExtractionMock();
+    const file = JSON.stringify({
+      entries: [
+        {
+          name: 'The Mock Turtle',
+          type: 'Character',
+          confidence: 0.9,
+          claims: [{ kind: 'act', text: 'Sobs', evidence: 'smiling at everything that was said', confidence: 0.8 }],
+        },
+        { name: 'Caterpillar', aliases: ['Blue Caterpillar'], confidence: 0.9 },
+        { name: 'Alice', confidence: 0.9 },
+        { name: 'Duchess', aliases: ['The Duchess'], confidence: 0.9 },
+        { name: 'Bill', relationships: [{ to: 'Nobody', relation: 'knows' }] },
+      ],
+    });
+    const before = await api.extractionList();
+    const plan = await api.extractionImportPreview(file);
+    expectMatches(extractionImportPlanSchema, plan, 'mock extraction import preview');
+    expect(plan.lines.map((line) => [line.label, line.action])).toEqual([
+      ['The Mock Turtle · Character', 'add'],
+      ['The Mock Turtle does: Sobs', 'add'],
+      ['Caterpillar', 'merge'],
+      ['Alice', 'skip'],
+      ['Duchess', 'skip'],
+      ['Bill', 'add'],
+    ]);
+    expect(plan.errors).toEqual([expect.objectContaining({ reason: 'No entry “Nobody” in the Story Bible or in this file.' })]);
+    expect(await api.extractionList()).toEqual(before);
+
+    const result = await api.extractionImportCommit(file);
+    expectMatches(extractionImportResultSchema, result, 'mock extraction import commit');
+    expect(result.suggestions).toHaveLength(plan.offered);
+    expect(result.entryIds).toContain('caterpillar');
+    expect(await api.extractionList()).toHaveLength(before.length + plan.offered);
+    const again = await api.extractionImportPreview(file);
+    expect(again.offered).toBe(0);
+    expect((await api.extractionImportCommit(file)).suggestions).toEqual([]);
+
+    const nul = await api.extractionImportPreview('record,name\nentry,Bill\0');
+    expectMatches(extractionImportPlanSchema, nul, 'mock extraction import refused');
+    expect(nul).toMatchObject({ lines: [], errors: [{ row: 0, reason: 'The file contains a NUL byte, so it is not a text file.' }] });
+    await expect(api.extractionImportCommit('x'.repeat(2097153))).rejects.toThrow('the limit is 2048 KB.');
+    const prompt = await api.extractionImportPrompt('csv');
+    expectMatches(extractionImportPromptSchema, prompt, 'mock extraction import prompt');
+    expect(prompt.maxBytes).toBe(2097152);
   });
 });
 

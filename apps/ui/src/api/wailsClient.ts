@@ -136,7 +136,15 @@ import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from './schemas/scriptPrep';
-import { extractionDecisionSchema, extractionScanJobSchema, extractionSourcesSchema, extractionSuggestionsSchema } from './schemas/extraction';
+import {
+  extractionDecisionSchema,
+  extractionImportPlanSchema,
+  extractionImportPromptSchema,
+  extractionImportResultSchema,
+  extractionScanJobSchema,
+  extractionSourcesSchema,
+  extractionSuggestionsSchema,
+} from './schemas/extraction';
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
@@ -439,6 +447,9 @@ export const wailsClient: NarrationApi = {
   extractionScan: (sourceIds) => decode(extractionScanJobSchema, 'ExtractionScan', host.ExtractionScan(sourceIds)),
   extractionScanState: () => decode(extractionScanJobSchema, 'ExtractionScanState', host.ExtractionScanState()),
   extractionScanCancel: () => decode(extractionScanJobSchema, 'ExtractionScanCancel', host.ExtractionScanCancel()),
+  extractionImportPreview: (text, hint) => decode(extractionImportPlanSchema, 'ExtractionImportPreview', host.ExtractionImportPreview(text, hint ?? '')),
+  extractionImportCommit: (text, hint) => decode(extractionImportResultSchema, 'ExtractionImportCommit', host.ExtractionImportCommit(text, hint ?? '')),
+  extractionImportPrompt: (format) => decode(extractionImportPromptSchema, 'ExtractionImportPrompt', host.ExtractionImportPrompt(format)),
   marksReply: (id, who, text) => decode(markSchema, 'MarksReply', host.MarksReply(id, who, text)),
   marksEditMessage: (id, index, text) => decode(markSchema, 'MarksEditMessage', host.MarksEditMessage(id, index, text)),
   marksDeleteMessage: (id, index) => decode(markThreadDeletedSchema, 'MarksDeleteMessage', host.MarksDeleteMessage(id, index)),

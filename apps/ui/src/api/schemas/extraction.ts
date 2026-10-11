@@ -2,10 +2,18 @@ import { z } from 'zod';
 import { listFromNull } from './base';
 import {
   CLAIM_KINDS,
+  IMPORT_ACTIONS,
+  IMPORT_FORMATS,
+  IMPORT_RECORDS,
   SUGGESTION_KINDS,
   SUGGESTION_SOURCES,
   SUGGESTION_STATUSES,
   type ExtractionDecision,
+  type ExtractionImportError,
+  type ExtractionImportLine,
+  type ExtractionImportPlan,
+  type ExtractionImportPrompt,
+  type ExtractionImportResult,
   type ExtractionScanJob,
   type ExtractionSource,
   type ExtractionSuggestion,
@@ -109,3 +117,51 @@ export const extractionScanJobSchema = z
   })
   .strict()
   .refine((job) => job.percent < 100 || job.phase === 'success', 'a scan reads 100 only once it has ended') satisfies z.ZodType<ExtractionScanJob>;
+
+const extractionImportLineSchema = z
+  .object({
+    row: z.number().int().positive(),
+    where: text,
+    kind: z.enum(IMPORT_RECORDS),
+    label: z.string(),
+    action: z.enum(IMPORT_ACTIONS),
+    status: z.enum(['accepted-auto', 'needs-verification']).optional(),
+    confidence: z.number().min(0).max(1).nullable(),
+    note: z.string(),
+  })
+  .strict()
+  .refine(
+    (line) => (line.action === 'skip') === (line.status === undefined),
+    'a line has a status unless it is skipped',
+  ) satisfies z.ZodType<ExtractionImportLine>;
+
+const extractionImportErrorSchema = z
+  .object({ row: z.number().int().nonnegative(), where: z.string(), reason: text })
+  .strict() satisfies z.ZodType<ExtractionImportError>;
+
+/** The import preview (the PRD's `extractionImportPlan`). */
+export const extractionImportPlanSchema = z
+  .object({
+    format: z.enum(IMPORT_FORMATS).optional(),
+    lines: listFromNull(extractionImportLineSchema),
+    errors: listFromNull(extractionImportErrorSchema),
+    offered: count,
+  })
+  .strict()
+  .refine(
+    (plan) => plan.offered === plan.lines.filter((line) => line.action !== 'skip').length,
+    'offered counts the lines that add or merge',
+  ) satisfies z.ZodType<ExtractionImportPlan>;
+
+export const extractionImportResultSchema = z
+  .object({ suggestions: z.array(extractionSuggestionSchema), entryIds: z.array(text), skipped: count })
+  .strict()
+  .refine(
+    (result) => result.suggestions.every((s) => s.source === 'imported'),
+    'an import stores imported suggestions',
+  ) satisfies z.ZodType<ExtractionImportResult>;
+
+export const extractionImportPromptSchema = z
+  .object({ format: z.enum(IMPORT_FORMATS), prompt: text, example: text, maxBytes: z.number().int().positive() })
+  .strict()
+  .refine((prompt) => prompt.prompt.includes(prompt.example), 'the prompt contains its example') satisfies z.ZodType<ExtractionImportPrompt>;
