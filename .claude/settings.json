@@ -48,12 +48,10 @@
       { "matcher": "startup", "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/cloud/session-start.sh\"", "timeout": 600 }] }
     ],
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] },
-      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs\" --hook", "timeout": 30 }] }
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] }
     ],
     "SubagentStop": [
-      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] },
-      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs\" --hook", "timeout": 30 }] }
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] }
     ]
   }
 }

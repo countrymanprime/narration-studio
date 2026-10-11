@@ -104,9 +104,9 @@ It makes real model calls (about $0.06 a case, $0.71 for the 12 cases of the fou
 
 ## Gate stamp
 
-`scripts/ci/gate-stamp.mjs` ties "the full gate passed" to an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `pnpm check` runs `record` as its last step, and `--hook` runs as a `Stop` and `SubagentStop` hook (`.claude/settings.json`): it exits 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match the tree. It lets a stop through when `stop_hook_active` is set, and when the last message says `Gate: skipped — <reason>` (an agent-train worker runs the targeted set its template names, not the full gate).
+`scripts/ci/gate-stamp.mjs` records that `pnpm check` passed on an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `pnpm check` runs `record` as its last step.
 
-The hook only reads the stamp; it never runs the gate.
+Nothing blocks on the stamp. The script's `--hook` mode (exit 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match) was a `Stop` and `SubagentStop` hook until the full gate stopped being a precondition for pushing: the pull-request pipeline runs it, and a session pushes after its targeted checks and watches the PR instead of waiting about 15 minutes for a local run. To bring the hook back, add `node "$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs" --hook` to the `Stop` and `SubagentStop` lists in `.claude/settings.json`.
 
 ## Agent-train safety checks
 
