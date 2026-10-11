@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useApi } from '../../api/ApiContext';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilityMode, type DawCapabilitySupport } from '../../api/contracts/daw';
 import { describeApiError } from '../../api/errorMessage';
+import { usePort } from '../../ports/usePort';
 import { Button } from '../primitives/Button';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
@@ -69,7 +69,7 @@ export function CapabilityList({ report }: { report: DawCapabilities }) {
  * (`DAW.capability.<name>`), which stay where they are.
  */
 export function CapabilitySection() {
-  const api = useApi();
+  const api = usePort('dawCapabilities');
   const [report, setReport] = useState<DawCapabilities>();
   const [loadError, setLoadError] = useState('');
   const [attempt, setAttempt] = useState(0);
