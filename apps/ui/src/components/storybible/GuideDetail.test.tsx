@@ -296,3 +296,58 @@ describe('Story Bible delete confirmation', () => {
     expect(screen.getByRole('button', { name: 'Save changes to this entry' })).toBeTruthy();
   });
 });
+
+describe('Story Bible Appears in', () => {
+  const entity = {
+    ...WIRE_ENTITIES[0],
+    appearances: [
+      { chapterId: 'chapter-1', chapter: 'chapter-1', sceneIndex: 0 },
+      { chapterId: 'chapter-1', chapter: 'chapter-1', sceneIndex: 1 },
+      { chapterId: 'chapter-2', chapter: 'chapter-2', sceneIndex: 0 },
+    ],
+  };
+
+  it('lists the chapters after the editable parts and opens one in Script', async () => {
+    const goToManuscript = vi.fn();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={goToManuscript} />
+      </ApiProvider>,
+    );
+    expect(await screen.findByText('Appears in · 2 chapters')).toBeTruthy();
+    const section = screen.getByTestId('appears-in');
+    const relationships = screen.getByText('Relationship');
+    expect(relationships.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(within(section).getAllByRole('button')[0]);
+    expect(goToManuscript).toHaveBeenCalledWith('chapter-1');
+  });
+
+  it('shows no line or mention counts', async () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+      </ApiProvider>,
+    );
+    await screen.findByText('Appears in · 2 chapters');
+    expect(screen.queryByText(/occurrences/i)).toBeNull();
+    expect(screen.queryByText(/Evidence/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Go to line in Script' })).toBeNull();
+  });
+
+  it('says so for an entry written before appearances existed', async () => {
+    const legacy = { ...entity } as Partial<typeof entity>;
+    delete legacy.appearances;
+    render(
+      <ApiProvider api={createMockApi()}>
+        <GuideDetail
+          entity={legacy as typeof entity}
+          entities={WIRE_ENTITIES}
+          reload={vi.fn().mockResolvedValue(undefined)}
+          notify={vi.fn()}
+          goToManuscript={vi.fn()}
+        />
+      </ApiProvider>,
+    );
+    expect(await screen.findByText('Not listed yet. Build the Story Bible again to list the chapters.')).toBeTruthy();
+  });
+});
