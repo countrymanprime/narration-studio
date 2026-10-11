@@ -16,6 +16,7 @@ import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } fr
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
+import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordFlagSchema, scriptWordSchema } from './schemas/scriptPrep';
 import { extractionDecisionSchema, extractionSuggestionSchema, extractionSuggestionsSchema } from './schemas/extraction';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
@@ -3098,6 +3099,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'marksDeleteMessage',
       'marksRestoreMessage',
       'marksSetStatus',
+      'scriptPrepList',
+      'scriptPrepSetChapter',
+      'scriptWordFlag',
+      'scriptWordSay',
+      'scriptWordUnflag',
       'extractionList',
       'extractionAccept',
       'extractionReject',
@@ -4199,5 +4205,93 @@ describe('the word effects bindings', () => {
     expect(wordFxSchema.safeParse({ ...fx, words: [] }).success).toBe(false);
     expect(wordFxChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
     expect(wordFxChangeSchema.safeParse({ chapterId: change.chapterId, effects: change.effects, changed: change.changed }).success).toBe(false);
+  });
+});
+
+// The Script page's prep states and flagged words: the mock answers through the same schemas as the host's goldens, refuses
+// what the host refuses, and the schemas refuse what the host never sends.
+describe('the script prep bindings', () => {
+  const firstLines = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const wordy = lines.filter((paragraph) => /^\S{3,}\s/.test(paragraph.text));
+    return {
+      api,
+      chapterId: chapter?.id ?? '',
+      otherId: other?.id ?? '',
+      first: wordy[0] ?? { id: '', text: '', index: 0 },
+      second: wordy[1] ?? { id: '', text: '', index: 0 },
+    };
+  };
+  const firstWord = (text: string) => text.indexOf(' ');
+
+  it('the mock answers the prep list, a chapter state, a flag, a say-value and an unflag through their schemas', async () => {
+    const { api, chapterId, first, second } = await firstLines();
+    const empty = await api.scriptPrepList();
+    expectMatches(scriptPrepSchema, empty, 'mock script prep list (empty)');
+    expect(empty.words).toEqual([]);
+    expect(empty.chapters.every((chapter) => chapter.state === 'none')).toBe(true);
+    const chapter = await api.scriptPrepSetChapter(chapterId, 'prepped');
+    expectMatches(scriptPrepChapterSchema, chapter, 'mock script prep chapter');
+    const word = first.text.slice(0, firstWord(first.text));
+    const flagged = await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text));
+    expectMatches(scriptWordSchema, flagged, 'mock script word flag');
+    expect(flagged).toMatchObject({ word: word.toLowerCase(), say: '', source: '', status: 'not_set' });
+    expect((await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text))).flags).toHaveLength(1);
+    const said = await api.scriptWordSay(word.toUpperCase(), '  say-it  ', 'espeak');
+    expectMatches(scriptWordSchema, said, 'mock script word say');
+    expect(said).toMatchObject({ say: 'say-it', source: 'espeak', status: 'set' });
+    expect(await api.scriptWordSay(word, 'typed', '')).toMatchObject({ source: 'manual' });
+    const other = await api.scriptWordFlag(chapterId, second.id, 0, firstWord(second.text));
+    const listed = await api.scriptPrepList();
+    expectMatches(scriptPrepSchema, listed, 'mock script prep list');
+    expect(listed.chapters.find((entry) => entry.chapterId === chapterId)?.state).toBe('prepped');
+    expect(listed.words.map((entry) => entry.word)).toEqual([...new Set([word.toLowerCase(), other.word])]);
+    const gone = await api.scriptWordUnflag(flagged.flags[0]?.id ?? '');
+    expectMatches(scriptWordSchema, gone, 'mock script word unflag');
+    if (other.word !== gone.word) expect(gone).toMatchObject({ status: 'not_flagged', say: '', source: '', flags: [] });
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, first } = await firstLines();
+    await expect(api.scriptPrepSetChapter('no-such-chapter', 'prepped')).rejects.toThrow('not in the manuscript');
+    await expect(api.scriptWordFlag('no-such-chapter', first.id, 0, 3)).rejects.toThrow('not in the manuscript');
+    await expect(api.scriptWordFlag(otherId, first.id, 0, 3)).rejects.toThrow('not in this chapter');
+    await expect(api.scriptWordFlag(chapterId, first.id, 3, 3)).rejects.toThrow('choose a word');
+    await expect(api.scriptWordFlag(chapterId, first.id, 0, first.text.length + 1)).rejects.toThrow('not in the line');
+    await expect(api.scriptWordSay('never-flagged', 'x', '')).rejects.toThrow('flag the word');
+    await expect(api.scriptWordUnflag('no-such-flag')).rejects.toThrow('no longer there');
+    await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text));
+    const word = first.text.slice(0, firstWord(first.text));
+    await expect(api.scriptWordSay(word, 'a\nb', '')).rejects.toThrow('one line');
+    await expect(api.scriptWordSay(word, 'a\u0000b', '')).rejects.toThrow('one line');
+    await expect(api.scriptWordSay(word, 'x'.repeat(201), '')).rejects.toThrow('at most 200');
+    await expect(api.scriptWordSay(word, 'x', 'made-up')).rejects.toThrow('not one of yours');
+    const listed = await api.scriptPrepList();
+    expect(listed.words.map((entry) => entry.status)).toEqual(['not_set']);
+    expect(listed.chapters.every((chapter) => chapter.state === 'none')).toBe(true);
+  });
+
+  it('the schemas read the goldens and refuse an unknown state, status, stale reason or key', () => {
+    const list = parseWire(scriptPrepSchema, readGolden('script-prep-list.json'), ctx('script prep list'));
+    expect(list.chapters.map((chapter) => chapter.state)).toEqual(['progress', 'none']);
+    expect(list.words.map((word) => word.status)).toEqual(['set', 'not_set', 'not_set']);
+    expect(list.words.map((word) => word.flags[0]?.staleReason ?? null)).toEqual([null, 'text_changed', null]);
+    const chapter = parseWire(scriptPrepChapterSchema, readGolden('script-prep-chapter.json'), ctx('script prep chapter'));
+    const word = parseWire(scriptWordSchema, readGolden('script-prep-word.json'), ctx('script prep word'));
+    expect(word).toMatchObject({ word: 'queen', say: 'kween', source: 'cmu', status: 'set' });
+    const flag = word.flags[0];
+    expect(scriptPrepChapterSchema.safeParse({ ...chapter, state: 'done' }).success).toBe(false);
+    expect(scriptPrepChapterSchema.safeParse({ ...chapter, extra: true }).success).toBe(false);
+    expect(scriptWordSchema.safeParse({ ...word, status: 'maybe' }).success).toBe(false);
+    expect(scriptWordSchema.safeParse({ ...word, path: '/etc/passwd' }).success).toBe(false);
+    expect(scriptWordSchema.safeParse({ ...word, status: 'not_set' }).success).toBe(false);
+    expect(scriptWordSchema.safeParse({ ...word, source: '' }).success).toBe(false);
+    expect(scriptWordSchema.safeParse({ ...word, status: 'not_flagged' }).success).toBe(false);
+    expect(scriptWordSchema.safeParse({ word: 'queen', say: '', source: '', status: 'not_flagged', flags: [] }).success).toBe(true);
+    expect(scriptWordFlagSchema.safeParse({ ...flag, staleReason: 'moved' }).success).toBe(false);
+    expect(scriptWordFlagSchema.safeParse({ ...flag, start: 9, end: 2 }).success).toBe(false);
+    expect(scriptPrepSchema.safeParse({ ...list, extra: [] }).success).toBe(false);
   });
 });

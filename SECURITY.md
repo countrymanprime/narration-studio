@@ -72,6 +72,11 @@ especially welcome:
   else, that puts markup into the page, that is used without being validated, a mark moved to a guessed place instead of reported
   stale, or the import of the reader's notes changing or deleting the old notes file, is in scope; one that only changes the
   narrator's own marks and types is the documented residual risk (threat model row 6y).
+- The Script page's chapter prep states and flagged words (`narration-utils/script-prep.json` in the project,
+  [ADR 0849](docs/adr/0849-script-prep-states-and-flagged-words-are-kept-in-a-project-sidecar-keyed-by-word-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
+  a file, a word, a say-value or a source id that makes the app run, open, fetch or write anything else, that puts markup into the
+  page, that is used without being validated, or a flag moved to a guessed place instead of reported stale, is in scope; one that
+  only changes the narrator's own prep states, flags and say-values is the documented residual risk (threat model row 6za).
 - The narrator's calls on recording-check gaps (`narration-utils/coverage/gap-reviews.json` in the project,
   [ADR 0842](docs/adr/0842-accepting-a-recording-check-gap-writes-one-note-and-ignoring-one-is-remembered-in-a-small-review-file.md)):
   a file or an id that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
