@@ -206,5 +206,5 @@ run('node', ['scripts/ci/docs-impact.mjs']);
 run('node', ['scripts/ci/docs-slop.mjs']);
 run('node', ['scripts/ci/docs-references.mjs', '--strict']);
 run('pnpm', ['exec', 'nx', 'run-many', '-t', 'lint', 'format', 'architecture', 'knip', 'test', 'test-node', 'build', '--skip-nx-cache', '--parallel=1', '--nx-bail', '--output-style=stream']);
-// Last: record that the full gate passed on this exact tree, so the Stop hook (scripts/ci/gate-stamp.mjs) lets the session end.
+// Last: record that the full gate passed on this exact tree (scripts/ci/gate-stamp.mjs). Nothing blocks on it; it is a record.
 run('node', ['scripts/ci/gate-stamp.mjs', 'record']);
