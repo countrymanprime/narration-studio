@@ -3,6 +3,7 @@ package teleprompter
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -137,5 +138,72 @@ func TestResolveWordTimeSortsUnsortedInput(t *testing.T) {
 	position, source, ok := ResolveWordTime([]Anchor{{Word: 9, Position: 4.5}, {Word: 3, Position: 1.5}}, 6)
 	if !ok || source != SourceAnchor || position != 3.0 {
 		t.Fatalf("ResolveWordTime = %v, %q, %v", position, source, ok)
+	}
+}
+
+func TestAnchorsForAChapterIDWithOddCharactersUseAHashedFileName(t *testing.T) {
+	const chapterID = "../escape/chapter 1"
+	name := anchorsFileName(chapterID)
+	if !strings.HasPrefix(name, "id-") || !strings.HasSuffix(name, ".anchors.json") || strings.ContainsAny(name, `/\`) {
+		t.Fatalf("anchorsFileName(%q) = %q, want a hashed name that cannot name a path", chapterID, name)
+	}
+	if name == anchorsFileName("../escape/chapter 2") {
+		t.Fatal("two different chapter ids must not share an anchors file")
+	}
+
+	project := t.TempDir()
+	if err := AppendAnchor(project, chapterID, Anchor{Word: 3, Position: 1.5}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadAnchors(project, chapterID)
+	if err != nil || len(got) != 1 || got[0] != (Anchor{Word: 3, Position: 1.5}) {
+		t.Fatalf("LoadAnchors = %+v, %v; want the one anchor back", got, err)
+	}
+	if _, err := os.Stat(filepath.Join(AnchorsDir(project), name)); err != nil {
+		t.Fatalf("the anchors file is not at the hashed name: %v", err)
+	}
+}
+
+func TestAppendAnchorWithoutAProjectFails(t *testing.T) {
+	if err := AppendAnchor("", "c1", Anchor{Word: 1, Position: 1}); err == nil {
+		t.Fatal("AppendAnchor with no project: want an error, got nil")
+	}
+}
+
+func TestAnchorsReportAFileTheyCannotRead(t *testing.T) {
+	project := t.TempDir()
+	// A folder where the anchors file belongs: present, but not readable as a file.
+	if err := os.MkdirAll(filepath.Join(AnchorsDir(project), anchorsFileName("c1")), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadAnchors(project, "c1"); err == nil {
+		t.Fatal("LoadAnchors on an unreadable anchors file: want an error, got nil")
+	}
+	if err := AppendAnchor(project, "c1", Anchor{Word: 1, Position: 1}); err == nil {
+		t.Fatal("AppendAnchor on an unreadable anchors file: want an error, got nil")
+	}
+	if err := DropAnchorsFrom(project, "c1", 0); err == nil {
+		t.Fatal("DropAnchorsFrom on an unreadable anchors file: want an error, got nil")
+	}
+}
+
+func TestAppendAnchorReportsAFolderItCannotCreate(t *testing.T) {
+	notAFolder := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(notAFolder, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := AppendAnchor(notAFolder, "c1", Anchor{Word: 1, Position: 1}); err == nil {
+		t.Fatal("AppendAnchor under a project that is a file: want an error, got nil")
+	}
+}
+
+func TestAppendAnchorReportsATemporaryFileItCannotWrite(t *testing.T) {
+	project := t.TempDir()
+	// A folder where the temporary file goes makes writing it fail.
+	if err := os.MkdirAll(filepath.Join(AnchorsDir(project), anchorsFileName("c1")+".tmp"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := AppendAnchor(project, "c1", Anchor{Word: 1, Position: 1}); err == nil {
+		t.Fatal("AppendAnchor with a folder in the temporary file's place: want an error, got nil")
 	}
 }

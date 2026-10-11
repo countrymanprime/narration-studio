@@ -607,3 +607,28 @@ func TestSliceFeaturesOnAnEmptyListIsEmpty(t *testing.T) {
 		t.Fatalf("got %#v, want empty", got)
 	}
 }
+
+// --- Write failures: a plain file stands where the store needs a folder ---
+
+func TestWriteReportsACacheFolderItCannotCreate(t *testing.T) {
+	notAFolder := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(notAFolder, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store := NewCacheStore(filepath.Join(notAFolder, "cache"))
+	if err := store.Write(baseCacheKey(), []byte("blob")); err == nil {
+		t.Fatal("Write under a path that is a file: want an error, got nil")
+	}
+}
+
+func TestWriteReportsAnEntryFileItCannotWrite(t *testing.T) {
+	store := NewCacheStore(t.TempDir())
+	key := baseCacheKey()
+	// A folder where the temporary entry file goes makes writing it fail.
+	if err := os.MkdirAll(store.entryPath(key)+".tmp", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Write(key, []byte("blob")); err == nil {
+		t.Fatal("Write with a folder in the temporary file's place: want an error, got nil")
+	}
+}

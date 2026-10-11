@@ -82,3 +82,15 @@ func TestPortablePathsReportsAValueThatCannotBeEncoded(t *testing.T) {
 		t.Fatal("expected an error")
 	}
 }
+
+func TestPortablePathsLeavesNonStringValuesAlone(t *testing.T) {
+	value := map[string]any{"count": 3, "ok": true, "missing": nil, "ratio": 0.5}
+	got, err := PortablePaths(value, filepath.Join(t.TempDir(), "Alice"), "C:/Projects/Alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{"count": float64(3), "ok": true, "missing": nil, "ratio": 0.5}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("PortablePaths = %#v, want %#v", got, want)
+	}
+}
