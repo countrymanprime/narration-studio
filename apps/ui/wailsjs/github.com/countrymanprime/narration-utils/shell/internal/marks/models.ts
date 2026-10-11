@@ -45,3 +45,36 @@ export class MarkType {
         return new MarkType($$parsedSource as Partial<MarkType>);
     }
 }
+
+/**
+ * Message is one message in a mark's thread: who wrote it (one of Authors), its plain text, and the host's UTC time it was
+ * written, as RFC 3339.
+ */
+export class Message {
+    "who": string;
+    "text": string;
+    "at": string;
+
+    /** Creates a new Message instance. */
+    constructor($$source: Partial<Message> = {}) {
+        if (!("who" in $$source)) {
+            this["who"] = "";
+        }
+        if (!("text" in $$source)) {
+            this["text"] = "";
+        }
+        if (!("at" in $$source)) {
+            this["at"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Message instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Message {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Message($$parsedSource as Partial<Message>);
+    }
+}

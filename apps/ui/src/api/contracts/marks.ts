@@ -25,8 +25,13 @@ export type MarkType = {
 
 export type MarkStaleReason = 'paragraph_missing' | 'range_out_of_range' | 'text_changed';
 
-/** One reply in a mark's thread. Every thread is empty until the threads slice writes them. */
-export type MarkMessage = { who: 'you' | 'author' | 'proofer'; text: string; at: string };
+/** Who can write in a mark's thread: the narrator, the author or the proofer. */
+export const MARK_THREAD_AUTHORS = ['you', 'author', 'proofer'] as const;
+export type MarkThreadAuthor = (typeof MARK_THREAD_AUTHORS)[number];
+
+/** One message in a mark's thread, after the mark's own text (the narrator's opening message). Plain text within
+ * `MARK_TEXT_MAX`, never empty; `at` is the host's UTC time it was written, as RFC 3339. */
+export type ThreadMessage = { who: MarkThreadAuthor; text: string; at: string };
 
 export type Mark = {
   id: string;
@@ -46,10 +51,16 @@ export type Mark = {
   text: string;
   /** An asking mark's state; a note has none. */
   status?: 'open' | 'resolved';
-  thread: MarkMessage[];
+  thread: ThreadMessage[];
   createdAt: string;
   stale: boolean;
   staleReason?: MarkStaleReason;
+};
+
+/** What a message delete answers: the mark as it now is, and the message removed, for `marksRestoreMessage`. */
+export type MarkThreadDeleted = {
+  mark: Mark;
+  message: ThreadMessage;
 };
 
 /** The types in the narrator's order and the marks in reading order (a mark whose line is gone goes last). */
@@ -70,4 +81,16 @@ export interface MarksApi {
   /** Replaces the types, in order; at least one is kept. Removing a type that marks use is refused with the count unless
    * `removeUses` is set, which removes those marks too. A type that now asks opens its marks. */
   marksSaveTypes(types: MarkType[], removeUses: boolean): Promise<Marks>;
+  /** Adds a message to the end of a mark's thread, stamped with the host's time; an empty reply is refused. Its inverse is
+   * deleting the last message. */
+  marksReply(id: string, who: MarkThreadAuthor, text: string): Promise<Mark>;
+  /** Replaces the text of the thread's message at `index`, keeping who wrote it and when. Its inverse is an edit back. */
+  marksEditMessage(id: string, index: number, text: string): Promise<Mark>;
+  /** Removes the thread's message at `index` and answers it with the mark. Its inverse is `marksRestoreMessage` at the same
+   * index. */
+  marksDeleteMessage(id: string, index: number): Promise<MarkThreadDeleted>;
+  /** Puts a deleted message back at `index`, from 0 to the thread's length; another index is refused. */
+  marksRestoreMessage(id: string, index: number, message: ThreadMessage): Promise<Mark>;
+  /** Resolves or reopens a question; a mark whose type does not ask refuses. Each is the other's inverse. */
+  marksSetStatus(id: string, status: 'open' | 'resolved'): Promise<Mark>;
 }
