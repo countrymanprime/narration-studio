@@ -33,6 +33,7 @@ import { createCleanupActionMock } from './cleanupActionMock';
 import { createPrepMarkupMock } from './prepMarkupMock';
 import { createBookmarksMock } from './bookmarksMock';
 import { createEditLogMock } from './editLogMock';
+import { createMarksMock } from './marksMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
 import { createUpdateMock } from './mockHost/update';
@@ -272,6 +273,11 @@ export function createMockApi(
       () => s.paragraphs,
     ),
     ...createEditLogMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
+    ...createMarksMock(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,

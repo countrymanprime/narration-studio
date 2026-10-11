@@ -985,6 +985,47 @@ describe('the accepted words bindings', () => {
   });
 });
 
+describe('the marks bindings', () => {
+  const type = { key: 'ask', name: 'Query for author', colour: 'warn', style: 'highlight', asks: true } as const;
+  const mark = {
+    id: 'm1',
+    chapterId: 'c-0001',
+    paragraphId: 'p-000001',
+    paragraph: 0,
+    start: 21,
+    end: 30,
+    quote: 'the Queen',
+    type: 'ask',
+    text: 'Shrill?',
+    status: 'open',
+    thread: [],
+    createdAt: '2026-10-11T10:00:00Z',
+    stale: false,
+  };
+  const marks = { types: [type], marks: [mark] };
+
+  it('calls the four host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(marks));
+    const add = vi.fn().mockResolvedValue(JSON.stringify(mark));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ types: [type], marks: [] }));
+    const saveTypes = vi.fn().mockResolvedValue(JSON.stringify(marks));
+    standInHost({ MarksList: list, MarksAdd: add, MarksRemove: remove, MarksSaveTypes: saveTypes });
+
+    await expect(wailsClient.marksList()).resolves.toEqual(marks);
+    await expect(wailsClient.marksAdd('c-0001', 'p-000001', 21, 30, 'ask', 'Shrill?')).resolves.toEqual(mark);
+    expect(add).toHaveBeenCalledWith('c-0001', 'p-000001', 21, 30, 'ask', 'Shrill?');
+    await expect(wailsClient.marksRemove('m1')).resolves.toMatchObject({ marks: [] });
+    expect(remove).toHaveBeenCalledWith('m1');
+    await expect(wailsClient.marksSaveTypes([type], true)).resolves.toEqual(marks);
+    expect(saveTypes).toHaveBeenCalledWith([type], true);
+  });
+
+  it('refuses an answer its schema does not accept', async () => {
+    standInHost({ MarksList: () => Promise.resolve(JSON.stringify({ ...marks, types: [{ ...type, colour: 'pink' }] })) });
+    await expect(wailsClient.marksList()).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 // Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {

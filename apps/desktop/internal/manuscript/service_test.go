@@ -16,6 +16,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 	"github.com/countrymanprime/narration-utils/shell/internal/importer"
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-utils/shell/internal/marks"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
@@ -728,5 +729,53 @@ func TestReplaceAndClearRemoveTheAcceptedWordsFile(t *testing.T) {
 	}
 	if _, err := os.Stat(editlog.AcceptedFile(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the accepted words behind: %v", err)
+	}
+}
+
+// Marks name chapter and line ids and UTF-16 ranges in them, so a confirmed replace and Clear project data remove the file;
+// an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheMarksFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeMarks := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(marks.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(marks.File(project), []byte(`{"schemaVersion":1,"migratedNotes":true,"types":[],"marks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeMarks()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(marks.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the marks: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(marks.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the marks behind: %v", err)
+	}
+	writeMarks()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marks.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the marks behind: %v", err)
 	}
 }
