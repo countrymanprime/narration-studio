@@ -80,6 +80,29 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 5. documentation;
 6. filler from the older PRDs.
 
+## Safety net
+
+Nobody watches the train live, so these checks run without a person and none of them relies on a worker's own report. Each one closes a failure the train has had or the [research behind it](../adr/0758-the-agent-train-is-watched-from-outside-and-gated-by-checks-a-worker-cannot-edit.md) found: a stopped coordinator that nobody noticed for eleven days, regressions that sit on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
+
+| Check | Where | What it does |
+| --- | --- | --- |
+| **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on #510 once per stall when #509's `Last pass:` line is more than two hours old and `HOLD` is not ticked |
+| **Main health** | `.github/workflows/main-health.yml` | Nightly. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on #509 and says why. The owner or the coordinator clears it once `main` is green |
+| **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Fails a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`. The owner clears a deliberate change with the `ratchet-approved` label. Runs the base branch's copy of the script |
+| **PR risk** | `.github/workflows/pr-risk.yml`, `scripts/ci/pr-risk.mjs` | Labels a PR `risk:high` when it touches a trust boundary or a file that decides what runs unattended: the workflows, agent config, the threat model, the REAPER bridge, the update and sidecar launch, the release scripts, the pinned toolchain and lockfiles, and these checks. Runs the base branch's copy of the script |
+| **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
+| **Launch limit** | the coordinator, below | Stops a stream that keeps being relaunched without delivering |
+
+**Intent review.** Before merging a PR that passes the other conditions in step 4, start one reviewer session for it: `create_session` on Sonnet with `tags: ["agent-train", "intent-review"]`, `title` `"review #<n>"` and a prompt that names the PR, its head SHA and its tracking issue or PRD phase, and says to run the `intent-reviewer` agent in a fresh context, not to edit anything, and to comment on the PR either `Intent review: pass at <sha>` or a list of findings, each starting with 🔴. Pass the agent the branch and the issue, not the worker's account of what it built. The review counts toward `TARGET` while it runs. Merge only on a `pass` for the PR's current head; a push after the pass needs a new review.
+
+**A `risk:high` PR.** Do not merge it. Comment on #510 with the PR number, its head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head or by replying `approved #<n> <sha>` on #510. A push after that approval needs a new one.
+
+**A failed ratchet.** Do not merge it and do not add the label yourself. Comment on #510 with the violations the check printed. Only the owner adds `ratchet-approved`.
+
+**The launch limit.** The Launches table in #509's body has one row per stream: ID, PRD phases, launches, last launch, PRs merged. A stream's count goes up on every `create_session` for it, resumes and fixers included. At three launches with no PR of the stream merged, mark the stream **blocked**: do not launch it again, comment on #510 with its Resume notes and the last failure, and take the next stream in priority order. The owner unblocks it by resetting its count on #509. A stream that merges a PR resets its own count to zero.
+
+**Permissions.** `.claude/settings.json` denies `git push origin main` and `git push origin HEAD:main`, so a worker cannot push to `main` even where a ruleset would let its token. Merging goes through the coordinator's `merge_pull_request`, never `git`.
+
 ## Lanes
 
 A lane is a territory of files. Two workers may share a lane only when the PRDs' Parallel-session tables show their phases touch disjoint files. D48 on #509 records the check: verify file by file before pairing.
@@ -196,7 +219,10 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Links (offline)` instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
-   - a UI PR carries its Screenshots section ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). There is no match % bar to check (D97).
+   - a UI PR carries its Screenshots section ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). There is no match % bar to check (D97);
+   - the `Test ratchet` check succeeded on the head ([Safety net](#safety-net));
+   - it has no `risk:high` label, or the owner has approved it on #510 for the current head ([Safety net](#safety-net));
+   - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
    - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, ADR or PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
@@ -210,15 +236,16 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
       - its Parallel-session row collides with no running stream's files;
       - its PRD is in the [queue](#queue) at or above the current wave.
    2. **Group phases into streams** of 1–3 consecutive phases of one PRD in one lane. Phases that each need their own worker (marked parallel in the PRD) become separate streams.
-   3. **Launch in priority order** until running = `TARGET`. Keep Opus workers ≤ `MAX_OPUS_WORKERS`. Use `create_session` with:
+   3. **Launch in priority order** until running = `TARGET`. Keep Opus workers ≤ `MAX_OPUS_WORKERS`. Skip a stream that has hit the [launch limit](#safety-net). Use `create_session` with:
       - `source_url` `https://github.com/countrymanprime/narration-utils`;
       - `permission_mode` `"auto"`;
       - a model from the lane table: Sonnet by default, Opus only for lane K, lane X, new Lua commands and semantic fixers, Haiku for bookkeeping;
       - `title` `"<ID> <scope>"` and `tags` `["agent-train", "lane-<L>"]`;
       - the [worker template](#worker-template) as the prompt. Use the resume template for a paused stream.
-   4. **Record each launch on #509:** ID, lane, session id, PRD phases and model.
+   4. **Record each launch on #509:** ID, lane, session id, PRD phases and model, and add one to that stream's count in the Launches table.
 6. **Housekeeping.**
-   - Rewrite #509's body only when something changed, with one log line per event: started, merged, paused, resumed, blocked, band change, `TARGET` change.
+   - **Last, on every pass, even one that did nothing else,** set the `Last pass: <UTC time, ISO 8601>` line in #509's body. The [train health check](#safety-net) warns the owner when it goes more than two hours stale.
+   - Rewrite the rest of #509's body only when something changed, with one log line per event: started, merged, paused, resumed, blocked, band change, `TARGET` change.
    - On the first pass after 09:00 America/New_York, post one short comment on #509: merged, in flight, paused, blocked, band, `TARGET`.
    - End every comment with a blank line, `---`, then `_Generated by [Claude Code](https://claude.ai/code)_`.
 
