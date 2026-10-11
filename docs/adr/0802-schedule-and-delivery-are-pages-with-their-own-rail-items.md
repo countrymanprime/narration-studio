@@ -1,6 +1,6 @@
 # 0802. Schedule and Delivery are pages with their own rail items
 
-**Status:** Proposed (register row DQ-14, owner ruling SN0-Q6 and ADR row A13 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; register row DQ-14, owner ruling SN0-Q6 and ADR row A13 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** decision 5 of [ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md). Decision 1 of [ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) is kept (DQ-2).
 

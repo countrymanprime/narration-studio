@@ -1,6 +1,6 @@
 # 0715. Proof's book-level waveform card belongs to the chapter its selector names
 
-**Status:** Accepted (the owner's 2026-09-29 ruling on ADRs 0651 and 0652; stream N-B59 on [#509](https://github.com/countrymanprime/narration-utils/issues/509)); its default chapter, empty state and table filter are superseded by [ADR 0750](0750-proofs-waveform-card-opens-on-the-last-chapter-looked-at-draws-a-placeholder-without-a-recording-and-filters-the-notes.md)
+**Status:** Accepted (the owner's 2026-09-29 ruling on ADRs 0651 and 0652; stream N-B59 on [#509](https://github.com/countrymanprime/narration-utils/issues/509)); its default chapter, empty state and table filter are superseded by [ADR 0750](0750-proofs-waveform-card-opens-on-the-last-chapter-looked-at-draws-a-placeholder-without-a-recording-and-filters-the-notes.md); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock
 **Date:** 2026-09-29
 **Supersedes:** [ADR 0651](0651-proofs-book-level-draws-no-waveform-header-because-its-notes-span-more-than-one-chapter.md) and [ADR 0652](0652-a-book-level-waveform-and-a-denser-notes-list-measurably-lower-mock-04s-score-so-adr-0651-stands.md), both Rejected by the owner.
 

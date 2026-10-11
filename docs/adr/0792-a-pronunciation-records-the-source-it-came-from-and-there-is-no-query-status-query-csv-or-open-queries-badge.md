@@ -1,6 +1,6 @@
 # 0792. A pronunciation records the source it came from, and there is no query status, query CSV or open-queries badge
 
-**Status:** Proposed (register row DQ-11 and ADR row A11 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; register row DQ-11 and ADR row A11 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** [ADR 0346](0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md), [ADR 0347](0347-the-pronunciation-query-export-is-csv-with-its-ids-last-and-a-formula-guard-and-is-a-download.md), [ADR 0352](0352-a-re-imported-query-answer-is-matched-by-entry-id-and-alias-index-and-a-blank-note-column-leaves-the-note-alone.md) and [ADR 0725](0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md), to the extent the register states: the query status, the query CSV export and import, and the rail badge that counts open queries.
 

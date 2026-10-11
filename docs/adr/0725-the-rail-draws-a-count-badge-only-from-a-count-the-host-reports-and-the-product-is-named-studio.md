@@ -1,6 +1,6 @@
 # 0725. The rail draws a count badge only from a count the host reports, and the product is named Studio
 
-**Status:** Accepted (owner ruling 2026-09-29 on the brand name; stream N-B61 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Accepted (owner ruling 2026-09-29 on the brand name; stream N-B61 on [#509](https://github.com/countrymanprime/narration-utils/issues/509); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock; its count badge for open pronunciation queries is superseded by [ADR 0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md))
 **Date:** 2026-09-29
 
 ## Context

@@ -1,6 +1,6 @@
 # 0770. The UI store caches host reads and journals commands, and the Go host stays the source of truth
 
-**Status:** Proposed (owner rulings SN0-Q3 and SNS-Q2 of 2026-10-11, register rows A5 and A17; SNS-Q2 was taken as the default under the standing instruction, for acceptance on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; owner rulings SN0-Q3 and SNS-Q2 of 2026-10-11, register rows A5 and A17; SNS-Q2 was taken as the default under the standing instruction)
 **Date:** 2026-10-11
 **Supersedes:** none. It keeps [ADR 0041](0041-host-bindings-read-project-services-through-one-snapshot-accessor.md) and [ADR 0069](0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md)
 

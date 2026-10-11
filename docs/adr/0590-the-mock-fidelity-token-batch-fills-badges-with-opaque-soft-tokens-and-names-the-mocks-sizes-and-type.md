@@ -1,6 +1,6 @@
 # 0590. The mock fidelity token batch fills badges with opaque soft tokens and names the mocks' sizes and type
 
-**Status:** Proposed (the first batch of the mock-fidelity work, on [#509](https://github.com/countrymanprime/narration-utils/issues/509); its badge-fill and booth-surface recommendations were taken without waiting for an answer and are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510))
+**Status:** Proposed (the first batch of the mock-fidelity work, on [#509](https://github.com/countrymanprime/narration-utils/issues/509); its badge-fill and booth-surface recommendations were taken without waiting for an answer and are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Supersedes:** [ADR 0362](0362-studio-token-batch-aliases-meter-and-badge-colours-and-a-minimal-booth-override.md)'s badge-fill clause only (its meter aliases and the `experimental` tone stand)
 

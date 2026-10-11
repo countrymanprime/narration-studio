@@ -1,6 +1,6 @@
 # 0804. The Editing page replaces the workspace in Proof in one change
 
-**Status:** Proposed (owner ruling SN0-Q2 and ADR row A15 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; owner ruling SN0-Q2 and ADR row A15 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** none. [ADR 0407](0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) decision 1 is kept (DQ-2) and [ADR 0470](0470-proof-follows-mock-04-pickup-edit-waived-are-words-over-the-stored-status-and-the-chapter-view-leads-with-its-notes.md) is extended.
 

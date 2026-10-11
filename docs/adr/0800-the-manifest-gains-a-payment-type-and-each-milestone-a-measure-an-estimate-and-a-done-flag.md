@@ -1,6 +1,6 @@
 # 0800. The manifest gains a payment type, and each milestone a measure, an estimate and a done flag
 
-**Status:** Proposed (ADR row A12 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; ADR row A12 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** none. It extends [ADR 0323](0323-production-deadlines-and-milestones-are-calendar-dates-on-the-project-manifest.md). [ADR 0320](0320-pfh-and-the-effective-rate-come-only-from-logged-hours-and-measured-recorded-time.md) is kept untouched (register row DQ-3).
 

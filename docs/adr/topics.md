@@ -84,9 +84,9 @@ What crosses between Go, Python, Lua and the UI is validated where it crosses; b
 | [0069](0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) | Payloads are validated with Zod behind `parseWire`, and a wrong shape fails loudly | Accepted |
 | [0120](0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md) | Findings are read and decided through four generic bindings, and a decision carries the evidence version it was made against | Proposed |
 | [0143](0143-the-review-workflow-calls-a-daw-through-dawadapter-and-the-event-vocabulary-is-part-of-the-contract.md) | The review workflow calls a DAW through `dawadapter.Review`, and the event vocabulary is part of the contract | Proposed |
-| [0770](0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) | The UI store caches host reads and journals commands, and the Go host stays the source of truth | Proposed |
-| [0771](0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md) | Undo is one in-memory journal that refuses with a reason and reaches the DAW only for its last action | Proposed |
-| [0810](0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md) | A DAW call answers one result object, and a capability reports whether it is destructive and its mode | Proposed |
+| [0770](0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) | The UI store caches host reads and journals commands, and the Go host stays the source of truth | Accepted |
+| [0771](0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md) | Undo is one in-memory journal that refuses with a reason and reaches the DAW only for its last action | Accepted |
+| [0810](0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md) | A DAW call answers one result object, and a capability reports whether it is destructive and its mode | Accepted |
 
 <a id="accessibility-and-interaction"></a>
 
@@ -194,8 +194,8 @@ Small interfaces with registries and capability descriptors for engines and prov
 | [0361](0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) | App commands go through one registry, and keyboard, MIDI and HID are input sources bound by a remappable keymap | Accepted |
 | [0402](0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md) | CoreAudio capture is a PyAV `avfoundation` sidecar backend, addressed by device name | Superseded |
 | [0403](0403-the-capabilities-flag-reports-what-registered-not-what-loads.md) | The `--capabilities` flag reports what registered, not what loads, by default | Accepted |
-| [0780](0780-the-jump-menu-context-menus-and-help-are-derived-from-the-static-command-catalogue-and-dynamic-commands-come-from-providers.md) | The jump menu, context menus and help are derived from the static command catalogue, and dynamic commands come from providers | Proposed |
-| [0791](0791-record-arms-only-the-chapters-track-and-starts-at-the-end-of-its-last-item-and-a-failed-precondition-shows-the-capabilitys-refusal-reason.md) | Record arms only the chapter's track and starts at the end of its last item, and a failed precondition shows the capability's refusal reason | Proposed |
+| [0780](0780-the-jump-menu-context-menus-and-help-are-derived-from-the-static-command-catalogue-and-dynamic-commands-come-from-providers.md) | The jump menu, context menus and help are derived from the static command catalogue, and dynamic commands come from providers | Accepted |
+| [0791](0791-record-arms-only-the-chapters-track-and-starts-at-the-end-of-its-last-item-and-a-failed-precondition-shows-the-capabilitys-refusal-reason.md) | Record arms only the chapter's track and starts at the end of its last item, and a failed precondition shows the capability's refusal reason | Accepted |
 
 <a id="daw-integration"></a>
 
@@ -284,10 +284,10 @@ Measurement, delivery profiles and findings, mastering, encoding and export, and
 | [0440](0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md) | Master & QC's platform tabs are the project's delivery profile, and the page draws only what the host measures | Proposed |
 | [0480](0480-multi-platform-export-is-a-separate-checkbox-list-encoding-once-per-differing-format-built-sequentially.md) | Multi-platform export is a separate checkbox list, encoding once per differing format, built sequentially | Proposed |
 | [0666](0666-the-book-consistency-band-draws-the-rule-s-bound-as-a-dashed-target-zone-with-one-accent-tick-per-file.md) | The book-consistency band draws the rule's bound as a dashed target zone, with one accent tick per file | Proposed |
-| [0781](0781-an-overlay-service-opens-dialogs-confirms-toasts-and-announcements-imperatively-and-renders-them-in-the-existing-primitives.md) | An overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the existing primitives | Proposed |
-| [0800](0800-the-manifest-gains-a-payment-type-and-each-milestone-a-measure-an-estimate-and-a-done-flag.md) | The manifest gains a payment type, and each milestone a measure, an estimate and a done flag | Proposed |
-| [0801](0801-the-plan-chart-and-deadline-tone-come-from-fixed-inputs-and-the-projection-can-only-worsen-the-tone.md) | The plan chart and deadline tone come from fixed inputs, and the projection can only worsen the tone | Proposed |
-| [0802](0802-schedule-and-delivery-are-pages-with-their-own-rail-items.md) | Schedule and Delivery are pages with their own rail items | Proposed |
+| [0781](0781-an-overlay-service-opens-dialogs-confirms-toasts-and-announcements-imperatively-and-renders-them-in-the-existing-primitives.md) | An overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the existing primitives | Accepted |
+| [0800](0800-the-manifest-gains-a-payment-type-and-each-milestone-a-measure-an-estimate-and-a-done-flag.md) | The manifest gains a payment type, and each milestone a measure, an estimate and a done flag | Accepted |
+| [0801](0801-the-plan-chart-and-deadline-tone-come-from-fixed-inputs-and-the-projection-can-only-worsen-the-tone.md) | The plan chart and deadline tone come from fixed inputs, and the projection can only worsen the tone | Accepted |
+| [0802](0802-schedule-and-delivery-are-pages-with-their-own-rail-items.md) | Schedule and Delivery are pages with their own rail items | Accepted |
 
 <a id="recording-check-and-takes"></a>
 
@@ -346,8 +346,8 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0550](0550-editings-render-source-is-a-second-whole-file-scan-the-narrator-picks-per-chapter-never-a-silent-replacement.md) | Editing's render source is a second, whole-file scan the narrator picks per chapter, never a silent replacement | Proposed |
 | [0575](0575-the-librivox-signal-set-is-a-second-click-evaluation-split-by-pause-that-reports-and-never-opens-the-gate-alone.md) | The LibriVox signal set is a second click evaluation, split by pause, that reports and never opens the gate alone | Proposed |
 | [0700](0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md) | The Takes panel lists a passage's takes from the saved project and chooses one by an id the host offered | Accepted |
-| [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Proposed |
-| [0804](0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) | The Editing page replaces the workspace in Proof in one change | Proposed |
+| [0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md) | Proof's percent is the cleared share of its notes, beside decided and cleared counters, and a note is open until fixed, waived or dismissed | Accepted |
+| [0804](0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) | The Editing page replaces the workspace in Proof in one change | Accepted |
 
 <a id="teleprompter-and-read-aloud"></a>
 
@@ -384,7 +384,7 @@ Live speech following, engines, the resume point, flags raised while reading, an
 | [0414](0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md) | The teleprompter default engine stays Whisper tiny until a real-time A/B evaluation runs | Proposed |
 | [0455](0455-the-built-in-recorder-records-each-take-to-a-partial-file-in-the-projects-recordings-folder-and-links-it-to-its-take-name.md) | The built-in recorder records each take to a partial file in the project's Recordings folder and links it to its take name | Proposed |
 | [0720](0720-the-booth-fills-the-whole-window-and-f11-takes-the-window-fullscreen.md) | The Booth fills the whole window and F11 takes the window fullscreen | Accepted |
-| [0790](0790-leaving-the-booth-while-recording-asks-to-stop-the-recording-the-app-started-and-a-reading-only-session-keeps-running.md) | Leaving the Booth while recording asks to stop the recording the app started, and a reading-only session keeps running | Proposed |
+| [0790](0790-leaving-the-booth-while-recording-asks-to-stop-the-recording-the-app-started-and-a-reading-only-session-keeps-running.md) | Leaving the Booth while recording asks to stop the recording the app started, and a reading-only session keeps running | Accepted |
 
 <a id="manuscript-import-and-story-bible"></a>
 
@@ -439,8 +439,8 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0568](0568-a-sibling-books-character-names-are-read-through-a-new-plain-never-quarantining-guide-readonlynames.md) | A sibling book's character names are read through a new, plain, never-quarantining `guide.ReadOnlyNames` | Accepted |
 | [0680](0680-the-story-bible-preview-speaks-a-chosen-pronunciation-through-pipers-raw-phoneme-block.md) | The Story Bible preview speaks a chosen pronunciation through Piper's raw-phoneme block | Accepted |
 | [0695](0695-alias-pronunciation-gets-the-entitys-own-control-and-a-default-source-only-reorders-the-automatic-fallback.md) | Alias pronunciation gets the entity's own control, and a default source only reorders the automatic fallback | Accepted |
-| [0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) | A pronunciation records the source it came from, and there is no query status, query CSV or open-queries badge | Proposed |
-| [0803](0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md) | An extraction suggestion at 75 percent or more is applied and flagged Review, and one under 75 percent needs verification | Proposed |
+| [0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) | A pronunciation records the source it came from, and there is no query status, query CSV or open-queries badge | Accepted |
+| [0803](0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md) | An extraction suggestion at 75 percent or more is applied and flagged Review, and one under 75 percent needs verification | Accepted |
 
 <a id="persistence-and-project-files"></a>
 
@@ -529,5 +529,5 @@ Primitives wrap vendor widgets, tokens, dialogs, tables, badges, buttons, themes
 | [0715](0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md) | Proof's book-level waveform card belongs to the chapter its selector names | Accepted |
 | [0725](0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | The rail draws a count badge only from a count the host reports, and the product is named Studio | Accepted |
 | [0750](0750-proofs-waveform-card-opens-on-the-last-chapter-looked-at-draws-a-placeholder-without-a-recording-and-filters-the-notes.md) | Proof's waveform card opens on the last chapter looked at, draws a placeholder without a recording, and filters the notes | Accepted |
-| [0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md) | The Studio Next mock is the only spec for every page it covers, tokens, primitive sizes and layouts included | Proposed |
-| [0761](0761-layout-rules-read-the-reported-width-the-icon-vocabulary-is-a-data-module-and-key-caps-are-pictures-in-a-new-keycap-leaf.md) | Layout rules read the reported width, the icon vocabulary is a data module, and key caps are pictures in a new KeyCap leaf | Proposed |
+| [0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md) | The Studio Next mock is the only spec for every page it covers, tokens, primitive sizes and layouts included | Accepted |
+| [0761](0761-layout-rules-read-the-reported-width-the-icon-vocabulary-is-a-data-module-and-key-caps-are-pictures-in-a-new-keycap-leaf.md) | Layout rules read the reported width, the icon vocabulary is a data module, and key caps are pictures in a new KeyCap leaf | Accepted |

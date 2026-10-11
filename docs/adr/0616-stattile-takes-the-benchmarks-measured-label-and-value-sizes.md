@@ -1,6 +1,6 @@
 # 0616. StatTile takes the benchmark's measured label and value sizes
 
-**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Supersedes:** none (first sizing decision recorded for `StatTile`; it previously shipped without one)
 

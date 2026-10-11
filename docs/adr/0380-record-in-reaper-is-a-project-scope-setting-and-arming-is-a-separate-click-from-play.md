@@ -1,6 +1,6 @@
 # 0380. Record in REAPER is a project-scope setting, and arming is a separate click from Play
 
-**Status:** Accepted
+**Status:** Accepted (its separate arming click is superseded by [ADR 0791](0791-record-arms-only-the-chapters-track-and-starts-at-the-end-of-its-last-item-and-a-failed-precondition-shows-the-capabilitys-refusal-reason.md))
 **Date:** 2026-09-27
 
 ## Context

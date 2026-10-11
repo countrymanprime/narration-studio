@@ -1,6 +1,6 @@
 # 0810. A DAW call answers one result object, and a capability reports whether it is destructive and its mode
 
-**Status:** Proposed (ADR row A7 in the [ADR register](../prds/studio-next-adr-register.prd.md); the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; ADR row A7 in the [ADR register](../prds/studio-next-adr-register.prd.md))
 **Date:** 2026-10-11
 **Supersedes:** none. It extends the wire shapes of [ADR 0302](0302-dawport-roles-exchange-the-bridges-own-types-through-aliases-and-an-asynchronous-role-is-one-method-per-command.md) and keeps [ADR 0300](0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md)'s port and resolver.
 

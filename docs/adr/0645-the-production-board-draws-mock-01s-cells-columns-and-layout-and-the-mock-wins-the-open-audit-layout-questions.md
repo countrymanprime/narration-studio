@@ -1,6 +1,6 @@
 # 0645. The Production board draws mock 01's cells, columns and layout, and the mock wins the open audit layout questions
 
-**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the answers below to the pace pill, the column order and Next up beside the board were taken without waiting for the owner and are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); the answers below to the pace pill, the column order and Next up beside the board were taken without waiting for the owner and are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Supersedes:** clause 2 of [ADR 0600](0600-every-pill-tag-and-status-dot-is-one-badge-primitive-with-a-pill-a-tag-and-a-booth-shape.md) (its three shapes) and, for the board cell only, its clause 6 (height is a minimum); StageGrid's 10 px cell side padding in [ADR 0605](0605-table-and-stage-grid-share-the-mocks-row-and-header-sizes-and-cells-sit-in-the-middle-of-the-row.md); the 16 px tile padding and the stacking below `sm` of [ADR 0615](0615-statstrip-is-a-new-primitive-drawing-the-benchmarks-one-card-kpi-row.md)
 

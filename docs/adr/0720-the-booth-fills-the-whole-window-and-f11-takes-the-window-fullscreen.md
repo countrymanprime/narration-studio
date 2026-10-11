@@ -1,6 +1,6 @@
 # 0720. The Booth fills the whole window and F11 takes the window fullscreen
 
-**Status:** Accepted (owner call BO2 on [#510](https://github.com/countrymanprime/narration-utils/issues/510), 2026-09-29)
+**Status:** Accepted (owner call BO2 on [#510](https://github.com/countrymanprime/narration-utils/issues/510), 2026-09-29; superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-29
 **Supersedes:** (none; it answers the open question BO2 left by [ADR 0388](0388-the-booth-is-a-page-keyed-by-its-address-and-only-exit-booth-stops-a-live-session.md))
 

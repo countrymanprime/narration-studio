@@ -71,7 +71,7 @@ Command: `grep -rn "PronunciationQueries\|pronunciationStatus\|QueryExport\|quer
 | Doc screenshot | `docs/images/ui/script-prep-rail-queries.webp` | Delete |
 | Utility page | `docs/utilities/manuscript-guide.md:45-49` (names both bindings, `hostAPIVersion` 70) | Rewrite |
 | Threat model | `docs/architecture/threat-model.md:169` (row 7c, the query CSV) | Delete the row |
-| ADRs | 0346, 0347, 0352, 0725 (Accepted) are superseded by 0792 (Proposed) to that extent; 0392 and 0605 mention the queries | ADR bookkeeping is SNB-8's (`adr-author`) |
+| ADRs | 0346, 0347, 0352, 0725 (Accepted) are superseded by 0792 (Accepted) to that extent; 0392 and 0605 mention the queries | ADR bookkeeping is SNB-8's (`adr-author`) |
 
 Outlives the swap, with the callers that keep it: `internal/guide/findings_adapter.go` (needs-review and low-confidence findings; reads `review_state` and confidence, not the query list), the sidecar `note` and `alternate` fields (`carry_pronunciation_work`, `set_pronunciation`), `pronunciationSourceLabel` (EntitySummary), and the online single-word lookup (`OnlinePronunciationLookup.tsx`, `PronunciationWork.tsx:85`).
 

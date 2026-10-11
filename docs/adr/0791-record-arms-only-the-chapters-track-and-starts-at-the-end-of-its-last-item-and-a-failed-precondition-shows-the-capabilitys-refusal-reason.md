@@ -1,6 +1,6 @@
 # 0791. Record arms only the chapter's track and starts at the end of its last item, and a failed precondition shows the capability's refusal reason
 
-**Status:** Proposed (register row DQ-5 in the [ADR register](../prds/studio-next-adr-register.prd.md), tagged A10 there; the owner accepts or rejects it on [#992](https://github.com/countrymanprime/narration-utils/issues/992))
+**Status:** Accepted (owner ruling 2026-10-11; register row DQ-5 in the [ADR register](../prds/studio-next-adr-register.prd.md), tagged A10 there)
 **Date:** 2026-10-11
 **Supersedes:** [ADR 0380](0380-record-in-reaper-is-a-project-scope-setting-and-arming-is-a-separate-click-from-play.md) to the extent of its separate arming click. [ADR 0232](0232-arming-for-a-recording-remembers-the-narrators-arms-makes-no-undo-point-and-the-app-stops-only-the-recording-it-started.md) and [ADR 0249](0249-read-aloud-asks-reaper-once-whether-the-chapters-linked-track-is-the-one-track-armed.md) stand except where the mock's Record differs.
 

@@ -1,6 +1,6 @@
 # 0525. Proofing is met by a current, zero-open pickup source and every required delivery check, confirmed through the shared stage engine with no proofing-specific confirm code
 
-**Status:** Proposed
+**Status:** Proposed (superseded in part by [ADR 0793](0793-proofs-percent-is-the-cleared-share-of-its-notes-beside-decided-and-cleared-counters-and-a-note-is-open-until-fixed-waived-or-dismissed.md), which sets Proof's percent as the cleared share of its notes)
 **Date:** 2026-09-28
 **Supersedes:** none
 

@@ -1,6 +1,6 @@
 # 0404. Production's "Next up" ranks chapters by held-back readiness, then stage, and the deadline is shown, not projected
 
-**Status:** Proposed
+**Status:** Proposed (its "the deadline is shown, not projected" part is superseded by [ADR 0801](0801-the-plan-chart-and-deadline-tone-come-from-fixed-inputs-and-the-projection-can-only-worsen-the-tone.md))
 **Date:** 2026-09-27
 
 ## Context

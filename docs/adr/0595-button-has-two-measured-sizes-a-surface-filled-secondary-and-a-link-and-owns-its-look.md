@@ -1,6 +1,6 @@
 # 0595. Button has two measured sizes, a surface-filled secondary and a link, and owns its look
 
-**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); its two choices, the benchmark mocks' 32 px over the dark sets' 38 px and a button no longer sharing a height with a text field, were taken without waiting for an answer and are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510))
+**Status:** Proposed (the mock-fidelity work on [#509](https://github.com/countrymanprime/narration-utils/issues/509); its two choices, the benchmark mocks' 32 px over the dark sets' 38 px and a button no longer sharing a height with a text field, were taken without waiting for an answer and are for the owner to confirm on [#510](https://github.com/countrymanprime/narration-utils/issues/510); superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
 **Date:** 2026-09-28
 **Supersedes:** nothing. [ADR 0053](0053-icon-buttons-text-fields-and-selects-wrap-the-native-controls.md) (IconButton is 32 px) stands: the mocks draw 32 px icon buttons.
 
