@@ -6,6 +6,7 @@ import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
+import type { WordFxRequest } from './contracts/wordFx';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
 // The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
@@ -13,6 +14,7 @@ import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
+import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
 import { extractionDecisionSchema, extractionSuggestionSchema, extractionSuggestionsSchema } from './schemas/extraction';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
@@ -3028,6 +3030,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingCutsList',
       'editingCutRecord',
       'editingCutRemove',
+      'editingWordFxList',
+      'editingWordFxRecord',
+      'editingWordFxRemove',
       'marksList',
       'marksAdd',
       'marksRemove',
@@ -4047,5 +4052,94 @@ describe('the extraction bindings', () => {
     await expect(api.extractionReview(id('"alias":"Rabbit"'))).rejects.toThrow('Nothing to review.');
     await expect(api.extractionReopen(id('"alias":"Rabbit"'))).rejects.toThrow('not decided');
     expect(await api.extractionList()).toEqual(before);
+  });
+});
+
+// The narrator's word effects (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the
+// host refuses, and the schemas refuse what the host never sends, a chain named by a path among them.
+describe('the word effects bindings', () => {
+  const firstLine = async () => {
+    const api = createMockApi();
+    const [chapter, other] = await api.manuscriptChapters();
+    const lines = await api.manuscriptParagraphs(chapter?.id ?? '');
+    const line = lines.find((paragraph) => paragraph.text.split(/\s+/).filter(Boolean).length >= 3);
+    return { api, chapterId: chapter?.id ?? '', otherId: other?.id ?? '', line: line ?? { id: '', text: '', index: 0 } };
+  };
+  const request = (pid: string, a: number, b: number): WordFxRequest => ({
+    pid,
+    takeId: 't-1',
+    keys: [`${pid}:1`, `${pid}:0`],
+    text: 'two words',
+    a,
+    b,
+    off0: 0,
+    off1: b - a,
+    chainId: 'Voice/Polish.RfxChain',
+    chainName: 'Voice polish (EQ, compressor, de-esser)',
+    source: 'Your REAPER FX chains',
+    fadeMs: 8,
+    daw: 'reaper',
+    guid: '{FX}',
+  });
+
+  it('the mock answers EditingWordFxList, Record and Remove through their schemas, in time order, and says what an effect is over', async () => {
+    const { api, chapterId, line } = await firstLine();
+    expectMatches(wordFxListSchema, await api.editingWordFxList(chapterId), 'mock word effects list (empty)');
+    expectMatches(wordFxChangeSchema, await api.editingWordFxRecord(chapterId, { ...request(line.id, 20, 21), keys: [`${line.id}:2`] }), 'mock record');
+    const recorded = await api.editingWordFxRecord(chapterId, request(line.id, 12, 13.5));
+    expectMatches(wordFxChangeSchema, recorded, 'mock record');
+    expect(recorded.changed).toEqual(['fx2']);
+    expect(recorded.over).toEqual([]);
+    expect(recorded.effects.map((fx) => fx.id)).toEqual(['fx2', 'fx1']);
+    expect(recorded.effects[0]).toMatchObject({
+      keys: [`${line.id}:0`, `${line.id}:1`],
+      words: line.text.split(/\s+/).filter(Boolean).slice(0, 2),
+      a: 12,
+      chainId: 'Voice/Polish.RfxChain',
+      stale: false,
+    });
+    const onTop = await api.editingWordFxRecord(chapterId, { ...request(line.id, 13, 13.5), keys: [`${line.id}:1`], chainId: 'Deesser.RfxChain' });
+    expect(onTop.changed).toEqual(['fx3']);
+    expect(onTop.over).toEqual(['fx2']);
+    const removed = await api.editingWordFxRemove(chapterId, 'fx3');
+    expectMatches(wordFxChangeSchema, removed, 'mock remove');
+    expect(removed.changed).toEqual(['fx3']);
+    expect((await api.editingWordFxRemove(chapterId, 'fx3')).changed).toEqual([]);
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId, otherId, line } = await firstLine();
+    const good = request(line.id, 12, 13);
+    await expect(api.editingWordFxRecord('no-such-chapter', good)).rejects.toThrow('not in the manuscript');
+    await expect(api.editingWordFxRecord(otherId, good)).rejects.toThrow('not in this chapter');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, keys: ['../../etc/passwd:0'] })).rejects.toThrow('more than one take');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, b: 12 })).rejects.toThrow('end after it starts');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, a: -1 })).rejects.toThrow('seconds from the start');
+    await expect(api.editingWordFxRecord(chapterId, { ...good, guid: '' })).rejects.toThrow('after the DAW added it');
+    for (const name of ['C:\\FXChains\\Polish.RfxChain', '/etc/passwd', '../Polish.RfxChain', 'Voice/../../x', ''])
+      await expect(api.editingWordFxRecord(chapterId, { ...good, chainId: name })).rejects.toThrow('not the name of an effect chain');
+    expect((await api.editingWordFxList(chapterId)).effects).toEqual([]);
+  });
+
+  it('the schemas read the goldens and refuse a negative time, an unknown key or a chain named by a path', () => {
+    const list = parseWire(wordFxListSchema, readGolden('edit-wordfx-list.json'), ctx('word effects list'));
+    expect(list.effects.map((fx) => [fx.id, fx.stale, fx.staleReason])).toEqual([
+      ['fx2', false, undefined],
+      ['fx3', false, undefined],
+      ['fx1', true, 'text_changed'],
+    ]);
+    const change = parseWire(wordFxChangeSchema, readGolden('edit-wordfx-record.json'), ctx('word effect record'));
+    expect(change.changed).toEqual(['fx3']);
+    expect(change.over).toEqual(['fx2']);
+    expect(parseWire(wordFxChangeSchema, readGolden('edit-wordfx-remove.json'), ctx('word effect remove')).changed).toEqual(['fx3']);
+    const fx = change.effects[0];
+    expect(wordFxSchema.safeParse({ ...fx, a: -1 }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, b: fx.a }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, chainId: 'C:\\FX\\Polish.RfxChain' }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, chainName: '../Polish' }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, path: '/etc/passwd' }).success).toBe(false);
+    expect(wordFxSchema.safeParse({ ...fx, words: [] }).success).toBe(false);
+    expect(wordFxChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+    expect(wordFxChangeSchema.safeParse({ chapterId: change.chapterId, effects: change.effects, changed: change.changed }).success).toBe(false);
   });
 });

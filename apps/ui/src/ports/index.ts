@@ -43,6 +43,7 @@ import type { EditLogApi } from '../api/contracts/editLog';
 import type { MarksApi } from '../api/contracts/marks';
 import type { ExtractionApi } from '../api/contracts/extraction';
 import type { EditCutsApi } from '../api/contracts/editCuts';
+import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
 import type { DawCapabilitiesApi } from '../api/contracts/daw';
@@ -108,6 +109,7 @@ export type {
   MarksApi,
   ExtractionApi,
   EditCutsApi,
+  EditWordFxApi,
   WorkspaceApi,
   PreviewApi,
   DawCapabilitiesApi,
@@ -169,6 +171,7 @@ export interface PortMap {
   marks: MarksApi;
   extraction: ExtractionApi;
   editCuts: EditCutsApi;
+  editWordFx: EditWordFxApi;
   workspace: WorkspaceApi;
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;

@@ -37,6 +37,7 @@ import { createEditLogMock } from './editLogMock';
 import { createMarksMock } from './marksMock';
 import { createExtractionMock } from './extractionMock';
 import { createEditCutsMock } from './editCutsMock';
+import { createWordFxMock } from './wordFxMock';
 import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
 import { createUpdateMock } from './mockHost/update';
@@ -287,6 +288,11 @@ export function createMockApi(
     ),
     ...createExtractionMock(),
     ...createEditCutsMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
+    ...createWordFxMock(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,

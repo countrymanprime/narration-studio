@@ -38,6 +38,7 @@ import { editLogGoldens } from './editLog';
 import { marksGoldens } from './marks';
 import { extractionGoldens } from './extraction';
 import { editCutsGoldens } from './editCuts';
+import { wordFxGoldens } from './wordFx';
 import { productionGoldens } from './production';
 import { pronunciationOnlineGoldens } from './pronunciationOnline';
 import { pronunciationSourcesGoldens } from './pronunciationSources';
@@ -81,6 +82,7 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   marksGoldens,
   extractionGoldens,
   editCutsGoldens,
+  wordFxGoldens,
   productionGoldens,
   pronunciationOnlineGoldens,
   pronunciationSourcesGoldens,
