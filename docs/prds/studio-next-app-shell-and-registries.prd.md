@@ -119,7 +119,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **ADRs.** A3 (jump menu, providers and help derived from the catalogue, extending [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)); A4 (overlay service over the primitives).
 
-**Risks.** The `contextmenu` host must not break the browser menu in editable fields (mock guards `input,textarea,select,[contenteditable]`); the Wails WebView may differ from Chromium on Shift+F10, tested in the host build by the owner (pending on #510).
+**Risks.** The `contextmenu` host must not break the browser menu in editable fields (mock guards `input,textarea,select,[contenteditable]`); the Wails WebView may differ from Chromium on Shift+F10, tested in the host build by the owner (pending on #992).
 
 ## Implementation Phases
 

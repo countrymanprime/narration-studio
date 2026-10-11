@@ -7,7 +7,7 @@ It replaces the scheduling rules of the lane train of 2026-09-24:
 - **Kept:** D40 (the coordinator merges), D43 (the light merge gate), D44 (the visual suite and atlas run in full once, at the end) and D46 (built UI is compared with its mock, amended by D97); all are in [Owner standing rules](#owner-standing-rules).
 - **Replaced:** D41 (three lanes) and D45 (hold on credits), by [Lanes](#lanes) and [Usage and autoscaling](#usage-and-autoscaling) below.
 
-The work it schedules comes from the [audiobook studio benchmark](../research/audiobook-studio-benchmark.md), and then the PRDs in `docs/prds/`.
+The work it schedules comes from the PRDs in `docs/prds/`: the Studio Next series, delivered as [slices](#studio-next-slices). The Studio Next mock is the only spec for the pages it covers ([Which mocks are the spec](#which-mocks-are-the-spec)).
 
 ## Where state lives
 
@@ -15,15 +15,20 @@ The work it schedules comes from the [audiobook studio benchmark](../research/au
 | --- | --- |
 | The procedure (this file) | `docs/operations/agent-train.md` on `main` |
 | What to build | The PRDs in `docs/prds/`: phase tables, `Depends`, and the Parallel-session compatibility tables |
-| Live state: switches, target concurrency, lanes and their sessions, the log | Issue [#509, Train control](https://github.com/countrymanprime/narration-utils/issues/509). The coordinator rewrites its body |
-| Steps only the owner can take | Issue [#510, Owner queue](https://github.com/countrymanprime/narration-utils/issues/510) |
+| Live state: switches, target concurrency, lanes and their sessions, the log | Issue [#989, Train control](https://github.com/countrymanprime/narration-utils/issues/989). The coordinator rewrites its body |
+| Steps only the owner can take | Issue [#992, Owner queue](https://github.com/countrymanprime/narration-utils/issues/992) |
+| Owner decisions and their defaults | Issue [#993, Studio Next decisions](https://github.com/countrymanprime/narration-utils/issues/993), one comment per decision |
+| Slice counts per PRD, the oldest ready slice, the critical path | The "Studio Next status" issue, which the coordinator rewrites |
+| Pipeline repairs after merges that did not wait for CI | Issue [#1119](https://github.com/countrymanprime/narration-utils/issues/1119) |
 | A paused stream's progress | Its draft PR's `## Resume notes` block |
 
 State never lives in a file on `main`, so recording state can't cause merge conflicts.
 
-## Switches on #509
+Issues #509 (Train control) and #510 (Owner queue) of the 2026-09-24 train, and #52, are retired: #989 and #992 replace them, and nothing in them is an instruction. The two checks in the [Safety net](#safety-net) that name them still read #509 and #510 until the owner moves them to #989 and #992.
 
-Only the owner or the coordinator edits these.
+## Switches on #989
+
+Only the owner or the coordinator edits these. The last three rows are the Studio Next switches. #989's body names the daily cap `DAILY_CAP`; that row is the switch, and `SN_DAILY_CAP` here is the same switch.
 
 | Switch | Default | Meaning |
 | --- | --- | --- |
@@ -37,6 +42,9 @@ Only the owner or the coordinator edits these.
 | `TARGET` | 4 | Target concurrent workers, adjusted by the coordinator (below) |
 | `WEEK_START_TARGET` | 4 | The `TARGET` the first tick after the weekly reset starts from |
 | `WEEKLY_RESET` | from `resetsAt` | The next weekly reset. The coordinator fills it from the first `seven_day` `resetsAt` it sees; until then, 22:00 America/New_York (D45) |
+| `SN_HOLD` | off | Stops launching Studio Next slices only (D-5). Merges, fixes and other work continue |
+| `SN_DAILY_CAP` | 12 | Slices launched per UTC day (D-4, [ADR 0865](../adr/0865-the-studio-next-program-has-a-daily-cap-on-slices-launched-and-an-unanswered-register-question-takes-its-recommendation-after-seven-days.md)). A resume or a fixer for a launched slice doesn't count. At the cap, nothing new launches until the next UTC day |
+| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` or `adr` slice gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
 
 ## Usage and autoscaling
 
@@ -95,29 +103,29 @@ Nobody watches the train live, so these checks run without a person and none of 
 
 **Intent review.** Before merging a PR that passes the other conditions in step 4, start one reviewer session for it: `create_session` on Sonnet with `tags: ["agent-train", "intent-review"]`, `title` `"review #<n>"` and a prompt that names the PR, its head SHA and its tracking issue or PRD phase, and says to run the `intent-reviewer` agent in a fresh context, not to edit anything, and to comment on the PR either `Intent review: pass at <sha>` or a list of findings, each starting with 🔴. Pass the agent the branch and the issue, not the worker's account of what it built. The review counts toward `TARGET` while it runs. Merge only on a `pass` for the PR's current head; a push after the pass needs a new review.
 
-**A `risk:high` PR.** Do not merge it. Comment on #510 with the PR number, its head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head or by replying `approved #<n> <sha>` on #510. A push after that approval needs a new one.
+**A `risk:high` PR.** Do not merge it. Comment on #992 with the PR number, its head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head or by replying `approved #<n> <sha>` on #992. A push after that approval needs a new one.
 
-**A failed ratchet.** Do not merge it and do not add the label yourself. Comment on #510 with the violations the check printed. Only the owner adds `ratchet-approved`.
+**A failed ratchet.** Do not merge it and do not add the label yourself. Comment on #992 with the violations the check printed. Only the owner adds `ratchet-approved`.
 
-**The launch limit.** The Launches table in #509's body has one row per stream: ID, PRD phases, launches, last launch, PRs merged. A stream's count goes up on every `create_session` for it, resumes and fixers included. At three launches with no PR of the stream merged, mark the stream **blocked**: do not launch it again, comment on #510 with its Resume notes and the last failure, and take the next stream in priority order. The owner unblocks it by resetting its count on #509. A stream that merges a PR resets its own count to zero.
+**The launch limit.** The Launches table in #989's body has one row per stream: ID, PRD phases, launches, last launch, PRs merged. A stream's count goes up on every `create_session` for it, resumes and fixers included. At three launches with no PR of the stream merged, mark the stream **blocked**: do not launch it again, comment on #992 with its Resume notes and the last failure, and take the next stream in priority order. The owner unblocks it by resetting its count on #989. A stream that merges a PR resets its own count to zero.
 
 **Permissions.** `.claude/settings.json` denies `git push origin main` and `git push origin HEAD:main`, so a worker cannot push to `main` even where a ruleset would let its token. Merging goes through the coordinator's `merge_pull_request`, never `git`.
 
 ## Lanes
 
-A lane is a territory of files. Two workers may share a lane only when the PRDs' Parallel-session tables show their phases touch disjoint files. D48 on #509 records the check: verify file by file before pairing.
+A lane is a territory of files. Two workers may share a lane only when the PRDs' Parallel-session tables show their phases touch disjoint files. D48 on the retired #509 records the check: verify file by file before pairing.
 
 | Lane | Owns | Model | ADR block |
 | --- | --- | --- | --- |
 | **K: contracts** | `apps/desktop/internal/port/**`, `internal/dawport/**`, the provider-port packages, `libs/python/narration_common/ports/**`, contract bindings and their schemas, goldens and mocks, `hostAPIVersion` bumps for contract bindings | Opus | 0300–0319 |
 | **A: host features** | root `apps/desktop/*.go` feature bindings, `internal/<feature>` packages outside the ports | Sonnet (Opus for tricky concurrency) | 0320–0339 |
 | **B: adapters and sidecars** | `integrations/reaper/**`, `internal/bridge`, `internal/daw*`, `internal/dawport/reaper`, `internal/dawport/audacity`, the consumer migrations, `sidecars/**`, the rest of `libs/python/**` | Sonnet (Opus for new Lua commands) | 0340–0359 |
-| **U: primitives and input** | `apps/ui/src/components/primitives/**`, `apps/ui/src/input/**`, design tokens (in one PR, running alone) | Sonnet | 0360–0379 |
+| **U: primitives and input** | `apps/ui/src/components/primitives/**`, `apps/ui/src/input/**`, `apps/ui/src/studio/**`, `apps/ui/src/ports/**`, `apps/ui/src/overlay/**`, `apps/ui/src/registries/**` (D-7), design tokens (in one PR, running alone) | Sonnet | 0360–0379 |
 | **C: UI features** | `apps/ui/src/components/<feature>/**`, `hooks/**`, `tests/visual/**` rows of its pages, `docs/guides/using-the-app/**` | Sonnet | 0380–0399 |
 | **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping | 0400–0409 |
 | **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus | 0410–0419 |
 
-A lane-X stream runs with no other stream that touches the same files. A lane that runs out of numbers in its ADR block takes the next free block of ten above 0420 and records it on #509.
+A lane-X stream runs with no other stream that touches the same files. A lane that runs out of numbers in its ADR block takes the next free block of ten above 0420 and records it on #989.
 
 ## Serial points
 
@@ -125,7 +133,7 @@ A lane-X stream runs with no other stream that touches the same files. A lane th
   - It lives in `apps/desktop/app.go`, `app_test.go` and `apps/ui/src/hostApi.ts`, and the bindings `Host.*` are regenerated from it.
   - A PR that adds a binding takes `main`'s value + 1.
   - On a collision, whoever merges `main` in second takes the higher value + 1 and regenerates. Use the bump script once lane X has added it.
-- **ADR numbers:** only inside the lane's block. Check `docs/adr/` at merge time, not only at write time; D52 on #509 records an earlier collision.
+- **ADR numbers:** only inside the lane's block. Check `docs/adr/` at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
 - **The ADR index and PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
 - **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, `Settings.tsx` rows, `internal/bridge/wire.go` event rows.
 - **One at a time, train-wide:**
@@ -134,6 +142,24 @@ A lane-X stream runs with no other stream that touches the same files. A lane th
   - the design token batch (`src/styles.css` token blocks and `paletteContrast.test.ts` `PAIRS`);
   - any lane-X refactor.
 - **Hot UI files,** until lane X splits them: `api/mockApi.ts`, `wailsClient.ts`, `wireContracts.test.ts`, `tests/visual/state-catalog.ts`, `tests/visual/app.drivers.ts`, `interactionFeedback.catalog.ts`, `App.tsx`. Two streams may both touch one only when each adds rows in a separate place, and the coordinator merges `main` into the second before it merges.
+
+## Studio Next slices
+
+The [Studio Next series](../prds/studio-next-rebuild.prd.md) is delivered as slices, one PR by one worker each. This section is the operating rule. [Agent Delivery](../prds/studio-next-agent-delivery.prd.md#deviations-from-the-agent-train) holds the deviations D-1 to D-11 and the reasons, and [the slice issue](../prds/studio-next-agent-delivery.prd.md#the-slice-issue) holds the header's fields.
+
+- **One issue per slice (D-1).** It is a sub-issue of its PRD's issue, titled `SN-<code><n> <verb phrase>`. The PR body says `Closes #<slice>`.
+- **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
+- **Labels:** `slice`, `lane:<L>`, `prd:<code>`, and one of `ready`, `blocked` or `owner-decision`.
+- **Ready.** A slice is ready when every issue in its `depends` is closed and no other slice in progress has an overlapping `owns`. A slice waiting on an unanswered `owner-decision` is not ready.
+- **A swap slice** replaces its page and deletes the old page and what only it used, in the same PR with no flag (D98). Its `owns` lists the files it deletes.
+- **Handoff.** Every slice issue has a `## Handoff` comment that the worker rewrites at each checkpoint: done, next step, failing check, files touched, decisions assumed. A resume session starts from it and the branch.
+- **The groomer (D-2).** A session type for cutting slices, like the mockup-drafting session. It opens issues from a PRD's slice table, fills each header from the code (it may read the code; the coordinator doesn't), runs `slice-lint`, marks `ready` the slices whose dependencies are merged, and ends. The coordinator launches one when fewer than 2 x `TARGET` ready slices exist and a PRD has slice rows with no issue.
+- **A stalled worker (D-3).** A session in `working` with no push, no issue comment and no PR event for 3 hours is stalled. `interrupt_session`, then start one resume session from the Handoff comment.
+- **A session stuck on a permission prompt** follows the fallback on #989, unchanged: relaunch up to two more times, then the coordinator runs the slice itself with a background agent under the same session cap.
+- **An idle worker** can't be messaged. Idle with no PR gets its one resume session from the pushed branch. Idle with a conflicted or red PR gets a fixer straight away.
+- **Merges that don't wait for CI.** On 2026-10-11 the owner directed the coordinator to merge train PRs without waiting for CI and to reconcile `main` in batches of four or five merges. A reconciliation session reproduces the red checks locally, fixes them in one PR, and logs on #1119 what it fixed and what it could not run; the next `main-health` run is the check for those. This is the owner's direction on #1119, not one of the merge conditions in step 4 of [the pass](#the-coordinators-pass).
+- **The decisions register (D-8).** #993 holds one comment per decision. A later question is a comment with the options, the recommendation and the default date; the owner answers `decided: A` or with text. After seven days an unanswered question takes its recommendation, and the coordinator comments the default and unblocks the slices that waited ([ADR 0865](../adr/0865-the-studio-next-program-has-a-daily-cap-on-slices-launched-and-an-unanswered-register-question-takes-its-recommendation-after-seven-days.md)). The rule never applies to a question that would change an accepted ADR or to A1..A17 of the overview. Those stay Proposed until the owner accepts them. Workers read the register at every checkpoint.
+- **The status issue (D-9).** "Studio Next status", which the coordinator rewrites when something changed: per PRD the counts of slices ready, in progress, blocked and merged, the oldest ready slice, and the critical path.
 
 ## Mockup gates
 
@@ -150,7 +176,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
   - points it at the Studio Next mock in `docs/research/mockups/studio-next/` for tone and format precedent ([D98](#which-mocks-are-the-spec));
   - says explicitly: **drafts only**, no product code for the gated phase, and the PRD's Visual Spec section is updated to list the new files as drafts pending the owner's approval — the session never marks its own work owner-approved;
   - tells it to open its own tracking issue and a normal PR, same as any worker, and never merge itself.
-- **Record it on #509** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.
+- **Record it on #989** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.
 - **Subscribe to its PR** (`subscribe_pr_activity`). The owner may leave review comments to iterate on the design directly with that session (or a follow-up fixer) before approving — treat that like any other reviewer round: implement the requested visual changes and push, rather than closing the PR out after one draft.
 - The gated phase itself joins the normal ready list only once the owner approves the mockups (a comment or review saying so, or the PRD's Visual Spec section no longer reads "pending"). Approval is the owner's call, never the coordinator's.
 
@@ -179,18 +205,18 @@ Permanent owner rule, 2026-09-29. A PR that changes what `apps/ui` draws must sh
 
 ## Owner standing rules
 
-Decisions the owner made while the train ran (logged on #509). They bind the coordinator and every worker, and the worker template repeats the ones a worker needs.
+Decisions the owner made while the train ran (logged on the retired #509). They bind the coordinator and every worker, and the worker template repeats the ones a worker needs.
 
 | Rule | What it says |
 | --- | --- |
 | **D63** | `WARNING_POLICY: ignore`. A weekly warning counts as GREEN. On 2026-09-27 the owner restated it: ignore the weekly warning until the band is RED |
 | **D64** | The coordinator resolves mechanical items itself (branch updates, index rows, status cells, bookkeeping) instead of queueing them for the owner |
-| **D65** | Owner-only, hardware and REAPER checks are flagged on #510 and marked pending. They never block a merge or a launch |
+| **D65** | Owner-only, hardware and REAPER checks are flagged on #992 and marked pending. They never block a merge or a launch |
 | **D66** | Check the lane count on every pass, including passes spent mostly on merges or fixers, and launch before babysitting in-flight PRs |
 | **D67** | Mock-first behind every port. A feature builds against a mock that passes the schema; going to production is a swap behind the port; the mocks stay for the demo build and the tests. A UI phase blocked only by an unbuilt backend phase is ready once that contract is pinned. Serial points, nav entries among them, still land one at a time |
 | **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. |
 | **D69** | *(Superseded by D98 for every page the Studio Next mock covers.)* The audiobook studio benchmark's concept mocks are owner-approved as the build spec. **Dark mode is one app-wide theme,** on or off: no page or surface forces light or dark, and a dark mock shows the dark theme, not a per-page look. This supersedes ADR 0360 Q1's forced-dark booth surface |
-| **D70** | Features still in development use public-domain or synthetic data instead of waiting for the owner's recordings. Results calibrated on it are **provisional**, and a re-run on the owner's own material goes on #510 as a QA item before it ships to users |
+| **D70** | Features still in development use public-domain or synthetic data instead of waiting for the owner's recordings. Results calibrated on it are **provisional**, and a re-run on the owner's own material goes on #992 as a QA item before it ships to users |
 | **D71** | **LibriVox** is the default source for real speech audio: public domain, many readers, and solo readings where one reader voices several characters. Record the source URL, reader, book and the public-domain statement; keep the audio out of git as ignored local data. Synthetic audio is the fallback |
 | **D72** | The privacy line is outbound user data, not inbound reference data. The app may call external APIs to **fetch** dictionary or pronunciation data (local first, online optional), but never sends the narrator's or authors' data out. An online lookup sends a single word, never passages, file names or project identifiers; it is narrator-initiated, or opt-in with a notice for a batch; results are cached locally; there is no telemetry and no project-run proxy. A service that needs a key uses the narrator's own key, stored locally and never logged |
 | **D73** | A PR need not contain `main`'s tip to merge (supersedes that D40 condition, 2026-09-27). The merge is a squash, so GitHub refuses it when the PR no longer merges cleanly; then, and only then, the coordinator merges `main` into the PR (a fixer when the conflict isn't mechanical) and waits for its checks. The green run must still be on the PR's current head |
@@ -207,14 +233,14 @@ Decisions the owner made while the train ran (logged on #509). They bind the coo
 The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50). Each firing is one pass. Be brief and cheap: don't read the codebase, and don't run builds or tests yourself. Use the `mcp__github__*` tools for GitHub and `mcp__Claude_Code_Remote__*` for sessions (load them with ToolSearch). There is no `gh` CLI.
 
 1. **Switches.**
-   - Read #509.
+   - Read #989.
    - If `HOLD` is ticked, run step 4 (merge) only, then end.
 2. **Usage.** Read `rate_limit_info`, pick the band and adjust `TARGET` ([above](#usage-and-autoscaling)).
-3. **Reconcile sessions.** For each session listed on #509, call `get_session` and read its `status_bucket`:
+3. **Reconcile sessions.** For each session listed on #989, call `get_session` and read its `status_bucket`:
    - `working` or `blocked`: running. It counts toward `TARGET`.
-   - `completed`, `review_ready`, or idle after commenting `<ID>: … green` on #509: done. Free its slot.
+   - `completed`, `review_ready`, or idle after commenting `<ID>: … green` on #989: done. Free its slot.
    - `failed`, with a usage or rate-limit reason (see `list_events`): paused. Set RED. The stream goes on the resume list.
-   - `failed` for any other reason: blocked. Read its last events, note the cause on #509, and queue a fixer if the PR exists.
+   - `failed` for any other reason: blocked. Read its last events, note the cause on #989, and queue a fixer if the PR exists.
    - The worker commented `<ID>: PAUSED at <step>` or `<ID>: yielded after pN`: paused or yielded. Put it on the resume list, or queue its next phase.
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
@@ -224,7 +250,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - a Claude Approvals check, if present, passes;
    - a UI PR carries its Screenshots section ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). There is no match % bar to check (D97);
    - the `Test ratchet` check succeeded on the head ([Safety net](#safety-net));
-   - it has no `risk:high` label, or the owner has approved it on #510 for the current head ([Safety net](#safety-net));
+   - it has no `risk:high` label, or the owner has approved it on #992 for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
@@ -245,14 +271,14 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
       - a model from the lane table: Sonnet by default, Opus only for lane K, lane X, new Lua commands and semantic fixers, Haiku for bookkeeping;
       - `title` `"<ID> <scope>"` and `tags` `["agent-train", "lane-<L>"]`;
       - the [worker template](#worker-template) as the prompt. Use the resume template for a paused stream.
-   4. **Record each launch on #509:** ID, lane, session id, PRD phases and model, and add one to that stream's count in the Launches table.
+   4. **Record each launch on #989:** ID, lane, session id, PRD phases and model, and add one to that stream's count in the Launches table.
 6. **Housekeeping.**
-   - **Last, on every pass, even one that did nothing else,** set the `Last pass: <UTC time, ISO 8601>` line in #509's body. The [train health check](#safety-net) warns the owner when it goes more than two hours stale.
-   - Rewrite the rest of #509's body only when something changed, with one log line per event: started, merged, paused, resumed, blocked, band change, `TARGET` change.
-   - On the first pass after 09:00 America/New_York, post one short comment on #509: merged, in flight, paused, blocked, band, `TARGET`.
+   - **Last, on every pass, even one that did nothing else,** set the `Last pass: <UTC time, ISO 8601>` line in #989's body. The [train health check](#safety-net) warns the owner when it goes more than two hours stale.
+   - Rewrite the rest of #989's body only when something changed, with one log line per event: started, merged, paused, resumed, blocked, band change, `TARGET` change.
+   - On the first pass after 09:00 America/New_York, post one short comment on #989: merged, in flight, paused, blocked, band, `TARGET`.
    - End every comment with a blank line, `---`, then `_Generated by [Claude Code](https://claude.ai/code)_`.
 
-**IDs** are `N-<lane><n>`, for example `N-K1` or `N-B5a`. The `N-` prefix keeps them apart from the 2026-09-24 train's IDs in #509's history.
+**IDs** are `N-<lane><n>`, for example `N-K1` or `N-B5a`. The `N-` prefix keeps them apart from the 2026-09-24 train's IDs in #989's history.
 
 ## The worker protocol
 
@@ -260,7 +286,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
 
 - **Commit and push after every green step,** not just at the end. A session that dies on a usage limit loses only the work since its last push.
 - **Checkpoints:** before each phase, and before any expensive step (the visual states of a page, a full Go race run, the atlas). At each checkpoint:
-  1. Read #509's switches, and call `get_session` for your own `rate_limit_info` if the tool is available.
+  1. Read #989's switches and the decisions register #993, and call `get_session` for your own `rate_limit_info` if the tool is available.
   2. On `HOLD`, `HOLD-UNTIL-RESET`, or RED in your own reading, or `DRAIN` unless you are lane K and the band is not RED: **pause.**
      - Commit your work in progress as `chore(<scope>): wip, paused at <step>` and push.
      - Open or update the phase's PR as a **draft** with a `## Resume notes` block:
@@ -269,18 +295,18 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
        - Next: the exact next step
        - Failing: any failing check, with its output
        - Checks run: the local checks already passed
-     - Comment `<ID>: PAUSED at <step>, PR #<n>` on #509, then end the session.
-  3. On AMBER in your own reading (`allowed_warning`), **unless #509's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #509, and end.
+     - Comment `<ID>: PAUSED at <step>, PR #<n>` on #989, then end the session.
+  3. On AMBER in your own reading (`allowed_warning`), **unless #989's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
 - **Finishing:**
   - Subscribe to your PRs, and drive `Build (Windows)` and `ui-dist` to green.
   - Answer every red-circle thread.
-  - Comment `<ID>: PRs #… green` on #509, then end the turn, **staying subscribed** (D82).
+  - Comment `<ID>: PRs #… green` on #989, then end the turn, **staying subscribed** (D82).
   - **Until each PR merges or closes, you own it (D82).** On a merge-conflict notice, a red check or a review comment: merge `main` into your branch (never rebase or force-push), resolve keeping both sides' intent (the rules in the fixer template), re-run your targeted checks, push, and end the turn again. Schedule a `send_later` check-in about an hour out whenever a PR is still open, and re-check merge state and CI when it fires. Stop once every PR is merged or closed.
-  - After three failed CI rounds on one PR: mark it draft, paste the failure into it, comment on #509, and end.
+  - After three failed CI rounds on one PR: mark it draft, paste the failure into it, comment on #989, and end.
 - **No resume-in-place:** there is no tool to send a follow-up task into a session that has already finished and gone idle. A stream's next PRD phase (D62) is always a **new** session, branched fresh off the current `main` tip — never a message into the old one. The gain from D62 is launching that new session the moment the phase is ready, not batching it to the next tick; it is not session reuse.
-- **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes on #510 as a comment and is marked pending in the PR. Never wait for a human.
-- **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes on #510 for the owner.
+- **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes on #992 as a comment and is marked pending in the PR. Never wait for a human.
+- **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes on #992 for the owner.
 
 ## Templates
 
@@ -291,11 +317,12 @@ Fill in the `<>` fields.
 ```text
 You are worker stream <ID> (lane <L>: <lane name>) in the narration-utils agent train. Repo countrymanprime/narration-utils.
 No human is watching live; never wait for answers. Where a PRD leaves a question open, take its stated recommendation
-and record anything that truly needs the owner as a Proposed ADR, plus a comment on #510.
+and record anything that truly needs the owner as a Proposed ADR, plus a comment on #992.
 
 READ FIRST: CLAUDE.md; docs/operations/agent-train.md ("The worker protocol", "Serial points", "Lanes"); then each PRD in
 scope, in full.
 SCOPE: <PRD path> phases <N…>: <one line each>.
+SLICE: #<slice issue>, for a Studio Next slice. The issue is the spec; read its Handoff comment first, and rewrite it at every checkpoint.
 MOCKUPS (D46, D98): <per phase: the exact docs/research/mockups/studio-next/src/pages/... file and its state, or "none">. Open it
 and the running mock before coding and build to match. The Studio Next mock is the only spec (D98): if it is not in the mock, don't build it; if the repo
 already has an equivalent of something in it, the old one is removed in the swap. Compare light to light and dark to dark by the theme the mock page is
@@ -307,12 +334,12 @@ primitive, token or style doesn't draw what the mock shows, change the primitive
 design-spec-guard and an ADR for a changed design decision), don't restyle it locally on the page. The spec per
 primitive is docs/design/design-system.md.
 YOUR FILES: <the phases' rows from the PRD's Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
-a running stream on #509. If you need another lane's change, comment on #509.
+a running stream on #989. If you need another lane's change, comment on #989.
 ADR BLOCK: <block>. Check docs/adr/ for the next free number inside it, at write time and again before your last push.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
-Screenshots (any UI change; see "UI PRs show their screenshots": the PR is not ready without them), "Base: <branch>", "Part of #<PRD issue>" (find it or create it per
-docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
+Screenshots (any UI change; see "UI PRs show their screenshots": the PR is not ready without them), "Base: <branch>", "Closes #<slice>" for a slice,
+else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
 Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
 METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); tests first;
 SOLID: depend on the ports (internal/dawport roles, provider ports, NarrationApi), never on concrete adapters.
@@ -327,10 +354,10 @@ threat-model and SECURITY.md rows, declared as Experimental capabilities.
 OWNER RULES ("Owner standing rules" in this file): D67 mock-first behind every port; D69 one app-wide theme, never force
 light or dark on a page; D70/D71 development audio from LibriVox (provenance recorded, audio kept out of git) or
 synthetic, results provisional; D72 fetch reference data freely, but never send the narrator's or authors' data out.
-USAGE: follow "The worker protocol" exactly: push after every green step, check #509 and your rate_limit_info at every
+USAGE: follow "The worker protocol" exactly: push after every green step, check #989 and your rate_limit_info at every
 checkpoint, pause or yield as it says.
 FINISH: subscribe to your PRs; drive Build (Windows) and ui-dist green; answer every red-circle thread; comment
-"<ID>: PRs #… green" on #509; end the turn but stay subscribed. D82: you own your PRs until they merge or close: on a
+"<ID>: PRs #… green" on #989; end the turn but stay subscribed. D82: you own your PRs until they merge or close: on a
 merge conflict or red check, merge main into your branch (never rebase), fix, re-check, push; keep an hourly send_later
 check-in while any PR is open. NEVER merge. End every GitHub comment with a blank line, "---", then
 "_Generated by [Claude Code](https://claude.ai/code)_".
@@ -353,7 +380,7 @@ You are a fixer in the narration-utils agent train. PR #<n> (branch <b>) <has a 
 turned main red>. Merge main into the branch (never rebase or force-push). Resolve keeping both sides' intent: for
 hostAPIVersion take the higher value + 1 and regenerate Host.*; for ADR or PRD index rows keep both rows; for an ADR number
 clash renumber the later one inside its lane's block and fix its links. Run targeted checks for the touched areas, push,
-confirm Build (Windows) and ui-dist go green, comment on #509 with what you did, then end. Don't merge. End every GitHub
+confirm Build (Windows) and ui-dist go green, comment on #989 with what you did, then end. Don't merge. End every GitHub
 comment with a blank line, "---", then "_Generated by [Claude Code](https://claude.ai/code)_".
 ```
 

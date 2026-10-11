@@ -131,7 +131,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Trust boundaries.** New sidecar files (`cuts`, `wordfx`, `backups`) the app reads back; the bridge commands (DAW PRD); threat model rows 5 and the Audacity row.
 
-**Risks.** Size (mitigation: 16 small slices, model first); cut arithmetic bugs (mitigation: property tests and the cut list kept in the original recording's time); owner QA of real REAPER edits (pending on #510).
+**Risks.** Size (mitigation: 16 small slices, model first); cut arithmetic bugs (mitigation: property tests and the cut list kept in the original recording's time); owner QA of real REAPER edits (pending on #992).
 
 ## Implementation Phases
 
