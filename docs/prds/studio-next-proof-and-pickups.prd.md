@@ -135,7 +135,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADRs and audit | ADRs; audit of what exists and of each old file's consumers | pending | - | SN0-1 | 0.4 | - |
+| 1 | ADRs and audit | ADRs; audit of what exists and of each old file's consumers | in review (ADR 0793; audit: docs/sn-q1-proof-audit) | - | SN0-1 | 0.4 | - |
 | 2 | Counters | `cleared` in the summary; selector; rail and Production read it | pending | 3 | 1 | 0.8 | - |
 | 3 | Guard and history UI | Inspector before/now, typed note kept, history list | pending | 2 | 1 | 0.9 | - |
 | 4 | Notes polish | Sort, sources line, takes badge | pending | 5 | 2 | 0.6 | - |
