@@ -1,0 +1,25 @@
+[
+  {
+    "chapterId": "c-0001",
+    "createdAt": "2026-09-21T10:00:00Z",
+    "id": "id-1",
+    "label": "The Queen",
+    "note": "Shout, but do not clip the end.",
+    "offset": 21,
+    "paragraph": 0,
+    "paragraphId": "p-000001",
+    "stale": false
+  },
+  {
+    "chapterId": "c-0002",
+    "createdAt": "2026-09-21T10:00:00Z",
+    "id": "id-2",
+    "label": "",
+    "note": "",
+    "offset": 0,
+    "paragraph": null,
+    "paragraphId": "p-000003",
+    "stale": true,
+    "staleReason": "paragraph_missing"
+  }
+]

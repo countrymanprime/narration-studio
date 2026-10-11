@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/bookmarks"
 	"github.com/countrymanprime/narration-utils/shell/internal/character"
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
@@ -574,5 +575,60 @@ func TestClearRemovesTheChapterTrackMappingFileAlongsideManuscriptData(t *testin
 	}
 	if _, err := os.Stat(mappingFile); !os.IsNotExist(err) {
 		t.Fatalf("Clear left the chapter-track mapping file behind: %v", err)
+	}
+}
+
+// Bookmarks name chapter and paragraph ids, so replacing the manuscript (a commit with a confirmed reset) and Clear project
+// data remove them (ADR 0820). An import that resets nothing (the first one, or a replace the narrator has not confirmed)
+// keeps them.
+func TestReplaceAndClearRemoveTheBookmarksFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeBookmarks := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(bookmarks.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(bookmarks.File(project), []byte(`{"schemaVersion":1,"bookmarks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeBookmarks()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(bookmarks.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the bookmarks: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(bookmarks.File(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the bookmarks: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(bookmarks.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the bookmarks behind: %v", err)
+	}
+	writeBookmarks()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(bookmarks.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the bookmarks behind: %v", err)
 	}
 }

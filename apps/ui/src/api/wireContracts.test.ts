@@ -7,6 +7,8 @@ import { createMockApi } from './mockApi';
 import type { ProjectStateState } from './contracts/projectstate';
 import { WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
 import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
+// The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
+import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
@@ -2781,6 +2783,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'noteCreate',
       'prepMarkupList',
       'prepMarkupSave',
+      'bookmarksList',
+      'bookmarksAdd',
+      'bookmarksUpdate',
+      'bookmarksRemove',
       'manuscriptReader',
       'readerState',
       'readerStateSave',
@@ -3176,5 +3182,60 @@ describe('the production tracking mock', () => {
     for (const chapter of overview.chapters.filter((row) => row.recordedSeconds === null)) expect(chapter.pfh).toBeNull();
     expect(overview.nextUp.length).toBeGreaterThan(0);
     expect(overview.nextUp.every((item) => item.stage !== 'finalized')).toBe(true);
+  });
+});
+
+// The narrator's bookmarks (ADR 0820): the mock answers through the same schemas as the host's goldens, and the schemas refuse
+// what the host never sends.
+describe('the bookmarks bindings', () => {
+  it('the mock answers BookmarksList, Add, Update and Remove through their schemas, in reading order', async () => {
+    const api = createMockApi();
+    const [first, second] = await api.manuscriptChapters();
+    const firstLine = (await api.manuscriptParagraphs(first?.id ?? ''))[1];
+    const secondLine = (await api.manuscriptParagraphs(second?.id ?? ''))[0];
+    expectMatches(bookmarksSchema, await api.bookmarksList(), 'mock bookmarks list (empty)');
+    const later = await api.bookmarksAdd(second?.id ?? '', secondLine?.id ?? '', 0);
+    const added = await api.bookmarksAdd(first?.id ?? '', firstLine?.id ?? '', 3);
+    expectMatches(spotBookmarkSchema, added, 'mock bookmark add');
+    expect(added).toMatchObject({ label: '', note: '', offset: 3, stale: false, paragraph: firstLine?.index });
+    expect((await api.bookmarksAdd(first?.id ?? '', firstLine?.id ?? '', 3)).id).toBe(added.id);
+    const updated = await api.bookmarksUpdate(added.id, '  The Queen ', 'Shout.\r\nThen breathe.');
+    expectMatches(spotBookmarkSchema, updated, 'mock bookmark update');
+    expect(updated).toMatchObject({ label: 'The Queen', note: 'Shout.\nThen breathe.' });
+    const listed = await api.bookmarksList();
+    expectMatches(bookmarksSchema, listed, 'mock bookmarks list');
+    expect(listed.map((bookmark) => bookmark.id)).toEqual([added.id, later.id]);
+    const remaining = await api.bookmarksRemove(added.id);
+    expectMatches(bookmarksSchema, remaining, 'mock bookmarks remove');
+    expect(remaining.map((bookmark) => bookmark.id)).toEqual([later.id]);
+  });
+
+  it('the mock refuses what the host refuses', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const line = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
+    await expect(api.bookmarksAdd('no-such-chapter', line?.id ?? '', 0)).rejects.toThrow('not in the manuscript');
+    await expect(api.bookmarksAdd(chapter?.id ?? '', 'no-such-line', 0)).rejects.toThrow('not in this chapter');
+    await expect(api.bookmarksAdd(chapter?.id ?? '', line?.id ?? '', (line?.text.length ?? 0) + 1)).rejects.toThrow('not in the line');
+    await expect(api.bookmarksAdd(chapter?.id ?? '', line?.id ?? '', -1)).rejects.toThrow('not in the line');
+    const added = await api.bookmarksAdd(chapter?.id ?? '', line?.id ?? '', 0);
+    await expect(api.bookmarksUpdate(added.id, 'a'.repeat(61), '')).rejects.toThrow('at most 60');
+    await expect(api.bookmarksUpdate(added.id, '', 'a'.repeat(501))).rejects.toThrow('at most 500');
+    await expect(api.bookmarksUpdate(added.id, 'one\ntwo', '')).rejects.toThrow('one line');
+    await expect(api.bookmarksUpdate(added.id, '', 'bell\u0007')).rejects.toThrow('only text');
+    await expect(api.bookmarksUpdate('gone', '', '')).rejects.toThrow('no longer there');
+    expect(await api.bookmarksRemove('gone')).toHaveLength(1);
+  });
+
+  it('the schemas read a stale bookmark and refuse a negative offset, an unknown key or a label over the limit', () => {
+    const golden = parseWire(bookmarksSchema, readGolden('bookmarks-list.json'), ctx('bookmarks list'));
+    expect(golden.at(-1)?.paragraph).toBeNull();
+    expect(golden.filter((bookmark) => bookmark.stale).map((bookmark) => bookmark.staleReason)).toEqual(['offset_out_of_range', 'paragraph_missing']);
+    const bookmark = parseWire(spotBookmarkSchema, readGolden('bookmarks-add.json'), ctx('bookmarks add'));
+    expect(spotBookmarkSchema.safeParse({ ...bookmark, offset: -1 }).success).toBe(false);
+    expect(spotBookmarkSchema.safeParse({ ...bookmark, path: '/etc/passwd' }).success).toBe(false);
+    expect(spotBookmarkSchema.safeParse({ ...bookmark, label: 'a'.repeat(61) }).success).toBe(false);
+    expect(spotBookmarkSchema.safeParse({ ...bookmark, staleReason: 'moved' }).success).toBe(false);
+    expect(bookmarksSchema.safeParse([{ ...bookmark, offset: 1.5 }]).success).toBe(false);
   });
 });
