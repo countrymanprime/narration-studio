@@ -206,7 +206,7 @@ const idleScan = (): ExtractionScanJob => ({
 });
 
 /** The importer's caps and refusals (apps/desktop/internal/extraction/importer). */
-export const IMPORT_MAX_BYTES = 2 << 20;
+const IMPORT_MAX_BYTES = 2 << 20;
 const IMPORT_EXAMPLE_JSON = `{
   "entries": [
     {"name": "The Mad Hatter", "type": "Character", "aliases": ["Hatter"], "confidence": 0.9}
