@@ -12,6 +12,7 @@ import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas
 import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
+import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { WIRE_TAKE_COMPARISON_FINDING } from './takeComparisonMock';
 import { MOCK_MEASURE_PATHS } from './measureMock';
@@ -118,6 +119,7 @@ import {
   pronunciationQueriesCsvSchema,
   pronunciationQueriesSchema,
   queryImportResultSchema,
+  guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
@@ -2916,6 +2918,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksAdd',
       'bookmarksUpdate',
       'bookmarksRemove',
+      'pronunciationSources',
+      'pronunciationCandidate',
       'manuscriptReader',
       'readerState',
       'readerStateSave',
@@ -3328,6 +3332,61 @@ describe('the production tracking mock', () => {
     for (const chapter of overview.chapters.filter((row) => row.recordedSeconds === null)) expect(chapter.pfh).toBeNull();
     expect(overview.nextUp.length).toBeGreaterThan(0);
     expect(overview.nextUp.every((item) => item.stage !== 'finalized')).toBe(true);
+  });
+});
+
+// The pronunciation sources and candidate (SNB-2b, ADR 0792): the mock answers through the same schemas as the host's goldens.
+describe('the pronunciation sources bindings', () => {
+  it('the mock lists the sources and answers a candidate from fixture data, offline, through the schemas', async () => {
+    const api = createMockApi();
+    const list = await api.pronunciationSources();
+    expectMatches(pronunciationSourcesSchema, list, 'mock pronunciation sources');
+    expect(list.sources.at(-1)?.id).toBe('manual');
+    expect(list.sources.find((source) => source.id === list.default)?.available).toBe(true);
+    const hit = await api.pronunciationCandidate('Croquet', list.default);
+    expectMatches(pronunciationCandidateSchema, hit, 'mock candidate');
+    expect(hit.ok).toBe(true);
+    for (const [word, source] of [
+      ['croquet', 'manual'],
+      ['croquet', 'forvo'],
+      ['zzzz', 'cmu'],
+      ['  ', 'cmu'],
+      ['a'.repeat(81), 'cmu'],
+    ] as const) {
+      const miss = await api.pronunciationCandidate(word, source);
+      expectMatches(pronunciationCandidateSchema, miss, `mock candidate miss for ${source}`);
+      expect(miss.ok).toBe(false);
+    }
+  });
+
+  it('the schemas parse the host goldens and refuse an unknown kind, an unknown key and ok:true without say', () => {
+    const list = parseWire(pronunciationSourcesSchema, readGolden('pronunciation-sources.json'), ctx('pronunciation sources'));
+    expect(list.sources.map((source) => source.id)).toContain('manual');
+    const source = list.sources[0];
+    expect(pronunciationSourceSchema.safeParse({ ...source, kind: 'scraped' }).success).toBe(false);
+    expect(pronunciationSourceSchema.safeParse({ ...source, icon: 'globe' }).success).toBe(false);
+    expect(pronunciationSourcesSchema.safeParse({ ...list, path: '/etc' }).success).toBe(false);
+    const ok = parseWire(pronunciationCandidateSchema, readGolden('pronunciation-candidate-ok.json'), ctx('pronunciation candidate ok'));
+    const miss = parseWire(pronunciationCandidateSchema, readGolden('pronunciation-candidate-miss.json'), ctx('pronunciation candidate miss'));
+    expect(ok.ok).toBe(true);
+    expect(miss.ok).toBe(false);
+    expect(pronunciationCandidateSchema.safeParse({ ok: true }).success).toBe(false);
+    expect(pronunciationCandidateSchema.safeParse({ ok: false }).success).toBe(false);
+    expect(pronunciationCandidateSchema.safeParse({ ...ok, extra: 1 }).success).toBe(false);
+  });
+
+  it('the story bible pronunciation takes source manual and still takes the older user, status, note and alternate', () => {
+    const entity = (source: string) => ({
+      ipa: 'x',
+      source,
+      confidence: 'narrator',
+      status: 'author_confirmed',
+      note: 'n',
+      alternate: { ipa: 'y', source: 'user', confidence: '' },
+    });
+    for (const source of ['manual', 'user', 'cmu']) {
+      expect(guidePronunciationSchema.parse(entity(source))).toMatchObject({ source, status: 'author_confirmed', note: 'n', alternate: { source: 'user' } });
+    }
   });
 });
 

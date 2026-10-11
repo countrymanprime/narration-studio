@@ -48,6 +48,7 @@ import type { ProductionApi } from '../api/contracts/production';
 import type { PronunciationLookupApi } from '../api/contracts/pronunciationLookup';
 import type { PronunciationCommonsAudioApi } from '../api/contracts/wiktextractCommonsAudio';
 import type { PronunciationOnlineApi } from '../api/contracts/pronunciationOnline';
+import type { PronunciationSourcesApi } from '../api/contracts/pronunciationSources';
 import type { ProofingRenderApi } from '../api/contracts/proofingRender';
 import type { PrepCompletenessApi } from '../api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from '../api/contracts/renderEncodeMaster';
@@ -104,6 +105,7 @@ export type {
   PronunciationLookupApi,
   PronunciationCommonsAudioApi,
   PronunciationOnlineApi,
+  PronunciationSourcesApi,
   ProofingRenderApi,
   PrepCompletenessApi,
   RenderEncodeMasterApi,
@@ -157,6 +159,7 @@ export interface PortMap {
   pronunciationLookup: PronunciationLookupApi;
   pronunciationCommonsAudio: PronunciationCommonsAudioApi;
   pronunciationOnline: PronunciationOnlineApi;
+  pronunciationSources: PronunciationSourcesApi;
   proofingRender: ProofingRenderApi;
   prepCompleteness: PrepCompletenessApi;
   renderEncodeMaster: RenderEncodeMasterApi;
