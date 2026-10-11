@@ -73,6 +73,26 @@ func (h *Host) PickupsResolve(position float64) (string, error) {
 	return encodeBinding(map[string]any{"status": "started"}, service.Resolve(position))
 }
 
+// PickupsReopen puts the resolved pickup nearest position (seconds) back to open, the inverse of PickupsResolve (SN-D44). A
+// position that is not a finite number of seconds, zero or more, is refused before anything is sent.
+func (h *Host) PickupsReopen(position float64) (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.Reopen(position))
+}
+
+// PickupsListMarkers asks REAPER for every pickup marker, open or done; read-only. The validated markers arrive in the
+// "pickups:state" event's markers.
+func (h *Host) PickupsListMarkers() (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.ListMarkers())
+}
+
 func (h *Host) PickupsCount() (string, error) {
 	service := h.services().pickups
 	if service == nil {
@@ -89,5 +109,6 @@ func (h *Host) PickupsState() (string, error) {
 		"runId": nil, "phase": "idle", "message": "",
 		"remaining": 0, "total": 0,
 		"next": nil, "resolved": nil, "importReport": nil, "csv": "",
+		"markers": []any{},
 	}, nil)
 }

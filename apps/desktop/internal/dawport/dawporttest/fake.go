@@ -163,11 +163,13 @@ func (r markersRole) AddMarker(context.Context, dawport.Target, dawport.Marker) 
 
 type pickupsRole struct{ role }
 
-func (r pickupsRole) ImportPickups(string, string) error  { return r.do("ImportPickups") }
-func (r pickupsRole) ExportPickups(string, string) error  { return r.do("ExportPickups") }
-func (r pickupsRole) NextPickup(string) error             { return r.do("NextPickup") }
-func (r pickupsRole) ResolvePickup(string, float64) error { return r.do("ResolvePickup") }
-func (r pickupsRole) CountPickups(string) error           { return r.do("CountPickups") }
+func (r pickupsRole) ImportPickups(string, string) error     { return r.do("ImportPickups") }
+func (r pickupsRole) ExportPickups(string, string) error     { return r.do("ExportPickups") }
+func (r pickupsRole) NextPickup(string) error                { return r.do("NextPickup") }
+func (r pickupsRole) ResolvePickup(string, float64) error    { return r.do("ResolvePickup") }
+func (r pickupsRole) ReopenPickup(string, float64) error     { return r.do("ReopenPickup") }
+func (r pickupsRole) ListPickupMarkers(string, string) error { return r.do("ListPickupMarkers") }
+func (r pickupsRole) CountPickups(string) error              { return r.do("CountPickups") }
 
 type lineIdentityRole struct{ role }
 

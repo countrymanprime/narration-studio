@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The two PickupsState wire payloads apps/ui needs for its schema and mock (ADR 0069). "pickups-idle" is what
+// The PickupsState wire payloads apps/ui needs for its schema and mock (ADR 0069). "pickups-idle" is what
 // PickupsState answers before any run; "pickups-import-success" is a completed import, so the UI's remaining-count and
 // next states can be built and reviewed against a real shape. runId is time-based (newRunID), so it is fixed here the
 // way lineidentity/contract_test.go fixes its own.
@@ -43,4 +43,30 @@ func TestContractPickupsImportSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	contractfile.Check(t, "pickups-import-success", stable(service.Snapshot()))
+}
+
+// "pickups-markers-listed" is a finished ListMarkers with one open and one done marker (SN-D44), so the UI's markers schema is
+// checked against a populated list, not only the empty one the other two goldens carry.
+func TestContractPickupsMarkersListed(t *testing.T) {
+	session := t.TempDir()
+	client, err := bridge.New(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(Config{SessionDir: session}, pickupListRole(t, client), nil)
+	if err := service.ListMarkers(); err != nil {
+		t.Fatal(err)
+	}
+	runID := service.Snapshot()["runId"].(string)
+	path := filepath.Join(session, "pickups_markers_"+runID+".txt")
+	if err := os.WriteFile(path, []byte("1.500000|done|narrator|Mispronounced\n9.250000|open||Second pickup\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(session, "events.log"), []byte("PICKUP_MARKERS_LISTED|"+runID+"|"+path+"|1|1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "pickups-markers-listed", stable(service.Snapshot()))
 }

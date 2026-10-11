@@ -1,8 +1,10 @@
 package pickups
 
 import (
+	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -296,5 +298,176 @@ func TestDrainWithoutABridgeIsANoOp(t *testing.T) {
 	service := New(Config{SessionDir: t.TempDir()}, nil, nil)
 	if err := service.Drain(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// reopen-and-list-roundtrip-on-the-service (SN-D44): Reopen sends reopen_pickup and ends on PICKUP_REOPENED.
+func TestReopenSendsThePositionThenEndsOnReopened(t *testing.T) {
+	service, session := testService(t)
+	if err := service.Reopen(9.25); err != nil {
+		t.Fatal(err)
+	}
+	state := service.Snapshot()
+	runID := state["runId"].(string)
+	if state["phase"] != "reopening" {
+		t.Fatalf("phase = %v, want reopening", state["phase"])
+	}
+	if command := firstCommand(t, session); command != "1|reopen_pickup|"+runID+"|9.250000\n" {
+		t.Fatalf("command = %q", command)
+	}
+	appendEvents(t, session, "PICKUP_REOPENED|"+runID+"|9.25|narrator|Mispronounced")
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	if state := service.Snapshot(); state["phase"] != "success" || state["message"] != "Marked this pickup open again." {
+		t.Fatalf("state = %#v", state)
+	}
+}
+
+func TestReopenRefusesABadPositionBeforeSendingAnything(t *testing.T) {
+	for _, position := range []float64{-1, math.NaN(), math.Inf(1)} {
+		service, session := testService(t)
+		if err := service.Reopen(position); err == nil || !strings.Contains(err.Error(), "pickup position") {
+			t.Fatalf("Reopen(%v) = %v", position, err)
+		}
+		if entries, _ := os.ReadDir(filepath.Join(session, "commands")); len(entries) != 0 {
+			t.Fatalf("Reopen(%v) sent %d commands", position, len(entries))
+		}
+		if state := service.Snapshot(); state["phase"] != "idle" {
+			t.Fatalf("Reopen(%v) left phase %v", position, state["phase"])
+		}
+	}
+}
+
+func TestReopenAndListWithoutABridgeFail(t *testing.T) {
+	service := New(Config{SessionDir: t.TempDir()}, nil, nil)
+	if err := service.Reopen(1); err == nil || !strings.Contains(err.Error(), "REAPER bridge is unavailable") {
+		t.Fatalf("Reopen err = %v", err)
+	}
+	if err := service.ListMarkers(); err == nil || !strings.Contains(err.Error(), "REAPER bridge is unavailable") {
+		t.Fatalf("ListMarkers err = %v", err)
+	}
+}
+
+// listRun starts ListMarkers and returns its run id and the output path it sent.
+func listRun(t *testing.T, service *Service, session string) (string, string) {
+	t.Helper()
+	if err := service.ListMarkers(); err != nil {
+		t.Fatal(err)
+	}
+	state := service.Snapshot()
+	runID := state["runId"].(string)
+	if state["phase"] != "listing" {
+		t.Fatalf("phase = %v, want listing", state["phase"])
+	}
+	path := filepath.Join(session, "pickups_markers_"+runID+".txt")
+	if command := firstCommand(t, session); command != "1|"+bridge.EncodeFields([]string{"list_pickup_markers", runID, path})+"\n" {
+		t.Fatalf("command = %q", command)
+	}
+	return runID, path
+}
+
+func TestListMarkersReadsTheFileBackIntoTheState(t *testing.T) {
+	service, session := testService(t)
+	runID, path := listRun(t, service, session)
+	content := "1.500000|open|narrator|Mispronounced\n9.250000|done||Fix this | now\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	appendEvents(t, session, "PICKUP_MARKERS_LISTED|"+runID+"|"+path+"|1|1")
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	state := service.Snapshot()
+	if state["phase"] != "success" || state["message"] != "Read 2 pickup markers: 1 open, 1 done." {
+		t.Fatalf("state = %#v", state)
+	}
+	want := []any{
+		map[string]any{"start": 1.5, "state": "open", "tag": "narrator", "note": "Mispronounced"},
+		map[string]any{"start": 9.25, "state": "done", "tag": "", "note": "Fix this | now"},
+	}
+	if got := state["markers"]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("markers = %#v, want %#v", got, want)
+	}
+}
+
+func TestListMarkersNeverTrustsTheFile(t *testing.T) {
+	service, session := testService(t)
+	runID, path := listRun(t, service, session)
+	content := strings.Join([]string{
+		"2.000000|open||Kept",
+		"-1.000000|open||Negative start",
+		"nan|done||Not a number",
+		"3.000000|maybe||Unknown state word",
+		"4.000000|done|a|",
+		"5.000000|open",
+		"6.000000|done|tag|Kept too\r",
+	}, "\n") + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	appendEvents(t, session, "PICKUP_MARKERS_LISTED|"+runID+"|"+path+"|1|1")
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	state := service.Snapshot()
+	markers := state["markers"].([]any)
+	if len(markers) != 2 || markers[0].(map[string]any)["note"] != "Kept" || markers[1].(map[string]any)["note"] != "Kept too" {
+		t.Fatalf("markers = %#v", markers)
+	}
+	if state["phase"] != "success" || state["message"] != "Read 2 pickup markers: 1 open, 1 done. 5 unreadable lines skipped." {
+		t.Fatalf("state = %#v", state)
+	}
+}
+
+func TestListMarkersWithAMissingFileIsASentence(t *testing.T) {
+	service, session := testService(t)
+	runID, path := listRun(t, service, session)
+	appendEvents(t, session, "PICKUP_MARKERS_LISTED|"+runID+"|"+path+"|0|0")
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	state := service.Snapshot()
+	if state["phase"] != "error" || !strings.HasPrefix(state["message"].(string), "Could not read the pickup markers REAPER listed") {
+		t.Fatalf("state = %#v", state)
+	}
+	if markers := state["markers"].([]any); len(markers) != 0 {
+		t.Fatalf("markers = %#v", markers)
+	}
+}
+
+func TestListMarkersReadsOnlyThePathItAskedFor(t *testing.T) {
+	service, session := testService(t)
+	runID, _ := listRun(t, service, session)
+	elsewhere := filepath.Join(t.TempDir(), "other.txt")
+	if err := os.WriteFile(elsewhere, []byte("1.000000|open||Planted\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	appendEvents(t, session, "PICKUP_MARKERS_LISTED|"+runID+"|"+elsewhere+"|1|0")
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	state := service.Snapshot()
+	if state["phase"] != "error" || len(state["markers"].([]any)) != 0 {
+		t.Fatalf("state = %#v", state)
+	}
+}
+
+func TestListMarkersRefusedByREAPERIsASentence(t *testing.T) {
+	service, session := testService(t)
+	runID, _ := listRun(t, service, session)
+	appendEvents(t, session, "ERROR|"+runID+"|Could%20not%20write%20the%20pickup%20list.")
+	if err := service.Drain(); err != nil {
+		t.Fatal(err)
+	}
+	if state := service.Snapshot(); state["phase"] != "error" || state["message"] != "Could not write the pickup list." {
+		t.Fatalf("state = %#v", state)
+	}
+}
+
+func TestTheIdleStateCarriesAnEmptyMarkerList(t *testing.T) {
+	state := New(Config{SessionDir: t.TempDir()}, nil, nil).Snapshot()
+	if markers, ok := state["markers"].([]any); !ok || len(markers) != 0 {
+		t.Fatalf("markers = %#v", state["markers"])
 	}
 }

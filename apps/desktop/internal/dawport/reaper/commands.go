@@ -42,6 +42,14 @@ func (p pickupList) ResolvePickup(runID string, position float64) error {
 	return p.send("resolve_pickup", runID, strconv.FormatFloat(position, 'f', 6, 64))
 }
 
+func (p pickupList) ReopenPickup(runID string, position float64) error {
+	return p.send("reopen_pickup", runID, strconv.FormatFloat(position, 'f', 6, 64))
+}
+
+func (p pickupList) ListPickupMarkers(runID, outputPath string) error {
+	return p.send("list_pickup_markers", runID, outputPath)
+}
+
 func (p pickupList) CountPickups(runID string) error { return p.send("count_pickups", runID) }
 
 // lineStamper is internal/lineidentity's commands.

@@ -26,6 +26,10 @@ func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 		// pickups.Service formats the position with strconv.FormatFloat(position, 'f', 6, 64).
 		"resolve_pickup": {func(a *Adapter) error { return pickups(a).ResolvePickup("r1", 12.5) }, []string{"resolve_pickup", "r1", "12.500000"}},
 		"count_pickups":  {func(a *Adapter) error { return pickups(a).CountPickups("r1") }, []string{"count_pickups", "r1"}},
+		// SN-D43's two commands, pinned by integrations/reaper/tests/pickups_test.lua: a position like resolve_pickup's, an output path.
+		"reopen_pickup": {func(a *Adapter) error { return pickups(a).ReopenPickup("r1", 9.25) }, []string{"reopen_pickup", "r1", "9.250000"}},
+		"list_pickup_markers": {func(a *Adapter) error { return pickups(a).ListPickupMarkers("r1", "C:/markers.txt") },
+			[]string{"list_pickup_markers", "r1", "C:/markers.txt"}},
 		"stamp_item_lines keep": {func(a *Adapter) error { return lines(a).StampLines("r1", "C:/lines.txt", false) },
 			[]string{"stamp_item_lines", "r1", "C:/lines.txt", "0"}},
 		"stamp_item_lines overwrite": {func(a *Adapter) error { return lines(a).StampLines("r1", "C:/lines.txt", true) },

@@ -5,6 +5,7 @@
     "existing": 0,
     "invalid": 0
   },
+  "markers": [],
   "message": "Imported 2 pickups.",
   "next": null,
   "phase": "success",
