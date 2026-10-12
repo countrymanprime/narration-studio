@@ -92,7 +92,11 @@ export function MasterPage({
                 {profileName(profile)}
               </Button>
             )}
-            <div className="lg:ml-auto">
+            <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+              {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+              <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
+                Master all to spec…
+              </Button>
               <MeasureControls run={run} />
             </div>
           </div>

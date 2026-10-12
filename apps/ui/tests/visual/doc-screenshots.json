@@ -470,9 +470,9 @@
   },
   {
     "page": "delivery",
-    "state": "built",
+    "state": "measured",
     "viewport": "desktop",
     "docName": "master-package-built",
-    "caption": "Delivery - the ACX package built from the mastered and encoded files: the output folder and every file it wrote"
+    "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
   }
 ]

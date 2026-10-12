@@ -1,5 +1,6 @@
 // The `delivery` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Delivery is the Studio Next mock's
-// Delivery page (SN-M5, ADR 0802): the profile card, the profile's rules, Output and the "Before you build" aside.
+// Delivery page (SN-M5, ADR 0802): the profile card, Output, the profile's rules and the "Before you build" aside. A built package has
+// no row: the mock host measures six of the book's twelve chapters, so Build never turns on.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL } from './shared';
 
@@ -29,11 +30,7 @@ export const deliveryStates: StateEntry[] = [
       'Delivery, the profile\'s "Rules and their sources" opened - every ACX rule with what ACX requires, how the app checks it and a verified, to verify or conflicting-sources mark',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  {
-    page: 'delivery',
-    state: 'built',
-    description: 'Delivery after the files were mastered to spec in Master & QC and Build ACX package - the folder, Built, and every file written',
-  },
+
   {
     page: 'delivery',
     state: 'no-manuscript',

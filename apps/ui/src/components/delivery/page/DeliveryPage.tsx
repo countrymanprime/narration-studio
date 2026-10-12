@@ -13,7 +13,7 @@ import { useBuildPackage } from './useBuildPackage';
 /**
  * Delivery (the Studio Next mock's page): the profile card, the Output panel and the "Before you build" aside. Chapters are judged by the
  * host's measurement (`measureState`) against the project's profile; the build runs over the export and package jobs. The profile's
- * rules and their sources have no mock equivalent and stay as built, under the card. The page navigates by callback only.
+ * rules and their sources have no mock equivalent and stay as built, below Output. The page navigates by callback only.
  */
 export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript: boolean; onOpenInMaster: (chapterId: string) => void }) {
   const manuscript = usePort('manuscript');
@@ -67,8 +67,8 @@ export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript:
         {/* The mock's page title, "Delivery": the page heading every page opens with. */}
         <Heading title="Delivery" />
         <ProfileCard onChange={onChange} onProfile={onProfile} />
-        {profile && <DeliveryProfilePanel profile={profile} />}
         {profile && <OutputPanel profile={profile} ready={ready} waiting={text} build={{ ...build, build: start }} showBuilt={built} />}
+        {profile && <DeliveryProfilePanel profile={profile} />}
         {problem && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
             {problem}

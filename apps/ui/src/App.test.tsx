@@ -667,6 +667,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp();
     expect(await screen.findByRole('heading', { level: 1, name: 'Master & QC' })).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Book consistency' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Master all to spec…' })).toBeTruthy();
     expect(screen.queryByRole('group', { name: /platform/i })).toBeNull();
     cleanup();
 

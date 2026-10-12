@@ -114,7 +114,7 @@ deleting a profile are there too. If you had set your own limits before delivery
 into a custom profile named **Your limits** (or ACX, when they were ACX's numbers), so your files are judged
 the same way as before.
 
-**Profile rules** says how many of the profile's rules the app checks, how many it cannot check yet, how many
+**Profile rules**, below Output, says how many of the profile's rules the app checks, how many it cannot check yet, how many
 are for you to listen for, and how many are still to verify. **Rules and their sources** lists every rule
 with what the platform requires, how the app checks it, and whether that requirement was read on the
 platform's own page (**Verified**), is still **To verify**, or has **Conflicting sources** (room tone at the
@@ -129,7 +129,7 @@ package once every chapter passes, from the files mastered and encoded in Master
 it says to master them to spec first). The build asks for a folder; **Built** then lists the folder and
 every file written.
 
-![The ACX package built: the output folder and every file it wrote](../../images/ui/master-package-built.webp)
+![Delivery with the book checked: the chapters passing, and Output waiting on the rest](../../images/ui/master-package-built.webp)
 
 ## Diagnostics
 

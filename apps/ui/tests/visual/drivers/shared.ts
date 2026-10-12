@@ -375,6 +375,8 @@ export async function openEditingCheckFromEngine(page: Page, query: string) {
 // clicks to .settings-nav specifically.
 export async function clickSettingsCategory(page: Page, name: string): Promise<void> {
   await page.locator('.settings-nav').getByRole('tab', { name, exact: true }).click();
+  // The categories sit below the page's own panels (the Studio Next mock's): bring them to the top so the category is what is photographed.
+  await scrollToTop(page, page.getByRole('region', { name: 'More settings' }));
 }
 
 // Chooses the theme the way a narrator does, with Settings' Appearance panel (the Studio Next mock's radios).
