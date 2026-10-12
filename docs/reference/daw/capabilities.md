@@ -264,11 +264,13 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** put one of the engine's own saved chains on a range of words, and take it off again.
 - **Role:** `RangeFXApplier`, synchronous (`ApplyFXToRange` with an `FXRangeRequest`: the range, the chain's id and name as the engine listed them, fade in milliseconds; `RemoveFXFromRange` with the item GUID and chain name).
 - **Result:** a `Result`. The item is split at the range and the chain goes on the middle piece; removing it joins the piece back.
-- **Refusals:** a stale item GUID; a chain the engine does not list; an engine that cannot make the edit. A refused call changes nothing.
+- **Refusals:** a stale item GUID; a chain the engine does not list, or a name that could be a path; a range that is not a finite start before its end, or not inside the item; a fade outside 0 to 500 ms; words that already carry a chain; the engine recording; an engine that cannot make the edit. A refused call changes nothing, except that a chain that loads nothing after the split is refused and the sentence says one Undo rejoins the item.
 - **Undo:** as `cut_range`.
-- **REAPER:** not yet available: no bridge command. Loading a saved chain onto a split piece is spike SND-S3.
+- **Depth:** an engine that puts the chain on a piece as take FX, leaving the recorded audio as it was, is not destructive.
+- **REAPER:** `apply_fx_range` and `remove_fx_range`, Experimental. Mode `native`, not destructive. Applying splits the item at both ends and loads the chain, named as `list_fx_chains` lists it and resolved inside `FXChains` by the Lua, onto the middle piece's active take with `TakeFX_AddByName`, in one undo block, `UndoSteps` 1; the take's `P_EXT` records the chain and the FX it added. Removing takes off only those FX and joins the piece to the pieces the apply split off, when they still carry on its audio, in one undo block, `UndoSteps` 1, or changes nothing when the piece no longer carries the chain ([REAPER](reaper.md#chain-on-a-range)). REAPER lists a chain by one name, so the role sends the request's `ChainName`. The messages are "Added CHAIN to N words in REAPER." and "CHAIN taken off in REAPER."
+- **Binding:** none yet (SN-D66).
 - **Audacity 3.x:** not yet available. The mock refuses it without backups, as it changes the audio itself.
-- **Checked:** not checked; no engine builds it yet.
+- **Checked:** harness (`fx_range_test.lua`); the run in REAPER is not done; the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
 ### `stack_takes`
 

@@ -44,7 +44,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read;
-	// delete_range.
+	// delete_range; apply_fx_range, remove_fx_range.
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -63,10 +63,11 @@ var declares = map[dawport.Capability]dawport.Level{
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so this is Unsupported,
 	// not NotYetAvailable (port.go's own example is exactly this shape, the other way around: "Audacity has no punch-and-roll").
 	dawport.CapMacroRender: dawport.Unsupported,
-	// The edit rows (SND-3): cut_range is delete_range's (SN-D62, narration_range.lua). REAPER can make the others, but the bridge has
-	// no command for them yet; each command slice flips its own row to Experimental.
+	// The edit rows (SND-3): cut_range is delete_range's (SN-D62) and fx_range apply_fx_range's and remove_fx_range's (SN-D63), all in
+	// narration_range.lua. REAPER can make the others, but the bridge has no command for them yet; each command slice flips its own row
+	// to Experimental.
 	dawport.CapCutRange:   dawport.Experimental,
-	dawport.CapFXRange:    dawport.NotYetAvailable,
+	dawport.CapFXRange:    dawport.Experimental,
 	dawport.CapStackTakes: dawport.NotYetAvailable,
 	dawport.CapBackups:    dawport.NotYetAvailable,
 }
@@ -92,6 +93,8 @@ var commandCapability = map[string]dawport.Capability{
 	"add_take_fx":         dawport.CapFXChains,
 	"master_chain_read":   dawport.CapMasterChainRead,
 	"delete_range":        dawport.CapCutRange,
+	"apply_fx_range":      dawport.CapFXRange,
+	"remove_fx_range":     dawport.CapFXRange,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -198,6 +201,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapRenderWithFX:    fxRenderer{commands},
 			dawport.CapMasterChainRead: masterChainReader{actions},
 			dawport.CapCutRange:        rangeCutter{actions, allowed},
+			dawport.CapFXRange:         rangeFXApplier{actions, allowed},
 		},
 	}, nil
 }
@@ -221,9 +225,10 @@ func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) 
 // depthOf: a roll keeps the earlier audio as a take (ADR 0860 point 1), so punch is not destructive, and REAPER makes it
 // itself. That rests on the overlapping-recording setting the roll command reads and refuses without; the QA pass (#1495)
 // confirms that setting keeps the audio. A cut moves the middle piece to the muted Cuts track and deletes nothing (point 2),
-// so cut_range is not destructive either.
+// so cut_range is not destructive either, and a chain on a range is take FX on a split piece, which leaves the audio as it
+// was recorded and comes off again (point 3), so neither is fx_range.
 func depthOf(c dawport.Capability) dawport.Depth {
-	if c == dawport.CapPunch || c == dawport.CapCutRange {
+	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange {
 		return dawport.Depth{Mode: dawport.ModeNative}
 	}
 	return dawport.Depth{}
@@ -389,5 +394,86 @@ func cutMessage(words int) string {
 		return "Deleted 1 word and their audio in REAPER."
 	default:
 		return fmt.Sprintf("Deleted %d words and their audio in REAPER.", words)
+	}
+}
+
+// rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result (ADR 0810).
+// REAPER lists a chain by one name, its path relative to FXChains, which is both the chain's id and its name; both commands send
+// the request's ChainName.
+type rangeFXApplier struct {
+	actions *bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.RangeFXApplier = rangeFXApplier{}
+
+// ApplyFXToRange splits the request's item at both ends of the range and puts the chain on the middle piece's take, in one undo
+// step (bridge's apply_fx_range). It asks allowed itself first, so a refusal is the capability's own sentence.
+func (r rangeFXApplier) ApplyFXToRange(ctx context.Context, request dawport.FXRangeRequest) (dawport.Result, error) {
+	if refused, ok := r.refused(); ok {
+		return refused, nil
+	}
+	got, err := r.actions.ApplyFXRange(ctx, request.ItemGUID, request.Start, request.End, request.ChainName, request.FadeMs)
+	if refused, ok, err := fxRangeRefused(err); ok || err != nil {
+		return refused, err
+	}
+	return dawport.OK(chainAddedMessage(request.ChainName, request.Words), true).WithUndoSteps(got.UndoPoints), nil
+}
+
+// RemoveFXFromRange takes the chain off the piece and joins the piece back to its neighbours, in one undo step (bridge's
+// remove_fx_range). A piece that no longer carries the chain changes nothing.
+func (r rangeFXApplier) RemoveFXFromRange(ctx context.Context, itemGUID, chainName string) (dawport.Result, error) {
+	if refused, ok := r.refused(); ok {
+		return refused, nil
+	}
+	got, err := r.actions.RemoveFXRange(ctx, itemGUID, chainName)
+	if refused, ok, err := fxRangeRefused(err); ok || err != nil {
+		return refused, err
+	}
+	if got.UndoPoints == 0 {
+		return dawport.OK(chainName+" is not on that piece in REAPER, so nothing changed.", false), nil
+	}
+	return dawport.OK(chainName+" taken off in REAPER.", true).WithUndoSteps(got.UndoPoints), nil
+}
+
+func (r rangeFXApplier) refused() (dawport.Result, bool) {
+	if r.allowed == nil {
+		return dawport.Result{}, false
+	}
+	return dawport.RefusedFrom(r.allowed(dawport.CapFXRange))
+}
+
+// fxRangeRefused maps bridge's answers for the two commands to a refusal; ok is false, with a nil error, when err is nil.
+func fxRangeRefused(err error) (dawport.Result, bool, error) {
+	var stale *bridge.StaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case err == nil:
+		return dawport.Result{}, false, nil
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), true, nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), true, nil
+	case errors.Is(err, bridge.ErrBadFXRange):
+		return dawport.Refused("The range for the chain is not a usable pair of times."), true, nil
+	case errors.Is(err, bridge.ErrBadChainName):
+		return dawport.Refused("That FX chain is not in the FXChains folder REAPER lists."), true, nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), true, nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), true, nil
+	}
+	return dawport.Result{}, false, err
+}
+
+// chainAddedMessage words a chain on a range as the mock does (studio-next/src/state/daw.ts, applyFxToRange).
+func chainAddedMessage(chain string, words int) string {
+	switch {
+	case words <= 0:
+		return "Added " + chain + " to the words in REAPER."
+	case words == 1:
+		return "Added " + chain + " to 1 word in REAPER."
+	default:
+		return fmt.Sprintf("Added %s to %d words in REAPER.", chain, words)
 	}
 }

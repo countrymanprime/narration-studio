@@ -62,7 +62,12 @@ var eventSpecs = map[string]eventSpec{
 	"ROLLED": {required: []fieldSpec{text("run"), text("track"), number("at"), count("undoPoints")}},
 	// delete_range (narration_range.lua, ADR 0860): the left piece (empty when the cut began at the item's start), the
 	// piece moved to the Cuts track, and the undo points the command added (1).
-	"RANGE_CUT":             {required: []fieldSpec{text("run"), text("left"), text("cut"), count("undoPoints")}},
+	"RANGE_CUT": {required: []fieldSpec{text("run"), text("left"), text("cut"), count("undoPoints")}},
+	// apply_fx_range and remove_fx_range (narration_range.lua, ADR 0860 point 3): the piece the chain went on and its take,
+	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a
+	// removal that found nothing to take off).
+	"RANGE_FX_APPLIED":      {required: []fieldSpec{text("run"), text("item"), text("take"), text("chain"), count("undoPoints")}},
+	"RANGE_FX_REMOVED":      {required: []fieldSpec{text("run"), text("item"), text("chain"), count("undoPoints")}},
 	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
