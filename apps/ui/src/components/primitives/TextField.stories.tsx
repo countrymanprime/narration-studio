@@ -34,6 +34,9 @@ export const Filled: Story = { args: { value: 'located in' } };
 export const Disabled: Story = { args: { value: 'located in', disabled: true } };
 export const Monospace: Story = { args: { label: 'Note colour', value: 'FFD54F', mono: true } };
 export const ColourPicker: Story = { args: { label: 'Note colour hex', type: 'color', value: '#ffd54f' } };
+export const Small: Story = { args: { label: 'Relationship', size: 'sm', value: 'located in' } };
+// A caller's `w-` class sets the width instead of the full-width default.
+export const SmallWithWidthClass: Story = { args: { label: 'Chapter', size: 'sm', className: 'w-40', value: '12' } };
 // A value the app computed - a generated pronunciation, a hex the app resolved - that the narrator can read and copy but
 // not edit (GuideDetail's migrated fake fields).
 export const ReadOnly: Story = { args: { label: 'Pronunciation', mono: true, readOnly: true, value: '/ˈælɪs/' } };
