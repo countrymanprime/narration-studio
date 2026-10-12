@@ -13,6 +13,7 @@ import { SelectionBar } from '../bar/SelectionBar';
 import { SelToolbar } from '../bar/SelToolbar';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
+import { useCleanupDeps } from '../cleanup/useCleanupDeps';
 import { Drawer } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
 import { resolveTab, tabsFor, type DrawerTab } from '../drawer/drawerTabs';
@@ -264,7 +265,8 @@ export function EditingBody(props: EditingBodyProps) {
   const tab = resolveTab(panels.drawer.want, offered);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
-  useEffect(() => registerCleanupSection({ journal }), [journal]);
+  const cleanupDeps = useCleanupDeps();
+  useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
   useEffect(
     () => registerEffectsSection({ effects: read.effects, cuts: read.cuts, total, selected: state.sel ? selected : [], fx, onSelectWords: selectWords }),
     [read.effects, read.cuts, total, state.sel, selected, fx, selectWords],
