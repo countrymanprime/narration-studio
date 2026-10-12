@@ -84,7 +84,8 @@ export type DawCapabilityKey =
   | 'backups'
   | 'file_preview'
   | 'file_reveal'
-  | 'range_gain';
+  | 'range_gain'
+  | 'click_repair';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -128,6 +129,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'file_preview', label: 'Play part of a file' },
   { key: 'file_reveal', label: 'Show a file in the audio engine' },
   { key: 'range_gain', label: 'Lower stretches of a take' },
+  { key: 'click_repair', label: 'Repair clicks in a take' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
@@ -247,6 +249,21 @@ export interface DawGainStretch {
  * that changed since the host read it are code `stale`. */
 export interface DawReduceRangeGainApi {
   dawReduceRangeGain(chapterId: string, takeId: string, stretches: DawGainStretch[], reduceDb: number): Promise<DawResult>;
+}
+
+/** A click in a take to repair: `start` to `end` seconds into the take's own audio file, at most 50 ms long. */
+export interface DawClick {
+  start: number;
+  end: number;
+}
+
+/** DawRepairClick (SN-E101; apps/desktop/bindings_daw_repair_click.go): smooth `clicks` in `takeId`, a take of the chapter, in one undo
+ * step of the DAW's own: Clean up's Clicks. `takeId` is the take's id as the DAW reports it on the chapter's linked track now: the host
+ * looks it up there, checks every click (1 to 500, each at most 50 ms) is inside the part of the file the take plays, and sends the item
+ * and take it read itself. A capability refusal carries the `click_repair` capability's sentence; clicks out of bounds are refused with
+ * a sentence; a take the track no longer holds, a click outside it and a take that changed since the host read it are code `stale`. */
+export interface DawRepairClickApi {
+  dawRepairClick(chapterId: string, takeId: string, clicks: DawClick[]): Promise<DawResult>;
 }
 
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a

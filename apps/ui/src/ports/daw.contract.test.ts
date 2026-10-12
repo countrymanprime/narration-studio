@@ -39,6 +39,10 @@ import {
   gainOutsideAnswer,
   gainTakeStaleAnswer,
   rangeGainAnswer,
+  clickOutsideAnswer,
+  clicksInShape,
+  clickTakeStaleAnswer,
+  repairClickAnswer,
   takesHiddenAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
@@ -53,6 +57,7 @@ import {
   type StackRequest,
   type BackupRequest,
   type RangeGainRequest,
+  type ClickRepairRequest,
 } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
@@ -91,6 +96,9 @@ const GOLDEN_FILES = [
   'daw-reduce-range-gain-done.json',
   'daw-reduce-range-gain-refused-stale.json',
   'daw-reduce-range-gain-refused-capability.json',
+  'daw-repair-click-done.json',
+  'daw-repair-click-refused-stale.json',
+  'daw-repair-click-refused-capability.json',
   'daw-backup-done.json',
   'daw-backup-restored.json',
   'daw-backup-refused.json',
@@ -304,6 +312,17 @@ function hostApi(): DawHostApi {
       }
       return Promise.resolve(read('daw-reduce-range-gain-done.json', dawResultSchema));
     },
+    // DawRepairClick on REAPER: the clicks' shape is checked first, a take the fixture project's track does not hold and a click outside
+    // the part of its file it plays are the stale refusals, and take-twice's clicks at 4..4.003 and 8.5..8.502 s are the done golden.
+    // Anything else has no golden.
+    dawRepairClick: (chapterId, takeId, clicks) => {
+      if (!clicksInShape(clicks)) return Promise.resolve(refusal(DAW_ANSWERS.clickBad));
+      const take = known.chapterIds.includes(chapterId) ? known.clickTakes?.[takeId] : undefined;
+      if (!take) return Promise.resolve(staleRefusal(clickTakeStaleAnswer('REAPER')));
+      if (clicks.some(({ start, end }) => start < take.from || end > take.to)) return Promise.resolve(staleRefusal(clickOutsideAnswer('REAPER')));
+      if (JSON.stringify(clicks) !== JSON.stringify(CLICKS.clicks)) return Promise.reject(new Error(`no golden for ${JSON.stringify(clicks)}`));
+      return Promise.resolve(read('daw-repair-click-done.json', dawResultSchema));
+    },
     // The backups bindings on REAPER: the capability's refusal (the refused golden) for a backup and a restore, and the table the list
     // golden holds.
     dawBackupAround: () => Promise.resolve(read('daw-backup-refused.json', dawResultSchema)),
@@ -321,6 +340,16 @@ const GAIN: RangeGainRequest = {
     { start: 8, end: 8.5 },
   ],
   reduceDb: 9,
+};
+
+/** Two clicks of the fixture project's take-twice: what the repair-click goldens' host repaired. */
+const CLICKS: ClickRepairRequest = {
+  chapterId: 'chapter-1',
+  takeId: 'take-twice',
+  clicks: [
+    { start: 4, end: 4.003 },
+    { start: 8.5, end: 8.502 },
+  ],
 };
 
 /** A backup of the fixture project's chapter around its words 140 to 159, which the mock times at 140 to 160 s: a 260 s window. */
@@ -386,6 +415,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.unstackTakes(UNSTACK),
         await daw.splitTake('chapter-1', 'take-twice', 15.5),
         await daw.reduceRangeGain(GAIN),
+        await daw.repairClick(CLICKS),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -557,6 +587,25 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
       await daw.reduceRangeGain({ ...GAIN, stretches: [] }),
       await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: 5, end: 4 }] }),
       await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: -1, end: 4 }] }),
+    ],
+  },
+  { name: 'repair-click: two clicks in a take repaired are answered alike', observe: (daw) => daw.repairClick(CLICKS) },
+  {
+    name: 'repair-click: a take the track does not hold, an unknown chapter and a click outside the take are refused stale alike',
+    observe: async (daw) => [
+      await daw.repairClick({ ...CLICKS, takeId: '{11111111-1111-4111-8111-111111111111}' }),
+      await daw.repairClick({ ...CLICKS, chapterId: 'chapter-9' }),
+      await daw.repairClick({ ...CLICKS, clicks: [{ start: 1.999, end: 2.001 }] }),
+      await daw.repairClick({ ...CLICKS, clicks: [{ start: 11.999, end: 12.001 }] }),
+    ],
+  },
+  {
+    name: 'repair-click: clicks out of bounds are refused alike',
+    observe: async (daw) => [
+      await daw.repairClick({ ...CLICKS, clicks: [] }),
+      await daw.repairClick({ ...CLICKS, clicks: [{ start: 4.003, end: 4 }] }),
+      await daw.repairClick({ ...CLICKS, clicks: [{ start: -1, end: -0.998 }] }),
+      await daw.repairClick({ ...CLICKS, clicks: [{ start: 4, end: 4.06 }] }),
     ],
   },
   {
@@ -1028,6 +1077,41 @@ describe('the mock setups', () => {
     });
     expect(await host.reduceRangeGain(GAIN)).toEqual(stale);
     expect(calls).toEqual([['chapter-1', 'take-twice', GAIN.stretches, 9]]);
+  });
+
+  it("repair-click: the mock refuses with the setup's click_repair sentence and answers undo steps by the capability's mode", async () => {
+    for (const [id, setup] of Object.entries(DAW_SETUPS)) {
+      const support = setup.capabilities.click_repair;
+      const got = await createMockDawClient(setup).repairClick(CLICKS);
+      expectWellFormed(got);
+      if (!support?.available) expect(got, id).toEqual(refusal(support?.message ?? ''));
+      else if (support.mode === 'steps')
+        expect(got, id).toEqual({
+          ok: true,
+          changed: true,
+          message: `Repaired 2 clicks in ${setup.daw}.`,
+          undoSteps: 2,
+          steps: ['Select around the click', 'Run Click Removal on it'],
+        });
+      else expect(got, id).toEqual({ ok: true, changed: true, message: repairClickAnswer(setup.daw, 2), undoSteps: 1 });
+    }
+    expect(await createMockDawClient(DAW_SETUPS.reaper).repairClick(CLICKS)).toEqual(read('daw-repair-click-done.json', dawResultSchema));
+    for (const file of ['daw-repair-click-refused-stale.json', 'daw-repair-click-refused-capability.json']) expectWellFormed(read(file, dawResultSchema));
+    expect(read('daw-repair-click-refused-stale.json', dawResultSchema).code).toBe('stale');
+  });
+
+  it('repair-click: the host adapter sends the chapter, the take id and the clicks only, and answers the binding as it is', async () => {
+    const stale = read('daw-repair-click-refused-stale.json', dawResultSchema);
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawRepairClick: (...args) => {
+        calls.push(args);
+        return Promise.resolve(stale);
+      },
+    });
+    expect(await host.repairClick(CLICKS)).toEqual(stale);
+    expect(calls).toEqual([['chapter-1', 'take-twice', CLICKS.clicks]]);
   });
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {

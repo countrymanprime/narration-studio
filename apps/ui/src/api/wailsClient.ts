@@ -639,6 +639,7 @@ export const wailsClient: NarrationApi = {
   dawSplitTake: (chapterId, takeId, at) => decode(dawResultSchema, 'DawSplitTake', host.DawSplitTake(chapterId, takeId, at)),
   dawReduceRangeGain: (chapterId, takeId, stretches, reduceDb) =>
     decode(dawResultSchema, 'DawReduceRangeGain', host.DawReduceRangeGain(chapterId, takeId, stretches, reduceDb)),
+  dawRepairClick: (chapterId, takeId, clicks) => decode(dawResultSchema, 'DawRepairClick', host.DawRepairClick(chapterId, takeId, clicks)),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),

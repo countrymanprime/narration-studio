@@ -54,6 +54,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   file_preview: 'experimental',
   file_reveal: 'experimental',
   range_gain: 'experimental',
+  click_repair: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -87,6 +88,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   file_preview: 'running',
   file_reveal: 'running',
   range_gain: 'running',
+  click_repair: 'running',
 };
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
@@ -113,8 +115,9 @@ const AUDACITY_NEED_BACKUPS: Partial<Record<DawCapabilityKey, string>> = {
   cut_range: 'Cutting words and their audio',
   fx_range: 'Adding an effect to words',
   range_gain: 'Lowering stretches of a take',
+  click_repair: 'Repairing clicks in a take',
 };
-const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range', 'range_gain'];
+const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range', 'range_gain', 'click_repair'];
 /** What the Audacity adapter declares Experimental until the owner's verification pass (ADR 0355, ADR 0863 for backups, SN-D83 for
  * the rows that need backups); the rest is not_yet_available. */
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
@@ -131,6 +134,7 @@ const AUDACITY_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; 
   cut_range: { mode: 'steps' },
   fx_range: { mode: 'steps' },
   range_gain: { mode: 'steps' },
+  click_repair: { mode: 'steps' },
 };
 /** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
 const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
@@ -319,6 +323,7 @@ const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mo
   fx_range: { mode: 'native' },
   stack_takes: { mode: 'native' },
   range_gain: { mode: 'native' },
+  click_repair: { mode: 'native' },
 };
 
 /** Like the host's payload, `destructive` only when true and `mode` only when set. */

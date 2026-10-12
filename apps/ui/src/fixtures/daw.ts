@@ -1,4 +1,13 @@
-import type { DawBackup, DawCapabilities, DawCapabilityKey, DawCapabilitySupport, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
+import type {
+  DawBackup,
+  DawCapabilities,
+  DawCapabilityKey,
+  DawCapabilitySupport,
+  DawClick,
+  DawGainStretch,
+  DawProjectState,
+  DawResult,
+} from '../api/contracts/daw';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import type { MeasureReport } from '../api/contracts/measure';
 
@@ -52,6 +61,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   file_preview: 'experimental',
   file_reveal: 'experimental',
   range_gain: 'experimental',
+  click_repair: 'experimental',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
@@ -81,6 +91,7 @@ const REAPER_DEPTH: Rows = {
   fx_range: { level: 'experimental', available: true, mode: 'native' },
   stack_takes: { level: 'experimental', available: true, mode: 'native' },
   range_gain: { level: 'experimental', available: true, mode: 'native' },
+  click_repair: { level: 'experimental', available: true, mode: 'native' },
 };
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
@@ -101,6 +112,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
     fx_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     stack_takes: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     range_gain: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+    click_repair: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
   },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
@@ -128,6 +140,7 @@ const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities']
     cut_range: needs('Cutting words and their audio', 'steps'),
     fx_range: needs('Adding an effect to words', 'steps'),
     range_gain: needs('Lowering stretches of a take', 'steps'),
+    click_repair: needs('Repairing clicks in a take', 'steps'),
     punch: backups ? audacityExperimental : { ...audacityExperimental, destructive: true },
   });
 };
@@ -193,6 +206,9 @@ export type DawProject = {
   /** The takes on a chapter's track whose stretches the DAW could lower, by id, with the part of the take's file each plays (seconds
    * into the file). */
   gainTakes?: Readonly<Record<string, { from: number; to: number }>>;
+  /** The takes on a chapter's track whose clicks the DAW could repair, by id, with the part of the take's file each plays (seconds into
+   * the file). */
+  clickTakes?: Readonly<Record<string, { from: number; to: number }>>;
 };
 
 /** A file of the last measurement as bindings_master_files.go reads it: its path (the page's file id), and its report's length and
@@ -230,6 +246,7 @@ export const DAW_PROJECT: DawProject = {
   ],
   splitTakes: { 'take-twice': { start: 10, length: 10 } },
   gainTakes: { 'take-twice': { from: 2, to: 12 } },
+  clickTakes: { 'take-twice': { from: 2, to: 12 } },
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
@@ -299,6 +316,8 @@ export const DAW_ANSWERS = {
   /** bindings_daw_reduce_range_gain.go (SN-E100): a reduction outside 1 to 24 dB, and stretches out of shape or more than 500. */
   gainBadDb: 'A stretch can only be lowered by 1 to 24 dB.',
   gainBadStretches: 'The stretches to lower must be 1 to 500 stretches of the take, each ending after it starts.',
+  /** bindings_daw_repair_click.go (SN-E101): clicks out of shape, longer than 50 ms or more than 500. */
+  clickBad: 'The clicks to repair must be 1 to 500 clicks of the take, each ending after it starts and at most 50 ms long.',
   /** bindings_daw_backups.go (SN-D82): a label that is empty, too long or holds a control character. */
   backupLabel: 'A backup needs a label of 1 to 256 bytes of plain text saying what it was made for.',
 } as const;
@@ -541,6 +560,58 @@ export function rangeGainAnswerOf(
   if (stretches.some(({ start, end }) => start < take.from || end > take.to)) return { refused: gainStaleOf(setup).outside, stale: true };
   const gain = rangeGainOf(setup, stretches.length, reduceDb);
   return { result: { ok: true, changed: true, message: gain.message, undoSteps: gain.undoSteps, ...(gain.steps ? { steps: gain.steps } : {}) } };
+}
+
+/** bindings_daw_repair_click.go: a take the chapter's track no longer holds, and a click outside it, both answered with code stale. */
+export function clickTakeStaleAnswer(daw: string): string {
+  return `That take is no longer on this chapter's track in the ${daw} project, so no click was repaired. Read the project again.`;
+}
+export function clickOutsideAnswer(daw: string): string {
+  return `A click to repair is no longer inside that take in the ${daw} project, so no click was repaired. Read the project again.`;
+}
+
+const clicksWord = (count: number): string => (count === 1 ? '1 click' : `${count} clicks`);
+
+/** dawport/reaper's click_repair role: `count` clicks repaired in `daw`, one undo step there. */
+export function repairClickAnswer(daw: string, count: number): string {
+  return `Repaired ${clicksWord(count)} in ${daw}. Undo it there in one step.`;
+}
+
+/** Whether every click is in the shape the host takes (bridge.ClickInShape): 1 to 500 clicks, each starting at or after 0, ending after
+ * it starts and at most 50 ms long (with the six decimals the command sends). */
+export function clicksInShape(clicks: readonly DawClick[]): boolean {
+  return (
+    clicks.length > 0 &&
+    clicks.length <= 500 &&
+    clicks.every(({ start, end }) => start >= 0 && Number.isFinite(end) && end > start && end - start <= 0.05 + 0.000001)
+  );
+}
+
+/** What repairing `count` clicks answers on one of DAW_SETUPS once `click_repair` is available, by its mode: one undo step where the DAW
+ * makes it as one action (REAPER), and Audacity's steps (dawport/audacity's RepairClick), one undo step per selection; the mock counts
+ * each click as its own selection. */
+export function repairClickOf(setup: DawCapabilities, count: number): { message: string; undoSteps: number; steps?: string[] } {
+  if (setup.capabilities.click_repair?.mode === 'steps') {
+    return { message: `Repaired ${clicksWord(count)} in ${setup.daw}.`, undoSteps: count, steps: ['Select around the click', 'Run Click Removal on it'] };
+  }
+  return { message: repairClickAnswer(setup.daw, count), undoSteps: 1 };
+}
+
+/** DawRepairClick's checks after the capability's, in the host's order (bindings_daw_repair_click.go): the clicks' shape, a take the
+ * project's track does not hold and a click outside the part of the file it plays (code stale); then what the setup's DAW answers. */
+export function repairClickAnswerOf(
+  setup: DawCapabilities,
+  project: DawProject,
+  chapterId: string,
+  takeId: string,
+  clicks: readonly DawClick[],
+): { refused: string; stale: boolean } | { result: DawResult } {
+  if (!clicksInShape(clicks)) return { refused: DAW_ANSWERS.clickBad, stale: false };
+  const take = project.chapterIds.includes(chapterId) ? project.clickTakes?.[takeId] : undefined;
+  if (!take) return { refused: clickTakeStaleAnswer(setup.daw), stale: true };
+  if (clicks.some(({ start, end }) => start < take.from || end > take.to)) return { refused: clickOutsideAnswer(setup.daw), stale: true };
+  const repair = repairClickOf(setup, clicks.length);
+  return { result: { ok: true, changed: true, message: repair.message, undoSteps: repair.undoSteps, ...(repair.steps ? { steps: repair.steps } : {}) } };
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */

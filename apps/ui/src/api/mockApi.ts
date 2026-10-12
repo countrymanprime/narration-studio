@@ -72,6 +72,7 @@ import type {
   MasterFilesApi,
   DawSplitTakeApi,
   DawReduceRangeGainApi,
+  DawRepairClickApi,
 } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
 import type { TakeEvidenceApi } from './contracts/takeEvidence';
@@ -96,6 +97,7 @@ import {
   splitTakeStaleAnswer,
   takeSplitOf,
   rangeGainAnswerOf,
+  repairClickAnswerOf,
 } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -384,6 +386,7 @@ export function createMockApi(
     ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createSplitTakeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createReduceRangeGainMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createRepairClickMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFilesMock(daw, measurePicked),
     ...createMasterFilesMock(daw, lastRunFiles),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
@@ -629,6 +632,23 @@ function createReduceRangeGainMock(daw: DawCapabilitiesApi, hasChapter: (chapter
       if (!support?.available) return refusedResult(support?.message ?? '');
       const project = { ...DAW_PROJECT, chapterIds: (await hasChapter(chapterId)) ? [chapterId] : [] };
       const answer = rangeGainAnswerOf(setup, project, chapterId, takeId, stretches, reduceDb);
+      if ('result' in answer) return answer.result;
+      return answer.stale ? { ...refusedResult(answer.refused), code: 'stale' } : refusedResult(answer.refused);
+    },
+  };
+}
+
+/** DawRepairClick as bindings_daw_repair_click.go answers it: the click_repair capability's sentence first, then the clicks' shape, then a
+ * chapter the manuscript does not have or a take the sample project's track does not hold, and a click outside the part of the file it
+ * plays (code stale); then what the launch's DAW answers. The mock reads no track, so the takes are the fixtures' DAW_PROJECT.clickTakes. */
+function createRepairClickMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawRepairClickApi {
+  return {
+    async dawRepairClick(chapterId, takeId, clicks) {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.click_repair;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      const project = { ...DAW_PROJECT, chapterIds: (await hasChapter(chapterId)) ? [chapterId] : [] };
+      const answer = repairClickAnswerOf(setup, project, chapterId, takeId, clicks);
       if ('result' in answer) return answer.result;
       return answer.stale ? { ...refusedResult(answer.refused), code: 'stale' } : refusedResult(answer.refused);
     },

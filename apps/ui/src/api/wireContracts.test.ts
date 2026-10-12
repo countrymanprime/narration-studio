@@ -19,6 +19,7 @@ import {
   rolledAnswer,
   takeSplitAnswer,
   rangeGainAnswer,
+  repairClickAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
@@ -3069,6 +3070,41 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.range_gain.message);
   });
 
+  it('dawRepairClick answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-repair-click-done.json', 'daw-repair-click-refused-stale.json', 'daw-repair-click-refused-capability.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-repair-click-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: repairClickAnswer('REAPER', 2) });
+    expect(readGolden('daw-repair-click-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+    expect(readGolden('daw-repair-click-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+    expect(readGolden('daw-repair-click-refused-capability.json')).not.toHaveProperty('code');
+
+    const clicks = [
+      { start: 4, end: 4.003 },
+      { start: 8.5, end: 8.502 },
+    ];
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { click_repair: 'on' } } });
+    const repaired = await api.dawRepairClick(chapter.id, 'take-twice', clicks);
+    expectMatches(dawResultSchema, repaired, 'mock repair click');
+    expect(repaired).toEqual(readGolden('daw-repair-click-done.json'));
+    for (const [chapterId, takeId, within] of [
+      [chapter.id, '{11111111-1111-4111-8111-111111111111}', clicks],
+      ['no-such-chapter', 'take-twice', clicks],
+      [chapter.id, 'take-twice', [{ start: 11.999, end: 12.001 }]],
+    ] as const) {
+      const stale = await api.dawRepairClick(chapterId, takeId, [...within]);
+      expectMatches(dawResultSchema, stale, 'mock repair click, stale');
+      expect(stale).toMatchObject({ ok: false, code: 'stale' });
+    }
+    expect((await api.dawRepairClick(chapter.id, 'take-twice', [{ start: 4, end: 4.06 }])).refused).toBe(DAW_ANSWERS.clickBad);
+    expect((await api.dawRepairClick(chapter.id, 'take-twice', [])).refused).toBe(DAW_ANSWERS.clickBad);
+
+    const off = await createMockApi().dawRepairClick(chapter.id, 'take-twice', clicks);
+    expectMatches(dawResultSchema, off, 'mock repair click, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.click_repair.message);
+  });
+
   it('backups.json (the Audacity backups table the host reads back) parses from the Go goldens, and the schema refuses what the host refuses', () => {
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-empty.json'), 'daw-backups-empty.json');
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-two.json'), 'daw-backups-two.json');
@@ -3769,6 +3805,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawUnstackTakes',
       'dawSplitTake',
       'dawReduceRangeGain',
+      'dawRepairClick',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
