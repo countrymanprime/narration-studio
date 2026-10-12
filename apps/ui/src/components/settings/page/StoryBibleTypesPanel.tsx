@@ -63,22 +63,25 @@ function TypeRow({
   };
   const blocked = count === undefined ? 'Reading the entries…' : count > 0 ? `${type.name} is in use` : last ? 'The last type stays' : undefined;
   return (
+    // Below md the name takes the first line and the rest share the second.
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 md:flex-nowrap">
-      <Swatch colour={kindSwatch([type], type.name)} />
-      <TextField
-        label={`Type name: ${type.name}`}
-        value={value}
-        className="min-w-[8rem] flex-1 basis-[10rem]"
-        disabled={busy}
-        onChange={setValue}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') commit();
-        }}
-      />
+      <span className="flex min-w-0 basis-full items-center gap-3 md:flex-1 md:basis-auto">
+        <Swatch colour={kindSwatch([type], type.name)} />
+        <TextField
+          label={`Type name: ${type.name}`}
+          value={value}
+          className="min-w-[8rem] flex-1"
+          disabled={busy}
+          onChange={setValue}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commit();
+          }}
+        />
+      </span>
       <Select
         label={`Colour for ${type.name}`}
-        className="w-[130px]"
+        className="w-[110px] md:w-[130px]"
         value={type.colour}
         disabled={busy}
         options={COLOUR_OPTIONS}
@@ -91,7 +94,7 @@ function TypeRow({
           </span>
         </Checkbox>
       </TooltipTarget>
-      <span data-type-count={type.name} className="min-w-[70px] text-sm text-[var(--text-muted)]">
+      <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] md:ml-0 md:min-w-[70px]">
         {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
       </span>
       <IconButton
