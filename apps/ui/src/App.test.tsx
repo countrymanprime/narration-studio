@@ -1385,7 +1385,8 @@ describe('App shell mounts', () => {
     await openJumpFromHeader();
     const field = await screen.findByRole('combobox', { name: 'Jump menu' });
     fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length;
+    // The chapters slot answers after the shell has mounted; on a loaded CI runner that is past findAll's 1 s default.
+    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ }, { timeout: 5000 })).length;
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
