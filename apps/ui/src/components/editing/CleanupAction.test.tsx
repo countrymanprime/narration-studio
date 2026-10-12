@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CleanupAction } from './CleanupAction';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { editingCandidateFor } from '../../api/mockFixtures';
 
 afterEach(cleanup);
 
@@ -27,36 +26,15 @@ function renderAction(initial: Initial = {}) {
 describe('CleanupAction', () => {
   it('is disabled with the experimental-off message before the narrator turns the setting on', async () => {
     renderAction();
-    const trim = await screen.findByRole('button', { name: 'Trim silence…' });
-    const match = screen.getByRole('button', { name: 'Match levels…' });
-    await waitFor(() => expect(trim.getAttribute('aria-disabled')).toBe('true'));
-    expect(match.getAttribute('aria-disabled')).toBe('true');
+    const match = await screen.findByRole('button', { name: 'Match levels…' });
+    await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
   });
 
-  it('previews then trims silence candidates, in one undo step per the confirm text', async () => {
-    const user = userEvent.setup();
-    const candidate = editingCandidateFor(chapterId, 'Chapter One', 0);
-    const { notify } = renderAction({ daw: { experimentalOn: true }, findings: [candidate] });
-    const trim = await screen.findByRole('button', { name: 'Trim silence…' });
-    await waitFor(() => expect(trim.getAttribute('aria-disabled')).toBeNull());
-    await user.click(trim);
-
-    const dialog = await screen.findByRole('alertdialog', { name: 'Trim silence' });
-    expect(dialog.textContent).toMatch(/1 silence candidate in this chapter/);
-
-    await user.click(screen.getByRole('button', { name: 'Trim' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Trimmed 1 candidate of 1\./), 'info'));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
-  });
-
-  it('reports the refusal instead of opening a dialog when there is nothing to trim', async () => {
-    const user = userEvent.setup();
-    const { notify } = renderAction({ daw: { experimentalOn: true }, findings: [] });
-    const trim = await screen.findByRole('button', { name: 'Trim silence…' });
-    await waitFor(() => expect(trim.getAttribute('aria-disabled')).toBeNull());
-    await user.click(trim);
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/no silence-trim candidates/), 'error'));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
+  // SN-E9: silence trim moved to the Editing page's Clean up tab; item gain stays here, the mock having no equivalent.
+  it('editing-check-panel-keeps-what-the-drawer-does-not-replace: offers item gain and no silence trim', async () => {
+    renderAction();
+    await screen.findByRole('button', { name: 'Match levels…' });
+    expect(screen.queryByRole('button', { name: /Trim silence/ })).toBeNull();
   });
 
   it('previews then matches the linked track’s item levels', async () => {

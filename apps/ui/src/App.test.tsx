@@ -687,6 +687,13 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe('/editing');
   });
 
+  // The editing check's "Clean up in Editing" (?drawer=cleanup) opens the page's drawer on Clean up.
+  it('every-workspace-deep-link-lands-on-editing: ?drawer=cleanup opens Editing with the Clean up tab', async () => {
+    window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[0].id}?drawer=cleanup`);
+    renderApp();
+    expect(await screen.findByRole('region', { name: 'Clean up findings' }, { timeout: 4000 })).toBeTruthy();
+  });
+
   // As the mock's page: with no manuscript the route stays and the page asks for one; its button goes to the import on Production.
   it('route-and-rail: without a manuscript Editing asks for one instead of drawing a chapter', async () => {
     window.history.replaceState(null, '', '/editing/chapter-1');

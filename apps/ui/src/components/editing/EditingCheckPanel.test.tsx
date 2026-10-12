@@ -73,26 +73,27 @@ describe('EditingCheckPanel', () => {
     expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 
-  it('lists a candidate with Hear, Accept, Dismiss, Defer and Go to in REAPER, and Accept saves through RD-4', async () => {
+  // SN-E9: the candidates are heard and decided on the Editing page's Clean up tab; the panel counts them and links there.
+  it('editing-check-panel-keeps-what-the-drawer-does-not-replace: counts the candidates, lists none, and links to Editing’s Clean up', async () => {
     const user = userEvent.setup();
     const candidate = editingCandidateFor(chapter.id, chapter.title, 0);
-    renderPanel({ findings: [candidate], stages: { editing: { [chapter.id]: 'not_met' } } });
+    const { close } = renderPanel({ findings: [candidate], stages: { editing: { [chapter.id]: 'not_met' } } });
     const dialog = await panel();
     await waitFor(() => expect(within(dialog).getByText(/1 empty-space candidate/)).toBeTruthy());
-    const row = within(dialog).getByLabelText(/Empty space at/);
-    expect(within(row).getByRole('button', { name: /Hear/ })).toBeTruthy();
-    expect(within(row).getByRole('button', { name: 'Go to in REAPER' })).toBeTruthy();
-    await user.click(within(row).getByRole('button', { name: 'Accept' }));
-    await waitFor(() => expect(within(row).getByText('Accepted.')).toBeTruthy());
+    expect(within(dialog).queryByLabelText(/Empty space at/)).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Accept' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: /Trim silence/ })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Match levels…' })).toBeTruthy();
+    const link = within(dialog).getByRole('link', { name: 'Clean up in Editing' });
+    expect(link.getAttribute('href')).toBe(`/editing/${chapter.id}?drawer=cleanup`);
+    await user.click(link);
+    expect(close).toHaveBeenCalled();
   });
 
-  it('has no source audio to hear for a candidate that is only a timeline gap between items', async () => {
-    const candidate = editingCandidateFor(chapter.id, chapter.title, 0);
-    const gapOnly = { ...candidate, time_range: { start: candidate.time_range!.start, end: candidate.time_range!.end } };
-    renderPanel({ findings: [gapOnly] });
+  it('counts the last scan’s candidates outside the Editing stage, with no state', async () => {
+    renderPanel({ findings: [editingCandidateFor(chapter.id, chapter.title, 0)], stages: { editing: {} } });
     const dialog = await panel();
-    const row = await within(dialog).findByLabelText(/Empty space at/);
-    expect(within(row).getByRole('button', { name: 'No audio to hear for Empty space' })).toHaveProperty('disabled', true);
+    expect(await within(dialog).findByText(/1 candidate from the last scan\./)).toBeTruthy();
   });
 
   // The per-chapter analysis-source choice.

@@ -43,6 +43,7 @@ import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
 import { ProofChapterPage } from './components/proof/ProofChapterPage';
 import { ProofPage } from './components/proof/ProofPage';
 import { EditingPage } from './components/editing/EditingPage';
+import type { DrawerTab } from './components/editing/drawer/drawerTabs';
 import { PickupsPage } from './components/pickups/PickupsPage';
 import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLocation';
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
@@ -840,21 +841,25 @@ function AppRoutes() {
 }
 
 /**
- * The Editing page's route: the chapter from the address, and `?finding=`, `?t=` and `?passage=` from its query (the deep links other pages
- * open it with). Stepping to another chapter replaces the address, so Back leaves Editing rather than walking its chapters.
+ * The Editing page's route: the chapter from the address, and `?finding=`, `?t=`, `?passage=` and `?drawer=` from its query (the deep links
+ * other pages open it with). Stepping to another chapter replaces the address, so Back leaves Editing rather than walking its chapters.
  */
+const DRAWER_TABS: readonly string[] = ['cleanup', 'effects', 'backups', 'timeline'] satisfies DrawerTab[];
+
 function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onImport: () => void }) {
   const { chapterId } = useParams<{ chapterId: string }>();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const t = params.get('t');
   const seconds = t === null ? undefined : Number(t);
+  const drawer = params.get('drawer');
   return (
     <EditingPage
       hasManuscript={hasManuscript}
       chapterId={chapterId}
       findingId={params.get('finding') ?? undefined}
       passageId={params.get('passage') ?? undefined}
+      drawer={DRAWER_TABS.includes(drawer as DrawerTab) ? (drawer as DrawerTab) : undefined}
       t={seconds !== undefined && Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined}
       onChapter={(id) => navigate(`/editing/${encodeURIComponent(id)}`, { replace: true })}
       onImport={onImport}

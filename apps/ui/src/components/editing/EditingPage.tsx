@@ -31,6 +31,8 @@ export interface EditingPageProps {
   findingId?: string;
   /** Seconds into the chapter to open at (the old `?t=`): the word heard then, with the playhead there. */
   t?: number;
+  /** A drawer tab to open at (the editing check's "Clean up in Editing"); the drawer starts closed when absent. */
+  drawer?: DrawerTab;
   /** Told when the narrator steps or picks a chapter, so the route can keep its address. */
   onChapter?: (id: string) => void;
   /** Opens the import flow, from the need-a-manuscript state. */
@@ -53,10 +55,10 @@ function useWidth(root: RefObject<HTMLElement | null>): number {
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
-function usePanels(): PanelsState {
+function usePanels(initial?: DrawerTab): PanelsState {
   const [strip, setStrip] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [want, setWant] = useState<DrawerTab>('cleanup');
+  const [open, setOpen] = useState(initial !== undefined);
+  const [want, setWant] = useState<DrawerTab>(initial ?? 'cleanup');
   const toggleStrip = useCallback(() => setStrip((s) => !s), []);
   const openTab = useCallback((tab: DrawerTab) => {
     setWant(tab);
@@ -73,7 +75,7 @@ function usePanels(): PanelsState {
 /**
  * The Editing page (the Studio Next mock's `pages/Editing.tsx`): the chapter's script is the editor. The header with the chapter step, the
  * legend and the strip and drawer buttons; the DAW-off banner; the script with takes, cards and the ribbon under its lines; the strip, the
- * bar, the key hints and the drawer. Not routed yet: SN-E9 mounts it and deletes the old workspace.
+ * bar, the key hints and the drawer. Routed at `/editing/:chapterId` (App.tsx), where it replaced Proof's chapter workspace (SN-E9).
  */
 export function EditingPage(props: EditingPageProps) {
   if (!props.hasManuscript) return <NeedManuscript onImport={props.onImport} />;
@@ -93,11 +95,11 @@ function NeedManuscript({ onImport }: { onImport?: () => void }) {
   );
 }
 
-function EditingLoaded({ chapterId: asked, passageId, findingId, t, onChapter }: EditingPageProps) {
+function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter }: EditingPageProps) {
   const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
   const daw = useDawStatus();
-  const panels = usePanels();
+  const panels = usePanels(drawer);
   const root = useRef<HTMLElement>(null);
   const width = useWidth(root);
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);

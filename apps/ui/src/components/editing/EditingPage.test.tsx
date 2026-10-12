@@ -192,6 +192,13 @@ describe('EditingPage', () => {
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
       expect(document.querySelector('[data-flagcard]')).not.toBeNull();
     });
+    // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
+    it('opens with the drawer on the tab it is given', async () => {
+      mount({ drawer: 'cleanup' });
+      await script();
+      expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
+      expect(await screen.findByRole('region', { name: 'Clean up findings' })).toBeTruthy();
+    });
     it('opens a time with the playhead there', async () => {
       mount({ t: 1.1 });
       await script();
