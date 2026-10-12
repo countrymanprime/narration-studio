@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
-import { DAW_ANSWERS, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
+import { DAW_ANSWERS, fxChainAddedAnswer, fxChainRemovedAnswer, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -2788,6 +2788,50 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.cut_range.message);
   });
 
+  it('dawApplyFxToRange and dawRemoveFxFromRange answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-apply-fx-range-done.json', 'daw-apply-fx-range-refused.json', 'daw-remove-fx-range-done.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    const chain = 'Podcast Voice.RfxChain';
+    expect(readGolden('daw-apply-fx-range-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      undoSteps: 1,
+      message: fxChainAddedAnswer(chain, 1, 'REAPER'),
+    });
+    expect(readGolden('daw-remove-fx-range-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      undoSteps: 1,
+      message: fxChainRemovedAnswer(chain, 'REAPER'),
+    });
+    expect(readGolden('daw-apply-fx-range-refused.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const added = await api.dawApplyFxToRange(chapter.id, 0, 0, chain, 10);
+    expectMatches(dawResultSchema, added, 'mock chain on a range');
+    expect(added).toEqual(readGolden('daw-apply-fx-range-done.json'));
+    const removed = await api.dawRemoveFxFromRange(chapter.id, 0, 0, chain);
+    expectMatches(dawResultSchema, removed, 'mock chain off a range');
+    expect(removed).toEqual(readGolden('daw-remove-fx-range-done.json'));
+    for (const name of ['Not Listed.RfxChain', '../reaper.ini', 'C:\\FXChains\\x.RfxChain']) {
+      expect((await api.dawApplyFxToRange(chapter.id, 0, 0, name, 0)).refused).toBe(DAW_ANSWERS.fxBadChain);
+    }
+    expect((await api.dawRemoveFxFromRange(chapter.id, 0, 0, '../x.RfxChain')).refused).toBe(DAW_ANSWERS.fxBadChain);
+    for (const fadeMs of [-1, 501, 2.5]) {
+      expect((await api.dawApplyFxToRange(chapter.id, 0, 0, chain, fadeMs)).refused).toBe(DAW_ANSWERS.cutBadFade);
+    }
+    const stale = await api.dawRemoveFxFromRange('{11111111-1111-4111-8111-111111111111}', 0, 0, chain);
+    expectMatches(dawResultSchema, stale, 'mock chain off, unknown chapter');
+    expect(stale).toMatchObject({ ok: false, code: 'stale', refused: DAW_ANSWERS.rangeStale });
+
+    const off = await createMockApi().dawApplyFxToRange(chapter.id, 0, 0, chain, 0);
+    expectMatches(dawResultSchema, off, 'mock chain on a range, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.fx_range.message);
+    expect(off).toEqual(readGolden('daw-apply-fx-range-refused.json'));
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3352,6 +3396,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceHideTakes',
       'dawRoll',
       'dawDeleteRange',
+      'dawApplyFxToRange',
+      'dawRemoveFxFromRange',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',

@@ -217,6 +217,10 @@ type Host struct {
 	// rangeCutter is the DAW port's cut_range role over the same adapter as takeCreator (ADR 0300): DawDeleteRange
 	// (bindings_daw_range.go) asks it to cut words and their audio. Nil with no bridge client or no such role.
 	rangeCutter dawport.RangeCutter
+	// rangeFX is the DAW port's fx_range role over the same adapter as takeCreator (ADR 0300): DawApplyFxToRange and
+	// DawRemoveFxFromRange (bindings_daw_fx_range.go) ask it to put a chain on words and take it off. Nil with no bridge client
+	// or no such role.
+	rangeFX dawport.RangeFXApplier
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
@@ -671,8 +675,9 @@ func (h *Host) configureLocked(next config) {
 		h.takeSelector, _ = dawAdapter.Role(dawport.CapTakes).(dawport.TakeSelector)
 		h.puncher, _ = dawAdapter.Role(dawport.CapPunch).(dawport.Puncher)
 		h.rangeCutter, _ = dawAdapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
+		h.rangeFX, _ = dawAdapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
 	} else {
-		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter = nil, nil, nil, nil
+		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX = nil, nil, nil, nil, nil
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,
