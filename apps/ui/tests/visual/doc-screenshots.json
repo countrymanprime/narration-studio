@@ -29,73 +29,52 @@
   },
   {
     "page": "script",
-    "state": "reader-text-medium",
+    "state": "reader",
     "viewport": "desktop",
     "docName": "script-reader",
-    "caption": "Script reader at the medium text size"
+    "caption": "Script - the reader on Chapter 1, the chapter list beside it and the rail on its Words tab"
   },
   {
     "page": "script",
-    "state": "prep-rail-queries",
-    "viewport": "desktop",
-    "docName": "script-prep-rail-queries",
-    "caption": "Script - the rail's Queries tab: every name the author has not confirmed, with where it is first heard, and the chapter list counting each chapter's names still to confirm"
-  },
-  {
-    "page": "script",
-    "state": "reader-text-large",
+    "state": "text-settings",
     "viewport": "desktop",
     "docName": "script-reader-large",
-    "caption": "Script reader at the large text size"
+    "caption": "Script - the text settings: font, size, line spacing and column width"
   },
   {
     "page": "script",
-    "state": "chapter-collapsed",
+    "state": "chapter-list",
     "viewport": "desktop",
     "docName": "script-chapter-list",
-    "caption": "Script - collapsed chapter list, for jumping between chapters without scrolling"
+    "caption": "Script - the chapter list, for jumping between chapters"
   },
   {
     "page": "script",
-    "state": "detail-sidebar-note",
+    "state": "rail-notes",
     "viewport": "desktop",
     "docName": "script-note-sidebar",
-    "caption": "Script - detail sidebar open on a reader note"
+    "caption": "Script - the rail's Notes tab"
   },
   {
     "page": "script",
-    "state": "selection-popup",
+    "state": "selection-tools",
     "viewport": "desktop",
     "docName": "script-selection-popup",
-    "caption": "Script - text-selection action popup on one word (+ Note, + Story Bible, Look up)"
+    "caption": "Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here and Look up"
   },
   {
     "page": "script",
-    "state": "word-lookup-definition",
+    "state": "rail-words",
     "viewport": "desktop",
     "docName": "script-word-lookup",
-    "caption": "Script - the Look up panel: definitions, examples and synonyms by part of speech, with the dictionary's credit"
+    "caption": "Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab"
   },
   {
     "page": "script",
-    "state": "word-lookup-not-found",
-    "viewport": "desktop",
-    "docName": "script-word-lookup-not-found",
-    "caption": "Script - Look up for a word the dictionary does not have"
-  },
-  {
-    "page": "script",
-    "state": "word-lookup-not-installed",
-    "viewport": "desktop",
-    "docName": "script-word-lookup-download",
-    "caption": "Script - the first Look up asks before downloading the dictionary"
-  },
-  {
-    "page": "script",
-    "state": "add-note-dialog",
+    "state": "mark-composer",
     "viewport": "desktop",
     "docName": "script-add-note",
-    "caption": "Script - Add Note dialog open after selecting text"
+    "caption": "Script - the mark composer after selecting text"
   },
   {
     "page": "production",
@@ -358,31 +337,17 @@
   },
   {
     "page": "script",
-    "state": "formatted-text-and-line-breaks",
-    "viewport": "desktop",
-    "docName": "script-formatting",
-    "caption": "Script - italic, bold and underline from the source document, and a preserved line break inside a paragraph"
-  },
-  {
-    "page": "script",
-    "state": "chapter-bookmarked",
+    "state": "rail-bookmarks",
     "viewport": "desktop",
     "docName": "script-bookmark",
-    "caption": "Script - a chapter bookmarked, shown with a blue bookmark icon"
-  },
-  {
-    "page": "script",
-    "state": "go-to-line-highlight",
-    "viewport": "desktop",
-    "docName": "script-go-to-line",
-    "caption": "Script - the line reached from the Story Bible stays highlighted so it is easy to find"
+    "caption": "Script - the rail's Bookmarks tab with a bookmark placed from the selection toolbar"
   },
   {
     "page": "script",
     "state": "reader-dark",
     "viewport": "desktop",
     "docName": "script-reader-dark",
-    "caption": "Script reader in the Dark theme - readable controls and an opaque sticky chapter header"
+    "caption": "Script reader in the Dark theme"
   },
   {
     "page": "storybible",

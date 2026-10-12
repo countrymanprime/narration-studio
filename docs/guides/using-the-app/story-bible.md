@@ -25,7 +25,7 @@ that you keep in the order you give them. In edit mode each property is a row wi
 move it up or down or remove it, and an Add button below. A value needs a name, and no two properties may share
 one (capital letters do not make a name different); Save says which row to fix. A row you add and leave blank is
 dropped. Properties are kept when you rebuild the Story Bible, and the summary of an entry that opens from the
-Manuscript lists them too.
+Script lists them too.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
 
@@ -75,32 +75,22 @@ again tries again; a failed run never leaves a broken recording behind.
 | "The preview took longer than 2m0s and was stopped" | The voice did not answer in time; the first preview after starting the app is the slow one. Try again, and restart the app if it keeps happening. |
 | The question about downloading the voice | The voice is not installed yet. |
 
-## Generating and replacing a pronunciation
+## How you say each name
 
-In edit mode, a name with no pronunciation shows a **+** button beside it; press it and choose the
-CMU dictionary or eSpeak NG to generate one. Once a pronunciation exists, the same spot shows a
-refresh button instead, so you can replace it with the other source. Either engine can have
-nothing for an unusual name (most fantasy names aren't in the CMU dictionary, and the eSpeak
-fallback needs a system component many machines don't have) - the message says which, and you can
-try the other source or try again. A pronunciation you set this way is kept the next time you
-rebuild the Story Bible; an automatically generated one can still change on a rebuild. Each alias has
-its own **+**/refresh button beside it, independent of the entity's own name and of every other
-alias, so you can generate or replace one alias's pronunciation without touching the rest. Which
-source a *fresh* pronunciation tries first (at build time, or when you add an alias) follows
-**Settings > Story Bible > Default pronunciation source**; it never limits this button's own choice.
+An entry lists **the names the app links in the text, and how I say each**: its first name, then each alias, one row
+each. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
+field and a source tag:
 
-## Your own pronunciation, and what the author said
+- Type in the field and press Enter (or leave it) to use your own; the tag then reads **Entered by me**.
+- Press the tag to choose a source instead: the CMU dictionary, Wiktionary (when it is installed), eSpeak NG, or
+  Merriam-Webster online. The source is asked for that name alone; one with nothing for it says so and the value stays.
+- When you replace a dictionary's answer with your own, or the other way round, the one replaced is kept: the tag's
+  menu offers **Use mine** or **Use the dictionary's** to switch back.
 
-Under each pronunciation is its status: **Researched** (looked up, the default), **Query sent** (you
-asked the author) or **Author confirmed**, with your note beside it if you wrote one.
-
-In edit mode you can type **Your pronunciation** and press **Use mine**. The dictionary's answer is
-not thrown away: it shows as "Also kept", and **Use ... instead** switches back to it (and keeps
-yours, so you can switch again). Neither step looks anything up. Set the **Status** and a
-**Pronunciation note** (who you asked, and when) and press **Save status**. If you change a
-pronunciation the author confirmed, it goes back to Researched, because the author has not heard the
-new one. A rebuild keeps all of this. **Pronunciation details** works the same way for an alias,
-opening independently of the entity's own panel and of every other alias.
+A rebuild keeps all of this. Which source a *fresh* pronunciation tries first (at build time, or when you add an alias)
+follows **Settings > Story Bible > Default pronunciation source**. A note written on a pronunciation in an earlier
+version still shows under its name; pronunciation statuses and the queries list are gone (a question for the author is
+a mark on the [Script](script.md#select-text) page).
 
 ## Looking a name up online (Merriam-Webster)
 
@@ -109,12 +99,11 @@ on your own free key. Get one from **Settings > Story Bible > Get a free key** (
 Merriam-Webster's sign-up page in your browser), paste it into **Your key** and press **Save key**.
 On Windows the key is kept encrypted for your Windows account; **Remove key** deletes it.
 
-Then, in an entry's **Pronunciation details**, **Look up online** sends that one name, and nothing
-else from your book, to Merriam-Webster, and shows its answer in Merriam-Webster's own respelling
-(for example \krō-ˈkā\). **Use this** copies it into **Your pronunciation**; press **Use mine** to
-keep it. Every answer is kept on your computer, so looking the same name up again sends nothing and
-works offline ("from this computer's copy"). In **Pronunciation queries**, **Look up online…** asks
-about every name on the list at once, after telling you how many names it will send.
+Then, in edit mode, open **Look up elsewhere** under a name: **Look up online** sends that one name, and nothing else
+from your book, to Merriam-Webster, and shows its answer in Merriam-Webster's own respelling (for example \krō-ˈkā\).
+**Use this** puts it in the name's field. Every answer is kept on your computer, so looking the same name up again sends
+nothing and works offline ("from this computer's copy"). **Look up elsewhere** also has the name's recordings on
+Wikimedia Commons.
 
 | Message | What it means | What to do |
 | --- | --- | --- |
@@ -122,26 +111,19 @@ about every name on the list at once, after telling you how many names it will s
 | "Merriam-Webster refused the key ..." | The key was mistyped, or is not for the Collegiate Dictionary. | Copy it again from your dictionaryapi.com account page and save it. |
 | "An online lookup sends one word or name only ..." | The name is longer than three words or has symbols. | Look up a shorter alias, or one word of the name. |
 
-## Pronunciation queries for the author
+## Suggestions: scan and import
 
-The **Pronunciation queries** button at the top of the Story Bible opens a panel that lists every
-name the author has not confirmed yet, in the order the book first uses them, with the pronunciation,
-its status, your note and the sentence it first appears in. **Show** narrows it to the ones you have
-sent or the ones you have only looked up.
+**Scan the manuscript** (the wand button at the top) reads the book and suggests new entries and facts about the ones
+you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
+asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
+until you agree. **Import entries** opens a CSV or JSON file of entries you made elsewhere and shows what it would add
+before it adds anything.
 
-**Export CSV** saves `pronunciation-queries.csv`, one row per name, for you to email or share with
-the author however you usually do. It opens in any spreadsheet. The last two columns (`entry_id`,
-`alias_index`) tell the app which entry each row is about, so ask the author to leave them as they
-are. **Mark sent** records that you asked. **Mark answered** records that the author confirmed it,
-and the name leaves the list.
-
-Once the author sends the file back with a `status` filled in for each row (`researched`, `query
-sent` or `author confirmed`, spelled either way), press **Import answers…** and pick that file
-instead of marking every row by hand. The panel says how many rows it applied; a row it could not
-use (the entry or alias it named is no longer there, or its status column is not one of the three)
-is listed underneath with the reason, and nothing else in the Story Bible is touched by that row. A
-row whose `note` column is left blank does not erase a note you already had for that name - only
-fill in a note if you want it changed.
+A suggestion the app is sure of is accepted on its own; one it is not sure of waits for you. **Needs verification**
+beside the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
+entry yet. An entry with suggestions waiting shows a **Verify** pill in the list, its accepted facts, and a **Suggested**
+list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
+Script). An entry cannot be marked reviewed while it has suggestions waiting.
 
 ## Voice references and dialogue cue attribution
 
@@ -164,7 +146,7 @@ left `unknown` rather than guessed). Pick a different speaker, or **Unknown**, f
 beside a cue to correct it. A correction survives the next Story Bible rebuild - it is never
 silently overwritten by a fresh, possibly-wrong, extraction.
 
-The **Voice data** button at the top of the Story Bible (beside Pronunciation queries) opens a panel
+The **Voice data** button at the top of the Story Bible opens a panel
 for the two things that aren't about one character: approving a reference for **plain narration**
 (useful as a baseline separate from any character), and **Remove voice data**, which revokes every
 approved reference in the project - for every character and for narration - in one action, after you

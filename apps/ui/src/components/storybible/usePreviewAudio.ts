@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GuidePreview } from '../../types';
 import type { Notify } from '../primitives/Toast';
 
-export const CANONICAL_PREVIEW = 'canonical';
+const CANONICAL_PREVIEW = 'canonical';
 
 export const previewKey = (aliasIndex?: number) => (aliasIndex === undefined ? CANONICAL_PREVIEW : `alias:${aliasIndex}`);
 

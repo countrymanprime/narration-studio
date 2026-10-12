@@ -508,7 +508,7 @@ describe('visual suite catalog integrity', () => {
 describe('axe debt', () => {
   // The (state, rule) pairs the app states are allowed to violate. It may only shrink: lower it when an entry goes, and a
   // higher number needs a maintainer's decision, not just a green run.
-  const MAX_AXE_DEBT_RULES = 19;
+  const MAX_AXE_DEBT_RULES = 18;
   const pairs = AXE_DEBT.flatMap((entry) => entry.rules.map((rule) => `${entry.page}/${entry.state}: ${rule}`));
 
   test('the axe gate is on, because the drivers declare the list', () => {

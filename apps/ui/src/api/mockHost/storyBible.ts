@@ -285,7 +285,7 @@ export function createStoryBibleMock(
     guidePronounceUser: async (id, ipa, aliasIndex) => {
       const text = ipa.trim();
       if (!text) throw new Error('type a pronunciation first');
-      changePronunciation(id, aliasIndex, (prior) => setPronunciation(prior, { ipa: text, source: 'user', confidence: 'narrator', chosen: true }));
+      changePronunciation(id, aliasIndex, (prior) => setPronunciation(prior, { ipa: text, source: 'manual', confidence: 'narrator', chosen: true }));
     },
     guidePronunciationUseAlternate: async (id, aliasIndex) => {
       changePronunciation(id, aliasIndex, (prior) => {
