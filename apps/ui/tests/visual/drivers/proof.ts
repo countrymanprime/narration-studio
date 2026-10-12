@@ -7,12 +7,12 @@ const notes = (page: Page): Locator => page.getByRole('region', { name: 'Notes' 
 const inspector = (page: Page): Locator => page.getByRole('complementary', { name: 'Note' });
 
 // Opens Proof (booted with a main.tsx mock seed first when one is given) and waits for its notes and the Inspector on the first one.
-async function openProof(page: Page, seed?: string, rows = true): Promise<void> {
+async function openProof(page: Page, seed?: string, rows = true, direct = false): Promise<void> {
   if (seed) {
-    await page.goto(`/?${seed}`);
+    await page.goto(direct ? `/proof?${seed}` : `/?${seed}`);
     await settlePage(page);
   }
-  await goToPage(page, 'Proof');
+  if (!direct) await goToPage(page, 'Proof');
   await page.getByText('Open notes, by chapter').waitFor();
   if (rows) {
     await notes(page).locator('tr[data-row]').first().waitFor();
@@ -95,7 +95,8 @@ export const proofDrivers: Record<string, Driver> = {
   'evidence-changed': async (page) => {
     // The seed's analyzer runs again once the page has read the notes, so opening the note's chapter reads it with new evidence: the
     // Inspector keeps the evidence it showed, puts up the banner and holds every decision until the new evidence is taken.
-    await openProof(page, 'mockFindings=changed');
+    // Opened straight on Proof: the Production home also lists the notes (for its Proof cells), and the seed re-runs after the first list.
+    await openProof(page, 'mockFindings=changed', true, true);
     await notes(page)
       .locator('tr[data-row]')
       .filter({ hasText: /pink eyes/ })
