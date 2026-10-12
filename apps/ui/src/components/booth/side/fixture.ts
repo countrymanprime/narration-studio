@@ -87,7 +87,7 @@ export const marks: Marks = {
     }),
     mark({ id: 'm2', paragraphId: 'p1', start: 11, end: 14, quote: 'was', type: 'breath' }),
     mark({ id: 'm3', paragraphId: 'p2', paragraph: 2, start: 1, end: 4, quote: 'Off', type: 'stress', text: 'gone', stale: true }),
-    mark({ id: 'm4', paragraphId: 'p2', paragraph: 2, start: 53, end: 58, quote: 'Alice', type: 'ask', text: 'Which Alice?', status: 'open' }),
+    mark({ id: 'm4', paragraphId: 'p2', paragraph: 2, start: 42, end: 45, quote: 'yet', type: 'ask', text: 'Stressed?', status: 'open' }),
   ],
 };
 

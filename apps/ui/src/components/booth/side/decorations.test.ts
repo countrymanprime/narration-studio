@@ -19,7 +19,7 @@ describe('decorations come from the real data', () => {
     expect(underlined.map((d) => [d.paragraphId, d.start, d.end, d.colour, d.title])).toEqual([
       ['p1', 4, 10, '--accent', 'Word stress'],
       ['p1', 11, 14, '--info', 'Breath / pause'],
-      ['p2', 53, 58, '--warn', 'Query for author'],
+      ['p2', 42, 45, '--warn', 'Query for author'],
     ]);
   });
 
