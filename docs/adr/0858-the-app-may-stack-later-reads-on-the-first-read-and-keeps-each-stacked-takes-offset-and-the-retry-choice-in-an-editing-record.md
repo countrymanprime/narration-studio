@@ -22,7 +22,7 @@ The [Script-Based Editing PRD](../prds/studio-next-script-based-editing.prd.md) 
 5. **Un-stacking removes offsets.** `EditingStackRemove(chapterId, passageId, takeIds)` forgets the named takes once the DAW put them back, or when the journal undoes the stack; some takes for a partial un-stack, and the stack goes with its last take. A take not stacked is not an error.
 6. **The retry mode has three levels.** `EditingRetryModeSet(level, chapterId, passageId, mode)` sets `stack` or `leave` for the project, a chapter or a passage, and an empty mode takes it back. `EditingRetryModeGet` resolves the passage's own, else its chapter's, else the project's, else `leave`, and says which level it came from. The mode decides only what the page offers: nothing is stacked by itself.
 7. **Recording changes nothing in the DAW, and replacing the manuscript clears the file.** The record is the app's memory of what the DAW did. Replacing the manuscript and Clear project data remove `stacks.json` (`resetDerived`); the DAW's audio stays as editing left it.
-8. **The wire.** `PassageStack`, `RetryMode`, `EditStacksApi` (`apps/ui/src/api/contracts/editStacks.ts`), strict schemas in `apps/ui/src/api/schemas/editStacks.ts`, the goldens `edit-stacks-*.json` written by `bindings_editlog_stacks_contract_test.go`, the stack methods on `EditLogPort`, and host API 113.
+8. **The wire.** `PassageStack`, `RetryMode`, `EditStacksApi` (`apps/ui/src/api/contracts/editStacks.ts`), strict schemas in `apps/ui/src/api/schemas/editStacks.ts`, the goldens `edit-stacks-*.json` written by `bindings_editlog_stacks_contract_test.go`, the stack methods on `EditLogPort`, and host API 114.
 
 ## Consequences
 
