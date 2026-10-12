@@ -277,6 +277,9 @@ type takesRole struct{ role }
 func (r takesRole) SetActiveTake(context.Context, string, string) (dawport.ActiveTakeSet, error) {
 	return dawport.ActiveTakeSet{}, r.do("SetActiveTake")
 }
+func (r takesRole) HideTakes(context.Context, string, string) (dawport.Result, error) {
+	return r.result("HideTakes", "Other takes hidden.")
+}
 
 type fxChainsRole struct{ role }
 

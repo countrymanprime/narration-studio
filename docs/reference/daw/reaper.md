@@ -29,6 +29,12 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([ADR 00
 | The ReaScript calls behind each planned command, from the documentation and cross-checked against five third-party REAPER MCP servers read for approach only | [ReaScript calls](../../research/reaper-api-for-planned-commands.md) |
 | A survey of the wider automation surface | [Automation surface](../../research/reaper-automation-surface.md) |
 
+## Takes
+
+- **Hide is a volume of 0, not a mute.** ReaScript has no per-take mute, so `hide_takes` saves a take's `D_VOL` in its `P_EXT` (`narration_utils_take_hidden_volume`) and sets `D_VOL` to 0; keeping that take later gives the volume back. Nothing is deleted ([the bridge](../../architecture/reaper-bridge.md#commands)).
+- **Undo.** The hide is one undo block, labelled "Narration Utils: hide other takes"; nothing to hide opens none. That one REAPER Undo brings every hidden take back is what the harness models, not a run.
+- **Checked:** not checked. The owner's run confirms that a take at `D_VOL` 0 is silent with "play all takes" on and off, that the `P_EXT` key is saved with the project, that clearing it with an empty value leaves no stale key that reads as hidden, and that one Undo restores every take's volume and the active take.
+
 ## Not yet available
 
 `cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. Each command slice flips its own row to Experimental ([capabilities](capabilities.md#cut_range)).

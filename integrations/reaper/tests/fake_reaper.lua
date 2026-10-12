@@ -748,14 +748,21 @@ function Fake:add_take_api(api)
       return take.startoffs
     elseif key == 'D_PLAYRATE' then
       return take.playrate
+    elseif key == 'D_VOL' then
+      -- A take's volume as a factor, 1 (0 dB) for a new take (REAPER's documented default; no REAPER run read it yet).
+      return take.vol or 1
     end
     error('fake reaper: unmodelled take value ' .. tostring(key))
   end
-  -- The setter counterpart of GetMediaItemTakeInfo_Value: only D_STARTOFFS is modelled (the take-review
-  -- source-offset alignment, Q4). Item D_LENGTH has no setter here on purpose - nothing in this bridge may touch it.
+  -- The setter counterpart of GetMediaItemTakeInfo_Value: D_STARTOFFS (the take-review source-offset alignment, Q4) and
+  -- D_VOL (hide_takes). Item D_LENGTH has no setter here on purpose - nothing in this bridge may touch it.
   function api.SetMediaItemTakeInfo_Value(take, key, value)
+    fake.calls[#fake.calls + 1] = { name = 'SetMediaItemTakeInfo_Value', key = key, value = value }
     if key == 'D_STARTOFFS' then
       take.startoffs = value
+      return true
+    elseif key == 'D_VOL' then
+      take.vol = value
       return true
     end
     error('fake reaper: unmodelled take value setter ' .. tostring(key))

@@ -54,6 +54,7 @@ var experimentalCommands = map[string]bool{
 	"record_start":        true,
 	"record_stop":         true,
 	"set_active_take":     true,
+	"hide_takes":          true,
 	"list_fx_chains":      true,
 	"apply_fx_chain":      true,
 	"list_fx":             true,
@@ -66,7 +67,7 @@ var experimentalCommands = map[string]bool{
 
 // actionTags are the events Actions consumes: every answer of every command it sends, and ERROR.
 var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK_STALE", "TRACK_SELECTED", "ARMED", "RECORD_STARTED", "RECORD_STOPPED", "RECORD_ENDED", "RECORD_NOT_OURS",
-	"ACTIVE_TAKE_SET", "ITEM_STALE", "FX_CHAIN", "FX_CHAINS_LISTED", "FX_CHAIN_APPLIED",
+	"ACTIVE_TAKE_SET", "TAKES_HIDDEN", "ITEM_STALE", "FX_CHAIN", "FX_CHAINS_LISTED", "FX_CHAIN_APPLIED",
 	"FX_PLUGIN", "FX_PLUGINS_LISTED", "TAKE_FX_ADDED", "REGIONS_CREATED", "PLAY_POSITION", "PUNCHED", "MASTER_CHAIN_FX", "MASTER_CHAIN_READ", "ERROR"}
 
 // Gate is asked, with the command's name, before Actions sends it. nil lets the command go; an error refuses it and

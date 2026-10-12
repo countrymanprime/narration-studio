@@ -9,6 +9,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"testing"
@@ -109,6 +110,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
 	"set_active_take":     dawport.CapTakes,
+	"hide_takes":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
 	"list_fx":             dawport.CapFXChains,
@@ -228,7 +230,7 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 		dawport.CapRecord:      "*bridge.Actions",
 		dawport.CapPunch:       "*bridge.Actions",
 		dawport.CapRegions:     "*bridge.Actions",
-		dawport.CapTakes:       "*bridge.Actions",
+		dawport.CapTakes:       "reaper.takeSelector",
 		dawport.CapFXChains:    "*bridge.Actions",
 		dawport.CapSilenceTrim: "*bridge.CleanupClient",
 		dawport.CapItemGain:    "*bridge.LevelMatchClient",
@@ -417,5 +419,104 @@ func TestExplainUsesREAPERsWording(t *testing.T) {
 	}
 	if got := resolver(dawport.Runtime{Bridge: true, Reachable: true}).Support(dawport.CapPunch).Message; got != "Experimental: switched off in Settings." {
 		t.Errorf("experimental_off message = %q, want the resolver's own", got)
+	}
+}
+
+const (
+	hideItem = "{AAAAAAAA-0000-4000-8000-000000000001}"
+	hideTake = "{00000004-0000-4000-8000-000000000004}"
+)
+
+func takeSelectorAnswering(t *testing.T, answer func(command []string) [][]string) dawport.TakeSelector {
+	t.Helper()
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	answerCommands(t, client, dir, answer)
+	return adapter.Role(dawport.CapTakes).(dawport.TakeSelector)
+}
+
+func TestHideTakesIsOneUndoStepWhenItChangedAndNoneWhenNot(t *testing.T) {
+	for _, tc := range []struct {
+		answer []string
+		want   dawport.Result
+	}{
+		{[]string{"2", "1"}, dawport.OK("Muted 2 other takes in REAPER. They are still in the project.", true)},
+		{[]string{"1", "1"}, dawport.OK("Muted 1 other take in REAPER. It is still in the project.", true)},
+		{[]string{"0", "1"}, dawport.OK("No other take to mute in REAPER; the kept take is the active one.", true)},
+		{[]string{"0", "0"}, dawport.OK("No other take to mute in REAPER.", false)},
+	} {
+		takes := takeSelectorAnswering(t, func(command []string) [][]string {
+			return [][]string{append([]string{"TAKES_HIDDEN", command[1], hideItem}, tc.answer...)}
+		})
+		got, err := takes.HideTakes(t.Context(), hideItem, hideTake)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("answer %v: HideTakes = %+v, %v; want %+v", tc.answer, got, err, tc.want)
+		}
+	}
+	if r := dawport.OK("x", true); r.UndoSteps != 1 {
+		t.Fatalf("a change is %d undo steps, want 1", r.UndoSteps)
+	}
+}
+
+func TestHideTakesRefusesAStaleItemOrTakeWithTheStaleCode(t *testing.T) {
+	for reason, sentence := range map[string]string{
+		"item": "That passage's item is no longer in the REAPER project. Read the project again.",
+		"take": "That item no longer has the take you kept. Read the project again.",
+	} {
+		takes := takeSelectorAnswering(t, func(command []string) [][]string {
+			return [][]string{{"ITEM_STALE", command[1], hideItem, reason}}
+		})
+		got, err := takes.HideTakes(t.Context(), hideItem, hideTake)
+		if err != nil || !reflect.DeepEqual(got, dawport.RefusedStale(sentence)) {
+			t.Errorf("%s: HideTakes = %+v, %v; want RefusedStale(%q)", reason, got, err, sentence)
+		}
+	}
+}
+
+func TestHideTakesRefusesWhileRecordingAndPassesOnACallThatNeverAnswered(t *testing.T) {
+	takes := takeSelectorAnswering(t, func(command []string) [][]string {
+		return [][]string{{"ERROR", command[1], "REAPER is recording. Stop recording first."}}
+	})
+	got, err := takes.HideTakes(t.Context(), hideItem, hideTake)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused("REAPER is recording. Stop recording first.")) {
+		t.Errorf("HideTakes while recording = %+v, %v", got, err)
+	}
+	outdated := takeSelectorAnswering(t, func(command []string) [][]string {
+		return [][]string{{"ERROR", command[1], "Unsupported workspace command"}}
+	})
+	if _, err := outdated.HideTakes(t.Context(), hideItem, hideTake); !errors.Is(err, bridge.ErrScriptOutdated) {
+		t.Errorf("an older script: err = %v, want ErrScriptOutdated", err)
+	}
+}
+
+// A capability the resolver refuses is a refused Result in the refusal's own sentence, and nothing is written.
+func TestHideTakesIsGatedByTheResolver(t *testing.T) {
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to choose takes."
+	var asked []dawport.Capability
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		asked = append(asked, c)
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	got, err := adapter.Role(dawport.CapTakes).(dawport.TakeSelector).HideTakes(t.Context(), hideItem, hideTake)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("HideTakes with takes refused = %+v, %v; want Refused(%q)", got, err, sentence)
+	}
+	if len(asked) == 0 || asked[0] != dawport.CapTakes {
+		t.Errorf("asked about %v, want takes", asked)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused hide wrote %d commands", n)
+	}
+
+	ungated, dir := newAdapter(t, nil)
+	got, err = ungated.Role(dawport.CapTakes).(dawport.TakeSelector).HideTakes(t.Context(), hideItem, hideTake)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(bridge.ErrExperimentalOff.Error())) {
+		t.Errorf("HideTakes with nothing allowed = %+v, %v; want refused as experimental and off", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused hide wrote %d commands", n)
 	}
 }

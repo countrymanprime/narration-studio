@@ -221,3 +221,11 @@ func (s *session) SetActiveTake(ctx context.Context, itemGUID, takeGUID string) 
 	}
 	return dawport.ActiveTakeSet{ItemGUID: itemGUID, TakeGUID: takeGUID, Changed: true}, nil
 }
+
+// HideTakes changes nothing: the built-in recorder plays only the kept take of a line, so the others are already silent.
+func (s *session) HideTakes(ctx context.Context, _, _ string) (dawport.Result, error) {
+	if _, err := s.ready(ctx); err != nil {
+		return dawport.Result{}, err
+	}
+	return dawport.OK("The built-in recorder plays only the kept take, so there is nothing to mute.", false), nil
+}

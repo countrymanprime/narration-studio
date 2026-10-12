@@ -147,6 +147,8 @@ var eventSpecs = map[string]eventSpec{
 	"FX_PLUGIN":         {required: []fieldSpec{text("run"), text("name")}},
 	"FX_PLUGINS_LISTED": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
 	"TAKE_FX_ADDED":     {required: []fieldSpec{text("run"), text("name"), text("itemGuid"), text("takeGuid"), count("splits")}},
+	// narration_takes.lua: hide_takes answers the number of takes it hid, and whether it added an undo point.
+	"TAKES_HIDDEN": {required: []fieldSpec{text("run"), text("itemGuid"), count("count"), count("changed")}},
 	// master_chain_read and render_with_fx (narration_master_render.lua; ADR 0306): the mastering port's DAW row.
 	// MASTER_CHAIN_FX is one per FX slot, every track's in track order and then the master's (track "master"); enabled
 	// is 0 or 1; MASTER_CHAIN_READ closes the list (truncated 1 when the bridge's cap cut it). FX_RENDER_FILE is one per
