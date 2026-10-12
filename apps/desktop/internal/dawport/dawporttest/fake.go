@@ -342,8 +342,13 @@ func (r role) result(method, message string) (dawport.Result, error) {
 
 type cutRangeRole struct{ role }
 
+// DeleteRange answers as REAPER's delete_range does: one undo step.
 func (r cutRangeRole) DeleteRange(context.Context, dawport.DeleteRangeRequest) (dawport.Result, error) {
-	return r.result("DeleteRange", "Cut.")
+	got, err := r.result("DeleteRange", "Deleted the words and their audio.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
 }
 
 type fxRangeRole struct{ role }

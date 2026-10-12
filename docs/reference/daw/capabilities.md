@@ -250,12 +250,13 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 - **Intent:** cut a range of words from the script together with their audio.
 - **Role:** `RangeCutter`, synchronous (`DeleteRange`, a `DeleteRangeRequest`: the item's GUID as the app last read it, start and end in seconds, the word count, mode `close` or `gap`, fade in milliseconds).
-- **Result:** a `Result` ([ADR 0810](../../adr/0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md)). The middle piece goes to a muted Cuts track, never deleted ([PRD decision DQ-8](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions)); `close` moves later audio up, `gap` fills the cut with room tone.
-- **Refusals:** an item whose GUID no longer matches (`stale`); an engine that cannot make the edit. A refused call changes nothing.
+- **Result:** a `Result` ([ADR 0810](../../adr/0810-a-daw-call-answers-one-result-object-and-a-capability-reports-whether-it-is-destructive-and-its-mode.md)). The middle piece goes to a muted Cuts track, never deleted ([PRD decision DQ-8](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions)); `close` moves later audio up, `gap` keeps the length, the cut filled with room tone where the engine has a source for it (REAPER leaves silence).
+- **Refusals:** an item whose GUID no longer matches (`stale`); a range that is not a finite start before its end, or not inside the item; another item on the track overlapping the range; a mode other than `close` or `gap`; a fade outside 0 to 500 ms; the engine recording; an engine that cannot make the edit. A refused call changes nothing.
 - **Undo:** one undo point where the engine makes the edit as one action; `UndoSteps` and `Steps` report otherwise.
-- **REAPER:** not yet available: no bridge command. Whether the split and move is one undo block is spike SND-S2 ([PRD](../../prds/studio-next-daw-ports-and-capabilities.prd.md#spikes-each-is-a-slice-result-written-to-docsresearch)).
+- **Depth:** an engine that moves the cut audio aside rather than deleting it is not destructive.
+- **REAPER:** `delete_range`, Experimental. Mode `native`, not destructive: the item is split at both ends and the middle piece moves to a muted Cuts track, in one undo block, `UndoSteps` 1; `close` moves the later items on the same track up, `gap` leaves silence, as the command has no room-tone source ([REAPER](reaper.md#range-cut)). The message is "Deleted N words and their audio in REAPER." The binding is SN-D65's.
 - **Audacity 3.x:** not yet available. The PRD plans select and delete after a backup ([`backups`](#backups)).
-- **Checked:** not checked; no engine builds it yet.
+- **Checked:** harness (`range_test.lua`); the run in REAPER is not done; the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
 ### `fx_range`
 

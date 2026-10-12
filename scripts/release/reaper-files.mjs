@@ -14,6 +14,7 @@ export const REAPER_FILES = [
   'narration_pickups.lua',
   'narration_project_state.lua',
   'narration_punch.lua',
+  'narration_range.lua',
   'narration_regions.lua',
   'narration_render.lua',
   'narration_retake_lanes.lua',

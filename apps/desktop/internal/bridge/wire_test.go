@@ -22,6 +22,7 @@ var realEvents = map[string][]string{
 	"PLAY_POSITION":         {"PLAY_POSITION", "p1", "5", "12.500000", "12.375000", "3.000000"},
 	"PUNCHED":               {"PUNCHED", "u1", "39.500000"},
 	"ROLLED":                {"ROLLED", "o1", "{00000001-0000-4000-8000-000000000001}", "62.250000", "0"},
+	"RANGE_CUT":             {"RANGE_CUT", "c1", "{00000002-0000-4000-8000-000000000002}", "{00000009-0000-4000-8000-000000000009}", "1"},
 	"PROJECT_STATUS":        {"PROJECT_STATUS", "", "C:/p/Book.rpp", "0"},
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
 	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},

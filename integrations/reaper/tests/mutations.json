@@ -1090,5 +1090,107 @@
     "file": "narration_roll.lua",
     "find": "  if at > math.max(reaper.GetProjectLength(0), now) then",
     "replace": "  if at > reaper.GetProjectLength(0) then"
+  },
+  {
+    "name": "delete_range: a stale item GUID falls back to another item",
+    "file": "narration_range.lua",
+    "find": "  local item = wanted ~= '' and find_item(wanted) or nil",
+    "replace": "  local item = reaper.GetMediaItem(0, 1)"
+  },
+  {
+    "name": "delete_range: the Cuts track is not muted",
+    "file": "narration_range.lua",
+    "find": "  if reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 1 then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "delete_range: the middle piece is deleted instead of moved",
+    "file": "narration_range.lua",
+    "find": "  reaper.MoveMediaItemToTrack(middle, ensure_cuts(cuts, keyed))",
+    "replace": "  reaper.DeleteTrackMediaItem(track, middle)"
+  },
+  {
+    "name": "delete_range: later items on another track move",
+    "file": "narration_range.lua",
+    "find": "  for index = 0, reaper.CountTrackMediaItems(track) - 1 do\n    local other = reaper.GetTrackMediaItem(track, index)\n    if other ~= item and reaper.GetMediaItemInfo_Value(other, 'D_POSITION') >= time - EDGE_TOLERANCE then",
+    "replace": "  for index = 0, reaper.CountMediaItems(0) - 1 do\n    local other = reaper.GetMediaItem(0, index)\n    if other ~= item and reaper.GetMediaItemInfo_Value(other, 'D_POSITION') >= time - EDGE_TOLERANCE then"
+  },
+  {
+    "name": "delete_range: gap mode closes up too",
+    "file": "narration_range.lua",
+    "find": "  local later = mode == 'close' and items_from(track, item, last_cut) or {}",
+    "replace": "  local later = items_from(track, item, last_cut)"
+  },
+  {
+    "name": "delete_range: the move opens a second undo block",
+    "file": "narration_range.lua",
+    "find": "  reaper.MoveMediaItemToTrack(middle, ensure_cuts(cuts, keyed))",
+    "replace": "  reaper.Undo_EndBlock2(0, UNDO_DELETE_WORDS, -1)\n  reaper.Undo_BeginBlock2(0)\n  reaper.MoveMediaItemToTrack(middle, ensure_cuts(cuts, keyed))"
+  },
+  {
+    "name": "delete_range: a range outside the item is cut",
+    "file": "narration_range.lua",
+    "find": "  if first_cut < first - EDGE_TOLERANCE or last_cut > last + EDGE_TOLERANCE then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "delete_range: an empty or reversed range is cut",
+    "file": "narration_range.lua",
+    "find": "  if not first_cut or not last_cut or last_cut - first_cut <= EDGE_TOLERANCE then",
+    "replace": "  if not first_cut or not last_cut then"
+  },
+  {
+    "name": "delete_range: a non-finite time is used",
+    "file": "narration_range.lua",
+    "find": "  if not value or value ~= value or value == math.huge or value == -math.huge then",
+    "replace": "  if not value then"
+  },
+  {
+    "name": "delete_range: a range at the item start splits there anyway",
+    "file": "narration_range.lua",
+    "find": "  local split_start = first_cut - first > EDGE_TOLERANCE",
+    "replace": "  local split_start = first_cut - first > 0"
+  },
+  {
+    "name": "delete_range: a neighbouring item overlapping the range is cut through",
+    "file": "narration_range.lua",
+    "find": "  if overlapping(track, item, first_cut, last_cut) then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "delete_range: a fade outside 0 to 500 is used",
+    "file": "narration_range.lua",
+    "find": "  if not value or value ~= math.floor(value) or value < 0 or value > MAX_FADE_MS then",
+    "replace": "  if not value then"
+  },
+  {
+    "name": "delete_range: the fade goes on the left piece's untouched edge",
+    "file": "narration_range.lua",
+    "find": "    reaper.SetMediaItemInfo_Value(left, 'D_FADEOUTLEN', fade)",
+    "replace": "    reaper.SetMediaItemInfo_Value(left, 'D_FADEINLEN', fade)"
+  },
+  {
+    "name": "delete_range: a cut runs while REAPER records",
+    "file": "narration_range.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')"
+  },
+  {
+    "name": "delete_range: audio already on the Cuts track is cut again",
+    "file": "narration_range.lua",
+    "find": "  if cuts and track == cuts then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "delete_range: a second Cuts track is added for every cut",
+    "file": "narration_range.lua",
+    "find": "  if not track then\n    local index = reaper.CountTracks(0)",
+    "replace": "  if true then\n    local index = reaper.CountTracks(0)"
+  },
+  {
+    "name": "delete_range: a missing call is not refused",
+    "file": "narration_range.lua",
+    "find": "    if not reaper.APIExists(name) then",
+    "replace": "    if false then"
   }
 ]

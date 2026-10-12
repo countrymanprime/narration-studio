@@ -91,9 +91,14 @@ function Fake:new_guid()
   return guid
 end
 
--- A track's record arm (I_RECARM) is `track.armed`; its record input (I_RECINPUT) is `track.rec_input`, 0 when unset.
+-- A track's record arm (I_RECARM) is `track.armed`; its record input (I_RECINPUT) is `track.rec_input`, 0 when unset;
+-- its mute (B_MUTE) is `track.muted` and its extension data (P_EXT) `track.ext`.
+function Fake:new_track(name, selected)
+  return { name = name or 'Track', selected = selected or false, items = {}, guid = self:new_guid(), armed = false, muted = false, ext = {} }
+end
+
 function Fake:add_track(name, selected)
-  local track = { name = name or 'Track', selected = selected or false, items = {}, guid = self:new_guid(), armed = false }
+  local track = self:new_track(name, selected)
   self.tracks[#self.tracks + 1] = track
   return track
 end
@@ -125,6 +130,8 @@ function Fake:add_item(track, opts)
     takes = {},
     lane = opts.lane or 0,
     muted = opts.muted or false,
+    fadein = opts.fadein or 0,
+    fadeout = opts.fadeout or 0,
   }
   if opts.source or opts.midi then
     item.takes[1] = {
@@ -287,6 +294,51 @@ function Fake:transport_calls()
   return out
 end
 
+-- The tracks and items with the values an edit changes (position, length, track, mute, fades, names, extension data).
+-- Takes are kept by reference: no command here changes a take's own fields inside an undo block it then undoes.
+function Fake:snapshot()
+  local copy = function(t)
+    local out = {}
+    for key, value in pairs(t) do
+      out[key] = value
+    end
+    return out
+  end
+  local shot = { tracks = copy(self.tracks), items = copy(self.items), track_state = {}, item_state = {} }
+  for _, track in ipairs(self.tracks) do
+    shot.track_state[track] = { items = copy(track.items), name = track.name, muted = track.muted, ext = copy(track.ext or {}) }
+  end
+  for _, item in ipairs(self.items) do
+    shot.item_state[item] = {
+      position = item.position,
+      length = item.length,
+      track = item.track,
+      muted = item.muted,
+      fadein = item.fadein,
+      fadeout = item.fadeout,
+    }
+  end
+  return shot
+end
+
+-- Undo the last undo block the way the REAPER reference describes Undo: every track and item as it was when the block
+-- opened, the tracks and items it added gone. (REAPER also replaces the item objects, which a test re-resolves by GUID;
+-- the fake keeps them.) Returns the block's label.
+function Fake:undo_last_block()
+  local entry = table.remove(self.undo)
+  local shot = assert(entry and entry.snapshot, 'fake reaper: no undo block to undo')
+  self.tracks, self.items = shot.tracks, shot.items
+  for track, state in pairs(shot.track_state) do
+    track.items, track.name, track.muted, track.ext = state.items, state.name, state.muted, state.ext
+  end
+  for item, state in pairs(shot.item_state) do
+    for key, value in pairs(state) do
+      item[key] = value
+    end
+  end
+  return entry.label
+end
+
 function Fake:undo_labels()
   local labels = {}
   for _, entry in ipairs(self.undo) do
@@ -440,7 +492,12 @@ function Fake:add_project_api(api)
   function api.ColorToNative(r, g, b)
     return native_color(r, g, b)
   end
+  -- The outermost block remembers the tracks and items as they were when it opened (Fake:snapshot), so a test can
+  -- undo it with Fake:undo_last_block.
   function api.Undo_BeginBlock2(_)
+    if fake.open_undo_blocks == 0 then
+      fake.block_snapshot = fake:snapshot()
+    end
     fake.open_undo_blocks = fake.open_undo_blocks + 1
   end
   function api.Undo_EndBlock2(_, label, flags)
@@ -448,7 +505,7 @@ function Fake:add_project_api(api)
       error('fake reaper: Undo_EndBlock2 without Undo_BeginBlock2')
     end
     fake.open_undo_blocks = fake.open_undo_blocks - 1
-    fake.undo[#fake.undo + 1] = { label = label, flags = flags }
+    fake.undo[#fake.undo + 1] = { label = label, flags = flags, snapshot = fake.open_undo_blocks == 0 and fake.block_snapshot or nil }
   end
   function api.Undo_OnStateChange(label)
     fake.undo[#fake.undo + 1] = { label = label }
@@ -686,6 +743,10 @@ function Fake:add_item_api(api)
       return item.vol or 1
     elseif key == 'B_MUTE' then
       return item.muted and 1 or 0
+    elseif key == 'D_FADEINLEN' then
+      return item.fadein
+    elseif key == 'D_FADEOUTLEN' then
+      return item.fadeout
     end
     error('fake reaper: unmodelled item value ' .. tostring(key))
   end
@@ -734,6 +795,7 @@ function Fake:add_item_api(api)
   -- Forgets the item's reference to its take(s): the source file on disk is never touched, matching REAPER's own
   -- documented behaviour (narration_cleanup_preview.lua's apply_cleanup_trims). Returns true when found, like REAPER.
   function api.DeleteTrackMediaItem(track, item)
+    fake.calls[#fake.calls + 1] = { name = 'DeleteTrackMediaItem' }
     for index, candidate in ipairs(track.items) do
       if candidate == item then
         table.remove(track.items, index)
@@ -747,6 +809,58 @@ function Fake:add_item_api(api)
       end
     end
     return false
+  end
+  -- MoveMediaItemToTrack(item, track): the item leaves its track's list for the other's, keeping its position, GUID and
+  -- takes (the ReaScript reference; not run). Recorded in fake.calls.
+  function api.MoveMediaItemToTrack(item, track)
+    fake.calls[#fake.calls + 1] = { name = 'MoveMediaItemToTrack' }
+    for index, candidate in ipairs(item.track.items) do
+      if candidate == item then
+        table.remove(item.track.items, index)
+        break
+      end
+    end
+    item.track = track
+    track.items[#track.items + 1] = item
+    table.sort(track.items, function(a, b)
+      return a.position < b.position
+    end)
+    return true
+  end
+  -- InsertTrackAtIndex(index, wantDefaults): a new, empty track at index (0-based), named '' as REAPER names a new
+  -- track. Recorded in fake.calls.
+  function api.InsertTrackAtIndex(index, want_defaults)
+    fake.calls[#fake.calls + 1] = { name = 'InsertTrackAtIndex', index = index, defaults = want_defaults }
+    table.insert(fake.tracks, index + 1, fake:new_track(''))
+  end
+  -- A track's name (P_NAME), GUID and extension data (P_EXT:key, which reads `false, ''` when missing, like an item's).
+  -- A set is recorded in fake.calls.
+  function api.GetSetMediaTrackInfo_String(track, key, value, set)
+    if set then
+      fake.calls[#fake.calls + 1] = { name = 'GetSetMediaTrackInfo_String', key = key, value = value }
+    end
+    if key == 'P_NAME' then
+      if set then
+        track.name = value
+      end
+      return true, track.name
+    elseif key == 'GUID' then
+      return true, track.guid
+    end
+    local ext = key:match('^P_EXT:(.+)$')
+    if ext then
+      track.ext = track.ext or {}
+      if set then
+        track.ext[ext] = value
+        return true, value
+      end
+      local current = track.ext[ext]
+      if current == nil then
+        return false, ''
+      end
+      return true, current
+    end
+    return false, ''
   end
 end
 
@@ -857,6 +971,9 @@ function Fake:add_take_api(api)
       right.takes[index] = copy
     end
     item.length = at - item.position
+    -- The left half keeps the fade-in and the right half the fade-out; neither has a fade at the split.
+    right.fadeout, item.fadeout = item.fadeout, 0
+    right.muted = item.muted
     return right
   end
   function api.SetMediaItemTake_Source(take, source)
@@ -1011,6 +1128,8 @@ function Fake:add_lane_api(api)
       return track.armed and 1 or 0
     elseif key == 'I_RECINPUT' then
       return track.rec_input or 0
+    elseif key == 'B_MUTE' then
+      return track.muted and 1 or 0
     end
     local lane = key:match('^C_LANEPLAYS:(%d+)$')
     if lane then
@@ -1029,6 +1148,8 @@ function Fake:add_lane_api(api)
       track.lane_count = value
     elseif key == 'I_RECARM' then
       track.armed = value ~= 0
+    elseif key == 'B_MUTE' then
+      track.muted = value ~= 0
     elseif not lane then
       error('fake reaper: unmodelled track value setter ' .. tostring(key))
     end
@@ -1042,6 +1163,15 @@ function Fake:add_lane_api(api)
       fake:set_lane_plays(item.track, item.lane, value)
     elseif key == 'D_VOL' then
       item.vol = value
+    elseif key == 'D_FADEINLEN' then
+      item.fadein = value
+    elseif key == 'D_FADEOUTLEN' then
+      item.fadeout = value
+    elseif key == 'D_POSITION' then
+      item.position = value
+      table.sort(item.track.items, function(a, b)
+        return a.position < b.position
+      end)
     else
       error('fake reaper: unmodelled item value setter ' .. tostring(key))
     end
