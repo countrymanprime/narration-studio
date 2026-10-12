@@ -5,12 +5,40 @@ import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import type { NarrationApi } from '../../../types';
+import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 
-// The Booth page (docs/research/mockups/studio-next/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. No route yet:
-// SN-O10 mounts it. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
-type Args = { setup: DawSetupId | 'destructive'; resume: boolean; navigate: (next: string) => void };
+// The Booth page (docs/research/mockups/studio-next/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
+type Args = { setup: DawSetupId | 'destructive'; resume: boolean; pickups?: boolean; navigate: (next: string) => void };
+
+const pickup = (id: string, chapterId: string, paragraphId: string, script: string, done = false): PickupItem => ({
+  id,
+  chapterId,
+  paragraphId,
+  paragraph: null,
+  time: 65,
+  at: null,
+  type: 'misread',
+  script,
+  context: '',
+  source: 'you',
+  confidence: null,
+  confReason: '',
+  included: true,
+  done,
+  waiting: false,
+});
+
+/** A session of three lines from Pickups: two in Chapter One (one already recorded) and one in Chapter Two. */
+const SESSION: PickupList = {
+  pickups: [
+    pickup('k1', 'c1', 'p3', 'She turned and walked away.'),
+    pickup('k2', 'c1', 'p1', 'The Garden was quiet.', true),
+    pickup('k3', 'c2', 'q1', 'A new day began in the court.'),
+  ],
+  leftOut: [],
+};
 
 /** A DAW whose roll replaces audio, so a roll asks first (the mock's Audacity without backups). */
 const destructive = (): DawClient =>
@@ -23,16 +51,19 @@ const destructive = (): DawClient =>
     { chapterIds: ['c1'], candidateIds: [], findingIds: [] },
   );
 
-function Page({ setup, resume, navigate }: Args) {
+function Page({ setup, resume, pickups = false, navigate }: Args) {
   const [host] = useState(() => ({
-    api: pageApi(resume ? ({ teleprompterLocate: async () => LOCATED } as Partial<NarrationApi>) : {}),
+    api: pageApi({
+      ...(resume ? { teleprompterLocate: async () => LOCATED } : {}),
+      ...(pickups ? { pickupsList: async () => SESSION } : {}),
+    } as Partial<NarrationApi>),
     daw: setup === 'destructive' ? destructive() : dawFor(setup),
     journal: newJournal(),
     overlay: createOverlayService(),
   }));
   return (
     <div className="h-[calc(100vh-2rem)]">
-      <BoothHost {...host}>
+      <BoothHost {...host} search={pickups ? '?chapter=c1&pickups=k1,k2,k3' : undefined}>
         <BoothNextPage hasManuscript navigate={navigate} />
       </BoothHost>
     </div>
@@ -124,5 +155,27 @@ export const Drawer: Story = {
     await waitFor(() => expect(panel.hidden).toBe(true));
     await userEvent.click(toggle);
     await waitFor(() => expect(panel.hidden).toBe(false));
+  },
+};
+
+// B bookmarks the word being read: the toast offers Undo and a ribbon shows in the margin beside the line.
+export const Bookmarked: Story = {
+  play: async ({ canvasElement }) => {
+    await recordButton(canvasElement);
+    await userEvent.keyboard('b');
+    await waitFor(() => expect(canvasElement.querySelectorAll('[data-bmk-margin] [data-bm]')).toHaveLength(1));
+  },
+};
+
+// Opened from Pickups on three lines: the side panel lists them with two open, the reading starts on the first, the text marks the
+// lines of this chapter with a bar, and the footer adds N.
+export const PickupSession: Story = {
+  args: { pickups: true },
+  play: async ({ canvasElement }) => {
+    await recordButton(canvasElement);
+    const canvas = within(canvasElement);
+    await waitFor(() => expect(canvas.getAllByText('Pickups · 2 open').length).toBeGreaterThan(0));
+    await expect(canvas.getByRole('button', { name: /She turned and walked away/ }).getAttribute('aria-current')).toBe('true');
+    await expect(canvasElement.querySelector('#bkeys')?.textContent).toContain('Next pickup');
   },
 };

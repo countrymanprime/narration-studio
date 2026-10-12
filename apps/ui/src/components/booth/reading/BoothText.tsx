@@ -169,6 +169,7 @@ export function BoothText({
           return (
             <p
               key={paragraph.id}
+              data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
               className={`mb-[0.9em] ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {units
