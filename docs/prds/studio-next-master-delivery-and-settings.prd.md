@@ -4,7 +4,7 @@
 
 **Builds on:** the delivered Master & QC page, delivery profiles and mastering ([ADR 0179](../adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md), [ADR 0180](../adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md), [ADR 0440](../adr/0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md), [ADR 0170](../adr/0170-the-delivery-report-is-built-by-the-host-into-the-project-sidecar-without-paths-and-the-host-judges-the-limits.md), [ADR 0321](../adr/0321-the-mastering-chain-is-a-fixed-high-pass-limiter-and-gain-that-masters-to-the-profiles-own-measured-rms-and-sample-peak.md), [ADR 0322](../adr/0322-delivery-findings-are-saved-for-review-per-measured-file-versioned-by-the-audio-and-the-rules-bound.md), [ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md)), the Settings page and scoped settings (`apps/ui/src/components/settings/`), the capability toggles ([ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md)) and the keyboard panel ([ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)). It carries over two owner-side validation phases (overview table).
 
-**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Settings, Master & QC and Delivery. Most of the work is wiring other PRDs' seams into those pages.
+**Status (2026-10-12):** the swap is in review (SN-M5, #1286): `/settings`, `/master` and `/delivery` mount the Studio Next pages, Delivery has its rail item beside Master & QC, and the old pages and equivalents are deleted. The mock's Recording, Definitions, Reader text, Marks and Story Bible types panels have no host model yet and are not built (Story Bible types: SN-M53, #1539). The owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Settings, Master & QC and Delivery.
 
 ## Problem Statement
 
@@ -34,7 +34,7 @@ Settings in the mock is where the new seams become visible: the DAW capabilities
 5. **Keys** list generated from the catalogue and the narrator's keymap.
 6. **Delivery.** `platformHas(profile, capability)` is the one lookup for what a profile unlocks (templates, measures, payment types); the first import asks for the profile (ACX or none) and Settings changes it; Master & QC draws only what the host measures ([ADR 0440](../adr/0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md)); DAW wording on Master and Delivery comes from capabilities.
 7. **Reflow.** Settings states are captured at 390 px ([ADR 0061](../adr/0061-settings-states-are-also-captured-at-a-390px-reflow-width.md)); the mock's breakpoints apply to the reported width.
-8. **Swap.** Settings, Master & QC and a new Delivery page (own rail item, `studio-next/src/pages/Delivery.tsx`) replace their counterparts in SNM-5, which deletes the old Settings and Master pages, the Delivery panel and every old equivalent of what the mock shows. Only the Series settings and the Companion settings, which have no equivalent in the mock, stay as built.
+8. **Swap.** Settings, Master & QC and a new Delivery page (own rail item, `studio-next/src/pages/Delivery.tsx`) replace their counterparts in SNM-5, which deletes the old Settings and Master pages, the Delivery panel and every old equivalent of what the mock shows. What has no equivalent in the mock stays as built (Phase 5 lists it).
 
 ## Key Hypothesis
 
@@ -121,15 +121,15 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Capability section | Reason, destructive, mode in Settings; section registry | in progress ([#1079](https://github.com/countrymanprime/narration-utils/issues/1079)) | 2 | SND-2 | 0.8 | - |
-| 2 | Manuscript and keys | Replace in Settings only; key list from catalogue | pending | 1 | SNR-6 | 0.7 | - |
-| 3 | Backups and analysis tools | Backups settings; tools section | in progress (tools section: [#1273](https://github.com/countrymanprime/narration-utils/issues/1273)) | - | 1, SND-8, SNX-6 | 0.8 | - |
-| 4 | Delivery lookup and page | `platformHas`, profile on first import, Master wording from capabilities, Delivery page components (no route) | pending | - | SNP-3 | 1.0 | - |
-| 5 | Swap and close-out | Swap Settings, Master & QC and Delivery routes and the Delivery rail item; delete the old pages and equivalents; visual rows incl. reflow; guides; carried-over owner validation | in progress ([#1268](https://github.com/countrymanprime/narration-utils/issues/1268), the audit) | - | 1 to 4 | 0.7 | - |
+| 1 | Capability section | Reason, destructive, mode in Settings; section registry | done (SN-M1 [#1079](https://github.com/countrymanprime/narration-utils/issues/1079)) | 2 | SND-2 | 0.8 | - |
+| 2 | Manuscript and keys | Replace in Settings only; key list from catalogue | done (SN-M2 [#1087](https://github.com/countrymanprime/narration-utils/issues/1087); the key list in SN-M52 [#1281](https://github.com/countrymanprime/narration-utils/issues/1281)) | 1 | SNR-6 | 0.7 | - |
+| 3 | Backups and analysis tools | Backups settings; tools section | done (SN-M32 [#1270](https://github.com/countrymanprime/narration-utils/issues/1270), SN-M33 [#1273](https://github.com/countrymanprime/narration-utils/issues/1273)) | - | 1, SND-8, SNX-6 | 0.8 | - |
+| 4 | Delivery lookup and page | `platformHas`, profile on first import, Master wording from capabilities, Delivery page components (no route) | done (SN-M41 to SN-M45, [#1275](https://github.com/countrymanprime/narration-utils/issues/1275) to [#1280](https://github.com/countrymanprime/narration-utils/issues/1280)) | - | SNP-3 | 1.0 | - |
+| 5 | Swap and close-out | Swap Settings, Master & QC and Delivery routes and the Delivery rail item; delete the old pages and equivalents; visual rows incl. reflow; guides; carried-over owner validation | in review (SN-M5 [#1286](https://github.com/countrymanprime/narration-utils/issues/1286); the SN-M51 audit note is deleted, its tables acted on) | - | 1 to 4 | 0.7 | - |
 
 ### Phase Details
 
-- **Phase 5.** Carried over: the ACX page reading by the owner and the EBU validation run (owner-side, #992); neither blocks a merge.
+- **Phase 5.** Carried over, pending on #510: the owner's reading of the ACX page and the EBU validation run; neither blocks a merge. Kept as built, with no mock equivalent: the Settings categories the mock does not draw (below its panels, with the scope tabs), the Global default profile with Duplicate, Edit and Delete, a file's every-rule list, Master to spec, the mastering chain, Diagnostics, the report export, the multi-platform export and the profile's rules and their sources (on Delivery). The mock's failing-file count on Master & QC's rail item is not drawn (no cheap host read yet).
 
 ### Parallelism Notes
 

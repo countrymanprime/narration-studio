@@ -8,6 +8,7 @@ import {
   openDiagnostics,
   openMaster,
   pickFilesToMaster,
+  panelTitled,
   scrollToTop,
 } from './shared';
 
@@ -26,19 +27,19 @@ export const masterDrivers: Record<string, Driver> = {
   measured: async (page) => {
     await measureOnMaster(page);
     await measurementEnded(page, MEASURED);
-    await page.getByRole('region', { name: 'Chapter 01.wav · Why it fails' }).waitFor();
+    await page.getByRole('heading', { name: 'Chapter 01.wav · Why it fails' }).waitFor();
   },
   'file-rules': async (page) => {
     await measureOnMaster(page);
     await measurementEnded(page, MEASURED);
     const detail = page.getByRole('table', { name: 'Chapter 01.wav, rule by rule' });
     await detail.waitFor();
-    await scrollToTop(page, page.getByRole('region', { name: 'Chapter 01.wav against ACX (September 2026)' }));
+    await scrollToTop(page, panelTitled(page, 'Chapter 01.wav against ACX (September 2026)'));
   },
   'book-spread': async (page) => {
     await openMaster(page, '?mockMeasure=spread');
-    await page.getByRole('table', { name: 'Per-file checks' }).waitFor();
-    const consistency = page.getByRole('region', { name: 'Book consistency' });
+    await page.getByRole('grid', { name: 'Per-file checks' }).waitFor();
+    const consistency = panelTitled(page, 'Book consistency');
     await consistency.waitFor();
     await scrollToTop(page, consistency);
   },
@@ -50,7 +51,7 @@ export const masterDrivers: Record<string, Driver> = {
   cancelled: async (page) => {
     await measureOnMaster(page, '?mockMeasure=running');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await page.getByRole('table', { name: 'Per-file checks' }).getByText('Not measured').first().waitFor();
+    await page.getByRole('grid', { name: 'Per-file checks' }).getByText('Not measured').first().waitFor();
   },
   error: async (page) => {
     await measureOnMaster(page, '?mockMeasure=fails');

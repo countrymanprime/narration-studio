@@ -170,7 +170,7 @@ export async function openProduction(page: Page, query = ''): Promise<void> {
 export async function measureOnMaster(page: Page, query = ''): Promise<void> {
   await openMaster(page, query);
   await page.getByRole('button', { name: 'Check files…' }).click();
-  await page.getByRole('table', { name: 'Per-file checks' }).waitFor();
+  await page.getByRole('grid', { name: 'Per-file checks' }).waitFor();
 }
 
 // Opens Master & QC's Diagnostics section, after a reload with mock seams when given, once its
@@ -179,6 +179,11 @@ export async function openDiagnostics(page: Page, query = ''): Promise<void> {
   await openMaster(page, query);
   await page.getByRole('region', { name: 'Thresholds' }).getByText('Room-tone change').waitFor();
   await scrollToTop(page, page.getByRole('region', { name: 'Diagnostics' }));
+}
+
+// A panel by its heading: the Studio Next pages' panels are regions named by no label of their own.
+export function panelTitled(page: Page, title: string | RegExp): Locator {
+  return page.getByRole('region').filter({ has: page.getByRole('heading', { name: title, exact: typeof title === 'string' }) });
 }
 
 // Scrolls a region to the top of the page's scroller, so a capture of the window shows it (a section below the fold).
