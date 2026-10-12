@@ -14,6 +14,7 @@ import {
   type ExtractionImportPlan,
   type ExtractionImportPrompt,
   type ExtractionImportResult,
+  type ExtractionImportUndone,
   type ExtractionScanJob,
   type ExtractionSource,
   type ExtractionSuggestion,
@@ -160,6 +161,10 @@ export const extractionImportResultSchema = z
     (result) => result.suggestions.every((s) => s.source === 'imported'),
     'an import stores imported suggestions',
   ) satisfies z.ZodType<ExtractionImportResult>;
+
+export const extractionImportUndoneSchema = z
+  .object({ removed: z.array(text), settled: z.array(extractionSuggestionSchema), entryIds: z.array(text) })
+  .strict() satisfies z.ZodType<ExtractionImportUndone>;
 
 export const extractionImportPromptSchema = z
   .object({ format: z.enum(IMPORT_FORMATS), prompt: text, example: text, maxBytes: z.number().int().positive() })

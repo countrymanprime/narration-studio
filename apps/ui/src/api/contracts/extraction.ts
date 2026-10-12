@@ -118,6 +118,10 @@ export type ExtractionImportPlan = { format?: ImportFormat; lines: ExtractionImp
  * changed, and how many lines it skipped. One undo step. */
 export type ExtractionImportResult = { suggestions: ExtractionSuggestion[]; entryIds: string[]; skipped: number };
 
+/** What the undo of an import did: the ids of the suggestions it removed (no tombstone is left, so the same file offers them again), the
+ * other suggestions it settled (a claim about an entry the import made waits again), and the ids of the Story Bible entries it changed. */
+export type ExtractionImportUndone = { removed: string[]; settled: ExtractionSuggestion[]; entryIds: string[] };
+
 /** The prompt the narrator copies into an LLM of their choice, the example it contains, and the size the page checks a chosen file
  * against before reading it (the host refuses a longer text anyway). */
 export type ExtractionImportPrompt = { format: ImportFormat; prompt: string; example: string; maxBytes: number };
@@ -151,6 +155,10 @@ export interface ExtractionApi {
   /** Plans `text` again on the host and adds the rows that add or merge as imported suggestions, all or none; the ones the 75% rule
    * accepts are applied and flagged for Review. A file refused before it is read rejects with the sentence. */
   extractionImportCommit(text: string, hint?: ImportFormat): Promise<ExtractionImportResult>;
+  /** The undo of a commit, given the ids of the suggestions it stored: what each applied is taken back (an entry it made and nobody has
+   * reviewed goes) and the suggestions are removed. An id that is gone is passed over; one that was not imported, or one about a locked
+   * entry, rejects with the sentence and changes nothing. */
+  extractionImportUndo(ids: string[]): Promise<ExtractionImportUndone>;
   /** The prompt for one format; Copy puts exactly `prompt` on the clipboard. */
   extractionImportPrompt(format: ImportFormat): Promise<ExtractionImportPrompt>;
 }

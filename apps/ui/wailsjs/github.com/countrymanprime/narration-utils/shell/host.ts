@@ -870,6 +870,16 @@ export function ExtractionImportPrompt(format: string): $CancellablePromise<stri
 }
 
 /**
+ * ExtractionImportUndo is the undo of a commit, given the ids of the suggestions it stored: what each applied is taken back, entries the
+ * import made and nobody has reviewed included, and the suggestions are removed without a tombstone, so the same file offers them again.
+ * An id that is gone is passed over. An id of a suggestion that was not imported, or one about a locked entry, is refused with nothing
+ * changed.
+ */
+export function ExtractionImportUndo(ids: string[]): $CancellablePromise<string> {
+    return $Call.ByID(2621429820, ids);
+}
+
+/**
  * ExtractionList returns every suggestion, rejected ones included, entries first and then by kind in the mock's
  * order, each kind in the order it was stored.
  */

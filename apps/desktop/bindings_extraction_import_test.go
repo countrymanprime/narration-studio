@@ -362,3 +362,94 @@ func TestExtractionImportNeedsTheStoryBible(t *testing.T) {
 		t.Fatalf("commit without a Story Bible = %v", err)
 	}
 }
+
+func decodeImportUndo(t *testing.T) func(string, error) ExtractionImportUndone {
+	return func(payload string, err error) ExtractionImportUndone {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var undone ExtractionImportUndone
+		if err := json.Unmarshal([]byte(payload), &undone); err != nil {
+			t.Fatalf("%v: %s", err, payload)
+		}
+		return undone
+	}
+}
+
+func importedIDs(result ExtractionImportResult) []string {
+	ids := make([]string, len(result.Suggestions))
+	for i, s := range result.Suggestions {
+		ids[i] = s.ID
+	}
+	return ids
+}
+
+func TestExtractionImportUndoRemovesWhatTheImportCreated(t *testing.T) {
+	host, bible := importHost(t)
+	stored, entries := storedSnapshot(t, host), bibleSnapshot(t, host)
+	plan := decodeImportPlan(t)(host.ExtractionImportPreview(importFile, ""))
+	result := decodeImportResult(t)(host.ExtractionImportCommit(importFile, ""))
+	if _, ok := entryOf(t, bible, "The Cheshire Cat"); !ok {
+		t.Fatal("the import made no entry to take back")
+	}
+
+	undone := decodeImportUndo(t)(host.ExtractionImportUndo(importedIDs(result)))
+	if !slices.Equal(slices.Sorted(slices.Values(undone.Removed)), slices.Sorted(slices.Values(importedIDs(result)))) {
+		t.Fatalf("removed %v, want %v", undone.Removed, importedIDs(result))
+	}
+	for _, id := range result.EntryIDs {
+		if !slices.Contains(undone.EntryIDs, id) {
+			t.Errorf("entryIds = %v, want %s among them", undone.EntryIDs, id)
+		}
+	}
+	if storedSnapshot(t, host) != stored {
+		t.Fatalf("the suggestions after the undo differ from before the import:\n%s\nwant\n%s", storedSnapshot(t, host), stored)
+	}
+	// The fake keeps an emptied list as [] where it had none; that is the same Story Bible.
+	if emptied := func(s string) string { return strings.ReplaceAll(s, "null", "[]") }; emptied(bibleSnapshot(t, host)) != emptied(entries) {
+		t.Fatalf("the Story Bible after the undo differs from before the import:\n%s\nwant\n%s", bibleSnapshot(t, host), entries)
+	}
+	if again := decodeImportPlan(t)(host.ExtractionImportPreview(importFile, "")); !reflect.DeepEqual(again, plan) {
+		t.Fatalf("after the undo the file plans as %+v, want %+v", again, plan)
+	}
+	// Undoing again finds nothing to remove.
+	if twice := decodeImportUndo(t)(host.ExtractionImportUndo(importedIDs(result))); len(twice.Removed) != 0 || len(twice.EntryIDs) != 0 {
+		t.Fatalf("a second undo = %+v", twice)
+	}
+}
+
+func TestExtractionImportUndoRefusesWithASentenceAndChangesNothing(t *testing.T) {
+	host, bible := importHost(t)
+	result := decodeImportResult(t)(host.ExtractionImportCommit(importFile, ""))
+	rules := suggestionAbout(t, host, "Stern")
+	cases := map[string]struct {
+		ids  []string
+		want string
+	}{
+		"a suggestion a scan found": {append(importedIDs(result), rules.ID), sentenceNotImported},
+		"a long id":                 {[]string{strings.Repeat("s", maxSuggestionIDBytes+1)}, sentenceSuggestionGone},
+		"too many ids":              {make([]string, store.MaxSuggestions+1), sentenceSuggestionGone},
+	}
+	stored, entries := storedSnapshot(t, host), bibleSnapshot(t, host)
+	for name, c := range cases {
+		if got, err := host.ExtractionImportUndo(c.ids); err == nil || err.Error() != c.want || got != "" {
+			t.Errorf("%s: %q, %v; want %q", name, got, err, c.want)
+		}
+	}
+	i := slices.IndexFunc(bible.Entities, func(e apply.Entry) bool { return e.Name == "The Cheshire Cat" })
+	if storedSnapshot(t, host) != stored || bibleSnapshot(t, host) != entries {
+		t.Fatal("a refused undo changed the suggestions or the Story Bible")
+	}
+	bible.Entities[i].Locked = true
+	entries = bibleSnapshot(t, host)
+	if _, err := host.ExtractionImportUndo(importedIDs(result)); err == nil || err.Error() != apply.SentenceLocked {
+		t.Fatalf("undo about a locked entry = %v", err)
+	}
+	if storedSnapshot(t, host) != stored || bibleSnapshot(t, host) != entries {
+		t.Fatal("a refused undo changed the suggestions or the Story Bible")
+	}
+	if _, err := (&Host{}).ExtractionImportUndo(importedIDs(result)); err == nil || err.Error() != sentenceBibleUnavailable {
+		t.Fatalf("undo without a Story Bible = %v", err)
+	}
+}

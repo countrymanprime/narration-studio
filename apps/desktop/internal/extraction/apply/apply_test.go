@@ -286,3 +286,53 @@ func TestAPropertyNeverOverwritesADifferentValue(t *testing.T) {
 		t.Fatalf("%q %+v", res.Refused, h.entry("Wren").Properties)
 	}
 }
+
+func TestWithdrawTakesBackAndRemoves(t *testing.T) {
+	h := newHarness(t, wren, Entry{ID: "mill", Name: "The Mill"})
+	made := h.ingest(store.Payload{Kind: extraction.KindEntry, Name: "Brook", Type: "Place"}, conf(0.9), "")
+	claim := h.ingest(store.Payload{Kind: extraction.KindClaim, Entry: "Brook", Claim: extraction.ClaimAct, Text: "Floods"}, conf(0.9), "")
+	alias := h.ingest(store.Payload{Kind: extraction.KindAlias, Entry: "Wren", Alias: "Little Wren"}, conf(0.9), "")
+	rel := h.ingest(store.Payload{Kind: extraction.KindRelationship, Entry: "Wren", To: "The Mill", Relation: "works at"}, conf(0.9), "")
+	waiting := h.ingest(store.Payload{Kind: extraction.KindProperty, Entry: "Wren", Key: "Codename", Value: "Sparrow"}, conf(0.3), "Wren said")
+	other := h.ingest(store.Payload{Kind: extraction.KindProperty, Entry: "Brook", Key: "Depth", Value: "Shallow"}, conf(0.9), "Then Wren left")
+	if h.get(other).Applied == nil {
+		t.Fatalf("the harness did not apply the other suggestion: %+v", h.get(other))
+	}
+
+	res, err := h.app.Withdraw([]string{alias, made, rel, claim, waiting, "s999"})
+	if err != nil || res.Refused != "" {
+		t.Fatalf("%v %q", err, res.Refused)
+	}
+	all, _ := h.store.List()
+	if len(all) != 1 || all[0].ID != other {
+		t.Fatalf("left %+v, want only %s", all, other)
+	}
+	if got := all[0]; got.Applied != nil || got.Status != extraction.StatusNeedsVerification || got.EntryID != nil {
+		t.Fatalf("a suggestion about the removed entry was not settled: %+v", got)
+	}
+	if e := h.entry("Wren"); len(e.Aliases) != 0 || len(e.Relations) != 0 || len(e.Properties) != 0 {
+		t.Fatalf("%+v", e)
+	}
+	if h.entry("Brook").ID != "" {
+		t.Fatal("the entry the apply step made goes")
+	}
+	if len(res.Suggestions) != 1 || res.Suggestions[0].ID != other {
+		t.Fatalf("the result's suggestions = %+v, want the one it settled", res.Suggestions)
+	}
+}
+
+func TestWithdrawAboutALockedEntryChangesNothing(t *testing.T) {
+	h := newHarness(t, wren)
+	alias := h.ingest(store.Payload{Kind: extraction.KindAlias, Entry: "Wren", Alias: "Little Wren"}, conf(0.9), "")
+	made := h.ingest(store.Payload{Kind: extraction.KindEntry, Name: "Brook", Type: "Place"}, conf(0.9), "")
+	h.bible.Entities[0].Locked = true
+	before, _ := h.store.List()
+	res, err := h.app.Withdraw([]string{made, alias})
+	if err != nil || res.Refused != SentenceLocked {
+		t.Fatalf("%v %q", err, res.Refused)
+	}
+	after, _ := h.store.List()
+	if len(after) != len(before) || h.entry("Brook").ID == "" || len(h.entry("Wren").Aliases) != 1 {
+		t.Fatalf("a refused withdraw changed something: %+v %+v", after, h.bible.Entities)
+	}
+}

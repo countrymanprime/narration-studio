@@ -31,6 +31,7 @@ type Store interface {
 	List() ([]store.Suggestion, error)
 	Settle(bible store.Bible) ([]store.Suggestion, error)
 	Restore(previous store.Suggestion) error
+	Remove(ids []string) error
 }
 
 // Change is one thing a step did to the Story Bible, for the caller's undo step.
@@ -641,6 +642,64 @@ func (a *Applier) Review(id string) (Result, error) {
 		return r.res, err
 	}
 	return r.settle()
+}
+
+// Withdraw is the undo of an import: it takes back what each suggestion applied, in the reverse of the step order (speakers first,
+// entries last), removes the suggestions without leaving a tombstone, and settles the rest, so a suggestion about an entry that went
+// waits again. An id that is not stored is passed over. When any of them is about a locked entry, it is refused with nothing changed.
+func (a *Applier) Withdraw(ids []string) (Result, error) {
+	all, err := a.store.List()
+	if err != nil {
+		return Result{}, err
+	}
+	entries, err := a.bible.Entries()
+	if err != nil {
+		return Result{}, err
+	}
+	var going []store.Suggestion
+	for _, s := range all {
+		if !slices.Contains(ids, s.ID) {
+			continue
+		}
+		if problem := lockedFor(entries, s); problem != "" {
+			return refused(problem), nil
+		}
+		going = append(going, clone(s))
+	}
+	slices.SortStableFunc(going, func(x, y store.Suggestion) int { return order[y.Kind] - order[x.Kind] })
+	r := a.newRun()
+	removed := make([]string, 0, len(going))
+	for i := range going {
+		r.remember(going[i])
+		if problem, err := r.reverseOne(&going[i]); err != nil || problem != "" {
+			if err != nil {
+				return r.res, err
+			}
+			return refused(problem), nil
+		}
+		removed = append(removed, going[i].ID)
+	}
+	if err := a.store.Remove(removed); err != nil {
+		return r.res, err
+	}
+	// finish reports the removed ones in Before only, since they are gone.
+	return r.settle()
+}
+
+// lockedFor is the sentence that refuses taking back what s applied, or "" when nothing it touched is locked.
+func lockedFor(entries []Entry, s store.Suggestion) string {
+	if s.Applied == nil {
+		return ""
+	}
+	if e, ok := entryByID(entries, s.Applied.EntryID); ok && e.Locked {
+		return SentenceLocked
+	}
+	if s.Payload.Kind == extraction.KindRelationship {
+		if to, ok := resolve(entries, s.Payload.To); ok && to.Locked {
+			return fmt.Sprintf("“%s” is locked.", to.Name)
+		}
+	}
+	return ""
 }
 
 // Settle points suggestions at the entries that exist now, gives each undecided one the status its data says, applies the ones that are

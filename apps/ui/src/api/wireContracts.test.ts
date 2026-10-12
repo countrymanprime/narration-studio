@@ -24,6 +24,7 @@ import {
   extractionImportPlanSchema,
   extractionImportPromptSchema,
   extractionImportResultSchema,
+  extractionImportUndoneSchema,
   extractionScanJobSchema,
   extractionSourceSchema,
   extractionSourcesSchema,
@@ -3248,6 +3249,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'extractionScanCancel',
       'extractionImportPreview',
       'extractionImportCommit',
+      'extractionImportUndo',
       'extractionImportPrompt',
       'pronunciationSources',
       'pronunciationCandidate',
@@ -4205,6 +4207,9 @@ describe('the extraction import bindings', () => {
     expect(errors).toMatchObject({ format: 'csv', lines: [], offered: 0 });
     const result = parseWire(extractionImportResultSchema, readGolden('extraction-import-commit.json'), ctx('extraction import commit'));
     expect(result.suggestions.every((s) => s.source === 'imported')).toBe(true);
+    const undone = parseWire(extractionImportUndoneSchema, readGolden('extraction-import-undo.json'), ctx('extraction import undo'));
+    expect(undone.removed.length).toBeGreaterThan(0);
+    expect(undone.settled).toEqual([expect.objectContaining({ entryId: null, status: 'needs-verification' })]);
     const prompt = parseWire(extractionImportPromptSchema, readGolden('extraction-import-prompt.json'), ctx('extraction import prompt'));
     expect(prompt).toMatchObject({ format: 'json', maxBytes: 2097152 });
   });
@@ -4220,6 +4225,10 @@ describe('the extraction import bindings', () => {
     const result = readGolden('extraction-import-commit.json') as { suggestions: Array<Record<string, unknown>> } & Record<string, unknown>;
     expect(extractionImportResultSchema.safeParse({ ...result, plan: [] }).success).toBe(false);
     expect(extractionImportResultSchema.safeParse({ ...result, suggestions: [{ ...result.suggestions[0], source: 'rules' }] }).success).toBe(false);
+    const undone = readGolden('extraction-import-undo.json') as Record<string, unknown>;
+    expect(extractionImportUndoneSchema.safeParse({ ...undone, removed: [''] }).success).toBe(false);
+    expect(extractionImportUndoneSchema.safeParse({ ...undone, suggestions: [] }).success).toBe(false);
+    expect(extractionImportUndoneSchema.safeParse({ ...undone, entryIds: undefined }).success).toBe(false);
     const prompt = readGolden('extraction-import-prompt.json') as Record<string, unknown>;
     expect(extractionImportPromptSchema.safeParse({ ...prompt, maxBytes: 0 }).success).toBe(false);
     expect(extractionImportPromptSchema.safeParse({ ...prompt, url: 'https://example.com' }).success).toBe(false);
@@ -4263,6 +4272,13 @@ describe('the extraction import bindings', () => {
     const again = await api.extractionImportPreview(file);
     expect(again.offered).toBe(0);
     expect((await api.extractionImportCommit(file)).suggestions).toEqual([]);
+    const undone = await api.extractionImportUndo(result.suggestions.map((s) => s.id));
+    expectMatches(extractionImportUndoneSchema, undone, 'mock extraction import undo');
+    expect([...undone.removed].sort()).toEqual(result.suggestions.map((s) => s.id).sort());
+    expect(undone.entryIds).toEqual(expect.arrayContaining(['caterpillar']));
+    expect(await api.extractionList()).toEqual(before);
+    expect((await api.extractionImportPreview(file)).offered).toBe(plan.offered);
+    await expect(api.extractionImportUndo([before.find((s) => s.source !== 'imported')!.id])).rejects.toThrow('That suggestion was not imported.');
 
     const nul = await api.extractionImportPreview('record,name\nentry,Bill\0');
     expectMatches(extractionImportPlanSchema, nul, 'mock extraction import refused');

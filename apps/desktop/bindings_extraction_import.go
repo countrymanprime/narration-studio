@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"reflect"
 	"slices"
 	"time"
 
@@ -17,7 +18,10 @@ import (
 // commit both parse and plan it here, from the text, so the commit never takes the page's word for what the preview said. This file
 // imports no os, net or exec package (a test checks).
 
-const sentenceUnknownFormat = "That is not a format the import reads."
+const (
+	sentenceUnknownFormat = "That is not a format the import reads."
+	sentenceNotImported   = "That suggestion was not imported."
+)
 
 // ExtractionImportLine is one row of the preview: where it is in the file, what it is about, what importing it does, the status the 75%
 // rule gives it (empty for a skipped row), its confidence (nil when the file gave none) and why it is skipped, what a merge adds or why
@@ -55,6 +59,14 @@ type ExtractionImportResult struct {
 	Suggestions []store.Suggestion `json:"suggestions"`
 	EntryIDs    []string           `json:"entryIds"`
 	Skipped     int                `json:"skipped"`
+}
+
+// ExtractionImportUndone is what the undo of an import did: the ids of the suggestions it removed, the other suggestions it settled (a
+// claim about an entry the import made waits again) and the ids of the Story Bible entries it changed.
+type ExtractionImportUndone struct {
+	Removed  []string           `json:"removed"`
+	Settled  []store.Suggestion `json:"settled"`
+	EntryIDs []string           `json:"entryIds"`
 }
 
 // ExtractionImportPromptText is the prompt the narrator copies into an LLM of their choice for one format, the example it contains,
@@ -151,6 +163,57 @@ func (h *Host) ExtractionImportCommit(text string, hint string) (string, error) 
 		}
 	}
 	return encodeBinding(result, nil)
+}
+
+// ExtractionImportUndo is the undo of a commit, given the ids of the suggestions it stored: what each applied is taken back, entries the
+// import made and nobody has reviewed included, and the suggestions are removed without a tombstone, so the same file offers them again.
+// An id that is gone is passed over. An id of a suggestion that was not imported, or one about a locked entry, is refused with nothing
+// changed.
+func (h *Host) ExtractionImportUndo(ids []string) (string, error) {
+	if len(ids) > store.MaxSuggestions || slices.ContainsFunc(ids, func(id string) bool { return len(id) > maxSuggestionIDBytes }) {
+		return "", extractionRefusal(sentenceSuggestionGone)
+	}
+	bible := h.extractionBibleOf()
+	if bible == nil {
+		return "", errors.New(sentenceBibleUnavailable)
+	}
+	extractionDecisions.Lock()
+	defer extractionDecisions.Unlock()
+	suggestions := h.extractionStore()
+	stored, err := suggestions.List()
+	if err != nil {
+		return "", err
+	}
+	if slices.ContainsFunc(stored, func(s store.Suggestion) bool { return slices.Contains(ids, s.ID) && s.Source != store.SourceImported }) {
+		return "", extractionRefusal(sentenceNotImported)
+	}
+	res, err := apply.New(suggestions, bible).Withdraw(ids)
+	if err != nil {
+		return "", err
+	}
+	if res.Refused != "" {
+		return "", extractionRefusal(res.Refused)
+	}
+	undone := ExtractionImportUndone{Removed: []string{}, Settled: []store.Suggestion{}, EntryIDs: []string{}}
+	before := map[string]store.Suggestion{}
+	for _, s := range res.Before {
+		before[s.ID] = s
+		if !slices.ContainsFunc(res.Suggestions, func(now store.Suggestion) bool { return now.ID == s.ID }) {
+			undone.Removed = append(undone.Removed, s.ID)
+		}
+	}
+	for _, s := range res.Suggestions {
+		// A settle saves a suggestion it holds again (one about a locked entry) though nothing about it changed.
+		if was, ok := before[s.ID]; !ok || !reflect.DeepEqual(was, s) {
+			undone.Settled = append(undone.Settled, s)
+		}
+	}
+	for _, change := range res.Changes {
+		if change.EntryID != "" && !slices.Contains(undone.EntryIDs, change.EntryID) {
+			undone.EntryIDs = append(undone.EntryIDs, change.EntryID)
+		}
+	}
+	return encodeBinding(undone, nil)
 }
 
 // ExtractionImportPrompt returns the prompt for format ("csv" or "json"): importer.Prompt's text, which is what Copy puts on the

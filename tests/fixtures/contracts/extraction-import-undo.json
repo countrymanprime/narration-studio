@@ -1,0 +1,41 @@
+{
+  "entryIds": [
+    "white-rabbit",
+    "e2"
+  ],
+  "removed": [
+    "s15",
+    "s11",
+    "s14",
+    "s10",
+    "s12",
+    "s13"
+  ],
+  "settled": [
+    {
+      "confidence": 0.9,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": null,
+      "evidence": [
+        {
+          "end": 9,
+          "paragraphId": "p-000001",
+          "start": 1,
+          "text": "Oh dear!"
+        }
+      ],
+      "fp": "claim|the cheshire cat|talk|speaks in riddles",
+      "id": "s16",
+      "kind": "claim",
+      "payload": {
+        "claim": "talk",
+        "entry": "The Cheshire Cat",
+        "kind": "claim",
+        "text": "Speaks in riddles"
+      },
+      "reason": "The entry is not in the Story Bible.",
+      "source": "rules",
+      "status": "needs-verification"
+    }
+  ]
+}
