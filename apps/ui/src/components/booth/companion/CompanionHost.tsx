@@ -4,7 +4,7 @@ import { useApi } from '../../../api/ApiContext';
 import { useCapability } from '../../../useCapability';
 import { CommandScope } from '../../../input/router';
 import type { GuideEntity, ManuscriptNote } from '../../../types';
-import type { BoothSource } from '../BoothSession';
+import type { BoothSource } from '../page/useBoothData';
 import { CompanionShell } from '../CompanionShell';
 import { RecordInReaperConfirm } from '../RecordInReaperConfirm';
 import { ResumePrompt } from '../ResumePrompt';

@@ -33,33 +33,6 @@ export async function openBooth(page: Page, query = ''): Promise<void> {
   await goToPage(page, 'Booth');
 }
 
-// Opens the Booth and waits for its resume prompt to have answered (the lookup's "Checking..." line is gone.
-export async function openResumePrompt(page: Page, query = ''): Promise<void> {
-  await openBooth(page, query);
-  const card = page.getByRole('region', { name: 'Where you stopped' });
-  await card.waitFor();
-  await card.getByText(/Checking where REAPER and your last reading are/).waitFor({ state: 'detached' });
-}
-
-// The control bar's own toolbar, scoped so its Microphone/Settings triggers never collide with a same-named control
-// elsewhere on the page (the Booth's nav rail also has a "Settings" link).
-export const controlBar = (page: Page) => page.getByRole('toolbar', { name: 'Reading controls' });
-
-// The microphone picker sits behind the control bar's popover: its combobox
-// does not exist in the DOM until the trigger button is clicked (Popover unmounts its content while closed).
-export async function openMicPopover(page: Page): Promise<void> {
-  await controlBar(page)
-    .getByRole('button', { name: /^Microphone:/ })
-    .click();
-  await page.getByRole('combobox', { name: 'Microphone' }).waitFor();
-}
-
-// Engine and Model sit behind the control bar's Settings popover, same reasoning as `openMicPopover`.
-export async function openSettingsPopover(page: Page): Promise<void> {
-  await controlBar(page).getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('group', { name: 'Model' }).waitFor();
-}
-
 export async function clickVisible(page: Page, role: Parameters<Page['getByRole']>[0], name: string | RegExp): Promise<void> {
   // The nav rail is visible at every captured viewport except the reflow one, where only Settings states are captured
   // and they navigate through clickNav, so the click's own auto-wait is enough.
@@ -93,8 +66,8 @@ const PAGE_CONTENT: Partial<Record<AppPage, (page: Page) => Locator>> = {
   // The chapter pipeline is drawn once the production overview has answered.
   Production: (page) => page.getByRole('table', { name: 'Chapter pipeline' }),
   Script: (page) => page.locator('[data-paragraph-text]'),
-  // The chapter's text, whatever the session is doing (credits states pick theirs afterwards).
-  Booth: (page) => page.getByRole('region', { name: 'Chapter text' }),
+  // The footer's Record control, drawn once the chapter has loaded (credits states pick theirs afterwards).
+  Booth: (page) => page.getByRole('button', { name: /^(Record|Stop)$/ }),
 };
 
 // Clicks an item of the app's own navigation, and only that: the Settings category rail reuses the labels "Proof"
@@ -535,32 +508,6 @@ export async function openLocalAssets(page: Page, seed?: string): Promise<void> 
   await clickVisible(page, 'tab', 'Global');
   await clickSettingsCategory(page, 'Local assets');
   await page.getByRole('heading', { level: 3, name: 'Small', exact: true }).waitFor();
-}
-
-// The Booth on the `flagged` mock session, once its first
-// default-visible flag (a skip) is drawn as a control in the text. extraQuery adds more mock params (for example
-// `&mockPunchCapabilityOn=1`) to the same navigation.
-export async function openFlaggedBooth(page: Page, extraQuery = '') {
-  await openBooth(page, `?mockTeleprompter=flagged${extraQuery}`);
-  await page.locator('[data-highlight="Skipped"][role="button"]').first().waitFor();
-}
-
-// A real mouse wheel over the reader text, far enough that the
-// highlighted word leaves the view, then waits for "Following paused" and for the smooth scroll to finish, so the shot
-// shows where the narrator left the text rather than a frame mid-scroll.
-export async function scrollReaderByHand(page: Page): Promise<void> {
-  const text = page.getByRole('region', { name: 'Chapter text' });
-  const box = await text.boundingBox();
-  const viewport = page.viewportSize();
-  if (!box || !viewport) throw new Error('The reader text has no box to scroll over.');
-  await page.mouse.move(box.x + box.width / 2, Math.min(box.y + 120, viewport.height - 40));
-  await page.mouse.wheel(0, 1500);
-  await page.getByText('Following paused.', { exact: false }).waitFor();
-  await page.waitForFunction(() => {
-    const rect = document.querySelector('[data-current-word]')?.getBoundingClientRect();
-    return rect !== undefined && rect.bottom < 0;
-  });
-  await settlePage(page);
 }
 
 // Playwright's synthetic page.mouse.down/move/up drag doesn't reliably

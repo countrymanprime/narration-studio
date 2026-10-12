@@ -51,11 +51,9 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // The read-aloud rail's Story bible entries: a list row with a
     // category dot and a current state, the same shape as ChapterNav's rows, which Button's padded, uppercase chrome does
     // not fit. One JSX `<button>`, written once inside the entries `.map()`.
-    'src/components/booth/ReaderRail.tsx': 1,
     // The read-aloud rail's Flags list: the same list row as the Story
     // bible entries above (two lines of text and a current state), which Button's padded, uppercase chrome does not fit. One
     // JSX `<button>`, written once inside the flags `.map()`.
-    'src/components/booth/ReaderFlagsPanel.tsx': 1,
     // The engine panel took the Tracks page's two: its .rpp picker's
     // full-width path rows (a mono file path, which Button's uppercase chrome would mangle) stay one JSX `<button>` inside the
     // candidates `.map()`; the track rows' selection buttons went with the player.

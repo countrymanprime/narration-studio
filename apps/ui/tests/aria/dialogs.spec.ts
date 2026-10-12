@@ -95,9 +95,9 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'companion-panel.aria.yml',
   },
   {
-    name: 'leaving the Booth while it listens asks first: an alert dialog with Stop reading? and both actions',
-    state: ['booth', 'exit-confirm'],
-    snapshot: 'confirm-stop-reading.aria.yml',
+    name: 'leaving the Booth during a take asks first: an alert dialog with Stop recording? and both actions',
+    state: ['booth', 'leave-dialog'],
+    snapshot: 'confirm-stop-recording.aria.yml',
   },
   {
     name: 'the passage-effect confirm is an alert dialog naming the passage, with the Effect select and both actions',

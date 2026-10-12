@@ -19,10 +19,8 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   // The Booth's control-bar chip (the start-point chip: a quoted sentence fragment with a nested clear button, which
   // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip) and BuiltinRecorder's
   // chip use `HeaderChip`/primitives and have no entry.
-  'src/components/booth/ReadingControlBar.tsx': { chip: 1, owner: 'start-point chip' },
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
   // reuses this exact maroon (ADR 0656).
-  'src/components/booth/BoothView.tsx': { chip: 1, dot: 1, owner: 'REC pill, ADR 0656' },
   // The Proof notes header's sources line and the legend's dots.
   'src/components/proof/NotesHeader.tsx': { chip: 1, owner: 'sources line' },
   'src/components/proof/NotesStrip.tsx': { dot: 1, owner: 'legend dots' },

@@ -42,7 +42,7 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
   // Scored against its own data (?mockFidelity=01).
   { file: '01-production-home.webp', target: { page: 'production', state: 'mock-fidelity-01' }, theme: 'light' },
   { file: '02-prep-script.webp', target: { page: 'script', state: 'prep-rail-pronunciations' }, theme: 'light' },
-  { file: '03-booth.webp', target: { page: 'booth', state: 'speaker-tags' }, theme: 'dark' },
+  { file: '03-booth.webp', target: { page: 'booth', state: 'dark' }, theme: 'dark' },
   { file: '04-proof-pickups.webp', target: { page: 'proof', state: 'default' }, theme: 'light' },
   // Scored against its own fixture state (?mockFidelity=05, merged on main by N-B57).
   { file: '05-master-delivery.webp', target: { page: 'master', state: 'mock-fidelity-05' }, theme: 'light' },

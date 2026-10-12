@@ -18,10 +18,6 @@ import type {
 export type ModelPrompt = Extract<TeleprompterStartResult, { status: 'asset_required' }>;
 type SessionAction = { kind: 'event'; event: TeleprompterEvent } | { kind: 'hydrate'; state: TeleprompterState } | { kind: 'reset' };
 
-export const MODELS = [
-  { value: 'tiny', label: 'Tiny', caption: 'Fastest - keeps up with your voice on most computers' },
-  { value: 'small', label: 'Small', caption: 'More accurate - needs a faster computer to keep up' },
-];
 /** The live engines by name (ADR 0021). Which of them this computer offers is the host's `Teleprompter.engine` choices. */
 export const ENGINE_LABELS: Record<TeleprompterEngine, string> = { whisper: 'Whisper', moonshine: 'Moonshine' };
 const ENGINE_CAPTIONS: Record<TeleprompterEngine, string> = {

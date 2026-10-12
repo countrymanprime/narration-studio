@@ -25,7 +25,6 @@ const CEILING: Record<Copy, Record<string, number>> = {
   card: {
     // Page components not yet on the primitives: the Booth's rail, Production and Proof's findings. The
     // companion panel's own card is at 0 (ADR 0659: full-bleed sections, not cards).
-    'src/components/booth/ReaderRail.tsx': 1,
     'src/components/proof/NotesStrip.tsx': 1,
     // Not cards. A warning on a tinted fill, which neither Panel nor InsetCard draws.
     'src/components/booth/UnresolvedCreditsWarning.tsx': 1,
@@ -59,16 +58,13 @@ const CEILING: Record<Copy, Record<string, number>> = {
     // class string (they style the label, they do not draw one).
     'src/components/layout/AppShell.tsx': 6,
     // Page components not yet on the primitives: the Booth, Master and Script.
-    'src/components/booth/BoothView.tsx': 1,
     'src/components/booth/CompanionShell.tsx': 1,
-    'src/components/booth/ReaderRail.tsx': 1,
     'src/components/master/BookConsistency.tsx': 1,
     'src/components/script/ScriptChapterList.tsx': 2,
     'src/components/script/ScriptPage.tsx': 6,
   },
   h1: {
     // The Booth's page title is visually hidden (`sr-only`): the reading surface is the page, and a Heading would show.
-    'src/components/booth/BoothPage.tsx': 1,
     'src/components/booth/page/BoothNextPage.tsx': 1,
   },
 };

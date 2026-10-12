@@ -254,6 +254,9 @@ const mockPunchCapabilityOn = mockParams.has('mockPunchCapabilityOn');
 // `?mockRecordCapabilityOn=1` turns the 'record' DAW capability on directly (the same bypass), so the Booth's Record in
 // REAPER toggle, its first-time confirm and a recording's "REC 06:42" can be captured.
 const mockRecordCapabilityOn = mockParams.has('mockRecordCapabilityOn');
+// `?mockRollReplaces=1` turns 'record' and 'punch' on and declares REAPER's punch destructive, the way a DAW that replaces audio on a
+// roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
+const mockRollReplaces = mockParams.has('mockRollReplaces');
 // `?mockDawPlayhead=134.6` seeds the DAW port's live transport (daw_transport_changed) as playing at that project time, for
 // the companion panel's playhead badge. Without it, the transport is stopped.
 const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '');
@@ -501,6 +504,7 @@ const mockInitial = {
   ...(mockRegionsCapabilityOn ? { daw: { toggles: { regions: 'on' as const } } } : {}),
   ...(mockPunchCapabilityOn ? { daw: { toggles: { punch: 'on' as const } } } : {}),
   ...(mockRecordCapabilityOn ? { daw: { toggles: { record: 'on' as const } } } : {}),
+  ...(mockRollReplaces ? { daw: { toggles: { record: 'on' as const, punch: 'on' as const }, depth: { punch: { destructive: true } } } } : {}),
   ...(mockCoverage || mockCoverageRefusal || mockStages === 'mixed'
     ? {
         coverage: {

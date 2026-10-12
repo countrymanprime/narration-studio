@@ -160,16 +160,27 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   it("opens Settings > Credits from the Booth's unresolved-token warning", async () => {
-    window.history.replaceState(null, '', '/booth');
+    window.history.replaceState(null, '', '/booth?credits=closing');
     renderApp();
-    const picker = (await screen.findByLabelText('Chapter')) as HTMLSelectElement;
-    await waitFor(() => expect(Array.from(picker.options, (option) => option.textContent)).toContain('Closing credits'));
-    fireEvent.change(picker, { target: { value: 'credits:closing' } });
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Fill them in Settings' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Fill them in Settings$/ }));
 
     expect(await screen.findByRole('combobox', { name: 'Template' })).toBeTruthy();
+    window.history.replaceState(null, '', '/');
   });
+
+  // SN-O10: `/booth` is the Studio Next Booth (its Record control and footer key hints), for a chapter, the credits or no target.
+  it.each(['/booth', '/booth?chapter=chapter-2', '/booth?credits=opening', '/booth?credits=closing'])(
+    'the-booth-route-mounts-the-new-page: %s',
+    async (address) => {
+      window.history.replaceState(null, '', address);
+      renderApp();
+      await screen.findByRole('heading', { name: 'Booth' });
+      expect(await screen.findByRole('button', { name: /^Record$/ })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /^Microphone:/ })).toBeNull();
+      expect(window.location.pathname).toBe('/booth');
+      window.history.replaceState(null, '', '/');
+    },
+  );
 
   it('navigates to Story Bible and lists entities from the backend', async () => {
     renderApp();
@@ -1490,6 +1501,35 @@ describe('App shell mounts', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
     fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Leave' }));
     await screen.findByRole('heading', { name: 'Proof' });
+  });
+
+  // SN-O10, no-silent-stops: Back, Forward and Alt+Arrow ask the page's leave guard as the nav does (the Booth registers one while a
+  // take records; its own exits, the address and the unmount stop are covered in components/booth/page). Cancel stays, Yes goes.
+  it('no-silent-stops: Back, Forward and Alt+Arrow ask the leave guard first', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
+    await screen.findByRole('heading', { name: 'Script' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull());
+    journal.setLeaveGuard(() => ({ ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave' } }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
+    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Stop and leave' }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Forward' }).getAttribute('aria-disabled')).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    expect(await screen.findByRole('alertdialog', { name: /Stop recording/ })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    journal.setLeaveGuard(null);
   });
 
   it('leave-guard-is-asked-before-navigating: with no guard navigation is unchanged', async () => {

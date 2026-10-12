@@ -126,23 +126,9 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The same background check's REAPER round trip: a failed ask (REAPER closed, no bridge) is routine while results sit reviewed, not a narrator-facing failure, so it is silent and retried next poll.",
   'src/components/proof/NativeTakesPanel.tsx#1':
     "The panel's first read of the chapter's native takes; a failure just leaves it unrendered a moment longer until the next recording:state event (subscribeRecorderState) catches up, the same fallback useRecorder.ts::recorderState#2 already uses.",
-  // The device/settings catches live in `useTeleprompterSession.ts`;
-  // `BoothPage.tsx` keeps only the chapter-selection catches.
-  'src/components/booth/BoothPage.tsx#1':
-    'Only renders the opening or closing credits for the picker; a failed render leaves those credits out of the picker, as the Manuscript page leaves its entry empty, and the chapters are unaffected.',
-  'src/components/booth/BoothPage.tsx#2': 'Only picks the chapter the narrator last read; the first chapter is used without it.',
-  'src/components/booth/BoothPage.tsx#3':
-    'The REAPER chapter suggestion (ADR 0113) is a hint: no .rpp, or none chosen, is normal for a narrator not using REAPER, so it means no hint.',
-  'src/components/booth/BoothPage.tsx#4':
-    'Only guards the REAPER preselection against a running session; useTeleprompterSession reads the state again and reports its failure.',
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
-  'src/components/booth/useRecorder.ts#2':
-    'Leaving the Booth stops a take; nothing is left mounted to show a failure, and the host finishes the take when the app quits.',
-  'src/components/booth/useRecorder.ts#3': 'Leaving the Booth releases a level check; nothing is left mounted to show a failure.',
-  'src/components/booth/useInputLevel.ts#1':
-    'Best-effort release of the meter-only child (popover close, session start, device change or unmount); nothing is left mounted to show a failure, and the meter simply starts fresh the next time the popover opens.',
   'src/components/booth/useTeleprompterSession.ts#1':
     'Clearing the migrated browser-storage device once it is written to settings; if storage cannot be reached the stale value is simply left behind and never read again (the settings value now wins).',
   'src/components/booth/useTeleprompterSession.ts#2': 'Hydrates a session that was already running; the state event follows anyway.',
@@ -163,10 +149,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
-  'src/components/booth/readerPreferences.ts#1':
-    'Remembering the read-aloud rail (open, tab) in localStorage; the choice lasts for this dialog only when storage is disabled.',
-  'src/components/booth/readerPreferences.ts#2':
-    'Remembering which flag kinds the read-aloud dialog shows in localStorage; the choice lasts for this dialog only when storage is disabled.',
   'src/theme/ThemeContext.tsx#1': 'Remembering the theme in localStorage; the preference just does not persist when storage is disabled.',
   'src/components/engine/EnginePanel.tsx#1':
     'Only decides whether the "Link chapters…" tool shows; without it the button is absent, same as a project with no chapters.',

@@ -19,13 +19,6 @@ export const FLAG_KINDS: TeleprompterFlagKind[] = ['skipped', 'restart', 'misrea
  */
 export const DEFAULT_FLAG_VISIBILITY: FlagVisibility = { skipped: true, restart: true, misread: false, extra: false };
 
-export const FLAG_NAMES: Record<TeleprompterFlagKind, string> = {
-  misread: 'Suspected misread',
-  extra: 'Suspected extra words',
-  skipped: 'Suspected skipped words',
-  restart: 'Suspected restart',
-};
-
 /** The flags to draw: kinds the narrator shows, less the ones dismissed. Keeps the list's order. */
 export function visibleFlags(flags: TeleprompterFlag[], visibility: FlagVisibility, dismissed: ReadonlySet<number>): TeleprompterFlag[] {
   return flags.filter((flag) => visibility[flag.kind] && !dismissed.has(flag.id));
