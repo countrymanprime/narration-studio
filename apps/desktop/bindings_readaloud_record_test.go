@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"math"
 	"strconv"
 	"strings"
 	"testing"
@@ -292,6 +293,178 @@ func TestReadAloudRecordStartThatFailsPutsTheArmsBack(t *testing.T) {
 	}
 }
 
+// fakeStartPuncher stands in for the Puncher role a start at a punch places the cursor with: it records the time it was
+// asked into the recorder's own call list, so a test sees the order of arm, cursor and record.
+type fakeStartPuncher struct {
+	recorder *fakeRecorder
+	at       float64
+	preRoll  float64
+	err      error
+}
+
+func (f *fakeStartPuncher) PunchTo(_ context.Context, wordTime, preRoll float64) (float64, error) {
+	f.recorder.calls = append(f.recorder.calls, "PunchTo")
+	f.at, f.preRoll = wordTime, preRoll
+	return wordTime, f.err
+}
+
+func (f *fakeStartPuncher) PlayPosition(context.Context) (dawport.PlayPosition, error) {
+	return dawport.PlayPosition{}, nil
+}
+
+func (f *fakeStartPuncher) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return dawport.Result{}, nil
+}
+
+// recordStartAt runs Record at a punch with state as the track state the preconditions read; nil state means no reader.
+func recordStartAt(t *testing.T, host *Host, recorder dawport.Recorder, puncher dawport.Puncher, state *bridge.TrackState, chapterID string, at float64) ReadAloudRecording {
+	t.Helper()
+	var reader trackStateReader
+	if state != nil {
+		reader = &fakeTrackStates{state: *state}
+	}
+	result, err := readAloudRecordStartAtIn(context.Background(), host.services(), recorder, puncher, reader, chapterID, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func TestReadAloudRecordStartAtAPunchRecordsFromThere(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}, started: bridge.RecordStarted{Position: 30}}
+	puncher := &fakeStartPuncher{recorder: fake}
+
+	result := recordStartAt(t, host, fake, puncher, &bridge.TrackState{}, ids[0], 30)
+
+	if got := strings.Join(fake.calls, ","); got != "ArmOnly,PunchTo,RecordStart" {
+		t.Fatalf("calls = %s, want ArmOnly, then the cursor placed, then RecordStart", got)
+	}
+	if puncher.at != 30 || puncher.preRoll != 0 {
+		t.Fatalf("cursor placed at %v with pre-roll %v, want 30 with none", puncher.at, puncher.preRoll)
+	}
+	if fake.armGUID != readAloudTrack || fake.startGUID != readAloudTrack || fake.startOpts.Start != bridge.StartHere {
+		t.Fatalf("armed %q, started on %q with %+v; want the chapter's track %q from the cursor", fake.armGUID, fake.startGUID, fake.startOpts, readAloudTrack)
+	}
+	if result.Outcome != "started" || result.TrackGUID != readAloudTrack || result.Position == nil || *result.Position != 30 || result.Message != readAloudRecordingFrom(30) {
+		t.Fatalf("result = %+v", result)
+	}
+	if fake.stopCalls != 0 {
+		t.Fatalf("stopCalls = %d, want 0: a good start restores nothing until Stop", fake.stopCalls)
+	}
+}
+
+func TestReadAloudRecordStartAtRefusesABadTime(t *testing.T) {
+	for name, at := range map[string]float64{
+		"negative":          -0.5,
+		"not a number":      math.NaN(),
+		"positive infinity": math.Inf(1),
+		"negative infinity": math.Inf(-1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			host, ids := newReadAloudReaperHost(t)
+			fake := &fakeRecorder{}
+			reader := &fakeTrackStates{}
+			result, err := readAloudRecordStartAtIn(context.Background(), host.services(), fake, &fakeStartPuncher{recorder: fake}, reader, ids[0], at)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Outcome != "refused" || result.Reason != readAloudBadTime || result.Message != readAloudBadTimeSentence {
+				t.Fatalf("result = %+v, want a bad_time refusal", result)
+			}
+			if len(fake.calls) != 0 || len(reader.asked) != 0 {
+				t.Fatalf("calls = %v, asked = %v: nothing may be read, armed or moved for a bad time", fake.calls, reader.asked)
+			}
+		})
+	}
+}
+
+// The arms and the refusals behave as ReadAloudRecordStart's: every precondition refuses with nothing sent, and a
+// cursor or record start that fails after the arms changed asks for them back.
+func TestReadAloudRecordStartAtRefusesAsRecordStartDoes(t *testing.T) {
+	for name, tc := range map[string]struct {
+		state  bridge.TrackState
+		reason string
+	}{
+		"playing":           {bridge.TrackState{Playing: true}, "playing"},
+		"already recording": {bridge.TrackState{Recording: true}, "already_recording"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			host, ids := newReadAloudReaperHost(t)
+			fake := &fakeRecorder{}
+			result := recordStartAt(t, host, fake, &fakeStartPuncher{recorder: fake}, &tc.state, ids[0], 30)
+			if result.Outcome != "refused" || result.Reason != tc.reason || len(fake.calls) != 0 {
+				t.Fatalf("result = %+v, calls = %v, want a %q refusal with nothing sent", result, fake.calls, tc.reason)
+			}
+		})
+	}
+	t.Run("no link", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{}
+		if result := recordStartAt(t, host, fake, &fakeStartPuncher{recorder: fake}, &bridge.TrackState{}, ids[1], 30); result.Reason != readAloudUnlinked || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("not connected", func(t *testing.T) {
+		host, ids := newTestHostForChapterMatch(t)
+		linkChapter(t, host, ids[0], readAloudTrack)
+		fake := &fakeRecorder{}
+		if result := recordStartAt(t, host, fake, &fakeStartPuncher{recorder: fake}, nil, ids[0], 30); result.Reason != reaperStandalone || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("no recorder", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		if result := recordStartAt(t, host, nil, &fakeStartPuncher{recorder: &fakeRecorder{}}, nil, ids[0], 30); result.Reason != readAloudExperimentalOff {
+			t.Fatalf("result = %+v", result)
+		}
+	})
+	t.Run("no puncher", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{}
+		if result := recordStartAt(t, host, fake, nil, nil, ids[0], 30); result.Reason != readAloudExperimentalOff || len(fake.calls) != 0 {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("the cursor cannot move", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}}
+		result := recordStartAt(t, host, fake, &fakeStartPuncher{recorder: fake, err: bridge.ErrPunchWhileRecording}, nil, ids[0], 30)
+		if result.Reason != "already_recording" || strings.Join(fake.calls, ",") != "ArmOnly,PunchTo,RecordStop" {
+			t.Fatalf("result = %+v, calls = %v, want the arms put back", result, fake.calls)
+		}
+	})
+	t.Run("the start fails", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}, startErr: bridge.ErrRecordingDidNotStart}
+		result := recordStartAt(t, host, fake, &fakeStartPuncher{recorder: fake}, nil, ids[0], 30)
+		if result.Reason != "did_not_start" || strings.Join(fake.calls, ",") != "ArmOnly,PunchTo,RecordStart,RecordStop" {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+	t.Run("an arm the DAW refuses", func(t *testing.T) {
+		host, ids := newReadAloudReaperHost(t)
+		fake := &fakeRecorder{armErr: &bridge.TrackStaleError{GUID: readAloudTrack}}
+		result := recordStartAt(t, host, fake, &fakeStartPuncher{recorder: fake}, nil, ids[0], 30)
+		if result.Reason != readAloudTrackMissing || strings.Join(fake.calls, ",") != "ArmOnly" {
+			t.Fatalf("result = %+v, calls = %v", result, fake.calls)
+		}
+	})
+}
+
+// The new binding's answers, pinned for the UI's schema: a start at a punch, and the refusals only it has (a bad time,
+// the punch role off). Its other refusals are read-aloud-recordings' own.
+func TestContractReadAloudRecordStartAt(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	answers := map[string]ReadAloudRecording{}
+	started := &fakeRecorder{started: bridge.RecordStarted{Position: 30}}
+	answers["started"] = recordStartAt(t, host, started, &fakeStartPuncher{recorder: started}, nil, ids[0], 30)
+	answers["bad_time"] = recordStartAt(t, host, &fakeRecorder{}, &fakeStartPuncher{recorder: &fakeRecorder{}}, nil, ids[0], -1)
+	answers["no_puncher"] = recordStartAt(t, host, &fakeRecorder{}, nil, nil, ids[0], 30)
+	answers["no_link"] = recordStartAt(t, host, &fakeRecorder{}, &fakeStartPuncher{recorder: &fakeRecorder{}}, nil, ids[1], 30)
+	contractfile.Check(t, "readaloud-record-start-at", answers)
+}
+
 func TestRecordRefusalsNameTheAdapterNotReaper(t *testing.T) {
 	err := bridge.ErrAlreadyRecording
 	if got := readAloudRecordRefusal("Audacity", err); !strings.Contains(got.Message, "Audacity") || strings.Contains(got.Message, "REAPER") {
@@ -375,6 +548,7 @@ func TestReadAloudRecordBindingsAnswerJSON(t *testing.T) {
 	for _, raw := range []func() (string, error){
 		func() (string, error) { return host.ReadAloudArmOnly(ids[0]) },
 		func() (string, error) { return host.ReadAloudRecordStart(ids[0]) },
+		func() (string, error) { return host.ReadAloudRecordStartAt(ids[0], 30) },
 		func() (string, error) { return host.ReadAloudRecordStop() },
 	} {
 		out, err := raw()

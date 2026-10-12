@@ -1,5 +1,5 @@
 // The interaction feedback rows for the editing call sites (see interactionFeedback.catalog.ts for what a row says).
-import { type FeedbackRow, row } from './row';
+import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const editingFeedback: Record<string, FeedbackRow> = {
@@ -31,6 +31,19 @@ export const editingFeedback: Record<string, FeedbackRow> = {
   'src/components/editing/takes/prep/prepSteps.ts::levelMatchApply#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'Runs only after the Normalise confirmation is accepted, as one history entry; the passage shows no figures while it and the evidence read run, and a refusal or failure is a toast that leaves the figures as they were.'),
 
   'src/components/editing/script/useEditingDoc.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s paragraphs for the script document with the heard words; a failure puts the document in its error state with the message.'),
+  // The assembled Editing page (EditingPage.tsx and page/): what it reads when it opens.
+  'src/components/editing/EditingPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The narration chapters for the chapter picker; a failed read is written in place at the top of the page.'),
+  'src/components/editing/page/useChapterSource.ts::workspaceAlignment#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s text and what was heard, read with the stored lists below as one load; a failure of any of them puts the page in its error state with the message.'),
+  'src/components/editing/page/useChapterSource.ts::editingCutsList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s stored cuts, read with the text; a failure is the page\'s error state.'),
+  'src/components/editing/page/useChapterSource.ts::editingWordFxList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s stored word effects, read with the text; a failure is the page\'s error state.'),
+  'src/components/editing/page/useChapterSource.ts::editingAcceptedList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s accepted words, read with the text; a failure is the page\'s error state.'),
+  'src/components/editing/page/useChapterSource.ts::editingAcceptedList#2': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the accepted words again after Keep as read or its undo, which has already said its own outcome; a failed re-read leaves the list as it was (SILENT_CATCHES).'),
+  'src/components/editing/page/useChapterSource.ts::chapterTrackMapList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Which REAPER track the chapter is linked to, for playback; a failed read leaves the text showing with nothing to play, since the page reads without the DAW (SILENT_CATCHES).'),
+  'src/components/editing/page/useChapterSource.ts::tracksList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The saved project\'s tracks and their items, read with the link above; a failed read is the same: the text shows and nothing plays (SILENT_CATCHES).'),
+  'src/components/editing/page/useLines.ts::workspaceTakes#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The takes of each paragraph; a paragraph whose read fails is shown with no takes, as one the workspace offers none for, and the others still load (SILENT_CATCHES).'),
+  'src/components/editing/page/EditingBody.tsx::findingsGet#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Reads the finding a deep link names, to select and open its flagged word; a failed read is an error toast saying the finding could not be read, and the link is marked done so it is not retried.'),
+  'src/components/editing/page/useDawStatus.ts::subscribeDawCapabilities#1': subscription('The DAW port\'s capability report, which makes the page ask the DAW again: the banner updates when the host pushes a change, without a reload.'),
+
   // Editing ribbon
   'src/components/editing/ribbon/useRibbonPeaks.ts::workspacePeaks#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'The chapter\'s peaks for the ribbon; a refused or failed read is a state (the ribbon says there is no audio), not an error to retry.'),
   'src/components/editing/bar/useScriptPlayback.ts::mediaUrl#1': row('click', 'instant', 'na', 'na', 'ui', 'na', 'na', 'exempt', "Builds the media URL of a recorded file (a string, no host call); Play starts the audio on it, and a file that will not load is the audio element's own error, which the bar reports."),

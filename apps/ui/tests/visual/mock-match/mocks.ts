@@ -52,8 +52,11 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
     theme: 'light',
     unscored: 'retired as a target (D98): the Studio Next mock is the spec for Proof and Pickups since the SN-Q9 swap',
   },
-  // Scored against its own fixture state (?mockFidelity=05, merged on main by N-B57).
-  { file: '05-master-delivery.webp', target: { page: 'master', state: 'mock-fidelity-05' }, theme: 'light' },
+  {
+    file: '05-master-delivery.webp',
+    theme: 'light',
+    unscored: 'retired as a target (D98): the Studio Next mock is the spec for Master & QC and Delivery since the SN-M5 swap',
+  },
   {
     file: '06-series-voice-bible.webp',
     theme: 'light',

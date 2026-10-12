@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
+import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
 import { Heading } from '../../primitives/Heading';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
@@ -11,8 +12,8 @@ import { useBuildPackage } from './useBuildPackage';
 
 /**
  * Delivery (the Studio Next mock's page): the profile card, the Output panel and the "Before you build" aside. Chapters are judged by the
- * host's measurement (`measureState`) against the project's profile; the build runs over the export and package jobs. The page navigates by
- * callback only, so SN-M5 mounts it with the route.
+ * host's measurement (`measureState`) against the project's profile; the build runs over the export and package jobs. The profile's
+ * rules and their sources have no mock equivalent and stay as built, below Output. The page navigates by callback only.
  */
 export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript: boolean; onOpenInMaster: (chapterId: string) => void }) {
   const manuscript = usePort('manuscript');
@@ -63,8 +64,11 @@ export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript:
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="flex min-w-0 flex-col gap-4">
+        {/* The mock's page title, "Delivery": the page heading every page opens with. */}
+        <Heading title="Delivery" />
         <ProfileCard onChange={onChange} onProfile={onProfile} />
         {profile && <OutputPanel profile={profile} ready={ready} waiting={text} build={{ ...build, build: start }} showBuilt={built} />}
+        {profile && <DeliveryProfilePanel profile={profile} />}
         {problem && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
             {problem}

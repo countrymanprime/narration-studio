@@ -32,9 +32,26 @@ describe('keys-register-through-the-catalogue', () => {
       'booth.text.larger',
       'booth.text.smaller',
       'booth.exit',
-      'booth.fullscreen',
     ])
       expect(page).toContain(`useCommand('${id}'`);
+    // F11 is the one shared hook's `useCommand('booth.fullscreen')`, and the page binds it nowhere else.
+    expect(page).toContain('useFullscreenKey()');
+    expect(page).not.toContain(`'booth.fullscreen'`);
     expect(page).not.toMatch(/['"]keydown['"]|onKeyDown|\.key\s*===|\.code\s*===/);
+  });
+});
+
+describe('there-is-no-mirror-text', () => {
+  // The mock has no mirrored (flipped) text for a beam-splitter prompter, and the Booth builds nothing the mock lacks (D98).
+  it('has no mirror text', () => {
+    const booth = join(DIR, '..');
+    const surfaces = ['page', 'reading', 'frame'].flatMap((dir) =>
+      readdirSync(join(booth, dir))
+        .filter((file) => /\.(ts|tsx)$/.test(file) && !/\.(test|stories)\.tsx?$/.test(file))
+        .map((file) => ({ file: `${dir}/${file}`, text: code(readFileSync(join(booth, dir, file), 'utf8')) })),
+    );
+    expect(surfaces.length).toBeGreaterThan(10);
+    for (const { file, text } of surfaces)
+      expect({ file, hit: text.match(/mirror|scaleX\(\s*-1|scale\(\s*-1|-scale-x-100/i)?.[0] ?? null }).toEqual({ file, hit: null });
   });
 });

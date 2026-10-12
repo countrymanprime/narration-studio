@@ -307,7 +307,7 @@ export type ReadAloudReaperState = {
 };
 
 /**
- * What arming a track, starting or stopping a REAPER recording did (`ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStop`):
+ * What arming a track, starting or stopping a REAPER recording did (`ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop`):
  * `armed` (the track REAPER armed, how many others it
  * disarmed, and whether anything changed), `started` (the track REAPER records on and the position, in project seconds, where it
  * began), `stopped` (how many arms came back and how many stayed changed) or `refused` (`reason` and `message` say why; nothing in
@@ -315,7 +315,16 @@ export type ReadAloudReaperState = {
  */
 export type ReadAloudRecordOutcome = 'armed' | 'started' | 'stopped' | 'refused';
 export type ReadAloudRecordReason =
-  ReadAloudReaperReason | 'not_armed' | 'several_armed' | 'other_armed' | 'playing' | 'already_recording' | 'did_not_start' | 'not_our_recording' | 'timeout';
+  | ReadAloudReaperReason
+  | 'not_armed'
+  | 'several_armed'
+  | 'other_armed'
+  | 'playing'
+  | 'already_recording'
+  | 'did_not_start'
+  | 'not_our_recording'
+  | 'timeout'
+  | 'bad_time';
 export type ReadAloudRecording = {
   outcome: ReadAloudRecordOutcome;
   reason?: ReadAloudRecordReason;
@@ -399,6 +408,9 @@ export interface TeleprompterApi {
   readAloudArmOnly(chapterId: string): Promise<ReadAloudRecording>;
   /** Start REAPER recording on `chapterId`'s linked track, which must already be the one armed track; refuses or times out otherwise. */
   readAloudRecordStart(chapterId: string): Promise<ReadAloudRecording>;
+  /** Record as `readAloudRecordStart` does, but from `at` (project seconds, the narrator's punch) instead of the end of the track's last
+   * item. A time that is not a finite, non-negative number of seconds is refused (`bad_time`) before anything is armed or moved. */
+  readAloudRecordStartAt(chapterId: string, at: number): Promise<ReadAloudRecording>;
   /** Stop a recording this app started, putting the narrator's own arms back; a recording it did not start is left alone. */
   readAloudRecordStop(): Promise<ReadAloudRecording>;
   /** Ask REAPER, once, which of the microphones it records from, to preselect it only when sure; read-only. */

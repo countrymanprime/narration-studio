@@ -64,7 +64,7 @@ export function TagInput({
     // Enter that commits an input-method composition is not a submit.
     if (event.nativeEvent.isComposing) return;
     if (event.key === 'Enter' || event.key === ',') {
-      // A term never holds a comma (Phase 1): typing one commits the draft instead of inserting it.
+      // A term never holds a comma: typing one commits the draft instead of inserting it.
       event.preventDefault();
       submit();
       return;

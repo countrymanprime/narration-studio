@@ -57,8 +57,8 @@ function mockMastering(): NonNullable<ExportJob['files'][number]['mastering']> {
   };
 }
 
-/** The label a checkbox or tab gives a profile: its platform for a built-in, its own name for a custom profile -
- * the same rule MasterQcPage.tsx's own `platformName` applies to the single-select platform tabs. */
+/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile, as the
+ * multi-platform export panel names it. */
 const platformNameFor = (profile: DeliveryProfile): string => (profile.builtIn ? profile.platform : profile.name);
 
 /** requiredFormatMock mirrors apps/desktop/multi_package_job.go's own requiredFormat: the capture group of the

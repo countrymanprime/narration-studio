@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
@@ -15,6 +16,12 @@ import (
 // and the DAW port's Recorder role) is already built and harness-tested; this file is the remaining caller. Every
 // command is sent only from a click (or the Space shortcut on Play, the Booth's reading control bar), with the track GUID taken
 // from the chapter-track mapping the same way ReadAloudReaperState reads it, never from the UI (threat-model row 5k).
+
+const (
+	// readAloudBadTime is the refusal of a start at a time that is not a finite, non-negative number of seconds.
+	readAloudBadTime         = "bad_time"
+	readAloudBadTimeSentence = "The record start time is not a usable number of seconds."
+)
 
 // readAloudRecordStartTimeout bounds how long RecordStart waits for REAPER to report recording: on a timeout nothing
 // starts listening and the bar says why, the same as any other refusal.
@@ -113,7 +120,7 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 		return readAloudRefused("other_armed", fmt.Sprintf("Another track than this chapter's is armed in %s.", name))
 	case errors.Is(err, bridge.ErrPlaying):
 		return readAloudRefused("playing", fmt.Sprintf("%s is playing: stop it first.", name))
-	case errors.Is(err, bridge.ErrAlreadyRecording):
+	case errors.Is(err, bridge.ErrAlreadyRecording), errors.Is(err, bridge.ErrPunchWhileRecording):
 		return readAloudRefused("already_recording", fmt.Sprintf("%s is already recording.", name))
 	case errors.Is(err, bridge.ErrRecordingDidNotStart):
 		return readAloudRefused("did_not_start", fmt.Sprintf("%s did not start recording.", name))
@@ -165,11 +172,30 @@ func (h *Host) ReadAloudArmOnly(chapterID string) (string, error) {
 // track being armed is no longer a refusal. Sent only from Play with the Record toggle on (the Booth's reading control bar) and
 // the Companion's Record; TeleprompterStart follows only once this answers "started".
 func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, reader trackStateReader, chapterID string) (ReadAloudRecording, error) {
+	return readAloudRecordStartFrom(ctx, svc, recorder, nil, reader, chapterID, nil)
+}
+
+// readAloudRecordStartAtIn is Record at a punch: the same arms, preconditions and refusals as readAloudRecordStartIn,
+// but the DAW records from at (project seconds) instead of the end of the track's last item. The edit cursor is placed
+// there with puncher (punch_to, no pre-roll) once the track is armed, and recording starts from the cursor; ADR 0791's
+// end-of-track default stays for a start without a time. A time that is not a finite, non-negative number of seconds
+// is refused before anything is read, armed or moved (threat-model row 5k). puncher is nil when the punch capability
+// is not available, which refuses the same way as the record capability being off.
+func readAloudRecordStartAtIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, puncher dawport.Puncher, reader trackStateReader, chapterID string, at float64) (ReadAloudRecording, error) {
+	if math.IsNaN(at) || math.IsInf(at, 0) || at < 0 {
+		return readAloudRefused(readAloudBadTime, readAloudBadTimeSentence), nil
+	}
+	return readAloudRecordStartFrom(ctx, svc, recorder, puncher, reader, chapterID, &at)
+}
+
+// readAloudRecordStartFrom is both starts: from the end of the track's last item when at is nil, else from *at, placed
+// with puncher.
+func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder dawport.Recorder, puncher dawport.Puncher, reader trackStateReader, chapterID string, at *float64) (ReadAloudRecording, error) {
 	name := readAloudAdapterName(svc)
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return readAloudConnectionRefusal(name, status.Connection), nil
 	}
-	if recorder == nil {
+	if recorder == nil || (at != nil && puncher == nil) {
 		return readAloudExperimentalOffRefusal(name), nil
 	}
 	guid, refused, err := readAloudTrackGUID(svc, chapterID)
@@ -195,7 +221,17 @@ func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawp
 	if err != nil {
 		return readAloudRecordRefusal(name, err), nil
 	}
-	started, err := recorder.RecordStart(ctx, guid, dawport.RecordOptions{Start: bridge.AtEnd})
+	opts, message := dawport.RecordOptions{Start: bridge.AtEnd}, ""
+	if at != nil {
+		if _, err := puncher.PunchTo(ctx, *at, 0); err != nil {
+			if armed.Changed {
+				putArmsBack(recorder)
+			}
+			return readAloudRecordRefusal(name, err), nil
+		}
+		opts, message = dawport.RecordOptions{Start: bridge.StartHere}, readAloudRecordingFrom(*at)
+	}
+	started, err := recorder.RecordStart(ctx, guid, opts)
 	if err != nil {
 		if armed.Changed {
 			putArmsBack(recorder)
@@ -203,7 +239,12 @@ func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawp
 		return readAloudRecordRefusal(name, err), nil
 	}
 	position := started.Position
-	return ReadAloudRecording{Outcome: "started", TrackGUID: started.TrackGUID, Position: &position}, nil
+	return ReadAloudRecording{Outcome: "started", Message: message, TrackGUID: started.TrackGUID, Position: &position}, nil
+}
+
+// readAloudRecordingFrom is the sentence a start at a punch answers with, so the narrator sees where the take begins.
+func readAloudRecordingFrom(at float64) string {
+	return fmt.Sprintf("Recording from %.1f seconds.", at)
 }
 
 // putArmsBack asks the recorder to give the narrator's arms back after a start that failed once the arms had changed,
@@ -222,6 +263,33 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
 	defer cancel()
 	result, err := readAloudRecordStartIn(ctx, svc, recorder, trackStateReaderFrom(svc), chapterID)
+	if err == nil && result.Outcome == "started" {
+		h.setReadAloudRecording(chapterID, recorder)
+	}
+	return encodeBinding(result, err)
+}
+
+// puncherFrom asks svc's DAW port resolver for the punch role, as recorderFrom asks for Record: nil when there is no
+// resolver, no adapter, the capability is toggled off, or the DAW is not reachable right now.
+func puncherFrom(svc hostServices) dawport.Puncher {
+	if svc.dawPortResolver == nil {
+		return nil
+	}
+	puncher, err := dawport.Role[dawport.Puncher](svc.dawPortResolver, dawport.CapPunch)
+	if err != nil {
+		return nil
+	}
+	return puncher
+}
+
+// ReadAloudRecordStartAt is Record from a punch the narrator chose: chapterID and a time in project seconds, never a
+// track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, keeps starting at the end of the last item.
+func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, error) {
+	svc := h.services()
+	recorder := recorderFrom(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	defer cancel()
+	result, err := readAloudRecordStartAtIn(ctx, svc, recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}

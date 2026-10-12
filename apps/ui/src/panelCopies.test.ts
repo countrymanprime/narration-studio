@@ -55,7 +55,6 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/layout/AppShell.tsx': 6,
     // Page components not yet on the primitives: the Booth, Master and Script.
     'src/components/booth/CompanionShell.tsx': 1,
-    'src/components/master/BookConsistency.tsx': 1,
   },
   h1: {
     // The Booth's page title is visually hidden (`sr-only`): the reading surface is the page, and a Heading would show.

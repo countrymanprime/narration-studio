@@ -5,7 +5,7 @@ import { chaptersSchema, paragraphsSchema } from '../api/schemas/manuscript';
 import { createMockApi } from '../api/mockApi';
 import { parseWire } from '../api/wire/parseWire';
 import { CHAPTER_SHAPES } from './chapters';
-import { makeScenario, SCENARIO_SIZES } from './scenario';
+import { makeScenario, SCENARIO_DAW_SETUPS, SCENARIO_SIZES } from './scenario';
 
 const wire = (payload: string) => ({ boundary: 'scenario.test', payload });
 const cases = CHAPTER_SHAPES.flatMap((shape) => SCENARIO_SIZES.map((chapters) => ({ shape, chapters })));
@@ -47,5 +47,19 @@ describe('helper-is-test-only', () => {
     const files = (readdirSync(root, { recursive: true }) as string[]).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f));
     const importers = files.filter((f) => /renderScenario/.test(readFileSync(root + f, 'utf8')) && !f.endsWith('renderScenario.tsx'));
     expect(importers).toEqual([]);
+  });
+});
+
+describe('a scenario names its DAW setup', () => {
+  it('defaults to REAPER', () => {
+    expect(makeScenario({ shape: 'titleOnly', chapters: 12 }).daw).toBe('reaper');
+  });
+
+  it.each(SCENARIO_DAW_SETUPS)('%s reaches the mock as the DAW the host would report', async (daw) => {
+    const scenario = makeScenario({ shape: 'titleOnly', chapters: 12, daw });
+    expect(scenario.daw).toBe(daw);
+    const capabilities = await createMockApi({}, scenario.seed).dawCapabilities();
+    expect(capabilities.daw).toBe({ reaper: 'REAPER', 'reaper-off': 'REAPER', builtin: 'Built-in' }[daw]);
+    expect(capabilities.reachable).toBe(daw !== 'reaper-off');
   });
 });

@@ -1,16 +1,21 @@
-import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult } from '../../types';
+import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult, MeasureReport } from '../../types';
 import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { deliveryProfileTitle, describeMet, describeMiss, formatRuleValue, requirementOwner } from './deliveryProfile';
 import { formatLength, formatLevel } from './deliveryFormat';
 import { Requirement } from './DeliveryProfilePanel';
-import { describeFormat } from './PerFileChecks';
 import { ResultMark, VerificationMark } from './RuleBadges';
 
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
+
+/** "44.1 kHz · mono": a measured file's sample rate and channels. */
+function describeFormat(report: MeasureReport): string {
+  const rate = `${(report.sample_rate / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} kHz`;
+  return `${rate} · ${report.channels === 1 ? 'mono' : report.channels === 2 ? 'stereo' : `${report.channels} channels`}`;
+}
 
 /** What this file measured for a rule, and how it stands against the bound, in words. */
 function ThisFile({ rule, result, owner }: { rule: DeliveryRule; result?: DeliveryRuleResult; owner: string }) {
@@ -42,7 +47,8 @@ function ThisFile({ rule, result, owner }: { rule: DeliveryRule; result?: Delive
 }
 
 /**
- * One measured file against the profile, rule by rule: each file rule's
+ * One measured file against the profile, rule by rule (under Master & QC's checks for the selected file; the mock lists only the
+ * rules the host measured, this lists every file rule, including the ones it could not judge): each file rule's
  * result, the value this file measured, what the platform requires and how that requirement was verified. Loudness and true peak
  * are information here, not rules, unless the profile has a rule for them.
  */
@@ -115,7 +121,7 @@ export function FileRulesPanel({ file, profile, onClose }: { file: MeasureFileRe
       </div>
       <p className="mt-2 text-xs" style={MUTED}>
         Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one
-        file: see the Book checklist above.
+        file: see the Delivery package beside the files.
       </p>
     </Panel>
   );
