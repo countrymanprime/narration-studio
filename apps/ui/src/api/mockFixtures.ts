@@ -511,18 +511,6 @@ export const WIRE_READER_STATE: ReaderState = {
   activeChapter: titles[0],
   activeSourceLine: 10,
   expandedChapters: [titles[0]],
-  bookmarks: [
-    { id: 'bookmark-alice-1', kind: 'line', chapter: titles[0], paragraph: 0, sourceLine: 10, createdAt: '2026-01-01T00:00:00.000Z' },
-    {
-      id: 'bookmark-note-rabbit',
-      kind: 'note',
-      chapter: titles[0],
-      paragraph: paragraphIndex(0, 3),
-      noteId: 'note-alice-rabbit',
-      sourceLine: 25,
-      createdAt: '2026-01-01T00:00:00.000Z',
-    },
-  ],
 };
 export const WIRE_DISCREPANCIES: Discrepancy[] = [
   {
