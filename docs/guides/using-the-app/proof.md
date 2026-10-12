@@ -111,7 +111,7 @@ it.
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When
-the DAW refuses (the note's item was deleted or trimmed, or REAPER is recording), nothing changes and the Inspector says
+the DAW refuses (the note's item was deleted or trimmed, or the DAW is recording), nothing changes and the Inspector says
 why.
 
 ## Keys
@@ -147,8 +147,8 @@ last measurement again, and the list follows it.
 A chapter's Proof view, at `/proof/:chapterId`, is one screen to listen to a chapter's recording against its script, see
 where the recording check found a problem, and click a word to hear it again. It stays at this address until the Editing
 page replaces it. It has no nav item of its own; open it from a linked chapter's **Open in Proof** link in the
-[audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's Proof cell or its recording check's **Open in
-Proof** on [Production](production.md), from the Manuscript chapter header, or from **Manage takes in Editing** on a
+[audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's Proof cell, **Open Proof** in its row's menu or
+its recording check's **Open in Proof** on [Production](production.md), or from **Manage takes in Editing** on a
 note's [takes at this spot](#a-note-and-your-decision). A chapter has to be linked to a REAPER track first (see [Linking
 chapters to tracks](navigation.md#linking-chapters-to-tracks)). Its notes and its recording check card are on
 [Proof](#one-chapter), not here.
@@ -163,7 +163,7 @@ transport, and the check's flags. The header names the check's state (current, o
 **as of last save** — the chapter view always reads the REAPER project as it was last saved, not whatever is open live
 in REAPER right now.
 
-![Proof chapter view - script, transport, and the Flags panel with its legend](../../images/ui/proof-chapter-default.webp)
+![Proof chapter view - the waveform, the transport, the script and the Takes panel](../../images/ui/proof-chapter-default.webp)
 
 The transport plays the chapter's recorded audio in the app itself, honouring each item's trims (the
 same played range REAPER uses), so it works with REAPER closed. It has play/pause, skip back and
@@ -273,7 +273,7 @@ with **Cancel** to stop it.
 Each discrepancy the run finds becomes a flag in the [Flags panel](#the-chapter-view) above — Misread,
 Skipped or Extra words — instead of a table: select one to see the script and heard text side by side
 inline, its marker state (**Ready to export**, **Exported**, or **Already marked**), **Show in
-manuscript**, **Play recorded audio** and, for a single-word misread, **Add pronunciation
+Script**, **Play recorded audio** and, for a single-word misread, **Add pronunciation
 equivalence**.
 
 ![Proof chapter view - a comparison's misread as a flag, its script and heard text side by side](../../images/ui/proof-chapter-compare-misread.webp)
@@ -283,13 +283,13 @@ equivalence**.
 When it finishes, a summary reads "N discrepancies in \<chapter>, each one a flag in the Flags panel".
 **Export N markers** adds a take marker in REAPER for each discrepancy not already marked, the same
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
-mark a spot twice. **New comparison** starts over. Without a connected REAPER, **Last narrated take:
-…** reviews the last completed comparison instead, with Play recorded audio and Export off.
+mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
+comparison; Export markers is off while you review it.
 
 Leaving the chapter view while a run is under way or showing results resets the run, the same way
 leaving used to reset the Proofing page's own run.
 
-Above the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
+Below the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or
 sharing. Each candidate lists its chapter, paragraph range, estimated length and word count, alongside
 the reasons it was chosen (a mix of narration and dialogue, the Story Bible characters it touches, hard
@@ -311,7 +311,7 @@ paragraph entirely, the section names that instead and offers only to clear it. 
 removes it; like everything else here, nothing is applied, exported, or ever changes the manuscript,
 project, or audio.
 
-Above the Preview panel, **Proofing readiness** shows only while this chapter's own status is Proofing:
+Below the Preview panel, **Proofing readiness** shows only while this chapter's own status is Proofing:
 its suggestion for Finalized — a badge if the evidence says it's ready, "Not ready" if a pickup is still
 open, or "Can't tell yet" with what to check next. Confirm, Dismiss, and Revert work the same way they
 do on [Production](production.md#stage-readiness); Why opens the same evidence view, listing what was checked
@@ -320,14 +320,14 @@ do on [Production](production.md#stage-readiness); Why opens the same evidence v
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).
 
 Below the suggestion, **Rendered file** shows which file the delivery checks measure and lets you change
-it: **Choose rendered file** opens a file picker and attests the file was made from the chapter as it is
-now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
+it: **Choose rendered file** (**Change** once one is chosen) opens a file picker and attests the file was made
+from the chapter as it is now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
 uses, with its real progress, and needs no second file picker. If the file changes on disk, or the
 chapter's recorded audio changes, after you chose it, the section says so ("changed since you chose it")
 and every delivery check reads unknown until you choose the file again and measure it — a stale render
 never counts as a pass.
 
-![Proof chapter view - the readiness panel's Rendered file section, a render just chosen and measured](../../images/ui/proof-chapter-render-chosen.webp)
+![Proof chapter view - the readiness panel's Rendered file section with a render chosen: Change, Clear and Measure](../../images/ui/proof-chapter-render-chosen.webp)
 
 ---
 
