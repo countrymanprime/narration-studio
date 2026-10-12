@@ -50,6 +50,18 @@ export const WithPlaceholderOption: Story = {
   },
 };
 
+// `value` is not among the options, so the placeholder shows; picking an option removes it.
+export const WithPlaceholder: Story = {
+  args: { label: 'Chapter status', value: '', placeholder: 'Choose a status…' },
+  play: async ({ args, canvasElement }) => {
+    const select = within(canvasElement).getByRole('combobox', { name: 'Chapter status' }) as HTMLSelectElement;
+    await expect(select.selectedOptions[0]).toHaveTextContent('Choose a status…');
+    await userEvent.selectOptions(select, 'recorded');
+    await expect(args.onChange).toHaveBeenLastCalledWith('recorded');
+    await expect(select.options).toHaveLength(STATUS_OPTIONS.length);
+  },
+};
+
 // It is the native select: named by its label, and choosing an option reports the value (not the event).
 export const ChoosingReportsTheValue: Story = {
   play: async ({ args, canvasElement }) => {
