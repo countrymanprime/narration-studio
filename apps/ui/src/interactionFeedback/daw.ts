@@ -21,6 +21,7 @@ export const dawFeedback = {
     'The adapter forwards the saved-versus-live project state read (DawProjectState) unchanged; it changes nothing, and the page that adopts the port shows its answer or failure.',
   ),
   'src/ports/daw.ts::readAloudRecordStart#1': adapter('Forwards Record to REAPER.'),
+  'src/ports/daw.ts::readAloudRecordStartAt#1': adapter("Forwards Record from the narrator's punch."),
   'src/ports/daw.ts::readAloudRecordStop#1': adapter('Forwards Stop recording.'),
   'src/ports/daw.ts::workspaceUseTake#1': adapter('Forwards Use this take.'),
   'src/ports/daw.ts::workspaceHideTakes#1': adapter('Forwards Hide other takes; the binding already answers a DawResult.'),

@@ -211,6 +211,8 @@ export const DAW_ANSWERS = {
   /** bindings_daw_roll.go (SN-D64): an unconfirmed roll where `punch` is destructive, and a roll time that is not a number of seconds. */
   rollConfirm: 'This will replace the audio from here on. Confirm to continue.',
   rollBadTime: 'The roll time is not a usable number of seconds.',
+  /** bindings_readaloud_record.go (SN-D14): a record start at a time that is not a finite, non-negative number of seconds. */
+  recordBadTime: 'The record start time is not a usable number of seconds.',
   /** dawport/reaper's puncher: the chapter's track is gone, answered with code stale. */
   rollStale: 'That track is no longer in the REAPER project. Read the project again.',
   /** bindings_daw_range.go (SN-D65): delete_range's own mode and fade sentences, and words the edit log already holds as cut (changed false). */
@@ -248,6 +250,11 @@ export function pickupMarkersReadAnswer(open: number, done: number): string {
 export function takesHiddenAnswer(muted: number, daw: string): string {
   if (muted === 0) return `No other take to mute in ${daw}.`;
   return muted === 1 ? `Muted 1 other take in ${daw}. It is still in the project.` : `Muted ${muted} other takes in ${daw}. They are still in the project.`;
+}
+
+/** bindings_readaloud_record.go's readAloudRecordingFrom (SN-D14): a record start at a punch, so the narrator sees where the take begins. */
+export function recordingFromAnswer(at: number): string {
+  return `Recording from ${at.toFixed(1)} seconds.`;
 }
 
 /** dawport/reaper's puncher: a roll from `at` seconds that kept the earlier audio as a take (ADR 0860; no undo point of its own). */

@@ -5,8 +5,10 @@ import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
 import { CommandScope } from '../../../input/router';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import type { MeasurementsPort } from '../../../ports/measurements';
 import { PortOverrides, usePort } from '../../../ports/usePort';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
+import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import { Button } from '../../primitives/Button';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
@@ -14,7 +16,7 @@ import { Panel } from '../../primitives/Panel';
 import { speakerColorToken } from '../../primitives/speakerColor';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
-import { BoothFooter } from '../frame/BoothFooter';
+import { BoothFooter, useRoomTone } from '../frame/BoothFooter';
 import { BoothTop } from '../frame/BoothTop';
 import { progressLine } from '../frame/progressLine';
 import { PickupSessionProvider, registerPickupSession } from '../pickups/PickupSession';
@@ -42,8 +44,6 @@ const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/st
 
 // In a pickup session the lines are the side panel's first section.
 registerPickupSession();
-
-const ROOM_TONE = 'Room not measured yet';
 
 type Props = {
   /** False until a manuscript is imported: the page asks for one. */
@@ -98,6 +98,8 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   const dawPort = usePort('daw');
   const recording = usePort('recording');
   const daw = useMemo(() => withBuiltinRecorder(dawPort, recording), [dawPort, recording]);
+  // Read here, outside the session's own port overrides (which hold only the DAW client).
+  const measurements = usePort('measurements');
   // A chapter is changed in the address (replacing it, so Back leaves the Booth rather than stepping through chapters).
   const choose = useCallback(
     (target: BoothTarget) => setParams(new URLSearchParams(boothQuery(target, pickupIds).slice(1)), { replace: true }),
@@ -136,6 +138,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
         pickupIds={pickupIds}
         pickAt={pickAt}
         onPick={setPickAt}
+        measurements={measurements}
       />
     </PortOverrides>
   );
@@ -155,10 +158,12 @@ type SessionProps = {
   pickupIds: readonly string[];
   pickAt: string | null;
   onPick: (id: string) => void;
+  /** Where the footer's room tone is read. */
+  measurements: Pick<MeasurementsPort, 'roomTone'>;
 };
 
 /** One chapter (or the credits) in the Booth. Keyed by it, so a new chapter starts with a clean take, position and session. */
-function BoothSession({ source, from, requested, adopt, data, choose, navigate, exitTo, pickupIds, pickAt, onPick }: SessionProps) {
+function BoothSession({ source, from, requested, adopt, data, choose, navigate, exitTo, pickupIds, pickAt, onPick, measurements }: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
@@ -178,7 +183,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const recordId = source.kind === 'credits' ? `credits-${source.credits}` : source.chapter.id;
   // The pickup session and the bookmarks need the page's reading position, and the page tells them of takes and right-clicks.
   const parts = useRef<{
-    takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void;
+    takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => Promise<number>;
     menuItems?: (target: Element) => ContextMenuItem[];
   }>({});
   const page = useBoothPage({
@@ -214,7 +219,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     onJump: jumpToLine,
     initialAt: pickAt,
   });
-  parts.current.takeStopped = (take) => void pickups.takeStopped(take);
+  parts.current.takeStopped = (take) => pickups.takeStopped(take);
   // The reading starts on the session's line when it is in this chapter: opened from Pickups, or after a jump to another chapter.
   const startLine = pickups.lines.find((line) => line.id === pickups.at);
   const placed = useRef(false);
@@ -313,127 +318,132 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
   const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
   const capabilities = control.capabilities;
+  const roomTone = useRoomTone(measurements, session.device);
   const standalone = capabilities?.daw === 'none';
 
   return (
     <CommandScope kind="booth">
-      <div ref={page.root} className="flex size-full flex-col bg-[var(--bg)] text-[var(--text)]">
-        {/* The top bar keeps the drawer open: its toggle opens and closes it, and nothing else on it is the text. */}
-        <div data-booth-side-keep="">
-          <BoothTop
-            chapter={
-              // The chapter cannot change during a take: a fieldset disables the picker and its arrows while one runs.
-              <fieldset disabled={control.recording} className="m-0 min-w-0 border-0 p-0">
-                <legend className="sr-only">Chapter</legend>
-                <ChapterStepper
-                  chapters={pickerChapters}
-                  value={pickerValue}
-                  stepKeys={['Alt+↑', 'Alt+↓']}
-                  onChange={(id) => changeChapter(targetOf(id))}
-                  onStep={step}
-                />
-              </fieldset>
-            }
-            progress={progress}
-            pickupsOpen={pickups.active ? pickups.open : null}
-            resume={
-              source.kind === 'credits' ? (
-                <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
-              ) : (
-                <ResumeOfferLine state={page.resume} onChoose={page.chooseResume} />
-              )
-            }
-            setup={
-              capabilities ? (
-                <SetupChip
-                  capabilities={capabilities}
-                  standaloneName={dawShortName('none')}
-                  onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
-                />
-              ) : undefined
-            }
-            recording={control.recording}
-            paused={page.paused}
-            panelOpen={side.open}
-            onTogglePanel={side.toggle}
-            panelId="booth-side"
-          />
-        </div>
-        <div className="relative flex min-h-0 flex-1">
-          <div className="min-w-0 flex-1">
-            <BoothText
-              paragraphs={paragraphs}
-              position={page.position}
-              browse={page.browse}
-              onBrowse={page.setBrowse}
-              onSeek={(paragraphId, word) => {
-                page.seek(paragraphId, word);
-                // A Story Bible name shows its entry in the side panel; any other word clears it.
-                const name = entityAtWord(paragraphs, decorated.decorations, paragraphId, word);
-                const entry = name && entities.find((item) => item.canonical_name === name);
-                setReference(entry ? { entry } : null);
-              }}
-              speakers={characters.map((entity) => entity.canonical_name)}
-              speakerColour={colourOf}
-              onSetSpeaker={setSpeaker}
-              decorations={decorated.decorations}
-              notes={decorated.notes}
-              punchAt={page.punchAt}
-              pickupLines={pickups.bars}
-              size={page.size}
-              viewRef={page.view}
-              margin={
-                chapter && bookmarks.bookmarks ? (
-                  <BookmarkRibbons
-                    chapterId={chapter.id}
-                    bookmarks={bookmarks.bookmarks}
-                    paragraphs={paragraphs}
-                    units={units}
-                    flashId={bookmarks.flashId}
-                    onUpdate={bookmarks.update}
-                    onRemove={bookmarks.remove}
+      {/* The shell gives the Booth the whole window and none of its chrome, its context menu included: the page hosts its own. */}
+      <ContextMenuHost className="size-full">
+        <div ref={page.root} className="flex size-full flex-col bg-[var(--bg)] text-[var(--text)]">
+          {/* The top bar keeps the drawer open: its toggle opens and closes it, and nothing else on it is the text. */}
+          <div data-booth-side-keep="">
+            <BoothTop
+              chapter={
+                // The chapter cannot change during a take: a fieldset disables the picker and its arrows while one runs.
+                <fieldset disabled={control.recording} className="m-0 min-w-0 border-0 p-0">
+                  <legend className="sr-only">Chapter</legend>
+                  <ChapterStepper
+                    chapters={pickerChapters}
+                    value={pickerValue}
+                    stepKeys={['Alt+↑', 'Alt+↓']}
+                    onChange={(id) => changeChapter(targetOf(id))}
+                    onStep={step}
+                  />
+                </fieldset>
+              }
+              progress={progress}
+              pickupsOpen={pickups.active ? pickups.open : null}
+              resume={
+                source.kind === 'credits' ? (
+                  <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
+                ) : (
+                  <ResumeOfferLine state={page.resume} onChoose={page.chooseResume} />
+                )
+              }
+              setup={
+                capabilities ? (
+                  <SetupChip
+                    capabilities={capabilities}
+                    standaloneName={dawShortName('none')}
+                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
               }
+              recording={control.recording}
+              paused={page.paused}
+              panelOpen={side.open}
+              onTogglePanel={side.toggle}
+              panelId="booth-side"
             />
           </div>
-          {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
-          <h2 className="sr-only">Side panel</h2>
-          <PickupSessionProvider value={pickups.active ? { session: pickups, chapterLabel } : null}>
-            <BoothSidePanel
-              open={side.open}
-              drawer={side.drawer}
-              onOpenChange={side.setOpen}
-              data={{
-                chapterId: recordId,
-                reference,
-                voices: voicesNearby(units, at.cur, entities),
-                comingUp: comingUpWords(units, at.cur, entities),
-                numbers: page.numbers,
-                flags: page.flags,
-                onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
-              }}
-            />
-          </PickupSessionProvider>
+          <div className="relative flex min-h-0 flex-1">
+            <div className="min-w-0 flex-1">
+              <BoothText
+                paragraphs={paragraphs}
+                position={page.position}
+                browse={page.browse}
+                onBrowse={page.setBrowse}
+                onSeek={(paragraphId, word) => {
+                  page.seek(paragraphId, word);
+                  // A Story Bible name shows its entry in the side panel; any other word clears it.
+                  const name = entityAtWord(paragraphs, decorated.decorations, paragraphId, word);
+                  const entry = name && entities.find((item) => item.canonical_name === name);
+                  setReference(entry ? { entry } : null);
+                }}
+                speakers={characters.map((entity) => entity.canonical_name)}
+                speakerColour={colourOf}
+                onSetSpeaker={setSpeaker}
+                decorations={decorated.decorations}
+                notes={decorated.notes}
+                punchAt={page.punchAt}
+                pickupLines={pickups.bars}
+                size={page.size}
+                viewRef={page.view}
+                margin={
+                  chapter && bookmarks.bookmarks ? (
+                    <BookmarkRibbons
+                      chapterId={chapter.id}
+                      bookmarks={bookmarks.bookmarks}
+                      paragraphs={paragraphs}
+                      units={units}
+                      flashId={bookmarks.flashId}
+                      onUpdate={bookmarks.update}
+                      onRemove={bookmarks.remove}
+                    />
+                  ) : undefined
+                }
+              />
+            </div>
+            {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
+            <h2 className="sr-only">Side panel</h2>
+            <PickupSessionProvider value={pickups.active ? { session: pickups, chapterLabel } : null}>
+              <BoothSidePanel
+                open={side.open}
+                drawer={side.drawer}
+                onOpenChange={side.setOpen}
+                data={{
+                  chapterId: recordId,
+                  reference,
+                  voices: voicesNearby(units, at.cur, entities),
+                  comingUp: comingUpWords(units, at.cur, entities),
+                  numbers: page.numbers,
+                  flags: page.flags,
+                  onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
+                }}
+              />
+            </PickupSessionProvider>
+          </div>
+          <BoothFooter
+            record={<RecordControl control={control} />}
+            seconds={page.seconds}
+            recording={control.recording}
+            why={control.reason || undefined}
+            mic={{
+              engine: standalone ? 'builtin' : 'daw',
+              dawName: page.dawName,
+              reachable: capabilities?.reachable ?? true,
+              offReason: capabilities?.capabilities.record?.message,
+              device: session.device,
+              onDevice: session.changeDevice,
+            }}
+            roomTone={roomTone.label}
+            roomToneOk={roomTone.ok}
+            keymap={keymap}
+            pickupSession={pickups.active}
+          />
         </div>
-        <BoothFooter
-          record={<RecordControl control={control} />}
-          seconds={page.seconds}
-          recording={control.recording}
-          why={control.reason || undefined}
-          mic={{
-            engine: standalone ? 'builtin' : 'daw',
-            dawName: page.dawName,
-            reachable: capabilities?.reachable ?? true,
-            offReason: capabilities?.capabilities.record?.message,
-            device: session.device,
-            onDevice: session.changeDevice,
-          }}
-          roomTone={ROOM_TONE}
-          keymap={keymap}
-          pickupSession={pickups.active}
-        />
-      </div>
+      </ContextMenuHost>
     </CommandScope>
   );
 }

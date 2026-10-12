@@ -48,7 +48,7 @@ export const SupportedIsUnchanged: Story = {
   ),
 };
 
-// `experimental` and available (Q4): the control stays live, but an "Experimental" badge and the host's message
+// `experimental` and available: the control stays live, but an "Experimental" badge and the host's message
 // (as its description) mark it out.
 export const ExperimentalIsEnabledWithABadge: Story = {
   render: () => (
@@ -71,7 +71,7 @@ export const ExperimentalIsEnabledWithABadge: Story = {
   },
 };
 
-// Not yet available (Q3's default): disabled with the host's message, not hidden - the narrator learns the control
+// Not yet available: disabled with the host's message, not hidden - the narrator learns the control
 // exists and why it is off.
 export const NotYetAvailableIsDisabledWithTheMessage: Story = {
   render: () => (
@@ -112,7 +112,7 @@ export const UnsupportedFallsBackToTheControlsOwnName: Story = {
   },
 };
 
-// Q3's opt-out: a caller may hide an unsupported control instead of showing it disabled.
+// A caller may hide an unsupported control instead of showing it disabled.
 export const UnsupportedCanBeHiddenInstead: Story = {
   render: () => (
     <CapabilityGate capability={UNSUPPORTED} hideWhenUnsupported>

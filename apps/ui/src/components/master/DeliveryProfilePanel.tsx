@@ -1,16 +1,11 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { DeliveryProfile, DeliveryRule } from '../../types';
-import { Button } from '../primitives/Button';
 import { Disclosure } from '../primitives/Disclosure';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
-import { deliveryProfileTitle, describeCheck, profileCounts, requirementOwner } from './deliveryProfile';
-import { LISTEN_ICON, LOCK_ICON, Mark, ResultIcon, VerificationMark } from './RuleBadges';
-
-/** `basedOn` is the title of the built-in a custom profile was copied from ("ACX (September 2026)"). */
-export type ProfileState =
-  { status: 'loading' } | { status: 'ready'; profile: DeliveryProfile; basedOn?: string; notice?: string } | { status: 'error'; message: string };
+import { describeCheck, profileCounts, requirementOwner } from './deliveryProfile';
+import { LISTEN_ICON, Mark, ResultIcon, VerificationMark } from './RuleBadges';
 
 const MUTED = { color: 'var(--text-muted)' };
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
@@ -42,82 +37,36 @@ function CheckCell({ rule }: { rule: DeliveryRule }) {
 }
 
 /** Where the profile's rules come from, in one sentence. */
-function sourceLine(profile: DeliveryProfile, basedOn?: string): string {
+function sourceLine(profile: DeliveryProfile): string {
   const { title, url, readOn } = profile.source;
   const host = url ? ` (${new URL(url).host})` : '';
   if (profile.builtIn) {
     return `Every rule cites ${title}${host}, read ${readOn}. Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met. This is a measurement, not ${profile.platform}'s approval.`;
   }
-  const based = basedOn ? `Custom, based on ${basedOn}` : 'Custom';
-  return `${based}, revision ${profile.revision}${profile.note ? `. ${profile.note}` : ''}. Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.`;
+  return `Custom, revision ${profile.revision}${profile.note ? `. ${profile.note}` : ''}. Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.`;
 }
 
 /**
- * The delivery profile the project is judged against: which
- * profile and version, whether it is built in, how many rules the app checks, does not check and leaves to listening, and every
- * rule with what the platform requires, how the app checks it and how the requirement was verified. "Change profile" opens
- * Settings at its Delivery category.
+ * The rules behind the project's delivery profile, under Delivery's profile card (which names the profile and edits its limits;
+ * the mock has nothing for the rest): how many rules the app checks, does not check and leaves to listening, and every rule with
+ * what the platform requires, how the app checks it and how the requirement was verified.
  */
-export function DeliveryProfilePanel({ state, openSettings }: { state: ProfileState; openSettings: () => void }) {
+export function DeliveryProfilePanel({ profile }: { profile: DeliveryProfile }) {
   const [open, setOpen] = useState(false);
   return (
-    <Panel
-      title="Delivery profile"
-      actions={
-        <Button variant="secondary" onClick={openSettings}>
-          Change profile
-        </Button>
-      }
-    >
-      {state.status === 'loading' && (
-        <p className="text-sm" style={MUTED}>
-          Reading the delivery profile…
-        </p>
-      )}
-      {state.status === 'error' && (
-        <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-          The delivery profile could not be read: {state.message}
-        </p>
-      )}
-      {state.status === 'ready' && <ProfileBody profile={state.profile} basedOn={state.basedOn} notice={state.notice} open={open} onOpenChange={setOpen} />}
+    <Panel title="Profile rules">
+      <ProfileBody profile={profile} open={open} onOpenChange={setOpen} />
     </Panel>
   );
 }
 
-function ProfileBody({
-  profile,
-  basedOn,
-  notice,
-  open,
-  onOpenChange,
-}: {
-  profile: DeliveryProfile;
-  basedOn?: string;
-  notice?: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+function ProfileBody({ profile, open, onOpenChange }: { profile: DeliveryProfile; open: boolean; onOpenChange: (open: boolean) => void }) {
   const counts = profileCounts(profile);
   const owner = requirementOwner(profile);
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-lg font-semibold">{deliveryProfileTitle(profile)}</h3>
-        {profile.builtIn ? (
-          <Mark tone="muted" icon={LOCK_ICON}>
-            Built in · read-only
-          </Mark>
-        ) : (
-          <Mark tone="muted">Custom</Mark>
-        )}
-      </div>
-      {notice && (
-        <p role="status" className="text-sm" style={{ color: 'var(--warn-text)' }}>
-          {notice}
-        </p>
-      )}
       <p className="text-sm" style={MUTED}>
-        {sourceLine(profile, basedOn)}
+        {sourceLine(profile)}
       </p>
       <ul aria-label="Rules at a glance" className="flex flex-wrap gap-2">
         <li>

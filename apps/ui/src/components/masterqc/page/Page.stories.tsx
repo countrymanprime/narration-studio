@@ -4,7 +4,7 @@ import { MasterPage } from './MasterPage';
 import { ALL_PASS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
 
 // Master & QC's page body (docs/research/mockups/studio-next/src/pages/Master.tsx): files, consistency and the package checks beside
-// the kept panels. No route yet; SN-M5 mounts it.
+// the kept panels. Mounted at `/master`.
 const meta = {
   title: 'Master & QC/Page',
   component: MasterPage,

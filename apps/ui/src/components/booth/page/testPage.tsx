@@ -1,5 +1,6 @@
 // Shared by the page's tests and stories: the Booth page over the mock api, the mock DAW client of one of the mock's setups, the
-// command router, the shell's journal (its leave guard), the overlay host and the shell's context menu, at an address.
+// command router, the shell's journal (its leave guard) and the overlay host, at an address. As in the shell, nothing around the page
+// hosts a context menu: the Booth has its own.
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -14,7 +15,6 @@ import { PortOverrides } from '../../../ports/usePort';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { GuideEntity, ManuscriptChapter, ManuscriptParagraph, NarrationApi, TeleprompterLocateResult } from '../../../types';
-import { ContextMenuHost } from '../../layout/ContextMenuHost';
 
 const CHAPTERS: ManuscriptChapter[] = [
   { id: 'c1', title: 'Chapter One', index: 0, wordCount: 30, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
@@ -128,9 +128,7 @@ export function BoothHost({
           <CommandRouter>
             <StudioProvider journal={journal}>
               <OverlayProvider service={overlay}>
-                <main className="h-full">
-                  <ContextMenuHost className="size-full">{children}</ContextMenuHost>
-                </main>
+                <main className="h-full">{children}</main>
               </OverlayProvider>
             </StudioProvider>
           </CommandRouter>

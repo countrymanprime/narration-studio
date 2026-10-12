@@ -4,7 +4,7 @@
 
 The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md)),
 **Prep** ([Script](script.md), [Story Bible](story-bible.md)), **Record** ([Booth](booth.md)),
-**Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md)).
+**Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](master-and-qc.md#delivery)).
 From 1360 px wide each group shows as a heading over its pages. Below that the rail shrinks to icons, grouped by a thin line,
 and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme.
 
@@ -14,9 +14,9 @@ In the icon layout, hover the rail (or tab into it) and it opens over the page w
 
 ![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)
 
-Script, Story Bible, and Booth stay locked until a manuscript has been
-[imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Proof, Pickups, and Master & QC
-are always available.
+Script, Story Bible, Booth and Delivery stay locked until a manuscript has been
+[imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Schedule, Proof, Pickups,
+and Master & QC are always available.
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or

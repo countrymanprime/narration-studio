@@ -1,5 +1,5 @@
 // How to reach each `global` state in STATE_CATALOG (see app.drivers.ts).
-import { type Driver, clickSettingsCategory, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, openProofChapter } from './shared';
+import { type Driver, chooseTheme, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, openProofChapter } from './shared';
 
 export const globalDrivers: Record<string, Driver> = {
   tooltip: async (page) => {
@@ -48,17 +48,11 @@ export const globalDrivers: Record<string, Driver> = {
     await page.getByRole('dialog', { name: 'Keyboard shortcuts' }).waitFor();
   },
   'theme-light': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Appearance');
-    await clickVisible(page, 'button', 'Light');
+    await chooseTheme(page, 'Light');
     await goToPage(page, 'Production');
   },
   'theme-dark': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Appearance');
-    await clickVisible(page, 'button', 'Dark');
+    await chooseTheme(page, 'Dark');
     await goToPage(page, 'Production');
   },
 };

@@ -1,6 +1,6 @@
-// The `master` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Master & QC
-// (mock 05) replaces the Delivery page; each former `delivery/*` state is
-// re-keyed here.
+// The `master` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Master & QC is the Studio Next mock's
+// Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
+// then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL } from './shared';
 
@@ -9,58 +9,42 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'empty',
     description:
-      'Master & QC, nothing measured yet (mock 05) - the ACX platform tab, Master all to spec… and Check files…, the empty per-file checks, the book consistency with no measurements, the built-in chain as three steps, and the delivery package with the book checklist and what it waits on',
-  },
-  {
-    page: 'master',
-    state: 'profile-rules',
-    description:
-      'Master & QC, the delivery profile\'s "Rules and their sources" opened - every ACX rule with what ACX requires, how the app checks it and a verified, to verify or conflicting-sources mark',
-    ...KEEPS_DESKTOP_SCROLL,
+      'Master & QC, nothing measured yet - the ACX profile pill and Check files…, "Nothing measured yet", the book consistency with no measurements, the built-in chain as three steps, and the delivery package aside with what it waits on',
   },
   {
     page: 'master',
     state: 'running',
     description:
-      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read (ADR 0015), what it is reading, Cancel, and each file waiting or being measured',
+      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read (ADR 0015), what it is reading, Cancel, and each file waiting in the table',
   },
   {
     page: 'master',
     state: 'measured',
     description:
-      'Master & QC, three files checked against ACX (mock 05) - length, RMS, true peak, noise floor and head / tail per file, the 48 kHz render failed in words as well as colour with "1 to check yourself", a silent render not judged, a file it could not read with why, and "Chapter 01.wav · Why it fails" with its suggested fix beside the book consistency',
-  },
-  // Benchmark mock 05's own data, the state the pixel-match tool scores.
-  {
-    page: 'master',
-    state: 'mock-fidelity-05',
-    description:
-      "Master & QC drawn with benchmark mock 05's data (?mockFidelity=05) - ACX beside four other configured platforms, the book's six rendered files checked against ACX (the fifth over the noise floor limit), RE-CHECK 6 FILES, the state mock 05 is scored against",
+      'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 01.wav · Why it fails" with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
   },
   {
     page: 'master',
     state: 'file-rules',
     description:
-      "Master & QC, the failing file's Every rule opened - each rule's result, this file's value, what ACX requires and how that was verified, loudness as information",
-    ...KEEPS_DESKTOP_SCROLL,
+      "Master & QC, the failing file's every-rule list scrolled to - each rule's result, this file's value, what ACX requires and how that was verified, loudness as information",
   },
   {
     page: 'master',
     state: 'book-spread',
     description:
-      'Master & QC, six chapters already checked against ACX (?mockMeasure=spread) - every file passing, so the panel below the checks is the book consistency alone: RMS, peak and noise floor each as a min-to-max band with a median tick and one tick per chapter',
-    ...KEEPS_DESKTOP_SCROLL,
+      "Master & QC, six chapters already checked against ACX (?mockMeasure=spread) - every file passing, the first file's Checks, and the book consistency as RMS by file against the ACX range",
   },
   {
     page: 'master',
     state: 'custom-profile',
     description:
-      'Master & QC judged by a custom profile (?mockDeliveryProfile=custom) - a second platform tab "My ACX, tighter peak" chosen, the package named after it, and every rule the app checks met',
+      'Master & QC judged by a custom profile (?mockDeliveryProfile=custom) - the profile pill names "My ACX, tighter peak", and the table, the checks and the package aside judge against it',
   },
   {
     page: 'master',
     state: 'cancelled',
-    description: 'Master & QC, a running check cancelled - "Measurement cancelled.", with every file not yet read saying so',
+    description: 'Master & QC, a running check cancelled - every file not yet read says it was not measured',
   },
   {
     page: 'master',
@@ -117,7 +101,7 @@ export const masterStates: StateEntry[] = [
     description: 'Master & QC, Export report before anything was checked - the host’s refusal as an alert, and nothing written (scrolled to the Report panel)',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Master & QC, "Master all to spec…" and the package (mock 05)
+  // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)
   {
     page: 'master',
     state: 'to-spec-picked',
@@ -132,15 +116,8 @@ export const masterStates: StateEntry[] = [
       'Master & QC, mastering and encoding part way through (?mockRenderExport=running) - real progress, Cancel, and each file waiting, mastering or encoding',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  {
-    page: 'master',
-    state: 'package-built',
-    description:
-      'Master & QC, the ACX package built from the five encoded files (mock 05\'s delivery package) - the packager\'s checklist with every rule included, the OUTPUTS folder and the files written, and "Built the acx package"',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Master & QC, multi-platform export: several profiles' packages from one
-  // mastered/encoded source, in one action, beside the single-platform Delivery package above
+  // Master & QC, multi-platform export: several profiles' packages from one mastered/encoded source, in one action (no mock
+  // equivalent, kept as built, in the column beside the files)
   {
     page: 'master',
     state: 'multi-export-empty',
