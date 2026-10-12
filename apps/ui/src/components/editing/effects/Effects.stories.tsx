@@ -2,14 +2,18 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
 import { DAW_SETUPS, fxChainsSource } from '../../../fixtures/daw';
 import { marksDoc } from '../script/scriptFixtures';
 import { AddEffect } from './AddEffect';
 import { CoverageStrip } from './CoverageStrip';
 import { EffectInspector } from './EffectInspector';
+import { EffectHostProvider } from './EffectSettings';
 import { EffectsList } from './EffectsList';
 import { EffectsTab } from './EffectsTab';
-import { MANY, ONE, TOTAL } from './effectsFixtures';
+import { effectHost, MANY, ONE, TOTAL } from './effectsFixtures';
+import { withFxRange } from '../range/fx/fxFixtures';
 import { FX_CAP_PCT } from './effectsMath';
 import { OnWords } from './OnWords';
 
@@ -65,6 +69,37 @@ export const InspectorReaper: Story = {
     await expect(within(canvasElement).getByRole('button', { name: 'Settings' })).toHaveProperty('disabled', true);
   },
 };
+// The DAW lists the effect's settings: a slider for the continuous one, a number field for the stepped one; Bypass, Preview and Compare work.
+const withSettings = (bypassed: boolean, width = 420) => {
+  const setup = withFxRange(DAW_SETUPS.reaper, 'native');
+  const base = createMockDawClient(setup);
+  const daw = { ...base, fxRangeParams: async (t: Parameters<typeof base.fxRangeParams>[0]) => ({ ...(await base.fxRangeParams(t)), bypassed }) };
+  return (
+    <ApiProvider api={{ ...createMockApi(), dawCapabilities: async () => setup }}>
+      <PortOverrides clients={{ daw }}>
+        <EffectHostProvider value={effectHost()}>{inspector('REAPER', width)}</EffectHostProvider>
+      </PortOverrides>
+    </ApiProvider>
+  );
+};
+export const InspectorSettings: Story = {
+  render: () => withSettings(false),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('textbox', { name: 'Mode' })).toBeTruthy();
+    await expect(canvas.getByRole('slider', { name: 'Gain' })).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: 'Compare' })).toHaveProperty('disabled', false);
+  },
+};
+export const InspectorBypassed: Story = {
+  render: () => withSettings(true),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('textbox', { name: 'Mode' })).toHaveProperty('disabled', true);
+    await expect(canvas.getByRole('checkbox', { name: 'Bypass this effect' }).getAttribute('aria-checked')).toBe('true');
+  },
+};
+export const InspectorSettingsNarrow: Story = { render: () => withSettings(false, 300) };
 export const InspectorRecorder: Story = { render: () => inspector('the built-in recorder') };
 export const InspectorNarrow: Story = { render: () => inspector('REAPER', 300) };
 
