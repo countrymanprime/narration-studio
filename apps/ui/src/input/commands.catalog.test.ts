@@ -186,6 +186,25 @@ describe('the Editing rows', () => {
     }
   });
 
+  // SN-E9: the workspace's keys moved with it to the Editing page; only their group label changed, so saved bindings survive.
+  it('catalogue-ids-unchanged: the seven workspace rows are in the Editing group, still page scope with their defaults and labels', () => {
+    for (const id of SAVED) {
+      const row = findCommand(id);
+      expect(row?.group, id).toBe('Editing');
+      expect(row?.surfaces, id).toEqual(['help', 'settings']);
+    }
+    expect(findCommand('workspace.play')?.noisy).toBe(true);
+    expect(SAVED.map((id) => findCommand(id)?.label)).toEqual([
+      'Play or pause the chapter',
+      'Previous word',
+      'Next word',
+      'Previous paragraph',
+      'Next paragraph',
+      'Previous flag',
+      'Next flag',
+    ]);
+  });
+
   it('new-rows-are-page-scope-and-conflict-free: each is an Editing row on help and settings, and the catalogue has zero conflicts', () => {
     for (const [id, keys] of Object.entries(NEW)) {
       const row = findCommand(id);

@@ -542,7 +542,7 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <ApiProvider api={api}>
         {/* ADR 0361: the command registry with keyboard, MIDI and HID as its input sources. Wired to the DAW port's
-            live transport state, so a `noisy` command (workspace.play) goes silent while REAPER reports recording. */}
+            live transport state, so a `noisy` command (workspace.play, Editing's Play) goes silent while the DAW reports recording. */}
         <LiveCommandRouter source={commandInputSource}>
           <App />
         </LiveCommandRouter>
