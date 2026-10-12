@@ -220,7 +220,7 @@ export function GuideDetail({
   // editing - see the "Review entry" button below.
   const [reviewOverlayId, setReviewOverlayId] = useState<string>();
   const [ttsPrompt, setTtsPrompt] = useState<{ preview: Extract<GuidePreview, { status: 'asset_required' }>; aliasIndex?: number }>();
-  // The voice download: one install-poll hook for every asset (D4). Success carries on with the preview the narrator asked for.
+  // The voice download: one install-poll hook for every asset. Success carries on with the preview the narrator asked for.
   const voiceInstall = useAssetInstall<TtsInstallJob>({
     start: () => {
       if (!ttsPrompt) return Promise.reject(new Error('Choose a name to preview first.'));

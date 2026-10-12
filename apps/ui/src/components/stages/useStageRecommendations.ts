@@ -30,7 +30,7 @@ function decidedMessage(decision: StageDecision, chapter: StageChapterRecommenda
 
 /**
  * Reads every chapter's suggestion on mount, whenever `refreshKey` changes (a manuscript import, a recording check that finished) and on
- * `refresh` (Check now, a status changed by hand): evaluated on read, never stored (D1, Q5). `decide` sends Confirm, Dismiss or Revert with
+ * `refresh` (Check now, a status changed by hand): evaluated on read, never stored. `decide` sends Confirm, Dismiss or Revert with
  * the basis the narrator saw; a refusal (the evidence moved meanwhile) is said and the suggestions are read again. `onStatus` hears the
  * chapter status a Confirm or Revert set, so the caller's own chapter list follows.
  */

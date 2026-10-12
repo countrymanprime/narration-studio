@@ -66,7 +66,7 @@ export function useResumeLocate(chapterId: string, model: string) {
     setAsking(false);
     modelInstall.reset();
   };
-  // Stable, so a subscription can hold it (ResumePrompt re-runs the lookup when REAPER's cursor settles, Phase 5).
+  // Stable, so a subscription can hold it (ResumePrompt re-runs the lookup when REAPER's cursor settles).
   const retry = useCallback(() => locate(trackRef.current), [locate]);
 
   // A locate only ever runs Whisper; the shared model prompt names the engine it installs for.

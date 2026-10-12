@@ -1,7 +1,7 @@
 import type { ManuscriptChapter, RetailSample } from '../../types';
 import { formatMinutesSeconds } from '../../state';
 
-/** The retail sample as the reader marks it (Phase 5, C10, ADR 0152): the global paragraph indexes it spans (the rows'
+/** The retail sample as the reader marks it (ADR 0152): the global paragraph indexes it spans (the rows'
  * `data-paragraph`), the chapters it touches, and its length for the label. */
 export type RetailSampleRange = { start: number; end: number; chapterIds: Set<string>; length: string };
 

@@ -75,7 +75,7 @@ describe('EngineChip click', () => {
   });
 });
 
-// UI-only until native recording chooses it (Q7), so it carries no link action.
+// UI-only until native recording chooses it, so it carries no link action.
 describe('EngineChip built-in recorder', () => {
   it('is not a button, however the project is linked', () => {
     renderChip({ engine: 'builtin', dawFileLinked: true, dawReachable: true, dawProjectMatches: false });

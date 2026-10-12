@@ -10,8 +10,8 @@ const entitiesById = new Map([
 ]);
 
 // A cue in the exact shape Character Continuity Review's own extractor writes (manuscript_guide.py's
-// `extract_cues_from_text`, PR #770): every field this test builds by hand mirrors that shape 1:1, since Phase 4's
-// own contract test (below) checks a fixture cue and this "real" shape validate against the same schema.
+// `extract_cues_from_text`, PR #770): every field this test builds by hand mirrors that shape 1:1, since the contract test
+// below checks that a fixture cue and this "real" shape validate against the same schema.
 const realShapedCue: DialogueCue = {
   id: 'cue-abc123def456',
   chapterId: 'chapter-8',
@@ -26,7 +26,7 @@ const realShapedCue: DialogueCue = {
 };
 
 describe('dialogueCueSchema', () => {
-  it('accepts the real extractor shape and a recorded fixture shape alike (Phase 4 contract test)', () => {
+  it('accepts the real extractor shape and a recorded fixture shape alike', () => {
     expect(() => dialogueCueSchema.parse(realShapedCue)).not.toThrow();
     const [fixtureCue] = recordedDemoDialogueCues([{ id: 'p-1', chapterId: 'chapter-3', text: 'Mine is a long and a sad tale, said the Mouse.' }]);
     expect(() => dialogueCueSchema.parse(fixtureCue)).not.toThrow();

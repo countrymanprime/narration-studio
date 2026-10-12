@@ -42,7 +42,7 @@ describe('bookSpreadRows', () => {
   it('reads only a rule’s met and not_met values, never a not_checked or not_measurable row', () => {
     const files = [
       file('Chapter 01.wav', [result('acx.rms', 'met', -21.2), result('acx.peak', 'met', -3.6), result('acx.noise_floor', 'met', -66.8)]),
-      // A rule the app has not judged for this file yet (an MP3 before Phase 8, or a silent file): never counted.
+      // A rule the app has not judged for this file yet (an MP3 not measured yet, or a silent file): never counted.
       file('Chapter 02.wav', [result('acx.rms', 'not_checked', null), result('acx.peak', 'not_measurable', null), result('acx.noise_floor', 'off', null)]),
       file('Chapter 03.wav', [result('acx.rms', 'not_met', -24.5), result('acx.peak', 'met', -4.1), result('acx.noise_floor', 'met', -70.0)]),
     ];

@@ -44,7 +44,7 @@ describe('RenderConfigDialog', () => {
     expect(await screen.findByText(/Render configured for 2 chapter files/)).toBeTruthy();
   });
 
-  it('draws the manual-render shortcut as a key cap, not plain text (mock-fidelity Phase 10)', async () => {
+  it('draws the manual-render shortcut as a key cap, not plain text', async () => {
     renderDialog({}, { renderConfig: 'success' });
     await screen.findByText(/Render configured for 2 chapter files/);
     expect(screen.getByRole('img', { name: 'Ctrl + Alt + R' })).toBeTruthy();
