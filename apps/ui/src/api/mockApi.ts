@@ -57,9 +57,9 @@ import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommo
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
-import type { DawCapabilitiesApi, DawHideTakesApi, DawResult, DawRollApi } from './contracts/daw';
+import type { DawCapabilitiesApi, DawDeleteRangeApi, DawHideTakesApi, DawResult, DawRollApi } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
-import { DAW_ANSWERS, rolledOf, takesHiddenOf } from '../fixtures/daw';
+import { DAW_ANSWERS, rangeCutOf, rolledOf, takesHiddenOf } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -331,6 +331,7 @@ export function createMockApi(
     ...daw,
     ...createHideTakesMock(daw, workspaceTakes),
     ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
     ...recording,
@@ -386,6 +387,23 @@ function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string)
       if (support.destructive && !confirmed) return refusedResult(DAW_ANSWERS.rollConfirm);
       const rolled = rolledOf(setup, at);
       return { ok: true, changed: true, message: rolled.message, undoSteps: rolled.undoSteps };
+    },
+  };
+}
+
+/** DawDeleteRange as bindings_daw_range.go answers it: the cut_range capability's sentence first, then the mode and the fade, then a
+ * chapter the manuscript does not have or a range read backwards (code stale); then what the launch's DAW answers a cut. */
+function createDeleteRangeMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawDeleteRangeApi {
+  return {
+    dawDeleteRange: async (chapterId, firstToken, lastToken, mode, fadeMs) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.cut_range;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (mode !== 'close' && mode !== 'gap') return refusedResult(DAW_ANSWERS.cutBadMode);
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return refusedResult(DAW_ANSWERS.cutBadFade);
+      if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { ...refusedResult(DAW_ANSWERS.rangeStale), code: 'stale' };
+      const cut = rangeCutOf(setup, lastToken - firstToken + 1);
+      return { ok: true, changed: true, message: cut.message, undoSteps: cut.undoSteps, ...(cut.steps ? { steps: cut.steps } : {}) };
     },
   };
 }

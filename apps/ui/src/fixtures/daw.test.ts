@@ -12,6 +12,9 @@ import {
   type DawSetupId,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
+  RANGE_CUT_STEPS,
+  rangeCutAnswer,
+  rangeCutOf,
   rolledAnswer,
   rolledOf,
   rolledReplacingAnswer,
@@ -81,7 +84,7 @@ describe('the mock DAW setups', () => {
   it.each(['reaper', 'reaper-off'] as const)(
     'ui-mirror-names-exactly-the-go-catalogue: %s declares the edit capabilities with no bridge command not yet available with the host sentence',
     (id) => {
-      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['fx_range', 'stack_takes', 'backups'].includes(c.key))) {
+      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['stack_takes', 'backups'].includes(c.key))) {
         expect(DAW_SETUPS[id].capabilities[key], key).toEqual({
           level: 'not_yet_available',
           available: false,
@@ -101,6 +104,12 @@ describe('the mock DAW setups', () => {
     expect(DAW_SETUPS[id].capabilities.cut_range.level).toBe('experimental');
     expect(DAW_SETUPS[id].capabilities.cut_range.mode).toBe('native');
     expect(DAW_SETUPS[id].capabilities.cut_range.destructive).toBeUndefined();
+  });
+
+  it.each(['reaper', 'reaper-off'] as const)('mock-setup-agrees-with-the-host: %s declares fx_range experimental, native and not destructive', (id) => {
+    expect(DAW_SETUPS[id].capabilities.fx_range.level).toBe('experimental');
+    expect(DAW_SETUPS[id].capabilities.fx_range.mode).toBe('native');
+    expect(DAW_SETUPS[id].capabilities.fx_range.destructive).toBeUndefined();
   });
 
   it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {
@@ -176,5 +185,27 @@ describe('the roll answers (SN-D64)', () => {
     expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBe(true);
     expect(rolledOf(DAW_SETUPS.audacity, 12)).toEqual({ message: rolledReplacingAnswer(12), undoSteps: 1 });
     expect(DAW_SETUPS['audacity-backups'].capabilities.punch.destructive).toBeUndefined();
+  });
+});
+
+describe('the range cut answers (SN-D65)', () => {
+  const golden = (name: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+
+  it("rangeCutAnswer words what dawport/reaper's rangeCutter does, and the stale refusal matches the host golden", () => {
+    expect(rangeCutAnswer(1, 'REAPER')).toBe(golden('daw-delete-range-done.json').message);
+    expect(rangeCutAnswer(1, 'REAPER')).toBe(golden('daw-delete-range-gap.json').message);
+    expect(rangeCutAnswer(3, 'REAPER')).toBe('Deleted 3 words and their audio in REAPER.');
+    expect(golden('daw-delete-range-refused-stale.json').message).toBe(DAW_ANSWERS.rangeStale);
+  });
+
+  it("rangeCutOf answers one undo step on REAPER (native), and the steps list where the capability's mode is steps", () => {
+    expect(DAW_SETUPS.reaper.capabilities.cut_range.mode).toBe('native');
+    expect(rangeCutOf(DAW_SETUPS.reaper, 2)).toEqual({ message: rangeCutAnswer(2, 'REAPER'), undoSteps: 1 });
+    const steps = {
+      ...DAW_SETUPS.reaper,
+      capabilities: { ...DAW_SETUPS.reaper.capabilities, cut_range: { level: 'experimental' as const, available: true, mode: 'steps' as const } },
+    };
+    expect(rangeCutOf(steps, 2)).toEqual({ message: rangeCutAnswer(2, 'REAPER'), undoSteps: 2, steps: [...RANGE_CUT_STEPS] });
   });
 });

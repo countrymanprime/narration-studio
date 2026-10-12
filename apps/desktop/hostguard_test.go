@@ -41,6 +41,7 @@ var swappableHostFields = map[string]bool{
 	"takeCreator":     true,
 	"takeSelector":    true,
 	"puncher":         true,
+	"rangeCutter":     true,
 	"dawPortResolver": true,
 }
 

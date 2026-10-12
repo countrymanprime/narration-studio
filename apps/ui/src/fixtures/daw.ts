@@ -3,9 +3,9 @@ import { DAW_CAPABILITIES } from '../api/contracts/daw';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
-// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it, not yet available on
-// any engine until their command slices land. The sentences are the host's own wording (dawport resolver and adapters), so a refusal
-// here reads as the real one.
+// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it: REAPER declares the
+// first two Experimental (narration_range.lua), and the others are not yet available on any engine until their command slices land.
+// The sentences are the host's own wording (dawport resolver and adapters), so a refusal here reads as the real one.
 
 export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'audacity-backups';
 
@@ -45,7 +45,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   master_chain_read: 'experimental',
   macro_render: 'unsupported',
   cut_range: 'experimental',
-  fx_range: 'not_yet_available',
+  fx_range: 'experimental',
   stack_takes: 'not_yet_available',
   backups: 'not_yet_available',
 };
@@ -68,11 +68,13 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
   ]),
 );
 
-/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take and a cut moves the audio to the muted Cuts track,
- * so punch and cut_range are native and not destructive (ADR 0860). */
+/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, a cut moves the audio to the muted Cuts track and a
+ * chain on a range is take FX on a split piece that come off again, so punch, cut_range and fx_range are native and not destructive
+ * (ADR 0860). */
 const REAPER_DEPTH: Rows = {
   punch: { level: 'experimental', available: true, mode: 'native' },
   cut_range: { level: 'experimental', available: true, mode: 'native' },
+  fx_range: { level: 'experimental', available: true, mode: 'native' },
 };
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
@@ -90,6 +92,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
     ...REAPER_NOT_YET,
     punch: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     cut_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+    fx_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
   },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
@@ -183,6 +186,14 @@ export const DAW_ANSWERS = {
   rollBadTime: 'The roll time is not a usable number of seconds.',
   /** dawport/reaper's puncher: the chapter's track is gone, answered with code stale. */
   rollStale: 'That track is no longer in the REAPER project. Read the project again.',
+  /** bindings_daw_range.go (SN-D65): delete_range's own mode and fade sentences, and words the edit log already holds as cut (changed false). */
+  cutBadMode: 'The cut mode must be close or gap.',
+  cutBadFade: 'The fade must be a whole number of milliseconds from 0 to 500.',
+  cutAlreadyCut: 'These words are already cut, so nothing was changed.',
+  /** internal/passagetakes' range.go: a token range outside the chapter's alignment (code stale), words not heard, words on two items. */
+  rangeStale: "That selection is not in this chapter's alignment any more, so nothing was changed. Reload the chapter and select the words again.",
+  rangeNotHeard: "These words weren't heard in the recording, so there's no audio to cut. Run the check again if the chapter has changed.",
+  rangeCrossesItems: 'These words cross two REAPER items. Select words from one item at a time.',
 } as const;
 
 const plural = (count: number): string => (count === 1 ? '' : 's');
@@ -218,6 +229,28 @@ export function rolledReplacingAnswer(at: number): string {
  * audio with no undo point of its own; a destructive DAW replaces it in one undo step. */
 export function rolledOf(setup: DawCapabilities, at: number): { message: string; undoSteps: number } {
   return setup.capabilities.punch?.destructive ? { message: rolledReplacingAnswer(at), undoSteps: 1 } : { message: rolledAnswer(at), undoSteps: 0 };
+}
+
+/** dawport/reaper's rangeCutter: a cut of `words` words in `daw`. */
+export function rangeCutAnswer(words: number, daw: string): string {
+  return `Deleted ${words} word${plural(words)} and their audio in ${daw}.`;
+}
+
+/** The edits a `steps` DAW makes for one cut, in order (the Studio Next mock's RANGE_PLAN: select, then delete). */
+export const RANGE_CUT_STEPS = ['Select the range', 'Delete the selection'] as const;
+
+/** What a cut of `words` words answers on one of DAW_SETUPS once `cut_range` is available, by its mode: one undo step where the DAW makes
+ * it as one action (`native`), none where the app keeps the edit (`app`), and one per edit, listed, where it takes several (`steps`). */
+export function rangeCutOf(setup: DawCapabilities, words: number): { message: string; undoSteps: number; steps?: string[] } {
+  const message = rangeCutAnswer(words, setup.daw);
+  switch (setup.capabilities.cut_range?.mode) {
+    case 'app':
+      return { message, undoSteps: 0 };
+    case 'steps':
+      return { message, undoSteps: RANGE_CUT_STEPS.length, steps: [...RANGE_CUT_STEPS] };
+    default:
+      return { message, undoSteps: 1 };
+  }
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */

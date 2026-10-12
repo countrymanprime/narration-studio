@@ -1,5 +1,5 @@
 // The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
-// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
+// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
@@ -27,4 +27,9 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-roll-done.json': dawResultSchema,
   'daw-roll-refused-confirm.json': dawResultSchema,
   'daw-roll-refused-stale.json': dawResultSchema,
+  // DawDeleteRange (bindings_daw_range_test.go): a close cut and a gap cut (one undo step each), a stale token range, the capability's refusal.
+  'daw-delete-range-done.json': dawResultSchema,
+  'daw-delete-range-gap.json': dawResultSchema,
+  'daw-delete-range-refused-stale.json': dawResultSchema,
+  'daw-delete-range-refused-capability.json': dawResultSchema,
 };

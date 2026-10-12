@@ -121,6 +121,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"punch_to":            dawport.CapPunch,
 	"master_chain_read":   dawport.CapMasterChainRead,
 	"delete_range":        dawport.CapCutRange,
+	"apply_fx_range":      dawport.CapFXRange,
+	"remove_fx_range":     dawport.CapFXRange,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -211,10 +213,11 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so it is Unsupported,
 	// not Supported like everything else this loop defaults to.
 	want[dawport.CapMacroRender] = dawport.Unsupported
-	// cut_range is delete_range's (SN-D62). The other edit rows (SND-3) have no bridge command yet: NotYetAvailable, with no role,
-	// until each command slice flips its own.
+	// cut_range is delete_range's (SN-D62) and fx_range apply_fx_range's and remove_fx_range's (SN-D63). The other edit rows
+	// (SND-3) have no bridge command yet: NotYetAvailable, with no role, until each command slice flips its own.
 	want[dawport.CapCutRange] = dawport.Experimental
-	for _, c := range []dawport.Capability{dawport.CapFXRange, dawport.CapStackTakes, dawport.CapBackups} {
+	want[dawport.CapFXRange] = dawport.Experimental
+	for _, c := range []dawport.Capability{dawport.CapStackTakes, dawport.CapBackups} {
 		want[c] = dawport.NotYetAvailable
 	}
 	if !maps.Equal(declared, want) {
@@ -601,11 +604,11 @@ func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 	}
 }
 
-// REAPER keeps the earlier audio as a take, and a cut moves the audio to the Cuts track, so punch and cut_range are native
-// and not destructive, with REAPER up or down.
-func TestPunchAndCutRangeAreNativeAndNotDestructive(t *testing.T) {
+// REAPER keeps the earlier audio as a take, a cut moves the audio to the Cuts track, and a chain on a range is take FX that
+// come off again, so punch, cut_range and fx_range are native and not destructive, with REAPER up or down.
+func TestPunchCutRangeAndFXRangeAreNativeAndNotDestructive(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
-	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true}
+	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true}
 	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
 		for c := range native {
 			if got := d.Depth(c); got != (dawport.Depth{Mode: dawport.ModeNative}) {
@@ -708,5 +711,138 @@ func TestDeleteRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T)
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused cut wrote %d commands", n)
+	}
+}
+
+const (
+	fxRangePiece = "{00000009-0000-4000-8000-000000000009}"
+	fxRangeChain = "Voice/Radio.RfxChain"
+)
+
+func rangeFXApplierAnswering(t *testing.T, answer func(command []string) [][]string) dawport.RangeFXApplier {
+	t.Helper()
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	answerCommands(t, client, dir, answer)
+	return adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+}
+
+func fxRangeRequest(words int) dawport.FXRangeRequest {
+	return dawport.FXRangeRequest{
+		RangeRequest: dawport.RangeRequest{ChapterID: "ch-1", ItemGUID: cutItem, Start: 14, End: 16, Words: words},
+		ChainID:      fxRangeChain,
+		ChainName:    fxRangeChain,
+		FadeMs:       10,
+	}
+}
+
+// A chain on a range is one undo step (ADR 0860 point 5), and the command gets the request's item, range, chain and fade.
+func TestApplyFXToRangePutsTheChainOnInOneUndoStep(t *testing.T) {
+	var sent []string
+	fx := rangeFXApplierAnswering(t, func(command []string) [][]string {
+		sent = command
+		return [][]string{{"RANGE_FX_APPLIED", command[1], fxRangePiece, "{0000000A-0000-4000-8000-00000000000A}", fxRangeChain, "1"}}
+	})
+	for words, message := range map[int]string{
+		1: "Added Voice/Radio.RfxChain to 1 word in REAPER.",
+		3: "Added Voice/Radio.RfxChain to 3 words in REAPER.",
+		0: "Added Voice/Radio.RfxChain to the words in REAPER.",
+	} {
+		got, err := fx.ApplyFXToRange(t.Context(), fxRangeRequest(words))
+		want := dawport.OK(message, true).WithUndoSteps(1)
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Fatalf("ApplyFXToRange = %+v, %v; want %+v", got, err, want)
+		}
+	}
+	if want := []string{"apply_fx_range", cutItem, "14.000000", "16.000000", fxRangeChain, "10"}; !reflect.DeepEqual(append([]string{sent[0]}, sent[2:]...), want) {
+		t.Errorf("command = %v, want %v after the run", sent, want)
+	}
+}
+
+func TestRemoveFXFromRangeJoinsThePieceBackInOneUndoStepOrChangesNothing(t *testing.T) {
+	var sent []string
+	undo := "1"
+	fx := rangeFXApplierAnswering(t, func(command []string) [][]string {
+		sent = command
+		return [][]string{{"RANGE_FX_REMOVED", command[1], cutItem, fxRangeChain, undo}}
+	})
+	got, err := fx.RemoveFXFromRange(t.Context(), fxRangePiece, fxRangeChain)
+	if want := dawport.OK("Voice/Radio.RfxChain taken off in REAPER.", true); err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("RemoveFXFromRange = %+v, %v; want %+v", got, err, want)
+	}
+	if want := []string{"remove_fx_range", fxRangePiece, fxRangeChain}; !reflect.DeepEqual(append([]string{sent[0]}, sent[2:]...), want) {
+		t.Errorf("command = %v, want %v after the run", sent, want)
+	}
+	undo = "0"
+	got, err = fx.RemoveFXFromRange(t.Context(), fxRangePiece, fxRangeChain)
+	if want := dawport.OK("Voice/Radio.RfxChain is not on that piece in REAPER, so nothing changed.", false); err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("RemoveFXFromRange with nothing to take off = %+v, %v; want %+v", got, err, want)
+	}
+}
+
+func TestFXRangeRefusals(t *testing.T) {
+	failed := "REAPER did not load the FX chain. The item was split: press Undo in REAPER to rejoin it."
+	for _, tc := range []struct {
+		name   string
+		answer []string
+		want   dawport.Result
+	}{
+		{"stale", []string{"ITEM_STALE", cutItem, "item"}, dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again.")},
+		{"recording", []string{"ERROR", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{"not listed", []string{"ERROR", "That FX chain is not in the FXChains folder REAPER lists."}, dawport.Refused("That FX chain is not in the FXChains folder REAPER lists.")},
+		{"outside", []string{"ERROR", "The range for the chain is not inside that item."}, dawport.Refused("The range for the chain is not inside that item.")},
+		{"failed", []string{"ERROR", failed}, dawport.Refused(failed)},
+	} {
+		fx := rangeFXApplierAnswering(t, func(command []string) [][]string {
+			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}
+		})
+		if got, err := fx.ApplyFXToRange(t.Context(), fxRangeRequest(2)); err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: ApplyFXToRange = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+		if got, err := fx.RemoveFXFromRange(t.Context(), fxRangePiece, fxRangeChain); err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: RemoveFXFromRange = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+	}
+}
+
+func TestFXRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
+	adapter, dir := newAdapter(t, func(dawport.Capability) error { return nil })
+	fx := adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+	empty := fxRangeRequest(2)
+	empty.End = empty.Start
+	if got, err := fx.ApplyFXToRange(t.Context(), empty); err != nil || !reflect.DeepEqual(got, dawport.Refused("The range for the chain is not a usable pair of times.")) {
+		t.Errorf("ApplyFXToRange with an empty range = %+v, %v", got, err)
+	}
+	path := fxRangeRequest(2)
+	path.ChainName = "../reaper.ini"
+	notListed := dawport.Refused("That FX chain is not in the FXChains folder REAPER lists.")
+	if got, err := fx.ApplyFXToRange(t.Context(), path); err != nil || !reflect.DeepEqual(got, notListed) {
+		t.Errorf("ApplyFXToRange with a path = %+v, %v", got, err)
+	}
+	if got, err := fx.RemoveFXFromRange(t.Context(), fxRangePiece, `C:\x.RfxChain`); err != nil || !reflect.DeepEqual(got, notListed) {
+		t.Errorf("RemoveFXFromRange with a path = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused chain wrote %d commands", n)
+	}
+}
+
+func TestFXRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to add an effect to words."
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	fx := adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+	if got, err := fx.ApplyFXToRange(t.Context(), fxRangeRequest(2)); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("ApplyFXToRange with fx_range refused = %+v, %v", got, err)
+	}
+	if got, err := fx.RemoveFXFromRange(t.Context(), fxRangePiece, fxRangeChain); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("RemoveFXFromRange with fx_range refused = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused chain wrote %d commands", n)
 	}
 }

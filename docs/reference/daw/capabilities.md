@@ -254,7 +254,8 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Refusals:** an item whose GUID no longer matches (`stale`); a range that is not a finite start before its end, or not inside the item; another item on the track overlapping the range; a mode other than `close` or `gap`; a fade outside 0 to 500 ms; the engine recording; an engine that cannot make the edit. A refused call changes nothing.
 - **Undo:** one undo point where the engine makes the edit as one action; `UndoSteps` and `Steps` report otherwise.
 - **Depth:** an engine that moves the cut audio aside rather than deleting it is not destructive.
-- **REAPER:** `delete_range`, Experimental. Mode `native`, not destructive: the item is split at both ends and the middle piece moves to a muted Cuts track, in one undo block, `UndoSteps` 1; `close` moves the later items on the same track up, `gap` leaves silence, as the command has no room-tone source ([REAPER](reaper.md#range-cut)). The message is "Deleted N words and their audio in REAPER." The binding is SN-D65's.
+- **REAPER:** `delete_range`, Experimental. Mode `native`, not destructive: the item is split at both ends and the middle piece moves to a muted Cuts track, in one undo block, `UndoSteps` 1; `close` moves the later items on the same track up, `gap` leaves silence, as the command has no room-tone source ([REAPER](reaper.md#range-cut)). The message is "Deleted N words and their audio in REAPER."
+- **Binding:** `DawDeleteRange(chapterID, firstToken, lastToken, mode, fadeMs)` answers the `Result` (`apps/desktop/bindings_daw_range.go`); the UI calls it as `DawClient.deleteRange`. The page sends a chapter id, two token indices of the chapter's stored alignment, the mode and the fade; the host resolves the item GUID and the start and end in project seconds from the alignment and the saved project (`internal/passagetakes/range.go`). The resolver's refusal comes first, then a mode other than `close` or `gap` or a fade outside 0 to 500 ms (`delete_range`'s own sentences), then words not heard, words on two items, and a range outside the alignment or an item gone or no longer covering the words (code `stale`); words the edit log already holds as cut answer ok with `changed: false`. Nothing is sent on any of them.
 - **Audacity 3.x:** not yet available. The PRD plans select and delete after a backup ([`backups`](#backups)).
 - **Checked:** harness (`range_test.lua`); the run in REAPER is not done; the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
@@ -263,11 +264,13 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** put one of the engine's own saved chains on a range of words, and take it off again.
 - **Role:** `RangeFXApplier`, synchronous (`ApplyFXToRange` with an `FXRangeRequest`: the range, the chain's id and name as the engine listed them, fade in milliseconds; `RemoveFXFromRange` with the item GUID and chain name).
 - **Result:** a `Result`. The item is split at the range and the chain goes on the middle piece; removing it joins the piece back.
-- **Refusals:** a stale item GUID; a chain the engine does not list; an engine that cannot make the edit. A refused call changes nothing.
+- **Refusals:** a stale item GUID; a chain the engine does not list, or a name that could be a path; a range that is not a finite start before its end, or not inside the item; a fade outside 0 to 500 ms; words that already carry a chain; the engine recording; an engine that cannot make the edit. A refused call changes nothing, except that a chain that loads nothing after the split is refused and the sentence says one Undo rejoins the item.
 - **Undo:** as `cut_range`.
-- **REAPER:** not yet available: no bridge command. Loading a saved chain onto a split piece is spike SND-S3.
+- **Depth:** an engine that puts the chain on a piece as take FX, leaving the recorded audio as it was, is not destructive.
+- **REAPER:** `apply_fx_range` and `remove_fx_range`, Experimental. Mode `native`, not destructive. Applying splits the item at both ends and loads the chain, named as `list_fx_chains` lists it and resolved inside `FXChains` by the Lua, onto the middle piece's active take with `TakeFX_AddByName`, in one undo block, `UndoSteps` 1; the take's `P_EXT` records the chain and the FX it added. Removing takes off only those FX and joins the piece to the pieces the apply split off, when they still carry on its audio, in one undo block, `UndoSteps` 1, or changes nothing when the piece no longer carries the chain ([REAPER](reaper.md#chain-on-a-range)). REAPER lists a chain by one name, so the role sends the request's `ChainName`. The messages are "Added CHAIN to N words in REAPER." and "CHAIN taken off in REAPER."
+- **Binding:** none yet (SN-D66).
 - **Audacity 3.x:** not yet available. The mock refuses it without backups, as it changes the audio itself.
-- **Checked:** not checked; no engine builds it yet.
+- **Checked:** harness (`fx_range_test.lua`); the run in REAPER is not done; the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
 ### `stack_takes`
 

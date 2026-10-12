@@ -13,7 +13,6 @@
 // is added in apps/desktop/jobs.go (see the comment on the job kinds).
 import type { FeedbackRow } from './interactionFeedback/row';
 import { appFeedback } from './interactionFeedback/app';
-import { manuscriptFeedback } from './interactionFeedback/manuscript';
 import { projectFeedback } from './interactionFeedback/project';
 import { settingsFeedback } from './interactionFeedback/settings';
 import { storyBibleFeedback } from './interactionFeedback/storyBible';
@@ -36,7 +35,6 @@ export type { FeedbackRow } from './interactionFeedback/row';
 // in two areas fails here rather than one silently replacing the other.
 const AREAS: Array<Record<string, FeedbackRow>> = [
   appFeedback,
-  manuscriptFeedback,
   projectFeedback,
   settingsFeedback,
   storyBibleFeedback,
@@ -116,10 +114,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/production/ManuscriptImport.tsx#1':
     'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
-  'src/components/script/scriptPageHost.ts#1':
-    'Renders the Opening credits card preview; a failed render just leaves that card showing "Nothing to preview yet." rather than a toast over the manuscript itself.',
-  'src/components/script/scriptPageHost.ts#2': 'Renders the Closing credits card preview; same fallback as the opening one above.',
-  'src/components/script/scriptPageHost.ts#3': 'Saving the definition source is a convenience for this viewer: the choice still holds until the page is left.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
@@ -155,6 +149,11 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Remembering a credits card's open state per project in localStorage; the choice lasts for this visit only when storage is disabled.",
   'src/components/proof/lastChapterStorage.ts#1':
     'Remembering the last chapter looked at on Proof per project in localStorage (ADR 0750); the choice lasts for this visit only when storage is disabled.',
+  'src/components/script/scriptPageHost.ts#1':
+    'Renders the opening credits card preview; a failed render leaves that card without one rather than a toast over the manuscript.',
+  'src/components/script/scriptPageHost.ts#2': 'Renders the closing credits card preview; same fallback as the opening one above.',
+  'src/components/script/scriptPageHost.ts#3':
+    "Remembering the Words tab's definition source in localStorage; with storage blocked or full the choice lasts until the page is left.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/script/page/tools/text/readerText.ts#1':
@@ -220,4 +219,11 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/companion/CompanionPage.tsx#3': 'The credits templates only decide whether the credits panel shows; with none, it stays absent.',
   'src/components/booth/frame/useLevels.ts#1':
     'Releases the meter-only child on cleanup; nothing is left mounted to tell, and the next start works either way.',
+  // The new Booth page (SN-O102): secondary reads that only add to a chapter that already reads.
+  'src/components/booth/page/useBoothData.ts#1': 'The credits templates only decide whether the picker offers the credits; with none, it offers the chapters.',
+  'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
+  'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
+  'src/components/booth/page/useBoothData.ts#4': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
+  'src/components/booth/page/useBoothPage.ts#1':
+    'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };
