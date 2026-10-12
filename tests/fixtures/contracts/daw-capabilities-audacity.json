@@ -135,12 +135,6 @@
       "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
       "reason": "not_yet"
     },
-    "silence_trim": {
-      "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
-    },
     "stack_takes": {
       "available": false,
       "level": "experimental",

@@ -195,21 +195,12 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 ### `fx_chains`
 
-- **Intent:** list the narrator's FX chain files and installed plug-ins, apply a chain to a track, and add a plug-in to one passage of a take.
+- **Intent:** list the narrator's FX chain files and apply a chain to a track.
 - **Role:** `FXManager`, synchronous.
-- **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_PLUGIN` per plug-in then `FX_PLUGINS_LISTED`; `FX_CHAIN_APPLIED` with the number added; `TAKE_FX_ADDED` with the number of splits. A name outside the chains folder or not in the list is refused before anything changes. Each write is one undo point.
-- **REAPER:** `list_fx_chains`, `apply_fx_chain`, `list_fx`, `add_take_fx`.
+- **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_CHAIN_APPLIED` with the number added. A name outside the chains folder is refused before anything changes. Each write is one undo point.
+- **REAPER:** `list_fx_chains`, `apply_fx_chain`. The host stopped sending `list_fx` and `add_take_fx` in [#1661](https://github.com/countrymanprime/narration-utils/issues/1661); their Lua handlers go with [#1311](https://github.com/countrymanprime/narration-utils/issues/1311).
 - **Audacity:** not built.
 - **Checked:** harness (`workspace_test.lua`); expected result is rows A7, A8 and A8b; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
-
-### `silence_trim`
-
-- **Intent:** preview silences as take markers, then trim them.
-- **Role:** `SilenceTrimmer`, synchronous (`Preview`, `Apply`).
-- **Result:** the preview adds `CLEANUP_SILENCE_START` and `CLEANUP_SILENCE_END` take markers and answers `CLEANUP_PREVIEWED` with added and existing counts; repeating it adds none. Apply answers `CLEANUP_APPLIED`; the item keeps its GUID, a new piece starts after the cut, and the source file is untouched. An unknown item or a range past the end answers `CLEANUP_STALE` and is not applied.
-- **REAPER:** `preview_cleanup_markers`, `apply_cleanup_trims`, through `bridge.CleanupClient`. No host binding reaches them since [#1308](https://github.com/countrymanprime/narration-utils/issues/1308) removed `CleanupPreview` and `CleanupApply`; `internal/cleanuptools` holds the role for a later trigger. Experimental until the pass.
-- **Audacity:** not built.
-- **Checked:** harness (`cleanup_preview_test.lua`); expected result is rows A12 and A13; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `item_gain`
 

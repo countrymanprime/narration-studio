@@ -103,8 +103,7 @@ A command passes when every row that names it passes and the report is recorded.
 | `punch` | `play_position`, `punch_to`, `roll` | A9b, A9c, B9, C2 |
 | `regions` | `create_regions` | A9 |
 | `takes` | `set_active_take`, `hide_takes` | A6, C1 |
-| `fx_chains` | `list_fx_chains`, `list_fx`, `apply_fx_chain`, `add_take_fx` | A7, A8, A8b |
-| `silence_trim` | `preview_cleanup_markers`, `apply_cleanup_trims` | A12, A13 |
+| `fx_chains` | `list_fx_chains`, `apply_fx_chain` | A7, A8 |
 | `item_gain` | `apply_item_gain` | A14 |
 | `cut_range` | `delete_range` | C3 |
 | `fx_range` | `apply_fx_range`, `remove_fx_range` | C4, C5 |

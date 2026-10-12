@@ -44,28 +44,25 @@ func lookup(key string) (Tool, bool) {
 // Config is the session path the service needs to talk to REAPER over the file bridge.
 type Config struct{ SessionDir string }
 
-// Service is the state machine for one launch at a time. Silence trim and level matching are a second,
-// synchronous pair of roles on the same service (ADR 0300): the Lua and the Go client exist but no narrator-facing
-// trigger calls them yet, so they take their SilenceTrimmer and GainAdjuster roles here for a binding to call
-// PreviewSilenceTrim, ApplySilenceTrim and ApplyGain once one exists.
+// Service is the state machine for one launch at a time. Level matching is a second, synchronous role on the
+// same service (ADR 0300): the Lua and the Go client exist but no narrator-facing trigger calls it yet, so it takes
+// its GainAdjuster role here for a binding to call ApplyGain once one exists.
 type Service struct {
-	mu             sync.RWMutex
-	config         Config
-	launcher       dawport.CleanupLauncher
-	silenceTrimmer dawport.SilenceTrimmer
-	gainAdjuster   dawport.GainAdjuster
-	changed        func(map[string]any)
+	mu           sync.RWMutex
+	config       Config
+	launcher     dawport.CleanupLauncher
+	gainAdjuster dawport.GainAdjuster
+	changed      func(map[string]any)
 	// +checklocks:mu
 	state map[string]any
 }
 
-// New builds the service over launcher, silenceTrimmer and gainAdjuster (ADR 0300: cleanup tools
-// depend on the roles they use, never a concrete bridge client). When there is a launcher it subscribes to
-// CLEANUP_LAUNCHED and ERROR events for its own run (or, with no run, a session-level problem while a launch is
-// in flight); silenceTrimmer and gainAdjuster are synchronous roles (roles.go) and need no subscription of
-// their own.
-func New(config Config, launcher dawport.CleanupLauncher, silenceTrimmer dawport.SilenceTrimmer, gainAdjuster dawport.GainAdjuster, changed func(map[string]any)) *Service {
-	s := &Service{config: config, launcher: launcher, silenceTrimmer: silenceTrimmer, gainAdjuster: gainAdjuster, changed: changed, state: Idle()}
+// New builds the service over launcher and gainAdjuster (ADR 0300: cleanup tools depend on the roles they
+// use, never a concrete bridge client). When there is a launcher it subscribes to CLEANUP_LAUNCHED and ERROR
+// events for its own run (or, with no run, a session-level problem while a launch is in flight); gainAdjuster is
+// a synchronous role (roles.go) and needs no subscription of its own.
+func New(config Config, launcher dawport.CleanupLauncher, gainAdjuster dawport.GainAdjuster, changed func(map[string]any)) *Service {
+	s := &Service{config: config, launcher: launcher, gainAdjuster: gainAdjuster, changed: changed, state: Idle()}
 	if launcher != nil {
 		launcher.Subscribe(dawport.Subscription{
 			Tags:    []string{"CLEANUP_LAUNCHED", "ERROR"},
@@ -108,24 +105,6 @@ func (s *Service) Launch(key string, run *runlog.Run) error {
 	}
 	s.notify()
 	return nil
-}
-
-// PreviewSilenceTrim previews the candidates' silence trims (dawport.SilenceTrimmer.Preview) without changing
-// anything: which take markers preview_cleanup_markers would add, and which candidates are stale.
-func (s *Service) PreviewSilenceTrim(ctx context.Context, candidates []dawport.CleanupCandidate) (dawport.PreviewResult, error) {
-	if s.silenceTrimmer == nil {
-		return dawport.PreviewResult{}, fmt.Errorf("the REAPER bridge is unavailable")
-	}
-	return s.silenceTrimmer.Preview(ctx, candidates)
-}
-
-// ApplySilenceTrim applies the candidates' silence trims (dawport.SilenceTrimmer.Apply): a split at each end of
-// the cut, the middle piece removed, all in one undo block.
-func (s *Service) ApplySilenceTrim(ctx context.Context, candidates []dawport.CleanupCandidate) (dawport.ApplyResult, error) {
-	if s.silenceTrimmer == nil {
-		return dawport.ApplyResult{}, fmt.Errorf("the REAPER bridge is unavailable")
-	}
-	return s.silenceTrimmer.Apply(ctx, candidates)
 }
 
 // ApplyGain applies per-item gain to match levels (dawport.GainAdjuster.Apply).

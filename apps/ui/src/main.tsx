@@ -60,7 +60,7 @@ const mockDawMismatch = mockParams.has('mockDawMismatch');
 // daw-integration.md) report REAPER as not detected, so its "Get REAPER" button can be seen without a host.
 const mockDawNotDetected = mockParams.has('mockDawNotDetected');
 // `?mockDawExperimentalOn=1` turns every Experimental DAW capability on (the old `DAW.experimental_reaper_actions`
-// setting's own effect), so a `CapabilityGate('silence_trim')`/`('item_gain')` control's live,
+// setting's own effect), so a `CapabilityGate('item_gain')` control's live,
 // clickable state can be seen without a host - it still carries the "Experimental" badge.
 const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
 // `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER: Proof's finding detail

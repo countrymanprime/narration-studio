@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 121
+const hostAPIVersion = 122
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -729,21 +729,18 @@ func (h *Host) configureLocked(next config) {
 	// reaper.New wraps the same client the actions gate above already shares (dawport.Adapter.Role never opens a
 	// new one), so this adds no new consumer of the session's bridge; a nil client (a standalone or Audacity
 	// launch) leaves every role nil, which each service already treats as "the REAPER bridge is unavailable".
-	// Silence trim and level matching take their SilenceTrimmer and
-	// GainAdjuster roles the same way, so internal/cleanuptools can call them once a narrator-facing trigger
-	// exists.
+	// Level matching takes its GainAdjuster role the same way, so internal/cleanuptools can call it once a
+	// narrator-facing trigger exists.
 	var pickupsRole dawport.PickupList
 	var lineStamperRole dawport.LineStamper
 	var renderConfigurerRole dawport.RenderConfigurer
 	var cleanupLauncherRole dawport.CleanupLauncher
-	var silenceTrimmerRole dawport.SilenceTrimmer
 	var gainAdjusterRole dawport.GainAdjuster
 	if reaperAdapter, err := reaper.New(client, nil); err == nil {
 		pickupsRole, _ = reaperAdapter.Role(dawport.CapPickups).(dawport.PickupList)
 		lineStamperRole, _ = reaperAdapter.Role(dawport.CapLineIdentity).(dawport.LineStamper)
 		renderConfigurerRole, _ = reaperAdapter.Role(dawport.CapRenderConfig).(dawport.RenderConfigurer)
 		cleanupLauncherRole, _ = reaperAdapter.Role(dawport.CapCleanupTools).(dawport.CleanupLauncher)
-		silenceTrimmerRole, _ = reaperAdapter.Role(dawport.CapSilenceTrim).(dawport.SilenceTrimmer)
 		gainAdjusterRole, _ = reaperAdapter.Role(dawport.CapItemGain).(dawport.GainAdjuster)
 	}
 	// The line-identity service is the second consumer of the same bridge client (bridge.Client fans events
@@ -762,7 +759,7 @@ func (h *Host) configureLocked(next config) {
 	// The cleanup-launcher service (ADR 0146) is one more consumer of
 	// the same bridge client: pollTranscript's Drain call pumps its events too. It only ever sends an allow-listed
 	// tool key, and the dialog it opens in REAPER is the narrator's to drive.
-	h.cleanupTools = cleanuptools.New(cleanuptools.Config{SessionDir: h.config.sessionDir}, cleanupLauncherRole, silenceTrimmerRole, gainAdjusterRole, h.emitCleanupTools)
+	h.cleanupTools = cleanuptools.New(cleanuptools.Config{SessionDir: h.config.sessionDir}, cleanupLauncherRole, gainAdjusterRole, h.emitCleanupTools)
 	// The retake-lane service (ADR 0147) is one more consumer of the
 	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
