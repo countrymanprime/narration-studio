@@ -37,13 +37,14 @@ func TestExtractionSourcesReportAvailabilityAndReason(t *testing.T) {
 		t.Fatalf("sources =\n%+v\nwant\n%+v", rows, want)
 	}
 
-	// An installed tool whose adapter is not built yet says so; the rules with no sidecar say why.
+	// The rules with no sidecar say why; BookNLP asks the asset registry for its install folder itself, so a host with no
+	// analysis catalog answers not downloaded whatever the installed list says.
 	host = &Host{extractionInstalled: func() []string { return []string{"booknlp-big"} }}
 	rows = decodeSources(t)(host.ExtractionSources())
 	if rows[0].Available || rows[0].Reason != "The Story Bible sidecar is not set up." {
 		t.Fatalf("rules with no sidecar = %+v", rows[0])
 	}
-	if rows[4].Available || rows[4].Reason != "BookNLP is not available yet." {
+	if rows[4].Available || rows[4].Reason != "BookNLP is not downloaded." {
 		t.Fatalf("installed BookNLP = %+v", rows[4])
 	}
 }
