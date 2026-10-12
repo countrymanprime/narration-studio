@@ -8,7 +8,8 @@ import { Create as $Create } from "@wailsio/runtime";
 /**
  * CutRequest is what the app sends after the DAW accepted a deleteRange: the words, the range and the DAW's answer. A, B,
  * Off0 and Off1 are already in the chapter recording as it was before any cut (the app converts them with origTime); the
- * host stores the numbers and computes nothing from them.
+ * host stores the numbers and computes nothing from them. A wordless cut (a gap between words that Clean up shortened,
+ * SN-E112) has no paragraph and no keys; it has no take either, so its offsets are its times.
  */
 export class CutRequest {
     "pid": string;

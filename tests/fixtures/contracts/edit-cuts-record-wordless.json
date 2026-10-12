@@ -1,0 +1,57 @@
+{
+  "changed": [
+    "cut2"
+  ],
+  "chapterId": "c-0001",
+  "cuts": [
+    {
+      "a": 12,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 13.5,
+      "chapterId": "c-0001",
+      "daw": "reaper",
+      "fadeMs": 12,
+      "guid": "{CUT-1}",
+      "id": "cut1",
+      "keys": [
+        "p-000001:4",
+        "p-000001:5",
+        "p-000001:6"
+      ],
+      "mode": "close",
+      "off0": 2,
+      "off1": 3.5,
+      "paragraph": 0,
+      "pid": "p-000001",
+      "stale": false,
+      "takeId": "t-1",
+      "text": "the Queen shouted.",
+      "undoSteps": 1,
+      "words": [
+        "the",
+        "Queen",
+        "shouted."
+      ]
+    },
+    {
+      "a": 30,
+      "at": "2026-09-21T10:00:00Z",
+      "b": 31.5,
+      "chapterId": "c-0001",
+      "daw": "REAPER",
+      "fadeMs": 6,
+      "guid": "c-0001/{C0000001-0000-4000-8000-000000000001}@29.5",
+      "id": "cut2",
+      "keys": [],
+      "mode": "close",
+      "off0": 30,
+      "off1": 31.5,
+      "paragraph": null,
+      "pid": "",
+      "stale": false,
+      "text": "A gap of 1.5 s",
+      "undoSteps": 1,
+      "words": []
+    }
+  ]
+}

@@ -786,6 +786,21 @@ export function DawStopFilePreview(): $CancellablePromise<string> {
 }
 
 /**
+ * DawTrimRange shortens a gap between words: it hides start..end project seconds of itemID, an item of chapterID, with fadeMs (0 to
+ * 500) at the seam (SN-E112: Clean up's Gaps, "Shorten to N s"). It is the cut_range role's DeleteRange with no words, no pad and
+ * no room tone, in mode close: the piece goes to the muted Cuts track and the audio after it moves up; nothing is deleted. itemID
+ * is the item's id as the finding recorded it: the host looks it up on the chapter's one linked track as the DAW reports it now
+ * (chapter_track_state), checks the gap is inside it, and sends the item it read itself, so an id is never sent to the DAW as
+ * given (threat model row 5f). A trim splits its item, so the page sends a chapter's trims latest first. The answer is a DawResult
+ * (ADR 0810): the cut_range capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a
+ * sentence; times or a fade out of bounds are refused; an item the track no longer holds or a gap outside it is refused with code
+ * stale. Nothing is sent to the DAW on any of them.
+ */
+export function DawTrimRange(chapterID: string, itemID: string, start: number, end: number, fadeMs: number): $CancellablePromise<string> {
+    return $Call.ByID(109845507, chapterID, itemID, start, end, fadeMs);
+}
+
+/**
  * DawUnstackTakes moves the stacked takes of the passages passageIDs of chapterID back to where their reads were recorded
  * and the audio after them out again (the mock's unstackTakes). The plan is rebuilt as DawStackTakes rebuilds it
  * (passagetakes.UnstackPlan), with the offset each stacked take recorded read from the saved project, so a stack the
