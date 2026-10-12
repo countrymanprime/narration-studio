@@ -373,7 +373,7 @@ describe('Story Bible Appears in', () => {
     expect(goToManuscript).toHaveBeenCalledWith('chapter-1');
   });
 
-  it('Appears in sits after the editable parts', () => {
+  it('Appears in sits after the editable parts', async () => {
     render(
       <ApiProvider api={createMockApi()}>
         <GuideDetail
@@ -386,6 +386,7 @@ describe('Story Bible Appears in', () => {
         />
       </ApiProvider>,
     );
+    await screen.findByText('How they talk');
     const appears = screen.getByTestId('appears-in');
     for (const label of ['Description', 'How they talk', 'How they act', 'What they know', 'Properties', 'Relationships']) {
       const part = screen.getAllByText(label)[0];
@@ -440,7 +441,7 @@ describe('speaker colour field in the entry', () => {
         <GuideDetail entity={row} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
     );
-    fireEvent.change(screen.getByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
     await waitFor(() => expect(call).toHaveBeenCalledWith(row.id, 0));
   });
 

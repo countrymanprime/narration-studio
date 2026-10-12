@@ -7,7 +7,6 @@ import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/c
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord, WordStatus } from '../../../../api/contracts/scriptPrep';
-import { canSpeak } from '../../../../storyBibleTypes';
 
 /** A flagged word's key as the host stores it: the text trimmed and lower-cased. */
 export const wordKey = (text: string): string => text.trim().toLowerCase();
@@ -115,9 +114,12 @@ export function entriesInChapter(entries: readonly GuideEntity[], paragraphs: re
 
 /* ---------- Speakers ---------- */
 
-/** Entries that can be picked as a speaker: those whose Story Bible type can speak, so the type's Can speak flag decides. */
-export const speakerCandidates = (entries: readonly GuideEntity[], types: readonly GuideType[]): GuideEntity[] =>
-  entries.filter((entry) => canSpeak(types, entry.category));
+/** Entries that can be picked as a speaker: those whose Story Bible type can speak, so the type's Can speak flag decides. An
+ * entry whose type the list lacks is silent, as `canSpeak` in `storyBibleTypes.ts` reads it. */
+export function speakerCandidates(entries: readonly GuideEntity[], types: readonly GuideType[]): GuideEntity[] {
+  const speaking = new Set(types.filter((type) => type.speaks).map((type) => type.name));
+  return entries.filter((entry) => speaking.has(entry.category));
+}
 
 /** A speaker the narrator confirmed (a correction), one the Story Bible suggests, or none. */
 type PhraseState = 'confirmed' | 'suggested' | 'unknown';

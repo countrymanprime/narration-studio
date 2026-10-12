@@ -10,6 +10,8 @@ const meta = {
   component: BiblePanel,
   args: {
     entry: ALICE,
+    // The default types: only a character speaks.
+    canSpeak: (category: string) => category === ALICE.category,
     missing: null,
     kinds: BIBLE_KINDS,
     entries: [ALICE, GARDEN],

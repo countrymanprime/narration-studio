@@ -101,6 +101,29 @@ describe('bible-tab-lists-the-chapters-entries-and-shows-one-read-only', () => {
     expect(screen.queryByLabelText('How they talk')).toBeNull();
   });
 
+  it('the talk, act and know rows show for a type that can speak, not only Character', async () => {
+    const read = api.guideEntities;
+    // The mock's place, named for a word the chapter has, and its type set to speak.
+    api = { ...api, guideEntities: async () => [{ ...(await read())[6]!, canonical_name: 'Alice', id: 'alice' }] };
+    await api.guideTypeSetSpeaks('Place', true);
+    await api.guideTypeSetSpeaks('Character', false);
+    const { user } = mount();
+    await user.click(await screen.findByRole('button', { name: /^Alice/ }));
+    const entry = within(await screen.findByRole('article', { name: 'Alice' }));
+    expect(entry.getByText('Place')).toBeTruthy();
+    expect(await entry.findByLabelText('How they talk')).toBeTruthy();
+    expect(entry.getByLabelText('How they act')).toBeTruthy();
+    expect(entry.getByLabelText('What they know')).toBeTruthy();
+  });
+
+  it('a character whose type cannot speak has no talk, act or know rows', async () => {
+    await api.guideTypeSetSpeaks('Character', false);
+    const { user } = mount();
+    await user.click(await screen.findByRole('button', { name: /^Alice/ }));
+    await screen.findByRole('article', { name: 'Alice' });
+    expect(screen.queryByLabelText('How they talk')).toBeNull();
+  });
+
   it('says so when the chapter names no entry', async () => {
     api = { ...api, guideEntities: async () => [] };
     mount();
