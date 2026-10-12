@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useMemo, useState } from 'react';
+import { COMMAND_CATALOG } from '../../../../input/commands.catalog';
+import { gesture } from '../../../../input/gestures';
+import type { GestureEvent, InputSource } from '../../../../input/InputSource';
+import { defaultKeymap } from '../../../../input/keymap';
+import { CommandRouter, CommandScope } from '../../../../input/router';
+import { useEditingKeys } from '../../keys/useEditingKeys';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import type { DawCapabilities } from '../../../../api/contracts/daw';
@@ -65,6 +71,7 @@ function Inner({ list, setList }: { list: EditCut[]; setList: (c: EditCut[]) => 
   doc = page.doc;
   cut = useCutWords({ journal, chapterId: 'chapter-1', chapterName: 'Chapter 1', cuts: list, locator, onCuts: setList });
   flagDelete = useFlagActions().deleteWords;
+  useEditingKeys({ handlers: { remove: cut.remove, mute: cut.mute }, keymap });
   return <SelectionBar playback={idle} end={60} />;
 }
 function Harness() {
@@ -77,15 +84,30 @@ function Harness() {
   );
 }
 
+const keymap = defaultKeymap(COMMAND_CATALOG, false);
+let press: (code: string) => void;
+
 function mount(setup: DawCapabilities | DawSetupId = 'reaper') {
   const caps = typeof setup === 'string' ? DAW_SETUPS[setup] : setup;
   const base = createMockDawClient(caps);
   const daw: DawClient = { ...base, deleteRange: (r) => (calls.push(r), base.deleteRange(r)) };
   const api = Object.assign(createMockApi(), log);
+  let listener: ((e: GestureEvent) => void) | undefined;
+  const source: InputSource = {
+    subscribe(on) {
+      listener = on;
+      return () => void (listener = undefined);
+    },
+  };
+  press = (code) => act(() => listener?.({ gesture: gesture('keyboard', code, []), target: null, preventDefault: () => {} }));
   return render(
     <ApiProvider api={api}>
       <PortOverrides clients={{ daw, alignment }}>
-        <Harness />
+        <CommandRouter source={source} keymap={keymap}>
+          <CommandScope kind="page">
+            <Harness />
+          </CommandScope>
+        </CommandRouter>
         <OverlayHost />
       </PortOverrides>
     </ApiProvider>,
@@ -147,6 +169,19 @@ describe('Delete words and audio', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(calls).toEqual([]);
     expect(log.cuts).toEqual([]);
+  });
+
+  it('Delete opens the confirmation and never cuts at once; M opens the same question for muting', async () => {
+    mount();
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    press('Delete');
+    expect(screen.getByRole('dialog', { name: 'Delete 2 words and their audio?' })).toBeTruthy();
+    expect(calls).toEqual([]);
+    act(() => overlay.getSnapshot().dialogs.forEach((d) => d.kind !== 'confirm' && d.close()));
+    press('KeyM');
+    expect(screen.getByRole('dialog', { name: 'Mute 2 words and keep their audio?' })).toBeTruthy();
+    expect(calls).toEqual([]);
   });
 
   it('dialog-shows-what-will-change: the words, the strips, the range, where they sit, the later audio, the choices and the DAW sentence', async () => {
