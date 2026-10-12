@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 	"github.com/countrymanprime/narration-utils/shell/internal/packager"
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-utils/shell/internal/update"
 )
 
 // The packaging half of the Master & QC export flow packager.Assemble over the files ExportStart already mastered and encoded, into a folder the narrator chooses with the operating
@@ -292,6 +294,36 @@ func (h *Host) cancelPackage() PackageJob {
 	job.mu.Unlock()
 	job.cancel()
 	return job.snapshot()
+}
+
+// PackageFolderResult is DeliveryOpenPackageFolder's answer: the folder it showed.
+type PackageFolderResult struct {
+	Folder string `json:"folder"`
+}
+
+// DeliveryOpenPackageFolder shows the folder of the package the host last built in the file manager, through the
+// same openFolder the log folder uses (diagnostics_export.go). It takes no path: the folder is the one the package
+// job wrote, never one the UI names. It is refused with a sentence when no package was built or its folder is gone.
+func (h *Host) DeliveryOpenPackageFolder() (string, error) {
+	return encodeBinding(h.openPackageFolder())
+}
+
+func (h *Host) openPackageFolder() (PackageFolderResult, error) {
+	built := h.packageState()
+	if built.Phase != "success" || built.OutputDir == "" {
+		return PackageFolderResult{}, errors.New("build a package first; there is no package folder to open yet")
+	}
+	if info, err := os.Stat(built.OutputDir); err != nil || !info.IsDir() {
+		return PackageFolderResult{}, fmt.Errorf("the package folder %s is no longer there; build the package again", built.OutputDir)
+	}
+	open := h.openFolder
+	if open == nil {
+		open = update.OpenFolder
+	}
+	if err := open(built.OutputDir); err != nil {
+		return PackageFolderResult{}, err
+	}
+	return PackageFolderResult{Folder: built.OutputDir}, nil
 }
 
 // inSidecarTree reports whether dir is the project's narration-utils folder or a folder inside it: a delivery

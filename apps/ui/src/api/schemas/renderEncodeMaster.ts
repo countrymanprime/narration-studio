@@ -6,6 +6,7 @@ import type {
   MultiPackageJob,
   MultiPackageResult,
   PackageChecklistItem,
+  PackageFolderResult,
   PackageJob,
   PackageManifestFile,
 } from '../contracts/renderEncodeMaster';
@@ -77,6 +78,8 @@ export const packageJobSchema = z.object({
   elapsed: z.number(),
   error: z.string().optional(),
 }) satisfies z.ZodType<PackageJob>;
+
+export const packageFolderResultSchema = z.object({ folder: z.string().min(1) }).strict() satisfies z.ZodType<PackageFolderResult>;
 
 const multiPackageResultSchema = z.object({
   profile: z.string(),

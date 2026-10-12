@@ -139,12 +139,14 @@ approval.
 
 ![The ACX profile's rules and their sources](../../images/ui/master-profile-rules.webp)
 
-**Before you build**, on the right, counts the chapters passing and lists each chapter with **Pass**,
-**Fails N checks**, or **Not mastered**; pressing one opens Master & QC. In **Output**, **Build ACX
+**Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
+manuscript's headings name it, with **Pass**, **Fails N checks**, or **Not mastered**; pressing one opens
+Master & QC. In **Output**, **Build ACX
 package** (named for the profile) builds the package once every chapter passes, from the files mastered
 and encoded in Master & QC; until then it says how many chapters fail and how many are not ready, or that
 you must master all to spec in Master & QC first. The build asks for a folder, shows its progress with
-**Cancel**, and then lists the folder and every file written.
+**Cancel**, and then lists the folder and every file written. The folder button beside the list
+(**Open the folder**) opens that folder in Explorer.
 
 ![Delivery with the book checked: the chapters passing, and Output waiting on the rest](../../images/ui/master-package-built.webp)
 

@@ -69,6 +69,9 @@ export type PackageChecklistItem = { ruleId: string; label: string; status: Pack
 
 /** The package job (PackageStart/State/Cancel), in the shape of the host's other jobs. Closing the folder picker
  * without choosing one leaves the job at its prior (often idle) state rather than erroring. */
+/** What DeliveryOpenPackageFolder answers: the folder of the last built package, which it showed in the file manager. */
+export type PackageFolderResult = { folder: string };
+
 export type PackageJob = {
   id: string | null;
   kind: 'render_package';
@@ -136,6 +139,9 @@ export interface RenderEncodeMasterApi {
   packageState(): Promise<PackageJob>;
   /** Stops a running package build. Answers the job. */
   packageCancel(): Promise<PackageJob>;
+  /** Shows the folder of the package the host last built in the file manager and answers it; takes no path. Rejects
+   * when no package was built or its folder is gone. */
+  deliveryOpenPackageFolder(): Promise<PackageFolderResult>;
   /** Resolves every selected profile, works out each one's required encode format, reuses the export job's own
    * encoded files for any selection matching its format, asks for one root output folder, then builds each
    * profile's package in its own subfolder, in order, as a job; rejects an empty selection, an unknown profile, a

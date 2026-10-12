@@ -5,7 +5,7 @@ import type { ChapterState } from './chapterStates';
 
 const TONE = { ok: 'success', bad: 'danger', wait: 'neutral' } as const;
 
-/** "Before you build" (the mock's aside): chapters passing n of N, then a row per chapter that opens it in Master & QC. */
+/** "Before you build" (the mock's aside): chapters passing n of N, then a row per chapter, named in the manuscript's heading style, that opens it in Master & QC. */
 export function Preflight({ states, onOpen }: { states: readonly ChapterState[]; onOpen: (chapterId: string) => void }) {
   return (
     <Panel title="Before you build">
@@ -22,10 +22,10 @@ export function Preflight({ states, onOpen }: { states: readonly ChapterState[];
               <Button
                 variant="link"
                 onClick={() => onOpen(state.id)}
-                aria-label={`${state.title}: ${state.text}. Open in Master & QC`}
+                aria-label={`${state.name}: ${state.text}. Open in Master & QC`}
                 className="flex w-full items-center justify-between gap-2 py-0.5 text-left text-sm no-underline"
               >
-                <span className="min-w-0 flex-1 truncate">{state.title}</span>
+                <span className="min-w-0 flex-1 truncate">{state.name}</span>
                 <StatusBadge tone={TONE[state.kind]} label={state.text} />
               </Button>
             </li>

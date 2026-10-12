@@ -723,6 +723,15 @@ export function DeliveryExportReport(includePaths: boolean): $CancellablePromise
 }
 
 /**
+ * DeliveryOpenPackageFolder shows the folder of the package the host last built in the file manager, through the
+ * same openFolder the log folder uses (diagnostics_export.go). It takes no path: the folder is the one the package
+ * job wrote, never one the UI names. It is refused with a sentence when no package was built or its folder is gone.
+ */
+export function DeliveryOpenPackageFolder(): $CancellablePromise<string> {
+    return $Call.ByID(157179910);
+}
+
+/**
  * DeliveryProfiles answers every delivery profile the narrator can choose (the built-ins first, then their custom
  * profiles), the Global default, the current project's own choice and the profile it is judged against
  * (ADR 0179).
