@@ -49,7 +49,7 @@ a skipped paragraph, a skipped sentence, a pickup read at the end, a truncated t
 retake, three items, a paragraph replaced by another chapter's text, and a whole chapter whose script has editorial
 notes the reader's edition does not (`notRead`). Every item keeps its LibriVox preamble or closing credit, which is
 real unrelated speech. Labels follow the rules in
-[recording-coverage-fixtures.md](../../../../docs/research/recording-coverage-fixtures.md) and are derived from the
+[the coverage fixtures README](../../../../sidecars/transcript-compare/tests/fixtures/coverage/README.md#labeling-rules) and are derived from the
 recipe, so they are exact.
 
 ```bash
@@ -60,7 +60,7 @@ uv run --project sidecars/transcript-compare python sidecars/transcript-compare/
 The first command validates the labels. The second runs the shipped sidecar and Whisper over the audio. Results are in
 [recording-coverage-calibration.md](../../../../docs/research/recording-coverage-calibration.md#librivox-real-speech-2026-09-27).
 
-### `characters/`: the character-continuity trial on one reader (N-D22)
+### `characters/`: the character-continuity trial on one reader
 
 462 clips from Kara Shallenberg's six chapters, in the trial's `manifest.json` layout: narration plus 11 characters.
 A line is labelled only when the text names its speaker next to it ("'…,' said the Hatter"), and untagged lines are
@@ -74,7 +74,7 @@ uv run --no-project --with numpy --with praat-parselmouth python run_trial.py ..
 
 Results are in [character-continuity-acoustic-trial.md](../../../../docs/research/character-continuity-acoustic-trial.md#real-speech-re-run-librivox-2026-09-27).
 
-### `signal/`: the audio diagnostics on real narration (diagnostics, delivery and cleanup PRDs; ADRs 0158, 0236, 0238)
+### `signal/`: the audio diagnostics on real narration (ADRs 0158, 0236, 0238)
 
 11 cases over the first 20 paragraphs of Kara's Chapter IX (3.8 minutes): an unedited control and one defect each.
 `labels.json` gives every defect's time in the built file, and `<id>.words.json` the transcript words for pacing.

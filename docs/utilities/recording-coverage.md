@@ -265,7 +265,7 @@ This table is the key to the labels that code comments, tests and the text above
 
 - `sidecars/transcript-compare/tests/`: `test_coverage.py` (the definitions), `test_coverage_mode.py` (the sidecar
   mode with a fake transcriber), `test_marker_golden.py` (markers unchanged), `coverage_harness.py` and
-  [the fixture set](../research/recording-coverage-fixtures.md), `coverage_spike.py` and
+  [the fixture set](../../sidecars/transcript-compare/tests/fixtures/coverage/README.md), `coverage_spike.py` and
   `coverage_calibration.py`, each pinned by its own test file.
 - `apps/desktop/internal/coverage`: service tests with a fake sidecar (fresh, all-cached, one-item edit, cancel, every
   refusal and staleness cause), the signal table, settings and a provider test through `stages.Collect`. A test runs

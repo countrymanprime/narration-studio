@@ -1,6 +1,6 @@
 # FFmpeg encoder build: choice and verification
 
-**Date:** 2026-09-27. **Stream:** N-V1, render-encode-master (deleted PRD `render-encode-master`) Phase 0. **Answers:** Q1 (what encodes the audio) at the level of an exact build: which FFmpeg, from where, under which licence class, and whether what it writes passes this app's own MP3 checks.
+**Date:** 2026-09-27. **Issue:** [#629](https://github.com/countrymanprime/narration-utils/issues/629). **Answers:** what encodes the audio, at the level of an exact build: which FFmpeg, from where, under which licence class, and whether what it writes passes this app's own MP3 checks.
 
 **Verdict: go, with two owner checks pending (below).** Catalog the FFmpeg 7.1 "essentials" static Windows build (gyan.dev, GPL-3.0-or-later build configuration) as it is published inside the `imageio-ffmpeg` 0.6.0 `win_amd64` wheel on PyPI, keep only `ffmpeg.exe` from it at install, and run it as a separate process. Encode MP3 with `libmp3lame` at a constant bit rate, with no Xing/Info frame and no ID3v2 tag (`-write_xing 0 -id3v2_version 0`): that output passes `acx.format` and `acx.sample_rate`, and both of the app's MP3 frame readers agree on its length to the microsecond. [ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md) (Proposed) records the decision.
 
@@ -66,8 +66,8 @@ In a Linux cloud session, 2026-09-27. Nothing downloaded was committed.
 
 Every path used is LGPL code; the build as a whole is GPL-3.0-or-later because of components this PRD never calls (x264, x265 and others). A later move to an LGPL-only build, once one can be pinned, changes the catalog row and nothing else.
 
-## What this session did not verify (owner, pending)
+## Not verified (pending with the owner)
 
-- **The Windows binary running on Windows.** Only its bytes, version and configuration were read here; the encode was run with the Linux build of the same family. The Phase 1 real-binary test (`NARRATION_UTILS_FFMPEG=<path to ffmpeg.exe> go test ./internal/encodeport/...`) is the check to run on Windows once the asset is installed. Filed on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
-- **The source offer and the choice of distributor.** The binary is GPL-3.0-or-later, and it reaches the narrator from PyPI (imageio's upload of gyan.dev's build), not from this project's release, so this project does not convey it; the notices name it, its licence and where its source is. Whether the owner would rather pin gyan.dev's own archive (not reachable from this session to hash) is a question for [#510](https://github.com/countrymanprime/narration-utils/issues/510), and changing it is a catalog row, not code.
+- **The Windows binary running on Windows.** Only its bytes, version and configuration were read here; the encode was run with the Linux build of the same family. The Phase 1 real-binary test (`NARRATION_UTILS_FFMPEG=<path to ffmpeg.exe> go test ./internal/encodeport/...`) is the check to run on Windows once the asset is installed. On [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+- **The source offer and the choice of distributor.** The binary is GPL-3.0-or-later, and it reaches the narrator from PyPI (imageio's upload of gyan.dev's build), not from this project's release, so this project does not convey it; the notices name it, its licence and where its source is. Whether the owner would rather pin gyan.dev's own archive (not reachable from the build environment to hash) is a question on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217), and changing it is a catalog row, not code.
 - **Listening.** The encode is LAME at a fixed CBR; no listening check was done, and none is needed for the container checks this phase proves.

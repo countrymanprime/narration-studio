@@ -1,6 +1,6 @@
 # GLiNER spike: licence, pins, footprint and quality
 
-**Date:** 2026-10-11. **Slice:** SN-X11 / SNX-1a ([#1139](https://github.com/countrymanprime/narration-utils/issues/1139)), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
+**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-utils/issues/1139), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
 
 **Verdict: ship behind "not yet available".** The artifact `urchade/gliner_small-v2.1` is Apache-2.0 and its bytes are pinned below, but two things stay open until an owner run: the footprint and quality on this repo's fixture were not measured in this session, and the only published weight format for the small model is a pickle. The adapter (SNX-7a) can start from these pins; the consent screen should wait for the numbers in [Owner steps](#owner-steps).
 

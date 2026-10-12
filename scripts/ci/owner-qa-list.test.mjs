@@ -80,7 +80,7 @@ test('report-is-markdown-for-a-comment: each step has run, pass, fail and issue-
 test('report includes the baseline owner steps the PRDs name, linked to their runbooks', () => {
   const report = renderReport([], {});
   assert.match(report, /Shift\+F10/);
-  assert.match(report, /studio-next-daw-spike-runbook\.md/);
+  assert.match(report, /daw-spike-run-sheet\.md/);
   assert.match(report, /reaper-verification-pass\.md/);
 });
 

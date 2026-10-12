@@ -1,5 +1,5 @@
 """Orchestrate the character-continuity acoustic trial: the six-step protocol in
-../local-dependency-evaluation.md's "Evaluation protocol", applied to the
+docs/architecture/model-provenance.md's "Evaluation protocol", applied to the
 character-continuity review's acoustic features.
 
 Usage:

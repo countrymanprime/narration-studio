@@ -4,8 +4,8 @@ docs/utilities/recording-coverage.md, ADR 0125 (D12, Q15 as amended 2026-09-23):
 coverage threshold ships before it is scored against labeled chapters. The labeled set is
 synthetic for now: `fixtures/coverage/` holds a public-domain (and one constructed) manuscript
 and one JSON case per scripted recording, each with per-paragraph labels and the expected
-chapter verdict. The protocol, the case format and the labeling rules are in
-`docs/research/recording-coverage-fixtures.md`.
+chapter verdict. The case format, the labeling rules and the scoring are in
+`fixtures/coverage/README.md`.
 
 A scripted recording is rendered into timed transcript words (a perfect transcript: what the
 narrator said, as a transcriber would write it), so any analyzer that takes transcript words can

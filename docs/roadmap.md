@@ -43,7 +43,7 @@ The suite helps a narrator find and review issues faster. It may analyze local m
 
 - Add editorial/technical findings and chapter summaries.
 - Produce generic audiobook measurement reports and reviewer packages.
-- Add distributor profiles only after their rules are independently specified and validated. ACX ships as `acx@2026-09` ([ADR 0179](adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)), each rule marked verified, to verify or conflicting in [ACX delivery requirements](research/acx-delivery-requirements.md); the owner's reading of ACX's page and the ACX Check comparison are pending.
+- Add distributor profiles only after their rules are independently specified and validated. ACX ships as `acx@2026-09` ([ADR 0179](adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)), each rule marked verified, to verify or conflicting in [ACX delivery requirements](reference/acx-delivery-requirements.md); the owner's reading of ACX's page and the ACX Check comparison are pending.
 
 ## Release-readiness work item: first-use dependency provisioning
 
@@ -68,6 +68,21 @@ catalog, integrity, UX, migration, and acceptance criteria.
 ## Audacity adapter
 
 Unscheduled on this roadmap, like the chapter stage recommendations set, but no longer deferred behind the REAPER workflow: it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See [ADR 0355](adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
+
+## Dependency trial order
+
+The order in which the candidates of the [local dependency evaluation](research/local-dependency-evaluation.md) are tried, each under the [evaluation protocol](architecture/model-provenance.md#evaluation-protocol):
+
+1. Improve current document structure tests and expose the already-present VAD
+   region evidence if the trial proves it useful.
+2. Trial Vale and GLiNER because they are small, transparent additions to the
+   existing manuscript workflow ([GLiNER spike](research/studio-next-gliner-spike.md)).
+3. Trial BookNLP for text-side dialogue/character preparation ([BookNLP spike](research/studio-next-booknlp-spike.md)).
+4. Trial MFA against current word timestamps for precision proofing.
+5. Trial Praat and Resemblyzer only with the character-continuity workflow and
+   explicitly approved reference clips ([acoustic trial](research/character-continuity-acoustic-trial.md)).
+6. Add FFmpeg/ffprobe post-render QC and libebur128 only when delivery-report
+   requirements are independently specified.
 
 ## Dependency rules
 

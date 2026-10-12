@@ -1,13 +1,70 @@
 # Model provenance and licences
 
-Every model, voice and data pack the app can download, where it comes from, under which licence, whether it may be used for a paid audiobook, and what was decided about it. The tables under [The artifacts](#the-artifacts) are **generated** from the seven catalogs the release carries (`config/whisper-assets.json`, `config/tts-assets.json`, `config/spacy-assets.json`, `config/moonshine-assets.json`, `config/dictionary-assets.json`: the reader's offline dictionary, [ADR 0097](../adr/0097-the-manuscript-reader-word-lookup-uses-the-open-english-wordnet-as-a-downloadable-asset.md); `config/wiktextract-assets.json`: the Story Bible's offline Wiktionary pronunciations, [ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md); and `config/encoder-assets.json`: the MP3 encoder's FFmpeg build, [ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md)) by `scripts/licenses/models.mjs`, so they cannot disagree with what the app downloads; the judgements (commercial use, status, notes) are written in `scripts/licenses/model-review.json`. The general policy and the record of every candidate are in the [local dependency evaluation](../research/local-dependency-evaluation.md), and the download rules are in [first-use dependency provisioning](first-use-dependency-provisioning.md). This is engineering guidance, not legal advice.
+Every model, voice and data pack the app can download, where it comes from, under which licence, whether it may be used for a paid audiobook, and what was decided about it. The tables under [The artifacts](#the-artifacts) are **generated** from the seven catalogs the release carries (`config/whisper-assets.json`, `config/tts-assets.json`, `config/spacy-assets.json`, `config/moonshine-assets.json`, `config/dictionary-assets.json`: the reader's offline dictionary, [ADR 0097](../adr/0097-the-manuscript-reader-word-lookup-uses-the-open-english-wordnet-as-a-downloadable-asset.md); `config/wiktextract-assets.json`: the Story Bible's offline Wiktionary pronunciations, [ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md); and `config/encoder-assets.json`: the MP3 encoder's FFmpeg build, [ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md)) by `scripts/licenses/models.mjs`, so they cannot disagree with what the app downloads; the judgements (commercial use, status, notes) are written in `scripts/licenses/model-review.json`. The policy for adding one is [below](#adding-a-model-tool-or-data-pack), the record of every candidate is in the [local dependency evaluation](../research/local-dependency-evaluation.md), and the download rules are in [first-use dependency provisioning](first-use-dependency-provisioning.md). This is engineering guidance, not legal advice.
 
 ## The rules
 
 - **Program licence.** The project is AGPL-3.0-or-later ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)), so bundling GPL-family code is allowed. That is why the frozen Story Bible sidecar may contain Piper (`piper-tts`, GPL-3.0-or-later), `phonemizer` (GPL-3.0-or-later) and eSpeak NG's data: they ship in the release, with their notices and a source offer in `THIRD-PARTY-NOTICES.txt` ([Third-party notices](../operations/ci-and-releases.md#third-party-notices)). There is no "separate downloaded asset" split for them.
-- **Model licences are still checked per artifact.** A model is data with its own licence and its own training-data terms, and the program's licence says nothing about them. An artifact whose licence is unclear, restricted or non-commercial is **marked "unclear" here and kept out of the catalog** until each artifact is cleared: no automatic download, no listing as a supported option (an owner decision, applying the policy of the local dependency evaluation).
+- **Model licences are still checked per artifact.** A model is data with its own licence and its own training-data terms, and the program's licence says nothing about them. An artifact whose licence is unclear, restricted or non-commercial is **marked "unclear" here and kept out of the catalog** until each artifact is cleared: no automatic download, no listing as a supported option (an owner decision, applying the [licence classes](#license-classes)).
 - **One row per artifact.** A new catalog entry needs its review row, or `pnpm check` fails (`scripts/licenses/models.test.mjs`); a review row for an artifact that left the catalog fails the same way. Changing a pin (a new revision, a new hash) changes the generated table in the same pull request.
 - **Nothing downloads by itself.** Every artifact below is fetched only after the narrator confirms, checked against the size and SHA-256 recorded here, and kept in the per-user cache ([threat model](threat-model.md#1-first-use-downloads-securitymd-bullet-2)).
+
+## Adding a model, tool or data pack
+
+The policy below applies to every candidate before it reaches a catalog. The record of each candidate judged by it, adopted or not, is the [local dependency evaluation](../research/local-dependency-evaluation.md).
+
+### License classes
+
+| Class | Examples | Commercial audiobook workflow | Repository/integration consequence |
+| --- | --- | --- | --- |
+| Permissive | MIT, BSD-2/3-Clause, Apache-2.0 | Allowed. | Keep copyright/license notices in the dependency record. Apache-2.0 also carries notice and patent terms. |
+| Attribution | CC BY 4.0 model packs | Allowed. | Display and retain the exact required attribution and model card. Do not imply Narration Utils owns the model. |
+| Weak copyleft | LGPL | Allowed. | Prefer a separately installed executable or dynamically linked library; preserve notices and allow replacement of the LGPL component if distributing a combined application. |
+| Strong copyleft | GPL | Allowed for using the tool to make a paid audiobook. The audiobook is not made GPL by that use. | Narration Utils is itself AGPL-3.0-or-later ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) and already ships GPL-family code in the frozen Story Bible sidecar (Piper, phonemizer, eSpeak NG data), so a GPL-3.0-or-later component is compatible: keep its notices and make the corresponding source available. GPL-2.0-only is not compatible. Prefer a separate executable for a tool the release does not need. |
+| Unclear, restricted, or non-commercial | Missing license, `NC`, research-only, gated terms inconsistent with commercial use | Not approved. | Do not download automatically, list as a supported option, or use in shipped tests until the exact artifact is cleared. |
+
+### Required dependency record
+
+Before an optional dependency is added, record all of the following for it:
+
+- tool/model name, publisher, exact version or commit, immutable download URL,
+  SHA-256, installed size, and install command;
+- code license URL and the separate weight/dictionary/acoustic-model license
+  URL, if there are weights or data packs;
+- model card/training-data provenance and required attribution text;
+- every runtime dependency that is downloaded by first run;
+- whether it is invoked as a separate process, Python package, or linked
+  library; and
+- removal path, update policy, test result, and the Narration Utils feature it
+  enables.
+
+An update checker may report that an upstream release exists, but it must not
+silently replace a model or executable just because a tag named `latest` moved.
+Any automatic update needs a reviewed catalog update, a new hash, a license
+recheck, and regression tests. This protects both reproducibility and license
+accountability.
+
+### Evaluation protocol
+
+Each candidate follows the same small, reviewable trial before implementation.
+
+1. **Provenance gate.** Record the exact upstream artifact and confirm its
+   code, weights, dictionaries, and model-card terms permit this commercial
+   workflow.
+2. **Held-out corpus.** Use 3--5 already-recorded chapters with narrator
+   permission, plus a manually annotated sample appropriate to the task.
+   Audio, manuscripts, voice embeddings, and test outputs remain ignored local
+   project data.
+3. **Blind comparison.** Run the current workflow and the candidate workflow.
+   Review without seeing which system produced the cue where practical.
+4. **Measure value.** Count useful findings, false positives, missed known
+   cases, processing time, setup friction, and minutes of narrator review
+   saved. A new analyzer must improve a decision, not simply emit more data.
+5. **Human boundary.** Every candidate result has evidence and an
+   accept/dismiss/defer outcome. No test may create an active take or alter a
+   render.
+6. **Decision.** Mark the candidate `adopt`, `defer`, or `reject`, with the
+   pinned artifact/version and trial evidence in the [local dependency evaluation](../research/local-dependency-evaluation.md).
 
 ## The artifacts
 

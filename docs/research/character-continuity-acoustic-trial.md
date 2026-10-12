@@ -1,11 +1,8 @@
 # Character Continuity Review: Phase 1 acoustic feature trial
 
-Follow-up to [Local Dependency Evaluation and License Plan](local-dependency-evaluation.md)'s
-[Evaluation protocol](local-dependency-evaluation.md#evaluation-protocol), run for Phase 1 of
-`docs/prds/character-continuity-review.prd.md` (deleted)
-("Acoustic feature trial and decision record"). Part of the
-[agent train](../operations/agent-train.md) (stream N-D22), see
-[#509](https://github.com/countrymanprime/narration-utils/issues/509).
+Follow-up to the [Local Dependency Evaluation](local-dependency-evaluation.md), run under the
+[evaluation protocol](../architecture/model-provenance.md#evaluation-protocol) as the character
+continuity review's acoustic feature trial and decision record.
 
 **Status: provisional.** This trial ran on a synthetic corpus, not a real LibriVox reading
 (see [Corpus route](#corpus-route)). It clears Phase 1's reject gate and gives the calibrated
@@ -228,7 +225,7 @@ What this means for the decision above:
   voiced on purpose, are still the deciding corpus (D19). This run is evidence for that decision, not a replacement.
 
 The decision above is left as it stands for the owner to review with this evidence
-([#510](https://github.com/countrymanprime/narration-utils/issues/510), N-D22).
+([#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)).
 
 ## Re-running this trial
 
@@ -267,6 +264,5 @@ and hand-check each line's timestamps against the source text as the PRD's proto
 `is_reference_eligible` should be `false` for any clip the narrator has not explicitly approved.
 `run_trial.py` does not care whether the corpus was synthesized or recorded.
 
-Posted to [#510](https://github.com/countrymanprime/narration-utils/issues/510) for the owner
-per the worker instructions; see [Sources](../../scripts/research/character-continuity-acoustic-trial/SOURCES.md) for
+The owner's review is on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217); see [Sources](../../scripts/research/character-continuity-acoustic-trial/SOURCES.md) for
 full provenance.

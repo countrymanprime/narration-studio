@@ -1,6 +1,6 @@
 # Spike: can a global hotkey fire while REAPER has OS focus?
 
-**Status: done, 2026-09-27.** Phase 12 of the Input Commands and Pedals PRD (deleted) (tracking issue [#646](https://github.com/countrymanprime/narration-utils/issues/646)), lane A. This is research for the future companion-panel PRD, not a shipped feature — the PRD's own Phase 12 row says "Not MVP." Follows the format and rigor of [Phase 8's own spike note](web-midi-hid-webview-spike.md) for this PRD. A throwaway proof-of-concept lives at `apps/desktop/cmd/spike-globalhotkeys/main.go` on this spike's branch; it is not wired into the shipped binary and is not meant to ship (see [Method](#method)).
+**Status: done, 2026-09-27.** Issue: [#646](https://github.com/countrymanprime/narration-utils/issues/646). This is research for the future companion-panel PRD, not a shipped feature — the PRD's own Phase 12 row says "Not MVP." Follows the format and rigor of [Phase 8's own spike note](web-midi-hid-webview-spike.md) for this PRD. A throwaway proof-of-concept lives at `apps/desktop/cmd/spike-globalhotkeys/main.go` on this spike's branch; it is not wired into the shipped binary and is not meant to ship (see [Method](#method)).
 
 ## The question
 
@@ -46,12 +46,10 @@ Concretely, for whoever writes that PRD:
 2. Feed a fired global shortcut into the same `apps/ui/src/input/` command registry (Phase 1) that keyboard, MIDI and HID presses already go through, as a host-originated event, rather than a second dispatch path. The keymap row (Phase 5, complete) already stores the binding; nothing about this mechanism changes what that row's shape needs to be.
 3. Check any chosen accelerator against the narrator's REAPER keymap before shipping a default, per the [ownership caveat](#a-cost-the-prd-didnt-ask-about-hotkey-ownership-is-exclusive) above — an OS-level grab is exclusive, not additive.
 4. Treat macOS and Linux support as available-if-needed rather than blocking: the same API covers them (Carbon on macOS needs no Accessibility permission either; Linux needs the X11 or Wayland-portal path already described), but this app ships Windows-only today, so there is no forcing reason to spend companion-panel budget verifying platforms this app does not yet build for.
-5. **A real Windows machine must still confirm the live behaviour** (see [For #510](#for-510-owner-or-hardware-needed)) before that phase calls itself done — this spike raises confidence from "unknown" to "expected to work, unverified live," not to "verified."
+5. **A real Windows machine must still confirm the live behaviour** (see [Pending with the owner](#pending-with-the-owner)) before that phase calls itself done — this spike raises confidence from "unknown" to "expected to work, unverified live," not to "verified."
 
 **No Proposed ADR from this spike.** It doesn't reverse any existing decision (ADR 0361's registry design already treats device sources as pluggable, and this fits that shape); it only informs a PRD that doesn't exist yet, the same precedent [Phase 8's spike](web-midi-hid-webview-spike.md#recommendations) set for this same PRD.
 
-## For #510 (owner or hardware needed)
+## Pending with the owner
 
-- [ ] On a real Windows machine with REAPER installed: run a build of `apps/desktop/cmd/spike-globalhotkeys` (or the real companion-panel binding once written), bring REAPER to the foreground, and confirm the registered hotkey's callback still fires.
-- [ ] On the same machine: confirm the chosen accelerator does not collide with any of the narrator's own REAPER keymap bindings (the exclusive-ownership caveat above).
-- [ ] If the companion-panel PRD ever targets macOS or Linux: a real machine of each to confirm the Carbon and X11/Wayland-portal paths behave as their source and the Wails maintainers' own example README describe, and — for Wayland — what the compositor's binding-choice UI actually looks like to a narrator.
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
