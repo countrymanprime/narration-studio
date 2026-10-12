@@ -7,6 +7,7 @@ import type {
   GuideDialogueCueEvidence,
   GuideEntity,
   GuideEvidence,
+  GuideMergeResult,
   GuideNote,
   GuidePreview,
   GuidePronunciation,
@@ -110,6 +111,9 @@ const guideEntitySchema = z.object({
 export const guideEntitiesSchema = listFromNull(guideEntitySchema);
 
 export const guideCreatedSchema = z.object({ id: z.string() });
+
+/** What GuideMerge answers: the undo id, in the form the host and the sidecar check. */
+export const guideMergeResultSchema = z.object({ undoId: z.string().regex(/^[0-9a-f]{16}$/) }).strict() satisfies z.ZodType<GuideMergeResult>;
 
 export const guidePreviewSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('ready'), audioBase64: z.string(), mimeType: z.string() }),

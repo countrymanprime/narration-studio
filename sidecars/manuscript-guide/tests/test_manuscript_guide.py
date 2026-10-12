@@ -999,5 +999,87 @@ class CapabilitiesTests(unittest.TestCase):
         self.assertIn("cmu", report["pronunciation"])
 
 
+class MergeAndRenameTests(unittest.TestCase):
+    """What a merge combines and what a rename keeps (G14, G5 in docs/research/studio-next-parity-script-and-bible.md)."""
+
+    def setUp(self):
+        self._temporary = tempfile.TemporaryDirectory()
+        self.path = Path(self._temporary.name) / "ManuscriptGuide" / "manuscript_guide.json"
+        evidence = {"chapter": "One", "paragraph": 0, "excerpt": "..."}
+        guide.write_json(
+            str(self.path),
+            {
+                "entities": [
+                    {
+                        "id": "nicholas",
+                        "canonical_name": "Nicholas",
+                        "aliases": [{"text": "Nick", "pronunciation": {"ipa": "nɪk", "source": "manual"}, "occurrences": [evidence]}],
+                        "category": "Character",
+                        "occurrences": [evidence],
+                        "pronunciation": {"ipa": "ˈnɪkələs", "source": "cmudict"},
+                        "relationships": [{"id": "wren", "name": "Wren", "label": "friend"}],
+                        "appearances": [{"chapterId": "c-0001", "sceneIndex": 0}, {"chapterId": "c-0002", "sceneIndex": 1}],
+                    },
+                    {
+                        "id": "nico",
+                        "canonical_name": "Nico",
+                        "aliases": [{"text": "N.", "pronunciation": {"ipa": "ɛn", "source": "manual"}, "occurrences": []}],
+                        "category": "Character",
+                        "occurrences": [{"chapter": "Two", "paragraph": 3, "excerpt": "Nico laughed."}],
+                        "pronunciation": {"ipa": "ˈniːkoʊ", "source": "manual"},
+                        "relationships": [{"id": "wren", "name": "Wren", "label": "brother"}, {"id": "nicholas", "name": "Nicholas", "label": "same"}],
+                        "appearances": [{"chapterId": "c-0002", "sceneIndex": 1}, {"chapterId": "c-0003", "sceneIndex": 0}],
+                    },
+                    {
+                        "id": "wren",
+                        "canonical_name": "Wren",
+                        "aliases": [],
+                        "category": "Character",
+                        "relationships": [{"id": "nico", "name": "Nico", "label": "sister"}, {"id": "nicholas", "name": "Nicholas", "label": "sister"}],
+                    },
+                ],
+            },
+        )
+
+    def tearDown(self):
+        self._temporary.cleanup()
+
+    def _entities(self) -> dict:
+        return {entity["id"]: entity for entity in json.loads(self.path.read_text(encoding="utf-8"))["entities"]}
+
+    def test_a_merge_combines_names_and_say_values_repoints_relationships_and_unions_appears_in(self):
+        out = io.StringIO()
+        with patch("sys.stdout", out):
+            guide.merge(argparse.Namespace(guide=str(self.path), source_id="nico", target_id="nicholas"))
+        self.assertRegex(out.getvalue().strip(), r"^MERGED\|nicholas\|[0-9a-f]{16}$")
+        entities = self._entities()
+        self.assertNotIn("nico", entities)
+        target = entities["nicholas"]
+        # Every name keeps its own say-value: the target's own, its alias, the source's name and the source's alias.
+        self.assertEqual(target["pronunciation"]["ipa"], "ˈnɪkələs")
+        self.assertEqual({alias["text"]: alias["pronunciation"]["ipa"] for alias in target["aliases"]}, {"Nick": "nɪk", "Nico": "ˈniːkoʊ", "N.": "ɛn"})
+        # The source's relationships move to the target, the one between the two goes; another entry's relationship to the source now
+        # points at the target by id, and the duplicate it would make with one it already had is dropped.
+        self.assertEqual(target["relationships"], [{"id": "wren", "name": "Wren", "label": "friend"}, {"id": "wren", "name": "Wren", "label": "brother"}])
+        self.assertEqual(entities["wren"]["relationships"], [{"id": "nicholas", "name": "Nicholas", "label": "sister"}])
+        # Appears in is the union of both entries' chapters and scenes.
+        self.assertEqual(
+            target["appearances"],
+            [{"chapterId": "c-0001", "sceneIndex": 0}, {"chapterId": "c-0002", "sceneIndex": 1}, {"chapterId": "c-0003", "sceneIndex": 0}],
+        )
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        self.assertEqual(data["absorbed_names"], {"nico": "nicholas", "n": "nicholas"})
+
+    def test_renaming_an_entity_keeps_the_relationships_that_point_at_its_id(self):
+        guide.edit(
+            argparse.Namespace(guide=str(self.path), entity_id="nicholas", field=["canonical_name"], value=["Nicolas"], manuscript=None, espeak_library="")
+        )
+        entities = self._entities()
+        self.assertEqual(entities["nicholas"]["canonical_name"], "Nicolas")
+        self.assertEqual([relationship["id"] for relationship in entities["wren"]["relationships"]], ["nico", "nicholas"])
+        self.assertEqual([relationship["id"] for relationship in entities["nico"]["relationships"]], ["wren", "nicholas"])
+        self.assertEqual(entities["nicholas"]["relationships"], [{"id": "wren", "name": "Wren", "label": "friend"}])
+
+
 if __name__ == "__main__":
     unittest.main()

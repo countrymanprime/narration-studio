@@ -36,7 +36,14 @@ import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } f
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
-import { guideBuildResultSchema, guideCreatedSchema, guideDialogueCuesSchema, guideEntitiesSchema, guidePreviewSchema } from './schemas/storyBible';
+import {
+  guideBuildResultSchema,
+  guideCreatedSchema,
+  guideDialogueCuesSchema,
+  guideEntitiesSchema,
+  guideMergeResultSchema,
+  guidePreviewSchema,
+} from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
 import { settingsForScopeSchema } from './schemas/settings';
@@ -295,7 +302,8 @@ export const wailsClient: NarrationApi = {
   guideSetLocked: (id, locked) => decode(voidResult, 'GuideSetLocked', host.GuideSetLocked(id, locked)),
   guideRescan: (id) => decode(voidResult, 'GuideRescan', host.GuideRescan(id)),
   guideCreate: (name, category, aliases) => decode(guideCreatedSchema, 'GuideCreate', host.GuideCreate(name, category, aliases)).then((value) => value.id),
-  guideMerge: (sourceId, targetId) => decode(voidResult, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
+  guideMerge: (sourceId, targetId) => decode(guideMergeResultSchema, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
+  guideUnmerge: (undoId) => decode(voidResult, 'GuideUnmerge', host.GuideUnmerge(undoId)),
   guideDelete: (id) => decode(voidResult, 'GuideDelete', host.GuideDelete(id)),
   guideRelate: (id, otherId, label) => decode(voidResult, 'GuideRelate', host.GuideRelate(id, otherId, label)),
   guideUnrelate: (id, otherId, label) => decode(voidResult, 'GuideUnrelate', host.GuideUnrelate(id, otherId, label)),

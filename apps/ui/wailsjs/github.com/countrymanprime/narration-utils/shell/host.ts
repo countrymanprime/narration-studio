@@ -1231,6 +1231,13 @@ export function GuideSetSpeakerColor(id: string, index: number | null): $Cancell
     return $Call.ByID(2072746294, id, index);
 }
 
+/**
+ * GuideUnmerge takes back one GuideMerge by the undo id it answered, or rejects with the reason it cannot (an entry changed since).
+ */
+export function GuideUnmerge(undoID: string): $CancellablePromise<string> {
+    return $Call.ByID(3062238351, undoID);
+}
+
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {
     return $Call.ByID(171684836, id, otherID, label);
 }
