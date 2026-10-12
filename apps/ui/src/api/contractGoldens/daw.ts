@@ -1,5 +1,5 @@
 // The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
-// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
+// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
@@ -23,4 +23,8 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-hide-takes-done.json': dawResultSchema,
   'daw-hide-takes-nothing.json': dawResultSchema,
   'daw-hide-takes-refused.json': dawResultSchema,
+  // DawRoll (bindings_daw_roll_test.go): rolled with no undo point of its own, refused until confirmed where punch is destructive, a stale track.
+  'daw-roll-done.json': dawResultSchema,
+  'daw-roll-refused-confirm.json': dawResultSchema,
+  'daw-roll-refused-stale.json': dawResultSchema,
 };

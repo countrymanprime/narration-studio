@@ -596,6 +596,20 @@ export function DawProjectState(): $CancellablePromise<string> {
 }
 
 /**
+ * DawRoll stops the recording this app started on chapterID's linked track and records again from at (project seconds),
+ * keeping the earlier audio as a take (SND-6a, ADR 0860 point 1; the Studio Next mock's roll). The page sends the chapter
+ * id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
+ * (docs/architecture/threat-model.md, row 5f). The answer is a DawResult (ADR 0810): the punch capability's own sentence
+ * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off),
+ * checked first; a time that is not a number of seconds or is past where the DAW records now; the confirmation sentence
+ * when the capability is destructive and confirmed is false; and a gone track as the role's stale refusal. Nothing is sent
+ * to the DAW on any refusal. A chapter the manuscript does not have is an error.
+ */
+export function DawRoll(chapterID: string, at: number, confirmed: boolean): $CancellablePromise<string> {
+    return $Call.ByID(2752092233, chapterID, at, confirmed);
+}
+
+/**
  * DeliveryDeleteProfile deletes a custom profile and answers the profiles again; a project that chose it is judged
  * against the Global default from then on, with a notice.
  */

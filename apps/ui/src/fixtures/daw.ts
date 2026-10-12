@@ -173,6 +173,11 @@ export const DAW_ANSWERS = {
   staleHide: "That take isn't one of this passage's takes any more, so nothing was changed. The list has been read again.",
   /** internal/passagetakes' hide.go: a kept candidate from another item or lane, which hide_takes cannot keep. */
   hideNotOnItem: "Only a take of this passage's own item can be kept while the others are muted. Use this take first, then hide the others.",
+  /** bindings_daw_roll.go (SN-D64): an unconfirmed roll where `punch` is destructive, and a roll time that is not a number of seconds. */
+  rollConfirm: 'This will replace the audio from here on. Confirm to continue.',
+  rollBadTime: 'The roll time is not a usable number of seconds.',
+  /** dawport/reaper's puncher: the chapter's track is gone, answered with code stale. */
+  rollStale: 'That track is no longer in the REAPER project. Read the project again.',
 } as const;
 
 const plural = (count: number): string => (count === 1 ? '' : 's');
@@ -192,6 +197,22 @@ export function pickupMarkersReadAnswer(open: number, done: number): string {
 export function takesHiddenAnswer(muted: number, daw: string): string {
   if (muted === 0) return `No other take to mute in ${daw}.`;
   return muted === 1 ? `Muted 1 other take in ${daw}. It is still in the project.` : `Muted ${muted} other takes in ${daw}. They are still in the project.`;
+}
+
+/** dawport/reaper's puncher: a roll from `at` seconds that kept the earlier audio as a take (ADR 0860; no undo point of its own). */
+export function rolledAnswer(at: number): string {
+  return `Rolled again from ${at.toFixed(1)} seconds. The earlier audio is kept as a take.`;
+}
+
+/** A roll on a DAW whose `punch` is destructive, once the narrator confirmed. No adapter declares one yet; the mock's Audacity words it. */
+export function rolledReplacingAnswer(at: number): string {
+  return `Rolled again from ${at.toFixed(1)} seconds. The audio from here on was replaced.`;
+}
+
+/** What a roll from `at` answers on one of DAW_SETUPS once it is allowed (and confirmed where destructive): REAPER keeps the earlier
+ * audio with no undo point of its own; a destructive DAW replaces it in one undo step. */
+export function rolledOf(setup: DawCapabilities, at: number): { message: string; undoSteps: number } {
+  return setup.capabilities.punch?.destructive ? { message: rolledReplacingAnswer(at), undoSteps: 1 } : { message: rolledAnswer(at), undoSteps: 0 };
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */

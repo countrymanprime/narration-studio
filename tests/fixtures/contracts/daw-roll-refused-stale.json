@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "That track is no longer in the REAPER project. Read the project again.",
+  "undoSteps": 0,
+  "refused": "That track is no longer in the REAPER project. Read the project again.",
+  "code": "stale"
+}
