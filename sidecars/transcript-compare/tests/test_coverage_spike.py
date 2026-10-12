@@ -1,4 +1,4 @@
-"""The Phase 2 alignment spike, pinned: coverage over `SequenceMatcher` scores every committed
+"""The alignment spike, pinned: coverage over `SequenceMatcher` scores every committed
 recording-coverage case correctly and never calls an incomplete chapter complete, and the DP
 prototype it was measured against is a valid alignment
 (docs/utilities/recording-coverage.md, ADR 0126, Q2; `docs/research/recording-coverage-alignment-spike.md`)."""

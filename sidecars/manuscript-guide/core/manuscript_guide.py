@@ -36,7 +36,7 @@ from narration_common.ports.pronunciation import SOURCES
 from narration_common.ports.tts import ENGINES as TTS_ENGINES
 from narration_common.progress import write_progress
 
-# Importing this also registers Piper into ENGINES and CMU/eSpeak into SOURCES (ADR 0301, provider-ports P8).
+# Importing this also registers Piper into ENGINES and CMU/eSpeak into SOURCES (ADR 0301).
 from providers import load_voice, synthesize_to_file
 
 SCHEMA_VERSION = 2
@@ -445,7 +445,7 @@ def classify(candidate: dict[str, str]) -> str:
     return "Needs Review"
 
 
-# The narrator's choices for --source: the pronunciation source registry's own names (ADR 0301, provider-ports P8).
+# The narrator's choices for --source: the pronunciation source registry's own names (ADR 0301).
 PRONUNCIATION_SOURCES = SOURCES.names()
 
 

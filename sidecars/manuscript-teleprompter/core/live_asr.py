@@ -96,8 +96,7 @@ turns them into these three event types:
         microphone before Start; with --capture NAME it meters through that
         capture row (wasapi: the built-in recorder's device, before Record)
     {"type": "recorded", "path": "...", "sampleRate": 48000, "channels": 1, "bits": 24, "frames": 96000, "seconds": 2.0, "overflows": 0, "droppedBlocks": 0, "droppedFrames": 0, "clipped": 0, "latencyMs": 10.0, "error": null}
-        only with --record PATH --mic NAME --stop-file F (native-recording
-        P2): once, last, after the `level` events of the take it recorded
+        only with --record PATH --mic NAME --stop-file F: once, last, after the `level` events of the take it recorded
         into PATH through --capture's row (wasapi by default); `error` says
         why a take ended on its own (the device or the disk failed), with the
         audio before it kept
@@ -131,11 +130,11 @@ _CORE_DIR = Path(__file__).resolve().parent
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
-# Registers the "whisper" and "moonshine" rows into ENGINES (provider-ports P5); --engine's choices and the argument
+# Registers the "whisper" and "moonshine" rows into ENGINES (ADR 0301); --engine's choices and the argument
 # checks below go through this registry rather than comparing engine names themselves.
 import asr_adapters  # noqa: F401
 
-# Registers the "dshow" row into BACKENDS (provider-ports P11); iter_microphone_chunks below looks it up rather than
+# Registers the "dshow" row into BACKENDS (ADR 0301); iter_microphone_chunks below looks it up rather than
 # calling devices.py/PyAV itself.
 import capture_dshow  # noqa: F401
 
@@ -144,7 +143,7 @@ import capture_dshow  # noqa: F401
 import capture_wasapi  # noqa: F401
 from narration_common.logging_utils import log, set_log_file
 
-# Word and Hypothesis are the speech engine port's types (provider-ports P3); they are re-exported here so `live_asr.Hypothesis`
+# Word and Hypothesis are the speech engine port's types (ADR 0301); they are re-exported here so `live_asr.Hypothesis`
 # and every other existing import keep working.
 from narration_common.ports.asr import ENGINES, Hypothesis, LiveRequest, Word
 from narration_common.ports.capture import BACKENDS
@@ -472,8 +471,8 @@ def iter_wav_chunks(path: str, chunk_seconds: float = CHUNK_SECONDS) -> Iterator
 
 
 def iter_microphone_chunks(device_name: str, chunk_seconds: float = CHUNK_SECONDS) -> Iterator[np.ndarray]:
-    """Capture live mic audio through this platform's capture backend (provider-ports P11: on Windows, PyAV's dshow
-    input, capture_dshow.py). The lookup does not check platform, the same as ENGINES.lookup does not (P5) - the
+    """Capture live mic audio through this platform's capture backend (on Windows, PyAV's dshow
+    input, capture_dshow.py). The lookup does not check platform, the same as ENGINES.lookup does not - the
     registry has only this one row - so running this off Windows still fails exactly where it always did, opening
     "dshow" through PyAV, not at the lookup with some new message of its own."""
     return BACKENDS.lookup("dshow").chunks(device_name, chunk_seconds)

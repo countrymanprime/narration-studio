@@ -1,4 +1,4 @@
-"""asr_adapters.py (provider-ports P5): WhisperEngine and MoonshineEngine each pass the ASR port's conformance suite, and
+"""asr_adapters.py (ADR 0301): WhisperEngine and MoonshineEngine each pass the ASR port's conformance suite, and
 each refuses the argument combination its engine cannot take, in the exact words live_asr.py always used."""
 
 import sys

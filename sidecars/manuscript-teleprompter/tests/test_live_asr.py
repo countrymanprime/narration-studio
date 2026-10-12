@@ -988,7 +988,7 @@ def test_a_paused_session_hears_nothing_keeps_its_levels_and_does_not_wait(tmp_p
 
 @pytest.mark.parametrize("engine", ["whisper", "moonshine"])
 def test_main_loads_the_engine_the_flag_names_with_the_chapter_as_default_context(monkeypatch, engine):
-    # One lookup by --engine, no per-engine branch (provider-ports P15); Moonshine reads the chapter as its context and
+    # One lookup by --engine, no per-engine branch; Moonshine reads the chapter as its context and
     # Whisper, which takes none, ignores the key.
     loaded = []
     monkeypatch.setattr(live_asr, "_load_script", lambda ap, args: (None, None, "Call me Ishmael."))

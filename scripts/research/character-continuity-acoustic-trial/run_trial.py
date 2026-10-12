@@ -124,8 +124,8 @@ def leave_one_chapter_out(lines: list[dict], vectors: dict[str, np.ndarray]) -> 
     false_accept_rate = None
     false_reject_rate = None
     if same_char_distances and diff_char_distances:
-        # A conservative threshold: the same-character 90th percentile (Q6's "stable
-        # per-narrator threshold"). Flags fire when a candidate's distance to its own
+        # A conservative threshold: the same-character 90th percentile, a stable
+        # per-narrator threshold. Flags fire when a candidate's distance to its own
         # baseline exceeds this.
         threshold = float(np.percentile(same_char_distances, 90))
         false_reject_rate = float(np.mean(np.array(same_char_distances) > threshold))
