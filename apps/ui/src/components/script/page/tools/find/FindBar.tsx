@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { Highlight } from '../../../../primitives/Highlight';
 import { IconButton } from '../../../../primitives/IconButton';
+import { Panel } from '../../../../primitives/Panel';
 import { TextField } from '../../../../primitives/TextField';
 import { findCountText, type FindState } from './findState';
 import { FIND_LIST_LIMIT, type FindMatch } from './searchManuscript';
@@ -84,7 +86,7 @@ export function FindBar({
         <IconButton action="close" label="Close search (Esc)" onClick={close} />
       </div>
       {listShown ? (
-        <div className="mt-1.5 max-h-[220px] overflow-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]" aria-label="Search results">
+        <Panel label="Search results" flush scroll className="mt-1.5 max-h-[220px]">
           {matches.slice(0, FIND_LIST_LIMIT).map((match, index) => (
             // native-control-ok: a result row is a whole-width button holding its location and snippet, which IconButton and Button cannot draw.
             <button
@@ -101,7 +103,7 @@ export function FindBar({
               <span className="w-[92px] flex-none font-mono text-xs font-medium text-[var(--text-muted)]">{locationOf(match)}</span>
               <span>
                 {match.snippet.pre}
-                <mark className="rounded-[2px] bg-[var(--warn-soft)] text-inherit">{match.snippet.hit}</mark>
+                <Highlight kind="Search">{match.snippet.hit}</Highlight>
                 {match.snippet.post}
               </span>
             </button>
@@ -109,7 +111,7 @@ export function FindBar({
           {count > FIND_LIST_LIMIT ? (
             <div className="px-2.5 py-1.5 text-sm text-[var(--text-muted)]">{count - FIND_LIST_LIMIT} more. Refine your search.</div>
           ) : null}
-        </div>
+        </Panel>
       ) : null}
     </div>
   );
