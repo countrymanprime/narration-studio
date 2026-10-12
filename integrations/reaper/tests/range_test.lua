@@ -475,7 +475,8 @@ H.test('a REAPER without the calls room tone needs refuses before any change', f
   refused(s, p, 'This REAPER version cannot fill a cut with room tone.', p.item.guid, '14', '16', 'gap', '0', '', '1')
 end)
 
-H.test('delete_range without pad or room tone is unchanged: the gap stays silence', function()
+H.test('delete_range without pad or room tone is unchanged', function()
+  -- The gap stays silence, and the existing cases above pass as they were.
   local s, p = with_room_tone()
   s:send('delete_range', 'c1', p.item.guid, '14', '16', 'gap', '0')
   local cut = cuts_track(s).items[1]
