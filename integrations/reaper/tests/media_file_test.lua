@@ -258,7 +258,7 @@ H.test('reveal_file on a REAPER without OpenMediaExplorer refuses', function()
 end)
 
 H.test('a path that starts with a slash is refused where the separator is a backslash: on Windows it is relative to the drive', function()
-  local s, path = new_session()
+  local s = new_session()
   local events = {}
   -- The feature file on its own, with Windows' separator and a core that records events and finds every file.
   local core = {
@@ -276,7 +276,7 @@ H.test('a path that starts with a slash is refused where the separator is a back
       commands[name] = handler
     end,
   })
-  commands.reveal_file({ session_dir = s.dir }, { 'r1', path })
+  commands.reveal_file({ session_dir = s.dir }, { 'r1', '/Renders/Chapter 01.wav' })
   commands.reveal_file({ session_dir = s.dir }, { 'r2', 'C:\\Renders\\Chapter 01.wav' })
   H.eq(events, { { 'ERROR', 'r1', 'That is not an audio file this app can play or show.' }, { 'FILE_REVEALED', 'r2', 'C:\\Renders\\Chapter 01.wav' } })
 end)
