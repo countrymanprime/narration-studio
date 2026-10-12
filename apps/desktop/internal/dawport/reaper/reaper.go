@@ -44,7 +44,8 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
-	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes.
+	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file
+	// (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -69,6 +70,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapFXRange:    dawport.Experimental,
 	dawport.CapStackTakes: dawport.Experimental,
 	dawport.CapBackups:    dawport.NotYetAvailable,
+	// The file rows (SN-B98, narration_media_file.lua): preview_file_range, stop_file_preview and reveal_file.
+	dawport.CapFilePreview: dawport.Experimental,
+	dawport.CapFileReveal:  dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -94,6 +98,9 @@ var commandCapability = map[string]dawport.Capability{
 	"remove_fx_range":     dawport.CapFXRange,
 	"stack_takes":         dawport.CapStackTakes,
 	"unstack_takes":       dawport.CapStackTakes,
+	"preview_file_range":  dawport.CapFilePreview,
+	"stop_file_preview":   dawport.CapFilePreview,
+	"reveal_file":         dawport.CapFileReveal,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -201,6 +208,8 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapCutRange:        rangeCutter{actions, allowed},
 			dawport.CapFXRange:         rangeFXApplier{actions, allowed},
 			dawport.CapStackTakes:      takeStacker{actions, allowed},
+			dawport.CapFilePreview:     actions,
+			dawport.CapFileReveal:      actions,
 		},
 	}, nil
 }

@@ -65,6 +65,16 @@ function Fake.new(host)
   -- autoxfade). A name a test leaves unset reads as `false, ''`. Nothing in the fake writes them.
   self.config = {}
   self.exit_handlers = {}
+  -- Previews of files on disk (narration_media_file.lua): every CF_CreatePreview, in order, as
+  -- { source, values, playing, stopped, gone }. media_lengths is GetMediaSourceLength by file path (a path left out is
+  -- 0 seconds long); unreadable_sources names files PCM_Source_CreateFromFile answers nil for. Modelled on the reference text
+  -- (SWS's ReaScript.cpp and the REAPER SDK's reaper_plugin_functions.h, read on GitHub on 2026-10-12), not on a run in REAPER
+  -- (pending the QA pass, #1495).
+  self.previews = {}
+  self.media_lengths = {}
+  self.unreadable_sources = {}
+  self.sources_created = 0
+  self.sources_destroyed = 0
   -- The master track (GetMasterTrack): not in self.tracks, as REAPER keeps it out of CountTracks/GetTrack. Its GUID is
   -- fixed so it never shifts the GUIDs the other tests' tracks and items get.
   self.master = { name = 'MASTER', items = {}, guid = '{0000FFFF-0000-4000-8000-00000000FFFE}', armed = false }
@@ -272,6 +282,18 @@ function Fake:pump()
   for _, fn in ipairs(queue) do
     fn()
   end
+  -- The SWS reference: a preview is destroyed at the end of a defer cycle once playback finished or was never started with
+  -- CF_Preview_Play. Its pointer is then invalid, which the fake shows as CF_Preview_GetValue answering false.
+  for _, preview in ipairs(self.previews) do
+    if preview.finished or not preview.playing then
+      preview.gone = true
+    end
+  end
+end
+
+-- Ends a preview the way playback reaching the end of the file does: SWS destroys it at the end of the cycle.
+function Fake:finish_preview(preview)
+  preview.finished = true
 end
 
 -- Ends the script the way REAPER does when the narrator terminates it or quits: every reaper.atexit handler runs once.
@@ -1065,7 +1087,60 @@ function Fake:add_take_api(api)
   -- PCM_Source_CreateFromFile does not check the file exists here; the fake's source is an opaque handle, the same
   -- way REAPER's is. create_take checks the file itself (core.file_exists) before calling this.
   function api.PCM_Source_CreateFromFile(path)
+    if fake.unreadable_sources[path] then
+      return nil
+    end
+    fake.sources_created = fake.sources_created + 1
     return { file = path }
+  end
+  -- GetMediaSourceLength(source): the length in seconds and whether it is in quarter notes (never, for audio).
+  function api.GetMediaSourceLength(source)
+    return fake.media_lengths[source.file] or 0, false
+  end
+  function api.PCM_Source_Destroy(source)
+    fake.sources_destroyed = fake.sources_destroyed + 1
+    source.destroyed = true
+  end
+  -- SWS previews (CF_CreatePreview and CF_Preview_*), from the SWS reference text: the preview does not take ownership of
+  -- the source, and CF_Preview_Stop stops and destroys it. A value set or read on a destroyed preview fails here; what SWS
+  -- answers for one is not documented, and not run in REAPER.
+  function api.CF_CreatePreview(source)
+    local preview = { source = source, values = { D_POSITION = 0, B_LOOP = 0 }, playing = false, stopped = false, gone = false }
+    fake.previews[#fake.previews + 1] = preview
+    return preview
+  end
+  function api.CF_Preview_SetValue(preview, name, value)
+    if preview.gone then
+      return false
+    end
+    preview.values[name] = value
+    return true
+  end
+  function api.CF_Preview_GetValue(preview, name)
+    if preview.gone then
+      return false, 0
+    end
+    return true, preview.values[name] or 0
+  end
+  function api.CF_Preview_Play(preview)
+    if preview.gone then
+      return false
+    end
+    preview.playing = true
+    return true
+  end
+  function api.CF_Preview_Stop(preview)
+    if preview.gone then
+      return false
+    end
+    preview.stopped = true
+    preview.gone = true
+    return true
+  end
+  -- OpenMediaExplorer(mediafn, play): opens the file in the Media Explorer; play false "will just select it" (the SDK's text).
+  function api.OpenMediaExplorer(path, play)
+    fake.calls[#fake.calls + 1] = { name = 'OpenMediaExplorer', path = path, play = play }
+    return true
   end
   -- GUID and take-level extension data (ADR 0098, extending ADR 0026's item-level P_EXT to take granularity). A
   -- missing P_EXT key reads as `false, ''`, like REAPER, and like the item-level function above.

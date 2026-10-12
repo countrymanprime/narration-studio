@@ -48,6 +48,8 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   fx_range: 'experimental',
   stack_takes: 'experimental',
   backups: 'not_yet_available',
+  file_preview: 'experimental',
+  file_reveal: 'experimental',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
@@ -193,7 +195,21 @@ export const DAW_PROJECT: DawProject = {
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
  * `noTrack` and `staleTake` are the host's stale answers, so the mock refuses them with code `stale` (ADR 0861). */
+/** The answer DawPreviewFileRange gives when `length` seconds of the file at `path` play from `start` (bindings_daw_files.go). */
+export const filePreviewAnswer = (path: string, start: number, length: number): string =>
+  `Playing ${length.toFixed(1)} s of ${fileName(path)} from ${start.toFixed(1)} s.`;
+
+/** The answer DawRevealFile gives when the file at `path` is shown in `daw`. */
+export const fileRevealAnswer = (path: string, daw: string): string => `Showing ${fileName(path)} in ${daw}.`;
+
+const fileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
+
 export const DAW_ANSWERS = {
+  /** apps/desktop/bindings_daw_files.go (SN-B98): a file played or shown, and the host's refusals of a path or a stretch. */
+  fileStopped: 'Stopped playing the file.',
+  fileNothingPlaying: 'Nothing was playing.',
+  fileNotPicked: 'Pick the file to measure again: only a file picked in this session can be played or shown.',
+  fileBadStretch: 'The stretch to play is not a usable number of seconds (up to 60).',
   noTrack: 'The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel.',
   staleTake: "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now.",
   takeUsed:

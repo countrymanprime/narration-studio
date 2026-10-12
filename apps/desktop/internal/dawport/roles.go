@@ -44,6 +44,11 @@ type (
 	GainCandidate   = bridge.GainCandidate
 	ApplyGainResult = bridge.ApplyGainResult
 
+	FilePreview        = bridge.FilePreview
+	FilePreviewStarted = bridge.FilePreviewStarted
+	FilePreviewStopped = bridge.FilePreviewStopped
+	FileRevealed       = bridge.FileRevealed
+
 	Project = tracks.Project
 
 	Transport = daw.Transport
@@ -255,6 +260,19 @@ type TrackStateReader interface {
 // every other one. It changes nothing else.
 type TrackSelector interface {
 	SelectTrack(ctx context.Context, trackGUID string) (SelectedTrack, error)
+}
+
+// FilePreviewer plays a stretch of a file on disk through the engine's own preview, and stops it. It never inserts the file,
+// makes an undo point or moves the project's transport: the project is unchanged. The path is one the narrator picked; a path
+// that is not an absolute local path to an audio file is refused before anything is sent.
+type FilePreviewer interface {
+	PreviewFileRange(ctx context.Context, preview FilePreview) (FilePreviewStarted, error)
+	StopFilePreview(ctx context.Context) (FilePreviewStopped, error)
+}
+
+// FileRevealer shows a file on disk in the engine's own file browser without importing or playing it. The project is unchanged.
+type FileRevealer interface {
+	RevealFile(ctx context.Context, path string) (FileRevealed, error)
 }
 
 // Recorder arms a track, starts and stops recording, and reports a recording the narrator stopped in the engine.

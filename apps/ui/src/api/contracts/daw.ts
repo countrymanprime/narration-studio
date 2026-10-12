@@ -81,7 +81,9 @@ export type DawCapabilityKey =
   | 'cut_range'
   | 'fx_range'
   | 'stack_takes'
-  | 'backups';
+  | 'backups'
+  | 'file_preview'
+  | 'file_reveal';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -122,6 +124,8 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'fx_range', label: 'Add an effect to words' },
   { key: 'stack_takes', label: 'Stack takes' },
   { key: 'backups', label: 'Audio backups' },
+  { key: 'file_preview', label: 'Play part of a file' },
+  { key: 'file_reveal', label: 'Show a file in the audio engine' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
@@ -217,6 +221,17 @@ export interface DawBackupsApi {
   dawBackupAround(chapterId: string, firstToken: number, lastToken: number, label: string): Promise<DawResult>;
   dawRestoreBackup(backupId: string): Promise<DawResult>;
   dawBackups(): Promise<DawBackupsFile>;
+}
+
+/** DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98; apps/desktop/bindings_daw_files.go): play `length` seconds (at
+ * most 60) of a file on disk from `start`, in the file's own seconds, stop that preview, and show a file in the DAW's own file browser,
+ * all leaving the project unchanged (no undo step). The path is one the host's measurement result named: the host plays or shows only a
+ * file the narrator picked to measure in this session, and only an absolute local path to an audio file that is there. A capability
+ * refusal carries the capability's sentence; a path or stretch the host refuses, and a refusal the DAW answers, carry a sentence. */
+export interface DawFilesApi {
+  dawPreviewFileRange(path: string, start: number, length: number): Promise<DawResult>;
+  dawStopFilePreview(): Promise<DawResult>;
+  dawRevealFile(path: string): Promise<DawResult>;
 }
 
 export interface DawProjectStateApi {

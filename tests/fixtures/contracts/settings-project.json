@@ -531,6 +531,34 @@
       "kind": "choice",
       "label": "Audio backups",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.file_preview",
+      "kind": "choice",
+      "label": "Play part of a file",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.file_reveal",
+      "kind": "choice",
+      "label": "Show a file in the audio engine",
+      "value": ""
     }
   ],
   "Editing": [

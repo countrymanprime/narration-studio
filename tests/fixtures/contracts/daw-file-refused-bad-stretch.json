@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "The stretch to play is not a usable number of seconds (up to 60).",
+  "undoSteps": 0,
+  "refused": "The stretch to play is not a usable number of seconds (up to 60)."
+}

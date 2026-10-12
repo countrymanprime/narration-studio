@@ -626,6 +626,15 @@ export function DawLaunch(): $CancellablePromise<string> {
 }
 
 /**
+ * DawPreviewFileRange plays length seconds of the file at path from start (the file's own seconds) through the DAW's preview,
+ * never through the project, stopping a preview this app started before. The resolver's file_preview sentence comes first,
+ * then the stretch, then the path; nothing is sent to the DAW on any refusal.
+ */
+export function DawPreviewFileRange(path: string, start: number, length: number): $CancellablePromise<string> {
+    return $Call.ByID(4279548801, path, start, length);
+}
+
+/**
  * DawProjectState answers {savedAt, unsavedChanges, playState, playPosition} (dawport.ProjectState). With no DAW, the
  * heartbeat capability unavailable or turned off, or a DAW not answering, it is the idle payload: stopped, 0, null, false.
  */
@@ -656,6 +665,14 @@ export function DawRestoreBackup(backupID: string): $CancellablePromise<string> 
 }
 
 /**
+ * DawRevealFile shows the file at path in the DAW's own file browser without importing or playing it. The resolver's
+ * file_reveal sentence comes first, then the path; nothing is sent to the DAW on any refusal.
+ */
+export function DawRevealFile(path: string): $CancellablePromise<string> {
+    return $Call.ByID(4263544213, path);
+}
+
+/**
  * DawRoll stops the recording this app started on chapterID's linked track and records again from at (project seconds),
  * keeping the earlier audio as a take (SND-6a, ADR 0860 point 1; the Studio Next mock's roll). The page sends the chapter
  * id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
@@ -683,6 +700,13 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
  */
 export function DawStackTakes(chapterID: string, passageIDs: string[]): $CancellablePromise<string> {
     return $Call.ByID(2899813770, chapterID, passageIDs);
+}
+
+/**
+ * DawStopFilePreview stops the preview this app started; with none playing it changes nothing.
+ */
+export function DawStopFilePreview(): $CancellablePromise<string> {
+    return $Call.ByID(1026294444);
 }
 
 /**

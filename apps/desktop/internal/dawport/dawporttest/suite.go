@@ -322,4 +322,6 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapFXRange:         check[dawport.RangeFXApplier](),
 	dawport.CapStackTakes:      check[dawport.TakeStacker](),
 	dawport.CapBackups:         check[dawport.BackupKeeper](),
+	dawport.CapFilePreview:     check[dawport.FilePreviewer](),
+	dawport.CapFileReveal:      check[dawport.FileRevealer](),
 }

@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "Pick the file to measure again: only a file picked in this session can be played or shown.",
+  "undoSteps": 0,
+  "refused": "Pick the file to measure again: only a file picked in this session can be played or shown."
+}

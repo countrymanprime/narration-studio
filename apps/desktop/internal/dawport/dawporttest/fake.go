@@ -75,6 +75,8 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapFXRange:         fxRangeRole{r(dawport.CapFXRange)},
 		dawport.CapStackTakes:      stackTakesRole{r(dawport.CapStackTakes)},
 		dawport.CapBackups:         backupsRole{r(dawport.CapBackups)},
+		dawport.CapFilePreview:     filePreviewRole{r(dawport.CapFilePreview)},
+		dawport.CapFileReveal:      fileRevealRole{r(dawport.CapFileReveal)},
 	}
 	return f
 }
@@ -241,6 +243,21 @@ type trackSelectRole struct{ role }
 
 func (r trackSelectRole) SelectTrack(context.Context, string) (dawport.SelectedTrack, error) {
 	return dawport.SelectedTrack{}, r.do("SelectTrack")
+}
+
+type filePreviewRole struct{ role }
+
+func (r filePreviewRole) PreviewFileRange(context.Context, dawport.FilePreview) (dawport.FilePreviewStarted, error) {
+	return dawport.FilePreviewStarted{}, r.do("PreviewFileRange")
+}
+func (r filePreviewRole) StopFilePreview(context.Context) (dawport.FilePreviewStopped, error) {
+	return dawport.FilePreviewStopped{}, r.do("StopFilePreview")
+}
+
+type fileRevealRole struct{ role }
+
+func (r fileRevealRole) RevealFile(context.Context, string) (dawport.FileRevealed, error) {
+	return dawport.FileRevealed{}, r.do("RevealFile")
 }
 
 type recordRole struct{ role }

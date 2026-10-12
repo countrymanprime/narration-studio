@@ -44,6 +44,8 @@ var swappableHostFields = map[string]bool{
 	"rangeCutter":     true,
 	"rangeFX":         true,
 	"takeStacker":     true,
+	"filePreviewer":   true,
+	"fileRevealer":    true,
 	"backupKeeper":    true,
 	"dawPortResolver": true,
 }
