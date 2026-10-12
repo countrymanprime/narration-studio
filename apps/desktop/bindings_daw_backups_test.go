@@ -28,6 +28,7 @@ type fakeBackupKeeper struct {
 	backedUp []dawport.BackupRequest
 	restored []string
 	pruned   []time.Duration
+	gone     bool
 	answer   dawport.Result
 	err      error
 }
@@ -46,6 +47,8 @@ func (f *fakeBackupKeeper) Prune(_ context.Context, retention time.Duration) ([]
 	f.pruned = append(f.pruned, retention)
 	return nil, f.err
 }
+
+func (f *fakeBackupKeeper) replaced() bool { return f.gone }
 
 func (f *fakeBackupKeeper) sent() int { return len(f.backedUp) + len(f.restored) }
 
@@ -306,18 +309,19 @@ func TestThePruneOnOpenUsesTheRetentionOnlyWhileBackupsCanBeUsed(t *testing.T) {
 	if err := host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
 		t.Fatal(err)
 	}
-	host.pruneBackupsOnOpen(role)
+	host.pruneBackupsOnOpen(host.services(), role)
 	if !reflect.DeepEqual(role.pruned, []time.Duration{3 * 24 * time.Hour}) {
 		t.Fatalf("pruned %v, want once with three days", role.pruned)
 	}
-	host.pruneBackupsOnOpen(&fakeBackupKeeper{})
-	if len(role.pruned) != 1 {
+	replaced := &fakeBackupKeeper{gone: true}
+	host.pruneBackupsOnOpen(host.services(), replaced)
+	if len(replaced.pruned) != 0 {
 		t.Fatalf("a replaced role was pruned")
 	}
 
 	off := &fakeBackupKeeper{}
 	notConnected := backupHost(t, "Audacity", false, off, "on")
-	notConnected.pruneBackupsOnOpen(off)
+	notConnected.pruneBackupsOnOpen(notConnected.services(), off)
 	if len(off.pruned) != 0 {
 		t.Fatalf("pruned while Audacity is not connected")
 	}
@@ -367,4 +371,18 @@ func TestDawBackupsContractGoldenIsCurrent(t *testing.T) {
 		writeBackupsFile(t, project, twoBackupsFile)
 		contractfile.Check(t, "daw-backups-list", decode(encodeBinding(dawBackupsIn(project, nil))))
 	})
+}
+
+// Closing the role's pipe when the next project replaces it marks it replaced, so a prune that has not started leaves it alone.
+func TestAReplacedAudacityBackupsRoleIsNotPruned(t *testing.T) {
+	role := audacityBackupsFor(t.TempDir(), nil, nil)
+	if role.replaced() {
+		t.Fatalf("a new role reads as replaced")
+	}
+	role.closePipe()
+	if !role.replaced() {
+		t.Fatalf("a closed role does not read as replaced")
+	}
+	host := backupHost(t, "Audacity", true, role, "on")
+	host.pruneBackupsOnOpen(host.services(), role)
 }

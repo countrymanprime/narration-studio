@@ -697,7 +697,9 @@ func (h *Host) configureLocked(next config) {
 	h.backupKeeper = nil
 	if h.config.projectFolder != "" && dawport.Classify(h.config.daw) == dawport.KindAudacity {
 		h.backupKeeper = audacityBackupsFor(h.config.projectFolder, h.persist, settingsStore)
-		go h.pruneBackupsOnOpen(h.backupKeeper)
+		// The prune runs after the lock is released, over a snapshot taken here: services() cannot be called under h.mu.
+		snapshot := hostServices{config: h.config, settings: h.settings, bridge: h.bridge, reachability: h.reachability, backupKeeper: h.backupKeeper}
+		go h.pruneBackupsOnOpen(snapshot, h.backupKeeper)
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,

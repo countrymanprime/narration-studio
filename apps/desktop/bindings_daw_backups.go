@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -238,15 +239,15 @@ type backupPruner interface {
 
 // pruneBackupsOnOpen removes the backups older than the narrator's retention, and their tracks, once a project opens. It runs only
 // while the resolver says backups can be used, so it never sends Audacity anything while the app reports it is not connected, and
-// it waits for a restore in flight (Prune holds the role's lock). A project switched away from before it starts is left alone. A
-// track Audacity would not remove keeps its row, and the failure is logged.
-func (h *Host) pruneBackupsOnOpen(keeper dawport.BackupKeeper) {
+// it waits for a restore in flight (Prune holds the role's lock). A role a later project already replaced is left alone. A track
+// Audacity would not remove keeps its row, and the failure is logged. configureLocked starts it in its own goroutine with svc, a
+// snapshot it took under h.mu, so it never reads the Host's swappable fields itself.
+func (h *Host) pruneBackupsOnOpen(svc hostServices, keeper dawport.BackupKeeper) {
 	pruner, ok := keeper.(backupPruner)
 	if !ok {
 		return
 	}
-	svc := h.services()
-	if svc.backupKeeper != keeper {
+	if role, ok := keeper.(interface{ replaced() bool }); ok && role.replaced() {
 		return
 	}
 	resolver, _ := h.dawResolverFor(svc)
@@ -272,9 +273,16 @@ func newestFirst(rows []audacity.Backup) []audacity.Backup {
 type audacityBackups struct {
 	*audacity.Backups
 	pipe *audacitybridge.Client
+	// closed is set when the next project replaces the role, so a prune that has not started yet leaves it alone.
+	closed *atomic.Bool
 }
 
-func (a audacityBackups) closePipe() { _ = a.pipe.Close() }
+func (a audacityBackups) closePipe() {
+	a.closed.Store(true)
+	_ = a.pipe.Close()
+}
+
+func (a audacityBackups) replaced() bool { return a.closed.Load() }
 
 // audacityBackupsFor is the Audacity backups role for the project configureLocked opens, with its table under project and the
 // narrator's window read from store on each backup. The pipe is opened on the role's first request, never here.
@@ -285,5 +293,5 @@ func audacityBackupsFor(project string, reporter *persist.Reporter, store *setti
 		Reporter:      reporter,
 		WindowSetting: func() float64 { return backupWindowSeconds(store) },
 	})
-	return audacityBackups{Backups: adapter.Backups(), pipe: pipe}
+	return audacityBackups{Backups: adapter.Backups(), pipe: pipe, closed: &atomic.Bool{}}
 }
