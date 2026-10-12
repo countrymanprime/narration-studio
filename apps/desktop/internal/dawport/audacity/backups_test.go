@@ -35,6 +35,10 @@ type pipeAudacity struct {
 	log      []string
 	// failOn answers Failed! to the first command of that name.
 	failOn string
+	// failOnNth answers Failed! to the nth command of that name.
+	failOnNth map[string]int
+	// ignoreNames answers SetTrackStatus OK without renaming, so a backup's track is never found again.
+	ignoreNames bool
 }
 
 type fakeTrack struct {
@@ -117,6 +121,13 @@ func (f *pipeAudacity) handle(line string) ([]string, bool) {
 	if f.failOn != "" && cmd.Name == f.failOn {
 		f.failOn = ""
 		return []string{cmd.Name + " failed."}, false
+	}
+	if n, ok := f.failOnNth[cmd.Name]; ok {
+		if n == 1 {
+			delete(f.failOnNth, cmd.Name)
+			return []string{cmd.Name + " failed."}, false
+		}
+		f.failOnNth[cmd.Name] = n - 1
 	}
 	switch cmd.Name {
 	case "GetInfo":
@@ -205,7 +216,7 @@ func (f *pipeAudacity) handle(line string) ([]string, bool) {
 			return []string{"Track is out of range."}, false
 		}
 		t := f.tracks[int(index)]
-		if name, ok := cmd.Params["Name"]; ok {
+		if name, ok := cmd.Params["Name"]; ok && !f.ignoreNames {
 			t.name = name
 		}
 		if mute, ok := cmd.Params["Mute"]; ok {
@@ -745,4 +756,134 @@ func boolInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// A prune that Audacity stops part way writes the table without the rows whose tracks are already gone, and keeps the rest, so
+// a row never outlives its track and no track is left without its row.
+func TestAPruneThatStopsPartWayKeepsTheTableInStepWithTheTracks(t *testing.T) {
+	ctx := context.Background()
+	fake := newPipeAudacity()
+	fake.addAudio("Chapter 1", 0, 300, "a")
+	now := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	backups, project := backupsOver(t, fake, &now)
+	for range 2 {
+		if _, err := backups.BackupAround(ctx, dawport.BackupRequest{GUID: "Chapter 1", ChapterID: "c", Start: 10, End: 11}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ids := []string{readTable(t, project).Backups[0].ID, readTable(t, project).Backups[1].ID}
+	now = now.AddDate(0, 0, 30)
+	// The first removal goes through; Audacity refuses the second.
+	fake.mu.Lock()
+	fake.failOnNth = map[string]int{"RemoveTracks": 2}
+	fake.mu.Unlock()
+	removed, err := backups.Prune(ctx, 7*24*time.Hour)
+	if !errors.Is(err, audacitybridge.ErrCommandFailed) || fmt.Sprint(removed) != fmt.Sprint(ids[:1]) {
+		t.Fatalf("Prune = %v, %v; want the first row removed and the failed command", removed, err)
+	}
+	table := readTable(t, project)
+	if len(table.Backups) != 1 || table.Backups[0].ID != ids[1] || fake.track(BackupTrackName(ids[1])) == nil {
+		t.Errorf("after a prune stopped part way the table is %+v", table)
+	}
+}
+
+func TestABackupIsRefusedWhenTheTableIsFull(t *testing.T) {
+	fake := newPipeAudacity()
+	fake.addAudio("Chapter 1", 0, 300, "a")
+	now := time.Now().UTC()
+	backups, project := backupsOver(t, fake, &now)
+	table := backupsTable{}
+	for i := range MaxBackups {
+		table.Backups = append(table.Backups, Backup{
+			ID: fmt.Sprintf("{11111111-1111-4111-8111-%012X}", i), GUID: "Chapter 1", ChapterID: "c", Start: 1, End: 2, CreatedAt: now,
+		})
+	}
+	if err := writeBackups(BackupsFile(project), table); err != nil {
+		t.Fatal(err)
+	}
+	result, err := backups.BackupAround(context.Background(), dawport.BackupRequest{GUID: "Chapter 1", ChapterID: "c", Start: 5, End: 6})
+	if err != nil || result.Refused != messageBackupTableFull || len(fake.commands()) != 0 {
+		t.Errorf("BackupAround over a full table = %+v, %v, sent %v", result, err, fake.commands())
+	}
+}
+
+func TestABackupAudacityDidNotKeepWritesNoRow(t *testing.T) {
+	fake := newPipeAudacity()
+	fake.addAudio("Chapter 1", 0, 300, "a")
+	fake.ignoreNames = true
+	now := time.Now()
+	backups, project := backupsOver(t, fake, &now)
+	_, err := backups.BackupAround(context.Background(), dawport.BackupRequest{GUID: "Chapter 1", ChapterID: "c", Start: 5, End: 6})
+	if !errors.Is(err, ErrBackupLost) {
+		t.Fatalf("err = %v, want ErrBackupLost", err)
+	}
+	if _, err := os.Stat(BackupsFile(project)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("a lost backup wrote a row: %v", err)
+	}
+}
+
+func TestARestoreAudacityRefusesIsAnError(t *testing.T) {
+	ctx := context.Background()
+	fake := newPipeAudacity()
+	fake.addAudio("Chapter 1", 0, 300, "a")
+	now := time.Now()
+	backups, project := backupsOver(t, fake, &now)
+	if _, err := backups.BackupAround(ctx, dawport.BackupRequest{GUID: "Chapter 1", ChapterID: "c", Start: 5, End: 6}); err != nil {
+		t.Fatal(err)
+	}
+	id := readTable(t, project).Backups[0].ID
+	for _, command := range []string{"Copy", "Paste", "SelectTracks"} {
+		fake.mu.Lock()
+		fake.failOn = command
+		fake.mu.Unlock()
+		if result, err := backups.RestoreBackup(ctx, id); !errors.Is(err, audacitybridge.ErrCommandFailed) || result.OK {
+			t.Errorf("a restore whose %s failed = %+v, %v", command, result, err)
+		}
+	}
+}
+
+func TestATableThatCannotBeReadRefusesAndIsLeftAlone(t *testing.T) {
+	fake := newPipeAudacity()
+	fake.addAudio("Chapter 1", 0, 300, "a")
+	now := time.Now()
+	backups, project := backupsOver(t, fake, &now)
+	// A folder where the file should be: it exists but cannot be read as a file.
+	if err := os.MkdirAll(BackupsFile(project), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	result, err := backups.BackupAround(context.Background(), dawport.BackupRequest{GUID: "Chapter 1", ChapterID: "c", Start: 5, End: 6})
+	if err != nil || result.Refused != messageBackupsUnreadable {
+		t.Errorf("BackupAround = %+v, %v; want refused with %q", result, err, messageBackupsUnreadable)
+	}
+	if _, err := backups.List(context.Background()); err == nil || err.Error() != messageBackupsUnreadable {
+		t.Errorf("List = %v", err)
+	}
+	if info, err := os.Stat(BackupsFile(project)); err != nil || !info.IsDir() {
+		t.Errorf("the unreadable path was changed: %v", err)
+	}
+}
+
+func TestListNeedsAProjectAndAudacity(t *testing.T) {
+	fake := newPipeAudacity()
+	none := NewBackups(audacitybridge.New(fake.transport(), audacitybridge.Options{}), BackupsConfig{})
+	if _, err := none.List(context.Background()); err == nil || err.Error() != messageBackupNoProject {
+		t.Errorf("List with no project = %v", err)
+	}
+	if _, err := none.Prune(context.Background(), time.Hour); err == nil {
+		t.Errorf("Prune with no project did not refuse")
+	}
+	now := time.Now()
+	backups, _ := backupsOver(t, fake, &now)
+	fake.failOn = "GetInfo"
+	if _, err := backups.List(context.Background()); !errors.Is(err, audacitybridge.ErrCommandFailed) {
+		t.Errorf("List with Audacity refusing = %v", err)
+	}
+}
+
+func TestSecondsWordsShortWindowsInTenths(t *testing.T) {
+	for in, want := range map[float64]string{2.25: "2.3", 9.94: "9.9", 14: "14", 259.6: "260"} {
+		if got := seconds(in); got != want {
+			t.Errorf("seconds(%v) = %q, want %q", in, got, want)
+		}
+	}
 }
