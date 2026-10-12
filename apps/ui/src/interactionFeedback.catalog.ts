@@ -4,6 +4,13 @@
 //
 // A site is `<file under apps/ui>::<NarrationApi method>#<n>`, the n-th call of that method in that file, in source order. Adding or removing a call
 // renumbers the ones after it in the same file; the test names the keys that changed.
+//
+// Adding a call to the host: write the call, then run `pnpm --dir apps/ui exec vitest run src/interactionFeedback.test.ts`; it names the missing
+// key. Add the row: ask which tier the operation is in (measure it if it spawns Python) and give it the acknowledgment and guard that tier
+// requires. An action that changes the Story Bible goes through `usePendingAction`; a control that starts something slow takes `pending`; a
+// failure is `notify(describeApiError(error), 'error')`. A control that is not a `Button` or `IconButton` and needs a busy state gets the same
+// three things: `aria-busy`, a press that does nothing, and focusability. The category `Menu` does not yet (#211). A new kind of background job
+// is added in apps/desktop/jobs.go (see the comment on the job kinds).
 import type { FeedbackRow } from './interactionFeedback/row';
 import { appFeedback } from './interactionFeedback/app';
 import { manuscriptFeedback } from './interactionFeedback/manuscript';

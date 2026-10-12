@@ -57,7 +57,7 @@ def test_the_allow_list_names_the_copyleft_families_an_agpl_project_may_bundle()
 
 
 def test_a_licence_that_is_not_compatible_with_agpl_is_not_allowed():
-    # docs/research/local-dependency-evaluation.md: "GPL-2.0-only is not compatible."
+    # docs/architecture/model-provenance.md, licence classes: "GPL-2.0-only is not compatible."
     assert "GPL-2.0-only" not in allowed()
     assert "GPL-2.0" not in allowed()
 

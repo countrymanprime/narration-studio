@@ -1,4 +1,4 @@
-# Local Dependency Evaluation and License Plan
+# Local Dependency Evaluation
 
 **Status: Three artifact kinds are shipped as first-use assets; every candidate below is still
 a planned evaluation.** The artifacts recorded under [Shipped assets](#shipped-assets) (the
@@ -80,7 +80,7 @@ flow, per the required record below.
 
 ## Shipped assets
 
-Each row below is the record the [required dependency record](#required-dependency-record) asks
+Each row below is the record the [required dependency record](../architecture/model-provenance.md#required-dependency-record) asks
 for, taken from the catalogs the release carries (`config/tts-assets.json`,
 `config/whisper-assets.json`, `config/spacy-assets.json`, `config/moonshine-assets.json`, `config/dictionary-assets.json`, `config/encoder-assets.json`) and, for spaCy, from the
 [provisioning spike](spacy-model-provisioning-spike.md). Every asset is installed by the one
@@ -222,58 +222,7 @@ phonemizer and load its dictionary.
 
 ### License classes
 
-| Class | Examples in this plan | Commercial audiobook workflow | Repository/integration consequence |
-| --- | --- | --- | --- |
-| Permissive | MIT, BSD-2/3-Clause, Apache-2.0 | Allowed. | Keep copyright/license notices in the dependency manifest. Apache-2.0 also carries notice and patent terms. |
-| Attribution | CC BY 4.0 model packs | Allowed. | Display and retain the exact required attribution and model card. Do not imply Narration Utils owns the model. |
-| Weak copyleft | LGPL | Allowed. | Prefer a separately installed executable or dynamically linked library; preserve notices and allow replacement of the LGPL component if distributing a combined application. |
-| Strong copyleft | GPL | Allowed for using the tool to make a paid audiobook. The audiobook is not made GPL by that use. | Narration Utils is itself AGPL-3.0-or-later ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) and already ships GPL-family code in the frozen Story Bible sidecar (Piper, phonemizer, eSpeak NG data), so a GPL-3.0-or-later component is compatible: keep its notices and make the corresponding source available. GPL-2.0-only is not compatible. Prefer a separate executable for a tool the release does not need. |
-| Unclear, restricted, or non-commercial | Missing license, `NC`, research-only, gated terms inconsistent with commercial use | Not approved. | Do not download automatically, list as a supported option, or use in shipped tests until the exact artifact is cleared. |
-
-### Required dependency record
-
-Before an optional dependency is added, create a versioned entry in a future
-dependency manifest with all of the following:
-
-- tool/model name, publisher, exact version or commit, immutable download URL,
-  SHA-256, installed size, and install command;
-- code license URL and the separate weight/dictionary/acoustic-model license
-  URL, if there are weights or data packs;
-- model card/training-data provenance and required attribution text;
-- every runtime dependency that is downloaded by first run;
-- whether it is invoked as a separate process, Python package, or linked
-  library; and
-- removal path, update policy, test result, and the Narration Utils feature it
-  enables.
-
-An update checker may report that an upstream release exists, but it must not
-silently replace a model or executable just because a tag named `latest` moved.
-Any automatic update needs a reviewed manifest update, a new hash, a license
-recheck, and regression tests. This protects both reproducibility and license
-accountability.
-
-## Evaluation protocol
-
-Each candidate follows the same small, reviewable trial before implementation.
-
-1. **Provenance gate.** Record the exact upstream artifact and confirm its
-   code, weights, dictionaries, and model-card terms permit this commercial
-   workflow.
-2. **Held-out corpus.** Use 3--5 already-recorded chapters with narrator
-   permission, plus a manually annotated sample appropriate to the task.
-   Audio, manuscripts, voice embeddings, and test outputs remain ignored local
-   project data.
-3. **Blind comparison.** Run the current workflow and the candidate workflow.
-   Review without seeing which system produced the cue where practical.
-4. **Measure value.** Count useful findings, false positives, missed known
-   cases, processing time, setup friction, and minutes of narrator review
-   saved. A new analyzer must improve a decision, not simply emit more data.
-5. **Human boundary.** Every candidate result has evidence and an
-   accept/dismiss/defer outcome. No test may create an active take or alter a
-   render.
-6. **Decision.** Mark the candidate `adopt`, `defer`, or `reject`, with the
-   pinned artifact/version and trial evidence in this document or its follow-up
-   implementation brief.
+The licence classes, the required dependency record and the evaluation protocol that every candidate below was judged by are in [model provenance](../architecture/model-provenance.md#adding-a-model-tool-or-data-pack).
 
 ## Candidates requested for evaluation
 
@@ -710,7 +659,7 @@ for why two live engines are supported and how they are compared.
 
 ### 11. Open English WordNet — dictionary/thesaurus lookup (Story Bible and import UX briefs, D1-D2)
 
-**Decision: adopt.** `Decided by stack S19d, docs/prds/story-bible-and-import-ux-briefs.prd.md` Phase 6 (D1: local dataset only,
+**Decision: adopt** (D1: local dataset only,
 provisioned as a downloadable asset, never a cloud API; D2: single-word definitions, synonyms and antonyms from one dataset, US
 English). See [ADR 0097](../adr/0097-the-manuscript-reader-word-lookup-uses-the-open-english-wordnet-as-a-downloadable-asset.md) (Accepted 2026-09-23).
 
@@ -823,15 +772,4 @@ weights, and they provide weak evidence for audiobook performance review. If
 reconsidered, they must pass the same artifact-level license and workflow-value
 gate above.
 
-## Adoption order
-
-1. Improve current document structure tests and expose the already-present VAD
-   region evidence if the trial proves it useful.
-2. Trial Vale and GLiNER because they are small, transparent additions to the
-   existing manuscript workflow.
-3. Trial BookNLP for text-side dialogue/character preparation.
-4. Trial MFA against current word timestamps for precision proofing.
-5. Trial Praat and Resemblyzer only with the character-continuity workflow and
-   explicitly approved reference clips.
-6. Add FFmpeg/ffprobe post-render QC and libebur128 only when delivery-report
-   requirements are independently specified.
+The order the candidates are tried in is on the [roadmap](../roadmap.md#dependency-trial-order).

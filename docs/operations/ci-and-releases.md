@@ -796,4 +796,4 @@ tool entry points. It does not bundle optional voices, models, dictionaries, or
 unreviewed third-party binaries. Before publishing a release that adds such an
 artifact, add its publisher, version, immutable URL, SHA-256, code/artifact
 license, installation location, attribution, and update policy to the release
-record, following `docs/research/local-dependency-evaluation.md`.
+record, following `docs/architecture/model-provenance.md` ("Required dependency record").

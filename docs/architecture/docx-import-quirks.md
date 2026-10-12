@@ -93,8 +93,4 @@ same notice and the same "only `chapterTitles` changes" apply, through the one s
 
 Turned off in the review, such a subtitle returns to the text. An EPUB heading that starts no chapter and is not a subtitle is kept as text. The glued-heading repair also splits a two-word number ("Twenty OneThe Storm") and a one-letter "A"/"I" glued to a number written in words ("TwoA Night"), never a lone letter after a roman numeral.
 
-## Adding a quirk
-
-1. Reproduce it with a minimal in-test document (`docxFixture` builds a `.docx` from WordprocessingML; `importMarkdown` takes a string; TXT tests write a plain string to a temp file; `epubFixture` builds an in-memory EPUB from a name-to-content map).
-2. Write the failing test, fix it in the importer, add the row above.
-3. If the repair guesses (as glued-heading splitting does), report it in `Draft.Notices`: the import log and the review dialog's Repairs group tell the narrator ([the import review](import-review.md)).
+How to add a quirk is in the package comment of `apps/desktop/internal/importer/importer.go`.

@@ -1,6 +1,6 @@
 # Research: what the REAPER-scripting community knows about `GetPlayState()`/`GetPlayPosition()` timing
 
-**Status: done, 2026-09-27.** Standalone research (Refs #510), not a PRD phase. PR #693 (DAW port PRD Phase 9, merged) added `GetPlayState()`/`GetPlayPosition()` to the REAPER heartbeat (`narration_ui_bridge.lua`, [ADR 0305](../adr/0305-the-daw-heartbeat-carries-the-transport-and-is-sent-at-once-when-it-changes.md)) and left one item pending on #510 ([comment](https://github.com/countrymanprime/narration-utils/issues/510#issuecomment-5852148420)): confirm inside real REAPER that a Record/Stop/Play/Pause press flips the heartbeat within a defer cycle, and what `GetPlayPosition()` reports mid-recording. The Lua harness fakes `reaper`, so it can't prove either. This note does not fake that confirmation; it researches what the wider REAPER-scripting community already knows and documents, and gives an honest recommendation on how far that evidence goes.
+**Status: done, 2026-09-27.** Standalone research, not a PRD phase. PR #693 (merged) added `GetPlayState()`/`GetPlayPosition()` to the REAPER heartbeat (`narration_ui_bridge.lua`, [ADR 0305](../adr/0305-the-daw-heartbeat-carries-the-transport-and-is-sent-at-once-when-it-changes.md)) and left one item for the owner ([#510 comment](https://github.com/countrymanprime/narration-utils/issues/510#issuecomment-5852148420), now on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)): confirm inside real REAPER that a Record/Stop/Play/Pause press flips the heartbeat within a defer cycle, and what `GetPlayPosition()` reports mid-recording. The Lua harness fakes `reaper`, so it can't prove either. This note does not fake that confirmation; it researches what the wider REAPER-scripting community already knows and documents, and gives an honest recommendation on how far that evidence goes.
 
 ## The two open questions
 
@@ -85,7 +85,7 @@ Every host that would carry REAPER's own documentation of these two calls, or th
 
 ## Recommendation
 
-**(b): the evidence meaningfully narrows the pending #510 item, but doesn't close it.**
+**(b): the evidence meaningfully narrows the pending owner check, but doesn't close it.**
 
 What it settles, reasonably confidently:
 - `GetPlayState()` has no propagation delay of its own once REAPER's transport has actually transitioned (OSARA's synchronous same-call-stack read), and the defer mechanism our heartbeat depends on ticks roughly 30–60 times a second (reapy) — so a defer-based read, whenever it next runs after any transition, should see the correct value within about one tick (16–33 ms), not the full 1.5 s interval. This matches what `narration_ui_bridge.lua`'s own "send at once on change" design already assumes.
@@ -95,7 +95,7 @@ What it doesn't settle:
 - No source here measures the specific case our heartbeat cares about most: a transport change the narrator triggers directly in REAPER's own UI or hardware, observed from a **`defer()`-polling Lua script** (not an action-hook callback, and not a `SetPlayState`-surface push). OSARA's synchronous-read evidence covers the action-hook path; its PR #196 caveat is about the surface-push path; reapy's cadence number is about the defer loop's *frequency*, not about whether an externally-triggered transition is visible on the very next tick. None of the three is `narration_ui_bridge.lua`'s exact access pattern, and the one clear negative signal found ("notifications from the surface are sometimes delayed," from the single project most likely to have hit this) means "REAPER's transport plumbing is always instantaneous" cannot be asserted as settled, even though nothing found contradicts it for a plain `GetPlayState()` poll specifically.
 - Whether a **paused recording** (`GetPlayState()` returning `6`, i.e. bits 2+4) is something REAPER actually produces in practice — does pressing Pause while Recording really yield that value, or does REAPER refuse/ignore Pause during Record? — wasn't confirmed or contradicted by any source found. ADR 0305's "a paused recording counts as recording" clause rests on this.
 
-This narrows the original pending item ("checking inside REAPER that `GetPlayState()` flips the heartbeat within a defer cycle on Record, Stop and Pause, and what `GetPlayPosition()` reports mid-recording") to something much smaller: a single, short, real-REAPER spot-check rather than an open-ended investigation. See [For #510](#for-510) below.
+This narrows the original pending item ("checking inside REAPER that `GetPlayState()` flips the heartbeat within a defer cycle on Record, Stop and Pause, and what `GetPlayPosition()` reports mid-recording") to something much smaller: a single, short, real-REAPER spot-check rather than an open-ended investigation. See [Pending with the owner](#pending-with-the-owner) below.
 
 ## Not done, and why
 
@@ -104,15 +104,9 @@ This narrows the original pending item ("checking inside REAPER that `GetPlaySta
 - **SWS's C++ source tree** could not be browsed for its own transport-polling code (see the SWS Extension entry under [Results](#results)); this is a real gap, not a considered "nothing there."
 - **No Proposed ADR from this note.** Nothing here reverses ADR 0305; it either supports its existing assumptions (the bit layout, the recording-gates-position rule) or leaves a narrower gap for the owner to close by hand.
 
-## For #510
+## Pending with the owner
 
-Proposed narrowing of the pending item on PR #693 (not closing it — that's the owner's call):
-
-- [ ] On a copy of a project with an isolated `-cfgfile` (D3): press Record, Stop, Play and Pause once each, and confirm each appends a new `PROJECT_STATUS` line to `events.log` right away rather than waiting out the 1.5 s interval (a stopwatch/eyeball check is enough; the community evidence above makes "within one defer tick" the expected result, not an open question).
-- [ ] While that recording is running, confirm the 7th field (`GetPlayPosition`) is visibly increasing across the ~1.5 s heartbeats, not stuck or reset (the community evidence above makes this the expected result too, but it costs nothing extra to glance at while already doing the above).
-- [ ] Specifically check whether pressing Pause **while Recording** is even possible in REAPER, and if so, whether the heartbeat's 6th field then reads `6` (bits 2+4) as ADR 0305 assumes — this is the one part no community source addressed either way.
-
-This comment has also been posted to #510 itself, proposing this same narrowing.
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
 
 ---
 

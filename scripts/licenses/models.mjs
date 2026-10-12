@@ -8,6 +8,11 @@
 // what the app downloads, so the table cannot disagree with them. What no catalog says (is it fine for a commercial audiobook, and what did
 // a person decide) is written by hand in `scripts/licenses/model-review.json`; a catalog artifact with no review row, or a row for an
 // artifact that is gone, is an error.
+//
+// Adding or changing an artifact: change its catalog entry, then run this script to rewrite the tables. For a new artifact, add its row to
+// `model-review.json` first, after reading its model card and licence at the pinned revision: state the commercial-use finding in plain words
+// and say `unclear` when the card does not. An `unclear` artifact stays out of the catalog and is listed under "Not in the catalogs". The
+// allow-list for dependencies (docs/operations/github-workflow.md) is separate; it covers packages, not models.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

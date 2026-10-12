@@ -109,8 +109,8 @@ apply to Piper voices, Whisper models, and later optional tools/model packs.
   is replaced without an explicit, confirmed click ([ADR 0072](../adr/0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md)).
 
 This work follows the artifact-level license and provenance requirements in
-the [local dependency evaluation and license plan](../research/local-dependency-evaluation.md),
-which records every shipped artifact and describes first-use provisioning (there is no
+[model provenance](model-provenance.md#adding-a-model-tool-or-data-pack). The
+[local dependency evaluation](../research/local-dependency-evaluation.md) records every shipped artifact and describes first-use provisioning (there is no
 setup-time download).
 
 ## What the release and the developer bootstrap each provide

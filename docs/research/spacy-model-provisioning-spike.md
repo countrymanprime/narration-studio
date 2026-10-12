@@ -1,6 +1,6 @@
 # spaCy model provisioning spike
 
-**Date:** 2026-09-21. **Stack:** S16, release-readiness phase 4. **Answers:** Open Question 2 of the release-readiness PRD (deleted): how is a downloaded spaCy model loaded in the frozen Story Bible sidecar?
+**Date:** 2026-09-21. **Issue:** [#213](https://github.com/countrymanprime/narration-utils/issues/213). **Answers:** how is a downloaded spaCy model loaded in the frozen Story Bible sidecar?
 
 **Verdict: go.** Catalog the pinned official wheel, unpack it into the per-user asset cache, and pass the model directory to `spacy.load`. The frozen sidecar imports spaCy and loads a model from a directory with the same output as the development environment. No bundling, no runtime `pip install`.
 

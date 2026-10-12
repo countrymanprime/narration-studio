@@ -32,12 +32,7 @@ func (h *Host) GuideRescan(id string) (string, error) {
 - **`hostrace_test.go`** flips `ProjectSwitch` between two temp projects while goroutines loop over the read bindings, one transcript-loop tick and the emit callbacks (`stressReaders`), against empty per-user directories. CI's `go` job runs it under `go test -race` (Windows); on a machine without cgo it is a smoke test. Each row loops until the switching run ends, and a watchdog turns a deadlock into a failure. Add a row for every new binding that reads a service, with arguments that fail fast (an unknown id, an uninstalled model) so it does no real work. To measure a race, use separate processes: the detector reports each racing pair once per process, so `-count=20` in one process shows only about half the runs failing.
 - **`services_test.go`** covers the accessor: it returns what the host is using, a snapshot survives a later switch unchanged, and the lock is released before it returns.
 
-## Adding a binding
-
-1. Start the body with `svc := h.services()` (or `service := h.services().guide` when one service is enough) and use it, and `svc.config`, only.
-2. Add a row to `stressReaders` in `hostrace_test.go` if it reads a service.
-3. Never call a service while holding `h.mu`; never re-read a field in a goroutine.
-4. Run `go -C apps/desktop test ./...`. A direct `h.guide` read fails `TestHostReadsSwappableServicesOnlyThroughTheAccessor` with the file, line and function.
+The steps for a new binding are in the doc comment of `services()` (`apps/desktop/services.go`).
 
 ## Related rules in the host
 

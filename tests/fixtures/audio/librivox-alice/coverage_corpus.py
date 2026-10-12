@@ -1,7 +1,7 @@
 """Recording-check cases cut from the real readings: the `NARRATION_COVERAGE_CORPUS` layout (ADR 0125).
 
 Each recipe in `recipes/coverage.json` lists a case's items as pieces of a source recording. The labels are derived
-from the pieces by the rules in docs/research/recording-coverage-fixtures.md, so they are exact by construction:
+from the pieces by the rules in sidecars/transcript-compare/tests/fixtures/coverage/README.md, so they are exact by construction:
 
 - `{"whole": true}`: the source file untouched, every paragraph read in place.
 - `{"head": true}` / `{"tail": true}`: the LibriVox preamble and chapter title / the closing lines (not paragraphs).

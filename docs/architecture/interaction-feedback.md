@@ -48,11 +48,7 @@ The payload is a wire contract ([wire contracts](wire-contracts.md)): `jobEndedS
 - **`apps/ui/src/interactionFeedback.test.ts`** fails on a call with no row, a row whose call is gone, a `gap` with no issue, an `ok` row that fails silently or leaves a Python call unacknowledged or unguarded, and any bare catch (`catch {}`, `.catch(() => {})`, `.catch(() => undefined)`) that is not in `SILENT_CATCHES` with its reason. It reads the contracts and the source with the TypeScript parser, so a comment that mentions `api.guideEdit(` is not a call. `SILENT_CATCHES` may only shrink, and a narrator's action never belongs on it.
 - **State:** the rows live in one file per area under `apps/ui/src/interactionFeedback/`; none has the verdict `gap` or `owned`.
 
-## Adding a call to the host, or a job
-
-1. Write the call. Run `pnpm --dir apps/ui exec vitest run src/interactionFeedback.test.ts`: it names the missing key. Add the row: ask which tier the operation is in (measure it if it spawns Python) and give it the acknowledgment and guard that tier requires. An action that changes the Story Bible goes through `usePendingAction`; a control that starts something slow takes `pending`; a failure is `notify(describeApiError(error), 'error')`.
-2. A new kind of background job: emit `job:ended` from the goroutine that ends it (`endedJob` builds the event from values read under the job's lock; publish after releasing it), add its kind to `jobs.go`, decide who announces it in `jobEnded.ts`, and add a Go test with the `jobEvents` sink.
-3. A control that is not a `Button` or `IconButton` and needs a busy state gets the same three things: `aria-busy`, a press that does nothing, and focusability. The category `Menu` does not yet ([#211](https://github.com/countrymanprime/narration-utils/issues/211)).
+The steps for a new call are in the header of `apps/ui/src/interactionFeedback.catalog.ts`, and for a new kind of job beside the job kinds in `apps/desktop/jobs.go`.
 
 ## Measuring
 

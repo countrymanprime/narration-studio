@@ -99,6 +99,88 @@ Then, in one PR:
 
 When every command is off the list, the switch has nothing left to gate; the PR that empties the list removes the switch and its `config/defaults.json` default.
 
+## Line identity in REAPER
+
+The scripted run and the owner's steps for `stamp_item_lines`, `read_line_ids` and `create_regions` ([manuscript line identity](../architecture/manuscript-line-identity.md)). They are separate from Parts A and B.
+
+### Line identity: verification record
+
+The commands' logic is pinned by the bridge harness (`integrations/reaper/tests`, [the REAPER bridge](../architecture/reaper-bridge.md#the-harness)); REAPER's own behaviour was checked on 2026-09-21 in REAPER 7.80/x64 by `integrations/reaper/spikes/checklist.lua`, which loads the real bridge in an isolated REAPER (`-cfgfile` in a temp folder, a scratch project, no audio device) and drives it through the file protocol. 37 checks, 0 failures.
+
+| Step | How verified | Result |
+| --- | --- | --- |
+| 1 Scratch project | Scripted | A saved scratch project with three audio items |
+| 2 Stamp | Scripted | `LINES_STAMPED\|t1\|1\|0\|0\|0`; the undo entry is named as documented; Undo removes the stamp and Redo restores it |
+| 3 Idempotent | Scripted | `...\|0\|1\|0\|0`, no new undo entry |
+| 4 Conflict | Scripted | `LINES_CONFLICT` and the old ID kept; overwrite `1` changes it |
+| 5 Stale | Scripted | `LINES_STALE`, no item changed |
+| 6 Survives editing | Scripted, partly | Split: both halves keep the stamp (the right half has a new GUID); duplicate keeps it; a state-chunk copy keeps it. **A real paste of items was not exercised** (clipboard actions do nothing headless): owner |
+| 7 Save and reload | Scripted | The same items and text after reopening; the `.rpp` holds an `<EXTI` block per stamped item |
+| 8 Untouched fields | Scripted | Item notes and take names unchanged |
+| 9 Regions | Scripted | One coloured region; again `...\|0\|1\|0`; a malformed row counted invalid |
+| 10 Transcript Compare | Scripted for the bridge, **not in the app** | `prepare_compare`, `inspect_compare_results`, `export_compare_markers` (with its undo entry) and `jump_to_compare_marker` work against a hand-made results file. Starting a comparison from the app, with the launcher, is for the owner |
+
+`reaper.EnumerateFiles` caches the commands folder listing, so the bridge clears it on every tick (see [the REAPER bridge](../architecture/reaper-bridge.md)).
+
+### Line identity: owner checklist
+
+Run steps 6 (the paste part) and 10 by hand, in REAPER with the app open; the rest is recorded above. The session folder is `<REAPER resource path>/NarrationUtils/sessions/hub_<id>/`; start it by running `NarrationUtils_Launcher.lua`. To drive a command by hand, save a one-line file such as `00000001.cmd` in that folder's `commands/` directory and read `events.log` beside it.
+
+1. Use a scratch project with a few audio items. Note one item's GUID (right-click item, Copy item GUID, or read it from the `.rpp`).
+2. **Stamp.** Payload `{GUID}|line-000001|First line.`, command `1|stamp_item_lines|t1|<payload path>|0`. Expect `LINES_STAMPED|t1|1|0|0|0`, an Edit menu entry "Narration Utils: stamp manuscript line IDs", and Undo removing it.
+3. **Idempotent.** Send the same command again. Expect `...|0|1|0|0` and no new undo entry.
+4. **Conflict.** Change the payload ID to `line-000002`, send with overwrite `0`. Expect a `LINES_CONFLICT` event and the old ID kept. Send with overwrite `1`: the ID changes.
+5. **Stale.** Use a GUID that is not in the project. Expect `LINES_STALE`, and no item changed.
+6. **Survives editing.** Move and split a stamped item, then `read_line_ids`. Confirm both halves still report the ID (split items copy extension data) or note which does not.
+7. **Survives save and reload.** Save, close, reopen the project, run `read_line_ids`. The stamp must still be there. This also confirms extension data persists in the `.rpp`.
+8. **Untouched fields.** Confirm the item's notes and take name are unchanged.
+9. **Regions.** Payload `0|30|Chapter 1`, command `1|create_regions|t2|<payload path>|FF8800|0` (the checklist ran when the command was named `create_chapter_regions`). Expect one coloured region and `REGIONS_CREATED|t2|1|0|0|0|0|0`. Send again: `...|0|1|0|0|0|0`. Add a malformed line: it is counted as invalid.
+10. Confirm Transcript Compare still starts (the bridge loads and existing commands are unaffected).
+
+## Going to, looping and marking a finding in REAPER
+
+The scripted run and the owner's steps for `navigate_item`, `loop_context`, `stop_loop`, `ping` and `add_finding_marker` ([going to and looping a finding](../architecture/reaper-navigation.md)). They are separate from Parts A and B.
+
+### Going to a finding: verification record
+
+The approved marker is pinned by `integrations/reaper/tests/finding_marker_test.lua` and mutation checks (the add outside an undo block, a doubled marker, a marker added while recording or at a spot the item no longer covers); the host side by `apps/desktop/bindings_marker_test.go`, `internal/bridge/marker_test.go` (a fake REAPER through the real file protocol) and the golden payloads `tests/fixtures/contracts/findings-add-marker*.json`. The navigation commands' logic is pinned by the harness (`integrations/reaper/tests/navigation_test.lua` and the mutation checks in `mutations.json`: a stale GUID resolving to another item, a missing take falling back to the active one, a spot outside the item, recording not refused, a second loop overwriting the memory, Stop overwriting a narrator's change, Stop not restoring repeat or restoring twice, Stop stopping playback it did not start, the script ending without restoring, and the compare GUIDs read late). The Go client is covered by `navigation_test.go` against a fake REAPER that answers through the real file protocol.
+
+REAPER's own behaviour was checked on 2026-09-23 in REAPER 7.80/x64 by `integrations/reaper/spikes/navigation_check.lua` (run by `run-reaper.ps1`: an isolated `-cfgfile` in a temp folder, a scratch project built from synthetic tones in a temp folder, the audio device closed, and `OnPlayButton` replaced by a recorder so nothing played). It loads the real bridge registry and drives the real commands. 34 checks, 0 failures; the output is in `integrations/reaper/spikes/results/navigation-check-report.txt`.
+
+| Step | How verified | Result |
+| --- | --- | --- |
+| Linked ranges | Scripted | Setting only the loop points moved the time selection and the reverse: linked by default |
+| `ping` | Scripted | `PONG\|p1\|1\|0\|0`; after a loop, `looping` 1 |
+| Loop | Scripted | Time selection and loop points read back as 10.5..12.5 s, repeat on, cursor at 10.5 s, Play requested once; no undo point, project not dirty |
+| Second loop | Scripted | Re-targets to 11..12 s |
+| Stop | Scripted | `LOOP_STOPPED\|s1\|3\|0`; time selection, loop points and repeat back to the narrator's; no undo point |
+| Narrator changed the selection | Scripted | Their 20..21 s selection kept, `LOOP_STOPPED\|s2\|1\|2` |
+| Stop with nothing held | Scripted | `0\|0`, nothing changed |
+| Stale item, take, range | Scripted | `FINDING_STALE` with `item`, `take`, `range`; nothing selected, cursor not moved |
+| Go to | Scripted | Only the finding's item selected, cursor at 11.5 s, no undo point; after moving the item to 30 s, 31.5 s |
+| Compare GUIDs | Scripted | `COMPARE_MARKER` ends with the item, take and track GUIDs; `navigate_item` with them lands on the marker |
+| Hearing the loop, REAPER's Stop button, ping after a restart, ending the script mid-loop | **Pending, owner** | Need audio hardware or the owner (below) |
+| `add_finding_marker` in REAPER: the marker at the source time on the named take, one "Narration Utils: add approved marker" undo point that Undo removes, a second send answering `existing` with no new undo point, stale and recording refusals | **Pending, scripted run** | Not pre-approved, so not run. Run steps 10 and 11 below on a copy of a project with an isolated `-cfgfile`, as the Go to and Loop check was |
+| The marker from the Review page, seen in REAPER, and Export markers on the Proofing page skipping it | **Pending, owner** | Step 11 below |
+
+The first run of the check also saw `SelectAllMediaItems` leave an "Unselect all items" undo point; the second run's probe did not reproduce it, and `SetMediaItemSelected`, which the bridge now uses, left none in either.
+
+### Going to a finding: owner checklist
+
+For the owner, in REAPER with audio, on a copy of a real project. Start the session by running `NarrationUtils_Launcher.lua`; the session folder is `<REAPER resource path>/NarrationUtils/sessions/hub_<id>/`. To send a command by hand, save a one-line file such as `00000001.cmd` in its `commands/` folder (fields percent-encoded, `|`-separated, starting `1|<command>|<run id>`) and read `events.log` beside it. The same steps can be run from the Review page instead (open the app from the Narration Utils action, select a Proofing finding, and use Go to in REAPER, Loop in REAPER and Stop loop); step 9 is that run.
+
+1. **Go to.** Copy an item's GUID (from the `.rpp`, `IGUID`). Send `1|navigate_item|n1|<GUID>||1.5`. The item alone is selected and the cursor sits 1.5 s into its audio; Edit > Undo history has no new entry.
+2. **Stale.** Delete that item, send the same command. Expect `FINDING_STALE|n1|<GUID>|item` and nothing selected.
+3. **Loop and hear it.** Make a time selection of your own and turn repeat off. Send `1|loop_context|l1|<GUID>||0.5|4.5`. You hear the 4 s window loop; REAPER shows it as the time selection with repeat on.
+4. **Stop.** Send `1|stop_loop|s1`. Playback stops; your own time selection and repeat off are back; `LOOP_STOPPED|s1|3|0`.
+5. **REAPER's own stop.** Loop again, press Space in REAPER, then send `1|ping|p1`: expect `looping` 1, `playing` 0. `stop_loop` still restores.
+6. **Ending the script mid-loop.** Loop again, then terminate the launcher script (Actions > Running scripts, or quit REAPER without saving). The time selection and repeat are back.
+7. **Ping after a restart.** Quit and reopen REAPER, run the launcher again, and send `ping` to the new session: `PONG`. The old session's folder gets no answer (the app would report `ErrNoAnswer`).
+8. **Recording.** Start recording on a scratch track and send `navigate_item`: `ERROR ... REAPER is recording`, nothing moves. Stop recording.
+9. **From the Review page.** Open the app from the Narration Utils action, run a Proofing comparison, open Review and select a transcript difference. Go to in REAPER selects its item and the page names the cursor time; Loop in REAPER plays it and Stop loop appears; Stop loop puts your selection and repeat back. Delete the item and press Go to: the page says the item is no longer in the project. Quit REAPER: within a few seconds Go to and Loop turn off with "REAPER is not answering". Open the app on its own (not from REAPER): they are off with the "open this app from the Narration Utils action" reason.
+10. **Approved marker.** With the take GUID of an item's active take (`GUID` inside its `<SOURCE` block's take in the `.rpp`), send `1|add_finding_marker|m1|<item GUID>|<take GUID>|1.5|FF4040|MISREAD%3A%20test`. A red take marker "MISREAD: test" sits 1.5 s into the take's audio; Edit > Undo history has one new entry, "Narration Utils: add approved marker"; Undo removes the marker. Send it twice: the second answers `FINDING_MARKER|m1|existing|...` and adds no marker and no undo entry. Delete the item and send it again: `FINDING_STALE|m1|<GUID>|item`, nothing added. Start recording and send it: `ERROR ... REAPER is recording`, nothing added.
+11. **Approved marker from the Review page.** In the run of step 9, accept a transcript difference, press Add marker in REAPER and confirm. The page names the marker; REAPER shows it on the take at the finding's spot. Press it again: the page says the take already has it. Back on the Proofing page, Export markers counts that row as skipped. Undo in REAPER removes the marker.
+
 ## Pending owner steps
 
-Tracked on the [owner queue, #510](https://github.com/countrymanprime/narration-utils/issues/510): run Part A (`pwsh integrations/reaper/spikes/run-pass-part-a.ps1`, about two minutes, unattended) and paste `pass-part-a-results.md` into #510; be present for Part B and approve its one test recording on a copy of a project.
+Tracked on the [owner queue, #510](https://github.com/countrymanprime/narration-utils/issues/510): run Part A (`pwsh integrations/reaper/spikes/run-pass-part-a.ps1`, about two minutes, unattended) and paste `pass-part-a-results.md` into #510; be present for Part B and approve its one test recording on a copy of a project. The steps marked for the owner in the [line identity checklist](#line-identity-owner-checklist) (6 and 10) and the [going-to-a-finding checklist](#going-to-a-finding-owner-checklist) are pending with the owner too.

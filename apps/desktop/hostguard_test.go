@@ -39,6 +39,7 @@ var swappableHostFields = map[string]bool{
 	"bridge":          true,
 	"navigation":      true,
 	"takeCreator":     true,
+	"takeSelector":    true,
 	"dawPortResolver": true,
 }
 

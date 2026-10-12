@@ -1347,6 +1347,24 @@ describe('the DAW project state binding and event', () => {
   });
 });
 
+describe('the hide takes binding', () => {
+  const muted = { ok: true, changed: true, message: 'Muted 1 other take in REAPER. It is still in the project.', undoSteps: 1 };
+
+  it('sends the chapter, the token range and the kept candidate id, and decodes the DawResult', async () => {
+    const hide = vi.fn(() => Promise.resolve(JSON.stringify(muted)));
+    standInHost({ WorkspaceHideTakes: hide });
+    await expect(wailsClient.workspaceHideTakes('c-0001', 3, 9, 'take:{ITEM-1}:{TAKE-A}')).resolves.toEqual(muted);
+    expect(hide).toHaveBeenCalledWith('c-0001', 3, 9, 'take:{ITEM-1}:{TAKE-A}');
+  });
+
+  it('refuses an answer the dawResult schema does not accept', async () => {
+    standInHost({ WorkspaceHideTakes: () => Promise.resolve(JSON.stringify({ ...muted, undoSteps: 13 })) });
+    await expect(wailsClient.workspaceHideTakes('c-0001', 0, 0, 'take-1')).rejects.toBeInstanceOf(WireError);
+    standInHost({ WorkspaceHideTakes: () => Promise.resolve(JSON.stringify({ ...muted, ok: false, refused: 'x', code: 'gone' })) });
+    await expect(wailsClient.workspaceHideTakes('c-0001', 0, 0, 'take-1')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the word effects bindings', () => {
   const request = {
     pid: 'p-000001',

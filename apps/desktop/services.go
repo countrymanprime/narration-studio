@@ -62,6 +62,9 @@ type hostServices struct {
 	// takeCreator is the DAW port's take_create role over the same bridge client; nil (a true nil
 	// interface) with no bridge client or no such role.
 	takeCreator dawport.TakeCreator
+	// takeSelector is the DAW port's takes role over the same bridge client; nil (a true nil interface) with no bridge
+	// client or no such role.
+	takeSelector dawport.TakeSelector
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
 	// teleprompterinput.go and chapterregions.go ask for (ADR 0300); nil with no bridge client.
 	dawPortResolver *dawport.Resolver
@@ -90,6 +93,15 @@ type hostServices struct {
 // hostguard_test.go fails `go test` on any other read of these fields, so a new
 // binding cannot regress this by accident. h.recents and h.sidecars are set once
 // in NewHost and never reassigned, so they are read directly.
+//
+// Adding a binding:
+//  1. Start the body with `svc := h.services()` (or `service := h.services().guide`
+//     when one service is enough) and use it, and svc.config, only.
+//  2. Add a row to stressReaders in hostrace_test.go if it reads a service.
+//  3. Never call a service while holding h.mu; never re-read a field in a goroutine.
+//  4. Run `go -C apps/desktop test ./...`. A direct h.guide read fails
+//     TestHostReadsSwappableServicesOnlyThroughTheAccessor with the file, line and
+//     function.
 func (h *Host) services() hostServices {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -118,6 +130,7 @@ func (h *Host) services() hostServices {
 		actions:         h.actions,
 		navigation:      h.navigation,
 		takeCreator:     h.takeCreator,
+		takeSelector:    h.takeSelector,
 		dawPortResolver: h.dawPortResolver,
 	}
 }

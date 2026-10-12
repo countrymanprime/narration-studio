@@ -2767,6 +2767,47 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi().workspaceTakes(measured.id, 0, 1)).resolves.toMatchObject({ itemGuid: '' });
   });
 
+  it('workspaceHideTakes answers a dawResult: the host goldens parse, and the mock mutes, refuses and goes stale as the host does', async () => {
+    for (const file of ['daw-hide-takes-done.json', 'daw-hide-takes-nothing.json', 'daw-hide-takes-refused.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-hide-takes-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1 });
+    expect(readGolden('daw-hide-takes-nothing.json')).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
+    expect(readGolden('daw-hide-takes-refused.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+
+    const chapters = await createMockApi().manuscriptChapters();
+    const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
+    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
+    const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
+    const linked = {
+      chapterTrackMappings: [
+        {
+          trackGuid: linkedTrack.guid,
+          chapterId: measured.id,
+          chapterTitle: measured.title,
+          confirmedAt: '2026-09-24T09:00:00Z',
+          origin: 'manual' as const,
+          match: null,
+        },
+      ],
+    };
+    const api = createMockApi({}, { ...linked, daw: { toggles: { takes: 'on' } } });
+    const [first, , lane] = (await api.workspaceTakes(measured.id, 0, 1)).candidates;
+
+    const hidden = await api.workspaceHideTakes(measured.id, 0, 1, first.id);
+    expectMatches(dawResultSchema, hidden, 'mock hide takes, done');
+    expect(hidden).toEqual(readGolden('daw-hide-takes-done.json'));
+    const stale = await api.workspaceHideTakes(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
+    expectMatches(dawResultSchema, stale, 'mock hide takes, not offered');
+    expect(stale).toMatchObject({ ok: false, changed: false, code: 'stale' });
+    expect(await api.workspaceHideTakes(measured.id, 0, 1, lane.id)).toMatchObject({ ok: false, changed: false });
+    expect((await api.workspaceHideTakes(measured.id, 0, 1, lane.id)).code).toBeUndefined();
+
+    const off = await createMockApi({}, linked).workspaceHideTakes(measured.id, 0, 1, first.id);
+    expectMatches(dawResultSchema, off, 'mock hide takes, experimental off');
+    expect(off.refused).toBe((await createMockApi({}, linked).dawCapabilities()).capabilities.takes.message);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3335,6 +3376,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakeEvidence',
       'workspaceTakesCompareStart',
       'workspaceUseTake',
+      'workspaceHideTakes',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',

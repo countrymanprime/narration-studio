@@ -1,6 +1,6 @@
 # Studio Next DAW spikes 1f and 1g: play position and Audacity backups
 
-**Status: results pending, structure written 2026-10-11.** The owner has not returned spikes 1f and 1g of [the spike runbook](studio-next-daw-spike-runbook.md), so neither has a result. A "pending" cell is not a failure: it means no table row has come back. A worker has no audio interface, no REAPER and no Audacity, so nothing here is a guess. Tracking: issue #1146, part of #1016.
+**Status: results pending, structure written 2026-10-11.** The owner has not returned spikes 1f and 1g of [the spike runbook](../operations/daw-spike-run-sheet.md), so neither has a result. A "pending" cell is not a failure: it means no table row has come back. A worker has no audio interface, no REAPER and no Audacity, so nothing here is a guess. Tracking: issue #1146, part of #1016.
 
 Spikes SND-S6 and SND-S7 of [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md). Style and limits follow [REAPER spike S6](reaper-spike-s6-daw-reachability.md) and [ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md).
 
@@ -41,5 +41,5 @@ Consequence: pending. SN-D81 (Audacity backups) is built on this section. If 1g 
 
 ## Related
 
-- [Runbook](studio-next-daw-spike-runbook.md): scripts, results table and outcome tables.
+- [Runbook](../operations/daw-spike-run-sheet.md): scripts, results table and outcome tables.
 - Spikes 1a to 1e are in the REAPER results note, written by SN-D11.

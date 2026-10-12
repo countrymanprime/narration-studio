@@ -224,21 +224,7 @@ The mastering port's DAW row ([ADR 0306](../adr/0306-mastering-is-a-provider-por
 | `*_test.lua` | Characterization tests: `protocol_test` (the loop), `registry_test` (the registry and the feature-file convention), `compare_test`, `line_identity_test`, `pickups_test`, `render_test` (`configure_chapter_render`, including the never-calls-`Main_OnCommand`/`RENDER_STATS` check), `cleanup_test` (`launch_cleanup_tool`: the allow-list, lookup by name, and that a launch is one `Main_OnCommand` and no edit), `retake_lanes_test` (`pick_retake_lane`: one lane value in one undo block and nothing else, and the refusals), `navigation_test` (`navigate_item`, `loop_context`, `stop_loop`, `ping`), `track_state_test` (`chapter_track_state`: the transport, the arms, the items, the stale track and that nothing changes), `transport_test` (`arm_only`, `record_start`, `record_stop`: every refusal, the remembered arms, a stop in REAPER, a late start), `takes_test` (`hide_takes`: the whole call list, nothing deleted, the saved volume, the stale and recording refusals, no block when nothing changes), `workspace_test` (`set_active_take`, `list_fx_chains`, `apply_fx_chain`, `list_fx`, `add_take_fx`: the stale rules, chains only on tracks, one plug-in per passage request, the splits and the one undo block), `master_render_test` (`master_chain_read`, `render_with_fx`: the approval used once, the run folder, the one predicted WAV, the master mix between the region's bounds, and the narrator's render settings put back), `regions_test` (`create_regions`), `finding_marker_test` (`add_finding_marker`), `launcher_test` (the launcher from an installed-bundle layout), `common_test` (the helpers), and one file for each remaining feature (`cleanup_preview_test`, `level_normalize_test`, `punch_test`, `project_state_test`, `take_review_test`, `track_select_test`, `reachability_test`) plus `fake_fidelity_test` for the fake itself. |
 | `mutations.json`, `mutations.py` | Each entry breaks one guard in the Lua source (a stale GUID resolving to another item, an overwrite without asking, a spurious undo point, a widened duplicate window) and the suite must fail. A mutation that survives, or whose text is no longer in the source, fails the run. Each mutation runs its feature's own test file first (`narration_X.lua` → `X_test.lua`) and stops at the first failing file, so the check stays fast as mutations are added; one that no test catches still runs every file. |
 
-### Writing a test
-
-```lua
-local H = require('harness')
-
-H.test('stamp_item_lines reports a GUID that no longer resolves', function()
-  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
-  local item = s.fake:add_item(s.fake:add_track('Narrator'), { guid = '{AAAAAAAA-0000-4000-8000-000000000001}' })
-  s:send('stamp_item_lines', 't1', payload_path, '0')
-  H.eq(s:events(), { { 'LINES_STALE', 't1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' }, { 'LINES_STAMPED', 't1', '0', '0', '1', '0' } })
-  H.eq(item.ext, {})
-end)
-```
-
-Write the test first for a new or changed command, watch it fail, then change the Lua. Assert what the narrator would notice: the events, the item extension data, the undo labels and count, and that a second send changes nothing. When a guard exists to protect data (a stale GUID, an overwrite, a duplicate marker), add an entry to `mutations.json` that removes it.
+How to write a harness test is in [the harness README](../../integrations/reaper/tests/README.md).
 
 ### What the harness does not prove
 

@@ -1,6 +1,6 @@
 # Edit and proof workspace, Phase 0: spike SF, the undo questions and the peaks cost
 
-**Status: desk work done on 2026-09-25. The REAPER run is pending the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510), item 3).** This is Phase 0 of edit-and-proof-workspace.prd.md (deleted) (tracking issue [#546](https://github.com/countrymanprime/narration-utils/issues/546)). Nothing below has been observed in a running REAPER yet. The spike script is ready to run unattended, under owner decision D3.
+**Status: desk work done on 2026-09-25. The REAPER run is pending the owner ([#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)).** Issue: [#546](https://github.com/countrymanprime/narration-utils/issues/546). Nothing below has been observed in a running REAPER yet. The spike script is ready to run unattended, under owner decision D3.
 
 ## What changed since the PRD asked
 
@@ -9,7 +9,7 @@ The PRD's spike SF asked whether REAPER loads an `.RfxChain` onto a **take** by 
 - a chain goes only on a **track** or the **master track**;
 - a passage of a take gets one installed plug-in per request.
 
-Stream B1 built the commands to that decision (`narration_workspace.lua`, #520), each with harness tests and mutation checks, behind the experimental switch ([ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)). So SF's questions now apply to those real commands, not to a prototype:
+The commands were built to that decision (`narration_workspace.lua`, #520), each with harness tests and mutation checks, behind the experimental switch ([ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)). So SF's questions now apply to those real commands, not to a prototype:
 
 | PRD question (Phase 0) | Now answered by |
 | --- | --- |
