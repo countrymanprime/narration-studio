@@ -8,6 +8,7 @@ import { ThemeProvider } from '../../../theme/ThemeContext';
 import { settingsSectionsFor } from '../sections';
 import { Settings } from '../Settings';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
+import { LocalAssets } from '../../assets/LocalAssets';
 import { createFakeTools, type FakeInstall } from './fixtures';
 
 afterEach(cleanup);
@@ -182,6 +183,45 @@ describe('AnalysisToolsSection', () => {
       window.dispatchEvent(new Event('focus'));
     });
     await waitFor(() => expect(box.getAttribute('aria-checked')).toBe('true'));
+  });
+
+  it('a-low-disk-failure-shows-the-shortfall-and-try-again-recovers', async () => {
+    const shortfall = 'Not enough disk space: 712 MB needed, 300 MB free on C:.';
+    const { fake } = mount({ installs: { gliner: { fails: shortfall } } });
+    await download('gliner', 'GLiNER');
+    const gliner = await row('gliner');
+    await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
+    expect(gliner.querySelector('[data-comp-error]')!.textContent).toBe(shortfall);
+    fake.plan('gliner', 'completes');
+    fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
+    await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
+  });
+
+  it('one-registry-two-faces', async () => {
+    const fake = createFakeTools();
+    const api = createMockApi({ ...fake.port });
+    render(
+      <ApiProvider api={api}>
+        <AnalysisToolsSection />
+      </ApiProvider>,
+    );
+    // An install started in the section shows as installed in the Local assets list (a second load of the one registry).
+    await download('gliner', 'GLiNER');
+    await waitFor(async () => expect((await row('gliner')).getAttribute('data-status')).toBe('installed'), SLOW);
+    expect(fake.installed()).toEqual(['gliner']);
+    // Opening the Local assets list afterwards reads the same registry and shows it installed.
+    const { container } = render(
+      <ApiProvider api={api}>
+        <LocalAssets notify={vi.fn()} />
+      </ApiProvider>,
+    );
+    const listed = (await within(container).findByRole('heading', { level: 3, name: 'GLiNER' })).closest('li') as HTMLElement;
+    expect(within(listed).getByText(/Installed/)).toBeTruthy();
+    // The reverse: a removal made through the list is what the section shows after it reads again.
+    await api.assetsRemove('analysis', 'gliner');
+    expect(fake.installed()).toEqual([]);
+    const catalog = await api.assetsList();
+    expect(catalog.assets.find((item) => item.id === 'gliner')?.installState).toBe('not_installed');
   });
 
   it('section-registers-once', () => {
