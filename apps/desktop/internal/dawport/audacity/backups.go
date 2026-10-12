@@ -15,8 +15,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
-// DefaultBackupWindow is how much audio a backup takes either side of the edit, in seconds, until the narrator's setting is read
-// (ADR 0863; the setting is SN-D82's).
+// DefaultBackupWindow is how much audio a backup takes either side of the edit, in seconds, when no setting gives one (ADR 0863; the
+// narrator's setting is DAW.backups.window_seconds).
 const DefaultBackupWindow = 120.0
 
 // BackupsConfig is what the backups role needs from the host.
@@ -28,6 +28,9 @@ type BackupsConfig struct {
 	Reporter *persist.Reporter
 	// Window is the seconds cloned either side of the edit; 0 is DefaultBackupWindow.
 	Window float64
+	// WindowSetting, when set, is read on each backup and wins over Window: the narrator's window setting. A value that is not a
+	// positive finite number falls back to Window.
+	WindowSetting func() float64
 	// Now is the clock rows are stamped and pruned by; nil is time.Now.
 	Now func() time.Time
 }
@@ -63,6 +66,8 @@ const (
 	messageBackupTrackGone  = "The backup's track is no longer in the Audacity project, so nothing was restored."
 	messageBackupSourceGone = "The track this backup came from is no longer in the Audacity project, so nothing was restored."
 	messageBackupTwoBackups = "More than one Audacity track has the backup's name, so nothing was restored."
+	// messageRestoreNotRecorded follows a restore whose audio went back but whose row could not be stamped.
+	messageRestoreNotRecorded = "The backups list could not record when it was put back."
 )
 
 // ErrBackupLost is the answer when Audacity took the backup's commands but its track could not be found holding the window
@@ -89,6 +94,11 @@ func (b *Backups) table() string {
 }
 
 func (b *Backups) window() float64 {
+	if b.config.WindowSetting != nil {
+		if window := b.config.WindowSetting(); window > 0 && finite(window) {
+			return window
+		}
+	}
 	if b.config.Window > 0 && finite(b.config.Window) {
 		return b.config.Window
 	}
@@ -142,7 +152,7 @@ func (b *Backups) copyWindow(ctx context.Context, track int, start, end float64)
 }
 
 // BackupAround clones the window of request.GUID's track around [request.Start, request.End] (the configured window either side,
-// clamped to the project) to a new muted track named BackupTrackName(id), and adds the row. The narrator's audio is not changed,
+// clamped to the project) to a new muted track named BackupTrackName(id), and adds the row with the request's label. The narrator's audio is not changed,
 // so the Result is changed false with no undo step. A track that is gone is RefusedStale; anything else that cannot be backed up
 // is Refused, and nothing is sent.
 func (b *Backups) BackupAround(ctx context.Context, request dawport.BackupRequest) (dawport.Result, error) {
@@ -151,7 +161,7 @@ func (b *Backups) BackupAround(ctx context.Context, request dawport.BackupReques
 		return dawport.Refused(messageBackupNoProject), nil
 	}
 	if !backupText(request.GUID) || !backupText(request.ChapterID) || !finite(request.Start) || !finite(request.End) ||
-		request.Start < 0 || request.End < request.Start {
+		request.Start < 0 || request.End < request.Start || (request.Label != "" && !backupText(request.Label)) {
 		return dawport.Refused(messageBackupBadRequest), nil
 	}
 	b.mu.Lock()
@@ -224,7 +234,7 @@ func (b *Backups) BackupAround(ctx context.Context, request dawport.BackupReques
 	}
 
 	table.Backups = append(table.Backups, Backup{
-		ID: id, GUID: request.GUID, ChapterID: request.ChapterID, Start: start, End: end, CreatedAt: b.now().UTC(),
+		ID: id, GUID: request.GUID, ChapterID: request.ChapterID, Start: start, End: end, CreatedAt: b.now().UTC(), Label: request.Label,
 	})
 	if err := writeBackups(path, table); err != nil {
 		return dawport.Result{}, err
@@ -232,9 +242,9 @@ func (b *Backups) BackupAround(ctx context.Context, request dawport.BackupReques
 	return dawport.OK(fmt.Sprintf("Backed up %s s of audio in Audacity.", seconds(end-start)), false), nil
 }
 
-// RestoreBackup copies the backup's audio back over the same window of the track it came from. The backup track and the row are
-// kept, so a restore can be made again. An id the table does not have is Refused; a backup or source track that is gone is
-// RefusedStale, and nothing is restored from a guess.
+// RestoreBackup copies the backup's audio back over the same window of the track it came from, and stamps the row's Restored with
+// the time. The backup track and the row are kept, so a restore can be made again. An id the table does not have is Refused; a
+// backup or source track that is gone is RefusedStale, and nothing is restored from a guess. Prune waits for a restore in flight.
 func (b *Backups) RestoreBackup(ctx context.Context, backupGUID string) (dawport.Result, error) {
 	path := b.table()
 	if path == "" {
@@ -295,7 +305,31 @@ func (b *Backups) RestoreBackup(ctx context.Context, backupGUID string) (dawport
 	if err := b.do(ctx, "Paste"); err != nil {
 		return dawport.Result{}, err
 	}
-	return dawport.OK(fmt.Sprintf("Restored %s s of audio from the backup in Audacity.", seconds(row.End-row.Start)), true), nil
+	message := fmt.Sprintf("Restored %s s of audio from the backup in Audacity.", seconds(row.End-row.Start))
+	// The audio is already back, so a table that cannot take the stamp is said, never returned as an error that reads as nothing done.
+	if err := b.stampRestored(path, row.ID); err != nil {
+		message += " " + messageRestoreNotRecorded
+	}
+	return dawport.OK(message, true), nil
+}
+
+// stampRestored records now as the row's Restored. The table is read again under its lock, since only b.mu was held while
+// Audacity pasted; a row that is no longer there is left alone.
+func (b *Backups) stampRestored(path, id string) error {
+	unlock := lockBackups(path)
+	defer unlock()
+	table, err := readBackups(path, b.config.Reporter)
+	if err != nil {
+		return err
+	}
+	at := b.now().UTC()
+	for i := range table.Backups {
+		if table.Backups[i].ID == id {
+			table.Backups[i].Restored = &at
+			return writeBackups(path, table)
+		}
+	}
+	return nil
 }
 
 // BackupEntry is a row as List reads it back: Missing when Audacity no longer has the backup's track.
