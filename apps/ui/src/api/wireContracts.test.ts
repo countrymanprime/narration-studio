@@ -1265,6 +1265,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.assetsInstall('moonshine', 'x')).rejects.toThrow(/not in the approved catalog/);
   });
 
+  it('the asset list: the golden lists the analysis tools with their consent facts, and a list without them still parses', async () => {
+    const golden = parseWire(assetCatalogSchema, readGolden('assets-list.json'), ctx('assets list'));
+    const tools = golden.assets.filter((asset) => asset.kind === 'analysis');
+    expect(tools.map((tool) => tool.id)).toEqual(['gliner', 'booknlp-small', 'booknlp-big', 'local-llm']);
+    expect(new Set(tools.map((tool) => tool.kindLabel))).toEqual(new Set(['Analysis tool']));
+    expect(tools[0]).toMatchObject({
+      downloadHost: 'huggingface.co, files.pythonhosted.org',
+      ramGB: 2,
+      minutesPerBook: 2,
+      source: 'gliner',
+      rank: 1,
+      recommended: true,
+    });
+    expect(tools.every((tool) => (tool.unavailableReason ?? '').length > 0)).toBe(true);
+    for (const other of golden.assets.filter((asset) => asset.kind !== 'analysis')) expect(other.unavailableReason).toBeUndefined();
+    // The mock lists no analysis tool, so it is the older payload: no entry carries a consent fact, and it parses.
+    expectMatches(assetCatalogSchema, await createMockApi().assetsList(), 'mock asset list without consent facts');
+  });
+
   it('the first-use gates for a model that is not installed, and a start that goes ahead', async () => {
     const api = createMockApi();
     const model = (await api.whisperCatalog()).models[0]?.id ?? '';

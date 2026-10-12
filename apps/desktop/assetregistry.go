@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
 	"github.com/countrymanprime/narration-utils/shell/internal/ffmpeg"
@@ -23,6 +24,22 @@ type assetItem struct {
 	dir                                                           string
 	// diskSize is what the asset takes once installed, when that is not what is downloaded (an archive is unpacked and not kept).
 	diskSize int64
+	// consent is what a consent screen states besides the download itself; only the analysis tools have it, and every other kind's list
+	// entry leaves its fields out.
+	consent *assetConsent
+}
+
+// assetConsent is an analysis tool's consent facts (internal/analysistools): what it does, the hosts its files come from, the memory and
+// time a book takes (minutesPerBook nil when not known), the extraction source it files its findings under (nil when it is not a scanner),
+// its rank among that source's tools, whether it is recommended, and why it cannot be installed ("" when it can).
+type assetConsent struct {
+	description, downloadHost string
+	ramGB                     float64
+	minutesPerBook            *float64
+	source                    *string
+	rank                      int
+	recommended               bool
+	unavailableReason         string
 }
 
 // installedSize is the disk the asset takes once installed.
@@ -79,6 +96,8 @@ type assetRegistry struct {
 	dictionary *dictionary.Manager
 	// encoder is the FFmpeg build catalog the MP3 encoder runs (ADR 0342); nil when its catalog is unreadable.
 	encoder *ffmpeg.Manager
+	// analysis is the optional Story Bible analysis tools' catalog (GLiNER, BookNLP, a local language model); nil when it is unreadable.
+	analysis *analysistools.Manager
 }
 
 // registerDictionaries adds the dictionary provider, when its catalog could be read. It is separate from newAssetRegistry so the callers
@@ -99,6 +118,16 @@ func (r *assetRegistry) registerEncoders(builds *ffmpeg.Manager) {
 	}
 	r.encoder = builds
 	r.providers = append(r.providers, encoderProvider{manager: builds})
+}
+
+// registerAnalysisTools adds the analysis-tool provider, when its catalog could be read; like registerDictionaries, it leaves
+// newAssetRegistry's callers alone.
+func (r *assetRegistry) registerAnalysisTools(tools *analysistools.Manager) {
+	if tools == nil {
+		return
+	}
+	r.analysis = tools
+	r.providers = append(r.providers, analysisProvider{manager: tools})
 }
 
 // newAssetRegistry registers a provider for each manager that exists.

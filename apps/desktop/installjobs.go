@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
@@ -21,6 +22,7 @@ const (
 	installKindMoonshine  = "moonshine"
 	installKindDictionary = "dictionary"
 	installKindEncoder    = "encoder"
+	installKindAnalysis   = "analysis"
 )
 
 // The phases of an asset install, the words the UI polls for (apps/ui/src/api/contracts/assets.ts). Every asset uses the update download's vocabulary.
@@ -225,7 +227,11 @@ func capitalize(text string) string {
 func installFailureText(err error, noun string) string {
 	var short *assets.InsufficientSpaceError
 	var status *assets.StatusError
+	var unreachable *analysistools.UnreachableError
+	var unavailable *analysistools.UnavailableError
 	switch {
+	case errors.As(err, &unavailable):
+		return unavailable.Error()
 	case errors.Is(err, assets.ErrChecksumMismatch), errors.Is(err, assets.ErrSizeMismatch):
 		return "The downloaded " + noun + " did not match the approved file, so it was not installed. Try again; if it keeps happening, the file may have changed at its source."
 	case errors.Is(err, assets.ErrBadArchive), errors.Is(err, assets.ErrBadContent):
@@ -239,6 +245,9 @@ func installFailureText(err error, noun string) string {
 		return "The download host no longer has the approved " + noun + ". This is a problem with the release, not with your connection: please report it."
 	case errors.As(err, &status):
 		return "The download host is busy or refused the request. Try again in a few minutes."
+	case errors.As(err, &unreachable):
+		// An analysis tool downloads from more than one host, so the narrator is told which one did not answer.
+		return unreachable.Sentence()
 	}
 	return "The " + noun + " could not be downloaded. Check your internet connection and try again: what was downloaded so far is kept, so the download carries on from there."
 }

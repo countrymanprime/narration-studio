@@ -55,6 +55,29 @@ export type AssetItem = {
   verifiedAt: string;
   /** The id of the running download of this asset, or empty. */
   activeJobId: string;
+} & AssetConsentFacts;
+
+/**
+ * What a consent screen states about an optional analysis tool (`kind` `analysis`) besides its download: present on those rows and absent
+ * on every other kind. A fact that is not known is absent too: `minutesPerBook` for a tool never timed, `source` for one that is not a
+ * scanner, `downloadHost` for one with nothing to download. `ramGB` and `minutesPerBook` are a trial's figures, provisional until measured.
+ */
+export type AssetConsentFacts = {
+  /** What it does, in plain words. */
+  description?: string;
+  /** The hosts its files come from, comma separated, in the order they are downloaded. */
+  downloadHost?: string;
+  ramGB?: number;
+  /** About how long one book takes. */
+  minutesPerBook?: number;
+  /** The extraction source its suggestions are filed under (`gliner`, `booknlp`). */
+  source?: string;
+  /** Of two tools behind one source, the higher rank is used when both are installed. */
+  rank?: number;
+  /** Offered together on the first scan. */
+  recommended?: boolean;
+  /** Set when it cannot be installed: the sentence is shown instead of a Download button, and an install is refused with it. */
+  unavailableReason?: string;
 };
 
 export type AssetCatalog = {
