@@ -5,7 +5,7 @@ import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import type { Journal } from '../../../studio/journal/createJournal';
 import { useDawKind } from '../../../useDawKind';
-import { applyCleanupCommand, previewOf, type CleanupDeps, type CleanupPreview } from './cleanupApply';
+import { applyCleanupCommand, outcomeSentence, previewOf, type CleanupDeps, type CleanupPreview } from './cleanupApply';
 import { initialParams, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
 import { countsOf, noiseFloorOf, proposals, selectedRows } from './cleanupRows';
 import { CleanupHeader } from './CleanupHeader';
@@ -63,9 +63,8 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
       .capabilities()
       .then((caps) => {
         if (!live) return;
-        const support = caps.capabilities['cut_range'];
-        if (!caps.reachable) setDawReason(`${caps.daw === 'none' ? 'The DAW' : caps.daw} is not running.`);
-        else setDawReason(support && !support.available ? (support.message ?? 'The DAW cannot cut ranges.') : null);
+        // What the DAW can do for the chosen operation is the inspector's to say; here only whether it is running.
+        setDawReason(caps.reachable ? null : `${caps.daw === 'none' ? 'The DAW' : caps.daw} is not running.`);
       })
       .catch(() => live && setDawReason('The DAW did not answer.'));
     return () => {
@@ -106,11 +105,8 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
       overlay.toast(result.refusal.reason, { tone: 'error' });
       return;
     }
-    const { applied, stale, refused } = result.value.value;
-    const parts = [`Hid ${applied.length} on the muted Cuts track.`];
-    if (stale.length) parts.push(`${stale.length} no longer matched an item and ${stale.length === 1 ? 'was' : 'were'} left alone.`);
-    if (refused) parts.push(refused);
-    overlay.toast(parts.join(' '), refused ? { tone: 'error' } : undefined);
+    const outcome = result.value.value;
+    overlay.toast(outcomeSentence(op, outcome, params[op]), outcome.refused ? { tone: 'error' } : undefined);
     setVersion((v) => v + 1);
   };
 

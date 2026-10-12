@@ -6,6 +6,8 @@ type Spec = {
   end: number;
   cls: 'silence' | 'breath' | 'click' | 'plosive' | 'noise';
   item?: string | null;
+  /** The take the sound is in; its source window is the project window (the take plays its file from 0). */
+  take?: string | null;
   db?: number;
   dur?: number;
   status?: Finding['review']['status'];
@@ -16,13 +18,14 @@ type Spec = {
 /** A finding as the host holds it: a Proof finding or an editing candidate of one sound. */
 export function finding(s: Spec): Finding {
   const item = s.item === undefined ? 'item-1' : s.item;
+  const take = s.take === undefined ? 'take-1' : s.take;
   return {
     schema_version: 1,
     id: s.id,
     analyzer: 'editing',
     project: {},
-    source: item ? { item_guid: item } : {},
-    time_range: { start: s.start, end: s.end },
+    source: item ? { item_guid: item, ...(take ? { take_guid: take } : {}) } : {},
+    time_range: { start: s.start, end: s.end, source_start: s.start, source_end: s.end },
     category: s.category ?? (s.cls === 'silence' ? 'silence_cleanup' : 'audio_quality'),
     severity: 'info',
     confidence: 0.6,
