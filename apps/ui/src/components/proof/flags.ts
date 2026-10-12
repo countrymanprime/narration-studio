@@ -42,7 +42,7 @@ export type Flag = {
   reviewStatus?: FindingReviewStatus;
 };
 
-export const FLAG_LABEL: Record<FlagKind, string> = {
+const FLAG_LABEL: Record<FlagKind, string> = {
   skip: 'Skipped',
   partial: 'Read short',
   not_recorded: 'Not recorded yet',

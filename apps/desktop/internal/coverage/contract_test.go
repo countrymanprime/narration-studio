@@ -49,7 +49,7 @@ func TestContractCoverageResults(t *testing.T) {
 	pinResult(t, "coverage-result-unmapped", currentResult(t, service, DefaultAlignmentParams))
 }
 
-// TestContractCoverageResultWithARecheck pins the model cascade's own wire shape (Phase 5, MC5): StoredResult.Recheck
+// TestContractCoverageResultWithARecheck pins the model cascade's own wire shape (MC5): StoredResult.Recheck
 // on a result the second pass resolved.
 func TestContractCoverageResultWithARecheck(t *testing.T) {
 	p := newTestProject(t)

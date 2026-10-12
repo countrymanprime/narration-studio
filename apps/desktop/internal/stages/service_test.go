@@ -129,7 +129,7 @@ func TestRecommendationsCoverNarrationChaptersOnly(t *testing.T) {
 	}
 }
 
-// TestRequiredSignalsNarrowsTheRequiredSet: Config.RequiredSignals (Phase 6, Q8) can drop a stage's declared signal
+// TestRequiredSignalsNarrowsTheRequiredSet: Config.RequiredSignals can drop a stage's declared signal
 // out of the required set; the engine's own empty-required-set rule then applies, so a chapter that would otherwise
 // be recommended reads none instead. A nil RequiredSignals (the other tests in this file) keeps the old behaviour:
 // every declared id required.
@@ -393,7 +393,7 @@ func confirmChapterOne(t *testing.T, service *Service) ChapterRecommendation {
 	return confirmed
 }
 
-// Q10 B: only a fresh not_met of the signals that justified a confirmation
+// Only a fresh not_met of the signals that justified a confirmation
 // raises the notice; stale evidence alone is shown quietly.
 func TestAContradictionIsRaisedOnlyByAFreshNotMet(t *testing.T) {
 	manuscript := newFakeManuscript()

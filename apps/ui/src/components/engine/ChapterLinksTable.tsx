@@ -92,7 +92,7 @@ export function ChapterLinksTable({ tracks, refreshKey, notify }: { tracks: Trac
           <TableRow>
             <TableHeader>Chapter</TableHeader>
             <TableHeader>Status</TableHeader>
-            <TableHeader hiddenLabel="Proof" />
+            <TableHeader hiddenLabel="Open" />
             <TableHeader hiddenLabel="Editing check" />
             <TableHeader hiddenLabel="Link" />
           </TableRow>
@@ -103,10 +103,16 @@ export function ChapterLinksTable({ tracks, refreshKey, notify }: { tracks: Trac
               <TableCell className="font-medium">{chapterName(row.chapter)}</TableCell>
               <TableCell style={{ color: STATE_COLOR[row.state] }}>{STATE_LABEL[row.state]}</TableCell>
               <TableCell>
+                {/* Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels. */}
                 {row.state === 'linked' && (
-                  <Link className="text-sm font-semibold underline" to={`/proof/${encodeURIComponent(row.chapter.id)}`}>
-                    Open in Proof
-                  </Link>
+                  <span className="flex flex-wrap gap-x-3">
+                    <Link className="text-sm font-semibold underline" to={`/editing/${encodeURIComponent(row.chapter.id)}`}>
+                      Open in Editing
+                    </Link>
+                    <Link className="text-sm font-semibold underline" to={`/proof/${encodeURIComponent(row.chapter.id)}`}>
+                      Open in Proof
+                    </Link>
+                  </span>
                 )}
               </TableCell>
               <TableCell>

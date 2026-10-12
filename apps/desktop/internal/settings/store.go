@@ -77,7 +77,7 @@ var builtinDefaults = map[string]Values{
 	// auto, which is today's behaviour (on when Supported; when Experimental, on only while
 	// experimental_reaper_actions is on). One row per dawport capability; dawport's toggles_test.go holds the rows to its catalog.
 	// backups.window_seconds and backups.retention_days are the Audacity backups' window either side of an edit and how long a
-	// backup is kept (ADR 0863): the DAW PRD's process defaults, two minutes and seven days.
+	// backup is kept (ADR 0863): the process defaults, two minutes and seven days.
 	"DAW": {"auto_start_launcher": "false", "experimental_reaper_actions": "false",
 		"backups.window_seconds": "120", "backups.retention_days": "7",
 		"capability.review": "auto", "capability.navigate": "auto", "capability.markers": "auto", "capability.pickups": "auto",
@@ -90,7 +90,7 @@ var builtinDefaults = map[string]Values{
 		"capability.macro_render": "auto", "capability.cut_range": "auto", "capability.fx_range": "auto",
 		"capability.stack_takes": "auto", "capability.backups": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
-	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md, ADR 0132, Q15).
+	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md, ADR 0132).
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while
 	// REAPER is idle (coverage.NextBackground, ADR 0211).
 	// cascade_enabled defaults off (MC1 in docs/utilities/recording-coverage.md); the two model settings default

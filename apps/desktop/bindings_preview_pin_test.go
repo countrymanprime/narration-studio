@@ -92,7 +92,7 @@ func TestPreviewPinSetReplacesAnyEarlierPin(t *testing.T) {
 	read := decodePin(t)(host.PreviewPin())
 	candidate, _ := read["candidate"].(map[string]any)
 	if candidate["chapterId"] != "c-0002" {
-		t.Fatalf("expected only the second pin (a pin per book, Q9): %v", read)
+		t.Fatalf("expected only the second pin (a pin per book): %v", read)
 	}
 }
 
@@ -152,8 +152,8 @@ func TestPreviewPinClearWithNothingPinnedIsNotAnError(t *testing.T) {
 // TestPreviewPinReportsTextChangedStaleness pins a paragraph, edits the manuscript's text under it (the take-review
 // manuscript path directly, the same fixture-writing shortcut previewSuggestHost itself uses), then reads the pin
 // again from a fresh host attached to the same project: the pin survives with its stored range intact, but is
-// reported stale, and its recomputed candidate reflects the new text (Q9: "If the manuscript text under a pin
-// changes, the pin shows as stale").
+// reported stale, and its recomputed candidate reflects the new text (a pin whose manuscript text
+// changed shows as stale).
 func TestPreviewPinReportsTextChangedStaleness(t *testing.T) {
 	host := previewSuggestHost(t, previewManuscriptOK)
 	if _, err := host.PreviewPinSet("c-0001", []string{"p-000001"}); err != nil {

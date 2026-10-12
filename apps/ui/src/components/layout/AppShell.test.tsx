@@ -102,7 +102,7 @@ describe('AppShell engine chip', () => {
 describe('AppShell grouped navigation', () => {
   it('names every group (sidebar, rail and drawer all expose the same accessible name)', () => {
     renderShell();
-    for (const label of ['Production', 'Prep', 'Record', 'Review', 'Finish']) {
+    for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
       expect(screen.getAllByRole('group', { name: label }).length).toBeGreaterThan(0);
     }
   });
@@ -111,7 +111,7 @@ describe('AppShell grouped navigation', () => {
   // for the benchmark mocks' Schedule item, which has no page), never only named for a screen reader.
   it('draws every group heading on the wide rail, the first one too', () => {
     const { container } = renderShell();
-    for (const label of ['Production', 'Prep', 'Record', 'Review', 'Finish']) {
+    for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
       const heading = container.querySelector(`#nav-group-${label.toLowerCase()}`);
       expect(heading?.textContent).toBe(label);
       expect(heading?.className).not.toMatch(/\bsr-only\b/);
@@ -148,9 +148,38 @@ describe('AppShell grouped navigation', () => {
 
   it('lists every other page, with Production in place of Home, Proof in place of Proofing and Review and Booth in place of the Teleprompter', () => {
     renderShell();
-    for (const name of ['Production', 'Schedule', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Delivery', 'Settings']) {
+    for (const name of ['Production', 'Schedule', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Master & QC', 'Delivery', 'Settings']) {
       expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
     }
+  });
+
+  // SN-E9 (route-and-rail): the Studio Next rail (the mock's `NAV` in app/Shell.tsx, ADR 0804) has Editing in an Edit group of its own,
+  // between Record and Review, with no count; Proof stays Proof, so there is never a second Proof item.
+  it('route-and-rail: lists Editing alone in an Edit group between Record and Review, with no count, and opens /editing', () => {
+    const navigate = vi.fn();
+    const { container } = renderShell({ navigate, navCounts: { proof: 2, pickups: 3 } });
+    const edit = screen.getAllByRole('group', { name: 'Edit' })[0];
+    expect(
+      within(edit)
+        .getAllByRole('button')
+        .map((button) => button.textContent?.trim()),
+    ).toEqual(['Editing']);
+    const headings = [...container.querySelectorAll('[id^="nav-group-"]')].map((heading) => heading.textContent);
+    expect(headings.indexOf('Edit')).toBe(headings.indexOf('Record') + 1);
+    expect(headings.indexOf('Review')).toBe(headings.indexOf('Edit') + 1);
+    expect(within(screen.getAllByRole('group', { name: 'Review' })[0]).queryByRole('button', { name: /Editing/ })).toBeNull();
+    fireEvent.click(within(edit).getByRole('button', { name: 'Editing' }));
+    expect(navigate).toHaveBeenCalledWith('/editing');
+  });
+
+  it('route-and-rail: Editing is not gated (the page asks for a manuscript itself) and is active on a chapter', () => {
+    renderShell({ hasManuscript: false, dawFileLinked: false });
+    expect(screen.getAllByRole('button', { name: 'Editing' }).every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    for (const hasManuscript of [true, false]) expect(shellPages(hasManuscript)).toContainEqual({ id: '/editing', label: 'Editing' });
+    cleanup();
+    renderShell({ pathname: '/editing/chapter-1' });
+    expect(screen.getAllByRole('button', { name: 'Editing' }).some((button) => button.getAttribute('aria-current') === 'page')).toBe(true);
+    expect(screen.getAllByRole('button', { name: 'Proof' }).every((button) => button.getAttribute('aria-current') !== 'page')).toBe(true);
   });
 
   // The engine panel replaces the Tracks page, so the Review group is Proof and Pickups only.

@@ -54,7 +54,7 @@ func checkFor(metric string) DeliveryCheck {
 	panic("no check for " + metric)
 }
 
-// TestDeliverySignalMatrix is Phase 5's success signal: in range is met, out of
+// TestDeliverySignalMatrix pins the delivery signal: in range is met, out of
 // range is not_met with value and limit, and nil or non-finite values, no
 // render, a stale render, a non-WAV render, a failed or missing measurement are
 // unknown - never met.
@@ -149,7 +149,7 @@ func TestDeliverySignalEvidenceAndBasis(t *testing.T) {
 	}
 }
 
-// TestRenderLengthSignal is Q9 C: shown as evidence always, gating only when the
+// TestRenderLengthSignal pins that the length is shown as evidence always, gating only when the
 // narrator sets a tolerance.
 func TestRenderLengthSignal(t *testing.T) {
 	span := 598.0
@@ -181,7 +181,7 @@ func TestRenderLengthSignal(t *testing.T) {
 	}
 }
 
-// TestFilterRequired is Q7 B and the required-check validation: a metric check
+// TestFilterRequired pins the required-check validation: a metric check
 // is required only while the profile has a required, measured, file rule for
 // it turned on; the length check only while a tolerance is set; pickups and
 // other ids pass through.

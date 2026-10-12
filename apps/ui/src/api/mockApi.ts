@@ -212,7 +212,7 @@ export function createMockApi(
       },
     ];
   };
-  const production = createProductionMock({
+  const { applyProfileDefaultPayment, ...production } = createProductionMock({
     chapters: manuscript.bindings.manuscriptChapters,
     recommendations: stages.stageRecommendations,
     seed: initial.production,
@@ -281,7 +281,18 @@ export function createMockApi(
     ...takeComparison,
     ...measurement,
     ...renderEncodeMaster,
-    ...resavingAfterProfileChange(deliveryProfiles, resaveReview),
+    ...resavingAfterProfileChange(
+      {
+        ...deliveryProfiles,
+        // The host gives a contract with no payment yet the project's chosen profile's default (SN-P92).
+        deliverySelectProfile: async (scope, id, version) => {
+          const answer = await deliveryProfiles.deliverySelectProfile(scope, id, version);
+          if (scope === 'project' && id !== '') applyProfileDefaultPayment(id);
+          return answer;
+        },
+      },
+      resaveReview,
+    ),
     ...diagnostics,
     ...editing,
     // Reads the same findings store FindingsReview decides against (apps/desktop/internal/editing/scan.go's

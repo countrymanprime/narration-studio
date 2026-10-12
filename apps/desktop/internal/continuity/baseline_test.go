@@ -45,7 +45,7 @@ func TestABaselineNeedsTheMinimumNumberOfReferences(t *testing.T) {
 		t.Fatalf("two references: err = %v, want ErrInsufficientReference", err)
 	}
 	if _, err := BuildBaseline("alice", oneFeature(1, 2, 3), unitScale(1), DefaultRule()); err != nil {
-		t.Fatalf("three references (Q6's minimum): %v", err)
+		t.Fatalf("three references (the minimum): %v", err)
 	}
 }
 
@@ -70,7 +70,7 @@ func TestTheThresholdIsAPercentileOfLeaveOneOutReferenceDistances(t *testing.T) 
 }
 
 func TestALowerPercentileTightensTheThreshold(t *testing.T) {
-	// The trial asks Phase 5 to expose the false-reject / false-accept
+	// The trial asks callers to expose the false-reject / false-accept
 	// trade-off rather than hard-code the 90th percentile.
 	loose, _ := BuildBaseline("alice", oneFeature(0, 2, 4, 10), unitScale(1), Rule{MinReferences: 3, Percentile: 90})
 	tight, _ := BuildBaseline("alice", oneFeature(0, 2, 4, 10), unitScale(1), Rule{MinReferences: 3, Percentile: 75})

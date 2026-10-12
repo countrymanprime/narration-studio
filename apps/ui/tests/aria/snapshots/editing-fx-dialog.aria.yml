@@ -1,0 +1,24 @@
+# The page behind a modal is aria-hidden, so <body> holds the dialog and the live regions Base UI leaves exposed, nothing else.
+- /children: equal
+# Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
+# page's selection announcer and its bar (a live region that says what is selected), and the toast pair under <main>.
+- main:
+  - group "Zoom"
+  - region "Script editor":
+    - status: /4 words selected/
+    - toolbar "Playback and selection"
+  - alert
+  - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
+- dialog "Add FX to 4 words?":
+  - heading "Add FX to 4 words?" [level=2]
+  - button "Close"
+  - combobox "Effect":
+    - option "Podcast Voice.RfxChain" [selected]
+  - group "The item as it will be split"
+  - paragraph: /one undo step in REAPER/
+  - button "Cancel"
+  - button "Split and add effect"

@@ -1,7 +1,7 @@
 // How the Review page words a finding. The wire values stay the source of truth (docs/architecture/findings-contract.md);
 // everything here is display only, and an unknown value (a newer host, a later analyzer) shows as itself rather than
 // failing.
-import type { Finding, FindingReviewStatus, FindingSeverity, TakeComparisonEvidence } from '../../types';
+import type { Finding, FindingSeverity, TakeComparisonEvidence } from '../../types';
 import { readKindLabel, spanLabel, takeComparisonEvidence, takeReviewEvidence } from './takeReviewFormat';
 import { deliveryEvidence, deliveryEvidenceRows, deliveryFileName, deliverySummary } from './deliveryFindingFormat';
 
@@ -30,13 +30,6 @@ const ANALYZER_LABELS: Record<string, string> = {
   'take-review': 'Take review',
   'take-comparison': 'Take comparison',
   measure: 'Delivery measurement',
-};
-
-export const STATUS_LABELS: Record<FindingReviewStatus, string> = {
-  unreviewed: 'To review',
-  accepted: 'Accepted',
-  dismissed: 'Dismissed',
-  deferred: 'Deferred',
 };
 
 const SEVERITY_LABELS: Record<FindingSeverity, string> = { error: 'Error', warning: 'Warning', info: 'Info' };

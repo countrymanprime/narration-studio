@@ -57,4 +57,21 @@ describe('Checkbox', () => {
     await user.click(screen.getByText('Alice'));
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it('indeterminate reports mixed', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Checkbox checked={false} indeterminate onChange={onChange} aria-label="All" />);
+    const box = screen.getByRole('checkbox', { name: 'All' });
+    expect(box.getAttribute('aria-checked')).toBe('mixed');
+    await user.click(box);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('passes an aria-label and data-* through', () => {
+    render(<Checkbox checked={false} onChange={() => undefined} aria-label="Include" data-inc="x" data-count={3} />);
+    const box = screen.getByRole('checkbox', { name: 'Include' });
+    expect(box.getAttribute('data-inc')).toBe('x');
+    expect(box.getAttribute('data-count')).toBe('3');
+  });
 });

@@ -74,9 +74,9 @@ function startCapability(dawFileLinked: boolean, review: CapabilityEntry): Capab
 /**
  * The chapter view's compare run: Transcript Compare's setup
  * (model, chunk length, workers, vocabulary hints), its live progress and the first-use Whisper download, moved here
- * from the retired Proofing page and run against this chapter. Its results are not a table of their own: each
- * discrepancy is a flag in the text and the Flags panel (compareFlags.ts), with its inline diff in the flag detail;
- * this section keeps the run's summary, Export markers and New comparison.
+ * from the retired Proofing page and run against this chapter. It shows the run's summary (how many discrepancies are this
+ * chapter's), Export markers and New comparison; the discrepancies were flags in the chapter workspace, which the Editing page
+ * replaced (SN-E9).
  */
 export function CompareRun({
   chapterTitle,
@@ -101,7 +101,7 @@ export function CompareRun({
   reviewingLast: boolean;
   onReviewLast: () => void;
   onCloseLast: () => void;
-  /** How many of the results' discrepancies belong to this chapter (the ones shown as flags). */
+  /** How many of the results' discrepancies belong to this chapter. */
   foundHere: number;
 }) {
   const api = useApi();
@@ -477,9 +477,7 @@ export function CompareRun({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p>
               {results.trackName ? `${results.trackName}: ` : ''}
-              {foundHere === 0
-                ? `no discrepancies in ${chapterTitle}`
-                : `${foundHere} discrepanc${foundHere === 1 ? 'y' : 'ies'} in ${chapterTitle}, each one a flag in the Flags panel`}
+              {foundHere === 0 ? `no discrepancies in ${chapterTitle}` : `${foundHere} discrepanc${foundHere === 1 ? 'y' : 'ies'} in ${chapterTitle}`}
               {results.rows.length > foundHere ? ` (${results.rows.length - foundHere} more in other chapters)` : ''}.
             </p>
             <div className="flex flex-wrap items-center gap-2">

@@ -74,6 +74,15 @@ describe('proof-route-draws-the-mock-page', () => {
     expect(within(hints).queryByText('Play')).toBeNull();
   });
 
+  it('the key hints sit at the bottom of the scrolling page', async () => {
+    renderPage();
+    await noteRows();
+    const wrap = screen.getByRole('note', { name: 'Keyboard shortcuts' }).parentElement!;
+    expect(wrap.className).toContain('sticky');
+    expect(wrap.className).toContain('-bottom-4');
+    expect(wrap.parentElement!.lastElementChild).toBe(wrap);
+  });
+
   it('opens one chapter with its check card and its notes; Escape returns to all chapters', async () => {
     renderPage({ at: '/proof?chapter=chapter-1' });
     await noteRows();

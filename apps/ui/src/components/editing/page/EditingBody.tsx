@@ -20,6 +20,8 @@ import { useDrawerCommands } from '../drawer/useDrawerCommands';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
 import { FlagCard } from '../flags/FlagCard';
+import { useDawPlayPosition } from '../follow/useDawPlayPosition';
+import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
 import { useAcceptWords } from '../flags/useAcceptWords';
 import { EDITING_FOOTER_SPEC, editingKeyHints } from '../keys/editingKeyHints';
@@ -134,6 +136,9 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const playback = useScriptPlayback({ playlist, mediaUrl: tracks.mediaUrl });
+  // The DAW's own play lights its word too, and the text follows whichever lit it.
+  useDawPlayPosition({ items: read.workspace.items, playlist, caps, playback });
+  useFollowScroll(root, playback);
   const takePlayer = useRangePlayer(tracks.mediaUrl, { pre: 0, post: 0 });
   const [playingTake, setPlayingTake] = useState<string | null>(null);
   const playTake = useCallback(
@@ -352,7 +357,9 @@ export function EditingBody(props: EditingBodyProps) {
             </ScriptHost>
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             <SelectionBar playback={playback} end={total} />
-            <KeyHints hints={hints} id="keyhints" />
+            <div className="sticky bottom-0 z-[5]">
+              <KeyHints hints={hints} id="keyhints" />
+            </div>
           </div>
         </DrawerLayout>
       </div>

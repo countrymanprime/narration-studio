@@ -92,14 +92,19 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'confirm-stop-recording.aria.yml',
   },
   {
-    name: 'the passage-effect confirm is an alert dialog naming the passage, with the Effect select and both actions',
-    state: ['proof-chapter', 'effects-confirm'],
-    snapshot: 'confirm-passage-effect.aria.yml',
+    name: 'Editing: deleting words asks first, naming how many words and their audio go, with both actions',
+    state: ['editing', 'delete-dialog'],
+    snapshot: 'editing-delete-dialog.aria.yml',
   },
   {
-    name: 'adding a read from another item as a take and making it active asks first: an alert dialog with both actions',
-    state: ['proof-chapter', 'takes-confirm'],
-    snapshot: 'confirm-add-take-and-activate.aria.yml',
+    name: 'Editing: adding FX to words is a modal dialog with the words, the chain select, the plan and both actions',
+    state: ['editing', 'fx-dialog'],
+    snapshot: 'editing-fx-dialog.aria.yml',
+  },
+  {
+    name: 'Editing: a step of the take suggestion asks first, with what it changes and both actions',
+    state: ['editing', 'suggestion-step'],
+    snapshot: 'editing-confirm-normalise.aria.yml',
   },
   {
     name: 'the jump menu is a modal dialog holding a combobox field and its list of results',
@@ -134,13 +139,16 @@ test('the isolation check fails when the page behind a modal is exposed', async 
   await expect(page.locator('body')).not.toMatchAriaSnapshot({ name: 'confirm-delete-entry.aria.yml', timeout: 1000 });
 });
 
-// The right-click menu on the script: a menu of two menuitems, and with REAPER away
-// both are disabled and read with the reason as their description.
-test('the passage effects menu is a menu of two items, and each says why it is off when REAPER is away', async ({ page }) => {
-  await openApp(page, DESKTOP, ['proof-chapter', 'effects-menu']);
-  await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-passage-effects.aria.yml' });
-  await openApp(page, DESKTOP, ['proof-chapter', 'effects-menu-standalone']);
-  await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-passage-effects-standalone.aria.yml' });
+// Editing's Add FX on selected words: a menu of the DAW's FX chains, and the item it cannot open yet saying why.
+test('Editing: Add FX is a menu of the DAW’s FX chains', async ({ page }) => {
+  await openApp(page, DESKTOP, ['editing', 'fx-menu']);
+  await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'editing-menu-fx-chains.aria.yml' });
+});
+
+// Editing's drawer is not modal: a complementary region beside (or over) the text, with its tabs and the open tab's panel.
+test('Editing: the drawer has its tabs and the open tab’s panel', async ({ page }) => {
+  await openApp(page, DESKTOP, ['editing', 'drawer-cleanup']);
+  await expect(page.locator('#drawer')).toMatchAriaSnapshot({ name: 'editing-drawer.aria.yml' });
 });
 
 // The shell's menu on empty space: a menu of items, the unavailable ones carrying their reason.

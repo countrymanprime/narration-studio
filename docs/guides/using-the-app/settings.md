@@ -2,32 +2,52 @@
 
 # Settings
 
-Settings opens with five panels, then the rest of the settings by category.
+Settings opens with six panels, then the rest of the settings by category.
 
+- **Recording** chooses where this project's takes are recorded: in the DAW the app was started with (the DAW's
+  name, then **Recordings live in the DAW.**) or with the **Built-in recorder. Recordings live in the app.** The DAW
+  stays chosen while it is not running. A refused choice (no project open, a take running, or the built-in
+  recorder not available) says why under the radios, and the choice stays where it was.
 - **Delivery profile** picks the profile this project is judged against, on [Master &
   QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
-- **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry: rename one, change its colour,
-  add a type or remove one no entry uses. A refused change says why under the list.
-- **Appearance** sets the theme: **Match my system**, **Light** or **Dark**.
+- **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a
+  **Can speak** box (entries of that type can be picked as the speaker of a quoted line) and how many entries
+  it has. Rename a type in its box, change its colour, add one in **New type**, or remove one: the remove
+  button stays off while entries use the type, and the last type cannot go. A refused change says why under
+  the list.
+- **Appearance** sets the theme: **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light
+  theme** item at the foot of the sidebar switches it too.
 - **Keyboard shortcuts** lists the keys, read-only; the **Keyboard & pedals** category below changes them.
-- **Manuscript** names the imported manuscript, with **Replace manuscript** (or **Import manuscript** when
-  there is none).
+- **Manuscript** says when the manuscript was imported (or **No manuscript yet**), with **Replace
+  manuscript** (or **Import manuscript** when there is none). The replace confirm names what it clears.
 
-![Settings, the top of the page: Delivery profile, Story Bible types, Appearance, Keyboard shortcuts and Manuscript](../../images/ui/settings-appearance.webp)
+![Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types](../../images/ui/settings-appearance.webp)
 
-![Home with Dark theme selected](../../images/ui/theme-dark.webp)
+![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
-Below them, the categories are split into Global (defaults for every project) and This Project (overrides
-for the current one).
+Below them, the categories are split into two tabs: **Global** (defaults for every project) and **This
+Project** (overrides for the current one; a setting left unset there uses the Global value). Global lists
+General, Keyboard & pedals, Manuscript, Recording check, Silence cleanup, Proof, Preview, Stage suggestions,
+Story Bible, Delivery, DAW Integration, TTS, Booth, Local assets and About & updates. This Project lists
+Manuscript, Recording check, Silence cleanup, Proof, Preview, Stage suggestions, Story Bible, DAW
+Integration, TTS, Project data and Credits. Most categories are a form of settings with **Save** and
+**Discard changes**; leaving a category with unsaved changes asks whether to save or discard them.
 
 ![Settings, Global scope, General category](../../images/ui/settings-general.webp)
 
-The categories mix dropdowns and color pickers — Manuscript's own category, for example,
-controls the color used to mark reader notes in the text. **General** (Global only) also holds the
-**Narrator name (default for credits)** and the **Room tone per credits file (seconds)**, 0 to 10 and 0 by
-default: the silence the [Production](production.md#the-credits) credits estimate adds to the opening and to the closing credits file, head
-and tail together (ACX asks for 1 to 5 seconds at each end of every file). In both scopes:
-
+- **General** (Global only) holds **Log verbosity** (`quiet`, `normal` or `verbose`); **Notify me when a long task
+  finishes while I'm away** (on by default), a Windows notification when a long job ends while the app is
+  not in front; the **Narrator name (default for credits)**; the **Room tone per credits file (seconds)**, 0
+  to 10 and 0 by default: the silence the [Production](production.md#the-credits) credits estimate adds to
+  the opening and to the closing credits file, head and tail together (ACX asks for 1 to 5 seconds at each
+  end of every file); and **Debug logging (writes decision records to the run log)**.
+- **Keyboard & pedals** (Global only) lists every command you can run without the mouse, grouped by where
+  it works. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that
+  types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to
+  default**. A key another command already uses is named, and **Replace** takes it from that command. A
+  changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change.
+  Each change saves at once.
+- **Manuscript** holds the **Note color**, the colour that marks reader notes in the text.
 - **Recording check** holds the four numbers the [recording check](production.md#checking-a-chapters-recording) uses: the **Share of
   each paragraph that must be read** (0.8) and the **Longest run of missing words allowed** (3)
   decide when a chapter counts as recorded, and the **Longest misread still counted as read** (8)
@@ -37,21 +57,39 @@ and tail together (ACX asks for 1 to 5 seconds at each end of every file). In bo
   ([how they were chosen](../../utilities/recording-coverage.md#settings)). A skipped phrase of 3
   words or fewer can pass, because a transcriber drops single words too. Changing either of the first two only changes
   how a stored check is judged. Changing either of the last two makes earlier checks out of date, so
-  those chapters need checking again. In This Project, a blank box uses the Global value.
+  those chapters need checking again. **Check changed chapters in the background** lets the app re-check a
+  changed chapter by itself while your DAW is idle and not recording and the computer is on mains power.
   The category also has its own switch, **Two-pass check (fast first pass, then re-check what's
   missing)**, off by default. On, a **First-pass Whisper model** and a **Re-check Whisper model**
   pick which model runs each pass ([how it works](../../utilities/recording-coverage.md#the-model-cascade)):
   a fast pass (`tiny` by default) transcribes the whole chapter, and a stronger one (`large-v3-turbo`
-  by default) re-checks only what it reports missing. Turning it on does not change the model
-  **Proofing** below uses.
-- **Proofing** picks the default Whisper model and chunk length for a comparison and the marker colors
-  for misread, skipped and extra words. It shows whether the chosen model is installed, with
+  by default) re-checks only what it reports missing. Turning it on does not change the model the
+  **Proof** category sets.
+- **Silence cleanup** holds the thresholds the silence cleanup analysis uses when a
+  [diagnostics](master-and-qc.md#diagnostics) check runs: the **Hold kept at each side of a cut silence**,
+  the **Shortest run read as a breath** and **Longest run read as a breath**, **How far below speech level a
+  breath sits**, and **How far above the silence around it a click stands**.
+- **Proof** picks the **Default Whisper model** and **Default chunk length** for a comparison and the marker
+  colors for misread, skipped and extra words. It shows whether the chosen model is installed, with
   **Remove local model…** once it is.
+- **Preview** sets what the [Preview panel](proof.md#comparing-the-recording-with-the-script) suggests:
+  the **Target length (seconds)**, the **Tolerance (fraction of target)**, the **Preset** (**Sample**, a clean,
+  varied excerpt to share, or **Spot check**, a passage worth a second look) and **Exclude the ending
+  (fraction of chapters)**, so a candidate never comes from the book's last chapters.
+- **Stage suggestions** decides when Production suggests moving a chapter on ([stage
+  readiness](production.md#stage-readiness)). **Suggest stage advances** turns every suggestion off at once;
+  below it, each check (text present in order, empty space, clicks, breaths, pickups, and the rendered
+  file's delivery checks) is `required` or `ignored`. The click and breath checks are marked **not yet
+  validated**: requiring one means the stage is never suggested.
 - **Story Bible** picks the spaCy model, whether to **Build the Story Bible after import**, and the
   **Default pronunciation source** a fresh pronunciation tries first (Automatic, CMU, Wiktionary or
   eSpeak) at build time and when you add an alias; it never limits generating or replacing a
-  pronunciation by hand for a specific entry, which always lets you pick.
-- **Delivery** (Global only) picks the default profile for every project that has not chosen one (ACX
+  pronunciation by hand for a specific entry, which always lets you pick. In Global it also holds the
+  **Online dictionary (Merriam-Webster)**: an optional free key of your own (**Get a free key**, **Save
+  key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name; only the
+  word you look up is sent. Under it, **Story Bible analysis** lists the optional analysis tools to
+  download or remove, with **Offer better analysis when scanning**.
+- **Delivery** (Global only) picks the **Default delivery profile** for every project that has not chosen one (ACX
   until you change it); a project's own choice is the **Delivery profile** panel at the top of the page. A
   choice takes effect at once. The **Profiles** list shows the built-in ACX profile, read-only, and your custom profiles with
   what each is based on, how many numbers you changed and how many rules are off. **Duplicate** makes a
@@ -68,28 +106,48 @@ Choosing a model or a voice here never downloads it; the app asks when a feature
 The **Booth** category (Global scope only — the microphone, engine and model are machine facts, not a
 per-project preference) remembers the microphone, live engine and model you last chose in the
 [Booth](booth.md), and changing them here changes what the Booth starts with. The engine is Whisper
-(the default) or Moonshine; the model is Tiny or Small for either. Choosing Moonshine does not download
-its model: the Booth asks the first time you start reading with it. Old links to this category by its former
-name, Teleprompter, still open it.
+(the default) or Moonshine; the model is `tiny` or `small` for either. Choosing Moonshine does not download
+its model: the Booth asks the first time you start reading with it. **Punch pre-roll (seconds)** is how far
+before the word a punch-in starts. Old links to this category by its former name, Teleprompter, still open it.
 
 ![Settings - Global scope, Manuscript category (note color picker)](../../images/ui/settings-manuscript.webp)
 
-This Project's "Project data" category is a project-only danger zone: it clears the imported
-manuscript, Story Bible, proofing artifacts, and reader notes for the current project, while
-leaving its settings in place.
+This Project's **Project data** category is a project-only danger zone: **Clear derived project data…**
+removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and
+bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
 ![Settings - Project scope, Project data category (clear derived project data)](../../images/ui/settings-project-data.webp)
 
 ## DAW Integration
 
-In the **Global** scope, **DAW Integration** says whether REAPER is installed on this computer (**Check
-again** looks again; the app never downloads or installs it for you) and whether it is reachable: a
-running REAPER has been heard from recently, and its open project does or does not match the linked one.
-**Launch REAPER** starts REAPER on the linked project and needs a linked `.rpp` first. Two settings go
-with it: **REAPER executable (override)**, for a REAPER the app does not find by itself, and **Start the
-launcher script automatically** (off by default), which has REAPER run the Narration Utils launcher when
-the app starts it. Where the app knows the launcher's path, it is shown with **Copy path**, to import
-once in REAPER as an action.
+In the **Global** scope, **DAW Integration** starts with **Digital audio workstation**: the DAW the app
+works with (REAPER) and whether it is installed on this computer. When it is not, **Get REAPER** opens its
+download page in your browser; the app never downloads or installs it for you. When it is installed and no
+project is linked, **Link a REAPER project file** links one. **Check again** looks again.
+
+Below that, the category says whether your DAW is reachable: a running DAW has been heard from in the last 5 seconds,
+and its open project does or does not match the linked one. **Launch REAPER** starts REAPER on the linked
+project and needs a linked `.rpp` first.
+
+The settings under it:
+
+- **REAPER executable (override)**, for a REAPER the app does not find by itself.
+- **Start the launcher script automatically** (off by default): REAPER runs the Narration Utils launcher
+  when the app starts it.
+- **Experimental REAPER actions** (off by default): the DAW actions not yet verified in REAPER stay
+  refused while it is off, unless you set that action's own row below to `on`; while it is on, every one left on
+  `auto` is allowed.
+- **Favourite effects (FX chains and plug-ins)**: the effects [Editing](editing.md#effects-on-words)
+  offers first.
+- One row per DAW action (`auto`, `on` or `off`), such as **Record**, **Punch and roll** or **Chapter
+  regions**.
+
+**What the DAW can do** lists each action with its level (**Supported**, **Experimental**, **Not yet
+available** or **Unsupported**), the DAW's own reason when it is unavailable, how a change is made, and a
+warning on any action that replaces audio that cannot be brought back. A **Backups** section follows only
+for a DAW that keeps backups of the audio around an edit: how much audio either side is kept and for how
+many days. Where the app knows the launcher's path, **REAPER launcher** shows it with **Copy path**, to
+import once in REAPER as an action.
 
 In **This Project**, the same category shows whether a REAPER project is linked, with **Link a REAPER
 project file** or **Change linked project file**: the same link as the pill in the
@@ -110,7 +168,7 @@ announcement, and the retail sample.
   heading as the manuscript names it ("Chapter 1") and `[Chapter Title]` its subtitle ("Down the
   Rabbit-Hole"), so `[Chapter]{: [Chapter Title]}.` reads "Chapter 1: Down the Rabbit-Hole." and just
   "Prologue." for a chapter with no subtitle. You record it inside each chapter file, so keep it to the chapter
-  heading and subtitle: Proofing expects the spoken chapter title there, and any other words are reported
+  heading and subtitle: Proof expects the spoken chapter title there, and any other words are reported
   as extra.
 - **Preview** shows the body with the values filled in, its word count, and any token that has no value
   yet, highlighted and listed as unresolved. A chapter announcement is previewed for the first chapter

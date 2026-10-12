@@ -30,7 +30,7 @@ func TestIsValidatedNeedsAPermissionedRunAtTargetInEveryCondition(t *testing.T) 
 		{"permissioned, every condition at target", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusPermissioned, HeldOut: passingRun()}, AnalyzerClick, "v9", true},
 		{"another version of the same detector", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusPermissioned, HeldOut: passingRun()}, AnalyzerClick, "v10", false},
 		{"the same version of another class", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusPermissioned, HeldOut: passingRun()}, AnalyzerBreath, "v9", false},
-		{"synthetic audio is never a validation (Q10)", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusSynthetic, HeldOut: passingRun()}, AnalyzerClick, "v9", false},
+		{"synthetic audio is never a validation", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusSynthetic, HeldOut: passingRun()}, AnalyzerClick, "v9", false},
 		{"one condition below target", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusPermissioned, HeldOut: failingCondition}, AnalyzerClick, "v9", false},
 		{"no held-out run at all", DetectorValidation{AnalyzerID: AnalyzerClick, AnalyzerVersion: "v9", Corpus: CorpusPermissioned}, AnalyzerClick, "v9", false},
 	}
@@ -43,7 +43,7 @@ func TestIsValidatedNeedsAPermissionedRunAtTargetInEveryCondition(t *testing.T) 
 	}
 }
 
-// TestShippedDetectorsAreGatedOff is Phase 4's outcome on main: neither the
+// TestShippedDetectorsAreGatedOff records the shipped state: neither the
 // click nor the breath detector has a permissioned held-out run at target, so
 // both ship gated off. A change that opens either gate has to change this
 // test, on purpose, next to a recorded run.
@@ -51,7 +51,7 @@ func TestShippedDetectorsAreGatedOff(t *testing.T) {
 	records := DetectorValidations()
 	for _, class := range []struct{ id, version string }{{AnalyzerClick, ClickAnalyzerVersion}, {AnalyzerBreath, BreathAnalyzerVersion}} {
 		if IsValidated(records, class.id, class.version) {
-			t.Errorf("%s %s is validated; Phase 4 found no permissioned run at target", class.id, class.version)
+			t.Errorf("%s %s is validated; no permissioned run at target is recorded", class.id, class.version)
 		}
 		found := false
 		for _, record := range records {
@@ -72,8 +72,7 @@ func coveredClassInput(id, analyzerID, version string, validations []DetectorVal
 	}
 }
 
-// TestClassSignalGateTurnsAnUnvalidatedVersionUnknown is Phase 4's success
-// signal: "the gate demonstrably turns a signal to unknown for an unvalidated
+// TestClassSignalGateTurnsAnUnvalidatedVersionUnknown pins that "the gate demonstrably turns a signal to unknown for an unvalidated
 // version." The same fully covered, clean input is met under a validated
 // version and unknown under any other.
 func TestClassSignalGateTurnsAnUnvalidatedVersionUnknown(t *testing.T) {

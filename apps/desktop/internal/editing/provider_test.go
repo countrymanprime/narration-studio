@@ -62,7 +62,7 @@ func TestSignalProviderUnknownBeforeAnyScan(t *testing.T) {
 	}
 }
 
-// TestSignalProviderMetAfterACleanScan is Phase 6's own end-to-end proof:
+// TestSignalProviderMetAfterACleanScan is the end-to-end proof:
 // after a scan finds no candidates (a maximum gap wide enough that the 3 s
 // gap between the fixture's two items does not cross it), the empty-space
 // signal reads met, and the click/breath signals still never do.
@@ -92,7 +92,7 @@ func TestSignalProviderMetAfterACleanScan(t *testing.T) {
 	}
 	for _, id := range []string{ClickSignalID, BreathSignalID} {
 		if got := byID[id].State; got != stages.SignalUnknown {
-			t.Fatalf("%s state = %q, want %q (never met, Phase 4 not run)", id, got, stages.SignalUnknown)
+			t.Fatalf("%s state = %q, want %q (never met, detector not validated)", id, got, stages.SignalUnknown)
 		}
 	}
 }
@@ -163,7 +163,7 @@ func TestSignalProviderUnmapped(t *testing.T) {
 // signals too (Collect's own per-provider isolation), so this path is worth
 // its own direct test. The empty-space signal names the real cause
 // (CauseProjectUnreadable); the click/breath signals always give the same
-// unvalidated-detector reason regardless of context (Q5) - itself never
+// unvalidated-detector reason regardless of context - itself never
 // met, whatever else is also true about the project.
 func TestSignalProviderProjectUnreadable(t *testing.T) {
 	provider := NewSignalProvider(&Service{})

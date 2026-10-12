@@ -37,11 +37,11 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - `src/components/pickups/list/AddPickup.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/project/NewProjectDialog.tsx`
-- `src/components/proof/FlagsPanel.tsx`
 - `src/components/proof/inspector/Inspector.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/OnlineDictionaryPanel.tsx`
+- `src/components/storybible/EntryText.tsx`
 - `src/components/storybible/GuideDetail.tsx`

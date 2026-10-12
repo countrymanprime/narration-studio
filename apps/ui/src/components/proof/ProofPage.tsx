@@ -73,7 +73,7 @@ const held = (finding: Finding): Finding => ({ ...finding, review: { ...finding.
  * Proof (Studio Next mock `pages/Proof.tsx`): the whole book as a strip of chapters and one list of notes, or one chapter with its
  * recording check, its waveform window and its notes; the Inspector for the selected note on the right and the key hints at the foot.
  * The host filters and sorts the notes (`FindingsQuery`); a decision goes through the Inspector's stale-evidence guard and moves on
- * to the next note with an Undo. The workspace (`/proof/:chapterId`) stays until the Editing swap.
+ * to the next note with an Undo.
  */
 export function ProofPage({
   hasManuscript,
@@ -89,8 +89,8 @@ export function ProofPage({
   goTo: (path: string) => void;
   goToScript: (chapterId: string) => void;
   goToBooth: (chapterId: string) => void;
-  /** The takes' "Open in Editing": the chapter's workspace on the note. */
-  goToEditing: (chapterId: string, findingId?: string) => void;
+  /** The takes' "Manage takes in Editing": the Editing page at the note's chapter, its flagged word selected and the passage's takes open. */
+  goToEditing: (chapterId: string, findingId?: string, passageId?: string) => void;
 }) {
   const findingsApi = usePort('findings');
   const manuscriptApi = usePort('manuscript');
@@ -397,7 +397,9 @@ export function ProofPage({
                     }
                   />
                 }
-                spot={<SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id) => goToEditing(id, selected.id)} />}
+                spot={
+                  <SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id, passageId) => goToEditing(id, selected.id, passageId)} />
+                }
               />
             ) : (
               <p className="text-sm text-[var(--text-muted)]">{findings.length ? 'Choose a note to see what was heard.' : 'No notes yet.'}</p>

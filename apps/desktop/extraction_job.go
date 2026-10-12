@@ -14,6 +14,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
 	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/booknlp"
+	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/gliner"
 	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/rules"
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
@@ -365,20 +367,63 @@ func (h *Host) cancelExtractionScan() ExtractionScanJob {
 	return state
 }
 
-// extractionRegistry is the scan's sources: the rules row runs the Manuscript Guide sidecar's suggest command, and the
-// other rows are extractionport's own.
+// extractionRegistry is the scan's sources, in extractionport's order: the rules row runs the Manuscript Guide sidecar's
+// suggest command, the GLiNER and BookNLP rows run the same sidecar from the analysis tool the registry has installed
+// (and answer not downloaded until then), and the other rows are extractionport's own.
 func (h *Host) extractionRegistry() *port.Registry[extractionport.Source] {
 	if h.extractionSources != nil {
 		return h.extractionSources
 	}
 	registry := &port.Registry[extractionport.Source]{Kind: "extraction source"}
-	registry.Register(rules.Entry(rules.Source{Supervisor: h.sidecars, Command: h.rulesCommand}))
 	for _, entry := range extractionport.NewRegistry().Entries() {
-		if entry.Name != extractionport.Rules {
-			registry.Register(entry)
+		switch entry.Name {
+		case extractionport.Rules:
+			entry = rules.Entry(rules.Source{Supervisor: h.sidecars, Command: h.rulesCommand})
+		case extractionport.Gliner:
+			entry = gliner.Entry(gliner.Source{Supervisor: h.sidecars, Command: h.glinerCommand,
+				Install: func() (string, bool) { return h.analysisToolInstall(gliner.AssetID) }})
+		case extractionport.BookNLP:
+			entry = booknlp.Entry(booknlp.Source{Supervisor: h.sidecars, Command: h.booknlpCommand, Install: h.analysisToolInstall})
 		}
+		registry.Register(entry)
 	}
 	return registry
+}
+
+// analysisToolInstall is an analysis tool's install folder when the asset registry has it installed and verified and its
+// row is pinned; a tool that is not, or a build with no analysis catalog, answers false.
+func (h *Host) analysisToolInstall(id string) (string, bool) {
+	tools := h.registry().analysis
+	if tools == nil {
+		return "", false
+	}
+	tool, ok := tools.Tool(id)
+	if !ok || !tool.Available() || tools.State(tool) != "installed" {
+		return "", false
+	}
+	return tools.InstallDir(id), true
+}
+
+// glinerCommand starts the Manuscript Guide sidecar as rulesCommand does.
+func (h *Host) glinerCommand() (gliner.Command, error) {
+	command, err := h.rulesCommand()
+	return gliner.Command(command), err
+}
+
+// booknlpCommand starts the Manuscript Guide sidecar as rulesCommand does, with the spaCy model the Story Bible build
+// would use when it is installed; otherwise the sidecar's default.
+func (h *Host) booknlpCommand() (booknlp.Command, error) {
+	command, err := h.rulesCommand()
+	if err != nil {
+		return booknlp.Command{}, err
+	}
+	out := booknlp.Command{Program: command.Program, Args: command.Args, Manuscript: command.Manuscript, Guide: command.Guide}
+	if store := h.services().settings; store != nil {
+		if model, gate, err := h.spacyForBuild(store, false); err == nil && gate == nil {
+			out.SpacyModel = model
+		}
+	}
+	return out, nil
 }
 
 // rulesCommand is how to start the Manuscript Guide sidecar for the open project, as internal/guide starts it: the
@@ -434,11 +479,21 @@ func (h *Host) extractionParagraphsOf(svc hostServices) ([]extraction.Paragraph,
 	return paragraphs, nil
 }
 
-// extractionInstalledAssets are the installed asset ids a source can run from. No analysis tool is in the asset
-// catalogue yet (SNX-6 adds GLiNER and BookNLP), so none is installed.
+// extractionInstalledAssets are the installed asset ids a source can run from: the analysis tools the registry has
+// installed and verified (analysisToolInstall).
 func (h *Host) extractionInstalledAssets() []string {
 	if h.extractionInstalled != nil {
 		return h.extractionInstalled()
 	}
-	return nil
+	tools := h.registry().analysis
+	if tools == nil {
+		return nil
+	}
+	var installed []string
+	for _, tool := range tools.Tools() {
+		if _, ok := h.analysisToolInstall(tool.ID); ok {
+			installed = append(installed, tool.ID)
+		}
+	}
+	return installed
 }

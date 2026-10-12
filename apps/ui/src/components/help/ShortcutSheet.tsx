@@ -2,7 +2,7 @@ import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
 import { KeyChord } from '../primitives/KeyCap';
 import type { CommandDescriptor } from '../../input/commands.catalog';
-import { gestureKeys } from '../../input/hints';
+import { gestureKeys, nonKeyHints, type FooterSurface } from '../../input/hints';
 import { CommandScope } from '../../input/router';
 import type { Scope } from '../../input/scopes';
 import { commandsFor } from '../../input/surfaces';
@@ -12,6 +12,17 @@ import { useUserKeymap } from '../../input/useUserKeymap';
 // `SCOPE_PRIORITY` (router.tsx), which orders scopes by specificity for gesture lookup, not for reading.
 const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };
+
+const FOOTER_SURFACES: readonly FooterSurface[] = ['booth', 'proof'];
+
+// The ways to do a command that are not keys ("Right-click" to start from here), by the command they follow.
+function extrasByCommand(): Map<string, { keys: string[]; label: string }[]> {
+  const extras = new Map<string, { keys: string[]; label: string }[]>();
+  for (const surface of FOOTER_SURFACES) {
+    for (const { after, keys, label } of nonKeyHints(surface)) extras.set(after, [...(extras.get(after) ?? []), { keys, label }]);
+  }
+  return extras;
+}
 
 function groupByScope(commands: readonly CommandDescriptor[]): Partial<Record<Scope, CommandDescriptor[]>> {
   const groups: Partial<Record<Scope, CommandDescriptor[]>> = {};
@@ -27,6 +38,7 @@ function groupByScope(commands: readonly CommandDescriptor[]): Partial<Record<Sc
 export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => void; onShowAll: () => void; catalog?: readonly CommandDescriptor[] }) {
   const keymap = useUserKeymap(undefined, catalog);
   const groups = groupByScope(commandsFor('help', catalog));
+  const extras = extrasByCommand();
 
   return (
     <CommandScope kind="dialog">
@@ -37,7 +49,7 @@ export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => 
               <h3 className="mb-2 text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--text-muted)] uppercase">{SCOPE_LABEL[scope]}</h3>
               <ul className="flex flex-col gap-2">
                 {groups[scope]!.map((command) => (
-                  <li key={command.id} className="flex items-center justify-between gap-4">
+                  <li key={command.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                     <span>{command.label}</span>
                     <span className="flex flex-wrap items-center justify-end gap-x-1 gap-y-0.5 text-xs text-[var(--text-muted)]">
                       {(keymap[command.id] ?? []).map((gesture, index) => {
@@ -56,6 +68,12 @@ export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => 
                         );
                       })}
                     </span>
+                    {(extras.get(command.id) ?? []).map((extra) => (
+                      <span key={extra.label} className="flex basis-full items-center justify-end gap-2 text-xs text-[var(--text-muted)]">
+                        <span>{extra.label}</span>
+                        <KeyChord keys={extra.keys} />
+                      </span>
+                    ))}
                   </li>
                 ))}
               </ul>

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestSuggestExcludesHardGatedWindowForSample is Phase 5's core success signal: a fixture with an open, anchored
+// TestSuggestExcludesHardGatedWindowForSample pins the core finding gate: a fixture with an open, anchored
 // pickup finding at severity warning in the manuscript's first, otherwise-best window must not be suggested for
 // the Sample preset when a clean window exists elsewhere in the chapter.
 func TestSuggestExcludesHardGatedWindowForSample(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSuggestExcludesHardGatedWindowForSample(t *testing.T) {
 	}
 }
 
-// TestSuggestSpotCheckKeepsHardGatedWindowButRanksItDownAndListsIt is Q7's "B for Spot-check": the same finding
+// TestSuggestSpotCheckKeepsHardGatedWindowButRanksItDownAndListsIt pins that, for Spot-check, the same finding
 // never excludes a window for the SpotCheck preset, only lowers its rank and appears as evidence. The fixture
 // gives the first window a clearly higher text score (five distinct entities, versus none elsewhere) so it still
 // wins even after the findings penalty; Sample, by contrast, must exclude it outright regardless of that score
@@ -85,7 +85,7 @@ func TestSuggestSpotCheckKeepsHardGatedWindowButRanksItDownAndListsIt(t *testing
 }
 
 // TestSuggestDismissedFindingsAreNeverPassedInDoNotCount confirms the package-level contract: a caller that
-// filters dismissed findings out before building OpenFindings (PS Q2) sees no trace of them - there is nothing
+// filters dismissed findings out before building OpenFindings sees no trace of them - there is nothing
 // in this package that could "un-dismiss" one, since it never receives one at all.
 func TestSuggestDismissedFindingsAreNeverPassedInDoNotCount(t *testing.T) {
 	chapters, paragraphs := manyParagraphManuscript()
@@ -100,7 +100,7 @@ func TestSuggestDismissedFindingsAreNeverPassedInDoNotCount(t *testing.T) {
 	}
 }
 
-// TestSuggestUnanchoredFindingWarnsEveryCandidateInItsChapter is Phase 5's stated fallback: a finding with no
+// TestSuggestUnanchoredFindingWarnsEveryCandidateInItsChapter pins the fallback: a finding with no
 // paragraph anchor can never be pinned to one window, so it becomes a chapter-level warning rather than a
 // silent pass, and it never excludes a Sample candidate (only an anchored hard-gate finding does).
 func TestSuggestUnanchoredFindingWarnsEveryCandidateInItsChapter(t *testing.T) {
@@ -129,7 +129,7 @@ func TestSuggestUnanchoredFindingWarnsEveryCandidateInItsChapter(t *testing.T) {
 	}
 }
 
-// TestSuggestInfoSeverityHardCategoryNeverExcludes is Q7's severity floor: a hard-gate category below warning
+// TestSuggestInfoSeverityHardCategoryNeverExcludes pins the severity floor: a hard-gate category below warning
 // severity only ranks down, it never excludes even for Sample.
 func TestSuggestInfoSeverityHardCategoryNeverExcludes(t *testing.T) {
 	chapters := []Chapter{{ID: "c1", ContentKind: ContentNarration, Order: 0}}

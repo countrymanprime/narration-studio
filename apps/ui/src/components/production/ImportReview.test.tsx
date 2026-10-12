@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ImportReview, ImportSummary } from './ImportReview';
 import type { ReviewGroupOpen } from './importReviewModel';
 import { mockImportPreview, type MockImportKind } from '../../api/mockImportPreview';
+import { HEADING_LABELS, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
 import type { ManuscriptImportPreview, ManuscriptImportSelection } from '../../types';
 
 afterEach(() => {
@@ -227,5 +228,39 @@ describe('ImportSummary', () => {
     render(<ImportSummary preview={mockImportPreview('docx')} selection={{}} requiresReset />);
     expect(screen.getByText(/^DOCX · 221 paragraphs · 5 narration chapters\. This replaces the active manuscript and clears Story Bible/)).toBeTruthy();
     expect(screen.getByText('1 front matter section · 2 reference sections · 3 of 3 character suggestions checked')).toBeTruthy();
+  });
+});
+
+describe('ImportReview heading styles', () => {
+  // A manuscript's own heading is its label ("CHAPTER I.", "1.", "Chapter 1:") over the chapter's name, as the Script page reads them.
+  const styled = (style: HeadingStyle): ManuscriptImportPreview => ({
+    format: 'docx',
+    sourceName: 'Styled.docx',
+    paragraphCount: 6,
+    chapterTitles: ['1', '2'],
+    sections: [1, 2, 8].map((n) => ({
+      id: `s${n}`,
+      title: HEADING_LABELS[style](n),
+      subtitle: `Title of ${n}`,
+      subtitleOff: 'title' as const,
+      contentKind: 'narration' as const,
+      paragraphCount: 2,
+    })),
+  });
+  const names = { gutenberg: 'CHAPTER VIII. Title of 8', numbered: '8. Title of 8', colon: 'Chapter 8: Title of 8' } as const;
+
+  it.each<[HeadingStyle]>([['gutenberg'], ['numbered'], ['colon']])('names the outline in each heading style (%s)', (style) => {
+    render(<Harness preview={styled(style)} />);
+    const row = screen.getByTitle(names[style]);
+    expect(row.textContent).toBe(names[style]);
+    expect(screen.getByRole('combobox', { name: `${names[style]} content type` })).toBeTruthy();
+    expect(row.getAttribute('title')).not.toContain(' — ');
+  });
+
+  it.each<[HeadingStyle]>([['gutenberg'], ['numbered'], ['colon']])('names a heading with its subtitle turned off in the %s style', async (style) => {
+    const user = userEvent.setup();
+    render(<Harness preview={styled(style)} />);
+    await user.click(screen.getByRole('checkbox', { name: 'Subtitle — Title of 8' }));
+    expect(screen.getByTitle(names[style])).toBeTruthy();
   });
 });

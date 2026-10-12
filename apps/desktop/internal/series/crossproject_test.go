@@ -118,7 +118,7 @@ func TestSiblingsReportsAnUnreadableSiblingWithoutFailingTheWholeCall(t *testing
 	}
 
 	// The sibling's own corrupt file must be left exactly as it was: Siblings/character.ReadOnly is a read-only
-	// cross-project path (Q10/Q11's "no write path from one project's session into another project's own data"), so
+	// cross-project path (there is no write path from one project's session into another project's own data), so
 	// it must never quarantine, rename or otherwise touch a file it does not own.
 	bytes, err := os.ReadFile(filepath.Join(dir, "references.json"))
 	if err != nil {

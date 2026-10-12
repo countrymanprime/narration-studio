@@ -13,5 +13,4 @@ Storybook title: `Primitives/Timeline`. Source: `src/components/primitives/Timel
 
 ## Used by
 
-- `src/components/proof/WaveformStrip.tsx`
-- `src/components/proof/waveformLayout.ts`
+- nothing outside its own stories and tests yet

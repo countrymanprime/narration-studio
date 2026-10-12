@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-// wordsPerSecond is the text length model (Q2 option A): the app's fixed
+// wordsPerSecond is the text length model (the text length model): the app's fixed
 // pace estimate expressed per second instead of per hour, so a target in
 // seconds converts to a target word count with one multiply.
 const wordsPerSecond = float64(WordsPerFinishedHour) / 3600
 
-// eligible reports whether kind is content the preview may draw from (Q4): narration only, and a missing kind (an
+// eligible reports whether kind is content the preview may draw from: narration only, and a missing kind (an
 // older import, before structural classification) reads as narration.
 func eligible(kind ContentKind) bool { return kind == "" || kind == ContentNarration }
 
@@ -100,7 +100,7 @@ func paragraphIndexOf(paragraphs []Paragraph, id string) int {
 	return 0
 }
 
-// excludeEnding drops the last excludeFraction share of chapters by Order (Q4), off when excludeFraction is 0.
+// excludeEnding drops the last excludeFraction share of chapters by Order, off when excludeFraction is 0.
 func excludeEnding(chapters []Chapter, excludeFraction float64) []Chapter {
 	if excludeFraction <= 0 || len(chapters) == 0 {
 		return chapters
@@ -126,9 +126,9 @@ func excludeEnding(chapters []Chapter, excludeFraction float64) []Chapter {
 // advances, its required end never moves backward). When no window reaches lowWords even using every paragraph, it
 // answers the whole chapter, honestly marked Shorter.
 //
-// findings is this chapter's open findings (Phase 5, Q7): for the Sample preset, a window whose anchored findings
+// findings is this chapter's open findings: for the Sample preset, a window whose anchored findings
 // include a hard-gate category at warning or above is excluded from scoring outright, not merely ranked down (a
-// SpotCheck window is never excluded, only ranked down - Q7's "C for Sample... B for the rest"). Every candidate
+// SpotCheck window is never excluded, only ranked down). Every candidate
 // this function returns already carries its findings evidence and penalty (attachFindings), whichever preset chose
 // it and whether or not any window came back clean.
 func bestWindow(chapter Chapter, paragraphs []Paragraph, lowWords, highWords float64, hardWords map[string]bool, findings []OpenFinding, settings Settings, audio ChapterAudioEvidence) (Candidate, bool) {
@@ -183,7 +183,7 @@ func bestWindow(chapter Chapter, paragraphs []Paragraph, lowWords, highWords flo
 	// answer, so widen the tolerance's high side to the first window that reaches lowWords at all, rather than
 	// reporting no candidate for a chapter that does have enough eligible text. Its own findings evidence still
 	// names whatever it carries (never a silent pass), even when that means a Sample candidate is not, in fact,
-	// clean - Q12 gives this chapter only one candidate, so there is no other window left to offer instead.
+	// clean - this chapter yields only one candidate, so there is no other window left to offer instead.
 	end, sum = 0, 0
 	for end < len(paragraphs) && float64(sum) < lowWords {
 		sum += counts[end]

@@ -6,7 +6,7 @@ import (
 )
 
 // FileMeasurer is the ClipMeasurer role over WAV files on disk: the
-// Phase 4 features (acoustic.ExtractFile) and the range's RMS level and
+// acoustic features (acoustic.ExtractFile) and the range's RMS level and
 // noise floor (measure.AnalyzeFileRange) for the recording-chain check.
 type FileMeasurer struct{}
 

@@ -12,7 +12,7 @@ import (
 
 const testRate = 8000
 
-// TestDecodeIgnoresDeadAirBeforePlayedRange is Phase 2's own success signal:
+// TestDecodeIgnoresDeadAirBeforePlayedRange pins this guarantee:
 // "A fixture with dead air before SOFFS reports nothing for that dead air."
 // The fixture is 2 s of silence, then 1 s of tone, then 2 s of silence: the
 // played range starts at 2 s (skipping the leading dead air) and runs 1 s, so
@@ -39,7 +39,7 @@ func TestDecodeIgnoresDeadAirBeforePlayedRange(t *testing.T) {
 	}
 }
 
-// TestDecodeEqualsSliceOfWholeDecode is Phase 2's other success signal: "a
+// TestDecodeEqualsSliceOfWholeDecode pins a second guarantee: "a
 // range decode equals the slice of a whole decode." It builds one fixture
 // with a silence run inside the range and compares Decode's silence times
 // (relative to the range start) against a whole-file Diagnose's own silence
@@ -139,7 +139,7 @@ func TestDecodeClassifiesRefusals(t *testing.T) {
 
 // TestDecodeCancellationIsNotARefusal proves ctx cancellation is reported
 // with ctx's own error and no UnknownReason, so a caller can tell "the
-// narrator cancelled" apart from "this item cannot be analyzed" (Phase 5's
+// narrator cancelled" apart from "this item cannot be analyzed" (the
 // cancel-produces-partial rule depends on this distinction).
 func TestDecodeCancellationIsNotARefusal(t *testing.T) {
 	samples := toneSamples(testRate, 5, 440, -6)

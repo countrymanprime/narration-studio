@@ -22,7 +22,7 @@ func projectModTime(path string) (time.Time, error) {
 // run is the scan loop: cache-first per item, decode only misses, compose
 // empty space, persist findings, real progress. It never returns an error:
 // every outcome (complete, cancelled, one or more items failed) is recorded
-// in s.state, matching Phase 5's "one failed item not aborting the rest."
+// in s.state, so one failed item does not abort the rest.
 func (s *Service) run(ctx context.Context, request Request, track tracks.Track, project tracks.Project, projectFile evidence.LedgerProjectFile) {
 	resolutions := ResolveTrack(track)
 	scanOpts := s.scanOptions()
@@ -173,7 +173,7 @@ type itemClassScan struct {
 	scan    ItemScan
 }
 
-// composeAndPersist runs Phase 3's composition, adds every item's click and
+// composeAndPersist runs the empty-space composition, adds every item's click and
 // breath candidates, and saves the resulting findings, replacing this
 // chapter's own editing/<chapterID>.json findings scope entirely (a full run,
 // so a candidate the latest run did not reproduce is carried forward marked
@@ -248,8 +248,7 @@ func scanParamHash(opts ScanOptions) string {
 	)
 }
 
-// Candidates returns the chapter's current empty-space findings (Phase 5's
-// own scope includes "bindings for start, state, cancel and candidates");
+// Candidates returns the chapter's current empty-space findings;
 // dismissed/accepted/deferred state lives in the findings store's review
 // history, already folded in by List.
 func (s *Service) Candidates(chapterID string) ([]findings.Finding, error) {

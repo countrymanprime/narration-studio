@@ -285,7 +285,7 @@ func TestEPUBOversizedEntryIsRejected(t *testing.T) {
 }
 
 // TestEPUBBodyEpubTypeClassifiesDedicationAsOpening pins the Architecture
-// notes' "Classification" table (Phase 3, ADR 0102): epub:type takes
+// notes' "Classification" table (ADR 0102): epub:type takes
 // precedence over the title-text classifier, so a dedication page titled
 // something that does not itself read as front matter still lands "opening".
 func TestEPUBBodyEpubTypeClassifiesDedicationAsOpening(t *testing.T) {
@@ -333,7 +333,7 @@ func TestEPUBBodyEpubTypeClassifiesEndnotesAsReference(t *testing.T) {
 }
 
 // TestEPUBGluedHeadingIsSplitAndReported pins the "glued heading repair"
-// Phase 3 scope: parity with DOCX and Markdown, which both report the split
+// behaviour: parity with DOCX and Markdown, which both report the split
 // in Notices (ADR 0013).
 func TestEPUBGluedHeadingIsSplitAndReported(t *testing.T) {
 	files := baseEPUBFiles(
@@ -415,7 +415,7 @@ func TestEPUBNoteReferenceMarkerIsDropped(t *testing.T) {
 	}
 }
 
-// TestEPUBCSSClassEmphasisFromInlineStyle pins E3's Phase 3 scope: a
+// TestEPUBCSSClassEmphasisFromInlineStyle pins the EPUB CSS-class emphasis: a
 // single-class, single-declaration font-style/font-weight rule from the
 // document's own <style> maps a <span class="..."> to a span, the same as a
 // semantic <em>/<strong> would.

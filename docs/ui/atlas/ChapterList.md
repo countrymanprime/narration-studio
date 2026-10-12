@@ -7,6 +7,8 @@ Storybook title: `Script/ChapterList`. Source: `src/components/script/page/chapt
 ## Stories
 
 - All States
+- Opening Credits
+- Forty Chapters
 - Nothing Started
 - Drawer
 

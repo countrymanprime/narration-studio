@@ -164,8 +164,8 @@ repeated reads already recorded, waiting to be compared and kept or discarded �
 the proofer's REAPER pickup markers as one project-wide open count with **Open pickups**, which
 opens [Pickups](pickups.md), not scoped to this chapter, since attributing markers to one chapter's track span is ambiguous when
 chapter tracks share the timeline. It reads "open REAPER to count" instead of a number when REAPER
-is not running. **Paragraph detail** stays folded by default. **Open in Proof** opens the
-chapter's view on [Proof](proof.md). Misreads, false starts, retakes and a spoken chapter title
+is not running. **Paragraph detail** stays folded by default. **Open in Editing** opens the
+chapter on [Editing](editing.md). Misreads, false starts, retakes and a spoken chapter title
 never count against you. The check changes nothing: it never edits the project or moves a
 chapter's status.
 
@@ -226,10 +226,12 @@ checking on progress — who has no need to know what the book pays.
 ## Importing the manuscript
 
 Importing (or replacing) the manuscript opens a confirm dialog previewing the detected format,
-paragraph count, and proposed chapters before anything changes. Each section is listed with its
-subtitle after the title ("Chapter One — Down the Rabbit-Hole") when the heading had one, so you can
-check that the importer split the title from the subtitle where you meant it to; a long one is cut
-short in the row, and hovering it shows the whole line. If a heading's second line is not really a
+paragraph count, and proposed chapters before anything changes. Each section is named the way the
+manuscript writes its headings: a heading with a label shows the label in bold and the chapter's name
+after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8: Croquet"), and any other heading shows its
+subtitle after the title ("Chapter One — Down the Rabbit-Hole") when it had one, so you can check that
+the importer split the title from the subtitle where you meant it to. A long name is cut short in the
+row, and hovering it shows the whole line. If a heading's second line is not really a
 subtitle, clear that row's **Subtitle** box: a title that was wrapped onto two lines is joined back
 together ("The Girl Who Fell Through the Ice"), and in a plain-text file a line such as an epigraph
 goes back into the chapter's text so it is narrated (the row says it "is read as text"). The

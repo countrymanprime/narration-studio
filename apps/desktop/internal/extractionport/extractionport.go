@@ -131,9 +131,10 @@ func row(s builtin) port.Entry[Source] {
 	}
 }
 
-// NewRegistry is a registry holding the built-in rows in the mock's order, rules first as the default. The adapters that
-// give rules, GLiNER and BookNLP an extractor are later slices; until then those rows say they are not available. The
-// local model has none on this build. A test registers a fake on its own copy.
+// NewRegistry is a registry holding the built-in rows in the mock's order, rules first as the default. Here the rules,
+// GLiNER and BookNLP rows have no extractor and say they are not available: the host registers the adapters in their
+// place (the rules, gliner and booknlp packages, wired in the desktop host's extractionRegistry). The local model has
+// none on this build. A test registers a fake on its own copy.
 func NewRegistry() *port.Registry[Source] {
 	r := &port.Registry[Source]{Kind: "extraction source"}
 	r.Register(row(builtin{name: Rules, label: "Rules", icon: "auto", runs: true, scored: true}))

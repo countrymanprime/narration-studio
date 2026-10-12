@@ -74,7 +74,7 @@ func reasonSet(reasons []EvaluatorReason) map[EvaluatorReason]bool {
 	return set
 }
 
-// --- Edit-type table (Phase 6 acceptance: every row's Evaluator column) ---
+// --- Edit-type table (every edit type and the Evaluator outcome it must give) ---
 
 func TestEvaluateFingerprintsMoveItemInTime(t *testing.T) {
 	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{})}
@@ -225,7 +225,7 @@ func TestEvaluateFingerprintsSourceReplacedOnDisk(t *testing.T) {
 func TestEvaluateFingerprintsSourceTouchedIdenticalContentReadsCurrent(t *testing.T) {
 	before := fingerprintOfItems(t, []tracks.Item{staleItem("item-1", "a.wav", 4, 2, false, 0.5, 1)},
 		map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))})
-	// Same size and content hash, a later ModTime only (Q1: ModTime is
+	// Same size and content hash, a later ModTime only (ModTime is
 	// deliberately never part of any fingerprint).
 	after := fingerprintOfItems(t, []tracks.Item{staleItem("item-1", "a.wav", 4, 2, false, 0.5, 1)},
 		map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))})
@@ -241,7 +241,7 @@ func TestEvaluateFingerprintsCosmeticChangeReadsCurrent(t *testing.T) {
 	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{})}
 	item := staleItem("item-1", "a.wav", 4, 2, false, 0.5, 1)
 	before := fingerprintOfItems(t, []tracks.Item{item}, sources)
-	item.Name = "a new cosmetic name" // not part of any fingerprint (Q2)
+	item.Name = "a new cosmetic name" // not part of any fingerprint
 	after := fingerprintOfItems(t, []tracks.Item{item}, sources)
 
 	result := EvaluateFingerprints(completeRecordFor(before), after, "track-1", "v1", "params-1")
@@ -412,7 +412,7 @@ func TestComputeChapterFingerprintReturnsTheNewestSourceModTime(t *testing.T) {
 	}
 }
 
-// --- BuildBasis (Q8) ---
+// --- BuildBasis ---
 
 func TestBuildBasisLabelIsAlwaysTheSavedProjectSentence(t *testing.T) {
 	modTime := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
@@ -660,7 +660,7 @@ func TestEvaluateChapterBasisWarnsWhenProjectFilePredatesTheLedgerRecord(t *test
 		Project:       tracks.Project{Tracks: []tracks.Track{{GUID: "track-1"}}},
 		ProjectFolder: project,
 		// Saved before the ledger record - the "record, edit, check without
-		// saving" case Q8 warns about.
+		// saving" case.
 		ProjectFile:     LedgerProjectFile{Path: "p.rpp", ModTime: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)},
 		DocumentID:      "doc-1",
 		ChapterID:       "c-0001",

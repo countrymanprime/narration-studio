@@ -118,7 +118,7 @@ func TestAttestRefusesWhatItCannotTie(t *testing.T) {
 	}
 }
 
-// TestEvaluateRender is Phase 4's success signal: replacing the file or editing
+// TestEvaluateRender pins render freshness: replacing the file or editing
 // the chapter's items after attestation makes it stale; a non-WAV file is
 // unsupported, not zero; no association asks for one.
 func TestEvaluateRender(t *testing.T) {

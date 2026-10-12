@@ -34,10 +34,13 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
 - `src/components/delivery/profile/ProfileCard.tsx`
+- `src/components/editing/backups/BackupsList.tsx`
 - `src/components/editing/bar/SelectionBar.tsx`
+- `src/components/editing/effects/CoverageStrip.tsx`
 - `src/components/editing/flags/FlagCard.tsx`
 - `src/components/editing/flags/Legend.tsx`
 - `src/components/editing/script/ScriptDoc.tsx`
+- `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/strip/TimelineStrip.tsx`
 - `src/components/editing/takes/Suggested.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
@@ -60,9 +63,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/production/readiness/ReadinessChip.tsx`
 - `src/components/production/readiness/ReadinessPanel.tsx`
 - `src/components/production/readiness/verdict.ts`
-- `src/components/proof/FlagsPanel.tsx`
-- `src/components/proof/ScriptView.tsx`
-- `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/proof/checkcard/FindingRow.tsx`
 - `src/components/proof/notes/NotesTable.tsx`

@@ -14,4 +14,4 @@ Storybook title: `Editing/ScriptDoc`. Source: `src/components/editing/script/Scr
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/editing/page/EditingBody.tsx`

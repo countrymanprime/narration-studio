@@ -49,7 +49,7 @@ type FooterCondition = 'pickupSession' | 'chapterView';
 export type FooterSpec = readonly { id: CommandId; with?: readonly CommandId[]; label: string; when?: FooterCondition }[];
 
 /** A hint that is not a key ("Right-click"), drawn right after the hint of the command it names. */
-type FooterExtra = readonly { after: CommandId; keys: string[]; label: string }[];
+export type FooterExtra = readonly { after: CommandId; keys: string[]; label: string }[];
 
 export type FooterSurface = 'booth' | 'proof';
 
@@ -84,6 +84,11 @@ const FOOTER_EXTRAS: Record<FooterSurface, FooterExtra> = {
   booth: [{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }],
   proof: [],
 };
+
+/** The non-key hints of one footer (a right-click is not a bindable gesture, so it is no catalogue row). The shortcut sheet draws each beside the command it follows. */
+export function nonKeyHints(surface: FooterSurface): FooterExtra {
+  return FOOTER_EXTRAS[surface];
+}
 
 /** The caps of commands drawn as one chord. A key that carries the same modifiers as the one before is drawn without them ("Alt [ ]", not "Alt [ Alt ]"). */
 function chordKeys(gestures: readonly Gesture[]): string[] {

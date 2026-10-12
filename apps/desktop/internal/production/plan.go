@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
@@ -101,6 +102,16 @@ func PaymentOf(manifest *project.Manifest) string {
 		return PaymentPerFinishedHour
 	}
 	return PaymentNone
+}
+
+// DefaultPaymentFor is the payment type choosing the delivery profile profileID gives a contract that has none yet:
+// ACX pays per finished hour, every other profile gives "" (no default). The caller applies it only while the manifest's
+// payment is empty, never over a type the narrator set (ADR 0800).
+func DefaultPaymentFor(profileID string) string {
+	if profileID == deliveryprofile.ACXID {
+		return PaymentPerFinishedHour
+	}
+	return ""
 }
 
 // CheckPayment returns payment, trimmed, when it is one of the three payment types, and an error otherwise.

@@ -12,7 +12,7 @@ import (
 // snapshot, so a mapping binding always agrees with the project a request
 // was made against even if a project switch lands mid-call (h.services()'s
 // own contract). It refuses when there is no project open, or no manuscript
-// imported yet - a mapping is scoped to a document (Q6), so there is
+// imported yet - a mapping is scoped to a document, so there is
 // nothing to list, confirm or clear without one.
 func mappingContext(svc hostServices) (documentID string, store *evidence.MappingStore, err error) {
 	folder := svc.config.projectFolder
@@ -51,7 +51,7 @@ func (h *Host) mappingList() (map[string]any, error) {
 // mappingConfirm records trackGUID as the confirmed link for chapterID,
 // refusing a chapterID that is not one of the current manuscript's chapters:
 // the stored ChapterTitle must be the real title, never one the caller
-// invents, because Q9's re-suggestion after a re-import matches on it.
+// invents, because the re-suggestion after a re-import matches on it.
 func (h *Host) mappingConfirm(trackGUID, chapterID string) (evidence.TrackMapping, error) {
 	svc := h.services()
 	documentID, store, err := mappingContext(svc)

@@ -20,3 +20,4 @@ Storybook title: `Primitives/KeyCap`. Source: `src/components/primitives/KeyCap.
 - `src/components/primitives/KeyHint.tsx`
 - `src/components/primitives/KeyHints.tsx`
 - `src/components/proof/inspector/DecisionButtons.tsx`
+- `src/components/settings/page/KeysPanel.tsx`

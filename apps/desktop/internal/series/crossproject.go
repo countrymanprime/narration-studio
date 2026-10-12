@@ -22,10 +22,10 @@ type SiblingReference struct {
 // caller already has its own character.Service for that).
 //
 // Each sibling is read through character.ReadOnly, which only ever reads: a series member this narrator has open
-// right now is never written to on another project's behalf (Q10/Q11's "no write path from one project's session
-// into another project's own data"). A sibling that cannot be read is reported per-project in Unreadable rather
-// than failing the whole call (Phase 9's own success signal: "a series member project's baseline read tolerates
-// a missing or unreadable sibling project").
+// right now is never written to on another project's behalf (there is no write path from one project's session
+// into another project's own data). A sibling that cannot be read is reported per-project in Unreadable rather
+// than failing the whole call (a series member project's baseline read tolerates
+// a missing or unreadable sibling project).
 func Siblings(entry Series, currentProject string) []SiblingReference {
 	clean := filepath.Clean(currentProject)
 	out := make([]SiblingReference, 0, len(entry.MemberProjectPaths))

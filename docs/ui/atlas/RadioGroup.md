@@ -15,3 +15,4 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - `src/components/devtools/MockStatesPanel.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/production/RemoveFromRecordingDialog.tsx`
+- `src/components/settings/page/AppearancePanel.tsx`

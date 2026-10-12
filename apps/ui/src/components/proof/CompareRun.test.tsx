@@ -218,7 +218,7 @@ describe('CompareRun vocabulary suggestions', () => {
       </ApiProvider>,
     );
 
-    expect(screen.getByText(/2 discrepancies in Chapter 1, each one a flag in the Flags panel \(1 more in other chapters\)/)).toBeTruthy();
+    expect(screen.getByText(/2 discrepancies in Chapter 1 \(1 more in other chapters\)/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Export 1 marker' }));
     await waitFor(() => expect(exportMarkers).toHaveBeenCalledOnce());
   });

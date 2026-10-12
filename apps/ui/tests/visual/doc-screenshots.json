@@ -127,24 +127,10 @@
   },
   {
     "page": "proof-chapter",
-    "state": "compare-results-misread",
-    "viewport": "desktop",
-    "docName": "proof-chapter-compare-misread",
-    "caption": "Proof chapter view - a comparison's misread as a flag, its script and heard text side by side"
-  },
-  {
-    "page": "proof-chapter",
-    "state": "compare-results-extra",
-    "viewport": "desktop",
-    "docName": "proof-chapter-compare-extra",
-    "caption": "Proof chapter view - an EXTRA (words heard but not written) discrepancy as a flag"
-  },
-  {
-    "page": "proof-chapter",
     "state": "render-chosen",
     "viewport": "desktop",
     "docName": "proof-chapter-render-chosen",
-    "caption": "Proof chapter view - the readiness panel's Rendered file section, a render just chosen and measured"
+    "caption": "Proof chapter view - the readiness panel's Rendered file section with a render chosen: Change, Clear and Measure"
   },
   {
     "page": "proof-chapter",
@@ -158,7 +144,7 @@
     "state": "category-character",
     "viewport": "desktop",
     "docName": "storybible-characters",
-    "caption": "Story Bible - filtered to the Characters category"
+    "caption": "Story Bible - filtered to the Character kind"
   },
   {
     "page": "storybible",
@@ -256,21 +242,7 @@
     "state": "current",
     "viewport": "desktop",
     "docName": "proof-chapter-default",
-    "caption": "Proof chapter view - script, transport, and the Flags panel with its legend"
-  },
-  {
-    "page": "proof-chapter",
-    "state": "playing",
-    "viewport": "desktop",
-    "docName": "proof-chapter-playing",
-    "caption": "Proof chapter view - playing, the spoken word highlighted and the script following along"
-  },
-  {
-    "page": "proof-chapter",
-    "state": "flag-selected",
-    "viewport": "desktop",
-    "docName": "proof-chapter-flag-detail",
-    "caption": "Proof chapter view - a flag selected from the Flags panel, its script and heard text shown"
+    "caption": "Proof chapter view - the recording check's state with Check again, above the compare run"
   },
   {
     "page": "settings",
@@ -284,7 +256,7 @@
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Delivery profile select, the Story Bible types, the Appearance theme radios, the keyboard shortcuts and the Manuscript panel"
+    "caption": "Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types"
   },
   {
     "page": "settings",
@@ -319,7 +291,7 @@
     "state": "theme-dark",
     "viewport": "desktop",
     "docName": "theme-dark",
-    "caption": "Home with Dark theme selected"
+    "caption": "Production with the Dark theme selected"
   },
   {
     "page": "production",
@@ -361,7 +333,7 @@
     "state": "entry-needs-review",
     "viewport": "desktop",
     "docName": "storybible-needs-review",
-    "caption": "Story Bible - a Needs Review entry, its evidence highlighted in the review color"
+    "caption": "Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in"
   },
   {
     "page": "settings",
@@ -383,6 +355,62 @@
     "viewport": "desktop",
     "docName": "script-retail-sample",
     "caption": "Script - the retail sample marked on lines 1 to 3 of Chapter 3"
+  },
+  {
+    "page": "editing",
+    "state": "default",
+    "viewport": "desktop",
+    "docName": "editing-default",
+    "caption": "Editing - Chapter 1 linked to its track: the chapter step and the legend, the script with each line's takes chip and time, the bar and the key hints"
+  },
+  {
+    "page": "editing",
+    "state": "selection",
+    "viewport": "desktop",
+    "docName": "editing-selection",
+    "caption": "Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio"
+  },
+  {
+    "page": "editing",
+    "state": "delete-dialog",
+    "viewport": "desktop",
+    "docName": "editing-delete-dialog",
+    "caption": "Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do"
+  },
+  {
+    "page": "editing",
+    "state": "fx-dialog",
+    "viewport": "desktop",
+    "docName": "editing-fx-dialog",
+    "caption": "Editing - an FX chain chosen for four words: how the item is split around the words"
+  },
+  {
+    "page": "editing",
+    "state": "takes-open",
+    "viewport": "desktop",
+    "docName": "editing-takes",
+    "caption": "Editing - a line's takes opened under it: the suggested take with the steps that would make it surer and each take's evidence"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup",
+    "caption": "Editing - the drawer on Clean up: what was found in the chapter and the findings by kind"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-timeline",
+    "viewport": "desktop",
+    "docName": "editing-drawer-timeline",
+    "caption": "Editing - the drawer on Timeline: the waveform and takes of the line the cursor is on"
+  },
+  {
+    "page": "editing",
+    "state": "daw-off",
+    "viewport": "desktop",
+    "docName": "editing-daw-off",
+    "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
   },
   {
     "page": "proof",
@@ -431,7 +459,7 @@
     "state": "measured",
     "viewport": "desktop",
     "docName": "master-measured",
-    "caption": "Master & QC - three files checked against ACX: length, RMS, peak, noise floor and head / tail per file, a 48 kHz render selected with why it fails, and the book's consistency"
+    "caption": "Master & QC - three files checked against ACX: length, RMS, peak, noise floor and head / tail per file, a 48 kHz render selected with why it fails, and the same file against ACX rule by rule"
   },
   {
     "page": "master",

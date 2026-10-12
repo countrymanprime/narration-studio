@@ -114,7 +114,7 @@ func TestAdjustRangeShrinksEndByOneParagraph(t *testing.T) {
 	}
 }
 
-// TestAdjustRangeNeverShrinksBelowOneParagraph is Q3's "never split a paragraph" applied to shrinking: a
+// TestAdjustRangeNeverShrinksBelowOneParagraph applies the "never split a paragraph" rule to shrinking: a
 // single-paragraph range has no smaller in-bounds answer, so both edges' shrink is a no-op rather than an empty
 // range.
 func TestAdjustRangeNeverShrinksBelowOneParagraph(t *testing.T) {

@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
 )
 
-// p95Budget is the Phase 7 success signal: a lookup answers in under 250 ms at the 95th percentile.
+// p95Budget is the release budget: a lookup answers in under 250 ms at the 95th percentile.
 const p95Budget = 250 * time.Millisecond
 
 // TestThePinnedArchiveInstallsToTheCatalogsMeasuredSize installs the real, pinned archive through the approved catalog entry (served from

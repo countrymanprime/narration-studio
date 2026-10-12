@@ -15,17 +15,13 @@ import { describe, expect, test } from 'vitest';
 // `JSXOpeningElement[name.name='mark']`.
 const HOME = 'src/components/primitives/Highlight.tsx';
 
-// The one deliberate exception. `InlineDiffRow` marks the words that differ between the script and what was heard, in the
-// colour of the discrepancy kind, not of a story-bible entry: it is not highlighted entry text, so it does not go through
-// `highlightKind`. Whether ADR 0016 should say so, or `Highlight` should take a kind, is a question for the owner (ADR
-// 0063, Proposed). The entry goes when that is settled.
+// The one deliberate exception: the Script reader's Find bar marks a match in the search colour, which is not highlighted entry text.
 // The count is pinned too, so a second `<mark>` with another meaning cannot ride on the entry.
 const ALLOWED: Record<string, { marks: number; reason: string }> = {
   'src/components/script/page/reader/Para.tsx': {
     marks: 1,
     reason: 'marks a Find bar match in the search colour, not an entry category (ADR 0016 is about entry text)',
   },
-  'src/components/proof/InlineDiff.tsx': { marks: 1, reason: 'marks differing words in the discrepancy colour, not an entry category (ADR 0063)' },
 };
 
 function scriptKind(fileName: string): ts.ScriptKind {

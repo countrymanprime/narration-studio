@@ -43,7 +43,7 @@ export async function clickVisible(page: Page, role: Parameters<Page['getByRole'
     .click();
 }
 
-type AppPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Booth' | 'Proof' | 'Pickups' | 'Master & QC' | 'Delivery' | 'Settings';
+type AppPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Booth' | 'Editing' | 'Proof' | 'Pickups' | 'Master & QC' | 'Delivery' | 'Settings';
 
 // Every page opens with the shared `Heading` primitive, an <h1>: it is what proves the page has arrived.
 export const PAGE_HEADING: Record<AppPage, string> = {
@@ -53,6 +53,7 @@ export const PAGE_HEADING: Record<AppPage, string> = {
   'Story Bible': 'Story Bible',
   // A visually hidden <h1>: the Booth's own status line names the chapter (benchmark mock 03).
   Booth: 'Booth',
+  Editing: 'Editing',
   Proof: 'Proof',
   Pickups: 'Pickups',
   'Master & QC': 'Master & QC',
@@ -126,9 +127,8 @@ export async function goToPage(page: Page, name: AppPage): Promise<void> {
   await PAGE_CONTENT[name]?.(page).first().waitFor();
 }
 
-// Opens a chapter's workspace (`/proof/:chapterId`) with no track linked. Since the Studio Next Proof page (SNQ-9) nothing on Proof
-// links to it, and Production's Proof cell exists only for some chapters, so the address is opened in place, the way the Back
-// and Forward history does. The mock's chapter ids are `chapter-<n>` for "Chapter <n>".
+// Opens Proof's chapter view (`/proof/:chapterId`) with no track linked. Nothing on Proof links to it (the engine panel's
+// Chapter links table does, for a linked chapter), so the address is opened in place, the way the Back and Forward history does. The mock's chapter ids are `chapter-<n>` for "Chapter <n>".
 export async function openProofChapter(page: Page, chapterTitle = 'Chapter 1'): Promise<void> {
   const number = /^Chapter (\d+)$/.exec(chapterTitle)?.[1];
   if (!number) throw new Error(`no chapter number in ${chapterTitle}`);
@@ -438,9 +438,8 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
 }
 
 /** Links a chapter to its first available track from the engine panel's Chapter links table (the same real-UI path
- * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" link and waits for its Proof chapter view to
- * render: no chapter starts linked by default in the mock; the link goes to
- * `/proof/:chapterId`). */
+ * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" link to `/proof/:chapterId` and waits for the chapter
+ * view to render: no chapter starts linked by default in the mock. */
 export async function openLinkedProofChapter(page: Page, chapterTitle: string): Promise<void> {
   await openEnginePanel(page);
   const table = page.getByRole('table', { name: 'Chapter links' });

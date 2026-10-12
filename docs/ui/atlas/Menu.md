@@ -14,6 +14,7 @@ Storybook title: `Primitives/Menu`. Source: `src/components/primitives/Menu.tsx`
 
 ## Used by
 
+- `src/components/editing/range/fx/FxButtons.tsx`
 - `src/components/script/page/rail/bible/BiblePanel.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`

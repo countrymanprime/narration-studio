@@ -27,6 +27,7 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/layout/RailPanel.tsx`
 - `src/components/script/page/rail/words/WordsTab.tsx`
+- `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`
 - `src/components/storybible/source/SourceMenu.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`

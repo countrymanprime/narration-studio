@@ -18,6 +18,10 @@
       - /children: equal
       - text: Record
       - button "Booth"
+    - group "Edit":
+      - /children: equal
+      - text: Edit
+      - button "Editing"
     - group "Review":
       - /children: equal
       - text: Review

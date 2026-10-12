@@ -41,7 +41,7 @@ var (
 )
 
 // TestPickupsSignalMatrix is the Success Metrics row "False done ... 0": every
-// source state crossed with the review states D9 (Q2) names, and the answer
+// source state crossed with the review states D9 names, and the answer
 // the roll-up rule in the Architecture Notes gives. A case whose want is met is
 // one of the few that may be met; every other case asserts it is not.
 func TestPickupsSignalMatrix(t *testing.T) {

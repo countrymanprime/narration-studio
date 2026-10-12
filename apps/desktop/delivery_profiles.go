@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-utils/shell/internal/production"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
@@ -155,7 +156,8 @@ func (h *Host) deliveryProfilesState() (DeliveryProfilesState, error) {
 }
 
 // selectDeliveryProfile saves a choice: scope "global" sets the Global default; scope "project" sets the current
-// project's own choice on its manifest, and an empty id clears it (the Global default then judges the project).
+// project's own choice on its manifest, and an empty id clears it (the Global default then judges the project). Choosing
+// a profile with a default payment type (ACX) gives it to a contract whose payment is still unset, and keeps one the narrator set.
 func (h *Host) selectDeliveryProfile(scope, id, version string) (DeliveryProfilesState, error) {
 	store := h.profileStore()
 	ref := deliveryprofile.Ref{ID: id, Version: version}
@@ -192,6 +194,9 @@ func (h *Host) selectDeliveryProfile(scope, id, version string) (DeliveryProfile
 			manifest = project.New(h.services().config.projectName, time.Now())
 		}
 		manifest.DeliveryProfile = chosen
+		if chosen != nil && manifest.Payment == "" {
+			manifest.Payment = production.DefaultPaymentFor(chosen.ID)
+		}
 		if err := manifest.Save(folder); err != nil {
 			return DeliveryProfilesState{}, fmt.Errorf("could not save the project's delivery profile: %w", err)
 		}

@@ -20,6 +20,7 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/delivery/profile/ProfileMenu.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
+- `src/components/editing/range/fx/FxDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
@@ -27,10 +28,8 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportReview.tsx`
-- `src/components/proof/ApplyFxDialog.tsx`
 - `src/components/proof/AuditionDialog.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
-- `src/components/proof/TransportBar.tsx`
 - `src/components/proof/inspector/TypeSelect.tsx`
 - `src/components/proof/notes/NotesPanel.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
@@ -44,8 +43,9 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/RetailSamplePanel.tsx`
 - `src/components/settings/ScopedSetting.tsx`
+- `src/components/settings/page/DeliveryProfileField.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/Guide.tsx`
-- `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/SpeakerColourField.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`

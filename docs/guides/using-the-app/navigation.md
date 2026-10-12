@@ -2,11 +2,12 @@
 
 # Navigation
 
-The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md)),
-**Prep** ([Script](script.md), [Story Bible](story-bible.md)), **Record** ([Booth](booth.md)),
+The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md), [Schedule](production.md#schedule)),
+**Prep** ([Script](script.md), [Story Bible](story-bible.md)), **Record** ([Booth](booth.md)), **Edit** ([Editing](editing.md)),
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](master-and-qc.md#delivery)).
 From 1360 px wide each group shows as a heading over its pages. Below that the rail shrinks to icons, grouped by a thin line,
-and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme.
+and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
+the notes still open and **Pickups** the pickups the DAW last reported open; a zero, or a count the app cannot read, shows no badge.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
@@ -15,8 +16,8 @@ In the icon layout, hover the rail (or tab into it) and it opens over the page w
 ![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)
 
 Script, Story Bible, Booth and Delivery stay locked until a manuscript has been
-[imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Schedule, Proof, Pickups,
-and Master & QC are always available.
+[imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Schedule, Editing, Proof,
+Pickups, and Master & QC are always available; Editing says itself when there is no manuscript yet.
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
@@ -57,7 +58,7 @@ chapter, or the previous Story Bible entry are not Back steps.
 
 Three controls at the right of the header, before the audio engine chip, make the whole app bigger or smaller:
 `[−] [100%] [+]`. The middle button is a readout of the current level and also resets it: click it, or press
-`Ctrl+0` (`Cmd+0` on macOS), to return to 100% from any level; it is itself disabled at 100%, since there is
+`Ctrl+0` to return to 100% from any level; it is itself disabled at 100%, since there is
 nothing to reset. **Zoom out** (`Ctrl+-`, disabled at 100%) and **Zoom in** (`Ctrl+=`, disabled at 200%) step
 through 100%, 110%, 125%, 150%, 175% and 200%. The numpad's `+`, `-` and `0` keys do the same as their main-row
 equivalents.
@@ -112,7 +113,7 @@ and open the panel again.
 The Tracks list shows each track of the project with its colour, a Muted badge when it's muted, the chapter
 it is linked to (or Not linked), and how many of its items have playable audio (for example `1/1`). A
 warning triangle marks a track with an item whose audio file can't be found on disk, or that isn't audio at
-all (such as a MIDI item). To hear a chapter, open its [Proof view](proof.md#the-chapter-view).
+all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
 
 ### REAPER tools
 
@@ -187,8 +188,9 @@ change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
 
-A linked chapter's row also has **Open in Proof**, into the chapter's [Proof view](proof.md#the-chapter-view): one
-screen to listen to the chapter against its script and see where the recording check found a problem.
+A linked chapter's row also has **Open in Editing**, which opens the chapter on [Editing](editing.md) to hear it against
+its script and edit it, and **Open in Proof**, into the chapter's [Proof view](proof.md#the-chapter-view), where its
+recording is compared with the manuscript.
 
 When one or more chapters have a [Production](production.md#stage-readiness) stage suggestion that can't be
 computed because its track link is missing or not yet confirmed, a line above Chapter links says so
@@ -224,12 +226,10 @@ open candidate remains), **Not met** (one or more open candidates), or **Can't t
 breath read "Not yet validated on the corpus" until their detectors are validated on a labeled
 corpus — a class this build cannot vouch for is never shown as done.
 
-An open candidate lists its time range, class, confidence and reason, with **Hear** to play its
-own source audio (a short lead-in included) without touching REAPER, and **Accept**, **Dismiss**
-or **Defer** to record your decision — the same review [Proof](proof.md) uses, so a
-decision here also shows up there. **Go to in REAPER** and **Loop in REAPER** move REAPER's
-cursor or loop the candidate's spot when REAPER is connected; without a connection the buttons
-are off and say why, and the rest of the panel works the same either way.
+Outside the Editing stage a class shows how many candidates the last check found instead of a state. The candidates
+themselves are heard and worked on the [Editing](editing.md#cleaning-up) page's Clean up tab: **Clean up in Editing**
+opens the chapter there with the drawer on Clean up. **Match levels…** stays in the panel: it previews the linked
+track's items that are off the level target and, after you confirm, changes their volume in REAPER in one undo step.
 
 If the chapter isn't linked to a track yet, the panel offers the same track picker the recording
 check does, right in place.

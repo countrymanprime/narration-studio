@@ -4,7 +4,7 @@
 // carries item and take GUIDs and file, time_range is project seconds in the
 // saved project plus the source-relative range in evidence,
 // manuscript.chapter_id is filled from the confirmed mapping, and
-// suggested_action is the DX Phase 9 trim or split proposal with
+// suggested_action is the trim or split proposal with
 // requires_confirmation: true, parameters only").
 package editing
 
@@ -17,11 +17,11 @@ import (
 
 // analyzerName is this package's findings.Finding.Analyzer value, shared by
 // every class this package raises (the class itself is evidence["class"],
-// matching DX Phase 9's own silence_cleanup findings shape).
+// matching the silence_cleanup findings shape).
 const analyzerName = "editing"
 
 // EmptySpaceFinding builds one silence_cleanup finding for a composed
-// empty-space candidate (Phase 3). documentID/chapterID/chapterTitle come
+// empty-space candidate. documentID/chapterID/chapterTitle come
 // from the confirmed mapping; policy is echoed as evidence so a narrator
 // always sees the threshold in force, matching D10's "every value is
 // reported with the findings it raises". The finding's Source names the
@@ -85,12 +85,12 @@ func EmptySpaceFinding(documentID, chapterID, chapterTitle string, candidate Emp
 	return finding
 }
 
-// RenderEmptySpaceFinding is EmptySpaceFinding's Phase 8 counterpart for the
-// render path (Q6): a composed candidate over the whole rendered file rather
+// RenderEmptySpaceFinding is EmptySpaceFinding's counterpart for the
+// render path: a composed candidate over the whole rendered file rather
 // than the chapter's items. There is no item or take GUID to name (a render
 // has no items), so Source names only the render's own path, and
-// evidence["source"] is "render" rather than "items" - the one thing Q6
-// requires every evidence entry to say: which source was analyzed.
+// evidence["source"] is "render" rather than "items" - every evidence
+// entry must say which source was analyzed.
 func RenderEmptySpaceFinding(documentID, chapterID, chapterTitle string, candidate EmptySpaceCandidate, renderPath string, policy Policy) findings.Finding {
 	evidenceMap := map[string]any{
 		"class": "silence", "boundary": string(candidate.Class), "source": "render",
@@ -196,22 +196,19 @@ func partsSummary(parts []CandidatePart) string {
 	}
 }
 
-// EmptySpaceEvidenceVersion is Q7 option B's identity for a composed
+// EmptySpaceEvidenceVersion is the identity of a composed
 // empty-space candidate: a hash of its class plus every part's own
 // source-relative range (item_silence) or length (track_gap), in order -
 // never the played range as a whole, never the item's timeline position, and
-// never an analysis parameter (Q7: "excluding parameters, played range and
-// item position"). Two runs that find the same audio in the same relative
+// never an analysis parameter. Two runs that find the same audio in the same relative
 // place get the same version even if an unrelated item moved, a threshold
 // changed, or the candidate's own timeline position shifted because an
 // earlier item was trimmed - so a narrator's dismissal survives exactly the
-// edits Q7 says it should.
+// edits it should.
 //
-// A scoped-down version of Q7 B: the recommendation also asks for "a content
-// hash of the region and its margin", which would need re-reading the source
-// audio bytes at finding-build time; this package does not do that (an
-// honest simplification, not a silent omission - see this package's own
-// Phase 3 commit message).
+// The identity does not include a content hash of the region and its margin:
+// that would need re-reading the source audio bytes at finding-build time,
+// which this package does not do (a deliberate simplification).
 func EmptySpaceEvidenceVersion(candidate EmptySpaceCandidate) string {
 	parts := []string{"silence", string(candidate.Class)}
 	for _, part := range candidate.Parts {
@@ -225,10 +222,10 @@ func EmptySpaceEvidenceVersion(candidate EmptySpaceCandidate) string {
 }
 
 // ClassCandidateFinding builds one silence_cleanup finding for a click or
-// breath candidate from one item's scan (Phase 4). Project time is the item's
+// breath candidate from one item's scan. Project time is the item's
 // position plus the candidate's offset into the played range; the source
 // range is the played range's start plus that offset. The evidence version
-// covers the source file, the class and the source range only (Q7), so moving
+// covers the source file, the class and the source range only, so moving
 // the item or changing a threshold keeps a narrator's decision, while a
 // change to the audio at that spot asks again. The finding names the class
 // detector's version, which the signal's validated-version gate reads.

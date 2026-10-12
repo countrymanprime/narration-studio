@@ -14,7 +14,7 @@ import (
 
 // snapshotSchemaVersion is chapter-sync.json's version. A newer file reads as
 // no snapshot (the next sync is then a first sync), never as an error. The
-// activity list (Phase 4) is an additive field of version 1.
+// activity list is an additive field of version 1.
 const snapshotSchemaVersion = 1
 
 // ActivityLimit is how many sync batches the activity list keeps, newest first.
@@ -38,7 +38,7 @@ type Activity struct {
 	NewTracks []TrackRef              `json:"newTracks"`
 }
 
-// PickupScan is the last take-review scan that included a chapter's pickup track (Phase 8): the track's Fingerprint as
+// PickupScan is the last take-review scan that included a chapter's pickup track: the track's Fingerprint as
 // scanned, and when. A pickup track whose fingerprint differs since has pickups the scan has not seen.
 type PickupScan struct {
 	TrackGUID   string    `json:"trackGuid"`

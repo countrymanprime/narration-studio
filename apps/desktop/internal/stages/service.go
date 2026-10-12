@@ -36,11 +36,11 @@ type Config struct {
 	// SetChapterStatus is the existing status path Confirm and Revert write through.
 	SetChapterStatus func(chapterID string, status Stage) error
 	// Providers supply the signals; every declared id is required until the
-	// required-check settings exist (Q8).
+	// required-check settings exist.
 	Providers []Provider
 	// RequiredSignals resolves stage's required set from the narrator's
-	// settings, given every id its providers declare for stage (Phase 6). Nil
-	// means every declared id is required (the Q8 default), so a caller not
+	// settings, given every id its providers declare for stage. Nil
+	// means every declared id is required (the default), so a caller not
 	// yet wired to settings keeps the old behaviour.
 	RequiredSignals func(stage Stage, declared []string) []string
 	// View builds the evidence every provider shares, once per evaluation. Nil
@@ -55,7 +55,7 @@ type Config struct {
 // Confirmation is a chapter's live confirmation: the narrator confirmed From
 // to Target, and the status is still Target. EvidenceChanged says the signals
 // that justified it no longer give the confirmed basis key; that alone is
-// shown quietly and raises no notice (Q10).
+// shown quietly and raises no notice.
 type Confirmation struct {
 	From            Stage     `json:"from"`
 	Target          Stage     `json:"target"`
@@ -83,7 +83,7 @@ type ChapterRecommendation struct {
 
 // Service composes the providers, the engine, the decision store and the
 // manuscript's status path. Recommendations are computed on every read and
-// never stored (D1, Q5); only Confirm and Revert change a status, and only
+// never stored (D1); only Confirm and Revert change a status, and only
 // Confirm, Dismiss and Revert write a decision.
 type Service struct {
 	config Config
@@ -139,7 +139,7 @@ func (s *Service) Confirm(ctx context.Context, chapterID string, target Stage, b
 }
 
 // Dismiss hides the chapter's suggestion of target while its basis key stays
-// basisKey (Q7). It writes a decision only; the status is untouched.
+// basisKey. It writes a decision only; the status is untouched.
 func (s *Service) Dismiss(ctx context.Context, chapterID string, target Stage, basisKey string) (ChapterRecommendation, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -9,7 +9,7 @@ import (
 )
 
 // uninstallKeys are the two views of the "Add or Remove Programs" list a
-// 64-bit REAPER install can be registered under (the Phase 6 spike found the
+// 64-bit REAPER install can be registered under (the REAPER reachability spike found the
 // native x64 REAPER install under the first one; WOW6432Node covers a 32-bit
 // install running on 64-bit Windows).
 var uninstallKeys = []string{
@@ -18,7 +18,7 @@ var uninstallKeys = []string{
 }
 
 // LocateReaperExecutable auto-detects reaper.exe: first the Windows
-// "Uninstall" registry entries (the source the Phase 6 spike verified
+// "Uninstall" registry entries (the source the REAPER reachability spike verified
 // against a real install, docs/research/reaper-spike-s6-daw-reachability.md),
 // then the .rpp file association as a fallback for an install that did not
 // register there.
@@ -66,7 +66,7 @@ func readOneUninstallEntry(root, name string) installEntry {
 
 // readAssociationCommand reads the .rpp ProgID's open command. REAPER's
 // installer registers a 64-bit build under "open64" rather than plain "open"
-// (verified in the Phase 6 spike); both are tried since a different REAPER
+// (verified in the REAPER reachability spike); both are tried since a different REAPER
 // build may use the plain key.
 func readAssociationCommand() (string, bool) {
 	for _, verb := range []string{"open64", "open"} {

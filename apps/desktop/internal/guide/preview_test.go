@@ -198,7 +198,7 @@ func TestPreviewCacheIsKeyedOnTheVoice(t *testing.T) {
 	}
 }
 
-// A chosen pronunciation changes what render-audio actually speaks (Phase 10), so it must be part of the cache
+// A chosen pronunciation changes what render-audio actually speaks, so it must be part of the cache
 // key too, the same as the voice and the spoken text.
 func TestPreviewCacheIsKeyedOnTheChosenPronunciation(t *testing.T) {
 	rig := newPreviewRig(t, "wav")

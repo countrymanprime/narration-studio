@@ -46,6 +46,9 @@ const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpe
 // The Record stage's one page: it replaced the Teleprompter page. Its
 // icon is a record dot, as the stage-nav mocks draw it (audit SH12).
 const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot, requiresManuscript: true, requiresDaw: false };
+// Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script as the editor, at /editing and /editing/:chapterId. It took the
+// chapter workspace out of Proof. Not gated: with no manuscript the page asks for one, as the mock's does.
+const EDITING = { name: 'Editing', path: '/editing', icon: iconFor('scissors'), requiresManuscript: false, requiresDaw: false };
 // Proof: the book's notes at /proof and a chapter's view at /proof/:chapterId,
 // replacing Review and Proofing. Not gated: take-review notes need no manuscript, the page says itself when there is nothing to
 // proof yet, and the compare run inside a chapter view gates itself on the DAW (CapabilityGate).
@@ -60,7 +63,7 @@ const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, req
 // manuscript, as the mock's page asks for one: it checks every chapter against the profile.
 const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery'), requiresManuscript: true, requiresDaw: false };
 
-// Grouped by production stage (ADR 0407): Production, Prep, Record, Review,
+// Grouped by production stage (ADR 0407): Production, Prep, Record, Edit (the Studio Next mock's own group for Editing, ADR 0804), Review,
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
 // replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
@@ -69,6 +72,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: 'Production', items: [PRODUCTION, SCHEDULE] },
   { label: 'Prep', items: [SCRIPT, STORY_BIBLE] },
   { label: 'Record', items: [BOOTH] },
+  { label: 'Edit', items: [EDITING] },
   { label: 'Review', items: [PROOF, PICKUPS] },
   { label: 'Finish', items: [MASTER_QC, DELIVERY] },
 ];

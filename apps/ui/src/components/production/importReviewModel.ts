@@ -1,3 +1,5 @@
+import { chapterName, type ChapterNameInput } from '../../chapterName';
+import { chapterHeading } from '../../chapterHeading';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 
 // The pure half of the import review: what the narrator's choices come to. The summary line, the groups and the rows are all read from
@@ -56,6 +58,22 @@ export function reviewedHeading(
   // Whitespace collapsed as the host joins it (importer.joinedTitle), so the row shows exactly what is written.
   return { title: `${section.title} ${section.subtitle}`.replace(/\s+/g, ' ').trim() };
 }
+
+/** A heading's label as the manuscript's heading styles write it: "CHAPTER VIII.", "8." or "Chapter 8:". */
+const LABEL_END = /[.:]$/;
+
+/**
+ * A heading's name in the style the manuscript settled, read from the heading itself through `chapterName`: a label heading is written
+ * as the manuscript writes it ("CHAPTER VIII. Croquet", "8. Croquet", "Chapter 8: Croquet"), and any other keeps `chapterName`'s
+ * "Title — Subtitle". `label` is the part to set apart, empty for the second kind.
+ */
+export function headingParts(heading: ChapterNameInput): { name: string; label: string; rest: string } {
+  const { label, title } = chapterHeading({ ...heading, contentKind: 'narration' });
+  if (!LABEL_END.test(label)) return { name: chapterName(heading), label: '', rest: '' };
+  return { name: `${label} ${title}`, label, rest: title };
+}
+
+export const headingName = (heading: ChapterNameInput): string => headingParts(heading).name;
 
 /** What the commit sends: every section whose subtitle is turned off, by the row or by the default, as `false`. Undefined when there is none. */
 export function subtitleOverridesToCommit(preview: ManuscriptImportPreview, selection: ManuscriptImportSelection): Record<string, boolean> | undefined {

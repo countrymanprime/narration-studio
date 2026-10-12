@@ -220,7 +220,7 @@ func TestARecordWrittenByANewerSchemaReadsAsAbsent(t *testing.T) {
 	}
 }
 
-// --- Retain / pruning (Q3: latest per analyzer+chapter, plus anything referenced) ---
+// --- Retain / pruning (latest per analyzer+chapter, plus anything referenced) ---
 
 func TestRetainKeepsOnlyTheLatestPerAnalyzerAndChapterByDefault(t *testing.T) {
 	store := NewLedgerStore(t.TempDir())

@@ -12,7 +12,7 @@ and a link land on the same chapter. The Booth fills the window and follows the 
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 1 of 24 · 0% · ~13:48 finished left`), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens [Settings](settings.md) › Recording. The chapter is named as the manuscript heads it
+built-in recorder). The chip opens [Settings](settings.md). The chapter is named as the manuscript heads it
 (`CHAPTER I. Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
 you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
@@ -26,11 +26,14 @@ are on is marked with a caret; the text scrolls to keep it in view as you read. 
 the view without moving your place.
 
 Clicking a Story Bible name, a marked word or a note shows it in the side panel's **Reference**, read-only: the entry, or the
-mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has **Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the next names with a
-pronunciation), the suspected lines of this take, **Last punch** and **This session** (how long you have recorded and how many
-punches).
+mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
+lines of this take, **Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the next names with a
+pronunciation), **Last punch** and **This session** (how long you have recorded and how many punches). In a
+[pickup session](#a-pickup-session) the pickup lines come first.
 
-The footer has **Record**, the take's timer, **Levels** (the input level and the microphone in use), a level bar and the room tone, and the keys the Booth answers, drawn from your keymap.
+The footer has **Record**, the take's timer, **Levels** (the input level and the microphone in use), a level bar and the room tone
+the recorder reports for that microphone (**Room not measured yet** until it reports one), and the keys the Booth answers, drawn
+from your keymap.
 
 ## Recording
 
@@ -42,13 +45,19 @@ the chapter has no track, or the DAW is already playing.
 ![Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session](../../images/ui/booth-listening.webp)
 
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The chapter cannot be
-changed until you stop.
+changed until you stop. When listening reaches the last word of the chapter and stops, the take stops with it and a message says
+**Take saved**. Reading on past the end keeps the take running.
 
 **R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the
 earlier audio as a take. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
 again from ¶ n?") and holds the take while it asks.
 
-Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, and **F11** takes the window full screen.
+Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
+**F11** takes the window full screen.
+
+Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
+**Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
+during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth. Nothing you say is sent anywhere.
 
@@ -59,6 +68,24 @@ DAW now, the saved project, or the Booth's own record of your last reading. Choo
 ends; nothing starts until you press Record.
 
 ![Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends](../../images/ui/booth-waiting.webp)
+
+## Bookmarks
+
+The chapter's [bookmarks](script.md) show as ribbons in the right margin of the text, beside their words; hover one for its label
+and note, and click it to edit it. A bookmark whose line changed since it was made is a warning mark at the top of the margin.
+**B** bookmarks the word you are on, with **Undo** on the message. **Alt+]** and **Alt+[** move to the next and previous bookmark,
+into another chapter when needed, but not during a take. Right-click a ribbon for **Edit bookmark** and **Delete bookmark**.
+
+## A pickup session
+
+**Open N in Booth** on [Pickups](pickups.md#pickup-session) opens the Booth on the chosen lines, at the first line's chapter. A
+**Pickups · N open** chip on the top bar counts the lines still open, and the side panel lists them first, each with its chapter
+and time; a recorded one has a tick. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
+chapter when needed (not during a take). A line the recording check found is tagged **Automatic**; dismissing it removes it from
+[Pickups](pickups.md) as well.
+
+When a take stops, the lines it read over are marked recorded, and the message says how many ("Take saved · 2 pickups marked
+recorded") with **Undo**.
 
 ## Suspected lines
 
@@ -95,4 +122,4 @@ when you came in, the Booth did not start that take and does not stop it, and th
 
 ---
 
-[← Story Bible](story-bible.md) · [Index](README.md) · [Proof →](proof.md)
+[← Story Bible](story-bible.md) · [Index](README.md) · [Editing →](editing.md)
