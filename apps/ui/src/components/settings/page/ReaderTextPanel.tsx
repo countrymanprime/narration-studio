@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { TEXT_SIZE } from '../../booth/reading/BoothText';
 import { useTextChoices } from '../../booth/page/useTextChoices';
 import { READER_FONTS, READER_SPACING, fontStack, loadTextPrefs, saveTextPrefs } from '../../script/page/tools/text/readerText';
+import { InsetCard } from '../../primitives/InsetCard';
 import { Panel } from '../../primitives/Panel';
 import { Select } from '../../primitives/Select';
 import { Slider } from '../../primitives/Slider';
@@ -38,13 +39,15 @@ export function ReaderTextView({ size, lineHeight, font, onSize, onLineHeight, o
           value={lineHeight}
           onValueChange={onLineHeight}
         />
-        <blockquote
-          data-testid="reader-text-preview"
-          className="m-0 rounded-md border border-[var(--border)] px-4 py-3 text-[var(--text)]"
-          style={{ fontFamily: fontStack(font), fontSize: `${size}px`, lineHeight }}
-        >
-          {PREVIEW}
-        </blockquote>
+        <InsetCard>
+          <blockquote
+            data-testid="reader-text-preview"
+            className="m-0 text-[var(--text)]"
+            style={{ fontFamily: fontStack(font), fontSize: `${size}px`, lineHeight }}
+          >
+            {PREVIEW}
+          </blockquote>
+        </InsetCard>
       </div>
     </Panel>
   );

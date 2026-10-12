@@ -4,6 +4,7 @@ import measureSuccess from '../../../../../../tests/fixtures/contracts/measure-s
 import { measureJobSchema } from '../../../api/schemas/measure';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { makeChapters } from '../../../fixtures/chapters';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
@@ -49,16 +50,8 @@ export const waiting = (name = 'Chapter 03.wav'): MeasureFileResult => ({
 
 export const ALL_PASS = [passing('Chapter 01.wav'), passing('Chapter 02.wav')];
 export const TWO_FAIL = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), waiting('Chapter 03.wav'), failingTwo('Chapter 04.wav')];
-/** A chapter as the manuscript lists it. */
-const chapterOf = (index: number, title: string, subtitle?: string): ManuscriptChapter =>
-  ({ id: `chapter-${index}`, title, subtitle, index, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter;
 /** The four chapters of TWO_FAIL, named the way the manuscript names them. */
-export const CHAPTERS = [
-  chapterOf(1, 'Chapter 1', 'Down the Rabbit-Hole'),
-  chapterOf(2, 'Chapter 2', 'The Pool of Tears'),
-  chapterOf(3, 'Chapter 3'),
-  chapterOf(4, 'Chapter 4', 'The Rabbit Sends in a Little Bill'),
-];
+export const CHAPTERS = makeChapters({ shape: 'titleAndSubtitle', count: 4 });
 export const rowsOf = (files: readonly MeasureFileResult[]) => buildRows(files, profile);
 
 const noActions = (): FileActions => ({ onPlayQuietest: () => undefined, onOpenInDaw: () => undefined, onRecheck: () => undefined });

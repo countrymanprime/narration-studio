@@ -68,14 +68,14 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
     <Dialog title="Define how you mark up" onClose={onClose} actionsAlign="end" actions={<Button onClick={onClose}>Done</Button>}>
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {types.map((type, index) => (
-          <li key={type.key || `new-${index}`} className="flex items-center gap-2">
+          <li key={type.key || `new-${index}`} className="flex flex-wrap items-center gap-2">
             <span
               aria-hidden="true"
               data-testid="mark-swatch"
               className="inline-block size-[18px] shrink-0 rounded-[3px]"
               style={{ background: `var(--${markSwatch(type.colour)})` }}
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[10rem] flex-1">
               <TextField
                 label="Mark name"
                 value={type.name}

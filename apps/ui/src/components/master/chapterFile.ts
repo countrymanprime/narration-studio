@@ -1,6 +1,6 @@
 // The one rule that pairs a chapter with its measured file, for Delivery's "Before you build" rows and Master & QC's chapter labels:
 // a file belongs to a chapter when its name carries the chapter's title ("The Queen's Croquet-Ground.wav") or the chapter number as the
-// only number in the name ("Chapter 04.wav").
+// only number in the name ("Chapter 04.wav" is the chapter at `index` 3: the index counts from 0, the number from 1).
 import type { ManuscriptChapter, MeasureFileResult } from '../../types';
 
 const stem = (name: string) => name.replace(/\.[^.]+$/, '').toLowerCase();
@@ -11,7 +11,7 @@ function isChapterFile(chapter: Pick<ManuscriptChapter, 'title' | 'index'>, file
   const name = stem(file.name);
   if (title && name.includes(title)) return true;
   const digits = name.match(/\d+/g);
-  return digits?.length === 1 && Number(digits[0]) === chapter.index;
+  return digits?.length === 1 && Number(digits[0]) === chapter.index + 1;
 }
 
 /** The file that belongs to a chapter, if any. */

@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { chapterName } from './chapterName';
 import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
 import { PRODUCTION_SCENARIOS } from './api/productionMock';
@@ -272,11 +273,13 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   it('tells the narrator a rebuild finished after they left the Story Bible, and keeps a failure until it is dismissed', async () => {
-    let announce: (event: JobEnded) => void = () => {};
+    // The app and the Settings page both subscribe, so an event goes to every listener, as the host's does.
+    const listeners = new Set<(event: JobEnded) => void>();
+    const announce = (event: JobEnded) => listeners.forEach((each) => each(event));
     renderApp({
       subscribeJobEnded: (listener) => {
-        announce = listener;
-        return () => {};
+        listeners.add(listener);
+        return () => listeners.delete(listener);
       },
     });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -795,7 +798,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const job = { phase: 'success', files, profile: acxProfile, bookRules: [] } as unknown as MeasureJob;
     window.history.replaceState(null, '', '/delivery');
     renderApp({ measureState: async () => job });
-    fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${chapter.title}: .*Open in Master & QC`) }));
+    const rowName = `${chapterName(chapter)}: `;
+    fireEvent.click(await screen.findByRole('button', { name: (name) => name.startsWith(rowName) && name.endsWith('Open in Master & QC') }));
     await waitFor(() => expect(window.location.pathname).toBe('/master'));
     expect(window.location.hash).toBe(`#file=${chapter.id}`);
     const bar = await screen.findByRole('button', { name: /^Chapter: / });
