@@ -16,6 +16,8 @@ export interface CleanupRow {
   db?: number;
   /** The item's GUID as the finding recorded it; absent when the finding names none, which makes it stale. */
   itemGuid?: string;
+  /** The take's GUID as the finding recorded it; the reductions and the click repair name the take by it. */
+  takeGuid?: string;
   /** Source-file seconds of the same window, when the analyzer had them. */
   sourceStart?: number;
   sourceEnd?: number;
@@ -46,6 +48,7 @@ function rowOf(finding: Finding, kind: CleanupKind): CleanupRow | null {
   const dur = num(finding.evidence?.['duration_seconds']) ?? range.end - range.start;
   const db = num(finding.evidence?.['level_dbfs']);
   const itemGuid = finding.source.item_guid;
+  const takeGuid = finding.source.take_guid;
   return {
     key: `${kind}:${itemGuid ?? '-'}:${range.start.toFixed(3)}`,
     kind,
@@ -54,6 +57,7 @@ function rowOf(finding: Finding, kind: CleanupKind): CleanupRow | null {
     dur,
     ...(db !== undefined ? { db } : {}),
     ...(itemGuid ? { itemGuid } : {}),
+    ...(takeGuid ? { takeGuid } : {}),
     ...(range.source_start !== undefined ? { sourceStart: range.source_start } : {}),
     ...(range.source_end !== undefined ? { sourceEnd: range.source_end } : {}),
     done: finding.review.status === 'accepted',

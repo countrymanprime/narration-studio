@@ -1,3 +1,5 @@
+import type { DawCapabilities } from '../../../api/contracts/daw';
+
 // The five Clean up operations, the thresholds behind Light, Standard and Heavy, and the sentences the page proposes
 // (the Studio Next mock's `CLEANUP_OPS` and its text helpers). Pure: nothing here reads a port.
 
@@ -87,12 +89,27 @@ export function levelOf(kind: CleanupKind, params: CleanupParams): Level | null 
   return LEVELS.map(([l]) => l).find((l) => spec.fields.every((f) => spec.levels[l][f.key] === params[f.key])) ?? null;
 }
 
-/**
- * What the DAW surface can do for an operation today. Gaps are trimmed by a range cut that hides the piece on the muted Cuts track;
- * a reduction by N dB (breaths, plosives, noise) and a click repair have no DAW command yet, so their Apply says so.
- */
-export const NO_DAW_COMMAND = 'No DAW command for this yet';
-export const hasDawCommand = (kind: CleanupKind): boolean => kind === 'gaps';
+/** The DAW capability each operation's Apply needs: a range cut for gaps, a gain change for the reductions, a click repair for clicks. */
+const CAPABILITY: Record<CleanupKind, string> = {
+  gaps: 'cut_range',
+  breaths: 'range_gain',
+  clicks: 'click_repair',
+  plosives: 'range_gain',
+  noise: 'range_gain',
+};
+
+/** The reason when the capability report names no support for the operation at all. */
+const NO_DAW_COMMAND = 'No DAW command for this yet';
+
+/** Does the DAW's capability report say it can apply this operation now? A report not read yet says no. */
+const hasDawCommand = (kind: CleanupKind, caps: Pick<DawCapabilities, 'capabilities'> | null): boolean =>
+  caps?.capabilities[CAPABILITY[kind]]?.available === true;
+
+/** Why Apply is off for this operation: the capability's own sentence, or null when the DAW can do it or the report is not read yet. */
+export function dawCommandReason(kind: CleanupKind, caps: Pick<DawCapabilities, 'capabilities'> | null): string | null {
+  if (!caps || hasDawCommand(kind, caps)) return null;
+  return caps.capabilities[CAPABILITY[kind]]?.message ?? NO_DAW_COMMAND;
+}
 
 const db = (n: number): string => `${n < 0 ? '−' : '+'}${Math.abs(n)} dB`;
 const seconds = (n: number): string => `${Math.round(n * 100) / 100} s`;

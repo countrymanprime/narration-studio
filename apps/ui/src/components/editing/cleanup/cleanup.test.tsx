@@ -8,6 +8,7 @@ import type { Finding } from '../../../api/contracts/findings';
 import type { DawResult } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
+import type { ClickRepairRequest, RangeGainRequest } from '../../../ports/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
@@ -85,11 +86,15 @@ describe('rows come from findings and candidates', () => {
 
 let trim: ReturnType<typeof vi.fn<(t: RangeTrim) => Promise<DawResult>>>;
 let record: ReturnType<typeof vi.fn<(t: RangeTrim, r: DawResult) => Promise<void>>>;
+let reduce: ReturnType<typeof vi.fn<(r: RangeGainRequest) => Promise<DawResult>>>;
+let repair: ReturnType<typeof vi.fn<(r: ClickRepairRequest) => Promise<DawResult>>>;
 let toast: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   trim = vi.fn(async () => ok());
   record = vi.fn(async () => undefined);
+  reduce = vi.fn(async () => ok());
+  repair = vi.fn(async () => ok());
   toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
 });
 
@@ -142,7 +147,7 @@ function mount(opts: { setup?: DawSetupId; findings?: Finding[]; deps?: CleanupD
     dawCapabilities: async () => setup,
   };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
-  const deps = opts.deps === null ? undefined : (opts.deps ?? { trim, record });
+  const deps = opts.deps === null ? undefined : (opts.deps ?? { trim, record, reduce, repair });
   render(
     <ApiProvider api={api as typeof base}>
       <PortOverrides clients={{ daw }}>
@@ -156,6 +161,7 @@ function mount(opts: { setup?: DawSetupId; findings?: Finding[]; deps?: CleanupD
 }
 
 const chip = (name: RegExp) => screen.getByRole('button', { name });
+const chipClicks = /^Clicks/;
 
 describe('the Clean up tab', () => {
   it('operation-filter-with-counts: five chips with counts; the chosen one lists in time order with measure and fix', async () => {
@@ -212,6 +218,76 @@ describe('the Clean up tab', () => {
     expect(entries.map((e) => e.label)).toEqual(['Shortened 1 gap']);
   });
 
+  it('applies each operation as one DAW change with an undo', async () => {
+    const { journal } = mount();
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    const cases: Array<[RegExp, string, () => unknown, string]> = [
+      [/^Breaths/, 'Reduced 1 breath by 9 dB', () => reduce.mock.calls.at(-1)?.[0], 'reduce'],
+      [/^Plosives/, 'Softened 1 plosive by 6 dB', () => reduce.mock.calls.at(-1)?.[0], 'reduce'],
+      [/^Noise/, 'Reduced 1 noise by 12 dB', () => reduce.mock.calls.at(-1)?.[0], 'reduce'],
+      [/^Clicks/, 'Repaired 1 click', () => repair.mock.calls.at(-1)?.[0], 'repair'],
+    ];
+    const asked = [
+      { chapterId: '5', takeId: 'take-1', stretches: [{ start: 20, end: 20.4 }], reduceDb: 9 },
+      { chapterId: '5', takeId: 'take-1', stretches: [{ start: 41, end: 41.1 }], reduceDb: 6 },
+      { chapterId: '5', takeId: 'take-1', stretches: [{ start: 60, end: 61 }], reduceDb: 12 },
+      { chapterId: '5', takeId: 'take-1', clicks: [{ start: 40, end: 40.03 }] },
+    ];
+    for (const [i, [name, label, request]] of cases.entries()) {
+      fireEvent.click(chip(name));
+      const button = await waitFor(() => {
+        const b = screen.getByRole('button', { name: 'Apply to 1 selected' }) as HTMLButtonElement;
+        expect(b.disabled).toBe(false);
+        return b;
+      });
+      fireEvent.click(button);
+      await waitFor(() => expect(request()).toEqual(asked[i]));
+      await waitFor(async () => expect((await journal.entries()).map((e) => e.label)).toContain(label));
+    }
+    expect(reduce).toHaveBeenCalledTimes(3);
+    expect(repair).toHaveBeenCalledTimes(1);
+    expect(trim).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
+    expect((await journal.entries()).every((e) => e.daw)).toBe(true);
+  });
+
+  it('sends the selected findings of one take in one DAW call, and each other take in its own', async () => {
+    const more = [
+      finding({ id: 'b3', start: 70, end: 70.3, cls: 'breath', db: -21 }),
+      finding({ id: 'b4', start: 80, end: 80.3, cls: 'breath', db: -21, take: 'take-2' }),
+    ];
+    const { journal } = mount({ findings: [...FINDINGS, ...more] });
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    fireEvent.click(chip(/^Breaths/));
+    fireEvent.click(await screen.findByRole('button', { name: 'Apply to 3 selected' }));
+    await waitFor(() => expect(reduce).toHaveBeenCalledTimes(2));
+    expect(reduce.mock.calls.map(([r]) => [r.takeId, r.stretches.length])).toEqual([
+      ['take-1', 2],
+      ['take-2', 1],
+    ]);
+    expect((await journal.entries()).map((e) => e.label)).toEqual(['Reduced 3 breaths by 9 dB']);
+    expect(toast.mock.calls[0]?.[0]).toBe('Reduced 3 breaths by 9 dB.');
+  });
+
+  it('a finding with no take or source time is left alone as stale, and nothing is sent for it', async () => {
+    mount({ findings: [finding({ id: 'b1', start: 20, end: 20.4, cls: 'breath', db: -22, take: null })] });
+    await screen.findByRole('button', { name: /^Gaps 0/ });
+    fireEvent.click(chip(/^Breaths/));
+    fireEvent.click(await screen.findByRole('button', { name: 'Apply to 1 selected' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('This finding no longer matches an item in the project, so it was left alone.', { tone: 'error' }));
+    expect(reduce).not.toHaveBeenCalled();
+  });
+
+  it("a DAW's stale or refusing answer to a reduction changes nothing and shows its sentence", async () => {
+    reduce.mockResolvedValueOnce({ ok: false, changed: false, message: 'That take is gone.', undoSteps: 0, refused: 'That take is gone.', code: 'stale' });
+    const { journal } = mount();
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    fireEvent.click(chip(/^Breaths/));
+    fireEvent.click(await screen.findByRole('button', { name: 'Apply to 1 selected' }));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect(await journal.entries()).toEqual([]);
+  });
+
   it('none selected applies nothing', async () => {
     mount();
     await screen.findByRole('button', { name: /^Gaps 2/ });
@@ -251,15 +327,48 @@ describe('the Clean up tab', () => {
     expect(screen.getByRole('region', { name: 'Preview' })).toBeTruthy();
   });
 
-  it('operations-without-a-daw-command-are-disabled-with-a-reason', async () => {
-    mount();
+  it('a DAW without the operation keeps Apply off and says why', async () => {
+    // The built-in recorder has no range_gain or click_repair; its capability sentence is the reason, not a constant.
+    mount({ setup: 'builtin' });
     await screen.findByRole('button', { name: /^Gaps 2/ });
     for (const name of [/^Breaths/, /^Clicks/, /^Plosives/, /^Noise/]) {
       fireEvent.click(chip(name));
-      expect(await screen.findByText('No DAW command for this yet')).toBeTruthy();
+      const note = await waitFor(() => {
+        const el = document.getElementById('cleanup-note');
+        expect(el?.textContent).toBeTruthy();
+        return el as HTMLElement;
+      });
+      expect(note.textContent).toBe(DAW_SETUPS.builtin.capabilities[name === chipClicks ? 'click_repair' : 'range_gain']?.message);
       expect((screen.getByRole('button', { name: /^Apply to/ }) as HTMLButtonElement).disabled).toBe(true);
       expect((screen.getByRole('button', { name: 'Preview' }) as HTMLButtonElement).disabled).toBe(false);
     }
+    expect(reduce).not.toHaveBeenCalled();
+    expect(repair).not.toHaveBeenCalled();
+  });
+
+  it('follows the capability, not the operation: a DAW with range_gain but not click_repair applies Breaths only', async () => {
+    const setup = { ...DAW_SETUPS.reaper, capabilities: { ...DAW_SETUPS.reaper.capabilities, click_repair: DAW_SETUPS.builtin.capabilities['click_repair']! } };
+    const daw = createMockDawClient(setup, { chapterIds: ['5'], candidateIds: [], findingIds: [] });
+    const base = createMockApi();
+    const api = {
+      ...base,
+      findingsList: vi.fn(async () => ({ findings: FINDINGS, total: FINDINGS.length })),
+      editingCandidates: vi.fn(async () => FINDINGS),
+      dawCapabilities: async () => setup,
+    };
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
+    render(
+      <ApiProvider api={api as typeof base}>
+        <PortOverrides clients={{ daw }}>
+          <Host journal={journal} deps={{ trim, record, reduce, repair }} fake={undefined} />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    fireEvent.click(chip(/^Breaths/));
+    await waitFor(() => expect((screen.getByRole('button', { name: /^Apply to/ }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(chip(/^Clicks/));
+    await waitFor(() => expect((screen.getByRole('button', { name: /^Apply to/ }) as HTMLButtonElement).disabled).toBe(true));
   });
 
   it('noise-floor-is-shown-beside-the-noise-operation, or Not measured with the reason', async () => {
