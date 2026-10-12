@@ -29,6 +29,7 @@
     "package.json",
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
+    "pr-screenshots",
     "project.json",
     "pyproject.toml",
     "scripts",
