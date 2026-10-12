@@ -5,7 +5,7 @@
 # region (a paragraph when there are none), and the paragraph detail as a folded disclosure (never auto-expanded).
 # The page behind it is aria-hidden.
 - /children: equal
-# The two toast live regions stay in the tree on purpose (see dialog-add-note.aria.yml).
+# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
 - main:
   - alert
   - status

@@ -1,0 +1,131 @@
+# Define marks (the Script page's "Define how you mark up"): a modal dialog with each mark type's name, colour and line, and Done.
+# The page behind it is aria-hidden; the live regions stay exposed (see dialog-mark-composer.aria.yml).
+- /children: equal
+- main:
+  - group "Zoom"
+  - region "Reader": /¶ 1 of \d+/
+  - alert
+  - status
+- alert
+- status
+- status
+- dialog "Define how you mark up":
+  - heading "Define how you mark up" [level=2]
+  - button "Close"
+  - list:
+    - listitem:
+      - textbox "Mark name": Word stress
+      - combobox "Colour":
+        - option "Copper" [selected]
+        - option "Blue"
+        - option "Green"
+        - option "Amber"
+        - option "Red"
+        - option "Violet"
+      - combobox "Line":
+        - option "Highlight" [selected]
+        - option "Underline"
+        - option "Double line"
+        - option "Dotted"
+        - option "Wavy"
+        - option "Box"
+      - checkbox "Asks"
+      - text: Asks
+      - button "Remove"
+    - listitem:
+      - textbox "Mark name": Breath / pause
+      - combobox "Colour":
+        - option "Copper"
+        - option "Blue" [selected]
+        - option "Green"
+        - option "Amber"
+        - option "Red"
+        - option "Violet"
+      - combobox "Line":
+        - option "Highlight"
+        - option "Underline"
+        - option "Double line"
+        - option "Dotted" [selected]
+        - option "Wavy"
+        - option "Box"
+      - checkbox "Asks"
+      - text: Asks
+      - button "Remove"
+    - listitem:
+      - textbox "Mark name": Pace
+      - combobox "Colour":
+        - option "Copper"
+        - option "Blue"
+        - option "Green" [selected]
+        - option "Amber"
+        - option "Red"
+        - option "Violet"
+      - combobox "Line":
+        - option "Highlight"
+        - option "Underline"
+        - option "Double line"
+        - option "Dotted"
+        - option "Wavy" [selected]
+        - option "Box"
+      - checkbox "Asks"
+      - text: Asks
+      - button "Remove"
+    - listitem:
+      - textbox "Mark name": Emotion
+      - combobox "Colour":
+        - option "Copper"
+        - option "Blue"
+        - option "Green"
+        - option "Amber"
+        - option "Red" [selected]
+        - option "Violet"
+      - combobox "Line":
+        - option "Highlight"
+        - option "Underline" [selected]
+        - option "Double line"
+        - option "Dotted"
+        - option "Wavy"
+        - option "Box"
+      - checkbox "Asks"
+      - text: Asks
+      - button "Remove"
+    - listitem:
+      - textbox "Mark name": Note
+      - combobox "Colour":
+        - option "Copper"
+        - option "Blue"
+        - option "Green"
+        - option "Amber"
+        - option "Red"
+        - option "Violet" [selected]
+      - combobox "Line":
+        - option "Highlight"
+        - option "Underline"
+        - option "Double line" [selected]
+        - option "Dotted"
+        - option "Wavy"
+        - option "Box"
+      - checkbox "Asks"
+      - text: Asks
+      - button "Remove"
+    - listitem:
+      - textbox "Mark name": Query for author
+      - combobox "Colour":
+        - option "Copper"
+        - option "Blue"
+        - option "Green"
+        - option "Amber" [selected]
+        - option "Red"
+        - option "Violet"
+      - combobox "Line":
+        - option "Highlight" [selected]
+        - option "Underline"
+        - option "Double line"
+        - option "Dotted"
+        - option "Wavy"
+        - option "Box"
+      - checkbox "Asks" [checked]
+      - text: Asks
+      - button "Remove"
+  - button "Add a mark"
+  - button "Done"
