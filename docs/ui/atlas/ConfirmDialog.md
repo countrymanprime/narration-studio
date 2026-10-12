@@ -35,11 +35,12 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 - `src/components/production/RemoveFromRecordingDialog.tsx`
 - `src/components/proof/ApplyFxDialog.tsx`
 - `src/components/proof/ReaperControls.tsx`
-- `src/components/proof/TakeReviewReads.tsx`
 - `src/components/proof/TakesPanel.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/Settings.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
+- `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PronunciationQueries.tsx`
 - `src/components/storybible/VoiceDataPanel.tsx`
+- `src/overlay/OverlayHost.tsx`

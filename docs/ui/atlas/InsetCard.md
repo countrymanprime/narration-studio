@@ -26,12 +26,15 @@ Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/Inse
 - `src/components/production/RecordingCheckReport.tsx`
 - `src/components/production/RemovedFromRecordingList.tsx`
 - `src/components/production/TakeReviewPickups.tsx`
+- `src/components/production/readiness/ReadinessPanel.tsx`
 - `src/components/proof/AuditionDialog.tsx`
 - `src/components/proof/InlineDiff.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/TakeComparisonView.tsx`
-- `src/components/proof/TakeReviewReads.tsx`
 - `src/components/proof/TakesPanel.tsx`
+- `src/components/script/page/chapters/ChapterCard.tsx`
+- `src/components/script/page/rail/words/DefinitionBlock.tsx`
+- `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/series/SeriesTab.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/OnlineDictionaryPanel.tsx`

@@ -15,6 +15,7 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 
 ## Used by
 
+- `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/EnginePanel.tsx`
@@ -24,14 +25,19 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/master/FileRulesPanel.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/master/PerFileChecks.tsx`
-- `src/components/production/PlanPanel.tsx`
+- `src/components/masterqc/files/FilesTable.tsx`
+- `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/production/RecordingCheckReport.tsx`
-- `src/components/proof/FindingsList.tsx`
+- `src/components/production/pipeline/PipelineTable.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/TakeComparisonView.tsx`
+- `src/components/proof/notes/NotesTable.tsx`
+- `src/components/schedule/MilestoneTable.tsx`
 - `src/components/script/ScriptRail.tsx`
+- `src/components/script/page/rail/words/WordsTab.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PropertiesSection.tsx`
+- `src/components/storybible/suggested/import/ImportDialog.tsx`
