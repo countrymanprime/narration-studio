@@ -20,14 +20,14 @@ export const storybibleDrivers: Record<string, Driver> = {
     await settlePage(page);
     await goToPage(page, 'Story Bible');
     await clickVisible(page, 'button', /^Needs review · \d+$/);
-    await page.locator('tr[data-row]', { hasText: 'White Rabbit' }).click();
+    await entryRows(page).filter({ hasText: 'White Rabbit' }).click();
     await page.getByRole('button', { name: 'Mark Rabbit reviewed' }).waitFor();
   },
   'entry-saving': async (page) => {
     await page.goto('/?mockHoldEdits=1');
     await settlePage(page);
     await clickNav(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
     const unlock = page.getByRole('button', { name: 'Unlock entry' });
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');
@@ -74,31 +74,37 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'category-all': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', /^All · \d+$/);
+    await kindChip(page, 'All').waitFor();
   },
   'category-character': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', /^Characters · \d+$/);
+    await kindChip(page, 'Character').click();
   },
   'category-place': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', /^Locations · \d+$/);
+    await kindChip(page, 'Place').click();
   },
   'category-organization': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', /^Organizations · \d+$/);
+    await kindChip(page, 'Organization').click();
   },
-  'category-needs-review': async (page) => {
+  'search-narrowed': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', /^Needs Review · \d+$/);
+    await page.getByRole('textbox', { name: 'Search entries' }).fill('hatter');
+    await entryRows(page).first().waitFor();
+  },
+  'no-manuscript': async (page) => {
+    await page.goto('/story-bible?mockNoManuscript=1');
+    await settlePage(page);
+    await page.getByRole('button', { name: 'Import manuscript' }).waitFor();
   },
   'entity-selected': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
   },
   'alias-typeahead': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
     // "at" matches multiple canonical names in the mock fixture set
     // (Hatter, Caterpillar, Cheshire Cat) regardless of which entity the
     // fixture data happens to sort first into the row - findAliasMatches
@@ -113,12 +119,12 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'entry-needs-review': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]', { hasText: 'March Hare' }).click();
+    await entryRows(page).filter({ hasText: 'March Hare' }).click();
   },
   'entry-pronunciation-missing': async (page) => {
     await goToPage(page, 'Story Bible');
     // March Hare has no pronunciation in the fixture data.
-    await page.locator('tr[data-row]', { hasText: 'March Hare' }).click();
+    await entryRows(page).filter({ hasText: 'March Hare' }).click();
     await clickVisible(page, 'button', 'Edit this entry');
     await page.getByRole('textbox', { name: 'How I say March Hare' }).waitFor();
   },
@@ -165,7 +171,7 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'entry-suggestions': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]', { hasText: 'White Rabbit' }).click();
+    await entryRows(page).filter({ hasText: 'White Rabbit' }).click();
     const suggested = page.locator('[data-suggested]');
     await suggested.waitFor();
     await suggested.evaluate((element) => element.scrollIntoView({ block: 'center' }));
@@ -177,7 +183,7 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'delete-confirm': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
     // Delete only exists in edit mode (ADR 0087); the delete button is unreachable
     // while the selected entity is locked, and unlocking never happens mid-edit,
     // so unlock it first if needed - regardless of which entity sorts first.
@@ -189,24 +195,24 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'entry-locked': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
     const unlock = page.getByRole('button', { name: 'Lock entry' });
     if (await unlock.count()) await unlock.click();
   },
   'entry-unlocked': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
   },
   'entry-editing': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
     const unlock = page.getByRole('button', { name: 'Unlock entry' });
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');
   },
   'entry-properties-editing': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await entryRows(page).first().click();
     const unlock = page.getByRole('button', { name: 'Unlock entry' });
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');
@@ -221,7 +227,7 @@ export const storybibleDrivers: Record<string, Driver> = {
     await goToPage(page, 'Story Bible');
     // The Hatter's fixture reference is changed since approval (the mock's snapshot no longer matches a current
     // region by that GUID), so selecting them shows the warning badge alongside a steady reference elsewhere.
-    await page.locator('tr[data-row]', { hasText: 'Hatter' }).click();
+    await entryRows(page).filter({ hasText: 'Hatter' }).click();
     await page.getByText('Reference clips').waitFor();
     await page.getByText('Changed since approval').waitFor();
     await page.getByText('Dialogue cues').waitFor();
@@ -253,10 +259,16 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
 };
 
+/** The entry rows of the Story Bible list, each a button of two lines. */
+const entryRows = (page: Page) => page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button');
+
+/** One kind chip over the list (All, or a type of the Story Bible). */
+const kindChip = (page: Page, name: string) => page.getByRole('group', { name: 'Kind' }).getByRole('button', { name, exact: true });
+
 /** Opens an entry in edit mode, unlocking it first when the fixture locks it. */
 async function openForEditing(page: Page, name: string): Promise<void> {
   await goToPage(page, 'Story Bible');
-  await page.locator('tr[data-row]', { hasText: name }).first().click();
+  await entryRows(page).filter({ hasText: name }).first().click();
   const unlock = page.getByRole('button', { name: 'Unlock entry' });
   if (await unlock.count()) await unlock.click();
   await clickVisible(page, 'button', 'Edit this entry');

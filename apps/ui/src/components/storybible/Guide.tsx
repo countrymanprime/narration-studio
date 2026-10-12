@@ -1,31 +1,35 @@
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import type { GuideBuildResult, GuideEntity } from '../../types';
-import { categoryCssName, categoryLabel, STORY_BIBLE_TABS } from '../../state';
+import type { GuideBuildResult, GuideEntity, GuideType } from '../../types';
+import { categoryLabel } from '../../state';
+import { CommandScope } from '../../input/router';
+import { useCommand } from '../../input/useCommand';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
+import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { CAT_DOT_BG } from '../manuscript/EntitySummary';
-import { Pill } from '../primitives/Pill';
-import { Dot, StatusBadge } from '../primitives/StatusBadge';
+import { StatusBadge } from '../primitives/StatusBadge';
+import { Swatch, type SwatchColour } from '../primitives/Swatch';
 import {
   aliasCount,
   chapterCount,
   ENTRY_SORT_OPTIONS,
   entryNeedsReview,
+  kindSwatch,
   loadEntrySort,
+  matchesQuery,
   reviewCount,
   reviewPill,
   saveEntrySort,
@@ -51,18 +55,10 @@ import { IconButton } from '../primitives/IconButton';
 import { SearchField } from '../primitives/SearchField';
 import { Select } from '../primitives/Select';
 import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import type { Notify } from '../primitives/Toast';
 
-const TAB_PLURAL: Record<string, string> = {
-  Character: 'Characters',
-  Location: 'Locations',
-  Organization: 'Organizations',
-  Lore: 'Lore',
-  Item: 'Items',
-  Event: 'Events',
-  'Needs Review': 'Needs Review',
-};
+const ENTRIES_TAB = 'Entries';
+const SERIES_TAB = 'Series';
 
 // A brand-new entity has no backend record at all until a category is chosen
 // (see GuideDetail's isNewDraft handling) - this is a purely local stand-in
@@ -83,7 +79,34 @@ const emptyGuideEntity = (name: string): GuideEntity => ({
   review_state: 'reviewed',
 });
 
-export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscript: (chapter: string, paragraph: number) => void }) {
+type GuideProps = {
+  notify: Notify;
+  goToManuscript: (chapter: string, paragraph: number) => void;
+  /** False until a manuscript is imported: the page asks for one instead of reading the Story Bible (the mock's `NeedManuscript`). */
+  hasManuscript?: boolean;
+  /** Opens the import flow, from the ask for a manuscript. */
+  onImport?: () => void;
+};
+
+export function Guide({ hasManuscript = true, onImport, ...rest }: GuideProps) {
+  return hasManuscript ? <GuideLoaded {...rest} /> : <AskForManuscript onImport={onImport} />;
+}
+
+/** The page with no manuscript (the mock's `NeedManuscript`): it says so and offers the import, which lives on Production. Unlike the Script page it
+ * does not open the import by itself; the mock's Story Bible does not either. */
+function AskForManuscript({ onImport }: { onImport?: () => void }) {
+  return (
+    <Panel label="Story Bible">
+      <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+        <h2 className="m-0 text-lg font-semibold">Story Bible</h2>
+        <p className="m-0 text-[var(--text-muted)]">This project has no manuscript yet. Import one to begin.</p>
+        {onImport && <Button onClick={onImport}>Import manuscript</Button>}
+      </div>
+    </Panel>
+  );
+}
+
+function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
   const api = useApi();
   const location = useLocation();
   const routerNavigate = useNavigate();
@@ -95,7 +118,12 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   const loadedOnce = useRef(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState('All');
+  const [tab, setTab] = useState(ENTRIES_TAB);
+  const [kind, setKind] = useState('All');
+  // The host's list of types: the chips, and the colour each chip and row is drawn in (SN-B95). Until it is read there is only "All".
+  const [types, setTypes] = useState<GuideType[]>([]);
+  const [focusedId, setFocusedId] = useState<string>();
+  const rowButtons = useRef(new Map<string, HTMLButtonElement>());
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
@@ -199,6 +227,16 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
       live = false;
     };
   }, [api]);
+  useEffect(() => {
+    let live = true;
+    api.guideTypes().then(
+      (list) => live && setTypes(list),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [api]);
   // A decision changes the list here at once, and an accepted suggestion can change an entry, so the entries are read again.
   const { changed } = found;
   const decided = useCallback(
@@ -218,14 +256,15 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   // isn't a "real" browsable entry until it has a category.
   const visible = rows.filter((row) => row.category !== 'Draft' || row.id === selectedId);
   const toReview = reviewCount(visible, suggestions);
+  const kinds = useMemo(() => types.map((type) => type.name), [types]);
+  // A kind the narrator renamed or removed in Settings leaves its chip with it, so the list falls back to every entry.
+  const activeKind = kinds.includes(kind) ? kind : 'All';
   const filtered = visible
-    .filter((row) => tab === 'All' || categoryLabel(row.category) === tab)
+    .filter((row) => activeKind === 'All' || row.category === activeKind)
     .filter((row) => !reviewOnly || entryNeedsReview(row, suggestions))
     .filter((row) => !verifyOnly || verifyOf(suggestions, row.id) > 0)
-    .filter((row) =>
-      `${row.canonical_name} ${row.aliases.map((alias) => alias.text).join(' ')} ${categoryLabel(row.category)}`.toLowerCase().includes(query.toLowerCase()),
-    );
-  const sorted = sortEntries(filtered, sort);
+    .filter((row) => matchesQuery(row, query));
+  const sorted = sortEntries(filtered, sort, kinds.length > 0 ? kinds : undefined);
   const selected = rows.find((row) => row.id === selectedId);
   const toVerifyAll = verifyCount(suggestions);
   const loose = verifyOnly ? unattached(suggestions) : [];
@@ -250,181 +289,245 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
     setSelectedId(id);
   };
 
+  // Up and Down step focus through the entries. The router leaves a key to a focused button (targets.ts), so the list takes it itself while a row
+  // has focus (`onKeyDown` below); the catalogue's page-scope rows, rebindable and listed on the sheet, step from the entry open when focus is elsewhere.
+  const moveFocus = (delta: -1 | 1) => {
+    const active = sorted.findIndex((row) => rowButtons.current.get(row.id) === document.activeElement);
+    const open = sorted.findIndex((row) => row.id === selectedId);
+    const from = active >= 0 ? active : open;
+    const next = sorted[from < 0 ? 0 : Math.min(sorted.length - 1, Math.max(0, from + delta))];
+    if (next) rowButtons.current.get(next.id)?.focus();
+  };
+  useCommand('storybible.entry.next', () => moveFocus(1));
+  useCommand('storybible.entry.prev', () => moveFocus(-1));
+  const onListKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    moveFocus(event.key === 'ArrowDown' ? 1 : -1);
+  };
+  // The list has one tab stop: the entry focus last rested on, else the one open, else the first.
+  const stopId = sorted.find((row) => row.id === focusedId)?.id ?? sorted.find((row) => row.id === selectedId)?.id ?? sorted[0]?.id;
+
   if (loadError) return <LoadError title="Story Bible" message={loadError} retry={() => void load(entityId)} />;
 
+  // The Series view is a tab here, not a navigation entry of its own; the kinds are chips over the list.
+  const viewTabs = (
+    <TabList label="Story Bible views" activation="automatic">
+      <Tab value={ENTRIES_TAB}>{ENTRIES_TAB}</Tab>
+      <Tab value={SERIES_TAB}>{SERIES_TAB}</Tab>
+    </TabList>
+  );
+  const actions = (
+    <div className="flex flex-wrap gap-2">
+      <ScanButton scan={{ ...found.scan, start: scanStart.startScan }} />
+      <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
+      <TooltipTarget text="Voice data: narration reference, remove voice data">
+        <IconButton label="Voice data" onClick={() => setVoiceDataOpen(true)}>
+          <FontAwesomeIcon icon={faMicrophone} />
+        </IconButton>
+      </TooltipTarget>
+      <TooltipTarget text="Build / refresh Story Bible">
+        <IconButton label="Build / refresh Story Bible" pending={starting.isPending('build')} onClick={() => void startBuild(false)}>
+          <FontAwesomeIcon icon={faRotate} />
+        </IconButton>
+      </TooltipTarget>
+      <TooltipTarget text="Add entity">
+        <IconButton label="Add entity" onClick={addEntity}>
+          <FontAwesomeIcon icon={faPlus} />
+        </IconButton>
+      </TooltipTarget>
+    </div>
+  );
+
   return (
-    <Tabs value={tab} onChange={setTab} className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto">
-      <div className="flex-none space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <Heading title="Story Bible" />
-          <div className="flex gap-2">
-            <ScanButton scan={{ ...found.scan, start: scanStart.startScan }} />
-            <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
-            <TooltipTarget text="Voice data: narration reference, remove voice data">
-              <IconButton label="Voice data" onClick={() => setVoiceDataOpen(true)}>
-                <FontAwesomeIcon icon={faMicrophone} />
-              </IconButton>
-            </TooltipTarget>
-            <TooltipTarget text="Add entity">
-              <IconButton label="Add entity" onClick={addEntity}>
-                <FontAwesomeIcon icon={faPlus} />
-              </IconButton>
-            </TooltipTarget>
-            <TooltipTarget text="Build / refresh Story Bible">
-              <IconButton label="Build / refresh Story Bible" pending={starting.isPending('build')} onClick={() => void startBuild(false)}>
-                <FontAwesomeIcon icon={faRotate} />
-              </IconButton>
-            </TooltipTarget>
+    <CommandScope kind="page">
+      <Tabs value={tab} onChange={setTab} className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto">
+        {tab === SERIES_TAB && (
+          <div className="flex-none space-y-4">
+            <Heading title="Story Bible" />
+            {viewTabs}
           </div>
-        </div>
-        <TabList label="Story Bible categories" activation="automatic">
-          {STORY_BIBLE_TABS.map((name) => (
-            <Tab key={name} value={name}>
-              {name === 'All' ? `All · ${visible.length}` : `${TAB_PLURAL[name]} · ${visible.filter((row) => categoryLabel(row.category) === name).length}`}
-            </Tab>
-          ))}
-          {/* The Series view is a tab here, not a navigation entry of its own. */}
-          <Tab value="Series">Series</Tab>
-        </TabList>
-      </div>
-      {tab === 'Series' ? (
-        <Panel label="Series" flush className="min-h-0 flex-1 overflow-hidden">
-          <SeriesTab notify={notify} />
-        </Panel>
-      ) : (
-        <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[18rem_minmax(0,1fr)] [&>*]:max-md:min-h-96">
-          <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
-            <div className="p-4 pb-2">
-              <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Search entries…" />
-              <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                <span aria-hidden="true">Sort</span>
-                <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="flex-1" />
+        )}
+        {tab === SERIES_TAB ? (
+          <Panel label="Series" flush className="min-h-0 flex-1 overflow-hidden">
+            <SeriesTab notify={notify} />
+          </Panel>
+        ) : (
+          <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96">
+            <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-3">
+                <Heading title="Story Bible" />
+                {actions}
               </div>
-              {(toReview > 0 || reviewOnly || toVerifyAll > 0 || verifyOnly) && (
-                <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter entries">
-                  {(toReview > 0 || reviewOnly) && <Pill label={`Needs review · ${toReview}`} active={reviewOnly} onClick={() => setReviewOnly((on) => !on)} />}
-                  <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
+              <div className="px-4 pt-2">{viewTabs}</div>
+              <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find an entry" />
+                  </div>
+                  <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="w-auto min-w-[7.5rem] flex-none" />
                 </div>
-              )}
-            </div>
-            <div className="guide-list-scroll min-h-0 overflow-y-auto px-2 pb-2">
-              {loose.length > 0 && (
-                <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
-                  <LooseSuggestionRows suggestions={loose} selectedId={looseChosen?.id ?? null} onSelect={setLooseId} />
-                </ul>
-              )}
-              <Table label="Story Bible entries">
-                <TableHead sticky>
-                  <TableRow>
-                    <TableHeader>Name</TableHeader>
-                    <TableHeader align="right">Chapters</TableHeader>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sorted.map((row) => (
-                    <TableRow key={row.id} selected={!pendingNewEntity && selectedId === row.id} onActivate={() => selectRow(row.id)}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Dot color={CAT_DOT_BG[categoryCssName(row.category)]} />
-                          <span className="truncate text-sm font-medium">{row.canonical_name}</span>
-                          {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
-                          {reviewPill(row, suggestions) && (
-                            <StatusBadge tone="warning" label={reviewPill(row, suggestions)!} className="ml-auto shrink-0 whitespace-nowrap" />
-                          )}
-                        </div>
-                        <div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                          {categoryLabel(row.category)}
-                          {row.category !== 'Draft' && ` · ${aliasCount(row)} ${aliasCount(row) === 1 ? 'name' : 'names'}`}
-                        </div>
-                      </TableCell>
-                      <TableCell numeric style={{ color: 'var(--text-muted)' }}>
-                        {chapterCount(row)}
-                      </TableCell>
-                    </TableRow>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Kind">
+                  <KindChip label="All" on={activeKind === 'All'} onPress={() => setKind('All')} />
+                  {types.map((type) => (
+                    <KindChip
+                      key={type.name}
+                      label={type.name}
+                      swatch={kindSwatch(types, type.name)}
+                      on={activeKind === type.name}
+                      onPress={() => setKind(type.name)}
+                    />
                   ))}
+                </div>
+                {(toReview > 0 || reviewOnly || toVerifyAll > 0 || verifyOnly) && (
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Filter entries">
+                    {(toReview > 0 || reviewOnly) && (
+                      <KindChip label={`Needs review · ${toReview}`} on={reviewOnly} onPress={() => setReviewOnly((on) => !on)} />
+                    )}
+                    <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
+                  </div>
+                )}
+              </div>
+              <div className="guide-list-scroll min-h-0 overflow-y-auto p-2">
+                {loose.length > 0 && (
+                  <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
+                    <LooseSuggestionRows suggestions={loose} selectedId={looseChosen?.id ?? null} onSelect={setLooseId} />
+                  </ul>
+                )}
+                <ul onKeyDown={onListKeyDown} aria-label="Story Bible entries" className="m-0 flex list-none flex-col gap-0.5 p-0">
+                  {sorted.map((row) => {
+                    const open = !pendingNewEntity && selectedId === row.id;
+                    const pill = reviewPill(row, suggestions);
+                    return (
+                      <li key={row.id}>
+                        {/* native-control-ok: a roving-focus list row of two lines (name and pill, swatch and counts) that Button's padded chrome does not fit */}
+                        <button
+                          type="button"
+                          ref={(node) => {
+                            if (node) rowButtons.current.set(row.id, node);
+                            else rowButtons.current.delete(row.id);
+                          }}
+                          tabIndex={row.id === stopId ? 0 : -1}
+                          aria-current={open || undefined}
+                          onFocus={() => setFocusedId(row.id)}
+                          onClick={() => selectRow(row.id)}
+                          className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
+                        >
+                          <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-sm font-semibold">
+                            <span className="truncate">{row.canonical_name}</span>
+                            {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
+                            {pill && <StatusBadge tone="warning" label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
+                          </span>
+                          <span data-line="kind" className="flex items-center gap-1.5 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+                            <Swatch colour={kindSwatch(types, row.category)} />
+                            <span>
+                              {row.category === 'Draft' ? categoryLabel(row.category) : row.category}
+                              {row.category !== 'Draft' &&
+                                ` · ${aliasCount(row)} ${aliasCount(row) === 1 ? 'name' : 'names'} · ${chapterCount(row)} ${chapterCount(row) === 1 ? 'chapter' : 'chapters'}`}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
                   {sorted.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={2} style={{ color: 'var(--text-muted)' }}>
-                        No matching entries.
-                      </TableCell>
-                    </TableRow>
+                    <li className="p-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+                      No entries match.
+                    </li>
                   )}
-                </TableBody>
-              </Table>
+                </ul>
+              </div>
+            </TabPanel>
+            <div className="flex min-h-0 min-w-0">
+              {looseChosen ? (
+                <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
+                  <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
+                </Panel>
+              ) : (
+                <GuideDetail
+                  // One detail per entry, so what an action left pending on one entry never shows on the next.
+                  key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
+                  entity={newEntityDraft ?? selected}
+                  isNewDraft={Boolean(newEntityDraft)}
+                  onDiscardNewDraft={() => setPendingNewEntity(undefined)}
+                  onCreatedNewDraft={(id) => {
+                    setPendingNewEntity(undefined);
+                    void load(id);
+                  }}
+                  entities={rows}
+                  reload={load}
+                  notify={notify}
+                  goToManuscript={goToManuscript}
+                  toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
+                  chapters={chapters}
+                  suggested={
+                    selected && (
+                      <>
+                        <AcceptedClaims entryId={selected.id} suggestions={suggestions} {...links} />
+                        <SuggestionList
+                          title="Suggested"
+                          suggestions={reviewable(suggestions, selected.id)}
+                          sources={found.sources}
+                          onChanged={decided}
+                          contextOf={() => ({ entryName: selected.canonical_name, chapters: chapterCount(selected) })}
+                          {...links}
+                        />
+                      </>
+                    )
+                  }
+                />
+              )}
             </div>
-          </TabPanel>
-          <div className="flex min-h-0 min-w-0">
-            {looseChosen ? (
-              <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
-                <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
-              </Panel>
-            ) : (
-              <GuideDetail
-                // One detail per entry, so what an action left pending on one entry never shows on the next.
-                key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
-                entity={newEntityDraft ?? selected}
-                isNewDraft={Boolean(newEntityDraft)}
-                onDiscardNewDraft={() => setPendingNewEntity(undefined)}
-                onCreatedNewDraft={(id) => {
-                  setPendingNewEntity(undefined);
-                  void load(id);
-                }}
-                entities={rows}
-                reload={load}
-                notify={notify}
-                goToManuscript={goToManuscript}
-                toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
-                chapters={chapters}
-                suggested={
-                  selected && (
-                    <>
-                      <AcceptedClaims entryId={selected.id} suggestions={suggestions} {...links} />
-                      <SuggestionList
-                        title="Suggested"
-                        suggestions={reviewable(suggestions, selected.id)}
-                        sources={found.sources}
-                        onChanged={decided}
-                        contextOf={() => ({ entryName: selected.canonical_name, chapters: chapterCount(selected) })}
-                        {...links}
-                      />
-                    </>
-                  )
-                }
-              />
-            )}
           </div>
-        </div>
-      )}
-      {modelPrompt && (
-        <AssetInstallPrompt
-          ask={{
-            title: 'Download local language model?',
-            body: 'The Story Bible reads your manuscript with a language model to find people, places and organizations. It is not bundled with Narration Studio and will be stored in your per-user asset cache. You can build without it this once, with lower-quality results.',
-            confirmLabel: 'Download model',
-            alternative: { label: 'Build with rules-only', action: () => void startBuild(true).then(closeModelPrompt) },
-          }}
-          workTitle="Downloading language model"
-          install={modelInstall}
-          dismiss={closeModelPrompt}
-        >
-          <AssetFacts
-            label="Language model"
-            name={modelPrompt.model.displayName}
-            version={modelPrompt.model.version}
-            publisher={modelPrompt.model.publisher}
-            license={modelPrompt.model.license}
-            licenseUrl={modelPrompt.model.licenseUrl}
-            modelCardUrl={modelPrompt.model.modelCardUrl}
-            provenanceUrl={modelPrompt.model.provenanceUrl}
-            downloadSize={modelPrompt.downloadSize}
-            diskSize={modelPrompt.diskSize}
-            installPath={modelPrompt.installPath}
-          />
-        </AssetInstallPrompt>
-      )}
-      {buildJob && <WorkDialog title="Rebuild Story Bible" job={buildJob} close={() => setBuildJob(undefined)} background={() => setBuildJob(undefined)} />}
-      {scanStart.dialogs}
-      <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} />
-    </Tabs>
+        )}
+        {modelPrompt && (
+          <AssetInstallPrompt
+            ask={{
+              title: 'Download local language model?',
+              body: 'The Story Bible reads your manuscript with a language model to find people, places and organizations. It is not bundled with Narration Studio and will be stored in your per-user asset cache. You can build without it this once, with lower-quality results.',
+              confirmLabel: 'Download model',
+              alternative: { label: 'Build with rules-only', action: () => void startBuild(true).then(closeModelPrompt) },
+            }}
+            workTitle="Downloading language model"
+            install={modelInstall}
+            dismiss={closeModelPrompt}
+          >
+            <AssetFacts
+              label="Language model"
+              name={modelPrompt.model.displayName}
+              version={modelPrompt.model.version}
+              publisher={modelPrompt.model.publisher}
+              license={modelPrompt.model.license}
+              licenseUrl={modelPrompt.model.licenseUrl}
+              modelCardUrl={modelPrompt.model.modelCardUrl}
+              provenanceUrl={modelPrompt.model.provenanceUrl}
+              downloadSize={modelPrompt.downloadSize}
+              diskSize={modelPrompt.diskSize}
+              installPath={modelPrompt.installPath}
+            />
+          </AssetInstallPrompt>
+        )}
+        {buildJob && <WorkDialog title="Rebuild Story Bible" job={buildJob} close={() => setBuildJob(undefined)} background={() => setBuildJob(undefined)} />}
+        {scanStart.dialogs}
+        <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} />
+      </Tabs>
+    </CommandScope>
+  );
+}
+
+/** One chip of the filters over the list (the mock's `.chip`): 28 px, fully rounded, filled with the ink when it is on; a kind carries its type's swatch. */
+function KindChip({ label, swatch, on, onPress }: { label: string; swatch?: SwatchColour; on: boolean; onPress: () => void }) {
+  return (
+    // native-control-ok: the mock's filter chip is a 28 px pill with a swatch; Pill's 32 px uppercase look and Button's padded chrome do not draw it.
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onPress}
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-sm font-medium ${on ? 'border-[var(--text)] bg-[var(--text)] text-[var(--surface)]' : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]'}`}
+    >
+      {swatch && <Swatch colour={swatch} />}
+      {label}
+    </button>
   );
 }

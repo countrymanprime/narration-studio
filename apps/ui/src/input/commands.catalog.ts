@@ -272,6 +272,26 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Script',
     surfaces: ['help', 'settings'],
   },
+  // The Story Bible list's keys (SN-B94; mock `Bible.tsx` arrow keys): Up and Down move focus through the entries while focus is in the list. Each takes a key
+  // other page rows hold, named in `shadows`: only one page is mounted at a time.
+  {
+    id: 'storybible.entry.next',
+    label: 'Next entry',
+    scope: 'page',
+    defaults: [key('ArrowDown')],
+    shadows: ['workspace.paragraph.next', 'proof.note.next'],
+    group: 'Story Bible',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'storybible.entry.prev',
+    label: 'Previous entry',
+    scope: 'page',
+    defaults: [key('ArrowUp')],
+    shadows: ['workspace.paragraph.prev', 'proof.note.prev'],
+    group: 'Story Bible',
+    surfaces: ['help', 'settings'],
+  },
   // The Proof page's keys (SNQ-9; mock `Proof.tsx` `registerKeys('proof')`). `useProofKeys` registers the handlers while the page is mounted.
   // Like the Script rows, each that takes a key another page row holds names it in `shadows`. Space is not claimed: Proof has no Play ±3 s.
   {
