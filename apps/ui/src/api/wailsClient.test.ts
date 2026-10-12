@@ -1437,6 +1437,48 @@ describe('the stack bindings', () => {
   });
 });
 
+describe('the backups bindings', () => {
+  const done = { ok: true, changed: false, message: 'Backed up 260 s of audio in Audacity.', undoSteps: 0 };
+  const restored = { ok: true, changed: true, message: 'Restored 260 s of audio from the backup in Audacity.', undoSteps: 1 };
+  const list = {
+    schemaVersion: 1,
+    backups: [
+      {
+        id: '{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}',
+        guid: 'Chapter 1',
+        chapterId: 'c-0001',
+        start: 20,
+        end: 280,
+        createdAt: '2026-10-12T09:30:00Z',
+        label: 'Roll at ¶ 3',
+      },
+    ],
+  };
+
+  it('sends the chapter, the tokens and the label, or the id, and decodes the answers', async () => {
+    const backup = vi.fn(() => Promise.resolve(JSON.stringify(done)));
+    const restore = vi.fn(() => Promise.resolve(JSON.stringify(restored)));
+    const backups = vi.fn(() => Promise.resolve(JSON.stringify(list)));
+    standInHost({ DawBackupAround: backup, DawRestoreBackup: restore, DawBackups: backups });
+    await expect(wailsClient.dawBackupAround('c-0001', 3, 5, 'Roll at ¶ 3')).resolves.toEqual(done);
+    expect(backup).toHaveBeenCalledWith('c-0001', 3, 5, 'Roll at ¶ 3');
+    await expect(wailsClient.dawRestoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')).resolves.toEqual(restored);
+    expect(restore).toHaveBeenCalledWith('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}');
+    await expect(wailsClient.dawBackups()).resolves.toEqual(list);
+  });
+
+  it('refuses an answer the schemas do not accept', async () => {
+    standInHost({
+      DawBackupAround: () => Promise.resolve(JSON.stringify({ ...done, undoSteps: -1 })),
+      DawRestoreBackup: () => Promise.resolve(JSON.stringify({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'x', code: 'gone' })),
+      DawBackups: () => Promise.resolve(JSON.stringify({ ...list, backups: [{ ...list.backups[0], path: 'C:/x.wav' }] })),
+    });
+    await expect(wailsClient.dawBackupAround('c-0001', 3, 5, 'Roll at ¶ 3')).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.dawRestoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.dawBackups()).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the hide takes binding', () => {
   const muted = { ok: true, changed: true, message: 'Muted 1 other take in REAPER. It is still in the project.', undoSteps: 1 };
 

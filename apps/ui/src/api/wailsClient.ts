@@ -28,7 +28,7 @@ import {
   retailSampleAnswerSchema,
 } from './schemas/credits';
 import { dawCatalogListSchema } from './schemas/dawCatalog';
-import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
+import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
@@ -645,6 +645,10 @@ export const wailsClient: NarrationApi = {
     decode(dawResultSchema, 'DawRemoveFxFromRange', host.DawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName)),
   dawStackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawStackTakes', host.DawStackTakes(chapterId, passageIds)),
   dawUnstackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawUnstackTakes', host.DawUnstackTakes(chapterId, passageIds)),
+  dawBackupAround: (chapterId, firstToken, lastToken, label) =>
+    decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
+  dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),
+  dawBackups: () => decode(dawBackupsFileSchema, 'DawBackups', host.DawBackups()),
   subscribeDawProjectState: (onUpdate) => subscribeChecked('daw_project_state_changed', dawProjectStateSchema, onUpdate),
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),

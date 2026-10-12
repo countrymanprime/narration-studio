@@ -553,6 +553,29 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
 }
 
 /**
+ * DawBackupAround clones the audio around the words firstToken..lastToken of chapterID before an edit, so it can be put back
+ * (SN-D82, ADR 0863; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
+ * Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
+ * stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
+ * window either side (DAW.backups.window_seconds). The answer is a DawResult (ADR 0810): the backups capability's own sentence when
+ * the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected, the toggle off), checked
+ * first; then a label that is not plain text; then the range's and the link's own refusals. Nothing is sent to the DAW on any of
+ * them. A backup changes no audio, so it answers changed false and no undo step.
+ */
+export function DawBackupAround(chapterID: string, firstToken: number, lastToken: number, label: string): $CancellablePromise<string> {
+    return $Call.ByID(221633769, chapterID, firstToken, lastToken, label);
+}
+
+/**
+ * DawBackups answers the project's backups table, newest first, in the file's own shape ({schemaVersion, backups}, ADR 0863), for
+ * the Backups list. It reads the file only and asks the DAW nothing, so it answers on any launch; a project with no table has none.
+ * A table written by a newer app, or one that cannot be read, rejects with its sentence.
+ */
+export function DawBackups(): $CancellablePromise<string> {
+    return $Call.ByID(840976313);
+}
+
+/**
  * DawCapabilities answers the launch's DAW, whether it is reachable, and every capability's level, availability and (when
  * unavailable) reason and message.
  */
@@ -637,6 +660,16 @@ export function DawProjectState(): $CancellablePromise<string> {
  */
 export function DawRemoveFxFromRange(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
     return $Call.ByID(433050377, chapterID, firstToken, lastToken, chainName);
+}
+
+/**
+ * DawRestoreBackup puts the audio of the backup backupID back over the same window of the track it came from (the mock's
+ * restoreBackup). The page sends the id DawBackups listed, nothing else. The same capability refusal first; an id the table does not
+ * have is the DAW's refusal, changed false; a backup or source track that is gone is code stale. A restore is not undoable in the app
+ * (docs/research/studio-next-undo-inverse-table.md row 1): it is one step in the DAW's own undo.
+ */
+export function DawRestoreBackup(backupID: string): $CancellablePromise<string> {
+    return $Call.ByID(4114452298, backupID);
 }
 
 /**

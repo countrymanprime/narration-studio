@@ -109,6 +109,7 @@ import type { DawRollApi } from './api/contracts/daw';
 import type { DawDeleteRangeApi } from './api/contracts/daw';
 import type { DawFxRangeApi } from './api/contracts/daw';
 import type { DawStackTakesApi } from './api/contracts/daw';
+import type { DawBackupsApi } from './api/contracts/daw';
 import type { ProviderCapabilitiesApi } from './api/contracts/providers';
 import type { MasteringApi } from './api/contracts/mastering';
 import type { RecordingApi } from './api/contracts/recording';
@@ -176,6 +177,7 @@ export interface NarrationApi
     DawDeleteRangeApi,
     DawFxRangeApi,
     DawStackTakesApi,
+    DawBackupsApi,
     ProviderCapabilitiesApi,
     MasteringApi,
     RecordingApi,

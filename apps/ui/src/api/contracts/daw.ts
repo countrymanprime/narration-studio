@@ -210,6 +210,17 @@ export interface DawStackTakesApi {
   dawUnstackTakes(chapterId: string, passageIds: string[]): Promise<DawResult>;
 }
 
+/** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a
+ * chapter's words before an edit, put a backup back, and list the backups. The page sends a chapter id, two token indices and the label
+ * the list shows, or a backup id DawBackups listed; the host resolves the words' times and the chapter's track itself, and the DAW adds
+ * the narrator's window either side. A capability refusal carries the capability's sentence; a backup changes no audio (`changed:
+ * false`); an id the table does not have is refused with `changed: false`. DawBackups reads the table only, newest first. */
+export interface DawBackupsApi {
+  dawBackupAround(chapterId: string, firstToken: number, lastToken: number, label: string): Promise<DawResult>;
+  dawRestoreBackup(backupId: string): Promise<DawResult>;
+  dawBackups(): Promise<DawBackupsFile>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */
@@ -222,7 +233,8 @@ export const DAW_BACKUPS_MAX = 500;
 /** One row of the Audacity backups table (SN-D81, ADR 0863; apps/desktop/internal/dawport/audacity/backups_store.go): a window of a
  * track's audio the adapter cloned to its own muted track, named for `id`, before an edit. `id` is a GUID in braces; `guid` is the
  * source track as the request named it (Audacity reports no track ids, so its name); `start` and `end` are the window in project
- * seconds; `createdAt` is when it was made, in UTC. No page reads the file yet: the host reads it back. */
+ * seconds; `createdAt` is when it was made, in UTC. `label` says what it was made for ("Roll at ¶ 3") and `restored` is when it was last
+ * put back (SN-D82): both were added within version 1 and are absent from a row without them. DawBackups answers the file. */
 export type DawBackup = {
   id: string;
   guid: string;
@@ -230,6 +242,8 @@ export type DawBackup = {
   start: number;
   end: number;
   createdAt: string;
+  label?: string;
+  restored?: string;
 };
 
 /** `narration-utils/backups.json` in the app's project folder (ADR 0863). */

@@ -152,9 +152,9 @@ func (b *Backups) copyWindow(ctx context.Context, track int, start, end float64)
 }
 
 // BackupAround clones the window of request.GUID's track around [request.Start, request.End] (the configured window either side,
-// clamped to the project) to a new muted track named BackupTrackName(id), and adds the row with the request's label. The narrator's audio is not changed,
-// so the Result is changed false with no undo step. A track that is gone is RefusedStale; anything else that cannot be backed up
-// is Refused, and nothing is sent.
+// clamped to the project) to a new muted track named BackupTrackName(id), and adds the row with the request's label. The
+// narrator's audio is not changed, so the Result is changed false with no undo step. A track that is gone is RefusedStale;
+// anything else that cannot be backed up (a label that breaks the row's text rule among them) is Refused, and nothing is sent.
 func (b *Backups) BackupAround(ctx context.Context, request dawport.BackupRequest) (dawport.Result, error) {
 	path := b.table()
 	if path == "" {

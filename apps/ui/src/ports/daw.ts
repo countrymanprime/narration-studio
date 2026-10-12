@@ -1,8 +1,10 @@
-import type { DawCapabilities, DawCutMode, DawProjectState, DawResult } from '../api/contracts/daw';
+import type { DawBackup, DawCapabilities, DawCutMode, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
+  backupLabelOk,
   DAW_ANSWERS,
   DAW_PROJECT,
+  MockBackupTable,
   type DawProject,
   fxListOf,
   fxRangeOf,
@@ -68,6 +70,11 @@ export type StackGroup = { passageId: string; itemGuid: string; base: string; mo
  * it rebuilds the items, moves and shift itself (bindings_daw_stack.go), so the rest is the plan the page showed, for display. */
 export type StackRequest = { chapterId: string; groups: StackGroup[]; shift: number };
 
+/** A backup of the audio around a chapter's words before an edit (the Studio Next mock's backupAround, narrowed to what the page may
+ * send: the host resolves the words' times and the chapter's track itself, and the DAW adds the narrator's window either side). `label`
+ * is what the Backups list shows it was made for ("Roll at ¶ 3"). */
+export type BackupRequest = { chapterId: string; firstToken: number; lastToken: number; label: string };
+
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
 export const NOTHING_TO_CHANGE = 'Nothing to change.';
 
@@ -101,6 +108,12 @@ export interface DawClient {
   stackTakes(request: StackRequest): Promise<DawResult>;
   /** Move the stacked takes of the request's passages back to where they were recorded. */
   unstackTakes(request: StackRequest): Promise<DawResult>;
+  /** Clone the audio around the request's words before an edit, so it can be put back. It changes no audio (`changed: false`). */
+  backupAround(request: BackupRequest): Promise<DawResult>;
+  /** Put a backup's audio back over the window it came from. Refused when the DAW has no backup with that id. */
+  restoreBackup(backupId: string): Promise<DawResult>;
+  /** The project's backups, newest first. */
+  backups(): Promise<DawBackup[]>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
   /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
@@ -127,6 +140,9 @@ export type DawHostApi = Pick<
   | 'workspaceListFXChains'
   | 'dawStackTakes'
   | 'dawUnstackTakes'
+  | 'dawBackupAround'
+  | 'dawRestoreBackup'
+  | 'dawBackups'
   | 'findingsAddMarker'
   | 'pickupsImport'
   | 'pickupsResolve'
@@ -291,6 +307,10 @@ export function createHostDawClient(api: DawHostApi): DawClient {
         chapterId,
         groups.map((group) => group.passageId),
       ),
+    /** The bindings answer a DawResult already and take ids only: the host resolves the window and the track itself. */
+    backupAround: ({ chapterId, firstToken, lastToken, label }) => api.dawBackupAround(chapterId, firstToken, lastToken, label),
+    restoreBackup: (backupId) => api.dawRestoreBackup(backupId),
+    backups: async () => (await api.dawBackups()).backups,
     /** WorkspaceListFXChains, the list the Add FX menu shows, named for the launch's DAW. */
     async fxChains() {
       const [capabilities, listing] = await Promise.all([api.dawCapabilities(), api.workspaceListFXChains()]);
@@ -400,6 +420,7 @@ export function createMockDawClient(
     },
     stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
     unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),
+    ...mockBackups(setup, project),
     async fxChains() {
       const sentence = unavailable(setup, 'fx_chains', 'fxChains');
       if (sentence) throw new Error(sentence);
@@ -412,6 +433,27 @@ export function createMockDawClient(
       return done(true, 1);
     },
     ...mockPickupMarkers(setup),
+  };
+}
+
+/** The backups calls over a table the mock keeps as the Audacity adapter does: the backups sentence first, then a label the host would
+ * not keep, then a chapter `project` does not list or tokens that are no range (code stale). The list answers on any setup. */
+function mockBackups(setup: DawCapabilities, project: DawProject): Pick<DawClient, 'backupAround' | 'restoreBackup' | 'backups'> {
+  const table = new MockBackupTable();
+  return {
+    async backupAround({ chapterId, firstToken, lastToken, label }) {
+      const sentence = unavailable(setup, 'backups', 'backupAround');
+      if (sentence) return refused(sentence, 'backupAround');
+      if (!backupLabelOk(label)) return refused(DAW_ANSWERS.backupLabel, 'backupAround');
+      if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'backupAround', true);
+      return table.backup(setup, chapterId, firstToken, lastToken, label);
+    },
+    async restoreBackup(backupId) {
+      const sentence = unavailable(setup, 'backups', 'restoreBackup');
+      if (sentence) return refused(sentence, 'restoreBackup');
+      return table.restore(setup, backupId);
+    },
+    backups: () => Promise.resolve(table.list()),
   };
 }
 

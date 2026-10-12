@@ -1,10 +1,11 @@
-import type { DawCapabilities, DawCapabilityKey, DawCapabilitySupport, DawProjectState } from '../api/contracts/daw';
+import type { DawBackup, DawCapabilities, DawCapabilityKey, DawCapabilitySupport, DawProjectState, DawResult } from '../api/contracts/daw';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
 // only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it: REAPER declares the
-// first three Experimental (narration_range.lua, narration_takes.lua), and `backups` is not yet available on any engine.
+// first three Experimental (narration_range.lua, narration_takes.lua), and `backups` is Audacity's (ADR 0863), on in the
+// `audacity-backups` setup and turned off in Settings in the `audacity` one.
 // The sentences are the host's own wording (dawport resolver and adapters), so a refusal here reads as the real one.
 
 export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'audacity-backups';
@@ -14,6 +15,7 @@ const MACRO_UNSUPPORTED = 'Mastering with an effect macro is not something REAPE
 const AUDACITY_NOT_YET =
   "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
 const AUDACITY_NO_TAKES = 'Audacity keeps no takes. Turn on backups to keep them.';
+const TURNED_OFF = 'Turned off in Settings.';
 const BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
 const BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
@@ -99,11 +101,13 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
 
-/** Audacity today: labels and navigation work, and nothing else is built. A roll replaces audio there, so `punch` is destructive. */
+/** Audacity today: labels, navigation and backups work, and nothing else is built. A roll replaces audio there, so `punch` is
+ * destructive. Without backups the `backups` row is the narrator's toggle turned off, as the resolver words it. */
 const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities'] =>
   everyCapability(() => notYet(AUDACITY_NOT_YET), {
     markers: audacityExperimental,
     navigate: audacityExperimental,
+    backups: backups ? audacityExperimental : { level: 'experimental', available: false, reason: 'turned_off', message: TURNED_OFF },
     takes: backups ? audacityExperimental : notYet(AUDACITY_NO_TAKES),
     punch: backups ? notYet(AUDACITY_NOT_YET) : { ...notYet(AUDACITY_NOT_YET), destructive: true },
   });
@@ -209,6 +213,8 @@ export const DAW_ANSWERS = {
   /** bindings_daw_stack.go (SN-D72): a passage id the chapter's passage map does not list (code stale), and a kept take. */
   stackNotAPassage: "That passage is not one of this chapter's passages any more, so nothing was changed. Read the chapter again.",
   stackKept: 'A take of this passage has been kept, so its reads cannot be stacked or moved back.',
+  /** bindings_daw_backups.go (SN-D82): a label that is empty, too long or holds a control character. */
+  backupLabel: 'A backup needs a label of 1 to 256 bytes of plain text saying what it was made for.',
 } as const;
 
 const plural = (count: number): string => (count === 1 ? '' : 's');
@@ -374,4 +380,68 @@ export const BUILTIN_NOTHING_TO_MUTE = 'The built-in recorder plays only the kep
 export function takesHiddenOf(setup: DawCapabilities, muted: number): { changed: boolean; message: string } {
   if (setup === DAW_SETUPS.builtin || setup.daw === 'none' || setup.daw === 'Built-in') return { changed: false, message: BUILTIN_NOTHING_TO_MUTE };
   return { changed: muted > 0, message: takesHiddenAnswer(muted, setup.daw) };
+}
+
+/** The seconds a backup takes either side of the edit by default (DAW.backups.window_seconds; audacity.DefaultBackupWindow). */
+const DAW_BACKUP_WINDOW_SECONDS = 120;
+
+/** dawport/audacity's `seconds`: whole seconds, or tenths below ten. */
+const backupSeconds = (seconds: number): string => String(seconds < 10 ? Math.round(seconds * 10) / 10 : Math.round(seconds));
+
+/** dawport/audacity's Backups: a backup of `seconds` of audio in `daw`. */
+export function backedUpAnswer(seconds: number, daw: string): string {
+  return `Backed up ${backupSeconds(seconds)} s of audio in ${daw}.`;
+}
+
+/** dawport/audacity's Backups: `seconds` of audio put back from a backup in `daw`. */
+export function backupRestoredAnswer(seconds: number, daw: string): string {
+  return `Restored ${backupSeconds(seconds)} s of audio from the backup in ${daw}.`;
+}
+
+/** dawport/audacity's Backups: an id the table does not have. */
+export function noBackupAnswer(daw: string): string {
+  return `${daw} has no backup with that id.`;
+}
+
+/** Whether a backup label is one the host keeps (bindings_daw_backups.go backupLabel): 1 to 256 bytes, no control characters. */
+export function backupLabelOk(label: string): boolean {
+  // eslint-disable-next-line no-control-regex
+  return label.length > 0 && new TextEncoder().encode(label).length <= 256 && !/[\u0000-\u001f\u007f-\u009f]/.test(label);
+}
+
+/** A backups table as the Audacity adapter keeps it, for the mocks. The mock has no alignment, so the words of token `i` are at second
+ * `i`, and the window is DAW_BACKUP_WINDOW_SECONDS either side of them, from 0. Rows are stamped by a fixed clock a minute apart, and
+ * ids are GUID-shaped. The caller checks the capability, the label and the chapter first. */
+export class MockBackupTable {
+  private rows: DawBackup[] = [];
+  private ticks = 0;
+
+  private stamp(): string {
+    this.ticks += 1;
+    return new Date(Date.UTC(2026, 9, 12, 9, 30 + this.ticks)).toISOString().replace('.000Z', 'Z');
+  }
+
+  backup(setup: DawCapabilities, chapterId: string, firstToken: number, lastToken: number, label: string): DawResult {
+    const start = Math.max(0, firstToken - DAW_BACKUP_WINDOW_SECONDS);
+    const end = lastToken + 1 + DAW_BACKUP_WINDOW_SECONDS;
+    const id = `{00000000-0000-4000-8000-${(this.rows.length + 1).toString(16).toUpperCase().padStart(12, '0')}}`;
+    this.rows.push({ id, guid: chapterId, chapterId, start, end, createdAt: this.stamp(), label });
+    const message = backedUpAnswer(end - start, setup.daw);
+    return { ok: true, changed: false, message, undoSteps: 0 };
+  }
+
+  restore(setup: DawCapabilities, id: string): DawResult {
+    const row = this.rows.find((each) => each.id === id);
+    if (!row) {
+      const sentence = noBackupAnswer(setup.daw);
+      return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+    }
+    row.restored = this.stamp();
+    return { ok: true, changed: true, message: backupRestoredAnswer(row.end - row.start, setup.daw), undoSteps: 1 };
+  }
+
+  /** The rows, newest first, as DawBackups answers them. */
+  list(): DawBackup[] {
+    return [...this.rows].reverse().map((row) => ({ ...row }));
+  }
 }

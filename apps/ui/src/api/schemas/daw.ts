@@ -75,7 +75,7 @@ export const dawResultSchema = z.object({
   steps: optionalFromNull(z.array(z.string())),
 }) satisfies z.ZodType<DawResult>;
 
-/** A backup table row's text (the source track's name, the chapter id): non-empty, at most 256 bytes as the host counts them, no
+/** A backup table row's text (the source track's name, the chapter id, the label): non-empty, at most 256 bytes as the host counts them, no
  * control characters (audacity.backupText). */
 const backupText = z
   .string()
@@ -85,8 +85,8 @@ const backupText = z
   .refine((text) => !/[\u0000-\u001f\u007f-\u009f]/.test(text), 'holds a control character');
 
 /** One row of backups.json, as the host validates it on read (audacity.validBackup): a GUID-shaped id, a finite window that starts
- * at or after 0 and before its end, and no other key. */
-export const dawBackupSchema = z
+ * at or after 0 and before its end, an optional label and restored time, and no other key. */
+const dawBackupSchema = z
   .strictObject({
     id: z.string().regex(/^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$/),
     guid: backupText,
@@ -94,6 +94,8 @@ export const dawBackupSchema = z
     start: z.number().nonnegative(),
     end: z.number(),
     createdAt: z.iso.datetime({ offset: true }),
+    label: backupText.optional(),
+    restored: z.iso.datetime({ offset: true }).optional(),
   })
   .refine((row) => row.start < row.end, { message: 'the window ends before it starts', path: ['end'] }) satisfies z.ZodType<DawBackup>;
 
