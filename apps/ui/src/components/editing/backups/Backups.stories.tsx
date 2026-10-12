@@ -28,7 +28,7 @@ const ON: BackupsGate = { ok: true };
 const OFF: BackupsGate = { ok: false, reason: 'Turned off in Settings.' };
 
 const shell = (children: React.ReactNode, width = 520) => (
-  <div style={{ width }} className="flex flex-col gap-4 bg-[var(--surface)] p-3 text-[var(--text)]">
+  <div style={{ width, maxWidth: '100%' }} className="flex flex-col gap-4 bg-[var(--surface)] p-3 text-[var(--text)]">
     {children}
   </div>
 );

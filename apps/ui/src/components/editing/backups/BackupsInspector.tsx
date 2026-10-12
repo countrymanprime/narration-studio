@@ -53,8 +53,8 @@ export function BackupsInspector({
               {reason ?? BACKUPS_TEXT.off}
             </p>
           ) : null}
-          <label className="flex items-center justify-between gap-2 text-sm">
-            <span>{BACKUPS_TEXT.window}</span>
+          <label className="flex flex-col gap-1">
+            <SectionLabel>{BACKUPS_TEXT.window}</SectionLabel>
             <NumberInput
               data-bkwin
               label={BACKUPS_TEXT.window}
@@ -65,8 +65,8 @@ export function BackupsInspector({
               onValueChange={settings.setWindow}
             />
           </label>
-          <label className="flex items-center justify-between gap-2 text-sm">
-            <span>{BACKUPS_TEXT.retention}</span>
+          <label className="flex flex-col gap-1">
+            <SectionLabel>{BACKUPS_TEXT.retention}</SectionLabel>
             <NumberInput
               data-bkkeep
               label={BACKUPS_TEXT.retention}
