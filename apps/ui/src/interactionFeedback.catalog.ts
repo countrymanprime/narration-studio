@@ -143,7 +143,9 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Renders the opening credits card preview; a failed render leaves that card without one rather than a toast over the manuscript.',
   'src/components/script/scriptPageHost.ts#2': 'Renders the closing credits card preview; same fallback as the opening one above.',
   'src/components/script/scriptPageHost.ts#3':
-    "Remembering the Words tab's definition source in localStorage; with storage blocked or full the choice lasts until the page is left.",
+    "Reading the Words tab's old per-viewer definition source from localStorage, once, to move it to the host setting; with storage blocked there is nothing to move and the host's setting is used.",
+  'src/components/script/scriptPageHost.ts#4':
+    "Reading Script.definition_source for the Words tab's source menu (or moving the old localStorage choice into it); a failed read keeps the source the menu shows, and the next window focus reads again. A choice the narrator makes has its own toast on failure.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/booth/page/useTextChoices.ts#1':

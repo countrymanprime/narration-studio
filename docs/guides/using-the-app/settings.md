@@ -2,7 +2,7 @@
 
 # Settings
 
-Settings opens with six panels, then the rest of the settings by category.
+Settings opens with seven panels, then the rest of the settings by category.
 
 - **Recording** chooses where this project's takes are recorded: in the DAW the app was started with (the DAW's
   name, then **Recordings live in the DAW.**) or with the **Built-in recorder. Recordings live in the app.** The DAW
@@ -10,6 +10,11 @@ Settings opens with six panels, then the rest of the settings by category.
   recorder not available) says why under the radios, and the choice stays where it was.
 - **Delivery profile** picks the profile this project is judged against, on [Master &
   QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
+- **Definitions and pronunciations** chooses where the Script page's **Words** tab shows definitions from: the
+  web page (the default), the local dictionary or the online service. The choice is saved for every project and is
+  the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not
+  installed** with a button to remove or download it; the online service shows **Online**, **Offline**, or **No key
+  saved** until its key is saved.
 - **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a
   **Can speak** box (entries of that type can be picked as the speaker of a quoted line) and how many entries
   it has. Rename a type in its box, change its colour, add one in **New type**, or remove one: the remove

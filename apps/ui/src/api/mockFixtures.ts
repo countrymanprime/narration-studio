@@ -672,6 +672,19 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     // "" (Automatic) is the unset default, matching app.go's fieldSchemas.
     choice('default_pronunciation_source', 'Default pronunciation source', ['', 'cmu', 'wiktextract', 'espeak'], ''),
   ],
+  // Script.definition_source unset, so it reads as the default, web (tests/fixtures/contracts/settings-definition-source.json).
+  Script: [
+    {
+      key: 'definition_source',
+      label: 'Show definitions from',
+      kind: 'choice',
+      choices: ['web', 'local', 'api'],
+      value: '',
+      isSet: false,
+      effectiveValue: 'web',
+      effectiveSource: 'repo_default',
+    },
+  ],
   TranscriptCompare: [
     choice('model_size', 'Default Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'small'),
     choice('chunk_seconds', 'Default chunk length', ['30', '60', '300', '600'], '60'),

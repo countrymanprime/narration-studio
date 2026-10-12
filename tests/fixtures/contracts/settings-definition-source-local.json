@@ -1,0 +1,18 @@
+{
+  "Script": [
+    {
+      "choices": [
+        "web",
+        "local",
+        "api"
+      ],
+      "effectiveSource": "global",
+      "effectiveValue": "local",
+      "isSet": true,
+      "key": "definition_source",
+      "kind": "choice",
+      "label": "Show definitions from",
+      "value": "local"
+    }
+  ]
+}

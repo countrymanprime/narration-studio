@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,9 +12,11 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
+	"github.com/countrymanprime/narration-utils/shell/internal/layout"
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 	"github.com/countrymanprime/narration-utils/shell/internal/recents"
+	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
 	"github.com/countrymanprime/narration-utils/shell/internal/tts"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -751,5 +754,44 @@ func TestTheProjectSwitchBlockLiftsWhenTheTakeEnds(t *testing.T) {
 	host.clearReadAloudRecording()
 	if !host.canAttach() || !host.idle() {
 		t.Fatal("clearing the take must make the host idle again")
+	}
+}
+
+// Script.definition_source is offered as web, local or api and reads as web on a fresh install; a save outside the three is refused and
+// leaves the stored choice as it was.
+func TestSettingsDefinitionSourceDefaultsToWebAndRefusesAnUnknownValue(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
+	field := func() map[string]any {
+		t.Helper()
+		fields, err := host.settingsForScope("global")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, field := range fields["Script"].([]map[string]any) {
+			if field["key"] == "definition_source" {
+				return field
+			}
+		}
+		t.Fatal("Script has no definition_source field")
+		return nil
+	}
+	first := field()
+	if got := fmt.Sprint(first["choices"]); got != "[web local api]" {
+		t.Fatalf("choices = %s, want [web local api]", got)
+	}
+	if first["effectiveValue"] != "web" || first["isSet"] != false {
+		t.Fatalf("fresh field = %v, want web and unset", first)
+	}
+	local, unknown := "local", "thesaurus"
+	if err := host.saveSettings("Script", "global", map[string]*string{"definition_source": &local}); err != nil {
+		t.Fatal(err)
+	}
+	if err := host.saveSettings("Script", "global", map[string]*string{"definition_source": &unknown}); err == nil {
+		t.Fatal("saving an unknown definition source must fail")
+	}
+	if got := field()["effectiveValue"]; got != "local" {
+		t.Fatalf("after a refused save the source is %v, want local", got)
 	}
 }

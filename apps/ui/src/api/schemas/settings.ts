@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { NumberSettingRange, ScopedSettingField } from '../contracts/system';
+import type { DefinitionSource, NumberSettingRange, ScopedSettingField } from '../contracts/system';
 import { listFromNull } from './base';
 
 const numberRangeSchema = z.object({
@@ -30,3 +30,16 @@ const settingFieldSchema = z
 
 /** The Settings page's fields of one scope, grouped by tool. Every value is a string; a `bool` is "true" or "false". */
 export const settingsForScopeSchema = z.record(z.string(), listFromNull(settingFieldSchema));
+
+/** Script.definition_source's three values (`DefinitionSource`). */
+export const definitionSourceSchema = z.enum(['web', 'local', 'api']) satisfies z.ZodType<DefinitionSource>;
+
+/**
+ * The definition source a settings answer holds: Script.definition_source's effective value, or `web` when the field is absent (an older
+ * host) or holds a value this build does not know, as the host itself reads one.
+ */
+export function definitionSourceOf(settings: Record<string, ScopedSettingField[]>): DefinitionSource {
+  const field = settings.Script?.find((item) => item.key === 'definition_source');
+  const parsed = definitionSourceSchema.safeParse(field?.effectiveValue);
+  return parsed.success ? parsed.data : 'web';
+}

@@ -1517,6 +1517,10 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"analysis_prompt", "Offer better analysis tools", "choice", []string{"ask", "basic"}},
 		{"default_pronunciation_source", "Default pronunciation source", "choice", append([]string{""}, pronunciationport.FallbackOrder("")...)},
 	},
+	// definition_source is where the Script page's Words tab reads a word's definition: web (the dictionary site, nothing inline), local
+	// (the offline dictionary asset) or api (the online pronunciation service). Settings' Definitions panel and the Words tab's source menu
+	// both save it; a stored value outside the three reads as web (settings.closedChoices).
+	"Script":            {{"definition_source", "Show definitions from", "choice", settings.DefinitionSources()}},
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
 	"Updates":           {{"check_on_startup", "Check for updates on startup", "bool", nil}, {"channel", "Update channel", "choice", []string{"candidates", "stable"}}},
 	"TranscriptCompare": {{"model_size", "Default Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}}, {"chunk_seconds", "Default chunk length", "choice", []string{"30", "60", "300", "600"}}, {"color_misread", "Misread marker color", "color", nil}, {"color_skipped", "Skipped marker color", "color", nil}, {"color_extra", "Extra marker color", "color", nil}},
