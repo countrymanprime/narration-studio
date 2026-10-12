@@ -532,9 +532,11 @@ function AppRoutes() {
     guardedNavigate(`/script#${paragraph !== undefined ? `p${paragraph}` : `c${encodeURIComponent(chapter)}`}`);
   const goToStoryBible = (entityId: string) => guardedNavigate(`/story-bible#${encodeURIComponent(entityId)}`);
   // The Editing page at a chapter: from Proof's takes at a spot, the Production board's recording check and Proof's chapter view. findingId is the
-  // deep link's ?finding=, so the page opens with the flagged word that finding names selected (Navigation and deep links).
-  const goToEditing = (chapterId: string, findingId?: string) => {
-    guardedNavigate(`/editing/${encodeURIComponent(chapterId)}${findingId ? `?finding=${encodeURIComponent(findingId)}` : ''}`);
+  // deep link's ?finding=, so the page opens with the flagged word that finding names selected (Navigation and deep links); passageId is
+  // ?passage=, which opens that passage's takes under its line.
+  const goToEditing = (chapterId: string, findingId?: string, passageId?: string) => {
+    const query = new URLSearchParams({ ...(findingId ? { finding: findingId } : {}), ...(passageId ? { passage: passageId } : {}) }).toString();
+    guardedNavigate(`/editing/${encodeURIComponent(chapterId)}${query ? `?${query}` : ''}`);
   };
   // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
   const goToBooth = (target: { chapter: string } | { credits: CreditsKind }) => guardedNavigate(`/booth${boothQuery(target)}`);

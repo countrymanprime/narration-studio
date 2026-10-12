@@ -80,8 +80,8 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - the arrows to step to the previous or next note;
 - what the script says and what was heard, with the difference marked;
 - **Takes at this spot**, when the spot has more than one take: each take with **Play** (from its own recording, without
-  the DAW) and which one is active or kept. **Manage takes in Editing** opens the chapter's
-  [chapter view](#the-chapter-view) on the note, where takes are chosen;
+  the DAW) and which one is active or kept. **Manage takes in Editing** opens the chapter on
+  [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
 - **Show in the DAW**, **Add marker in the DAW** (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), **Open
   this chapter in Script** and **Open this chapter in Booth**, and **Reopen** once the note is decided;
 - the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D), an optional note with the
@@ -127,7 +127,7 @@ why.
 The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
 Proof has no decision history list, no thread of notes and no **Play ±3 s**. Finding the lines you recorded more than
-once and comparing their takes are not on Proof: choosing a take is in the [chapter view](#choosing-between-takes).
+once and comparing their takes are not on Proof: choosing a take is on [Editing](editing.md).
 
 ## Delivery checks
 
@@ -144,102 +144,27 @@ last measurement again, and the list follows it.
 
 ## The chapter view
 
-A chapter's Proof view, at `/proof/:chapterId`, is one screen to listen to a chapter's recording against its script, see
-where the recording check found a problem, and click a word to hear it again. It stays at this address until the Editing
-page replaces it. It has no nav item of its own; open it from a linked chapter's **Open in Proof** link in the
-[audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's Proof cell or its recording check's **Open in
-Proof** on [Production](production.md), from the Manuscript chapter header, or from **Manage takes in Editing** on a
-note's [takes at this spot](#a-note-and-your-decision). A chapter has to be linked to a REAPER track first (see [Linking
-chapters to tracks](navigation.md#linking-chapters-to-tracks)). Its notes and its recording check card are on
-[Proof](#one-chapter), not here.
+A chapter's Proof view, at `/proof/:chapterId`, holds what the chapter page had besides its workspace, which the
+[Editing](editing.md) page replaced: the recording check's state, the comparison with the manuscript, the Preview
+panel, the readiness panel and, with the built-in recorder, the native takes. It has no nav item of its own; open it from a
+linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks). Its notes and
+its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
+takes are on [Editing](editing.md).
 
-If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording** — the
-same check [Production](production.md#checking-a-chapters-recording) runs. There's no script or player until a check exists.
+If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
+[Production](production.md#checking-a-chapters-recording) runs.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)
 
-Under the heading "Proof · <chapter name>", once a current check exists, the chapter view shows the chapter's script, a
-transport, and the check's flags. The header names the check's state (current, or stale if an item changed since), and
-**as of last save** — the chapter view always reads the REAPER project as it was last saved, not whatever is open live
-in REAPER right now.
+Under the heading "Proof · <chapter name>" the header names the check's state (current, or stale if an item changed
+since) and **as of last save**: the check reads the REAPER project as it was last saved, not whatever is open live in
+REAPER right now. **Check again** runs the check once more.
 
-![Proof chapter view - script, transport, and the Flags panel with its legend](../../images/ui/proof-chapter-default.webp)
-
-The transport plays the chapter's recorded audio in the app itself, honouring each item's trims (the
-same played range REAPER uses), so it works with REAPER closed. It has play/pause, skip back and
-forward 5 seconds, and a playback speed from 0.75× to 2× that keeps pitch. Space bar toggles play and
-pause; the left/right arrow keys move by word and up/down by paragraph; `[` and `]` move to the
-previous and next flag. **Go to in REAPER** and **Loop in REAPER** on the transport bar go to, or loop, the word at the playhead in REAPER;
-without a connection they are disabled and say why, and the rest of the page works the same either way.
-
-As the chapter plays, the word being spoken is highlighted and the script scrolls to keep up. Scroll
-the script yourself and it stops following until you scroll back to the highlighted word or press
-**Resume following**.
-
-![Proof chapter view - playing, the spoken word highlighted and the script following along](../../images/ui/proof-chapter-playing.webp)
-
-### Adding an effect to a passage
-
-To put an effect on a few words, click the first word, then hold Shift and click the last: the words are
-selected, and a line above the script says how many. (A plain click still plays from that word.) Right-click
-in the script and choose **Add an effect to this passage…**. A right click on one word selects just that word.
-The dialog names the passage and lists the effects REAPER has installed, your favourite effects first
-(Settings, DAW). Press **Add effect** and REAPER cuts the passage out of its item and puts the effect on that
-piece only. Nothing is sent until you press the button, and one Undo in REAPER takes back the cuts and the
-effect together.
-
-**Put an FX chain on the chapter's track…**, in the same menu, adds one of your saved FX chains to the whole
-track the chapter was checked on, which changes how everything on it sounds; one Undo takes that back too.
-A passage that spans two REAPER items is refused ("Select words from one item at a time"), and both items
-are off, with the reason, when REAPER is not connected or is recording. After an effect is added the chapter
-may need **Check again** before another effect goes on the same words, because REAPER has split the item.
-The effect and its sound are for you to check in REAPER; this version has not been listened to on a real
-chapter yet.
-
-Flags mark what the last check found, in place in the text: a skipped word is struck through, a word
-read short or differently is underlined, and a misread word shows what was actually heard beneath it.
-A run of words the check couldn't match to anything in the script shows as a small "repeat" chip
-between the words it followed. The Flags panel on the right counts each kind and steps through them
-one at a time — clicking Next or Previous plays the app from that flag's word, if it has one (a
-skipped word was never recorded, so there's nothing to play).
-
-![Proof chapter view - a flag selected from the Flags panel, its script and heard text shown](../../images/ui/proof-chapter-flag-detail.webp)
-
-Clicking any word with a recorded time seeks the app's own player there (starting about a second
-before it, so you hear it in context). A flag backed by a finding shows which check found it, and the
-same **Pickup** (or **Fix in edit**), **Waive**, **Defer** and note controls as on [Proof's
-notes](#a-note-and-your-decision) — a decision made here is the same decision Proof shows.
-
-### Choosing between takes
-
-The **Takes** panel, at the top of the right column beside the script, is for a paragraph that has more than one
-take. It opens on the first paragraph the check heard; play or click a word in another paragraph and a **Show takes
-for the paragraph at the playhead** button offers that one. The panel lists every take you can choose from for the
-paragraph, each on its own card: **another take of this item**, **a retake on another lane** of a fixed-lane
-track, or **a pickup read** that an earlier pickups and duplicates scan set beside it. The one REAPER plays now says
-**Plays now**. Nothing ranks them: the panel says "Evidence per word, never a score."
-
-- **Play** on a card plays that take from its own recording, without REAPER (raw source, no FX or edits, as in
-  a take comparison). With **One** chosen, one take plays at a time. With **A/B**, the first two
-  takes you play take slots A and B, and **Swap** switches between them at the same word: the word the takes were
-  compared on, or the same distance into the paragraph before they were compared.
-- **Compare** transcribes each take again and sets its words beside the script. A compared take then shows the
-  words around where it departs from the script with the departure marked, and one line of evidence: what it misread
-  or left out, its longest pause, and how loud it is against its neighbours. The full comparison (every word and the
-  audio measurements side by side) appears under the script. A take that was never compared says **Not compared
-  yet**, and comparing costs a transcription of each take, so it waits until you press it.
-- **Use this take** makes that take the one that plays in REAPER, in one undo step (one **Undo** in REAPER puts the
-  previous take back). For a retake on another lane it makes that lane the one that plays. For a pickup read from
-  another item it asks first, because REAPER adds the read as a new take on the paragraph's item and then makes it
-  active (two undo steps). It is off while REAPER is not connected, and the panel says why.
-
-A take whose recording is missing, or whose item has moved since the scan, is listed with the reason and cannot be
-heard or chosen. After you choose, save the project in REAPER so the recording check can read the change; the check
-for that chapter is out of date until then.
+![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
 ## Comparing the recording with the script
 
-**Compare the recording with the script**, below the flags, transcribes the chapter's recording and
+**Compare the recording with the script**, on the chapter view, transcribes the chapter's recording and
 compares it against this chapter's text. The Setup step picks the transcription model, chunk length,
 and number of parallel workers before starting a comparison.
 
@@ -270,26 +195,16 @@ stays usable.
 with the reason in its place. Once it's running, its progress is real, from the transcription itself,
 with **Cancel** to stop it.
 
-Each discrepancy the run finds becomes a flag in the [Flags panel](#the-chapter-view) above — Misread,
-Skipped or Extra words — instead of a table: select one to see the script and heard text side by side
-inline, its marker state (**Ready to export**, **Exported**, or **Already marked**), **Show in
-manuscript**, **Play recorded audio** and, for a single-word misread, **Add pronunciation
-equivalence**.
-
-![Proof chapter view - a comparison's misread as a flag, its script and heard text side by side](../../images/ui/proof-chapter-compare-misread.webp)
-
-![Proof chapter view - an EXTRA (words heard but not written) discrepancy as a flag](../../images/ui/proof-chapter-compare-extra.webp)
-
-When it finishes, a summary reads "N discrepancies in \<chapter>, each one a flag in the Flags panel".
+When it finishes, a summary reads "N discrepancies in \<chapter>", with how many more are in other chapters.
 **Export N markers** adds a take marker in REAPER for each discrepancy not already marked, the same
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
 mark a spot twice. **New comparison** starts over. Without a connected REAPER, **Last narrated take:
-…** reviews the last completed comparison instead, with Play recorded audio and Export off.
+…** reviews the last completed comparison instead, with Export off.
 
 Leaving the chapter view while a run is under way or showing results resets the run, the same way
 leaving used to reset the Proofing page's own run.
 
-Above the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
+Below the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or
 sharing. Each candidate lists its chapter, paragraph range, estimated length and word count, alongside
 the reasons it was chosen (a mix of narration and dialogue, the Story Bible characters it touches, hard
@@ -311,12 +226,12 @@ paragraph entirely, the section names that instead and offers only to clear it. 
 removes it; like everything else here, nothing is applied, exported, or ever changes the manuscript,
 project, or audio.
 
-Above the Preview panel, **Proofing readiness** shows only while this chapter's own status is Proofing:
+Below the Preview panel, **Proofing readiness** shows only while this chapter's own status is Proofing:
 its suggestion for Finalized — a badge if the evidence says it's ready, "Not ready" if a pickup is still
 open, or "Can't tell yet" with what to check next. Confirm, Dismiss, and Revert work the same way they
 do on [Production](production.md#stage-readiness); Why opens the same evidence view, listing what was checked
 (pickups from every tracked analyzer, and any delivery check the narrator turned on) — an open pickup's
-**Open this note** selects it in the Flags panel above without leaving the page, and an unmapped chapter
+**Open this note** opens it on [Editing](editing.md), its words selected, and an unmapped chapter
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).
 
 Below the suggestion, **Rendered file** shows which file the delivery checks measure and lets you change
@@ -331,4 +246,4 @@ never counts as a pass.
 
 ---
 
-[← Booth](booth.md) · [Index](README.md) · [Pickups →](pickups.md)
+[← Editing](editing.md) · [Index](README.md) · [Pickups →](pickups.md)

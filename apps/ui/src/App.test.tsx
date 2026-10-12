@@ -11,7 +11,7 @@ import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
 import { bootstrapSchema } from './api/schemas/system';
 import type { GuideBuildResult, WorkJob } from './types';
-import { WIRE_CHAPTERS } from './api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from './api/mockFixtures';
 import type { JobEnded } from './api/contracts/system';
 import type { DawTransport } from './api/contracts/daw';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -692,6 +692,27 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[0].id}?drawer=cleanup`);
     renderApp();
     expect(await screen.findByRole('region', { name: 'Clean up findings' }, { timeout: 4000 })).toBeTruthy();
+  });
+
+  // Proof's takes at a spot: Manage takes in Editing opens the note's chapter with the note's word selected and the passage's takes open.
+  it('every-workspace-deep-link-lands-on-editing: Manage takes in Editing on Proof opens Editing with ?finding= and ?passage=', async () => {
+    window.history.replaceState(null, '', '/proof?chapter=chapter-1');
+    // Chapter 1 linked to its track (the visual suite's ?mockChapterLink=confirmed), so a note on it has takes at its spot.
+    const track = WIRE_TRACKS_PROJECT.tracks.find((candidate) => candidate.name === 'Chapter 1')!;
+    renderApp(
+      {},
+      { chapterTrackMappings: [{ trackGuid: track.guid, chapterId: 'chapter-1', chapterTitle: WIRE_CHAPTERS[0].title, confirmedAt: '2026-09-01T12:00:00Z' }] },
+    );
+    const note = await screen.findByText(/pink eyes/, {}, { timeout: 4000 });
+    fireEvent.click(note.closest('tr')!);
+    const spot = await screen.findByRole('region', { name: 'Takes at this spot' }, { timeout: 4000 });
+    const manage = within(spot).getByRole('button', { name: 'Manage takes in Editing' });
+    fireEvent.click(manage);
+    await screen.findByRole('region', { name: 'Script editor' });
+    expect(window.location.pathname).toBe('/editing/chapter-1');
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('finding')).toBeTruthy();
+    expect(params.get('passage')).toBeTruthy();
   });
 
   // As the mock's page: with no manuscript the route stays and the page asks for one; its button goes to the import on Production.

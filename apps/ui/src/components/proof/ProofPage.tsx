@@ -89,8 +89,8 @@ export function ProofPage({
   goTo: (path: string) => void;
   goToScript: (chapterId: string) => void;
   goToBooth: (chapterId: string) => void;
-  /** The takes' "Open in Editing": the Editing page at the note's chapter, with its flagged word selected. */
-  goToEditing: (chapterId: string, findingId?: string) => void;
+  /** The takes' "Manage takes in Editing": the Editing page at the note's chapter, its flagged word selected and the passage's takes open. */
+  goToEditing: (chapterId: string, findingId?: string, passageId?: string) => void;
 }) {
   const findingsApi = usePort('findings');
   const manuscriptApi = usePort('manuscript');
@@ -397,7 +397,9 @@ export function ProofPage({
                     }
                   />
                 }
-                spot={<SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id) => goToEditing(id, selected.id)} />}
+                spot={
+                  <SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id, passageId) => goToEditing(id, selected.id, passageId)} />
+                }
               />
             ) : (
               <p className="text-sm text-[var(--text-muted)]">{findings.length ? 'Choose a note to see what was heard.' : 'No notes yet.'}</p>

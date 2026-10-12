@@ -164,8 +164,8 @@ repeated reads already recorded, waiting to be compared and kept or discarded â€
 the proofer's REAPER pickup markers as one project-wide open count with **Open pickups**, which
 opens [Pickups](pickups.md), not scoped to this chapter, since attributing markers to one chapter's track span is ambiguous when
 chapter tracks share the timeline. It reads "open REAPER to count" instead of a number when REAPER
-is not running. **Paragraph detail** stays folded by default. **Open in Proof** opens the
-chapter's view on [Proof](proof.md). Misreads, false starts, retakes and a spoken chapter title
+is not running. **Paragraph detail** stays folded by default. **Open in Editing** opens the
+chapter on [Editing](editing.md). Misreads, false starts, retakes and a spoken chapter title
 never count against you. The check changes nothing: it never edits the project or moves a
 chapter's status.
 

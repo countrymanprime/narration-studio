@@ -90,4 +90,4 @@ when you came in, the Booth did not start that take and does not stop it, and th
 
 ---
 
-[← Story Bible](story-bible.md) · [Index](README.md) · [Proof →](proof.md)
+[← Story Bible](story-bible.md) · [Index](README.md) · [Editing →](editing.md)
