@@ -529,7 +529,7 @@ export function gainOutsideAnswer(daw: string): string {
 }
 
 /** gainTakeStaleAnswer and gainOutsideAnswer for one of DAW_SETUPS, named for its DAW. */
-export function gainStaleOf(setup: DawCapabilities): { gone: string; outside: string } {
+function gainStaleOf(setup: DawCapabilities): { gone: string; outside: string } {
   return { gone: gainTakeStaleAnswer(setup.daw), outside: gainOutsideAnswer(setup.daw) };
 }
 
@@ -542,7 +542,7 @@ export function rangeGainAnswer(daw: string, count: number, db: number): string 
 
 /** What lowering `count` stretches by `db` dB answers on one of DAW_SETUPS once `range_gain` is available, by its mode: one undo step
  * where the DAW makes it as one action (REAPER), and Audacity's steps (dawport/audacity's ReduceRangeGain), one undo step per stretch. */
-export function rangeGainOf(setup: DawCapabilities, count: number, db: number): { message: string; undoSteps: number; steps?: string[] } {
+function rangeGainOf(setup: DawCapabilities, count: number, db: number): { message: string; undoSteps: number; steps?: string[] } {
   if (setup.capabilities.range_gain?.mode === 'steps') {
     return { message: `Lowered ${stretchesWord(count)} by ${db} dB in ${setup.daw}.`, undoSteps: count, steps: ['Select the stretch', `Lower it by ${db} dB`] };
   }
@@ -599,7 +599,7 @@ export function clicksInShape(clicks: readonly DawClick[]): boolean {
 /** What repairing `count` clicks answers on one of DAW_SETUPS once `click_repair` is available, by its mode: one undo step where the DAW
  * makes it as one action (REAPER), and Audacity's steps (dawport/audacity's RepairClick), one undo step per selection; the mock counts
  * each click as its own selection. */
-export function repairClickOf(setup: DawCapabilities, count: number): { message: string; undoSteps: number; steps?: string[] } {
+function repairClickOf(setup: DawCapabilities, count: number): { message: string; undoSteps: number; steps?: string[] } {
   if (setup.capabilities.click_repair?.mode === 'steps') {
     return { message: `Repaired ${clicksWord(count)} in ${setup.daw}.`, undoSteps: count, steps: ['Select around the click', 'Run Click Removal on it'] };
   }
