@@ -31,12 +31,16 @@ Every PRD uses the same sections, in this order:
 5. What We're NOT Building
 6. Success Metrics
 7. Open Questions
-8. Users & Context
+8. Users & Context: the people who use what is built, narrators and maintainers, never agents
 9. Solution Detail (core capabilities by MoSCoW priority, MVP scope, user flow)
 10. Technical Approach (feasibility, architecture, risks)
-11. Implementation Phases: the phase table (`#`, Phase, Description, Status, Parallel, Depends, PRP Plan), Phase Details, Parallelism Notes and a Parallel-session compatibility table of the files each phase touches and who else collides with them
+11. Implementation Phases: the phase table (`#`, Phase, Description, Status, Parallel, Depends) and Phase Details. A phase is product scope: what it delivers and what it depends on
 12. Decisions Log
 13. Research Summary
+
+The ADRs that constrain the work go on one `**Constraints:**` line under the title, as links. A PRD has no "Supersedes / depends on ADRs" section.
+
+A PRD holds no agent process: no PRP Plan column, Parallelism Notes, Parallel-session compatibility table, lanes, slice rows, session caps or other tables of who builds what. Slices, the files each owns and their collisions go in the slice issues and on [#989](https://github.com/countrymanprime/narration-utils/issues/989); how the agent train runs goes in its procedure ([the agent train](../operations/agent-train.md)) or `.claude/`, not in a PRD. The Studio Next PRDs written before this rule keep their tables until each is deleted.
 
 A PRD with UI changes points, in its **Visual Spec** section, at the [benchmark mock](../research/mockups/audiobook-studio-benchmark/) of the page it changes. A PRD keeps no mockup copies: a new mock is added only for work being built now, and is deleted when that work merges ([Which mocks are the spec](../operations/agent-train.md#which-mocks-are-the-spec)).
 

@@ -44,7 +44,7 @@ Only the owner or the coordinator edits these. The last three rows are the Studi
 | `WEEKLY_RESET` | from `resetsAt` | The next weekly reset. The coordinator fills it from the first `seven_day` `resetsAt` it sees; until then, 22:00 America/New_York (D45) |
 | `SN_HOLD` | off | Stops launching Studio Next slices only (D-5). Merges, fixes and other work continue |
 | `SN_DAILY_CAP` | 12 | Slices launched per UTC day (D-4). A resume or a fixer for a launched slice doesn't count. At the cap, nothing new launches until the next UTC day |
-| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` or `adr` slice gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
+| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` slice, or an `adr` slice already open, gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
 
 ## Usage and autoscaling
 
@@ -113,19 +113,19 @@ Nobody watches the train live, so these checks run without a person and none of 
 
 ## Lanes
 
-A lane is a territory of files. Two workers may share a lane only when the PRDs' Parallel-session tables show their phases touch disjoint files. D48 on the retired #509 records the check: verify file by file before pairing.
+A lane is a territory of files. Two workers may share a lane only when their slice issues' `owns` (or, for an older PRD, its Parallel-session table) show they touch disjoint files. D48 on the retired #509 records the check: verify file by file before pairing.
 
-| Lane | Owns | Model | ADR block |
-| --- | --- | --- | --- |
-| **K: contracts** | `apps/desktop/internal/port/**`, `internal/dawport/**`, the provider-port packages, `libs/python/narration_common/ports/**`, contract bindings and their schemas, goldens and mocks, `hostAPIVersion` bumps for contract bindings | Opus | 0300–0319 |
-| **A: host features** | root `apps/desktop/*.go` feature bindings, `internal/<feature>` packages outside the ports | Sonnet (Opus for tricky concurrency) | 0320–0339 |
-| **B: adapters and sidecars** | `integrations/reaper/**`, `internal/bridge`, `internal/daw*`, `internal/dawport/reaper`, `internal/dawport/audacity`, the consumer migrations, `sidecars/**`, the rest of `libs/python/**` | Sonnet (Opus for new Lua commands) | 0340–0359 |
-| **U: primitives and input** | `apps/ui/src/components/primitives/**`, `apps/ui/src/input/**`, `apps/ui/src/studio/**`, `apps/ui/src/ports/**`, `apps/ui/src/overlay/**`, `apps/ui/src/registries/**` (D-7), design tokens (in one PR, running alone) | Sonnet | 0360–0379 |
-| **C: UI features** | `apps/ui/src/components/<feature>/**`, `hooks/**`, `tests/visual/**` rows of its pages, `docs/guides/using-the-app/**` | Sonnet | 0380–0399 |
-| **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping | 0400–0409 |
-| **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus | 0410–0419 |
+| Lane | Owns | Model |
+| --- | --- | --- |
+| **K: contracts** | `apps/desktop/internal/port/**`, `internal/dawport/**`, the provider-port packages, `libs/python/narration_common/ports/**`, contract bindings and their schemas, goldens and mocks, `hostAPIVersion` bumps for contract bindings | Opus |
+| **A: host features** | root `apps/desktop/*.go` feature bindings, `internal/<feature>` packages outside the ports | Sonnet (Opus for tricky concurrency) |
+| **B: adapters and sidecars** | `integrations/reaper/**`, `internal/bridge`, `internal/daw*`, `internal/dawport/reaper`, `internal/dawport/audacity`, the consumer migrations, `sidecars/**`, the rest of `libs/python/**` | Sonnet (Opus for new Lua commands) |
+| **U: primitives and input** | `apps/ui/src/components/primitives/**`, `apps/ui/src/input/**`, `apps/ui/src/studio/**`, `apps/ui/src/ports/**`, `apps/ui/src/overlay/**`, `apps/ui/src/registries/**` (D-7), design tokens (in one PR, running alone) | Sonnet |
+| **C: UI features** | `apps/ui/src/components/<feature>/**`, `hooks/**`, `tests/visual/**` rows of its pages, `docs/guides/using-the-app/**` | Sonnet |
+| **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping |
+| **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus |
 
-A lane-X stream runs with no other stream that touches the same files. A lane that runs out of numbers in its ADR block takes the next free block of ten above 0420 and records it on #989.
+A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: an ADR takes the next free number (see [Serial points](#serial-points)).
 
 ## Serial points
 
@@ -133,7 +133,7 @@ A lane-X stream runs with no other stream that touches the same files. A lane th
   - It lives in `apps/desktop/app.go`, `app_test.go` and `apps/ui/src/hostApi.ts`, and the bindings `Host.*` are regenerated from it.
   - A PR that adds a binding takes `main`'s value + 1.
   - On a collision, whoever merges `main` in second takes the higher value + 1 and regenerates. Use the bump script once lane X has added it.
-- **ADR numbers:** only inside the lane's block. Check `docs/adr/` at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
+- **ADR numbers:** the next free number in `docs/adr/`. Check it again at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
 - **The ADR index and PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
 - **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, `Settings.tsx` rows, `internal/bridge/wire.go` event rows.
 - **One at a time, train-wide:**
@@ -151,9 +151,12 @@ The [Studio Next series](../prds/studio-next-rebuild.prd.md) is delivered as sli
 - **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
 - **Labels:** `slice`, `lane:<L>`, `prd:<code>`, and one of `ready`, `blocked` or `owner-decision`.
 - **Ready.** A slice is ready when every issue in its `depends` is closed and no other slice in progress has an overlapping `owns`. A slice waiting on an unanswered `owner-decision` is not ready.
+- **Slice kinds.** The groomer cuts no new `adr` slices: an ADR is written by the slice that settles the decision, numbered per [Serial points](#serial-points). An `adr` slice already open runs as groomed.
+- **A spike slice** writes a research note in `docs/research/` only when its findings outlast the slice. The note carries a date, the question, the method and the findings, and no slice, stream or lane header; the slice issue links the note, not the other way round. Findings that only the slice needs go in the slice issue.
+- **An audit or checklist for one PR** is a comment on that PR or its issue, not a file.
 - **A swap slice** replaces its page and deletes the old page and what only it used, in the same PR with no flag (D98). Its `owns` lists the files it deletes.
 - **Handoff.** Every slice issue has a `## Handoff` comment that the worker rewrites at each checkpoint: done, next step, failing check, files touched, decisions assumed. A resume session starts from it and the branch.
-- **The groomer (D-2).** A session type for cutting slices, like the mockup-drafting session. It opens issues from a PRD's slice table, fills each header from the code (it may read the code; the coordinator doesn't), runs `slice-lint`, marks `ready` the slices whose dependencies are merged, and ends. The coordinator launches one when fewer than 2 x `TARGET` ready slices exist and a PRD has slice rows with no issue.
+- **The groomer (D-2).** A session type for cutting slices, like the mockup-drafting session. It opens issues from a PRD's slice table (a PRD without one, under the [PRD template](../prds/README.md#prd-template), is cut from its phases, and its slices exist only as issues), fills each header from the code (it may read the code; the coordinator doesn't), runs `slice-lint`, marks `ready` the slices whose dependencies are merged, and ends. The coordinator launches one when fewer than 2 x `TARGET` ready slices exist and a PRD has slice rows, or phases, with no issue.
 - **A stalled worker (D-3).** A session in `working` with no push, no issue comment and no PR event for 3 hours is stalled. `interrupt_session`, then start one resume session from the Handoff comment.
 - **A session stuck on a permission prompt** follows the fallback on #989, unchanged: relaunch up to two more times, then the coordinator runs the slice itself with a background agent under the same session cap.
 - **An idle worker** can't be messaged. Idle with no PR gets its one resume session from the pushed branch. Idle with a conflicted or red PR gets a fixer straight away.
@@ -333,9 +336,12 @@ No reasons to write, no region tables, no Mockup check table. New primitives and
 primitive, token or style doesn't draw what the mock shows, change the primitive (its <Name>.stories.tsx too, with
 design-spec-guard and an ADR for a changed design decision), don't restyle it locally on the page. The spec per
 primitive is docs/design/design-system.md.
-YOUR FILES: <the phases' rows from the PRD's Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
+YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
 a running stream on #989. If you need another lane's change, comment on #989.
-ADR BLOCK: <block>. Check docs/adr/ for the next free number inside it, at write time and again before your last push.
+ADR NUMBERS: an ADR takes the next free number in docs/adr/; check it at write time and again before your last push.
+DOCS: do not write agent vocabulary (coordinator, worker, slice, session, skill) into files under docs/, except
+docs/operations/ runbooks that a person follows. A spike's research note has a date and a question and no slice, stream
+or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
 Screenshots (any UI change; see "UI PRs show their screenshots": the PR is not ready without them), "Base: <branch>", "Closes #<slice>" for a slice,
@@ -379,7 +385,7 @@ Mark the PR ready for review when its phase is done.
 You are a fixer in the narration-utils agent train. PR #<n> (branch <b>) <has a merge conflict with main | fails <check> |
 turned main red>. Merge main into the branch (never rebase or force-push). Resolve keeping both sides' intent: for
 hostAPIVersion take the higher value + 1 and regenerate Host.*; for ADR or PRD index rows keep both rows; for an ADR number
-clash renumber the later one inside its lane's block and fix its links. Run targeted checks for the touched areas, push,
+clash renumber the later one to the next free number and fix its links. Run targeted checks for the touched areas, push,
 confirm Build (Windows) and ui-dist go green, comment on #989 with what you did, then end. Don't merge. End every GitHub
 comment with a blank line, "---", then "_Generated by [Claude Code](https://claude.ai/code)_".
 ```

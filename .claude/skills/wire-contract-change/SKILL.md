@@ -25,7 +25,7 @@ A change that adds, removes, renames, retypes or newly requires a field in anyth
    - A REAPER event goes in the table in `apps/desktop/internal/bridge/wire.go`, with `wire_test.go` and the Lua harness pinning the same line.
 5. `hostAPIVersion`: additive changes need no bump. Removing, renaming, retyping or newly requiring a field bumps it in `apps/desktop/app.go`, `apps/desktop/app_test.go` and `apps/ui/src/hostApi.ts`.
 6. If the payload is page data, add or update the invalid-payload visual state (`visual-catalog-sync`).
-7. Run `full-verification-gate`. If a persisted file or a trust boundary changed, re-read its row in `docs/architecture/threat-model.md` and run `doc-impact-check`.
+7. Run `full-verification-gate`. If a persisted file changed, add or update its row in `docs/reference/data-files.md` (location, schema or golden, retention); it needs a threat-model row only if it names a path the host opens, a command it runs or a URL it fetches. If a trust boundary changed, re-read its row in `docs/architecture/threat-model.md`. Then run `doc-impact-check`.
 
 ## What this skill is not
 
