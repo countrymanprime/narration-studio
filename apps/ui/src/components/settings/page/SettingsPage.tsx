@@ -5,6 +5,7 @@ import { ManuscriptSection } from '../ManuscriptSection';
 import { registerSettingsSection } from '../sections';
 import { Settings } from '../Settings';
 import { AppearancePanel } from './AppearancePanel';
+import { DefinitionsPanel } from './DefinitionsPanel';
 import { DeliveryProfileField } from './DeliveryProfileField';
 import { KeysPanel } from './KeysPanel';
 import { StoryBibleTypesPanel } from './StoryBibleTypesPanel';
@@ -13,9 +14,9 @@ import { StoryBibleTypesPanel } from './StoryBibleTypesPanel';
 registerSettingsSection('Daw', 'backups', BackupsSection, 20);
 
 /**
- * The Studio Next Settings page, at `/settings`: an 860 px column of the mock's panels the repo can back (Delivery profile, Story
- * Bible types, Appearance, Keyboard shortcuts, Manuscript), then `Settings` trimmed to the categories the mock does not cover. The
- * mock's Recording, Definitions, Reader text and Marks panels have no host model yet, and the capability, backups and analysis
+ * The Studio Next Settings page, at `/settings`: an 860 px column of the mock's panels the repo can back (Delivery profile, Definitions
+ * and pronunciations, Story Bible types, Appearance, Keyboard shortcuts, Manuscript), then `Settings` trimmed to the categories the mock
+ * does not cover. The mock's Recording, Reader text and Marks panels have no host model yet, and the capability, backups and analysis
  * sections mount in the kept DAW and Story Bible categories through `sections.ts`. `initialCategory` (a `#credits`, `#delivery`,
  * `#cleanup` or `#booth` link) opens that kept category and scrolls to it.
  */
@@ -31,6 +32,7 @@ export function SettingsPage(props: ComponentProps<typeof Settings>) {
     <div className="mx-auto flex max-w-[860px] flex-col gap-4">
       <Heading title="Settings" />
       <DeliveryProfileField />
+      <DefinitionsPanel />
       <StoryBibleTypesPanel />
       <AppearancePanel />
       <KeysPanel />

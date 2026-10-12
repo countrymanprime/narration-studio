@@ -5,4 +5,6 @@ import { settingsForScopeSchema } from '../schemas/settings';
 export const settingsGoldens: Record<string, z.ZodType> = {
   'settings-global.json': settingsForScopeSchema,
   'settings-project.json': settingsForScopeSchema,
+  'settings-definition-source.json': settingsForScopeSchema,
+  'settings-definition-source-local.json': settingsForScopeSchema,
 };

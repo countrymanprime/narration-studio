@@ -291,6 +291,27 @@ func TestContractSettingsForEachScope(t *testing.T) {
 	}
 }
 
+// The Script tool's settings as the Words tab and Settings' Definitions panel read them: unset (web, the default), and with the local
+// dictionary chosen.
+func TestContractSettingsDefinitionSource(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
+	pin := func(name string) {
+		fields, err := host.settingsForScope("global")
+		if err != nil {
+			t.Fatal(err)
+		}
+		contractfile.Check(t, name, map[string]any{"Script": fields["Script"]})
+	}
+	pin("settings-definition-source")
+	local := "local"
+	if err := host.saveSettings("Script", "global", map[string]*string{"definition_source": &local}); err != nil {
+		t.Fatal(err)
+	}
+	pin("settings-definition-source-local")
+}
+
 // The audio engine panel's discovery as TracksDiscover and TracksSelect send it: nothing found (a nil list, sent as null), several files and
 // no choice yet, and one file that is selected on its own.
 func TestContractTracksDiscovery(t *testing.T) {

@@ -3,13 +3,14 @@
 // the Define marks dialog's save. No file under `page/` names a port (`page/data/noHostCalls.test.ts`), and `page/data/` is the earlier
 // slices', so these hooks sit beside the page as `usePronunciationSources` sits beside the Story Bible tab.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CreditsRenderResult, CreditsSetupState, CreditTemplate, RetailSample } from '../../api/contracts/credits';
 import type { MarkType } from '../../api/contracts/marks';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { overlay } from '../../overlay/overlayService';
 import { usePort } from '../../ports/usePort';
-import { DEFINITION_SOURCES, type DefinitionSource, type WordsHost } from './page/rail/words/wordsHost';
+import { definitionSourceOf, definitionSourceSchema } from '../../api/schemas/settings';
+import type { DefinitionSource, WordsHost } from './page/rail/words/wordsHost';
 
 export type ScriptCredits = {
   /** The first opening and the first closing template's preview; absent when the library has no template of that kind. */
@@ -74,31 +75,93 @@ export function useScriptCredits(): ScriptCredits {
   return { previews, hasOpening: opening !== undefined, hasClosing: closing !== undefined, setup, setSetup, retailSample };
 }
 
-const DEFINITION_SOURCE_KEY = 'narration.script.definitions';
+const DEFINITION_TOOL = 'Script';
+const DEFINITION_KEY = 'definition_source';
+/** Where the definition source was kept per viewer before it became a host setting: read once, moved to the host, then removed. */
+const LEGACY_DEFINITION_SOURCE_KEY = 'narration.script.definitions';
 
-function loadDefinitionSource(): DefinitionSource {
+function legacyDefinitionSource(): DefinitionSource | undefined {
   try {
-    const saved = window.localStorage.getItem(DEFINITION_SOURCE_KEY);
-    return saved && saved in DEFINITION_SOURCES ? (saved as DefinitionSource) : 'web';
+    const parsed = definitionSourceSchema.safeParse(window.localStorage.getItem(LEGACY_DEFINITION_SOURCE_KEY));
+    return parsed.success ? parsed.data : undefined;
   } catch {
-    return 'web';
+    return undefined;
   }
 }
 
-/** The Words tab's host: the narrator's definition source (kept for this viewer), a source's candidate, the online entry and the web look-ups. */
+function forgetLegacyDefinitionSource() {
+  try {
+    window.localStorage.removeItem(LEGACY_DEFINITION_SOURCE_KEY);
+  } catch {
+    // Storage that cannot be reached cannot be read either, so the key is never moved twice.
+  }
+}
+
+/**
+ * The definition source as the host holds it (Script.definition_source), so a choice made in Settings shows here and one made here shows
+ * there. It is read on mount and whenever the window comes back into focus. A source this viewer kept in localStorage before is written to
+ * the host once, when the host holds none; the key is removed once the host holds a source, so a failed write is tried again next time.
+ */
+function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) => void] {
+  const system = usePort('system');
+  const [source, setSource] = useState<DefinitionSource>('web');
+  const shown = useRef<DefinitionSource>('web');
+  // Each read and each choice takes a turn; a read that answers after a newer turn is dropped.
+  const turn = useRef(0);
+  const show = useCallback((next: DefinitionSource) => {
+    shown.current = next;
+    setSource(next);
+  }, []);
+
+  useEffect(() => {
+    const read = async () => {
+      const mine = ++turn.current;
+      try {
+        const settings = await system.settingsForScope('global');
+        const held = settings.Script?.some((field) => field.key === DEFINITION_KEY && field.isSet) ?? false;
+        const legacy = legacyDefinitionSource();
+        if (legacy && !held) {
+          await system.saveSettings(DEFINITION_TOOL, 'global', { [DEFINITION_KEY]: legacy });
+          forgetLegacyDefinitionSource();
+          if (mine === turn.current) show(legacy);
+          return;
+        }
+        if (held) forgetLegacyDefinitionSource();
+        if (mine === turn.current) show(definitionSourceOf(settings));
+      } catch {
+        // The menu keeps what it shows, and the next focus reads again.
+      }
+    };
+    void read();
+    const onFocus = () => void read();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      turn.current += 1;
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [system, show]);
+
+  const choose = useCallback(
+    (next: DefinitionSource) => {
+      const before = shown.current;
+      const mine = ++turn.current;
+      show(next);
+      system.saveSettings(DEFINITION_TOOL, 'global', { [DEFINITION_KEY]: next }).catch((error: unknown) => {
+        if (mine === turn.current) show(before);
+        overlay.toast(`The definition source could not be saved: ${apiErrorMessage(error)}`, { tone: 'error' });
+      });
+    },
+    [system, show],
+  );
+  return [source, choose];
+}
+
+/** The Words tab's host: the narrator's definition source (a host setting), a source's candidate, the online entry and the web look-ups. */
 export function useWordsHost(): WordsHost {
   const sources = usePort('pronunciationSources');
   const online = usePort('pronunciationOnline');
   const lookup = usePort('pronunciationLookup');
-  const [definitionSource, setSource] = useState<DefinitionSource>(loadDefinitionSource);
-  const setDefinitionSource = useCallback((source: DefinitionSource) => {
-    setSource(source);
-    try {
-      window.localStorage.setItem(DEFINITION_SOURCE_KEY, source);
-    } catch {
-      // Storage is a convenience: the choice still holds until the page is left.
-    }
-  }, []);
+  const [definitionSource, setDefinitionSource] = useDefinitionSource();
   return useMemo(
     () => ({
       definitionSource,

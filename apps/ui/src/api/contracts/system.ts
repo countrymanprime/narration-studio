@@ -1,6 +1,12 @@
 import type { TranscriptState } from './transcript';
 
 export type Scope = 'global' | 'project';
+
+/**
+ * Script.definition_source: where the Words tab reads a word's definition. `web` opens the dictionary site (nothing inline), `local` reads
+ * the offline dictionary, `api` asks the online pronunciation service. The host reads a stored value outside the three as `web`.
+ */
+export type DefinitionSource = 'web' | 'local' | 'api';
 export type ScopedSettingField = {
   key: string;
   label: string;

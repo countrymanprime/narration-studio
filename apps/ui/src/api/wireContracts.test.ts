@@ -74,7 +74,7 @@ import {
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
-import { settingsForScopeSchema } from './schemas/settings';
+import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
 import {
   takeComparisonEvidenceSchema,
@@ -491,6 +491,42 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(overrides?.kind).toBe('text');
     const document = parseWireJson(keymapOverridesSchema, overrides?.effectiveValue ?? '', ctx('keymap overrides'));
     expect(document).toEqual({ version: 1, bindings: {} });
+  });
+});
+
+describe('Script.definition_source in the settings answer (SN-M93)', () => {
+  it('the golden settings offer web, local and api, read as web unset and as the stored choice once saved', () => {
+    const unset = parseWire(settingsForScopeSchema, readGolden('settings-definition-source.json'), ctx('settings definition source'));
+    const field = unset.Script?.find((item) => item.key === 'definition_source');
+    expect(field?.choices).toEqual(definitionSourceSchema.options);
+    expect(field?.isSet).toBe(false);
+    expect(definitionSourceOf(unset)).toBe('web');
+    const local = parseWire(settingsForScopeSchema, readGolden('settings-definition-source-local.json'), ctx('settings definition source local'));
+    expect(definitionSourceOf(local)).toBe('local');
+    expect(definitionSourceOf(parseWire(settingsForScopeSchema, readGolden('settings-global.json'), ctx('settings global')))).toBe('web');
+  });
+
+  it('a value this build does not know, or an older host without the field, reads as web', () => {
+    const field = {
+      key: 'definition_source',
+      label: 'Show definitions from',
+      kind: 'choice' as const,
+      choices: ['web'],
+      value: 'x',
+      isSet: true,
+      effectiveValue: 'thesaurus',
+      effectiveSource: 'global',
+    };
+    expect(definitionSourceOf({ Script: [field] })).toBe('web');
+    expect(definitionSourceOf({})).toBe('web');
+  });
+
+  it('the mock answers the field through the same schema, and a save shows in the next read', async () => {
+    const api = createMockApi();
+    const before = parseWire(settingsForScopeSchema, await api.settingsForScope('global'), ctx('mock settings'));
+    expect(definitionSourceOf(before)).toBe('web');
+    await api.saveSettings('Script', 'global', { definition_source: 'api' });
+    expect(definitionSourceOf(parseWire(settingsForScopeSchema, await api.settingsForScope('global'), ctx('mock settings')))).toBe('api');
   });
 });
 

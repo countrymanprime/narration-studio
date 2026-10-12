@@ -10,6 +10,9 @@
     "build_after_import": "true",
     "analysis_prompt": "ask"
   },
+  "Script": {
+    "definition_source": "web"
+  },
   "Piper": {
     "tts_provider": "piper",
     "tts_voice_id": "en_US-ljspeech-high"
