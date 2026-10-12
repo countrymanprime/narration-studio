@@ -22,6 +22,7 @@ import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../
 import { canSpeak } from '../../storyBibleTypes';
 import { categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
+import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { overlay } from '../../overlay/overlayService';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -88,18 +89,18 @@ const NO_TYPES: GuideType[] = [];
 /** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
  * so nothing speaks then. */
 function useGuideTypes(entities: readonly GuideEntity[]): GuideType[] {
-  const api = useApi();
+  const storyBible = usePort('storyBible');
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
   useEffect(() => {
     let current = true;
-    api.guideTypes().then(
+    storyBible.guideTypes().then(
       (read) => current && setTypes(read),
       () => current && setTypes(NO_TYPES),
     );
     return () => {
       current = false;
     };
-  }, [api, entities]);
+  }, [storyBible, entities]);
   return types;
 }
 

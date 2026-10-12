@@ -48,6 +48,7 @@ export const scriptFeedback: Record<string, FeedbackRow> = {
   'src/components/script/page/data/scriptData.ts::marksList#1': startup('The marks and their types, read once and after each mark change; a failure is an error state with the host\'s sentence and Retry.'),
   'src/components/script/page/data/scriptData.ts::scriptPrepList#1': startup('Prep states and flagged words, read once and after each change; a failure is an error state with the host\'s sentence and Retry.'),
   'src/components/script/page/data/scriptData.ts::guideEntities#1': startup('The Story Bible entries, read once and after each Story Bible change; a failure is an error state with the host\'s sentence and Retry.'),
+  'src/components/script/page/data/scriptData.ts::guideTypes#1': startup('The Story Bible types, for which entries can speak; a failure is an error state with the host\'s sentence, and until they are read nothing is offered as a speaker.'),
   'src/components/script/page/data/scriptData.ts::guideDialogueCues#1': startup('The dialogue cues the phrases and speakers come from; a failure is an error state with the host\'s sentence and Retry.'),
   'src/components/script/page/data/scriptData.ts::manuscriptParagraphs#1': startup('A chapter\'s paragraphs, cached per chapter and read again after a job ends; a failure is an error state with the host\'s sentence and Retry.'),
   'src/components/script/page/data/scriptData.ts::subscribeJobEnded#1': subscription('A job that ended (an import, a Story Bible build) makes the page read everything it has loaded again.'),
