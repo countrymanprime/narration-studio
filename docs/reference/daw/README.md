@@ -16,7 +16,6 @@ What each digital audio workstation (DAW) can do for the app, and what each capa
 - **Planning a feature that touches a DAW:** find the capability in [capabilities](capabilities.md). If none fits, a new capability is a row in the port's catalog, a role interface and a conformance case ([ADR 0300](../../adr/0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md)); write its section here first.
 - **Adding an engine or a version:** add a column to the test that generates [the matrix](matrix.md), a page like [REAPER](reaper.md), and a section line per capability.
 - **Changing a declared level:** run `UPDATE_DAW_DOCS=1 go test ./internal/dawport/dawportdoc` from `apps/desktop`, commit the new matrix, and update the capability's "Checked" line with the run that justified it.
-- **The `daw-capabilities` skill** ([SKILL.md](../../../.claude/skills/daw-capabilities/SKILL.md)) loads these pages for design, review and verification questions.
 
 ## Rules for these pages
 

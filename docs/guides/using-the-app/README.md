@@ -2,8 +2,7 @@
 
 A screenshot walkthrough of the narration workspace, one page per app page. The screenshots
 are generated from the same mock data used by the app's Playwright visual test suite
-(`apps/ui/tests/visual/`) and are kept current by the `doc-screenshot-sync` skill when the UI
-changes.
+(`apps/ui/tests/visual/`) and are refreshed from its captures when the UI changes.
 
 ## Pages
 

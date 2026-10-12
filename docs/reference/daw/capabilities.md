@@ -282,7 +282,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `BackupKeeper`, synchronous (`BackupAround` with a `BackupRequest`: the track or item GUID, the chapter, start and end in seconds; `RestoreBackup` with the backup's GUID).
 - **Result:** a `Result`. How long a stretch is cloned and how long backups are kept are settings ([PRD decisions](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions)).
 - **Refusals:** `RestoreBackup` of a GUID the engine has no backup for.
-- **Undo:** not settled; spike SND-S7 and the command slice record it, and `UndoSteps` reports it.
-- **REAPER:** not yet available. The mock declares it unsupported, as REAPER keeps takes itself (`studio-next/src/fixtures/daw.ts`); the command slice settles the declaration.
+- **Undo:** not settled; spike SND-S7 and the command's verification record it, and `UndoSteps` reports it.
+- **REAPER:** not yet available. The mock declares it unsupported, as REAPER keeps takes itself (`studio-next/src/fixtures/daw.ts`); the declaration is settled when the command is built.
 - **Audacity 3.x:** not yet available. Cloning a range over the scripting pipe is spike SND-S7.
 - **Checked:** not checked; no engine builds it yet.

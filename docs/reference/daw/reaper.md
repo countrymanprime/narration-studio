@@ -37,7 +37,7 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([ADR 00
 
 ## Not yet available
 
-`cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. Each command slice flips its own row to Experimental ([capabilities](capabilities.md#cut_range)).
+`cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. A command's row changes to Experimental when it is verified ([capabilities](capabilities.md#cut_range)).
 
 ## Version rules
 
