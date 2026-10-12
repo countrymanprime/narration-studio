@@ -202,7 +202,7 @@ Permanent owner rule, 2026-09-29. A PR that changes what `apps/ui` draws must sh
 
 - **What to show.** A "Screenshots" section, one row per changed state at 1440×900: the Studio Next mock page | before (`main`) | after (the branch). Same state, viewport and fixture in the before and after captures, and the mock cropped or scaled to match. There is no match percentage for Studio Next pages; the owner looks at the images.
 - **Other viewports.** Small-desktop and tablet (and `reflow` at 390 px for Settings) as before/after pairs in a collapsed `<details>`.
-- **Where the images live.** On a branch named `pr-images/<the PR's branch>`, never on the PR's own branch, so they don't reach `main`. Embed with `https://github.com/countrymanprime/narration-utils/blob/pr-images/<branch>/<file>.png?raw=true`. Regenerate them after every push that changes the UI.
+- **Where the images live.** On a branch named `pr-images/<the PR's branch>`, never on the PR's own branch, so they don't reach `main`. Embed with `https://github.com/countrymanprime/narration-utils/blob/pr-images/<branch>/<file>.png?raw=true`. Regenerate them after every push that changes the UI. The coordinator (whoever merges the PR) deletes `pr-images/<branch>` right after the merge (step 4 of [the pass](#the-coordinators-pass)), so the screenshots in a merged PR's body stop rendering; the Playwright visual suite and the mock are the lasting record.
 - **How to capture.** `cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"` writes `apps/ui/screenshots/app/<page>/<state>/<viewport>.png` (gitignored). The mock runs from `docs/research/mockups/studio-next/` (`npm ci` there, then its Playwright scripts in `e2e/`); a worker without network lists the missing mock image in the PR and the owner supplies it.
 - **Who checks.** The worker adds them before it says the PR is ready. The coordinator checks the PR body for the images at every sweep, and does not merge a UI PR without them, whatever the score or the CI result.
 
@@ -256,7 +256,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - it has no `risk:high` label, or the owner has approved it on #992 for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
-   Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
+   Merge with `squash` and `expectedHeadSha`, then delete the branch, and its `pr-images/<branch>` if one exists ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
    - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, ADR or PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
    - **A merge turns `main` red:** tick `HOLD`, start an Opus fixer aimed at `main`, and log it.
    - **A merge just unblocked other phases (D62, owner-directed):** don't wait for the next scheduled Routine firing to act on it. The moment a merge lands, re-check every PRD whose `Depends` named the phase that just completed, and if step 5 below would now add something to the ready list, run step 5 immediately, in the same pass. A phase sitting ready while nothing launches until the next tick is exactly the latency this rule removes.
