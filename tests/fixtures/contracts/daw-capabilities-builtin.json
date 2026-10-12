@@ -109,6 +109,12 @@
       "message": "Not available with the built-in recorder yet.",
       "reason": "not_yet"
     },
+    "range_gain": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "record": {
       "available": false,
       "level": "experimental",

@@ -62,6 +62,23 @@
 -- Not run in REAPER (pending the QA pass, #1495): whether TakeFX_AddByName loads a .RfxChain onto a take with the full
 -- path and appends its FX at the end, whether a split copies a take's P_EXT and gives the copied FX new GUIDs, and
 -- whether the splits and the load, and the removal and the join, are each one undo step.
+--
+-- reduce_range_gain(run, item_guid, take_guid, reduce_db, stretches) lowers stretches of the item's active take by reduce_db
+-- (1 to 24) with points on the take's volume envelope, leaving the source file, the item and every other item as they were:
+-- Clean up's Breaths, Plosives and Noise (SN-E100). stretches is 'start:end' pairs in the take's source seconds, joined by
+-- ',' (at most 500, plain decimals only). With the playback rate at 1, a stretch's envelope time is its source time less the
+-- take's D_STARTOFFS; a stretch outside 0..the item's length is one the app read before the item changed, so it answers
+-- ITEM_STALE|run|guid|item, as a GUID that does not resolve does (reason item or take). Stretches whose GAIN_RAMP ramps would
+-- meet are made one. In one undo block it makes the take a volume envelope when it has none (action 40693 on the item alone,
+-- the item selection put back after) and adds four linear points per stretch: the level the envelope held GAIN_RAMP before the
+-- start, that level lowered at the start and at the end, and the level GAIN_RAMP after (none outside the item). A take that is
+-- not the active one, a MIDI take, a changed playback rate, a take whose envelope already has a point where a stretch would be
+-- lowered, and recording are refused before any change. Answers RANGE_GAIN_REDUCED|run|itemGuid|takeGuid|stretches|reduceDb|
+-- undoPoints.
+--
+-- Not run in REAPER (pending the QA pass, #1495): whether action 40693 makes a visible take volume envelope on the selected
+-- item's active take, whether the envelope's point times are seconds from the item's start, what GetEnvelopeScalingMode answers
+-- for it, that the edges do not click, and that one Undo removes the points and the envelope.
 
 local core = ...
 local event = core.event
@@ -787,6 +804,219 @@ local function remove_fx_range(session_dir, run_id, guid_text, name)
   event(session_dir, 'RANGE_FX_REMOVED', run_id, item_guid(keep), name, 1)
 end
 
+-- reduce_range_gain ------------------------------------------------------------------------------------------------
+
+local UNDO_REDUCE_GAIN = 'Narration Utils: lower stretches'
+local REDUCE_GAIN_UNREADABLE = 'The stretches to lower are not readable, so nothing changed.'
+local BAD_REDUCTION = 'The reduction must be from 1 to 24 dB.'
+local MIN_REDUCE_DB, MAX_REDUCE_DB = 1, 24
+local MAX_GAIN_STRETCHES = 500
+-- The ramp, in seconds, outside each edge of a stretch, from the take's level to the lowered level and back.
+local GAIN_RAMP = 0.01
+-- "Take: Toggle take volume envelope", run on the item alone when its take has no volume envelope yet.
+local TOGGLE_TAKE_VOLUME_ENVELOPE = 40693
+local GAIN_NEEDED = {
+  'GetTakeEnvelopeByName',
+  'GetEnvelopeScalingMode',
+  'ScaleToEnvelopeMode',
+  'ScaleFromEnvelopeMode',
+  'Envelope_Evaluate',
+  'CountEnvelopePoints',
+  'GetEnvelopePoint',
+  'InsertEnvelopePoint',
+  'Envelope_SortPoints',
+}
+
+local function take_guid(take)
+  local _, guid = reaper.GetSetMediaItemTakeInfo_String(take, 'GUID', '', false)
+  return normalize_guid(guid)
+end
+
+-- A plain decimal number of seconds ('12', '12.5'), or nil: no sign, exponent, hex, nan or inf.
+local function plain_seconds(text)
+  if not text:match('^%d+$') and not text:match('^%d+%.%d+$') then
+    return nil
+  end
+  return tonumber(text)
+end
+
+-- 'start:end,start:end' as { { start, end } } in the order given, or nil when any pair is not two plain times with
+-- start before end, and false when there are more than MAX_GAIN_STRETCHES.
+local function stretches_from(text)
+  local out = {}
+  for part in (text .. ','):gmatch('([^,]*),') do
+    local first_text, last_text = part:match('^([^:]+):([^:]+)$')
+    local first, last = plain_seconds(first_text or ''), plain_seconds(last_text or '')
+    if not first or not last or last - first <= EDGE_TOLERANCE then
+      return nil
+    end
+    out[#out + 1] = { first, last }
+  end
+  if #out > MAX_GAIN_STRETCHES then
+    return false
+  end
+  return out
+end
+
+-- The stretches in item time (source time less the take's offset), sorted, with any two whose ramps would meet made one.
+local function item_stretches(stretches, offset)
+  local sorted = {}
+  for _, stretch in ipairs(stretches) do
+    sorted[#sorted + 1] = { stretch[1] - offset, stretch[2] - offset }
+  end
+  table.sort(sorted, function(a, b)
+    return a[1] < b[1]
+  end)
+  local merged = {}
+  for _, stretch in ipairs(sorted) do
+    local previous = merged[#merged]
+    if previous and stretch[1] - GAIN_RAMP <= previous[2] + GAIN_RAMP + EDGE_TOLERANCE then
+      previous[2] = math.max(previous[2], stretch[2])
+    else
+      merged[#merged + 1] = { stretch[1], stretch[2] }
+    end
+  end
+  return merged
+end
+
+-- Whether the envelope already has a point from first to last.
+local function has_point_within(env, first, last)
+  for index = 0, reaper.CountEnvelopePoints(env) - 1 do
+    local _, time = reaper.GetEnvelopePoint(env, index)
+    if time >= first - EDGE_TOLERANCE and time <= last + EDGE_TOLERANCE then
+      return true
+    end
+  end
+  return false
+end
+
+-- Makes the active take of item a volume envelope with the action, on the item alone, then puts the item selection back.
+local function make_volume_envelope(item, take)
+  local selected = {}
+  for index = 0, reaper.CountSelectedMediaItems(0) - 1 do
+    selected[#selected + 1] = reaper.GetSelectedMediaItem(0, index)
+  end
+  reaper.SelectAllMediaItems(0, false)
+  reaper.SetMediaItemSelected(item, true)
+  reaper.Main_OnCommand(TOGGLE_TAKE_VOLUME_ENVELOPE, 0)
+  reaper.SetMediaItemSelected(item, false)
+  for _, other in ipairs(selected) do
+    reaper.SetMediaItemSelected(other, true)
+  end
+  return reaper.GetTakeEnvelopeByName(take, 'Volume')
+end
+
+local function reduce_range_gain(session_dir, run_id, item_text, take_text, db_text, stretches_text)
+  local db = finite(db_text)
+  if not db or db < MIN_REDUCE_DB or db > MAX_REDUCE_DB then
+    event(session_dir, 'ERROR', run_id, BAD_REDUCTION)
+    return
+  end
+  local stretches = stretches_from(stretches_text or '')
+  if stretches == false then
+    event(session_dir, 'ERROR', run_id, 'A take can have at most 500 stretches lowered at once, so nothing changed.')
+    return
+  end
+  if not stretches then
+    event(session_dir, 'ERROR', run_id, REDUCE_GAIN_UNREADABLE)
+    return
+  end
+  for _, call in ipairs(GAIN_NEEDED) do
+    if not reaper.APIExists(call) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot lower a stretch of a take.')
+      return
+    end
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)
+  local item = wanted_item ~= '' and find_item(wanted_item) or nil
+  if not item then
+    event(session_dir, 'ITEM_STALE', run_id, item_text, 'item')
+    return
+  end
+  local take
+  for index = 0, reaper.CountTakes(item) - 1 do
+    local candidate = reaper.GetTake(item, index)
+    if candidate and wanted_take ~= '' and take_guid(candidate) == wanted_take then
+      take = candidate
+    end
+  end
+  if not take then
+    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')
+    return
+  end
+  local function refuse(sentence)
+    event(session_dir, 'ERROR', run_id, sentence)
+  end
+  if reaper.GetActiveTake(item) ~= take then
+    return refuse('That is not the take the item plays, so nothing was lowered.')
+  end
+  if reaper.TakeIsMIDI(take) then
+    return refuse('A MIDI take has no audio to lower.')
+  end
+  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then
+    return refuse('A take with a changed playback rate cannot have a stretch lowered.')
+  end
+  local length = reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+  local spans = item_stretches(stretches, reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'))
+  -- A stretch the item no longer plays is one the app read before the item was trimmed or its take moved.
+  for _, span in ipairs(spans) do
+    if span[1] < -EDGE_TOLERANCE or span[2] > length + EDGE_TOLERANCE then
+      event(session_dir, 'ITEM_STALE', run_id, item_guid(item), 'item')
+      return
+    end
+  end
+  local env = reaper.GetTakeEnvelopeByName(take, 'Volume')
+  if env then
+    for _, span in ipairs(spans) do
+      if has_point_within(env, span[1] - GAIN_RAMP, span[2] + GAIN_RAMP) then
+        return refuse('That take already has volume changes where a stretch would be lowered, so nothing was lowered.')
+      end
+    end
+  end
+
+  local gain = 10 ^ (-db / 20)
+  reaper.Undo_BeginBlock2(0)
+  if not env then
+    env = make_volume_envelope(item, take)
+  end
+  if env then
+    local mode = reaper.GetEnvelopeScalingMode(env)
+    -- Every value is read before any point is added, so each one scales the take's level as it was.
+    local planned = {}
+    local function plan(time, factor)
+      local _, value = reaper.Envelope_Evaluate(env, time, 0, 0)
+      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor
+      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }
+    end
+    for _, span in ipairs(spans) do
+      local first, last = math.max(span[1], 0), math.min(span[2], length)
+      if first > EDGE_TOLERANCE then
+        plan(math.max(first - GAIN_RAMP, 0), 1)
+      end
+      plan(first, gain)
+      plan(last, gain)
+      if last < length - EDGE_TOLERANCE then
+        plan(math.min(last + GAIN_RAMP, length), 1)
+      end
+    end
+    for _, point in ipairs(planned) do
+      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)
+    end
+    reaper.Envelope_SortPoints(env)
+  end
+  reaper.UpdateItemInProject(item)
+  reaper.Undo_EndBlock2(0, UNDO_REDUCE_GAIN, -1)
+  reaper.UpdateArrange()
+  if not env then
+    return refuse('REAPER did not make a volume envelope for that take, so nothing was lowered.')
+  end
+  event(session_dir, 'RANGE_GAIN_REDUCED', run_id, item_guid(item), take_guid(take), #spans, string.format('%.1f', db), 1)
+end
+
 return function(registry)
   registry.register('delete_range', function(ctx, args)
     local fade, pad, tone = cut_tail(args[6])
@@ -797,5 +1027,8 @@ return function(registry)
   end)
   registry.register('remove_fx_range', function(ctx, args)
     remove_fx_range(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
+  end)
+  registry.register('reduce_range_gain', function(ctx, args)
+    reduce_range_gain(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4], args[5])
   end)
 end

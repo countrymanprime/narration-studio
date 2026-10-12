@@ -68,6 +68,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'read_line_ids',
     'record_start',
     'record_stop',
+    'reduce_range_gain',
     'remove_fx_range',
     'render_with_fx',
     'reopen_pickup',

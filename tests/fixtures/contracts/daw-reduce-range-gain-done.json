@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "changed": true,
+  "message": "Lowered 2 stretches by 9 dB in REAPER. Undo it there in one step.",
+  "undoSteps": 1
+}

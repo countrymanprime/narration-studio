@@ -50,6 +50,11 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-split-take-done.json': dawResultSchema,
   'daw-split-take-refused-stale.json': dawResultSchema,
   'daw-split-take-refused-capability.json': dawResultSchema,
+  // DawReduceRangeGain (bindings_daw_reduce_range_gain_test.go): two stretches lowered in REAPER (one undo step), REAPER's stale refusal
+  // and the range_gain capability's refusal.
+  'daw-reduce-range-gain-done.json': dawResultSchema,
+  'daw-reduce-range-gain-refused-stale.json': dawResultSchema,
+  'daw-reduce-range-gain-refused-capability.json': dawResultSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,

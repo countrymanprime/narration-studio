@@ -83,6 +83,8 @@ var realEvents = map[string][]string{
 	"FX_RENDERED":       {"FX_RENDERED", "r1", "C:/p/narration-utils/mastering/run1", "1"},
 	// integrations/reaper/tests/takes_test.lua (hide_takes).
 	"TAKES_HIDDEN": {"TAKES_HIDDEN", "h1", "{AAAAAAAA-0000-4000-8000-000000000001}", "2", "1"},
+	// integrations/reaper/tests/reduce_range_gain_test.lua (reduce_range_gain).
+	"RANGE_GAIN_REDUCED": {"RANGE_GAIN_REDUCED", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "2", "6.0", "1"},
 	// integrations/reaper/tests/split_take_test.lua (split_take).
 	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }

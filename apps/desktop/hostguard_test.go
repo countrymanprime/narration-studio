@@ -46,6 +46,7 @@ var swappableHostFields = map[string]bool{
 	"takeStacker":     true,
 	"filePreviewer":   true,
 	"fileRevealer":    true,
+	"rangeGain":       true,
 	"backupKeeper":    true,
 	"dawPortResolver": true,
 }

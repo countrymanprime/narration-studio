@@ -2,6 +2,7 @@ package dawport
 
 import (
 	"context"
+	"math"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -456,6 +457,49 @@ type RangeFXApplier interface {
 type TakeStacker interface {
 	StackTakes(ctx context.Context, request StackRequest) (Result, error)
 	UnstackTakes(ctx context.Context, request StackRequest) (Result, error)
+}
+
+// The bounds of a RangeGainRequest, the bridge's own.
+const (
+	MinReduceDB      = bridge.MinReduceDB
+	MaxReduceDB      = bridge.MaxReduceDB
+	MaxGainStretches = bridge.MaxGainStretches
+)
+
+// GainStretch is Start to End seconds into a take's own audio: its source file's time, which does not move when the item does.
+type GainStretch = bridge.GainStretch
+
+// RangeGainRequest lowers stretches of one take by ReduceDB (MinReduceDB to MaxReduceDB): Clean up's Breaths, Plosives and Noise.
+// ItemGUID and TakeGUID are as the app last read them; the engine refuses a request whose ids no longer match, or a stretch the
+// item no longer plays.
+type RangeGainRequest struct {
+	ChapterID string
+	ItemGUID  string
+	TakeGUID  string
+	Stretches []GainStretch
+	ReduceDB  float64
+}
+
+// Valid is whether the request is in shape: ids, a reduction in bounds, and 1 to MaxGainStretches finite stretches each starting at
+// or after 0 and ending after it starts.
+func (r RangeGainRequest) Valid() bool {
+	if r.ItemGUID == "" || r.TakeGUID == "" || math.IsNaN(r.ReduceDB) || r.ReduceDB < MinReduceDB || r.ReduceDB > MaxReduceDB ||
+		len(r.Stretches) == 0 || len(r.Stretches) > MaxGainStretches {
+		return false
+	}
+	for _, stretch := range r.Stretches {
+		if !(stretch.Start >= 0) || math.IsInf(stretch.End, 0) || !(stretch.End > stretch.Start) {
+			return false
+		}
+	}
+	return true
+}
+
+// RangeGainReducer lowers stretches of a take, leaving the recorded audio as it was where the engine can (a volume envelope), with a
+// short ramp at each edge. One undo point where the engine can make it as one action; the Result says how many it added, and the
+// Steps it performed when it had to make it in several.
+type RangeGainReducer interface {
+	ReduceRangeGain(ctx context.Context, request RangeGainRequest) (Result, error)
 }
 
 // BackupKeeper clones the audio around an edit before it is made, so it can be put back, for an engine that keeps no takes of its

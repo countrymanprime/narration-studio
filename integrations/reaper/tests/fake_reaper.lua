@@ -314,8 +314,9 @@ function Fake:transport_calls()
 end
 
 -- The tracks and items with the values an edit changes (position, length, track, mute, fades, names, extension data),
--- and each take's FX list and extension data (apply_fx_range and remove_fx_range change them inside their block). The
--- rest of a take is kept by reference: no command here changes it inside an undo block a test then undoes.
+-- and each take's FX list, extension data and volume envelope (apply_fx_range, remove_fx_range and reduce_range_gain change
+-- them inside their block). The rest of a take is kept by reference: no command here changes it inside an undo block a
+-- test then undoes.
 function Fake:snapshot()
   local copy = function(t)
     local out = {}
@@ -340,7 +341,12 @@ function Fake:snapshot()
       active_index = item.active_index or false,
     }
     for _, take in ipairs(item.takes) do
-      shot.take_state[take] = { fx = copy(take.fx or {}), ext = copy(take.ext or {}) }
+      shot.take_state[take] = {
+        fx = copy(take.fx or {}),
+        ext = copy(take.ext or {}),
+        volume_env = take.volume_env or false,
+        env_points = take.volume_env and copy(take.volume_env.points) or false,
+      }
     end
   end
   return shot
@@ -363,6 +369,10 @@ function Fake:undo_last_block()
   end
   for take, state in pairs(shot.take_state) do
     take.fx, take.ext = state.fx, state.ext
+    take.volume_env = state.volume_env or nil
+    if take.volume_env then
+      take.volume_env.points = state.env_points
+    end
   end
   return entry.label
 end
@@ -550,6 +560,17 @@ function Fake:add_project_api(api)
     fake.calls[#fake.calls + 1] = { name = 'Main_OnCommand', command_id = command_id, flag = flag }
     if command_id == 42230 then
       fake:render()
+    elseif command_id == 40693 then
+      -- "Take: Toggle take volume envelope" on each selected item's active take: makes the envelope when the take has
+      -- none, and otherwise shows or hides it (reduce_range_gain, from the reference; pending the QA pass, #1495).
+      for _, item in ipairs(fake:selected_items()) do
+        local take = item.takes[item.active_index or 1]
+        if take and not take.volume_env then
+          take.volume_env = { points = {}, visible = true }
+        elseif take then
+          take.volume_env.visible = not take.volume_env.visible
+        end
+      end
     end
     return true
   end
@@ -1163,6 +1184,79 @@ function Fake:add_take_api(api)
       return true, current
     end
     return false, ''
+  end
+  -- A take's volume envelope (reduce_range_gain, narration_range.lua) as take.volume_env = { points = { { time, value,
+  -- shape } }, visible }, nil until action 40693 makes one. Point times are seconds from the item's start and values are
+  -- in the envelope's own scale. Modelled on the ReaScript reference, not on a run in REAPER (pending the QA pass, #1495):
+  -- the volume envelope is in fader scaling (mode 1), but ScaleToEnvelopeMode(1, x) here is a stand-in (the square root)
+  -- rather than REAPER's curve, so a value written without the conversion reads back wrong. Envelope_Evaluate models only
+  -- linear segments: the value before the first point is the first point's, after the last the last's, and an empty
+  -- envelope reads the 0 dB default.
+  function api.GetTakeEnvelopeByName(take, name)
+    if name == 'Volume' then
+      return take.volume_env
+    end
+    return nil
+  end
+  function api.GetEnvelopeScalingMode(_)
+    return 1
+  end
+  function api.ScaleToEnvelopeMode(mode, value)
+    if mode == 1 then
+      return math.sqrt(value)
+    end
+    return value
+  end
+  function api.ScaleFromEnvelopeMode(mode, value)
+    if mode == 1 then
+      return value * value
+    end
+    return value
+  end
+  function api.CountEnvelopePoints(env)
+    return #env.points
+  end
+  function api.GetEnvelopePoint(env, index)
+    local point = env.points[index + 1]
+    if not point then
+      return false, 0, 0, 0, 0, false
+    end
+    return true, point.time, point.value, point.shape, 0, false
+  end
+  local function sort_points(env)
+    table.sort(env.points, function(a, b)
+      return a.time < b.time
+    end)
+  end
+  function api.InsertEnvelopePoint(env, time, value, shape, _, _, no_sort)
+    fake.calls[#fake.calls + 1] = { name = 'InsertEnvelopePoint', time = time, value = value, shape = shape }
+    env.points[#env.points + 1] = { time = time, value = value, shape = shape }
+    if not no_sort then
+      sort_points(env)
+    end
+    return true
+  end
+  function api.Envelope_SortPoints(env)
+    sort_points(env)
+    return true
+  end
+  function api.Envelope_Evaluate(env, time, _, _)
+    local points = env.points
+    if #points == 0 then
+      return 0, math.sqrt(1), 0, 0, 0
+    end
+    if time <= points[1].time then
+      return 0, points[1].value, 0, 0, 0
+    end
+    for index = 2, #points do
+      local before, after = points[index - 1], points[index]
+      if time <= after.time then
+        local span = after.time - before.time
+        local share = span > 0 and (time - before.time) / span or 1
+        return 0, before.value + (after.value - before.value) * share, 0, 0, 0
+      end
+    end
+    return 0, points[#points].value, 0, 0, 0
   end
   function api.GetNumTakeMarkers(take)
     return #take.markers

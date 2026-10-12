@@ -128,6 +128,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"preview_file_range":  dawport.CapFilePreview,
 	"stop_file_preview":   dawport.CapFilePreview,
 	"reveal_file":         dawport.CapFileReveal,
+	"reduce_range_gain":   dawport.CapRangeGain,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -585,6 +586,82 @@ func TestSplitTakeIsExperimentalAndAnswersADawResult(t *testing.T) {
 	}
 }
 
+// reduce_range_gain is the range_gain capability's role (dawport.RangeGainReducer): Experimental, gated by range_gain, one undo
+// step when it lowered, a request out of shape refused before anything is sent, and every refusal a DawResult in a whole sentence
+// (ADR 0810).
+func TestReduceRangeGainIsExperimentalAndAnswersADawResult(t *testing.T) {
+	if declares[dawport.CapRangeGain] != dawport.Experimental || !bridge.Experimental("reduce_range_gain") ||
+		commandCapability["reduce_range_gain"] != dawport.CapRangeGain || depthOf(dawport.CapRangeGain).Destructive {
+		t.Fatalf("reduce_range_gain must be an Experimental, non-destructive command of the range_gain capability")
+	}
+	request := dawport.RangeGainRequest{ChapterID: "chapter-1", ItemGUID: hideItem, TakeGUID: hideTake, ReduceDB: 9,
+		Stretches: []dawport.GainStretch{{Start: 4, End: 5}, {Start: 8, End: 8.5}}}
+	reducerAnswering := func(answer func(command []string) [][]string) dawport.RangeGainReducer {
+		client, dir := newClient(t)
+		adapter, err := New(client, func(dawport.Capability) error { return nil })
+		if err != nil {
+			t.Fatal(err)
+		}
+		answerCommands(t, client, dir, answer)
+		return adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer)
+	}
+	reducer := reducerAnswering(func(command []string) [][]string {
+		if command[0] != "reduce_range_gain" || command[2] != hideItem || command[3] != hideTake || command[4] != "9" ||
+			command[5] != "4.000000:5.000000,8.000000:8.500000" {
+			t.Errorf("command = %v", command)
+		}
+		return [][]string{{"RANGE_GAIN_REDUCED", command[1], hideItem, hideTake, "2", "9.0", "1"}}
+	})
+	got, err := reducer.ReduceRangeGain(t.Context(), request)
+	want := dawport.OK("Lowered 2 stretches by 9 dB in REAPER. Undo it there in one step.", true).WithUndoSteps(1)
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("ReduceRangeGain = %+v, %v; want %+v", got, err, want)
+	}
+
+	sentence := "That take already has volume changes where a stretch would be lowered, so nothing was lowered."
+	for _, tc := range []struct {
+		answer []string
+		want   dawport.Result
+	}{
+		{[]string{"ITEM_STALE", "", hideItem, "item"}, dawport.RefusedStale("That take's item moved or changed in the REAPER project. Read the project again.")},
+		{[]string{"ITEM_STALE", "", hideTake, "take"}, dawport.RefusedStale("That item no longer has the take to lower. Read the project again.")},
+		{[]string{"ERROR", "", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{[]string{"ERROR", "", "Unsupported workspace command"}, dawport.Refused(messageGainScriptOutdated)},
+		{[]string{"ERROR", "", sentence}, dawport.Refused(sentence)},
+	} {
+		reducer := reducerAnswering(func(command []string) [][]string {
+			answer := append([]string(nil), tc.answer...)
+			answer[1] = command[1]
+			return [][]string{answer}
+		})
+		got, err := reducer.ReduceRangeGain(t.Context(), request)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("answer %v: ReduceRangeGain = %+v, %v; want %+v", tc.answer, got, err, tc.want)
+		}
+	}
+
+	refusedSentence := "Experimental REAPER actions are off. Turn them on in Settings to lower stretches."
+	var asked []dawport.Capability
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		asked = append(asked, c)
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refusedSentence}}
+	})
+	got, err = adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer).ReduceRangeGain(t.Context(), request)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(refusedSentence)) || len(asked) == 0 || asked[0] != dawport.CapRangeGain {
+		t.Errorf("ReduceRangeGain with range_gain refused = %+v, %v (asked %v); want Refused(%q)", got, err, asked, refusedSentence)
+	}
+	bad := request
+	bad.ReduceDB = 30
+	allowedAdapter, allowedDir := newAdapter(t, func(dawport.Capability) error { return nil })
+	if got, err := allowedAdapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer).ReduceRangeGain(t.Context(), bad); err != nil ||
+		!reflect.DeepEqual(got, dawport.Refused(messageGainBad)) {
+		t.Errorf("a 30 dB request = %+v, %v; want Refused(%q)", got, err, messageGainBad)
+	}
+	if n := len(sentCommands(t, dir)) + len(sentCommands(t, allowedDir)); n != 0 {
+		t.Errorf("a refused request wrote %d commands", n)
+	}
+}
+
 const rollTrack = "{00000001-0000-4000-8000-000000000001}"
 
 func puncherAnswering(t *testing.T, answer func(command []string) [][]string) dawport.Puncher {
@@ -662,11 +739,12 @@ func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 }
 
 // REAPER keeps the earlier audio as a take, a cut moves the audio to the Cuts track, a chain on a range is take FX that come
-// off again, and a stack makes later reads takes and moves their items to the Cuts track, so punch, cut_range, fx_range and
-// stack_takes are native and not destructive, with REAPER up or down.
+// off again, a stack makes later reads takes and moves their items to the Cuts track, and lowering stretches is points on the take's
+// volume envelope, so punch, cut_range, fx_range, stack_takes and range_gain are native and not destructive, with REAPER up or down.
 func TestPunchCutRangeFXRangeAndStackTakesAreNativeAndNotDestructive(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
-	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true, dawport.CapStackTakes: true}
+	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true, dawport.CapStackTakes: true,
+		dawport.CapRangeGain: true}
 	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
 		for c := range native {
 			if got := d.Depth(c); got != (dawport.Depth{Mode: dawport.ModeNative}) {

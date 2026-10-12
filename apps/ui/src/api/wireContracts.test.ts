@@ -18,6 +18,7 @@ import {
   rangeCutAnswer,
   rolledAnswer,
   takeSplitAnswer,
+  rangeGainAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
@@ -3033,6 +3034,41 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.takes.message);
   });
 
+  it('dawReduceRangeGain answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-reduce-range-gain-done.json', 'daw-reduce-range-gain-refused-stale.json', 'daw-reduce-range-gain-refused-capability.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-reduce-range-gain-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: rangeGainAnswer('REAPER', 2, 9) });
+    expect(readGolden('daw-reduce-range-gain-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+    expect(readGolden('daw-reduce-range-gain-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+    expect(readGolden('daw-reduce-range-gain-refused-capability.json')).not.toHaveProperty('code');
+
+    const stretches = [
+      { start: 4, end: 5 },
+      { start: 8, end: 8.5 },
+    ];
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { range_gain: 'on' } } });
+    const lowered = await api.dawReduceRangeGain(chapter.id, 'take-twice', stretches, 9);
+    expectMatches(dawResultSchema, lowered, 'mock reduce range gain');
+    expect(lowered).toEqual(readGolden('daw-reduce-range-gain-done.json'));
+    for (const [chapterId, takeId, within] of [
+      [chapter.id, '{11111111-1111-4111-8111-111111111111}', stretches],
+      ['no-such-chapter', 'take-twice', stretches],
+      [chapter.id, 'take-twice', [{ start: 11, end: 12.5 }]],
+    ] as const) {
+      const stale = await api.dawReduceRangeGain(chapterId, takeId, [...within], 9);
+      expectMatches(dawResultSchema, stale, 'mock reduce range gain, stale');
+      expect(stale).toMatchObject({ ok: false, code: 'stale' });
+    }
+    expect((await api.dawReduceRangeGain(chapter.id, 'take-twice', stretches, 30)).refused).toBe(DAW_ANSWERS.gainBadDb);
+    expect((await api.dawReduceRangeGain(chapter.id, 'take-twice', [], 9)).refused).toBe(DAW_ANSWERS.gainBadStretches);
+
+    const off = await createMockApi().dawReduceRangeGain(chapter.id, 'take-twice', stretches, 9);
+    expectMatches(dawResultSchema, off, 'mock reduce range gain, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.range_gain.message);
+  });
+
   it('backups.json (the Audacity backups table the host reads back) parses from the Go goldens, and the schema refuses what the host refuses', () => {
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-empty.json'), 'daw-backups-empty.json');
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-two.json'), 'daw-backups-two.json');
@@ -3732,6 +3768,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawStackTakes',
       'dawUnstackTakes',
       'dawSplitTake',
+      'dawReduceRangeGain',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',

@@ -77,6 +77,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapBackups:         backupsRole{r(dawport.CapBackups)},
 		dawport.CapFilePreview:     filePreviewRole{r(dawport.CapFilePreview)},
 		dawport.CapFileReveal:      fileRevealRole{r(dawport.CapFileReveal)},
+		dawport.CapRangeGain:       rangeGainRole{r(dawport.CapRangeGain)},
 	}
 	return f
 }
@@ -258,6 +259,12 @@ type fileRevealRole struct{ role }
 
 func (r fileRevealRole) RevealFile(context.Context, string) (dawport.FileRevealed, error) {
 	return dawport.FileRevealed{}, r.do("RevealFile")
+}
+
+type rangeGainRole struct{ role }
+
+func (r rangeGainRole) ReduceRangeGain(context.Context, dawport.RangeGainRequest) (dawport.Result, error) {
+	return dawport.Result{}, r.do("ReduceRangeGain")
 }
 
 type recordRole struct{ role }

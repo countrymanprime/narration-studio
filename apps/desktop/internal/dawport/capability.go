@@ -49,6 +49,9 @@ const (
 	// Master & QC acts on rendered files that are not project items, which navigate cannot reach.
 	CapFilePreview Capability = "file_preview"
 	CapFileReveal  Capability = "file_reveal"
+	// CapRangeGain lowers stretches of a take by some dB (SN-E100): the one DAW change behind Clean up's Breaths, Plosives and
+	// Noise.
+	CapRangeGain Capability = "range_gain"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -107,6 +110,7 @@ var specs = []Spec{
 	{CapBackups, "Audio backups", NeedsRunning, reflect.TypeFor[BackupKeeper](), nil},
 	{CapFilePreview, "Play part of a file", NeedsRunning, reflect.TypeFor[FilePreviewer](), nil},
 	{CapFileReveal, "Show a file in the audio engine", NeedsRunning, reflect.TypeFor[FileRevealer](), nil},
+	{CapRangeGain, "Lower stretches of a take", NeedsRunning, reflect.TypeFor[RangeGainReducer](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.

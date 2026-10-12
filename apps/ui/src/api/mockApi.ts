@@ -71,6 +71,7 @@ import type {
   DawStackTakesApi,
   MasterFilesApi,
   DawSplitTakeApi,
+  DawReduceRangeGainApi,
 } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
 import type { TakeEvidenceApi } from './contracts/takeEvidence';
@@ -94,6 +95,7 @@ import {
   splitOutsideAnswer,
   splitTakeStaleAnswer,
   takeSplitOf,
+  rangeGainAnswerOf,
 } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -381,6 +383,7 @@ export function createMockApi(
     ),
     ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createSplitTakeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createReduceRangeGainMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFilesMock(daw, measurePicked),
     ...createMasterFilesMock(daw, lastRunFiles),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
@@ -610,6 +613,24 @@ function createSplitTakeMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: st
       if (at <= take.start || at >= take.start + take.length) return { ...refusedResult(splitOutsideAnswer(setup.daw)), code: 'stale' };
       const split = takeSplitOf(setup);
       return 'refused' in split ? refusedResult(split.refused) : { ok: true, changed: true, message: split.message, undoSteps: 1 };
+    },
+  };
+}
+
+/** DawReduceRangeGain as bindings_daw_reduce_range_gain.go answers it: the range_gain capability's sentence first, then the dB and the
+ * stretches' shape, then a chapter the manuscript does not have or a take the sample project's track does not hold, and a stretch outside
+ * the part of the file it plays (code stale); then what the launch's DAW answers. The mock reads no track, so the takes are the
+ * fixtures' DAW_PROJECT.gainTakes. */
+function createReduceRangeGainMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawReduceRangeGainApi {
+  return {
+    async dawReduceRangeGain(chapterId, takeId, stretches, reduceDb) {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.range_gain;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      const project = { ...DAW_PROJECT, chapterIds: (await hasChapter(chapterId)) ? [chapterId] : [] };
+      const answer = rangeGainAnswerOf(setup, project, chapterId, takeId, stretches, reduceDb);
+      if ('result' in answer) return answer.result;
+      return answer.stale ? { ...refusedResult(answer.refused), code: 'stale' } : refusedResult(answer.refused);
     },
   };
 }
