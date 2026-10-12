@@ -188,9 +188,9 @@ func StackPlan(in StackInput) (dawport.StackRequest, *dawport.Result) {
 }
 
 // UnstackPlan is the unstack_takes request for the passages in.PassageIDs: for each passage, the read on the chapter's track
-// whose item in the saved project carries stacked takes of the passage's other reads is the first read, and each of those
-// takes moves from its start back to its start plus the offset the take recorded, as long as its own item in the saved
-// project. The shift is per group the latest end among the moved-back reads less the first read's end. The same refusals as
+// whose item in the saved project carries stacked takes of the passage's other reads is the first read, and every stacked
+// take on it moves from its start back to its start plus the offset the take recorded, as long as its own item in the
+// saved project. The shift is per group the latest end among the moved-back reads less the first read's end. The same refusals as
 // StackPlan; a read the saved project no longer has is refused stale, and nothing stacked (the project not saved since the
 // stack, say) is refused with a sentence that says to save it.
 func UnstackPlan(in StackInput) (dawport.StackRequest, *dawport.Result) {
@@ -241,11 +241,13 @@ func UnstackPlan(in StackInput) (dawport.StackRequest, *dawport.Result) {
 	return request, nil
 }
 
-// stackedMoves reads the takes of saved (the first read's item in the saved project) that stack_takes recorded for one of
-// the passage's other reads: each moves from base's start to base's start plus its offset, for its own item's length.
-// baseTake is the item's first take that is not a stacked one. gone is true when a recorded read's item is not in the saved
-// project.
+// stackedMoves reads the takes of saved (the first read's item in the saved project) that stack_takes recorded, when one
+// of them is one of the passage's other reads: each moves from base's start to base's start plus its offset, for its own
+// item's length. A stack goes back whole (narration_takes.lua refuses an un-stack that leaves a stacked take on the item),
+// so every stacked take of the item moves, the passage's or not. baseTake is the item's first take that is not a stacked
+// one. gone is true when a recorded read's item is not in the saved project.
 func stackedMoves(project tracks.Project, saved tracks.Item, passage StackPassage, base dawport.TrackItem) (moves []dawport.StackMove, baseTake string, reads []string, gone bool) {
+	ours := false
 	for _, take := range saved.Takes {
 		raw, ok := take.Ext[StackedFromKey]
 		if !ok {
@@ -255,15 +257,19 @@ func stackedMoves(project tracks.Project, saved tracks.Item, passage StackPassag
 			continue
 		}
 		readItem, readTake, offset, ok := stackRecord(raw)
-		if !ok || !slices.ContainsFunc(passage.Items, func(item string) bool { return sameGUID(item, readItem) }) {
+		if !ok {
 			continue
 		}
+		ours = ours || slices.ContainsFunc(passage.Items, func(item string) bool { return sameGUID(item, readItem) })
 		_, read, found := project.ItemByGUID(readItem)
 		if !found {
 			return nil, "", nil, true
 		}
 		moves = append(moves, dawport.StackMove{TakeID: readTake, From: base.Position, To: base.Position + offset, Len: read.Length})
 		reads = append(reads, readItem)
+	}
+	if !ours {
+		return nil, baseTake, nil, false
 	}
 	return moves, baseTake, reads, false
 }

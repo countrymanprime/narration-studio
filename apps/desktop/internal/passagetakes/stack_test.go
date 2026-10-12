@@ -168,6 +168,17 @@ func TestUnstackPlanMovesStackedTakesBackByTheOffsetTheyRecorded(t *testing.T) {
 		t.Fatalf("UnstackPlan = %+v, %+v; want %+v", got, refused, want)
 	}
 
+	// A stack goes back whole: a take another passage stacked on the same first read moves back too.
+	whole := in
+	whole.Saved = savedAfterStack("6.000000")
+	first := &whole.Saved.Tracks[0].Items[0]
+	first.Takes = append(first.Takes, tracks.Take{GUID: "{A0000008-0000-4000-8000-000000000008}", Ext: map[string]string{StackedFromKey: laterItem + "|" + laterTake + "|{T}|30|20"}})
+	whole.Saved.Tracks[1].Items = append(whole.Saved.Tracks[1].Items, tracks.Item{GUID: laterItem, Length: 5})
+	got, refused = UnstackPlan(whole)
+	if refused != nil || len(got.Groups) != 1 || len(got.Groups[0].Moves) != 2 || got.Groups[0].Moves[1] != (dawport.StackMove{TakeID: laterTake, From: 10, To: 30, Len: 5}) || got.Shift != 30+5-16 {
+		t.Fatalf("whole = %+v, %+v", got, refused)
+	}
+
 	notSaved := in
 	notSaved.Saved = tracks.Project{Tracks: []tracks.Track{{Items: []tracks.Item{{GUID: firstItem, Takes: []tracks.Take{{GUID: firstTake}}}}}}}
 	if _, refused := UnstackPlan(notSaved); refused == nil || refused.Code != "" || refused.Refused != "No take of these passages is stacked in the saved REAPER project, so nothing was moved back. Save the project in REAPER if you stacked them since, then try again." {
