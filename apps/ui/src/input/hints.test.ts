@@ -54,9 +54,19 @@ describe('footerHints', () => {
       { keys: ['Right-click'], label: 'Start from here' },
       { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
       { keys: ['←', '→'], label: 'Word', id: 'hint-booth.word.prev' },
+      { keys: ['B'], label: 'Bookmark', id: 'hint-bookmark.here' },
+      { keys: ['Alt', '[', ']'], label: 'Bookmarks', id: 'hint-bookmark.prev' },
       { keys: ['F11'], label: 'Full screen', id: 'hint-booth.fullscreen' },
       { keys: ['Escape'], label: 'Exit', id: 'hint-booth.exit' },
     ]);
+  });
+
+  it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {
+    const hints = footerHints('booth', keymap);
+    expect(hints.find((hint) => hint.label === 'Bookmark')?.keys).toEqual(['B']);
+    expect(hints.find((hint) => hint.label === 'Bookmarks')?.keys).toEqual(['Alt', '[', ']']);
+    const plain = { ...keymap, 'bookmark.prev': [gesture('keyboard', 'BracketLeft')], 'bookmark.next': [gesture('keyboard', 'BracketRight')] };
+    expect(footerHints('booth', plain).find((hint) => hint.label === 'Bookmarks')?.keys).toEqual(['[', ']']);
   });
 
   it('the-pickup-hint-is-conditional: "Next pickup" shows only while a pickup session is active', () => {
