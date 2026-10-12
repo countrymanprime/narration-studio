@@ -371,11 +371,20 @@ func (r fxRangeRole) RemoveFXFromRange(context.Context, string, string) (dawport
 
 type stackTakesRole struct{ role }
 
+// StackTakes and UnstackTakes answer as REAPER's stack_takes and unstack_takes do: one undo step each.
 func (r stackTakesRole) StackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
-	return r.result("StackTakes", "Takes stacked.")
+	got, err := r.result("StackTakes", "Takes stacked.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
 }
 func (r stackTakesRole) UnstackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
-	return r.result("UnstackTakes", "Takes unstacked.")
+	got, err := r.result("UnstackTakes", "Takes unstacked.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
 }
 
 type backupsRole struct{ role }

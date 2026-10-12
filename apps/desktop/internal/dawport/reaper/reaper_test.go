@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -123,6 +124,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"delete_range":        dawport.CapCutRange,
 	"apply_fx_range":      dawport.CapFXRange,
 	"remove_fx_range":     dawport.CapFXRange,
+	"stack_takes":         dawport.CapStackTakes,
+	"unstack_takes":       dawport.CapStackTakes,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -213,13 +216,12 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so it is Unsupported,
 	// not Supported like everything else this loop defaults to.
 	want[dawport.CapMacroRender] = dawport.Unsupported
-	// cut_range is delete_range's (SN-D62) and fx_range apply_fx_range's and remove_fx_range's (SN-D63). The other edit rows
-	// (SND-3) have no bridge command yet: NotYetAvailable, with no role, until each command slice flips its own.
+	// cut_range is delete_range's (SN-D62), fx_range apply_fx_range's and remove_fx_range's (SN-D63), and stack_takes
+	// stack_takes' and unstack_takes' (SN-D71). backups has no bridge command: NotYetAvailable, with no role.
 	want[dawport.CapCutRange] = dawport.Experimental
 	want[dawport.CapFXRange] = dawport.Experimental
-	for _, c := range []dawport.Capability{dawport.CapStackTakes, dawport.CapBackups} {
-		want[c] = dawport.NotYetAvailable
-	}
+	want[dawport.CapStackTakes] = dawport.Experimental
+	want[dawport.CapBackups] = dawport.NotYetAvailable
 	if !maps.Equal(declared, want) {
 		t.Errorf("Declares() = %v, want %v", declared, want)
 	}
@@ -604,11 +606,12 @@ func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 	}
 }
 
-// REAPER keeps the earlier audio as a take, a cut moves the audio to the Cuts track, and a chain on a range is take FX that
-// come off again, so punch, cut_range and fx_range are native and not destructive, with REAPER up or down.
-func TestPunchCutRangeAndFXRangeAreNativeAndNotDestructive(t *testing.T) {
+// REAPER keeps the earlier audio as a take, a cut moves the audio to the Cuts track, a chain on a range is take FX that come
+// off again, and a stack makes later reads takes and moves their items to the Cuts track, so punch, cut_range, fx_range and
+// stack_takes are native and not destructive, with REAPER up or down.
+func TestPunchCutRangeFXRangeAndStackTakesAreNativeAndNotDestructive(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
-	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true}
+	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true, dawport.CapStackTakes: true}
 	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
 		for c := range native {
 			if got := d.Depth(c); got != (dawport.Depth{Mode: dawport.ModeNative}) {
@@ -844,5 +847,120 @@ func TestFXRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused chain wrote %d commands", n)
+	}
+}
+
+const (
+	stackBase     = "{A0000001-0000-4000-8000-000000000001}"
+	stackBaseTake = "{A0000002-0000-4000-8000-000000000002}"
+	stackRetry    = "{A0000004-0000-4000-8000-000000000004}"
+)
+
+func takeStackerAnswering(t *testing.T, answer func(command []string, payload string) [][]string) dawport.TakeStacker {
+	t.Helper()
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	answerCommands(t, client, dir, func(command []string) [][]string {
+		payload, _ := os.ReadFile(command[2])
+		return answer(command, string(payload))
+	})
+	return adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+}
+
+func stackTakesRequest(shift float64, from, to float64) dawport.StackRequest {
+	return dawport.StackRequest{
+		ChapterID: "ch-1",
+		Shift:     shift,
+		Groups:    []dawport.StackGroup{{PassageID: "p-1", ItemGUID: stackBase, Base: stackBaseTake, Moves: []dawport.StackMove{{TakeID: stackRetry, From: from, To: to, Len: 4}}}},
+	}
+}
+
+// A stack and an un-stack are one undo step each (ADR 0860 point 5), and the payload carries the request's GUIDs and times.
+func TestStackAndUnstackTakesAreOneUndoStepAndSendThePayload(t *testing.T) {
+	var commands, payloads []string
+	stacker := takeStackerAnswering(t, func(command []string, payload string) [][]string {
+		commands, payloads = append(commands, command[0]), append(payloads, payload)
+		tag := map[string]string{"stack_takes": "TAKES_STACKED", "unstack_takes": "TAKES_UNSTACKED"}[command[0]]
+		return [][]string{{tag, command[1], "1", "1", "-6.000", "1"}}
+	})
+	got, err := stacker.StackTakes(t.Context(), stackTakesRequest(-6, 16, 10))
+	if want := dawport.OK("Stacked 1 take in REAPER.", true).WithUndoSteps(1); err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("StackTakes = %+v, %v; want %+v", got, err, want)
+	}
+	got, err = stacker.UnstackTakes(t.Context(), stackTakesRequest(6, 10, 16))
+	if want := dawport.OK("Moved back 1 take in REAPER.", true).WithUndoSteps(1); err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("UnstackTakes = %+v, %v; want %+v", got, err, want)
+	}
+	if want := []string{"stack_takes", "unstack_takes"}; !reflect.DeepEqual(commands, want) {
+		t.Fatalf("commands = %v, want %v", commands, want)
+	}
+	want := "shift|-6.000000\ngroup|" + stackBase + "|" + stackBaseTake + "\nmove|" + stackRetry + "|16.000000|10.000000|4.000000\n"
+	if payloads[0] != want {
+		t.Errorf("stack payload = %q, want %q", payloads[0], want)
+	}
+	if !strings.Contains(payloads[1], "move|"+stackRetry+"|10.000000|16.000000|4.000000") {
+		t.Errorf("unstack payload = %q", payloads[1])
+	}
+	if takesMessage("Stacked", 3) != "Stacked 3 takes in REAPER." {
+		t.Errorf("plural = %q", takesMessage("Stacked", 3))
+	}
+}
+
+func TestStackTakesRefusals(t *testing.T) {
+	stale := dawport.RefusedStale("That item changed in REAPER since the app read it. Nothing was changed.")
+	between := "Other audio sits between the reads, so nothing was stacked."
+	for _, tc := range []struct {
+		name   string
+		answer []string
+		want   dawport.Result
+	}{
+		{"stale", []string{"ITEM_STALE", stackRetry, "take"}, stale},
+		{"nothing", []string{"ERROR", "Nothing to stack."}, dawport.Refused("There are no retries to move in REAPER.")},
+		{"recording", []string{"ERROR", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{"unreadable", []string{"ERROR", "The stacking request is not readable, so nothing changed."}, dawport.Refused("The takes to stack are not ones REAPER can read. Nothing was changed.")},
+		{"between", []string{"ERROR", between}, dawport.Refused(between)},
+	} {
+		stacker := takeStackerAnswering(t, func(command []string, _ string) [][]string {
+			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}
+		})
+		if got, err := stacker.StackTakes(t.Context(), stackTakesRequest(-6, 16, 10)); err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: StackTakes = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+	}
+}
+
+func TestStackTakesRefusesABadRequestWithoutSendingIt(t *testing.T) {
+	adapter, dir := newAdapter(t, func(dawport.Capability) error { return nil })
+	stacker := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+	if got, err := stacker.StackTakes(t.Context(), dawport.StackRequest{ChapterID: "ch-1"}); err != nil || !reflect.DeepEqual(got, dawport.Refused("There are no retries to move in REAPER.")) {
+		t.Errorf("StackTakes with no group = %+v, %v", got, err)
+	}
+	bad := stackTakesRequest(-6, 16, 10)
+	bad.Groups[0].ItemGUID = "item-1"
+	if got, err := stacker.StackTakes(t.Context(), bad); err != nil || !reflect.DeepEqual(got, dawport.Refused("The takes to stack are not ones REAPER can read. Nothing was changed.")) {
+		t.Errorf("StackTakes with an item that is not a GUID = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused stack wrote %d commands", n)
+	}
+}
+
+func TestStackTakesIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to stack takes."
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	stacker := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+	if got, err := stacker.StackTakes(t.Context(), stackTakesRequest(-6, 16, 10)); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("StackTakes with stack_takes refused = %+v, %v", got, err)
+	}
+	if got, err := stacker.UnstackTakes(t.Context(), stackTakesRequest(6, 10, 16)); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("UnstackTakes with stack_takes refused = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused stack wrote %d commands", n)
 	}
 }

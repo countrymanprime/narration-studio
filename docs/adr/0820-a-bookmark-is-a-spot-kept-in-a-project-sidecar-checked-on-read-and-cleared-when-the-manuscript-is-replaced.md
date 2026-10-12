@@ -8,7 +8,7 @@
 
 The Studio Next mock gives the narrator bookmarks: a mark on a character offset in one paragraph, with a short label and a note, made from the Script reader or the Booth, listed in reading order, stepped through with wrap-around, and cleared when the manuscript is replaced (`docs/research/mockups/studio-next/src/domain/schemas.ts` `Bookmark`, `src/state/commands/bookmarks.ts`, `src/selectors/bookmarks.ts`). The mock keeps them in memory. The PRD (`studio-next-script-and-story-bible.prd.md`, Phase 5, rulings SNB-Q3 to SNB-Q5) asks the host to keep them, as the source of truth, before any page uses them.
 
-The repo already has reader bookmarks (`chapter`, `line` and `note` kinds in the reader state of `manuscript-notes.json`, bindings `ManuscriptCreateBookmark` and `ManuscriptDeleteBookmark`). They have no offset, label or note text, so they are not the mock's bookmark ([the Script and Story Bible audit](../research/studio-next-script-bible-audit.md#bookmarks-the-old-store-and-the-new-one)). They stay until the page swap removes them.
+The repo already has reader bookmarks (`chapter`, `line` and `note` kinds in the reader state of `manuscript-notes.json`, bindings `ManuscriptCreateBookmark` and `ManuscriptDeleteBookmark`). They have no offset, label or note text, so they are not the mock's bookmark ([the bookmarks parity note](../research/studio-next-parity-bookmarks-and-extraction.md#old-equivalents)). They stay until the page swap removes them.
 
 ## Decision
 
