@@ -40,7 +40,7 @@ function reaper(overrides: Partial<WorkspaceReaperControls> = {}): WorkspaceReap
 }
 
 describe('TransportBar', () => {
-  it('is a named toolbar, its transport controls reachable by roving focus (mock-fidelity Phase 10)', () => {
+  it('is a named toolbar, its transport controls reachable by roving focus', () => {
     render(<TransportBar player={player()} reaper={reaper()} />);
     expect(screen.getByRole('toolbar', { name: 'Chapter playback controls' })).toBeTruthy();
     const [skipBack] = screen.getAllByRole('button');

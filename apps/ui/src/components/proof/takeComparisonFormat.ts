@@ -1,8 +1,8 @@
 import type { TakeComparisonMember, TakeMetrics, TakeMetricStatus } from '../../types';
 import { formatTime } from './findingFormat';
 
-// How the Review page words a take comparison (take review Phase 10). Every figure is the host's own, shown per category and
-// per read; nothing here adds categories up, orders the reads or calls one better (Q9). Display only.
+// How the Review page words a take comparison (ADR 0165). Every figure is the host's own, shown per category and
+// per read; nothing here adds categories up, orders the reads or calls one better. Display only.
 
 const one = (value: number): string => value.toFixed(1);
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? '' : 's'}`;

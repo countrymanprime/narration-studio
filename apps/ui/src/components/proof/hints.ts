@@ -6,7 +6,7 @@
 /** Hints are one spelling per name, compared without regard to case: the host keeps the first spelling it sees. */
 export const hasHint = (hints: readonly string[], term: string) => hints.some((hint) => hint.toLowerCase() === term.toLowerCase());
 
-// A term this long already reads as a mistake, not a vocabulary hint (Phase 2, V5). TagInput's own `maxLength` caps a
+// A term this long already reads as a mistake, not a vocabulary hint. TagInput's own `maxLength` caps a
 // single typed term at the DOM level; this catches the other route a term can arrive by - a multi-term paste, which
 // TagInput commits as one blob for this function to split.
 const MAX_TERM_LENGTH = 64;
