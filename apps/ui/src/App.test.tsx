@@ -533,7 +533,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', '/story-bible');
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
-    await screen.findByRole('heading', { name: 'Story Bible' });
+    await screen.findByRole('heading', { level: 1, name: 'Story Bible' });
     expect(window.location.pathname).toBe('/story-bible');
     expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
     // The ask sends the narrator to the Production home, where the import lives.

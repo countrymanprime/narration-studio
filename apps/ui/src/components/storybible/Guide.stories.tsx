@@ -11,6 +11,9 @@ import { Guide } from './Guide';
 // The Story Bible page as the Studio Next mock draws it (docs/research/mockups/studio-next/src/pages/Bible.tsx): kind chips over two-line
 // rows, the search box over names and aliases, and the ask for a manuscript when there is none. The `/story-bible` route mounts it.
 
+// One host for every story: a new one on each render would make the page read its entries again and again.
+const api = createMockApi();
+
 const meta = {
   title: 'Story Bible/Guide',
   component: Guide,
@@ -18,7 +21,7 @@ const meta = {
     (Story) => {
       return (
         <MemoryRouter>
-          <ApiProvider api={createMockApi()}>
+          <ApiProvider api={api}>
             <StudioProvider>
               <OverlayProvider>
                 <CommandRouter>

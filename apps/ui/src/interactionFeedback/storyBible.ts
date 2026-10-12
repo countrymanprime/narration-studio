@@ -4,6 +4,7 @@ import { type FeedbackRow, row, subscription } from './row';
 // prettier-ignore
 export const storyBibleFeedback: Record<string, FeedbackRow> = {
   // Story Bible
+  'src/components/storybible/Guide.tsx::guideTypes#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The kind chips and their colours; without the list there is only the All chip and the rows are drawn in the faint hue, and the entries still load.'),
   'src/components/storybible/Guide.tsx::guideEntities#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'The first load shows a load error with Retry; a later one is a toast.'),
   'src/components/storybible/Guide.tsx::guideBuildState#1': row('mount', 'instant', 'dialog', 'na', 'poll', 'toast', 'yes', 'ok', 'Shows the rebuild dialog again when the narrator comes back to the page while it still runs.'),
   'src/components/storybible/Guide.tsx::guideBuildState#2': row('timer', 'instant', 'dialog', 'dialog', 'event', 'dialog', 'yes', 'ok', 'The dialog polls for progress only while it is open; the end is announced by the job:ended event, so leaving the page or dismissing the dialog loses nothing (ADR 0076).'),
