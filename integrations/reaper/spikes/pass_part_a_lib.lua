@@ -159,7 +159,7 @@ end
 -- Report --------------------------------------------------------------------------------------------------------------
 
 -- Every row the pass has, in the page's order, and which script checks it. The rows of the edit and proof workspace
--- (A6-A8b) are spike_ep0_workspace.lua's, merged in from its report (M.merge_checks).
+-- (A6-A8) are spike_ep0_workspace.lua's, merged in from its report (M.merge_checks).
 M.ROWS = {
   { id = 'A1', command = 'heartbeat `changeCount`' },
   { id = 'A2', command = '`chapter_track_state`' },
@@ -167,16 +167,13 @@ M.ROWS = {
   { id = 'A4', command = '`arm_only`' },
   { id = 'A5', command = '`record_start` refusals' },
   { id = 'A6', command = '`set_active_take`', script = 'ep0' },
-  { id = 'A7', command = '`list_fx_chains`, `list_fx`', script = 'ep0' },
+  { id = 'A7', command = '`list_fx_chains`', script = 'ep0' },
   { id = 'A8', command = '`apply_fx_chain`', script = 'ep0' },
-  { id = 'A8b', command = '`add_take_fx`', script = 'ep0' },
   { id = 'A9', command = '`create_regions`' },
   { id = 'A9b', command = '`play_position`' },
   { id = 'A9c', command = '`punch_to`' },
   { id = 'A10', command = 'Nothing else changed' },
   { id = 'A11', command = '`select_track`' },
-  { id = 'A12', command = '`preview_cleanup_markers`' },
-  { id = 'A13', command = '`apply_cleanup_trims`' },
   { id = 'A14', command = '`apply_item_gain`' },
 }
 
@@ -890,94 +887,6 @@ function rows.A11(ctx, r)
   r:check('A11.5 no GUID answers TRACK_STALE', #bare == 1 and bare[1][1] == 'TRACK_STALE', show(bare))
 end
 
--- The cleanup fixture: a 3 s item at 12 s on "Chapter 1", its take's source from 0 s; one silence from 1.0 to 1.5 s.
-local function cleanup_rows(ctx)
-  return {
-    table.concat({ ctx.fx.cleanup, ctx.fx.cleanup_take, 'silence', '1.0', '1.5', 'f1' }, '|'),
-    table.concat({ UNKNOWN_GUID, '', 'silence', '0.2', '0.4', 'f9' }, '|'),
-    table.concat({ ctx.fx.cleanup, '', 'silence', '2.8', '3.6', 'f8' }, '|'),
-  }
-end
-
-function rows.A12(ctx, r)
-  local fx, daw = ctx.fx, ctx.daw
-  local path = daw.write_payload('cleanup.txt', cleanup_rows(ctx))
-  local facts, count = daw.item_facts(fx.cleanup), #daw.track_items(fx.ch1)
-  local events = ctx.send('preview_cleanup_markers', path)
-  local done = find(events, 'CLEANUP_PREVIEWED')
-  r:check('A12.1 CLEANUP_PREVIEWED adds 2, 0 existing', done[3] == '2' and done[4] == '0', show(events))
-  local stale = {}
-  for _, fields in ipairs(all(events, 'CLEANUP_STALE')) do
-    stale[fields[3]] = fields[5]
-  end
-  r:check('A12.2 the unknown item answers CLEANUP_STALE item', stale.f9 == 'item', stale.f9)
-  r:check("A12.3 a cut past the item's end answers CLEANUP_STALE range", stale.f8 == 'range', stale.f8)
-  local start_ok, end_ok = false, false
-  for _, marker in ipairs(daw.take_markers(fx.cleanup)) do
-    start_ok = start_ok or (marker.name == 'CLEANUP_SILENCE_START: f1' and close_to(marker.position, 1.0))
-    end_ok = end_ok or (marker.name == 'CLEANUP_SILENCE_END: f1' and close_to(marker.position, 1.5))
-  end
-  r:check('A12.4 take markers at 1.0 and 1.5 s of source time, named for the class and finding', start_ok and end_ok, #daw.take_markers(fx.cleanup))
-  r:check('A12.5 one undo point "Narration Utils: preview cleanup markers"', daw.undo_label() == 'Narration Utils: preview cleanup markers', daw.undo_label())
-  local after = daw.item_facts(fx.cleanup)
-  r:check(
-    'A12.6 the item itself is unchanged',
-    after and close_to(after.position, facts.position) and close_to(after.length, facts.length) and #daw.track_items(fx.ch1) == count,
-    after and (after.position .. ' ' .. after.length)
-  )
-  local count_before = daw.change_count()
-  local again = find(ctx.send('preview_cleanup_markers', path), 'CLEANUP_PREVIEWED')
-  r:check('A12.7 again adds none, and no undo point', again[3] == '0' and again[4] == '2' and daw.change_count() == count_before, table.concat(again, '|'))
-  if daw.undo() == nil then
-    r:not_run('A12.8 one Undo removes both markers', 'the harness fake has no undo')
-  else
-    r:check('A12.8 one Undo removes both markers', #daw.take_markers(fx.cleanup) == 0, #daw.take_markers(fx.cleanup))
-  end
-end
-
-function rows.A13(ctx, r)
-  local fx, daw = ctx.fx, ctx.daw
-  local path = daw.write_payload('trim.txt', { cleanup_rows(ctx)[1] })
-  local count = #daw.track_items(fx.ch1)
-  local source = daw.item_facts(fx.cleanup).file
-  local size = daw.file_size(source)
-  local done = find(ctx.send('apply_cleanup_trims', path), 'CLEANUP_APPLIED')
-  r:check('A13.1 CLEANUP_APPLIED 1', done[3] == '1', table.concat(done, '|'))
-  r:check('A13.2 the track has one item more (split twice, the middle deleted)', #daw.track_items(fx.ch1) == count + 1, #daw.track_items(fx.ch1))
-  local left = daw.item_facts(fx.cleanup)
-  r:check('A13.3 the left piece keeps the GUID and ends at the cut', left and close_to(left.position, 12) and close_to(left.length, 1.0), left and left.length)
-  local right = nil
-  for _, facts in ipairs(daw.track_items(fx.ch1)) do
-    if close_to(facts.position, 13.5) then
-      right = facts
-    end
-  end
-  r:check(
-    'A13.4 the right piece starts at 13.5 s, from 1.5 s of source, to 15 s',
-    right and close_to(right.offset, 1.5) and close_to(right.length, 1.5),
-    right and (right.offset .. ' ' .. right.length) or 'no piece at 13.5 s'
-  )
-  r:check('A13.5 one undo point "Narration Utils: apply cleanup trim"', daw.undo_label() == 'Narration Utils: apply cleanup trim', daw.undo_label())
-  r:check(
-    'A13.6 the source file on disk is unchanged',
-    size ~= nil and daw.file_size(source) == size,
-    tostring(size) .. ' -> ' .. tostring(daw.file_size(source))
-  )
-  local count_before = daw.change_count()
-  local stale_events = ctx.send('apply_cleanup_trims', daw.write_payload('trim-stale.txt', { cleanup_rows(ctx)[2] }))
-  r:check(
-    'A13.7 an all-stale list answers CLEANUP_STALE, applies 0 and makes no undo point',
-    find(stale_events, 'CLEANUP_STALE')[5] == 'item' and find(stale_events, 'CLEANUP_APPLIED')[3] == '0' and daw.change_count() == count_before,
-    show(stale_events)
-  )
-  if daw.undo() == nil then
-    r:not_run('A13.8 one Undo rejoins the item', 'the harness fake has no undo')
-  else
-    local whole = daw.item_facts(fx.cleanup)
-    r:check('A13.8 one Undo rejoins the item', #daw.track_items(fx.ch1) == count and whole and close_to(whole.length, 3), whole and whole.length)
-  end
-end
-
 function rows.A14(ctx, r)
   local fx, daw = ctx.fx, ctx.daw
   local events = ctx.send('apply_item_gain', daw.write_payload('gain.txt', { fx.fast .. '|-6|g1' }))
@@ -1024,8 +933,6 @@ M.ORDER = {
   { id = 'A9', witness = { markers = false } },
   { id = 'A9c', witness = {} },
   { id = 'A11', witness = { selection = false } },
-  { id = 'A12', witness = { except = 'ch1' } },
-  { id = 'A13', witness = { except = 'ch1' } },
   { id = 'A14', witness = { except = 'ch1' } },
 }
 

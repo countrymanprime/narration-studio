@@ -198,7 +198,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** list the narrator's FX chain files and apply a chain to a track.
 - **Role:** `FXManager`, synchronous.
 - **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_CHAIN_APPLIED` with the number added. A name outside the chains folder is refused before anything changes. Each write is one undo point.
-- **REAPER:** `list_fx_chains`, `apply_fx_chain`. The host stopped sending `list_fx` and `add_take_fx` in [#1661](https://github.com/countrymanprime/narration-utils/issues/1661); their Lua handlers go with [#1311](https://github.com/countrymanprime/narration-utils/issues/1311).
+- **REAPER:** `list_fx_chains`, `apply_fx_chain`. The `list_fx` and `add_take_fx` commands are gone: the host stopped sending them in [#1661](https://github.com/countrymanprime/narration-utils/issues/1661) and [#1311](https://github.com/countrymanprime/narration-utils/issues/1311) removed their Lua handlers.
 - **Audacity:** not built.
 - **Checked:** harness (`workspace_test.lua`); expected result is rows A7, A8 and A8b; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
@@ -297,7 +297,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **REAPER:** `preview_file_range` and `stop_file_preview`, Experimental (`narration_media_file.lua`). Plays through an SWS preview (`CF_CreatePreview`, then `CF_Preview_SetValue` for `D_POSITION` and `B_LOOP`, then `CF_Preview_Play`) from a source made with `PCM_Source_CreateFromFile`; a watcher on the bridge's defer loop stops it at the end of the stretch with `CF_Preview_Stop` and frees the source one cycle later. Without SWS it refuses: "Playing part of a file needs the SWS extension in REAPER." Each call is checked with `APIExists` first ([the bridge](../../architecture/reaper-bridge.md#playing-and-showing-a-file-on-disk-narration_media_filelua)).
 - **Audacity:** not yet available. The adapter's commands play the project (`Play`) or import a file into it as new tracks (`Import2`, [`commands.go`](../../../apps/desktop/internal/audacitybridge/commands.go)), and neither leaves the project unchanged; no command that previews a file is built.
 - **Built-in recorder:** unsupported.
-- **Binding:** `DawPreviewFileRange(path, start, length)` and `DawStopFilePreview()` (`apps/desktop/bindings_daw_files.go`) answer a `DawResult` with no undo step; the UI's API calls them as `dawPreviewFileRange` and `dawStopFilePreview` (no page sends them yet; SN-M97 will). The host checks the capability, then the stretch, then the path, and sends only a path the narrator picked to measure in this session.
+- **Binding:** `DawPreviewFileRange(path, start, length)` and `DawStopFilePreview()` (`apps/desktop/bindings_daw_files.go`) answer a `DawResult` with no undo step; the UI's API calls them as `dawPreviewFileRange` and `dawStopFilePreview`. Master & QC's Play the quietest 5 s goes through `MasterPlayQuietest(fileId)` (`apps/desktop/bindings_master_files.go`), which takes a file of the last measurement, never a path or a time, and plays the 5 s centred on that run's quietest window. The host checks the capability, then the stretch, then the path, and sends only a path the narrator picked to measure in this session.
 - **Checked:** harness (`media_file_test.lua`); nothing run in REAPER. Expected result is row C10 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet); the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
 ### `file_reveal`
@@ -309,5 +309,5 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **REAPER:** `reveal_file`, Experimental (`narration_media_file.lua`): `OpenMediaExplorer(path, false)`, which selects the file in the Media Explorer without playing it. A REAPER without the call refuses: "This REAPER version cannot show a file in its Media Explorer."
 - **Audacity:** not yet available. The adapter has no command that shows a file without importing it (`Import2` adds it to the project).
 - **Built-in recorder:** unsupported.
-- **Binding:** `DawRevealFile(path)` (`apps/desktop/bindings_daw_files.go`) answers a `DawResult` with no undo step; the UI's API calls it as `dawRevealFile`.
+- **Binding:** `DawRevealFile(path)` (`apps/desktop/bindings_daw_files.go`) answers a `DawResult` with no undo step; the UI's API calls it as `dawRevealFile`. Master & QC's Open in the DAW goes through `MasterOpenInDaw(fileId)` (`apps/desktop/bindings_master_files.go`), which takes a file of the last measurement, never a path.
 - **Checked:** harness (`media_file_test.lua`); nothing run in REAPER. Expected result is row C11 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet).

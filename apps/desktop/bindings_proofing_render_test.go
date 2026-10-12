@@ -209,7 +209,7 @@ func TestContractProofingRenderBindings(t *testing.T) {
 			RecordID: "record-1", MeasuredAt: measuredAt,
 			Report: measure.Report{
 				SampleRate: 48000, Channels: 2, DurationSeconds: 1843.5, IntegratedLUFS: level(-19.4), RMSdBFS: level(-21.2),
-				SamplePeakdBFS: level(-3.6), TruePeakdBTP: level(-3.1), NoiseFloordBFS: level(-66.8),
+				SamplePeakdBFS: level(-3.6), TruePeakdBTP: level(-3.1), NoiseFloordBFS: level(-66.8), NoiseFloorStartSeconds: level(412.5),
 			},
 		},
 	}))

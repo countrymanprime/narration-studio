@@ -58,6 +58,7 @@ import type {
   DawRollApi,
   DawSplitTakeApi,
   DawStackTakesApi,
+  MasterFilesApi,
 } from '../api/contracts/daw';
 import type { ProviderCapabilitiesApi } from '../api/contracts/providers';
 import type { MasteringApi } from '../api/contracts/mastering';
@@ -134,6 +135,7 @@ export type {
   DawSplitTakeApi,
   DawBackupsApi,
   DawFilesApi,
+  MasterFilesApi,
   DawProjectStateApi,
   ProviderCapabilitiesApi,
   MasteringApi,
@@ -205,6 +207,7 @@ export interface PortMap {
   dawSplitTake: DawSplitTakeApi;
   dawBackups: DawBackupsApi;
   dawFiles: DawFilesApi;
+  masterFiles: MasterFilesApi;
   dawProjectState: DawProjectStateApi;
   providerCapabilities: ProviderCapabilitiesApi;
   mastering: MasteringApi;

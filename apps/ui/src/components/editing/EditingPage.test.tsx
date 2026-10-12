@@ -190,6 +190,55 @@ describe('EditingPage', () => {
     await waitFor(() => expect(hideTakes).toHaveBeenCalledTimes(1));
   });
 
+  it('Stack as 2 takes splits the take through the DAW from the mounted page', async () => {
+    // Line one is read twice: the second read is the extra words heard after its last word, 2.4 s later.
+    const base = pageApi();
+    const read = ['The', 'Garden', 'was', 'quiet', 'today.'].map((text, i) => ({
+      text,
+      item: 0,
+      start: 5 + i * 0.4,
+      end: 5.35 + i * 0.4,
+      conf: 0.9,
+      timing: 'aligned',
+    }));
+    const api = {
+      workspaceAlignment: async (id: string) => {
+        const answer = await base.workspaceAlignment(id);
+        if (id !== 'c1' || answer.state !== 'current') return answer;
+        const at = { itemIndex: 0, itemGuid: '{ITEM-1}' };
+        const extra = {
+          text: read.map((w) => w.text).join(' '),
+          tokens: read.length,
+          start: { ...at, sourceTime: 5 },
+          end: { ...at, sourceTime: 7 },
+          afterToken: 4,
+          words: read,
+        };
+        // The "um" and the misread "quiet" are gone, so the first four words are heard twice, one after another.
+        const tokens = answer.tokens.map(({ heard: _heard, ...t }) => ({ ...t, status: 'read' as const }));
+        return { ...answer, tokens, extras: [extra] };
+      },
+    } as Partial<NarrationApi>;
+    const splitTake = vi.fn<DawClient['splitTake']>();
+    const project = { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [], splitTakes: { t1: { start: 0, length: 12 } } };
+    const mock = createMockDawClient(DAW_SETUPS.reaper, project);
+    splitTake.mockImplementation(mock.splitTake);
+    mount({ passageId: 'ps-1', api, daw: { ...mock, splitTake } as DawClient });
+    await script();
+    fireEvent.click(await screen.findByRole('button', { name: 'Split into takes' }));
+    await waitFor(() => expect(overlay.getSnapshot().dialogs.some((d) => d.kind === 'confirm')).toBe(true));
+    act(() => {
+      const dialog = overlay.getSnapshot().dialogs.find((d) => d.kind === 'confirm');
+      if (dialog?.kind === 'confirm') dialog.answer(true);
+    });
+    await waitFor(() => expect(splitTake).toHaveBeenCalledTimes(1));
+    const [chapterId, takeId, cutAt] = splitTake.mock.calls[0];
+    expect([chapterId, takeId]).toEqual(['c1', 't1']);
+    // The middle of the pause between the first read (ends 2.95) and the second (starts 5), on the item's project time.
+    expect(cutAt).toBeCloseTo(3.975, 2);
+    await waitFor(() => expect(overlay.getSnapshot().toasts.some((t) => /Split T-1 at/.test(t.text))).toBe(true));
+  });
+
   it('strip-and-drawer-toggles-follow-the-width', async () => {
     mount();
     await script();

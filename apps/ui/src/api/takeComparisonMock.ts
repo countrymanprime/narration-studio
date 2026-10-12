@@ -54,6 +54,7 @@ function metricsFor(
       sample_peak_dbfs: noisy ? -4.2 : 0,
       true_peak_dbtp: noisy ? -3.9 : 0.3,
       noise_floor_dbfs: noisy ? -47.6 : -68.9,
+      noise_floor_start_seconds: 0,
       digital_silent_windows: 0,
       head_room_tone_seconds: 0,
       tail_room_tone_seconds: 0,
