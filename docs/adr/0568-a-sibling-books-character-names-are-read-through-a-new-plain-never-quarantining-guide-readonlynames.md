@@ -5,7 +5,7 @@
 
 ## Context
 
-The series voice bible (ADR 0565) needs a display name for each pooled character id, including a character whose approved reference lives in a sibling book. A character's canonical name lives in that book's own Story Bible (`<project>/ManuscriptGuide/manuscript_guide.json`, `internal/guide.Service`), which - like `references.json` before Phase 9 - had no cross-project read path.
+The series voice bible (ADR 0565) needs a display name for each pooled character id, including a character whose approved reference lives in a sibling book. A character's canonical name lives in that book's own Story Bible (`<project>/ManuscriptGuide/manuscript_guide.json`, `internal/guide.Service`), which - like `references.json` before `character.ReadOnly` ([ADR 0450](0450-series-storage-is-a-per-user-file-and-cross-project-reference-reads-never-write-into-a-sibling-project.md)) - had no cross-project read path.
 
 ## Decision
 
