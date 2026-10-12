@@ -8,11 +8,12 @@ import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/con
 import type { DictionaryLookupResult } from '../../../../api/contracts/dictionary';
 import type { Mark, Marks, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
 import type { PrepState, ScriptPrep, ScriptPrepChapter, ScriptWord } from '../../../../api/contracts/scriptPrep';
-import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/contracts/storyBible';
 import { apiErrorMessage } from '../../../../api/errorMessage';
 import type { ChapterNameInput } from '../../../../chapterName';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
+import { canSpeak } from '../../../../storyBibleTypes';
 import { useJournal } from '../../../../studio/StudioProvider';
 import type { Result } from '../../../../studio/journal/createJournal';
 import * as commands from './scriptCommands';
@@ -87,6 +88,7 @@ const NO_MARKS: Mark[] = [];
 const NO_WORDS: ScriptWord[] = [];
 const NO_PREP: ScriptPrepChapter[] = [];
 const NO_ENTRIES: GuideEntity[] = [];
+const NO_GUIDE_TYPES: GuideType[] = [];
 const NO_CUES: GuideDialogueCue[] = [];
 
 export type MarksView = ReadView<Marks> & {
@@ -149,34 +151,49 @@ export function useScriptPrep(): PrepView {
 
 export type EntriesView = ReadView<GuideEntity[]> & {
   entries: GuideEntity[];
+  /** The Story Bible's types; none until they are read, so nothing speaks before then. */
+  types: GuideType[];
+  /** Whether an entry of this category can speak, by its type's Can speak flag. */
+  canSpeak: (category: string) => boolean;
   entryById: (id: string | null | undefined) => GuideEntity | undefined;
   findEntries: (query: string, category: string) => GuideEntity[];
   mentionsIn: (paragraph: Pick<ManuscriptParagraph, 'text'>) => select.Mention[];
   entriesInChapter: (paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => GuideEntity[];
 };
 
-/** The Story Bible's entries, read once and again after each Story Bible change this page makes or a build ends. */
+/** The Story Bible's entries and types, read once and again after each Story Bible change this page makes or a build ends. */
 export function useEntries(): EntriesView {
   const { data } = useScriptHost();
   const loaded = useData(data, (state) => state.entries);
-  useEffect(() => data.ensure('entries'), [data]);
-  const retry = useCallback(() => void data.load('entries'), [data]);
+  const typesLoaded = useData(data, (state) => state.types);
+  useEffect(() => {
+    data.ensure('entries');
+    data.ensure('types');
+  }, [data]);
+  const retry = useCallback(() => {
+    void data.load('entries');
+    void data.load('types');
+  }, [data]);
   return useMemo(() => {
     const entries = loaded?.value ?? NO_ENTRIES;
+    const types = typesLoaded?.value ?? NO_GUIDE_TYPES;
     return {
       ...view(loaded, retry),
       entries,
+      types,
+      canSpeak: (category: string) => canSpeak(types, category),
       entryById: (id: string | null | undefined) => select.entryById(entries, id),
       findEntries: (query: string, category: string) => select.findEntries(entries, query, category),
       mentionsIn: (paragraph: Pick<ManuscriptParagraph, 'text'>) => select.mentionsIn(entries, paragraph.text),
       entriesInChapter: (paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => select.entriesInChapter(entries, paragraphs),
     };
-  }, [loaded, retry]);
+  }, [loaded, typesLoaded, retry]);
 }
 
 export type SpeakersView = ReadView<GuideDialogueCue[]> & {
   phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.Phrase[];
   unattributed: (chapterId: string) => number;
+  /** The entries whose type can speak: the only ones a phrase can be attributed to. */
   candidates: GuideEntity[];
 };
 
@@ -189,13 +206,14 @@ export function useSpeakers(): SpeakersView {
   const retry = useCallback(() => void data.load('cues'), [data]);
   return useMemo(() => {
     const list = cues?.value ?? NO_CUES;
+    const candidates = select.speakerCandidates(entries.entries, entries.types);
     return {
       ...view(cues, retry),
-      phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.phrasesOf(list, entries.entries, paragraph),
-      unattributed: (chapterId: string) => select.unattributed(list, entries.entries, chapterId),
-      candidates: select.speakerCandidates(entries.entries),
+      phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.phrasesOf(list, candidates, paragraph),
+      unattributed: (chapterId: string) => select.unattributed(list, candidates, chapterId),
+      candidates,
     };
-  }, [cues, retry, entries.entries]);
+  }, [cues, retry, entries.entries, entries.types]);
 }
 
 /** The chapter card's facts line, from the marks, the flagged words and the phrases with no speaker. */

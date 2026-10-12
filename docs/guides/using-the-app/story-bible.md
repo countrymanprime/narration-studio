@@ -126,8 +126,8 @@ Script). An entry cannot be marked reviewed while it has suggestions waiting.
 
 ## Voice references and dialogue cue attribution
 
-A Character entry has two more sections below Personality notes: **Reference clips** and **Dialogue
-cues**. Neither judges your reading - they only track what you've approved and who a line of
+An entry whose type can speak (Character, unless the type list says otherwise) has two more sections below
+Personality notes: **Reference clips** and **Dialogue cues**. Neither judges your reading - they only track what you've approved and who a line of
 dialogue is attributed to; there is no acoustic comparison or "drift" flag in the app yet.
 
 **Reference clips** lists the REAPER regions you've approved as a voice reference for this

@@ -41,7 +41,16 @@ export const CAT_DOT_BG: Record<string, string> = {
 // Story Bible - "Open in Story Bible" is the way in for that. Without `jumpToLine` the evidence has no "Go to line"
 // buttons: the read-aloud rail shows the entry beside the text being
 // read, where leaving for another line would abandon the reading.
-export function EntitySummary({ entity, jumpToLine }: { entity: GuideEntity; jumpToLine?: (chapter: string, paragraph: number) => void }) {
+export function EntitySummary({
+  entity,
+  speaks = false,
+  jumpToLine,
+}: {
+  entity: GuideEntity;
+  /** Whether the entry's type can speak: only then are its personality notes shown. */
+  speaks?: boolean;
+  jumpToLine?: (chapter: string, paragraph: number) => void;
+}) {
   const evidence = allEvidence(entity);
   return (
     <div className="space-y-4">
@@ -104,7 +113,7 @@ export function EntitySummary({ entity, jumpToLine }: { entity: GuideEntity; jum
           </div>
         )}
       </div>
-      {entity.category === 'Character' && entity.personality_notes.length > 0 && (
+      {speaks && entity.personality_notes.length > 0 && (
         <div>
           <div className="mb-1 text-[0.82rem] font-medium text-[var(--text-muted)]">Personality</div>
           <p className="text-sm">{entity.personality_notes.map((note) => note.text).join(' ')}</p>

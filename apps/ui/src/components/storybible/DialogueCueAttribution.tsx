@@ -10,12 +10,23 @@ import type { Notify } from '../primitives/Toast';
 const UNKNOWN_SPEAKER = 'unknown';
 
 /**
- * Dialogue cues attributed to this character, or left unknown, with a correction control
+ * Dialogue cues attributed to this speaker, or left unknown, with a correction control
  * (attribution correction, via the guide's correct_cue). A rebuild
  * never overwrites a correction (ADR 0007's lock guard, applied to a cue). Self-fetching, like
  * VoiceReferencesSection - its own data source, independent of the entity edit form.
  */
-export function DialogueCueAttribution({ entity, entities, notify }: { entity: GuideEntity; entities: GuideEntity[]; notify: Notify }) {
+export function DialogueCueAttribution({
+  entity,
+  entities,
+  canSpeak,
+  notify,
+}: {
+  entity: GuideEntity;
+  entities: GuideEntity[];
+  /** Whether an entry of this category can speak, by its type's Can speak flag: only those are offered as a cue's speaker. */
+  canSpeak: (category: string) => boolean;
+  notify: Notify;
+}) {
   const api = useApi();
   const mutation = usePendingAction();
   const [cues, setCues] = useState<GuideDialogueCue[]>();
@@ -52,9 +63,9 @@ export function DialogueCueAttribution({ entity, entities, notify }: { entity: G
     );
 
   const relevant = (cues ?? []).filter((cue) => cue.speaker_entity_id === entity.id || cue.speaker_entity_id === null);
-  const characterOptions = [
+  const speakerOptions = [
     { value: UNKNOWN_SPEAKER, label: 'Unknown' },
-    ...entities.filter((row) => row.category === 'Character').map((row) => ({ value: row.id, label: row.canonical_name })),
+    ...entities.filter((row) => canSpeak(row.category)).map((row) => ({ value: row.id, label: row.canonical_name })),
   ];
 
   if (relevant.length === 0) return null;
@@ -75,7 +86,7 @@ export function DialogueCueAttribution({ entity, entities, notify }: { entity: G
                 value={cue.speaker_entity_id ?? UNKNOWN_SPEAKER}
                 disabled={mutation.isBusy}
                 onChange={(value) => void correct(cue, value)}
-                options={characterOptions}
+                options={speakerOptions}
               />
             </div>
           </InsetCard>

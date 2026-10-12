@@ -109,6 +109,8 @@ describe('Story Bible entry properties', () => {
 
   it('refuses a value with no name, says which property, and sends nothing', async () => {
     const { guideEdit } = renderDetail();
+    // A character's Says is a talk row, not property 1, once the types are read.
+    await screen.findByText('How they talk');
     startEditing();
     fireEvent.click(screen.getByRole('button', { name: 'Add property' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Property 3 value' }), { target: { value: 'Wren' } });

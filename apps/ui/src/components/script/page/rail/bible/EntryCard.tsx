@@ -6,8 +6,9 @@ import { Badge, StatusBadge } from '../../../../primitives/StatusBadge';
 import { PronSourceTag } from '../../../../storybible/source/PronSourceTag';
 import { kindColours } from './kinds';
 
-/** The Story Bible's `Says`, `Does` and `Knows` properties under the mock's labels for a character (SN-X222, ADR 0846). */
-const CHARACTER_FIELDS: ReadonlyArray<{ key: string; label: string }> = [
+/** The Story Bible's `Says`, `Does` and `Knows` properties under the mock's labels, for an entry whose type can speak (SN-X222,
+ * ADR 0846, SN-B97). */
+const TALK_FIELDS: ReadonlyArray<{ key: string; label: string }> = [
   { key: 'says', label: 'How they talk' },
   { key: 'does', label: 'How they act' },
   { key: 'knows', label: 'What they know' },
@@ -35,12 +36,15 @@ function ReadOnly({ label, value }: { label: string; value: string }) {
  */
 export function EntryCard({
   entry,
+  speaks,
   sources,
   onFind,
   onAddNote,
   onOpenStoryBible,
 }: {
   entry: GuideEntity;
+  /** Whether the entry's type can speak: only then does it have the talk, act and know rows. */
+  speaks: boolean;
   sources: readonly PronunciationSource[];
   onFind: (name: string) => void;
   onAddNote: () => void;
@@ -63,7 +67,7 @@ export function EntryCard({
         <IconButton action="openInStoryBible" size="sm" onClick={() => onOpenStoryBible(entry.id)} />
       </div>
       <ReadOnly label="Description" value={entry.description.text} />
-      {entry.category === 'Character' && CHARACTER_FIELDS.map(({ key, label }) => <ReadOnly key={key} label={label} value={propertyOf(entry, key)} />)}
+      {speaks && TALK_FIELDS.map(({ key, label }) => <ReadOnly key={key} label={label} value={propertyOf(entry, key)} />)}
       <div className="flex flex-col gap-1">
         <SectionLabel>Names and how I say them</SectionLabel>
         <ul className="m-0 flex list-none flex-col gap-1 p-0">

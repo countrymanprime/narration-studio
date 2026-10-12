@@ -2,7 +2,7 @@
 // entries and mentions. Property tests pin that each is pure: the same input gives the same output and nothing is mutated.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/contracts/storyBible';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord, ScriptWordFlag } from '../../../../api/contracts/scriptPrep';
 import { WIRE_DIALOGUE_CUES, WIRE_ENTITIES } from '../../../../api/mockFixtures';
@@ -243,9 +243,11 @@ describe('phrases-come-from-the-dialogue-cues', () => {
     expect(unattributed(cues, entries, 'c2')).toBe(0);
   });
 
-  it('speaker candidates are the characters', () => {
-    expect(speakerCandidates(entries).every((e) => e.category === 'Character')).toBe(true);
-    expect(speakerCandidates(entries)).toContain(speaker);
+  it('speaker candidates are the entries whose type can speak', () => {
+    const types: GuideType[] = [{ name: 'Character', colour: 'green', speaks: true }];
+    expect(speakerCandidates(entries, types).every((e) => e.category === 'Character')).toBe(true);
+    expect(speakerCandidates(entries, types)).toContain(speaker);
+    expect(speakerCandidates(entries, [{ name: 'Character', colour: 'green', speaks: false }])).toEqual([]);
   });
 });
 

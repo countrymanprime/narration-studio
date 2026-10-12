@@ -5,7 +5,7 @@ import { SpeakerColourField } from './SpeakerColourField';
 const meta = {
   title: 'Story Bible/SpeakerColourField',
   component: SpeakerColourField,
-  args: { entity: { id: 'entry-1', category: 'Character' }, onChange: () => {} },
+  args: { entity: { id: 'entry-1' }, speaks: true, onChange: () => {} },
 } satisfies Meta<typeof SpeakerColourField>;
 
 export default meta;
@@ -18,7 +18,7 @@ export const Automatic: Story = {
 };
 
 export const Chosen: Story = {
-  args: { entity: { id: 'entry-1', category: 'Character', speaker_color: 4 } },
+  args: { entity: { id: 'entry-1', speaker_color: 4 } },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('combobox', { name: 'Speaker colour' })).toHaveValue('4');
   },

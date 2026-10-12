@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { GuideDialogueCue, GuideEntity } from '../../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../../api/contracts/storyBible';
 import { speakerColorIndex } from '../../../../primitives/speakerColor';
 import { searchSpeakers, speakerChoices, speakersInChapter } from './speakerChoices';
 
+const TYPES: GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+];
 const entry = (id: string, name: string, extra: Partial<GuideEntity> = {}): GuideEntity =>
   ({ id, canonical_name: name, aliases: [], category: 'Character', ...extra }) as GuideEntity;
 const alias = (text: string) => ({ text, pronunciation: {}, occurrences: [] }) as unknown as GuideEntity['aliases'][number];
@@ -26,7 +30,7 @@ const entries = [duchess, hatter, garden];
 
 describe('speakerChoices', () => {
   it('lists every name of each speaking entry, with the entry beneath and its colour', () => {
-    expect(speakerChoices(entries)).toEqual([
+    expect(speakerChoices(entries, TYPES)).toEqual([
       { entryId: 'e1', name: 'The Duchess', entryName: 'The Duchess', colourIndex: 5 },
       { entryId: 'e1', name: 'Her Grace', entryName: 'The Duchess', colourIndex: 5 },
       { entryId: 'e2', name: 'The Hatter', entryName: 'The Hatter', colourIndex: speakerColorIndex('e2') },
@@ -34,38 +38,38 @@ describe('speakerChoices', () => {
   });
 
   it('leaves out places and other categories that cannot speak', () => {
-    expect(speakerChoices(entries).map((c) => c.entryId)).not.toContain('e3');
+    expect(speakerChoices(entries, TYPES).map((c) => c.entryId)).not.toContain('e3');
   });
 
   it('gives a name two entries share to the first, ignoring case and blank names', () => {
     const twin = entry('e4', 'the hatter', { aliases: [alias('  ')] });
-    expect(speakerChoices([hatter, twin]).map((c) => c.entryId)).toEqual(['e2']);
+    expect(speakerChoices([hatter, twin], TYPES).map((c) => c.entryId)).toEqual(['e2']);
   });
 
   it('has no narrator choice', () => {
-    expect(searchSpeakers(speakerChoices(entries), 'narr')).toEqual([]);
+    expect(searchSpeakers(speakerChoices(entries, TYPES), 'narr')).toEqual([]);
   });
 });
 
 describe('speakersInChapter', () => {
   it('has the entries that speak in the chapter', () => {
-    const found = speakersInChapter(entries, [cue('q1', 'c1', 'e2'), cue('q2', 'c2', 'e1')], [{ text: 'Nothing named.' }], 'c1');
+    const found = speakersInChapter(entries, TYPES, [cue('q1', 'c1', 'e2'), cue('q2', 'c2', 'e1')], [{ text: 'Nothing named.' }], 'c1');
     expect(found.map((c) => c.entryId)).toEqual(['e2']);
   });
 
   it('adds the entries named in its text, by any of their names', () => {
-    const found = speakersInChapter(entries, [], [{ text: 'Her Grace sneezed.' }], 'c1');
+    const found = speakersInChapter(entries, TYPES, [], [{ text: 'Her Grace sneezed.' }], 'c1');
     expect(found.map((c) => c.name)).toEqual(['The Duchess', 'Her Grace']);
   });
 
   it('ignores a cue with no speaker', () => {
-    expect(speakersInChapter(entries, [cue('q', 'c1', null)], [{ text: '' }], 'c1')).toEqual([]);
+    expect(speakersInChapter(entries, TYPES, [cue('q', 'c1', null)], [{ text: '' }], 'c1')).toEqual([]);
   });
 });
 
 describe('searchSpeakers', () => {
   it('matches the name or its entry, ignoring case', () => {
-    const all = speakerChoices(entries);
+    const all = speakerChoices(entries, TYPES);
     expect(searchSpeakers(all, 'grace').map((c) => c.name)).toEqual(['Her Grace']);
     expect(searchSpeakers(all, 'DUCHESS').map((c) => c.name)).toEqual(['The Duchess', 'Her Grace']);
   });

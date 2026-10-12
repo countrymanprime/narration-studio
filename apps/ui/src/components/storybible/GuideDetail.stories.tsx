@@ -32,12 +32,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Opens read-only under the name as a heading; a character shows how they talk, act and know as text. */
+/** Opens read-only under the name as a heading; a character (its type can speak) shows how they talk, act and know as text once
+ * the types are read. */
 export const ReadOnlyCharacter: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
     await expect(view.getByRole('heading', { name: 'Alice' })).toBeTruthy();
-    await expect(view.getByText('How they talk')).toBeTruthy();
+    await expect(await view.findByText('How they talk')).toBeTruthy();
     await expect(view.queryByRole('textbox', { name: 'Name' })).toBeNull();
   },
 };
@@ -46,6 +47,7 @@ export const ReadOnlyCharacter: Story = {
 export const EditingCharacter: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
+    await view.findByText('How they talk');
     await userEvent.click(view.getByRole('button', { name: 'Edit this entry' }));
     await expect(view.getByRole('textbox', { name: 'Name' })).toBeTruthy();
     await expect(view.getByRole('textbox', { name: 'How they talk' })).toBeTruthy();

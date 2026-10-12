@@ -25,6 +25,7 @@ export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
   return (
     <BiblePanel
       entry={entries.entryById(entryId)}
+      canSpeak={entries.canSpeak}
       missing={miss}
       kinds={BIBLE_KINDS}
       entries={inChapter}

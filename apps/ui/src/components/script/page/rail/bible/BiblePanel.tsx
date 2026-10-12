@@ -13,6 +13,7 @@ import { kindSwatch } from './kinds';
  */
 export function BiblePanel({
   entry,
+  canSpeak,
   missing,
   kinds,
   entries,
@@ -25,6 +26,8 @@ export function BiblePanel({
 }: {
   /** The entry shown. */
   entry: GuideEntity | undefined;
+  /** Whether an entry of this category can speak, by its type's Can speak flag. */
+  canSpeak: (category: string) => boolean;
   /** Selected text that has no entry; shown when no entry is. */
   missing: string | null;
   /** The kinds a new entry can be. */
@@ -41,7 +44,14 @@ export function BiblePanel({
   return (
     <div className="flex flex-col gap-2">
       {entry ? (
-        <EntryCard entry={entry} sources={sources} onFind={onFind} onAddNote={onAddNote} onOpenStoryBible={onOpenStoryBible} />
+        <EntryCard
+          entry={entry}
+          speaks={canSpeak(entry.category)}
+          sources={sources}
+          onFind={onFind}
+          onAddNote={onAddNote}
+          onOpenStoryBible={onOpenStoryBible}
+        />
       ) : missing ? (
         <section aria-label={missing} className="flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
           <h3 className="m-0 text-[1rem] font-semibold">{`“${missing}”`}</h3>

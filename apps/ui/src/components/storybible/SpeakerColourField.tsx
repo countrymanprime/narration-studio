@@ -7,11 +7,10 @@ import type { GuideEntity } from '../../types';
 const HUE_NAMES = ['Green', 'Blue', 'Violet', 'Red', 'Brown', 'Teal', 'Rose'] as const;
 const AUTOMATIC = 'auto';
 
-/** Only a character speaks, the set the host accepts a speaker colour for (SetSpeakerColor). */
-const speaksColour = (entity: Pick<GuideEntity, 'category'>): boolean => entity.category === 'Character';
-
 type Props = {
-  entity: Pick<GuideEntity, 'id' | 'category' | 'speaker_color'>;
+  entity: Pick<GuideEntity, 'id' | 'speaker_color'>;
+  /** Whether the entry's type can speak: the host keeps a speaker colour only for such an entry (SetSpeakerColor). */
+  speaks: boolean;
   /** Called with 1..7 for a hue, 0 for Automatic. */
   onChange: (index: number) => void;
   /** True while the host call runs or the entry cannot be edited. */
@@ -20,8 +19,8 @@ type Props = {
 
 /** The colour of this speaker's chips: assigned from the palette until the narrator picks one (mock EntryEditor's
  * `SpeakerColour`): a Swatch of the colour in use and a Select of Automatic and the seven hues. */
-export function SpeakerColourField({ entity, onChange, disabled }: Props) {
-  if (!speaksColour(entity)) return null;
+export function SpeakerColourField({ entity, speaks, onChange, disabled }: Props) {
+  if (!speaks) return null;
   const automatic = speakerColorIndex(entity.id);
   const chosen = speakerColorIndex(entity.id, entity.speaker_color);
   const hues = Array.from({ length: SPEAKER_COLOR_COUNT }, (_, at) => ({ value: String(at + 1), label: HUE_NAMES[at] }));

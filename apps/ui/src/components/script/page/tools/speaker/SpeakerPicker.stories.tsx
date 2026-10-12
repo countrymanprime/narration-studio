@@ -1,11 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
-import type { GuideEntity } from '../../../../../api/contracts/storyBible';
+import type { GuideEntity, GuideType } from '../../../../../api/contracts/storyBible';
 import { SpeakerPicker } from './SpeakerPicker';
 import { speakerChoices } from './speakerChoices';
 
 // The mock's speaker picker (`ui/SpeakerPicker.tsx`): this chapter's speakers first, everyone when searching, a swatch per name
 // with its Story Bible entry beneath, "Confirm “X”" first for a suggestion, and never a Narrator row.
+const TYPES: GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+];
 const entry = (id: string, name: string, extra: Partial<GuideEntity> = {}): GuideEntity =>
   ({ id, canonical_name: name, aliases: [], category: 'Character', ...extra }) as GuideEntity;
 const alias = (text: string) => ({ text, pronunciation: {}, occurrences: [] }) as unknown as GuideEntity['aliases'][number];
@@ -13,7 +17,7 @@ const alias = (text: string) => ({ text, pronunciation: {}, occurrences: [] }) a
 const duchess = entry('e1', 'The Duchess', { aliases: [alias('Her Grace')], speaker_color: 5 });
 const hatter = entry('e2', 'The Hatter');
 const gardener = entry('e3', 'Five', { aliases: [alias('The gardeners')] });
-const everyone = speakerChoices([duchess, hatter, gardener]);
+const everyone = speakerChoices([duchess, hatter, gardener], TYPES);
 
 const meta = {
   title: 'Script/SpeakerPicker',

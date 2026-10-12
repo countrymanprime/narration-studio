@@ -16,9 +16,11 @@ import {
   faWaveSquare,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
-import type { GuideEntity, GuidePreview, TtsInstallJob } from '../../types';
+import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
+import { canSpeak } from '../../storyBibleTypes';
 import { categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
+import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { overlay } from '../../overlay/overlayService';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -69,18 +71,37 @@ import type { Notify } from '../primitives/Toast';
 const ALIAS_MATCHES_ID = 'story-bible-alias-matches';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
-// A character's says, does and knows properties are fields of their own (`talk`), so `properties` holds the rest.
+// The says, does and knows properties of an entry whose type can speak are fields of their own (`talk`), so `properties` holds the rest.
 type Draft = { name: string; description: string; personality: string; context: string; properties: DraftProperty[]; talk: TalkDraft };
-const speaks = (entity: GuideEntity) => entity.category === 'Character';
-const propertiesOf = (entity: GuideEntity) => (speaks(entity) ? splitTalk(entity.properties) : { rest: entity.properties, talk: NO_TALK });
-const draftOf = (entity: GuideEntity): Draft => ({
+const propertiesOf = (entity: GuideEntity, speaks: boolean) => (speaks ? splitTalk(entity.properties) : { rest: entity.properties, talk: NO_TALK });
+const draftOf = (entity: GuideEntity, speaks: boolean): Draft => ({
   name: entity.canonical_name,
   description: entity.description.text,
   personality: entity.personality_notes.map((note) => note.text).join(' '),
   context: entity.context || '',
-  properties: draftFrom(propertiesOf(entity).rest),
-  talk: propertiesOf(entity).talk,
+  properties: draftFrom(propertiesOf(entity, speaks).rest),
+  talk: propertiesOf(entity, speaks).talk,
 });
+
+const NO_TYPES: GuideType[] = [];
+
+/** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
+ * so nothing speaks then. */
+function useGuideTypes(entities: readonly GuideEntity[]): GuideType[] {
+  const storyBible = usePort('storyBible');
+  const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
+  useEffect(() => {
+    let current = true;
+    storyBible.guideTypes().then(
+      (read) => current && setTypes(read),
+      () => current && setTypes(NO_TYPES),
+    );
+    return () => {
+      current = false;
+    };
+  }, [storyBible, entities]);
+  return types;
+}
 
 // The matches of the relationship picker's search box, named by the text box that drives it.
 const RELATION_MATCHES_ID = 'story-bible-relation-matches';
@@ -175,6 +196,8 @@ export function GuideDetail({
   suggested?: ReactNode;
 }) {
   const api = useApi();
+  const types = useGuideTypes(entities);
+  const speaks = entity ? canSpeak(types, entity.category) : false;
   // The Find button navigates, so it needs the router every page has; a detail drawn outside one (a story, a unit test) has none.
   const inRouter = useInRouterContext();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [], talk: NO_TALK });
@@ -259,8 +282,17 @@ export function GuideDetail({
     setTtsPrompt(undefined);
     resetVoiceInstall();
     setPropertyError(undefined);
-    if (entity) setDraft(draftOf(entity));
   }, [entity, resetVoiceInstall]);
+  // The draft is the entry's, its talk rows split out once the types say it speaks. A change of the types alone (they arrive
+  // after the entry) leaves a draft being edited as typed; a new or reloaded entry always replaces it.
+  const draftEntity = useRef<GuideEntity>(undefined);
+  const editingNow = useRef(editing);
+  editingNow.current = editing;
+  useEffect(() => {
+    if (!entity || (draftEntity.current === entity && editingNow.current)) return;
+    draftEntity.current = entity;
+    setDraft(draftOf(entity, speaks));
+  }, [entity, speaks]);
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
   const locked = entity.locked;
@@ -272,11 +304,11 @@ export function GuideDetail({
   const stopEditing = () => {
     setEditing(false);
     setPropertyError(undefined);
-    setDraft(draftOf(entity));
+    setDraft(draftOf(entity, speaks));
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
   const saveEntry = () => {
-    const problem = propertyProblem(draft.properties, speaks(entity));
+    const problem = propertyProblem(draft.properties, speaks);
     if (problem) {
       setPropertyError(problem);
       return;
@@ -286,9 +318,9 @@ export function GuideDetail({
       setNameError(nameIssue);
       return;
     }
-    const saved = propertiesOf(entity);
-    const properties = speaks(entity) ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
-    const before = speaks(entity) ? withTalk(saved.rest, saved.talk) : entity.properties;
+    const saved = propertiesOf(entity, speaks);
+    const properties = speaks ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
+    const before = speaks ? withTalk(saved.rest, saved.talk) : entity.properties;
     const values: Record<string, string> = {
       canonical_name: draft.name.trim(),
       description: draft.description,
@@ -876,7 +908,7 @@ export function GuideDetail({
 
         <EntryText label="Description" value={draft.description} editing={!editingDisabled} onChange={(description) => setDraft({ ...draft, description })} />
 
-        {speaks(entity) &&
+        {speaks &&
           TALK_FIELDS.map(({ key, label }) => (
             <EntryText
               key={key}
@@ -888,7 +920,7 @@ export function GuideDetail({
           ))}
 
         <PropertiesSection
-          saved={propertiesOf(entity).rest}
+          saved={propertiesOf(entity, speaks).rest}
           rows={draft.properties}
           editing={editing && canEdit}
           error={propertyError}
@@ -898,7 +930,7 @@ export function GuideDetail({
           }}
         />
 
-        {entity.category === 'Character' && (
+        {speaks && (
           <>
             <Field
               label="Personality notes"
@@ -909,9 +941,9 @@ export function GuideDetail({
             />
             {!isNewDraft && (
               <>
-                <SpeakerColourField entity={entity} disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
+                <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
                 <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
-                <DialogueCueAttribution entity={entity} entities={entities} notify={notify} />
+                <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
               </>
             )}
           </>
@@ -1100,7 +1132,9 @@ export function GuideDetail({
         closeLabel="Close review panel"
         onClose={() => setReviewOverlayId(undefined)}
       >
-        {reviewOverlayEntity && <EntitySummary entity={reviewOverlayEntity} jumpToLine={goToManuscript} />}
+        {reviewOverlayEntity && (
+          <EntitySummary entity={reviewOverlayEntity} speaks={canSpeak(types, reviewOverlayEntity.category)} jumpToLine={goToManuscript} />
+        )}
       </SlideOver>
     </Panel>
   );
