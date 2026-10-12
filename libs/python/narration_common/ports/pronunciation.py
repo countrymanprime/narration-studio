@@ -1,4 +1,4 @@
-"""The pronunciation port (ADR 0301, provider-ports P7): what every pronunciation source is to its callers.
+"""The pronunciation port (ADR 0301): what every pronunciation source is to its callers.
 
 A source has two roles, declared separately (interface segregation):
 
@@ -12,7 +12,7 @@ A source has two roles, declared separately (interface segregation):
 A source raises ``descriptor.refuse(mode)`` for a role it does not declare. Callers look a source up in ``SOURCES`` by the name the
 narrator chose (``cmu``, ``espeak``) and never compare names; the build-time fallback tries ``SOURCES.fallback_order()``.
 
-Nothing here imports an engine or anything that fetches: the CMU dictionary and eSpeak stay lazy imports inside their adapters (P8).
+Nothing here imports an engine or anything that fetches: the CMU dictionary and eSpeak stay lazy imports inside their adapters.
 """
 
 import re
@@ -92,5 +92,5 @@ class SourceRegistry(Registry[PronunciationSource]):
         return self.names(platform, PRONOUNCE)
 
 
-# Filled by the guide sidecar's adapters when they are imported (provider-ports P8), CMU first: the first registered is the default.
+# Filled by the guide sidecar's adapters when they are imported, CMU first: the first registered is the default.
 SOURCES = SourceRegistry("pronunciation source")

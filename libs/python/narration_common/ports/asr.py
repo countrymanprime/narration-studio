@@ -1,4 +1,4 @@
-"""The speech recognition port (ADR 0301, provider-ports P3): what every ASR engine is to its callers.
+"""The speech recognition port (ADR 0301): what every ASR engine is to its callers.
 
 An engine has two roles, asked for separately (interface segregation). ``live`` turns a stream of audio chunks into
 ``Hypothesis`` readings for the teleprompter; ``batch`` turns a whole recording into timed words for Transcript Compare. Its
@@ -156,5 +156,5 @@ class AsrEngine(Protocol):
     def batch(self, request: BatchRequest) -> BatchTranscriber: ...
 
 
-# Filled by each sidecar's adapters when they are imported (provider-ports P5, P6); the first registered is the default.
+# Filled by each sidecar's adapters when they are imported; the first registered is the default.
 ENGINES: Registry[AsrEngine] = Registry("speech engine")

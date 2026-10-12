@@ -1,8 +1,8 @@
-"""The capture port (ADR 0301, provider-ports P10): what every microphone backend is to its callers.
+"""The capture port (ADR 0301): what every microphone backend is to its callers.
 
 A backend lists the input devices it can open (``list_devices``) and streams one of them as chunks of mono audio (``chunks``).
 Its callers are the teleprompter sidecar's ``--list-devices``, its session and its level meter (``live_asr.py``), which today call
-``devices.list_input_devices`` and ``iter_microphone_chunks`` directly; the dshow adapter (P11) moves those two behind this port.
+``devices.list_input_devices`` and ``iter_microphone_chunks`` directly; the dshow adapter moves those two behind this port.
 Callers look a backend up in ``BACKENDS`` for this platform and never compare names themselves.
 
 The rules below are the ones those two functions keep today:
@@ -14,11 +14,10 @@ The rules below are the ones those two functions keep today:
   mono samples at ``SAMPLE_RATE``, each ``chunk_samples(chunk_seconds)`` long except the last, which may be shorter but is never
   empty. Closing the iterator releases the device, and closing it twice is safe.
 
-A row may also declare ``level`` (a ``Level``); one that does not is ``Supported``. The ``wasapi`` row (native-recording-suite
-P1, ADR 0357) declares ``Experimental``, and adds ``record(device, path)``, the built-in recorder's take at the device's own
+A row may also declare ``level`` (a ``Level``); one that does not is ``Supported``. The ``wasapi`` row (ADR 0357) declares ``Experimental``, and adds ``record(device, path)``, the built-in recorder's take at the device's own
 rate, which a caller reaches only through that row's own type, never through this Protocol.
 
-Nothing here imports a backend or numpy: PyAV and sounddevice stay lazy imports inside their adapters (P11).
+Nothing here imports a backend or numpy: PyAV and sounddevice stay lazy imports inside their adapters.
 """
 
 from dataclasses import dataclass
@@ -69,5 +68,5 @@ class CaptureBackend(Protocol):
         ...
 
 
-# Filled by the teleprompter sidecar's adapter when it is imported (provider-ports P11); the first registered is the default.
+# Filled by the teleprompter sidecar's adapter when it is imported; the first registered is the default.
 BACKENDS: Registry[CaptureBackend] = Registry("capture backend")
