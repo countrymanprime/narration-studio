@@ -6,7 +6,7 @@
 
 ## Why this build, and why from PyPI
 
-The PRD's recommendation is a catalogued static FFmpeg build (Q1 A) run by the Go host as a child process (Q2 A). A catalog row needs an immutable URL, an exact size and a SHA-256 ([first-use provisioning](../architecture/first-use-dependency-provisioning.md), [required dependency record](local-dependency-evaluation.md#required-dependency-record)). The candidates:
+The PRD's recommendation is a catalogued static FFmpeg build (Q1 A) run by the Go host as a child process (Q2 A). A catalog row needs an immutable URL, an exact size and a SHA-256 ([first-use provisioning](../architecture/first-use-dependency-provisioning.md), [required dependency record](../architecture/model-provenance.md#required-dependency-record)). The candidates:
 
 | Source | Licence class | Pinnable | Reached from this session |
 | --- | --- | --- | --- |
