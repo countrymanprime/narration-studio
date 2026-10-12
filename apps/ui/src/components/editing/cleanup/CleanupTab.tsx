@@ -115,7 +115,8 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
   };
 
   return (
-    <div className="flex flex-col">
+    // The div is not a control: it carries Escape from the focused Preview button to the preview.
+    <div className="flex flex-col" onKeyDown={previewPlay.onKeyDown}>
       <div className="border-b border-[var(--border)] p-3">
         <CleanupHeader counts={counts} op={op} onOp={choose} />
       </div>

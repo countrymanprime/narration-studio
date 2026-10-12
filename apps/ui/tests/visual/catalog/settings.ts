@@ -15,7 +15,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'marks-dialog',
     description: "Settings' Marks panel with Edit marks pressed: the Define how you mark up dialog over the page, a row per mark type",
-    // No reflow capture: the dialog is the Script page's, whose name fields collapse at 390 px (not this slice's to change).
+    ...REFLOW,
   },
   {
     page: 'settings',

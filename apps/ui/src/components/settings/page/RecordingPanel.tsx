@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
 import type { DawKind } from '../../../api/contracts/daw';
 import type { RecordingEngine } from '../../../api/contracts/recording';
 import { apiErrorMessage } from '../../../api/errorMessage';
@@ -56,7 +55,7 @@ export function RecordingPanelView({ daw, engine, busy = false, error, onChoose 
  * refuses with its own sentence (no project, a take running, built-in not supported here); the choice stays where it was.
  */
 export function RecordingPanel() {
-  const api = useApi();
+  const api = usePort('recording');
   const daw = usePort('daw');
   const [kind, setKind] = useState<DawKind>();
   const [engine, setEngine] = useState<RecordingEngine>();

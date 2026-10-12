@@ -343,7 +343,7 @@ describe('Preview plays the findings', () => {
     expect(fake.played).toHaveLength(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Stop preview' }), { key: 'Escape' });
     expect(fake.stop).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('button', { name: 'Preview' })).toBeTruthy();
     cleanup();

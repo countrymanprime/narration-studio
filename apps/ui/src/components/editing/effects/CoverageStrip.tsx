@@ -69,7 +69,7 @@ export function CoverageStrip({
           %
         </label>
       </div>
-      {capError ? <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--danger)]">{capError}</p> : null}
+      {capError ? <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--danger-text)]">{capError}</p> : null}
       <div
         role="group"
         aria-label={on.length ? 'Where effects sit in this chapter' : 'No effects on this chapter'}

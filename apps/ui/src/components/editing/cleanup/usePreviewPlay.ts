@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { CleanupRow } from './cleanupRows';
 
 /** How many of the selected findings Preview plays. */
@@ -23,6 +23,8 @@ export interface PreviewPlay {
   reason: string | null;
   start: (rows: readonly CleanupRow[], total: number) => void;
   stop: () => void;
+  /** Escape stops a preview in progress. Put it on the element that holds focus after Preview (ADR 0361 keeps keydown listeners in `src/input/`). */
+  onKeyDown: (event: KeyboardEvent) => void;
 }
 
 /** The window a finding plays: its start and end, widened by `PREVIEW_AROUND` seconds, never before the chapter begins. */
@@ -69,17 +71,6 @@ export function usePreviewPlay(playback: PreviewPlayback | undefined): PreviewPl
     else halt();
   }, [playing, queue, playAt, halt]);
 
-  useEffect(() => {
-    if (!queue) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      live.current?.stop();
-      halt();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [queue, halt]);
-
   const start = useCallback(
     (rows: readonly CleanupRow[], total: number) => {
       if (!live.current) return setReason(NO_PLAYBACK);
@@ -95,6 +86,14 @@ export function usePreviewPlay(playback: PreviewPlayback | undefined): PreviewPl
     halt();
   }, [halt]);
 
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !queue) return;
+      stop();
+    },
+    [queue, stop],
+  );
+
   const status = queue ? `Playing the first ${queue.windows.length} of ${queue.total} selected, with ${PREVIEW_AROUND} s before and after.` : null;
-  return { status, reason, start, stop };
+  return { status, reason, start, stop, onKeyDown };
 }

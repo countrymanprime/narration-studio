@@ -8,15 +8,17 @@ const file = (name: string) => ({ name }) as MeasureFileResult;
 describe('chapterFile', () => {
   it("matches a chapter's file by its title or its number, as Delivery did", () => {
     const files = [file('Down the Rabbit-Hole.wav'), file('Chapter 04.wav'), file('Chapter 12 and 3.wav')];
-    expect(fileOf(chapter(1, 'Down the Rabbit-Hole'), files)).toBe(files[0]);
-    expect(fileOf(chapter(4, 'Another title'), files)).toBe(files[1]);
+    expect(fileOf(chapter(0, 'Down the Rabbit-Hole'), files)).toBe(files[0]);
+    // The index counts from 0 and the number in a name from 1: "Chapter 04" is the chapter at index 3, not 4.
+    expect(fileOf(chapter(3, 'Another title'), files)).toBe(files[1]);
+    expect(fileOf(chapter(4, 'Another title'), files)).toBeUndefined();
     // A name with two numbers is nobody's by number.
-    expect(fileOf(chapter(12, 'Nope'), files)).toBeUndefined();
+    expect(fileOf(chapter(11, 'Nope'), files)).toBeUndefined();
     expect(fileOf(chapter(9, 'Nope'), files)).toBeUndefined();
   });
 
   it('goes the other way: the chapter a file belongs to', () => {
-    const chapters = [chapter(1, 'One'), chapter(4, 'Four')];
+    const chapters = [chapter(0, 'One'), chapter(3, 'Four')];
     expect(chapterOfFile(file('Chapter 04.wav'), chapters)).toBe(chapters[1]);
     expect(chapterOfFile(file('Retail.wav'), chapters)).toBeUndefined();
   });
