@@ -16,6 +16,7 @@ import { EditingPage, type EditingPageProps } from './EditingPage';
 import { useTakeControls } from './takes/takeControls';
 import { dawFor, EditingHost, FINDING, newJournal, pageApi } from './page/testPage';
 import { buildDoc } from './model';
+import { finding } from './cleanup/cleanupFixtures';
 import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
 
 class FakeAudio extends EventTarget {
@@ -322,6 +323,15 @@ describe('EditingPage', () => {
       await script();
       expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
       expect(await screen.findByRole('region', { name: 'Clean up findings' })).toBeTruthy();
+    });
+    it('Clean up Apply is on for Breaths with a DAW that reports range_gain', async () => {
+      const breath = finding({ id: 'b1', start: 20, end: 20.4, cls: 'breath', db: -22 });
+      const api = { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] };
+      mount({ drawer: 'cleanup', api });
+      await script();
+      fireEvent.click(await screen.findByRole('button', { name: /^Breaths/ }));
+      const apply = await screen.findByRole('button', { name: 'Apply to 1 selected' });
+      await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
     });
     it('opens a time with the playhead there', async () => {
       mount({ t: 1.1 });
