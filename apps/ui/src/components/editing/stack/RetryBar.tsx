@@ -1,5 +1,6 @@
 import type { RetryLevel, RetryMode, RetryModeAnswer } from '../../../api/contracts/editStacks';
 import { Button } from '../../primitives/Button';
+import { StatusBadge } from '../../primitives/StatusBadge';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { TooltipTarget } from '../../primitives/Tooltip';
@@ -53,8 +54,8 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
       />
       <span className="flex-1" />
       {mode === 'stack' && count > 0 ? (
-        <span className="rounded-full bg-[var(--info-soft)] px-2.5 py-0.5 text-sm" title="Later reads that can go on the first read’s spot" data-stack-count>
-          {count} {count === 1 ? 'retry' : 'retries'} can be stacked
+        <span title="Later reads that can go on the first read’s spot" data-stack-count>
+          <StatusBadge tone="info" label={`${count} ${count === 1 ? 'retry' : 'retries'} can be stacked`} />
         </span>
       ) : null}
       {mode === 'stack' ? (
@@ -71,7 +72,7 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
         )
       ) : null}
       {error ? (
-        <span role="alert" className="text-sm text-[var(--danger)]">
+        <span role="alert" className="text-sm text-[var(--danger-text)]">
           {error}
         </span>
       ) : null}
