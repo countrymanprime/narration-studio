@@ -333,16 +333,16 @@ end)
 
 H.test('a check is filed under the row its label names, and one marked (A10) under A10', function()
   local report = Lib.new_report()
-  report:begin('A12')
-  report:check('A10.A12 nothing else changed (A10)', true)
-  report:check('A12.1 fine', true)
+  report:begin('A11')
+  report:check('A10.A11 nothing else changed (A10)', true)
+  report:check('A11.1 fine', true)
   H.eq(#report.rows.A10.checks, 1)
-  H.eq(#report.rows.A12.checks, 1)
-  H.eq(Lib.row_of('A8b.3 the track has two more items'), 'A8b')
+  H.eq(#report.rows.A11.checks, 1)
+  H.eq(Lib.row_of('A8.3 one undo point for the track'), 'A8')
   H.eq(Lib.row_of('S2 the saved project'), nil)
 end)
 
-H.test('the workspace spike report merges into rows A6 to A8b, and a missing or stopped one is not a pass', function()
+H.test('the workspace spike report merges into rows A6 to A8, and a missing or stopped one is not a pass', function()
   local ep0 = table.concat({
     'version 7.80',
     'PASS A6.1 answers ACTIVE_TAKE_SET changed',
@@ -352,17 +352,16 @@ H.test('the workspace spike report merges into rows A6 to A8b, and a missing or 
     'ERROR something broke',
   }, '\n')
   local report = Lib.new_report()
-  Lib.merge_checks(report, ep0, { 'A6', 'A7', 'A8', 'A8b' }, 'missing')
+  Lib.merge_checks(report, ep0, { 'A6', 'A7', 'A8' }, 'missing')
   H.eq(report:verdict('A6'), 'PASS')
   H.eq(report:verdict('A7'), 'FAIL')
   H.eq(report.rows.A7.checks[1].detail, 'FX_CHAIN|x')
   H.eq(#report.rows.A10.checks, 1)
   H.eq(report:verdict('A8'), 'FAIL', 'A8 had only an A10 check, so the stop fails it')
-  H.eq(report:verdict('A8b'), 'FAIL')
   local missing = Lib.new_report()
-  Lib.merge_checks(missing, nil, { 'A6', 'A8b' }, 'the workspace report is missing')
+  Lib.merge_checks(missing, nil, { 'A6', 'A8' }, 'the workspace report is missing')
   H.eq(missing:verdict('A6'), 'NOT RUN')
-  H.eq(missing.rows.A8b.not_run[1].why, 'the workspace report is missing')
+  H.eq(missing.rows.A8.not_run[1].why, 'the workspace report is missing')
 end)
 
 -- Rows against the fake -------------------------------------------------------------------------------------------
@@ -384,7 +383,7 @@ H.test('every row the driver scripts passes against the fake, with A10 checked a
       not_run[#not_run + 1] = step.label:match('^(%S+)')
     end
   end
-  H.eq(not_run, { 'A4.4', 'A9.9', 'A9b.6', 'A9c.3', 'A9c.5', 'A12.8', 'A13.8', 'A14.6' })
+  H.eq(not_run, { 'A4.4', 'A9.9', 'A9b.6', 'A9c.3', 'A9c.5', 'A14.6' })
   H.contains(report:markdown({}), '| A11 | `select_track` | PASS |')
 end)
 

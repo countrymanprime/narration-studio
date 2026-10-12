@@ -3,7 +3,7 @@
 -- starts the real bridge loop (narration_ui_bridge.lua from NARRATION_UTILS_REAPER_DIR) on a scratch session folder,
 -- and sends each row's commands through the same file protocol the Go host uses, then checks what REAPER reads back.
 -- The rows themselves are pass_part_a_lib.lua's, proved against the harness's fake by tests/pass_part_a_test.lua.
--- Rows A6-A8b are spike_ep0_workspace.lua's: run-pass-part-a.ps1 runs it first and this script merges its report.
+-- Rows A6-A8 are spike_ep0_workspace.lua's: run-pass-part-a.ps1 runs it first and this script merges its report.
 --
 -- Safety:
 --   - it stops unless REAPER's resource path is the scratch -Cfg folder and the audio device is closed;
@@ -84,7 +84,7 @@ local function guid_of_take(take)
 end
 
 -- The page's scratch project: "Chapter 1" with a two-take item at 0 s, an item trimmed to start 0.5 s into its source at
--- 4 s, one at play rate 1.5 at 8 s and the cleanup item at 12 s; "Chapter 2" with one item; "Pickups" empty; one region.
+-- 4 s, one at play rate 1.5 at 8 s and a 3 s item at 12 s; "Chapter 2" with one item; "Pickups" empty; one region.
 -- Saved into -Out, then opened from there, so it has a path and its undo history starts empty. Answers ctx.fx.
 local function build_fixture()
   local media = PACK .. SEP .. 'media' .. SEP
@@ -115,7 +115,7 @@ local function build_fixture()
   reaper.SetMediaItemTakeInfo_Value(trimmed_take, 'D_STARTOFFS', 0.5)
   local fast, fast_take = add_item(chapter1, 'take_a.wav', 8, 2)
   reaper.SetMediaItemTakeInfo_Value(fast_take, 'D_PLAYRATE', 1.5)
-  local cleanup, cleanup_take = add_item(chapter1, 'take_c.wav', 12, 3)
+  add_item(chapter1, 'take_c.wav', 12, 3)
   add_item(chapter2, 'take_b.wav', 0, 3)
   reaper.AddProjectMarker2(0, true, 20, 25, 'Fixture region', -1, 0)
   local fx = {
@@ -124,8 +124,6 @@ local function build_fixture()
     pickups = reaper.GetTrackGUID(reaper.GetTrack(0, 2)),
     multi = guid_of_item(multi),
     fast = guid_of_item(fast),
-    cleanup = guid_of_item(cleanup),
-    cleanup_take = guid_of_take(cleanup_take),
   }
   reaper.UpdateArrange()
   reaper.Main_SaveProjectEx(0, rpp, 0)
@@ -325,7 +323,7 @@ lib.run_async(function()
   ctx.fx = fx
   ctx.daw = probe
   lib.run_rows(ctx, report)
-  lib.merge_checks(report, EP0_REPORT ~= '' and read_file(EP0_REPORT) or nil, { 'A6', 'A7', 'A8', 'A8b' }, 'the workspace spike report is missing')
+  lib.merge_checks(report, EP0_REPORT ~= '' and read_file(EP0_REPORT) or nil, { 'A6', 'A7', 'A8' }, 'the workspace spike report is missing')
   report:log('')
   report:log(string.format('record requests (must be 0): %d', record_requests))
 end, reaper.defer, reaper.time_precise, finish)

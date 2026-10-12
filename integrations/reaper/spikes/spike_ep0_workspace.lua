@@ -1,12 +1,10 @@
--- Edit and proof workspace spike (REAPER actions and the undo questions): the real set_active_take, list_fx_chains,
--- list_fx, apply_fx_chain and add_take_fx commands (narration_workspace.lua, loaded through the real
+-- Edit and proof workspace spike (REAPER actions and the undo questions): the real set_active_take, list_fx_chains
+-- and apply_fx_chain commands (narration_workspace.lua, loaded through the real
 -- narration_ui_bridge.lua registry) against a real REAPER, in a scratch project built from synthetic tones. It scripts
--- rows A6, A7, A8, A8b and A10 of docs/operations/reaper-verification-pass.md, and answers what a fake
+-- rows A6, A7, A8 and A10 of docs/operations/reaper-verification-pass.md, and answers what a fake
 -- cannot:
 --   - does SetActiveTake leave exactly one undo point, and does one Undo restore the previous take;
 --   - does TrackFX_AddByName load a .RfxChain by its full path onto a track and the master track;
---   - what does a split do to take FX, take markers, the item's and the take's extension data, the item GUIDs and the
---     fades, and does one Undo rejoin the item;
 --   - what REAPER's own peaks (GetMediaItemTake_Peaks) give for a known tone, to cross-check the host's peaks.
 --
 -- No playback and no recording (no script plays or records): nothing here calls OnPlayButton or records. The FXChains files are
@@ -85,16 +83,6 @@ local function find_item(guid)
   end
   return nil
 end
-local function items_on(track)
-  local found = {}
-  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
-    found[#found + 1] = reaper.GetTrackMediaItem(track, index)
-  end
-  table.sort(found, function(a, b)
-    return reaper.GetMediaItemInfo_Value(a, 'D_POSITION') < reaper.GetMediaItemInfo_Value(b, 'D_POSITION')
-  end)
-  return found
-end
 local function track_chunk(track)
   local _, chunk = reaper.GetTrackStateChunk(track, '', false)
   return chunk
@@ -111,34 +99,6 @@ local function write_file(file, text)
   local handle = assert(io.open(file, 'wb'))
   handle:write(text)
   handle:close()
-end
-local function describe_piece(item)
-  local take = reaper.GetActiveTake(item)
-  local markers = {}
-  for index = 0, reaper.GetNumTakeMarkers(take) - 1 do
-    local srcpos, name = reaper.GetTakeMarker(take, index)
-    markers[#markers + 1] = string.format('%s@%.3f', name, srcpos)
-  end
-  local _, line_id = reaper.GetSetMediaItemInfo_String(item, LINE_ID_KEY, '', false)
-  local _, take_ext = reaper.GetSetMediaItemTakeInfo_String(take, TAKE_KEY, '', false)
-  return string.format(
-    'guid %s pos %.3f len %.3f soffs %.3f takeFX %d [%s] markers [%s] lineId %q takeExt %q fadeIn %.4f fadeOut %.4f autoIn %.4f autoOut %.4f',
-    guid_of_item(item),
-    reaper.GetMediaItemInfo_Value(item, 'D_POSITION'),
-    reaper.GetMediaItemInfo_Value(item, 'D_LENGTH'),
-    reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'),
-    reaper.TakeFX_GetCount(take),
-    fx_names(reaper.TakeFX_GetCount(take), function(index)
-      return reaper.TakeFX_GetFXName(take, index, '')
-    end),
-    table.concat(markers, ' '),
-    line_id,
-    take_ext,
-    reaper.GetMediaItemInfo_Value(item, 'D_FADEINLEN'),
-    reaper.GetMediaItemInfo_Value(item, 'D_FADEOUTLEN'),
-    reaper.GetMediaItemInfo_Value(item, 'D_FADEINLEN_AUTO'),
-    reaper.GetMediaItemInfo_Value(item, 'D_FADEOUTLEN_AUTO')
-  )
 end
 
 -- The body of an .RfxChain: what REAPER keeps inside a track's <FXCHAIN> from the first BYPASS line to the chain's own
@@ -177,7 +137,7 @@ local ok, err = xpcall(function()
   -----------------------------------------------------------------------
   section('Setup: a scratch project in -Out and FX chains in the isolated resource folder')
   -----------------------------------------------------------------------
-  -- The plug-in name as the FX browser adds it; list_fx below reports the exact form EnumInstalledFX uses.
+  -- The plug-in the scratch chains hold, as the FX browser names it.
   local reaeq = 'ReaEQ'
   local chain_root = reaper.GetResourcePath() .. SEP .. 'FXChains'
   reaper.RecursiveCreateDirectory(chain_root .. SEP .. 'Voice' .. SEP .. 'Deep', 0)
@@ -219,7 +179,6 @@ local ok, err = xpcall(function()
   reaper.SetTakeMarker(trimmed_take, -1, 'marker-1.5', 1.5)
   add_item(reaper.GetTrack(0, 1), 'take_a.wav', 5, 0, 3)
   local multi_guid, first_guid, second_guid = guid_of_item(multi), guid_of_take(first_take), guid_of_take(second_take)
-  local trimmed_guid, trimmed_take_guid = guid_of_item(trimmed), guid_of_take(trimmed_take)
   reaper.Main_SaveProjectEx(0, rpp, 0)
   reaper.Main_openProject('noprompt:' .. rpp)
   local _, open_path = reaper.EnumProjects(-1, '')
@@ -289,7 +248,7 @@ local ok, err = xpcall(function()
   witness_unchanged('A6')
 
   -----------------------------------------------------------------------
-  section('A7 list_fx_chains and list_fx')
+  section('A7 list_fx_chains')
   -----------------------------------------------------------------------
   answer = send('list_fx_chains', 'r4')
   local chains = {}
@@ -304,21 +263,6 @@ local ok, err = xpcall(function()
     table.concat(chains, ';') == 'Voice/Deep/Other EQ.RfxChain;Voice/Test EQ.RfxChain',
     table.concat(chains, ';')
   )
-  answer = send('list_fx', 'r5')
-  local plugins, container, reaeq_name = 0, false, nil
-  for _, line in ipairs(answer) do
-    if line[1] == 'FX_PLUGIN' then
-      plugins = plugins + 1
-      container = container or line[3] == 'Container'
-      if not reaeq_name and line[3]:find('ReaEQ', 1, true) then
-        reaeq_name = line[3]
-      end
-    end
-  end
-  log('plug-ins listed', plugins, 'ReaEQ is listed as', tostring(reaeq_name))
-  check('A7.2 lists ReaEQ and not the FX container', reaeq_name ~= nil and not container)
-  reaeq_name = reaeq_name or reaeq
-
   -----------------------------------------------------------------------
   section('A8 apply_fx_chain: a chain by path onto a track and the master track')
   -----------------------------------------------------------------------
@@ -358,103 +302,6 @@ local ok, err = xpcall(function()
     )
   end
   witness_unchanged('A8')
-
-  -----------------------------------------------------------------------
-  section('A8b add_take_fx: split a passage and add one plug-in to the middle piece')
-  -----------------------------------------------------------------------
-  trimmed = assert(find_item(trimmed_guid), 'the trimmed item is gone')
-  log('before', describe_piece(trimmed))
-  local items_before = reaper.CountTrackMediaItems(chapter1)
-  answer = send('add_take_fx', 'r9', trimmed_guid, trimmed_take_guid, '1.0', '2.0', reaeq_name)
-  log('answer', first(answer), "undo '" .. undo_label() .. "'")
-  check('A8b.1 answers TAKE_FX_ADDED with two splits', answer[1] and answer[1][1] == 'TAKE_FX_ADDED' and answer[1][6] == '2', first(answer))
-  check('A8b.2 in one undo point', undo_label() == 'Narration Utils: add take FX ' .. reaeq_name, undo_label())
-  chapter1 = reaper.GetTrack(0, 0)
-  check('A8b.3 the track has two more items', reaper.CountTrackMediaItems(chapter1) == items_before + 2)
-  local pieces = {}
-  for _, item in ipairs(items_on(chapter1)) do
-    if reaper.GetMediaItemInfo_Value(item, 'D_POSITION') >= 19.999 then
-      pieces[#pieces + 1] = item
-    end
-  end
-  for index, piece in ipairs(pieces) do
-    log('piece', index, describe_piece(piece))
-  end
-  local middle_guid = answer[1] and answer[1][4] or ''
-  if #pieces == 3 then
-    local take_fx = function(piece)
-      return reaper.TakeFX_GetCount(reaper.GetActiveTake(piece))
-    end
-    check('A8b.4 only the middle piece has the plug-in', take_fx(pieces[1]) == 0 and take_fx(pieces[2]) == 1 and take_fx(pieces[3]) == 0)
-    check('A8b.5 the answer names the middle piece', guid_of_item(pieces[2]) == middle_guid, middle_guid)
-    check('A8b.6 the left piece keeps the original GUID', guid_of_item(pieces[1]) == trimmed_guid)
-    local all_stamped = true
-    for _, piece in ipairs(pieces) do
-      local _, line_id = reaper.GetSetMediaItemInfo_String(piece, LINE_ID_KEY, '', false)
-      all_stamped = all_stamped and line_id == 'L-0002'
-    end
-    check('A8b.7 the line id is on all three pieces', all_stamped)
-    check(
-      'A8b.8 the middle piece starts at source 1.0 s',
-      math.abs(reaper.GetMediaItemTakeInfo_Value(reaper.GetActiveTake(pieces[2]), 'D_STARTOFFS') - 1.0) < 0.0005
-    )
-  else
-    check('A8b.4 three pieces at 20 s', false, #pieces)
-  end
-  local label_after_first_add = undo_label()
-  local middle = assert(find_item(middle_guid), 'the middle piece is gone')
-  answer = send('add_take_fx', 'r10', middle_guid, guid_of_take(reaper.GetActiveTake(middle)), '1.0', '2.0', reaeq_name)
-  middle = assert(find_item(middle_guid), 'the middle piece is gone')
-  check(
-    'A8b.9 a second plug-in on the middle piece splits nothing',
-    answer[1] and answer[1][6] == '0' and reaper.TakeFX_GetCount(reaper.GetActiveTake(middle)) == 2,
-    first(answer)
-  )
-  reaper.Main_OnCommand(40029, 0)
-  middle = find_item(middle_guid)
-  check(
-    'A8b.10 Undo removes the second plug-in',
-    middle ~= nil and reaper.TakeFX_GetCount(reaper.GetActiveTake(middle)) == 1 and undo_label() == label_after_first_add
-  )
-  reaper.Main_OnCommand(40029, 0)
-  chapter1 = reaper.GetTrack(0, 0)
-  trimmed = find_item(trimmed_guid)
-  check(
-    'A8b.11 a second Undo rejoins the item',
-    reaper.CountTrackMediaItems(chapter1) == items_before and trimmed ~= nil and math.abs(reaper.GetMediaItemInfo_Value(trimmed, 'D_LENGTH') - 2.5) < 0.0005
-  )
-  if trimmed then
-    log('after undo', describe_piece(trimmed))
-  end
-  answer = send('add_take_fx', 'r11', trimmed_guid, trimmed_take_guid, '0.5', '3.0', reaeq_name)
-  check('A8b.12 the whole item splits nothing', answer[1] and answer[1][1] == 'TAKE_FX_ADDED' and answer[1][6] == '0', first(answer))
-  reaper.Main_OnCommand(40029, 0)
-  local label = undo_label()
-  answer = send('add_take_fx', 'r12', trimmed_guid, trimmed_take_guid, '1.0', '2.0', 'Voice/Test EQ.RfxChain')
-  check('A8b.13 a chain name is refused on a passage', answer[1] and answer[1][1] == 'ERROR' and undo_label() == label, first(answer))
-  answer = send('add_take_fx', 'r13', multi_guid, second_guid, '0.5', '1.0', reaeq_name)
-  check('A8b.14 a take that does not play is refused', answer[1] and answer[1][1] == 'ERROR', first(answer))
-  witness_unchanged('A8b')
-
-  -----------------------------------------------------------------------
-  section('Save and reload: a take FX added by the command survives in the .rpp')
-  -----------------------------------------------------------------------
-  answer = send('add_take_fx', 'r14', trimmed_guid, trimmed_take_guid, '1.0', '2.0', reaeq_name)
-  middle_guid = answer[1] and answer[1][4] or ''
-  reaper.Main_SaveProjectEx(0, rpp, 0)
-  reaper.Main_openProject('noprompt:' .. rpp)
-  middle = find_item(middle_guid)
-  check(
-    'S1 the middle piece and its plug-in are there after a reload',
-    middle ~= nil and reaper.TakeFX_GetCount(reaper.GetActiveTake(middle)) == 1,
-    middle_guid
-  )
-  local handle = io.open(rpp, 'rb')
-  local saved = handle and handle:read('a') or ''
-  if handle then
-    handle:close()
-  end
-  check('S2 the saved project has a <TAKEFX> chunk', saved:find('<TAKEFX', 1, true) ~= nil)
 
   -----------------------------------------------------------------------
   section("REAPER's own peaks for a known tone (observation only)")

@@ -198,7 +198,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** list the narrator's FX chain files and apply a chain to a track.
 - **Role:** `FXManager`, synchronous.
 - **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_CHAIN_APPLIED` with the number added. A name outside the chains folder is refused before anything changes. Each write is one undo point.
-- **REAPER:** `list_fx_chains`, `apply_fx_chain`. The host stopped sending `list_fx` and `add_take_fx` in [#1661](https://github.com/countrymanprime/narration-utils/issues/1661); their Lua handlers go with [#1311](https://github.com/countrymanprime/narration-utils/issues/1311).
+- **REAPER:** `list_fx_chains`, `apply_fx_chain`. The `list_fx` and `add_take_fx` commands are gone: the host stopped sending them in [#1661](https://github.com/countrymanprime/narration-utils/issues/1661) and [#1311](https://github.com/countrymanprime/narration-utils/issues/1311) removed their Lua handlers.
 - **Audacity:** not built.
 - **Checked:** harness (`workspace_test.lua`); expected result is rows A7, A8 and A8b; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 

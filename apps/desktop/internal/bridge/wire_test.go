@@ -38,10 +38,6 @@ var realEvents = map[string][]string{
 	"RENDER_CONFIGURED":     {"RENDER_CONFIGURED", "t1", "C:/p/renders", "2", "C:/p/renders/Chapter 1.wav;C:/p/renders/Chapter 2.wav"},
 	"PROJECT_STATE":         {"PROJECT_STATE", "t1", "7", "C:/p/Book.rpp"},
 	"CLEANUP_LAUNCHED":      {"CLEANUP_LAUNCHED", "t1", "repair_pops_clicks", "Item: Repair pops/clicks..."},
-	// integrations/reaper/tests/cleanup_preview_test.lua (ADR 0251).
-	"CLEANUP_STALE":     {"CLEANUP_STALE", "c1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
-	"CLEANUP_PREVIEWED": {"CLEANUP_PREVIEWED", "c1", "2", "0"},
-	"CLEANUP_APPLIED":   {"CLEANUP_APPLIED", "c1", "1"},
 	// integrations/reaper/tests/level_normalize_test.lua (ADR 0252).
 	"GAIN_STALE":         {"GAIN_STALE", "g1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "item"},
 	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
@@ -75,19 +71,16 @@ var realEvents = map[string][]string{
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "2", "0"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
 	// integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
-	"ACTIVE_TAKE_SET":   {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
-	"ITEM_STALE":        {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
-	"FX_CHAIN":          {"FX_CHAIN", "f1", "Voice/Test EQ.RfxChain"},
-	"FX_CHAINS_LISTED":  {"FX_CHAINS_LISTED", "f1", "3", "0"},
-	"FX_CHAIN_APPLIED":  {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
-	"FX_PLUGIN":         {"FX_PLUGIN", "p1", "VST3: ReaEQ (Cockos)"},
-	"FX_PLUGINS_LISTED": {"FX_PLUGINS_LISTED", "p1", "2", "0"},
+	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
+	"ITEM_STALE":       {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
+	"FX_CHAIN":         {"FX_CHAIN", "f1", "Voice/Test EQ.RfxChain"},
+	"FX_CHAINS_LISTED": {"FX_CHAINS_LISTED", "f1", "3", "0"},
+	"FX_CHAIN_APPLIED": {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
 	// integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx; ADR 0306).
 	"MASTER_CHAIN_FX":   {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1"},
 	"MASTER_CHAIN_READ": {"MASTER_CHAIN_READ", "c1", "3", "0"},
 	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-utils/mastering/run1/fx-01.wav"},
 	"FX_RENDERED":       {"FX_RENDERED", "r1", "C:/p/narration-utils/mastering/run1", "1"},
-	"TAKE_FX_ADDED":     {"TAKE_FX_ADDED", "x1", "VST3: ReaEQ (Cockos)", "{00000005-0000-4000-8000-000000000005}", "{00000006-0000-4000-8000-000000000006}", "2"},
 	// integrations/reaper/tests/takes_test.lua (hide_takes).
 	"TAKES_HIDDEN": {"TAKES_HIDDEN", "h1", "{AAAAAAAA-0000-4000-8000-000000000001}", "2", "1"},
 	// integrations/reaper/tests/split_take_test.lua (split_take).
@@ -111,6 +104,19 @@ func TestTheTableKnowsEveryTagTheBridgeEmits(t *testing.T) {
 	for tag := range eventSpecs {
 		if _, real := realEvents[tag]; !real {
 			t.Errorf("%s is in the table but no real event pins it", tag)
+		}
+	}
+}
+
+// The workspace's plug-in listing and passage FX, and the silence-cleanup preview and trims, were removed with the
+// old workspace (#1311): their events have no row, and nothing real pins them.
+func TestTheEventsOfTheRemovedCommandsAreNotInTheTable(t *testing.T) {
+	for _, tag := range []string{"FX_PLUGIN", "FX_PLUGINS_LISTED", "TAKE_FX_ADDED", "CLEANUP_STALE", "CLEANUP_PREVIEWED", "CLEANUP_APPLIED"} {
+		if _, known := eventSpecs[tag]; known {
+			t.Errorf("%s is in the table, but the command that emitted it was removed", tag)
+		}
+		if _, real := realEvents[tag]; real {
+			t.Errorf("%s is pinned as a real event, but the command that emitted it was removed", tag)
 		}
 	}
 }
