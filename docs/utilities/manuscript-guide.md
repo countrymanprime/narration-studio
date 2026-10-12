@@ -86,6 +86,18 @@ and each field (8 KB), refuses an unknown field or a kind other than entry, alia
 quote `extraction.VerifyEvidence` does not find in its paragraph, and kills the sidecar when the run is cancelled. The
 line format is pinned by `rules/testdata/suggest-lines.json`, which the sidecar's contract test writes.
 
+## GLiNER suggestions
+
+`suggest --source gliner --manuscript M --guide G --install DIR` runs the optional GLiNER download
+(`core/extraction_gliner.py`). It loads the model only from `DIR`, the tool's install folder, with the Hugging Face hub
+turned off ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md)),
+and prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
+the model's own score or `null`, and the sentence the name is in as its quote. Spans under `SCORE_FLOOR` (0.5) are
+dropped, and a name found twice is offered once. A missing or damaged install exits 1 with a sentence. The host runs it
+through `apps/desktop/internal/extractionport/gliner` with the same caps and checks as the rules, plus an entry-only,
+no-alias line format, pinned by `gliner/testdata/suggest-lines.json`. `self-check --gliner-install DIR` adds a `gliner`
+line: the installed version, or "not installed", which passes.
+
 ## Workflow
 
 Run the guide after manuscript selection; review uncertain candidates; lock narrator-authored pronunciation and notes; consult the entries during recording.
