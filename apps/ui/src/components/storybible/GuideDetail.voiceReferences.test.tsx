@@ -46,7 +46,7 @@ describe('Story Bible character detail: voice references', () => {
     const place = WIRE_ENTITIES.find((row) => row.category === 'Place');
     if (!place) throw new Error('fixture must include a place');
     renderDetail(place);
-    await waitFor(() => expect(screen.getByDisplayValue(place.canonical_name)).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: place.canonical_name })).toBeTruthy());
     expect(screen.queryByText('Reference clips')).toBeNull();
   });
 
