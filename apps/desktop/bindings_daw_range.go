@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -106,6 +107,84 @@ func dawDeleteRangeIn(ctx context.Context, svc hostServices, support dawport.Sup
 	result, err := cutter.DeleteRange(ctx, request)
 	if err != nil {
 		return cutRefusal(name, err), nil
+	}
+	return result, nil
+}
+
+const (
+	trimBadRangeSentence  = "The gap to shorten is not a usable pair of times, so nothing was changed."
+	trimItemStaleSentence = "That gap's item is no longer on this chapter's track in the %s project, so nothing was shortened. Read the project again."
+	trimOutsideSentence   = "That gap is no longer inside its item in the %s project, so nothing was shortened. Read the project again."
+	trimDoneSentence      = "Shortened the gap in %s."
+)
+
+// DawTrimRange shortens a gap between words: it hides start..end project seconds of itemID, an item of chapterID, with fadeMs (0 to
+// 500) at the seam (SN-E112: Clean up's Gaps, "Shorten to N s"). It is the cut_range role's DeleteRange with no words, no pad and
+// no room tone, in mode close: the piece goes to the muted Cuts track and the audio after it moves up; nothing is deleted. itemID
+// is the item's id as the finding recorded it: the host looks it up on the chapter's one linked track as the DAW reports it now
+// (chapter_track_state), checks the gap is inside it, and sends the item it read itself, so an id is never sent to the DAW as
+// given (threat model row 5f). A trim splits its item, so the page sends a chapter's trims latest first. The answer is a DawResult
+// (ADR 0810): the cut_range capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a
+// sentence; times or a fade out of bounds are refused; an item the track no longer holds or a gap outside it is refused with code
+// stale. Nothing is sent to the DAW on any of them.
+func (h *Host) DawTrimRange(chapterID string, itemID string, start float64, end float64, fadeMs int) (string, error) {
+	svc := h.services()
+	resolver, _ := h.dawResolverFor(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), deleteRangeTimeout)
+	defer cancel()
+	run := h.runLog.Begin("trim_range", "chapter_id", chapterID)
+	live := h.stackSourcesIn(svc, resolver.Support(dawport.CapTrackState)).live
+	result, err := dawTrimRangeIn(ctx, readAloudAdapterName(svc), resolver.Support(dawport.CapCutRange), svc.rangeCutter, live,
+		chapterID, itemID, start, end, fadeMs)
+	endStackRun(run, result, err)
+	return encodeBinding(result, err)
+}
+
+// dawTrimRangeIn is DawTrimRange with the launch's cut_range support, the engine's role (nil with no live adapter) and the track
+// read given. name is the engine's name for the sentences.
+func dawTrimRangeIn(ctx context.Context, name string, support dawport.Support, cutter dawport.RangeCutter, live splitLive,
+	chapterID, itemID string, start, end float64, fadeMs int) (dawport.Result, error) {
+	if !support.Available {
+		return dawport.Refused(support.Message), nil
+	}
+	if cutter == nil {
+		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message), nil
+	}
+	if !(start >= 0) || math.IsInf(end, 0) || !(end > start) {
+		return dawport.Refused(trimBadRangeSentence), nil
+	}
+	if fadeMs < 0 || fadeMs > bridge.MaxCutFadeMs {
+		return dawport.Refused(cutBadFadeSentence), nil
+	}
+	items, refused, err := live(ctx, chapterID)
+	if err != nil {
+		return splitRefusal(name, err), nil
+	}
+	if refused != nil {
+		return *refused, nil
+	}
+	wanted := splitGUID(itemID)
+	var item *dawport.TrackItem
+	for i := range items {
+		if wanted != "" && splitGUID(items[i].ItemGUID) == wanted {
+			item = &items[i]
+			break
+		}
+	}
+	if item == nil {
+		return dawport.RefusedStale(fmt.Sprintf(trimItemStaleSentence, name)), nil
+	}
+	if start < item.Position-gainTolerance || end > item.Position+item.Length+gainTolerance {
+		return dawport.RefusedStale(fmt.Sprintf(trimOutsideSentence, name)), nil
+	}
+	request := dawport.DeleteRangeRequest{RangeRequest: dawport.RangeRequest{ChapterID: chapterID, ItemGUID: item.ItemGUID, Start: start, End: end},
+		Mode: dawport.CutClose, FadeMs: fadeMs}
+	result, err := cutter.DeleteRange(ctx, request)
+	if err != nil {
+		return cutRefusal(name, err), nil
+	}
+	if result.OK && result.Changed {
+		result.Message = fmt.Sprintf(trimDoneSentence, name)
 	}
 	return result, nil
 }

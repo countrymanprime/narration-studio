@@ -345,3 +345,61 @@ func TestCutsWithNoProject(t *testing.T) {
 		t.Fatal("remove without a project succeeded")
 	}
 }
+
+// gapTrim is a gap Clean up shortened (SN-E112): no paragraph and no words, from 30 s to 31.2 s of the chapter recording.
+func gapTrim() CutRequest {
+	return CutRequest{Text: "A gap of 1.2 s", A: 30, B: 31.2, Off0: 30, Off1: 31.2, Mode: CutClose, FadeMs: 6, Daw: "REAPER", GUID: "{GAP-1}", UndoSteps: steps(1)}
+}
+
+// 12. a-wordless-cut-is-a-range: a gap between words is recorded with no paragraph and no words, comes back never stale, survives a
+// reopen, and is refused where it overlaps any cut of the chapter; a paragraph with no words, or words with no paragraph, is refused.
+func TestAWordlessCutIsRecordedAsARange(t *testing.T) {
+	project := t.TempDir()
+	book := aliceBook()
+	service := newService(t, project, &book)
+	if _, err := service.CutRecord("c-0001", queenCut()); err != nil {
+		t.Fatal(err)
+	}
+	change, err := service.CutRecord("c-0001", gapTrim())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gap := change.Cuts.Cuts[1]
+	if change.Changed[0] != "cut2" || gap.ID != "cut2" || gap.ParagraphID != "" || len(gap.Keys) != 0 || gap.Keys == nil || len(gap.Words) != 0 || gap.Words == nil ||
+		gap.Paragraph != nil || gap.Stale || gap.Text != "A gap of 1.2 s" || gap.A != 30 || gap.B != 31.2 {
+		t.Fatalf("wordless cut = %+v", gap)
+	}
+	if list, err := newService(t, project, &book).CutsList("c-0001"); err != nil || cutIDs(list.Cuts) != "cut1,cut2" || list.Cuts[1].Stale {
+		t.Fatalf("list from a new service = %+v, %v", list, err)
+	}
+	overlapping := gapTrim()
+	overlapping.A, overlapping.B, overlapping.TakeID = 13, 14, "t-9"
+	if _, err := service.CutRecord("c-0001", overlapping); err == nil || !strings.Contains(err.Error(), "overlaps cut cut1") {
+		t.Fatalf("a wordless cut over a word cut = %v", err)
+	}
+	word := queenCut()
+	word.TakeID, word.A, word.B = "t-9", 30.5, 31
+	if _, err := service.CutRecord("c-0001", word); err == nil || !strings.Contains(err.Error(), "overlaps cut cut2") {
+		t.Fatalf("a word cut over a wordless cut = %v", err)
+	}
+	for name, mutate := range map[string]func(*CutRequest){
+		"a paragraph with no words": func(r *CutRequest) { r.ParagraphID = "p-000001" },
+		"words with no paragraph":   func(r *CutRequest) { r.Keys = []string{"p-000001:4"} },
+		"no text":                   func(r *CutRequest) { r.Text = " " },
+		"no DAW result":             func(r *CutRequest) { r.UndoSteps = nil },
+	} {
+		request := gapTrim()
+		request.A, request.B = 40, 41
+		mutate(&request)
+		if _, err := service.CutRecord("c-0001", request); err == nil {
+			t.Errorf("%s: recorded", name)
+		}
+	}
+	if _, err := service.CutRecord("c-0009", gapTrim()); err == nil {
+		t.Error("a wordless cut of a chapter the manuscript does not have was recorded")
+	}
+	writeFile(t, CutsFile(project), `{"schemaVersion": 1, "cuts": [{"id": "cut1", "chapterId": "c-0001", "pid": "p-000001", "words": [], "text": "x", "a": 4, "b": 5, "off0": 4, "off1": 5, "mode": "close", "fadeMs": 0, "daw": "reaper", "guid": "g", "undoSteps": 1, "at": "2026-10-11T10:00:00Z"}]}`)
+	if list, err := newService(t, project, &book).CutsList("c-0001"); err != nil || len(list.Cuts) != 0 {
+		t.Fatalf("a stored paragraph with no words is not corrupt: %+v, %v", list, err)
+	}
+}

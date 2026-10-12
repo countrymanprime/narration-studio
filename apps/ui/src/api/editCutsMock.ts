@@ -1,7 +1,8 @@
 // The browser mock's cuts. It keeps them in memory and checks each against the mock manuscript the way
 // apps/desktop/internal/editlog/cuts.go does, with the host's sentences: a word the paragraph lacks, a range or option the
-// app never sends, a missing DAW result or an overlap with a stored cut on the same take is refused and nothing is saved;
-// the list is in the original recording's time order, and a cut whose words changed comes back stale, never moved.
+// app never sends, a missing DAW result or an overlap with a stored cut on the same take (any cut, when either is wordless) is
+// refused and nothing is saved; the list is in the original recording's time order, and a cut whose words changed comes back
+// stale, never moved. A wordless cut (a gap Clean up shortened) names no paragraph and no words, and is never stale.
 import type { EditCut, EditCutRequest, EditCuts, EditCutsApi, EditCutsChange, ManuscriptChapter, ManuscriptParagraph } from '../types';
 import { wireClone } from './mockFixtures';
 
@@ -27,7 +28,7 @@ function checkRequest(cut: EditCutRequest): void {
   if (!finiteTime(cut.a) || !finiteTime(cut.b)) throw new Error("a cut's times must be seconds from the start of the recording");
   if (cut.b <= cut.a) throw new Error('a cut must end after it starts');
   if (!finiteOffset(cut.off0) || !finiteOffset(cut.off1) || cut.off1 < cut.off0) throw new Error("a cut's place in its take must end after it starts");
-  if (!cut.pid || cut.pid.includes(':')) throw new Error('that paragraph is not in this chapter');
+  if (cut.pid.includes(':')) throw new Error('that paragraph is not in this chapter');
   if (!cut.text.trim()) throw new Error('a cut must show the words it hides');
   for (const text of [cut.text, cut.daw, cut.guid, cut.takeId ?? '', cut.backupId ?? '']) {
     if ([...text].length > MAX_TEXT) throw new Error(`a cut's text can be at most ${MAX_TEXT} characters`);
@@ -55,6 +56,7 @@ export function createEditCutsMock(ready: Promise<unknown>, chapters: () => Manu
 
   const resolve = ({ ordinals, texts, ...cut }: Stored): EditCut => {
     const base = { ...cut, keys: ordinals.map((ordinal) => `${cut.pid}:${ordinal}`), words: [...texts] };
+    if (!ordinals.length) return { ...base, paragraph: null, stale: false };
     const line = lineOf(cut.chapterId, cut.pid);
     if (!line) return { ...base, paragraph: null, stale: true, staleReason: 'paragraph_missing' };
     const words = wordsOf(line.text);
@@ -63,6 +65,21 @@ export function createEditCutsMock(ready: Promise<unknown>, chapters: () => Manu
       if (words[ordinal] !== texts[index]) return { ...base, paragraph: line.index, stale: true, staleReason: 'text_changed' };
     }
     return { ...base, paragraph: line.index, stale: false };
+  };
+
+  /** A cut's words, checked against the paragraph's current text, in ordinal order. */
+  const wordsOfCut = (chapterId: string, request: EditCutRequest): Array<{ ordinal: number; text: string }> => {
+    const parsed = parseKeys(request.keys);
+    const line = request.pid ? lineOf(chapterId, request.pid) : undefined;
+    if (!line) throw new Error('that paragraph is not in this chapter');
+    const words = wordsOf(line.text);
+    const picked = parsed.map((key) => {
+      if (key.paragraphId !== request.pid) throw new Error("a cut's words must all be in its paragraph");
+      const text = words[key.ordinal];
+      if (text === undefined) throw new Error('that word is past the end of its line');
+      return { ordinal: key.ordinal, text };
+    });
+    return picked.sort((x, y) => x.ordinal - y.ordinal);
   };
 
   const list = (chapterId: string): EditCuts => {
@@ -85,20 +102,13 @@ export function createEditCutsMock(ready: Promise<unknown>, chapters: () => Manu
     editingCutRecord: async (chapterId, request) => {
       await ready;
       checkRequest(request);
-      const parsed = parseKeys(request.keys);
       if (!chapters().some((chapter) => chapter.id === chapterId)) throw new Error('that chapter is not in the manuscript');
-      const line = lineOf(chapterId, request.pid);
-      if (!line) throw new Error('that paragraph is not in this chapter');
-      const words = wordsOf(line.text);
-      const picked = parsed.map((key) => {
-        if (key.paragraphId !== request.pid) throw new Error("a cut's words must all be in its paragraph");
-        const text = words[key.ordinal];
-        if (text === undefined) throw new Error('that word is past the end of its line');
-        return { ordinal: key.ordinal, text };
-      });
-      picked.sort((x, y) => x.ordinal - y.ordinal);
+      const picked = request.pid || request.keys.length ? wordsOfCut(chapterId, request) : [];
       const takeId = request.takeId ?? '';
-      const overlap = stored.find((cut) => cut.chapterId === chapterId && (cut.takeId ?? '') === takeId && request.a < cut.b && cut.a < request.b);
+      const overlap = stored.find(
+        (cut) =>
+          cut.chapterId === chapterId && ((cut.takeId ?? '') === takeId || !picked.length || !cut.ordinals.length) && request.a < cut.b && cut.a < request.b,
+      );
       if (overlap) throw new Error(`that audio overlaps cut ${overlap.id}, which is recorded already`);
       const id = nextId();
       const cut: Stored = {

@@ -265,7 +265,7 @@ export function EditingBody(props: EditingBodyProps) {
   const tab = resolveTab(panels.drawer.want, offered);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
-  const cleanupDeps = useCleanupDeps();
+  const cleanupDeps = useCleanupDeps({ cuts: read.cuts, onCuts: props.onCuts });
   useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
   // What the inspector needs to change an effect through the DAW and the history, and to hear its words through the page's playback.
   const { playFrom, stop: stopPlayback, playing: isPlaying } = playback;

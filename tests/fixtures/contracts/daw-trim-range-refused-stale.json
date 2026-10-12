@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "That gap is no longer inside its item in the REAPER project, so nothing was shortened. Read the project again.",
+  "undoSteps": 0,
+  "refused": "That gap is no longer inside its item in the REAPER project, so nothing was shortened. Read the project again.",
+  "code": "stale"
+}

@@ -5,10 +5,10 @@ export const editCutSchema = z
   .object({
     id: z.string().min(1),
     chapterId: z.string(),
-    pid: z.string().min(1),
+    pid: z.string(),
     takeId: z.string().optional(),
-    keys: z.array(z.string().regex(/^[^:]+:(0|[1-9]\d*)$/)).min(1),
-    words: z.array(z.string().min(1)).min(1),
+    keys: z.array(z.string().regex(/^[^:]+:(0|[1-9]\d*)$/)),
+    words: z.array(z.string().min(1)),
     text: z.string().min(1),
     a: z.number().nonnegative(),
     b: z.number().positive(),
@@ -26,8 +26,8 @@ export const editCutSchema = z
     staleReason: z.enum(['paragraph_missing', 'word_missing', 'text_changed']).optional(),
   })
   .strict()
-  .refine((cut) => cut.b > cut.a && cut.words.length === cut.keys.length, {
-    message: 'a cut ends after it starts and has a text for each key',
+  .refine((cut) => cut.b > cut.a && cut.words.length === cut.keys.length && (cut.pid === '') === (cut.keys.length === 0), {
+    message: 'a cut ends after it starts, has a text for each key, and names a paragraph exactly when it names words',
   }) satisfies z.ZodType<EditCut>;
 
 export const editCutsSchema = z

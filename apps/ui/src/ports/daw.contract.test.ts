@@ -44,6 +44,9 @@ import {
   gainOutsideAnswer,
   gainTakeStaleAnswer,
   rangeGainAnswer,
+  rangeCutOf,
+  trimmedAnswer,
+  trimStaleOf,
   clickOutsideAnswer,
   clicksInShape,
   clickTakeStaleAnswer,
@@ -62,6 +65,7 @@ import {
   type StackRequest,
   type BackupRequest,
   type RangeGainRequest,
+  type RangeTrimRequest,
   type ClickRepairRequest,
 } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
@@ -104,6 +108,9 @@ const GOLDEN_FILES = [
   'daw-split-take-refused-stale.json',
   'daw-split-take-refused-capability.json',
   'daw-reduce-range-gain-done.json',
+  'daw-trim-range-done.json',
+  'daw-trim-range-refused-stale.json',
+  'daw-trim-range-refused-capability.json',
   'daw-reduce-range-gain-refused-stale.json',
   'daw-reduce-range-gain-refused-capability.json',
   'daw-repair-click-done.json',
@@ -351,6 +358,18 @@ function hostApi(): DawHostApi {
       }
       return Promise.resolve(read('daw-reduce-range-gain-done.json', dawResultSchema));
     },
+    // DawTrimRange on REAPER: the times and the fade are checked first, an item the fixture project's track does not hold and a gap
+    // outside it are the stale refusals, and item-twice's gap at 12.5..14 s with a 6 ms fade is the done golden. Anything else has no
+    // golden.
+    dawTrimRange: (chapterId, itemId, start, end, fadeMs) => {
+      if (!(start >= 0) || !Number.isFinite(end) || !(end > start)) return Promise.resolve(refusal(DAW_ANSWERS.trimBadRange));
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return Promise.resolve(refusal(DAW_ANSWERS.cutBadFade));
+      const item = known.chapterIds.includes(chapterId) ? known.trimItems?.[itemId] : undefined;
+      if (!item) return Promise.resolve(staleRefusal(trimStaleOf(DAW_SETUPS.reaper).gone));
+      if (start < item.start || end > item.start + item.length) return Promise.resolve(read('daw-trim-range-refused-stale.json', dawResultSchema));
+      if (start !== TRIM.start || end !== TRIM.end || fadeMs !== TRIM.fadeMs) return Promise.reject(new Error(`no golden for ${start}..${end} s`));
+      return Promise.resolve(read('daw-trim-range-done.json', dawResultSchema));
+    },
     // DawRepairClick on REAPER: the clicks' shape is checked first, a take the fixture project's track does not hold and a click outside
     // the part of its file it plays are the stale refusals, and take-twice's clicks at 4..4.003 and 8.5..8.502 s are the done golden.
     // Anything else has no golden.
@@ -380,6 +399,9 @@ const GAIN: RangeGainRequest = {
   ],
   reduceDb: 9,
 };
+
+/** A gap of the fixture project's item-twice: what the trim-range goldens' host shortened. */
+const TRIM: RangeTrimRequest = { chapterId: 'chapter-1', itemId: 'item-twice', start: 12.5, end: 14, fadeMs: 6 };
 
 /** Two clicks of the fixture project's take-twice: what the repair-click goldens' host repaired. */
 const CLICKS: ClickRepairRequest = {
@@ -455,6 +477,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.splitTake('chapter-1', 'take-twice', 15.5),
         await daw.reduceRangeGain(GAIN),
         await daw.repairClick(CLICKS),
+        await daw.trimRange(TRIM),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -649,6 +672,25 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
       await daw.reduceRangeGain({ ...GAIN, stretches: [] }),
       await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: 5, end: 4 }] }),
       await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: -1, end: 4 }] }),
+    ],
+  },
+  { name: 'trim-range: a gap of an item shortened is answered alike', observe: (daw) => daw.trimRange(TRIM) },
+  {
+    name: 'trim-range: an item the track does not hold, an unknown chapter and a gap outside the item are refused stale alike',
+    observe: async (daw) => [
+      await daw.trimRange({ ...TRIM, itemId: '{11111111-1111-4111-8111-111111111111}' }),
+      await daw.trimRange({ ...TRIM, chapterId: 'chapter-9' }),
+      await daw.trimRange({ ...TRIM, start: 9, end: 11 }),
+      await daw.trimRange({ ...TRIM, start: 21, end: 22.5 }),
+    ],
+  },
+  {
+    name: 'trim-range: times or a fade out of bounds are refused alike',
+    observe: async (daw) => [
+      await daw.trimRange({ ...TRIM, start: 14, end: 12.5 }),
+      await daw.trimRange({ ...TRIM, start: -1 }),
+      await daw.trimRange({ ...TRIM, end: Number.POSITIVE_INFINITY }),
+      await daw.trimRange({ ...TRIM, fadeMs: 501 }),
     ],
   },
   { name: 'repair-click: two clicks in a take repaired are answered alike', observe: (daw) => daw.repairClick(CLICKS) },
@@ -1139,6 +1181,35 @@ describe('the mock setups', () => {
     });
     expect(await host.reduceRangeGain(GAIN)).toEqual(stale);
     expect(calls).toEqual([['chapter-1', 'take-twice', GAIN.stretches, 9]]);
+  });
+
+  it("trim-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {
+    for (const [id, setup] of Object.entries(DAW_SETUPS)) {
+      const support = setup.capabilities.cut_range;
+      const got = await createMockDawClient(setup).trimRange(TRIM);
+      expectWellFormed(got);
+      if (!support?.available) expect(got, id).toEqual(refusal(support?.message ?? ''));
+      else expect(got, id).toMatchObject({ ok: true, changed: true, message: trimmedAnswer(setup.daw), undoSteps: rangeCutOf(setup, 0).undoSteps });
+    }
+    expect(await createMockDawClient(DAW_SETUPS.reaper).trimRange(TRIM)).toEqual(read('daw-trim-range-done.json', dawResultSchema));
+    expect(await createMockDawClient(DAW_SETUPS.reaper).trimRange({ ...TRIM, start: 21, end: 22.5 })).toEqual(
+      read('daw-trim-range-refused-stale.json', dawResultSchema),
+    );
+    expectWellFormed(read('daw-trim-range-refused-capability.json', dawResultSchema));
+  });
+
+  it('trim-range: the host adapter sends the chapter, the item id, the times and the fade only, and answers the binding as it is', async () => {
+    const stale = read('daw-trim-range-refused-stale.json', dawResultSchema);
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawTrimRange: (...args) => {
+        calls.push(args);
+        return Promise.resolve(stale);
+      },
+    });
+    expect(await host.trimRange(TRIM)).toEqual(stale);
+    expect(calls).toEqual([['chapter-1', 'item-twice', 12.5, 14, 6]]);
   });
 
   it("repair-click: the mock refuses with the setup's click_repair sentence and answers undo steps by the capability's mode", async () => {

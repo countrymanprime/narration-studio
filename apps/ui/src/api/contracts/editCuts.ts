@@ -8,7 +8,8 @@ import type { AcceptedWordStaleReason } from './editLog';
 
 export type EditCutMode = 'close' | 'gap';
 
-/** What the app sends after the DAW accepted a deleteRange: the words, the range in original time and the DAW's result. */
+/** What the app sends after the DAW accepted a deleteRange: the words, the range in original time and the DAW's result. A wordless cut (a
+ * gap between words that Clean up shortened) has `pid` '' and no keys; it has no take, so its offsets are its times. */
 export type EditCutRequest = {
   pid: string;
   /** The take the words were heard in; absent when the paragraph had no take of its own. */
@@ -42,7 +43,7 @@ export type EditCut = Omit<EditCutRequest, 'mode'> & {
   /** The text each key had when the cut was made, in the order of `keys`. */
   words: string[];
   at: string;
-  /** The line's manuscript index, or null when the line is no longer in the chapter. */
+  /** The line's manuscript index, or null when the line is no longer in the chapter or the cut is wordless. */
   paragraph: number | null;
   stale: boolean;
   staleReason?: AcceptedWordStaleReason;

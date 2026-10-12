@@ -488,3 +488,36 @@ H.test('a fade field with more than fade, pad and room tone is refused as a fade
   local s, p = with_room_tone()
   refused(s, p, 'The fade must be a whole number of milliseconds from 0 to 500.', p.item.guid, '14', '16', 'gap', '0', '', '1', 'x')
 end)
+
+-- 8. gap trims by item and seconds (SN-E112) ---------------------------------------------------------------------------
+-- Clean up's Gaps sends delete_range with the item and the project seconds a finding measured between words: no words, no
+-- pad, no room tone, mode close. A trim splits the item, so the right piece gets a new GUID and, with close, an earlier time:
+-- the host sends a chapter's trims latest first, which leaves every earlier gap in the item the finding named, at the time
+-- the finding measured.
+
+H.test('gap trims of one item sent latest first each cut what the finding measured, and the later audio closes up', function()
+  local s, p = project()
+  s:send('delete_range', 't1', p.item.guid, '24', '25.5', 'close', '6')
+  s:send('delete_range', 't2', p.item.guid, '12', '13', 'close', '6')
+  local events = s:events()
+  H.eq({ events[1][1], events[1][3], events[2][1], events[2][3] }, { 'RANGE_CUT', p.item.guid, 'RANGE_CUT', p.item.guid })
+  H.eq(#cuts_track(s).items, 2)
+  local later_gap, earlier_gap = by_guid(s, events[1][4]), by_guid(s, events[2][4])
+  H.eq({ span(later_gap), span(earlier_gap) }, { { 24, 1.5 }, { 12, 1 } }, 'each gap keeps its time on the Cuts track')
+  H.truthy(later_gap.track == cuts_track(s) and earlier_gap.track == cuts_track(s), 'both on the Cuts track')
+  H.eq(span(p.item), { 10, 2 }, 'the item keeps its GUID and the audio before the first gap')
+  H.eq(span(p.later), { 29.5, 5 }, 'the later item moves up by both trims')
+  H.eq(s.fake:undo_labels(), { UNDO_LABEL, UNDO_LABEL }, 'one undo point a trim')
+end)
+
+H.test('a gap trim sent after an earlier one of the same item is refused, cutting nothing: the gap is no longer in that item', function()
+  local s, p = project()
+  s:send('delete_range', 't1', p.item.guid, '12', '13', 'close', '6')
+  s:events()
+  local tracks, items = #s.fake.tracks, #s.fake.items
+  s.fake.calls = {}
+  s.fake.undo = {}
+  s:send('delete_range', 't2', p.item.guid, '24', '25.5', 'close', '6')
+  H.eq(s:events(), { { 'ERROR', 't2', 'The range to cut is not inside that item.' } })
+  unchanged(s, tracks, items)
+end)

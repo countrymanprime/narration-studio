@@ -48,7 +48,8 @@ type CutWord struct {
 
 // CutRequest is what the app sends after the DAW accepted a deleteRange: the words, the range and the DAW's answer. A, B,
 // Off0 and Off1 are already in the chapter recording as it was before any cut (the app converts them with origTime); the
-// host stores the numbers and computes nothing from them.
+// host stores the numbers and computes nothing from them. A wordless cut (a gap between words that Clean up shortened,
+// SN-E112) has no paragraph and no keys; it has no take either, so its offsets are its times.
 type CutRequest struct {
 	ParagraphID string   `json:"pid"`
 	TakeID      string   `json:"takeId,omitempty"`
@@ -111,7 +112,7 @@ type Cut struct {
 	UndoSteps int       `json:"undoSteps"`
 	BackupID  string    `json:"backupId,omitempty"`
 	At        time.Time `json:"at"`
-	// Paragraph is the line's index in the manuscript, or nil when the line is gone.
+	// Paragraph is the line's index in the manuscript, or nil when the line is gone or the cut is wordless (no ParagraphID).
 	Paragraph   *int   `json:"paragraph"`
 	Stale       bool   `json:"stale"`
 	StaleReason string `json:"staleReason,omitempty"`
@@ -151,9 +152,10 @@ func (s *Service) CutsList(chapterID string) (Cuts, error) {
 	return result, nil
 }
 
-// CutRecord stores a cut the DAW has made. The words must be words of the paragraph's current text, the range and options
-// must be ones the app can send, the DAW's result must be given, and the range must not overlap a cut already stored on the
-// same take; otherwise nothing is saved and the answer says why.
+// CutRecord stores a cut the DAW has made. The words must be words of the paragraph's current text, or the cut wordless (no
+// paragraph and no keys); the range and options must be ones the app can send, the DAW's result must be given, and the range must
+// not overlap a cut already stored on the same take, or any cut of the chapter when either is wordless; otherwise nothing is saved
+// and the answer says why.
 func (s *Service) CutRecord(chapterID string, request CutRequest) (CutsChange, error) {
 	if s.config.Project == "" {
 		return CutsChange{}, errors.New("save the project first")
@@ -161,30 +163,18 @@ func (s *Service) CutRecord(chapterID string, request CutRequest) (CutsChange, e
 	if err := checkCutRequest(request); err != nil {
 		return CutsChange{}, err
 	}
-	parsed, err := parseKeys(request.Keys)
-	if err != nil {
-		return CutsChange{}, err
-	}
 	book := s.manuscript()
 	if !hasChapter(book, chapterID) {
 		return CutsChange{}, errors.New("that chapter is not in the manuscript")
 	}
-	line, ok := findLine(book, chapterID, request.ParagraphID)
-	if !ok {
-		return CutsChange{}, errors.New("that paragraph is not in this chapter")
-	}
-	words := wordsOf(line.Text)
-	cutWords := make([]CutWord, 0, len(parsed))
-	for _, key := range parsed {
-		if key.paragraphID != request.ParagraphID {
-			return CutsChange{}, errors.New("a cut's words must all be in its paragraph")
+	cutWords := []CutWord{}
+	if request.ParagraphID != "" || len(request.Keys) > 0 {
+		var err error
+		if cutWords, err = wordsOfCut(book, chapterID, request); err != nil {
+			return CutsChange{}, err
 		}
-		if key.ordinal >= len(words) {
-			return CutsChange{}, errors.New("that word is past the end of its line")
-		}
-		cutWords = append(cutWords, CutWord{Ordinal: key.ordinal, Text: words[key.ordinal]})
 	}
-	sort.SliceStable(cutWords, func(i, j int) bool { return cutWords[i].Ordinal < cutWords[j].Ordinal })
+	wordless := len(cutWords) == 0
 	unlock := lockFile(CutsFile(s.config.Project))
 	defer unlock()
 	file, err := s.readCuts()
@@ -192,7 +182,8 @@ func (s *Service) CutRecord(chapterID string, request CutRequest) (CutsChange, e
 		return CutsChange{}, err
 	}
 	for _, stored := range file.Cuts {
-		if stored.ChapterID == chapterID && stored.TakeID == request.TakeID && request.A < stored.B && stored.A < request.B {
+		sameTake := stored.TakeID == request.TakeID || wordless || len(stored.Words) == 0
+		if stored.ChapterID == chapterID && sameTake && request.A < stored.B && stored.A < request.B {
 			return CutsChange{}, fmt.Errorf("that audio overlaps cut %s, which is recorded already", stored.ID)
 		}
 	}
@@ -207,6 +198,31 @@ func (s *Service) CutRecord(chapterID string, request CutRequest) (CutsChange, e
 		return CutsChange{}, err
 	}
 	return CutsChange{Cuts: Cuts{ChapterID: chapterID, Cuts: resolveCuts(file.Cuts, chapterID, book)}, Changed: []string{cut.ID}}, nil
+}
+
+// wordsOfCut is a cut's words, checked against the paragraph's current text, in ordinal order.
+func wordsOfCut(book Book, chapterID string, request CutRequest) ([]CutWord, error) {
+	parsed, err := parseKeys(request.Keys)
+	if err != nil {
+		return nil, err
+	}
+	line, ok := findLine(book, chapterID, request.ParagraphID)
+	if request.ParagraphID == "" || !ok {
+		return nil, errors.New("that paragraph is not in this chapter")
+	}
+	words := wordsOf(line.Text)
+	cutWords := make([]CutWord, 0, len(parsed))
+	for _, key := range parsed {
+		if key.paragraphID != request.ParagraphID {
+			return nil, errors.New("a cut's words must all be in its paragraph")
+		}
+		if key.ordinal >= len(words) {
+			return nil, errors.New("that word is past the end of its line")
+		}
+		cutWords = append(cutWords, CutWord{Ordinal: key.ordinal, Text: words[key.ordinal]})
+	}
+	sort.SliceStable(cutWords, func(i, j int) bool { return cutWords[i].Ordinal < cutWords[j].Ordinal })
+	return cutWords, nil
 }
 
 // CutRemove forgets a chapter's cut: the inverse the journal calls when the DAW change is undone in the session, or the
@@ -260,7 +276,7 @@ func checkCutRequest(request CutRequest) error {
 		return errors.New("a cut must end after it starts")
 	case !finiteOffset(request.Off0) || !finiteOffset(request.Off1) || request.Off1 < request.Off0:
 		return errors.New("a cut's place in its take must end after it starts")
-	case request.ParagraphID == "" || strings.ContainsRune(request.ParagraphID, ':'):
+	case strings.ContainsRune(request.ParagraphID, ':'):
 		return errors.New("that paragraph is not in this chapter")
 	case strings.TrimSpace(request.Text) == "":
 		return errors.New("a cut must show the words it hides")
@@ -303,7 +319,7 @@ func nextCutID(cuts []StoredCut) string {
 }
 
 // resolveCut checks one stored cut against the current manuscript: it holds only while every word it names is the same text
-// at the same ordinal of the same line.
+// at the same ordinal of the same line. A wordless cut names no line, so it has no paragraph and is never stale.
 func resolveCut(cut StoredCut, book Book) Cut {
 	result := Cut{
 		ID: cut.ID, ChapterID: cut.ChapterID, ParagraphID: cut.ParagraphID, TakeID: cut.TakeID, Keys: make([]string, 0, len(cut.Words)),
@@ -313,6 +329,9 @@ func resolveCut(cut StoredCut, book Book) Cut {
 	for _, word := range cut.Words {
 		result.Keys = append(result.Keys, keyOf(cut.ParagraphID, word.Ordinal))
 		result.Words = append(result.Words, word.Text)
+	}
+	if len(cut.Words) == 0 {
+		return result
 	}
 	line, ok := findLine(book, cut.ChapterID, cut.ParagraphID)
 	if !ok {
@@ -361,7 +380,8 @@ func validCuts(file cutsFile) error {
 			ParagraphID: cut.ParagraphID, TakeID: cut.TakeID, Text: cut.Text, A: cut.A, B: cut.B, Off0: cut.Off0, Off1: cut.Off1,
 			Mode: cut.Mode, FadeMs: cut.FadeMs, Daw: cut.Daw, GUID: cut.GUID, UndoSteps: &undo, BackupID: cut.BackupID,
 		}
-		if cut.ID == "" || cut.ChapterID == "" || len(cut.Words) == 0 || len(cut.Words) > MaxKeys || checkCutRequest(request) != nil {
+		wordless := len(cut.Words) == 0
+		if cut.ID == "" || cut.ChapterID == "" || wordless != (cut.ParagraphID == "") || len(cut.Words) > MaxKeys || checkCutRequest(request) != nil {
 			return errors.New("a cut breaks the file's rules")
 		}
 		for _, word := range cut.Words {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"math"
 	"reflect"
 	"slices"
 	"testing"
@@ -311,6 +312,165 @@ func TestDawDeleteRangePadContractGoldenIsCurrent(t *testing.T) {
 			role := &fakeRangeCutter{answer: c.answer}
 			host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
 			contractfile.Check(t, name, decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, c.mode, 12, 100, true)))
+		})
+	}
+}
+
+// DawTrimRange (SN-E112): Clean up's Gaps. The item comes from the page and is looked up on the chapter's track as the DAW reports it
+// now (splitItems: the item at 10 s for 10 s and a later one); the gap must lie inside it. What REAPER does with the request is
+// delete_range's (range_test.lua, section 8).
+
+// trimInREAPER is what dawport/reaper's rangeCutter answers a cut of no words: one undo step.
+func trimInREAPER() dawport.Result {
+	return dawport.OK("Deleted the words and their audio in REAPER.", true).WithUndoSteps(1)
+}
+
+func trimGap(t *testing.T, cutter dawport.RangeCutter, itemID string, start, end float64, fadeMs int) dawport.Result {
+	t.Helper()
+	items := splitItems()
+	got, err := dawTrimRangeIn(t.Context(), "REAPER", available(), cutter, splitTrack(&items, nil, nil), "c-0001", itemID, start, end, fadeMs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return got
+}
+
+// The item id resolves on the host to the item the track reports now (braces and case aside), the gap is sent as a close cut with
+// no words, pad or room tone, and the answer says what was shortened.
+func TestDawTrimRangeSendsTheItemTheHostReadAsACloseCutAndAnswersADawResult(t *testing.T) {
+	for _, id := range []string{splitItem, "c0000001-0000-4000-8000-000000000001"} {
+		role := &fakeRangeCutter{answer: trimInREAPER()}
+		got := trimGap(t, role, id, 12.5, 14, 6)
+		want := dawport.OK("Shortened the gap in REAPER.", true).WithUndoSteps(1)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s: DawTrimRange = %+v, want %+v", id, got, want)
+		}
+		sent := []dawport.DeleteRangeRequest{{RangeRequest: dawport.RangeRequest{ChapterID: "c-0001", ItemGUID: splitItem, Start: 12.5, End: 14},
+			Mode: dawport.CutClose, FadeMs: 6}}
+		if !reflect.DeepEqual(role.cut, sent) {
+			t.Fatalf("%s: sent %+v, want %+v", id, role.cut, sent)
+		}
+	}
+}
+
+// An item the track no longer holds, a take GUID in place of an item, or a gap outside the item is refused stale; times or a fade
+// out of bounds are refused; nothing is sent for any of them.
+func TestDawTrimRangeRefusesWhatTheTrackNoLongerHoldsAndSendsNothing(t *testing.T) {
+	for name, c := range map[string]struct {
+		id         string
+		start, end float64
+		fade       int
+		stale      bool
+	}{
+		"gone":            {"{C0000009-0000-4000-8000-000000000009}", 12, 13, 6, true},
+		"a take GUID":     {splitTake, 12, 13, 6, true},
+		"empty":           {"", 12, 13, 6, true},
+		"before the item": {splitItem, 9, 11, 6, true},
+		"after the item":  {splitItem, 19, 21, 6, true},
+		"reversed":        {splitItem, 13, 12, 6, false},
+		"empty gap":       {splitItem, 12, 12, 6, false},
+		"negative":        {splitItem, -1, 12, 6, false},
+		"endless":         {splitItem, 12, math.Inf(1), 6, false},
+		"not a number":    {splitItem, math.NaN(), 12, 6, false},
+		"negative fade":   {splitItem, 12, 13, -1, false},
+		"long fade":       {splitItem, 12, 13, bridge.MaxCutFadeMs + 1, false},
+	} {
+		role := &fakeRangeCutter{answer: trimInREAPER()}
+		got := trimGap(t, role, c.id, c.start, c.end, c.fade)
+		if got.OK || got.Refused == "" || (got.Code == dawport.CodeStale) != c.stale || len(role.cut) != 0 {
+			t.Errorf("%s: %+v, sent %v; want a refusal (stale %v) and nothing sent", name, got, role.cut, c.stale)
+		}
+	}
+}
+
+// The role's refusals pass through as they are; an error it or the track read returned is a refusal in a sentence; a track refusal is
+// the answer; no role is the connection refusal; an engine's own cut_range reason (Audacity before backups) is checked first.
+func TestDawTrimRangePassesOnTheRolesAnswers(t *testing.T) {
+	stale := dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again.")
+	if got := trimGap(t, &fakeRangeCutter{answer: stale}, splitItem, 12, 13, 6); !reflect.DeepEqual(got, stale) {
+		t.Fatalf("stale = %+v", got)
+	}
+	unchanged := dawport.OK("Nothing to cut.", false)
+	if got := trimGap(t, &fakeRangeCutter{answer: unchanged}, splitItem, 12, 13, 6); !reflect.DeepEqual(got, unchanged) {
+		t.Fatalf("unchanged = %+v", got)
+	}
+	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, bridge.ErrExperimentalOff, context.DeadlineExceeded, &bridge.TrackStaleError{}, errors.New("boom")} {
+		if got := trimGap(t, &fakeRangeCutter{err: err}, splitItem, 12, 13, 6); got.OK || got.Refused == "" {
+			t.Errorf("%v: %+v, want a refusal", err, got)
+		}
+		items := splitItems()
+		got, _ := dawTrimRangeIn(t.Context(), "REAPER", available(), &fakeRangeCutter{}, splitTrack(&items, nil, err), "c-0001", splitItem, 12, 13, 6)
+		if got.OK || got.Refused == "" {
+			t.Errorf("track read %v: %+v, want a refusal", err, got)
+		}
+	}
+	noLink := dawport.Refused("Link this chapter to a track first.")
+	items := splitItems()
+	role := &fakeRangeCutter{}
+	if got, _ := dawTrimRangeIn(t.Context(), "REAPER", available(), role, splitTrack(&items, &noLink, nil), "c-0001", splitItem, 12, 13, 6); !reflect.DeepEqual(got, noLink) || len(role.cut) != 0 {
+		t.Fatalf("a track refusal = %+v, sent %v", got, role.cut)
+	}
+	if got, err := dawTrimRangeIn(t.Context(), "REAPER", available(), nil, splitTrack(&items, nil, nil), "c-0001", splitItem, 12, 13, 6); err != nil || got.OK || got.Refused == "" {
+		t.Fatalf("no role = %+v, %v", got, err)
+	}
+	backups := dawport.Support{Message: "Turn on backups before cutting audio in Audacity."}
+	if got, _ := dawTrimRangeIn(t.Context(), "Audacity", backups, role, splitTrack(&items, nil, nil), "c-0001", splitItem, 12, 13, 6); !reflect.DeepEqual(got, dawport.Refused(backups.Message)) || len(role.cut) != 0 {
+		t.Fatalf("an engine's own reason = %+v, sent %v", got, role.cut)
+	}
+}
+
+// The cut_range capability's own sentence for each launch the resolver refuses, checked first, and nothing sent.
+func TestDawTrimRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T) {
+	for name, c := range map[string]struct {
+		kind   string
+		reach  *daw.Reachability
+		toggle string
+		reason dawport.Reason
+	}{
+		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
+		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
+		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
+		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
+	} {
+		t.Run(name, func(t *testing.T) {
+			role := &fakeRangeCutter{answer: trimInREAPER()}
+			host := deleteRangeHost(t, c.kind, c.reach, role, c.toggle)
+			resolver, _ := host.dawResolverFor(host.services())
+			support := resolver.Support(dawport.CapCutRange)
+			if support.Available || support.Reason != c.reason {
+				t.Fatalf("cut_range support = %+v, want reason %s", support, c.reason)
+			}
+			got := decodeDawResult(t)(host.DawTrimRange("c-0001", splitItem, 12, 13, 6))
+			if !reflect.DeepEqual(got, dawport.Refused(support.Message)) || len(role.cut) != 0 {
+				t.Fatalf("DawTrimRange = %+v, sent %v; want Refused(%q)", got, role.cut, support.Message)
+			}
+		})
+	}
+}
+
+// TestDawTrimRangeContractGoldenIsCurrent pins DawTrimRange's answers: a gap shortened in REAPER (one undo step), the stale refusal of
+// a gap no longer in its item, and the cut_range capability's refusal. UPDATE_CONTRACTS=1 rewrites
+// tests/fixtures/contracts/daw-trim-range-*.json.
+func TestDawTrimRangeContractGoldenIsCurrent(t *testing.T) {
+	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to cut words and audio."}
+	cases := map[string]struct {
+		support dawport.Support
+		start   float64
+	}{
+		"daw-trim-range-done":               {available(), 12.5},
+		"daw-trim-range-refused-stale":      {available(), 21},
+		"daw-trim-range-refused-capability": {refusedCapability, 12.5},
+	}
+	for _, name := range slices.Sorted(maps.Keys(cases)) {
+		c := cases[name]
+		t.Run(name, func(t *testing.T) {
+			items := splitItems()
+			got, err := dawTrimRangeIn(t.Context(), "REAPER", c.support, &fakeRangeCutter{answer: trimInREAPER()}, splitTrack(&items, nil, nil),
+				"c-0001", splitItem, c.start, c.start+1.5, 6)
+			if err != nil {
+				t.Fatal(err)
+			}
+			contractfile.Check(t, name, got)
 		})
 	}
 }

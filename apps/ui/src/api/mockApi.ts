@@ -100,6 +100,7 @@ import {
   splitTakeStaleAnswer,
   takeSplitOf,
   rangeGainAnswerOf,
+  trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
 
@@ -562,6 +563,15 @@ function createDeleteRangeMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: 
       if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { ...refusedResult(DAW_ANSWERS.rangeStale), code: 'stale' };
       const cut = rangeCutOf(setup, lastToken - firstToken + 1);
       return { ok: true, changed: true, message: cut.message, undoSteps: cut.undoSteps, ...(cut.steps ? { steps: cut.steps } : {}) };
+    },
+    /** DawTrimRange: the same capability first, then the host's checks; the mock reads no track, so the items are DAW_PROJECT.trimItems. */
+    dawTrimRange: async (chapterId, itemId, start, end, fadeMs) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.cut_range;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      const project = { ...DAW_PROJECT, chapterIds: (await hasChapter(chapterId)) ? [chapterId] : [] };
+      const answer = trimRangeAnswerOf(setup, project, chapterId, itemId, start, end, fadeMs);
+      return 'refused' in answer ? { ...refusedResult(answer.refused), ...(answer.stale ? { code: 'stale' as const } : {}) } : answer.result;
     },
   };
 }
