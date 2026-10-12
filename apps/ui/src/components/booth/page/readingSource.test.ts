@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { GuideDialogueCue, GuideEntity, ManuscriptParagraph, TeleprompterFlag, TeleprompterSpan } from '../../../types';
 import { boothUnits } from '../reading/boothUnits';
-import { creditsParagraphs, positionAtOffset, positionInScript, readingParagraphsOf, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
+import {
+  creditsParagraphs,
+  entityAtWord,
+  estimatedSpans,
+  positionAtOffset,
+  positionInScript,
+  readingParagraphsOf,
+  scriptWordAt,
+  secondsBefore,
+  suspectedFrom,
+} from './readingSource';
 
 const paragraph = (id: string, text: string): ManuscriptParagraph => ({ id, chapterId: 'c1', chapter: 'One', index: 0, text, entityIds: [] });
 const queen = { id: 'e-queen', canonical_name: 'Queen' } as GuideEntity;
@@ -83,5 +93,25 @@ describe('suspectedFrom', () => {
       { chapterId: 'c1', paragraphId: 'p2', kind: 'skipped', wordStart: 1, wordEnd: 3, scriptStart: 7, scriptEnd: 9, script: 'with her', heard: '' },
     ]);
     expect(suspectedFrom([{ ...flag, start: 0, end: 1 }], spans, reading, 'c1')).toEqual([]);
+  });
+});
+
+describe('estimatedSpans', () => {
+  it('counts the title, then each paragraph, by words', () => {
+    expect(estimatedSpans('Chapter One', readingParagraphsOf(paragraphs, [], []))).toEqual([
+      { kind: 'title', id: 'title', index: null, start: 0, count: 2 },
+      { kind: 'paragraph', id: 'p1', index: 0, start: 2, count: 4 },
+      { kind: 'paragraph', id: 'p2', index: 1, start: 6, count: 6 },
+    ]);
+  });
+});
+
+describe('entityAtWord', () => {
+  it('names the Story Bible entry tinted on a word, and nothing on a plain word', () => {
+    const reading = readingParagraphsOf(paragraphs, [], []);
+    const tint = { paragraphId: 'p1', start: 4, end: 10, kind: 'entity' as const, colour: '--place', title: 'Garden' };
+    expect(entityAtWord(reading, [tint], 'p1', 1)).toBe('Garden');
+    expect(entityAtWord(reading, [tint], 'p1', 2)).toBeNull();
+    expect(entityAtWord(reading, [tint], 'p1', 9)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import type { GuideDialogueCue, GuideEntity, ManuscriptParagraph, TeleprompterFlag, TeleprompterSpan } from '../../../types';
 import { WPH } from '../../schedule/estimates';
 import type { CreditsKind } from '../readerModel';
-import { wordCount, type BoothUnit, type ReadingParagraph } from '../reading/boothUnits';
+import { wordCount, type BoothUnit, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
 import type { ReadingPosition } from '../reading/readingPosition';
 import type { SuspectedFlag } from '../suspected/suspectedLines';
 
@@ -116,4 +116,35 @@ export function suspectedFrom(
       },
     ];
   });
+}
+
+/** The host's spans before it has sent a script: a title span, then one per paragraph, counted by words. For the resume line only. */
+export function estimatedSpans(title: string, paragraphs: readonly ReadingParagraph[]): TeleprompterSpan[] {
+  const titleCount = wordCount(title);
+  let start = titleCount;
+  return [
+    { kind: 'title', id: 'title', index: null, start: 0, count: titleCount },
+    ...paragraphs.map((paragraph, index) => {
+      const count = wordCount(paragraph.text);
+      const span: TeleprompterSpan = { kind: 'paragraph', id: paragraph.id, index, start, count };
+      start += count;
+      return span;
+    }),
+  ];
+}
+
+/** The Story Bible name (an entity tint's title) on a paragraph's word, or null when the word carries none. */
+export function entityAtWord(
+  paragraphs: readonly ReadingParagraph[],
+  decorations: readonly WordDecoration[],
+  paragraphId: string,
+  word: number,
+): string | null {
+  const text = paragraphs.find((paragraph) => paragraph.id === paragraphId)?.text ?? '';
+  const match = [...text.matchAll(/\S+/g)][word];
+  if (!match) return null;
+  const from = match.index;
+  const to = from + match[0].length;
+  const hit = decorations.find((d) => d.kind === 'entity' && d.paragraphId === paragraphId && d.start < to && d.end > from);
+  return hit?.title ?? null;
 }
