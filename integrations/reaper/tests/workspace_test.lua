@@ -1,7 +1,6 @@
 -- The edit and proof workspace's REAPER actions (narration_workspace.lua): set_active_take ("Use this take"); FX (ADR
 -- 0234, the owner's 2026-09-25 decision): an FX chain goes on a track or the master track only (list_fx_chains,
--- apply_fx_chain), and a passage of a take gets one installed plug-in at a time, never a chain (list_fx, add_take_fx:
--- split at the passage's edges, the plug-in on the middle piece).
+-- apply_fx_chain).
 
 local H = require('harness')
 
@@ -152,175 +151,12 @@ H.test('list_fx_chains changes nothing', function()
   H.eq(#s.fake.undo, 0)
 end)
 
--- list_fx --------------------------------------------------------------------------------------------------------
-
-H.test('list_fx lists the installed plug-ins by name, sorted, and never an FX container or the video processor', function()
-  local s = new_session()
-  s.fake.installed_fx = {
-    { name = 'Video processor', ident = 'Video processor' },
-    { name = 'Container', ident = 'Container' },
-    { name = 'VST3: ReaEQ (Cockos)', ident = 'C:\\Plugins\\reaeq.vst3' },
-    { name = 'JS: De-esser', ident = 'deesser' },
-  }
-  s:send('list_fx', 'p1')
-  H.eq(s:events(), {
-    { 'FX_PLUGIN', 'p1', 'JS: De-esser' },
-    { 'FX_PLUGIN', 'p1', 'VST3: ReaEQ (Cockos)' },
-    { 'FX_PLUGINS_LISTED', 'p1', '2', '0' },
-  })
-  H.eq(#s.fake.undo, 0)
-end)
-
-H.test('list_fx stops at its limit and says it did', function()
-  local s = new_session()
-  s.fake.installed_fx = {}
-  for index = 1, 2005 do
-    s.fake.installed_fx[index] = { name = string.format('JS: Effect %04d', index), ident = 'x' }
-  end
-  s:send('list_fx', 'p1')
-  local events = s:events()
-  H.eq(#events, 2001)
-  H.eq(events[#events], { 'FX_PLUGINS_LISTED', 'p1', '2000', '1' })
-end)
-
-H.test('list_fx needs EnumInstalledFX', function()
-  local s = new_session()
-  s.fake:remove_api('EnumInstalledFX')
-  s:send('list_fx', 'p1')
-  H.eq(s:events(), { { 'ERROR', 'p1', 'This REAPER version cannot list its plug-ins.' } })
-end)
-
--- add_take_fx ----------------------------------------------------------------------------------------------------
-
--- An item at 10..15 s whose take starts 2 s into its source: source 3..4 s is project 11..12 s.
+-- An item at 10..15 s whose take starts 2 s into its source.
 local function trimmed_item(s, track)
   local item = s.fake:add_item(track, { guid = ITEM, position = 10, length = 5, source = 'ch1.wav', startoffs = 2 })
   item.ext['narration_utils_line_id'] = 'line-000001'
   return item
 end
-
-local EQ = 'VST3: ReaEQ (Cockos)'
-
-local function plugins(s)
-  s.fake.installed_fx = { { name = EQ, ident = 'reaeq.vst3' }, { name = 'JS: De-esser', ident = 'deesser' }, { name = 'Container', ident = 'Container' } }
-end
-
-H.test('add_take_fx splits at both edges and adds one plug-in to the middle take only, in one undo step', function()
-  local s, track = new_session()
-  plugins(s)
-  local item = trimmed_item(s, track)
-  s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '3', '4', EQ)
-  local events = s:events()
-  local pieces = track.items
-  H.eq(events, { { 'TAKE_FX_ADDED', 'x1', EQ, pieces[2].guid, pieces[2].takes[1].guid, '2' } })
-  H.eq(#pieces, 3)
-  H.eq({ pieces[1].position, pieces[1].length, pieces[2].position, pieces[2].length, pieces[3].position }, { 10, 1, 11, 1, 12 })
-  H.eq({ #(pieces[1].takes[1].fx or {}), #pieces[2].takes[1].fx, #pieces[3].takes[1].fx }, { 0, 1, 0 })
-  H.eq(pieces[2].takes[1].fx[1].name, EQ, 'the plug-in is added by its name, never by a file path')
-  H.eq(
-    { pieces[1].ext['narration_utils_line_id'], pieces[2].ext['narration_utils_line_id'], pieces[3].ext['narration_utils_line_id'] },
-    { 'line-000001', 'line-000001', 'line-000001' }
-  )
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: add take FX ' .. EQ })
-  H.eq(s.fake.ui_refresh_hold or 0, 0, 'every PreventUIRefresh(1) is released')
-end)
-
-H.test('add_take_fx adds a second plug-in to the same piece without splitting it again', function()
-  local s, track = new_session()
-  plugins(s)
-  local item = trimmed_item(s, track)
-  s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '3', '4', EQ)
-  local middle = track.items[2]
-  s:events()
-  s:send('add_take_fx', 'x2', middle.guid, middle.takes[1].guid, '3', '4', 'JS: De-esser')
-  H.eq(s:events(), { { 'TAKE_FX_ADDED', 'x2', 'JS: De-esser', middle.guid, middle.takes[1].guid, '0' } })
-  H.eq(#track.items, 3)
-  H.eq(#middle.takes[1].fx, 2)
-end)
-
-H.test('add_take_fx on the whole item splits nothing, and at one edge splits once', function()
-  local s, track = new_session()
-  plugins(s)
-  local item = trimmed_item(s, track)
-  s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '2', '7', EQ)
-  local whole = s:events()[1]
-  H.eq({ whole[4], whole[6] }, { ITEM, '0' })
-  H.eq(#track.items, 1)
-  s:send('add_take_fx', 'x2', ITEM, item.takes[1].guid, '2', '3', EQ)
-  H.eq(s:events()[1][6], '1')
-  H.eq(#track.items, 2)
-end)
-
-H.test('add_take_fx refuses an FX chain, a container and a plug-in REAPER does not list', function()
-  local s, track = new_session()
-  plugins(s)
-  chains(s, { 'A.RfxChain' })
-  local item = trimmed_item(s, track)
-  for _, name in ipairs({ 'A.RfxChain', H.join(H.join(s.dir, 'FXChains'), 'A.RfxChain'), 'Container', 'VST3: Not Installed', '' }) do
-    s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '3', '4', name)
-    H.eq(s:events(), { { 'ERROR', 'x1', 'A passage takes one installed plug-in; FX chains go on a track.' } }, name)
-  end
-  H.eq(#track.items, 1)
-  H.eq(#s.fake.undo, 0)
-  H.eq(calls_named(s, 'TakeFX_AddByName'), 0)
-end)
-
-H.test('add_take_fx reports a stale item, take or passage and changes nothing', function()
-  local s, track = new_session()
-  plugins(s)
-  local item = trimmed_item(s, track)
-  local take = item.takes[1].guid
-  s:send('add_take_fx', 'x1', STALE, take, '3', '4', EQ)
-  s:send('add_take_fx', 'x2', ITEM, STALE, '3', '4', EQ)
-  s:send('add_take_fx', 'x3', ITEM, take, '8', '9', EQ)
-  H.eq(s:events(), { { 'ITEM_STALE', 'x1', STALE, 'item' }, { 'ITEM_STALE', 'x2', STALE, 'take' }, { 'ITEM_STALE', 'x3', ITEM, 'range' } })
-  H.eq(#track.items, 1)
-  H.eq(#s.fake.undo, 0)
-end)
-
-H.test('add_take_fx refuses a passage on a take that is not playing, an unusable time and recording', function()
-  local s, track = new_session()
-  plugins(s)
-  local item = trimmed_item(s, track)
-  local other = s.fake.reaper.AddTakeToMediaItem(item)
-  s:send('add_take_fx', 'x1', ITEM, other.guid, '0', '1', EQ)
-  s:send('add_take_fx', 'x2', ITEM, item.takes[1].guid, '4', '3', EQ)
-  s:send('add_take_fx', 'x3', ITEM, item.takes[1].guid, 'soon', '3', EQ)
-  s.fake.play_state = 5
-  s:send('add_take_fx', 'x4', ITEM, item.takes[1].guid, '3', '4', EQ)
-  H.eq(s:events(), {
-    { 'ERROR', 'x1', 'The passage is not on the take that plays.' },
-    { 'ERROR', 'x2', 'The passage has no usable time.' },
-    { 'ERROR', 'x3', 'The passage has no usable time.' },
-    { 'ERROR', 'x4', 'REAPER is recording. Stop recording first.' },
-  })
-  H.eq(#track.items, 1)
-end)
-
-H.test('add_take_fx says so when REAPER does not add the plug-in, or adds more than one, and closes its undo step', function()
-  for _, case in ipairs({ { fails = true }, { count = 2 } }) do
-    local s, track = new_session()
-    plugins(s)
-    local item = trimmed_item(s, track)
-    s.fake.fx_load_fails = case.fails
-    s.fake.chain_fx_count = case.count
-    s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '3', '4', EQ)
-    H.eq(s:events(), { { 'ERROR', 'x1', 'REAPER did not add exactly one plug-in. The item was split: press Undo in REAPER to rejoin it.' } })
-    H.eq(s.fake:undo_labels(), { 'Narration Utils: add take FX ' .. EQ })
-    H.eq(s.fake.ui_refresh_hold or 0, 0)
-  end
-end)
-
-H.test('add_take_fx needs the split, take FX and plug-in list APIs', function()
-  for _, api in ipairs({ 'TakeFX_AddByName', 'SplitMediaItem', 'EnumInstalledFX' }) do
-    local s, track = new_session()
-    plugins(s)
-    local item = trimmed_item(s, track)
-    s.fake:remove_api(api)
-    s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '3', '4', EQ)
-    H.eq(s:events(), { { 'ERROR', 'x1', 'This REAPER version cannot add take FX.' } }, api)
-  end
-end)
 
 -- apply_fx_chain -------------------------------------------------------------------------------------------------
 
@@ -410,13 +246,10 @@ end)
 
 H.test('the workspace commands never call Main_OnCommand', function()
   local s, track = new_session()
-  plugins(s)
   chains(s, { 'A.RfxChain' })
   local item = trimmed_item(s, track)
   s:send('list_fx_chains', 'f1')
-  s:send('list_fx', 'p1')
   s:send('apply_fx_chain', 'c1', track.guid, 'A.RfxChain')
-  s:send('add_take_fx', 'x1', ITEM, item.takes[1].guid, '3', '4', EQ)
   s:send('set_active_take', 'u1', ITEM, item.takes[1].guid)
   H.eq(calls_named(s, 'Main_OnCommand'), 0)
 end)

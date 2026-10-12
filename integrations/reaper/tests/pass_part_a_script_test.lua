@@ -120,7 +120,7 @@ local function scratch_env()
     H.write_file(H.join(H.join(out, 'media'), name), 'RIFF')
   end
   local ep0 = H.join(out, 'ep0-report.txt')
-  H.write_file(ep0, 'PASS A6.1 answers ACTIVE_TAKE_SET changed\nPASS A7.1 lists the chain\nPASS A8.1 onto the track\nPASS A8b.1 two splits\n')
+  H.write_file(ep0, 'PASS A6.1 answers ACTIVE_TAKE_SET changed\nPASS A7.1 lists the chain\nPASS A8.1 onto the track\n')
   return {
     NARRATION_UTILS_SPIKE_OUT = out,
     NARRATION_UTILS_SPIKE_CFG = cfg,
@@ -138,7 +138,7 @@ H.test('the script runs to its results, merges the workspace report, and quits R
   H.truthy(results, 'pass-part-a-results.md is written')
   H.contains(results, '- REAPER 7.80/x64 on Win64')
   H.contains(results, 'at `abc1234`')
-  for _, row in ipairs({ 'A1', 'A2', 'A5', 'A6', 'A8b', 'A9c', 'A10', 'A11', 'A12', 'A13', 'A14' }) do
+  for _, row in ipairs({ 'A1', 'A2', 'A5', 'A6', 'A9c', 'A10', 'A11', 'A14' }) do
     H.contains(results, '| ' .. row .. ' | ', row)
   end
   H.contains(results, '| A6 | `set_active_take` | PASS | 1/1 |')
@@ -175,13 +175,13 @@ H.test('what the script writes has the scratch paths removed', function()
   H.contains(H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-log.txt')), '<out>')
 end)
 
-H.test('without the workspace report, A6 to A8b are not run, never passed', function()
+H.test('without the workspace report, A6 to A8 are not run, never passed', function()
   local env = scratch_env()
   env.NARRATION_UTILS_PASS_EP0_REPORT = nil
   run_script(env)
   local results = H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-results.md'))
   H.contains(results, '| A6 | `set_active_take` | NOT RUN |')
-  H.contains(results, '| A8b | `add_take_fx` | NOT RUN |')
+  H.contains(results, '| A8 | `apply_fx_chain` | NOT RUN |')
 end)
 
 H.test('the script stops before touching anything when REAPER is not on the scratch -cfgfile', function()

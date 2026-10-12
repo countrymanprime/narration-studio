@@ -100,12 +100,6 @@ var eventSpecs = map[string]eventSpec{
 	// ADR 0146: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).
 	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},
-	// ADR 0251: preview_cleanup_markers and apply_cleanup_trims (narration_cleanup_preview.lua). CLEANUP_STALE is one
-	// per candidate whose item, take or cut range no longer resolves (reason: "item", "take" or "range", like
-	// FINDING_STALE); CLEANUP_PREVIEWED and CLEANUP_APPLIED are each call's one summary event.
-	"CLEANUP_STALE":     {required: []fieldSpec{text("run"), text("findingId"), text("guid"), text("reason")}},
-	"CLEANUP_PREVIEWED": {required: []fieldSpec{text("run"), count("added"), count("existing")}},
-	"CLEANUP_APPLIED":   {required: []fieldSpec{text("run"), count("applied")}},
 	// ADR 0252: apply_item_gain (narration_level_normalize.lua). GAIN_STALE is one per item that no longer resolves (reason is
 	// always "item": there is no take or range concept for a whole-item gain change); GAIN_ITEM is one per item
 	// actually changed, its D_VOL before and after (linear, REAPER's own unit); GAIN_APPLIED is the call's one
@@ -150,19 +144,16 @@ var eventSpecs = map[string]eventSpec{
 	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
 	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
-	// set_active_take, list_fx_chains, apply_fx_chain, list_fx, add_take_fx (narration_workspace.lua; ADR 0234).
-	// changed is 0 or 1; reason is item, take or range; a chain's name is its path relative to FXChains with forward
-	// slashes, a plug-in's is EnumInstalledFX's; splits is 0 to 2 and added the number of FX a chain added.
+	// set_active_take, list_fx_chains, apply_fx_chain (narration_workspace.lua; ADR 0234). changed is 0 or 1; reason
+	// is item, take or range; a chain's name is its path relative to FXChains with forward slashes; added is the
+	// number of FX a chain added.
 	"ACTIVE_TAKE_SET":  {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("changed")}},
 	"ITEM_STALE":       {required: []fieldSpec{text("run"), text("guid"), text("reason")}},
 	"FX_CHAIN":         {required: []fieldSpec{text("run"), text("name")}},
 	"FX_CHAINS_LISTED": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
 	// ADR 0234 (the owner's 2026-09-25 decision): a chain goes on a track or the master track (track is its GUID or
-	// "master"); a passage of a take gets one installed plug-in per request (list_fx, add_take_fx).
-	"FX_CHAIN_APPLIED":  {required: []fieldSpec{text("run"), text("name"), text("track"), count("added")}},
-	"FX_PLUGIN":         {required: []fieldSpec{text("run"), text("name")}},
-	"FX_PLUGINS_LISTED": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
-	"TAKE_FX_ADDED":     {required: []fieldSpec{text("run"), text("name"), text("itemGuid"), text("takeGuid"), count("splits")}},
+	// "master").
+	"FX_CHAIN_APPLIED": {required: []fieldSpec{text("run"), text("name"), text("track"), count("added")}},
 	// narration_takes.lua: hide_takes answers the number of takes it hid, and whether it added an undo point.
 	"TAKES_HIDDEN": {required: []fieldSpec{text("run"), text("itemGuid"), count("count"), count("changed")}},
 	// master_chain_read and render_with_fx (narration_master_render.lua; ADR 0306): the mastering port's DAW row.
