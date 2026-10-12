@@ -21,6 +21,9 @@ const CEILING: Record<string, number> = {
   'src/components/proof/notes/testNotes.ts': 5,
   // Component-side fixture of the bookmark ribbon (SN-B62); it moves to src/fixtures/ with #1119.
   'src/components/script/bookmarks/ui/bookmarkFixtures.ts': 3,
+  // Component-side fixtures of the Script rail's Story Bible and Notes tabs (SN-B752); they move to src/fixtures/ with #1119.
+  'src/components/script/page/rail/bible/bibleFixtures.ts': 4,
+  'src/components/script/page/rail/threads/threadFixtures.ts': 1,
 };
 
 const uiRoot = join(__dirname, '..');

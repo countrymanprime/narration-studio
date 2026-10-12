@@ -1,6 +1,6 @@
 # Take review
 
-**Status: Implemented. The checks on a real chapter and in the owner's REAPER are pending (see [What is still open](#what-is-still-open)).**
+**Status: Implemented.** The checks on a real chapter and in the owner's REAPER are pending (see [What is still open](#what-is-still-open)).
 
 ## User problem
 
@@ -68,36 +68,17 @@ falls back to the default rather than failing a scan):
 
 ## Decisions
 
-How take review was settled:
-
-- **Detection** is transcript-to-manuscript alignment of every read in scope plus exact-copy detection from source identity.
-  Acoustic similarity (fingerprints, DTW) and a Silero VAD restart cue were not adopted; they need the local-dependency
-  protocol first.
-- **The detector** is an additive sidecar mode reusing Transcript Compare's tokenizing, number and homophone equivalence and
-  diff; Go only adapts its output.
-- **Scope** is the chapter track's items and all their takes, plus at most one pickup track or time range. A cross-session
-  index is later work.
-- **Take creation** adds the candidate's source range as a new take on the target item (`AddTakeToMediaItem`); the active
-  take and the item's length never change; one undo step; provenance in take `P_EXT` (ADR 0098).
-- **Line identity stamps are not required**: spans come from alignment, and the item's own GUID is the target identity.
-- **Audition** is in the app, from raw source, with no REAPER change. A REAPER-side, timeline-context audition is later work.
-- **Take review never sets the active take.** Its own screens add a take or go to one and leave the choice to REAPER. The explicit "Use this take" is the workspace Takes panel's ([ADR 0233](../adr/0233-the-app-may-make-a-take-active-by-guid-in-one-undo-step.md), [ADR 0700](../adr/0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md)): on Proof's chapter view, for the paragraph at the playhead, it lists the takes of that paragraph (including a group's other reads) and makes the chosen one active in one undo step, adding a read from another item as a take first, after a confirm.
-- **No composite score** anywhere: every surface shows evidence per category.
-- **Divergence** is localized by the markers' diff and Whisper word timestamps, evaluated on synthetic fixtures
-  ([evaluation](../research/take-divergence-evaluation.md)); forced alignment was not needed.
-- **Categories**: no new `restart` category; restarts, pickups and exact copies are `pickup`, near-identical re-reads are
-  `duplicate_read`.
-- **Thresholds** live in project settings, above.
+- Scan scope, the review surface and the cancellable job: [ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md); scope is built by `takereview.buildManifest`.
+- Detection is transcript-to-manuscript alignment plus exact-copy detection from source identity, in Transcript Compare's sidecar (`compare.py --find-repeats`); Go only adapts the output (`apps/desktop/internal/repeats`). Acoustic similarity (fingerprints, DTW) and a Silero VAD restart cue were not adopted; they need the local-dependency protocol first.
+- Spans come from alignment and the item's own GUID is the target, so no manuscript line-identity stamp is needed (`Project.ItemByGUID`, [Tracks](tracks.md)).
+- Add as take, with provenance in take `P_EXT`: [ADR 0098](../adr/0098-take-provenance-in-take-extension-data-extends-adr-0026.md).
+- Go to and Loop per read: [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md).
+- Take metrics are evidence per category, with no composite score: [ADR 0140](../adr/0140-take-metrics-are-per-category-evidence-over-a-takes-source-range.md).
+- Divergence is localized by the markers' diff and Whisper word timestamps: [ADR 0141](../adr/0141-per-take-divergence-is-localized-by-the-markers-diff-and-asr-word-timestamps.md), [evaluation](../research/take-divergence-evaluation.md).
+- A take comparison is one finding per group and is never ranked: [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md).
+- Take review never makes a take active; the workspace Takes panel does: [ADR 0233](../adr/0233-the-app-may-make-a-take-active-by-guid-in-one-undo-step.md), [ADR 0700](../adr/0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md).
+- Thresholds: [Settings](#settings).
 
 ## What is still open
 
-- **A scan of a real chapter** end to end, with the Whisper sidecar and the owner's project, and a calibration
-  target of recall 80% and precision 60% on an annotated set of at least 25 known locations over 3 to 5 chapters. No
-  annotated set exists yet; the fixture suites (`sidecars/transcript-compare/tests/test_repeated_spans.py`,
-  `tests/test_divergence_harness.py`) are the evidence so far, and synthetic evidence is weaker than real chapters.
-- **The owner's REAPER checks** for Go to and Loop per read, and what a split or a take-specific duplicate does to a take's
-  own provenance block (ADR 0098's open item; the scripted run in `integrations/reaper/spikes/take_review_smoke.lua` covered
-  creation, active take, length and undo).
-- **Analysis time per hour of audio** and **time to locate an alternate** against the manual workflow: not measured.
-- **Later work**: narrator-adjustable weights (only once decisions accumulate), REAPER-side audition,
-  a cross-session index, recording-time collection of alternates, and take review for Audacity.
+A scan of a real chapter with calibration, the owner's REAPER checks, timing measurements and later work are tracked in [#1455](https://github.com/countrymanprime/narration-utils/issues/1455).

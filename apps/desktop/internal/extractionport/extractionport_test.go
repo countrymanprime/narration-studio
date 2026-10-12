@@ -176,7 +176,8 @@ func TestTheSourcesTableInTheDocsMatchesTheRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, section, _ := strings.Cut(string(data), "\n## Extraction sources\n")
+	// A Windows checkout writes docs/ with CRLF; the heading matches below look for LF.
+	_, section, _ := strings.Cut(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n## Extraction sources\n")
 	section, _, _ = strings.Cut(section, "\n## ")
 	var docs [][]string
 	for line := range strings.Lines(section) {

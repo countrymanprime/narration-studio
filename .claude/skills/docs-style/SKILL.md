@@ -22,7 +22,7 @@ Agent-written docs drift two ways: they go stale when code changes, and they fil
 4. **Say what is, in the active voice, once.** No restating the heading, no summary of what you just said, no "this section describes". Put conditions before instructions. Use sentence-case headings and descriptive link text.
 5. **Date anything that can age.** "Currently", "now", "recently" need a date or version, or go. Prefer a fact that stays true (`requires Go 1.26`) over a status.
 6. **No embellishment.** See `doc-unslop` for the patterns. Ban sales words ("seamless", "robust", "powerful"), inflated significance, vague attribution ("studies show") and chat residue.
-7. **Record decisions in an ADR, not in prose.** A "why" paragraph with no ADR behind it is opinion. Use `adr-author`.
+7. **Record an architecturally significant decision in an ADR** (`adr-author`; the test is in `docs/adr/README.md`, "When to write an ADR"). Record the reason for a smaller choice beside it: a doc comment, the design system, or an explanation section.
 8. **Keep size proportional.** A skill body stays under 500 lines (Anthropic's limit). A source file's docs stay under the 800-line ceiling in the repo rules. For `CLAUDE.md` and skills, delete any line whose removal would not cause a mistake.
 9. **Say what is pending.** A check not run, a result awaiting the owner or audio hardware: write "pending" with who owns it. Never imply it passed.
 
