@@ -28,10 +28,11 @@ import { AddEffect, SELECT_FIRST } from './AddEffect';
 import { CoverageStrip } from './CoverageStrip';
 import { EffectInspector } from './EffectInspector';
 import { EffectsList } from './EffectsList';
-import { capSentence, capState, coverageOf, coverageOfEffects, FX_CAP_PCT, impactOf } from './effectsMath';
+import { capSentence, capState, coverageOf, coverageOfEffects, FX_CAP_LABEL, FX_CAP_PCT, impactOf } from './effectsMath';
 import { EffectsTab, effectsCount, type EffectsTabProps } from './EffectsTab';
 import { MANY, ONE, TOTAL, wordFx } from './effectsFixtures';
 import { OnWords } from './OnWords';
+import { fxCapOf } from './useFxCap';
 import { registerEffectsSection } from './registerEffectsSection';
 
 afterEach(() => {
@@ -86,7 +87,7 @@ describe('coverage is the union of the effects that are on', () => {
   });
   it('shows the cap with its source and a stronger state when it is crossed far', () => {
     const view = render(<CoverageStrip effects={ONE} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
-    expect(screen.getByText(/Cap 10.0% of a chapter\. Fixed for now/)).toBeTruthy();
+    expect((screen.getByRole('textbox', { name: FX_CAP_LABEL }) as HTMLInputElement).value).toBe('10');
     expect(screen.getByText('Within the cap')).toBeTruthy();
     view.rerender(<CoverageStrip effects={MANY} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
     expect(screen.getByText('Over the cap')).toBeTruthy();
@@ -264,6 +265,44 @@ describe('the tab', () => {
     render(withApi(<EffectsTab {...base({ effects: ONE, selected: ['p-2:0'] })} />));
     expect((screen.getByRole('button', { name: 'Add effect' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('REAPER cannot add effects to a range here.')).toBeTruthy();
+  });
+  it('the cap can be changed and the state follows it', async () => {
+    const api = createMockApi();
+    render(
+      <ApiProvider api={{ ...api, dawCapabilities: async () => dawSetup, subscribeDawCapabilities: () => () => {} }}>
+        <EffectsTab {...base({ selected: ['p-1:0', 'p-1:1', 'p-1:2', 'p-1:3', 'p-1:4', 'p-1:5', 'p-1:6', 'p-1:7', 'p-1:8'], total: 40 })} />
+      </ApiProvider>,
+    );
+    const field = () => screen.getByRole('textbox', { name: FX_CAP_LABEL }) as HTMLInputElement;
+    await waitFor(() => expect(field().disabled).toBe(false));
+    expect(field().value).toBe('10');
+    expect(screen.getByText('Far over the cap')).toBeTruthy();
+    fireEvent.change(field(), { target: { value: '90' } });
+    expect(screen.getByText('Within the cap')).toBeTruthy();
+    fireEvent.change(field(), { target: { value: '40' } });
+    expect(screen.getByText('Over the cap')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('over the 40.0% cap');
+    await waitFor(async () => expect(fxCapOf(await api.settingsForScope('project'))).toBe(40));
+  });
+  it('a refused save puts the cap back and says why; a host without the field keeps the default', async () => {
+    const api = createMockApi();
+    const saveSettings = vi.fn(async () => {
+      throw new Error('setting fx_cap_pct must be between 1 and 100 %');
+    });
+    render(
+      <ApiProvider api={{ ...api, saveSettings, dawCapabilities: async () => dawSetup, subscribeDawCapabilities: () => () => {} }}>
+        <EffectsTab {...base()} />
+      </ApiProvider>,
+    );
+    const field = () => screen.getByRole('textbox', { name: FX_CAP_LABEL }) as HTMLInputElement;
+    await waitFor(() => expect(field().disabled).toBe(false));
+    fireEvent.change(field(), { target: { value: '50' } });
+    await waitFor(() => expect(screen.getByText('setting fx_cap_pct must be between 1 and 100 %')).toBeTruthy());
+    fireEvent.blur(field());
+    await waitFor(() => expect(field().value).toBe('10'));
+    expect(screen.getByText('Over the cap')).toBeTruthy();
+    expect(saveSettings).toHaveBeenCalledWith('Editing', 'project', { fx_cap_pct: '50' });
+    expect(fxCapOf({})).toBe(FX_CAP_PCT);
   });
   it('over the cap the button reads Add anyway', () => {
     render(withApi(<EffectsTab {...base({ selected: ['p-1:0', 'p-1:1', 'p-1:2', 'p-1:3', 'p-1:4', 'p-1:5', 'p-1:6', 'p-1:7', 'p-1:8'], total: 40 })} />));

@@ -67,7 +67,6 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapRegions:         regionsRole{r(dawport.CapRegions)},
 		dawport.CapTakes:           takesRole{r(dawport.CapTakes)},
 		dawport.CapFXChains:        fxChainsRole{r(dawport.CapFXChains)},
-		dawport.CapSilenceTrim:     silenceTrimRole{r(dawport.CapSilenceTrim)},
 		dawport.CapItemGain:        itemGainRole{r(dawport.CapItemGain)},
 		dawport.CapRenderWithFX:    renderWithFXRole{r(dawport.CapRenderWithFX)},
 		dawport.CapMasterChainRead: masterChainReadRole{r(dawport.CapMasterChainRead)},
@@ -76,6 +75,8 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapFXRange:         fxRangeRole{r(dawport.CapFXRange)},
 		dawport.CapStackTakes:      stackTakesRole{r(dawport.CapStackTakes)},
 		dawport.CapBackups:         backupsRole{r(dawport.CapBackups)},
+		dawport.CapFilePreview:     filePreviewRole{r(dawport.CapFilePreview)},
+		dawport.CapFileReveal:      fileRevealRole{r(dawport.CapFileReveal)},
 	}
 	return f
 }
@@ -244,6 +245,21 @@ func (r trackSelectRole) SelectTrack(context.Context, string) (dawport.SelectedT
 	return dawport.SelectedTrack{}, r.do("SelectTrack")
 }
 
+type filePreviewRole struct{ role }
+
+func (r filePreviewRole) PreviewFileRange(context.Context, dawport.FilePreview) (dawport.FilePreviewStarted, error) {
+	return dawport.FilePreviewStarted{}, r.do("PreviewFileRange")
+}
+func (r filePreviewRole) StopFilePreview(context.Context) (dawport.FilePreviewStopped, error) {
+	return dawport.FilePreviewStopped{}, r.do("StopFilePreview")
+}
+
+type fileRevealRole struct{ role }
+
+func (r fileRevealRole) RevealFile(context.Context, string) (dawport.FileRevealed, error) {
+	return dawport.FileRevealed{}, r.do("RevealFile")
+}
+
 type recordRole struct{ role }
 
 func (r recordRole) ArmOnly(context.Context, string) (dawport.Armed, error) {
@@ -291,21 +307,6 @@ func (r fxChainsRole) ListFXChains(context.Context) (dawport.FXChains, error) {
 }
 func (r fxChainsRole) ApplyFXChain(context.Context, string, string) (dawport.FXChainApplied, error) {
 	return dawport.FXChainApplied{}, r.do("ApplyFXChain")
-}
-func (r fxChainsRole) ListFX(context.Context) (dawport.FXPlugins, error) {
-	return dawport.FXPlugins{}, r.do("ListFX")
-}
-func (r fxChainsRole) AddTakeFX(context.Context, dawport.Passage, string) (dawport.TakeFXAdded, error) {
-	return dawport.TakeFXAdded{}, r.do("AddTakeFX")
-}
-
-type silenceTrimRole struct{ role }
-
-func (r silenceTrimRole) Preview(context.Context, []dawport.CleanupCandidate) (dawport.PreviewResult, error) {
-	return dawport.PreviewResult{}, r.do("Preview")
-}
-func (r silenceTrimRole) Apply(context.Context, []dawport.CleanupCandidate) (dawport.ApplyResult, error) {
-	return dawport.ApplyResult{}, r.do("Apply")
 }
 
 type itemGainRole struct{ role }

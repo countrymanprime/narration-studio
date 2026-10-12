@@ -67,6 +67,7 @@ import type {
   DawHideTakesApi,
   DawResult,
   DawRollApi,
+  DawFilesApi,
   DawStackTakesApi,
   DawSplitTakeApi,
 } from './contracts/daw';
@@ -76,6 +77,8 @@ import type { PassageMark } from './contracts/passageMap';
 import {
   backupLabelOk,
   DAW_ANSWERS,
+  filePreviewAnswer,
+  fileRevealAnswer,
   fxRangeOf,
   fxRangeRemovedOf,
   nothingToStackAnswer,
@@ -376,6 +379,7 @@ export function createMockApi(
     ),
     ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createSplitTakeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createFilesMock(daw, measurePicked),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
@@ -463,6 +467,45 @@ function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string)
       if (support.destructive && !confirmed) return refusedResult(DAW_ANSWERS.rollConfirm);
       const rolled = rolledOf(setup, at);
       return { ok: true, changed: true, message: rolled.message, undoSteps: rolled.undoSteps };
+    },
+  };
+}
+
+/** The mock's longest file preview, bridge.MaxPreviewSeconds. */
+const MAX_PREVIEW_SECONDS = 60;
+
+/** DawPreviewFileRange, DawStopFilePreview and DawRevealFile as bindings_daw_files.go answers them: the capability's sentence first,
+ * then the stretch, then a path the narrator picked to measure in this session; the mock's files are always there and always audio. */
+function createFilesMock(daw: DawCapabilitiesApi, picked: ReadonlySet<string>): DawFilesApi {
+  let playing = false;
+  const support = async (key: 'file_preview' | 'file_reveal') => {
+    const setup = await daw.dawCapabilities();
+    return { setup, support: setup.capabilities[key] };
+  };
+  const ok = (message: string): DawResult => ({ ok: true, changed: false, message, undoSteps: 0 });
+  return {
+    dawPreviewFileRange: async (path, start, length) => {
+      const { support: preview } = await support('file_preview');
+      if (!preview?.available) return refusedResult(preview?.message ?? '');
+      if (!Number.isFinite(start) || !Number.isFinite(length) || start < 0 || length <= 0 || length > MAX_PREVIEW_SECONDS) {
+        return refusedResult(DAW_ANSWERS.fileBadStretch);
+      }
+      if (!picked.has(path)) return refusedResult(DAW_ANSWERS.fileNotPicked);
+      playing = true;
+      return ok(filePreviewAnswer(path, start, length));
+    },
+    dawStopFilePreview: async () => {
+      const { support: preview } = await support('file_preview');
+      if (!preview?.available) return refusedResult(preview?.message ?? '');
+      const was = playing;
+      playing = false;
+      return ok(was ? DAW_ANSWERS.fileStopped : DAW_ANSWERS.fileNothingPlaying);
+    },
+    dawRevealFile: async (path) => {
+      const { setup, support: reveal } = await support('file_reveal');
+      if (!reveal?.available) return refusedResult(reveal?.message ?? '');
+      if (!picked.has(path)) return refusedResult(DAW_ANSWERS.fileNotPicked);
+      return ok(fileRevealAnswer(path, setup.daw));
     },
   };
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
+	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
@@ -43,8 +44,8 @@ func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
 }
 
 func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
-	if hostAPIVersion != 122 {
-		t.Fatalf("host API version = %d, want 122; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
+	if hostAPIVersion != 124 {
+		t.Fatalf("host API version = %d, want 124; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
 	}
 }
 
@@ -794,4 +795,53 @@ func TestSettingsDefinitionSourceDefaultsToWebAndRefusesAnUnknownValue(t *testin
 	if got := field()["effectiveValue"]; got != "local" {
 		t.Fatalf("after a refused save the source is %v, want local", got)
 	}
+}
+
+// Editing.fx_cap_pct is the Effects tab's coverage cap: a whole percent from 1 to 100 that reads as 10 on a fresh install. A save outside the
+// range, or not a whole number, is refused and leaves the stored cap as it was. The tool's fields are pinned as the Effects tab reads them:
+// unset (tests/fixtures/contracts/settings-fx-cap.json) and with 25 saved for the project (settings-fx-cap-set.json).
+func TestSettingsFxCapDefaultsToTenAndRefusesAValueOutOfRange(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
+	editing := func() []map[string]any {
+		t.Helper()
+		fields, err := host.settingsForScope("project")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fields["Editing"].([]map[string]any)
+	}
+	field := func() map[string]any {
+		t.Helper()
+		for _, field := range editing() {
+			if field["key"] == "fx_cap_pct" {
+				return field
+			}
+		}
+		t.Fatal("Editing has no fx_cap_pct field")
+		return nil
+	}
+	first := field()
+	if first["kind"] != "number" || first["effectiveValue"] != "10" || first["isSet"] != false {
+		t.Fatalf("fresh field = %v, want a number reading 10, unset", first)
+	}
+	if got := fmt.Sprint(first["number"]); !strings.Contains(got, "min:1") || !strings.Contains(got, "max:100") || !strings.Contains(got, "step:1") {
+		t.Fatalf("range = %s, want 1 to 100 in steps of 1", got)
+	}
+	contractfile.Check(t, "settings-fx-cap", map[string]any{"Editing": editing()})
+	cap := "25"
+	if err := host.saveSettings("Editing", "project", map[string]*string{"fx_cap_pct": &cap}); err != nil {
+		t.Fatal(err)
+	}
+	for _, refused := range []string{"0", "101", "12.5", "ten"} {
+		value := refused
+		if err := host.saveSettings("Editing", "project", map[string]*string{"fx_cap_pct": &value}); err == nil {
+			t.Fatalf("saving a cap of %q must fail", refused)
+		}
+	}
+	if got := field()["effectiveValue"]; got != "25" {
+		t.Fatalf("after the refused saves the cap is %v, want 25", got)
+	}
+	contractfile.Check(t, "settings-fx-cap-set", map[string]any{"Editing": editing()})
 }

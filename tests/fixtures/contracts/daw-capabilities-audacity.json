@@ -19,6 +19,18 @@
       "mode": "steps",
       "reason": "experimental_off"
     },
+    "file_preview": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "reason": "not_yet"
+    },
+    "file_reveal": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "reason": "not_yet"
+    },
     "fx_chains": {
       "available": false,
       "level": "not_yet_available",
@@ -130,12 +142,6 @@
       "reason": "not_yet"
     },
     "review": {
-      "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
-    },
-    "silence_trim": {
       "available": false,
       "level": "not_yet_available",
       "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",

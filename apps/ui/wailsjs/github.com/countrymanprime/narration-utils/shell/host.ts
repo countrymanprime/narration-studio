@@ -626,6 +626,15 @@ export function DawLaunch(): $CancellablePromise<string> {
 }
 
 /**
+ * DawPreviewFileRange plays length seconds of the file at path from start (the file's own seconds) through the DAW's preview,
+ * never through the project, stopping a preview this app started before. The resolver's file_preview sentence comes first,
+ * then the stretch, then the path; nothing is sent to the DAW on any refusal.
+ */
+export function DawPreviewFileRange(path: string, start: number, length: number): $CancellablePromise<string> {
+    return $Call.ByID(4279548801, path, start, length);
+}
+
+/**
  * DawProjectState answers {savedAt, unsavedChanges, playState, playPosition} (dawport.ProjectState). With no DAW, the
  * heartbeat capability unavailable or turned off, or a DAW not answering, it is the idle payload: stopped, 0, null, false.
  */
@@ -653,6 +662,14 @@ export function DawRemoveFxFromRange(chapterID: string, firstToken: number, last
  */
 export function DawRestoreBackup(backupID: string): $CancellablePromise<string> {
     return $Call.ByID(4114452298, backupID);
+}
+
+/**
+ * DawRevealFile shows the file at path in the DAW's own file browser without importing or playing it. The resolver's
+ * file_reveal sentence comes first, then the path; nothing is sent to the DAW on any refusal.
+ */
+export function DawRevealFile(path: string): $CancellablePromise<string> {
+    return $Call.ByID(4263544213, path);
 }
 
 /**
@@ -701,6 +718,13 @@ export function DawStackTakes(chapterID: string, passageIDs: string[]): $Cancell
 }
 
 /**
+ * DawStopFilePreview stops the preview this app started; with none playing it changes nothing.
+ */
+export function DawStopFilePreview(): $CancellablePromise<string> {
+    return $Call.ByID(1026294444);
+}
+
+/**
  * DawUnstackTakes moves the stacked takes of the passages passageIDs of chapterID back to where their reads were recorded
  * and the audio after them out again (the mock's unstackTakes). The plan is rebuilt as DawStackTakes rebuilds it
  * (passagetakes.UnstackPlan), with the offset each stacked take recorded read from the saved project, so a stack the
@@ -735,6 +759,15 @@ export function DeliveryDuplicateProfile(id: string, version: string): $Cancella
  */
 export function DeliveryExportReport(includePaths: boolean): $CancellablePromise<string> {
     return $Call.ByID(54436238, includePaths);
+}
+
+/**
+ * DeliveryOpenPackageFolder shows the folder of the package the host last built in the file manager, through the
+ * same openFolder the log folder uses (diagnostics_export.go). It takes no path: the folder is the one the package
+ * job wrote, never one the UI names. It is refused with a sentence when no package was built or its folder is gone.
+ */
+export function DeliveryOpenPackageFolder(): $CancellablePromise<string> {
+    return $Call.ByID(157179910);
 }
 
 /**

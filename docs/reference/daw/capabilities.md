@@ -195,21 +195,12 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 ### `fx_chains`
 
-- **Intent:** list the narrator's FX chain files and installed plug-ins, apply a chain to a track, and add a plug-in to one passage of a take.
+- **Intent:** list the narrator's FX chain files and apply a chain to a track.
 - **Role:** `FXManager`, synchronous.
-- **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_PLUGIN` per plug-in then `FX_PLUGINS_LISTED`; `FX_CHAIN_APPLIED` with the number added; `TAKE_FX_ADDED` with the number of splits. A name outside the chains folder or not in the list is refused before anything changes. Each write is one undo point.
-- **REAPER:** `list_fx_chains`, `apply_fx_chain`, `list_fx`, `add_take_fx`.
+- **Result:** `FX_CHAIN` per chain then `FX_CHAINS_LISTED`; `FX_CHAIN_APPLIED` with the number added. A name outside the chains folder is refused before anything changes. Each write is one undo point.
+- **REAPER:** `list_fx_chains`, `apply_fx_chain`. The host stopped sending `list_fx` and `add_take_fx` in [#1661](https://github.com/countrymanprime/narration-utils/issues/1661); their Lua handlers go with [#1311](https://github.com/countrymanprime/narration-utils/issues/1311).
 - **Audacity:** not built.
 - **Checked:** harness (`workspace_test.lua`); expected result is rows A7, A8 and A8b; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
-
-### `silence_trim`
-
-- **Intent:** preview silences as take markers, then trim them.
-- **Role:** `SilenceTrimmer`, synchronous (`Preview`, `Apply`).
-- **Result:** the preview adds `CLEANUP_SILENCE_START` and `CLEANUP_SILENCE_END` take markers and answers `CLEANUP_PREVIEWED` with added and existing counts; repeating it adds none. Apply answers `CLEANUP_APPLIED`; the item keeps its GUID, a new piece starts after the cut, and the source file is untouched. An unknown item or a range past the end answers `CLEANUP_STALE` and is not applied.
-- **REAPER:** `preview_cleanup_markers`, `apply_cleanup_trims`, through `bridge.CleanupClient`. No host binding reaches them since [#1308](https://github.com/countrymanprime/narration-utils/issues/1308) removed `CleanupPreview` and `CleanupApply`; `internal/cleanuptools` holds the role for a later trigger. Experimental until the pass.
-- **Audacity:** not built.
-- **Checked:** harness (`cleanup_preview_test.lua`); expected result is rows A12 and A13; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `item_gain`
 
@@ -296,3 +287,27 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **REAPER:** not yet available. The mock declares it unsupported, as REAPER keeps takes itself (`studio-next/src/fixtures/daw.ts`); the declaration is settled when the command is built.
 - **Audacity 3.x:** Experimental ([ADR 0863](../../adr/0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md), `apps/desktop/internal/dawport/audacity/backups.go`). `BackupAround` copies the window, 120 s either side of the edit clamped to the project, to a new muted track named `Narration Utils backup {ID}` with the commands spike 1g sends (`SelectTracks` and `SelectTime`, `Copy`, `NewMonoTrack` or `NewStereoTrack`, `SetTrackStatus` to name it, `Paste`, `SetTrackAudio: Mute=1`) and adds a row to `narration-utils/backups.json` in the app's project folder ([data files](../data-files.md)); it answers `changed: false`, "Backed up N s of audio in Audacity." The request's GUID is the source track's name, as Audacity reports no track ids. `RestoreBackup` pastes the backup's window back over the same window of the source track, keeps the backup track and its row, and answers `changed: true`. Refusals: no project folder from the host; a request with no track, chapter or finite range; a source track that is gone (`stale`) or two tracks with its name; no audio in the window; a full table (500 rows); an id the table does not have ("Audacity has no backup with that id."); a backup or source track that is gone (`stale`); a table from a newer app. `List` reads a row whose track is gone as `missing`; `Prune` removes only rows older than the retention and the tracks they name, and waits for a restore in flight. A row keeps the request's label, and a restore stamps its `restored` time. The host builds the role on an Audacity launch with a project, but opens no pipe from a page yet, so the resolver answers "Audacity isn't connected to this app yet" and the bindings refuse with it until a later slice connects the pipe.
 - **Checked:** Go tests over a fake pipe (`backups_test.go`, `backups_prune_test.go`, `backups_label_test.go`) and of the bindings (`bindings_daw_backups_test.go`); spike 1g and the owner's pass ([verification pass](../../operations/audacity-verification-pass.md)) are pending, and the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) lists what only a real Audacity shows.
+
+### `file_preview`
+
+- **Intent:** play a stretch of a file on disk, such as the quietest 5 s of a rendered chapter that Master & QC measured, and stop it, leaving the project unchanged. A measured file is not a project item, so [`navigate`](#navigate) cannot reach it.
+- **Role:** `FilePreviewer`, synchronous (`PreviewFileRange` with a `FilePreview`: the path, the start and the length in the file's own seconds; `StopFilePreview`).
+- **Result:** `PreviewFileRange` returns the stretch that plays, its length shortened to the end of the file. `StopFilePreview` returns whether a preview this app started was playing; with none it changes nothing. One preview plays at a time: a new one stops the last. Nothing is inserted, no undo point is made, and the project's transport, cursor and selection are not touched.
+- **Refusals:** a path that is not an absolute local path to an existing audio file (a network share, a relative path, a `..` segment, a folder, another kind of file), checked by the host before anything is sent and by the engine again; a start below 0, or a length not above 0 or above 60 s; a stretch that starts at or after the end of the file; the engine recording; an engine with no way to play a file outside the project.
+- **REAPER:** `preview_file_range` and `stop_file_preview`, Experimental (`narration_media_file.lua`). Plays through an SWS preview (`CF_CreatePreview`, then `CF_Preview_SetValue` for `D_POSITION` and `B_LOOP`, then `CF_Preview_Play`) from a source made with `PCM_Source_CreateFromFile`; a watcher on the bridge's defer loop stops it at the end of the stretch with `CF_Preview_Stop` and frees the source one cycle later. Without SWS it refuses: "Playing part of a file needs the SWS extension in REAPER." Each call is checked with `APIExists` first ([the bridge](../../architecture/reaper-bridge.md#playing-and-showing-a-file-on-disk-narration_media_filelua)).
+- **Audacity:** not yet available. The adapter's commands play the project (`Play`) or import a file into it as new tracks (`Import2`, [`commands.go`](../../../apps/desktop/internal/audacitybridge/commands.go)), and neither leaves the project unchanged; no command that previews a file is built.
+- **Built-in recorder:** unsupported.
+- **Binding:** `DawPreviewFileRange(path, start, length)` and `DawStopFilePreview()` (`apps/desktop/bindings_daw_files.go`) answer a `DawResult` with no undo step; the UI's API calls them as `dawPreviewFileRange` and `dawStopFilePreview` (no page sends them yet; SN-M97 will). The host checks the capability, then the stretch, then the path, and sends only a path the narrator picked to measure in this session.
+- **Checked:** harness (`media_file_test.lua`); nothing run in REAPER. Expected result is row C10 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet); the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
+
+### `file_reveal`
+
+- **Intent:** show a file on disk in the engine's own file browser, without importing or playing it, so the narrator can open it there themselves ("Open in the DAW"). Importing it would change the project, which this capability never does.
+- **Role:** `FileRevealer`, synchronous (`RevealFile` with the path).
+- **Result:** the path shown. No undo point; the project is unchanged.
+- **Refusals:** the path rules of [`file_preview`](#file_preview); an engine with no file browser it can be asked to show a file in.
+- **REAPER:** `reveal_file`, Experimental (`narration_media_file.lua`): `OpenMediaExplorer(path, false)`, which selects the file in the Media Explorer without playing it. A REAPER without the call refuses: "This REAPER version cannot show a file in its Media Explorer."
+- **Audacity:** not yet available. The adapter has no command that shows a file without importing it (`Import2` adds it to the project).
+- **Built-in recorder:** unsupported.
+- **Binding:** `DawRevealFile(path)` (`apps/desktop/bindings_daw_files.go`) answers a `DawResult` with no undo step; the UI's API calls it as `dawRevealFile`.
+- **Checked:** harness (`media_file_test.lua`); nothing run in REAPER. Expected result is row C11 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet).

@@ -40,15 +40,14 @@ type (
 
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
-	FXPlugins      = bridge.FXPlugins
-	Passage        = bridge.Passage
-	TakeFXAdded    = bridge.TakeFXAdded
 
-	CleanupCandidate = bridge.CleanupCandidate
-	PreviewResult    = bridge.PreviewResult
-	ApplyResult      = bridge.ApplyResult
-	GainCandidate    = bridge.GainCandidate
-	ApplyGainResult  = bridge.ApplyGainResult
+	GainCandidate   = bridge.GainCandidate
+	ApplyGainResult = bridge.ApplyGainResult
+
+	FilePreview        = bridge.FilePreview
+	FilePreviewStarted = bridge.FilePreviewStarted
+	FilePreviewStopped = bridge.FilePreviewStopped
+	FileRevealed       = bridge.FileRevealed
 
 	Project = tracks.Project
 
@@ -263,6 +262,19 @@ type TrackSelector interface {
 	SelectTrack(ctx context.Context, trackGUID string) (SelectedTrack, error)
 }
 
+// FilePreviewer plays a stretch of a file on disk through the engine's own preview, and stops it. It never inserts the file,
+// makes an undo point or moves the project's transport: the project is unchanged. The path is one the narrator picked; a path
+// that is not an absolute local path to an audio file is refused before anything is sent.
+type FilePreviewer interface {
+	PreviewFileRange(ctx context.Context, preview FilePreview) (FilePreviewStarted, error)
+	StopFilePreview(ctx context.Context) (FilePreviewStopped, error)
+}
+
+// FileRevealer shows a file on disk in the engine's own file browser without importing or playing it. The project is unchanged.
+type FileRevealer interface {
+	RevealFile(ctx context.Context, path string) (FileRevealed, error)
+}
+
 // Recorder arms a track, starts and stops recording, and reports a recording the narrator stopped in the engine.
 type Recorder interface {
 	ArmOnly(ctx context.Context, trackGUID string) (Armed, error)
@@ -304,18 +316,10 @@ type TakeSplitter interface {
 	SplitTake(ctx context.Context, itemGUID, takeGUID string, at float64) (Result, error)
 }
 
-// FXManager lists and applies FX chains and adds a plugin to a passage's take.
+// FXManager lists FX chains and applies one to a track.
 type FXManager interface {
 	ListFXChains(ctx context.Context) (FXChains, error)
 	ApplyFXChain(ctx context.Context, track, chain string) (FXChainApplied, error)
-	ListFX(ctx context.Context) (FXPlugins, error)
-	AddTakeFX(ctx context.Context, passage Passage, plugin string) (TakeFXAdded, error)
-}
-
-// SilenceTrimmer previews and applies silence trims.
-type SilenceTrimmer interface {
-	Preview(ctx context.Context, candidates []CleanupCandidate) (PreviewResult, error)
-	Apply(ctx context.Context, candidates []CleanupCandidate) (ApplyResult, error)
 }
 
 // GainAdjuster applies per-item gain to match levels.

@@ -429,20 +429,6 @@
       "effectiveSource": "repo_default",
       "effectiveValue": "auto",
       "isSet": false,
-      "key": "capability.silence_trim",
-      "kind": "choice",
-      "label": "Silence trim",
-      "value": ""
-    },
-    {
-      "choices": [
-        "auto",
-        "on",
-        "off"
-      ],
-      "effectiveSource": "repo_default",
-      "effectiveValue": "auto",
-      "isSet": false,
       "key": "capability.item_gain",
       "kind": "choice",
       "label": "Level matching",
@@ -545,6 +531,34 @@
       "kind": "choice",
       "label": "Audio backups",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.file_preview",
+      "kind": "choice",
+      "label": "Play part of a file",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.file_reveal",
+      "kind": "choice",
+      "label": "Show a file in the audio engine",
+      "value": ""
     }
   ],
   "Editing": [
@@ -593,6 +607,22 @@
         "min": 0,
         "step": 0.1,
         "unit": "s"
+      },
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "10",
+      "isSet": false,
+      "key": "fx_cap_pct",
+      "kind": "number",
+      "label": "Most of a chapter effects may cover (%)",
+      "number": {
+        "max": 100,
+        "min": 1,
+        "step": 1,
+        "unit": "%"
       },
       "value": ""
     }

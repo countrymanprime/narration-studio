@@ -884,11 +884,13 @@ describe('the mock setups', () => {
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {
     const request = { chapterId: 'chapter-1', firstToken: 2, lastToken: 4, mode: 'close', fadeMs: 0 } as const;
-    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+    for (const id of ['reaper-off', 'audacity'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.cut_range.message;
       expect(sentence, id).toBeTruthy();
       expect(await createMockDawClient(DAW_SETUPS[id]).deleteRange(request), id).toEqual(refusal(sentence ?? ''));
     }
+    // The built-in recorder cuts by its own edit list (mode app), so it answers and adds no engine undo step.
+    expect(await createMockDawClient(DAW_SETUPS.builtin).deleteRange(request)).toMatchObject({ ok: true, changed: true, undoSteps: 0 });
     const reaper = createMockDawClient(DAW_SETUPS.reaper);
     expect(await reaper.deleteRange(request)).toEqual({ ok: true, changed: true, message: rangeCutAnswer(3, 'REAPER'), undoSteps: 1 });
     expect(rangeCutAnswer(1, 'REAPER')).toBe(read('daw-delete-range-done.json', dawResultSchema).message);

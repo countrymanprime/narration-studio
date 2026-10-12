@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import axe from 'axe-core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
@@ -51,10 +51,21 @@ function Page({ passage }: { passage: LinePassage }) {
   const { kept, keep } = useKeepTakes(journal);
   const gate = useTakesGate();
   const [playing, setPlaying] = useState<string | null>(null);
+  const playingRef = useRef<string | null>(null);
   const line = useLineTakes(passage, keep);
   lineHook = line;
   return (
     <main>
+      <button
+        type="button"
+        data-end-play
+        onClick={() => {
+          playingRef.current = null;
+          setPlaying(null);
+        }}
+      >
+        end play
+      </button>
       <TakeChip passage={passage} open={line.open} keptId={kept[passage.id] ?? null} controls={`takes-${passage.id}`} onToggle={line.toggle} />
       {line.open ? (
         <TakeLines
@@ -65,8 +76,10 @@ function Page({ passage }: { passage: LinePassage }) {
           gate={gate}
           onKeep={(t) => void keep(passage, t)}
           onPlay={(t) => {
-            played.push(`${t.sourceFile}:${t.sourceStart}+${t.sourceLength}`);
-            setPlaying((p) => (p === t.id ? null : t.id));
+            // Called again for the take that plays, it stops: only a start is a play.
+            if (playingRef.current !== t.id) played.push(`${t.sourceFile}:${t.sourceStart}+${t.sourceLength}`);
+            playingRef.current = playingRef.current === t.id ? null : t.id;
+            setPlaying(playingRef.current);
           }}
         />
       ) : null}
@@ -366,5 +379,98 @@ describe('axe', () => {
     fireEvent.click(chip());
     const result = await axe.run(document.body, { rules: { region: { enabled: false } } });
     expect(result.violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+describe('compare-the-takes-of-a-line', () => {
+  /** The page marks a take as playing until it is told to end; `endPlay` is the take reaching its end. */
+  const endPlay = () => fireEvent.click(document.querySelector('[data-end-play]')!);
+  const openTakes = (passage: LinePassage = measuredPassage()) => {
+    mount(passage);
+    fireEvent.click(chip());
+  };
+
+  it('plays every take in order, and the two takes the narrator picks A then B', async () => {
+    openTakes();
+    const a = screen.getByRole('combobox', { name: 'First take to compare' }) as HTMLSelectElement;
+    const b = screen.getByRole('combobox', { name: 'Second take to compare' }) as HTMLSelectElement;
+    // The pickers start on the active take and the suggested one; neither is a keep.
+    expect(a.value).toBe('t-7');
+    expect(b.value).toBe('t-8');
+    expect(document.querySelector('[data-take="t-7"]')!.textContent).not.toContain('Kept');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play every take' }));
+    expect(played).toEqual(['t-7.wav:12+8']);
+    endPlay();
+    await flush();
+    endPlay();
+    await flush();
+    endPlay();
+    await flush();
+    expect(played).toEqual(['t-7.wav:12+8', 't-8.wav:12+8', 't-9.wav:12+8']);
+
+    played.length = 0;
+    fireEvent.change(a, { target: { value: 't-9' } });
+    fireEvent.change(b, { target: { value: 't-8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'A then B' }));
+    expect(played).toEqual(['t-9.wav:12+8']);
+    endPlay();
+    await flush();
+    expect(played).toEqual(['t-9.wav:12+8', 't-8.wav:12+8']);
+    endPlay();
+    await flush();
+    expect(played).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Stop comparing' })).toBeNull();
+  });
+
+  it('the pickers default to the kept take and the suggested one, and the same take twice is refused with a reason', async () => {
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-9' }));
+    await flush();
+    const a = screen.getByRole('combobox', { name: 'First take to compare' }) as HTMLSelectElement;
+    expect(a.value).toBe('t-9');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Second take to compare' }), { target: { value: 't-9' } });
+    expect(screen.getByRole('button', { name: 'A then B' }).getAttribute('aria-disabled')).toBe('true');
+    expect(document.querySelector('[data-compare-note]')!.textContent).toContain('Pick two different takes');
+  });
+
+  it('shows the level note when the two takes were recorded at different levels', () => {
+    openTakes(unevenPassage());
+    expect(document.querySelector('[data-compare-level]')!.textContent).toMatch(/3\.0 dB apart/);
+  });
+
+  it('Stop and Escape stop the comparison, and a DAW that cannot play a take says why', async () => {
+    openTakes();
+    fireEvent.click(screen.getByRole('button', { name: 'Play every take' }));
+    expect(played).toEqual(['t-7.wav:12+8']);
+    fireEvent.click(screen.getByRole('button', { name: 'Stop comparing' }));
+    await flush();
+    endPlay();
+    await flush();
+    expect(played).toEqual(['t-7.wav:12+8']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'A then B' }));
+    expect(played).toHaveLength(2);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await flush();
+    expect(screen.queryByRole('button', { name: 'Stop comparing' })).toBeNull();
+    endPlay();
+    await flush();
+    expect(played).toHaveLength(2);
+  });
+
+  it('a take that cannot be heard is skipped by Play every take and refuses A then B with its reason', () => {
+    openTakes(partlyMeasuredPassage());
+    fireEvent.click(screen.getByRole('button', { name: 'Play every take' }));
+    endPlay();
+    expect(played).toEqual(['t-7.wav:12+8', 't-8.wav:12+8']);
+    endPlay();
+    expect(played).toHaveLength(2);
+    expect(document.querySelector('[data-compare-note]')!.textContent).toContain('T-9: This take cannot be heard.');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Second take to compare' }), { target: { value: 't-9' } });
+    expect(screen.getByRole('button', { name: 'A then B' }).getAttribute('aria-disabled')).toBe('true');
+    expect(document.querySelector('[data-compare-note]')!.textContent).toContain('This take cannot be heard.');
   });
 });

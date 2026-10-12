@@ -73,6 +73,28 @@ export const Built: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText('4 files')).toBeTruthy();
     await expect(canvas.getAllByText('Written')).toHaveLength(4);
+    await expect(canvas.getByRole('button', { name: 'Open the folder' })).toBeTruthy();
+  },
+};
+
+// A manuscript whose headings are numbered ("1." over the chapter's own name): each row is named in that style.
+const numbered = ['Down the Rabbit-Hole', 'The Pool of Tears', 'A Caucus-Race', 'Pig and Pepper'].map(
+  (subtitle, i) => ({ id: `n${i + 1}`, title: `${i + 1}.`, subtitle, index: i + 1, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter,
+);
+
+export const NumberedHeadings: Story = {
+  parameters: {
+    api: createMockApi({
+      manuscriptChapters: async () => numbered,
+      measureState: async () => measured([]),
+      exportState: async () => encoded,
+      packageState: async () => idle,
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText('1. — Down the Rabbit-Hole')).toBeTruthy();
+    await expect(canvas.getByText('0 of 4')).toBeTruthy();
   },
 };
 

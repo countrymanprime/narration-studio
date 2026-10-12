@@ -26,6 +26,9 @@ export interface CleanupInspectorProps {
   dawReason: string | null;
   preview: Preview | null;
   onPreview: () => void;
+  /** The sentence for a preview that is playing, or why it cannot play. While it plays the button stops it. */
+  previewNote?: { text: string; playing: boolean } | null;
+  onStopPreview?: () => void;
   onApply: () => void;
   /** An apply is running. */
   busy?: boolean;
@@ -86,14 +89,19 @@ export function CleanupInspector(p: CleanupInspectorProps) {
       ) : null}
       {p.preview ? <CleanupPreview preview={p.preview} /> : null}
       <div className="flex items-center gap-2">
-        <Button variant="secondary" disabled={!p.selected} onClick={p.onPreview}>
-          Preview
+        <Button variant="secondary" disabled={!p.selected} onClick={p.previewNote?.playing ? p.onStopPreview : p.onPreview}>
+          {p.previewNote?.playing ? 'Stop preview' : 'Preview'}
         </Button>
         <span className="flex-1" />
         <Button disabled={!p.selected || reason !== null || p.busy} onClick={p.onApply}>
           Apply to {p.selected} selected
         </Button>
       </div>
+      {p.previewNote ? (
+        <p role="status" className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+          {p.previewNote.text}
+        </p>
+      ) : null}
       {reason ? (
         <p id="cleanup-note" className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
           {reason}

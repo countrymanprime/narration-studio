@@ -43,7 +43,6 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   regions: 'experimental',
   takes: 'experimental',
   fx_chains: 'experimental',
-  silence_trim: 'experimental',
   item_gain: 'experimental',
   render_with_fx: 'experimental',
   master_chain_read: 'experimental',
@@ -52,6 +51,8 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   fx_range: 'experimental',
   stack_takes: 'experimental',
   backups: 'not_yet_available',
+  file_preview: 'experimental',
+  file_reveal: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -74,7 +75,6 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   regions: 'running',
   takes: 'running',
   fx_chains: 'running',
-  silence_trim: 'running',
   item_gain: 'running',
   render_with_fx: 'running',
   master_chain_read: 'running',
@@ -83,6 +83,8 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   fx_range: 'running',
   stack_takes: 'running',
   backups: 'running',
+  file_preview: 'running',
+  file_reveal: 'running',
 };
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
@@ -130,10 +132,13 @@ const AUDACITY_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; 
 const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
 const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
-/** What the built-in recorder declares (dawport/builtin): record and takes Experimental until the owner's pass, punch and the
- * edits the app will make itself not yet available, everything else unsupported. */
-const BUILTIN_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes']);
-const BUILTIN_NOT_YET: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['punch', 'cut_range', 'fx_range', 'stack_takes']);
+/** What the built-in recorder declares (dawport/builtin): record, takes (the others hidden, never deleted) and cut_range (an edit
+ * list the recorder plays and exports past, mode `app`) Experimental until the owner's pass, punch and the edits the app has not
+ * built yet not available, everything else unsupported. */
+const BUILTIN_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes', 'cut_range']);
+const BUILTIN_NOT_YET: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['punch', 'fx_range', 'stack_takes']);
+/** The built-in recorder's Describer (builtin.go's depthOf): the app makes a cut itself. */
+const BUILTIN_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = { cut_range: { mode: 'app' } };
 
 type DawToggle = 'auto' | 'on' | 'off';
 
@@ -243,7 +248,7 @@ type Mock = { daw: DawKind; seed: DawMockSeed; connected: boolean; reachable: bo
 
 /** The declared depth of `key`: the seed's, else the engine's own. */
 function depthOf(m: Mock, key: DawCapabilityKey): { destructive?: boolean; mode?: DawCapabilityMode } | undefined {
-  const declared = m.daw === 'REAPER' ? REAPER_DEPTH : m.daw === 'Audacity' ? AUDACITY_DEPTH : {};
+  const declared = m.daw === 'REAPER' ? REAPER_DEPTH : m.daw === 'Audacity' ? AUDACITY_DEPTH : m.daw === 'Built-in' ? BUILTIN_DEPTH : {};
   return m.seed.depth?.[key] ?? declared[key];
 }
 

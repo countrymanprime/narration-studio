@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 122
+const hostAPIVersion = 124
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -225,6 +225,11 @@ type Host struct {
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
+	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator
+	// (ADR 0300): DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files.go) ask them to play a stretch of
+	// a file on disk and to show one. Nil with no bridge client or no such role.
+	filePreviewer dawport.FilePreviewer
+	fileRevealer  dawport.FileRevealer
 	// backupKeeper is the DAW port's backups role (ADR 0863): on an Audacity launch with a project open, the Audacity adapter's,
 	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
@@ -686,8 +691,11 @@ func (h *Host) configureLocked(next config) {
 		h.rangeCutter, _ = dawAdapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
 		h.rangeFX, _ = dawAdapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
 		h.takeStacker, _ = dawAdapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+		h.filePreviewer, _ = dawAdapter.Role(dawport.CapFilePreview).(dawport.FilePreviewer)
+		h.fileRevealer, _ = dawAdapter.Role(dawport.CapFileReveal).(dawport.FileRevealer)
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
+		h.filePreviewer, h.fileRevealer = nil, nil
 	}
 	if previous, ok := h.backupKeeper.(audacityBackups); ok {
 		previous.closePipe()
@@ -729,21 +737,18 @@ func (h *Host) configureLocked(next config) {
 	// reaper.New wraps the same client the actions gate above already shares (dawport.Adapter.Role never opens a
 	// new one), so this adds no new consumer of the session's bridge; a nil client (a standalone or Audacity
 	// launch) leaves every role nil, which each service already treats as "the REAPER bridge is unavailable".
-	// Silence trim and level matching take their SilenceTrimmer and
-	// GainAdjuster roles the same way, so internal/cleanuptools can call them once a narrator-facing trigger
-	// exists.
+	// Level matching takes its GainAdjuster role the same way, so internal/cleanuptools can call it once a
+	// narrator-facing trigger exists.
 	var pickupsRole dawport.PickupList
 	var lineStamperRole dawport.LineStamper
 	var renderConfigurerRole dawport.RenderConfigurer
 	var cleanupLauncherRole dawport.CleanupLauncher
-	var silenceTrimmerRole dawport.SilenceTrimmer
 	var gainAdjusterRole dawport.GainAdjuster
 	if reaperAdapter, err := reaper.New(client, nil); err == nil {
 		pickupsRole, _ = reaperAdapter.Role(dawport.CapPickups).(dawport.PickupList)
 		lineStamperRole, _ = reaperAdapter.Role(dawport.CapLineIdentity).(dawport.LineStamper)
 		renderConfigurerRole, _ = reaperAdapter.Role(dawport.CapRenderConfig).(dawport.RenderConfigurer)
 		cleanupLauncherRole, _ = reaperAdapter.Role(dawport.CapCleanupTools).(dawport.CleanupLauncher)
-		silenceTrimmerRole, _ = reaperAdapter.Role(dawport.CapSilenceTrim).(dawport.SilenceTrimmer)
 		gainAdjusterRole, _ = reaperAdapter.Role(dawport.CapItemGain).(dawport.GainAdjuster)
 	}
 	// The line-identity service is the second consumer of the same bridge client (bridge.Client fans events
@@ -762,7 +767,7 @@ func (h *Host) configureLocked(next config) {
 	// The cleanup-launcher service (ADR 0146) is one more consumer of
 	// the same bridge client: pollTranscript's Drain call pumps its events too. It only ever sends an allow-listed
 	// tool key, and the dialog it opens in REAPER is the narrator's to drive.
-	h.cleanupTools = cleanuptools.New(cleanuptools.Config{SessionDir: h.config.sessionDir}, cleanupLauncherRole, silenceTrimmerRole, gainAdjusterRole, h.emitCleanupTools)
+	h.cleanupTools = cleanuptools.New(cleanuptools.Config{SessionDir: h.config.sessionDir}, cleanupLauncherRole, gainAdjusterRole, h.emitCleanupTools)
 	// The retake-lane service (ADR 0147) is one more consumer of the
 	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
@@ -1631,10 +1636,13 @@ var fieldSchemas = map[string][]fieldSchema{
 	// unreachable "done" in the other.
 	// A number field left unset reads back as "" (Store.Effective's own fallback, never "0"), which editing.PolicyFromSettings
 	// treats as "not checked" for that part, not as zero seconds.
+	// fx_cap_pct is the Effects tab's coverage cap: the share of a chapter, a whole percent from 1 to 100, effects may cover before
+	// the tab warns. It defaults to 10, and a stored value outside the range reads as the layer below (settings.wholeNumbers).
 	"Editing": {
 		{"max_gap_seconds", "Maximum gap before it's flagged (empty space)", "number", nil},
 		{"head_max_seconds", "Maximum leading silence (head)", "number", nil},
 		{"tail_max_seconds", "Maximum trailing silence (tail)", "number", nil},
+		{"fx_cap_pct", "Most of a chapter effects may cover (%)", "number", nil},
 	},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates

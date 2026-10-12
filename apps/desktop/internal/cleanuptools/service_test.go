@@ -34,7 +34,7 @@ func testService(t *testing.T) (*Service, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(Config{SessionDir: session}, cleanupLauncherRole(t, client), nil, nil, nil), session
+	return New(Config{SessionDir: session}, cleanupLauncherRole(t, client), nil, nil), session
 }
 
 func commandFiles(t *testing.T, session string) []string {
@@ -123,7 +123,7 @@ func TestEveryAllowListedToolIsLaunchable(t *testing.T) {
 }
 
 func TestLaunchWithoutABridgeFails(t *testing.T) {
-	service := New(Config{SessionDir: t.TempDir()}, nil, nil, nil, nil)
+	service := New(Config{SessionDir: t.TempDir()}, nil, nil, nil)
 	if err := service.Launch("repair_pops_clicks", nil); err == nil || !strings.Contains(err.Error(), "REAPER bridge is unavailable") {
 		t.Fatalf("err = %v", err)
 	}
@@ -189,7 +189,7 @@ func TestChangedIsCalledOnLaunchAndOnTheResult(t *testing.T) {
 		t.Fatal(err)
 	}
 	var phases []string
-	service := New(Config{SessionDir: session}, cleanupLauncherRole(t, client), nil, nil, func(state map[string]any) { phases = append(phases, state["phase"].(string)) })
+	service := New(Config{SessionDir: session}, cleanupLauncherRole(t, client), nil, func(state map[string]any) { phases = append(phases, state["phase"].(string)) })
 	runID := launch(t, service, "repair_pops_clicks")
 	appendEvents(t, session, "CLEANUP_LAUNCHED|"+runID+"|repair_pops_clicks|Repair pops/clicks...")
 	if err := service.Drain(); err != nil {
@@ -220,7 +220,7 @@ func TestARunlessErrorFailsTheLaunchInFlightOnly(t *testing.T) {
 }
 
 func TestDrainWithoutABridgeIsANoOp(t *testing.T) {
-	service := New(Config{SessionDir: t.TempDir()}, nil, nil, nil, nil)
+	service := New(Config{SessionDir: t.TempDir()}, nil, nil, nil)
 	if err := service.Drain(); err != nil {
 		t.Fatal(err)
 	}

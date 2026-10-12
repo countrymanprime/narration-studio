@@ -19,7 +19,7 @@ func stable(state map[string]any) map[string]any {
 }
 
 func TestContractCleanupToolsIdle(t *testing.T) {
-	service := New(Config{SessionDir: t.TempDir()}, nil, nil, nil, nil)
+	service := New(Config{SessionDir: t.TempDir()}, nil, nil, nil)
 	contractfile.Check(t, "cleanup-tools-idle", stable(service.Snapshot()))
 }
 
@@ -29,7 +29,7 @@ func TestContractCleanupToolsLaunched(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := New(Config{SessionDir: session}, cleanupLauncherRole(t, client), nil, nil, nil)
+	service := New(Config{SessionDir: session}, cleanupLauncherRole(t, client), nil, nil)
 	if err := service.Launch("repair_pops_clicks", nil); err != nil {
 		t.Fatal(err)
 	}

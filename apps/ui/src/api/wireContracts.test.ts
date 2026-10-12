@@ -9,6 +9,8 @@ import {
   backupRestoredAnswer,
   noBackupAnswer,
   DAW_ANSWERS,
+  filePreviewAnswer,
+  fileRevealAnswer,
   fxChainAddedAnswer,
   fxChainRemovedAnswer,
   nothingToStackAnswer,
@@ -19,7 +21,7 @@ import {
   takesUnstackedAnswer,
 } from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
-import type { JobEnded } from './contracts/system';
+import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
@@ -56,7 +58,7 @@ import { MOCK_MEASURE_PATHS } from './measureMock';
 import { judgeMock } from './coverageMock';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './teleprompterMock';
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
-import { exportJobSchema, multiPackageJobSchema, packageJobSchema } from './schemas/renderEncodeMaster';
+import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
@@ -526,6 +528,26 @@ describe('Script.definition_source in the settings answer (SN-M93)', () => {
     expect(definitionSourceOf(before)).toBe('web');
     await api.saveSettings('Script', 'global', { definition_source: 'api' });
     expect(definitionSourceOf(parseWire(settingsForScopeSchema, await api.settingsForScope('global'), ctx('mock settings')))).toBe('api');
+  });
+});
+
+describe('Editing.fx_cap_pct in the settings answer (SN-E106)', () => {
+  const capField = (settings: Record<string, ScopedSettingField[]>) => settings.Editing?.find((item) => item.key === 'fx_cap_pct');
+
+  it('the golden settings offer a whole percent from 1 to 100 that reads as 10 unset and as the stored cap once saved', () => {
+    const unset = capField(parseWire(settingsForScopeSchema, readGolden('settings-fx-cap.json'), ctx('settings fx cap')));
+    expect(unset).toMatchObject({ kind: 'number', isSet: false, effectiveValue: '10', number: { min: 1, max: 100, step: 1, unit: '%' } });
+    const set = capField(parseWire(settingsForScopeSchema, readGolden('settings-fx-cap-set.json'), ctx('settings fx cap set')));
+    expect(set).toMatchObject({ isSet: true, value: '25', effectiveValue: '25', effectiveSource: 'project' });
+    expect(capField(parseWire(settingsForScopeSchema, readGolden('settings-project.json'), ctx('settings project')))?.effectiveValue).toBe('10');
+  });
+
+  it('the mock answers the field through the same schema, and a project save shows in the next read', async () => {
+    const api = createMockApi();
+    const before = parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings'));
+    expect(capField(before)).toMatchObject({ effectiveValue: '10', number: { min: 1, max: 100, step: 1 } });
+    await api.saveSettings('Editing', 'project', { fx_cap_pct: '30' });
+    expect(capField(parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings')))?.effectiveValue).toBe('30');
   });
 });
 
@@ -1882,6 +1904,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(Object.keys((await createMockApi({}, { recording: { engine: 'builtin' } }).recorderState()).takes[0]).sort()).toEqual(
       Object.keys(golden.takes[0] as object).sort(),
     );
+    // The recorder's own edits ride on each take: hidden (kept, never deleted) and the cut list (the file is not rewritten).
+    expect(
+      parseWire(recorderStateSchema, readGolden('recorder-state-takes.json'), { boundary: 'golden', payload: 'recorder-state-takes.json' }).takes[0],
+    ).toMatchObject({
+      hidden: false,
+      cuts: [],
+    });
     await expect(createMockApi({}, { recording: { unavailable: true } }).recorderChooseEngine('builtin')).rejects.toThrow('not available');
   });
 
@@ -2120,6 +2149,23 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(built.phase).toBe('success');
     expect(built.files).toHaveLength(items.length);
     expect(built.checklist.every((entry) => entry.status !== 'missing')).toBe(true);
+  });
+
+  it('deliveryOpenPackageFolder answers the folder of the last built package in the shape the host pins, and refuses before a build', async () => {
+    const api = createMockApi();
+    await expect(api.deliveryOpenPackageFolder()).rejects.toThrow(/build a package first/);
+    const profile = await api.deliveryProfiles();
+    const acx = profile.profiles.find((candidate) => candidate.id === 'acx')!;
+    await api.exportPickFiles();
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    while (job.phase === 'running') job = await api.exportState();
+    const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
+    const built = await api.packageStart({ profileId: acx.id, profileVersion: acx.version, items });
+    const opened = await api.deliveryOpenPackageFolder();
+    expectMatches(packageFolderResultSchema, opened, 'mock delivery open folder');
+    expect(opened.folder).toBe(built.outputDir);
+    expect(packageFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(packageFolderResultSchema.safeParse({ folder: 'C:/x', path: 'C:/x' }).success).toBe(false);
   });
 
   it(
@@ -3014,6 +3060,60 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(noBackupAnswer('Audacity')).toBe('Audacity has no backup with that id.');
   });
 
+  it('dawPreviewFileRange, dawStopFilePreview and dawRevealFile: the host goldens parse, and the mock answers as the host does', async () => {
+    const files = [
+      'daw-file-preview-playing.json',
+      'daw-file-preview-stopped.json',
+      'daw-file-revealed.json',
+      'daw-file-refused-not-picked.json',
+      'daw-file-refused-bad-stretch.json',
+    ];
+    for (const file of files) expectMatches(dawResultSchema, readGolden(file), file);
+    expect(readGolden('daw-file-preview-playing.json')).toEqual({
+      ok: true,
+      changed: false,
+      undoSteps: 0,
+      message: filePreviewAnswer('C:/Renders/Chapter 01.wav', 12.5, 5),
+    });
+    expect(readGolden('daw-file-preview-stopped.json')).toMatchObject({ ok: true, changed: false, undoSteps: 0, message: DAW_ANSWERS.fileStopped });
+    expect(readGolden('daw-file-revealed.json')).toMatchObject({
+      ok: true,
+      changed: false,
+      undoSteps: 0,
+      message: fileRevealAnswer('Chapter 01.wav', 'REAPER'),
+    });
+    expect(readGolden('daw-file-refused-not-picked.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.fileNotPicked });
+    expect(readGolden('daw-file-refused-bad-stretch.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.fileBadStretch });
+
+    // Off by default (Experimental): the capability's sentence, as the host answers it.
+    const off = createMockApi();
+    const [path] = (await off.measurePickFiles()).paths;
+    const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
+    expect(offSupport.available).toBe(false);
+    expect((await off.dawPreviewFileRange(path, 0, 5)).refused).toBe(offSupport.message);
+
+    const api = createMockApi({}, { daw: { toggles: { file_preview: 'on', file_reveal: 'on' } } });
+    expect((await api.dawPreviewFileRange(path, 0, 5)).refused).toBe(DAW_ANSWERS.fileNotPicked);
+    const [picked] = (await api.measurePickFiles()).paths;
+    const playing = await api.dawPreviewFileRange(picked, 12.5, 5);
+    expectMatches(dawResultSchema, playing, 'mock file preview');
+    expect(playing).toEqual({ ok: true, changed: false, undoSteps: 0, message: filePreviewAnswer(picked, 12.5, 5) });
+    for (const [start, length] of [
+      [-1, 5],
+      [0, 0],
+      [0, 61],
+      [Number.NaN, 5],
+    ]) {
+      expect((await api.dawPreviewFileRange(picked, start, length)).refused).toBe(DAW_ANSWERS.fileBadStretch);
+    }
+    expect(await api.dawStopFilePreview()).toEqual(readGolden('daw-file-preview-stopped.json'));
+    expect((await api.dawStopFilePreview()).message).toBe(DAW_ANSWERS.fileNothingPlaying);
+    const shown = await api.dawRevealFile(picked);
+    expectMatches(dawResultSchema, shown, 'mock reveal');
+    expect(shown.message).toBe(fileRevealAnswer(picked, 'REAPER'));
+    expect((await api.dawRevealFile('C:/elsewhere/Other.wav')).refused).toBe(DAW_ANSWERS.fileNotPicked);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3374,6 +3474,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'packageStart',
       'packageState',
       'packageCancel',
+      'deliveryOpenPackageFolder',
       'packageStartMulti',
       'packageMultiState',
       'packageMultiCancel',
@@ -3576,6 +3677,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
+      'dawPreviewFileRange',
+      'dawStopFilePreview',
+      'dawRevealFile',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',

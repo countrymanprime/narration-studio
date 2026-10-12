@@ -58,7 +58,6 @@
     "capability.regions": "auto",
     "capability.takes": "auto",
     "capability.fx_chains": "auto",
-    "capability.silence_trim": "auto",
     "capability.item_gain": "auto",
     "capability.render_with_fx": "auto",
     "capability.master_chain_read": "auto",
@@ -68,6 +67,8 @@
     "capability.fx_range": "auto",
     "capability.stack_takes": "auto",
     "capability.backups": "auto",
+    "capability.file_preview": "auto",
+    "capability.file_reveal": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
   },
@@ -121,5 +122,8 @@
     "max_breath_seconds": "0.9",
     "breath_below_speech_db": "12",
     "click_above_silence_db": "30"
+  },
+  "Editing": {
+    "fx_cap_pct": "10"
   }
 }

@@ -314,7 +314,6 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapRegions:         check[dawport.RegionWriter](),
 	dawport.CapTakes:           check[dawport.TakeSelector](),
 	dawport.CapFXChains:        check[dawport.FXManager](),
-	dawport.CapSilenceTrim:     check[dawport.SilenceTrimmer](),
 	dawport.CapItemGain:        check[dawport.GainAdjuster](),
 	dawport.CapRenderWithFX:    check[dawport.FXRenderer](),
 	dawport.CapMasterChainRead: check[dawport.MasterChainReader](),
@@ -323,4 +322,6 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapFXRange:         check[dawport.RangeFXApplier](),
 	dawport.CapStackTakes:      check[dawport.TakeStacker](),
 	dawport.CapBackups:         check[dawport.BackupKeeper](),
+	dawport.CapFilePreview:     check[dawport.FilePreviewer](),
+	dawport.CapFileReveal:      check[dawport.FileRevealer](),
 }

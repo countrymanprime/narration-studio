@@ -30,7 +30,6 @@ const (
 	CapRegions      Capability = "regions"
 	CapTakes        Capability = "takes"
 	CapFXChains     Capability = "fx_chains"
-	CapSilenceTrim  Capability = "silence_trim"
 	CapItemGain     Capability = "item_gain"
 	// CapRenderWithFX is the mastering port's DAW row (ADR 0306), declared but not yet built. It is the one
 	// capability that makes the engine render, so each use needs the narrator's approval in the UI (threat model row 5o).
@@ -46,6 +45,10 @@ const (
 	CapFXRange    Capability = "fx_range"
 	CapStackTakes Capability = "stack_takes"
 	CapBackups    Capability = "backups"
+	// CapFilePreview plays a stretch of a file on disk and CapFileReveal shows one (SN-B98), both leaving the project unchanged:
+	// Master & QC acts on rendered files that are not project items, which navigate cannot reach.
+	CapFilePreview Capability = "file_preview"
+	CapFileReveal  Capability = "file_reveal"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -94,7 +97,6 @@ var specs = []Spec{
 	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter](), nil},
 	{CapTakes, "Choose the active take", NeedsRunning, reflect.TypeFor[TakeSelector](), nil},
 	{CapFXChains, "FX chains", NeedsRunning, reflect.TypeFor[FXManager](), nil},
-	{CapSilenceTrim, "Silence trim", NeedsRunning, reflect.TypeFor[SilenceTrimmer](), nil},
 	{CapItemGain, "Level matching", NeedsRunning, reflect.TypeFor[GainAdjuster](), nil},
 	{CapRenderWithFX, "Mastering with the project's FX", NeedsRunning, reflect.TypeFor[FXRenderer](), nil},
 	{CapMasterChainRead, "Master and track FX listing", NeedsRunning, reflect.TypeFor[MasterChainReader](), nil},
@@ -103,6 +105,8 @@ var specs = []Spec{
 	{CapFXRange, "Add an effect to words", NeedsRunning, reflect.TypeFor[RangeFXApplier](), nil},
 	{CapStackTakes, "Stack takes", NeedsRunning, reflect.TypeFor[TakeStacker](), nil},
 	{CapBackups, "Audio backups", NeedsRunning, reflect.TypeFor[BackupKeeper](), nil},
+	{CapFilePreview, "Play part of a file", NeedsRunning, reflect.TypeFor[FilePreviewer](), nil},
+	{CapFileReveal, "Show a file in the audio engine", NeedsRunning, reflect.TypeFor[FileRevealer](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.
