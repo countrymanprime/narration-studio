@@ -352,7 +352,9 @@ export function EditingBody(props: EditingBodyProps) {
             </ScriptHost>
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             <SelectionBar playback={playback} end={total} />
-            <KeyHints hints={hints} id="keyhints" />
+            <div className="sticky bottom-0 z-[5]">
+              <KeyHints hints={hints} id="keyhints" />
+            </div>
           </div>
         </DrawerLayout>
       </div>
