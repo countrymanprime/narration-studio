@@ -27,7 +27,7 @@ function renderPanel(overrides: Partial<NarrationApi> = {}, initial: Parameters<
 
 const trackTable = () => screen.findByRole('table', { name: 'Tracks' });
 
-//  (Q3 A): what the Tracks page held that is about REAPER, in a slide-over.
+// What the Tracks page held that is about REAPER, in a slide-over.
 describe('EnginePanel', () => {
   it('is a named slide-over holding the linked project, the REAPER tools, the tracks and the chapter links', async () => {
     renderPanel();

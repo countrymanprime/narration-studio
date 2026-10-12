@@ -12,7 +12,7 @@ import { LocalAssetRow } from './LocalAssetRow';
  * one list, with what each is, whether it is installed, and the actions that fit: Download, Verify, Repair, Remove. The list comes from
  * `assetsList`, which reads each asset's manifest and nothing else, so it opens at once; only Verify reads the files.
  *
- * The folder is shown and never changed or emptied from here (owner decision Q3): removing is per asset, after a confirm.
+ * The folder is shown and never changed or emptied from here: removing is per asset, after a confirm.
  */
 export function LocalAssets({ notify }: { notify: Notify }) {
   const api = useApi();

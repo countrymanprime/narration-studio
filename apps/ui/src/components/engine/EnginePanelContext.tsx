@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { Button } from '../primitives/Button';
 
-// Opens the engine panel (Q3 A) from anywhere in the app: the header's
+// Opens the engine panel from anywhere in the app: the header's
 // engine chip, and every "fix this link" pointer. App.tsx owns the one
 // panel and provides this; without a provider (a component test) the pointers render and do nothing.
 const EnginePanelContext = createContext<(() => void) | null>(null);

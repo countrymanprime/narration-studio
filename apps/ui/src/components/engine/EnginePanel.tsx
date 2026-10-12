@@ -33,16 +33,15 @@ export type EngineLinkState = {
   dawReachable: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches: boolean;
-  /** The shared "link a REAPER project file" action (project-workspace W19). */
+  /** The shared "link a REAPER project file" action (also used by Settings' DAW category and an import). */
   onLinkDawFile: () => void;
   linkingDawFile: boolean;
 };
 
 /**
- * The engine panel (Q3 A, ADR 0407), opened from the header's engine
+ * The engine panel (ADR 0407), opened from the header's engine
  * chip on any page. It holds what the Tracks page held that is about REAPER rather than a stage: the linked `.rpp` (link,
- * relink, or choose between several), the REAPER tools, chapter sync with its Sync activity (daw-chapter-track-auto-sync
- * Phases 3-4, mockup 02), and the track list with each track's chapter and the Chapter links table. The Tracks page's player
+ * relink, or choose between several), the REAPER tools, chapter sync with its Sync activity, and the track list with each track's chapter and the Chapter links table. The Tracks page's player
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not
  * mounted), so the panel costs nothing on a page that never opens it.
  */
@@ -65,7 +64,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
   const [tool, setTool] = useState<Tool>();
-  // Read-only here (D5), so onStatus is a no-op; a Link or a Change below is exactly
+  // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });
   const unmappedCount = Array.from(stages.state.byChapter.values()).filter(
@@ -196,9 +195,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   );
 }
 
-// The linked `.rpp` and its link action (Q3 A: "the linked .rpp (link, relink)"). The panel reads the project folder's `.rpp`
+// The linked `.rpp` and its link action. The panel reads the project folder's `.rpp`
 // through its own discovery flow, independent of the manifest link, so the link button is an extra "point at a different file"
-// action beside it, not a gate (project-workspace W19: one binding, three call sites - here, Settings' DAW category, an import).
+// action beside it, not a gate (one binding, three call sites: here, Settings' DAW category, an import).
 function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDiscovery; link: EngineLinkState; onSelectRpp: (path: string) => void }) {
   const mismatch = link.dawFileLinked && link.dawReachable && !link.dawProjectMatches;
   return (
@@ -263,7 +262,7 @@ function RppPicker({ discovery, onSelect }: { discovery: TracksDiscovery; onSele
   );
 }
 
-// The project's tracks with the chapter each one is linked to (Q3 A: "the track list with chapter links"). Read-only: a link is
+// The project's tracks with the chapter each one is linked to. Read-only: a link is
 // made or changed in Chapter links below, or by chapter sync above.
 function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: TrackMapping[] }) {
   return (

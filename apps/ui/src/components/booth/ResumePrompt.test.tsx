@@ -253,7 +253,7 @@ describe('ResumePrompt', () => {
     expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull();
   });
 
-  describe('reconciliation (Phase 3)', () => {
+  describe('reconciliation with the DAW word', () => {
     it('agree: presets Start to the DAW word without settling, and Start reading uses it with no click needed', async () => {
       const { api, teleprompterStart } = renderDialog({}, { resume: 'agree' });
       const located = await api.teleprompterLocate('chapter-1');
@@ -326,7 +326,7 @@ describe('ResumePrompt', () => {
     });
   });
 
-  describe('live DAW state (Phase 4)', () => {
+  describe('live DAW state', () => {
     // A found answer read from REAPER's live state rather than the saved project (ADR 0349).
     const readLive = (at: 'cursor' | 'end'): Partial<NarrationApi> => {
       const base = createMockApi();
@@ -380,7 +380,7 @@ describe('ResumePrompt', () => {
     });
   });
 
-  describe('following REAPER while shown (Phase 5)', () => {
+  describe('following REAPER while shown', () => {
     // A host that follows: records follow and unfollow calls, and lets a test push the transport and follow events.
     function followingHost() {
       const transport = new Set<(state: DawTransport) => void>();

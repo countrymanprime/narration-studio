@@ -4,8 +4,8 @@ import { HeaderChip } from '../primitives/HeaderChip';
 import { TooltipTarget } from '../primitives/Tooltip';
 
 // The header's recording-engine chip (the Studio Next mock's top bar): the name of the recorder the project is connected to, with a dot
-// for how it is doing. Its tooltip says whether it is running. A click opens the engine panel (Phase 6), which holds the link and
-// relink action. 'builtin' is the project's recorder choice (Q7) and, like a DAW of 'none', has no link to open.
+// for how it is doing. Its tooltip says whether it is running. A click opens the engine panel, which holds the link and
+// relink action. 'builtin' is the project's recorder choice and, like a DAW of 'none', has no link to open.
 export type EngineState = 'daw' | 'builtin';
 
 export function EngineChip({
@@ -20,7 +20,7 @@ export function EngineChip({
 }: {
   /** Which DAW backs the session (`dawCapabilities().daw`); undefined until the first answer, when the chip names none. */
   daw?: DawKind;
-  /** Which engine backs this project (Q7); the UI defaults to 'daw' until native recording picks 'builtin'. */
+  /** Which engine backs this project; the UI defaults to 'daw' until native recording picks 'builtin'. */
   engine?: EngineState;
   dawFileLinked: boolean;
   /** Whether a live heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
@@ -67,7 +67,7 @@ export function EngineChip({
         short
         className="flex-none"
       >
-        {/* Below `md` the chip shortens to its dot; the full text stays in the accessible name above (app-navigation Q10 A). */}
+        {/* Below `md` the chip shortens to its dot; the full text stays in the accessible name above. */}
         <span className="max-md:hidden">{label}</span>
       </HeaderChip>
     </TooltipTarget>

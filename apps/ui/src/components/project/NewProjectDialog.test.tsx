@@ -35,7 +35,7 @@ describe('NewProjectDialog', () => {
     expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('creates the project with an empty parent by default, defaulting to the Phase 1 projects directory', async () => {
+  it('creates the project with an empty parent by default, so the host uses its default projects directory', async () => {
     const createProject = vi.fn(async () => ({ switched: true }));
     const { onCreated } = renderDialog({ createProject });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
