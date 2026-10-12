@@ -2,22 +2,10 @@
 // recomputed against retyped numbers). A chapter's file is the measured file whose name carries its title or its number ("Chapter 04.wav");
 // a chapter with no file, or a file the host did not judge, is "Not mastered".
 import type { ManuscriptChapter, MeasureFileResult } from '../../../types';
+import { fileOf } from '../../master/chapterFile';
 import { fileVerdict } from '../../master/fileVerdict';
 
 export type ChapterState = { id: string; title: string; kind: 'ok' | 'bad' | 'wait'; text: string };
-
-const stem = (name: string) => name.replace(/\.[^.]+$/, '').toLowerCase();
-
-/** The file that belongs to a chapter: its title in the name, else the chapter number as the whole number in the name. */
-function fileOf(chapter: ManuscriptChapter, files: readonly MeasureFileResult[]): MeasureFileResult | undefined {
-  const title = chapter.title.trim().toLowerCase();
-  return files.find((file) => {
-    const name = stem(file.name);
-    if (title && name.includes(title)) return true;
-    const digits = name.match(/\d+/g);
-    return digits?.length === 1 && Number(digits[0]) === chapter.index;
-  });
-}
 
 export function chapterStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
   return chapters.map((chapter) => {

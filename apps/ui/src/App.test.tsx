@@ -15,6 +15,8 @@ import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from './api/mockFixtures';
 import type { JobEnded } from './api/contracts/system';
 import type { DawTransport } from './api/contracts/daw';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
+import { passing, profile as acxProfile } from './components/masterqc/files/testFiles';
+import type { MeasureJob } from './types';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -785,6 +787,22 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Master & QC' });
     expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe('/master?from=report#file=C%3A%2Fa.wav&rule=acx.rms');
+  });
+
+  it("a chapter link opens Master & QC on that chapter's file", async () => {
+    const chapter = WIRE_CHAPTERS[2]!;
+    const files = [passing(`${chapter.title}.wav`)];
+    const job = { phase: 'success', files, profile: acxProfile, bookRules: [] } as unknown as MeasureJob;
+    window.history.replaceState(null, '', '/delivery');
+    renderApp({ measureState: async () => job });
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${chapter.title}: .*Open in Master & QC`) }));
+    await waitFor(() => expect(window.location.pathname).toBe('/master'));
+    expect(window.location.hash).toBe(`#file=${chapter.id}`);
+    const bar = await screen.findByRole('button', { name: /^Chapter: / });
+    await waitFor(() => expect(bar.getAttribute('aria-label')).toContain(chapter.title));
+    const selected = (await screen.findAllByRole('row')).filter((row) => row.getAttribute('aria-selected') === 'true');
+    expect(selected).toHaveLength(1);
+    expect(selected[0]!.textContent).toContain(chapter.title);
   });
 
   it('opens Settings on Silence cleanup from #cleanup and on the kept Delivery category from #delivery', async () => {
