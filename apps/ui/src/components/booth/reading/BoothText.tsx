@@ -1,4 +1,4 @@
-import { Fragment, memo, useMemo, useRef, type CSSProperties, type Ref } from 'react';
+import { Fragment, memo, useMemo, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
 import {
   boothUnits,
   readingParagraphs,
@@ -44,6 +44,8 @@ type Props = {
   /** A CSS font-family for the text. */
   font?: string;
   viewRef?: Ref<BrowseView>;
+  /** Drawn inside the text column, which is `relative` and moves with the text: the bookmark ribbons (`BookmarkRibbons`). */
+  margin?: ReactNode;
 };
 
 type Mode = 'done' | 'cur' | 'next';
@@ -137,6 +139,7 @@ export function BoothText({
   size,
   font,
   viewRef,
+  margin,
 }: Props) {
   const paragraphs = useMemo(() => readingParagraphs(given), [given]);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
@@ -159,7 +162,7 @@ export function BoothText({
       <div
         ref={text}
         style={{ fontSize: `${textSizePx(size)}px`, fontFamily: font, '--tsize': `${textSizePx(size)}px` } as CSSProperties}
-        className="mx-auto max-w-[26em] py-[30vh] leading-[1.5] transition-transform duration-300"
+        className="relative mx-auto max-w-[26em] py-[30vh] leading-[1.5] transition-transform duration-300"
       >
         {paragraphs.map((paragraph, paragraphIndex) => {
           const pickup = pickupLines.find((line) => line.paragraphId === paragraph.id);
@@ -204,6 +207,7 @@ export function BoothText({
             </p>
           );
         })}
+        {margin}
       </div>
     </div>
   );
