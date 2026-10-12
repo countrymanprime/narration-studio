@@ -37,6 +37,21 @@ export type KpiTile = {
 /** What the delivery review found per chapter; absent where the host has no chapter-level source. */
 export type DeliveryCounts = { pass: number; fail: number; total: number };
 
+/**
+ * The book's pass and fail count from the chapters' QC verdicts: `PASS` passes, any other verdict fails, a chapter with no verdict is unchecked.
+ * Not measured while no narrated chapter has a review (ADR 0015).
+ */
+export function deliveryCounts(
+  narrationIds: readonly string[],
+  master: Readonly<Record<string, { mastered: boolean; qc: string | null }>> | undefined,
+): Measured<DeliveryCounts> {
+  const verdicts = narrationIds.flatMap((id) => (master?.[id] ? [master[id].qc] : []));
+  if (!verdicts.length) return { ok: false, reason: 'No chapter has a delivery check yet.' };
+  const pass = verdicts.filter((qc) => qc === 'PASS').length;
+  const fail = verdicts.filter((qc) => qc !== null && qc !== 'PASS').length;
+  return { ok: true, value: { pass, fail, total: narrationIds.length } };
+}
+
 export type KpiInputs = {
   /** The estimates over the narrated chapters (`calc`). */
   k: Calc;
