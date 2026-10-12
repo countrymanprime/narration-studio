@@ -70,8 +70,6 @@ import { editingCandidatesSchema, editingSourceChoiceSchema, editingStartResultS
 import {
   workspaceAlignmentResultSchema,
   workspaceFXChainsResultSchema,
-  workspaceFXPluginsResultSchema,
-  workspaceFXResultSchema,
   workspacePeaksResultSchema,
   workspaceTakesResultSchema,
   workspaceUseTakeResultSchema,
@@ -143,7 +141,7 @@ import {
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
 import { retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
-import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
+import { levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
@@ -489,20 +487,13 @@ export const wailsClient: NarrationApi = {
   // regeneration adds them, the same shape every other bare-string binding above already has.
   editingSourceChoice: (chapterId) => decode(editingSourceChoiceSchema, 'EditingSourceChoice', host.EditingSourceChoice(chapterId)),
   editingSetSourceChoice: (chapterId, choice) => decode(editingSourceChoiceSchema, 'EditingSetSourceChoice', host.EditingSetSourceChoice(chapterId, choice)),
-  cleanupPreview: (chapterId) => decode(cleanupPreviewResultSchema, 'CleanupPreview', host.CleanupPreview(chapterId)),
-  cleanupApply: (chapterId) => decode(cleanupApplyResultSchema, 'CleanupApply', host.CleanupApply(chapterId)),
   levelMatchPreview: (chapterId, metric, targetValueDb, toleranceDb) =>
     decode(levelMatchPreviewResultSchema, 'LevelMatchPreview', host.LevelMatchPreview(chapterId, metric, targetValueDb, toleranceDb)),
   levelMatchApply: (chapterId, metric, targetValueDb, toleranceDb) =>
     decode(levelMatchApplyResultSchema, 'LevelMatchApply', host.LevelMatchApply(chapterId, metric, targetValueDb, toleranceDb)),
   workspaceAlignment: (chapterId) => decode(workspaceAlignmentResultSchema, 'WorkspaceAlignment', host.WorkspaceAlignment(chapterId)),
   workspaceGoTo: (chapterId, tokenIndex) => decode(findingNavigationSchema, 'WorkspaceGoTo', host.WorkspaceGoTo(chapterId, tokenIndex)),
-  workspaceLoop: (chapterId, firstToken, lastToken) => decode(findingNavigationSchema, 'WorkspaceLoop', host.WorkspaceLoop(chapterId, firstToken, lastToken)),
   workspaceListFXChains: () => decode(workspaceFXChainsResultSchema, 'WorkspaceListFXChains', host.WorkspaceListFXChains()),
-  workspaceListFX: () => decode(workspaceFXPluginsResultSchema, 'WorkspaceListFX', host.WorkspaceListFX()),
-  workspaceAddTakeFX: (chapterId, firstToken, lastToken, plugin) =>
-    decode(workspaceFXResultSchema, 'WorkspaceAddTakeFX', host.WorkspaceAddTakeFX(chapterId, firstToken, lastToken, plugin)),
-  workspaceApplyFXChain: (chapterId, chain) => decode(workspaceFXResultSchema, 'WorkspaceApplyFXChain', host.WorkspaceApplyFXChain(chapterId, chain)),
   workspaceTakes: (chapterId, firstToken, lastToken) =>
     decode(workspaceTakesResultSchema, 'WorkspaceTakes', host.WorkspaceTakes(chapterId, firstToken, lastToken)),
   workspaceTakeEvidence: (chapterId, firstToken, lastToken) =>

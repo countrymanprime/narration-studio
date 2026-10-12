@@ -152,10 +152,6 @@ export function createMockApi(
     },
     seed: initial.coverage,
   });
-  // workspaceLooping mirrors findingNavigation.loopingID for a workspace loop (bindings_workspace.go): set by
-  // workspaceLoop, read by findingsReaperStatus and cleared by findingsStopLoop below, so the workspace's own loop
-  // is remembered the same way a finding's is (one app loop at a time, whichever page started it).
-  const workspaceLooping: { current: string | undefined } = { current: undefined };
   const workspaceDeps = {
     chapters: () => s.chapters,
     paragraphs: () => s.paragraphs,
@@ -163,7 +159,6 @@ export function createMockApi(
     project: WIRE_TRACKS_PROJECT,
     mappings: () => s.chapterTrackMappings,
     reaper: initial.reaper,
-    looping: workspaceLooping,
   };
   const workspace = createWorkspaceMock(workspaceDeps);
   const preview = createPreviewMock({ chapters: () => s.chapters, paragraphs: () => s.paragraphs }, initial.preview);
@@ -248,10 +243,7 @@ export function createMockApi(
   const { current: deliveryProfile, all: deliveryProfilesAll, ...deliveryProfiles } = createDeliveryProfilesMock(initial.deliveryProfile);
   const { peekDiagnostics, ...diagnostics } = createDiagnosticsMock(endJob, measurePicked, initial.diagnostics);
   const editing = createEditingMock(initial.editing, editingChoices);
-  const cleanupAction = createCleanupActionMock(
-    async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
-    initial.cleanupAction,
-  );
+  const cleanupAction = createCleanupActionMock(initial.cleanupAction);
   const { resaveReview, ...measurement } = createMeasureMock(endJob, initial.measure, measurePicked, deliveryProfile, peekDiagnostics, (job) => {
     const review = mockDeliveryReviewFindings(job);
     saveFileFindings(DELIVERY_REVIEW_ANALYZER, review.files, review.findings);
@@ -360,17 +352,6 @@ export function createMockApi(
     ...proofingRender,
     ...production,
     ...findings,
-    // Merge the workspace's own loop into the shared REAPER status/stop, after ...findings so these win: one app
-    // loop at a time, whichever page started it, exactly as the real host's findingNavigation does.
-    findingsReaperStatus: async () => {
-      const status = await findings.findingsReaperStatus();
-      return workspaceLooping.current && status.connection === 'connected' ? { ...status, loopingFindingId: workspaceLooping.current } : status;
-    },
-    findingsStopLoop: async () => {
-      if (workspaceLooping.current === undefined) return findings.findingsStopLoop();
-      workspaceLooping.current = undefined;
-      return { outcome: 'stopped', restored: 1, kept: 0 };
-    },
     ...daw,
     ...createHideTakesMock(daw, workspaceTakes),
     ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),

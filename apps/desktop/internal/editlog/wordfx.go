@@ -26,7 +26,7 @@ const MaxFxText = 10000
 const MaxFxFadeMs = 1000
 
 // ErrBadChainName refuses a chain id or name that could name a file rather than an entry of the DAW's list: the bad_name
-// refusal WorkspaceApplyFXChain gives. Nothing is saved, and the name is never opened.
+// refusal bridge.ErrBadChainName gives. Nothing is saved, and the name is never opened.
 var ErrBadChainName = errors.New("that is not the name of an effect chain the DAW lists, so nothing was saved")
 
 // WordFxFile is where a project's word effects are kept.

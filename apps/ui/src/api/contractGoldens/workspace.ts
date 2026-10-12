@@ -4,8 +4,6 @@ import type { z } from 'zod';
 import {
   workspaceAlignmentResultSchema,
   workspaceFXChainsResultSchema,
-  workspaceFXPluginsResultSchema,
-  workspaceFXResultSchema,
   workspacePeaksResultSchema,
   workspaceTakesResultSchema,
   workspaceUseTakeResultSchema,
@@ -19,19 +17,12 @@ export const workspaceGoldens: Record<string, z.ZodType> = {
   'workspace-alignment-needs-align-again.json': workspaceAlignmentResultSchema,
   // ADR 0855: extra runs' added words (spread, and unplaced across two items) and the engine.
   'workspace-alignment-added-words.json': workspaceAlignmentResultSchema,
-  // WorkspaceGoTo and WorkspaceLoop reuse findingNavigationSchema: the same
-  // shape as FindingsGoTo/FindingsLoop, sent by apps/desktop/bindings_workspace.go's encodeBinding(FindingNavigation).
+  // WorkspaceGoTo reuses findingNavigationSchema: the same
+  // shape as FindingsGoTo, sent by apps/desktop/bindings_workspace.go's encodeBinding(FindingNavigation).
   'workspace-go-to.json': findingNavigationSchema,
-  'workspace-loop.json': findingNavigationSchema,
   'workspace-navigation-no-item.json': findingNavigationSchema,
   // WorkspaceListFXChains (ADR 0234): the narrator's FX chains by name.
   'workspace-fx-chains.json': workspaceFXChainsResultSchema,
-  // WorkspaceListFX, WorkspaceAddTakeFX and WorkspaceApplyFXChain (ADR 0234): the installed plug-ins, and what
-  // adding a plug-in or applying a chain did or why it was refused.
-  'workspace-fx-plugins.json': workspaceFXPluginsResultSchema,
-  'workspace-fx-added.json': workspaceFXResultSchema,
-  'workspace-fx-applied.json': workspaceFXResultSchema,
-  'workspace-fx-refused.json': workspaceFXResultSchema,
   // WorkspaceTakes and WorkspaceUseTake (ADR 0700): a passage's takes from each source, none, and each outcome.
   'workspace-takes.json': workspaceTakesResultSchema,
   'workspace-takes-none.json': workspaceTakesResultSchema,
