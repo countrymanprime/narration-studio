@@ -57,8 +57,7 @@ local CUTS_KEY = 'P_EXT:narration_utils_cuts'
 local CUTS_NAME = 'Cuts'
 local MAX_FADE_MS = 500
 -- How far outside an item's bounds a range may fall and still count as inside it, and how close to an edge a range end
--- counts as that edge (float rounding of position maths), matching narration_cleanup_preview.lua and
--- narration_navigation.lua.
+-- counts as that edge (float rounding of position maths), matching narration_navigation.lua.
 local EDGE_TOLERANCE = 0.000001
 
 local BAD_RANGE = 'The range to cut is not a usable pair of times.'
