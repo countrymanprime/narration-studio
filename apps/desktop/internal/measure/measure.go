@@ -25,8 +25,8 @@ const (
 	// readBlockFrames is how many frames are decoded per read.
 	readBlockFrames = 4096
 
-	// noiseWindowSeconds is the window over which room-tone RMS is judged.
-	noiseWindowSeconds = 0.5
+	// NoiseWindowSeconds is the window over which room-tone RMS is judged.
+	NoiseWindowSeconds = 0.5
 )
 
 // AnalyzerVersion is the version of the measurements and of the findings raised from them. It changes when a value or a
@@ -235,7 +235,7 @@ type noiseFloorMeter struct {
 
 func newNoiseFloorMeter(rate, channels int) *noiseFloorMeter {
 	return &noiseFloorMeter{
-		windowFrames: max(1, int(math.Round(float64(rate)*noiseWindowSeconds))),
+		windowFrames: max(1, int(math.Round(float64(rate)*NoiseWindowSeconds))),
 		channels:     channels,
 	}
 }
