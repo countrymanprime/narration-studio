@@ -1,6 +1,6 @@
 # BookNLP spike: licences, pins, footprint and quality
 
-**Date:** 2026-10-11. **Slice:** SN-X12 / SNX-1b ([#1142](https://github.com/countrymanprime/narration-utils/issues/1142)), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer BookNLP as an optional download, which exact files, under which licence, at what cost, and can it share the environment GLiNER needs.
+**Date:** 2026-10-11. **Issue:** [#1142](https://github.com/countrymanprime/narration-utils/issues/1142), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer BookNLP as an optional download, which exact files, under which licence, at what cost, and can it share the environment GLiNER needs.
 
 **Verdict: ship behind "not yet available".** The program is MIT, the weights have no stated licence (a risk the owner accepted for this narrow use, SNX-Q3), and every weight file is pinned below. Its speaker attribution was the strongest local result in the 2026-10-10 trial. It stays "not yet available" because its loader failed on a current `transformers` in that trial, and the one environment SNX-Q4 assumes cannot be confirmed: GLiNER needs `transformers>=4.51.3` and the trial ran BookNLP on `4.44.2`.
 

@@ -1,0 +1,192 @@
+{
+  "catalogVersion": 1,
+  "tools": [
+    {
+      "id": "gliner",
+      "provider": "gliner",
+      "displayName": "GLiNER",
+      "description": "Finds the names of characters, places and things in the manuscript, including invented ones, and suggests them as new entries.",
+      "version": "4e091416cf7c3481db542c2a3d26156916f3a47f",
+      "publisher": "Urchade Zaratiana (urchade on Hugging Face)",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/urchade/gliner_small-v2.1/blob/4e091416cf7c3481db542c2a3d26156916f3a47f/README.md",
+      "modelCardUrl": "https://huggingface.co/urchade/gliner_small-v2.1",
+      "provenanceUrl": "https://huggingface.co/urchade/gliner_small-v2.1/tree/4e091416cf7c3481db542c2a3d26156916f3a47f",
+      "attribution": "The model files are published under the Apache 2.0 licence, which allows this use. GLiNER small v2.1 by Urchade Zaratiana; the gliner and transformers packages are Apache-2.0 and torch is BSD-3-Clause.",
+      "ramGB": 2,
+      "minutesPerBook": 2,
+      "source": "gliner",
+      "rank": 1,
+      "recommended": true,
+      "pending": "Not every file is pinned: gliner_config.json has no published hash, and the microsoft/deberta-v3-small tokenizer the model loads and the rest of the gliner wheel's dependencies are not listed yet (docs/research/studio-next-gliner-spike.md, Owner steps 1 and 2).",
+      "files": [
+        {
+          "name": "pytorch_model.bin",
+          "url": "https://huggingface.co/urchade/gliner_small-v2.1/resolve/4e091416cf7c3481db542c2a3d26156916f3a47f/pytorch_model.bin",
+          "sha256": "1d4e83e4e4ae4ae0a4fbc81a32ee6de480fb341650d73e808088bb2800312de4",
+          "size": 610652234
+        },
+        {
+          "name": "gliner_config.json",
+          "url": "https://huggingface.co/urchade/gliner_small-v2.1/resolve/4e091416cf7c3481db542c2a3d26156916f3a47f/gliner_config.json",
+          "sha256": "PENDING",
+          "size": 477
+        },
+        {
+          "name": "gliner-0.2.29-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/78/76/74ec5493e2167350c53a51c0f1db8e6a096c1b99f7110e2d9fc7daaf5cdc/gliner-0.2.29-py3-none-any.whl",
+          "sha256": "0c8cfb9f5c2daf7aff329ebb5ab1609052d7ad0aca0ef26049b9476b018b3fde",
+          "size": 261988,
+          "extract": "wheel-gliner",
+          "expand": 1204083
+        },
+        {
+          "name": "transformers-5.16.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/a9/6b/b606c1a5d6a8aa6436bea8bfbbc0fce146859430db684debb5f740c216d3/transformers-5.16.0-py3-none-any.whl",
+          "sha256": "2b4adda8d99bb4c1b208da5ed967e2625ad449087827a750cb3b23ce4000b139",
+          "size": 12014254,
+          "extract": "wheel-transformers",
+          "expand": 48349120
+        },
+        {
+          "name": "torch-2.14.1-cp312-cp312-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/ad/1a/b9648b0d228e513f69f8453ec3f90a8d436d78ff6d85a2773e539f0c07cf/torch-2.14.1-cp312-cp312-win_amd64.whl",
+          "sha256": "38bee9f2a2ccfc6898172a5075e4ba52522fbe143eeb099674fc67ab390e858d",
+          "size": 124113906,
+          "extract": "wheel-torch",
+          "expand": 475876287
+        }
+      ]
+    },
+    {
+      "id": "booknlp-small",
+      "provider": "booknlp",
+      "displayName": "BookNLP (small)",
+      "description": "Groups the different ways a character is named, works out who speaks each quoted line, and suggests gender. Quick, and a little less sure than the large one.",
+      "version": "1.0",
+      "publisher": "David Bamman (UC Berkeley)",
+      "license": "MIT (program); no licence stated for the model files",
+      "licenseUrl": "https://github.com/booknlp/booknlp/blob/main/LICENSE",
+      "modelCardUrl": "https://github.com/booknlp/booknlp",
+      "provenanceUrl": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/",
+      "attribution": "The program is under the MIT licence. Its authors give no licence statement for the model files; they are used here only to find character names. BookNLP by David Bamman; torch is BSD-3-Clause.",
+      "ramGB": 1.6,
+      "minutesPerBook": 3,
+      "source": "booknlp",
+      "rank": 1,
+      "recommended": true,
+      "pending": "Not every file is pinned: the transformers version BookNLP loads with and the config.json and vocab.txt of the Google BERT encoders it reads at first load are not listed yet (docs/research/studio-next-booknlp-spike.md, Owner steps 1 and 2).",
+      "files": [
+        {
+          "name": "entities_google_bert_uncased_L-4_H-256_A-4-v1.0.model",
+          "url": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/entities_google_bert_uncased_L-4_H-256_A-4-v1.0.model",
+          "sha256": "0620eed33c32c9b15dcbf3303bb3809b4f7ea29eef5311ba55db361a848cda5a",
+          "size": 61979735
+        },
+        {
+          "name": "coref_google_bert_uncased_L-2_H-256_A-4-v1.0.model",
+          "url": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/coref_google_bert_uncased_L-2_H-256_A-4-v1.0.model",
+          "sha256": "eadd62a0b5d6f1d8908ee31c9949f863b731046e0e64df8c0c46bedf07a56116",
+          "size": 40831851
+        },
+        {
+          "name": "speaker_google_bert_uncased_L-8_H-256_A-4-v1.0.1.model",
+          "url": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/speaker_google_bert_uncased_L-8_H-256_A-4-v1.0.1.model",
+          "sha256": "1f530622219b8d6d90881f0d2eaeeec08ff6b73287d9eac66a1505ee0e6887e5",
+          "size": 57586985
+        },
+        {
+          "name": "booknlp-1.0.8-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/9a/fe/4e654bb7f1b90748e73545323f2bd8700f87e530fce4d7cf085c8472b83a/booknlp-1.0.8-py3-none-any.whl",
+          "sha256": "9eeaac4c1a2eb8d6b2256e5eefee26d0d0f294a46812ad7602ac469a9f8b02a8",
+          "size": 2421582,
+          "extract": "wheel-booknlp",
+          "expand": 8415007
+        },
+        {
+          "name": "torch-2.14.1-cp312-cp312-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/ad/1a/b9648b0d228e513f69f8453ec3f90a8d436d78ff6d85a2773e539f0c07cf/torch-2.14.1-cp312-cp312-win_amd64.whl",
+          "sha256": "38bee9f2a2ccfc6898172a5075e4ba52522fbe143eeb099674fc67ab390e858d",
+          "size": 124113906,
+          "extract": "wheel-torch",
+          "expand": 475876287
+        }
+      ]
+    },
+    {
+      "id": "booknlp-big",
+      "provider": "booknlp",
+      "displayName": "BookNLP (large)",
+      "description": "The same as the small one, with the most reliable speaker attribution. Larger to download and slower to run.",
+      "version": "1.0",
+      "publisher": "David Bamman (UC Berkeley)",
+      "license": "MIT (program); no licence stated for the model files",
+      "licenseUrl": "https://github.com/booknlp/booknlp/blob/main/LICENSE",
+      "modelCardUrl": "https://github.com/booknlp/booknlp",
+      "provenanceUrl": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/",
+      "attribution": "The program is under the MIT licence. Its authors give no licence statement for the model files; they are used here only to find character names. BookNLP by David Bamman; torch is BSD-3-Clause.",
+      "ramGB": 3.1,
+      "minutesPerBook": 10,
+      "source": "booknlp",
+      "rank": 2,
+      "recommended": false,
+      "pending": "Not every file is pinned: the transformers version BookNLP loads with and the config.json and vocab.txt of the Google BERT encoders it reads at first load are not listed yet (docs/research/studio-next-booknlp-spike.md, Owner steps 1 and 2).",
+      "files": [
+        {
+          "name": "entities_google_bert_uncased_L-6_H-768_A-12-v1.0.model",
+          "url": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/entities_google_bert_uncased_L-6_H-768_A-12-v1.0.model",
+          "sha256": "c67654ac10b3b49371544ccaf8ed76d224f0d274d23f7f7ea09e74f173ddbe06",
+          "size": 311346637
+        },
+        {
+          "name": "coref_google_bert_uncased_L-12_H-768_A-12-v1.0.model",
+          "url": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/coref_google_bert_uncased_L-12_H-768_A-12-v1.0.model",
+          "sha256": "9b301a05eff4573d34ad2672f310110b716801759470044b07d1979a0dbb50d8",
+          "size": 446250373
+        },
+        {
+          "name": "speaker_google_bert_uncased_L-12_H-768_A-12-v1.0.1.model",
+          "url": "https://people.ischool.berkeley.edu/~dbamman/booknlp_models/speaker_google_bert_uncased_L-12_H-768_A-12-v1.0.1.model",
+          "sha256": "5f3cdf9880f4f70b3aa0a88a5f4fea78aafaeff52b8f1a4a8712a47939bb1d0d",
+          "size": 438641129
+        },
+        {
+          "name": "booknlp-1.0.8-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/9a/fe/4e654bb7f1b90748e73545323f2bd8700f87e530fce4d7cf085c8472b83a/booknlp-1.0.8-py3-none-any.whl",
+          "sha256": "9eeaac4c1a2eb8d6b2256e5eefee26d0d0f294a46812ad7602ac469a9f8b02a8",
+          "size": 2421582,
+          "extract": "wheel-booknlp",
+          "expand": 8415007
+        },
+        {
+          "name": "torch-2.14.1-cp312-cp312-win_amd64.whl",
+          "url": "https://files.pythonhosted.org/packages/ad/1a/b9648b0d228e513f69f8453ec3f90a8d436d78ff6d85a2773e539f0c07cf/torch-2.14.1-cp312-cp312-win_amd64.whl",
+          "sha256": "38bee9f2a2ccfc6898172a5075e4ba52522fbe143eeb099674fc67ab390e858d",
+          "size": 124113906,
+          "extract": "wheel-torch",
+          "expand": 475876287
+        }
+      ]
+    },
+    {
+      "id": "local-llm",
+      "provider": "local-llm",
+      "displayName": "Local language model",
+      "description": "Reads the manuscript like a person would and writes descriptions, relationships and what each character says, does and knows.",
+      "version": "none",
+      "publisher": "Not chosen",
+      "license": "To be confirmed",
+      "licenseUrl": "https://github.com/countrymanprime/narration-utils/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md",
+      "modelCardUrl": "https://github.com/countrymanprime/narration-utils/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md",
+      "provenanceUrl": "https://github.com/countrymanprime/narration-utils/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md",
+      "attribution": "Licence to be confirmed before it is offered.",
+      "ramGB": 11,
+      "minutesPerBook": null,
+      "source": null,
+      "rank": 0,
+      "recommended": false,
+      "unavailable": "A model small enough for this computer takes many hours per book. It will be offered once that is practical.",
+      "files": []
+    }
+  ]
+}

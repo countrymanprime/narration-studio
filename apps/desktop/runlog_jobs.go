@@ -58,6 +58,7 @@ var jobKindBeginSites = map[string][]string{
 	jobKindMoonshineInstall:   {"startInstall"},
 	jobKindDictionaryInstall:  {"startInstall"},
 	jobKindEncoderInstall:     {"startInstall"},
+	jobKindAnalysisInstall:    {"startInstall"},
 	jobKindAppUpdate:          {"startUpdateDownload"},
 	jobKindTranscript:         {"observe"},
 	jobKindCoverage:           {"coverageStart"},

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
 	"github.com/countrymanprime/narration-utils/shell/internal/ffmpeg"
@@ -307,3 +308,58 @@ func (p encoderProvider) install(ctx context.Context, id string, options assets.
 
 func (p encoderProvider) verify(id string) (string, error) { return p.manager.Verify(id) }
 func (p encoderProvider) remove(id string) error           { return p.manager.Remove(id) }
+
+// analysisProvider serves the optional Story Bible analysis tools (internal/analysistools). A tool that is not offered, or whose files are
+// not all pinned, is listed with the reason and refused before its job starts (refuse); nothing but AssetsInstall starts a download.
+type analysisProvider struct{ manager *analysistools.Manager }
+
+func (analysisProvider) kind() string      { return installKindAnalysis }
+func (analysisProvider) label() string     { return "Analysis tool" }
+func (analysisProvider) noun() string      { return "analysis tool" }
+func (analysisProvider) endedKind() string { return jobKindAnalysisInstall }
+
+func (p analysisProvider) items() []assetItem {
+	tools := p.manager.Tools()
+	items := make([]assetItem, 0, len(tools))
+	for _, tool := range tools {
+		items = append(items, p.itemFor(tool))
+	}
+	return items
+}
+
+func (p analysisProvider) itemFor(tool analysistools.Tool) assetItem {
+	return assetItem{kind: installKindAnalysis, id: tool.ID, displayName: tool.DisplayName, version: tool.Version, publisher: tool.Publisher, license: tool.License,
+		licenseURL: tool.LicenseURL, modelCardURL: tool.ModelCardURL, provenanceURL: tool.ProvenanceURL, attribution: tool.Attribution, files: tool.Files,
+		dir: p.manager.InstallDir(tool.ID), diskSize: tool.DiskSize(),
+		consent: &assetConsent{description: tool.Description, downloadHost: tool.DownloadHosts(), ramGB: tool.RAMGB, minutesPerBook: tool.MinutesPerBook,
+			source: tool.Source, rank: tool.Rank, recommended: tool.Recommended, unavailableReason: tool.UnavailableReason()}}
+}
+
+func (p analysisProvider) item(id string) (assetItem, bool) {
+	tool, ok := p.manager.Tool(id)
+	if !ok {
+		return assetItem{}, false
+	}
+	return p.itemFor(tool), true
+}
+
+func (p analysisProvider) state(id string) string {
+	tool, ok := p.manager.Tool(id)
+	if !ok {
+		return "not_installed"
+	}
+	return p.manager.State(tool)
+}
+
+func (p analysisProvider) install(ctx context.Context, id string, options assets.Options) error {
+	if p.state(id) == "installed" {
+		return nil
+	}
+	return p.manager.Repair(ctx, id, options)
+}
+
+// refuse is the sentence an install of a tool that cannot be installed is refused with, before a job starts.
+func (p analysisProvider) refuse(id string) error { return p.manager.Refuse(id) }
+
+func (p analysisProvider) verify(id string) (string, error) { return p.manager.Verify(id) }
+func (p analysisProvider) remove(id string) error           { return p.manager.Remove(id) }

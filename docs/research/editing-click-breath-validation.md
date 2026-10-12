@@ -1,14 +1,13 @@
 # Editing readiness: click and breath validation
 
-**Status: provisional (D70), 2026-09-28. Both classes ship gated off.** This is Phase 4 of
-`editing-readiness-analysis.prd.md` (deleted) ("Click and breath validation"). It runs
+**Status: provisional (D70), 2026-09-28. Both classes ship gated off.** Issue: [#794](https://github.com/countrymanprime/narration-utils/issues/794), click and breath validation. It runs
 [DX Phase 9's click and breath detectors](../../apps/desktop/internal/measure/cleanup.go) (exercised, not changed; DX-9
 owns them) on a tuning half, chooses the scan defaults there, and reports precision and recall on a held-out half per
 class and recording condition. Neither class reaches the proposed 90% recall, so both `editing.clicks` and
 `editing.breaths` stay `unknown` ("not validated yet") for every analyzer version. The main corpus is synthetic, and per
 Q10 a synthetic run could not validate a detector even at 100%. The LibriVox Alice signal set (#836) is the second,
 real-speech evaluation set ([below](#real-speech-the-librivox-signal-set)); its run is pending. The permissioned run is
-a QA item on [#510](https://github.com/countrymanprime/narration-utils/issues/510). Decisions:
+a QA item on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217). Decisions:
 [ADR 0510](../adr/0510-click-and-breath-signals-open-only-on-a-recorded-permissioned-held-out-run-at-target-in-every-condition.md),
 [ADR 0511](../adr/0511-click-and-breath-sensitivity-is-a-scan-parameter-and-its-defaults-only-move-toward-more-candidates.md)
 and
@@ -115,9 +114,9 @@ What would move the numbers is DX-9's to decide, not this phase's. The run point
 
 ## Real speech: the LibriVox signal set
 
-**Status: harness in place, run pending (2026-09-28, stream N-K12).** The session that built the harness could not
-fetch the recordings. archive.org answered, but the egress policy refused the storage host its downloads redirect to
-(`dn710306.ca.archive.org`). No number from this set is reported here, and none is predicted. The run is on #510.
+**Status: harness in place, run pending (2026-09-28).** The recordings could not be fetched
+when the harness was built. archive.org answered, but the egress policy refused the storage host its downloads redirect to
+(`dn710306.ca.archive.org`). No number from this set is reported here, and none is predicted. The run is on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
 
 [`librivoxvalidation_test.go`](../../apps/desktop/internal/editing/librivoxvalidation_test.go) runs this phase's
 harness on the `signal/` set of the [LibriVox Alice corpus](../../tests/fixtures/audio/librivox-alice/README.md): the
@@ -175,7 +174,7 @@ It fails only on a broken corpus or a stale `knownIssue`. Paste the held-out tab
 
 ### What would make it count
 
-These are for the owner, on #510:
+These are for the owner, on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217):
 
 - a decision on whether a LibriVox reading counts as ADR 0510's permissioned corpus (the recommendation is yes);
 - breath labels placed by listening;

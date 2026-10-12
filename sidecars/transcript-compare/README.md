@@ -25,7 +25,7 @@ script text against what was said. The workflow is documented in
 - `tests/` — the pytest suite for the backend, plus the recording-coverage ground-truth harness
   (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), and the
   alignment spike that scores `core/recording_coverage.py` on them (`coverage_spike.py`); see
-  `docs/research/recording-coverage-fixtures.md`.
+  `tests/fixtures/coverage/README.md`.
 - REAPER integration is in `integrations/reaper/`; a future Audacity driver has placeholder notes under
   `integrations/audacity/transcript-compare/`.
 

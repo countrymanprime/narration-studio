@@ -23,6 +23,7 @@ const (
 	DictionaryCatalogFile    = ConfigDir + "/dictionary-assets.json"
 	WiktextractCatalogFile   = ConfigDir + "/wiktextract-assets.json"
 	EncoderCatalogFile       = ConfigDir + "/encoder-assets.json"
+	AnalysisCatalogFile      = ConfigDir + "/analysis-assets.json"
 	ReaperDir                = "integrations/reaper"
 	LauncherFile             = ReaperDir + "/NarrationUtils_Launcher.lua"
 	FixturesDir              = "tests/fixtures"

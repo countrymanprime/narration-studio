@@ -29,7 +29,7 @@ export const AREAS = {
 const RUNBOOKS = {
   reaper: 'docs/operations/reaper-verification-pass.md',
   audacity: 'docs/operations/audacity-verification-pass.md',
-  spikes: 'docs/research/studio-next-daw-spike-runbook.md',
+  spikes: 'docs/operations/daw-spike-run-sheet.md',
 };
 const LINK_BASE = 'https://github.com/countrymanprime/narration-utils/blob/main/';
 

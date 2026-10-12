@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// acxRuleTable is the checked-in list of ACX's requirements (docs/research/acx-delivery-requirements.md): every row is a
+// acxRuleTable is the checked-in list of ACX's requirements (docs/reference/acx-delivery-requirements.md): every row is a
 // rule of the built-in profile, with how the app checks it and how it was verified. A requirement added to or dropped
 // from the profile without this table changing fails here.
 var acxRuleTable = []struct {

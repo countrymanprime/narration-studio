@@ -36,7 +36,7 @@ When a run is recorded, add a row above and paste the test's `-v` lines under it
 
 ## Comparison with Audacity's ACX Check (the ACX profile)
 
-The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](acx-delivery-requirements.md), ADR 0179) judges `measure`'s RMS, sample peak and noise floor against ACX's numbers. Whether `measure`'s definitions agree with ACX's own check is what this comparison records: the same verdict per rule, and values within 0.5 dB.
+The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](../reference/acx-delivery-requirements.md), ADR 0179) judges `measure`'s RMS, sample peak and noise floor against ACX's numbers. Whether `measure`'s definitions agree with ACX's own check is what this comparison records: the same verdict per rule, and values within 0.5 dB.
 
 | Date | Commit | Files | RMS (app / ACX Check) | Peak (app / ACX Check) | Noise floor (app / ACX Check) | Verdicts agree |
 | --- | --- | --- | --- | --- | --- | --- |

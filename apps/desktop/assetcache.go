@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
 	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
@@ -23,6 +24,7 @@ const (
 	moonshineCacheDir  = assets.MoonshineDir
 	dictionaryCacheDir = assets.DictionaryDir
 	encoderCacheDir    = assets.EncoderDir
+	analysisCacheDir   = analysistools.CacheDir
 )
 
 // assetCacheBase is where downloaded assets live: the per-user cache folder, never the temporary one (assets.CacheBase).
@@ -32,7 +34,7 @@ func assetCacheBase() (string, error) { return assets.CacheBase() }
 // It returns what it removed.
 func cleanAssetCaches(base string) []string {
 	var removed []string
-	for _, dir := range []string{ttsCacheDir, whisperCacheDir, spacyCacheDir, moonshineCacheDir, dictionaryCacheDir, encoderCacheDir} {
+	for _, dir := range []string{ttsCacheDir, whisperCacheDir, spacyCacheDir, moonshineCacheDir, dictionaryCacheDir, encoderCacheDir, analysisCacheDir} {
 		removed = append(removed, assets.CleanStale(filepath.Join(base, dir))...)
 	}
 	return removed
@@ -49,7 +51,7 @@ func (h *Host) buildAssetRegistry() *assetRegistry {
 	}
 	// The packaged release resources are only unpacked when a checkout does not have every catalog.
 	packaged := ""
-	for _, catalog := range []string{layout.TTSCatalogFile, layout.WhisperCatalogFile, layout.SpacyCatalogFile, layout.MoonshineCatalogFile, layout.DictionaryCatalogFile, layout.EncoderCatalogFile} {
+	for _, catalog := range []string{layout.TTSCatalogFile, layout.WhisperCatalogFile, layout.SpacyCatalogFile, layout.MoonshineCatalogFile, layout.DictionaryCatalogFile, layout.EncoderCatalogFile, layout.AnalysisCatalogFile} {
 		if _, statErr := os.Stat(layout.Path(h.config.repoRoot, catalog)); statErr != nil {
 			packaged = h.packagedResources()
 			break
@@ -62,6 +64,7 @@ func (h *Host) buildAssetRegistry() *assetRegistry {
 	registry := newAssetRegistry(base, voices, models, languageModels, liveModels)
 	registry.registerDictionaries(buildDictionaryManager(h.config, packaged, filepath.Join(base, dictionaryCacheDir)))
 	registry.registerEncoders(buildEncoderManager(h.config, packaged, filepath.Join(base, encoderCacheDir)))
+	registry.registerAnalysisTools(buildAnalysisManager(h.config, packaged, filepath.Join(base, analysisCacheDir)))
 	if registry.encoder != nil {
 		// The registered FFmpeg row finds its executable here and runs under the host's supervisor, so closing the app ends an encode.
 		encodeport.UseFFmpeg(registry.encoder.Path, h.sidecars)
@@ -142,6 +145,19 @@ func buildEncoderManager(cfg config, packagedRoot, root string) *ffmpeg.Manager 
 		catalog = filepath.Join(packagedRoot, "config", "encoder-assets.json")
 	}
 	manager, err := ffmpeg.New(catalog, root)
+	if err != nil {
+		return nil
+	}
+	return manager
+}
+
+// buildAnalysisManager is buildTtsManager for the optional Story Bible analysis tools' catalog.
+func buildAnalysisManager(cfg config, packagedRoot, root string) *analysistools.Manager {
+	catalog := layout.Path(cfg.repoRoot, layout.AnalysisCatalogFile)
+	if _, err := os.Stat(catalog); err != nil && packagedRoot != "" {
+		catalog = filepath.Join(packagedRoot, "config", "analysis-assets.json")
+	}
+	manager, err := analysistools.New(catalog, root)
 	if err != nil {
 		return nil
 	}

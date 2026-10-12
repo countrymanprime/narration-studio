@@ -1,6 +1,6 @@
 # Phase 0: verifying today's back/forward and zoom behaviour on Wails v3
 
-**Status: done, 2026-09-28.** Phase 0 of the App Navigation and Zoom Controls PRD (deleted) (tracking issue [#547](https://github.com/countrymanprime/narration-utils/issues/547)), lane D. This settles what the PRD's own Evidence section could only infer from source before Phase 1 shipped, plus the four things Phase 0 names explicitly: which zoom gestures work, whether zoom persists, and whether the mouse's back/forward buttons and Alt+Left/Right navigate. No REAPER, no owner, per the phase's own scope.
+**Status: done, 2026-09-28.** Issue: [#547](https://github.com/countrymanprime/narration-utils/issues/547). This settles what the PRD's own Evidence section could only infer from source before Phase 1 shipped, plus the four things Phase 0 names explicitly: which zoom gestures work, whether zoom persists, and whether the mouse's back/forward buttons and Alt+Left/Right navigate. No REAPER, no owner, per the phase's own scope.
 
 ## The question
 
@@ -38,7 +38,7 @@ This container has no Windows session of its own (the same limitation every othe
 ## Not done, and why
 
 - **The four numbered questions in the PRD's own Research Summary are still not directly observed**, for the reason above: the CDP channel that would have let a script read `devicePixelRatio`, `location.href` or the DOM never came up. This spike adds one new fact (CI can open the window) and one new limit (CI cannot currently read WebView2 state back through this particular mechanism); it does not raise or lower confidence on the zoom or mouse-button questions themselves beyond what the PRD's Evidence section already reasoned from source.
-- **Touchpad pinch and a physical side-button mouse** were never in scope for a script: Win32 has no supported way to synthesize either. Per the PRD's own Phase 0 scope, these stay owner-pending on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+- **Touchpad pinch and a physical side-button mouse** were never in scope for a script: Win32 has no supported way to synthesize either. Per the PRD's own Phase 0 scope, these stay pending with the owner on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
 - **Given the CDP channel's absence, the rest of the "not done" list from the PRD's Research Summary now also needs the owner's own machine**, not just their touchpad/mouse: Ctrl+wheel zoom's actual effect, the Ctrl+=/-/0 no-op, whether a zoom level survives a relaunch, and whether the mouse's back/forward buttons or Alt+Left/Right move anything at the OS layer. All four are quick for the owner to check by hand (the PRD's own Research Summary already says as much for two of them), and none of them blocks Phase 2, whose zoom mechanism (`Window.SetZoom`) was already settled independently by the owner (Q3, D29) before this phase ran.
 
 ## Recommendation
@@ -47,10 +47,6 @@ This container has no Windows session of its own (the same limitation every othe
 
 **No Proposed ADR from this spike.** It settles a research question the PRD itself posed, and reverses nothing already decided (Q3/D29's `Window.SetZoom` mechanism stands).
 
-## For #510 (owner or hardware needed)
+## Pending with the owner
 
-- [ ] Ctrl+wheel zoom, then quit and relaunch: does the level come back, or reset to 100%? (Phase 3 will set it explicitly regardless, but this tells us whether WebView2 was already doing it for free.)
-- [ ] Ctrl+=, Ctrl+-, Ctrl+0 with no page-level handler yet (before Phase 2 ships): confirm they do nothing.
-- [ ] After two page moves (e.g. Home → Settings), the mouse's physical back button: does it navigate, and does it bypass the "Unsaved settings" confirm if a field is dirty?
-- [ ] Alt+Left/Right in the same situation: confirm nothing happens today.
-- [ ] A touchpad pinch: confirm it zooms the same way Ctrl+wheel does.
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).

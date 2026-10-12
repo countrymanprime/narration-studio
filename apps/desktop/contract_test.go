@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
@@ -190,7 +191,13 @@ func contractServices(t *testing.T) contractFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return contractFixture{registry: newAssetRegistry(t.TempDir(), voices, models, languageModels, nil), settings: settings.New(layout.FindRoot("."), "")}
+	tools, err := analysistools.New(layout.RepoFile(layout.AnalysisCatalogFile), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry := newAssetRegistry(t.TempDir(), voices, models, languageModels, nil)
+	registry.registerAnalysisTools(tools)
+	return contractFixture{registry: registry, settings: settings.New(layout.FindRoot("."), "")}
 }
 
 func TestContractCatalogsAndInstallJobs(t *testing.T) {

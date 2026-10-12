@@ -122,7 +122,7 @@ These ideas come mostly from the research agents' synthesis, not from sourced re
 ### Delivery specs
 
 Every value comes from secondary summaries of the official pages. **Check the official page before building a validator to any
-of these numbers.** Of the ACX values, [ACX delivery requirements](acx-delivery-requirements.md) already records which ones the
+of these numbers.** Of the ACX values, [ACX delivery requirements](../reference/acx-delivery-requirements.md) already records which ones the
 repository has verified.
 
 | Platform | Format | Levels | Room tone (head / tail) | Files | Sources |

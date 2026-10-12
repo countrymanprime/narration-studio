@@ -11,7 +11,7 @@ that code, other docs and `SECURITY.md` are checked against; the sections from "
 
 What is delivered, and what is deliberately not:
 
-- **Delivered.** One catalog per kind (`config/{tts,whisper,spacy,moonshine,dictionary,encoder}-assets.json`) with pinned URLs, sizes and SHA-256; the
+- **Delivered.** One catalog per kind (`config/{tts,whisper,spacy,moonshine,dictionary,encoder,analysis}-assets.json`) with pinned URLs, sizes and SHA-256; the
   asset manager and its manifest, resume, repair and free-space check; the registry and the `Assets*` bindings (a later kind is a
   catalog file, a provider and a row on the page, with no new binding); the
   first-use dialog for Piper, Whisper and Story Bible (with the rules-only choice); Settings > Local assets; no download and no
@@ -109,8 +109,8 @@ apply to Piper voices, Whisper models, and later optional tools/model packs.
   is replaced without an explicit, confirmed click ([ADR 0072](../adr/0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md)).
 
 This work follows the artifact-level license and provenance requirements in
-the [local dependency evaluation and license plan](../research/local-dependency-evaluation.md),
-which records every shipped artifact and describes first-use provisioning (there is no
+[model provenance](model-provenance.md#adding-a-model-tool-or-data-pack). The
+[local dependency evaluation](../research/local-dependency-evaluation.md) records every shipped artifact and describes first-use provisioning (there is no
 setup-time download).
 
 ## What the release and the developer bootstrap each provide
@@ -203,6 +203,15 @@ sequenceDiagram
 ## The asset registry (implemented)
 
 Every kind of asset is one provider in a registry that is built once at start and never replaced ([ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md)). Six generic bindings serve all of them: `AssetsList` (state, size, publisher, licence and provenance links, install path, installed and verified times, and the download running for each asset; it reads no file contents), `AssetsInstall(kind, id)` (installs, or repairs a damaged asset; a second call for a running download joins it), `AssetsInstallState`, `AssetsInstallCancel`, `AssetsVerify` and `AssetsRemove` (refused while the asset downloads; it removes only that asset). The install is the one job of [ADR 0077](../adr/0077-every-asset-install-is-one-job-with-real-bytes-a-second-start-joins-it-and-one-hook-follows-it.md). Adding a kind is a catalog file, a provider and a row on the page, with no new `Assets*` binding. The Story Bible language models (spaCy, [ADR 0080](../adr/0080-the-story-bible-language-model-is-a-catalog-asset-unpacked-at-install-and-the-build-asks-before-it-downloads.md)) and the Moonshine live-engine models are such kinds. Moonshine's ids (`tiny`, `small`) are the same words the Whisper catalog uses; they never collide because the install directory is built from each catalog entry's own `provider` field (`moonshine`, `faster-whisper`), not the kind alone. The reader's offline dictionary (`config/dictionary-assets.json`, kind `dictionary`, provider `oewn`) is registered with `registerDictionaries`; its only binding of its own is the lookup, `SystemLookup(word)`, which answers `asset_required` (the dictionary, its download and on-disk sizes and where it goes) until the narrator confirms `AssetsInstall("dictionary", "oewn-2025")`, and then reads the index in the Go host with no server (`apps/desktop/dictionarylookup.go`). The MP3 encoder's FFmpeg build (`config/encoder-assets.json`, kind `encoder`, provider `ffmpeg`, [ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md)) is registered with `registerEncoders`: its install unpacks the pinned wheel and keeps only `ffmpeg.exe`, and only when that file's own SHA-256 is the pinned one (`internal/ffmpeg`); it is offered on Windows only, and the encoder asks `ffmpeg.Manager.Path` for it, which reads it in full once per session before the first encode runs it. It is the one downloaded asset that is an executable (threat model row 1f). The export job picks its encoder from the `encodeport` registry (`encodeFor`, `apps/desktop/export_job.go`) and reports `none installed` when no row writes the format. The voice and Whisper bindings that predate the registry (`TtsInstall`, `WhisperRemove`, ...) are wrappers over the same functions until the pages that use them move over.
+
+### The Story Bible analysis tools
+
+The optional analysis tools (`config/analysis-assets.json`, kind `analysis`, label "Analysis tool", `internal/analysistools`, registered with `registerAnalysisTools`) are catalogue entries of this registry like any other kind, not a second installer: GLiNER, BookNLP small and large, and the local language model, in the mock's order ([extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md), solution 6). Each row is installed only by `AssetsInstall("analysis", id)`, the job ends with `job:ended` kind `analysis_install`, and the files go into the cache's `analysis` folder.
+
+- **Consent facts.** A row carries what a consent screen states besides the download, and the list entry adds them as optional fields that no other kind has: `description`, `downloadHost` (every host its files come from, read from the pinned URLs), `ramGB`, `minutesPerBook`, `source` (the extraction source its findings are filed under), `rank`, `recommended` and `unavailableReason`. The memory and time figures are the 2026-10-10 trial's and provisional (SNX-Q6). The licence note is the opening sentence of `attribution`.
+- **Unavailable until pinned.** A row is installable only when every file has a URL, a size and a SHA-256, every archive its unpacked size, and the row no `pending` note. Otherwise `AssetsInstall` refuses it before a job starts, with the "not yet available" sentence that `unavailableReason` also carries, as the Wiktextract row is refused. The local language model is a row with no files and an `unavailable` sentence. Today every row is refused: the files the spikes could not reach ([GLiNER](../research/studio-next-gliner-spike.md#owner-steps), [BookNLP](../research/studio-next-booknlp-spike.md#owner-steps)) are the owner's to pin.
+- **Wheels are data until loaded.** A tool's weights are plain files; its Python wheels (`gliner`, `transformers`, `torch`, `booknlp`) are archives with a mandatory SHA-256 and unpacked size, unpacked into one `wheel-<package>` folder each and deleted. Nothing in the host imports or runs them; the adapters (SNX-7a, SNX-7b) load them inside the manuscript-guide sidecar during a scan the narrator started. Until those adapters exist, an installed tool is not offered as an extraction source. Threat model row 1i.
+- **Failures.** The free-space check of `internal/assets/disk.go` refuses a tool the disk cannot hold before the first byte, with the shortfall sentence, and a host that does not answer is named ("Could not reach huggingface.co.").
 
 ## The local assets page (implemented)
 
