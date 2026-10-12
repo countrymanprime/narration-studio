@@ -14,7 +14,6 @@ const REAPER_NOT_RUNNING = 'REAPER is not answering. Check that REAPER is open a
 const MACRO_UNSUPPORTED = 'Mastering with an effect macro is not something REAPER can do.';
 const AUDACITY_NOT_YET =
   "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
-const AUDACITY_NO_TAKES = 'Audacity keeps no takes. Turn on backups to keep them.';
 const TURNED_OFF = 'Turned off in Settings.';
 const BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
@@ -101,16 +100,31 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
 
-/** Audacity today: labels, navigation and backups work, and nothing else is built. A roll replaces audio there, so `punch` is
- * destructive. Without backups the `backups` row is the narrator's toggle turned off, as the resolver words it. */
-const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities'] =>
-  everyCapability(() => notYet(AUDACITY_NOT_YET), {
+/** Audacity's sentence for a row it has only with backups on, while backups are turned off (audacity.go's explainRequirement). */
+const needsBackups = (what: string): string => `${what} needs Audacity backups. Turn on Audio backups in Settings.`;
+
+/** Audacity connected and answering, with every Experimental capability switched on and backups as given: what the host's
+ * resolver answers over the adapter (dawport/audacity). Labels, navigation, mastering with a macro and backups work, and nothing
+ * else is built. Takes, stacking, cutting and an effect on words exist only with backups on (SN-D83, the Studio Next mock's
+ * capabilitiesFor), each refused with backups' reason while they are off; the edits are made in steps. A roll replaces audio
+ * there, so `punch` is destructive until backups keep the audio. */
+const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities'] => {
+  const needs = (what: string, mode?: 'steps'): DawCapabilitySupport =>
+    backups
+      ? { ...audacityExperimental, ...(mode ? { mode } : {}) }
+      : { level: 'experimental', available: false, reason: 'turned_off', message: needsBackups(what), ...(mode ? { mode } : {}) };
+  return everyCapability(() => notYet(AUDACITY_NOT_YET), {
     markers: audacityExperimental,
     navigate: audacityExperimental,
+    macro_render: audacityExperimental,
     backups: backups ? audacityExperimental : { level: 'experimental', available: false, reason: 'turned_off', message: TURNED_OFF },
-    takes: backups ? audacityExperimental : notYet(AUDACITY_NO_TAKES),
-    punch: backups ? notYet(AUDACITY_NOT_YET) : { ...notYet(AUDACITY_NOT_YET), destructive: true },
+    takes: needs('Keeping takes'),
+    stack_takes: needs('Stacking takes', 'steps'),
+    cut_range: needs('Cutting words and their audio', 'steps'),
+    fx_range: needs('Adding an effect to words', 'steps'),
+    punch: backups ? audacityExperimental : { ...audacityExperimental, destructive: true },
   });
+};
 
 const builtinExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
 

@@ -208,7 +208,7 @@ describe('audacity-backs-up-first', () => {
     await flush();
     fireEvent.click(stack());
     await flush();
-    expect(toast).toHaveBeenCalledWith('Audacity keeps no takes. Turn on backups to keep them.', { tone: 'error' });
+    expect(toast).toHaveBeenCalledWith('Keeping takes needs Audacity backups. Turn on Audio backups in Settings.', { tone: 'error' });
     expect(calls).toEqual([]);
   });
 });

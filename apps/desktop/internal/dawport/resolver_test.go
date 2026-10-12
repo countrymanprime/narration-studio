@@ -404,3 +404,125 @@ func TestTheEditCapabilitiesResolveNotYetWhileDeclaredSo(t *testing.T) {
 		}
 	}
 }
+
+// needyAdapter is a deepAdapter whose capabilities may require others (a Requirer), and that words a refusal for a requirement
+// (a RequirementExplainer) when need holds a sentence for the capability.
+type needyAdapter struct {
+	deepAdapter
+	requires map[Capability][]Capability
+	need     map[Capability]string
+}
+
+func (n needyAdapter) Requires(c Capability) []Capability { return n.requires[c] }
+func (n needyAdapter) ExplainRequirement(c, _ Capability, r Reason) string {
+	if r != ReasonTurnedOff && r != ReasonExperimentalOff {
+		return ""
+	}
+	return n.need[c]
+}
+
+const needBackups = "Stacking takes needs Audacity backups. Turn on Audio backups in Settings."
+
+func needy() needyAdapter {
+	declares := map[Capability]Level{CapStackTakes: Experimental, CapPunch: Experimental, CapBackups: Experimental, CapTakes: Experimental}
+	return needyAdapter{
+		deepAdapter: deepAdapter{
+			plainAdapter: plainAdapter{stubAdapter{kind: KindAudacity, declares: declares}},
+			depth:        map[Capability]Depth{CapStackTakes: {Mode: ModeSteps}, CapPunch: {Destructive: true}},
+		},
+		requires: map[Capability][]Capability{CapStackTakes: {CapBackups}, CapPunch: {CapBackups}, CapTakes: {CapBackups}},
+		need:     map[Capability]string{CapStackTakes: needBackups},
+	}
+}
+
+func needyResolver(a Adapter, rt Runtime, toggles map[Capability]Toggle) *Resolver {
+	return NewResolver(ResolverConfig{
+		Adapter: a,
+		Runtime: func() Runtime { return rt },
+		Toggle: func(c Capability) Toggle {
+			if t, ok := toggles[c]; ok {
+				return t
+			}
+			return ToggleOn
+		},
+	})
+}
+
+// resolver-refuses-with-the-required-capabilitys-reason: a capability whose requirement is unavailable is refused with that
+// requirement's reason, in the adapter's sentence, and is available once the requirement is.
+func TestSupportRefusesWithTheRequiredCapabilitysReason(t *testing.T) {
+	answering := Runtime{Bridge: true, Reachable: true}
+	off := needyResolver(needy(), answering, map[Capability]Toggle{CapBackups: ToggleOff})
+	got := off.Support(CapStackTakes)
+	want := Support{Level: Experimental, Reason: ReasonTurnedOff, Message: needBackups, Mode: ModeSteps}
+	if got != want {
+		t.Fatalf("backups off: Support(stack_takes) = %+v, want %+v", got, want)
+	}
+	if err := off.Allowed(CapStackTakes); !errors.Is(err, ErrNotSupported) || err.Error() != needBackups {
+		t.Fatalf("backups off: Allowed(stack_takes) = %v, want the requirement's refusal", err)
+	}
+	if _, err := Role[TakeStacker](off, CapStackTakes); !errors.Is(err, ErrNotSupported) {
+		t.Fatalf("backups off: Role(stack_takes) = %v, want a refusal", err)
+	}
+
+	on := needyResolver(needy(), answering, nil)
+	if got := on.Support(CapStackTakes); got != (Support{Level: Experimental, Available: true, Mode: ModeSteps}) {
+		t.Fatalf("backups on: Support(stack_takes) = %+v, want available in steps", got)
+	}
+}
+
+// A requirement refused for a reason the adapter does not word falls back to a sentence that names both capabilities and says
+// the requirement's own refusal; the capability's own refusal still comes first.
+func TestSupportOfARequirementGivesTheFirstThingTheNarratorCanChange(t *testing.T) {
+	answering := Runtime{Bridge: true, Reachable: true}
+	a := needy()
+	a.declares = map[Capability]Level{CapStackTakes: Experimental, CapPunch: Experimental, CapTakes: Experimental, CapBackups: NotYetAvailable}
+	got := needyResolver(a, answering, nil).Support(CapTakes)
+	if got.Available || got.Reason != ReasonNotYet || got.Message != "Choose the active take needs Audio backups. Audio backups is not available with Audacity yet." {
+		t.Fatalf("backups not yet: Support(takes) = %+v, want not_yet naming both", got)
+	}
+
+	ownOff := needyResolver(needy(), answering, map[Capability]Toggle{CapStackTakes: ToggleOff, CapBackups: ToggleOff})
+	if got := ownOff.Support(CapStackTakes); got.Reason != ReasonTurnedOff || got.Message != messageTurnedOff {
+		t.Fatalf("stack_takes itself off: Support = %+v, want its own turned_off first", got)
+	}
+
+	experimental := NewResolver(ResolverConfig{Adapter: needy(), Runtime: func() Runtime { return answering },
+		Toggle: togglesOf(map[Capability]Toggle{CapStackTakes: ToggleOn})})
+	if got := experimental.Support(CapStackTakes); got.Reason != ReasonExperimentalOff || got.Message != needBackups {
+		t.Fatalf("backups experimental and switched off: Support(stack_takes) = %+v, want experimental_off in the adapter's sentence", got)
+	}
+
+	quiet := needyResolver(needy(), Runtime{Bridge: true}, nil)
+	if got := quiet.Support(CapStackTakes); got.Reason != ReasonNotRunning {
+		t.Fatalf("not answering: Support(stack_takes) = %+v, want not_running", got)
+	}
+}
+
+// destructive-and-mode-follow-the-requirement: a capability the adapter declares destructive with a requirement stays usable while
+// the requirement is not, and destructive; with the requirement available it is not destructive.
+func TestADestructiveCapabilityIsMadeSafeByItsRequirement(t *testing.T) {
+	answering := Runtime{Bridge: true, Reachable: true}
+	off := needyResolver(needy(), answering, map[Capability]Toggle{CapBackups: ToggleOff}).Support(CapPunch)
+	if off != (Support{Level: Experimental, Available: true, Destructive: true}) {
+		t.Fatalf("backups off: Support(punch) = %+v, want available and destructive", off)
+	}
+	on := needyResolver(needy(), answering, nil).Support(CapPunch)
+	if on != (Support{Level: Experimental, Available: true}) {
+		t.Fatalf("backups on: Support(punch) = %+v, want available and not destructive", on)
+	}
+	refused := needyResolver(needy(), answering, map[Capability]Toggle{CapPunch: ToggleOff, CapBackups: ToggleOff}).Support(CapPunch)
+	if !refused.Destructive || refused.Reason != ReasonTurnedOff {
+		t.Fatalf("punch off, backups off: Support(punch) = %+v, want its own refusal, destructive", refused)
+	}
+}
+
+// A cycle an adapter should never declare does not hang the resolver (the conformance suite refuses one).
+func TestSupportSurvivesARequirementCycle(t *testing.T) {
+	a := needy()
+	a.requires = map[Capability][]Capability{CapStackTakes: {CapBackups}, CapBackups: {CapStackTakes}}
+	r := needyResolver(a, Runtime{Bridge: true, Reachable: true}, nil)
+	if got := r.Support(CapStackTakes); !got.Available {
+		t.Fatalf("Support(stack_takes) with a cycle = %+v", got)
+	}
+}

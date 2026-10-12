@@ -148,3 +148,22 @@ func TestEditRequestsCarryNoPath(t *testing.T) {
 		t.Errorf("cut modes %q, %q; the mock's are close and gap", CutClose, CutGap)
 	}
 }
+
+// requires-is-a-catalogue-field: Spec carries the capabilities one needs, and the catalogue gives none to takes, punch and the edit
+// rows, which REAPER and the built-in recorder do without backups. The need is the Audacity adapter's (a Requirer), so no engine
+// name enters the catalogue.
+func TestTheCatalogueRequiresNothingOfTheRowsOnlyAudacityTiesToBackups(t *testing.T) {
+	for _, c := range []Capability{CapTakes, CapPunch, CapStackTakes, CapCutRange, CapFXRange} {
+		spec, _ := SpecOf(c)
+		if len(spec.Requires) != 0 {
+			t.Errorf("%s requires %v in the catalogue; the requirement is an adapter's declaration", c, spec.Requires)
+		}
+	}
+	for _, spec := range Capabilities() {
+		for _, req := range spec.Requires {
+			if _, ok := SpecOf(req); !ok {
+				t.Errorf("%s requires %q, which is not a capability", spec.Capability, req)
+			}
+		}
+	}
+}

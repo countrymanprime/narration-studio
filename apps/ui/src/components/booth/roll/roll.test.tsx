@@ -70,7 +70,8 @@ describe('rollPlan', () => {
   });
   it('a-dawless-or-rollless-setup-says-why', () => {
     expect(rollPlan(SETUPS.reaperOff)).toEqual({ kind: 'refused', reason: SETUPS.reaperOff.capabilities.punch.message });
-    expect(rollPlan(DAW_SETUPS.audacity)).toMatchObject({ kind: 'refused' });
+    // Audacity rolls destructively until its backups are on (SN-D83): it asks rather than refuses.
+    expect(rollPlan(DAW_SETUPS.audacity)).toEqual({ kind: 'confirm', dawName: 'Audacity' });
     expect(rollPlan(null)).toEqual({ kind: 'refused', reason: 'Rolling again is not available.' });
   });
 });

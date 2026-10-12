@@ -60,46 +60,49 @@ const (
 	NeedsNothing
 )
 
-// Spec is the static description of a capability: its narrator label, what it needs at runtime, and the role interface an adapter
-// returns for it.
+// Spec is the static description of a capability: its narrator label, what it needs at runtime, the role interface an adapter
+// returns for it, and the capabilities it needs on every engine. An engine that needs more for a capability says so as a Requirer.
 type Spec struct {
 	Capability Capability
 	Label      string
 	Needs      Needs
 	Role       reflect.Type
+	// Requires is the capabilities this one cannot be used without, on every engine. No row has one today: Audacity's need of
+	// backups is its own declaration, since REAPER and the built-in recorder keep takes themselves.
+	Requires []Capability
 }
 
 // specs is the catalog, in the order the UI lists capabilities. Adding a capability is a row here, a role interface in roles.go and
 // a conformance case; it is a normal change under ADR 0300.
 var specs = []Spec{
-	{CapReview, "Compare the recording with the manuscript", NeedsRunning, reflect.TypeFor[ReviewSession]()},
-	{CapNavigate, "Go to and loop findings", NeedsRunning, reflect.TypeFor[Navigator]()},
-	{CapMarkers, "Add markers", NeedsRunning, reflect.TypeFor[MarkerWriter]()},
-	{CapPickups, "Pickup list", NeedsRunning, reflect.TypeFor[PickupList]()},
-	{CapLineIdentity, "Line identity", NeedsRunning, reflect.TypeFor[LineStamper]()},
-	{CapRenderConfig, "Chapter render setup", NeedsRunning, reflect.TypeFor[RenderConfigurer]()},
-	{CapCleanupTools, "Cleanup tools", NeedsRunning, reflect.TypeFor[CleanupLauncher]()},
-	{CapRetakeLanes, "Retake lanes", NeedsRunning, reflect.TypeFor[RetakeLanePicker]()},
-	{CapProjectState, "Project change check", NeedsRunning, reflect.TypeFor[ProjectStateReader]()},
-	{CapTakeCreate, "Create takes", NeedsRunning, reflect.TypeFor[TakeCreator]()},
-	{CapHeartbeat, "Connection status", NeedsBridge, reflect.TypeFor[Heartbeat]()},
-	{CapProjectRead, "Read the saved project", NeedsNothing, reflect.TypeFor[ProjectReader]()},
-	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader]()},
-	{CapTrackSelect, "Select a track in REAPER", NeedsRunning, reflect.TypeFor[TrackSelector]()},
-	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder]()},
-	{CapPunch, "Punch and roll", NeedsRunning, reflect.TypeFor[Puncher]()},
-	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter]()},
-	{CapTakes, "Choose the active take", NeedsRunning, reflect.TypeFor[TakeSelector]()},
-	{CapFXChains, "FX chains", NeedsRunning, reflect.TypeFor[FXManager]()},
-	{CapSilenceTrim, "Silence trim", NeedsRunning, reflect.TypeFor[SilenceTrimmer]()},
-	{CapItemGain, "Level matching", NeedsRunning, reflect.TypeFor[GainAdjuster]()},
-	{CapRenderWithFX, "Mastering with the project's FX", NeedsRunning, reflect.TypeFor[FXRenderer]()},
-	{CapMasterChainRead, "Master and track FX listing", NeedsRunning, reflect.TypeFor[MasterChainReader]()},
-	{CapMacroRender, "Mastering with an effect macro", NeedsRunning, reflect.TypeFor[MacroRenderer]()},
-	{CapCutRange, "Cut words and audio", NeedsRunning, reflect.TypeFor[RangeCutter]()},
-	{CapFXRange, "Add an effect to words", NeedsRunning, reflect.TypeFor[RangeFXApplier]()},
-	{CapStackTakes, "Stack takes", NeedsRunning, reflect.TypeFor[TakeStacker]()},
-	{CapBackups, "Audio backups", NeedsRunning, reflect.TypeFor[BackupKeeper]()},
+	{CapReview, "Compare the recording with the manuscript", NeedsRunning, reflect.TypeFor[ReviewSession](), nil},
+	{CapNavigate, "Go to and loop findings", NeedsRunning, reflect.TypeFor[Navigator](), nil},
+	{CapMarkers, "Add markers", NeedsRunning, reflect.TypeFor[MarkerWriter](), nil},
+	{CapPickups, "Pickup list", NeedsRunning, reflect.TypeFor[PickupList](), nil},
+	{CapLineIdentity, "Line identity", NeedsRunning, reflect.TypeFor[LineStamper](), nil},
+	{CapRenderConfig, "Chapter render setup", NeedsRunning, reflect.TypeFor[RenderConfigurer](), nil},
+	{CapCleanupTools, "Cleanup tools", NeedsRunning, reflect.TypeFor[CleanupLauncher](), nil},
+	{CapRetakeLanes, "Retake lanes", NeedsRunning, reflect.TypeFor[RetakeLanePicker](), nil},
+	{CapProjectState, "Project change check", NeedsRunning, reflect.TypeFor[ProjectStateReader](), nil},
+	{CapTakeCreate, "Create takes", NeedsRunning, reflect.TypeFor[TakeCreator](), nil},
+	{CapHeartbeat, "Connection status", NeedsBridge, reflect.TypeFor[Heartbeat](), nil},
+	{CapProjectRead, "Read the saved project", NeedsNothing, reflect.TypeFor[ProjectReader](), nil},
+	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader](), nil},
+	{CapTrackSelect, "Select a track in REAPER", NeedsRunning, reflect.TypeFor[TrackSelector](), nil},
+	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder](), nil},
+	{CapPunch, "Punch and roll", NeedsRunning, reflect.TypeFor[Puncher](), nil},
+	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter](), nil},
+	{CapTakes, "Choose the active take", NeedsRunning, reflect.TypeFor[TakeSelector](), nil},
+	{CapFXChains, "FX chains", NeedsRunning, reflect.TypeFor[FXManager](), nil},
+	{CapSilenceTrim, "Silence trim", NeedsRunning, reflect.TypeFor[SilenceTrimmer](), nil},
+	{CapItemGain, "Level matching", NeedsRunning, reflect.TypeFor[GainAdjuster](), nil},
+	{CapRenderWithFX, "Mastering with the project's FX", NeedsRunning, reflect.TypeFor[FXRenderer](), nil},
+	{CapMasterChainRead, "Master and track FX listing", NeedsRunning, reflect.TypeFor[MasterChainReader](), nil},
+	{CapMacroRender, "Mastering with an effect macro", NeedsRunning, reflect.TypeFor[MacroRenderer](), nil},
+	{CapCutRange, "Cut words and audio", NeedsRunning, reflect.TypeFor[RangeCutter](), nil},
+	{CapFXRange, "Add an effect to words", NeedsRunning, reflect.TypeFor[RangeFXApplier](), nil},
+	{CapStackTakes, "Stack takes", NeedsRunning, reflect.TypeFor[TakeStacker](), nil},
+	{CapBackups, "Audio backups", NeedsRunning, reflect.TypeFor[BackupKeeper](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.
@@ -139,4 +142,21 @@ type Depth struct {
 // answers with the zero Depth for, declare neither field.
 type Describer interface {
 	Depth(c Capability) Depth
+}
+
+// Requirer is an adapter some of whose capabilities need another capability of its own to be usable, such as Audacity's takes,
+// which exist only while its backups are on. Like Declares it is static. The resolver adds the answer to the catalogue's
+// Spec.Requires and checks each required capability as it checks the capability itself:
+//   - a capability the adapter declares Destructive (Describer) is usable without its requirement and stays destructive; with the
+//     requirement available it is not destructive (a roll that the backups make safe);
+//   - any other capability is refused while a requirement is, with the requirement's reason, so the narrator is told what to change.
+type Requirer interface {
+	Requires(c Capability) []Capability
+}
+
+// RequirementExplainer is a Requirer that words the refusal of c for its requirement required, refused with reason r: "Stacking
+// takes needs Audacity backups. Turn on Audio backups in Settings." An empty answer falls back to the resolver's wording, which
+// names both capabilities and gives the requirement's own sentence.
+type RequirementExplainer interface {
+	ExplainRequirement(c, required Capability, r Reason) string
 }

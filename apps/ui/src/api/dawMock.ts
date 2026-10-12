@@ -1,6 +1,7 @@
 // The mock's DAW port capabilities: a stand-in for the host's dawport.Resolver, over the same
 // three inputs (a declaration per DAW kind, the narrator's per-capability toggles, and reachability) and the same
-// refusal order (declaration, then toggle, then runtime) as apps/desktop/internal/dawport/resolver.go. It has no
+// refusal order (declaration, then toggle, then what a capability requires, then runtime) as
+// apps/desktop/internal/dawport/resolver.go. It has no
 // action of its own to trigger a live update from - it always answers the seeded picture - so subscribeDawCapabilities
 // only emits once, on subscribe, like every other subscribe-based mock that has nothing pending.
 import type {
@@ -97,9 +98,34 @@ const MESSAGE_AUDACITY_NOT_YET =
 /** An Audacity launch's built but Experimental capabilities while no page opens the pipe (ADR 0355,
  * apps/desktop/internal/dawport/audacity/audacity.go's Declaration). */
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested.";
-/** What the Audacity adapter builds, Experimental until the owner's verification pass (ADR 0355, ADR 0863 for backups); the rest is
- * not_yet_available. */
-const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['navigate', 'markers', 'macro_render', 'backups']);
+/** The Audacity adapter over its pipe, when the pipe is missing or silent (audacity.go's messageNotReachable). */
+const MESSAGE_AUDACITY_NOT_REACHABLE =
+  'Audacity is not answering. Open Audacity 3 with mod-script-pipe enabled in Preferences > Modules, then try again. Audacity 4.0 has no scripting pipe.';
+/** What Audacity has only with its backups on, and the words its refusal starts with (audacity.go's needBackups, SN-D83). */
+const AUDACITY_NEED_BACKUPS: Partial<Record<DawCapabilityKey, string>> = {
+  takes: 'Keeping takes',
+  punch: 'Rolling without losing the earlier audio',
+  stack_takes: 'Stacking takes',
+  cut_range: 'Cutting words and their audio',
+  fx_range: 'Adding an effect to words',
+};
+const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range'];
+/** What the Audacity adapter declares Experimental until the owner's verification pass (ADR 0355, ADR 0863 for backups, SN-D83 for
+ * the rows that need backups); the rest is not_yet_available. */
+const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
+  'navigate',
+  'markers',
+  'macro_render',
+  'backups',
+  ...AUDACITY_NEED_BACKUPS_KEYS,
+]);
+/** Audacity's Describer (audacity.go's depth): a roll replaces audio until backups keep it, and the edits are made in steps. */
+const AUDACITY_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = {
+  punch: { destructive: true },
+  stack_takes: { mode: 'steps' },
+  cut_range: { mode: 'steps' },
+  fx_range: { mode: 'steps' },
+};
 /** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
 const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
@@ -115,7 +141,8 @@ export type DawMockSeed = {
   /** Which DAW the launch is talking to; defaults to 'REAPER'. */
   daw?: DawKind;
   /** Whether there is a live REAPER file bridge at all (dawport.Runtime.Bridge); defaults to true for 'REAPER',
-   * ignored for 'Audacity' and 'none' (neither ever opens one) and for 'Built-in' (the app's own recorder, always there).
+   * ignored for 'none' and for 'Built-in' (the app's own recorder, always there). For 'Audacity' it defaults to false (the host
+   * opens no pipe from a page yet, audacity.Declaration), and true is the adapter over its pipe (audacity.New).
    * false models "REAPER declared but not connected":
    * every NeedsBridge/NeedsRunning capability answers 'standalone', the same message as no DAW at all. */
   connected?: boolean;
@@ -159,10 +186,10 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
   return Object.fromEntries(DAW_CAPABILITIES.map(({ key }) => [key, 'unsupported' as const]));
 }
 
-function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySupport['reason']): string {
+function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySupport['reason'], pipe = false): string {
   if (daw === 'Audacity') {
     if (reason === 'not_yet') return MESSAGE_AUDACITY_NOT_YET;
-    if (reason === 'standalone' || reason === 'not_running') return MESSAGE_AUDACITY_NOT_CONNECTED;
+    if (reason === 'standalone' || reason === 'not_running') return pipe ? MESSAGE_AUDACITY_NOT_REACHABLE : MESSAGE_AUDACITY_NOT_CONNECTED;
   }
   if (daw === 'Built-in') {
     if (reason === 'unsupported') return key === 'project_read' ? MESSAGE_BUILTIN_NO_SAVED_PROJECT : MESSAGE_BUILTIN_UNSUPPORTED;
@@ -186,30 +213,97 @@ function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySuppo
   }
 }
 
-function supportFor(daw: DawKind, key: DawCapabilityKey, seed: DawMockSeed, connected: boolean, reachable: boolean): DawCapabilitySupport {
+const labelOf = (key: DawCapabilityKey): string => DAW_CAPABILITIES.find((c) => c.key === key)?.label ?? key;
+
+/** What `key` requires on this DAW (dawport.Requirer): backups, for each row Audacity has only with them. */
+function requiresOf(daw: DawKind, key: DawCapabilityKey, trail: DawCapabilityKey[]): DawCapabilityKey[] {
+  const needs: DawCapabilityKey[] = daw === 'Audacity' && AUDACITY_NEED_BACKUPS[key] ? ['backups'] : [];
+  return needs.filter((need) => need !== key && !trail.includes(need));
+}
+
+/** A refusal of `key` because `required` is refused: the same reason, in the adapter's sentence or the resolver's (resolver.go's
+ * refuseFor). */
+function refuseFor(
+  daw: DawKind,
+  key: DawCapabilityKey,
+  level: DawCapabilityLevel,
+  required: DawCapabilityKey,
+  refused: DawCapabilitySupport,
+): DawCapabilitySupport {
+  const reason = refused.reason;
+  const what = daw === 'Audacity' && required === 'backups' ? AUDACITY_NEED_BACKUPS[key] : undefined;
+  const message =
+    what && (reason === 'turned_off' || reason === 'experimental_off')
+      ? `${what} needs Audacity backups. Turn on Audio backups in Settings.`
+      : `${labelOf(key)} needs ${labelOf(required)}. ${refused.message ?? ''}`;
+  return { level, available: false, reason, message };
+}
+
+type Mock = { daw: DawKind; seed: DawMockSeed; connected: boolean; reachable: boolean };
+
+/** The declared depth of `key`: the seed's, else the engine's own. */
+function depthOf(m: Mock, key: DawCapabilityKey): { destructive?: boolean; mode?: DawCapabilityMode } | undefined {
+  const declared = m.daw === 'REAPER' ? REAPER_DEPTH : m.daw === 'Audacity' ? AUDACITY_DEPTH : {};
+  return m.seed.depth?.[key] ?? declared[key];
+}
+
+/** The declaration and settings checks, then each requirement's (resolver.go's permitted); null when they permit `key`. */
+function permitted(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): DawCapabilitySupport | null {
+  const { daw, seed } = m;
+  const pipe = m.connected;
   const level = declarationFor(daw)[key] ?? 'unsupported';
   if (level === 'unsupported') {
     // No engine at all (resolver.go's Adapter == nil) is 'standalone'; a launched engine that simply cannot do this (macro_render
     // for REAPER, ADR 0460) is 'unsupported', checked before connection state, the same order the declaration check runs in.
     const reason = daw === 'none' ? 'standalone' : 'unsupported';
-    return { level, available: false, reason, message: explain(daw, key, reason) };
+    return { level, available: false, reason, message: explain(daw, key, reason, pipe) };
   }
-  if (level === 'not_yet_available') return { level, available: false, reason: 'not_yet', message: explain(daw, key, 'not_yet') };
+  if (level === 'not_yet_available') return { level, available: false, reason: 'not_yet', message: explain(daw, key, 'not_yet', pipe) };
   const toggle = seed.toggles?.[key] ?? 'auto';
-  if (toggle === 'off') return { level, available: false, reason: 'turned_off', message: explain(daw, key, 'turned_off') };
+  if (toggle === 'off') return { level, available: false, reason: 'turned_off', message: explain(daw, key, 'turned_off', pipe) };
   if (toggle !== 'on' && level === 'experimental' && !seed.experimentalOn) {
-    return { level, available: false, reason: 'experimental_off', message: explain(daw, key, 'experimental_off') };
+    return { level, available: false, reason: 'experimental_off', message: explain(daw, key, 'experimental_off', pipe) };
   }
+  if (!depthOf(m, key)?.destructive) {
+    for (const required of requiresOf(daw, key, trail)) {
+      const refused = permitted(m, required, [...trail, key]);
+      if (refused) return refuseFor(daw, key, level, required, refused);
+    }
+  }
+  return null;
+}
+
+/** Without depth: resolver.go's support. */
+function bareSupport(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): DawCapabilitySupport {
+  const refused = permitted(m, key, trail);
+  if (refused) return refused;
+  const { daw } = m;
+  const level = declarationFor(daw)[key] ?? 'unsupported';
   const needs = CAPABILITY_NEEDS[key];
-  if (needs !== 'nothing' && !connected) return { level, available: false, reason: 'standalone', message: explain(daw, key, 'standalone') };
-  if (needs === 'running' && !reachable) return { level, available: false, reason: 'not_running', message: explain(daw, key, 'not_running') };
+  if (needs !== 'nothing' && !m.connected) return { level, available: false, reason: 'standalone', message: explain(daw, key, 'standalone', m.connected) };
+  if (needs === 'running' && !m.reachable) return { level, available: false, reason: 'not_running', message: explain(daw, key, 'not_running', m.connected) };
+  if (!depthOf(m, key)?.destructive) {
+    for (const required of requiresOf(daw, key, trail)) {
+      const s = bareSupport(m, required, [...trail, key]);
+      if (!s.available) return refuseFor(daw, key, level, required, s);
+    }
+  }
   return { level, available: true };
+}
+
+/** `key`'s support with its depth: a destructive capability is safe while everything it requires is available (withDepth). */
+function supportFor(m: Mock, key: DawCapabilityKey): DawCapabilitySupport {
+  const declared = depthOf(m, key);
+  const requires = requiresOf(m.daw, key, []);
+  const safe = requires.length > 0 && requires.every((required) => bareSupport(m, required, [key]).available);
+  const depth = declared?.destructive && safe ? { ...declared, destructive: false } : declared;
+  return withDepth(bareSupport(m, key, []), depth);
 }
 
 /** REAPER's Describer (dawport/reaper's depthOf): a roll keeps the earlier audio as a take, a cut moves the audio to the
  * muted Cuts track, a chain on a range is take FX on a split piece that come off again, and a stack makes later reads takes and
  * moves their items to the Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive (ADR 0860
- * points 1 to 4). No other engine declares a depth yet. */
+ * points 1 to 4). Audacity's is AUDACITY_DEPTH. */
 const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = {
   punch: { mode: 'native' },
   cut_range: { mode: 'native' },
@@ -225,12 +319,12 @@ function withDepth(support: DawCapabilitySupport, depth: { destructive?: boolean
 function currentCapabilities(seed: DawMockSeed): DawCapabilities {
   const daw = seed.daw ?? 'REAPER';
   // The built-in recorder is part of the app: always there and answering (builtin.go's Runtime).
-  const connected = daw === 'Built-in' || (daw === 'REAPER' && (seed.connected ?? true));
+  const connected = daw === 'Built-in' || (daw === 'REAPER' && (seed.connected ?? true)) || (daw === 'Audacity' && (seed.connected ?? false));
   const reachable = daw === 'Built-in' || (connected && (seed.reachable ?? true));
   const capabilities: Record<string, DawCapabilitySupport> = {};
-  const declared = daw === 'REAPER' ? REAPER_DEPTH : {};
+  const mock: Mock = { daw, seed, connected, reachable };
   for (const { key } of DAW_CAPABILITIES) {
-    capabilities[key] = withDepth(supportFor(daw, key, seed, connected, reachable), seed.depth?.[key] ?? declared[key]);
+    capabilities[key] = supportFor(mock, key);
   }
   return { daw, reachable, capabilities };
 }

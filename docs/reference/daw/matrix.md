@@ -21,16 +21,16 @@ What each engine declares for each capability today. The levels are the adapters
 | `track_state` | `TrackStateReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `track_select` | `TrackSelector` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `record` | `Recorder` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
-| `punch` | `Puncher` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
+| `punch` | `Puncher` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `regions` | `RegionWriter` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
-| `takes` | `TakeSelector` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
+| `takes` | `TakeSelector` | Engine answering | Experimental | Experimental | Not reachable | Experimental |
 | `fx_chains` | `FXManager` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `silence_trim` | `SilenceTrimmer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `item_gain` | `GainAdjuster` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `render_with_fx` | `FXRenderer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `master_chain_read` | `MasterChainReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `macro_render` | `MacroRenderer` | Engine answering | Unsupported | Experimental | Not reachable | Unsupported |
-| `cut_range` | `RangeCutter` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
-| `fx_range` | `RangeFXApplier` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
-| `stack_takes` | `TakeStacker` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
+| `cut_range` | `RangeCutter` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
+| `fx_range` | `RangeFXApplier` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
+| `stack_takes` | `TakeStacker` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `backups` | `BackupKeeper` | Engine answering | Not yet available | Experimental | Not reachable | Unsupported |

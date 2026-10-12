@@ -210,3 +210,42 @@ func TestCallArgumentsAreUsable(t *testing.T) {
 	}
 	fn[0].Call([]reflect.Value{reflect.Zero(reflect.TypeFor[dawport.RecordEnded]())})
 }
+
+// needing is a fake that declares requirements (a dawport.Requirer).
+type needing struct {
+	*Fake
+	requires map[dawport.Capability][]dawport.Capability
+}
+
+func (n needing) Requires(c dawport.Capability) []dawport.Capability { return n.requires[c] }
+
+// conformance-holds-the-rule-for-every-adapter: an adapter that declares requirements names real capabilities and no cycle; one
+// that does passes.
+func TestTheSuiteHoldsTheRequiresRule(t *testing.T) {
+	build := func(requires map[dawport.Capability][]dawport.Capability) Factory {
+		return func(testing.TB) dawport.Adapter {
+			f := NewFake(dawport.KindAudacity, Levels(dawport.Experimental))
+			f.Close()
+			return needing{Fake: f, requires: requires}
+		}
+	}
+	if problems := Problems(t, build(map[dawport.Capability][]dawport.Capability{
+		dawport.CapStackTakes: {dawport.CapBackups}, dawport.CapTakes: {dawport.CapBackups},
+	})); len(problems) != 0 {
+		t.Errorf("a sound requirement graph: problems %v", problems)
+	}
+	for name, tc := range map[string]struct {
+		requires map[dawport.Capability][]dawport.Capability
+		want     string
+	}{
+		"unknown name": {map[dawport.Capability][]dawport.Capability{dawport.CapTakes: {"time_travel"}}, `takes: requires "time_travel", which is not a capability`},
+		"cycle": {map[dawport.Capability][]dawport.Capability{
+			dawport.CapTakes: {dawport.CapBackups}, dawport.CapBackups: {dawport.CapStackTakes}, dawport.CapStackTakes: {dawport.CapTakes},
+		}, "requirement cycle"},
+		"itself": {map[dawport.Capability][]dawport.Capability{dawport.CapTakes: {dawport.CapTakes}}, "requirement cycle"},
+	} {
+		if problems := Problems(t, build(tc.requires)); !containsProblem(problems, tc.want) {
+			t.Errorf("%s: problems %v, want one containing %q", name, problems, tc.want)
+		}
+	}
+}

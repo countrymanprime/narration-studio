@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { DAW_CAPABILITIES } from '../api/contracts/daw';
+import { DAW_CAPABILITIES, type DawCapabilityKey } from '../api/contracts/daw';
+import { createDawMock } from '../api/dawMock';
 import { dawCapabilitiesSchema, dawProjectStateSchema } from '../api/schemas/daw';
 import { parseWire } from '../api/wire/parseWire';
 import {
@@ -83,6 +84,30 @@ describe('the mock DAW setups', () => {
   it('mock-setups-are-data: a roll in Audacity is destructive only without backups', () => {
     expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBe(true);
     expect(DAW_SETUPS['audacity-backups'].capabilities.punch.destructive).toBeUndefined();
+  });
+
+  // goldens-and-mock-agree (SN-D83): each Audacity setup is the host's resolver over the adapter, as the mock host mirrors it: a
+  // connected Audacity with every capability switched on and backups off or on.
+  it.each([
+    ['audacity', 'off'],
+    ['audacity-backups', 'on'],
+  ] as const)('goldens-and-mock-agree: the %s setup is what the host answers with backups %s', async (id, backups) => {
+    const toggles = Object.fromEntries(DAW_CAPABILITIES.map(({ key }) => [key, key === 'backups' ? backups : 'on'])) as Record<DawCapabilityKey, 'on' | 'off'>;
+    const host = await createDawMock({ daw: 'Audacity', connected: true, toggles }).dawCapabilities();
+    expect(DAW_SETUPS[id].capabilities).toEqual(host.capabilities);
+  });
+
+  it('goldens-and-mock-agree: Audacity gains takes, stacking, cutting and an effect on words only with backups, in steps', () => {
+    for (const key of ['takes', 'stack_takes', 'cut_range', 'fx_range'] as const) {
+      expect(DAW_SETUPS.audacity.capabilities[key], key).toMatchObject({ available: false, reason: 'turned_off' });
+      expect(DAW_SETUPS.audacity.capabilities[key].message, key).toMatch(/needs Audacity backups\. Turn on Audio backups in Settings\.$/);
+      expect(DAW_SETUPS['audacity-backups'].capabilities[key], key).toMatchObject({ available: true });
+    }
+    for (const key of ['stack_takes', 'cut_range', 'fx_range'] as const) {
+      expect(DAW_SETUPS.audacity.capabilities[key].mode, key).toBe('steps');
+      expect(DAW_SETUPS['audacity-backups'].capabilities[key].mode, key).toBe('steps');
+    }
+    expect(DAW_SETUPS.audacity.capabilities.stack_takes.message).toBe('Stacking takes needs Audacity backups. Turn on Audio backups in Settings.');
   });
 
   it('ui-mirror-names-exactly-the-go-catalogue: the four edit capabilities follow macro_render, in Go order', () => {
