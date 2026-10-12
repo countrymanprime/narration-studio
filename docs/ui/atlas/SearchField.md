@@ -12,5 +12,6 @@ Storybook title: `Primitives/SearchField`. Source: `src/components/primitives/Se
 
 ## Used by
 
-- `src/components/manuscript/SearchBar.tsx`
+- `src/components/booth/reading/SpeakerChip.tsx`
+- `src/components/proof/notes/NotesPanel.tsx`
 - `src/components/storybible/Guide.tsx`

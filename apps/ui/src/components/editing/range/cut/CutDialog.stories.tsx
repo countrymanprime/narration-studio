@@ -3,7 +3,7 @@ import { expect, fn, waitFor, within } from 'storybook/test';
 import { Dialog } from '../../../primitives/Dialog';
 import { screen } from '../../../primitives/portalScreen';
 import { marksDoc } from '../../script/scriptFixtures';
-import type { RangePlan } from '../shared/rangePlan';
+import type { RangePlan } from '../common/rangePlan';
 import { DeleteButton, MuteButton, RestoreButton } from './CutButtons';
 import { CutDialog, cutTitle } from './CutDialog';
 import { locator } from './cutFixtures';

@@ -187,6 +187,18 @@ export interface DawDeleteRangeApi {
   dawDeleteRange(chapterId: string, firstToken: number, lastToken: number, mode: DawCutMode, fadeMs: number): Promise<DawResult>;
 }
 
+/** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; apps/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains
+ * on the words between the two tokens of the chapter's stored alignment, with `fadeMs` (0 to 500) at each new seam, and take it off again
+ * (ADR 0860 point 3). The host resolves the item and its project seconds itself, one item per request; an apply's chain must be one
+ * `workspaceListFXChains` lists, and a removal's a plain chain name. A capability refusal carries the capability's sentence; a fade it does
+ * not take, words not heard, words across two items and a chain REAPER does not list are refused with a sentence; a range outside the
+ * alignment (a chapter with none included) or a gone item is code `stale`. A removal from an item that does not carry the chain answers
+ * `changed: false`: the piece is a new item, which the alignment names once the chapter is checked again. */
+export interface DawFxRangeApi {
+  dawApplyFxToRange(chapterId: string, firstToken: number, lastToken: number, chainName: string, fadeMs: number): Promise<DawResult>;
+  dawRemoveFxFromRange(chapterId: string, firstToken: number, lastToken: number, chainName: string): Promise<DawResult>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */

@@ -1,0 +1,29 @@
+# The Script page's mark composer: a modal form dialog (role dialog, not alertdialog) named for the selected words, with the mark
+# type and the note labelled. The page behind it is aria-hidden.
+- /children: equal
+# The live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised from inside a
+# dialog is still announced. Under <main> they are the toast pair, the reader's line position ("¶ 1 of 24") and the zoom readout.
+- main:
+  - group "Zoom"
+  - region "Reader": /¶ 1 of \d+/
+  - alert
+  - status
+- alert
+- status
+- status
+- dialog "Rabbit":
+  - heading "Rabbit" [level=2]
+  - button "Close"
+  - text: Type
+  - combobox "Type":
+    - option "Word stress" [selected]
+    - option "Breath / pause"
+    - option "Pace"
+    - option "Emotion"
+    - option "Note"
+    - option "Query for author (tracks a reply)"
+  - text: Note (optional)
+  - textbox "Note (optional)":
+    - /placeholder: Anything you want to remember here
+  - button "Cancel"
+  - button "Save"

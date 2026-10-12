@@ -135,7 +135,7 @@ func pickupChapters(service *manuscript.Service) func() ([]pickuplist.Chapter, e
 		if err != nil {
 			return nil, nil
 		}
-		paragraphs := markupParagraphs(service)
+		paragraphs := manuscriptLines(service)
 		chapters := make([]pickuplist.Chapter, 0, len(rows))
 		for _, row := range rows {
 			id, _ := row["id"].(string)

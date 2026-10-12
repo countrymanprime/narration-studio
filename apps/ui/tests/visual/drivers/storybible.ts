@@ -1,4 +1,5 @@
 // How to reach each `storybible` state in STATE_CATALOG (see app.drivers.ts).
+import type { Page } from '@playwright/test';
 import { WIRE_ENTITIES } from '../../../src/api/mockFixtures';
 import { settlePage } from '../helpers/settle';
 import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveOnlineDictionaryKey } from './shared';
@@ -119,70 +120,60 @@ export const storybibleDrivers: Record<string, Driver> = {
     // March Hare has no pronunciation in the fixture data.
     await page.locator('tr[data-row]', { hasText: 'March Hare' }).click();
     await clickVisible(page, 'button', 'Edit this entry');
+    await page.getByRole('textbox', { name: 'How I say March Hare' }).waitFor();
   },
-  'entry-pronunciation-work': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
-    const unlock = page.getByRole('button', { name: 'Unlock entry' });
-    if (await unlock.count()) await unlock.click();
-    await clickVisible(page, 'button', 'Edit this entry');
-    await clickVisible(page, 'button', 'Pronunciation details');
-    await page.getByRole('textbox', { name: 'Your pronunciation' }).fill('ˈæ.lɪs');
-    await clickVisible(page, 'button', 'Use mine');
-    await page.getByText('Also kept:').waitFor();
-    await page.getByRole('combobox', { name: /^Pronunciation status for / }).selectOption('query_sent');
-    await page.getByRole('textbox', { name: 'Pronunciation note' }).fill('Asked the author by email.');
-    await clickVisible(page, 'button', 'Save status');
-    await page.getByText('Asked the author by email.', { exact: true }).first().waitFor();
-    await page.getByRole('button', { name: 'Save status' }).scrollIntoViewIfNeeded();
+  'entry-names-own-pronunciation': async (page) => {
+    await openForEditing(page, 'Alice');
+    const field = page.getByRole('textbox', { name: 'How I say Alice' });
+    await field.fill('AL-iss');
+    await field.press('Enter');
+    await page.getByRole('button', { name: /^Pronunciation source for Alice: Entered by me/ }).waitFor();
   },
   'alias-pronunciation-editing': async (page) => {
-    await goToPage(page, 'Story Bible');
     // White Rabbit has one alias, "Rabbit", with its own generated pronunciation in the fixture data.
-    await page.locator('tr[data-row]', { hasText: 'White Rabbit' }).click();
-    const unlock = page.getByRole('button', { name: 'Unlock entry' });
-    if (await unlock.count()) await unlock.click();
-    await clickVisible(page, 'button', 'Edit this entry');
-    // Scoped to the Aliases table, not the entity list's own "White Rabbit" row (which also matches /Rabbit/).
-    const row = page.getByRole('table', { name: 'Aliases' }).getByRole('row', { name: /Rabbit/ });
-    await row.getByRole('button', { name: 'Pronunciation details' }).click();
-    await row.getByRole('textbox', { name: 'Your pronunciation' }).fill('ˈɹæ.bɪt');
-    await row.getByRole('button', { name: 'Use mine' }).click();
-    await row.getByText('Also kept:').waitFor();
-    await row.getByRole('button', { name: 'Save status' }).scrollIntoViewIfNeeded();
+    await openForEditing(page, 'White Rabbit');
+    const field = page.getByRole('textbox', { name: 'How I say Rabbit' });
+    await field.fill('RAB-it');
+    await field.press('Enter');
+    await page.getByRole('button', { name: /^Pronunciation source for Rabbit: Entered by me/ }).waitFor();
+    await field.scrollIntoViewIfNeeded();
   },
   'entry-pronunciation-online': async (page) => {
     await saveOnlineDictionaryKey(page);
     // The "key saved" toast belongs to Settings; dismissed so it does not cover the answer this state is about.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
-    await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
-    const unlock = page.getByRole('button', { name: 'Unlock entry' });
-    if (await unlock.count()) await unlock.click();
-    await clickVisible(page, 'button', 'Edit this entry');
-    await clickVisible(page, 'button', 'Pronunciation details');
+    await openForEditing(page, 'Alice');
+    await page
+      .locator('[data-name="Alice"]')
+      .getByRole('button', { name: /Look up elsewhere/ })
+      .click();
     await page.getByRole('button', { name: /^Look up .+ online in Merriam-Webster$/ }).click();
     const answer = page.getByRole('button', { name: /^Use .+ as your pronunciation of / }).first();
     await answer.waitFor();
     await answer.evaluate((element) => element.scrollIntoView({ block: 'center' }));
   },
-  'pronunciation-queries-online-confirm': async (page) => {
+  'verification-filter': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'button', 'Pronunciation queries');
-    await page.getByRole('list', { name: 'Pronunciation queries' }).waitFor();
-    await clickVisible(page, 'button', 'Look up online…');
-    await page.getByRole('alertdialog', { name: /^Look up \d+ names? online\?$/ }).waitFor();
+    await page.getByRole('button', { name: /^Needs verification · \d+$/ }).click();
+    await page.getByRole('list', { name: 'Suggestions not in the Story Bible yet' }).waitFor();
   },
-  'pronunciation-queries': async (page) => {
+  'loose-suggestion': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'button', 'Pronunciation queries');
-    const list = page.getByRole('list', { name: 'Pronunciation queries' });
-    await list.waitFor();
-    await list
-      .getByRole('button', { name: /^Mark .+ as sent$/ })
-      .first()
-      .click();
-    await page.getByRole('status').filter({ hasText: '1 sent' }).waitFor();
+    await page.getByRole('button', { name: /^Needs verification · \d+$/ }).click();
+    await page.locator('[data-loose]').first().click();
+    await page.locator('[data-suggested]').waitFor();
+  },
+  'entry-suggestions': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.locator('tr[data-row]', { hasText: 'White Rabbit' }).click();
+    const suggested = page.locator('[data-suggested]');
+    await suggested.waitFor();
+    await suggested.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+  },
+  'import-dialog': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Import entries (CSV or JSON)' }).click();
+    await page.getByRole('dialog', { name: 'Import entries' }).waitFor();
   },
   'delete-confirm': async (page) => {
     await goToPage(page, 'Story Bible');
@@ -261,3 +252,12 @@ export const storybibleDrivers: Record<string, Driver> = {
     await page.getByText('Alice ref, Looking-Glass Ch. 1').waitFor();
   },
 };
+
+/** Opens an entry in edit mode, unlocking it first when the fixture locks it. */
+async function openForEditing(page: Page, name: string): Promise<void> {
+  await goToPage(page, 'Story Bible');
+  await page.locator('tr[data-row]', { hasText: name }).first().click();
+  const unlock = page.getByRole('button', { name: 'Unlock entry' });
+  if (await unlock.count()) await unlock.click();
+  await clickVisible(page, 'button', 'Edit this entry');
+}

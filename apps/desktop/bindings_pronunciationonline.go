@@ -53,13 +53,6 @@ func (h *Host) PronunciationOnlineLookup(word string) (string, error) {
 	return encodeBinding(h.pronunciationOnline.Lookup(h.lookupContext(), word))
 }
 
-// PronunciationOnlineLookupBatch looks every word in words up once (opt-in, after a notice). confirmedCount is the word
-// count the narrator confirmed in the notice; the Service refuses the batch unless it is exactly the number of distinct
-// words it would send.
-func (h *Host) PronunciationOnlineLookupBatch(words []string, confirmedCount int) (string, error) {
-	return encodeBinding(h.pronunciationOnline.LookupBatch(h.lookupContext(), words, confirmedCount))
-}
-
 // lookupContext is the app's context once Startup has run, so quitting cancels a lookup in flight.
 func (h *Host) lookupContext() context.Context {
 	h.mu.RLock()

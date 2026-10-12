@@ -18,4 +18,3 @@ Storybook title: `Primitives/SpeakerTag`. Source: `src/components/primitives/Spe
 ## Used by
 
 - `src/components/booth/ReaderText.tsx`
-- `src/components/manuscript/ParagraphView.tsx`

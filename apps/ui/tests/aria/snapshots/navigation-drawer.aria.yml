@@ -24,7 +24,7 @@
       - /children: equal
       - text: Prep
       - button "Script"
-      - button /Story Bible, \d+/
+      - button "Story Bible"
     - group "Record":
       - /children: equal
       - text: Record

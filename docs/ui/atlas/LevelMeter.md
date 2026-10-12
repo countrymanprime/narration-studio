@@ -24,3 +24,4 @@ Storybook title: `Primitives/LevelMeter`. Source: `src/components/primitives/Lev
 - `src/components/booth/BoothView.tsx`
 - `src/components/booth/BuiltinRecorder.tsx`
 - `src/components/booth/ReadingControlBar.tsx`
+- `src/components/booth/frame/LevelsMenu.tsx`

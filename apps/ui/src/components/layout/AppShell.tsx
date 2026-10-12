@@ -61,7 +61,7 @@ const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, req
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
 // replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
-const NAV_COUNT_KEYS: Record<string, keyof NavCounts> = { 'Story Bible': 'storyBible', Proof: 'proof', Pickups: 'pickups' };
+const NAV_COUNT_KEYS: Record<string, keyof NavCounts> = { Proof: 'proof', Pickups: 'pickups' };
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: 'Production', items: [PRODUCTION, SCHEDULE] },
   { label: 'Prep', items: [SCRIPT, STORY_BIBLE] },

@@ -16,7 +16,6 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../types';
 import { saveCreditsExpanded } from '../../manuscript/creditsExpandedStorage';
 import { TooltipProvider } from '../../primitives/Tooltip';
-import type { ScriptPage as OldScriptPage } from '../ScriptPage';
 import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
 import { DRAWER_FOCUS_DELAY_MS } from './layout/useDrawerFocus';
@@ -404,9 +403,47 @@ describe('view-state-is-one-module', () => {
   });
 });
 
+describe('deep-links-from-other-pages', () => {
+  it('#p<index> asks the reader for that paragraph and takes the hash off the address', async () => {
+    const api = createMockApi();
+    const chapters = await api.manuscriptChapters();
+    const target = chapters.find((chapter) => chapter.id !== chapters[0]!.id && (chapter.paragraphIds?.length ?? 0) > 1)!.paragraphIds![1]!;
+    const asked: string[] = [];
+    function Probe() {
+      const [pid] = useScriptView((state) => state.pendingPid);
+      if (pid && asked.at(-1) !== pid) asked.push(pid);
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={[`/script#p${target.index}`]}>
+        <ApiProvider api={api}>
+          <StudioProvider>
+            <CommandRouter>
+              <TooltipProvider>
+                <Probe />
+                <Routes>
+                  <Route path="/script" element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} projectFolder="/projects/alice" />} />
+                </Routes>
+              </TooltipProvider>
+            </CommandRouter>
+          </StudioProvider>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    await firstHeading();
+    await waitFor(() => expect(asked).toContain(target.id));
+  });
+});
+
 describe('props-match-the-old-page', () => {
-  it('takes the old ScriptPage props, so the route swap is one line', () => {
-    type Old = Parameters<typeof OldScriptPage>[0];
+  it('takes the props the old ScriptPage took, which the /script route passes (App.tsx)', () => {
+    type Old = {
+      notify: ScriptPageProps['notify'];
+      focusStoryBibleEntity: (id: string) => void;
+      goToWorkspace?: (chapterId: string) => void;
+      projectFolder: string;
+      goToBooth?: ScriptPageProps['goToBooth'];
+    };
     const same: Old = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToWorkspace: vi.fn(), projectFolder: '/p', goToBooth: vi.fn() };
     const asNew: ScriptPageProps = same;
     const back: Old = asNew;

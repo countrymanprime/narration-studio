@@ -13,7 +13,6 @@
 // is added in apps/desktop/jobs.go (see the comment on the job kinds).
 import type { FeedbackRow } from './interactionFeedback/row';
 import { appFeedback } from './interactionFeedback/app';
-import { manuscriptFeedback } from './interactionFeedback/manuscript';
 import { projectFeedback } from './interactionFeedback/project';
 import { settingsFeedback } from './interactionFeedback/settings';
 import { storyBibleFeedback } from './interactionFeedback/storyBible';
@@ -36,7 +35,6 @@ export type { FeedbackRow } from './interactionFeedback/row';
 // in two areas fails here rather than one silently replacing the other.
 const AREAS: Array<Record<string, FeedbackRow>> = [
   appFeedback,
-  manuscriptFeedback,
   projectFeedback,
   settingsFeedback,
   storyBibleFeedback,
@@ -116,9 +114,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/production/ManuscriptImport.tsx#1':
     'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
-  'src/components/script/ScriptPage.tsx#1':
-    'Renders the Opening credits pseudo-entry preview; a failed render just leaves that entry showing "Nothing to preview yet." rather than a toast over the manuscript itself.',
-  'src/components/script/ScriptPage.tsx#2': 'Renders the Closing credits pseudo-entry preview; same fallback as the opening one above.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
@@ -211,7 +206,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
   'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothData.ts#4': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
-  'src/components/booth/page/useBoothData.ts#5': 'The prep marks only underline words; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };

@@ -31,7 +31,6 @@ import { providerGoldens } from './providers';
 import { renderEncodeMasterGoldens } from './renderEncodeMaster';
 import { masteringGoldens } from './mastering';
 import { recordingGoldens } from './recording';
-import { prepMarkupGoldens } from './prepMarkup';
 import { bookmarksGoldens } from './bookmarks';
 import { passageMapGoldens } from './passageMap';
 import { editLogGoldens } from './editLog';
@@ -44,7 +43,6 @@ import { productionGoldens } from './production';
 import { pronunciationOnlineGoldens } from './pronunciationOnline';
 import { pronunciationSourcesGoldens } from './pronunciationSources';
 import { takeEvidenceGoldens } from './takeEvidence';
-import { prepCompletenessGoldens } from './prepCompleteness';
 
 const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   systemGoldens,
@@ -76,7 +74,6 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   renderEncodeMasterGoldens,
   masteringGoldens,
   recordingGoldens,
-  prepMarkupGoldens,
   bookmarksGoldens,
   passageMapGoldens,
   editLogGoldens,
@@ -89,7 +86,6 @@ const FEATURE_AREAS: Array<Record<string, z.ZodType>> = [
   pronunciationOnlineGoldens,
   pronunciationSourcesGoldens,
   takeEvidenceGoldens,
-  prepCompletenessGoldens,
 ];
 
 /** Which schema owns each golden file, over every feature area. */

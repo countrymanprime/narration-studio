@@ -28,7 +28,6 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 	"github.com/countrymanprime/narration-utils/shell/internal/pickuplist"
-	"github.com/countrymanprime/narration-utils/shell/internal/prepmarkup"
 	"github.com/countrymanprime/narration-utils/shell/internal/preview"
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
@@ -635,9 +634,9 @@ func (s *Service) Clear() error {
 	if err := resetDerived(project); err != nil {
 		return err
 	}
-	// Script markup is kept through a re-import, where an unchanged line keeps its marks and a
-	// changed one shows them as stale; only this explicit clear removes it.
-	if err := os.RemoveAll(prepmarkup.File(project)); err != nil {
+	// The old script markup file (prep/markup.json) is no longer read since marks replaced it (ADR 0792); an explicit clear still
+	// removes it with the rest of the project's data.
+	if err := os.RemoveAll(filepath.Join(project, "narration-utils", "prep", "markup.json")); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
 	return os.RemoveAll(filepath.Join(project, "narration-utils", "manuscript"))

@@ -3,7 +3,7 @@
 # default checkbox only where Narrator is asked, the "More fields" sentence naming what else was detected, and the
 # three dismissal actions (Don't ask for this project, Not now, Save). The page behind it is aria-hidden.
 - /children: equal
-# The two toast live regions stay in the tree on purpose (see dialog-add-note.aria.yml).
+# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
 - main:
   - alert
   - status

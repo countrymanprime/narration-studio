@@ -1,7 +1,5 @@
-// The script markup layer (ADR 0382): stress, pause and character-tag spans the narrator places
-// on the reader's text, kept in the project's narration-utils/prep/markup.json (apps/desktop/internal/prepmarkup) and
-// checked against the chapter's current text on every read, so a span over words that changed comes back stale rather
-// than drawn on the wrong ones.
+// The old script markup layer's span (ADR 0382): stress, pause and character-tag spans on the reader's text. The host no longer reads
+// or writes them (marks replaced them, ADR 0792); the type stays for the Booth's side panel, which draws spans until its swap (SNO-10).
 
 export type PrepMarkupKind = 'stress' | 'pause' | 'character_tag';
 
@@ -33,12 +31,3 @@ export type PrepMarkupSpan = {
 };
 
 export type PrepMarkupChapter = { chapterId: string; spans: PrepMarkupSpan[] };
-
-export interface PrepMarkupApi {
-  /** A chapter's spans in text order, each checked against the chapter's current text. */
-  prepMarkupList(chapterId: string): Promise<PrepMarkupChapter>;
-  /** Places one span; whitespace at either edge of the range is left out. The same mark placed twice is kept once. */
-  prepMarkupSave(chapterId: string, paragraphId: string, start: number, end: number, kind: PrepMarkupKind, value: string): Promise<PrepMarkupSpan>;
-  /** Removes one span by id; a stale span needs nothing else. */
-  prepMarkupDelete(chapterId: string, id: string): Promise<void>;
-}

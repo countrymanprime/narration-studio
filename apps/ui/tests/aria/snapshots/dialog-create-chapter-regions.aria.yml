@@ -2,7 +2,7 @@
 # credits-track selects, a named table of the planned regions, a "Not planned" list of chapters still missing a track link
 # (matched partially), a confirmation checkbox and Create N regions. The page behind it is aria-hidden.
 - /children: equal
-# The two toast live regions stay in the tree on purpose (see dialog-add-note.aria.yml); empty here.
+# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); empty here.
 - main:
   - alert
   - status

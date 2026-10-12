@@ -2,8 +2,7 @@
 // with its five tabs, drawers at narrower widths, the empty state, and the credits cards re-homed from the old page. It assembles the
 // pieces of SN-B741..SN-B762 and the bookmarks of SN-B62 over the data layer of SN-B70; it holds no host data of its own. The selected
 // mark, the tab, the word, the entry, Find and the drawer are the SN-B70 view module's; the bookmark gone to is the page's own, as the
-// view module leaves bookmarks out. It takes the old `ScriptPage`'s props, so SN-B8 swaps the route to it in one line; until then it
-// has no route.
+// view module leaves bookmarks out. The `/script` route mounts it (App.tsx, SN-B8).
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +37,7 @@ import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
 import { ScriptCredits } from './layout/ScriptCredits';
 import { SpeakerLayer } from './layout/SpeakerLayer';
+import { useDeepLink } from './layout/useDeepLink';
 import { useLoadedParagraphs } from './layout/useLoadedParagraphs';
 import { Reader } from './reader/Reader';
 import { BibleTab } from './rail/bible/BibleTab';
@@ -92,7 +92,7 @@ export function ScriptPage(props: ScriptPageProps) {
   if (listable.length === 0) return <NeedManuscript title="Script" onImport={() => navigate('/')} />;
   return (
     <CommandScope kind="page">
-      <ScriptWorkspace {...props} chapters={listable} />
+      <ScriptWorkspace {...props} chapters={listable} allChapters={chapters.value} />
     </CommandScope>
   );
 }
@@ -108,7 +108,14 @@ type BookmarkPlace = {
 const NO_PLACE: BookmarkPlace = { at: null, pending: null, flash: null };
 const NO_BOOKMARKS: readonly Bookmark[] = [];
 
-function ScriptWorkspace({ chapters, notify, focusStoryBibleEntity, projectFolder, goToBooth }: ScriptPageProps & { chapters: readonly ManuscriptChapter[] }) {
+function ScriptWorkspace({
+  chapters,
+  allChapters,
+  notify,
+  focusStoryBibleEntity,
+  projectFolder,
+  goToBooth,
+}: ScriptPageProps & { chapters: readonly ManuscriptChapter[]; allChapters: readonly ManuscriptChapter[] }) {
   const navigate = useNavigate();
   const layout = useLayoutClass();
   const marks = useMarks();
@@ -194,6 +201,12 @@ function ScriptWorkspace({ chapters, notify, focusStoryBibleEntity, projectFolde
   };
   const toggleDrawer = (which: 'ch' | 'rail') => update((state) => ({ drawer: state.drawer === which ? null : which }));
   const goToChapter = useCallback((chapterId: string) => update({ pendingJump: chapterId, drawer: null }), [update]);
+  const goToLink = useCallback(
+    ({ chapterId, paragraphId }: { chapterId: string; paragraphId?: string }) =>
+      update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null }),
+    [update],
+  );
+  useDeepLink({ chapters: allChapters, goTo: goToLink, notify });
 
   /* ---------- Bookmarks ---------- */
 
@@ -443,6 +456,8 @@ function ScriptWorkspace({ chapters, notify, focusStoryBibleEntity, projectFolde
             onMouseUp={() => setSelection(getSelection())}
             onKeyUp={(event) => event.shiftKey && setSelection(getSelection())}
           >
+            {/* The mock draws no page title: the reader is the page, so the title is for screen readers only, as the Booth's. */}
+            <h1 className="sr-only">Script</h1>
             <FindBar
               find={find.find}
               nonce={find.nonce}

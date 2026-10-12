@@ -34,9 +34,6 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   'src/components/booth/side/VoicesNearby.tsx': { chip: 1, owner: 'alias chip, #1119' },
   // The script document's inline insertion marker (SN-E3): a mono pill drawn inside running text, which `Badge` has no inline form for.
   'src/components/editing/script/Word.tsx': { chip: 1, owner: 'inline marker, #1119' },
-  // Not a copy to migrate: the script mark's character tag is CSS generated content (`before:`), never an element, so the
-  // selection offsets see only the manuscript's text (ADR 0382); it is sized in em to ride the reading text.
-  'src/components/manuscript/MarkupMark.tsx': { tag: 1, owner: 'none: generated content, ADR 0382' },
 };
 
 const DOT_SIZES = new Set(['size-1.5', 'size-2', 'size-[6px]', 'size-[7px]', 'size-[8px]', 'size-[0.5rem]']);

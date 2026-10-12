@@ -35,6 +35,8 @@ export function PickupSession({
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
         {session.lines.map((line) => {
           const automatic = line.source === 'speech';
+          // Dim a recorded line with the muted text colour, not opacity: opacity-60 left the text at 4.28:1, under AA.
+          const dim = line.done && line.id !== session.at ? 'text-[var(--text-muted)]' : '';
           return (
             <li key={line.id} className="flex items-center gap-1">
               <Button
@@ -43,10 +45,10 @@ export function PickupSession({
                 data-pj={line.id}
                 aria-current={line.id === session.at ? 'true' : undefined}
                 onClick={() => session.jump(line.id)}
-                className={`min-w-0 flex-1 justify-start text-left ${line.done ? 'text-[var(--text-muted)]' : ''}`}
+                className="min-w-0 flex-1 justify-start text-left"
               >
-                <span className="font-mono text-xs font-normal whitespace-nowrap normal-case">{rowLabel(line, chapterLabel)}</span>
-                <span className="min-w-0 flex-1 truncate font-normal normal-case">{line.script}</span>
+                <span className={`font-mono text-xs font-normal whitespace-nowrap normal-case ${dim}`}>{rowLabel(line, chapterLabel)}</span>
+                <span className={`min-w-0 flex-1 truncate font-normal normal-case ${dim}`}>{line.script}</span>
                 {automatic ? <span className="text-xs font-normal normal-case">Automatic</span> : null}
                 {line.done ? <span aria-hidden="true">✓</span> : null}
                 {line.done ? <span className="sr-only">Recorded</span> : null}

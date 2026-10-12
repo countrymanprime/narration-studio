@@ -131,7 +131,7 @@ describe('AppShell grouped navigation', () => {
   // SN-P8 (schedule-route-and-rail-item): the Studio Next rail has Schedule after Production in the Production group, with no count.
   it('schedule-route-and-rail-item: lists Production then Schedule in the Production group, Schedule with no count, and opens /schedule', () => {
     const navigate = vi.fn();
-    renderShell({ navigate, navCounts: { storyBible: 1, proof: 2, pickups: 3 } });
+    renderShell({ navigate, navCounts: { proof: 2, pickups: 3 } });
     const group = screen.getAllByRole('group', { name: 'Production' })[0];
     expect(
       within(group)
@@ -302,15 +302,15 @@ describe('AppShell rail', () => {
     expect(container.textContent).not.toContain('Console');
   });
 
-  it('draws a count badge on Story Bible, Proof and Pickups only when it is given one', () => {
-    renderShell({ navCounts: { storyBible: 3, proof: 14, pickups: 9 } });
-    expect(screen.getByRole('button', { name: 'Story Bible, 3' })).toBeTruthy();
+  it('draws a count badge on Proof and Pickups only when it is given one, and none on Story Bible', () => {
+    renderShell({ navCounts: { proof: 14, pickups: 9 } });
+    expect(screen.queryByRole('button', { name: /Story Bible, / })).toBeNull();
     expect(screen.getByRole('button', { name: 'Proof, 14' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Pickups, 9' })).toBeTruthy();
   });
 
   it('draws no badge for a count that is missing or zero, and never on the other items', () => {
-    renderShell({ navCounts: { storyBible: 0, proof: undefined } });
+    renderShell({ navCounts: { proof: undefined } });
     expect(screen.queryByRole('button', { name: /Story Bible, / })).toBeNull();
     expect(screen.queryByRole('button', { name: /Proof, / })).toBeNull();
     expect(screen.queryByRole('button', { name: /Pickups, / })).toBeNull();

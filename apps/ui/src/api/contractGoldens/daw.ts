@@ -1,5 +1,5 @@
 // The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
-// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
+// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
@@ -32,4 +32,9 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-delete-range-gap.json': dawResultSchema,
   'daw-delete-range-refused-stale.json': dawResultSchema,
   'daw-delete-range-refused-capability.json': dawResultSchema,
+  // DawApplyFxToRange and DawRemoveFxFromRange (bindings_daw_fx_range_test.go): a chain put on one word and taken off (one undo step each),
+  // and the capability's refusal.
+  'daw-apply-fx-range-done.json': dawResultSchema,
+  'daw-apply-fx-range-refused.json': dawResultSchema,
+  'daw-remove-fx-range-done.json': dawResultSchema,
 };
