@@ -16,6 +16,7 @@ import {
   nothingToStackAnswer,
   rangeCutAnswer,
   rolledAnswer,
+  takeSplitAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
@@ -2980,6 +2981,36 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.stack_takes.message);
   });
 
+  it('dawSplitTake answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-split-take-done.json', 'daw-split-take-refused-stale.json', 'daw-split-take-refused-capability.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-split-take-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: takeSplitAnswer('REAPER') });
+    expect(readGolden('daw-split-take-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+    expect(readGolden('daw-split-take-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+    expect(readGolden('daw-split-take-refused-capability.json')).not.toHaveProperty('code');
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { takes: 'on' } } });
+    const split = await api.dawSplitTake(chapter.id, 'take-twice', 15.5);
+    expectMatches(dawResultSchema, split, 'mock split');
+    expect(split).toEqual(readGolden('daw-split-take-done.json'));
+    for (const [chapterId, takeId, at] of [
+      [chapter.id, '{11111111-1111-4111-8111-111111111111}', 15.5],
+      ['no-such-chapter', 'take-twice', 15.5],
+      [chapter.id, 'take-twice', 20],
+    ] as const) {
+      const stale = await api.dawSplitTake(chapterId, takeId, at);
+      expectMatches(dawResultSchema, stale, 'mock split, stale');
+      expect(stale).toMatchObject({ ok: false, code: 'stale' });
+    }
+    expect((await api.dawSplitTake(chapter.id, 'take-twice', -1)).refused).toBe(DAW_ANSWERS.splitBadTime);
+
+    const off = await createMockApi().dawSplitTake(chapter.id, 'take-twice', 15.5);
+    expectMatches(dawResultSchema, off, 'mock split, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.takes.message);
+  });
+
   it('backups.json (the Audacity backups table the host reads back) parses from the Go goldens, and the schema refuses what the host refuses', () => {
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-empty.json'), 'daw-backups-empty.json');
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-two.json'), 'daw-backups-two.json');
@@ -3642,6 +3673,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawRemoveFxFromRange',
       'dawStackTakes',
       'dawUnstackTakes',
+      'dawSplitTake',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',

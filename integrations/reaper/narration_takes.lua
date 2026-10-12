@@ -43,8 +43,20 @@
 -- every later item on the track out again, and moves each read back to its track and time. Answers
 -- TAKES_UNSTACKED|run|groups|takes|shift|undoPoints.
 --
+-- split_take(run, item GUID, take GUID, at) makes a take that reads its line twice into two takes of one item (the
+-- duplicate read's "Stack as 2 takes"). `at` is the cut in seconds into the project, a plain decimal number. The item
+-- and take are resolved by GUID as hide_takes resolves them; a GUID that does not resolve, a take not on the item, or a
+-- cut not strictly inside the item (it moved or changed length since the app read it) answers ITEM_STALE and changes
+-- nothing. An item with more than one take, a fixed-lane track, a MIDI take, a changed playback rate, a second read
+-- longer than the first (every take plays for the item's length, so its end would be lost) or a file not on disk
+-- answers ERROR. Then, in one undo block, a new take plays the same file from the cut (its D_STARTOFFS moved on by the
+-- cut), its P_EXT records the item, take and cut offset, and the item ends at the cut. The first read stays the active
+-- take, nothing is deleted or re-sourced, and no other item moves: where the second read was is left empty. Answers
+-- TAKE_SPLIT|run|item guid|take guid|new take guid|at|undoPoints.
+--
 -- Pending in REAPER (the QA pass, #1495): that a stack with moves to another track is one undo step, that a take's
--- P_EXT and source survive save, and that SetItemStateChunk without a take's lines removes only that take.
+-- P_EXT and source survive save, and that SetItemStateChunk without a take's lines removes only that take; for
+-- split_take, that the new take plays the second read on the first read's spot and one Undo puts the take back whole.
 
 local core = ...
 local event = core.event
@@ -724,6 +736,73 @@ local function unstack_takes(session_dir, run_id, payload_path)
   event(session_dir, 'TAKES_UNSTACKED', run_id, #plan.groups, plan.takes, string.format('%.3f', plan.total), 1)
 end
 
+-- split_take ------------------------------------------------------------------------------------------------------
+
+local UNDO_SPLIT = 'Narration Utils: split take'
+-- What the new take records: the item and take it was cut from and the cut's offset from the item's start, '|'-separated.
+local SPLIT_KEY = 'P_EXT:narration_utils_split_from'
+local SPLIT_UNREADABLE = 'The split request is not readable, so nothing changed.'
+
+local function split_take(session_dir, run_id, item_text, take_text, at_text)
+  local at = seconds_field(at_text)
+  if not at or at < 0 then
+    event(session_dir, 'ERROR', run_id, SPLIT_UNREADABLE)
+    return
+  end
+  local needed = { 'AddTakeToMediaItem', 'PCM_Source_CreateFromFile', 'SetMediaItemTake_Source' }
+  if not stack_ready(session_dir, run_id, needed, 'This REAPER version cannot split a take.') then
+    return
+  end
+  local item, take, stale, reason = resolve(item_text, take_text)
+  if not item then
+    event(session_dir, 'ITEM_STALE', run_id, stale, reason)
+    return
+  end
+  local function refuse(sentence)
+    event(session_dir, 'ERROR', run_id, sentence)
+  end
+  local first, length = position_of(item), length_of(item)
+  local cut = at - first
+  -- A cut at either end, or outside, is a time the app read before the item moved or changed length.
+  if cut <= EDGE_TOLERANCE or cut >= length - EDGE_TOLERANCE then
+    event(session_dir, 'ITEM_STALE', run_id, item_guid(item), 'item')
+    return
+  end
+  if reaper.CountTakes(item) ~= 1 then
+    return refuse('That item already has more than one take, so nothing was split.')
+  end
+  if reaper.GetMediaTrackInfo_Value(reaper.GetMediaItem_Track(item), 'I_FREEMODE') == 2 then
+    return refuse('This track uses fixed item lanes, so its take cannot be split into takes.')
+  end
+  if reaper.TakeIsMIDI(take) then
+    return refuse('A MIDI take cannot be split into takes.')
+  end
+  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then
+    return refuse('A take with a changed playback rate cannot be split into takes.')
+  end
+  -- Every take plays for the item's length: a second read longer than the first would lose its end.
+  if length - cut > cut + EDGE_TOLERANCE then
+    return refuse('The second read is longer than the first, so it cannot be one of its takes. Nothing was split.')
+  end
+  local file = reaper.GetMediaSourceFileName(reaper.GetMediaItemTake_Source(take), '')
+  if not file or file == '' or not core.file_exists(file) then
+    return refuse('The audio file of that take is missing, so nothing was split.')
+  end
+  local startoffs = reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS')
+
+  reaper.Undo_BeginBlock2(0)
+  local added = reaper.AddTakeToMediaItem(item)
+  reaper.SetMediaItemTake_Source(added, reaper.PCM_Source_CreateFromFile(file))
+  reaper.SetMediaItemTakeInfo_Value(added, 'D_STARTOFFS', startoffs + cut)
+  local record = string.format('%s|%s|%.6f', item_guid(item), take_guid(take), cut)
+  reaper.GetSetMediaItemTakeInfo_String(added, SPLIT_KEY, record, true)
+  reaper.SetMediaItemInfo_Value(item, 'D_LENGTH', cut)
+  reaper.UpdateItemInProject(item)
+  reaper.Undo_EndBlock2(0, UNDO_SPLIT, -1)
+  reaper.UpdateArrange()
+  event(session_dir, 'TAKE_SPLIT', run_id, item_guid(item), take_guid(take), take_guid(added), string.format('%.3f', at), 1)
+end
+
 return function(registry)
   registry.register('hide_takes', function(ctx, args)
     hide_takes(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
@@ -733,5 +812,8 @@ return function(registry)
   end)
   registry.register('unstack_takes', function(ctx, args)
     unstack_takes(ctx.session_dir, args[1] or '', args[2] or '')
+  end)
+  registry.register('split_take', function(ctx, args)
+    split_take(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
   end)
 end
