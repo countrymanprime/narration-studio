@@ -16,8 +16,8 @@ makes a take active, moves or deletes audio, or ranks the reads.
 Since the Proof swap (SN-Q9, 2026-10-12) no page starts a scan, lists a group's reads or offers Add as take: the scan
 dialog and the reads list were deleted with the old Proof notes page, and the take suggestion belongs to Editing (DQ-15 in
 the [Studio Next Proof and Pickups PRD](../prds/studio-next-proof-and-pickups.prd.md#decisions)). The host side below is
-unchanged. A pickup read an earlier scan set beside a paragraph is a card in the chapter view's
-[Takes panel](../guides/using-the-app/proof.md#choosing-between-takes), where Compare and Use this take work. The steps the
+unchanged. A pickup read an earlier scan set beside a paragraph is one of that line's
+[takes on Editing](../guides/using-the-app/editing.md#takes), where Keep take makes it the one that plays. The steps the
 host supports:
 
 1. The scan (`TakeReviewScanStart`) takes the chapter track and at most one pickup addition, a pickup track or a stretch
