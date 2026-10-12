@@ -192,8 +192,15 @@ side of the page: the verdict in a sentence, each check with its state and reaso
 REAPER project it was read from. **Confirm** moves the chapter to the next stage and records what
 the evidence was, with **Revert** to move it back; **Dismiss** hides the suggestion until the
 evidence changes. **Check now** reads the evidence again; it never starts a check. The readiness is
-read again when the page opens, when a recording check ends, and when you switch back to the app
-after saving in REAPER.
+read again when the page opens, after an import, when a recording check ends, after you change a
+status by hand, and when you switch back to the app after saving in REAPER (at most every 30
+seconds).
+
+If the evidence changes after you confirmed and a check that was met no longer is, the chapter says
+the evidence changed since you confirmed and offers **Revert**; nothing moves on its own. If the
+evidence changed while you were looking at it, Confirm and Dismiss are refused with a message and the
+readiness is read again. If it cannot be read at all, every chapter says **Couldn't check**, with
+the reason and **Try again** above the table.
 
 ![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 
@@ -233,16 +240,28 @@ row at once; a row you changed by hand keeps your choice.
 
 The message at the top says what was found: the format, the number of paragraphs and of narration
 chapters, then how many front matter and reference sections, character suggestions and repairs the
-importer made. Below it the sections are grouped by what each will be: **Narration chapters**,
+importer made. Only narration chapters, the sections that become audiobook chapters, count as
+chapters. When you are replacing a manuscript, the first line also says what will be cleared.
+Below it the sections are grouped by what each will be: **Narration chapters**,
 **Front matter** and **Reference material**. Change a row's kind and it moves to its new group at
-once, and the counts follow. The small "i" next to Front matter and Reference material says what
+once, the group it moved into opens, the kind menu keeps the keyboard focus in its new place, and
+the counts follow. The small "i" next to Front matter and Reference material says what
 that kind is left out of (the audiobook totals and Proof, and for reference material the chapter
-list too) and that it stays readable in the manuscript. Groups that need a decision start open, and
-long lists of chapters the importer got right start closed; open or close any group with its
-heading. The character suggestions have Select all and Select none. If the importer had to
-repair a heading (a title and a subtitle that were run together), the repairs are listed at the
-end. The **Import options** group holds the subtitle option, the choice to build the Story Bible
-after import, and, for a Markdown file, the chapter heading level.
+list too) and that it stays readable in the manuscript. Groups that need a decision start open:
+front matter, reference material, the character suggestions once you uncheck one, and up to three
+repairs. More than eight narration chapters start closed, since a long list the importer got right
+needs no decision. Open or close any group with its heading. The character suggestions have Select
+all and Select none. If the importer had to repair a heading (a title and a subtitle that were run
+together), the repairs are listed at the end.
+
+The **Import options** group holds, for a Markdown file, the chapter heading level (choosing another
+level reads the file again and drops the choices you made for the old sections), then the subtitle
+option, then **Build the Story Bible after import**. That box starts checked; the default is in
+[Settings](settings.md), under Story Bible. With it checked, the import dialog closes once the import has finished and the Story
+Bible build starts in its own dialog, which you can leave running in the background. A build that
+fails never undoes the import. The build is most of the wait: on one test machine, about 6 seconds
+for a 26,000-word book and about 15 for a 79,000-word novel, against well under a second for the
+import itself.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the

@@ -5,7 +5,7 @@ import "github.com/countrymanprime/narration-utils/shell/internal/marks"
 // A mark's thread: replies after the mark's own text, each by the narrator ("you"), the author or the proofer, with the
 // host's time. Each call is one command the UI journals with its inverse: a reply's is deleting the last message, an edit's
 // is an edit back, a delete's is MarksRestoreMessage at the same index, and resolve and reopen undo each other
-// (docs/architecture/script-marks.md).
+// (docs/reference/script-marks.md).
 
 // MarksReply adds a message to the end of a mark's thread and returns the mark. who is "you", "author" or "proofer"; an empty
 // reply is refused.

@@ -196,7 +196,7 @@ func TestEBUTech3341SignalsSynthesisedFromTable1(t *testing.T) {
 // TestEBULoudnessTestSet measures the official EBU loudness test set against
 // the published tolerances. It runs only when NARRATION_EBU_DIR names the
 // unpacked set; see testdata/ebu/README.md. Run it with -v to get the lines
-// to record in docs/architecture/delivery-measurement-validation.md.
+// to record in docs/research/delivery-measurement-validation.md.
 func TestEBULoudnessTestSet(t *testing.T) {
 	dir := os.Getenv(ebuDirEnv)
 	if dir == "" {

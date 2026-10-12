@@ -85,7 +85,7 @@ export type ExtractionScanJob = {
   skipped: number;
 };
 
-/** The import formats (docs/architecture/storybible-import-format.md). */
+/** The import formats (docs/reference/storybible-import-format.md). */
 export const IMPORT_FORMATS = ['csv', 'json'] as const;
 export type ImportFormat = (typeof IMPORT_FORMATS)[number];
 export const IMPORT_RECORDS = ['entry', 'property', 'relationship', 'claim', 'speaker'] as const;

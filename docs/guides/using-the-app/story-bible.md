@@ -67,6 +67,14 @@ voice. It only works once a pronunciation exists: with none, the button is dimme
 before it downloads the voice. If the preview fails, the message says why, and pressing play
 again tries again; a failed run never leaves a broken recording behind.
 
+| The message says | What happened, and what to do |
+| --- | --- |
+| "… could not be spoken: the voice produced no audio for it." | The name is only punctuation or symbols. Give it a pronunciation the voice can say. |
+| "The preview voice could not be loaded (…)." | The voice's files did not load. In [Settings, Local assets](settings.md#local-assets), Verify and Repair it, or remove it and install it again. |
+| "The preview could not be saved (…)." | The recording could not be written. Close anything that has the file open and try again. |
+| "The preview took longer than 2m0s and was stopped" | The voice did not answer in time; the first preview after starting the app is the slow one. Try again, and restart the app if it keeps happening. |
+| The question about downloading the voice | The voice is not installed yet. |
+
 ## Generating and replacing a pronunciation
 
 In edit mode, a name with no pronunciation shows a **+** button beside it; press it and choose the

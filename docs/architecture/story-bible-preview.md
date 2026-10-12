@@ -1,6 +1,6 @@
 # Story Bible preview (hearing a name)
 
-The play button beside a Story Bible name, or beside one of its aliases, speaks it with the local Piper preview voice. This page is how that path works and how it fails. The narrator-facing troubleshooting table is in the [Story Bible guide](../guides/using-the-app/story-bible.md#hearing-a-name).
+The play button beside a Story Bible name, or beside one of its aliases, speaks it with the local Piper preview voice. This page is how that path works and how it fails. The messages the narrator sees, and what to do about each, are in the [Story Bible guide](../guides/using-the-app/story-bible.md#hearing-a-name).
 
 ## The path
 
@@ -21,15 +21,7 @@ The play button beside a Story Bible name, or beside one of its aliases, speaks 
 
 ## Messages
 
-| Message | Cause |
-| --- | --- |
-| `"…" could not be spoken: the voice produced no audio for it.` | The name is only punctuation or symbols. |
-| `The preview voice could not be loaded (…). If its files are damaged, remove it in Settings and install it again.` | The model or its config did not load (Settings > Local assets can also Verify and Repair it). |
-| `The preview could not be saved (…). Close anything that has the file open and try again.` | The WAV could not be written or renamed. |
-| `the preview took longer than 2m0s and was stopped; try again, and restart the app if it keeps happening` | The deadline. |
-| the asset-required question | The voice is not installed. |
-
-The toast has no details area, so each message carries one cause line with the raw reason inside it. The UI drops an `Error:` prefix and capitalizes the first letter.
+Each failure is one toast message: the cause in a sentence with the raw reason inside it, since the toast has no details area. The UI drops an `Error:` prefix and capitalizes the first letter. The messages and what the narrator does about each are in the [Story Bible guide](../guides/using-the-app/story-bible.md#hearing-a-name).
 
 ## Tests
 
