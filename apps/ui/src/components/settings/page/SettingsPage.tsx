@@ -9,6 +9,7 @@ import { DefinitionsPanel } from './DefinitionsPanel';
 import { DeliveryProfileField } from './DeliveryProfileField';
 import { KeysPanel } from './KeysPanel';
 import { MarksPanel } from './MarksPanel';
+import { ReaderTextPanel } from './ReaderTextPanel';
 import { RecordingPanel } from './RecordingPanel';
 import { StoryBibleTypesPanel } from './StoryBibleTypesPanel';
 
@@ -17,8 +18,8 @@ registerSettingsSection('Daw', 'backups', BackupsSection, 20);
 
 /**
  * The Studio Next Settings page, at `/settings`: an 860 px column of the mock's panels the repo can back (Recording, Delivery profile,
- * Definitions and pronunciations, Marks, Story Bible types, Appearance, Keyboard shortcuts, Manuscript), then `Settings` trimmed to the
- * categories the mock does not cover. The mock's Reader text panel has no host model yet, and the capability, backups and analysis
+ * Definitions and pronunciations, Reader text, Marks, Story Bible types, Appearance, Keyboard shortcuts, Manuscript), then `Settings` trimmed to the
+ * categories the mock does not cover. The capability, backups and analysis
  * sections mount in the kept DAW and Story Bible categories through `sections.ts`. `initialCategory` (a `#credits`, `#delivery`,
  * `#cleanup` or `#booth` link) opens that kept category and scrolls to it.
  */
@@ -36,6 +37,7 @@ export function SettingsPage(props: ComponentProps<typeof Settings>) {
       <RecordingPanel />
       <DeliveryProfileField />
       <DefinitionsPanel />
+      <ReaderTextPanel />
       <MarksPanel />
       <StoryBibleTypesPanel />
       <AppearancePanel />
