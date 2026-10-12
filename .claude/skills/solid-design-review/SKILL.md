@@ -37,4 +37,4 @@ A valid waiver names the principle, the concrete cost of complying and what woul
 
 ## What this skill is not
 
-The behaviour the app promises is in `design-principles`. It is not a style guide and does not replace code review. It does not demand an interface for every type: a principle that adds indirection with no second implementation, test seam or boundary to justify it is a valid waiver.
+The behaviour the app promises is in [the design principles](../../../docs/architecture/principles.md), checked with `design-principles`. It is not a style guide and does not replace code review. It does not demand an interface for every type: a principle that adds indirection with no second implementation, test seam or boundary to justify it is a valid waiver.

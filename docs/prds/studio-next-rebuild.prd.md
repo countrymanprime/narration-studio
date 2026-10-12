@@ -483,7 +483,7 @@ Pass 1 of `solid-design-review` and `design-principles` for the whole series, wr
 
 ## Principles check
 
-| Principle (`design-principles`) | Series answer | Status |
+| Principle ([design principles](../architecture/principles.md)) | Series answer | Status |
 | --- | --- | --- |
 | 1. Findings suggest; the narrator decides | Extraction, speech flags and take suggestions are offered with evidence; nothing applies without a click (SNX, SNQ, SNE) | Met |
 | 2. No download or project change without a click | BookNLP and GLiNER are optional downloads, asked on first use or in Settings (SNX) | Met |

@@ -63,4 +63,4 @@ Skip it for a typo or a change inside one function that no ADR names.
 
 ## What this skill is not
 
-It does not decide whether a change is acceptable; the ADRs and the owner do. It does not summarise principles (`design-principles` does) or check a UI change against the design system (`design-spec-guard` does, and starts from this skill's lists).
+It does not decide whether a change is acceptable; the ADRs and the owner do. It does not summarise principles ([the design principles](../../../docs/architecture/principles.md) do) or check a UI change against the design system (`design-spec-guard` does, and starts from this skill's lists).
