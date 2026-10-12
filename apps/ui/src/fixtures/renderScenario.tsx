@@ -2,6 +2,8 @@ import { render, type RenderResult } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { ApiProvider } from '../api/ApiContext';
 import { createMockApi } from '../api/mockApi';
+import { CommandRouter } from '../input/router';
+import { ThemeProvider } from '../theme/ThemeContext';
 import type { NarrationApi } from '../types';
 import type { Scenario } from './scenario';
 
@@ -12,5 +14,20 @@ import type { Scenario } from './scenario';
 export function renderScenario(scenario: Scenario, ui: ReactElement | ((api: NarrationApi) => ReactElement)): RenderResult & { api: NarrationApi } {
   const api = createMockApi({}, scenario.seed);
   const result = render(<ApiProvider api={api}>{typeof ui === 'function' ? ui(api) : ui}</ApiProvider>);
+  return { ...result, api };
+}
+
+// The app (passed in: a fixture does not import it) at one route over a scenario, with the providers main.tsx mounts (theme, API, command router). BrowserRouter
+// reads window.location, so the route is set there first; the caller resets it between cases.
+export function renderScenarioApp(scenario: Scenario, route: string, app: ReactElement): RenderResult & { api: NarrationApi } {
+  window.history.replaceState(null, '', route);
+  const api = createMockApi({}, scenario.seed);
+  const result = render(
+    <ThemeProvider>
+      <ApiProvider api={api}>
+        <CommandRouter>{app}</CommandRouter>
+      </ApiProvider>
+    </ThemeProvider>,
+  );
   return { ...result, api };
 }
