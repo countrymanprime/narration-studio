@@ -1,4 +1,4 @@
-"""capture_dshow.py (provider-ports P11): the dshow backend passes the capture port's conformance suite, and its
+"""capture_dshow.py (ADR 0301): the dshow backend passes the capture port's conformance suite, and its
 list_devices() reaches the narrator through the very fake ffmpeg log capture test_devices.py's own tests use (see
 there for the parsing itself, already unit-tested); this only checks the port's shape end to end."""
 

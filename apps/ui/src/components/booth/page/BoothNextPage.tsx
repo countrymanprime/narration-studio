@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PickupItem } from '../../../api/contracts/pickups';
 import { useSearchParams } from 'react-router-dom';
 import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
@@ -7,12 +8,17 @@ import { useOverlay } from '../../../overlay/OverlayProvider';
 import { PortOverrides, usePort } from '../../../ports/usePort';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { Button } from '../../primitives/Button';
+import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Panel } from '../../primitives/Panel';
 import { speakerColorToken } from '../../primitives/speakerColor';
+import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
+import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
 import { BoothFooter } from '../frame/BoothFooter';
 import { BoothTop } from '../frame/BoothTop';
 import { progressLine } from '../frame/progressLine';
+import { PickupSessionProvider, registerPickupSession } from '../pickups/PickupSession';
+import { usePickupSession } from '../pickups/usePickupSession';
 import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
@@ -24,7 +30,7 @@ import { boothDecorations } from '../side/decorations';
 import { comingUpWords, voicesNearby } from '../side/nearby';
 import type { BoothReference } from '../side/sections';
 import { useTeleprompterSession } from '../useTeleprompterSession';
-import { boothQuery, readBoothQuery, type BoothStart, type BoothTarget } from './boothQuery';
+import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
 import { withBuiltinRecorder } from './builtinRecorder';
 import { CreditsWarning } from './CreditsWarning';
 import { creditsParagraphs, entityAtWord, readingParagraphsOf } from './readingSource';
@@ -32,7 +38,10 @@ import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
-const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible' } as const;
+const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
+
+// In a pickup session the lines are the side panel's first section.
+registerPickupSession();
 
 const ROOM_TONE = 'Room not measured yet';
 
@@ -43,14 +52,14 @@ type Props = {
   navigate: (next: string) => void;
   /** Opens the import flow, from the need-a-manuscript state. */
   onImport?: () => void;
-  /** Where Exit Booth goes: Script, or Pickups in a pickup session. */
+  /** Where Exit Booth goes outside a pickup session; in one it goes to Pickups. */
   exitTo?: string;
 };
 
 /**
  * The Booth (the Studio Next mock's `pages/Booth.tsx`): the top bar with the chapter, progress, resume line and setup chip, the text that
  * follows the voice, the side panel's sections, and the footer with Record, the timer, the levels and the key hints. What it reads is in
- * the address (`?chapter=`, `?credits=`, and `&para=&at=` for Record from here). Not routed yet: SN-O10 mounts it and deletes the old Booth.
+ * the address (`?chapter=`, `?credits=`, `&para=&at=` for Record from here, and `&pickups=` for a pickup session opened from Pickups).
  */
 export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOTH_LINKS.script }: Props) {
   // The page title is visually hidden: the reading surface is the page (as the old Booth's).
@@ -78,6 +87,11 @@ function NeedManuscript({ onImport }: { onImport?: () => void }) {
 function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; exitTo: string }) {
   const [params, setParams] = useSearchParams();
   const asked = useMemo(() => readBoothQuery(params), [params]);
+  // The pickup session the address opened; opening the Booth any other way is no session. It stays across chapter changes.
+  const pickupKey = readPickupIds(params).join(',');
+  const pickupIds = useMemo(() => (pickupKey ? pickupKey.split(',') : []), [pickupKey]);
+  // The line the session is on, kept here so it survives the chapter change a jump to another chapter's line makes.
+  const [pickAt, setPickAt] = useState<string | null>(null);
   // What the page shows; it follows the address unless a take runs, when the session asks first (`BoothSession`).
   const [shown, setShown] = useState(asked);
   const data = useBoothData(shown);
@@ -85,7 +99,10 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   const recording = usePort('recording');
   const daw = useMemo(() => withBuiltinRecorder(dawPort, recording), [dawPort, recording]);
   // A chapter is changed in the address (replacing it, so Back leaves the Booth rather than stepping through chapters).
-  const choose = useCallback((target: BoothTarget) => setParams(new URLSearchParams(boothQuery(target).slice(1)), { replace: true }), [setParams]);
+  const choose = useCallback(
+    (target: BoothTarget) => setParams(new URLSearchParams(boothQuery(target, pickupIds).slice(1)), { replace: true }),
+    [setParams, pickupIds],
+  );
 
   const { source } = data;
   if (data.error)
@@ -115,7 +132,10 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
         data={data}
         choose={choose}
         navigate={navigate}
-        exitTo={exitTo}
+        exitTo={pickupIds.length > 0 ? BOOTH_LINKS.pickups : exitTo}
+        pickupIds={pickupIds}
+        pickAt={pickAt}
+        onPick={setPickAt}
       />
     </PortOverrides>
   );
@@ -131,10 +151,14 @@ type SessionProps = {
   choose: (target: BoothTarget) => void;
   navigate: (next: string) => void;
   exitTo: string;
+  /** The pickup session's lines (empty: none), the line it is on, and how the page is told it moved. */
+  pickupIds: readonly string[];
+  pickAt: string | null;
+  onPick: (id: string) => void;
 };
 
 /** One chapter (or the credits) in the Booth. Keyed by it, so a new chapter starts with a clean take, position and session. */
-function BoothSession({ source, from, requested, adopt, data, choose, navigate, exitTo }: SessionProps) {
+function BoothSession({ source, from, requested, adopt, data, choose, navigate, exitTo, pickupIds, pickAt, onPick }: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
@@ -152,6 +176,11 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     [source, session.paragraphs, cues, entities],
   );
   const recordId = source.kind === 'credits' ? `credits-${source.credits}` : source.chapter.id;
+  // The pickup session and the bookmarks need the page's reading position, and the page tells them of takes and right-clicks.
+  const parts = useRef<{
+    takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void;
+    menuItems?: (target: Element) => ContextMenuItem[];
+  }>({});
   const page = useBoothPage({
     recordId,
     title,
@@ -164,8 +193,51 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     from,
     navigate,
     exitTo,
+    onTakeStopped: (take) => parts.current.takeStopped?.(take),
+    menuItems: (target) => parts.current.menuItems?.(target) ?? [],
   });
   const { control, at, units } = page;
+
+  const chapterLabels = useMemo(() => (data.chapters ?? []).map((item) => ({ id: item.id, name: chapterName(item, 'short') })), [data.chapters]);
+  const chapterLabel = useCallback((id: string) => chapterLabels.find((item) => item.id === id)?.name ?? id, [chapterLabels]);
+  const { seek } = page;
+  const jumpToLine = (line: PickupItem) => {
+    onPick(line.id);
+    if (line.chapterId !== chapter?.id) choose({ chapter: line.chapterId });
+    else if (line.paragraphId) seek(line.paragraphId, 0);
+  };
+  const pickups = usePickupSession({
+    ids: pickupIds,
+    chapterId: chapter?.id ?? '',
+    units,
+    recording: control.recording,
+    onJump: jumpToLine,
+    initialAt: pickAt,
+  });
+  parts.current.takeStopped = (take) => void pickups.takeStopped(take);
+  // The reading starts on the session's line when it is in this chapter: opened from Pickups, or after a jump to another chapter.
+  const startLine = pickups.lines.find((line) => line.id === pickups.at);
+  const placed = useRef(false);
+  useEffect(() => {
+    if (placed.current || !startLine || units.length === 0) return;
+    placed.current = true;
+    if (startLine.chapterId === chapter?.id && startLine.paragraphId) seek(startLine.paragraphId, 0);
+  }, [startLine, units.length, chapter?.id, seek]);
+
+  const bookmarks = useBoothBookmarks({
+    chapterId: chapter?.id ?? '',
+    chapters: chapterLabels,
+    paragraphs,
+    units,
+    // The credits are not a chapter of the manuscript: nothing there can be bookmarked.
+    position: chapter ? page.position : undefined,
+    recording: control.recording,
+    paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
+    seek,
+    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
+  });
+  parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
+
   const side = useBoothSideOpen();
   const [reference, setReference] = useState<BoothReference | null>(null);
   const decorated = useMemo(
@@ -263,6 +335,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               </fieldset>
             }
             progress={progress}
+            pickupsOpen={pickups.active ? pickups.open : null}
             resume={
               source.kind === 'credits' ? (
                 <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
@@ -306,26 +379,42 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               decorations={decorated.decorations}
               notes={decorated.notes}
               punchAt={page.punchAt}
+              pickupLines={pickups.bars}
               size={page.size}
               viewRef={page.view}
+              margin={
+                chapter && bookmarks.bookmarks ? (
+                  <BookmarkRibbons
+                    chapterId={chapter.id}
+                    bookmarks={bookmarks.bookmarks}
+                    paragraphs={paragraphs}
+                    units={units}
+                    flashId={bookmarks.flashId}
+                    onUpdate={bookmarks.update}
+                    onRemove={bookmarks.remove}
+                  />
+                ) : undefined
+              }
             />
           </div>
           {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
           <h2 className="sr-only">Side panel</h2>
-          <BoothSidePanel
-            open={side.open}
-            drawer={side.drawer}
-            onOpenChange={side.setOpen}
-            data={{
-              chapterId: recordId,
-              reference,
-              voices: voicesNearby(units, at.cur, entities),
-              comingUp: comingUpWords(units, at.cur, entities),
-              numbers: page.numbers,
-              flags: page.flags,
-              onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
-            }}
-          />
+          <PickupSessionProvider value={pickups.active ? { session: pickups, chapterLabel } : null}>
+            <BoothSidePanel
+              open={side.open}
+              drawer={side.drawer}
+              onOpenChange={side.setOpen}
+              data={{
+                chapterId: recordId,
+                reference,
+                voices: voicesNearby(units, at.cur, entities),
+                comingUp: comingUpWords(units, at.cur, entities),
+                numbers: page.numbers,
+                flags: page.flags,
+                onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
+              }}
+            />
+          </PickupSessionProvider>
         </div>
         <BoothFooter
           record={<RecordControl control={control} />}
@@ -342,6 +431,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
           }}
           roomTone={ROOM_TONE}
           keymap={keymap}
+          pickupSession={pickups.active}
         />
       </div>
     </CommandScope>

@@ -12,7 +12,7 @@ const COLOR_CLASSES = 'size-[2.35rem] rounded-[0.35rem] border border-[var(--lin
 const SANS_CLASSES = 'text-[0.88rem]';
 // Values that are code, not prose - a hex colour, an id, a number - read a touch larger than body text (~15px on the mocks' numeric fields).
 const MONO_CLASSES = "text-[0.9375rem] font-['IBM_Plex_Mono',ui-monospace,monospace]";
-// A value the app computed that the narrator can read and copy but not edit (Phase 6's migrated fake fields): the same
+// A value the app computed that the narrator can read and copy but not edit: the same
 // control, on --surface-2 instead of --surface, cursor-default, no focus ring.
 const READ_ONLY_CLASSES = 'cursor-default bg-[var(--surface-2)] focus-visible:outline-none';
 

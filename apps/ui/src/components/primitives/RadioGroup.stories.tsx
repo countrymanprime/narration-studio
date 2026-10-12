@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, type ComponentProps } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
-import { RadioGroup } from './RadioGroup';
+import { Radio, RadioGroup } from './RadioGroup';
 
 // Controlled, like every call site: the story feeds the new value back in.
 function ControlledRadioGroup(props: ComponentProps<typeof RadioGroup<'reference' | 'opening'>>) {
@@ -56,5 +56,46 @@ export const ArrowKeysMove: Story = {
     await expect(within(canvasElement).getByRole('radio', { name: 'Not a chapter' })).toHaveFocus();
     await userEvent.keyboard('{ArrowDown}');
     await expect(args.onChange).toHaveBeenLastCalledWith('opening');
+  },
+};
+
+// A disabled option stays visible with its help text but cannot be chosen, and the arrow keys step over it.
+export const DisabledOption: Story = {
+  args: {
+    options: [
+      { value: 'reference', label: 'Not a chapter', description: 'A part title, an epigraph or a false split. Hidden from navigation too.' },
+      { value: 'opening', label: 'Front matter', description: "Stays in the manuscript's navigation, not recorded as a chapter.", disabled: true },
+    ],
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText('Front matter'));
+    await expect(args.onChange).not.toHaveBeenCalled();
+    await expect(canvas.getByRole('radio', { name: 'Front matter' })).not.toBeChecked();
+    await expect(canvas.getByRole('radio', { name: 'Front matter' })).toHaveAccessibleDescription(/Stays in the manuscript/);
+  },
+};
+
+function StandaloneRadio() {
+  const [checked, setChecked] = useState(false);
+  return (
+    <Radio
+      name="standalone"
+      value="solo"
+      label="Use this take"
+      description="Replaces the current take."
+      checked={checked}
+      onCheckedChange={() => setChecked(true)}
+    />
+  );
+}
+
+// One radio on its own row, controlled by `checked`.
+export const Standalone: Story = {
+  render: () => <StandaloneRadio />,
+  play: async ({ canvasElement }) => {
+    const radio = within(canvasElement).getByRole('radio', { name: 'Use this take' });
+    await userEvent.click(radio);
+    await expect(radio).toBeChecked();
   },
 };

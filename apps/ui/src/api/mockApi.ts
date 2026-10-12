@@ -111,7 +111,7 @@ export function createMockApi(
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   const assets = createAssetsMock(initial);
   const proofing = createProofingMock(s, assets);
-  const reaperActions = createReaperActionsMock(initial, project.projectFolder);
+  const reaperActions = createReaperActionsMock(initial, project.projectFolder, { ready: manuscriptReady, paragraphs: () => s.paragraphs });
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
     dawFileLinked: project.dawFileLinked,

@@ -8,10 +8,10 @@ const VariantContext = createContext<TabsVariant>('underline');
 // A strip of underlined labels (the Story Bible categories, Settings' scope), or a list of side labels (Settings' categories).
 // The classes are mutually exclusive by state (ADR 0017) and take the selected look from Base UI's `data-active`. Measured
 // on the benchmark mocks: the underline tab's selected label is
-// `--accent-strong` (B02; the dark sets draw it muted or `--text`, and the benchmark wins, D91's Q1), its 2 px `--accent`
+// `--accent-strong` (B02; the dark sets draw it muted or `--text`, and the benchmark wins, D91), its 2 px `--accent`
 // underline sits over the strip's 1 px `--border` rule and spans the label plus 10 px each side, and its type is
 // `--tracking-button` (0.06 em, the button-type tracking the mock's ≈0.08–0.1 em rounds to at this size). The sidebar tab's
-// selected fill moved from an ad hoc `color-mix` to the `--accent-soft` token (Phase 0b, ADR 0590).
+// selected fill moved from an ad hoc `color-mix` to the `--accent-soft` token (ADR 0590).
 const TAB_CLASSES: Record<TabsVariant, string> = {
   underline:
     "border-b-2 border-transparent px-[0.625rem] py-2 font-['Barlow_Condensed',sans-serif] text-[0.8125rem] font-semibold tracking-[var(--tracking-button)] whitespace-nowrap text-[var(--text-muted)] uppercase hover:text-[var(--text)] focus-visible:-outline-offset-2 data-[active]:border-[var(--accent)] data-[active]:text-[var(--accent-strong)]",

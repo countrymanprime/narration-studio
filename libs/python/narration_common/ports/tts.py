@@ -1,4 +1,4 @@
-"""The text to speech port (ADR 0301, provider-ports P7): what every voice engine is to its callers.
+"""The text to speech port (ADR 0301): what every voice engine is to its callers.
 
 An engine loads a voice from the model file the host verified (``load``); a voice speaks one line into a WAV file
 (``synthesize_to_file``). The guide sidecar's preview is the one caller today. It keeps one rule every voice must keep: the host
@@ -6,7 +6,7 @@ trusts any file at the destination as a finished preview, so a failed run raises
 and leaves nothing at the destination or beside it. Callers look an engine up in ``ENGINES`` by the name ``Piper.tts_provider``
 stores and never compare names themselves.
 
-Nothing here imports an engine: Piper stays a lazy import inside its adapter (P8).
+Nothing here imports an engine: Piper stays a lazy import inside its adapter.
 """
 
 import re
@@ -53,5 +53,5 @@ class TtsEngine(Protocol):
     def load(self, voice_path: str) -> Voice: ...
 
 
-# Filled by the guide sidecar's adapter when it is imported (provider-ports P8); the first registered is the default.
+# Filled by the guide sidecar's adapter when it is imported; the first registered is the default.
 ENGINES: Registry[TtsEngine] = Registry("voice engine")

@@ -220,15 +220,23 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['help', 'settings'],
   },
   // Bookmarks (SNB-6a). The Script page and the Booth register the handlers with `useBookmarkCommands`; until then these rows are inert.
+  // `global`, not `page`: the Booth claims the `booth` scope, which shuts `page` off, so a page row would never fire there (SN-O103).
   // `B` is a plain key, so typing in a field never fires it. The mock binds plain `[` and `]` too, but `workspace.flag.*` holds those in page
   // scope (the Proof page) and the catalogue cannot tell two pages apart, so the steps are Alt+[ and Alt+] until the flag keys move. They list in the sheet and Settings and not the jump menu,
   // whose "Bookmark here", "Next bookmark" and "Previous bookmark" entries come from the provider only while a page has the handlers.
-  { id: 'bookmark.here', label: 'Bookmark here', scope: 'page', defaults: [key('KeyB')], group: 'Bookmarks', surfaces: ['help', 'settings'] },
-  { id: 'bookmark.next', label: 'Next bookmark', scope: 'page', defaults: [key('BracketRight', ['Alt'])], group: 'Bookmarks', surfaces: ['help', 'settings'] },
+  { id: 'bookmark.here', label: 'Bookmark here', scope: 'global', defaults: [key('KeyB')], group: 'Bookmarks', surfaces: ['help', 'settings'] },
+  {
+    id: 'bookmark.next',
+    label: 'Next bookmark',
+    scope: 'global',
+    defaults: [key('BracketRight', ['Alt'])],
+    group: 'Bookmarks',
+    surfaces: ['help', 'settings'],
+  },
   {
     id: 'bookmark.prev',
     label: 'Previous bookmark',
-    scope: 'page',
+    scope: 'global',
     defaults: [key('BracketLeft', ['Alt'])],
     group: 'Bookmarks',
     surfaces: ['help', 'settings'],

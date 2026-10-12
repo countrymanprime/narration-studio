@@ -1,4 +1,4 @@
-"""The capture port's dshow adapter (provider-ports P11, ADR 0301): what `devices.py`'s device listing and the old
+"""The capture port's dshow adapter (ADR 0301): what `devices.py`'s device listing and the old
 `iter_microphone_chunks` become as the `dshow` row of `narration_common.ports.capture.BACKENDS`. Everything a Windows
 DirectShow microphone needs - listing devices and opening one as chunks of mono audio - was already here; this only
 gives it the port's shape, so `live_asr.py`'s two capture callers (the session and the level meter) can ask the
@@ -10,7 +10,7 @@ registry for the backend instead of importing `devices` and calling `iter_microp
 CLI use); `live_asr.py` keeps a same-named, same-signature `iter_microphone_chunks` that only looks this backend up
 and delegates, so its own tests (which patch that name directly) still drive the same generator they always did, and
 running off Windows still fails exactly where it always did - opening `format="dshow"` through PyAV - not at the
-lookup, which does not check platform any more than `ENGINES.lookup` does for a speech engine (provider-ports P5).
+lookup, which does not check platform any more than `ENGINES.lookup` does for a speech engine.
 """
 
 import sys

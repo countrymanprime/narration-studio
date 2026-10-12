@@ -3,7 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
+import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import type { RecorderState } from '../../../api/contracts/recording';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
@@ -495,5 +497,151 @@ describe('a refused stop keeps the take and the question', () => {
     await act(async () => page.dialog()!.answer(true));
     await waitFor(() => expect(page.dialog()?.spec.body).toBe('Not now.'));
     expect(page.navigate).not.toHaveBeenCalled();
+  });
+});
+
+// SN-O103: the bookmarks (SN-O81) and the pickup session (SN-O82) on the page.
+const held = (over: Partial<Bookmark>): Bookmark => ({
+  id: 'b1',
+  chapterId: 'c1',
+  paragraphId: 'p3',
+  paragraph: 2,
+  offset: 28,
+  label: '',
+  note: '',
+  createdAt: '2026-10-11T10:00:00Z',
+  stale: false,
+  ...over,
+});
+const currentText = () => document.querySelector<HTMLElement>('[data-state="cur"]')?.textContent ?? '';
+const bodyText = () => document.querySelector('[data-booth-text]')?.textContent ?? '';
+const ribbons = () => document.querySelectorAll('[data-bmk-margin] [data-bm]');
+
+describe('bookmarks on the page', () => {
+  it('B bookmarks the word being read and the toast Undo takes it back', async () => {
+    const page = renderPage();
+    await ready();
+    await press('b', 'KeyB');
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.map((toast) => toast.text)).toEqual(['Bookmark added.']));
+    await waitFor(() => expect(ribbons()).toHaveLength(1));
+    const toast = page.overlay.getSnapshot().toasts.find((item) => item.text === 'Bookmark added.');
+    await act(async () => {
+      await toast?.action?.onAction();
+    });
+    await waitFor(() => expect(ribbons()).toHaveLength(0));
+  });
+
+  it('Alt+] and Alt+[ step between bookmarks, into the next chapter when the next one is there', async () => {
+    renderPage({ api: { bookmarksList: async () => [held({}), held({ id: 'b2', chapterId: 'c2', paragraphId: 'q1', paragraph: 0, offset: 2 })] } });
+    await ready();
+    await waitFor(() => expect(ribbons()).toHaveLength(1));
+    await press(']', 'BracketRight', { altKey: true });
+    await waitFor(() => expect(currentText()).toContain('The roses watched her go.'));
+    await press(']', 'BracketRight', { altKey: true });
+    await waitFor(() => expect(driver.search()).toContain('chapter=c2'));
+    await waitFor(() => expect(bodyText()).toContain('A new day began in the court.'));
+  });
+
+  it('right-click offers Bookmark here on a word, and Edit and Delete on a ribbon', async () => {
+    renderPage({ api: { bookmarksList: async () => [held({})] } });
+    await ready();
+    const word = document.querySelector('[data-unit="1"] [data-word="0"]')!;
+    act(() => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    const menu = await screen.findByRole('menu');
+    const labels = within(menu)
+      .getAllByRole('menuitem')
+      .map((item) => item.textContent);
+    expect(labels.slice(0, 2)).toEqual(['Start from here', 'Bookmark here']);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await waitFor(() => expect(ribbons()).toHaveLength(1));
+    act(() => {
+      fireEvent.contextMenu(ribbons()[0], { button: 2, clientX: 10, clientY: 10 });
+    });
+    const ribbonMenu = await screen.findByRole('menu');
+    expect(
+      within(ribbonMenu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Edit bookmark', 'Delete bookmark']);
+  });
+});
+
+const pickup = (id: string, chapterId: string, paragraphId: string, script: string): PickupItem => ({
+  id,
+  chapterId,
+  paragraphId,
+  paragraph: null,
+  time: 65,
+  at: null,
+  type: 'misread',
+  script,
+  context: '',
+  source: 'you',
+  confidence: null,
+  confReason: '',
+  included: true,
+  done: false,
+  waiting: false,
+});
+
+function pickupHost() {
+  let items = [pickup('k1', 'c1', 'p3', 'She turned and walked away.'), pickup('k2', 'c2', 'q1', 'A new day began in the court.')];
+  const answer = (): PickupList => ({ pickups: items.map((item) => ({ ...item })), leftOut: [] });
+  return {
+    pickupsList: vi.fn(async () => answer()),
+    pickupsSetDone: vi.fn(async (id: string, done: boolean) => {
+      items = items.map((item) => (item.id === id ? { ...item, done } : item));
+      return answer();
+    }),
+  };
+}
+
+describe('a pickup session on the page', () => {
+  it('a pickup session lists its lines, steps with N and exits to Pickups', async () => {
+    const host = pickupHost();
+    const page = renderPage({ search: '?chapter=c1&pickups=k1,k2', api: host });
+    await ready();
+    const panel = await screen.findByRole('complementary', { name: 'Side panel' });
+    await within(panel).findByText('Pickups · 2 open');
+    // The reading starts on the session's first line, which is marked in the text.
+    await waitFor(() => expect(currentText()).toContain('She turned'));
+    expect(document.querySelector('#bkeys')?.textContent).toContain('Next pickup');
+    await press('n', 'KeyN');
+    await waitFor(() => expect(driver.search()).toContain('chapter=c2'));
+    expect(decodeURIComponent(driver.search())).toContain('pickups=k1,k2');
+    await waitFor(() => expect(bodyText()).toContain('A new day began in the court.'));
+    await waitFor(() => expect(screen.getByRole('button', { name: /A new day began/ }).getAttribute('aria-current')).toBe('true'));
+    // Shift+N goes back, into the first line's chapter and onto its paragraph.
+    await press('N', 'KeyN', { shiftKey: true });
+    await waitFor(() => expect(driver.search()).toContain('chapter=c1'));
+    await waitFor(() => expect(currentText()).toContain('She turned'));
+    await press('Escape');
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/pickups'));
+  });
+
+  it('a take marks the lines it read over as recorded', async () => {
+    const host = pickupHost();
+    const page = renderPage({ search: '?chapter=c1&pickups=k1,k2', api: host });
+    await ready();
+    await waitFor(() => expect(currentText()).toContain('She turned'));
+    await record(page);
+    await space();
+    await waitFor(() => expect(host.pickupsSetDone).toHaveBeenCalledWith('k1', true));
+    expect(host.pickupsSetDone).not.toHaveBeenCalledWith('k2', true);
+    await waitFor(() => expect(screen.getAllByText('Pickups · 1 open').length).toBeGreaterThan(0));
+  });
+
+  it('opening the Booth any other way is no session: no list, no N, and Exit goes to the Script', async () => {
+    const host = pickupHost();
+    const page = renderPage({ api: host });
+    await ready();
+    expect(screen.queryByText(/^Pickups · /)).toBeNull();
+    expect(host.pickupsList).not.toHaveBeenCalled();
+    expect(document.querySelector('#bkeys')?.textContent).not.toContain('Next pickup');
+    await press('Escape');
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
   });
 });

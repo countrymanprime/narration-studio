@@ -1,4 +1,4 @@
-"""The text to speech port (provider-ports P7): its descriptor, its roles and its conformance suite."""
+"""The text to speech port (ADR 0301): its descriptor, its roles and its conformance suite."""
 
 import ast
 import wave
@@ -86,7 +86,7 @@ def test_the_port_imports_no_engine_and_no_numpy():
 
 
 def test_the_engines_registry_speaks_of_voice_engines_and_starts_empty():
-    """The Piper adapter (P8) fills it at import; the port itself registers nothing."""
+    """The Piper adapter fills it at import; the port itself registers nothing."""
     assert isinstance(ENGINES, Registry) and ENGINES.kind == "voice engine" and len(ENGINES) == 0
 
 
