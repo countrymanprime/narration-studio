@@ -143,6 +143,19 @@ H.test('split_take splits one take into two takes of one item at the time given,
   H.eq(#p.item.takes, 2)
 end)
 
+H.test('split_take splits one take into two takes of one item at the time given, one undo point: the same request again changes nothing', function()
+  local s, p = project()
+  s:send('split_take', 'p1', ITEM, TAKE, '15.5')
+  H.eq(s:events()[1][1], 'TAKE_SPLIT')
+  s.fake.calls = {}
+  s:send('split_take', 'p2', ITEM, TAKE, '15.5')
+  H.eq(s:events(), { { 'ITEM_STALE', 'p2', ITEM, 'item' } }, 'the cut is now the end of the item')
+  H.eq(#p.item.takes, 2, 'no third take')
+  H.eq(p.item.length, 5.5)
+  H.eq(s.fake:undo_labels(), { LABEL }, 'still one undo point')
+  H.eq(calls_named(s, 'AddTakeToMediaItem'), 0)
+end)
+
 -- 2. split_take refuses a stale item or take and changes nothing --------------------------------------------------
 
 H.test('split_take refuses a stale item or take and changes nothing: an item GUID that does not resolve', function()

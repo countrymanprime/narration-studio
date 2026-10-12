@@ -1690,5 +1690,41 @@
     "file": "narration_takes.lua",
     "find": "  if not at or at < 0 then\n    event(session_dir, 'ERROR', run_id, SPLIT_UNREADABLE)",
     "replace": "  at = at or 0\n  if at < 0 then\n    event(session_dir, 'ERROR', run_id, SPLIT_UNREADABLE)"
+  },
+  {
+    "name": "split_take: a stale item or take resolves anyway",
+    "file": "narration_takes.lua",
+    "find": "  local item, take, stale, reason = resolve(item_text, take_text)\n  if not item then\n    event(session_dir, 'ITEM_STALE', run_id, stale, reason)\n    return\n  end\n  local function refuse(sentence)",
+    "replace": "  local item, take, stale, reason = resolve(item_text, take_text)\n  if not item then\n    item = reaper.GetMediaItem(0, 1)\n    take = reaper.GetTake(item, 0)\n  end\n  local function refuse(sentence)"
+  },
+  {
+    "name": "split_take: the undo block is never closed",
+    "file": "narration_takes.lua",
+    "find": "  reaper.Undo_EndBlock2(0, UNDO_SPLIT, -1)\n",
+    "replace": ""
+  },
+  {
+    "name": "split_take: a fixed-lane track is split",
+    "file": "narration_takes.lua",
+    "find": "  if reaper.GetMediaTrackInfo_Value(reaper.GetMediaItem_Track(item), 'I_FREEMODE') == 2 then\n    return refuse('This track uses fixed item lanes",
+    "replace": "  if false then\n    return refuse('This track uses fixed item lanes"
+  },
+  {
+    "name": "split_take: a MIDI take is split",
+    "file": "narration_takes.lua",
+    "find": "  if reaper.TakeIsMIDI(take) then\n    return refuse('A MIDI take cannot be split",
+    "replace": "  if false then\n    return refuse('A MIDI take cannot be split"
+  },
+  {
+    "name": "split_take: a take with a changed playback rate is split",
+    "file": "narration_takes.lua",
+    "find": "  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then\n    return refuse('A take with a changed playback rate cannot be split",
+    "replace": "  if false then\n    return refuse('A take with a changed playback rate cannot be split"
+  },
+  {
+    "name": "split_take: a missing file is split",
+    "file": "narration_takes.lua",
+    "find": "  if not file or file == '' or not core.file_exists(file) then\n    return refuse('The audio file of that take is missing",
+    "replace": "  if false then\n    return refuse('The audio file of that take is missing"
   }
 ]
