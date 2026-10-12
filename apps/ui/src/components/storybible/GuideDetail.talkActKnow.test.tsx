@@ -72,6 +72,18 @@ describe('Story Bible: how they talk, act and know', () => {
     expect(screen.queryByText('How they talk')).toBeNull();
   });
 
+  it('keeps what is typed when the types arrive during an edit', async () => {
+    const api = createMockApi();
+    let release: () => void = () => {};
+    const types = await api.guideTypes();
+    vi.spyOn(api, 'guideTypes').mockImplementation(() => new Promise((resolve) => (release = () => resolve(types))));
+    renderDetail(character([{ key: 'says', value: 'Clipped' }]), api);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    fireEvent.change(screen.getByDisplayValue(WIRE_ENTITIES[0].canonical_name), { target: { value: 'Renamed' } });
+    await act(async () => release());
+    expect(screen.getByDisplayValue('Renamed')).toBeTruthy();
+  });
+
   it('edits the three as the says, does and knows properties, after the others', async () => {
     const { guideEdit } = renderDetail(
       character([

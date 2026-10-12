@@ -283,9 +283,15 @@ export function GuideDetail({
     resetVoiceInstall();
     setPropertyError(undefined);
   }, [entity, resetVoiceInstall]);
-  // The draft is the entry's, its talk rows split out once the types say it speaks.
+  // The draft is the entry's, its talk rows split out once the types say it speaks. A change of the types alone (they arrive
+  // after the entry) leaves a draft being edited as typed; a new or reloaded entry always replaces it.
+  const draftEntity = useRef<GuideEntity>(undefined);
+  const editingNow = useRef(editing);
+  editingNow.current = editing;
   useEffect(() => {
-    if (entity) setDraft(draftOf(entity, speaks));
+    if (!entity || (draftEntity.current === entity && editingNow.current)) return;
+    draftEntity.current = entity;
+    setDraft(draftOf(entity, speaks));
   }, [entity, speaks]);
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
