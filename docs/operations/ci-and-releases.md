@@ -292,6 +292,9 @@ A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an N
   `installer/MicrosoftEdgeWebview2Setup.exe` has a valid Authenticode signature from Microsoft Corporation before the release is packaged.
 - **Unsigned.** The setup program is not signed (the owner's decision); the release notes say so and tell a narrator to choose **More info**
   then **Run anyway** on the SmartScreen warning (`scripts/release/generate-notes.mjs`). No workflow here signs anything.
+- **What the notes list.** The changes since the release before this one: a candidate lists since the previous tag of either kind (the last
+  candidate, or its promotion, which sits on the same commit); a stable release lists since the previous stable release, so a narrator on the
+  stable channel sees everything since the version they had. The first release lists the whole history (`scripts/release/generate-notes.mjs`).
 - **Tests.** `scripts/release/installer.test.mjs` holds the definition to the decisions of the ADR (the file names, per user, what the
   uninstaller deletes, no network, no signing, that the file is tracked); `assets.test.mjs` and `wails-build.test.mjs` cover packaging, the
   checksum, the promote checks and the missing-installer failure. `makensis` is not on a development machine as a rule (it can be: NSIS runs on Linux,

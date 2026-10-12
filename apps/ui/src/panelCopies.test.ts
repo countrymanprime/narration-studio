@@ -38,6 +38,10 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/proof/WaveformStrip.tsx': 1,
     // The bookmarks tab's list frame (SN-B62), to move onto Panel with #1119.
     'src/components/script/bookmarks/ui/BookmarksTab.tsx': 1,
+    // The Script rail's Story Bible panel frame and entry card and the Notes thread card (SN-B752), to move onto Panel and InsetCard with #1119.
+    'src/components/script/page/rail/bible/BiblePanel.tsx': 1,
+    'src/components/script/page/rail/bible/EntryCard.tsx': 1,
+    'src/components/script/page/rail/threads/NoteCard.tsx': 1,
   },
   inset: {
     // Proof's finding detail.
@@ -47,6 +51,8 @@ const CEILING: Record<Copy, Record<string, number>> = {
     // The editing ribbon's inset (SN-E7) and the bookmarks tab's row card (SN-B62), to move onto InsetCard with #1119.
     'src/components/editing/ribbon/Ribbon.tsx': 1,
     'src/components/script/bookmarks/ui/BookmarksTab.tsx': 1,
+    // The Story Bible panel's entry inset (SN-B752), to move onto InsetCard with #1119.
+    'src/components/script/page/rail/bible/BiblePanel.tsx': 1,
   },
   eyebrow: {
     // The shell's nav group headings and the header's Project label, and the three `.section-label` selectors of the collapsed rail's
