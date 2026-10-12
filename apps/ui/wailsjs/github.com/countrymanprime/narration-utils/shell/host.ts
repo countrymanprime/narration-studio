@@ -788,6 +788,22 @@ export function EditingCutsList(chapterID: string): $CancellablePromise<string> 
 }
 
 /**
+ * EditingRetryModeGet answers how retries are kept at a level ("project", "chapter" or "passage"): the passage's own mode,
+ * else its chapter's, else the project's, else leave.
+ */
+export function EditingRetryModeGet(level: string, chapterID: string, passageID: string): $CancellablePromise<string> {
+    return $Call.ByID(1242097977, level, chapterID, passageID);
+}
+
+/**
+ * EditingRetryModeSet sets how retries are kept at a level ("stack" or "leave"), or with an empty mode takes it back so the
+ * level follows the one above.
+ */
+export function EditingRetryModeSet(level: string, chapterID: string, passageID: string, mode: string): $CancellablePromise<string> {
+    return $Call.ByID(822170437, level, chapterID, passageID, mode);
+}
+
+/**
  * EditingSetSourceChoice sets chapterID's source choice (the narrator
  * chooses per chapter) and answers the choice as stored, the same bare
  * string shape EditingSourceChoice reads back. choice must be "items" or
@@ -806,6 +822,31 @@ export function EditingSetSourceChoice(chapterID: string, choice: string): $Canc
  */
 export function EditingSourceChoice(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(1773421432, chapterID);
+}
+
+/**
+ * EditingStackRecord stores the takes the DAW stacked on a passage's first read, after it accepted stackTakes. It is refused,
+ * with nothing saved, when the first read or a moved take is not among the passage's takes, an offset is negative or not
+ * finite, there is no move, a take is already stacked on the passage, or the DAW's result is missing (its undo steps, and for a
+ * steps DAW its steps and the backup taken first).
+ */
+export function EditingStackRecord(chapterID: string, stack: editlog$0.StackRecordRequest): $CancellablePromise<string> {
+    return $Call.ByID(3000755939, chapterID, stack);
+}
+
+/**
+ * EditingStackRemove forgets a passage's stacked takes once the DAW put them back (unstackTakes), or when the journal undoes
+ * the stack: some of them for a partial un-stack, and the stack goes with its last take.
+ */
+export function EditingStackRemove(chapterID: string, passageID: string, takeIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(2530893154, chapterID, passageID, takeIDs);
+}
+
+/**
+ * EditingStacksList returns a chapter's stacks by passage id.
+ */
+export function EditingStacksList(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(3364664983, chapterID);
 }
 
 /**

@@ -981,6 +981,60 @@ func TestReplaceAndClearRemoveTheWordFxFile(t *testing.T) {
 	}
 }
 
+// Stacks and retry modes name chapter ids and the passages and takes of the recording, so replacing the manuscript and Clear
+// project data remove editing/stacks.json as well (ADR 0858); an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheStacksFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeStacks := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.StacksFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.StacksFile(project), []byte(`{"schemaVersion":1,"stacks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeStacks()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the stacks: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the stacks: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the stacks behind: %v", err)
+	}
+	writeStacks()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the stacks behind: %v", err)
+	}
+}
+
 // The script prep names chapter and line ids and UTF-16 ranges in them, so a confirmed replace and Clear project data remove the
 // file; an import that resets nothing keeps it.
 func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
