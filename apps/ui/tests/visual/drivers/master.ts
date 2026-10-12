@@ -29,7 +29,7 @@ export const masterDrivers: Record<string, Driver> = {
   measured: async (page) => {
     await measureOnMaster(page);
     await measurementEnded(page, MEASURED);
-    await page.getByRole('heading', { name: 'Chapter 2 — The Pool of Tears · Why it fails' }).waitFor();
+    await page.getByRole('heading', { name: 'Chapter 1 — Down the Rabbit-Hole · Why it fails' }).waitFor();
   },
   'file-rules': async (page) => {
     await measureOnMaster(page);
