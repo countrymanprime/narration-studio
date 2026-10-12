@@ -63,4 +63,4 @@ Paste, Delete and Punch and Roll move audio by Audacity's own rules (whether a p
 
 ## Checking a capability in Audacity
 
-[The Audacity verification pass](../../operations/audacity-verification-pass.md): Part A runs unattended against Audacity 3 with the module enabled and records the installed version first; Part B is by eye and ear. Its table gives the expected result of each step. On Audacity 4.0, step A1 fails with "not reachable" and the run stops.
+[The Audacity verification pass](../../operations/audacity-verification-pass.md): Part A runs unattended against Audacity 3 with the module enabled and records the installed version first; Part B is by eye and ear; Part C runs each edit made in steps after a backup. Its tables give the expected result of each step, and its Backups table lists the backup checks no part runs yet. **Checked:** not checked; no part has run in Audacity (2026-10-12), and the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) holds the owner's run. On Audacity 4.0, step A1 fails with "not reachable" and the run stops.
