@@ -83,6 +83,7 @@ var smokeReaperFiles = []string{
 	"narration_regions.lua",
 	"narration_render.lua",
 	"narration_retake_lanes.lua",
+	"narration_roll.lua",
 	"narration_take_review.lua",
 	"narration_takes.lua",
 	"narration_track_select.lua",
