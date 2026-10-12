@@ -192,3 +192,14 @@ func TestCleanMilestonesRefusesABadMeasureEstimateOrTemplate(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultPaymentForACXOnly(t *testing.T) {
+	if got := DefaultPaymentFor("acx"); got != PaymentPerFinishedHour {
+		t.Fatalf("acx = %q", got)
+	}
+	for _, id := range []string{"", "custom-0123456789abcdef", "other"} {
+		if got := DefaultPaymentFor(id); got != "" {
+			t.Fatalf("%q = %q, want none", id, got)
+		}
+	}
+}
