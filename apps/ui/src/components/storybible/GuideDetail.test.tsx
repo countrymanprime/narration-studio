@@ -88,6 +88,19 @@ describe('Story Bible read-only entries (ADR-0018)', () => {
     expect(screen.getByRole('button', { name: 'Edit this entry' })).toBeTruthy();
   });
 
+  it('Edit enables the fields and shows Save and Cancel; Cancel restores read-only', () => {
+    const entity = unlocked();
+    renderDetail(entity);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'Save changes to this entry' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
+  });
+
   it('opens read-only under the name as a heading; Edit, then Save keeps and Cancel puts everything back', async () => {
     const entity = unlocked();
     const api = createMockApi();
