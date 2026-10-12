@@ -18,10 +18,6 @@ import type {
 export type ModelPrompt = Extract<TeleprompterStartResult, { status: 'asset_required' }>;
 type SessionAction = { kind: 'event'; event: TeleprompterEvent } | { kind: 'hydrate'; state: TeleprompterState } | { kind: 'reset' };
 
-export const MODELS = [
-  { value: 'tiny', label: 'Tiny', caption: 'Fastest - keeps up with your voice on most computers' },
-  { value: 'small', label: 'Small', caption: 'More accurate - needs a faster computer to keep up' },
-];
 /** The live engines by name (ADR 0021). Which of them this computer offers is the host's `Teleprompter.engine` choices. */
 export const ENGINE_LABELS: Record<TeleprompterEngine, string> = { whisper: 'Whisper', moonshine: 'Moonshine' };
 const ENGINE_CAPTIONS: Record<TeleprompterEngine, string> = {
@@ -104,7 +100,7 @@ export type UseTeleprompterSessionOptions = {
 
 /**
  * The reading session: host subscription, device and model choice, model-download prompt, start/stop and the rows the
- * reader shows. `BoothSession` is its one caller. Chapter *choice* stays
+ * reader shows. The Booth page's session and the Companion host call it. Chapter *choice* stays
  * with each caller (the page has a picker; the modal is opened already pointed at one chapter) - callers pass `reset()`
  * after changing `chapterId` themselves.
  */

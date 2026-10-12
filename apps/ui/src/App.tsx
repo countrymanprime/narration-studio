@@ -33,7 +33,8 @@ import { ScriptPage } from './components/script/page/ScriptPage';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { Settings } from './components/settings/Settings';
-import { BoothPage, boothQuery } from './components/booth/BoothPage';
+import { BoothNextPage } from './components/booth/page/BoothNextPage';
+import { boothQuery } from './components/booth/page/boothQuery';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import type { CreditsKind } from './components/booth/readerModel';
 import { EnginePanel } from './components/engine/EnginePanel';
@@ -578,6 +579,17 @@ function AppRoutes() {
   // says there is nowhere to go (the buttons are disabled there too; this covers the shortcuts and mouse
   // buttons, which have no disabled state to rely on).
   const attemptDelta = (direction: 1 | -1) => {
+    // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.
+    const verdict = journal.checkLeave('');
+    if (verdict !== 'allow') {
+      void overlay.confirm({ title: verdict.ask.title, body: verdict.ask.body, confirmLabel: verdict.ask.confirmLabel }).then((confirmed) => {
+        if (confirmed) moveByDelta(direction);
+      });
+      return;
+    }
+    moveByDelta(direction);
+  };
+  const moveByDelta = (direction: 1 | -1) => {
     if (location.pathname === '/settings' && settingsDirty) {
       setPendingMove({ kind: 'delta', direction });
       return;
@@ -686,19 +698,7 @@ function AppRoutes() {
                     )
                   }
                 />
-                <Route
-                  path="/booth"
-                  element={
-                    data.manuscript ? (
-                      <BoothPage
-                        onFixCredits={() => guardedNavigate('/settings#credits')}
-                        onExit={() => (history.canGoBack ? guardedBack() : guardedNavigate('/script'))}
-                      />
-                    ) : (
-                      <Navigate to="/" replace />
-                    )
-                  }
-                />
+                <Route path="/booth" element={data.manuscript ? <BoothNextPage hasManuscript navigate={guardedNavigate} /> : <Navigate to="/" replace />} />
                 <Route
                   path="/companion"
                   element={data.manuscript ? <CompanionPage onFixCredits={() => guardedNavigate('/settings#credits')} /> : <Navigate to="/" replace />}

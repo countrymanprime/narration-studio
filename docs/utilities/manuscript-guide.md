@@ -48,9 +48,7 @@ it as `alternate`; `pronunciation-use-alternate` swaps the two back, losslessly 
 [ADR 0792](../adr/0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md)
 the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept, and
 the Story Bible shows an old note read-only. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`,
-`espeak`) or `manual`. The host bindings are `GuidePronounceUser` and `GuidePronunciationUseAlternate`. The sidecar's
-`pronunciation-status` command has had no host caller since SN-B8 removed `GuidePronunciationSetStatus` and the query list,
-its CSV export and its import; SN-B81 removes the command.
+`espeak`) or `manual`. The host bindings are `GuidePronounceUser` and `GuidePronunciationUseAlternate`. The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
 
 ## Rules suggestions
 

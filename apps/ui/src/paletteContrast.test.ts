@@ -145,8 +145,7 @@ const PAIRS: PairSpec[] = [
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
   mark('meter-over', 'LevelMeter: the zone at or over the peak ceiling', 'var(--meter-over)', ['surface']),
-  // The two 14% badge tints left (ADR 0362, 0600): each tone's -text colour on its own tint of that tone.
-  text('badge-danger-fill', "ReadingControlBar's chip: danger text on the 14% danger tint", 'var(--danger-text)', ['surface'], 'var(--badge-danger-fill)'),
+  // The 14% badge tint left (ADR 0362, 0600): the tone's -text colour on its own tint of that tone.
   text(
     'badge-experimental-fill',
     "StatusBadge (experimental): experimental text on the badge's own 14% tint",

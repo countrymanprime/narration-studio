@@ -4,7 +4,7 @@
 
 **Builds on:** the delivered Booth ([ADR 0388](../adr/0388-the-booth-is-a-page-keyed-by-its-address-and-only-exit-booth-stops-a-live-session.md), [ADR 0720](../adr/0720-the-booth-fills-the-whole-window-and-f11-takes-the-window-fullscreen.md), [ADR 0196](../adr/0196-the-read-aloud-control-bar-lives-in-a-dialog-footer-slot-and-space-plays-or-stops-a-session.md), [ADR 0111](../adr/0111-the-resume-point-comes-from-transcribing-the-recorded-tail-and-placing-it-with-the-tracker.md), [ADR 0112](../adr/0112-the-resume-card-looks-up-where-the-recording-ends-on-open-and-a-choice-only-sets-where-start-begins.md), [ADR 0115](../adr/0115-live-flags-are-suspected-judged-per-closed-segment-and-forgive-what-transcript-compare-forgives.md), [ADR 0117](../adr/0117-live-flags-are-kept-as-suspected-findings-merged-per-chapter-when-a-session-ends.md), [ADR 0455](../adr/0455-the-built-in-recorder-records-each-take-to-a-partial-file-in-the-projects-recordings-folder-and-links-it-to-its-take-name.md)), record in REAPER ([ADR 0380](../adr/0380-record-in-reaper-is-a-project-scope-setting-and-arming-is-a-separate-click-from-play.md), [ADR 0231](../adr/0231-chapter-track-state-is-one-read-only-answer-of-the-transport-the-arms-the-input-device-and-one-tracks-items.md), [ADR 0232](../adr/0232-arming-for-a-recording-remembers-the-narrators-arms-makes-no-undo-point-and-the-app-stops-only-the-recording-it-started.md)), punch and roll ([ADR 0246](../adr/0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md), [ADR 0560](../adr/0560-punch-and-roll-times-a-word-past-the-anchors-by-aligning-it-in-the-recording-before-falling-back-to-the-reading-pace.md)), the input registry ([ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)). It carries over the unfinished phases of the old read-aloud control bar, teleprompter integration, engines and booth-actions PRDs (see the overview's carried-over table). The DAW commands are [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md).
 
-**Status (2026-10-10):** draft.
+**Status (2026-10-12):** the swap is in review (SN-O10, #1258): `/booth` mounts the Studio Next Booth and the old Booth is deleted. Bookmarks and the pickup session (phase 8) are built but not yet mounted on the page; the trailing confirmation pass of item 10 has no slice (#1476 lists it as not built).
 
 ## Problem Statement
 
@@ -134,16 +134,16 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADR and audit | A10; audit of the current Booth against the table, including the files the Companion shares | in review (docs/sn-o1-booth-audit; ADR 0790, ADR 0791 merged) | - | SN0-1 | 0.5 | - |
-| 2 | Record preconditions | `recordCheck`, reasons on the control, start rule | pending | 3 | 1, SND-2 | 1.0 | - |
-| 3 | Leave guard | Registration, dialog, stop on yes | pending | 2 | 1, SNR-3 | 0.8 | - |
-| 4 | Roll and punch confirm | Uses the DAW roll and `destructive` | pending | 5 | 2, SND-6a | 0.8 | - |
-| 5 | Resume and flags | Source display, tombstones, stable keys | pending | 4 | 1 | 1.0 | - |
-| 6 | Reading polish | Phrase navigation, scroll rule check, levels, chips, footer | pending | 4 | SNF-4 | 1.0 | - |
-| 7 | Passage map | Writer, sidecar, schema, golden | pending | 5 | 2 | 0.8 | - |
-| 8 | Pickup session and bookmarks | Side panel, ribbons | pending | - | SNB-5, SNQ-8 | 0.7 | - |
-| 9 | Engine picker | Host-reported engines, Moonshine live label | pending | - | 1 | 0.4 | - |
-| 10 | Swap and close-out | Route swap, delete the old Booth and its old equivalents, rows, guide, screenshots; carried-over owner checks | pending | - | 2 to 9 | 0.5 | - |
+| 1 | ADR and audit | A10; audit of the current Booth against the table, including the files the Companion shares | done (SN-O1 #1035; ADR 0790, ADR 0791) | - | SN0-1 | 0.5 | - |
+| 2 | Record preconditions | `recordCheck`, reasons on the control, start rule | done (SN-O21 #1220, SN-O22 #1221, SN-O23 #1223) | 3 | 1, SND-2 | 1.0 | - |
+| 3 | Leave guard | Registration, dialog, stop on yes | done (SN-O3 #1082, SN-O31 #1224) | 2 | 1, SNR-3 | 0.8 | - |
+| 4 | Roll and punch confirm | Uses the DAW roll and `destructive` | done (SN-O4 #1226) | 5 | 2, SND-6a | 0.8 | - |
+| 5 | Resume and flags | Source display, tombstones, stable keys | done (SN-O51 #1227, SN-O52 #1228) | 4 | 1 | 1.0 | - |
+| 6 | Reading polish | Phrase navigation, scroll rule check, levels, chips, footer | done (SN-O61 #1229, SN-O62 #1232, SN-O63 #1233, SN-O64 #1234) | 4 | SNF-4 | 1.0 | - |
+| 7 | Passage map | Writer, sidecar, schema, golden | done (SN-O71 #1237, SN-O72 #1238) | 5 | 2 | 0.8 | - |
+| 8 | Pickup session and bookmarks | Side panel, ribbons | built, not mounted (SN-O81 #1242, SN-O82 #1249; the page does not mount them yet) | - | SNB-5, SNQ-8 | 0.7 | - |
+| 9 | Engine picker | Host-reported engines, Moonshine live label | dropped: the mock Booth has no engine picker (SNO-1 finding 8); the engine and model stay in Settings > Booth | - | 1 | 0.4 | - |
+| 10 | Swap and close-out | Route swap, delete the old Booth and its old equivalents, rows, guide, screenshots; carried-over owner checks | in review (SN-O10, #1258; the SNO-1 audit note is deleted, its tables acted on) | - | 2 to 9 | 0.5 | - |
 
 ### Phase Details
 

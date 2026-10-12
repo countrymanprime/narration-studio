@@ -1,5 +1,5 @@
 /**
- * Shared dBFS math for `LevelMeter` (the primitive) and `useInputLevel` (the teleprompter's live level hook):
+ * Shared dBFS math for `LevelMeter` (the primitive) and the Booth's live level (`components/booth/frame/useLevels.ts`):
  * the dBFS-to-percent width map, which zone a reading falls in relative to the peak ceiling, and the peak-hold
  * ballistics (ADR 0360 Q2).
  */

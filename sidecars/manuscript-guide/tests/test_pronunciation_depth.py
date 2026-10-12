@@ -1,9 +1,8 @@
-"""Pronunciation status and the narrator's own pronunciation.
+"""The narrator's own pronunciation.
 
-A pronunciation carries a ``status`` (``researched``, ``query_sent``, ``author_confirmed``; absent reads as ``researched``) and an
-optional ``note``. The narrator can type their own pronunciation (source ``manual``); it never asks CMU or eSpeak, and it sits beside
+A pronunciation can carry a ``note`` (a stored ``status`` from before ADR 0792 is ignored). The narrator can type their own pronunciation (source ``manual``); it never asks CMU or eSpeak, and it sits beside
 the dictionary's answer instead of replacing it: the one not in use is kept as ``alternate``, so switching back is lossless and
-never re-runs a lookup. A rebuild keeps the status, the note and the alternate.
+never re-runs a lookup. A rebuild keeps the note and the alternate.
 """
 
 import argparse
@@ -47,10 +46,6 @@ def _user(path: Path, ipa: str, alias_index=None) -> None:
 
 def _swap(path: Path, alias_index=None) -> None:
     guide.pronunciation_use_alternate(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=alias_index))
-
-
-def _status(path: Path, status: str, note=None, alias_index=None) -> None:
-    guide.pronunciation_status(argparse.Namespace(guide=str(path), entity_id="entity-1", alias_index=alias_index, status=status, note=note))
 
 
 class UserPronunciationTests(unittest.TestCase):
@@ -134,8 +129,6 @@ class UserPronunciationTests(unittest.TestCase):
             path = _guide_file(Path(temporary), locked=True)
             with self.assertRaisesRegex(ValueError, "locked"):
                 _user(path, "mine")
-            with self.assertRaisesRegex(ValueError, "locked"):
-                _status(path, "query_sent")
 
     def test_there_is_nothing_to_switch_to_without_an_alternate(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -155,55 +148,23 @@ class UserPronunciationTests(unittest.TestCase):
         self.assertNotIn(guide.MANUAL_SOURCE, guide.PRONUNCIATION_SOURCES)
 
 
-class PronunciationStatusTests(unittest.TestCase):
-    def test_sets_the_status_and_note(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _status(path, "query_sent", "Asked in the 3 May email.")
-            value = _entity(path)["pronunciation"]
-            self.assertEqual(("query_sent", "Asked in the 3 May email."), (value["status"], value["note"]))
-            self.assertEqual("wɹɛn", value["ipa"])
+class PronunciationStatusIsGoneTests(unittest.TestCase):
+    def test_the_status_command_and_its_constants_are_removed(self):
+        for name in ("PRONUNCIATION_STATUSES", "DEFAULT_PRONUNCIATION_STATUS", "MAX_PRONUNCIATION_NOTE", "pronunciation_status_of", "pronunciation_status"):
+            self.assertFalse(hasattr(guide, name), name)
 
-    def test_no_note_leaves_the_note_alone_and_an_empty_one_clears_it(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _status(path, "query_sent", "kept")
-            _status(path, "author_confirmed")
-            self.assertEqual("kept", _entity(path)["pronunciation"]["note"])
-            _status(path, "author_confirmed", "  ")
-            self.assertNotIn("note", _entity(path)["pronunciation"])
+    def test_the_command_line_has_no_status_command(self):
+        with patch("sys.argv", ["manuscript_guide.py", "pronunciation-status", "--guide", "g"]), patch("sys.stderr"), self.assertRaises(SystemExit):
+            guide.main()
 
-    def test_an_unknown_status_or_overlong_note_is_refused(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            with self.assertRaisesRegex(ValueError, "status"):
-                _status(path, "guessed")
-            with self.assertRaisesRegex(ValueError, "note"):
-                _status(path, "researched", "x" * (guide.MAX_PRONUNCIATION_NOTE + 1))
-
-    def test_it_applies_to_an_alias(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = _guide_file(Path(temporary))
-            _status(path, "author_confirmed", alias_index=0)
-            entity = _entity(path)
-            self.assertEqual("author_confirmed", entity["aliases"][0]["pronunciation"]["status"])
-            self.assertNotIn("status", entity["pronunciation"])
-
-    def test_a_stored_status_is_not_carried_when_the_pronunciation_changes(self):
+    def test_a_stored_status_is_not_carried_when_the_pronunciation_changes_but_the_note_is(self):
         for status in ("author_confirmed", "query_sent"):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
-                path = _guide_file(Path(temporary))
-                _status(path, status, "Confirmed by phone.")
+                path = _guide_file(Path(temporary), pronunciation={**DICTIONARY, "status": status, "note": "Confirmed by phone."})
                 _user(path, "ˈwɹɛːn")
                 value = _entity(path)["pronunciation"]
                 self.assertNotIn("status", value)
                 self.assertEqual("Confirmed by phone.", value["note"])
-
-    def test_the_status_of_an_entry_written_before_it_existed_reads_as_researched(self):
-        self.assertEqual("researched", guide.pronunciation_status_of({"ipa": "x"}))
-        self.assertEqual("researched", guide.pronunciation_status_of({}))
-        self.assertEqual("researched", guide.pronunciation_status_of({"status": "nonsense"}))
-        self.assertEqual("query_sent", guide.pronunciation_status_of({"status": "query_sent"}))
 
 
 class RebuildKeepsTheNarratorsPronunciationWorkTests(unittest.TestCase):

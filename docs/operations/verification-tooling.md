@@ -94,7 +94,7 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 | 05 Master & QC | `master/mock-fidelity-05` | light | 92.06 | 85.76 |
 | 07 Companion (420×900 crop) | `booth/companion-listening` | dark | 92.39 | 85.86 |
 
-The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×900, dark) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons).
+The Booth (03) and the companion (07) are scored at `booth/dark` (1440×900; `booth/speaker-tags` until the Studio Next Booth replaced the old page, SN-O10, so the 03 baseline above is the old page's) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons).
 
 ## Gate stamp
 

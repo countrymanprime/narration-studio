@@ -56,7 +56,7 @@ function segmentMask(size: keyof typeof SIZE_SEGMENT): string {
  * replacing the teleprompter-local `InputLevelMeter`. `floor` and `ceiling` default to ACX's noise floor and peak
  * ceiling but are props, since Q2 leaves both "to verify" and other delivery platforms may differ. The RMS fill's
  * colour and the peak-hold tick's position both move through the zones from `src/levelMeter.ts`, shared with
- * `useInputLevel`'s peak-hold ballistics. `role="meter"` with `aria-valuetext` throttled to once a second, as
+ * `levelMeter.ts`'s peak-hold ballistics. `role="meter"` with `aria-valuetext` throttled to once a second, as
  * `InputLevelMeter` did; the fill and tick's transitions are `motion-safe` only.
  */
 export function LevelMeter({

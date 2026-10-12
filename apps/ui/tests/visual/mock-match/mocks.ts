@@ -46,7 +46,7 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
     theme: 'light',
     unscored: 'the Script page is built to the Studio Next mock, the only spec for a page it covers (D98, ADR 0760); this benchmark is not its target',
   },
-  { file: '03-booth.webp', target: { page: 'booth', state: 'speaker-tags' }, theme: 'dark' },
+  { file: '03-booth.webp', target: { page: 'booth', state: 'dark' }, theme: 'dark' },
   { file: '04-proof-pickups.webp', target: { page: 'proof', state: 'default' }, theme: 'light' },
   // Scored against its own fixture state (?mockFidelity=05, merged on main by N-B57).
   { file: '05-master-delivery.webp', target: { page: 'master', state: 'mock-fidelity-05' }, theme: 'light' },
