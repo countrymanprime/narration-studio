@@ -23,7 +23,7 @@ export function Preflight({ states, onOpen }: { states: readonly ChapterState[];
                 variant="link"
                 onClick={() => onOpen(state.id)}
                 aria-label={`${state.name}: ${state.text}. Open in Master & QC`}
-                className="flex w-full items-center justify-between gap-2 py-0.5 text-left text-sm no-underline"
+                className="flex! w-full items-center justify-between gap-2 py-0.5 text-left text-sm no-underline!"
               >
                 <span className="min-w-0 flex-1 truncate">{state.name}</span>
                 <StatusBadge tone={TONE[state.kind]} label={state.text} />

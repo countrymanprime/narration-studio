@@ -78,16 +78,8 @@ export const Built: Story = {
 };
 
 // A manuscript whose headings are numbered ("1." over the chapter's own name): each row is named in that style.
-const numbered = [1, 2, 3, 4].map(
-  (index) =>
-    ({
-      id: `n${index}`,
-      title: `${index}.`,
-      subtitle: `Down the Rabbit-Hole, part ${index}`,
-      index,
-      wordCount: 100,
-      status: 'ready',
-    }) as unknown as ManuscriptChapter,
+const numbered = ['Down the Rabbit-Hole', 'The Pool of Tears', 'A Caucus-Race', 'Pig and Pepper'].map(
+  (subtitle, i) => ({ id: `n${i + 1}`, title: `${i + 1}.`, subtitle, index: i + 1, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter,
 );
 
 export const NumberedHeadings: Story = {
@@ -101,7 +93,7 @@ export const NumberedHeadings: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText('1. — Down the Rabbit-Hole, part 1')).toBeTruthy();
+    await expect(await canvas.findByText('1. — Down the Rabbit-Hole')).toBeTruthy();
     await expect(canvas.getByText('0 of 4')).toBeTruthy();
   },
 };
