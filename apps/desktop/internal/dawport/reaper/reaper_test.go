@@ -114,8 +114,6 @@ var experimentalCapability = map[string]dawport.Capability{
 	"hide_takes":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
-	"list_fx":             dawport.CapFXChains,
-	"add_take_fx":         dawport.CapFXChains,
 	"create_regions":      dawport.CapRegions,
 	"play_position":       dawport.CapPunch,
 	"roll":                dawport.CapPunch,
@@ -176,8 +174,8 @@ func experimentalCommandsInSource(t *testing.T) []string {
 }
 
 // The declaration is today's behaviour exactly: a capability is Experimental when bridge.Actions gates its
-// commands behind the old switch, plus the two clients that were built but never wired; everything else is Supported. This is
-// also the guard that keeps record, punch, regions, silence_trim and item_gain (plus track_state, takes and fx_chains) from
+// commands behind the old switch, plus the one client that was built but never wired; everything else is Supported. This is
+// also the guard that keeps record, punch, regions and item_gain (plus track_state, takes and fx_chains) from
 // silently drifting from bridge.Experimental before any of them is promoted (ADR 0400).
 func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	inSource := experimentalCommandsInSource(t)
@@ -209,8 +207,7 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	for _, c := range experimentalCapability {
 		want[c] = dawport.Experimental
 	}
-	// Built, never wired, so never gated: declared Experimental so they stay off by default.
-	want[dawport.CapSilenceTrim] = dawport.Experimental
+	// Built, never wired, so never gated: declared Experimental so it stays off by default.
 	want[dawport.CapItemGain] = dawport.Experimental
 	// The mastering port's DAW row (ADR 0306): render_with_fx is not one of bridge.Actions'
 	// commands (it answers through the fan-out), so it is not gated by bridge.Actions; like every Experimental capability, the
@@ -234,18 +231,17 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
 	for c, want := range map[dawport.Capability]string{
-		dawport.CapReview:      "reaper.review",
-		dawport.CapNavigate:    "*bridge.Navigator",
-		dawport.CapMarkers:     "*bridge.Navigator",
-		dawport.CapHeartbeat:   "*daw.Reachability",
-		dawport.CapTrackState:  "*bridge.Actions",
-		dawport.CapRecord:      "*bridge.Actions",
-		dawport.CapPunch:       "reaper.puncher",
-		dawport.CapRegions:     "*bridge.Actions",
-		dawport.CapTakes:       "reaper.takeSelector",
-		dawport.CapFXChains:    "*bridge.Actions",
-		dawport.CapSilenceTrim: "*bridge.CleanupClient",
-		dawport.CapItemGain:    "*bridge.LevelMatchClient",
+		dawport.CapReview:     "reaper.review",
+		dawport.CapNavigate:   "*bridge.Navigator",
+		dawport.CapMarkers:    "*bridge.Navigator",
+		dawport.CapHeartbeat:  "*daw.Reachability",
+		dawport.CapTrackState: "*bridge.Actions",
+		dawport.CapRecord:     "*bridge.Actions",
+		dawport.CapPunch:      "reaper.puncher",
+		dawport.CapRegions:    "*bridge.Actions",
+		dawport.CapTakes:      "reaper.takeSelector",
+		dawport.CapFXChains:   "*bridge.Actions",
+		dawport.CapItemGain:   "*bridge.LevelMatchClient",
 	} {
 		if got := typeName(adapter.Role(c)); got != want {
 			t.Errorf("%s's role is %s, want %s", c, got, want)

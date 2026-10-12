@@ -74,7 +74,6 @@ export type DawCapabilityKey =
   | 'regions'
   | 'takes'
   | 'fx_chains'
-  | 'silence_trim'
   | 'item_gain'
   | 'render_with_fx'
   | 'master_chain_read'
@@ -117,7 +116,6 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'regions', label: 'Chapter regions' },
   { key: 'takes', label: 'Choose the active take' },
   { key: 'fx_chains', label: 'FX chains' },
-  { key: 'silence_trim', label: 'Silence trim' },
   { key: 'item_gain', label: 'Level matching' },
   { key: 'render_with_fx', label: "Mastering with the project's FX" },
   { key: 'master_chain_read', label: 'Master and track FX listing' },

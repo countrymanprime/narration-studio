@@ -429,20 +429,6 @@
       "effectiveSource": "repo_default",
       "effectiveValue": "auto",
       "isSet": false,
-      "key": "capability.silence_trim",
-      "kind": "choice",
-      "label": "Silence trim",
-      "value": ""
-    },
-    {
-      "choices": [
-        "auto",
-        "on",
-        "off"
-      ],
-      "effectiveSource": "repo_default",
-      "effectiveValue": "auto",
-      "isSet": false,
       "key": "capability.item_gain",
       "kind": "choice",
       "label": "Level matching",

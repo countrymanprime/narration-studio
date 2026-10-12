@@ -1,10 +1,10 @@
 // Package reaper is the DAW port's REAPER adapter (ADR 0300). It wraps what exists and rewrites nothing: the
-// synchronous roles are bridge.Navigator, bridge.Actions, bridge.CleanupClient, bridge.LevelMatchClient and
+// synchronous roles are bridge.Navigator, bridge.Actions, bridge.LevelMatchClient and
 // daw.Reachability as they are, the review session (review.go, ADR 0143) sends the bridge commands transcript.Service sent
 // before the extraction, the offline reader is tracks.Parse, and each asynchronous role writes the bridge command its service
 // writes. A capability is declared Experimental when bridge.Actions gates its commands behind the "Experimental REAPER
-// actions" switch (bridge's experimentalCommands), and Supported otherwise, except silence trim and level matching, which are
-// not wired to a caller and so start Experimental.
+// actions" switch (bridge's experimentalCommands), and Supported otherwise, except level matching, which is not wired to a
+// caller and so starts Experimental.
 //
 // Importing the package registers its factory for dawport.KindREAPER.
 package reaper
@@ -43,7 +43,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
-	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read;
+	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
 	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file
 	// (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
@@ -53,9 +53,8 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapRegions:     dawport.Experimental,
 	dawport.CapTakes:       dawport.Experimental,
 	dawport.CapFXChains:    dawport.Experimental,
-	// Built, never wired to a binding, so never gated: Experimental keeps them off until they are verified.
-	dawport.CapSilenceTrim: dawport.Experimental,
-	dawport.CapItemGain:    dawport.Experimental,
+	// Built, never wired to a binding, so never gated: Experimental keeps it off until it is verified.
+	dawport.CapItemGain: dawport.Experimental,
 	// The mastering port's DAW row (ADR 0306, masterrender.go): Experimental until the owner's
 	// REAPER pass. master_chain_read is one of bridge.Actions' gated commands; render_with_fx answers through the fan-out, and each
 	// request carries the narrator's approval for that one render, which the bridge uses up.
@@ -93,8 +92,6 @@ var commandCapability = map[string]dawport.Capability{
 	"hide_takes":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
-	"list_fx":             dawport.CapFXChains,
-	"add_take_fx":         dawport.CapFXChains,
 	"master_chain_read":   dawport.CapMasterChainRead,
 	"delete_range":        dawport.CapCutRange,
 	"apply_fx_range":      dawport.CapFXRange,
@@ -205,7 +202,6 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapRegions:         actions,
 			dawport.CapTakes:           takeSelector{actions, allowed},
 			dawport.CapFXChains:        actions,
-			dawport.CapSilenceTrim:     bridge.NewCleanupClient(client),
 			dawport.CapItemGain:        bridge.NewLevelMatchClient(client),
 			dawport.CapRenderWithFX:    fxRenderer{commands},
 			dawport.CapMasterChainRead: masterChainReader{actions},

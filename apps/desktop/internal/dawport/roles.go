@@ -40,15 +40,9 @@ type (
 
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
-	FXPlugins      = bridge.FXPlugins
-	Passage        = bridge.Passage
-	TakeFXAdded    = bridge.TakeFXAdded
 
-	CleanupCandidate = bridge.CleanupCandidate
-	PreviewResult    = bridge.PreviewResult
-	ApplyResult      = bridge.ApplyResult
-	GainCandidate    = bridge.GainCandidate
-	ApplyGainResult  = bridge.ApplyGainResult
+	GainCandidate   = bridge.GainCandidate
+	ApplyGainResult = bridge.ApplyGainResult
 
 	FilePreview        = bridge.FilePreview
 	FilePreviewStarted = bridge.FilePreviewStarted
@@ -313,18 +307,10 @@ type TakeSelector interface {
 	HideTakes(ctx context.Context, itemGUID, keepTakeGUID string) (Result, error)
 }
 
-// FXManager lists and applies FX chains and adds a plugin to a passage's take.
+// FXManager lists FX chains and applies one to a track.
 type FXManager interface {
 	ListFXChains(ctx context.Context) (FXChains, error)
 	ApplyFXChain(ctx context.Context, track, chain string) (FXChainApplied, error)
-	ListFX(ctx context.Context) (FXPlugins, error)
-	AddTakeFX(ctx context.Context, passage Passage, plugin string) (TakeFXAdded, error)
-}
-
-// SilenceTrimmer previews and applies silence trims.
-type SilenceTrimmer interface {
-	Preview(ctx context.Context, candidates []CleanupCandidate) (PreviewResult, error)
-	Apply(ctx context.Context, candidates []CleanupCandidate) (ApplyResult, error)
 }
 
 // GainAdjuster applies per-item gain to match levels.

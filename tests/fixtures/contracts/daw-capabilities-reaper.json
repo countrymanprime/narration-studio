@@ -145,12 +145,6 @@
       "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
       "reason": "standalone"
     },
-    "silence_trim": {
-      "available": false,
-      "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
-    },
     "stack_takes": {
       "available": false,
       "level": "experimental",
