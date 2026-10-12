@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "changed": true,
+  "message": "Stacked 1 take in Audacity. Done in 5 steps.",
+  "undoSteps": 5,
+  "steps": [
+    "Add a take track",
+    "Paste each later read into it",
+    "Split at the point where the reads line up",
+    "Shift the audio that follows to close the gap",
+    "Mute the reads that are not on top"
+  ]
+}

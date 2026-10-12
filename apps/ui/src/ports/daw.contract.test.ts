@@ -27,9 +27,13 @@ import {
   rangeCutAnswer,
   rolledAnswer,
   rolledReplacingAnswer,
+  STACK_STEPS,
+  nothingToStackAnswer,
   takesHiddenAnswer,
+  takesStackedAnswer,
+  takesUnstackedAnswer,
 } from '../fixtures/daw';
-import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi, type DawPickupItem, NOTHING_TO_CHANGE } from './daw';
+import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi, type DawPickupItem, NOTHING_TO_CHANGE, type StackRequest } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
 // One suite over both adapters: the mock on the REAPER setup, and the host adapter fed by the goldens the Go host wrote. The
@@ -55,6 +59,10 @@ const GOLDEN_FILES = [
   'daw-apply-fx-range-done.json',
   'daw-apply-fx-range-refused.json',
   'daw-remove-fx-range-done.json',
+  'daw-stack-done.json',
+  'daw-stack-steps.json',
+  'daw-unstack-done.json',
+  'daw-stack-refused-stale.json',
   'workspace-fx-chains.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
@@ -201,8 +209,32 @@ function hostApi(): DawHostApi {
       return Promise.resolve(read('daw-remove-fx-range-done.json', dawResultSchema));
     },
     workspaceListFXChains: () => Promise.resolve(read('workspace-fx-chains.json', workspaceFXChainsResultSchema)),
+    // DawStackTakes and DawUnstackTakes on REAPER: no passage is nothing to move, a passage the fixture project does not list is the stale
+    // refusal, and the one known passage is the done golden. Anything else has no golden.
+    dawStackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-stack-done.json')),
+    dawUnstackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-unstack-done.json')),
   };
 }
+
+function stackAnswer(known: typeof DAW_PROJECT, chapterId: string, passageIds: string[], done: string): DawResult {
+  if (passageIds.length === 0) return refusal(nothingToStackAnswer('REAPER'));
+  if (!known.chapterIds.includes(chapterId) || passageIds.some((id) => !(known.passageIds ?? []).includes(id))) {
+    return staleRefusal(DAW_ANSWERS.stackNotAPassage);
+  }
+  return read(done, dawResultSchema);
+}
+
+/** One retry of the fixture project's passage moved onto its first read: the plan a dialog would show. */
+const STACK: StackRequest = {
+  chapterId: 'chapter-1',
+  shift: -4,
+  groups: [{ passageId: 'pm-chapter-1-p-1', itemGuid: 'item-1', base: 'take-1', moves: [{ takeId: 'take-2', from: 16, to: 10, len: 4 }] }],
+};
+const UNSTACK: StackRequest = {
+  ...STACK,
+  shift: 4,
+  groups: STACK.groups.map((group) => ({ ...group, moves: [{ takeId: 'take-2', from: 10, to: 16, len: 4 }] })),
+};
 
 /** A refusal with no code: the host's own sentence in `refused` and `message`. */
 const refusal = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
@@ -238,6 +270,8 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 }),
         await daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 10 }),
         await daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain' }),
+        await daw.stackTakes(STACK),
+        await daw.unstackTakes(UNSTACK),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -344,6 +378,16 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     observe: (daw) => daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 501 }),
   },
   { name: 'dawclient-fx-range: the chain list is answered alike', observe: (daw) => daw.fxChains() },
+  { name: 'dawclient-stack: a stack of one retry is answered alike', observe: (daw) => daw.stackTakes(STACK) },
+  { name: 'dawclient-stack: an un-stack of one take is answered alike', observe: (daw) => daw.unstackTakes(UNSTACK) },
+  {
+    name: 'dawclient-stack: a passage the chapter does not list, or an unknown chapter, is refused stale alike',
+    observe: async (daw) => [
+      await daw.stackTakes({ ...STACK, groups: STACK.groups.map((group) => ({ ...group, passageId: '{11111111-1111-4111-8111-111111111111}' })) }),
+      await daw.unstackTakes({ ...UNSTACK, chapterId: 'chapter-9' }),
+    ],
+  },
+  { name: 'dawclient-stack: no passage is nothing to move alike', observe: (daw) => daw.stackTakes({ ...STACK, groups: [] }) },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
@@ -601,6 +645,55 @@ describe('the mock setups', () => {
     expect(await mock.roll('chapter-1', 40)).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: false })).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: true })).toEqual({ ok: true, changed: true, message: rolledReplacingAnswer(40), undoSteps: 1 });
+  });
+
+  it('dawclient-stack: the host adapter sends the chapter and the passage ids only, never the plan, and answers its DawResult as it is', async () => {
+    const daw = createHostDawClient(hostApi());
+    expect(await daw.stackTakes(STACK)).toEqual(read('daw-stack-done.json', dawResultSchema));
+    expect(await daw.unstackTakes(UNSTACK)).toEqual(read('daw-unstack-done.json', dawResultSchema));
+    const stale = read('daw-stack-refused-stale.json', dawResultSchema);
+    expectWellFormed(stale);
+    expect(stale.code).toBe('stale');
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawStackTakes: (...args) => {
+        calls.push(['stack', ...args]);
+        return Promise.resolve(stale);
+      },
+      dawUnstackTakes: (...args) => {
+        calls.push(['unstack', ...args]);
+        return Promise.resolve(stale);
+      },
+    });
+    expect(await host.stackTakes(STACK)).toEqual(stale);
+    expect(await host.unstackTakes(UNSTACK)).toEqual(stale);
+    expect(calls).toEqual([
+      ['stack', 'chapter-1', ['pm-chapter-1-p-1']],
+      ['unstack', 'chapter-1', ['pm-chapter-1-p-1']],
+    ]);
+  });
+
+  it('dawclient-stack: the mock follows the setups: one undo step natively, the steps listed in steps, none where the app stacks', async () => {
+    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.stack_takes.message;
+      expect(sentence, id).toBeTruthy();
+      expect(await createMockDawClient(DAW_SETUPS[id]).stackTakes(STACK), id).toEqual(refusal(sentence ?? ''));
+      expect(await createMockDawClient(DAW_SETUPS[id]).unstackTakes(UNSTACK), id).toEqual(refusal(sentence ?? ''));
+    }
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await reaper.stackTakes(STACK)).toEqual({ ok: true, changed: true, message: takesStackedAnswer(1, 'REAPER'), undoSteps: 1 });
+    expect(await reaper.unstackTakes(UNSTACK)).toEqual({ ok: true, changed: true, message: takesUnstackedAnswer(1, 'REAPER'), undoSteps: 1 });
+    expect(await reaper.stackTakes({ ...STACK, groups: [{ ...STACK.groups[0], moves: [] }] })).toEqual(refusal(nothingToStackAnswer('REAPER')));
+
+    const withMode = (mode: 'steps' | 'app'): DawCapabilities => ({
+      ...DAW_SETUPS.audacity,
+      capabilities: { ...DAW_SETUPS.audacity.capabilities, stack_takes: { level: 'experimental', available: true, mode } },
+    });
+    const steps = await createMockDawClient(withMode('steps')).stackTakes(STACK);
+    expect(steps).toEqual(read('daw-stack-steps.json', dawResultSchema));
+    expect(steps.steps).toEqual([...STACK_STEPS]);
+    expect((await createMockDawClient(withMode('app')).stackTakes(STACK)).undoSteps).toBe(0);
   });
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {

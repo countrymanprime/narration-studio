@@ -18,6 +18,11 @@ import {
   fxChainsSource,
   fxNotOnItemAnswer,
   fxRangeOf,
+  nothingToStackAnswer,
+  STACK_STEPS,
+  stackOf,
+  takesStackedAnswer,
+  takesUnstackedAnswer,
   RANGE_CUT_STEPS,
   rangeCutAnswer,
   rangeCutOf,
@@ -253,5 +258,35 @@ describe('the FX range answers (SN-D66)', () => {
     });
     expect(fxRangeOf(withMode('steps'), chain, 2)).toEqual({ message: fxChainAddedAnswer(chain, 2, 'REAPER'), undoSteps: 2, steps: [...FX_RANGE_STEPS] });
     expect(fxRangeOf(withMode('app'), chain, 2).undoSteps).toBe(0);
+  });
+});
+
+describe('the stack answers (SN-D72)', () => {
+  const golden = (name: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as {
+      message: string;
+      undoSteps: number;
+      steps?: string[];
+    };
+
+  it("words what dawport/reaper's takeStacker does, as the host goldens have them", () => {
+    expect(takesStackedAnswer(1, 'REAPER')).toBe(golden('daw-stack-done.json').message);
+    expect(takesUnstackedAnswer(1, 'REAPER')).toBe(golden('daw-unstack-done.json').message);
+    expect(takesStackedAnswer(3, 'REAPER')).toBe('Stacked 3 takes in REAPER.');
+    expect(nothingToStackAnswer('REAPER')).toBe('There are no retries to move in REAPER.');
+  });
+
+  it('stackOf answers one undo step on REAPER (native), and the steps of the steps golden where the mode is steps', () => {
+    expect(DAW_SETUPS.reaper.capabilities.stack_takes.mode).toBe('native');
+    expect(stackOf(DAW_SETUPS.reaper, 2)).toEqual({ message: takesStackedAnswer(2, 'REAPER'), undoSteps: 1 });
+    expect(stackOf(DAW_SETUPS.reaper, 1, true)).toEqual({ message: takesUnstackedAnswer(1, 'REAPER'), undoSteps: 1 });
+    const withMode = (mode: 'steps' | 'app') => ({
+      ...DAW_SETUPS.audacity,
+      capabilities: { ...DAW_SETUPS.audacity.capabilities, stack_takes: { level: 'experimental' as const, available: true, mode } },
+    });
+    const steps = golden('daw-stack-steps.json');
+    expect(stackOf(withMode('steps'), 1)).toEqual({ message: steps.message, undoSteps: steps.undoSteps, steps: steps.steps });
+    expect(steps.steps).toEqual([...STACK_STEPS]);
+    expect(stackOf(withMode('app'), 1).undoSteps).toBe(0);
   });
 });

@@ -28,6 +28,8 @@ export const dawFeedback = {
   'src/ports/daw.ts::dawDeleteRange#1': adapter('Forwards Delete words and audio; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawApplyFxToRange#1': adapter('Forwards Add effect to words; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawRemoveFxFromRange#1': adapter('Forwards Remove effect from words; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawStackTakes#1': adapter('Forwards Stack retries as takes with the passage ids only; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawUnstackTakes#1': adapter('Forwards Un-stack the takes with the passage ids only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::workspaceListFXChains#1': adapter("Reads the DAW's saved FX chains for the Add FX list; a refusal rejects for the page to show."),
   'src/ports/daw.ts::dawCapabilities#3': adapter("Reads the capability report beside the chain list, for the list's source label."),
   'src/ports/daw.ts::findingsAddMarker#1': adapter('Forwards Add marker.'),

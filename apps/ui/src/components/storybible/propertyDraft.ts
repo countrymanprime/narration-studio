@@ -30,13 +30,49 @@ export function moveDraftRow(rows: DraftProperty[], id: number, direction: -1 | 
 export const propertiesFrom = (rows: DraftProperty[]): GuideProperty[] =>
   rows.map((row) => ({ key: row.key.trim(), value: row.value.trim() })).filter((row) => row.key !== '' || row.value !== '');
 
-/** The first thing wrong with the rows, in words the narrator can act on, or nothing. The sidecar refuses the same two cases. */
-export function propertyProblem(rows: DraftProperty[]): string | undefined {
+/** The three properties a character's panel draws as fields of their own, under the mock's labels; the Script rail reads the same keys (ADR 0846). */
+export const TALK_FIELDS = [
+  { key: 'says', label: 'How they talk' },
+  { key: 'does', label: 'How they act' },
+  { key: 'knows', label: 'What they know' },
+] as const;
+export type TalkKey = (typeof TALK_FIELDS)[number]['key'];
+export type TalkDraft = Record<TalkKey, string>;
+export const NO_TALK: TalkDraft = { says: '', does: '', knows: '' };
+
+const talkKeyOf = (key: string): TalkKey | undefined => TALK_FIELDS.find((field) => field.key === key.trim().toLowerCase())?.key;
+
+/** Pulls the three out of a character's properties: the rest keep their order, and a key written twice keeps its first value. */
+export function splitTalk(properties: GuideProperty[]): { rest: GuideProperty[]; talk: TalkDraft } {
+  const talk = { ...NO_TALK };
+  const seen = new Set<TalkKey>();
+  const rest: GuideProperty[] = [];
+  for (const property of properties) {
+    const key = talkKeyOf(property.key);
+    if (!key) rest.push(property);
+    else if (!seen.has(key)) {
+      seen.add(key);
+      talk[key] = property.value;
+    }
+  }
+  return { rest, talk };
+}
+
+/** The properties a Save sends: the others as the narrator ordered them, then the three that have text, under their own keys. */
+export const withTalk = (rest: GuideProperty[], talk: TalkDraft): GuideProperty[] => [
+  ...rest,
+  ...TALK_FIELDS.flatMap(({ key }) => (talk[key].trim() ? [{ key, value: talk[key].trim() }] : [])),
+];
+
+/** The first thing wrong with the rows, in words the narrator can act on, or nothing. The sidecar refuses the same two cases. A character's rows may not reuse a key the panel already draws as a field. */
+export function propertyProblem(rows: DraftProperty[], reserved = false): string | undefined {
   const seen = new Set<string>();
   const kept = rows.filter((row) => row.key.trim() !== '' || row.value.trim() !== '');
   for (const [index, row] of kept.entries()) {
     const key = row.key.trim();
     if (key === '') return `Give property ${index + 1} a name, or clear its value.`;
+    const field = reserved ? TALK_FIELDS.find((talk) => talk.key === key.toLowerCase()) : undefined;
+    if (field) return `“${key}” is the ${field.label} field above. Write it there.`;
     if (seen.has(key.toLowerCase())) return `Two properties are named “${key}”. Give each a different name.`;
     seen.add(key.toLowerCase());
   }

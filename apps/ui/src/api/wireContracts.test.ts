@@ -4,7 +4,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
-import { DAW_ANSWERS, fxChainAddedAnswer, fxChainRemovedAnswer, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
+import {
+  DAW_ANSWERS,
+  fxChainAddedAnswer,
+  fxChainRemovedAnswer,
+  nothingToStackAnswer,
+  rangeCutAnswer,
+  rolledAnswer,
+  takesStackedAnswer,
+  takesUnstackedAnswer,
+} from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -2854,6 +2863,37 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off).toEqual(readGolden('daw-apply-fx-range-refused.json'));
   });
 
+  it('dawStackTakes and dawUnstackTakes answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-stack-done.json', 'daw-stack-steps.json', 'daw-unstack-done.json', 'daw-stack-refused-stale.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-stack-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: takesStackedAnswer(1, 'REAPER') });
+    expect(readGolden('daw-unstack-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: takesUnstackedAnswer(1, 'REAPER') });
+    expect(readGolden('daw-stack-steps.json')).toMatchObject({ ok: true, undoSteps: 5, steps: expect.any(Array) });
+    expect(readGolden('daw-stack-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const passage = `pm-${chapter.id}-p-1`;
+    const api = createMockApi({}, { daw: { toggles: { stack_takes: 'on' } } });
+    const stacked = await api.dawStackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, stacked, 'mock stack');
+    expect(stacked).toEqual(readGolden('daw-stack-done.json'));
+    const unstacked = await api.dawUnstackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, unstacked, 'mock un-stack');
+    expect(unstacked).toEqual(readGolden('daw-unstack-done.json'));
+    for (const ids of [['{11111111-1111-4111-8111-111111111111}'], [passage, '16.0']]) {
+      const stale = await api.dawStackTakes(chapter.id, ids);
+      expectMatches(dawResultSchema, stale, 'mock stack, unknown passage');
+      expect(stale).toMatchObject({ ok: false, code: 'stale', refused: DAW_ANSWERS.stackNotAPassage });
+    }
+    expect(await api.dawUnstackTakes('no-such-chapter', [passage])).toMatchObject({ ok: false, code: 'stale' });
+    expect((await api.dawStackTakes(chapter.id, [])).refused).toBe(nothingToStackAnswer('REAPER'));
+
+    const off = await createMockApi().dawStackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, off, 'mock stack, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.stack_takes.message);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3420,6 +3460,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawDeleteRange',
       'dawApplyFxToRange',
       'dawRemoveFxFromRange',
+      'dawStackTakes',
+      'dawUnstackTakes',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',
