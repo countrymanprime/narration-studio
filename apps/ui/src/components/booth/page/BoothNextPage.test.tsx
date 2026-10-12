@@ -955,6 +955,16 @@ describe('the reference in the side panel', () => {
     expect(current()).toBe('2');
   });
 
+  it('above 1280 clicking the text does not close the inline panel', async () => {
+    renderPage();
+    await ready();
+    const panel = document.getElementById('booth-side')!;
+    expect(panel.hidden).toBe(false);
+    await userEvent.click(word(1, 2));
+    await userEvent.click(document.querySelector<HTMLElement>('[data-booth-text]')!);
+    expect(panel.hidden).toBe(false);
+  });
+
   it('a Story Bible name shows its entry', async () => {
     renderPage({ api: { marksList: async () => MARKS } });
     await ready();
