@@ -4,13 +4,15 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
+import { createMockMeasurements } from '../../../ports/measurements';
+import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 
 // The Booth page (docs/research/mockups/studio-next/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
-type Args = { setup: DawSetupId | 'destructive'; resume: boolean; pickups?: boolean; navigate: (next: string) => void };
+type Args = { setup: DawSetupId | 'destructive'; resume: boolean; pickups?: boolean; roomTone?: number; navigate: (next: string) => void };
 
 const pickup = (id: string, chapterId: string, paragraphId: string, script: string, done = false): PickupItem => ({
   id,
@@ -51,7 +53,7 @@ const destructive = (): DawClient =>
     { chapterIds: ['c1'], candidateIds: [], findingIds: [] },
   );
 
-function Page({ setup, resume, pickups = false, navigate }: Args) {
+function Page({ setup, resume, pickups = false, roomTone, navigate }: Args) {
   const [host] = useState(() => ({
     api: pageApi({
       ...(resume ? { teleprompterLocate: async () => LOCATED } : {}),
@@ -60,11 +62,15 @@ function Page({ setup, resume, pickups = false, navigate }: Args) {
     daw: setup === 'destructive' ? destructive() : dawFor(setup),
     journal: newJournal(),
     overlay: createOverlayService(),
+    // The microphone's room tone, whichever microphone is chosen; without it the host's port has no reading.
+    measurements: roomTone === undefined ? undefined : { ...createMockMeasurements(), roomTone: async () => ({ ok: true as const, value: roomTone }) },
   }));
   return (
     <div className="h-[calc(100vh-2rem)]">
       <BoothHost {...host} search={pickups ? '?chapter=c1&pickups=k1,k2,k3' : undefined}>
-        <BoothNextPage hasManuscript navigate={navigate} />
+        <PortOverrides clients={host.measurements ? { daw: host.daw, measurements: host.measurements } : { daw: host.daw }}>
+          <BoothNextPage hasManuscript navigate={navigate} />
+        </PortOverrides>
       </BoothHost>
     </div>
   );
@@ -178,5 +184,14 @@ export const PickupSession: Story = {
     // The panel is a closed drawer at narrow widths, so the line is found by its jump id rather than by its (hidden) role.
     await expect(canvasElement.ownerDocument.querySelector('[data-pj="k1"]')?.getAttribute('aria-current')).toBe('true');
     await expect(canvasElement.querySelector('#bkeys')?.textContent).toContain('Next pickup');
+  },
+};
+
+// The microphone's room tone measured: the footer shows it beside the level bar, in the ok colour.
+export const RoomToneMeasured: Story = {
+  args: { roomTone: -58.6 },
+  play: async ({ canvasElement }) => {
+    await recordButton(canvasElement);
+    await expect(await within(canvasElement).findByText('Room −58.6 dB')).toBeTruthy();
   },
 };

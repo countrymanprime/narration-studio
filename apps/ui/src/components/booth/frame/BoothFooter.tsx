@@ -1,10 +1,40 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { KeyHints } from '../../primitives/KeyHints';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
 import { useLevels } from './useLevels';
+
+/** "Room −58.6 dB" (a real minus sign, one decimal), or "Room not measured yet": the mock's room tone label. */
+function roomToneLabel(tone: Measured<number>): string {
+  return tone.ok ? `Room ${tone.value.toFixed(1).replace('-', '−')} dB` : 'Room not measured yet';
+}
+
+/**
+ * The room tone the microphone reports, from the measurements port (`roomTone(mic)`), as the footer shows it; "not measured yet"
+ * until a reading comes, or when there is none.
+ */
+export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<number>> }, mic: string): { label: string; ok: boolean } {
+  const [tone, setTone] = useState<{ mic: string; answer: Measured<number> } | null>(null);
+  useEffect(() => {
+    let live = true;
+    // A port that fails has no reading to show: its reason stands in for one.
+    port
+      .roomTone(mic)
+      .then(
+        (answer) => answer,
+        (reason: unknown): Measured<number> => ({ ok: false, reason: reason instanceof Error ? reason.message : String(reason) }),
+      )
+      .then((answer) => live && setTone({ mic, answer }));
+    return () => {
+      live = false;
+    };
+  }, [port, mic]);
+  const answer: Measured<number> = tone?.mic === mic ? tone.answer : { ok: false, reason: 'Not read yet.' };
+  return { label: roomToneLabel(answer), ok: answer.ok };
+}
 
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice'>;
 
