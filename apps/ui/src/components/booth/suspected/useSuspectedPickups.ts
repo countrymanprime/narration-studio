@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
-import { overlay } from '../../../overlay/overlayService';
+import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
 import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLines';
 
@@ -19,6 +19,7 @@ const lines = (n: number) => `${n} suspected ${n === 1 ? 'line' : 'lines'} added
 export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; flags: readonly SuspectedFlag[] }) {
   const teleprompter = usePort('teleprompter');
   const findings = usePort('findings');
+  const overlay = useOverlay();
   const latest = useRef({ chapterId, flags });
   latest.current = { chapterId, flags };
 
@@ -54,7 +55,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       });
       return added.length;
     },
-    [teleprompter, findings],
+    [teleprompter, findings, overlay],
   );
 
   return { takeStopped };
