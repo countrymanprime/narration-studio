@@ -79,33 +79,35 @@ function TypeRow({
           }}
         />
       </span>
-      <Select
-        label={`Colour for ${type.name}`}
-        className="w-[110px] md:w-[130px]"
-        value={type.colour}
-        disabled={busy}
-        options={COLOUR_OPTIONS}
-        onChange={(colour) => onColour(type.name, colour as GuideTypeColour)}
-      />
-      <TooltipTarget text="Entries of this type can be picked as the speaker of a quoted line">
-        <Checkbox checked={type.speaks} disabled={busy} onChange={(speaks) => onSpeaks(type.name, speaks)}>
-          <span className="whitespace-nowrap text-[var(--text-muted)]">
-            Can speak<span className="sr-only">: {type.name}</span>
-          </span>
-        </Checkbox>
-      </TooltipTarget>
-      <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] md:ml-0 md:min-w-[70px]">
-        {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
+      <span className="flex w-full items-center gap-2 md:w-auto md:gap-3">
+        <Select
+          label={`Colour for ${type.name}`}
+          className="w-[100px] md:w-[130px]"
+          value={type.colour}
+          disabled={busy}
+          options={COLOUR_OPTIONS}
+          onChange={(colour) => onColour(type.name, colour as GuideTypeColour)}
+        />
+        <TooltipTarget text="Entries of this type can be picked as the speaker of a quoted line">
+          <Checkbox checked={type.speaks} disabled={busy} onChange={(speaks) => onSpeaks(type.name, speaks)}>
+            <span className="whitespace-nowrap text-[var(--text-muted)]">
+              Can speak<span className="sr-only">: {type.name}</span>
+            </span>
+          </Checkbox>
+        </TooltipTarget>
+        <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] md:ml-0 md:min-w-[70px]">
+          {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
+        </span>
+        <IconButton
+          action="remove"
+          label={`Remove ${type.name}`}
+          variant="danger"
+
+          disabledReason={blocked}
+          pending={busy && !blocked}
+          onClick={() => onRemove(type.name)}
+        />
       </span>
-      <IconButton
-        action="remove"
-        label={`Remove ${type.name}`}
-        variant="danger"
-        size="sm"
-        disabledReason={blocked}
-        pending={busy && !blocked}
-        onClick={() => onRemove(type.name)}
-      />
     </li>
   );
 }
@@ -155,7 +157,7 @@ export function StoryBibleTypesView({ types, counts, busy = false, error, onRena
                 if (event.key === 'Enter') add();
               }}
             />
-            <IconButton action="add" label="Add type" size="sm" pending={busy} onClick={add} />
+            <IconButton action="add" label="Add type" pending={busy} onClick={add} />
           </div>
         )}
         {error && (
