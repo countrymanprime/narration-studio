@@ -36,7 +36,7 @@ export const TALK_FIELDS = [
   { key: 'does', label: 'How they act' },
   { key: 'knows', label: 'What they know' },
 ] as const;
-export type TalkKey = (typeof TALK_FIELDS)[number]['key'];
+type TalkKey = (typeof TALK_FIELDS)[number]['key'];
 export type TalkDraft = Record<TalkKey, string>;
 export const NO_TALK: TalkDraft = { says: '', does: '', knows: '' };
 

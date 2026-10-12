@@ -18,7 +18,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 33 |
 | [Assets, models and downloads](#assets-and-downloads) | 10 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
-| [Recording check, takes and proofing](#recording-check-and-takes) | 56 |
+| [Recording check, takes and proofing](#recording-check-and-takes) | 57 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
 | [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 51 |
 | [Persistence and project files](#persistence-and-project-files) | 9 |
@@ -360,6 +360,7 @@ Coverage, take review and comparison, editing readiness and click/breath checks,
 | [0855](0855-heard-words-carry-a-null-score-with-a-reason-and-extra-runs-become-added-words-spread-between-their-ends.md) | Heard words carry a null score with a reason, and extra runs become added words spread between their ends | Proposed |
 | [0856](0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | The Editing records are one file per kind, keyed by word with its text, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md) | The take suggestion is evidence first, and its confidence is null with a reason until the takes are comparable | Proposed |
+| [0858](0858-the-app-may-stack-later-reads-on-the-first-read-and-keeps-each-stacked-takes-offset-and-the-retry-choice-in-an-editing-record.md) | The app may stack later reads on the first read, and keeps each stacked take's offset and the retry choice in an Editing record | Proposed |
 
 <a id="teleprompter-and-read-aloud"></a>
 

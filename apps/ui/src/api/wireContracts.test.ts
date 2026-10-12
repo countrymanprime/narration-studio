@@ -25,6 +25,8 @@ import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
+import type { EditStackRecordRequest } from './contracts/editStacks';
+import { passageStackSchema, retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
 import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordFlagSchema, scriptWordSchema } from './schemas/scriptPrep';
 import {
@@ -3350,6 +3352,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingWordFxList',
       'editingWordFxRecord',
       'editingWordFxRemove',
+      'editingStacksList',
+      'editingStackRecord',
+      'editingStackRemove',
+      'editingRetryModeGet',
+      'editingRetryModeSet',
       'marksList',
       'marksAdd',
       'marksRemove',
@@ -4649,6 +4656,92 @@ describe('the word effects bindings', () => {
     expect(wordFxSchema.safeParse({ ...fx, words: [] }).success).toBe(false);
     expect(wordFxChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
     expect(wordFxChangeSchema.safeParse({ chapterId: change.chapterId, effects: change.effects, changed: change.changed }).success).toBe(false);
+  });
+});
+
+// The stack record and the retry choice (ADR 0858): the mock answers through the same schemas as the host's goldens, refuses
+// what the host refuses, and the schemas refuse what the host never sends, a path for an id among them.
+describe('the stack record and retry mode bindings', () => {
+  const stack = (): EditStackRecordRequest => ({
+    passageId: 'passage-1',
+    base: 'take:{ITEM-1}:{TAKE-1}',
+    takes: ['take:{ITEM-1}:{TAKE-1}', 'take:{ITEM-1}:{TAKE-2}', 'take:{ITEM-1}:{TAKE-3}'],
+    moves: [
+      { takeId: 'take:{ITEM-1}:{TAKE-3}', offset: 14.2 },
+      { takeId: 'take:{ITEM-1}:{TAKE-2}', offset: 6.7 },
+    ],
+    mode: 'native',
+    undoSteps: 1,
+  });
+  const chapterOf = async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    return { api, chapterId: chapter?.id ?? '' };
+  };
+
+  it('the mock answers EditingStacksList, Record and Remove through their schemas, and a partial un-stack keeps the rest', async () => {
+    const { api, chapterId } = await chapterOf();
+    expectMatches(stackListSchema, await api.editingStacksList(chapterId), 'mock stacks list (empty)');
+    const recorded = await api.editingStackRecord(chapterId, stack());
+    expectMatches(stackChangeSchema, recorded, 'mock stack record');
+    expect(recorded.changed).toEqual(['take:{ITEM-1}:{TAKE-2}', 'take:{ITEM-1}:{TAKE-3}']);
+    expect(recorded.stacks[0]).toMatchObject({ id: 'stk-passage-1', base: 'take:{ITEM-1}:{TAKE-1}', offsets: { 'take:{ITEM-1}:{TAKE-2}': 6.7 } });
+    await expect(api.editingStackRecord(chapterId, { ...stack(), moves: [{ takeId: 'take:{ITEM-1}:{TAKE-2}', offset: 1 }] })).rejects.toThrow(
+      'already stacked',
+    );
+    const partial = await api.editingStackRemove(chapterId, 'passage-1', ['take:{ITEM-1}:{TAKE-3}']);
+    expectMatches(stackChangeSchema, partial, 'mock stack remove');
+    expect(Object.keys(partial.stacks[0]?.offsets ?? {})).toEqual(['take:{ITEM-1}:{TAKE-2}']);
+    expect((await api.editingStackRemove(chapterId, 'passage-1', ['take:{ITEM-1}:{TAKE-2}'])).stacks).toEqual([]);
+  });
+
+  it('the mock refuses what the host refuses and saves nothing', async () => {
+    const { api, chapterId } = await chapterOf();
+    await expect(api.editingStackRecord('no-such-chapter', stack())).rejects.toThrow('not in the manuscript');
+    await expect(api.editingStackRecord(chapterId, { ...stack(), moves: [{ takeId: 'take:{X}:{Y}', offset: 1 }] })).rejects.toThrow(
+      'not a take of this passage',
+    );
+    await expect(api.editingStackRecord(chapterId, { ...stack(), moves: [{ takeId: 'take:{ITEM-1}:{TAKE-2}', offset: -1 }] })).rejects.toThrow('offset');
+    await expect(api.editingStackRecord(chapterId, { ...stack(), moves: [] })).rejects.toThrow('no takes to stack');
+    await expect(api.editingStackRecord(chapterId, { ...stack(), mode: 'steps', steps: ['Moved'] })).rejects.toThrow('backup');
+    await expect(api.editingStackRecord(chapterId, { ...stack(), passageId: '../../etc/passwd' })).rejects.toThrow('Takes panel');
+    expect((await api.editingStacksList(chapterId)).stacks).toEqual([]);
+  });
+
+  it('the mock resolves the retry mode passage over chapter over project, leave by default', async () => {
+    const { api, chapterId } = await chapterOf();
+    expectMatches(retryModeAnswerSchema, await api.editingRetryModeGet('passage', chapterId, 'passage-1'), 'mock retry default');
+    expect(await api.editingRetryModeGet('project', '', '')).toEqual({ level: 'project', mode: 'leave', from: 'default' });
+    await api.editingRetryModeSet('project', '', '', 'stack');
+    await api.editingRetryModeSet('chapter', chapterId, '', 'leave');
+    const set = await api.editingRetryModeSet('passage', chapterId, 'passage-1', 'stack');
+    expectMatches(retryModeAnswerSchema, set, 'mock retry set');
+    expect(set).toMatchObject({ mode: 'stack', from: 'passage', set: 'stack' });
+    expect(await api.editingRetryModeGet('passage', chapterId, 'passage-2')).toMatchObject({ mode: 'leave', from: 'chapter' });
+    await expect(api.editingRetryModeSet('book' as 'project', '', '', 'stack')).rejects.toThrow('project, a chapter or a passage');
+    await expect(api.editingRetryModeSet('project', '', '', 'always' as 'stack')).rejects.toThrow('stacked or left');
+  });
+
+  it('the schemas read the goldens and refuse a negative offset, a path for an id or an unknown key', () => {
+    const list = parseWire(stackListSchema, readGolden('edit-stacks-list.json'), ctx('stacks list'));
+    expect(list.stacks.map((each) => [each.passageId, each.mode, Object.keys(each.offsets).length])).toEqual([
+      ['passage-1', 'steps', 2],
+      ['passage-2', 'native', 2],
+    ]);
+    const change = parseWire(stackChangeSchema, readGolden('edit-stacks-record.json'), ctx('stack record'));
+    expect(change.changed).toEqual(['take:{ITEM-1}:{TAKE-3}']);
+    expect(parseWire(stackChangeSchema, readGolden('edit-stacks-remove.json'), ctx('stack remove')).changed).toEqual(['take:{ITEM-1}:{TAKE-2}']);
+    expect(parseWire(retryModeAnswerSchema, readGolden('edit-stacks-retry-mode.json'), ctx('retry mode'))).toMatchObject({ mode: 'stack', from: 'passage' });
+    const [steps, native] = change.stacks;
+    if (!steps || !native) throw new Error('the record golden has two stacks');
+    expect(passageStackSchema.safeParse({ ...native, offsets: { 'take:{ITEM-1}:{TAKE-2}': -1 } }).success).toBe(false);
+    expect(passageStackSchema.safeParse({ ...native, offsets: { 'C:\\take.wav': 1 } }).success).toBe(false);
+    expect(passageStackSchema.safeParse({ ...native, offsets: {} }).success).toBe(false);
+    expect(passageStackSchema.safeParse({ ...native, base: '/etc/passwd' }).success).toBe(false);
+    expect(passageStackSchema.safeParse({ ...native, path: '/etc/passwd' }).success).toBe(false);
+    expect(passageStackSchema.safeParse({ ...steps, backupId: undefined }).success).toBe(false);
+    expect(stackChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+    expect(retryModeAnswerSchema.safeParse({ level: 'project', mode: 'stack', from: 'project', chapterId: 'c-0001' }).success).toBe(false);
   });
 });
 

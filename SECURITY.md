@@ -36,7 +36,8 @@ especially welcome:
   or holds a cell that runs as a formula in a spreadsheet (row 6h;
   [ADR 0406](docs/adr/0406-the-status-report-leaves-out-the-contracted-amount-and-effective-rate-unless-the-narrator-opts-in.md)).
 - The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [ADR 0251](docs/adr/0251-tool-runs-are-logged-as-json-lines-through-slog-with-a-run-id-and-content-is-never-logged.md)) and the diagnostics bundle Settings can save from it (`SystemCopyDiagnostics`) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
-- A file the app keeps in a project or user folder that makes it run, open, fetch or write anything else, or puts markup into
+- A file the app keeps in a project or user folder (the Editing records in `narration-utils/editing/`, `stacks.json` among them, are
+  such files) that makes it run, open, fetch or write anything else, or puts markup into
   the page ([data files](docs/reference/data-files.md); threat model row 6i, and rows 6m and 6zc for a file that names a path
   the host opens). A hand-edited copy that only changes the narrator's own notes, marks, decisions, dates or verdicts crosses no
   boundary and is not a vulnerability.

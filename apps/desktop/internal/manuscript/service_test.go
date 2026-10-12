@@ -1083,3 +1083,93 @@ func TestReplaceAndClearRemoveTheSuggestionsFile(t *testing.T) {
 		t.Fatalf("Clear project data left the suggestions behind: %v", err)
 	}
 }
+
+// Stacks and retry modes name chapter ids and the passages and takes of the recording, so replacing the manuscript and Clear
+// project data remove editing/stacks.json as well (ADR 0858); an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheStacksFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeStacks := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(editlog.StacksFile(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(editlog.StacksFile(project), []byte(`{"schemaVersion":1,"stacks":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeStacks()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); err != nil {
+		t.Fatalf("an import without a reset removed the stacks: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the stacks: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the stacks behind: %v", err)
+	}
+	writeStacks()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(editlog.StacksFile(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the stacks behind: %v", err)
+	}
+}
+
+// A prepared preview is the narrator's work, so the project cannot be switched under it until it is cancelled; SetProject then
+// points the service at the new folder, whose manuscript is its own.
+func TestCanSwitchProjectWaitsForAPreparedPreview(t *testing.T) {
+	service := New(t.TempDir())
+	if !service.CanSwitchProject() {
+		t.Fatal("a service with no job refused a switch")
+	}
+	job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+	if _, err := service.Preview(job.ID, 1); err != nil {
+		t.Fatal(err)
+	}
+	if service.CanSwitchProject() {
+		t.Fatal("a prepared preview allowed a switch")
+	}
+	if err := service.Cancel(job.ID); err != nil {
+		t.Fatal(err)
+	}
+	if !service.CanSwitchProject() {
+		t.Fatal("a cancelled preview still refused a switch")
+	}
+	job = service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+	if _, err := service.Preview(job.ID, 1); err != nil {
+		t.Fatal(err)
+	}
+	if committed, err := service.Commit(job.ID, false, Choices{}); err != nil || committed.Phase != "success" {
+		t.Fatalf("commit = %#v, %v", committed, err)
+	}
+	if _, err := service.Load(); err != nil {
+		t.Fatalf("the committed manuscript did not load: %v", err)
+	}
+	service.SetProject(t.TempDir())
+	if _, err := service.Load(); err == nil {
+		t.Fatal("the new project read the old project's manuscript")
+	}
+}

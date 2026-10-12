@@ -142,6 +142,7 @@ import {
 } from './schemas/extraction';
 import { editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
 import { wordFxChangeSchema, wordFxListSchema } from './schemas/wordFx';
+import { retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
@@ -439,6 +440,14 @@ export const wailsClient: NarrationApi = {
   editingWordFxList: (chapterId) => decode(wordFxListSchema, 'EditingWordFxList', host.EditingWordFxList(chapterId)),
   editingWordFxRecord: (chapterId, fx) => decode(wordFxChangeSchema, 'EditingWordFxRecord', host.EditingWordFxRecord(chapterId, fx)),
   editingWordFxRemove: (chapterId, id) => decode(wordFxChangeSchema, 'EditingWordFxRemove', host.EditingWordFxRemove(chapterId, id)),
+  editingStacksList: (chapterId) => decode(stackListSchema, 'EditingStacksList', host.EditingStacksList(chapterId)),
+  editingStackRecord: (chapterId, stack) => decode(stackChangeSchema, 'EditingStackRecord', host.EditingStackRecord(chapterId, stack)),
+  editingStackRemove: (chapterId, passageId, takeIds) =>
+    decode(stackChangeSchema, 'EditingStackRemove', host.EditingStackRemove(chapterId, passageId, takeIds)),
+  editingRetryModeGet: (level, chapterId, passageId) =>
+    decode(retryModeAnswerSchema, 'EditingRetryModeGet', host.EditingRetryModeGet(level, chapterId, passageId)),
+  editingRetryModeSet: (level, chapterId, passageId, mode) =>
+    decode(retryModeAnswerSchema, 'EditingRetryModeSet', host.EditingRetryModeSet(level, chapterId, passageId, mode)),
   subscribeTranscript: (onUpdate) => subscribeChecked('transcript:state', transcriptStateSchema, onUpdate),
   coverageStart: (chapterId, options) =>
     decode(
