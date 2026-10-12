@@ -32,5 +32,5 @@ What each engine declares for each capability today. The levels are the adapters
 | `macro_render` | `MacroRenderer` | Engine answering | Unsupported | Experimental | Not reachable | Unsupported |
 | `cut_range` | `RangeCutter` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
 | `fx_range` | `RangeFXApplier` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
-| `stack_takes` | `TakeStacker` | Engine answering | Not yet available | Not yet available | Not reachable | Not yet available |
+| `stack_takes` | `TakeStacker` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
 | `backups` | `BackupKeeper` | Engine answering | Not yet available | Not yet available | Not reachable | Unsupported |

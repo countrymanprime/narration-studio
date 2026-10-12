@@ -88,9 +88,16 @@ What the bridge does with these: `narration_track_state.lua` reads `GetMediaSour
 - **Undo.** One block each, "Narration Utils: add chain to range" and "Narration Utils: remove chain from range"; the answer reports 1, and a removal that finds nothing opens no block and reports 0.
 - **Checked:** not checked. The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that `TakeFX_AddByName` loads a `.RfxChain` onto a take by its full path, appends its FX at the end and how many; that the splits and the load are one undo step and one Undo gives the item back whole; that a split copies a take's FX, whether the copies get new FX GUIDs, and whether it copies its `P_EXT`; that the join plays the same audio with no click at the old seams; and that the removal and the join are one undo step.
 
+## Stacking takes
+
+- **What it does.** `stack_takes` adds a take to the first read's item with `AddTakeToMediaItem` for each later read, gives it a source from the read's file (`PCM_Source_CreateFromFile`, `SetMediaItemTake_Source`) and the read's `D_STARTOFFS`, records the read's item, take and track GUIDs, start and offset in the take's `P_EXT`, moves the read's item to the Cuts track with `MoveMediaItemToTrack`, and moves the later items on the track with `D_POSITION` ([ADR 0860](../../adr/0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md) point 4). It never calls `SetActiveTake`: the take-mechanics spike saw `AddTakeToMediaItem` leave the active take and `D_LENGTH` as they were, so a read longer than the first read is refused.
+- **Un-stacking.** `unstack_takes` reads the item's state with `GetItemStateChunk`, drops the `TAKE` section (from its `TAKE` line to the next one or the item's closing `>`) of each take whose `GUID` line names a stacked take, writes it back with `SetItemStateChunk`, makes the kept take active again by GUID, and moves the reads back with `MoveMediaItemToTrack` and `D_POSITION`. REAPER's own "Take: Delete active take from items" asks the narrator to confirm ([the REAPER accessibility wiki's list of editing actions](https://reaperaccessibility.com/wiki/Translations:Basic_editing/21/en)), so a script cannot use it.
+- **Undo.** One block each, "Narration Utils: stack takes" and "Narration Utils: unstack takes"; the answer reports 1. A request that is refused opens no block.
+- **Checked:** not checked. The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that a stack with moves to another track is one undo step and one Undo gives every read back; that the new take plays the read's audio from the first read's start; that a take's `P_EXT` and source survive save and reload; that `SetItemStateChunk` without a take's `TAKE` section removes only that take and keeps the active take and the item's GUID; and that an un-stack is one undo step.
+
 ## Not yet available
 
-`stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. A command's row changes to Experimental when its command is built ([capabilities](capabilities.md#stack_takes)).
+`backups` is in the catalogue but not yet available with REAPER: the bridge has no command for it ([capabilities](capabilities.md#backups)).
 
 ## Version rules
 

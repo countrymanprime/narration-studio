@@ -44,7 +44,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read;
-	// delete_range; apply_fx_range, remove_fx_range.
+	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes.
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -63,12 +63,12 @@ var declares = map[dawport.Capability]dawport.Level{
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so this is Unsupported,
 	// not NotYetAvailable (port.go's own example is exactly this shape, the other way around: "Audacity has no punch-and-roll").
 	dawport.CapMacroRender: dawport.Unsupported,
-	// The edit rows (SND-3): cut_range is delete_range's (SN-D62) and fx_range apply_fx_range's and remove_fx_range's (SN-D63), all in
-	// narration_range.lua. REAPER can make the others, but the bridge has no command for them yet; each command slice flips its own row
-	// to Experimental.
+	// The edit rows (SND-3): cut_range is delete_range's (SN-D62) and fx_range apply_fx_range's and remove_fx_range's (SN-D63), both in
+	// narration_range.lua, and stack_takes is stack_takes' and unstack_takes' (SN-D71, narration_takes.lua). backups is the Audacity
+	// adapter's: REAPER keeps takes, but the bridge has no backup command.
 	dawport.CapCutRange:   dawport.Experimental,
 	dawport.CapFXRange:    dawport.Experimental,
-	dawport.CapStackTakes: dawport.NotYetAvailable,
+	dawport.CapStackTakes: dawport.Experimental,
 	dawport.CapBackups:    dawport.NotYetAvailable,
 }
 
@@ -95,6 +95,8 @@ var commandCapability = map[string]dawport.Capability{
 	"delete_range":        dawport.CapCutRange,
 	"apply_fx_range":      dawport.CapFXRange,
 	"remove_fx_range":     dawport.CapFXRange,
+	"stack_takes":         dawport.CapStackTakes,
+	"unstack_takes":       dawport.CapStackTakes,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -202,6 +204,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapMasterChainRead: masterChainReader{actions},
 			dawport.CapCutRange:        rangeCutter{actions, allowed},
 			dawport.CapFXRange:         rangeFXApplier{actions, allowed},
+			dawport.CapStackTakes:      takeStacker{actions, allowed},
 		},
 	}, nil
 }
@@ -226,9 +229,11 @@ func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) 
 // itself. That rests on the overlapping-recording setting the roll command reads and refuses without; the QA pass (#1495)
 // confirms that setting keeps the audio. A cut moves the middle piece to the muted Cuts track and deletes nothing (point 2),
 // so cut_range is not destructive either, and a chain on a range is take FX on a split piece, which leaves the audio as it
-// was recorded and comes off again (point 3), so neither is fx_range.
+// was recorded and comes off again (point 3), so neither is fx_range. A stack makes later reads takes of the first read's item
+// in one undo block and moves their items to the Cuts track, deleting nothing (point 4), so stack_takes is native and not
+// destructive.
 func depthOf(c dawport.Capability) dawport.Depth {
-	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange {
+	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange || c == dawport.CapStackTakes {
 		return dawport.Depth{Mode: dawport.ModeNative}
 	}
 	return dawport.Depth{}
@@ -476,4 +481,90 @@ func chainAddedMessage(chain string, words int) string {
 	default:
 		return fmt.Sprintf("Added %s to %d words in REAPER.", chain, words)
 	}
+}
+
+// takeStacker is the stack_takes role over bridge's stack_takes and unstack_takes, answering a dawport.Result (ADR 0810).
+type takeStacker struct {
+	actions *bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.TakeStacker = takeStacker{}
+
+// StackTakes makes each group's later reads takes of the first read's item, in one undo step (bridge's stack_takes). It asks
+// allowed itself first, so a refusal is the capability's own sentence.
+func (r takeStacker) StackTakes(ctx context.Context, request dawport.StackRequest) (dawport.Result, error) {
+	if refused, ok := r.refused(); ok {
+		return refused, nil
+	}
+	got, err := r.actions.StackTakes(ctx, stackRequest(request))
+	if refused, ok, err := stackRefused(err); ok || err != nil {
+		return refused, err
+	}
+	return dawport.OK(takesMessage("Stacked", got.Takes), true).WithUndoSteps(got.UndoPoints), nil
+}
+
+// UnstackTakes puts stacked takes back where their reads were recorded, in one undo step (bridge's unstack_takes).
+func (r takeStacker) UnstackTakes(ctx context.Context, request dawport.StackRequest) (dawport.Result, error) {
+	if refused, ok := r.refused(); ok {
+		return refused, nil
+	}
+	got, err := r.actions.UnstackTakes(ctx, stackRequest(request))
+	if refused, ok, err := stackRefused(err); ok || err != nil {
+		return refused, err
+	}
+	return dawport.OK(takesMessage("Moved back", got.Takes), true).WithUndoSteps(got.UndoPoints), nil
+}
+
+func (r takeStacker) refused() (dawport.Result, bool) {
+	if r.allowed == nil {
+		return dawport.Result{}, false
+	}
+	return dawport.RefusedFrom(r.allowed(dawport.CapStackTakes))
+}
+
+// stackRequest is the port's request in bridge's terms: a group's Base is its first read's take, and a move's TakeID the later
+// read's take, both as REAPER's GUIDs.
+func stackRequest(request dawport.StackRequest) bridge.StackRequest {
+	out := bridge.StackRequest{Shift: request.Shift}
+	for _, group := range request.Groups {
+		moves := make([]bridge.StackMove, 0, len(group.Moves))
+		for _, move := range group.Moves {
+			moves = append(moves, bridge.StackMove{TakeGUID: move.TakeID, From: move.From, To: move.To, Len: move.Len})
+		}
+		out.Groups = append(out.Groups, bridge.StackGroup{ItemGUID: group.ItemGUID, BaseTakeGUID: group.Base, Moves: moves})
+	}
+	return out
+}
+
+// stackRefused maps bridge's answers for the two commands to a refusal, in the mock's words where it has them
+// (studio-next/src/fixtures/daw.ts); ok is false, with a nil error, when err is nil.
+func stackRefused(err error) (dawport.Result, bool, error) {
+	var stale *bridge.StaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case err == nil:
+		return dawport.Result{}, false, nil
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That item changed in REAPER since the app read it. Nothing was changed."), true, nil
+	case errors.Is(err, bridge.ErrNothingToStack):
+		return dawport.Refused("There are no retries to move in REAPER."), true, nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), true, nil
+	case errors.Is(err, bridge.ErrBadStack):
+		return dawport.Refused("The takes to stack are not ones REAPER can read. Nothing was changed."), true, nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), true, nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), true, nil
+	}
+	return dawport.Result{}, false, err
+}
+
+// takesMessage words a stack or un-stack as the mock does (studio-next/src/state/daw.ts, restack).
+func takesMessage(verb string, takes int) string {
+	if takes == 1 {
+		return verb + " 1 take in REAPER."
+	}
+	return fmt.Sprintf("%s %d takes in REAPER.", verb, takes)
 }

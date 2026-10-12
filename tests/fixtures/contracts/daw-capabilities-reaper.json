@@ -141,9 +141,10 @@
     },
     "stack_takes": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Stack takes is not available with REAPER yet.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "native",
+      "reason": "experimental_off"
     },
     "take_create": {
       "available": false,

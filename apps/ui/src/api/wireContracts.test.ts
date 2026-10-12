@@ -1625,6 +1625,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // destructive.
     expect(disconnectedReaper.capabilities.fx_range).toMatchObject({ level: 'experimental', mode: 'native' });
     expect(disconnectedReaper.capabilities.fx_range?.destructive).toBeUndefined();
+    // stack_takes makes later reads takes of the first read and moves their items to the Cuts track: Experimental, native and
+    // not destructive.
+    expect(disconnectedReaper.capabilities.stack_takes).toMatchObject({ level: 'experimental', mode: 'native' });
+    expect(disconnectedReaper.capabilities.stack_takes?.destructive).toBeUndefined();
   });
 
   it('dawCapabilities reports a connected-but-unreachable REAPER as not_running, except the heartbeat capability itself', async () => {

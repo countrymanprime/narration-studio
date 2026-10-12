@@ -25,6 +25,8 @@ var realEvents = map[string][]string{
 	"RANGE_CUT":             {"RANGE_CUT", "c1", "{00000002-0000-4000-8000-000000000002}", "{00000009-0000-4000-8000-000000000009}", "1"},
 	"RANGE_FX_APPLIED":      {"RANGE_FX_APPLIED", "r1", "{00000009-0000-4000-8000-000000000009}", "{0000000A-0000-4000-8000-00000000000A}", "Voice/Radio.RfxChain", "1"},
 	"RANGE_FX_REMOVED":      {"RANGE_FX_REMOVED", "r2", "{00000002-0000-4000-8000-000000000002}", "Voice/Radio.RfxChain", "1"},
+	"TAKES_STACKED":         {"TAKES_STACKED", "s1", "1", "2", "-11.000", "1"},
+	"TAKES_UNSTACKED":       {"TAKES_UNSTACKED", "u1", "1", "2", "11.000", "1"},
 	"PROJECT_STATUS":        {"PROJECT_STATUS", "", "C:/p/Book.rpp", "0"},
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
 	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},

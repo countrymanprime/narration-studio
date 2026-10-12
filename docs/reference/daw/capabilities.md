@@ -279,9 +279,10 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Result:** a `Result`; an engine with no native way lists the edits it made in `Steps` (mode `steps`).
 - **Refusals:** a stale item GUID; an engine that cannot stack (Audacity without backups, in the mock).
 - **Undo:** one undo point natively ([PRD acceptance, "Stack retries"](../../prds/studio-next-daw-ports-and-capabilities.prd.md#acceptance-criteria-tied-to-the-mock)).
-- **REAPER:** not yet available: no bridge command. One undo block for the stack is spike SND-S4.
+- **REAPER:** `stack_takes` and `unstack_takes`, Experimental. Mode `native`, not destructive. Stacking makes each later read a take of the first read's item and moves the read's own item to the muted Cuts track, and the audio after the passage moves up by the request's `Shift`, in one undo block, `UndoSteps` 1; the first read stays active and nothing is deleted. Un-stacking removes those takes and puts each read back by the offset its take recorded, in one undo block, `UndoSteps` 1 ([REAPER](reaper.md#stacking-takes)). A group's `Base` is the first read's take GUID and a move's `TakeID` the later read's take GUID. Every GUID is checked before anything changes, so one stale item refuses the whole request (`stale`); a request with no group is refused as "There are no retries to move in REAPER." The messages are "Stacked N takes in REAPER." and "Moved back N takes in REAPER." The host writes the request to a payload file under the session folder ([the bridge](../../architecture/reaper-bridge.md#stacking-takes-narration_takeslua)).
+- **Binding:** none yet; SN-D72 ([#1199](https://github.com/countrymanprime/narration-utils/issues/1199)) adds it.
 - **Audacity 3.x:** not yet available.
-- **Checked:** not checked; no engine builds it yet.
+- **Checked:** harness (`stack_test.lua`); the run in REAPER is not done; the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
 ### `backups`
 

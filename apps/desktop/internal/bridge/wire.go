@@ -66,8 +66,12 @@ var eventSpecs = map[string]eventSpec{
 	// apply_fx_range and remove_fx_range (narration_range.lua, ADR 0860 point 3): the piece the chain went on and its take,
 	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a
 	// removal that found nothing to take off).
-	"RANGE_FX_APPLIED":      {required: []fieldSpec{text("run"), text("item"), text("take"), text("chain"), count("undoPoints")}},
-	"RANGE_FX_REMOVED":      {required: []fieldSpec{text("run"), text("item"), text("chain"), count("undoPoints")}},
+	"RANGE_FX_APPLIED": {required: []fieldSpec{text("run"), text("item"), text("take"), text("chain"), count("undoPoints")}},
+	"RANGE_FX_REMOVED": {required: []fieldSpec{text("run"), text("item"), text("chain"), count("undoPoints")}},
+	// stack_takes and unstack_takes (narration_takes.lua, ADR 0860 point 4): the groups and takes moved, the seconds the audio
+	// after them moved (negative for a stack), and the undo points the command added (1).
+	"TAKES_STACKED":         {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"TAKES_UNSTACKED":       {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
 	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},

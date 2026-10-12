@@ -57,8 +57,9 @@ export const EveryLevelAndMode: Story = {
 };
 
 // The edit rows (SND-3) REAPER still reports not yet available, each with the host's sentence. `cut_range` left this list
-// when delete_range landed (SN-D62), and `fx_range` when apply_fx_range did (SN-D63): REAPER reports them Experimental.
-const EDIT_ROWS = ['stack_takes', 'backups'] as const;
+// when delete_range landed (SN-D62), `fx_range` when apply_fx_range did (SN-D63) and `stack_takes` when stack_takes did
+// (SN-D71): REAPER reports them Experimental.
+const EDIT_ROWS = ['backups'] as const;
 
 export const EditCapabilitiesNotYetAvailable: Story = {
   args: {
@@ -70,8 +71,8 @@ export const EditCapabilitiesNotYetAvailable: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole('listitem')).toHaveLength(2);
-    for (const label of ['Stack takes', 'Audio backups']) {
+    await expect(canvas.getAllByRole('listitem')).toHaveLength(1);
+    for (const label of ['Audio backups']) {
       await expect(canvas.getByText(`${label} is not available with REAPER yet.`)).toBeTruthy();
     }
   },
