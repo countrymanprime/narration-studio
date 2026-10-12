@@ -79,6 +79,15 @@ describe('production-route-draws-the-mock-page', () => {
     expect(screen.queryByRole('table', { name: 'Chapter pipeline' })).toBeNull();
   });
 
+  // ML-5: Replace manuscript is in Settings, under Manuscript, and nowhere else.
+  it('has no Replace manuscript once a manuscript exists', async () => {
+    await renderPage();
+    await pipeline();
+    expect(screen.queryByRole('button', { name: /replace manuscript/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /import manuscript/i })).toBeNull();
+    expect(screen.queryByText(/replace manuscript/i)).toBeNull();
+  });
+
   it('imports no file the swap deleted', () => {
     const source = readFileSync(join(__dirname, 'ProductionPage.tsx'), 'utf8');
     for (const gone of ['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary']) expect(source).not.toContain(gone);
