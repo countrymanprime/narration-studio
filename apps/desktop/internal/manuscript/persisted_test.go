@@ -10,7 +10,7 @@ import (
 )
 
 func TestCorruptNotesAreKeptAsideToldAndNeverReplacedSilentlyByTheNextNote(t *testing.T) {
-	service, chapterID, paragraphID := importReaderFixture(t)
+	service, chapterID, _ := importReaderFixture(t)
 	var notices, logs []string
 	service.SetPersist(&persist.Reporter{
 		Log:    func(kind, message string) { logs = append(logs, kind+" "+message) },
@@ -27,7 +27,8 @@ func TestCorruptNotesAreKeptAsideToldAndNeverReplacedSilentlyByTheNextNote(t *te
 	if len(notices) != 1 || !strings.Contains(notices[0], "notes") {
 		t.Fatalf("notices = %v", notices)
 	}
-	if _, err := service.CreateNote(chapterID, paragraphID, "A new note", nil, nil, ""); err != nil {
+	// A chapter status is the narrator's own work in the same file; saving one keeps the unreadable file aside first.
+	if _, err := service.SetChapterStatus(chapterID, "recording"); err != nil {
 		t.Fatal(err)
 	}
 	matches, _ := filepath.Glob(path + ".corrupt-*")
@@ -55,13 +56,13 @@ func TestNotesWithNoReporterAreStillKeptWhenCorrupt(t *testing.T) {
 }
 
 func TestANoteIsNotSavedOverANotesFileThatCannotBeRead(t *testing.T) {
-	service, chapterID, paragraphID := importReaderFixture(t)
+	service, chapterID, _ := importReaderFixture(t)
 	path := filepath.Join(service.project, "narration-utils", "manuscript-notes.json")
 	// A directory where the file should be: it exists, and reading it fails.
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.CreateNote(chapterID, paragraphID, "A new note", nil, nil, ""); err == nil || !strings.Contains(err.Error(), "nothing was saved") {
+	if _, err := service.SetChapterStatus(chapterID, "recording"); err == nil || !strings.Contains(err.Error(), "nothing was saved") {
 		t.Fatalf("err = %v, want a refusal that leaves the file alone", err)
 	}
 }

@@ -139,13 +139,7 @@ func (s *Service) document() (map[string]any, error) {
 }
 
 // Entities is the Story Bible as the UI reads it: a stored pronunciation status is not returned (ADR 0792).
-func (s *Service) Entities() ([]map[string]any, error) { return s.readEntities(false) }
-
-// entitiesWithStatus is Entities with each pronunciation left as stored (status and source), for the query export and import that still work
-// on it (queries.go) until SN-B8 removes them.
-func (s *Service) entitiesWithStatus() ([]map[string]any, error) { return s.readEntities(true) }
-
-func (s *Service) readEntities(keepStatus bool) ([]map[string]any, error) {
+func (s *Service) Entities() ([]map[string]any, error) {
 	document, err := s.document()
 	if err != nil {
 		return nil, err
@@ -161,7 +155,7 @@ func (s *Service) readEntities(keepStatus bool) ([]map[string]any, error) {
 	out := []map[string]any{}
 	for _, x := range items {
 		if m, ok := x.(map[string]any); ok {
-			if err := normalizeEntity(m, keepStatus); err != nil {
+			if err := normalizeEntity(m); err != nil {
 				return nil, err
 			}
 			out = append(out, m)
@@ -176,11 +170,11 @@ func (s *Service) readEntities(keepStatus bool) ([]map[string]any, error) {
 // written by a Python sidecar across several schema generations, so any of
 // these can be absent; a missing object must read as empty, never crash the
 // Story Bible page after a rebuild.
-func normalizeEntity(entity map[string]any, keepStatus bool) error {
+func normalizeEntity(entity map[string]any) error {
 	if _, ok := entity["pronunciation"].(map[string]any); !ok {
 		entity["pronunciation"] = map[string]any{}
 	}
-	readPronunciation(entity["pronunciation"].(map[string]any), keepStatus)
+	readPronunciation(entity["pronunciation"].(map[string]any))
 	if description, ok := entity["description"].(map[string]any); !ok {
 		entity["description"] = map[string]any{"text": "", "evidence": map[string]any{}}
 	} else if description["evidence"] == nil {
@@ -208,7 +202,7 @@ func normalizeEntity(entity map[string]any, keepStatus bool) error {
 			if _, ok := alias["pronunciation"].(map[string]any); !ok {
 				alias["pronunciation"] = map[string]any{}
 			}
-			readPronunciation(alias["pronunciation"].(map[string]any), keepStatus)
+			readPronunciation(alias["pronunciation"].(map[string]any))
 			if alias["occurrences"] == nil {
 				alias["occurrences"] = []any{}
 			} else if _, ok := alias["occurrences"].([]any); !ok {
@@ -252,15 +246,13 @@ func readReview(entity map[string]any, aliases []any) {
 
 // readPronunciation reads a stored pronunciation the way ADR 0792 says: a stored status is ignored, and the legacy source "user" reads as
 // "manual", in the value and in its alternate. A note stays as it is.
-func readPronunciation(value map[string]any, keepStatus bool) {
-	if !keepStatus {
-		delete(value, "status")
-	}
-	if !keepStatus && value["source"] == legacyManualSource {
+func readPronunciation(value map[string]any) {
+	delete(value, "status")
+	if value["source"] == legacyManualSource {
 		value["source"] = ManualSource
 	}
 	if alternate, ok := value["alternate"].(map[string]any); ok {
-		readPronunciation(alternate, keepStatus)
+		readPronunciation(alternate)
 	}
 }
 
@@ -531,23 +523,6 @@ func (s *Service) PronounceUser(id string, aliasIndex *int, ipa string) error {
 // UsePronunciationAlternate puts the kept alternate back in use and keeps the one it replaces: lossless both ways, no lookup.
 func (s *Service) UsePronunciationAlternate(id string, aliasIndex *int) error {
 	_, err := s.Run(pronunciationTarget([]string{"pronunciation-use-alternate", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
-}
-
-// SetPronunciationStatus sets a pronunciation's status and, when note is not nil, its note (an empty one clears it).
-func (s *Service) SetPronunciationStatus(id string, aliasIndex *int, status string, note *string) error {
-	if !slices.Contains(PronunciationStatuses, status) {
-		return fmt.Errorf("unknown pronunciation status %q", status)
-	}
-	args := []string{"pronunciation-status", "--guide", s.guidePath(), "--entity-id", id, "--status", status}
-	if note != nil {
-		text := strings.TrimSpace(*note)
-		if utf8.RuneCountInString(text) > maxPronunciationNote {
-			return fmt.Errorf("a pronunciation note is at most %d characters", maxPronunciationNote)
-		}
-		args = append(args, "--note="+text)
-	}
-	_, err := s.Run(pronunciationTarget(args, aliasIndex)...)
 	return err
 }
 

@@ -15,5 +15,4 @@ Storybook title: `Primitives/StageGrid`. Source: `src/components/primitives/Stag
 
 ## Used by
 
-- `src/components/production/ChapterBoard.tsx`
-- `src/components/production/productionFormat.ts`
+- nothing outside its own stories and tests yet

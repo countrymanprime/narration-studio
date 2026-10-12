@@ -1,6 +1,6 @@
 # 0347. The pronunciation query export is CSV with its ids last and a formula guard, and is a download
 
-**Status:** Accepted (superseded by [ADR 0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) to the extent that the query status, the query CSV export and import and the open-queries rail badge are removed)
+**Status:** Superseded by [ADR 0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) (the query CSV export was removed with SN-B8)
 **Date:** 2026-09-27
 **Supersedes:** none. Builds on [ADR 0346](0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md) (status and note).
 

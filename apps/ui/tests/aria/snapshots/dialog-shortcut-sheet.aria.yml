@@ -2,7 +2,7 @@
 # command grouped under its scope heading with its bound gestures as key caps, and "Show all shortcuts". The page
 # behind it is aria-hidden.
 - /children: equal
-# The two toast live regions stay in the tree on purpose (see dialog-add-note.aria.yml).
+# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
 - main:
   - group "Zoom"
   - alert

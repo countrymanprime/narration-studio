@@ -1,8 +1,8 @@
 // The layers a paragraph draws over its own text: the narrator's marks, flagged words, Story Bible names, the speaker of each
 // quoted phrase and the matches of Find. They only wrap pieces of the text, so the paragraph's text is the same with or
 // without them. The pieces come from one interval compositor in the style of the old reader's `manuscript/annotations.ts`
-// (a layer boundary splits a piece, the shorter layer is the inner one and owns the click); that file is the old reader's and
-// SN-B8 deletes it with its consumers, so the idea is copied here rather than imported.
+// (a layer boundary splits a piece, the shorter layer is the inner one and owns the click); that file is the Booth's until its swap
+// (SNO-10) deletes it, so the idea is copied here rather than imported.
 
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkColour, MarkStyle, MarkType } from '../../../../api/contracts/marks';

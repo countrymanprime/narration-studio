@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
-// Alias pronunciation controls: every alias gets the same edit-mode
-// Generate/Replace control, preview and pronunciation-work panel the entity already has (ADR 0018), scoped to its own
-// aliasIndex. The host and mock already accept an aliasIndex on every pronunciation call;
-// this only wires the UI to it.
+// The Names list (SN-B22 mounted by SN-B8): the first name and every alias are one row each, with the same source tag and field
+// in edit mode (ADR 0018), scoped to the alias's own index.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -38,7 +36,6 @@ function renderDetail(entity: GuideEntity, overrides: Record<string, unknown> = 
     guidePronounce: vi.spyOn(api, 'guidePronounce'),
     guidePronounceUser: vi.spyOn(api, 'guidePronounceUser'),
     guidePronunciationUseAlternate: vi.spyOn(api, 'guidePronunciationUseAlternate'),
-    guidePronunciationSetStatus: vi.spyOn(api, 'guidePronunciationSetStatus'),
   };
   render(
     <ApiProvider api={api}>
@@ -48,99 +45,54 @@ function renderDetail(entity: GuideEntity, overrides: Record<string, unknown> = 
   return spies;
 }
 
-const aliasRow = (aliasText: string) => screen.getByRole('row', { name: new RegExp(aliasText) });
-
-describe('alias Generate and Replace', () => {
-  it('offers no Generate or Replace control for an alias in the read view', () => {
-    renderDetail(withUngeneratedAlias());
-    expect(screen.queryByRole('button', { name: 'Generate alias pronunciation' })).toBeNull();
-  });
-
-  it('offers Generate for an alias with no pronunciation, and calls it with the chosen source and alias index', async () => {
-    const user = userEvent.setup();
-    const entity = withUngeneratedAlias();
-    const { guidePronounce } = renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const row = aliasRow(entity.aliases[0].text);
-    await user.click(within(row).getByRole('button', { name: 'Generate alias pronunciation' }));
-    await user.click(await screen.findByRole('menuitem', { name: /CMU dictionary/ }));
-    await waitFor(() => expect(guidePronounce).toHaveBeenCalledWith(entity.id, 'cmu', 0));
-  });
-
-  it('offers Replace, not Generate, for an alias that already has a pronunciation', async () => {
-    const user = userEvent.setup();
+describe('every name is a row of the Names list, scoped to its alias index', () => {
+  it('lists the first name, then each alias, each read-only with its value in the read view', () => {
     const entity = withAliasPronunciation();
-    const { guidePronounce } = renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const row = aliasRow(entity.aliases[0].text);
-    expect(within(row).queryByRole('button', { name: 'Generate alias pronunciation' })).toBeNull();
-    await user.click(within(row).getByRole('button', { name: 'Replace alias pronunciation' }));
-    await user.click(await screen.findByRole('menuitem', { name: /eSpeak/ }));
-    await waitFor(() => expect(guidePronounce).toHaveBeenCalledWith(entity.id, 'espeak', 0));
+    renderDetail(entity);
+    const names = within(screen.getByRole('list', { name: 'Names' })).getAllByRole('listitem');
+    expect(names[0].textContent).toContain(entity.canonical_name);
+    expect(names[1].textContent).toContain(entity.aliases[0].text);
+    expect(names[1].textContent).toContain(entity.aliases[0].pronunciation.ipa);
+    expect(screen.queryByRole('textbox', { name: /^How I say / })).toBeNull();
   });
 
-  it('never offers Generate or Replace for a locked entity, for the entity or any alias', () => {
+  it('typing an alias’s pronunciation saves it as the narrator’s own with that alias’s index', async () => {
+    const entity = withAliasPronunciation();
+    const user = userEvent.setup();
+    const spies = renderDetail(entity);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    const field = screen.getByRole('textbox', { name: `How I say ${entity.aliases[0].text}` });
+    await user.clear(field);
+    await user.type(field, 'RAB-it{Enter}');
+    await waitFor(() => expect(spies.guidePronounceUser).toHaveBeenCalledWith(entity.id, 'RAB-it', 0));
+  });
+
+  it('choosing a source for an alias pronounces only that alias', async () => {
+    // An alias the mock's eSpeak has an answer for.
+    const base = withUngeneratedAlias();
+    const entity = { ...base, aliases: [{ ...base.aliases[0], text: 'Wren' }] };
+    const user = userEvent.setup();
+    const spies = renderDetail(entity);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    await user.click(await screen.findByRole('button', { name: new RegExp(`^Pronunciation source for ${entity.aliases[0].text}:`) }));
+    await user.click(await screen.findByRole('button', { name: 'eSpeak NG' }));
+    await waitFor(() => expect(spies.guidePronounce).toHaveBeenCalledWith(entity.id, 'espeak', 0));
+  });
+
+  it('never offers a name field for a locked entity, for the entity or any alias', () => {
     renderDetail(lockedWithAlias());
-    expect(screen.queryByRole('button', { name: 'Generate pronunciation' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Replace pronunciation' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Generate alias pronunciation' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Replace alias pronunciation' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: /^How I say / })).toBeNull();
   });
 
-  it('keeps each alias row independent: replacing one alias does not touch another', async () => {
-    const user = userEvent.setup();
+  it('shows an old note read-only and offers no status to set (ADR 0792)', () => {
     const base = withAliasPronunciation();
-    const entity: GuideEntity = {
+    const entity = {
       ...base,
-      aliases: [base.aliases[0], { text: 'Bunny', pronunciation: { ipa: '/ˈbʌni/', source: 'CMU dictionary', confidence: 'medium' }, occurrences: [] }],
+      aliases: [{ ...base.aliases[0], pronunciation: { ...base.aliases[0].pronunciation, status: 'query_sent' as const, note: 'asked the author' } }],
     };
-    const { guidePronounce } = renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const secondRow = aliasRow('Bunny');
-    await user.click(within(secondRow).getByRole('button', { name: 'Replace alias pronunciation' }));
-    await user.click(await screen.findByRole('menuitem', { name: /CMU dictionary/ }));
-    await waitFor(() => expect(guidePronounce).toHaveBeenCalledWith(entity.id, 'cmu', 1));
-  });
-});
-
-describe('alias pronunciation work panel', () => {
-  it('opens its own details panel independent of the entity and other aliases, and saves the alias index', async () => {
-    const user = userEvent.setup();
-    const entity = withAliasPronunciation();
-    const { guidePronounceUser } = renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const row = aliasRow(entity.aliases[0].text);
-    fireEvent.click(within(row).getByRole('button', { name: 'Pronunciation details' }));
-    const ipaBox = within(row).getByRole('textbox', { name: 'Your pronunciation' });
-    await user.type(ipaBox, 'wɪ');
-    await user.click(within(row).getByRole('button', { name: 'Use mine' }));
-    await waitFor(() => expect(guidePronounceUser).toHaveBeenCalledWith(entity.id, 'wɪ', 0));
-  });
-
-  it('saves an alias pronunciation status with the alias index', async () => {
-    const user = userEvent.setup();
-    const entity = withAliasPronunciation();
-    const { guidePronunciationSetStatus } = renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const row = aliasRow(entity.aliases[0].text);
-    fireEvent.click(within(row).getByRole('button', { name: 'Pronunciation details' }));
-    await user.selectOptions(within(row).getByRole('combobox', { name: `Pronunciation status for ${entity.aliases[0].text}` }), 'author_confirmed');
-    await user.click(within(row).getByRole('button', { name: 'Save status' }));
-    await waitFor(() => expect(guidePronunciationSetStatus).toHaveBeenCalledWith(entity.id, 'author_confirmed', '', 0));
-  });
-
-  it('switches an alias to its kept alternate pronunciation, keyed by alias index', async () => {
-    const user = userEvent.setup();
-    const base = withAliasPronunciation();
-    const entity: GuideEntity = {
-      ...base,
-      aliases: [{ ...base.aliases[0], pronunciation: { ...base.aliases[0].pronunciation, alternate: { ipa: 'ɹæb', source: 'user', confidence: 'narrator' } } }],
-    };
-    const { guidePronunciationUseAlternate } = renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const row = aliasRow(entity.aliases[0].text);
-    fireEvent.click(within(row).getByRole('button', { name: 'Pronunciation details' }));
-    await user.click(within(row).getByRole('button', { name: `Use ɹæb for ${entity.aliases[0].text}` }));
-    await waitFor(() => expect(guidePronunciationUseAlternate).toHaveBeenCalledWith(entity.id, 0));
+    renderDetail(entity);
+    expect(screen.getByText('Note: asked the author')).toBeTruthy();
+    expect(screen.queryByText(/Query sent|Author confirmed|Researched/)).toBeNull();
+    expect(screen.queryByRole('combobox', { name: /status/i })).toBeNull();
   });
 });

@@ -85,7 +85,6 @@ export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
     teleprompterDevices: async () => ({ devices: [{ name: 'USB Mic' }], error: null }),
     guideEntities: async () => ENTITIES,
     guideDialogueCues: async () => [],
-    prepMarkupList: async (chapterId: string) => ({ chapterId, spans: [] }),
     creditsTemplates: async () => [],
     readAloudReaperState: async () => ({ status: 'ready', message: '', playing: false, recording: false }),
     ...overrides,

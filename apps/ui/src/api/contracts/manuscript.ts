@@ -168,9 +168,4 @@ export interface ManuscriptApi {
   noteList(chapter?: string): Promise<ManuscriptNote[]>;
   manuscriptReader(): Promise<ManuscriptReader>;
   readerState(): Promise<ReaderState>;
-  readerStateSave(values: Pick<ReaderState, 'activeChapter' | 'activeSourceLine' | 'expandedChapters'>): Promise<ReaderState>;
-  readerBookmarkCreate(bookmark: Omit<ReaderBookmark, 'id' | 'createdAt'>): Promise<ReaderBookmark>;
-  readerBookmarkDelete(id: string): Promise<void>;
-  noteCreate(chapterId: string, paragraphId: string, text: string, anchorStart?: number, anchorEnd?: number, anchorText?: string): Promise<ManuscriptNote>;
-  noteDelete(id: string): Promise<void>;
 }

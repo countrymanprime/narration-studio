@@ -33,19 +33,6 @@ export interface PronunciationOnlineResult {
   fetchedAt: string;
 }
 
-export interface PronunciationOnlineBatchResult {
-  words: number;
-  fetched: number;
-  fromCache: number;
-  notFound: number;
-  failed: number;
-  stopped: boolean;
-  stopReason: string;
-}
-
-/** The most words one batch lookup sends; the host refuses more. */
-export const PRONUNCIATION_ONLINE_MAX_BATCH = 200;
-
 export interface PronunciationOnlineApi {
   pronunciationOnlineKeyStatus(): Promise<PronunciationOnlineKeyStatus>;
   /** Saves the narrator's pasted key. An error never quotes what was pasted. */
@@ -55,9 +42,4 @@ export interface PronunciationOnlineApi {
   pronunciationOnlineSignUpOpen(): Promise<void>;
   /** Looks up one word or short name the narrator pressed Look up for; the host refuses a passage, a path or a file name. */
   pronunciationOnlineLookup(word: string): Promise<PronunciationOnlineResult>;
-  /**
-   * Looks every word up once, after the narrator confirmed a notice naming how many words it sends. `confirmedCount`
-   * must be exactly the number of distinct words (case-insensitive), or the host sends nothing.
-   */
-  pronunciationOnlineLookupBatch(words: string[], confirmedCount: number): Promise<PronunciationOnlineBatchResult>;
 }

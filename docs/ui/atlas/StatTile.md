@@ -22,4 +22,4 @@ Storybook title: `Primitives/StatTile`. Source: `src/components/primitives/StatT
 
 - `src/components/primitives/StatStrip.tsx`
 - `src/components/production/RecordingCheckReport.tsx`
-- `src/components/production/productionFormat.ts`
+- `src/components/production/overview/KpiRow.tsx`

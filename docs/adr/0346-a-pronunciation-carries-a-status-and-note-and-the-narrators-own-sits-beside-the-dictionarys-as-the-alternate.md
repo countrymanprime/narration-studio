@@ -1,6 +1,6 @@
 # 0346. A pronunciation carries a status and a note, and the narrator's own sits beside the dictionary's as the alternate
 
-**Status:** Accepted (superseded by [ADR 0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) to the extent that the query status, the query CSV export and import and the open-queries rail badge are removed)
+**Status:** Accepted (superseded by [ADR 0792](0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) for the status, its note editor and the query workflow, removed with SN-B8; the narrator's own pronunciation beside the dictionary's as the alternate stands, and an old note stays readable)
 **Date:** 2026-09-27
 **Supersedes:** none. It extends the Story Bible pronunciation of [ADR 0091](0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) and keeps the existing `chosen` rule (a chosen pronunciation survives a rebuild).
 

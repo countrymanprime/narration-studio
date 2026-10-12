@@ -52,7 +52,6 @@ export * from './api/contracts/pronunciationLookup';
 export * from './api/contracts/wiktextractCommonsAudio';
 export * from './api/contracts/pronunciationOnline';
 export * from './api/contracts/proofingRender';
-export * from './api/contracts/prepCompleteness';
 export * from './api/contracts/renderEncodeMaster';
 export * from './api/contracts/workspaceSnap';
 
@@ -91,7 +90,6 @@ import type { DeliveryProfilesApi } from './api/contracts/deliveryProfiles';
 import type { DiagnosticsApi } from './api/contracts/diagnostics';
 import type { EditingApi } from './api/contracts/editing';
 import type { CleanupActionApi } from './api/contracts/cleanup';
-import type { PrepMarkupApi } from './api/contracts/prepMarkup';
 import type { BookmarksApi } from './api/contracts/bookmarks';
 import type { PassageMapApi } from './api/contracts/passageMap';
 import type { EditLogApi } from './api/contracts/editLog';
@@ -116,7 +114,6 @@ import type { PronunciationOnlineApi } from './api/contracts/pronunciationOnline
 import type { PronunciationSourcesApi } from './api/contracts/pronunciationSources';
 import type { TakeEvidenceApi } from './api/contracts/takeEvidence';
 import type { ProofingRenderApi } from './api/contracts/proofingRender';
-import type { PrepCompletenessApi } from './api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from './api/contracts/renderEncodeMaster';
 import type { WorkspaceSnapApi } from './api/contracts/workspaceSnap';
 
@@ -157,7 +154,6 @@ export interface NarrationApi
     DiagnosticsApi,
     EditingApi,
     CleanupActionApi,
-    PrepMarkupApi,
     BookmarksApi,
     PassageMapApi,
     EditLogApi,
@@ -183,6 +179,5 @@ export interface NarrationApi
     PronunciationSourcesApi,
     TakeEvidenceApi,
     ProofingRenderApi,
-    PrepCompletenessApi,
     RenderEncodeMasterApi,
     WorkspaceSnapApi {}

@@ -4,7 +4,7 @@
 // banner that opened it. A `#credits-opening` or `#credits-closing` link (Home's credits rows) opens and shows that card.
 
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CreditsSetupBanner } from '../../../credits/CreditsSetupBanner';
 import type { CreditsKind } from '../../../booth/readerModel';
 import { CreditsEntry } from '../../../manuscript/CreditsEntry';
@@ -32,6 +32,7 @@ export function ScriptCredits({
   goToBooth?: (target: { credits: CreditsKind }) => void;
 }) {
   const { hash } = useLocation();
+  const navigate = useNavigate();
   const [expanded, setExpandedState] = useState<CreditsExpanded>(() => loadCreditsExpanded(projectFolder));
   const setExpanded = useCallback(
     (next: (current: CreditsExpanded) => CreditsExpanded) =>
@@ -48,7 +49,9 @@ export function ScriptCredits({
     const kind = hash === '#credits-opening' ? 'opening' : 'closing';
     setExpanded((current) => ({ ...current, [kind]: true }));
     requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-credits-entry="${kind}"]`)?.scrollIntoView?.({ block: 'start' }));
-  }, [hash, setExpanded]);
+    // Taken off the address once read, as the chapter and paragraph links are (`useDeepLink.ts`), so the same link works again.
+    navigate('/script', { replace: true });
+  }, [hash, setExpanded, navigate]);
 
   const { setup, setSetup, previews } = credits;
   const fillIn = setup ? onFillIn : undefined;

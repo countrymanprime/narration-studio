@@ -3,8 +3,9 @@ import { cleanup, screen, waitFor } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useApi } from '../api/ApiContext';
-import { chapterName } from '../chapterName';
-import { ScriptChapterList } from '../components/script/ScriptChapterList';
+import { ChapterList } from '../components/script/page/chapters/ChapterList';
+import { chapterHeading } from '../components/script/page/chapters/chapterHeading';
+import { StudioProvider } from '../studio/StudioProvider';
 import type { ManuscriptChapter } from '../types';
 import { CHAPTER_SHAPES } from '../fixtures/chapters';
 import { renderScenario } from '../fixtures/renderScenario';
@@ -17,7 +18,11 @@ function ChaptersFromPort() {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   useEffect(() => void api.manuscriptChapters().then(setChapters), [api]);
-  return <ScriptChapterList chapters={chapters} toConfirm={new Map()} select={() => {}} />;
+  return (
+    <StudioProvider>
+      <ChapterList chapters={chapters} currentId={null} onJump={() => {}} />
+    </StudioProvider>
+  );
 }
 
 const cases = CHAPTER_SHAPES.flatMap((shape) => SCENARIO_SIZES.map((chapters) => ({ shape, chapters })));
@@ -29,9 +34,9 @@ describe('matrix-renders-one-page-in-every-scenario', () => {
     const [first] = scenario.chapters;
     const last = scenario.chapters[count - 1];
     await waitFor(() => expect(screen.getAllByRole('button')).toHaveLength(count));
-    const titles = screen.getAllByRole('button').map((button) => button.getAttribute('title'));
-    expect(titles[0]).toBe(chapterName(first, 'full'));
-    expect(titles[count - 1]).toBe(chapterName(last, 'full'));
+    const rows = screen.getAllByRole('button').map((button) => button.textContent ?? '');
+    expect(rows[0]).toContain(chapterHeading(first).title);
+    expect(rows[count - 1]).toContain(chapterHeading(last).title);
     const text = document.body.textContent ?? '';
     expect(text).not.toContain('\n');
     if (shape === 'titleOnly') {
@@ -42,7 +47,7 @@ describe('matrix-renders-one-page-in-every-scenario', () => {
     if (shape === 'legacyNewline') {
       const [, subtitle] = first.title.split('\n');
       expect(text).toContain(subtitle);
-      expect(titles[0]).not.toContain('\n');
+      expect(rows[0]).not.toContain('\n');
     }
   });
 });

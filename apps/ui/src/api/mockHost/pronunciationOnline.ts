@@ -1,9 +1,8 @@
 // The mock host (mockApi.ts): the online pronunciation lookup (PronunciationOnline*). It keeps the Go
-// service's rules (pronunciationonline.CheckWord, the key's shape, the cache, the confirmed batch) so a screen built
+// service's rules (pronunciationonline.CheckWord, the key's shape, the cache) so a screen built
 // against it meets the same refusals the host gives, and never reaches the network.
 import type { NarrationApi, PronunciationOnlineKeyStatus, PronunciationOnlineResult, PronunciationOnlineSpelling } from '../../types';
-import { PRONUNCIATION_ONLINE_MAX_BATCH } from '../contracts/pronunciationOnline';
-import { onlineBatchWords, onlineWord } from '../../pronunciationOnlineWords';
+import { onlineWord } from '../../pronunciationOnlineWords';
 
 const NOT_A_WORD = 'an online lookup sends one word or name only: letters, digits, spaces, apostrophes, hyphens and periods, at most 3 words and 64 characters';
 
@@ -63,19 +62,5 @@ export function createPronunciationOnlineMock(options: { keySaved?: boolean } = 
     },
     pronunciationOnlineSignUpOpen: async () => {},
     pronunciationOnlineLookup: async (word) => lookup(word).result,
-    pronunciationOnlineLookupBatch: async (raw, confirmedCount) => {
-      const { words, leftOut } = onlineBatchWords(raw);
-      if (words.length === 0 || leftOut > 0) throw new Error(NOT_A_WORD);
-      if (words.length > PRONUNCIATION_ONLINE_MAX_BATCH) throw new Error('a batch lookup sends at most 200 words at a time');
-      if (confirmedCount !== words.length) throw new Error('a batch lookup needs your confirmation of how many words it sends');
-      const result = { words: words.length, fetched: 0, fromCache: 0, notFound: 0, failed: 0, stopped: false, stopReason: '' };
-      for (const word of words) {
-        const { result: answer, fetched } = lookup(word);
-        if (fetched) result.fetched += 1;
-        else result.fromCache += 1;
-        if (!answer.found) result.notFound += 1;
-      }
-      return result;
-    },
   } satisfies Partial<NarrationApi>;
 }

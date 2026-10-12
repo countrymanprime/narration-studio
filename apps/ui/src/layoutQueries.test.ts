@@ -16,8 +16,6 @@ const VOCABULARY = new Set(['min-[1360px]', 'max-[1359px]', 'max-[1280px]', 'min
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
   // The Production swap rewrites the page to the vocabulary. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
   'src/components/production/ProductionPage.tsx': { 'min-[1024px]': 1, 'min-[1280px]': 1 },
-  // The Script swap rewrites the page to the vocabulary.
-  'src/components/script/ScriptPage.tsx': { 'min-[1280px]': 1, 'min-[1440px]': 3 },
 };
 
 function sourceFiles(dir: string): string[] {

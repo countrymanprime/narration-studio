@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { AnalysisPrompt } from './AnalysisPrompt';
 
 // SN-X63: the body of "Scan the manuscript", the first-scan prompt. The mock page is pages/bible/startScan.tsx in the Studio Next mock. The
-// dialog shell (title, Close, Escape, focus return) is the overlay's; SN-B8 wires the scan button to `useStartScan`.
+// dialog shell (title, Close, Escape, focus return) is the overlay's; the Story Bible's scan button runs `useStartScan` (Guide.tsx).
 const meta = { title: 'Story Bible/First-scan prompt', component: AnalysisPrompt, args: { choose: fn() } } satisfies Meta<typeof AnalysisPrompt>;
 export default meta;
 type Story = StoryObj<typeof meta>;

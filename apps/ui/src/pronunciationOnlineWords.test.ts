@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { onlineBatchWords, onlineWord } from './pronunciationOnlineWords';
+import { onlineWord } from './pronunciationOnlineWords';
 
 // The same cases as the Go host's TestCheckWordAcceptsANameAndRefusesEverythingElse (internal/pronunciationonline).
 describe('onlineWord', () => {
@@ -38,11 +38,5 @@ describe('onlineWord', () => {
     ]) {
       expect(onlineWord(raw)).toBeUndefined();
     }
-  });
-});
-
-describe('onlineBatchWords', () => {
-  it('counts each word once, case-insensitively, and counts what it leaves out', () => {
-    expect(onlineBatchWords(['Wren', 'wren', 'Alice', 'a whole long sentence here'])).toEqual({ words: ['Wren', 'Alice'], leftOut: 1 });
   });
 });

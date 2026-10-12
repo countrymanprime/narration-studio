@@ -13,13 +13,8 @@ import { describe, expect, test } from 'vitest';
 // The files left still size their buttons through `className`; each composes the fixed primitive when its page is
 // redrawn, and the ceiling is lowered then.
 const CEILING: Record<string, number> = {
-  // The Script prep rail and chapter list.
-  'src/components/script/ScriptPage.tsx': 2,
-  'src/components/script/ScriptRail.tsx': 1,
   // The header: the zoom readout, a mono number between the zoom buttons.
   'src/components/layout/AppShell.tsx': 1,
-  // The selection menu's joined buttons become a Toolbar holding a segmented group.
-  'src/components/manuscript/SelectionMenu.tsx': 4,
 };
 // The Booth's top bar Companion/Exit buttons and `CompanionShell.tsx`'s own toolbar recipe use `size="sm"`, so both
 // have no entry.

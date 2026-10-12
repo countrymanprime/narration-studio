@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { StudioProvider } from '../../studio/StudioProvider';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
@@ -79,7 +80,9 @@ function renderGuide() {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+        <StudioProvider>
+          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -169,7 +172,9 @@ describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          <StudioProvider>
+            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -203,7 +208,9 @@ describe('needs-review-chip-and-row-pill', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          <StudioProvider>
+            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -263,7 +270,9 @@ describe('needs-review-chip-and-row-pill', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          <StudioProvider>
+            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
     );

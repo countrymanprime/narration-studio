@@ -29,28 +29,18 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // The header's "Jump to or run…" field (the mock's top bar): a search-shaped trigger with a label and a key chord, which Button's
     // padded, uppercase chrome and IconButton's square do not draw. One JSX `<button>`.
     'src/components/layout/AppShell.tsx': 1,
-    'src/components/manuscript/ChapterNav.tsx': 4,
     // The card's bookmark toggle and its whole-header toggle. `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).
     'src/components/manuscript/ReaderCard.tsx': 2,
     // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button (ADR 0595).
     'src/components/project/ProjectPicker.tsx': 1,
-    // The Script page's chapter list (mock 02): a list row naming the
-    // chapter with its current state, the same shape as ChapterNav's rows, which Button's padded, uppercase chrome does not
-    // fit. One JSX `<button>`, written once inside the chapters `.map()`.
-    'src/components/script/ScriptChapterList.tsx': 1,
-    // The Script rail's names: a name in a table cell or a list row that opens its Story Bible summary, the same
-    // case as ReaderRail.tsx's entries below. Two JSX `<button>`s, one inside the Pronunciations rows and one inside the
-    // Characters rows.
-    'src/components/script/ScriptRail.tsx': 2,
     // The click-to-seek word ("Start here" / "Go back to here"):
     // one word among hundreds inside running prose, so it needs `Button`'s bare click/keyboard semantics without its
     // padded, uppercase button chrome, which would break the text flow and read as a real action button rather than a
     // word. One JSX `<button>` in the source (it is written once, inside the words `.map()`, not once per word).
     'src/components/booth/ReaderText.tsx': 1,
     // The read-aloud rail's Story bible entries: a list row with a
-    // category dot and a current state, the same shape as ChapterNav's rows, which Button's padded, uppercase chrome does
-    // not fit. One JSX `<button>`, written once inside the entries `.map()`.
+    // category dot and a current state, which Button's padded, uppercase chrome does not fit. One JSX `<button>`, written once inside the entries `.map()`.
     'src/components/booth/ReaderRail.tsx': 1,
     // The read-aloud rail's Flags list: the same list row as the Story
     // bible entries above (two lines of text and a current state), which Button's padded, uppercase chrome does not fit. One
@@ -75,10 +65,8 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
   // The Pickups page's CSV picker is a hidden native `<input type="file">`
   // triggered by a `Button` (ADR 0053's own escape hatch for file-choosing, since a file picker's OS chrome cannot be
   // restyled the way a text input or select can - the same reason `ManuscriptSelectFile` uses a native OS dialog).
-  // The re-import file picker (`PronunciationQueries.tsx`) is the same pattern, one hidden
-  // `<input type="file">` triggered by a `Button`.
   // Proof's notes header opens the proofer's sheet with the same hidden file picker as the Pickups page (ADR 0470).
-  input: { 'src/components/pickups/PickupsPage.tsx': 1, 'src/components/proof/NotesHeader.tsx': 1, 'src/components/storybible/PronunciationQueries.tsx': 1 },
+  input: { 'src/components/pickups/PickupsPage.tsx': 1, 'src/components/proof/NotesHeader.tsx': 1 },
   textarea: {},
   table: {},
   thead: {},

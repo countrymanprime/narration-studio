@@ -1,17 +1,9 @@
-// How to reach each `script` state in STATE_CATALOG (see app.drivers.ts).
-import type { Page } from '@playwright/test';
+// How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the Studio Next Script page (SN-B77, swapped in by SN-B8).
+import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import {
-  type Driver,
-  clickNav,
-  clickSettingsCategory,
-  clickVisible,
-  goToPage,
-  lookUpInReader,
-  PAGE_HEADING,
-  selectFirstParagraphText,
-  selectReaderWord,
-} from './shared';
+import { type Driver, clickNav, clickSettingsCategory, clickVisible, goToPage, selectReaderWord } from './shared';
+
+const RAIL = 'Words, Story Bible and marks';
 
 export const scriptDrivers: Record<string, Driver> = {
   'invalid-payload': async (page) => {
@@ -25,162 +17,110 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Retry' }).waitFor();
     await page.locator('[data-tone="error"]').getByText('The app received data it could not read.').waitFor();
   },
-  'reader-text-small': async (page) => {
+  reader: async (page) => {
     await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'small');
+    await page.getByRole('heading', { level: 2, name: 'Chapter 1' }).first().waitFor();
   },
-  'reader-text-medium': async (page) => {
+  'rail-words': async (page) => {
     await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'medium');
-  },
-  'reader-text-large': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'large');
-  },
-  'chapters-overlay-open': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Chapters & Search');
-  },
-  'chapters-overlay-searching': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Chapters & Search');
-    // Captured right after typing, before the debounce settles (R1) - the chapter-title subset
-    // (R2) and the "Searching…" hint are what this state exists to show.
-    await page.getByPlaceholder('Search Script…').fill('Pool');
-  },
-  'chapters-overlay-search': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Chapters & Search');
-    await page.getByPlaceholder('Search Script…').fill('Alice');
-    // Waits out the real 2s debounce for the settled, highlighted result row (R3, R4).
-    await page.locator('[data-highlight="Search"]').first().waitFor();
-  },
-  'detail-sidebar-note': async (page) => {
-    await goToPage(page, 'Script');
-    // The default chapter's seeded note spans a whole paragraph, and an
-    // entity <mark> nested inside it calls stopPropagation() on click - a
-    // click resolving to that nested mark never reaches the outer note's
-    // handler. Exclude notes that contain another highlight so the click
-    // lands on the note itself.
-    await page.locator('[data-highlight="Note"]:not(:has([data-highlight]))').first().click();
-  },
-  'detail-sidebar-entity': async (page) => {
-    await goToPage(page, 'Script');
-    await page.locator('mark.ms-highlight').first().click();
-  },
-  'selection-popup': async (page) => {
-    await goToPage(page, 'Script');
-    // One word, so the popup shows every action it has (Look up is offered for one word only).
-    await selectReaderWord(page, 'bank');
-    await page.getByRole('button', { name: 'Look up' }).waitFor();
-  },
-  'overlapping-highlights': async (page) => {
-    await goToPage(page, 'Script');
-    // The state is an entity highlight overlapping a note: wait for both (a Note is a `mark.ms-highlight` too, so the
-    // entity is any highlight that is not a Note).
-    await page.locator('mark[data-highlight]:not([data-highlight="Note"])').first().waitFor();
-    await page.locator('[data-highlight="Note"]').first().waitFor();
-  },
-  'sticky-header-scrolled': async (page) => {
-    await goToPage(page, 'Script');
-    // The wheel scrolls whatever is under the pointer, so aim it at the reader.
-    await page.locator('#manuscript-text, .manuscript-reader').first().hover();
-    await page.mouse.wheel(0, 600);
-    await page.waitForFunction(() => window.scrollY > 0 || [...document.querySelectorAll('*')].some((el) => el.scrollTop > 0));
-  },
-  'chapter-collapsed': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-  },
-  // The stat block (words, read time) and the action slot (Read aloud,
-  // empty on Front Matter) are fixed-width columns, so every row's stat block ends at the same x and every Read
-  // aloud button starts at the same x, whether or not that row has a button. Collapsed, so every header in view at
-  // once; the assertion below checks it, not just a screenshot.
-  'chapter-header-columns': async (page) => {
-    await page.goto('/?mockManuscript=mixed');
-    await settlePage(page);
-    // Not goToPage: the reader opens with only its first entry expanded, which here is the Opening credits card (no
-    // [data-paragraph-text]), so the page has arrived once its heading and the rows waited for below are there.
-    await clickNav(page, 'Script');
-    await page.getByRole('heading', { level: 1, name: PAGE_HEADING.Script, exact: true }).waitFor();
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await page.locator('.reader-chapters').getByRole('button', { name: 'Front Matter' }).waitFor();
-    await page
-      .getByRole('button', { name: /^Record .* in Booth$/ })
+    await selectReaderWord(page, 'tired');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up' }).click();
+    const rail = await openRail(page);
+    await rail
+      .getByRole('group', { name: /^Word: / })
       .first()
       .waitFor();
-    await page.waitForFunction(() => {
-      const buttons = [...document.querySelectorAll<HTMLElement>('article header button[aria-label^="Record "]')];
-      const stats = [...document.querySelectorAll<HTMLElement>('article header [class*="min-w-"]')];
-      if (buttons.length < 2 || stats.length < 3) return false;
-      const left = buttons[0].getBoundingClientRect().left;
-      const right = stats[0].getBoundingClientRect().right;
-      const buttonsAlign = buttons.every((button) => Math.abs(button.getBoundingClientRect().left - left) <= 1);
-      const statsAlign = stats.every((stat) => Math.abs(stat.getBoundingClientRect().right - right) <= 1);
-      return buttonsAlign && statsAlign;
-    });
   },
-  'word-lookup-definition': async (page) => {
-    await lookUpInReader(page, 'bank');
-    await page.getByRole('dialog', { name: 'Look up: bank' }).getByText('sloping land', { exact: false }).waitFor();
-  },
-  'word-lookup-not-found': async (page) => {
-    await lookUpInReader(page, 'Alice');
-    await page.getByText('“alice” is not in the dictionary.').waitFor();
-  },
-  'word-lookup-not-installed': async (page) => {
-    await lookUpInReader(page, 'bank', '/?mockDictionary=missing');
-    await page.getByRole('alertdialog', { name: 'Download the dictionary?' }).waitFor();
-  },
-  'word-lookup-damaged': async (page) => {
-    await lookUpInReader(page, 'bank', '/?mockDictionary=damaged');
-    await page.getByRole('alertdialog', { name: 'Repair the dictionary?' }).waitFor();
-  },
-  // The `?mockMarkup=1` seed (main.tsx) on Chapter 3's dialogue - every way a mark shows,
-  // including both stale kinds. The other chapters are collapsed, like 'retail-sample': Chapter 1's overlapping
-  // highlights are the tracked nested-interactive debt (#155, axe-debt.ts), which this state would otherwise inherit.
-  'script-markup': async (page) => {
-    await openMarkedUpChapter(page);
-    await page.locator('[data-stale-markup]').nth(1).waitFor();
-  },
-  'markup-dialog': async (page) => {
-    await openMarkedUpChapter(page);
-    await selectReaderWord(page, 'driest thing');
-    await clickVisible(page, 'button', 'Mark up');
-    await page.getByText('Already on these words').waitFor();
-    await page.getByRole('radio', { name: 'Speaker' }).click();
-    await page.getByLabel('Speaker name').waitFor();
-  },
-  'add-note-dialog': async (page) => {
+  'rail-story-bible': async (page) => openRailTab(page, 'Story Bible'),
+  'rail-notes': async (page) => openRailTab(page, 'Notes'),
+  'rail-queries': async (page) => openRailTab(page, 'Queries'),
+  'rail-bookmarks': async (page) => {
     await goToPage(page, 'Script');
-    await selectFirstParagraphText(page);
-    await clickVisible(page, 'button', '+ Note');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Bookmark here' }).click();
+    await openRailTab(page, 'Bookmarks', false);
   },
-  'formatted-text-and-line-breaks': async (page) => {
+  'chapter-list': async (page) => {
     await goToPage(page, 'Script');
-    // The mock seeds an underlined, italic and bold phrase plus a line break
-    // in the rabbit-hole paragraph (mockFixtures.ts withFormatting).
-    await page.locator('[data-paragraph-text] u').first().scrollIntoViewIfNeeded();
-    await page
-      .locator('[data-paragraph-text] u')
+    const drawerButton = page.getByRole('button', { name: 'Chapters', exact: true });
+    if (await drawerButton.isVisible()) await drawerButton.click();
+    const list = page.getByRole('list', { name: 'Chapters' }).and(page.locator(':visible'));
+    await list.getByRole('button', { name: /Chapter 3/ }).click();
+    // Choosing a chapter closes the drawer; it is opened again on the chapter now current, which is the picture.
+    if (await drawerButton.isVisible()) await drawerButton.click();
+    await list
+      .locator('[aria-current="true"]')
+      .getByText(/Chapter 3|Pool of Tears/)
       .first()
-      .evaluate((element) => element.scrollIntoView({ block: 'center' }));
+      .waitFor();
   },
-  'chapter-bookmarked': async (page) => {
+  find: async (page) => {
     await goToPage(page, 'Script');
-    await page.locator('article header button.group').first().click();
+    await page.getByRole('button', { name: 'Find in the manuscript (Ctrl+F)' }).click();
+    await page.getByRole('textbox', { name: 'Find in the manuscript' }).fill('Alice');
+    // The results list opens on focus once there are matches; Results opens it when it has not.
+    const results = page.getByRole('region', { name: 'Search results' });
+    const toggle = page.getByRole('button', { name: 'Results' });
+    await page.getByRole('status').filter({ hasText: /\d/ }).first().waitFor();
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+    await results.waitFor();
   },
-  'go-to-line-highlight': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
-    // The entry's Appears in list goes to a chapter; a line is reached from the Review entry overlay of a match found in the alias box.
-    await page.getByRole('button', { name: 'Edit this entry' }).click();
-    const aliasBox = page.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
-    await aliasBox.fill('White Rabbit');
-    await aliasBox.press('Enter');
-    await page.getByRole('button', { name: 'Review entry' }).click();
-    await page.getByRole('button', { name: 'Go to line in Script' }).first().click();
-    await page.locator('[data-jump-target]').first().waitFor();
+  'selection-tools': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).waitFor();
+  },
+  'mark-composer': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem').first().click();
+    await page.getByRole('dialog').waitFor();
+  },
+  'define-marks': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Define marks…' }).click();
+    await page.getByRole('dialog', { name: 'Define how you mark up' }).waitFor();
+  },
+  'text-settings': async (page) => {
+    await goToPage(page, 'Script');
+    await page.getByRole('button', { name: /^Text settings: / }).click();
+    await page.getByLabel('Text settings', { exact: true }).getByRole('combobox', { name: 'Font' }).waitFor();
+  },
+  'credits-cards': async (page) => {
+    await goToPage(page, 'Script');
+    // The default mock project has no Title/Author/Narrator value set, so the shipped opening template's tokens render as unresolved
+    // chips (C6): expanding the card shows both the chip and the "unresolved token(s)" count.
+    await clickVisible(page, 'button', 'Opening credits');
+    await page.getByText(/unresolved token/).waitFor();
+  },
+  // The credits-setup banner and the credits card's own Fill in button: the mock's setup seam.
+  'credits-setup-banner': async (page) => {
+    await page.goto('/?mockCredits=setup');
+    await settlePage(page);
+    // Home's own dialog opens first (it is modal, so the nav below is unreachable until it closes): dismiss it for the session, leaving
+    // the page's own banner.
+    await clickVisible(page, 'button', 'Not now');
+    await goToPage(page, 'Script');
+    await clickVisible(page, 'button', 'Opening credits');
+    await page.getByText(/The credits need 3 values/).waitFor();
+    await page.getByRole('button', { name: 'Fill in' }).first().waitFor();
+  },
+  // The retail sample: ?mockCredits=extras picks lines 1-3 of Chapter 3, reached from the chapter list.
+  'retail-sample': async (page) => {
+    await page.goto('/?mockCredits=extras');
+    await settlePage(page);
+    await goToPage(page, 'Script');
+    const drawerButton = page.getByRole('button', { name: 'Chapters', exact: true });
+    if (await drawerButton.isVisible()) await drawerButton.click();
+    await page
+      .getByRole('list', { name: 'Chapters' })
+      .and(page.locator(':visible'))
+      .getByRole('button', { name: /Chapter 3/ })
+      .click();
+    await page.getByText(/Retail sample starts/).waitFor();
   },
   'reader-dark': async (page) => {
     await goToPage(page, 'Settings');
@@ -189,132 +129,22 @@ export const scriptDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Dark');
     await goToPage(page, 'Script');
   },
-  'credits-entries': async (page) => {
-    await goToPage(page, 'Script');
-    // Collapse the real chapters first: chapter 1's body has the seeded overlapping entity/note marks used by the
-    // 'overlapping-highlights' state (axe-debt.ts, #155) - collapsing keeps this state's own screenshot free of
-    // that unrelated, already-tracked issue instead of growing the axe-debt ratchet for an unrelated reason.
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    // The default mock project has no Title/Author/Narrator value set, so the shipped opening template's tokens
-    // render as unresolved chips (C6) - expanding it shows both the chip and the "unresolved token(s)" count.
-    await clickVisible(page, 'button', 'Opening credits');
-    await page.getByText(/unresolved token/).waitFor();
-  },
-  // The credits-setup banner and the credits card's own Fill in button: the mock's setup seam, with the real chapters collapsed for the same reason as
-  // 'credits-entries' above.
-  'credits-entries-fill-in': async (page) => {
-    await page.goto('/?mockCredits=setup');
-    await settlePage(page);
-    // Home's own dialog opens first (it is modal, so the nav below is unreachable until it closes) - dismiss it for
-    // the session, leaving the banner (which stays while tokens are unresolved) to reach this page's own banner.
-    await clickVisible(page, 'button', 'Not now');
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await clickVisible(page, 'button', 'Opening credits');
-    await page.getByText(/The credits need 3 values/).waitFor();
-    await page.getByRole('button', { name: 'Fill in' }).first().waitFor();
-  },
-  // The retail sample: ?mockCredits=extras picks lines 1-3 of Chapter 3; the chapter is opened so
-  // the marked lines show, the rest collapsed (overlapping marks elsewhere are the tracked axe debt of other states, #155).
-  'retail-sample': async (page) => {
-    await page.goto('/?mockCredits=extras');
-    await settlePage(page);
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await page.getByRole('heading', { name: /^Chapter 3 / }).click();
-    await page.getByText(/Retail sample starts/).waitFor();
-  },
-  // Speaker attribution: Chapter 3 carries the recorded demo cues (dialogueCues.ts),
-  // matched by exact quote text - opening it is enough, no mock query param needed. Chapter 3 is picked
-  // deliberately over the mockup's own Chapter 8: its other speakers are not Story Bible entities, and unlike
-  // nearly every other chapter it never mentions a registered entity whose alias is a substring of another
-  // registered entity's canonical name, so it does not also reproduce the reader's pre-existing
-  // overlapping-highlight bug (#155).
-  'speaker-attribution-single-speaker': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await page.getByRole('heading', { name: /^Chapter 3 / }).click();
-    const row = page.locator('[data-paragraph]', { has: page.locator('[data-paragraph-text]', { hasText: 'you had got to the fifth bend' }) });
-    await row.scrollIntoViewIfNeeded();
-    await row.locator('[data-speaker-tag]').getByText('Alice').waitFor();
-  },
-  'speaker-attribution-ambiguous': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await page.getByRole('heading', { name: /^Chapter 3 / }).click();
-    const row = page.locator('[data-paragraph]', { has: page.locator('[data-paragraph-text]', { hasText: 'why it is you hate' }) });
-    await row.scrollIntoViewIfNeeded();
-    await row.locator('[data-speaker-tag]').getByText('Alice').waitFor();
-  },
-  'speaker-attribution-unknown': async (page) => {
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await page.getByRole('heading', { name: /^Chapter 3 / }).click();
-    const row = page.locator('[data-paragraph]', { has: page.locator('[data-paragraph-text]', { hasText: 'Mine is a long and a sad tale' }) });
-    await row.scrollIntoViewIfNeeded();
-    await row.waitFor();
-  },
-  'prep-rail-pronunciations': async (page) => {
-    // The rail's default tab (benchmark mock 02): no tab click, since Pronunciations opens first.
-    const rail = await openPrepRail(page);
-    await rail.getByRole('table', { name: 'Pronunciations' }).waitFor();
-  },
-  'prep-rail-characters': async (page) => {
-    const rail = await openPrepRail(page);
-    await rail.getByRole('tab', { name: /^Characters · / }).click();
-    await rail.getByRole('table', { name: 'Characters' }).waitFor();
-  },
-  'prep-rail-queries': async (page) => {
-    // One name marked sent through the queries panel itself, so the tab shows both statuses a narrator sees.
-    const rail = await openPrepRail(page);
-    await rail.getByRole('tab', { name: /^Queries · / }).click();
-    await rail.getByRole('button', { name: 'Manage queries' }).click();
-    const panel = page.getByRole('dialog', { name: 'Pronunciation queries' });
-    await panel
-      .getByRole('button', { name: /^Mark .+ as sent$/ })
-      .first()
-      .click();
-    await page
-      .getByText(/marked as sent/)
-      .first()
-      .waitFor();
-    // The toast goes by itself; the shot is of the rail, not of it.
-    await page
-      .getByText(/marked as sent/)
-      .first()
-      .waitFor({ state: 'detached', timeout: 15_000 });
-    await panel.getByRole('button', { name: 'Close' }).click();
-    await panel.waitFor({ state: 'hidden' });
-    const reopened = await openPrepRail(page, false);
-    await reopened.getByRole('tab', { name: /^Queries · / }).click();
-    await reopened.getByText('Query sent').first().waitFor();
-  },
 };
 
-// The Script page's rail as the width shows it: the Prep column from `xl`, or the Prep panel from the band's Prep rail
-// button below it. Returns the rail's container.
-async function openPrepRail(page: Page, load = true) {
-  if (load) {
-    // Chapter 3 open and the rest collapsed, like 'retail-sample': Chapter 1's overlapping highlights are the tracked
-    // nested-interactive debt (#155, axe-debt.ts), which the wide width, where the reader shows beside the rail, would inherit.
-    await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Collapse all chapters');
-    await page.getByRole('heading', { name: /^Chapter 3 / }).click();
-    await page.locator('[data-paragraph-text]').first().waitFor();
-  }
-  const column = page.getByRole('complementary', { name: 'Prep' });
-  if (await column.isVisible()) return column;
-  await clickVisible(page, 'button', 'Prep rail');
-  const panel = page.getByRole('dialog', { name: 'Prep' });
-  await panel.waitFor();
-  return panel;
+/** The rail as the width shows it: the column from 1281 px, else the drawer the reader header's side-panel button opens. */
+async function openRail(page: Page): Promise<Locator> {
+  const rail = page
+    .getByRole('region', { name: RAIL })
+    .or(page.locator(`section[aria-label="${RAIL}"]`))
+    .first();
+  if (!(await rail.isVisible())) await page.getByRole('button', { name: RAIL }).click();
+  await rail.waitFor();
+  return rail;
 }
 
-async function openMarkedUpChapter(page: Page): Promise<void> {
-  await page.goto('/?mockMarkup=1');
-  await settlePage(page);
-  await goToPage(page, 'Script');
-  await clickVisible(page, 'button', 'Collapse all chapters');
-  await page.getByRole('heading', { name: /^Chapter 3 / }).click();
-  await page.locator('[data-markup="character_tag"][data-speaker]').first().waitFor();
+async function openRailTab(page: Page, tab: string, load = true): Promise<void> {
+  if (load) await goToPage(page, 'Script');
+  const rail = await openRail(page);
+  await rail.getByRole('tab', { name: tab, exact: true }).click();
+  await rail.getByRole('tab', { name: tab, exact: true, selected: true }).waitFor();
 }

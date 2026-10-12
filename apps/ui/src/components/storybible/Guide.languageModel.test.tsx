@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { StudioProvider } from '../../studio/StudioProvider';
 import type { MockAssetSeed } from '../../api/assetInstallMock';
 import { createMockApi } from '../../api/mockApi';
 import { Guide } from './Guide';
@@ -20,7 +21,9 @@ function renderGuide(seed?: MockAssetSeed) {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <Guide notify={notify} goToManuscript={vi.fn()} />
+        <StudioProvider>
+          <Guide notify={notify} goToManuscript={vi.fn()} />
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );

@@ -96,8 +96,6 @@ func TestPronunciationOnlineNeverLogsTheKeyOrTheWord(t *testing.T) {
 	call(host.PronunciationOnlineLookup(word)) // cached
 	call(host.PronunciationOnlineLookup(word + " said quietly, turning away"))
 	call(host.PronunciationOnlineLookup("Brastlewick"))
-	call(host.PronunciationOnlineLookupBatch([]string{word, "Brastlewick", "croquet"}, 2))
-	call(host.PronunciationOnlineLookupBatch([]string{word, "Brastlewick", "croquet"}, 3))
 	call(host.PronunciationOnlineKeyStatus())
 	call(host.PronunciationOnlineKeyClear())
 	// The UI reports its own errors to the host log; make sure the log exists, then look through every log file.
@@ -130,8 +128,8 @@ func TestPronunciationOnlineNeverLogsTheKeyOrTheWord(t *testing.T) {
 	if read == 0 {
 		t.Fatal("no log file was written, so the test proved nothing")
 	}
-	if calls := fake.Calls(); len(calls) != 3 {
-		t.Fatalf("the dictionary was called %d times; want 3 (the lookup, the refused one, croquet in the batch)", len(calls))
+	if calls := fake.Calls(); len(calls) != 2 {
+		t.Fatalf("the dictionary was called %d times; want 2 (the lookup and the refused one)", len(calls))
 	}
 }
 
@@ -158,8 +156,4 @@ func TestContractPronunciationOnline(t *testing.T) {
 	lookup("pronunciation-online-lookup-found", "croquet")
 	lookup("pronunciation-online-lookup-cached", "Croquet")
 	lookup("pronunciation-online-lookup-not-found", "quorlen")
-
-	raw, err := host.PronunciationOnlineLookupBatch([]string{"croquet", "wren", "quorlen"}, 3)
-	batch := decodeOnline[map[string]any](t, raw, err)
-	contractfile.Check(t, "pronunciation-online-batch", batch)
 }

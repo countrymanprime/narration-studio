@@ -29,7 +29,7 @@ import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnounce
 import { useBoothRecording } from './components/booth/useBoothRecording';
 import { ConfirmDialog } from './components/primitives/ConfirmDialog';
 import { ShortcutSheet } from './components/help/ShortcutSheet';
-import { ScriptPage } from './components/script/ScriptPage';
+import { ScriptPage } from './components/script/page/ScriptPage';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { Settings } from './components/settings/Settings';
@@ -296,7 +296,7 @@ function AppRoutes() {
   // No sound or toast interrupts a take: a toast that would fire while the
   // booth is recording queues here instead - `queuedAnnouncements` - and is shown once `boothRecording` clears
   // (below). The OS notification above is untouched; it only ever fires while the window is unfocused anyway.
-  const navCounts = useNavCounts(location.pathname, Boolean(data?.manuscript));
+  const navCounts = useNavCounts(location.pathname);
   const boothRecording = useBoothRecording(location.pathname === '/booth');
   const boothRecordingRef = useRef(boothRecording);
   boothRecordingRef.current = boothRecording;

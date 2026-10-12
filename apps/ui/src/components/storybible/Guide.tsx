@@ -3,14 +3,13 @@ import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClipboardQuestion, faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
-import type { ExtractionSuggestion } from '../../api/contracts/extraction';
+import { faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
+import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { GuideBuildResult, GuideEntity } from '../../types';
 import { categoryCssName, categoryLabel, STORY_BIBLE_TABS } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { usePendingAction } from '../../hooks/usePendingAction';
-import { usePort } from '../../ports/usePort';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
@@ -33,9 +32,18 @@ import {
   sortEntries,
   type EntrySortKey,
 } from './entryList';
-import { verifyOf } from './suggested/row/selectors';
+import { evidenceLinks } from './evidenceLinks';
+import { ImportButton } from './suggested/panel/ImportButton';
+import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
+import { NeedsVerificationChip } from './suggested/panel/NeedsVerificationChip';
+import { ScanButton } from './suggested/panel/ScanButton';
+import { useSuggestions } from './suggested/panel/useSuggestions';
+import { openImportDialog } from './suggested/import/openImportDialog';
+import { AcceptedClaims } from './suggested/row/AcceptedClaims';
+import { SuggestionList } from './suggested/row/SuggestionList';
+import { reviewable, summaryOf, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
+import { useStartScan } from './suggested/scan/useStartScan';
 import { GuideDetail } from './GuideDetail';
-import { PronunciationQueries } from './PronunciationQueries';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -77,7 +85,6 @@ const emptyGuideEntity = (name: string): GuideEntity => ({
 
 export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscript: (chapter: string, paragraph: number) => void }) {
   const api = useApi();
-  const extraction = usePort('extraction');
   const location = useLocation();
   const routerNavigate = useNavigate();
   const entityId = location.hash ? decodeURIComponent(location.hash.slice(1)) : undefined;
@@ -89,13 +96,16 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('All');
-  const [queriesOpen, setQueriesOpen] = useState(false);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
-  // The suggestions the host lists: an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b). The
-  // suggestion panel itself is a separate slice; this page only reads the list.
-  const [suggestions, setSuggestions] = useState<ExtractionSuggestion[]>([]);
+  // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
+  const found = useSuggestions();
+  const { suggestions } = found;
   const [reviewOnly, setReviewOnly] = useState(false);
+  const [verifyOnly, setVerifyOnly] = useState(false);
+  // A suggestion with no entry yet, chosen from the loose rows above the entries: the detail shows its row instead of an entry.
+  const [looseId, setLooseId] = useState<string | null>(null);
+  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild (ADR 0075).
   const starting = usePendingAction();
   // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
@@ -110,8 +120,6 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
 
   const load = useCallback(
     async (selectId?: string) => {
-      // Without the list the page still shows its entries; the narrator hears that the Verify marks may be missing.
-      void extraction.extractionList().then(setSuggestions, (error) => notify(describeApiError(error), 'error'));
       try {
         const next = await api.guideEntities();
         loadedOnce.current = true;
@@ -123,7 +131,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
         else setLoadError(describeApiError(error));
       }
     },
-    [api, extraction, notify],
+    [api, notify],
   );
   // Follows a running rebuild (ADR 0015). A success reloads the rows before the dialog goes, so the page never briefly renders on stale
   // (pre-build) rows - that render trips the route ErrorBoundary, which looks exactly like the build itself had failed. The
@@ -180,6 +188,28 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
       active = false;
     };
   }, [api, notify, setBuildJob]);
+  // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty.
+  useEffect(() => {
+    let live = true;
+    api.manuscriptChapters().then(
+      (list) => live && setChapters(list),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [api]);
+  // A decision changes the list here at once, and an accepted suggestion can change an entry, so the entries are read again.
+  const { changed } = found;
+  const decided = useCallback(
+    (decision: Parameters<typeof changed>[0]) => {
+      changed(decision);
+      void load();
+    },
+    [changed, load],
+  );
+  const scanStart = useStartScan({ scan: found.scan.start, onImported: () => void load() });
+  const links = useMemo(() => evidenceLinks(chapters, goToManuscript), [chapters, goToManuscript]);
   // A rebuild that ends while its dialog is dismissed or the narrator is elsewhere on this page still refreshes the entries.
   useEffect(() => api.subscribeJobEnded((event) => event.kind === 'story_bible' && void load()), [api, load]);
 
@@ -191,11 +221,15 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   const filtered = visible
     .filter((row) => tab === 'All' || categoryLabel(row.category) === tab)
     .filter((row) => !reviewOnly || entryNeedsReview(row, suggestions))
+    .filter((row) => !verifyOnly || verifyOf(suggestions, row.id) > 0)
     .filter((row) =>
       `${row.canonical_name} ${row.aliases.map((alias) => alias.text).join(' ')} ${categoryLabel(row.category)}`.toLowerCase().includes(query.toLowerCase()),
     );
   const sorted = sortEntries(filtered, sort);
   const selected = rows.find((row) => row.id === selectedId);
+  const toVerifyAll = verifyCount(suggestions);
+  const loose = verifyOnly ? unattached(suggestions) : [];
+  const looseChosen = loose.find((suggestion) => suggestion.id === looseId);
   const chooseSort = (key: string) => {
     const next = ENTRY_SORT_OPTIONS.find((option) => option.value === key)?.value ?? 'name';
     setSort(next);
@@ -212,6 +246,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
   };
   const selectRow = (id?: string) => {
     setPendingNewEntity(undefined);
+    setLooseId(null);
     setSelectedId(id);
   };
 
@@ -223,11 +258,8 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
         <div className="flex flex-wrap items-end justify-between gap-3">
           <Heading title="Story Bible" />
           <div className="flex gap-2">
-            <TooltipTarget text="Pronunciation queries for the author">
-              <IconButton label="Pronunciation queries" onClick={() => setQueriesOpen(true)}>
-                <FontAwesomeIcon icon={faClipboardQuestion} />
-              </IconButton>
-            </TooltipTarget>
+            <ScanButton scan={{ ...found.scan, start: scanStart.startScan }} />
+            <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
             <TooltipTarget text="Voice data: narration reference, remove voice data">
               <IconButton label="Voice data" onClick={() => setVoiceDataOpen(true)}>
                 <FontAwesomeIcon icon={faMicrophone} />
@@ -268,13 +300,19 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
                 <span aria-hidden="true">Sort</span>
                 <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="flex-1" />
               </div>
-              {(toReview > 0 || reviewOnly) && (
-                <div className="mt-2 flex" role="group" aria-label="Filter entries">
-                  <Pill label={`Needs review · ${toReview}`} active={reviewOnly} onClick={() => setReviewOnly((on) => !on)} />
+              {(toReview > 0 || reviewOnly || toVerifyAll > 0 || verifyOnly) && (
+                <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter entries">
+                  {(toReview > 0 || reviewOnly) && <Pill label={`Needs review · ${toReview}`} active={reviewOnly} onClick={() => setReviewOnly((on) => !on)} />}
+                  <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
                 </div>
               )}
             </div>
             <div className="guide-list-scroll min-h-0 overflow-y-auto px-2 pb-2">
+              {loose.length > 0 && (
+                <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
+                  <LooseSuggestionRows suggestions={loose} selectedId={looseChosen?.id ?? null} onSelect={setLooseId} />
+                </ul>
+              )}
               <Table label="Story Bible entries">
                 <TableHead sticky>
                   <TableRow>
@@ -316,22 +354,44 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
             </div>
           </TabPanel>
           <div className="flex min-h-0 min-w-0">
-            <GuideDetail
-              // One detail per entry, so what an action left pending on one entry never shows on the next.
-              key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
-              entity={newEntityDraft ?? selected}
-              isNewDraft={Boolean(newEntityDraft)}
-              onDiscardNewDraft={() => setPendingNewEntity(undefined)}
-              onCreatedNewDraft={(id) => {
-                setPendingNewEntity(undefined);
-                void load(id);
-              }}
-              entities={rows}
-              reload={load}
-              notify={notify}
-              goToManuscript={goToManuscript}
-              toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
-            />
+            {looseChosen ? (
+              <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
+                <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
+              </Panel>
+            ) : (
+              <GuideDetail
+                // One detail per entry, so what an action left pending on one entry never shows on the next.
+                key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
+                entity={newEntityDraft ?? selected}
+                isNewDraft={Boolean(newEntityDraft)}
+                onDiscardNewDraft={() => setPendingNewEntity(undefined)}
+                onCreatedNewDraft={(id) => {
+                  setPendingNewEntity(undefined);
+                  void load(id);
+                }}
+                entities={rows}
+                reload={load}
+                notify={notify}
+                goToManuscript={goToManuscript}
+                toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
+                chapters={chapters}
+                suggested={
+                  selected && (
+                    <>
+                      <AcceptedClaims entryId={selected.id} suggestions={suggestions} {...links} />
+                      <SuggestionList
+                        title="Suggested"
+                        suggestions={reviewable(suggestions, selected.id)}
+                        sources={found.sources}
+                        onChanged={decided}
+                        contextOf={() => ({ entryName: selected.canonical_name, chapters: chapterCount(selected) })}
+                        {...links}
+                      />
+                    </>
+                  )
+                }
+              />
+            )}
           </div>
         </div>
       )}
@@ -363,7 +423,7 @@ export function Guide({ notify, goToManuscript }: { notify: Notify; goToManuscri
         </AssetInstallPrompt>
       )}
       {buildJob && <WorkDialog title="Rebuild Story Bible" job={buildJob} close={() => setBuildJob(undefined)} background={() => setBuildJob(undefined)} />}
-      <PronunciationQueries open={queriesOpen} onClose={() => setQueriesOpen(false)} onChanged={() => void load()} notify={notify} />
+      {scanStart.dialogs}
       <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} />
     </Tabs>
   );
