@@ -51,7 +51,7 @@ function WordStrip({ evidence, member }: { evidence: TakeComparisonEvidence; mem
  * side by side over the same part of the script. First how each read read the script, word by word, with every place it
  * departs listed with its time; then one table of the audio measurements, a row per category with what it measures and a
  * column per read, each figure measured or unavailable with its reason. Nothing adds the rows up, orders the reads or names a
- * best one (Q9): the narrator listens, chooses, and makes that take active in REAPER (Q8). Each read keeps its own Go to and
+ * best one: the narrator listens, chooses, and makes that take active in REAPER. Each read keeps its own Go to and
  * Loop in REAPER, and Audition plays two of them from their raw source.
  */
 export function TakeComparisonView({

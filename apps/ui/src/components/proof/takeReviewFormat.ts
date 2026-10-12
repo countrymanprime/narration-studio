@@ -11,14 +11,14 @@ export function takeReviewEvidence(finding: Finding): TakeReviewEvidence | undef
   return parsed.success ? parsed.data : undefined;
 }
 
-/** A take comparison's evidence (Phase 10), checked against its schema; undefined for any other finding or evidence that does not match. */
+/** A take comparison's evidence, checked against its schema; undefined for any other finding or evidence that does not match. */
 export function takeComparisonEvidence(finding: Finding): TakeComparisonEvidence | undefined {
   if (finding.analyzer !== 'take-comparison') return undefined;
   const parsed = takeComparisonEvidenceSchema.safeParse(finding.evidence);
   return parsed.success ? parsed.data : undefined;
 }
 
-// evidence.kind, internal/repeats.classify's Q11 mapping.
+// evidence.kind, internal/repeats.classify's mapping.
 const KIND_LABELS: Record<string, string> = {
   exact_copy: 'Exact copy',
   restart: 'Restart',

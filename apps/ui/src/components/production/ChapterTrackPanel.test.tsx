@@ -43,7 +43,7 @@ function renderPanel(api: NarrationApi, link: ChapterTrackLink, track: ChapterTr
   return { notify };
 }
 
-describe('ChapterTrackPanel playback and Select in REAPER (Phase 4)', () => {
+describe('ChapterTrackPanel playback and Select in REAPER', () => {
   beforeEach(() => {
     vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});

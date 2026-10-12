@@ -68,7 +68,7 @@ describe('DawCatalogPanel', () => {
     expect(await screen.findByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 
-  // Phase 3's "Could" item: a handoff into the DAW Link flow once a DAW is detected.
+  // A handoff into the DAW Link flow once a DAW is detected.
   it('offers to link a REAPER project once detected and not yet linked', async () => {
     const onLinkDawFile = vi.fn();
     renderPanel({}, {}, { dawFileLinked: false, onLinkDawFile });
