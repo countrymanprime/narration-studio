@@ -19,6 +19,8 @@ import {
   recordingFromAnswer,
   rolledOf,
   takesHiddenOf,
+  splitStaleOf,
+  takeSplitOf,
 } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
@@ -110,6 +112,9 @@ export interface DawClient {
   stackTakes(request: StackRequest): Promise<DawResult>;
   /** Move the stacked takes of the request's passages back to where they were recorded. */
   unstackTakes(request: StackRequest): Promise<DawResult>;
+  /** Cut `takeId`, a take of the chapter that reads its line twice, into two takes of one item at `at` (project seconds), in one undo step
+   * of the DAW's own. Nothing is deleted; the DAW refuses a take that is gone or a cut outside it (code `stale`). */
+  splitTake(chapterId: string, takeId: string, at: number): Promise<DawResult>;
   /** Clone the audio around the request's words before an edit, so it can be put back. It changes no audio (`changed: false`). */
   backupAround(request: BackupRequest): Promise<DawResult>;
   /** Put a backup's audio back over the window it came from. Refused when the DAW has no backup with that id. */
@@ -143,6 +148,7 @@ export type DawHostApi = Pick<
   | 'workspaceListFXChains'
   | 'dawStackTakes'
   | 'dawUnstackTakes'
+  | 'dawSplitTake'
   | 'dawBackupAround'
   | 'dawRestoreBackup'
   | 'dawBackups'
@@ -310,6 +316,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
         chapterId,
         groups.map((group) => group.passageId),
       ),
+    /** The binding answers a DawResult already: it looks the take up on the chapter's track and checks the cut is inside it. */
+    splitTake: (chapterId, takeId, at) => api.dawSplitTake(chapterId, takeId, at),
     /** The bindings answer a DawResult already and take ids only: the host resolves the window and the track itself. */
     backupAround: ({ chapterId, firstToken, lastToken, label }) => api.dawBackupAround(chapterId, firstToken, lastToken, label),
     restoreBackup: (backupId) => api.dawRestoreBackup(backupId),
@@ -427,6 +435,16 @@ export function createMockDawClient(
     },
     stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
     unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),
+    async splitTake(chapterId, takeId, at) {
+      const sentence = unavailable(setup, 'takes', 'splitTake');
+      if (sentence) return refused(sentence, 'splitTake');
+      if (!Number.isFinite(at) || at < 0) return refused(DAW_ANSWERS.splitBadTime, 'splitTake');
+      const take = project.chapterIds.includes(chapterId) ? project.splitTakes?.[takeId] : undefined;
+      if (!take) return refused(splitStaleOf(setup).gone, 'splitTake', true);
+      if (at <= take.start || at >= take.start + take.length) return refused(splitStaleOf(setup).outside, 'splitTake', true);
+      const split = takeSplitOf(setup);
+      return 'refused' in split ? refused(split.refused, 'splitTake') : done(true, 1, split.message);
+    },
     ...mockBackups(setup, project),
     async fxChains() {
       const sentence = unavailable(setup, 'fx_chains', 'fxChains');

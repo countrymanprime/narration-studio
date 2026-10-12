@@ -1636,5 +1636,59 @@
     "file": "narration_takes.lua",
     "find": "    if removed ~= #group.moves then",
     "replace": "    if false then"
+  },
+  {
+    "name": "split_take: a cut outside the item is made anyway",
+    "file": "narration_takes.lua",
+    "find": "  if cut <= EDGE_TOLERANCE or cut >= length - EDGE_TOLERANCE then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "split_take: an item with several takes is split",
+    "file": "narration_takes.lua",
+    "find": "  if reaper.CountTakes(item) ~= 1 then\n    return refuse(",
+    "replace": "  if false then\n    return refuse("
+  },
+  {
+    "name": "split_take: a second read longer than the first is cut off",
+    "file": "narration_takes.lua",
+    "find": "  if length - cut > cut + EDGE_TOLERANCE then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "split_take: the recording refusal is lifted",
+    "file": "narration_takes.lua",
+    "find": "  if not stack_ready(session_dir, run_id, needed, 'This REAPER version cannot split a take.') then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "split_take: the item keeps its length, so the first take plays both reads",
+    "file": "narration_takes.lua",
+    "find": "  reaper.SetMediaItemInfo_Value(item, 'D_LENGTH', cut)\n",
+    "replace": ""
+  },
+  {
+    "name": "split_take: the new take plays from the item's start",
+    "file": "narration_takes.lua",
+    "find": "  reaper.SetMediaItemTakeInfo_Value(added, 'D_STARTOFFS', startoffs + cut)\n",
+    "replace": "  reaper.SetMediaItemTakeInfo_Value(added, 'D_STARTOFFS', startoffs)\n"
+  },
+  {
+    "name": "split_take: the item is split into two items",
+    "file": "narration_takes.lua",
+    "find": "  local added = reaper.AddTakeToMediaItem(item)\n",
+    "replace": "  reaper.SplitMediaItem(item, at)\n  local added = reaper.AddTakeToMediaItem(item)\n"
+  },
+  {
+    "name": "split_take: the new take is made active",
+    "file": "narration_takes.lua",
+    "find": "  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_SPLIT, -1)",
+    "replace": "  reaper.SetActiveTake(added)\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_SPLIT, -1)"
+  },
+  {
+    "name": "split_take: a malformed time is read as zero",
+    "file": "narration_takes.lua",
+    "find": "  if not at or at < 0 then\n    event(session_dir, 'ERROR', run_id, SPLIT_UNREADABLE)",
+    "replace": "  at = at or 0\n  if at < 0 then\n    event(session_dir, 'ERROR', run_id, SPLIT_UNREADABLE)"
   }
 ]

@@ -295,6 +295,15 @@ type TakeSelector interface {
 	HideTakes(ctx context.Context, itemGUID, keepTakeGUID string) (Result, error)
 }
 
+// TakeSplitter cuts a take that reads its line twice into two takes of one item at a project time, the second read as its own
+// take, in one undo step of the engine's own. Nothing is deleted. It is a second role of the takes capability: an engine's takes
+// role is also a TakeSplitter when the engine can split, and the takes capability's level, toggle and refusals cover it. An item
+// or take that is gone, or a cut no longer inside the item, is RefusedStale; an engine that cannot cut its own take answers a
+// refusal in a whole sentence.
+type TakeSplitter interface {
+	SplitTake(ctx context.Context, itemGUID, takeGUID string, at float64) (Result, error)
+}
+
 // FXManager lists and applies FX chains and adds a plugin to a passage's take.
 type FXManager interface {
 	ListFXChains(ctx context.Context) (FXChains, error)

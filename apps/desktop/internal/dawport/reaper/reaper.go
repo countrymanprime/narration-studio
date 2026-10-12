@@ -87,6 +87,7 @@ var commandCapability = map[string]dawport.Capability{
 	"create_regions":      dawport.CapRegions,
 	"set_active_take":     dawport.CapTakes,
 	"hide_takes":          dawport.CapTakes,
+	"split_take":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
 	"list_fx":             dawport.CapFXChains,
@@ -270,7 +271,10 @@ type takeSelector struct {
 	allowed func(dawport.Capability) error
 }
 
-var _ dawport.TakeSelector = takeSelector{}
+var (
+	_ dawport.TakeSelector = takeSelector{}
+	_ dawport.TakeSplitter = takeSelector{}
+)
 
 // HideTakes mutes every take of itemGUID but keepTakeGUID (bridge's hide_takes). It asks allowed itself first, so a refusal is
 // the capability's own sentence rather than bridge's ErrExperimentalOff.
@@ -295,6 +299,34 @@ func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID stri
 		return dawport.Result{}, err
 	}
 	return dawport.OK(hiddenMessage(got), got.Changed), nil
+}
+
+// SplitTake makes takeGUID of itemGUID two takes of one item at at (bridge's split_take): the item ends at the cut and a new take
+// plays the second read, in one undo step. It asks allowed for the takes capability first, as HideTakes does.
+func (t takeSelector) SplitTake(ctx context.Context, itemGUID, takeGUID string, at float64) (dawport.Result, error) {
+	if t.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(t.allowed(dawport.CapTakes)); ok {
+			return refused, nil
+		}
+	}
+	got, err := t.Actions.SplitTake(ctx, itemGUID, takeGUID, at)
+	var stale *bridge.StaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.As(err, &stale) && stale.Reason == "take":
+		return dawport.RefusedStale("That item no longer has the take to split. Read the project again."), nil
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That take's item moved or changed in the REAPER project. Read the project again."), nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), nil
+	case err != nil:
+		return dawport.Result{}, err
+	}
+	return dawport.OK("Split the take into 2 takes in REAPER. Undo it there in one step.", true).WithUndoSteps(got.UndoPoints), nil
 }
 
 const messageRollStopped = "REAPER stopped recording for the roll but did not record again. The earlier audio is kept; press record to go on."

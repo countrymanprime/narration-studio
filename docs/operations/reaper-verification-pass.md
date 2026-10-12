@@ -90,6 +90,7 @@ The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabiliti
 | C7 | `unstack_takes` (`stack_takes`; `stack_test.lua`) | After C6 (stacked again and saved), send the un-stack payload. | The stacked take is removed and the read goes back by the offset its take recorded, in one undo point; nothing is deleted |
 | C8 | `reopen_pickup` (`pickups`; `pickups_test.lua`) | Import one pickup, `resolve_pickup` it, then `reopen_pickup` at its position; send it again. | `PICKUP_REOPENED`: the marker reads `PICKUP: <body>` again, in one undo point named "Narration Utils: reopen pickup"; the second send answers `ERROR` with no undo point |
 | C9 | `list_pickup_markers` (`pickups`; `pickups_test.lua`) | With one open and one resolved pickup, send it with an output path in the session folder. | `PICKUP_MARKERS_LISTED` with 1 open and 1 done; the file holds `start\|state\|tag\|note` rows in position order; no undo point |
+| C10 | `split_take` (`takes`; `split_take_test.lua`) | Give a one-take item on "Chapter 1" two reads of the same line (10 to 20 s, the second from 15.5 s); send `split_take` at 15.5 s; play both takes; press Undo; send it with a stale take GUID. | `TAKE_SPLIT`: one item, ending at 15.5 s, with two takes: the first read, still active, and a new take playing the second read from the same file on the first read's spot; one undo point; one Undo gives the one take back at its full length; the stale GUID is refused `stale` and changes nothing. Nothing is deleted, moved or re-sourced |
 
 ## Switching a command on
 
@@ -102,7 +103,7 @@ A command passes when every row that names it passes and the report is recorded.
 | `record` | `arm_only`, `record_start`, `record_stop` | A4, A5, B1 to B6 |
 | `punch` | `play_position`, `punch_to`, `roll` | A9b, A9c, B9, C2 |
 | `regions` | `create_regions` | A9 |
-| `takes` | `set_active_take`, `hide_takes` | A6, C1 |
+| `takes` | `set_active_take`, `hide_takes`, `split_take` | A6, C1, C10 |
 | `fx_chains` | `list_fx_chains`, `list_fx`, `apply_fx_chain`, `add_take_fx` | A7, A8, A8b |
 | `silence_trim` | `preview_cleanup_markers`, `apply_cleanup_trims` | A12, A13 |
 | `item_gain` | `apply_item_gain` | A14 |

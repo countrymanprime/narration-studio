@@ -86,6 +86,8 @@ var realEvents = map[string][]string{
 	"TAKE_FX_ADDED":     {"TAKE_FX_ADDED", "x1", "VST3: ReaEQ (Cockos)", "{00000005-0000-4000-8000-000000000005}", "{00000006-0000-4000-8000-000000000006}", "2"},
 	// integrations/reaper/tests/takes_test.lua (hide_takes).
 	"TAKES_HIDDEN": {"TAKES_HIDDEN", "h1", "{AAAAAAAA-0000-4000-8000-000000000001}", "2", "1"},
+	// integrations/reaper/tests/split_take_test.lua (split_take).
+	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }
 
 func TestEveryRealEventPassesItsTable(t *testing.T) {

@@ -173,6 +173,9 @@ var eventSpecs = map[string]eventSpec{
 	"MASTER_CHAIN_READ": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
 	"FX_RENDER_FILE":    {required: []fieldSpec{text("run"), text("region"), text("path")}},
 	"FX_RENDERED":       {required: []fieldSpec{text("run"), text("folder"), count("count")}},
+	// split_take (narration_takes.lua): the item and take it cut, the new take that plays the second read, the cut's time in
+	// the project and the undo points it added.
+	"TAKE_SPLIT": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("newTakeGuid"), number("at"), count("undoPoints")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

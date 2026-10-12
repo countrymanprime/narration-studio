@@ -112,6 +112,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"record_stop":         dawport.CapRecord,
 	"set_active_take":     dawport.CapTakes,
 	"hide_takes":          dawport.CapTakes,
+	"split_take":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
 	"list_fx":             dawport.CapFXChains,
@@ -527,6 +528,61 @@ func TestHideTakesIsGatedByTheResolver(t *testing.T) {
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused hide wrote %d commands", n)
+	}
+}
+
+// split_take is the takes capability's second role (dawport.TakeSplitter): Experimental with takes, gated by takes, one
+// undo step when it cut, and every refusal a DawResult in a whole sentence (ADR 0810).
+func TestSplitTakeIsExperimentalAndAnswersADawResult(t *testing.T) {
+	if declares[dawport.CapTakes] != dawport.Experimental || !bridge.Experimental("split_take") || commandCapability["split_take"] != dawport.CapTakes {
+		t.Fatalf("split_take must be an Experimental command of the takes capability")
+	}
+	const newTake = "{00000005-0000-4000-8000-000000000005}"
+	splitter := takeSelectorAnswering(t, func(command []string) [][]string {
+		if command[0] != "split_take" || command[2] != hideItem || command[3] != hideTake || command[4] != "15.500" {
+			t.Errorf("command = %v", command)
+		}
+		return [][]string{{"TAKE_SPLIT", command[1], hideItem, hideTake, newTake, "15.500", "1"}}
+	}).(dawport.TakeSplitter)
+	got, err := splitter.SplitTake(t.Context(), hideItem, hideTake, 15.5)
+	want := dawport.OK("Split the take into 2 takes in REAPER. Undo it there in one step.", true).WithUndoSteps(1)
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("SplitTake = %+v, %v; want %+v", got, err, want)
+	}
+
+	for _, tc := range []struct {
+		answer []string
+		want   dawport.Result
+	}{
+		{[]string{"ITEM_STALE", "", hideItem, "item"}, dawport.RefusedStale("That take's item moved or changed in the REAPER project. Read the project again.")},
+		{[]string{"ITEM_STALE", "", hideTake, "take"}, dawport.RefusedStale("That item no longer has the take to split. Read the project again.")},
+		{[]string{"ERROR", "", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{[]string{"ERROR", "", "The second read is longer than the first, so it cannot be one of its takes. Nothing was split."},
+			dawport.Refused("The second read is longer than the first, so it cannot be one of its takes. Nothing was split.")},
+	} {
+		splitter := takeSelectorAnswering(t, func(command []string) [][]string {
+			answer := append([]string(nil), tc.answer...)
+			answer[1] = command[1]
+			return [][]string{answer}
+		}).(dawport.TakeSplitter)
+		got, err := splitter.SplitTake(t.Context(), hideItem, hideTake, 15.5)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("answer %v: SplitTake = %+v, %v; want %+v", tc.answer, got, err, tc.want)
+		}
+	}
+
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to choose takes."
+	var asked []dawport.Capability
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		asked = append(asked, c)
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	got, err = adapter.Role(dawport.CapTakes).(dawport.TakeSplitter).SplitTake(t.Context(), hideItem, hideTake, 15.5)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) || len(asked) == 0 || asked[0] != dawport.CapTakes {
+		t.Errorf("SplitTake with takes refused = %+v, %v (asked %v); want Refused(%q) after asking takes", got, err, asked, sentence)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused split wrote %d commands", n)
 	}
 }
 

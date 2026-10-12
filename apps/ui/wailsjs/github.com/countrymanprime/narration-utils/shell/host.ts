@@ -670,6 +670,21 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
 }
 
 /**
+ * DawSplitTake cuts takeID, a take of chapterID that reads its line twice, into two takes of one item at at seconds into the
+ * chapter, in one undo step of the DAW's own (SN-E94; the Studio Next mock's splitTake, the page's splitCommand). takeID is the
+ * take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
+ * checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
+ * (threat model row 5f). The answer is a DawResult (ADR 0810): the takes capability's own sentence when the resolver refuses it
+ * (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first; an engine whose takes role
+ * cannot split, or no live adapter, is refused in a sentence; a time that is not one, a take the track no longer holds or a cut
+ * outside it is refused (code stale for the last two). Nothing is sent to the DAW on any of them. A take that changed between the
+ * read and the DAW's own check is the DAW's stale refusal, and nothing changes.
+ */
+export function DawSplitTake(chapterID: string, takeID: string, at: number): $CancellablePromise<string> {
+    return $Call.ByID(3351327653, chapterID, takeID, at);
+}
+
+/**
  * DawStackTakes puts the later reads of the passages passageIDs of chapterID on the first read's spot as takes of its item,
  * and moves the audio after them up (SND-7b, ADR 0860 point 4; the Studio Next mock's stackTakes). The page sends a chapter
  * id and passage ids, never a GUID, a time or a path: the host rebuilds the plan itself (passagetakes.StackPlan) from the

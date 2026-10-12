@@ -35,6 +35,7 @@ export const dawFeedback = {
   ),
   'src/ports/daw.ts::dawRestoreBackup#1': adapter('Forwards Put back a backup with its id only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawBackups#1': adapter("Reads the project's backups table for the Backups list."),
+  'src/ports/daw.ts::dawSplitTake#1': adapter('Forwards Split into 2 takes with the chapter, take id and time only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawUnstackTakes#1': adapter('Forwards Un-stack the takes with the passage ids only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::workspaceListFXChains#1': adapter("Reads the DAW's saved FX chains for the Add FX list; a refusal rejects for the page to show."),
   'src/ports/daw.ts::dawCapabilities#3': adapter("Reads the capability report beside the chain list, for the list's source label."),
