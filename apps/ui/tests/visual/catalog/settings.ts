@@ -8,7 +8,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'page-top',
     description:
-      "Settings, the top of the page (the Studio Next mock's panels): the Delivery profile select on ACX, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept categories",
+      "Settings, the top of the page (the Studio Next mock's panels): the Delivery profile select on ACX, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept categories",
     ...REFLOW,
   },
   { page: 'settings', state: 'global-general', description: 'Settings, the kept categories, Global scope / General category', ...REFLOW },

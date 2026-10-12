@@ -13,7 +13,7 @@ Settings opens with five panels, then the rest of the settings by category.
 - **Manuscript** names the imported manuscript, with **Replace manuscript** (or **Import manuscript** when
   there is none).
 
-![Settings, the top of the page: Delivery profile, Appearance, Keyboard shortcuts and Manuscript](../../images/ui/settings-appearance.webp)
+![Settings, the top of the page: Delivery profile, Story Bible types, Appearance, Keyboard shortcuts and Manuscript](../../images/ui/settings-appearance.webp)
 
 ![Home with Dark theme selected](../../images/ui/theme-dark.webp)
 
