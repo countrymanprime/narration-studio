@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"unicode"
@@ -234,4 +235,118 @@ func fxRangeRefusal(name string, err error) dawport.Result {
 		return dawport.Refused(fmt.Sprintf("%s did not answer the effect within %d seconds. Check the project before trying again.", name, int(fxRangeTimeout.Seconds())))
 	}
 	return dawport.Refused(fmt.Sprintf("%s could not change the effect on the words: %s.", name, err.Error()))
+}
+
+const (
+	// fxRangeNoEditorSentence answers an edit on an engine whose fx_range role keeps no live effect to read or change.
+	fxRangeNoEditorSentence = "%s cannot read or change an effect on words."
+	// fxRangeNoSettingSentence and fxRangeBadValueSentence are fx_range_set_param's own answers for a setting the effect does
+	// not have and a value that is not a number (narration_range.lua), so the page reads the same words whichever side refused.
+	fxRangeNoSettingSentence = "That effect has no such setting."
+	fxRangeBadValueSentence  = "The value for that setting is not a number."
+)
+
+// DawFxRangeParams reads the settings of the chain chainName on the words firstToken..lastToken of chapterID's stored alignment
+// (SN-E104; the mock's effect inspector), resolved as DawApplyFxToRange resolves them: the DAW finds the piece the chain went on
+// from the answer it gave the apply, or, after the chapter is checked again, from the item the words resolve to. The page sends a
+// chapter id, two token indices and a chain name, never a GUID or a path. The answer is the DawFxRangeParams payload: a DawResult
+// (ADR 0810) with the settings, whether the list was cut short and whether the chain is bypassed; a refusal has no settings. The
+// same capability and range refusals as DawRemoveFxFromRange, then a chain the DAW no longer has on those words, with code stale.
+func (h *Host) DawFxRangeParams(chapterID string, firstToken int, lastToken int, chainName string) (string, error) {
+	svc := h.services()
+	resolver, _ := h.dawResolverFor(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), fxRangeTimeout)
+	defer cancel()
+	run := h.runLog.Begin("fx_range_params", "chapter_id", chapterID)
+	settings, err := dawFxRangeParamsIn(ctx, svc, resolver.Support(dawport.CapFXRange), svc.rangeFX, chapterID, firstToken, lastToken, chainName)
+	endFxRangeRun(run, settings.Result, err)
+	return encodeBinding(settings, err)
+}
+
+// DawSetFxRangeParam sets setting index of effect fx of the chain chainName on the words (both as DawFxRangeParams numbers them)
+// to value, in one undo step of the DAW's own; a setting already at the value answers changed false. The same refusals as
+// DawFxRangeParams, then a setting the effect does not have and a value outside its range, each with a sentence.
+func (h *Host) DawSetFxRangeParam(chapterID string, firstToken int, lastToken int, chainName string, fx int, index int, value float64) (string, error) {
+	svc := h.services()
+	resolver, _ := h.dawResolverFor(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), fxRangeTimeout)
+	defer cancel()
+	run := h.runLog.Begin("fx_range_set_param", "chapter_id", chapterID)
+	result, err := dawFxRangeEditIn(ctx, svc, resolver.Support(dawport.CapFXRange), svc.rangeFX, chapterID, firstToken, lastToken, chainName,
+		func(editor dawport.RangeFXEditor, target dawport.FXRangeTarget) (dawport.Result, error) {
+			if fx < 0 || index < 0 {
+				return dawport.Refused(fxRangeNoSettingSentence), nil
+			}
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return dawport.Refused(fxRangeBadValueSentence), nil
+			}
+			return editor.SetFXRangeParam(ctx, target, fx, index, value)
+		})
+	endFxRangeRun(run, result, err)
+	return encodeBinding(result, err)
+}
+
+// DawBypassFxRange bypasses every effect of the chain chainName on the words (bypass true) or turns them back on, in one undo step
+// of the DAW's own; a chain already as asked answers changed false. The same refusals as DawFxRangeParams.
+func (h *Host) DawBypassFxRange(chapterID string, firstToken int, lastToken int, chainName string, bypass bool) (string, error) {
+	svc := h.services()
+	resolver, _ := h.dawResolverFor(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), fxRangeTimeout)
+	defer cancel()
+	run := h.runLog.Begin("fx_range_bypass", "chapter_id", chapterID)
+	result, err := dawFxRangeEditIn(ctx, svc, resolver.Support(dawport.CapFXRange), svc.rangeFX, chapterID, firstToken, lastToken, chainName,
+		func(editor dawport.RangeFXEditor, target dawport.FXRangeTarget) (dawport.Result, error) {
+			return editor.BypassFXRange(ctx, target, bypass)
+		})
+	endFxRangeRun(run, result, err)
+	return encodeBinding(result, err)
+}
+
+// dawFxRangeParamsIn is DawFxRangeParams with the launch's fx_range support and role given.
+func dawFxRangeParamsIn(ctx context.Context, svc hostServices, support dawport.Support, applier dawport.RangeFXApplier,
+	chapterID string, firstToken, lastToken int, chainName string) (dawport.FXRangeSettings, error) {
+	var settings dawport.FXRangeSettings
+	result, err := dawFxRangeEditIn(ctx, svc, support, applier, chapterID, firstToken, lastToken, chainName,
+		func(editor dawport.RangeFXEditor, target dawport.FXRangeTarget) (dawport.Result, error) {
+			var err error
+			settings, err = editor.FXRangeParams(ctx, target)
+			return settings.Result, err
+		})
+	if err != nil || !result.OK {
+		return dawport.FXRangeSettings{Result: result, Settings: []dawport.FXSetting{}}, err
+	}
+	if settings.Settings == nil {
+		settings.Settings = []dawport.FXSetting{}
+	}
+	return settings, nil
+}
+
+// dawFxRangeEditIn runs edit against the fx_range role's RangeFXEditor for the words, after the checks the three bindings share:
+// the capability first, the range, a plain chain name, then a role that can edit. A role's error is worded as a refusal.
+func dawFxRangeEditIn(ctx context.Context, svc hostServices, support dawport.Support, applier dawport.RangeFXApplier,
+	chapterID string, firstToken, lastToken int, chainName string,
+	edit func(dawport.RangeFXEditor, dawport.FXRangeTarget) (dawport.Result, error)) (dawport.Result, error) {
+	if !support.Available {
+		return dawport.Refused(support.Message), nil
+	}
+	resolved, refused, err := resolveFxRange(svc, chapterID, firstToken, lastToken)
+	if err != nil || refused != nil {
+		return refusedOr(refused), err
+	}
+	if !plainChainName(chainName) {
+		return dawport.Refused(fxRangeBadChainSentence), nil
+	}
+	name := readAloudAdapterName(svc)
+	if applier == nil {
+		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message), nil
+	}
+	editor, ok := applier.(dawport.RangeFXEditor)
+	if !ok {
+		return dawport.Refused(fmt.Sprintf(fxRangeNoEditorSentence, name)), nil
+	}
+	result, err := edit(editor, dawport.FXRangeTarget{RangeRequest: resolved.Request, ChainName: chainName})
+	if err != nil {
+		return fxRangeRefusal(name, err), nil
+	}
+	return result, nil
 }

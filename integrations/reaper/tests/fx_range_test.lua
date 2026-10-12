@@ -608,3 +608,273 @@ H.test('neither command calls Main_OnCommand', function()
   s:events()
   H.eq(calls_named(s, 'Main_OnCommand'), 0)
 end)
+
+-- fx_range_params, fx_range_set_param and fx_range_bypass (SN-E104): the settings of the chain apply_fx_range put on a
+-- piece, one setting changed, and the chain bypassed or turned back on. Each finds the chain by the item and take GUIDs
+-- apply_fx_range answered (an empty take GUID: the item's take that carries the chain) and the FX GUIDs the take records.
+
+local SET_LABEL = 'Narration Utils: change effect setting'
+local BYPASS_LABEL = 'Narration Utils: bypass effect'
+local ENABLE_LABEL = 'Narration Utils: turn effect back on'
+
+-- Applies CHAIN to 14..16 with no call or undo point left over, and answers the piece and its take.
+local function applied_clean(s, p)
+  local middle = applied(s, p)
+  s.fake.calls = {}
+  s.fake.undo = {}
+  return middle, middle.takes[1]
+end
+
+local function param_lines(fx, name)
+  return {
+    { 'RANGE_FX_PARAM', 'p1', fx, name, '0', 'Gain', '0', '-24', '24', '0', '0 dB' },
+    { 'RANGE_FX_PARAM', 'p1', fx, name, '1', 'Mix', '1', '0', '1', '0', '1' },
+    { 'RANGE_FX_PARAM', 'p1', fx, name, '2', 'Mode', '0', '0', '3', '1', '0' },
+  }
+end
+
+-- What an edit that was refused or found nothing to do must leave: no setter call and no undo point.
+local function untouched(s, take)
+  H.eq(calls_named(s, 'TakeFX_SetParam'), 0, 'no setting is changed')
+  H.eq(calls_named(s, 'TakeFX_SetEnabled'), 0, 'no FX is switched')
+  H.eq(#s.fake.undo, 0, 'no undo point')
+  H.eq(s.fake.open_undo_blocks, 0)
+  for _, fx in ipairs(take.fx) do
+    H.eq(fx.enabled, true)
+    H.eq({ fx.params[1].value, fx.params[2].value, fx.params[3].value }, { 0, 1, 0 })
+  end
+end
+
+H.test("fx_range_params lists the applied chain's parameters", function()
+  local s, p = project()
+  s.fake.chain_fx_count = 2
+  local middle, take = applied_clean(s, p)
+  local path = take.fx[1].name
+  s:send('fx_range_params', 'p1', middle.guid, take.guid, CHAIN)
+  local want = {}
+  for fx = 0, 1 do
+    for _, line in ipairs(param_lines(tostring(fx), path)) do
+      want[#want + 1] = line
+    end
+  end
+  want[#want + 1] = { 'RANGE_FX_PARAMS', 'p1', middle.guid, take.guid, CHAIN, '6', '0', '0' }
+  H.eq(s:events(), want)
+  H.eq(#s.fake.undo, 0, 'a read adds no undo point')
+  H.eq(calls_named(s, 'TakeFX_SetParam') + calls_named(s, 'TakeFX_SetEnabled'), 0)
+end)
+
+H.test('fx_range_params reads only the FX the chain added, in the order it recorded them, and says when it is bypassed', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  -- An FX the narrator put on the take in REAPER first, ahead of the chain's.
+  table.insert(take.fx, 1, { name = 'ReaComp', guid = s.fake:new_guid(), enabled = true, params = { { name = 'Ratio', value = 4, min = 1, max = 20 } } })
+  take.fx[2].enabled = false
+  s:send('fx_range_params', 'p1', middle.guid, take.guid, CHAIN)
+  local events = s:events()
+  H.eq(#events, 4)
+  H.eq(events[1][3], '0', 'the chain FX is numbered within the chain')
+  H.eq(events[1][6], 'Gain')
+  H.eq(events[4], { 'RANGE_FX_PARAMS', 'p1', middle.guid, take.guid, CHAIN, '3', '0', '1' })
+end)
+
+H.test('fx_range_params with no take GUID reads the take on the item that carries the chain', function()
+  local s, p = project()
+  p.item.active_index = 2
+  local middle, take = applied_clean(s, p)
+  take = middle.takes[2]
+  s:send('fx_range_params', 'p1', middle.guid, '', CHAIN)
+  local events = s:events()
+  H.eq(events[#events], { 'RANGE_FX_PARAMS', 'p1', middle.guid, take.guid, CHAIN, '3', '0', '0' })
+end)
+
+H.test('fx_range_params stops at 512 parameters and says it was cut short', function()
+  local s, p = project()
+  local template = {}
+  for index = 1, 600 do
+    template[index] = { name = 'P' .. index, value = 0, min = 0, max = 1 }
+  end
+  s.fake.fx_param_template = template
+  local middle, take = applied_clean(s, p)
+  s:send('fx_range_params', 'p1', middle.guid, take.guid, CHAIN)
+  local events = s:events()
+  H.eq(#events, 513)
+  H.eq(events[513], { 'RANGE_FX_PARAMS', 'p1', middle.guid, take.guid, CHAIN, '512', '1', '0' })
+end)
+
+H.test('fx_range_set_param and fx_range_bypass change one thing as one undo point', function()
+  local s, p = project()
+  s.fake.chain_fx_count = 2
+  local middle, take = applied_clean(s, p)
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '1', '0', '-6.5')
+  H.eq(s:events(), { { 'RANGE_FX_PARAM_SET', 's1', middle.guid, take.guid, '1', '0', '-6.5', '-6.5 dB', '1' } })
+  H.eq(take.fx[2].params[1].value, -6.5, 'the second FX of the chain has the value')
+  H.eq(take.fx[1].params[1].value, 0, 'the first is as it was')
+  H.eq({ take.fx[2].params[2].value, take.fx[2].params[3].value }, { 1, 0 }, 'and its other settings too')
+  H.eq(calls_named(s, 'TakeFX_SetParam'), 1)
+  H.eq(s.fake.calls[#s.fake.calls].in_block, true)
+  H.eq(s.fake:undo_labels(), { SET_LABEL })
+  H.eq(s.fake:undo_last_block(), SET_LABEL)
+  H.eq(take.fx[2].params[1].value, 0, 'one Undo puts the value back')
+
+  s.fake.calls = {}
+  s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
+  H.eq(s:events(), { { 'RANGE_FX_BYPASSED', 'b1', middle.guid, take.guid, CHAIN, '1', '1' } })
+  H.eq({ take.fx[1].enabled, take.fx[2].enabled }, { false, false }, 'every FX of the chain is bypassed')
+  H.eq(calls_named(s, 'TakeFX_SetEnabled'), 2)
+  H.eq(s.fake:undo_labels(), { BYPASS_LABEL })
+  s:send('fx_range_bypass', 'b2', middle.guid, take.guid, CHAIN, '0')
+  H.eq(s:events(), { { 'RANGE_FX_BYPASSED', 'b2', middle.guid, take.guid, CHAIN, '0', '1' } })
+  H.eq({ take.fx[1].enabled, take.fx[2].enabled }, { true, true })
+  H.eq(s.fake:undo_labels(), { BYPASS_LABEL, ENABLE_LABEL })
+  H.eq(s.fake:undo_last_block(), ENABLE_LABEL)
+  H.eq({ take.fx[1].enabled, take.fx[2].enabled }, { false, false }, 'one Undo bypasses it again')
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('the edits leave the item, its neighbours and an FX outside the chain as they were', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  local own = { name = 'ReaComp', guid = s.fake:new_guid(), enabled = true, params = { { name = 'Ratio', value = 4, min = 1, max = 20 } } }
+  take.fx[#take.fx + 1] = own
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '1', '0.25')
+  s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
+  s:events()
+  H.eq({ own.enabled, own.params[1].value }, { true, 4 }, 'the narrator FX is not the chain')
+  H.eq(span(middle), { 14, 2 })
+  H.eq(span(p.item), { 10, 4 })
+  H.eq(#s.fake.items, 6)
+  H.eq(calls_named(s, 'SplitMediaItem') + calls_named(s, 'DeleteTrackMediaItem') + calls_named(s, 'Main_OnCommand'), 0)
+end)
+
+H.test('a value REAPER rounds is answered as REAPER holds it', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s.fake.param_quantum = 0.5
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '0', '3.3')
+  H.eq(s:events(), { { 'RANGE_FX_PARAM_SET', 's1', middle.guid, take.guid, '0', '0', '3.5', '3.5 dB', '1' } })
+end)
+
+H.test('a setting already at the value, or a chain already bypassed, adds no undo point', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '1', '1')
+  s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '0')
+  H.eq(s:events(), {
+    { 'RANGE_FX_PARAM_SET', 's1', middle.guid, take.guid, '0', '1', '1', '1', '0' },
+    { 'RANGE_FX_BYPASSED', 'b1', middle.guid, take.guid, CHAIN, '0', '0' },
+  })
+  untouched(s, take)
+end)
+
+H.test('the fx_range edits refuse a stale effect and change nothing', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  local gone = '{DEADBEEF-0000-4000-8000-000000000000}'
+  local function each(item, take_guid)
+    return {
+      { 'fx_range_params', 'r1', item, take_guid, CHAIN },
+      { 'fx_range_set_param', 'r2', item, take_guid, CHAIN, '0', '0', '3' },
+      { 'fx_range_bypass', 'r3', item, take_guid, CHAIN, '1' },
+    }
+  end
+  local function all_stale(item, take_guid, answer_guid, reason)
+    for _, command in ipairs(each(item, take_guid)) do
+      s:send(table.unpack(command))
+      H.eq(s:events(), { { 'ITEM_STALE', command[2], answer_guid, reason } }, command[1] .. ' ' .. reason)
+    end
+    untouched(s, take)
+  end
+  all_stale(gone, take.guid, gone, 'item')
+  all_stale(middle.guid, gone, gone, 'take')
+  -- The left piece is a real item, but the chain is not on it.
+  all_stale(p.item.guid, p.item.takes[1].guid, p.item.guid, 'fx')
+  all_stale(p.item.guid, '', p.item.guid, 'fx')
+  -- Another chain's name: the take carries a chain, not that one.
+  chains(s, { 'Breath.RfxChain' })
+  for _, command in ipairs(each(middle.guid, take.guid)) do
+    command[5] = 'Breath.RfxChain'
+    s:send(table.unpack(command))
+    H.eq(s:events(), { { 'ITEM_STALE', command[2], middle.guid, 'fx' } }, command[1] .. ' other chain')
+  end
+  -- An FX of the chain the narrator deleted in REAPER.
+  local kept = take.fx[1]
+  take.fx = {}
+  all_stale(middle.guid, take.guid, middle.guid, 'fx')
+  take.fx = { kept }
+  -- The chain taken off since.
+  s:send('remove_fx_range', 'x', middle.guid, CHAIN)
+  s:events()
+  s.fake.calls, s.fake.undo = {}, {}
+  for _, command in ipairs(each(middle.guid, take.guid)) do
+    s:send(table.unpack(command))
+    H.eq(s:events()[1][1], 'ITEM_STALE', command[1] .. ' after the chain came off')
+  end
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('a bad setting, value or switch is refused before any change', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  local cases = {
+    { { '1', '0', '3' }, 'That effect has no such setting.' },
+    { { '0', '3', '3' }, 'That effect has no such setting.' },
+    { { 'x', '0', '3' }, 'That effect has no such setting.' },
+    { { '-1', '0', '3' }, 'That effect has no such setting.' },
+    { { '0', '0.5', '3' }, 'That effect has no such setting.' },
+    { { '0', '0', 'nan' }, 'The value for that setting is not a number.' },
+    { { '0', '0', 'inf' }, 'The value for that setting is not a number.' },
+    { { '0', '0', '' }, 'The value for that setting is not a number.' },
+    { { '0', '0', '25' }, 'That value is outside what the setting takes.' },
+    { { '0', '1', '-0.1' }, 'That value is outside what the setting takes.' },
+    { { '0', '0', '3|4' }, 'That effect has no such setting.' },
+  }
+  for _, case in ipairs(cases) do
+    s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, table.unpack(case[1]))
+    H.eq(s:events(), { { 'ERROR', 's1', case[2] } }, table.concat(case[1], ' '))
+  end
+  for _, on in ipairs({ '', '2', 'yes', 'true' }) do
+    s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, on)
+    H.eq(s:events(), { { 'ERROR', 'b1', 'Bypass must be 1 (on) or 0 (off).' } }, on)
+  end
+  for _, command in ipairs({ { 'fx_range_params', 'p1' }, { 'fx_range_bypass', 'b1' } }) do
+    s:send(command[1], command[2], middle.guid, take.guid, '../x.RfxChain', '1')
+    H.eq(s:events(), { { 'ERROR', command[2], BAD_CHAIN } })
+  end
+  untouched(s, take)
+end)
+
+H.test('the edits change nothing while REAPER records, and a read still answers', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s.fake.play_state = 5
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '0', '3')
+  s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
+  H.eq(s:events(), { { 'ERROR', 's1', 'REAPER is recording. Stop recording first.' }, { 'ERROR', 'b1', 'REAPER is recording. Stop recording first.' } })
+  untouched(s, take)
+  s:send('fx_range_params', 'p1', middle.guid, take.guid, CHAIN)
+  H.eq(s:events()[4][1], 'RANGE_FX_PARAMS')
+end)
+
+H.test('a setting REAPER does not take is an error, and its block is closed', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s.fake.param_set_fails = true
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '0', '3')
+  H.eq(s:events(), { { 'ERROR', 's1', 'REAPER did not change the setting.' } })
+  H.eq(s.fake.open_undo_blocks, 0)
+  H.eq(take.fx[1].params[1].value, 0)
+end)
+
+H.test('a REAPER without the calls refuses the edits before any change', function()
+  for _, api in ipairs({ 'TakeFX_GetNumParams', 'TakeFX_SetParam', 'TakeFX_SetEnabled', 'TakeFX_GetFormattedParamValue' }) do
+    local s, p = project()
+    local middle, take = applied_clean(s, p)
+    s.fake:remove_api(api)
+    s:send('fx_range_params', 'p1', middle.guid, take.guid, CHAIN)
+    s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '0', '3')
+    s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
+    local sentence = 'This REAPER version cannot read or change an effect on words.'
+    H.eq(s:events(), { { 'ERROR', 'p1', sentence }, { 'ERROR', 's1', sentence }, { 'ERROR', 'b1', sentence } }, api)
+    untouched(s, take)
+  end
+end)

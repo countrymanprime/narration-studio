@@ -384,6 +384,32 @@ func (r fxRangeRole) RemoveFXFromRange(context.Context, string, string) (dawport
 	return got.WithUndoSteps(1), nil
 }
 
+// FXRangeParams, SetFXRangeParam and BypassFXRange answer as REAPER's fx_range_params, fx_range_set_param and fx_range_bypass do:
+// a read with one setting and no undo step, and one undo step for each change (SN-E104).
+func (r fxRangeRole) FXRangeParams(context.Context, dawport.FXRangeTarget) (dawport.FXRangeSettings, error) {
+	got, err := r.result("FXRangeParams", "Read 1 setting.")
+	if err != nil {
+		return dawport.FXRangeSettings{Result: got, Settings: []dawport.FXSetting{}}, err
+	}
+	got.Changed = false
+	setting := dawport.FXSetting{Name: "Gain", Value: 0, Min: -24, Max: 24, Formatted: "0 dB"}
+	return dawport.FXRangeSettings{Result: got.WithUndoSteps(0), Settings: []dawport.FXSetting{setting}}, nil
+}
+func (r fxRangeRole) SetFXRangeParam(context.Context, dawport.FXRangeTarget, int, int, float64) (dawport.Result, error) {
+	got, err := r.result("SetFXRangeParam", "Setting changed.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
+}
+func (r fxRangeRole) BypassFXRange(context.Context, dawport.FXRangeTarget, bool) (dawport.Result, error) {
+	got, err := r.result("BypassFXRange", "Effect bypassed.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
+}
+
 type stackTakesRole struct{ role }
 
 // StackTakes and UnstackTakes answer as REAPER's stack_takes and unstack_takes do: one undo step each.

@@ -452,6 +452,50 @@ type RangeFXApplier interface {
 	RemoveFXFromRange(ctx context.Context, itemGUID, chainName string) (Result, error)
 }
 
+// FXRangeTarget names a chain put on a range: the range as the host resolves it from the stored alignment (the same item and
+// times an ApplyFXToRange for those words was sent) and the chain's name as the engine listed it.
+type FXRangeTarget struct {
+	RangeRequest
+	ChainName string
+}
+
+// FXSetting is one setting of one effect of an applied chain. FX is the effect's place in the chain (0-based, in the order the chain
+// added them) and Index the setting's place in that effect; the two address it in SetFXRangeParam. Value lies in Min..Max; Step is
+// the engine's step for the setting, 0 when it is continuous; Formatted is the value as the effect shows it ("-6.0 dB").
+type FXSetting struct {
+	FX        int     `json:"fx"`
+	FXName    string  `json:"fxName"`
+	Index     int     `json:"index"`
+	Name      string  `json:"name"`
+	Value     float64 `json:"value"`
+	Min       float64 `json:"min"`
+	Max       float64 `json:"max"`
+	Step      float64 `json:"step"`
+	Formatted string  `json:"formatted"`
+}
+
+// FXRangeSettings is what FXRangeParams read. Result is the call's answer (ADR 0810): a refusal has no settings. Truncated says the
+// engine listed only the first MaxFXRangeSettings; Bypassed says every effect of the chain is bypassed.
+type FXRangeSettings struct {
+	Result    Result      `json:"result"`
+	Settings  []FXSetting `json:"settings"`
+	Truncated bool        `json:"truncated"`
+	Bypassed  bool        `json:"bypassed"`
+}
+
+// MaxFXRangeSettings is the most settings FXRangeParams lists, the bridge's own.
+const MaxFXRangeSettings = bridge.MaxFXRangeParams
+
+// RangeFXEditor reads and changes a chain RangeFXApplier put on a range (SN-E104): its settings, one setting, and bypass. It is the
+// fx_range capability's second role: an adapter's fx_range role implements it where the engine keeps the effect live. A change is one
+// undo point where the engine can make it as one action, and none when nothing needed changing; a target whose piece, take or effect
+// is gone is RefusedStale.
+type RangeFXEditor interface {
+	FXRangeParams(ctx context.Context, target FXRangeTarget) (FXRangeSettings, error)
+	SetFXRangeParam(ctx context.Context, target FXRangeTarget, fx, index int, value float64) (Result, error)
+	BypassFXRange(ctx context.Context, target FXRangeTarget, bypass bool) (Result, error)
+}
+
 // TakeStacker puts the later reads of a passage on the first read's spot as takes, and moves them back. Refused when an item changed
 // since the app read it, and where the engine cannot stack.
 type TakeStacker interface {

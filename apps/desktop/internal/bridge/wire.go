@@ -180,6 +180,16 @@ var eventSpecs = map[string]eventSpec{
 	// repair_click (narration_range.lua): the item and take whose clicks were repaired, how many clicks (those whose ramps met
 	// counted as one) and the undo points it added.
 	"CLICKS_REPAIRED": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("clicks"), count("undoPoints")}},
+	// fx_range_params, fx_range_set_param and fx_range_bypass (narration_range.lua, SN-E104): the chain apply_fx_range put on a
+	// piece. RANGE_FX_PARAM is one per setting, fx its FX's place in the chain and param the setting's place in that FX, step 0
+	// for a continuous setting; RANGE_FX_PARAMS closes the list with the piece, its take, the chain, the settings listed,
+	// truncated 1 when it stopped at 512, and bypassed 1 when every FX of the chain is. RANGE_FX_PARAM_SET carries the value
+	// REAPER holds afterwards; both edits add 1 undo point, or 0 when nothing needed changing.
+	"RANGE_FX_PARAM": {required: []fieldSpec{text("run"), count("fx"), text("fxName"), count("param"), text("name"), number("value"), number("min"),
+		number("max"), number("step"), text("formatted")}},
+	"RANGE_FX_PARAMS":    {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), count("count"), count("truncated"), count("bypassed")}},
+	"RANGE_FX_PARAM_SET": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("fx"), count("param"), number("value"), text("formatted"), count("undoPoints")}},
+	"RANGE_FX_BYPASSED":  {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), count("bypassed"), count("undoPoints")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

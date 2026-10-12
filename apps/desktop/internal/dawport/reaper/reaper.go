@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"maps"
 	"strconv"
+	"sync"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -45,7 +46,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
-	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
+	// delete_range; apply_fx_range, remove_fx_range, fx_range_params, fx_range_set_param, fx_range_bypass; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
 	// reduce_range_gain; repair_click (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
@@ -111,6 +112,9 @@ var commandCapability = map[string]dawport.Capability{
 	"reveal_file":         dawport.CapFileReveal,
 	"reduce_range_gain":   dawport.CapRangeGain,
 	"repair_click":        dawport.CapClickRepair,
+	"fx_range_params":     dawport.CapFXRange,
+	"fx_range_set_param":  dawport.CapFXRange,
+	"fx_range_bypass":     dawport.CapFXRange,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -216,7 +220,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapRenderWithFX:    fxRenderer{commands},
 			dawport.CapMasterChainRead: masterChainReader{actions},
 			dawport.CapCutRange:        rangeCutter{actions, allowed},
-			dawport.CapFXRange:         rangeFXApplier{actions, allowed},
+			dawport.CapFXRange:         rangeFXApplier{actions, allowed, &appliedPieces{}},
 			dawport.CapStackTakes:      takeStacker{actions, allowed},
 			dawport.CapFilePreview:     actions,
 			dawport.CapFileReveal:      actions,
@@ -570,15 +574,70 @@ func clickMessage(clicks int) string {
 	return fmt.Sprintf("Repaired %s in REAPER. Undo it there in one step.", what)
 }
 
-// rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result (ADR 0810).
-// REAPER lists a chain by one name, its path relative to FXChains, which is both the chain's id and its name; both commands send
-// the request's ChainName.
+// rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result (ADR 0810),
+// and over fx_range_params, fx_range_set_param and fx_range_bypass as its dawport.RangeFXEditor (SN-E104). REAPER lists a chain by
+// one name, its path relative to FXChains, which is both the chain's id and its name; every command sends the request's ChainName.
 type rangeFXApplier struct {
 	actions *bridge.Actions
 	allowed func(dawport.Capability) error
+	pieces  *appliedPieces
 }
 
-var _ dawport.RangeFXApplier = rangeFXApplier{}
+var (
+	_ dawport.RangeFXApplier = rangeFXApplier{}
+	_ dawport.RangeFXEditor  = rangeFXApplier{}
+)
+
+// appliedPieces are the piece and take each apply_fx_range this launch put a chain on, by the item, range and chain it was sent:
+// the host resolves the same words to the same item and times until the chapter is checked again, while the chain is on a new
+// item (the piece) that the alignment names only after that check. It is held in memory only; with no entry the edits name the
+// item the words resolve to, which after a check is the piece itself, and let REAPER find the take that carries the chain.
+type appliedPieces struct {
+	mu     sync.Mutex
+	pieces map[appliedKey]appliedPiece
+}
+
+type appliedKey struct {
+	item       string
+	start, end float64
+	chain      string
+}
+
+type appliedPiece struct{ item, take string }
+
+func keyOf(r dawport.RangeRequest, chain string) appliedKey {
+	return appliedKey{item: r.ItemGUID, start: r.Start, end: r.End, chain: chain}
+}
+
+func (p *appliedPieces) put(key appliedKey, piece appliedPiece) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.pieces == nil {
+		p.pieces = map[appliedKey]appliedPiece{}
+	}
+	p.pieces[key] = piece
+}
+
+// find is the piece and take recorded for target, or the item it resolves to and no take.
+func (p *appliedPieces) find(target dawport.FXRangeTarget) appliedPiece {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if piece, ok := p.pieces[keyOf(target.RangeRequest, target.ChainName)]; ok {
+		return piece
+	}
+	return appliedPiece{item: target.ItemGUID}
+}
+
+// forget drops the entries for chain whose piece is item: the chain came off it, or REAPER no longer has it.
+func (p *appliedPieces) forget(item, chain string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for key, piece := range p.pieces {
+		if piece.item == item && key.chain == chain {
+			delete(p.pieces, key)
+		}
+	}
+}
 
 // ApplyFXToRange splits the request's item at both ends of the range and puts the chain on the middle piece's take, in one undo
 // step (bridge's apply_fx_range). It asks allowed itself first, so a refusal is the capability's own sentence.
@@ -590,6 +649,7 @@ func (r rangeFXApplier) ApplyFXToRange(ctx context.Context, request dawport.FXRa
 	if refused, ok, err := fxRangeRefused(err); ok || err != nil {
 		return refused, err
 	}
+	r.pieces.put(keyOf(request.RangeRequest, request.ChainName), appliedPiece{item: got.ItemGUID, take: got.TakeGUID})
 	return dawport.OK(chainAddedMessage(request.ChainName, request.Words), true).WithUndoSteps(got.UndoPoints), nil
 }
 
@@ -603,11 +663,97 @@ func (r rangeFXApplier) RemoveFXFromRange(ctx context.Context, itemGUID, chainNa
 	if refused, ok, err := fxRangeRefused(err); ok || err != nil {
 		return refused, err
 	}
+	r.pieces.forget(itemGUID, chainName)
 	if got.UndoPoints == 0 {
 		return dawport.OK(chainName+" is not on that piece in REAPER, so nothing changed.", false), nil
 	}
 	return dawport.OK(chainName+" taken off in REAPER.", true).WithUndoSteps(got.UndoPoints), nil
 }
+
+// FXRangeParams reads the settings of the chain on the target's piece (bridge's fx_range_params). It changes nothing.
+func (r rangeFXApplier) FXRangeParams(ctx context.Context, target dawport.FXRangeTarget) (dawport.FXRangeSettings, error) {
+	none := func(result dawport.Result, err error) (dawport.FXRangeSettings, error) {
+		return dawport.FXRangeSettings{Result: result, Settings: []dawport.FXSetting{}}, err
+	}
+	if refused, ok := r.refused(); ok {
+		return none(refused, nil)
+	}
+	piece := r.pieces.find(target)
+	got, err := r.actions.FXRangeParams(ctx, piece.item, piece.take, target.ChainName)
+	if refused, ok, err := r.fxEditRefused(piece, target.ChainName, err); ok || err != nil {
+		return none(refused, err)
+	}
+	settings := make([]dawport.FXSetting, len(got.Params))
+	for i, p := range got.Params {
+		settings[i] = dawport.FXSetting{FX: p.FX, FXName: p.FXName, Index: p.Index, Name: p.Name, Value: p.Value, Min: p.Min, Max: p.Max,
+			Step: p.Step, Formatted: p.Formatted}
+	}
+	what := fmt.Sprintf("Read %d settings of %s in REAPER.", len(settings), target.ChainName)
+	if len(settings) == 1 {
+		what = fmt.Sprintf("Read 1 setting of %s in REAPER.", target.ChainName)
+	}
+	return dawport.FXRangeSettings{Result: dawport.OK(what, false), Settings: settings, Truncated: got.Truncated, Bypassed: got.Bypassed}, nil
+}
+
+// SetFXRangeParam sets one setting of the chain on the target's piece, in one undo step (bridge's fx_range_set_param). A setting
+// that already has the value changes nothing.
+func (r rangeFXApplier) SetFXRangeParam(ctx context.Context, target dawport.FXRangeTarget, fx, index int, value float64) (dawport.Result, error) {
+	if refused, ok := r.refused(); ok {
+		return refused, nil
+	}
+	piece := r.pieces.find(target)
+	got, err := r.actions.SetFXRangeParam(ctx, piece.item, piece.take, target.ChainName, fx, index, value)
+	if refused, ok, err := r.fxEditRefused(piece, target.ChainName, err); ok || err != nil {
+		return refused, err
+	}
+	if got.UndoPoints == 0 {
+		return dawport.OK("That setting of "+target.ChainName+" is already "+got.Formatted+" in REAPER, so nothing changed.", false), nil
+	}
+	return dawport.OK("Set "+target.ChainName+" to "+got.Formatted+" in REAPER. Undo it there in one step.", true).WithUndoSteps(got.UndoPoints), nil
+}
+
+// BypassFXRange bypasses every effect of the chain on the target's piece, or turns them back on, in one undo step (bridge's
+// fx_range_bypass). A chain already as asked changes nothing.
+func (r rangeFXApplier) BypassFXRange(ctx context.Context, target dawport.FXRangeTarget, bypass bool) (dawport.Result, error) {
+	if refused, ok := r.refused(); ok {
+		return refused, nil
+	}
+	piece := r.pieces.find(target)
+	got, err := r.actions.BypassFXRange(ctx, piece.item, piece.take, target.ChainName, bypass)
+	if refused, ok, err := r.fxEditRefused(piece, target.ChainName, err); ok || err != nil {
+		return refused, err
+	}
+	state := "bypassed"
+	if !bypass {
+		state = "on"
+	}
+	if got.UndoPoints == 0 {
+		return dawport.OK(target.ChainName+" is already "+state+" in REAPER, so nothing changed.", false), nil
+	}
+	if bypass {
+		return dawport.OK(target.ChainName+" bypassed in REAPER. Undo it there in one step.", true).WithUndoSteps(got.UndoPoints), nil
+	}
+	return dawport.OK(target.ChainName+" turned back on in REAPER. Undo it there in one step.", true).WithUndoSteps(got.UndoPoints), nil
+}
+
+// fxEditRefused is fxRangeRefused for the three edits: a piece, take or chain REAPER no longer has is stale in the effect's words,
+// and the piece is forgotten so the next request names the item the words resolve to.
+func (r rangeFXApplier) fxEditRefused(piece appliedPiece, chain string, err error) (dawport.Result, bool, error) {
+	var stale *bridge.StaleError
+	if errors.As(err, &stale) {
+		r.pieces.forget(piece.item, chain)
+		return dawport.RefusedStale(messageFXGone), true, nil
+	}
+	if errors.Is(err, bridge.ErrScriptOutdated) {
+		return dawport.Refused(messageFXScriptOutdated), true, nil
+	}
+	return fxRangeRefused(err)
+}
+
+const (
+	messageFXGone           = "That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is."
+	messageFXScriptOutdated = "The Narration Utils script in REAPER is older than this app and cannot read or change an effect on words, so nothing was changed. Import the script again from this app's REAPER folder."
+)
 
 func (r rangeFXApplier) refused() (dawport.Result, bool) {
 	if r.allowed == nil {

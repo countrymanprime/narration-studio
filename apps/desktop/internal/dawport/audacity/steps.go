@@ -40,6 +40,7 @@ var (
 	_ dawport.TakeStacker      = (*steps)(nil)
 	_ dawport.RangeCutter      = (*steps)(nil)
 	_ dawport.RangeFXApplier   = (*steps)(nil)
+	_ dawport.RangeFXEditor    = (*steps)(nil)
 	_ dawport.RangeGainReducer = (*steps)(nil)
 	_ dawport.ClickRepairer    = (*steps)(nil)
 )
@@ -271,4 +272,23 @@ func (*steps) SetActiveTake(context.Context, string, string) (dawport.ActiveTake
 }
 func (*steps) HideTakes(context.Context, string, string) (dawport.Result, error) {
 	return dawport.Refused(string(ErrNotAvailable)), nil
+}
+
+// messageFXBakedIn answers the three effect edits: Audacity's macro changes the audio itself once its backup is made, so there is no
+// live effect left on the words to read, change or bypass. Putting the backup back and applying again is the way to change it.
+const messageFXBakedIn = "Audacity puts an effect into the audio itself after its backup, so its settings cannot be read or changed and it cannot be bypassed. Put the backup back and add the effect again instead."
+
+// FXRangeParams is refused with messageFXBakedIn: Audacity keeps no applied effect to read.
+func (s *steps) FXRangeParams(context.Context, dawport.FXRangeTarget) (dawport.FXRangeSettings, error) {
+	return dawport.FXRangeSettings{Result: dawport.Refused(messageFXBakedIn), Settings: []dawport.FXSetting{}}, nil
+}
+
+// SetFXRangeParam is refused with messageFXBakedIn.
+func (s *steps) SetFXRangeParam(context.Context, dawport.FXRangeTarget, int, int, float64) (dawport.Result, error) {
+	return dawport.Refused(messageFXBakedIn), nil
+}
+
+// BypassFXRange is refused with messageFXBakedIn.
+func (s *steps) BypassFXRange(context.Context, dawport.FXRangeTarget, bool) (dawport.Result, error) {
+	return dawport.Refused(messageFXBakedIn), nil
 }

@@ -1,0 +1,23 @@
+{
+  "result": {
+    "ok": true,
+    "changed": false,
+    "message": "Read 1 setting of Podcast Voice.RfxChain in REAPER.",
+    "undoSteps": 0
+  },
+  "settings": [
+    {
+      "fx": 0,
+      "fxName": "VST: ReaEQ (Cockos)",
+      "index": 0,
+      "name": "Gain",
+      "value": -6,
+      "min": -24,
+      "max": 24,
+      "step": 0,
+      "formatted": "-6.0 dB"
+    }
+  ],
+  "truncated": false,
+  "bypassed": true
+}

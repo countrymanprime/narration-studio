@@ -1996,5 +1996,89 @@
     "file": "narration_range.lua",
     "find": "      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)\n    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS",
     "replace": "    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS"
+  },
+  {
+    "name": "fx_range edits: a stale item GUID falls back to another item",
+    "file": "narration_range.lua",
+    "find": "  local item = wanted_item ~= '' and find_item(wanted_item) or nil\n  if not item then\n    event(session_dir, 'ITEM_STALE', run_id, item_text, 'item')\n    return nil",
+    "replace": "  local item = reaper.GetMediaItem(0, 1)\n  if not item then\n    event(session_dir, 'ITEM_STALE', run_id, item_text, 'item')\n    return nil"
+  },
+  {
+    "name": "fx_range edits: a take GUID that does not resolve falls back to the take with the chain",
+    "file": "narration_range.lua",
+    "find": "  if wanted_take ~= '' and not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')",
+    "replace": "  if false then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')"
+  },
+  {
+    "name": "fx_range edits: a take carrying another chain is edited",
+    "file": "narration_range.lua",
+    "find": "  if take and take_ext(take, CHAIN_KEY) == name then\n    local at = {}",
+    "replace": "  if take then\n    local at = {}"
+  },
+  {
+    "name": "fx_range edits: a recorded FX that is gone is skipped, not stale",
+    "file": "narration_range.lua",
+    "find": "      if not at[guid] then\n        slots = {}\n        break\n      end",
+    "replace": "      if not at[guid] then\n        break\n      end"
+  },
+  {
+    "name": "fx_range_set_param: a value outside the setting's bounds is sent",
+    "file": "narration_range.lua",
+    "find": "  if value < low - EDGE_TOLERANCE or value > high + EDGE_TOLERANCE then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "fx_range_set_param: a setting already at the value adds an undo point",
+    "file": "narration_range.lua",
+    "find": "  if current == value then\n    answer(0)\n    return\n  end",
+    "replace": ""
+  },
+  {
+    "name": "fx_range_set_param: the change is made outside its undo block",
+    "file": "narration_range.lua",
+    "find": "  reaper.Undo_BeginBlock2(0)\n  local changed = reaper.TakeFX_SetParam(take, fx, param, value)\n  reaper.Undo_EndBlock2(0, UNDO_SET_PARAM, -1)",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, UNDO_SET_PARAM, -1)\n  local changed = reaper.TakeFX_SetParam(take, fx, param, value)"
+  },
+  {
+    "name": "fx_range_set_param: the answer is the value asked for, not the one REAPER holds",
+    "file": "narration_range.lua",
+    "find": "    local held = reaper.TakeFX_GetParam(take, fx, param)\n",
+    "replace": "    local held = value\n"
+  },
+  {
+    "name": "fx_range_set_param: an FX outside the chain is changed",
+    "file": "narration_range.lua",
+    "find": "  local fx = slots[position + 1]\n",
+    "replace": "  local fx = position\n"
+  },
+  {
+    "name": "fx_range_set_param: a change is made while REAPER records",
+    "file": "narration_range.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local item, take, slots = applied_chain(session_dir, run_id, item_text, take_text, name)\n  if not item then\n    return\n  end\n  local fx = slots",
+    "replace": "  local item, take, slots = applied_chain(session_dir, run_id, item_text, take_text, name)\n  if not item then\n    return\n  end\n  local fx = slots"
+  },
+  {
+    "name": "fx_range_bypass: a chain already in that state adds an undo point",
+    "file": "narration_range.lua",
+    "find": "  if #switch == 0 then\n    event(session_dir, 'RANGE_FX_BYPASSED'",
+    "replace": "  if false then\n    event(session_dir, 'RANGE_FX_BYPASSED'"
+  },
+  {
+    "name": "fx_range_bypass: only the first FX of the chain is switched",
+    "file": "narration_range.lua",
+    "find": "  for _, fx in ipairs(switch) do\n    reaper.TakeFX_SetEnabled(take, fx, enable)\n  end",
+    "replace": "  reaper.TakeFX_SetEnabled(take, switch[1], enable)"
+  },
+  {
+    "name": "fx_range_bypass: a switch that is not 0 or 1 bypasses",
+    "file": "narration_range.lua",
+    "find": "  if on_text ~= '1' and on_text ~= '0' then",
+    "replace": "  if on_text == '' then"
+  },
+  {
+    "name": "fx_range_params: the list is not capped",
+    "file": "narration_range.lua",
+    "find": "      if listed_count == MAX_FX_PARAMS then",
+    "replace": "      if false then"
   }
 ]
