@@ -30,7 +30,6 @@
     {"tool":"vitest","project":"apps/ui","path":"src/api","floor":86,"reason":"Baseline of 2026-09-20 was 69.2%; deleting the dead client/http.ts (0%) in the Knip cleanup lifted it to 71%. The directory still mixes the mock API (test infrastructure, 65%) and the Wails client glue (34%), so it is gated to stop the tested part decaying and the floor rises with tests."},
     {"tool":"vitest","project":"apps/ui","path":"src/api/schemas","floor":100},
     {"tool":"vitest","project":"apps/ui","path":"src/api/wire","floor":100},
-    {"tool":"vitest","project":"apps/ui","path":"src/components/manuscript/ParagraphView.tsx","floor":98},
     {"tool":"vitest","project":"apps/ui","path":"src/components/primitives/Highlight.tsx","floor":100},
     {"tool":"vitest","project":"apps/ui","path":"src/hooks","floor":100},
     {"tool":"vitest","project":"apps/ui","path":"src/state.ts","floor":100},
