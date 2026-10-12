@@ -78,3 +78,24 @@ export const DawCannot: Story = {
     await expect(within(canvasElement).getByRole('button', { name: 'Keep T-8' }).getAttribute('aria-disabled')).toBe('true');
   },
 };
+
+// The pickers start on the active take and the suggested one; the two takes sit 3 dB apart, so the level note says they are not comparable.
+export const CompareTwoTakes: Story = {
+  args: { passage: unevenPassage() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect((canvas.getByRole('combobox', { name: 'First take to compare' }) as HTMLSelectElement).value).toBe('t-7');
+    await expect(canvas.getByRole('button', { name: 'Play every take' })).toBeTruthy();
+    await expect(canvasElement.querySelector('[data-compare-level]')?.textContent).toMatch(/3\.0 dB apart/);
+  },
+};
+
+// A take that cannot be heard: A then B refuses it, with the reason beside the pickers.
+export const CompareTakeCannotBeHeard: Story = {
+  args: { passage: partlyMeasuredPassage() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Play every take' })).toBeTruthy();
+    await expect(canvasElement.querySelector('[data-compare]')).toBeTruthy();
+  },
+};
