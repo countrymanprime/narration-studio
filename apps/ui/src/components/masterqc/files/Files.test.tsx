@@ -115,8 +115,16 @@ describe('Master & QC files', () => {
     const actions = { onPlayQuietest: vi.fn(), onOpenInDaw: vi.fn(), onRecheck: vi.fn() };
     mount({ actions });
     await screen.findByRole('button', { name: 'Open in REAPER' });
+    // The provider registers in a passive effect, which can land a tick after the button shows the DAW's name.
+    await waitFor(() =>
+      expect(contextItemsFor(row('Chapter 03'))!.map((i) => i.label)).toEqual([
+        'Show the checks',
+        'Play the quietest 5 s',
+        'Open in REAPER',
+        'Check the files again',
+      ]),
+    );
     const items = contextItemsFor(row('Chapter 03'))!;
-    expect(items.map((i) => i.label)).toEqual(['Show the checks', 'Play the quietest 5 s', 'Open in REAPER', 'Check the files again']);
     expect(items.find((i) => i.key === 'play')!.unavailable).toBeTruthy();
     items.find((i) => i.key === 'open')!.onSelect();
     expect(actions.onOpenInDaw).toHaveBeenCalledWith(waiting().path);
