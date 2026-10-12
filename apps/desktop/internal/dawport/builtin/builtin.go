@@ -253,7 +253,8 @@ func (s *session) HideTakes(ctx context.Context, _, keepTakeGUID string) (dawpor
 }
 
 // DeleteRange cuts the range into the take's edit list (request.ItemGUID is the take's name); the take's file is not rewritten.
-// The default is a gap, which keeps the length; a cut that closes up is the same list with mode "close".
+// The default is a gap, which keeps the length and plays as room tone (so RoomTone asks for nothing more); a cut that closes up is
+// the same list with mode "close". The pad is taken off each end of the range.
 func (s *session) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequest) (dawport.Result, error) {
 	recorder, err := s.ready(ctx)
 	if err != nil {
@@ -263,7 +264,11 @@ func (s *session) DeleteRange(ctx context.Context, request dawport.DeleteRangeRe
 	if mode == "" {
 		mode = dawport.CutGap
 	}
-	if err := recorder.CutTakeRange(request.ItemGUID, request.Start, request.End, string(mode)); err != nil {
+	padded, ok := request.Padded()
+	if !ok {
+		return dawport.Refused("The pad leaves nothing of those words to cut, so nothing was changed."), nil
+	}
+	if err := recorder.CutTakeRange(request.ItemGUID, padded.Start, padded.End, string(mode)); err != nil {
 		return dawport.RefusedStale(err.Error()), nil
 	}
 	return dawport.OK("Cut the range from the take's edit list. The take file is kept as recorded.", true), nil

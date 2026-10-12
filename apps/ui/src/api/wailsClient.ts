@@ -628,8 +628,8 @@ export const wailsClient: NarrationApi = {
   workspaceHideTakes: (chapterId, firstToken, lastToken, keepCandidateId) =>
     decode(dawResultSchema, 'WorkspaceHideTakes', host.WorkspaceHideTakes(chapterId, firstToken, lastToken, keepCandidateId)),
   dawRoll: (chapterId, at, confirmed) => decode(dawResultSchema, 'DawRoll', host.DawRoll(chapterId, at, confirmed)),
-  dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs) =>
-    decode(dawResultSchema, 'DawDeleteRange', host.DawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs)),
+  dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone) =>
+    decode(dawResultSchema, 'DawDeleteRange', host.DawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone)),
   dawApplyFxToRange: (chapterId, firstToken, lastToken, chainName, fadeMs) =>
     decode(dawResultSchema, 'DawApplyFxToRange', host.DawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs)),
   dawRemoveFxFromRange: (chapterId, firstToken, lastToken, chainName) =>

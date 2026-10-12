@@ -1372,20 +1372,20 @@ describe('the roll binding', () => {
 describe('the delete range binding', () => {
   const cut = { ok: true, changed: true, message: 'Deleted 1 word and their audio in REAPER.', undoSteps: 1 };
 
-  it('sends the chapter, the two tokens, the mode and the fade, and decodes the DawResult', async () => {
+  it('sends the chapter, the two tokens, the mode, the fade, the pad and the room tone, and decodes the DawResult', async () => {
     const deleteRange = vi.fn(() => Promise.resolve(JSON.stringify(cut)));
     standInHost({ DawDeleteRange: deleteRange });
-    await expect(wailsClient.dawDeleteRange('c-0001', 3, 5, 'gap', 12)).resolves.toEqual(cut);
-    expect(deleteRange).toHaveBeenCalledWith('c-0001', 3, 5, 'gap', 12);
+    await expect(wailsClient.dawDeleteRange('c-0001', 3, 5, 'gap', 12, 100, true)).resolves.toEqual(cut);
+    expect(deleteRange).toHaveBeenCalledWith('c-0001', 3, 5, 'gap', 12, 100, true);
   });
 
   it('refuses an answer the dawResult schema does not accept', async () => {
     standInHost({ DawDeleteRange: () => Promise.resolve(JSON.stringify({ ...cut, undoSteps: -1 })) });
-    await expect(wailsClient.dawDeleteRange('c-0001', 3, 5, 'close', 0)).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.dawDeleteRange('c-0001', 3, 5, 'close', 0, 0, false)).rejects.toBeInstanceOf(WireError);
     standInHost({
       DawDeleteRange: () => Promise.resolve(JSON.stringify({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'x', code: 'gone' })),
     });
-    await expect(wailsClient.dawDeleteRange('c-0001', 3, 5, 'close', 0)).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.dawDeleteRange('c-0001', 3, 5, 'close', 0, 0, false)).rejects.toBeInstanceOf(WireError);
   });
 });
 

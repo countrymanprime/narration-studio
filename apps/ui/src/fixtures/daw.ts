@@ -237,6 +237,12 @@ export const DAW_ANSWERS = {
   cutBadMode: 'The cut mode must be close or gap.',
   cutBadFade: 'The fade must be a whole number of milliseconds from 0 to 500.',
   cutAlreadyCut: 'These words are already cut, so nothing was changed.',
+  /** bindings_daw_range.go (SN-E97): delete_range's own pad and room-tone sentences, checked before anything is sent. */
+  cutBadPad: 'The pad must be from 0 to 500 milliseconds.',
+  cutRoomToneNeedsGap: 'Room tone fills a gap that keeps its length, so it needs the gap mode.',
+  cutPadAll: 'The pad leaves nothing to cut.',
+  /** narration_range.lua (SN-E97): room tone asked for in a chapter whose track has no region named Room tone over its audio. */
+  cutNoRoomTone: 'This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.',
   /** internal/passagetakes' range.go: a token range outside the chapter's alignment (code stale), words not heard, words on two items. */
   rangeStale: "That selection is not in this chapter's alignment any more, so nothing was changed. Reload the chapter and select the words again.",
   rangeNotHeard: "These words weren't heard in the recording, so there's no audio to cut. Run the check again if the chapter has changed.",

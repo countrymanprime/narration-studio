@@ -72,6 +72,8 @@ const GOLDEN_FILES = [
   'daw-delete-range-gap.json',
   'daw-delete-range-refused-stale.json',
   'daw-delete-range-refused-capability.json',
+  'daw-delete-range-pad-room-tone.json',
+  'daw-delete-range-pad-refused-close.json',
   'daw-apply-fx-range-done.json',
   'daw-apply-fx-range-refused.json',
   'daw-remove-fx-range-done.json',
@@ -211,15 +213,20 @@ function hostApi(): DawHostApi {
       if (at !== 40) return Promise.reject(new Error(`no golden for a roll from ${at} s`));
       return Promise.resolve(read('daw-roll-done.json', dawResultSchema));
     },
-    // DawDeleteRange on REAPER: the mode and fade are checked first, an unknown chapter or a range read backwards is the stale golden,
-    // and a one-word cut with a 12 ms fade is the done (close) or gap golden. Anything else has no golden.
-    dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs) => {
+    // DawDeleteRange on REAPER: the mode, fade and pad are checked first, room tone with close is the pad-refused-close golden, an
+    // unknown chapter or a range read backwards is the stale golden, a one-word cut with a 12 ms fade is the done (close) or gap golden,
+    // and one with a 100 ms pad and room tone the pad-room-tone golden. Anything else has no golden.
+    dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone) => {
       if (mode !== 'close' && mode !== 'gap') return Promise.resolve(refusal(DAW_ANSWERS.cutBadMode));
       if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return Promise.resolve(refusal(DAW_ANSWERS.cutBadFade));
+      if (!Number.isInteger(padMs) || padMs < 0 || padMs > 500) return Promise.resolve(refusal(DAW_ANSWERS.cutBadPad));
+      if (roomTone && mode !== 'gap') return Promise.resolve(read('daw-delete-range-pad-refused-close.json', dawResultSchema));
       if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) {
         return Promise.resolve(read('daw-delete-range-refused-stale.json', dawResultSchema));
       }
       if (firstToken !== lastToken || fadeMs !== 12) return Promise.reject(new Error(`no golden for a cut of ${firstToken}..${lastToken} with ${fadeMs} ms`));
+      if (padMs === 100 && roomTone) return Promise.resolve(read('daw-delete-range-pad-room-tone.json', dawResultSchema));
+      if (padMs !== 0 || roomTone) return Promise.reject(new Error(`no golden for a cut with a ${padMs} ms pad and room tone ${roomTone}`));
       return Promise.resolve(read(mode === 'close' ? 'daw-delete-range-done.json' : 'daw-delete-range-gap.json', dawResultSchema));
     },
     // DawApplyFxToRange and DawRemoveFxFromRange on REAPER: the fade is checked first, an unknown chapter or a range read backwards is the
@@ -410,6 +417,18 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   {
     name: 'dawclient-delete-range: a fade over 500 ms is refused alike',
     observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'gap', fadeMs: 501 }),
+  },
+  {
+    name: 'delete-range-pad: a padded gap cut filled with room tone is answered alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'gap', fadeMs: 12, padMs: 100, roomTone: true }),
+  },
+  {
+    name: 'delete-range-pad: room tone for a cut that closes up is refused alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12, padMs: 100, roomTone: true }),
+  },
+  {
+    name: 'delete-range-pad: a pad over 500 ms is refused alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'gap', fadeMs: 12, padMs: 501 }),
   },
   {
     name: 'dawclient-fx-range: a chain on one word is answered alike',
@@ -637,7 +656,14 @@ describe('the host adapter maps each existing golden', () => {
       },
     });
     expect(await off.deleteRange({ chapterId: 'chapter-1', firstToken: 2, lastToken: 7, mode: 'gap', fadeMs: 25 })).toEqual(capability);
-    expect(calls).toEqual([['chapter-1', 2, 7, 'gap', 25]]);
+    expect(await off.deleteRange({ chapterId: 'chapter-1', firstToken: 2, lastToken: 7, mode: 'gap', fadeMs: 25, padMs: 50, roomTone: true })).toEqual(
+      capability,
+    );
+    // A request without a pad or room tone sends none and leaves the gap silent, as before them.
+    expect(calls).toEqual([
+      ['chapter-1', 2, 7, 'gap', 25, 0, false],
+      ['chapter-1', 2, 7, 'gap', 25, 50, true],
+    ]);
   });
 
   it('dawclient-fx-range: the host adapter sends each request as the bindings take it and lists the chains as the mock FxList', async () => {

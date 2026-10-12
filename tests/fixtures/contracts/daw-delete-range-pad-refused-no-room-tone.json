@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.",
+  "undoSteps": 0,
+  "refused": "This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone."
+}

@@ -61,7 +61,8 @@ var eventSpecs = map[string]eventSpec{
 	// the command added (0; the points for the recorded media are REAPER's).
 	"ROLLED": {required: []fieldSpec{text("run"), text("track"), number("at"), count("undoPoints")}},
 	// delete_range (narration_range.lua, ADR 0860): the left piece (empty when the cut began at the item's start), the
-	// piece moved to the Cuts track, and the undo points the command added (1).
+	// piece moved to the Cuts track, and the undo points the command added (1). A pad or room tone (SN-E97) leaves the answer
+	// as it is: the room-tone pieces are not named.
 	"RANGE_CUT": {required: []fieldSpec{text("run"), text("left"), text("cut"), count("undoPoints")}},
 	// apply_fx_range and remove_fx_range (narration_range.lua, ADR 0860 point 3): the piece the chain went on and its take,
 	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a

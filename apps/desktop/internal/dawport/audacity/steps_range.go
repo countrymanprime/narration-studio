@@ -18,6 +18,8 @@ const (
 	messageRangeBad     = "That stretch has no track, start and end Audacity can use, so nothing was changed."
 	messageRangeOutside = "That stretch is outside the track's audio in Audacity, so nothing was changed."
 	messageCutMode      = "Audacity can cut words by closing up the gap or by leaving one, so nothing was changed."
+	messageNoRoomTone   = "Audacity has no room tone to fill a cut with, so nothing was changed. Leave the gap silent or close it up."
+	messageCutPadAll    = "The pad leaves nothing of those words to cut, so nothing was changed."
 	messageNoMacro      = "Choose one of your Audacity macros for the effect. Its name cannot contain a double quote or a backslash."
 	messageRemoveFX     = "Audacity cannot take an effect off part of a track. Put the audio back from the backup made before it, in Backups on the Editing page."
 )
@@ -60,7 +62,8 @@ func words(n int) string {
 
 // DeleteRange backs up the range, selects it on its track and deletes it (SplitDelete, which leaves a gap). Mode close then
 // deletes the gap (Delete), which moves the audio after it up; mode gap leaves it silent, since Audacity has no room tone to fill
-// it with. Two undo points for close, one for gap. Audacity makes no fade at the edges, so FadeMs is not used.
+// it with, and a request for room tone is refused. Two undo points for close, one for gap. The pad is taken off each end of the
+// range before anything is sent. Audacity makes no fade at the edges, so FadeMs is not used.
 func (s *steps) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequest) (dawport.Result, error) {
 	if !s.canBackUp() {
 		return dawport.Refused(backupsSentence(dawport.CapCutRange)), nil
@@ -68,14 +71,21 @@ func (s *steps) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequ
 	if request.Mode != dawport.CutClose && request.Mode != dawport.CutGap {
 		return dawport.Refused(messageCutMode), nil
 	}
+	if request.RoomTone {
+		return dawport.Refused(messageNoRoomTone), nil
+	}
+	padded, ok := request.Padded()
+	if !ok {
+		return dawport.Refused(messageCutPadAll), nil
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	track, answer, ok, err := s.rangeTrack(ctx, request.RangeRequest, "Cut "+words(request.Words))
+	track, answer, ok, err := s.rangeTrack(ctx, padded, "Cut "+words(request.Words))
 	if !ok {
 		return answer, err
 	}
 	var e edits
-	if err := s.selectRange(ctx, track.Index, request.Start, request.End); err != nil {
+	if err := s.selectRange(ctx, track.Index, padded.Start, padded.End); err != nil {
 		return dawport.Result{}, err
 	}
 	e.did(stepSelectWords, 0)

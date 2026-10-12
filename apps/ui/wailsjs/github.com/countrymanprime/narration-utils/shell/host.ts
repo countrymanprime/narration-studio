@@ -593,20 +593,22 @@ export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<stri
 }
 
 /**
- * DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b,
- * ADR 0860 point 2; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the
- * middle piece aside, and mode "close" moves the later audio up while "gap" leaves the length. fadeMs is the fade at each
- * seam. The page sends a chapter id, two token indices, the mode and the fade, never a GUID or a time: the item and its
- * project seconds are resolved here from the stored alignment and the saved project (ADR 0242; threat model row 5f), and
- * one request is one item (ADR 0705). The answer is a DawResult (ADR 0810): the cut_range capability's own sentence when
- * the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off, an engine
- * that cannot cut yet), checked first; then a mode or fade delete_range does not take; then the range's own refusals
- * (passagetakes.ResolveRange: words not heard, two items, and a range or item that is stale with code stale); words every
- * one of which the edit log already holds as cut are a no-op, changed false. Nothing is sent to the DAW on any of them. A
- * chapter the manuscript does not have has no stored alignment, so it is the stale refusal too.
+ * DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, ADR
+ * 0860 point 2; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
+ * piece aside, and mode "close" moves the later audio up while "gap" leaves the length. fadeMs is the fade at each seam; padMs
+ * (0 to 500) cuts that much less at each end of the words' audio; roomTone (gap only) fills the gap with the chapter's room
+ * tone, which an engine with none refuses, cutting nothing (SN-E97). The page sends a chapter id, two token indices, and the
+ * mode, fade, pad and room-tone choice, never a GUID or a time: the item and its project seconds are resolved here from the
+ * stored alignment and the saved project (ADR 0242; threat model row 5f), and one request is one item (ADR 0705). The answer is
+ * a DawResult (ADR 0810): the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
+ * answering, Experimental actions off, the toggle off, an engine that cannot cut yet), checked first; then a mode, fade or pad
+ * delete_range does not take, or room tone with "close"; then the range's own refusals (passagetakes.ResolveRange: words not
+ * heard, two items, and a range or item that is stale with code stale); words every one of which the edit log already holds as
+ * cut are a no-op, changed false. Nothing is sent to the DAW on any of them. A chapter the manuscript does not have has no
+ * stored alignment, so it is the stale refusal too.
  */
-export function DawDeleteRange(chapterID: string, firstToken: number, lastToken: number, mode: string, fadeMs: number): $CancellablePromise<string> {
-    return $Call.ByID(3764148814, chapterID, firstToken, lastToken, mode, fadeMs);
+export function DawDeleteRange(chapterID: string, firstToken: number, lastToken: number, mode: string, fadeMs: number, padMs: number, roomTone: boolean): $CancellablePromise<string> {
+    return $Call.ByID(3764148814, chapterID, firstToken, lastToken, mode, fadeMs, padMs, roomTone);
 }
 
 /**

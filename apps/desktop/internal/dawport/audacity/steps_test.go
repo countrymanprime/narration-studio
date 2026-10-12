@@ -684,3 +684,49 @@ func TestRemovingAnEffectPointsToTheBackup(t *testing.T) {
 		t.Errorf("RemoveFXFromRange sent %v", log)
 	}
 }
+
+// SN-E97: Audacity takes the pad off each end of the range, and refuses room tone, which it has none of, before anything is
+// sent.
+func TestDeleteRangeTakesThePadAndRefusesRoomTone(t *testing.T) {
+	t.Run("pad", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 0, 60, "a")
+		adapter, _ := stepsOver(t, fake, true)
+		_, cut, _, _ := roles(adapter)
+		request := cutRequest(29.5, 33.5, dawport.CutClose)
+		request.PadMs = 500
+		if result, err := cut.DeleteRange(t.Context(), request); err != nil || !result.OK {
+			t.Fatalf("DeleteRange = %+v, %v", result, err)
+		}
+		source := fake.track("Chapter 1")
+		if source.audio[29] != "a29" || source.audio[30] != "a33" {
+			t.Errorf("the padded cut left 29 %q, 30 %q; want a29 a33 (29.5..33.5 less 0.5 s each end is 30..33)", source.audio[29], source.audio[30])
+		}
+	})
+	for name, request := range map[string]dawport.DeleteRangeRequest{
+		"room tone": func() dawport.DeleteRangeRequest {
+			r := cutRequest(30, 33, dawport.CutGap)
+			r.RoomTone = true
+			return r
+		}(),
+		"pad leaves nothing": func() dawport.DeleteRangeRequest {
+			r := cutRequest(30, 30.6, dawport.CutGap)
+			r.PadMs = 400
+			return r
+		}(),
+	} {
+		t.Run(name, func(t *testing.T) {
+			fake := newEditAudacity()
+			fake.addAudio("Chapter 1", 0, 60, "a")
+			adapter, _ := stepsOver(t, fake, true)
+			_, cut, _, _ := roles(adapter)
+			want := map[string]string{"room tone": messageNoRoomTone, "pad leaves nothing": messageCutPadAll}[name]
+			if result, err := cut.DeleteRange(t.Context(), request); err != nil || result.OK || result.Refused != want {
+				t.Fatalf("DeleteRange = %+v, %v; want the refusal %q", result, err, want)
+			}
+			if got := editsIn(fake.commands()); len(got) != 0 {
+				t.Errorf("edits %v were sent", got)
+			}
+		})
+	}
+}

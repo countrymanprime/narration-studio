@@ -32,6 +32,9 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-delete-range-gap.json': dawResultSchema,
   'daw-delete-range-refused-stale.json': dawResultSchema,
   'daw-delete-range-refused-capability.json': dawResultSchema,
+  'daw-delete-range-pad-room-tone.json': dawResultSchema,
+  'daw-delete-range-pad-refused-close.json': dawResultSchema,
+  'daw-delete-range-pad-refused-no-room-tone.json': dawResultSchema,
   // DawApplyFxToRange and DawRemoveFxFromRange (bindings_daw_fx_range_test.go): a chain put on one word and taken off (one undo step each),
   // and the capability's refusal.
   'daw-apply-fx-range-done.json': dawResultSchema,

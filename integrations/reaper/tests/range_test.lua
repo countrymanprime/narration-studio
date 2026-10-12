@@ -309,3 +309,181 @@ H.test('a fade of 0 leaves the seam with no fade', function()
   H.eq(p.item.fadeout, 0)
   H.eq(p.chapter.items[3].fadein, 0)
 end)
+
+-- 7. pad and room tone (SN-E97) ---------------------------------------------------------------------------------------
+-- pad (seconds, 0 to 0.5) cuts that much less at each end. room_tone '1' (gap mode only) fills the gap with copies of the
+-- stretch a region named "Room tone" marks inside an item on the same track, in the same undo block. Both omitted, the
+-- command answers as before; asked for, the answer appends the pad and the number of room-tone pieces it laid.
+
+local ROOM_TONE_KEY = 'narration_utils_room_tone'
+
+-- span() rounded to microseconds: a pad moves the edges by sums that are not exact in binary.
+local function rspan(item)
+  local function r(value)
+    return math.floor(value * 1e6 + 0.5) / 1e6
+  end
+  return { r(item.position), r(item.length) }
+end
+
+-- The project above with 1 s of room tone marked on the intro (2 to 3 s into it, 2 s into intro.wav).
+local function with_room_tone()
+  local s, p = project()
+  s.fake:add_region(2, 3, 'Room tone')
+  return s, p
+end
+
+local function room_tone_pieces(track)
+  local out = {}
+  for _, item in ipairs(track.items) do
+    if item.ext[ROOM_TONE_KEY] then
+      out[#out + 1] = item
+    end
+  end
+  return out
+end
+
+H.test('delete_range with a pad cuts less at each edge', function()
+  local s, p = project()
+  s:send('delete_range', 'c1', p.item.guid, '14', '16', 'close', '10', '0.1')
+  local cut = cuts_track(s).items[1]
+  H.eq(s:events(), { { 'RANGE_CUT', 'c1', p.item.guid, cut.guid, '1' } })
+  H.eq(rspan(cut), { 14.1, 1.8 }, 'the cut starts and ends a pad inside the range')
+  H.eq(rspan(p.item), { 10, 4.1 }, 'the left piece keeps the pad')
+  H.eq(rspan(p.chapter.items[3]), { 14.1, 14.1 }, 'the right piece keeps the pad and moves up by the shorter cut')
+  H.eq(rspan(p.later), { 30.2, 5 })
+  H.eq(s.fake:undo_labels(), { UNDO_LABEL })
+end)
+
+H.test('a pad of 0 or none answers as before', function()
+  for _, pad in ipairs({ '0', '' }) do
+    local s, p = project()
+    s:send('delete_range', 'c1', p.item.guid, '14', '16', 'close', '0', pad, '0')
+    local cut = cuts_track(s).items[1]
+    H.eq(s:events(), { { 'RANGE_CUT', 'c1', p.item.guid, cut.guid, '1' } })
+    H.eq(rspan(cut), { 14, 2 })
+  end
+end)
+
+H.test('a pad outside 0 to 0.5 seconds, or one that leaves nothing to cut, is refused before any change', function()
+  for _, pad in ipairs({ '-0.1', '0.6', 'x', 'nan', 'inf' }) do
+    local s, p = project()
+    refused(s, p, 'The pad must be from 0 to 500 milliseconds.', p.item.guid, '14', '16', 'close', '0', pad)
+  end
+  local s, p = project()
+  refused(s, p, 'The pad leaves nothing to cut.', p.item.guid, '14', '14.8', 'close', '0', '0.4')
+end)
+
+H.test('a pad applies inside a range at the item edge: the edge is then split', function()
+  local s, p = project()
+  s:send('delete_range', 'c1', p.item.guid, '10', '12', 'close', '0', '0.05')
+  local cut = cuts_track(s).items[1]
+  H.eq(s:events(), { { 'RANGE_CUT', 'c1', p.item.guid, cut.guid, '1' } })
+  H.eq(rspan(p.item), { 10, 0.05 })
+  H.eq(rspan(cut), { 10.05, 1.9 })
+end)
+
+H.test('delete_range with room tone fills the gap with the room tone, one undo point', function()
+  local s, p = with_room_tone()
+  s:send('delete_range', 'c1', p.item.guid, '14', '16.5', 'gap', '10', '', '1')
+  local cut = cuts_track(s).items[1]
+  H.eq(s:events(), { { 'RANGE_CUT', 'c1', p.item.guid, cut.guid, '1' } })
+  local pieces = room_tone_pieces(p.chapter)
+  H.eq(#pieces, 3, 'the 2.5 s gap takes three copies of the 1 s room tone')
+  H.eq({ rspan(pieces[1]), rspan(pieces[2]), rspan(pieces[3]) }, { { 14, 1 }, { 15, 1 }, { 16, 0.5 } })
+  for _, piece in ipairs(pieces) do
+    H.eq(piece.takes[1].source.file, 'intro.wav', 'from the room tone in the project, never a host path')
+    H.eq(piece.takes[1].startoffs, 2, 'from the start of the marked stretch')
+    H.eq({ piece.fadein, piece.fadeout }, { 0.01, 0.01 }, 'with the seam fade at each edge')
+  end
+  H.eq(rspan(p.chapter.items[#p.chapter.items]), { 32, 5 }, 'nothing moves')
+  H.eq(rspan(p.item), { 10, 4 })
+  H.eq(s.fake:undo_labels(), { UNDO_LABEL }, 'one undo block')
+  H.eq(s.fake.open_undo_blocks, 0)
+  for _, call in ipairs(s.fake.calls) do
+    if call.name == 'AddMediaItemToTrack' then
+      H.truthy(call.in_block, "each room-tone item is added inside the cut's undo block")
+    end
+  end
+  H.eq(s.fake:undo_last_block(), UNDO_LABEL)
+  H.eq(#p.chapter.items, 3, 'one Undo takes the room tone away with the cut')
+  H.eq(rspan(p.item), { 10, 20 })
+end)
+
+H.test('room tone with a pad fills the narrower gap', function()
+  local s, p = with_room_tone()
+  s:send('delete_range', 'c1', p.item.guid, '14', '16', 'gap', '0', '0.25', '1')
+  H.eq(s:events()[1][1], 'RANGE_CUT')
+  local pieces = room_tone_pieces(p.chapter)
+  H.eq({ rspan(pieces[1]), rspan(pieces[2]) }, { { 14.25, 1 }, { 15.25, 0.5 } })
+end)
+
+H.test('room tone with no Room tone region over audio on the track is refused and nothing is cut', function()
+  local s, p = project()
+  s.fake:add_item(p.other, { position = 38, length = 2, source = 'ch2-tone.wav' })
+  s.fake:add_region(38.5, 39.5, 'Room tone')
+  s.fake:add_region(8.5, 9.5, 'Room tone')
+  s.fake:add_region(2, 3, 'Chapter 1')
+  s.fake.calls = {}
+  refused(
+    s,
+    p,
+    'This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.',
+    p.item.guid,
+    '14',
+    '16',
+    'gap',
+    '0',
+    '',
+    '1'
+  )
+end)
+
+H.test('a Room tone region that overlaps the words to cut is refused', function()
+  local s, p = project()
+  s.fake:add_region(15, 17, 'room tone')
+  s.fake.calls = {}
+  refused(s, p, 'The room tone region overlaps the words to cut. Mark room tone elsewhere on the track.', p.item.guid, '14', '16', 'gap', '0', '', '1')
+end)
+
+H.test('room tone needs the gap mode', function()
+  local s, p = with_room_tone()
+  refused(s, p, 'Room tone fills a gap that keeps its length, so it needs the gap mode.', p.item.guid, '14', '16', 'close', '0', '', '1')
+end)
+
+H.test('a room tone choice other than 0 or 1 is refused', function()
+  local s, p = with_room_tone()
+  refused(s, p, 'The room tone choice must be 0 or 1.', p.item.guid, '14', '16', 'gap', '0', '', 'yes')
+end)
+
+H.test('room tone too short for the gap is refused before any change', function()
+  local s, p = project()
+  s.fake:add_region(2, 2.01, 'Room tone')
+  s.fake.calls = {}
+  refused(s, p, 'The marked room tone is too short to fill that gap.', p.item.guid, '11', '16', 'gap', '0', '', '1')
+end)
+
+H.test('a room tone file REAPER cannot open is refused before any change', function()
+  local s, p = with_room_tone()
+  s.fake.unreadable_sources['intro.wav'] = true
+  refused(s, p, 'REAPER could not open the room tone audio.', p.item.guid, '14', '16', 'gap', '0', '', '1')
+  H.eq(s.fake.sources_destroyed, s.fake.sources_created, 'every source opened is let go')
+end)
+
+H.test('a REAPER without the calls room tone needs refuses before any change', function()
+  local s, p = with_room_tone()
+  s.fake:remove_api('AddMediaItemToTrack')
+  refused(s, p, 'This REAPER version cannot fill a cut with room tone.', p.item.guid, '14', '16', 'gap', '0', '', '1')
+end)
+
+H.test('delete_range without pad or room tone is unchanged: the gap stays silence', function()
+  local s, p = with_room_tone()
+  s:send('delete_range', 'c1', p.item.guid, '14', '16', 'gap', '0')
+  local cut = cuts_track(s).items[1]
+  H.eq(s:events(), { { 'RANGE_CUT', 'c1', p.item.guid, cut.guid, '1' } })
+  H.eq(#room_tone_pieces(p.chapter), 0)
+end)
+
+H.test('a fade field with more than fade, pad and room tone is refused as a fade', function()
+  local s, p = with_room_tone()
+  refused(s, p, 'The fade must be a whole number of milliseconds from 0 to 500.', p.item.guid, '14', '16', 'gap', '0', '', '1', 'x')
+end)
