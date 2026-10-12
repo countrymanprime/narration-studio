@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, goToPage, openBooth } from './shared';
+import { type Driver, chooseTheme, goToPage, openBooth, selectReaderWord } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -73,6 +73,30 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Levels' }).click();
     await page.getByText('Chosen in REAPER').waitFor();
+  },
+  'text-popover': async (page) => {
+    await readyToRecord(page);
+    await page.getByRole('button', { name: 'Text settings' }).click();
+    await page.getByRole('slider', { name: 'Size' }).waitFor();
+  },
+  // A word marked on the Script with a note, then clicked in the Booth: the note under its paragraph and the side panel's Reference.
+  'marked-note': async (page) => {
+    await page.goto(`/${RECORD_ON}`);
+    await settlePage(page);
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'tired');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem').first().click();
+    const composer = page.getByRole('dialog');
+    await composer.getByRole('textbox').fill('Lean on it: she is bored, not sleepy.');
+    await composer.getByRole('button', { name: 'Save' }).click();
+    await composer.waitFor({ state: 'detached' });
+    // The Script's "Marked …" toast would otherwise sit over the Booth's footer.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    await goToPage(page, 'Booth');
+    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.locator('[data-booth-text] [data-word][title]', { hasText: 'tired' }).click();
+    await page.locator('#booth-reference').getByText('Lean on it: she is bored, not sleepy.').waitFor();
   },
   // B on the word being read: the ribbon in the margin beside its line (the toast is dismissed so the shot shows the margin).
   'bookmarks-ribbon': async (page) => {
