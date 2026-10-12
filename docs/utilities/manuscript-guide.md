@@ -22,8 +22,15 @@ Every entry carries `review: {"entry", "aliases"}`: whether the entry itself sti
 
 - **`mark-reviewed --entity-id [--alias-index]`** clears the entry and every name, or one name. When the entry flag is off and no name is left, `review_state` becomes `reviewed`.
 - **`review-flag --entity-id [--alias-index]`** sets the flag: the undo of `mark-reviewed`, and what an accepted automatic suggestion sets. Flagging the entry sets `review_state` to `needs review`; a flag already set changes nothing.
-- **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only a Character takes one, since only a character speaks.
+- **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only an entry whose type speaks takes one (see Story Bible types).
 - All three refuse a locked entry (ADR 0007). `merge` keeps the target flagged if either was, with both entries' name flags that the target now has, and keeps the target's colour, else the source's; `split` gives a flagged name's flag to the new entry; removing an alias drops its flag; a rebuild keeps both fields.
+
+## Story Bible types
+
+The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([ADR 0862](../adr/0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
+
+- **`type-add --name`**, **`type-rename --name --to`**, **`type-colour --name --colour`** (green, blue, violet, amber, teal or rose), **`type-speaks --name --speaks 0|1`** and **`type-remove --name`** each write the whole list. A rename moves every entry of the type; a type in use and the last type cannot be removed.
+- Only an entry whose type speaks takes a speaker colour, and a build's dialogue cues resolve only to such entries. A rebuild keeps the list and files a new entry under the type its built-in category was renamed to (`builtin`), or under Needs Review when that type was removed.
 
 ## Merge and its undo
 

@@ -5,7 +5,7 @@
 // It declares Experimental exactly what it builds, until the owner's verification pass confirms it
 // (docs/operations/audacity-verification-pass.md): the port's navigate role (go to and loop a time), markers role (add a label),
 // macro_render role (the mastering port's Audacity row, ADR 0306, ADR 0460: import a rendered WAV as its own track, apply the
-// narrator's chosen macro to it, export the result; macrorender.go), and backups role (ADR 0862: clone a window of audio to a
+// narrator's chosen macro to it, export the result; macrorender.go), and backups role (ADR 0863: clone a window of audio to a
 // muted track of its own before an edit and put it back on request, with a table in the project folder; backups.go). Session
 // carries the Audacity-only operations the port has no capability for yet (import findings as labels, read them back, mark one
 // reviewed, export a chapter, write a hand-off label file). Every other capability stays NotYetAvailable with ADR 0144's

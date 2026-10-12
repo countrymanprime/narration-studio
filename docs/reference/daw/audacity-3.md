@@ -34,7 +34,7 @@ Audacity has no items, takes or extension data. Take creation, pickups, line ide
 
 ## Backups
 
-`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Utils backup {ID}`, and a row in `narration-utils/backups.json` in the app's project folder ([ADR 0862](../../adr/0862-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md), [capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
+`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Utils backup {ID}`, and a row in `narration-utils/backups.json` in the app's project folder ([ADR 0863](../../adr/0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md), [capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
 
 ## Checking a capability in Audacity
 

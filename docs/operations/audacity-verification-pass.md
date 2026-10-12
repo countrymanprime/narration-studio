@@ -67,7 +67,7 @@ During B4's second run, watch the screen as it runs A8 to A10. You should see th
 
 ## Backups (pending: not in Part A yet)
 
-The `backups` role ([ADR 0862](../adr/0862-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` yet (`pass_live_test.go`); a step is added there with the binding (SN-D82). Until then each check is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)).
+The `backups` role ([ADR 0863](../adr/0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` yet (`pass_live_test.go`); a step is added there with the binding (SN-D82). Until then each check is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)).
 
 | Check | Expected |
 | --- | --- |

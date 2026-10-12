@@ -1,4 +1,4 @@
-# 0862. An Audacity backup is a muted track in the project and a row in a table beside it, and a restore never deletes
+# 0863. An Audacity backup is a muted track in the project and a row in a table beside it, and a restore never deletes
 
 **Status:** Proposed
 **Date:** 2026-10-12

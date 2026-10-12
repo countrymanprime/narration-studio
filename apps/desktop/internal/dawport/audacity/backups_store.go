@@ -19,7 +19,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
-// The backups table (ADR 0862): one row per window of audio the adapter cloned to its own track in the Audacity project, kept in
+// The backups table (ADR 0863): one row per window of audio the adapter cloned to its own track in the Audacity project, kept in
 // the app's project folder as narration-utils/backups.json. The backup's audio lives in the Audacity project; the row is how the
 // app finds it again. The file is narrator data, read through persist: a corrupt one is kept aside and an empty table starts, one
 // written by a newer app is refused and never overwritten, and a write goes through a temporary file and a rename.
@@ -42,7 +42,7 @@ func BackupsFile(project string) string {
 }
 
 // Backup is one row of the table. GUID is the source track as the request named it (Audacity reports no track ids, so it is the
-// track's name, ADR 0862); Start and End are the cloned window in project seconds, which is also where the backup track holds it.
+// track's name, ADR 0863); Start and End are the cloned window in project seconds, which is also where the backup track holds it.
 type Backup struct {
 	ID        string    `json:"id"`
 	GUID      string    `json:"guid"`

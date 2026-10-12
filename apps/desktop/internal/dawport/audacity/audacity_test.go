@@ -23,7 +23,7 @@ func TestConformance(t *testing.T) {
 	dawporttest.Run(t, func(tb testing.TB) dawport.Adapter { return closedAdapter(tb) })
 }
 
-// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render and backups (ADR 0862). Everything else is NotYetAvailable with no role, until
+// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render and backups (ADR 0863). Everything else is NotYetAvailable with no role, until
 // the owner's pass promotes a capability or a later phase builds one.
 func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	adapter := closedAdapter(t)

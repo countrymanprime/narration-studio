@@ -97,7 +97,7 @@ export const dawBackupSchema = z
   })
   .refine((row) => row.start < row.end, { message: 'the window ends before it starts', path: ['end'] }) satisfies z.ZodType<DawBackup>;
 
-/** narration-utils/backups.json (ADR 0862): at most DAW_BACKUPS_MAX rows with distinct ids. */
+/** narration-utils/backups.json (ADR 0863): at most DAW_BACKUPS_MAX rows with distinct ids. */
 export const dawBackupsFileSchema = z
   .strictObject({
     schemaVersion: z.literal(1),

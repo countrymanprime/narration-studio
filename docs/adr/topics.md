@@ -20,7 +20,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 56 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
-| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 50 |
+| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 51 |
 | [Persistence and project files](#persistence-and-project-files) | 9 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
@@ -38,7 +38,7 @@ What the app may change, and only on the narrator's action: findings suggest and
 | [0230](0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md) | REAPER commands built before the verification pass are refused by the host while the experimental switch is off | Accepted |
 | [0705](0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md) | The workspace adds an effect to a passage, or a chain to the chapter's track, only after the narrator confirms, and the host names both targets | Accepted |
 | [0860](0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md) | A roll keeps the earlier audio as a take, and a range cut, a chain on a range and stacking move audio and never delete it | Proposed |
-| [0862](0862-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md) | An Audacity backup is a muted track in the project and a row in a table beside it, and a restore never deletes | Proposed |
+| [0863](0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md) | An Audacity backup is a muted track in the project and a row in a table beside it, and a restore never deletes | Proposed |
 
 <a id="local-first-and-privacy"></a>
 
@@ -456,6 +456,7 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0820](0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | A bookmark is a spot kept in a project sidecar, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0846](0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md) | Extraction suggestions are kept in a project file beside the Story Bible, and a rejected one stays as a tombstone | Proposed |
 | [0849](0849-script-prep-states-and-flagged-words-are-kept-in-a-project-sidecar-keyed-by-word-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | Script prep states and flagged words are kept in a project sidecar keyed by word, checked on read and cleared when the manuscript is replaced | Proposed |
+| [0862](0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md) | Story Bible types are a stored, editable list with a colour and a Can speak flag, and the fixed categories are its defaults | Proposed |
 
 <a id="persistence-and-project-files"></a>
 

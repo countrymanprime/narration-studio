@@ -16,7 +16,7 @@ import (
 )
 
 // DefaultBackupWindow is how much audio a backup takes either side of the edit, in seconds, until the narrator's setting is read
-// (ADR 0862; the setting is SN-D82's).
+// (ADR 0863; the setting is SN-D82's).
 const DefaultBackupWindow = 120.0
 
 // BackupsConfig is what the backups role needs from the host.
@@ -32,7 +32,7 @@ type BackupsConfig struct {
 	Now func() time.Time
 }
 
-// Backups is Audacity's BackupKeeper (ADR 0862). Audacity keeps no takes, so before an edit the adapter copies a window of the
+// Backups is Audacity's BackupKeeper (ADR 0863). Audacity keeps no takes, so before an edit the adapter copies a window of the
 // edited track to a new, muted track of its own, named for the backup, and records the window in the table; a restore copies it
 // back over the same window of the source track. A restore never removes the backup track: only Prune does, for rows older than
 // the retention. It drives the pipe client directly, with the commands spike 1g runs (docs/operations/daw-spike-run-sheet.md).
