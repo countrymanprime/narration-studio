@@ -76,6 +76,7 @@ func decodeAndMeasureLevels(ctx context.Context, decoder Decoder, path string, r
 	report.MP3LevelsDecoded = true
 	report.IntegratedLUFS, report.RMSdBFS = decoded.IntegratedLUFS, decoded.RMSdBFS
 	report.SamplePeakdBFS, report.TruePeakdBTP, report.NoiseFloordBFS = decoded.SamplePeakdBFS, decoded.TruePeakdBTP, decoded.NoiseFloordBFS
+	report.NoiseFloorStartSeconds = decoded.NoiseFloorStartSeconds
 	report.DigitalSilentWindows = decoded.DigitalSilentWindows
 	report.HeadRoomToneSeconds, report.TailRoomToneSeconds = decoded.HeadRoomToneSeconds, decoded.TailRoomToneSeconds
 	report.HeadDigitalSilenceSeconds, report.TailDigitalSilenceSeconds = decoded.HeadDigitalSilenceSeconds, decoded.TailDigitalSilenceSeconds

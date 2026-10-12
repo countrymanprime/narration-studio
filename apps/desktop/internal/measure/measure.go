@@ -48,6 +48,11 @@ type Report struct {
 	SamplePeakdBFS *float64 `json:"sample_peak_dbfs"`
 	TruePeakdBTP   *float64 `json:"true_peak_dbtp"`
 	NoiseFloordBFS *float64 `json:"noise_floor_dbfs"`
+	// NoiseFloorStartSeconds is where the quietest window NoiseFloordBFS
+	// measures starts, in seconds from the start of the measured audio (a
+	// range report's, like its edge times, from the range's start). Null
+	// whenever NoiseFloordBFS is: no window, no invented time.
+	NoiseFloorStartSeconds *float64 `json:"noise_floor_start_seconds"`
 
 	// DigitalSilentWindows counts noise-floor windows that were exactly
 	// zero. They are excluded from the noise floor: a silence-gated
@@ -160,17 +165,18 @@ func (m *meterSet) Report() Report {
 	m.clips.Flush()
 	m.edges.Flush()
 	report := Report{
-		SampleRate:           m.format.SampleRate,
-		Channels:             m.format.Channels,
-		DurationSeconds:      float64(m.frames) / float64(m.format.SampleRate),
-		IntegratedLUFS:       m.loudness.IntegratedLUFS(),
-		SamplePeakdBFS:       ampToDB(m.peaks.SamplePeak()),
-		TruePeakdBTP:         ampToDB(m.peaks.TruePeak()),
-		NoiseFloordBFS:       m.floor.FloordBFS(),
-		DigitalSilentWindows: m.floor.silentWindows,
-		FullScaleSamples:     m.clips.fullScale,
-		ClipRunCount:         m.clips.runCount,
-		ClipRuns:             m.clips.runs,
+		SampleRate:             m.format.SampleRate,
+		Channels:               m.format.Channels,
+		DurationSeconds:        float64(m.frames) / float64(m.format.SampleRate),
+		IntegratedLUFS:         m.loudness.IntegratedLUFS(),
+		SamplePeakdBFS:         ampToDB(m.peaks.SamplePeak()),
+		TruePeakdBTP:           ampToDB(m.peaks.TruePeak()),
+		NoiseFloordBFS:         m.floor.FloordBFS(),
+		NoiseFloorStartSeconds: m.floor.startSeconds(m.format.SampleRate),
+		DigitalSilentWindows:   m.floor.silentWindows,
+		FullScaleSamples:       m.clips.fullScale,
+		ClipRunCount:           m.clips.runCount,
+		ClipRuns:               m.clips.runs,
 	}
 	report.HeadRoomToneSeconds, report.TailRoomToneSeconds, report.HeadDigitalSilenceSeconds, report.TailDigitalSilenceSeconds = m.edges.edges()
 	if m.frames > 0 {
@@ -221,6 +227,8 @@ type noiseFloorMeter struct {
 	filled        int
 	windowEnergy  float64
 	quietest      float64 // smallest mean-square seen, valid when found
+	quietestAt    int64   // the first frame of that window, valid when found
+	closed        int64   // full windows closed so far, silent or not
 	found         bool
 	silentWindows int
 }
@@ -250,9 +258,10 @@ func (m *noiseFloorMeter) closeWindow() {
 	} else {
 		meanSquare := m.windowEnergy / float64(m.windowFrames*m.channels)
 		if !m.found || meanSquare < m.quietest {
-			m.quietest, m.found = meanSquare, true
+			m.quietest, m.quietestAt, m.found = meanSquare, m.closed*int64(m.windowFrames), true
 		}
 	}
+	m.closed++
 	m.filled, m.windowEnergy = 0, 0
 }
 
@@ -263,4 +272,14 @@ func (m *noiseFloorMeter) FloordBFS() *float64 {
 		return nil
 	}
 	return energyToDB(m.quietest)
+}
+
+// startSeconds is where the window FloordBFS measures starts, in seconds
+// from the first frame measured, or nil whenever FloordBFS is nil.
+func (m *noiseFloorMeter) startSeconds(rate int) *float64 {
+	if m.FloordBFS() == nil {
+		return nil
+	}
+	start := float64(m.quietestAt) / float64(rate)
+	return &start
 }
