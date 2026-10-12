@@ -317,6 +317,8 @@ function Fake:snapshot()
       muted = item.muted,
       fadein = item.fadein,
       fadeout = item.fadeout,
+      takes = copy(item.takes),
+      active_index = item.active_index or false,
     }
     for _, take in ipairs(item.takes) do
       shot.take_state[take] = { fx = copy(take.fx or {}), ext = copy(take.ext or {}) }
@@ -1008,6 +1010,54 @@ function Fake:add_take_api(api)
     right.fadeout, item.fadeout = item.fadeout, 0
     right.muted = item.muted
     return right
+  end
+  -- GetItemStateChunk / SetItemStateChunk (unstack_takes): the item's state as REAPER's text chunk, modelled only for
+  -- the takes. The first take's lines follow the item's own, and each further take follows a `TAKE` line (`TAKE SEL`
+  -- for the active one), with nested blocks such as <SOURCE ...> between a `<` line and a `>` line (the RPP format in
+  -- the ReaScript reference; not run). Set keeps the takes whose GUIDs the chunk still lists, in its order, and reads
+  -- the active take from `TAKE SEL` (the first take otherwise). Set is recorded in fake.calls.
+  function api.GetItemStateChunk(item, _, _)
+    local lines = { '<ITEM', string.format('POSITION %.14g', item.position), string.format('LENGTH %.14g', item.length), 'IGUID ' .. item.guid }
+    for index, take in ipairs(item.takes) do
+      if index > 1 then
+        lines[#lines + 1] = index == (item.active_index or 1) and 'TAKE SEL' or 'TAKE'
+      end
+      lines[#lines + 1] = 'NAME "' .. take.name .. '"'
+      lines[#lines + 1] = string.format('SOFFS %.14g', take.startoffs)
+      lines[#lines + 1] = 'GUID ' .. take.guid
+      lines[#lines + 1] = '<SOURCE WAVE'
+      lines[#lines + 1] = 'FILE "' .. take.source.file .. '"'
+      lines[#lines + 1] = '>'
+    end
+    lines[#lines + 1] = '>'
+    return true, table.concat(lines, '\n') .. '\n'
+  end
+  function api.SetItemStateChunk(item, chunk, _)
+    fake.calls[#fake.calls + 1] = { name = 'SetItemStateChunk' }
+    local by_guid = {}
+    for _, take in ipairs(item.takes) do
+      by_guid[take.guid] = take
+    end
+    local takes, active, depth = {}, 1, 0
+    for line in chunk:gmatch('[^\n]+') do
+      local text = line:match('^%s*(.-)%s*$')
+      if depth == 1 then
+        if text == 'TAKE SEL' then
+          active = #takes + 1
+        end
+        local guid = text:match('^GUID (%S+)$')
+        if guid then
+          takes[#takes + 1] = assert(by_guid[guid], 'fake reaper: the chunk names a take the item does not have')
+        end
+      end
+      if text:sub(1, 1) == '<' then
+        depth = depth + 1
+      elseif text == '>' then
+        depth = depth - 1
+      end
+    end
+    item.takes, item.active_index = takes, active
+    return true
   end
   function api.SetMediaItemTake_Source(take, source)
     take.source = source

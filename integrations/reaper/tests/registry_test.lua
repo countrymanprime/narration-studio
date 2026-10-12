@@ -78,8 +78,10 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'roll',
     'select_track',
     'set_active_take',
+    'stack_takes',
     'stamp_item_lines',
     'stop_loop',
+    'unstack_takes',
   })
 end)
 

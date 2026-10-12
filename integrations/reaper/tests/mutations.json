@@ -1354,5 +1354,209 @@
     "file": "narration_range.lua",
     "find": "  if kept > 0 then",
     "replace": "  if false then"
+  },
+  {
+    "name": "stack_takes: a first read that no longer resolves is stacked onto anyway",
+    "file": "narration_takes.lua",
+    "find": "    local item = find_item(wanted.item)\n    if not item then\n      return refuse('ITEM_STALE', wanted.item, 'item')\n    end\n    if not take_on(item, wanted.base) then\n      return refuse('ITEM_STALE', wanted.base, 'take')\n    end\n    local track = reaper.GetMediaItem_Track(item)\n    if cuts and track == cuts then",
+    "replace": "    local item = find_item(wanted.item) or reaper.GetMediaItem(0, 1)\n    local track = reaper.GetMediaItem_Track(item)\n    if cuts and track == cuts then"
+  },
+  {
+    "name": "stack_takes: a retry that moved since the app read it is stacked",
+    "file": "narration_takes.lua",
+    "find": "      if not near(at, move.from) or not near(span, move.length) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: a stale group after a good one leaves a partial stack",
+    "file": "narration_takes.lua",
+    "find": "  local plan = plan_stack(session_dir, run_id, request, found)\n  if not plan then\n    return\n  end",
+    "replace": "  local plan = plan_stack(session_dir, run_id, request, found)\n  if not plan then\n    request.groups = { request.groups[1] }\n    plan = plan_stack(session_dir, run_id, request, found)\n    if not plan then\n      return\n    end\n  end"
+  },
+  {
+    "name": "stack_takes: the audio after does not move by the shift",
+    "file": "narration_takes.lua",
+    "find": "      reaper.SetMediaItemInfo_Value(entry.item, 'D_POSITION', entry.position + entry.delta)\n    end\n  end\n  for _, group in ipairs(plan.groups) do\n    reaper.UpdateItemInProject(group.item)\n  end",
+    "replace": "    end\n  end\n  for _, group in ipairs(plan.groups) do\n    reaper.UpdateItemInProject(group.item)\n  end"
+  },
+  {
+    "name": "stack_takes: every item on the track moves, not only the audio after the reads",
+    "file": "narration_takes.lua",
+    "find": "      if group.track == reaper.GetMediaItem_Track(entry.item) and entry.position >= group.after - EDGE_TOLERANCE then",
+    "replace": "      if group.track == reaper.GetMediaItem_Track(entry.item) then"
+  },
+  {
+    "name": "stack_takes: a shift the reads do not add up to is applied",
+    "file": "narration_takes.lua",
+    "find": "  if not matches then\n    return refuse('ERROR', 'The chapter changed since the plan was made. Nothing was stacked.')",
+    "replace": "  if false then\n    return refuse('ERROR', 'The chapter changed since the plan was made. Nothing was stacked.')"
+  },
+  {
+    "name": "stack_takes: other audio between the reads is overlapped",
+    "file": "narration_takes.lua",
+    "find": "        return refuse('ERROR', 'Other audio sits between the reads, so nothing was stacked.')",
+    "replace": "        other = nil"
+  },
+  {
+    "name": "stack_takes: a read longer than the first read is stacked",
+    "file": "narration_takes.lua",
+    "find": "      if span > length + EDGE_TOLERANCE then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: a fixed-lane track is stacked",
+    "file": "narration_takes.lua",
+    "find": "    if reaper.GetMediaTrackInfo_Value(track, 'I_FREEMODE') == 2 then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "stack_takes: the stacked read's item is deleted instead of moved to the Cuts track",
+    "file": "narration_takes.lua",
+    "find": "      reaper.MoveMediaItemToTrack(move.item, cuts)",
+    "replace": "      reaper.DeleteTrackMediaItem(reaper.GetMediaItem_Track(move.item), move.item)"
+  },
+  {
+    "name": "stack_takes: each move opens its own undo block",
+    "file": "narration_takes.lua",
+    "find": "      reaper.MoveMediaItemToTrack(move.item, cuts)\n    end\n  end",
+    "replace": "      reaper.MoveMediaItemToTrack(move.item, cuts)\n      reaper.Undo_EndBlock2(0, UNDO_STACK, -1)\n      reaper.Undo_BeginBlock2(0)\n    end\n  end"
+  },
+  {
+    "name": "stack_takes: a stacked take makes itself the active take",
+    "file": "narration_takes.lua",
+    "find": "      reaper.SetMediaItemTakeInfo_Value(take, 'D_STARTOFFS', move.startoffs)",
+    "replace": "      reaper.SetMediaItemTakeInfo_Value(take, 'D_STARTOFFS', move.startoffs)\n      reaper.SetActiveTake(take)"
+  },
+  {
+    "name": "stack_takes: nothing to stack opens an undo block",
+    "file": "narration_takes.lua",
+    "find": "  if #request.groups == 0 then\n    event(session_dir, 'ERROR', run_id, 'Nothing to stack.')\n    return\n  end",
+    "replace": "  if #request.groups == 0 then\n    reaper.Undo_BeginBlock2(0)\n    reaper.Undo_EndBlock2(0, UNDO_STACK, -1)\n    event(session_dir, 'ERROR', run_id, 'Nothing to stack.')\n    return\n  end"
+  },
+  {
+    "name": "stack_takes: the take does not record where its read came from",
+    "file": "narration_takes.lua",
+    "find": "      reaper.GetSetMediaItemTakeInfo_String(take, STACK_KEY, record, true)",
+    "replace": "      local _ = record"
+  },
+  {
+    "name": "stack payload: a payload larger than the bound is read",
+    "file": "narration_takes.lua",
+    "find": "  if not size or size > MAX_PAYLOAD_BYTES then",
+    "replace": "  if not size then"
+  },
+  {
+    "name": "stack payload: more groups than the bound are accepted",
+    "file": "narration_takes.lua",
+    "find": "      if #request.groups >= MAX_GROUPS then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack payload: a negative or non-finite time is accepted",
+    "file": "narration_takes.lua",
+    "find": "      if not group or not take or not from or from < 0 or not to or to < 0 or not length or length <= 0 then",
+    "replace": "      if not group or not take or not from or not to or not length then"
+  },
+  {
+    "name": "stack payload: a time in any form tonumber reads is accepted",
+    "file": "narration_takes.lua",
+    "find": "  if #text > 32 or not text:match('^%-?%d+%.?%d*$') then\n    return nil\n  end\n  return tonumber(text)",
+    "replace": "  return tonumber(text)"
+  },
+  {
+    "name": "stack payload: a GUID of any shape is accepted",
+    "file": "narration_takes.lua",
+    "find": "  if not text:match(GUID_SHAPE) then\n    return nil\n  end",
+    "replace": "  if text == '' then\n    return nil\n  end"
+  },
+  {
+    "name": "stack payload: a group with no move is accepted",
+    "file": "narration_takes.lua",
+    "find": "    if #group.moves == 0 then\n      return nil, UNREADABLE\n    end",
+    "replace": "    if false then\n      return nil, UNREADABLE\n    end"
+  },
+  {
+    "name": "stack payload: a GUID named twice is accepted",
+    "file": "narration_takes.lua",
+    "find": "    if not guid or seen[guid] then",
+    "replace": "    if not guid then"
+  },
+  {
+    "name": "stack payload: a shift of the wrong sign is accepted",
+    "file": "narration_takes.lua",
+    "find": "      if not shift or shift * sign < 0 then",
+    "replace": "      if not shift then"
+  },
+  {
+    "name": "stack payload: an unknown line is skipped",
+    "file": "narration_takes.lua",
+    "find": "    else\n      problem = UNREADABLE\n      break\n    end\n  end\n  input:close()",
+    "replace": "    end\n  end\n  input:close()"
+  },
+  {
+    "name": "unstack_takes: a take no longer on the first item is ignored",
+    "file": "narration_takes.lua",
+    "find": "      if not record or not near(move.from, first) then\n        return refuse('ITEM_STALE', move.take, 'take')\n      end",
+    "replace": "      if not record then\n        record = { item = '', take = move.take, track = '', offset = 0, stacked = '' }\n      end"
+  },
+  {
+    "name": "unstack_takes: a read no longer on the Cuts track is moved back",
+    "file": "narration_takes.lua",
+    "find": "      if not read or reaper.GetMediaItem_Track(read) ~= cuts then",
+    "replace": "      if not read then"
+  },
+  {
+    "name": "unstack_takes: a destination other than the recorded offset is used",
+    "file": "narration_takes.lua",
+    "find": "      if not near(move.to, first + record.offset) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "unstack_takes: a read goes back to the plan's time rather than the recorded offset",
+    "file": "narration_takes.lua",
+    "find": "      reaper.SetMediaItemInfo_Value(move.item, 'D_POSITION', first + move.offset)",
+    "replace": "      reaper.SetMediaItemInfo_Value(move.item, 'D_POSITION', group.first + move.offset)"
+  },
+  {
+    "name": "unstack_takes: the following audio does not move out again",
+    "file": "narration_takes.lua",
+    "find": "  for _, entry in ipairs(later) do\n    if entry.delta ~= 0 then\n      reaper.SetMediaItemInfo_Value(entry.item, 'D_POSITION', entry.position + entry.delta)\n    end\n  end\n  for _, group in ipairs(plan.groups) do\n    local first",
+    "replace": "  for _, group in ipairs(plan.groups) do\n    local first"
+  },
+  {
+    "name": "unstack_takes: the stacked takes stay on the first item",
+    "file": "narration_takes.lua",
+    "find": "    reaper.SetItemStateChunk(group.item, group.chunk, false)",
+    "replace": "    local _ = group.chunk"
+  },
+  {
+    "name": "unstack_takes: the active take is not kept",
+    "file": "narration_takes.lua",
+    "find": "    if kept and reaper.GetActiveTake(group.item) ~= kept then\n      reaper.SetActiveTake(kept)\n    end",
+    "replace": "    local _ = kept"
+  },
+  {
+    "name": "unstack_takes: an active take the narrator chose gives way to the first read",
+    "file": "narration_takes.lua",
+    "find": "    local active = reaper.GetActiveTake(item)\n    group.keep = active and take_guid(active) or wanted.base",
+    "replace": "    group.keep = wanted.base"
+  },
+  {
+    "name": "unstack_takes: a removed active take is kept as the active take",
+    "file": "narration_takes.lua",
+    "find": "    if group.remove[group.keep] then\n      group.keep = wanted.base\n    end",
+    "replace": "    if false then\n      group.keep = wanted.base\n    end"
+  },
+  {
+    "name": "unstack_takes: each group opens its own undo block",
+    "file": "narration_takes.lua",
+    "find": "    reaper.UpdateItemInProject(group.item)\n  end\n  reaper.Undo_EndBlock2(0, UNDO_UNSTACK, -1)",
+    "replace": "    reaper.UpdateItemInProject(group.item)\n    reaper.Undo_EndBlock2(0, UNDO_UNSTACK, -1)\n    reaper.Undo_BeginBlock2(0)\n  end\n  reaper.Undo_EndBlock2(0, UNDO_UNSTACK, -1)"
+  },
+  {
+    "name": "unstack_takes: the take chunk removes every take after the first",
+    "file": "narration_takes.lua",
+    "find": "      if segment_guid and remove[segment_guid] then",
+    "replace": "      if true then"
   }
 ]
