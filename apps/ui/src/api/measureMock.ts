@@ -45,6 +45,7 @@ function report(path: string, silent: boolean): MeasureReport {
       sample_peak_dbfs: null,
       true_peak_dbtp: null,
       noise_floor_dbfs: null,
+      noise_floor_start_seconds: null,
       digital_silent_windows: 4,
       head_room_tone_seconds: null,
       tail_room_tone_seconds: null,
@@ -65,6 +66,7 @@ function report(path: string, silent: boolean): MeasureReport {
     sample_peak_dbfs: -3.6,
     true_peak_dbtp: -3.1,
     noise_floor_dbfs: -66.8,
+    noise_floor_start_seconds: 412.5,
     digital_silent_windows: 0,
     head_room_tone_seconds: 0.8,
     tail_room_tone_seconds: 2.5,
@@ -88,6 +90,7 @@ function mock05Report(path: string): MeasureReport {
     sample_peak_dbfs: level.truePeak - 0.4,
     true_peak_dbtp: level.truePeak,
     noise_floor_dbfs: level.noiseFloor,
+    noise_floor_start_seconds: Math.round(level.duration * 0.4 * 2) / 2,
     digital_silent_windows: 0,
     head_room_tone_seconds: level.head,
     tail_room_tone_seconds: level.tail,
@@ -150,6 +153,7 @@ function spreadReport(path: string, index: number): MeasureReport {
     sample_peak_dbfs: level.peak,
     true_peak_dbtp: level.peak + 0.4,
     noise_floor_dbfs: level.noiseFloor,
+    noise_floor_start_seconds: Math.round(level.duration * 0.4 * 2) / 2,
     digital_silent_windows: 0,
     head_room_tone_seconds: 1.2,
     tail_room_tone_seconds: 2.1,
@@ -203,7 +207,7 @@ export function createMeasureMock(
   profile: () => DeliveryProfile = () => MOCK_ACX,
   checked: () => DiagnosticsJob | undefined = () => undefined,
   onJudged: (job: MeasureJob) => void = () => {},
-): MeasureApi & { resaveReview: () => void } {
+): MeasureApi & { resaveReview: () => void; lastRunFiles: () => readonly MeasureFileResult[] } {
   const hold = seed === 'hold';
   if (seed === 'spread') spreadPaths().forEach((path) => picked.add(path));
   let job: MeasureJob =
@@ -284,6 +288,8 @@ export function createMeasureMock(
   };
 
   return {
+    // The files of the last measurement, measured or not, for Play the quietest 5 s and Open in the DAW (bindings_master_files.go).
+    lastRunFiles: () => job.files,
     // A change of profile re-judges what was last measured for the Review page (delivery_findings.go).
     resaveReview: () => {
       if (job.phase !== 'idle' && job.phase !== 'running') onJudged(judged());

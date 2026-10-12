@@ -33,6 +33,7 @@
                 "head_room_tone_seconds": 0,
                 "integrated_lufs": -16.91656294958627,
                 "noise_floor_dbfs": -69.0609578547269,
+                "noise_floor_start_seconds": 3.5,
                 "range": {
                   "length_seconds": 8,
                   "start_seconds": 0
@@ -214,6 +215,7 @@
                 "head_room_tone_seconds": 0.5,
                 "integrated_lufs": -17.00911935906063,
                 "noise_floor_dbfs": -69.0609578547269,
+                "noise_floor_start_seconds": 2,
                 "range": {
                   "length_seconds": 8,
                   "start_seconds": 1.5
@@ -395,6 +397,7 @@
                 "head_room_tone_seconds": 0,
                 "integrated_lufs": -16.91656294958627,
                 "noise_floor_dbfs": -69.0609578547269,
+                "noise_floor_start_seconds": 3.5,
                 "range": {
                   "length_seconds": 8,
                   "start_seconds": 0
