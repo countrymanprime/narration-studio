@@ -271,10 +271,15 @@ type Recorder interface {
 	OnRecordEnded(handler func(RecordEnded))
 }
 
-// Puncher punches in at a word and reads the play position.
+// Puncher punches in at a word, reads the play position, and rolls again while recording.
 type Puncher interface {
 	PunchTo(ctx context.Context, wordTime, preRoll float64) (float64, error)
 	PlayPosition(ctx context.Context) (PlayPosition, error)
+	// Roll stops the recording the app started on trackGUID and records again from at (project seconds), keeping the
+	// earlier audio (ADR 0860 point 1). An engine where that replaces audio declares punch destructive and the page asks
+	// first; the call itself never asks. A recording the app did not start, or a setting that would not keep the
+	// earlier audio, is Refused in a whole sentence; a track that is gone is RefusedStale.
+	Roll(ctx context.Context, trackGUID string, at float64) (Result, error)
 }
 
 // RegionWriter creates (or updates) chapter regions.

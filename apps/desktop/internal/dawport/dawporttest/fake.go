@@ -262,6 +262,9 @@ type punchRole struct{ role }
 func (r punchRole) PunchTo(context.Context, float64, float64) (float64, error) {
 	return 0, r.do("PunchTo")
 }
+func (r punchRole) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return r.result("Roll", "Rolled again. The earlier audio is kept.")
+}
 func (r punchRole) PlayPosition(context.Context) (dawport.PlayPosition, error) {
 	return dawport.PlayPosition{}, r.do("PlayPosition")
 }

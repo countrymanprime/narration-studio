@@ -1708,6 +1708,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const disconnectedReaper = await createMockApi({}, { daw: { daw: 'REAPER', connected: false } }).dawCapabilities();
     expectMatches(dawCapabilitiesSchema, disconnectedReaper, 'mock daw capabilities (REAPER, not connected)');
     expect(disconnectedReaper).toEqual(readGolden('daw-capabilities-reaper.json'));
+    // REAPER's Describer: punch is native and not destructive whether REAPER answers or not (ADR 0860).
+    expect(disconnectedReaper.capabilities.punch).toMatchObject({ mode: 'native' });
+    expect(disconnectedReaper.capabilities.punch?.destructive).toBeUndefined();
+    expect((await api.dawCapabilities()).capabilities.punch).toMatchObject({ mode: 'native' });
   });
 
   it('dawCapabilities reports a connected-but-unreachable REAPER as not_running, except the heartbeat capability itself', async () => {

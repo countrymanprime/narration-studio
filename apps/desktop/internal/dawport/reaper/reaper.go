@@ -43,7 +43,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
-	// play_position; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read.
+	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read.
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -81,6 +81,7 @@ var commandCapability = map[string]dawport.Capability{
 	"record_stop":         dawport.CapRecord,
 	"punch_to":            dawport.CapPunch,
 	"play_position":       dawport.CapPunch,
+	"roll":                dawport.CapPunch,
 	"create_regions":      dawport.CapRegions,
 	"set_active_take":     dawport.CapTakes,
 	"hide_takes":          dawport.CapTakes,
@@ -115,6 +116,7 @@ type declaration struct{}
 func (declaration) Kind() dawport.Kind                             { return dawport.KindREAPER }
 func (declaration) Declares() map[dawport.Capability]dawport.Level { return maps.Clone(declares) }
 func (declaration) Role(dawport.Capability) any                    { return nil }
+func (declaration) Depth(c dawport.Capability) dawport.Depth       { return depthOf(c) }
 func (d declaration) Explain(c dawport.Capability, r dawport.Reason) string {
 	return (*Adapter)(nil).Explain(c, r)
 }
@@ -136,6 +138,7 @@ type Adapter struct {
 var (
 	_ dawport.Adapter   = (*Adapter)(nil)
 	_ dawport.Explainer = (*Adapter)(nil)
+	_ dawport.Describer = (*Adapter)(nil)
 )
 
 // Factory is the registry's REAPER factory: it opens env.SessionDir's bridge and wraps it. A launch with no session directory has
@@ -184,7 +187,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapTrackState:      actions,
 			dawport.CapTrackSelect:     actions,
 			dawport.CapRecord:          actions,
-			dawport.CapPunch:           actions,
+			dawport.CapPunch:           puncher{actions, allowed},
 			dawport.CapRegions:         actions,
 			dawport.CapTakes:           takeSelector{actions, allowed},
 			dawport.CapFXChains:        actions,
@@ -207,6 +210,19 @@ func (a *Adapter) Role(c dawport.Capability) any {
 		return nil
 	}
 	return a.roles[c]
+}
+
+// Depth is what REAPER declares about how a capability acts, the same with REAPER up or down.
+func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) }
+
+// depthOf: a roll keeps the earlier audio as a take (ADR 0860 point 1), so punch is not destructive, and REAPER makes it
+// itself. That rests on the overlapping-recording setting the roll command reads and refuses without; the QA pass (#1495)
+// confirms that setting keeps the audio.
+func depthOf(c dawport.Capability) dawport.Depth {
+	if c == dawport.CapPunch {
+		return dawport.Depth{Mode: dawport.ModeNative}
+	}
+	return dawport.Depth{}
 }
 
 // Runtime is the resolver's view of this session: always a bridge, answering while the heartbeat is fresh.
@@ -265,6 +281,49 @@ func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID stri
 		return dawport.Result{}, err
 	}
 	return dawport.OK(hiddenMessage(got), got.Changed), nil
+}
+
+const messageRollStopped = "REAPER stopped recording for the roll but did not record again. The earlier audio is kept; press record to go on."
+
+// puncher is the punch role: bridge.Actions' PunchTo and PlayPosition as they are, and Roll answering a dawport.Result
+// (ADR 0810), which bridge cannot import.
+type puncher struct {
+	*bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.Puncher = puncher{}
+
+// Roll records again from at on trackGUID while the app's recording runs there (bridge's roll). It asks allowed itself first,
+// so a refusal is the capability's own sentence rather than bridge's ErrExperimentalOff.
+func (p puncher) Roll(ctx context.Context, trackGUID string, at float64) (dawport.Result, error) {
+	if p.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(p.allowed(dawport.CapPunch)); ok {
+			return refused, nil
+		}
+	}
+	got, err := p.Actions.Roll(ctx, trackGUID, at)
+	var stale *bridge.TrackStaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That track is no longer in the REAPER project. Read the project again."), nil
+	case errors.Is(err, bridge.ErrNotOurRecording):
+		return dawport.Refused("REAPER is not recording anything this app started on that track, so there is nothing to roll."), nil
+	case errors.Is(err, bridge.ErrBadRoll):
+		return dawport.Refused("The roll time is not a usable number of seconds."), nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), nil
+	case errors.Is(err, bridge.ErrRollStopped):
+		// Not a refusal: the recording has ended. Nothing was deleted and the roll added no undo point.
+		return dawport.Result{Changed: true, Message: messageRollStopped}, nil
+	case err != nil:
+		return dawport.Result{}, err
+	}
+	message := fmt.Sprintf("Rolled again from %.1f seconds. The earlier audio is kept as a take.", got.At)
+	return dawport.OK(message, true).WithUndoSteps(got.UndoPoints), nil
 }
 
 func hiddenMessage(got bridge.TakesHidden) string {

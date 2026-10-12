@@ -976,5 +976,119 @@
     "file": "narration_takes.lua",
     "find": "  if not reaper.APIExists('SetActiveTake') then\n    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot choose the active take.')",
     "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot choose the active take.')"
+  },
+  {
+    "name": "roll: a stale track GUID is not refused",
+    "file": "narration_roll.lua",
+    "find": "  if not target then\n    event(session_dir, 'TRACK_STALE'",
+    "replace": "  if false then\n    event(session_dir, 'TRACK_STALE'"
+  },
+  {
+    "name": "roll: a recording the app did not start is rolled",
+    "file": "narration_roll.lua",
+    "find": "if not record or record.track ~= guid or not recording() then",
+    "replace": "if not recording() then"
+  },
+  {
+    "name": "roll: a recording on another track is rolled",
+    "file": "narration_roll.lua",
+    "find": "if not record or record.track ~= guid or not recording() then",
+    "replace": "if not record or not recording() then"
+  },
+  {
+    "name": "roll: a negative at is accepted",
+    "file": "narration_roll.lua",
+    "find": "value == math.huge or value < 0 then",
+    "replace": "value == math.huge then"
+  },
+  {
+    "name": "roll: an at past the end of the recording is accepted",
+    "file": "narration_roll.lua",
+    "find": "  if at > math.max(reaper.GetProjectLength(0), now) then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "roll: a fixed-lane track is rolled",
+    "file": "narration_roll.lua",
+    "find": "if reaper.GetMediaTrackInfo_Value(target, 'I_FREEMODE') == 2 then",
+    "replace": "if false then"
+  },
+  {
+    "name": "roll: tape mode or lanes are not refused",
+    "file": "narration_roll.lua",
+    "find": "  if mode == 0 then\n    return nil",
+    "replace": "  if true then\n    return nil"
+  },
+  {
+    "name": "roll: an unreported overlap setting is not refused",
+    "file": "narration_roll.lua",
+    "find": "  if refusal == false then",
+    "replace": "  if refusal == 'never' then"
+  },
+  {
+    "name": "roll: the overlap preference is changed instead of refused",
+    "file": "narration_roll.lua",
+    "find": "  elseif refusal then\n",
+    "replace": "  elseif refusal then\n    reaper.Main_OnCommand(41329, 0)\n"
+  },
+  {
+    "name": "roll: record is pressed while REAPER still records",
+    "file": "narration_roll.lua",
+    "find": "  reaper.OnStopButton()\n  if recording() then",
+    "replace": "  reaper.OnStopButton()\n  if false then"
+  },
+  {
+    "name": "roll: the restart opens an undo block",
+    "file": "narration_roll.lua",
+    "find": "  reaper.SetEditCurPos(at, true, false)\n  reaper.CSurf_OnRecord()",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetEditCurPos(at, true, false)\n  reaper.CSurf_OnRecord()\n  reaper.Undo_EndBlock2(0, 'Narration Utils: roll', -1)"
+  },
+  {
+    "name": "roll: a late restart is taken for the narrator stopping",
+    "file": "narration_roll.lua",
+    "find": "  record.started, record.waited = false, 0",
+    "replace": "  record.waited = 0"
+  },
+  {
+    "name": "roll: the wait answers ROLLED after record_stop ended the recording",
+    "file": "narration_roll.lua",
+    "find": "    if record.cancelled then\n",
+    "replace": "    if false then\n"
+  },
+  {
+    "name": "roll: the wait goes on after the transport forgot the recording",
+    "file": "narration_roll.lua",
+    "find": "    if ours() ~= record then\n",
+    "replace": "    if false then\n"
+  },
+  {
+    "name": "roll: a REAPER without the record API is not refused",
+    "file": "narration_roll.lua",
+    "find": "    if not reaper.APIExists(name) then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "roll: the transport keeps the earlier start position",
+    "file": "narration_roll.lua",
+    "find": "  record.position = at\n",
+    "replace": "\n"
+  },
+  {
+    "name": "roll: a second roll presses record while the first is pending",
+    "file": "narration_roll.lua",
+    "find": "  if record and record.track == guid and not record.started then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "roll: only the heard play position bounds at",
+    "file": "narration_roll.lua",
+    "find": "  local now = math.max(reaper.GetPlayPosition(), reaper.GetPlayPosition2())",
+    "replace": "  local now = reaper.GetPlayPosition()"
+  },
+  {
+    "name": "roll: only the project length bounds at",
+    "file": "narration_roll.lua",
+    "find": "  if at > math.max(reaper.GetProjectLength(0), now) then",
+    "replace": "  if at > reaper.GetProjectLength(0) then"
   }
 ]

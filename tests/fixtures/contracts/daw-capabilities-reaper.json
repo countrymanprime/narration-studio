@@ -92,6 +92,7 @@
       "available": false,
       "level": "experimental",
       "message": "Experimental: switched off in Settings.",
+      "mode": "native",
       "reason": "experimental_off"
     },
     "record": {
