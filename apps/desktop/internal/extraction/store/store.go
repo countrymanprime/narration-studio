@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -239,15 +240,21 @@ func build(raw Raw, source Source, fp, id string, ctx Context) Suggestion {
 	return suggestion
 }
 
-// attach points a suggestion at the entry it is about, if the Story Bible has one now.
+// attach points a suggestion at the entry it is about, if the Story Bible has one now. One pointing at an entry that is gone (an
+// import's undo removed it) is pointed again, or waits.
 func (s *Suggestion) attach(bible Bible) {
 	if s.EntryID != nil {
-		return
+		if slices.ContainsFunc(bible, func(e Entry) bool { return e.ID == *s.EntryID }) {
+			return
+		}
+		s.EntryID = nil
 	}
 	if id, ok := bible.Resolve(s.Payload.EntryRef()); ok {
 		s.EntryID = &id
 	}
 }
+
+func sameEntry(a, b *string) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
 
 // Settle points suggestions that were waiting for an entry at the entries the Story Bible has now and gives each
 // undecided one the status its data says. Accepted and rejected suggestions are never touched. It returns the ones it changed.
@@ -270,7 +277,7 @@ func (s *Service) Settle(bible Bible) ([]Suggestion, error) {
 		before := *current
 		current.attach(bible)
 		current.rule()
-		if current.Status != before.Status || current.Reason != before.Reason || (current.EntryID == nil) != (before.EntryID == nil) {
+		if current.Status != before.Status || current.Reason != before.Reason || !sameEntry(current.EntryID, before.EntryID) {
 			changed = append(changed, *current)
 		}
 	}
@@ -342,6 +349,26 @@ func (s *Service) Restore(previous Suggestion) error {
 		}
 	}
 	file.Suggestions = append(file.Suggestions, previous)
+	return s.write(file)
+}
+
+// Remove deletes the suggestions with these ids in one write, leaving no tombstone, so the same offer is stored again later: the undo
+// of an import. An id that is not stored is passed over.
+func (s *Service) Remove(ids []string) error {
+	if s.config.Project == "" {
+		return errNoProject
+	}
+	unlock := lockFile(File(s.config.Project))
+	defer unlock()
+	file, err := s.read()
+	if err != nil {
+		return err
+	}
+	kept := slices.DeleteFunc(slices.Clone(file.Suggestions), func(x Suggestion) bool { return slices.Contains(ids, x.ID) })
+	if len(kept) == len(file.Suggestions) {
+		return nil
+	}
+	file.Suggestions = kept
 	return s.write(file)
 }
 

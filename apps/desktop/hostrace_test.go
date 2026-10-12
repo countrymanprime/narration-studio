@@ -96,6 +96,7 @@ var stressReaders = []stressReader{
 	{"ExtractionScanCancel (nothing running)", func(h *Host) { _, _ = h.ExtractionScanCancel() }},
 	{"ExtractionImportPreview (no Story Bible)", func(h *Host) { _, _ = h.ExtractionImportPreview("record,name\nentry,Bill", "") }},
 	{"ExtractionImportCommit (no Story Bible)", func(h *Host) { _, _ = h.ExtractionImportCommit("record,name\nentry,Bill", "") }},
+	{"ExtractionImportUndo (no Story Bible)", func(h *Host) { _, _ = h.ExtractionImportUndo([]string{"missing"}) }},
 	{"ExtractionImportPrompt", func(h *Host) { _, _ = h.ExtractionImportPrompt("json") }},
 	{"MarksReply (unknown mark)", func(h *Host) { _, _ = h.MarksReply("missing", "you", "hi") }},
 	{"MarksEditMessage (unknown mark)", func(h *Host) { _, _ = h.MarksEditMessage("missing", 0, "hi") }},

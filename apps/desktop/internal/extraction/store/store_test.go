@@ -249,6 +249,13 @@ func TestSettleAttachesWaitingClaims(t *testing.T) {
 	if changed, err := s.Settle(Bible{{ID: "zed", Name: "Zed"}}); err != nil || len(changed) != 0 {
 		t.Errorf("a second settle changed %+v, %v", changed, err)
 	}
+	// The entry goes (an import's undo removed it): the claim waits again, and points at a new entry by the same name.
+	if changed, err := s.Settle(Bible{}); err != nil || len(changed) != 1 || changed[0].EntryID != nil || changed[0].Status != extraction.StatusNeedsVerification {
+		t.Errorf("settle without the entry = %+v, %v", changed, err)
+	}
+	if changed, err := s.Settle(Bible{{ID: "zed-2", Name: "Zed"}}); err != nil || len(changed) != 1 || *changed[0].EntryID != "zed-2" {
+		t.Errorf("settle with a new entry = %+v, %v", changed, err)
+	}
 }
 
 func TestFileIsNarratorData(t *testing.T) {
@@ -419,5 +426,25 @@ func TestTextThatLooksLikeAPathOrMarkupIsData(t *testing.T) {
 	entries, _ := os.ReadDir(project)
 	if len(entries) != 1 || entries[0].Name() != "ManuscriptGuide" {
 		t.Errorf("project folder = %v", entries)
+	}
+}
+
+func TestRemoveDeletesTheSuggestionsInOneWrite(t *testing.T) {
+	s, _ := newService(t)
+	added := ingest(t, s, Raw{Payload: property("Alice", "Mood", "Sleepy")}, Raw{Payload: property("Alice", "Age", "Seven")},
+		Raw{Payload: property("White Rabbit", "Job", "Herald")}).Added
+	if err := s.Remove([]string{added[0].ID, added[2].ID, "s999"}); err != nil {
+		t.Fatal(err)
+	}
+	got := list(t, s)
+	if len(got) != 1 || got[0].ID != added[1].ID {
+		t.Fatalf("after Remove = %+v, want only %s", got, added[1].ID)
+	}
+	// A removed suggestion leaves no tombstone, so the same offer is stored again.
+	if again := ingest(t, s, Raw{Payload: property("Alice", "Mood", "Sleepy")}); len(again.Added) != 1 {
+		t.Fatalf("a removed offer was skipped: %+v", again)
+	}
+	if err := New(Config{}).Remove([]string{added[1].ID}); err == nil {
+		t.Fatal("Remove without a project did not refuse")
 	}
 }

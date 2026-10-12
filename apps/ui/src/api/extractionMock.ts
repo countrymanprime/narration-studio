@@ -650,6 +650,30 @@ export function createExtractionMock(publish: (event: JobEnded) => void = () => 
       }
       return Promise.resolve(wireClone({ suggestions: added, entryIds: touched, skipped: plan.lines.length - offers.length }));
     },
+    extractionImportUndo: (ids) => {
+      if (ids.length > 20000 || ids.some((id) => id.length > 64)) return Promise.reject(new Error('That suggestion is gone.'));
+      const going = suggestions.filter((s) => ids.includes(s.id));
+      if (going.some((s) => s.source !== 'imported')) return Promise.reject(new Error('That suggestion was not imported.'));
+      if (going.some((s) => s.applied && lockedOf(s))) return Promise.reject(new Error('The entry is locked.'));
+      const touched: string[] = [];
+      for (const s of [...going].sort((a, b) => ORDER[b.kind] - ORDER[a.kind])) {
+        const entryId = takeBack(s);
+        if (entryId && !touched.includes(entryId)) touched.push(entryId);
+        seeds.ruled.delete(s.id);
+      }
+      suggestions = suggestions.filter((s) => !going.includes(s));
+      // A suggestion about an entry that went waits again, as the host's settle leaves it.
+      const settled: ExtractionSuggestion[] = [];
+      for (const s of suggestions) {
+        if (s.status === 'accepted' || s.status === 'rejected' || s.entryId === null || entries.some((e) => e.id === s.entryId)) continue;
+        delete s.applied;
+        s.entryId = null;
+        s.status = 'needs-verification';
+        s.reason = 'The entry is not in the Story Bible.';
+        settled.push(s);
+      }
+      return Promise.resolve(wireClone({ removed: going.map((s) => s.id), settled, entryIds: touched }));
+    },
     extractionImportPrompt: (format) => {
       const example = format === 'csv' ? IMPORT_EXAMPLE_CSV : IMPORT_EXAMPLE_JSON;
       const prompt = `You are helping an audiobook narrator prepare a Story Bible from a book manuscript.\nAnswer with ${format.toUpperCase()} only, in exactly this format.\n\nExample:\n${example}\n\nMANUSCRIPT\n`;

@@ -63,25 +63,47 @@ describe('previews-a-valid-blob-and-adds-it-in-one-go', () => {
     expect(reopen).not.toHaveBeenCalled();
   });
 
-  it('undoes the whole import with one extractionReopen per created suggestion', async () => {
-    const { importEntries } = await import('./commands');
-    const reopen = vi.spyOn(api, 'extractionReopen');
-    const act = vi.fn(async (command: { run(): Promise<unknown>; undo?(r: unknown): Promise<unknown> }) => {
+  const journalOnce = () =>
+    vi.fn(async (command: { run(): Promise<unknown>; undo?(r: unknown): Promise<unknown> }) => {
       const ran = (await command.run()) as { ok: true; value: unknown };
       return { ok: true as const, value: { id: 1, value: ran.value, undo: () => command.undo!(ran.value) } };
     });
+
+  it('undoes a fresh import with one extractionImportUndo that removes what it created', async () => {
+    const { importEntries } = await import('./commands');
+    const undo = vi.spyOn(api, 'extractionImportUndo');
+    const reopen = vi.spyOn(api, 'extractionReopen');
+    const act = journalOnce();
     const changed = vi.fn();
+    const before = await api.extractionList();
     const result = await importEntries({ journal: { act } as never, port: api, changed }, VALID);
     expect(result.ok).toBe(true);
     expect(act).toHaveBeenCalledTimes(1);
     const entry = (await act.mock.results[0]!.value).value;
-    // The host reopens only a decided suggestion (bindings_extraction.go), so the narrator decides both first; an undecided one gets the host's sentence.
-    const made = (await act.mock.results[0]!.value).value.value as { suggestions: { id: string }[] };
-    for (const suggestion of made.suggestions) await api.extractionAccept(suggestion.id);
+    const made = entry.value as { suggestions: { id: string }[] };
+    expect(made.suggestions).toHaveLength(2);
+    expect(await api.extractionList()).toHaveLength(before.length + 2);
+
     const undone = await entry.undo();
     expect(undone).toEqual({ ok: true, value: undefined });
-    expect(reopen).toHaveBeenCalledTimes(2);
+    expect(undo).toHaveBeenCalledTimes(1);
+    expect(undo).toHaveBeenCalledWith(made.suggestions.map((s) => s.id));
+    expect(reopen).not.toHaveBeenCalled();
+    expect(await api.extractionList()).toEqual(before);
     expect(changed).toHaveBeenCalledTimes(2);
+    // The same file offers the same rows again.
+    expect((await api.extractionImportPreview(VALID)).offered).toBe(2);
+  });
+
+  it('a refused undo is the host sentence and reads nothing again', async () => {
+    const { importEntries } = await import('./commands');
+    vi.spyOn(api, 'extractionImportUndo').mockRejectedValue(new Error('The entry is locked.'));
+    const act = journalOnce();
+    const changed = vi.fn();
+    await importEntries({ journal: { act } as never, port: api, changed }, VALID);
+    const entry = (await act.mock.results[0]!.value).value;
+    expect(await entry.undo()).toEqual({ ok: false, refusal: { code: 'host-refused', reason: 'The entry is locked.' } });
+    expect(changed).toHaveBeenCalledTimes(1);
   });
 });
 

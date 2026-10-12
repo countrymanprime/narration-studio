@@ -1259,17 +1259,21 @@ describe('the extraction import bindings', () => {
     offered: 1,
   };
   const result = { suggestions: [], entryIds: [], skipped: 0 };
+  const undone = { removed: ['s1', 's2'], settled: [], entryIds: ['bill'] };
   const prompt = { format: 'csv', prompt: 'Answer with CSV.\nrecord,name', example: 'record,name', maxBytes: 2097152 };
 
-  it('calls the three host methods with the text and the hint and decodes each answer', async () => {
+  it('calls the four host methods with the text and the hint or the ids and decodes each answer', async () => {
     const preview = vi.fn().mockResolvedValue(JSON.stringify(plan));
     const commit = vi.fn().mockResolvedValue(JSON.stringify(result));
+    const undo = vi.fn().mockResolvedValue(JSON.stringify(undone));
     const promptOf = vi.fn().mockResolvedValue(JSON.stringify(prompt));
-    standInHost({ ExtractionImportPreview: preview, ExtractionImportCommit: commit, ExtractionImportPrompt: promptOf });
+    standInHost({ ExtractionImportPreview: preview, ExtractionImportCommit: commit, ExtractionImportUndo: undo, ExtractionImportPrompt: promptOf });
     await expect(wailsClient.extractionImportPreview('{"entries":[]}')).resolves.toEqual(plan);
     expect(preview).toHaveBeenCalledWith('{"entries":[]}', '');
     await expect(wailsClient.extractionImportCommit('record,name', 'csv')).resolves.toEqual(result);
     expect(commit).toHaveBeenCalledWith('record,name', 'csv');
+    await expect(wailsClient.extractionImportUndo(['s1', 's2'])).resolves.toEqual(undone);
+    expect(undo).toHaveBeenCalledWith(['s1', 's2']);
     await expect(wailsClient.extractionImportPrompt('csv')).resolves.toEqual(prompt);
     expect(promptOf).toHaveBeenCalledWith('csv');
   });

@@ -6,6 +6,7 @@ import {
   extractionImportPlanSchema,
   extractionImportPromptSchema,
   extractionImportResultSchema,
+  extractionImportUndoneSchema,
   extractionScanJobSchema,
   extractionSourcesSchema,
   extractionSuggestionsSchema,
@@ -20,5 +21,6 @@ export const extractionGoldens: Record<string, z.ZodType> = {
   'extraction-import-preview.json': extractionImportPlanSchema,
   'extraction-import-preview-errors.json': extractionImportPlanSchema,
   'extraction-import-commit.json': extractionImportResultSchema,
+  'extraction-import-undo.json': extractionImportUndoneSchema,
   'extraction-import-prompt.json': extractionImportPromptSchema,
 };

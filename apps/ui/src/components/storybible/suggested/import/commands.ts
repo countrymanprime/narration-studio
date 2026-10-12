@@ -1,6 +1,6 @@
-// The journalled import (ADR 0771): Add is one journal entry whose inverse is the host's `extractionReopen` for each suggestion the
-// import created, run as one undo. A host refusal (a file refused before it was read, a locked entry) is the host's own sentence and
-// journals nothing.
+// The journalled import (ADR 0771): Add is one journal entry whose inverse is one `extractionImportUndo` of the suggestions the import
+// created, which takes back what they applied and removes them. A host refusal (a file refused before it was read, a locked entry) is the
+// host's own sentence and journals nothing, or undoes nothing.
 
 import type { ExtractionApi, ExtractionImportResult, ImportFormat } from '../../../../api/contracts/extraction';
 import type { Journal, Result } from '../../../../studio/journal/createJournal';
@@ -33,12 +33,10 @@ export async function importEntries(env: ImportEnv, text: string, hint?: ImportF
       }
     },
     async undo(done) {
-      for (const suggestion of done.suggestions) {
-        try {
-          await env.port.extractionReopen(suggestion.id);
-        } catch (error) {
-          return refusal(error, 'The host could not take the import back.');
-        }
+      try {
+        await env.port.extractionImportUndo(done.suggestions.map((s) => s.id));
+      } catch (error) {
+        return refusal(error, 'The host could not take the import back.');
       }
       env.changed?.();
       return { ok: true, value: undefined };
