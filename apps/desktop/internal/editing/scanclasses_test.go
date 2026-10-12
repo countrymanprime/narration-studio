@@ -77,7 +77,7 @@ func TestScanWritesAClassRecordPerItemUnderEachClassVersion(t *testing.T) {
 // TestScanPersistsClickFindingsAtTheirProjectTime: a click candidate becomes
 // a silence_cleanup finding with class click, its project time (item
 // position plus offset in the played range), its source range, and an id and
-// evidence version that a cache-hit re-scan reproduces exactly (Q7).
+// evidence version that a cache-hit re-scan reproduces exactly.
 func TestScanPersistsClickFindingsAtTheirProjectTime(t *testing.T) {
 	svc := newClickService(t)
 	scanChapterOne(t, svc)

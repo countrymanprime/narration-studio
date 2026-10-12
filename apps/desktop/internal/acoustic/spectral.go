@@ -14,7 +14,7 @@ const (
 // The frame is Hann-windowed then zero-padded to the next power of two for
 // this package's hand-rolled FFT (fft.go) - a coarser frequency-bin spacing
 // than the trial's exact-length numpy.fft.rfft, but the same feature shape,
-// exactly as Q1's decision anticipates ("a shipped Go build would hand-roll
+// exactly as the trial anticipated ("a shipped Go build would hand-roll
 // the FFT itself... the trial only needs the same shape of feature, not the
 // same code").
 func spectralBands(frame []float64, sampleRate int) (centroidHz, low, mid, high float64) {

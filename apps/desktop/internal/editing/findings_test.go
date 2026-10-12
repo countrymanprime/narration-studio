@@ -48,7 +48,7 @@ func TestEmptySpaceFindingShape(t *testing.T) {
 	}
 }
 
-// TestEmptySpaceFindingIDStableAcrossUnrelatedMoves proves the Q7 B property
+// TestEmptySpaceFindingIDStableAcrossUnrelatedMoves proves the property
 // this package aims for: two candidates with the same parts (same item
 // GUIDs, same source-relative ranges) but a different outer timeline Range
 // (as if an earlier, unrelated item in the chapter moved, shifting every

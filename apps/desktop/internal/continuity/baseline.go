@@ -71,7 +71,7 @@ func Vector(f acoustic.Features) ([]float64, bool) {
 // percentile of the references' own distances that sets the threshold.
 // Lowering Percentile tightens the threshold, trading more false rejects
 // on in-voice lines for fewer missed drifts - the trade-off the trial asks
-// Phase 5 to expose rather than hard-code.
+// callers to expose rather than hard-code.
 type Rule struct {
 	MinReferences int     `json:"min_references"`
 	Percentile    float64 `json:"percentile"`

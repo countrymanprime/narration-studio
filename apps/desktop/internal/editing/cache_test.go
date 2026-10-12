@@ -29,8 +29,8 @@ func TestWriteReadScanRoundTrips(t *testing.T) {
 	}
 }
 
-// TestTrimInvalidatesOnlyThatItemsCacheEntry is Phase 5's own success signal
-// ("trimming one item re-decodes only that item's changes"), proven at the
+// TestTrimInvalidatesOnlyThatItemsCacheEntry pins the rule that
+// trimming one item re-decodes only that item, proven at the
 // cache-key level: two different items' keys, from the same source file
 // even, never collide, and changing one item's own played range (a trim)
 // changes only its own key, leaving every other key (and therefore every
@@ -59,7 +59,7 @@ func TestCacheHitCostsNoDecodeInPractice(t *testing.T) {
 	// Documents, rather than exercises, the cache-hit-costs-0-decodes claim:
 	// ReadScan never calls Decode or opens a file - its only inputs are the
 	// CacheStore and a key, both already in memory. A test that actually
-	// counted decode calls belongs to Phase 5's job (service_test.go), which
+	// counted decode calls belongs to the service tests (service_test.go), which
 	// is where a real "unchanged items cost 0 decodes" scenario (a whole
 	// scan run twice) is exercised end to end.
 	cache := evidence.NewCacheStore(t.TempDir())

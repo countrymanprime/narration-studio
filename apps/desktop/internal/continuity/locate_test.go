@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// guideJSON is the shape manuscript_guide.py writes (Phase 2, ADR 0345):
+// guideJSON is the shape manuscript_guide.py writes (ADR 0345):
 // a top-level dialogue_cues list; entities and other fields are ignored.
 const guideJSON = `{
   "schema_version": 1,

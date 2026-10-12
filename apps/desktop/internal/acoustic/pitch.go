@@ -3,7 +3,7 @@ package acoustic
 import "math"
 
 // autocorrelationF0 is the minimal autocorrelation pitch tracker the trial
-// used and recommended (Q1 option A, features_baseline.py
+// used and recommended (features_baseline.py
 // _autocorrelation_f0): a classic, explainable baseline with a documented
 // octave-error failure mode (locking onto a harmonic or sub-harmonic of the
 // true pitch) that this package quantifies via OctaveAmbiguousFraction
@@ -58,7 +58,7 @@ const octaveTolerance = 0.03
 // octaveTolerance of being exactly double or half median: the
 // hand-written tracker's known failure mode
 // (docs/research/character-continuity-acoustic-trial.md "Hand-written pitch
-// tracker is unreliable"), surfaced as a confidence signal for Phase 5 - the
+// tracker is unreliable"), surfaced as a confidence signal for callers - the
 // readings themselves are left unchanged, never corrected here.
 func octaveAmbiguousFraction(f0Values []float64, median float64) float64 {
 	if len(f0Values) == 0 || median <= 0 {

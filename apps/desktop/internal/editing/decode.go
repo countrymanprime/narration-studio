@@ -10,8 +10,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// ScanOptions are the parameters one decode pass uses: DX Phase 2/4's silence
-// analyzer thresholds (silence floor, minimum silence) plus DX Phase 9's
+// ScanOptions are the parameters one decode pass uses: the silence
+// analyzer thresholds (silence floor, minimum silence) plus the
 // cleanup detector thresholds for clicks and breaths. Zero value resolves to
 // each package's own defaults (measure.DefaultDiagnosticOptions,
 // measure.DefaultCleanupOptions).
@@ -38,15 +38,15 @@ type ItemScan struct {
 // Notes: "Decoding streams blocks at the native sample rate, per channel,
 // without loading the file, with context cancellation and progress"). It
 // never reads audio before or after the played range: a fixture with dead
-// air before SOFFS must report nothing for that dead air (Phase 2's success
-// signal), and measure.DiagnosticInput.Range's skip-ahead does exactly that.
+// air before SOFFS must report nothing for that dead air (a tested
+// guarantee), and measure.DiagnosticInput.Range's skip-ahead does exactly that.
 //
 // A decode failure is classified into a stable UnknownReason (never a raw,
 // library-specific error string a caller would have to keep re-guessing at)
 // and returned alongside the error, so a caller can record why an item
 // became unknown without inspecting err itself. ctx being done is not a
 // refusal: Decode returns ctx.Err() with an empty reason, and a caller
-// records a partial outcome for it (Phase 5), not an unknown one.
+// records a partial outcome for it, not an unknown one.
 func Decode(ctx context.Context, src Source, opts ScanOptions, progress measure.Progress) (ItemScan, UnknownReason, error) {
 	width := src.PlayedRange.End - src.PlayedRange.Start
 	if width <= 0 {
