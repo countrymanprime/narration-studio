@@ -27,116 +27,44 @@ especially welcome:
   Story Bible analysis tools (GLiNER and BookNLP weights and their Python wheels): a download that starts without the narrator's
   install, a row that installs before every file is pinned, or a wheel that is run or imported at download time is in scope.
 - The in-app update ([ADR 0072](docs/adr/0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md)): once a day the app asks GitHub for the list of releases of this repository (it sends no identifier beyond the program name and version, and it can be switched off in Settings). Reports about that request revealing more than that, about the app trusting the release list beyond what it validates, or about an update being applied without the narrator's click are in scope.
-- Path traversal, command injection, or unsafe file handling when opening projects, manuscripts, or archives, including the
-  recorded audio a REAPER project names (the teleprompter reads the last seconds of a chapter's recording to find where to resume,
-  [ADR 0111](docs/adr/0111-the-resume-point-comes-from-transcribing-the-recorded-tail-and-placing-it-with-the-tracker.md)), or when a
-  sidecar reads the audio and writes the per-item cache files an analysis names (for example the recording-coverage manifest,
-  which the host builds from the saved REAPER project; the app's only input to a check is a chapter id and, since the
-  model cascade, an options flag that only ever narrows what runs), or the audio
-  an analysis manifest names (for example the per-take divergence manifest the take comparison writes, which the app
-  builds only from the saved REAPER project, never from what the page sends), or the rendered audio files the narrator
-  measures or checks for diagnostics, including an MP3, whose container is always read for its frame headers only, and whose levels are additionally decoded through the same downloaded FFmpeg build the encoder uses ([ADR 0325](docs/adr/0325-an-mp3s-levels-are-decoded-through-a-decoder-port-the-same-catalogued-ffmpeg-build-runs-in-reverse.md)) when it is installed, writing only to a temporary WAV that is never kept (the app reads only files chosen in its own file picker in that session, and never writes to them,
-  [ADR 0156](docs/adr/0156-measurement-reads-only-files-picked-this-session-as-one-job-and-fingerprints-the-bytes-it-read.md)),
-  and the Delivery report it writes (only into the project's `narration-utils/delivery` folder, never over an earlier report, and without
-  any local path, audio or manuscript text unless the narrator chooses to include file locations); a report that leaks a path the narrator
-  did not include is in scope. The same holds for the pronunciation query CSV the Story Bible exports for the narrator to send to an
-  author ([ADR 0347](docs/adr/0347-the-pronunciation-query-export-is-csv-with-its-ids-last-and-a-formula-guard-and-is-a-download.md)): a
-  cell that runs as a formula when the file is opened in a spreadsheet, or a row that carries more than the columns it names, is in scope.
-  Reading that file back once the author has answered it (`GuidePronunciationImportQueriesCSV`,
-  [ADR 0352](docs/adr/0352-a-re-imported-query-answer-is-matched-by-entry-id-and-alias-index-and-a-blank-note-column-leaves-the-note-alone.md))
-  is also in scope: a row matching the wrong entry or alias, a status or note applying beyond the single name its own id and alias number
-  name, an import starting anything beyond the existing status-and-note sidecar call, or a blank note column clearing a note it should
-  leave alone, is a vulnerability.
+- Path traversal, command injection or unsafe file handling when the app opens a project, a manuscript, an archive, a REAPER
+  project or the audio it names, or when a sidecar reads the audio and writes the files an analysis manifest names: a read or
+  write outside the files the narrator chose or the project names, or a parsed file that runs code or exhausts memory (threat model
+  rows 4e, 4f, 6a to 6e, 6g, 6j and 1g).
+- A file the app writes for the narrator to share (the Delivery report, the production status report, the pronunciation query
+  CSV) that lands outside the folder it is meant for, overwrites an existing file, carries a path, an amount or text the narrator
+  did not choose to include, or holds a cell that runs as a formula in a spreadsheet; and an answered query file read back that
+  changes more than the entries its own ids name (rows 6h, 7c and 7d;
+  [ADR 0406](docs/adr/0406-the-status-report-leaves-out-the-contracted-amount-and-effective-rate-unless-the-narrator-opts-in.md)).
 - The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [ADR 0251](docs/adr/0251-tool-runs-are-logged-as-json-lines-through-slog-with-a-run-id-and-content-is-never-logged.md)) and the diagnostics bundle Settings can save from it (`SystemCopyDiagnostics`) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
-- The script markup the narrator places in the reader (`narration-utils/prep/markup.json` in the project,
-  [ADR 0382](docs/adr/0382-script-markup-is-a-chapter-keyed-sidecar-of-line-offsets-checked-on-read-and-drawn-without-changing-the-text.md)):
-  a file that makes the app run, open, fetch or write anything else, that puts markup into the page, or that is drawn without
-  being checked against the current text is in scope; one that only changes which prep marks the narrator sees is the
-  documented residual risk (threat model row 6p).
-- The narrator's bookmarks (`narration-utils/bookmarks.json` in the project,
-  [ADR 0820](docs/adr/0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
-  a file or a label or note that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used
-  without being validated, or a bookmark moved to a guessed place instead of reported stale, is in scope; one that only changes where
-  the narrator's own bookmarks point is the documented residual risk (threat model row 6u).
-- The Booth's passage map (`narration-utils/passagemap.json` in the project,
-  [the passage map](docs/architecture/manuscript-teleprompter.md#the-passage-map)):
-  a file or a mark that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
-  being validated, a DAW id taken from the page instead of read by the host, or a mark moved to a guessed place instead of reported
-  stale, is in scope; one that only changes where the narrator's own takes are said to begin is the documented residual risk (threat
-  model row 6y).
-- The narrator's accepted words (`narration-utils/editing/accepted.json` in the project,
-  [ADR 0856](docs/adr/0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
-  a file or a key that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
-  being validated, or an accepted word applied to another word instead of reported stale, is in scope; one that only changes which
-  flags the narrator sees on their own manuscript is the documented residual risk (threat model row 6x).
-- The Script page's marks and mark types (`narration-utils/marks.json` in the project,
-  [Script marks](docs/architecture/script-marks.md)): a file, a note or a type that makes the app run, open, fetch or write anything
-  else, that puts markup into the page, that is used without being validated, a mark moved to a guessed place instead of reported
-  stale, or the import of the reader's notes changing or deleting the old notes file, is in scope; one that only changes the
-  narrator's own marks and types is the documented residual risk (threat model row 6y).
-- The Script page's chapter prep states and flagged words (`narration-utils/script-prep.json` in the project,
-  [ADR 0849](docs/adr/0849-script-prep-states-and-flagged-words-are-kept-in-a-project-sidecar-keyed-by-word-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md)):
-  a file, a word, a say-value or a source id that makes the app run, open, fetch or write anything else, that puts markup into the
-  page, that is used without being validated, or a flag moved to a guessed place instead of reported stale, is in scope; one that
-  only changes the narrator's own prep states, flags and say-values is the documented residual risk (threat model row 6za).
-- The narrator's calls on recording-check gaps (`narration-utils/coverage/gap-reviews.json` in the project,
-  [ADR 0842](docs/adr/0842-accepting-a-recording-check-gap-writes-one-note-and-ignoring-one-is-remembered-in-a-small-review-file.md)):
-  a file or an id that makes the app run, open, fetch or write anything else, that puts markup into the page, that is used without
-  being checked against the chapter's current check result, or an accept or ignore made by running a check, is in scope; one that
-  only changes which gaps the narrator's own card lists as reviewed is the documented residual risk (threat model row 6w).
-- The Story Bible extraction suggestions (`ManuscriptGuide/suggestions.json` in the project,
-  [ADR 0846](docs/adr/0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md)):
-  a file or a quote, note or payload text that makes the app run, open, fetch or write anything else, that is used as a path, that puts markup
-  into the page, or that is used without being validated, is in scope; one that only changes which suggestions the narrator is asked to
-  verify is the documented residual risk (threat model row 6v).
+- A file the app keeps in a project or user folder that makes it run, open, fetch or write anything else, or puts markup into
+  the page ([data files](docs/reference/data-files.md); threat model row 6i, and rows 6m and 6zc for a file that names a path
+  the host opens). A hand-edited copy that only changes the narrator's own notes, marks, decisions, dates or verdicts crosses no
+  boundary and is not a vulnerability.
 - The Story Bible import (`ExtractionImportPreview`, `ExtractionImportCommit`; the
   [storybible-import format](docs/architecture/storybible-import-format.md)): the page sends the text of a file the narrator chose. A file
   that makes the host open a path, fetch a URL, evaluate a formula or run anything, that gets past the size, UTF-8 or NUL checks, or that
   makes a commit store rows the preview of the same text did not show, is in scope; a file that only offers wrong suggestions is the
   documented residual risk (threat model row 6zb).
-- The delivery profiles the app reads back to judge the rendered files (the user-level `delivery-profiles.json` beside
-  `credit-templates.json`, and the project's choice in `project.json`,
-  [ADR 0180](docs/adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md)): a file that makes the app
-  run, open, fetch or write anything, or that is used without being validated, is in scope; one that only changes a verdict is the
-  documented residual risk (threat model row 6i).
-- The stage-timer log the app keeps in a project (`narration-utils/production/sessions.json`) and the deadline, contracted amount
-  and milestones it keeps in `project.json`: a file that makes the app run, open, fetch or write anything, or that is read as
-  something it is not instead of being kept aside and reported or refused, is in scope; one that only changes the narrator's own
-  logged hours, dates or amount is the documented residual risk (threat model rows 6n and 6o).
-- The production status report it writes (only into the project's `narration-utils/production/reports` folder, never over an
-  earlier report, and without the narrator's contracted amount or effective rate unless they tick the box to include them,
-  [ADR 0406](docs/adr/0406-the-status-report-leaves-out-the-contracted-amount-and-effective-rate-unless-the-narrator-opts-in.md)); a
-  report that leaks the rate the narrator did not include is in scope.
 - Weaknesses in the release pipeline (for example an installer or checksum that does not match the reviewed build, or a release asset without valid build provenance). What the pipeline promises, and what it does not: every release asset has a SHA-256 file (it detects a damaged download, not a tampered one) and a build-provenance attestation you can check with `gh attestation verify` ([Build provenance](docs/operations/ci-and-releases.md#build-provenance)); the releases are **unsigned** by decision, so Windows SmartScreen warns and that warning alone is not a vulnerability; and the owner-only settings that back the pipeline (rulesets, the `production` environment, immutable releases, action pinning) are listed in [Tracking work on GitHub](docs/operations/github-workflow.md#repository-settings-that-only-the-owner-can-change).
-
 - The arguments and session files the app hands its local sidecars and the FFmpeg encoder, for example a value from the interface becoming a
   sidecar option, a file path FFmpeg reads as an option or a URL, an encode that writes over its source or an existing file, or the teleprompter's stop, control and credits-text files in the session folder
   ([ADR 0150](docs/adr/0150-the-teleprompter-reads-credits-as-a-host-rendered-script-file-not-a-chapter.md)).
-- The built-in recorder's capture engine (the capture port's Experimental `wasapi` row,
-  [ADR 0357](docs/adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md)),
-  which opens a microphone and writes a new WAV take, and the Booth's built-in recorder that calls it (`internal/recording`,
-  [ADR 0455](docs/adr/0455-the-built-in-recorder-records-each-take-to-a-partial-file-in-the-projects-recordings-folder-and-links-it-to-its-take-name.md)):
-  the takes are `Recordings/Take NNN.wav` in the project folder, written as `Take NNN.partial.wav` and given their name by a hard
-  link that never replaces a file. A take that overwrites, truncates or deletes an existing file (the one file the recorder removes is a
-  partial holding no audio at all), a device opened that the narrator did not choose or that stays open after they stop, a file
-  written anywhere but the project's Recordings folder, the media route playing a file that is not a listed take, or captured
-  audio that leaves the machine is in scope.
-- The Master & QC export flow, which masters and encodes narrator-picked rendered WAV files (`internal/mastering`, `internal/encodeport`)
-  and assembles a delivery package into a folder the narrator chooses (`internal/packager`):
-  a path the picker did not choose, a file name it builds from a chapter's title using a character a file system cannot hold, an output folder
-  inside the project's own `narration-utils/` sidecar tree, or a step that overwrites an existing file or its own source, is in scope; every
-  stage writes a new file (mastered, encoded, packaged) and the source is never changed. Building several platforms' packages in one action
-  (`PackageStartMulti`, [ADR 0480](docs/adr/0480-multi-platform-export-is-a-separate-checkbox-list-encoding-once-per-differing-format-built-sequentially.md))
-  writes each one into its own subfolder of that one chosen root, named after the profile's own title; a subfolder name that escapes the
-  chosen root (a custom profile named `.` or `..`) or that collides with another profile's own subfolder is in scope, as is a re-encode for
-  a differing format reading from anything but that export's own mastered or original file.
-- The file protocol between the app and REAPER (the session folder under REAPER's resource path, the command files the Lua bridge reads, the paths it opens from a command, the commands that move REAPER's selection, cursor, time selection and transport, which the Review page sends only when the narrator presses Go to, Loop or Stop, on a finding or on one read of a pickup or duplicate group, and only while REAPER is answering, the one that adds an approved take marker, which it sends only for an accepted finding after the narrator confirms, the one allow-listed REAPER action launcher, and the retake-lane pick, which changes which lane of a track plays, and the experimental commands that ship switched off until they are verified in a real REAPER, behind the Experimental REAPER actions setting or each one's own per-capability DAW setting, starting with the read-only transport and track state, the one that selects a track, and the commands that arm tracks and start and stop a recording the app started, make a take active (which the workspace's Takes panel sends only when the narrator presses Use this take, on a take the app listed from the saved project, and for a read from another item only after the narrator confirms that it is added as a take and made active), mute an item's other takes by GUID without deleting any (`hide_takes`; a take deleted, moved or re-sourced, or a take muted on an item other than the one named, is a vulnerability), add one of the narrator's own FX chains to a track or one installed plug-in to a passage (which the chapter workspace sends only after the narrator confirms it, with the passage and the track named by the app, never by the page), and create or move regions; and a render through the project's own FX for the mastering port's DAW row (`render_with_fx`, with `master_chain_read` listing the chain first; [ADR 0306](docs/adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md), [ADR 0435](docs/adr/0435-render-with-fx-renders-one-region-at-a-time-into-a-run-folder-with-a-one-time-approval-and-puts-the-narrators-render-settings-back.md); Experimental, and not yet sent by any screen in this version), which runs only after the narrator approves that one render, with a one-time approval, and only into an empty folder the app made inside the project, putting the narrator's render settings back: a render the narrator did not approve, a rendered file written outside that folder or over an existing file, or render settings left changed, is a vulnerability), the arguments a DAW or a shortcut starts the app with (`--daw REAPER` from the REAPER launcher, `--daw Audacity` from the installer's "Narration Studio for Audacity" Start Menu entry, `--project-folder`, `--session-dir`), and the local `/media` route that plays a project's audio.
+- The built-in recorder (rows 4g and 4h): a take that overwrites, truncates or deletes an existing file, a device opened that the
+  narrator did not choose or left open after they stop, a file written outside the project's `Recordings` folder, or captured
+  audio leaving the machine.
+- The Master & QC export (rows 6q, 6r and 6s): a file written to a path the narrator did not choose, inside the project's own
+  `narration-utils/` folder, over an existing file or over its own source, or a package subfolder that escapes the chosen root.
+- The file protocol between the app and REAPER (the session folder under REAPER's resource path, the command files the Lua bridge
+  reads and the paths it opens), the arguments a DAW or a shortcut starts the app with, and the local `/media` route that plays a
+  project's audio: a command that another process can forge into opening or writing a path, running an action or code, rendering,
+  or changing the project beyond what the narrator approved, or a route that serves a file the project does not name (rows 5a to
+  5o, 6b, 6e and 6f).
 - The Audacity scripting pipe (`mod-script-pipe`, [ADR 0355](docs/adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)): a label text, path or other value from the app that changes the command Audacity runs, an export that writes anywhere but a local file with an audio extension, or a reply from the pipe that the app uses as anything but data; and a mastering-port render through Audacity's Macro Manager (`ApplyMacro`, the mastering port's `audacity` row; [ADR 0306](docs/adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md), [ADR 0460](docs/adr/0460-the-audacity-mastering-row-is-its-own-row-not-daw-and-imports-the-source-as-its-own-track-before-the-macro.md); Experimental, and not yet sent by any screen in this version), which imports the source to master as its own new track and applies the narrator's named macro only to that track, never to whatever else is open, and only after the narrator approves that one render, with a one-time approval: a macro applied without approval, applied to more than the imported track, or an exported file written outside the run folder this app made or over an existing file, is a vulnerability.
 - The desktop shell itself: it runs on the Wails v3 beta, pinned at v3.0.0-beta.26 ([ADR 0200](docs/adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)). A way for the page, or anything else, to call the app beyond its own bindings, or to reach the app's Wails runtime endpoint from anything but its own window, is in scope.
 - Device input the webview reads directly: a MIDI footswitch or controller through the Web MIDI API, or a HID pedal or button device through the WebHID API, feature-detected and read only where a webview exposes them ([the Web MIDI/WebHID spike](docs/research/web-midi-hid-webview-spike.md); [ADR 0361](docs/adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)). What either produces is a command already reachable from the keyboard; a malformed, oversized or out-of-range device message crashing the app or reaching further than a normalised press instead of being dropped is in scope.
 - A one-click web pronunciation lookup (Forvo, YouGlish, Merriam-Webster, Howjsay; `PronunciationLookupOpen`) opens the narrator's default browser to one of four fixed URL templates with the manuscript's own word path-escaped into it; the app never fetches, scrapes or caches any of the four sites and sends no request of its own. A fifth destination (`PronunciationCommonsAudioOpen`) opens a Wikimedia Commons recording named by the locally installed Wiktextract pronunciation index, never a word the narrator typed into a URL. A lookup that reaches a host other than that site's own, or that is usable to run or replace something outside the browser, is in scope.
 - The optional Merriam-Webster online dictionary (`PronunciationOnline*`, [ADR 0405](docs/adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md)): on the narrator's own free API key, pasted once and kept sealed with Windows' DPAPI in the per-user `credentials.json`, a press of Look up online (or a batch the narrator confirmed after being told how many names it sends) sends one word to `www.dictionaryapi.com` and caches the answer on the computer. The key leaving the machine to any other host, or appearing in a log, an error, a diagnostics export or the page; a request carrying more than the one word (a passage, a file name, a project id); a request the narrator did not ask for; or a crafted answer doing more than offer a pronunciation, is in scope.
-- The narrator's stage confirmations, dismissals and reverts (`narration-utils/stage-decisions.json` in the project; see [Stage recommendations](docs/architecture/stage-recommendations.md)), which "Mark proofing done" and every other stage Confirm also write: a file that makes the app run, open, fetch or write anything, or that changes a chapter's status without a fresh evidence read backing it, is in scope; one that only shows a false confirmed or contradicted state until the next real decision is the documented residual risk (threat model row 6t).
 
 Problems in a third-party dependency belong upstream, but tell us if we ship a version that is affected. The desktop shell's Wails is a pre-release; a Wails advisory that affects the pinned beta counts.
 
