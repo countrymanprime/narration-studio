@@ -355,6 +355,15 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
   });
 
+  it('a click outside closes the menu and lets go', async () => {
+    const page = renderPage();
+    await record(page);
+    const menu = await openMenu();
+    await userEvent.click(document.body);
+    await waitFor(() => expect(menu.isConnected).toBe(false));
+    await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
+  });
+
   it('choosing an item lets go and runs it', async () => {
     const page = renderPage();
     await record(page);
@@ -455,6 +464,15 @@ describe('credits-are-readable-and-recordable', () => {
     await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
     await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledWith('credits-opening'));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await space();
+    // The take maps to the credits' own region in the passage map.
+    await waitFor(() =>
+      expect(page.passageMapRecordRun).toHaveBeenCalledWith(
+        'credits-opening',
+        expect.arrayContaining([expect.objectContaining({ kind: 'start', pid: 'credits-opening-0' })]),
+      ),
+    );
   });
 });
 
