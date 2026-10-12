@@ -42,3 +42,11 @@ docs/reference/daw/matrix.md text eol=lf
 
 # Go tests parse these docs byte for byte (tables, front matter, generated indexes); a CRLF checkout on a Windows runner would fail them.
 docs/** text eol=lf
+
+# Images under docs/ are binary; without this the docs/** rule above makes git line-ending-normalise them. Must stay after it.
+*.webp binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
