@@ -49,6 +49,7 @@ export const measureReportSchema = z.object({
   sample_peak_dbfs: nullableNumber,
   true_peak_dbtp: nullableNumber,
   noise_floor_dbfs: nullableNumber,
+  noise_floor_start_seconds: nullableNumber,
   digital_silent_windows: z.number(),
   head_room_tone_seconds: nullableNumber,
   tail_room_tone_seconds: nullableNumber,

@@ -243,6 +243,15 @@ export interface DawFilesApi {
   dawRevealFile(path: string): Promise<DawResult>;
 }
 
+/** MasterPlayQuietest and MasterOpenInDaw (SN-M97; apps/desktop/bindings_master_files.go): Master & QC's Play the quietest 5 s and Open
+ * in the DAW. `fileId` is a file's path as the host's last measurement answered it; any other id is refused with code `stale`. The host
+ * plays the 5 s centred on the quietest window that measurement found (refused, with a sentence, when it found none) and shows the file
+ * in the DAW's own file browser, through the `file_preview` and `file_reveal` capabilities, leaving the project unchanged. */
+export interface MasterFilesApi {
+  masterPlayQuietest(fileId: string): Promise<DawResult>;
+  masterOpenInDaw(fileId: string): Promise<DawResult>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */

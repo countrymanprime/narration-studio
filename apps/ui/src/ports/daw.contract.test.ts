@@ -98,6 +98,10 @@ const GOLDEN_FILES = [
   'pickups-idle.json',
   'pickups-import-success.json',
   'pickups-markers-listed.json',
+  'master-file-play-quietest.json',
+  'master-file-opened.json',
+  'master-file-refused-not-in-run.json',
+  'master-file-refused-no-quiet-stretch.json',
 ] as const;
 const goldens: Goldens = Object.fromEntries(GOLDEN_FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 
@@ -243,6 +247,19 @@ function hostApi(): DawHostApi {
       return Promise.resolve(read('daw-remove-fx-range-done.json', dawResultSchema));
     },
     workspaceListFXChains: () => Promise.resolve(read('workspace-fx-chains.json', workspaceFXChainsResultSchema)),
+    // MasterPlayQuietest and MasterOpenInDaw (SN-M97): a file the fixture's last run does not list is the stale golden; the run's first
+    // file (its quietest window at 12 s) plays and opens, and its second (no window) has no stretch to play.
+    masterPlayQuietest: (fileId) => {
+      const index = (known.measuredFiles ?? []).findIndex((file) => file.path === fileId);
+      if (index < 0) return Promise.resolve(read('master-file-refused-not-in-run.json', dawResultSchema));
+      return Promise.resolve(read(index === 0 ? 'master-file-play-quietest.json' : 'master-file-refused-no-quiet-stretch.json', dawResultSchema));
+    },
+    masterOpenInDaw: (fileId) => {
+      const index = (known.measuredFiles ?? []).findIndex((file) => file.path === fileId);
+      if (index < 0) return Promise.resolve(read('master-file-refused-not-in-run.json', dawResultSchema));
+      if (index !== 0) return Promise.reject(new Error(`no golden for opening ${fileId}`));
+      return Promise.resolve(read('master-file-opened.json', dawResultSchema));
+    },
     // DawStackTakes and DawUnstackTakes on REAPER: no passage is nothing to move, a passage the fixture project does not list is the stale
     // refusal, and the one known passage is the done golden. Anything else has no golden.
     dawStackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-stack-done.json')),
@@ -267,6 +284,8 @@ function hostApi(): DawHostApi {
 
 /** A backup of the fixture project's chapter around its words 140 to 159, which the mock times at 140 to 160 s: a 260 s window. */
 const BACKUP: BackupRequest = { chapterId: 'chapter-1', firstToken: 140, lastToken: 159, label: 'Roll at ¶ 3' };
+/** The first file of the fixture's last measurement (DAW_PROJECT.measuredFiles), the path the master-file goldens' host measured. */
+const RUN_FILE = 'C:/Renders/Chapter 01.wav';
 
 function stackAnswer(known: typeof DAW_PROJECT, chapterId: string, passageIds: string[], done: string): DawResult {
   if (passageIds.length === 0) return refusal(nothingToStackAnswer('REAPER'));
@@ -469,6 +488,18 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   {
     name: 'dawclient-backups: REAPER refuses a backup and a restore alike, with the capability sentence',
     observe: async (daw) => [await daw.backupAround(BACKUP), await daw.restoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')],
+  },
+  {
+    name: 'play-quietest-and-open-file: a file of the last run plays its quietest 5 s and is shown, alike',
+    observe: async (daw) => [await daw.playQuietest(RUN_FILE), await daw.openFile(RUN_FILE)],
+  },
+  {
+    name: 'play-quietest-and-open-file: a file id not in the last run is refused stale, alike',
+    observe: async (daw) => [await daw.playQuietest('C:/Renders/Chapter 09.wav'), await daw.openFile('C:/Renders/Chapter 09.wav'), await daw.playQuietest('')],
+  },
+  {
+    name: 'play-quietest-and-open-file: a file with no quietest window has no stretch to play, alike',
+    observe: (daw) => daw.playQuietest('C:/Renders/Silent/Chapter 01.wav'),
   },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
