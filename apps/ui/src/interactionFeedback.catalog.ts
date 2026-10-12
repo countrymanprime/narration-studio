@@ -154,6 +154,11 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Remembering a credits card's open state per project in localStorage; the choice lasts for this visit only when storage is disabled.",
   'src/components/proof/lastChapterStorage.ts#1':
     'Remembering the last chapter looked at on Proof per project in localStorage (ADR 0750); the choice lasts for this visit only when storage is disabled.',
+  'src/components/script/scriptPageHost.ts#1':
+    'Renders the opening credits card preview; a failed render leaves that card without one rather than a toast over the manuscript.',
+  'src/components/script/scriptPageHost.ts#2': 'Renders the closing credits card preview; same fallback as the opening one above.',
+  'src/components/script/scriptPageHost.ts#3':
+    "Remembering the Words tab's definition source in localStorage; with storage blocked or full the choice lasts until the page is left.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/script/page/tools/text/readerText.ts#1':
