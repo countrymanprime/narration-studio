@@ -3,7 +3,7 @@ package preview
 import "testing"
 
 // TestEvaluateRangeScoresAnArbitraryWindow covers a pin the narrator adjusted to a window Suggest itself never
-// ranked (Phase 8: the narrator's own choice is never re-subjected to Suggest's top-three cap).
+// ranked (the narrator's own choice is never re-subjected to Suggest's top-three cap).
 func TestEvaluateRangeScoresAnArbitraryWindow(t *testing.T) {
 	chapter := Chapter{ID: "c1", Title: "Chapter One", ContentKind: ContentNarration, Order: 0}
 	paragraphs := chapterOf("c1", 10)

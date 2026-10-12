@@ -43,7 +43,7 @@ func TestACompleteRunIsReportedWithItsChapter(t *testing.T) {
 	}
 }
 
-// TestACleanRunKeepsItsChapterFromTheSummary is Q5's clean-run case: with no
+// TestACleanRunKeepsItsChapterFromTheSummary is the clean-run case: with no
 // rows, the chapter survives only in compare.py's MATCH summary.
 func TestACleanRunKeepsItsChapterFromTheSummary(t *testing.T) {
 	service, _ := testService(t)

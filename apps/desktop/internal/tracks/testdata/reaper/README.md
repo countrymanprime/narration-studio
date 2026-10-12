@@ -1,6 +1,6 @@
 # REAPER-saved fixtures
 
-Real `.rpp` files written by REAPER itself, kept for the parser tests and for the PRDs that need to read what REAPER saves (the evidence ledger's parser superset, take review, recording coverage). The hand-written `../basic.rpp` predates them and stays.
+Real `.rpp` files written by REAPER itself, kept for the parser tests and for the features that need to read what REAPER saves (the evidence ledger's parser superset, take review, recording coverage). The hand-written `../basic.rpp` predates them and stays.
 
 ## Provenance
 
@@ -36,7 +36,7 @@ The files are byte for byte what REAPER wrote (CRLF line endings included, so `.
 
 ## Tests
 
-`apps/desktop/internal/tracks/reaper_fixtures_test.go` parses these files and pins what the current parser sees. As of the analysis evidence ledger's Phase 1 (the parser superset), it reads every take, follows the active one (not the first), and reads the item GUID (`IGUID`), mute, per-take `SOFFS`/`PLAYRATE`/`GUID`, `SECTION` offsets, FX-chain presence (`<TAKEFX>` per take, `<FXCHAIN>` per track), a stretch-marker count, and item/take extension data (`<EXTI>`/`<EXT>`, including `<BIN>` blocks). Not yet read: item volume/pan (`VOLPAN`/`TAKEVOLPAN`), item notes, and the `PLAYRATE` line's reverse/pitch fields beyond the rate itself (unverified by any fixture - no reversed item is stamped here). Update those assertions when the parser learns more.
+`apps/desktop/internal/tracks/reaper_fixtures_test.go` parses these files and pins what the current parser sees. As of the evidence ledger's item-model parser, it reads every take, follows the active one (not the first), and reads the item GUID (`IGUID`), mute, per-take `SOFFS`/`PLAYRATE`/`GUID`, `SECTION` offsets, FX-chain presence (`<TAKEFX>` per take, `<FXCHAIN>` per track), a stretch-marker count, and item/take extension data (`<EXTI>`/`<EXT>`, including `<BIN>` blocks). Not yet read: item volume/pan (`VOLPAN`/`TAKEVOLPAN`), item notes, and the `PLAYRATE` line's reverse/pitch fields beyond the rate itself (unverified by any fixture - no reversed item is stamped here). Update those assertions when the parser learns more.
 
 ## Regenerating
 

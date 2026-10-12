@@ -88,7 +88,7 @@ func TestSuggestExcludesReferenceAndOpeningAndNeverCrossesAChapter(t *testing.T)
 	}
 }
 
-// TestSuggestMissingContentKindReadsAsNarration is Q4's D22 default.
+// TestSuggestMissingContentKindReadsAsNarration pins the D22 default.
 func TestSuggestMissingContentKindReadsAsNarration(t *testing.T) {
 	chapters := []Chapter{{ID: "c1", Order: 0}} // no ContentKind set at all
 	paragraphs := []Paragraph{{ID: "p1", ChapterID: "c1", Index: 0, Text: words(1000)}}
@@ -136,7 +136,7 @@ func TestSuggestNamesAChapterShorterThanTarget(t *testing.T) {
 	}
 }
 
-// TestSuggestOneCandidatePerChapterTopThree is Q12: at most one per chapter, top three overall.
+// TestSuggestOneCandidatePerChapterTopThree pins the cap: at most one per chapter, top three overall.
 func TestSuggestOneCandidatePerChapterTopThree(t *testing.T) {
 	var chapters []Chapter
 	var paragraphs []Paragraph
@@ -160,7 +160,7 @@ func TestSuggestOneCandidatePerChapterTopThree(t *testing.T) {
 	}
 }
 
-// TestSuggestNoDialogueNoEntitiesOneChapterStillReturnsHonestReasons is Phase 1's own success signal wording.
+// TestSuggestNoDialogueNoEntitiesOneChapterStillReturnsHonestReasons pins the honest reasons a text-only suggestion gives when nothing distinguishes the chapter.
 func TestSuggestNoDialogueNoEntitiesOneChapterStillReturnsHonestReasons(t *testing.T) {
 	chapters := []Chapter{{ID: "c1", ContentKind: ContentNarration, Order: 0}}
 	var paragraphs []Paragraph

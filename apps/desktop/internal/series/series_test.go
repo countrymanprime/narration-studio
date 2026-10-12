@@ -147,9 +147,9 @@ func TestForProjectOnANonSeriesProjectReadsOkFalse(t *testing.T) {
 	}
 }
 
-// ForProjectOnAFreshInstall is the Phase 9 success signal: "opening a
+// ForProjectOnAFreshInstall pins that opening a
 // non-series project is behaviourally unchanged (no series file read
-// attempted)". This package cannot enforce "no read attempted" - only a
+// attempted). This package cannot enforce "no read attempted" - only a
 // caller that never calls ForProject can guarantee that - so this test only
 // asserts the file-not-found path is silent (no error, ok=false), which is
 // what a caller checking series membership on every project open would see.

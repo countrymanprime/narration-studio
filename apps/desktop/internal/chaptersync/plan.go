@@ -88,7 +88,7 @@ type TrackRef struct {
 }
 
 // PickupTrack is a track named as a chapter's pickup track ("Chapter 6
-// (pickups)"). It is recorded, never linked (D32, D33); Phase 8 stores it.
+// (pickups)"). It is recorded, never linked (D32, D33); the Snapshot's pickup scans store it.
 type PickupTrack struct {
 	TrackGUID    string `json:"trackGuid"`
 	TrackName    string `json:"trackName"`
@@ -322,8 +322,8 @@ type Snapshot struct {
 }
 
 // TrackState is one track in a Snapshot. ChangedAt is the sync at which the
-// track's fingerprint last changed, or it first appeared (Phase 6's "last
-// changed"); nil when every sync since the first saw it the same. A rename
+// track's fingerprint last changed, or it first appeared (the "last
+// changed" the evidence freshness check shows); nil when every sync since the first saw it the same. A rename
 // alone is not a change.
 type TrackState struct {
 	GUID        string     `json:"guid"`
@@ -361,7 +361,7 @@ func snapshotOf(project tracks.Project, previous Snapshot, at time.Time) Snapsho
 // (no file is opened), so it notices an item added, moved, trimmed, muted or
 // switched to another take, not a source file rewritten in place; the
 // recording check's own fingerprint (evidence.ComputeChapterFingerprint)
-// covers that when Phase 6 computes freshness. The name is not part of it.
+// covers that when the evidence freshness check runs. The name is not part of it.
 func Fingerprint(t tracks.Track) string {
 	type takeFacts struct {
 		GUID     string                 `json:"g"`

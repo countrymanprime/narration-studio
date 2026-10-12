@@ -85,7 +85,7 @@ func TestASectionSourceIsUnwrappedToItsFile(t *testing.T) {
 	}
 }
 
-// The fixture's active take is "take B" (`TAKE SEL`); the parser superset (EL Phase 1) follows the active take, not
+// The fixture's active take is "take B" (`TAKE SEL`); the item-model parser follows the active take, not
 // the first one, and exposes every take.
 func TestAMultiTakeItemIsReportedAsItsActiveTake(t *testing.T) {
 	project := parseReaperFixture(t, "saved-cases.rpp")
@@ -114,7 +114,7 @@ func TestAMultiTakeItemIsReportedAsItsActiveTake(t *testing.T) {
 	}
 }
 
-// Take review Phase 2 (Q6: the item GUID is the explicit target identity a
+// Take review (the item GUID is the explicit target identity a
 // scan resolves to, no manuscript line-identity stamp required) needs to
 // resolve an item by its own GUID regardless of which track holds it or
 // which take is active, so a finding's target can be re-resolved against
@@ -148,7 +148,7 @@ func TestItemByGUIDFindsAMultiTakeItemAcrossTracksByItsOwnGUIDNotATakes(t *testi
 	}
 }
 
-// The parser superset (EL Phase 1) now reads the item GUID (from IGUID, not a take's own GUID), mute, every take
+// The item-model parser now reads the item GUID (from IGUID, not a take's own GUID), mute, every take
 // with its own GUID/source/SOFFS/PLAYRATE, which take is active, FX-chain presence and stretch-marker count as
 // evidence, and item/take extension data (P_EXT/TAKE EXT, including <BIN> blocks).
 func TestTheParserNowReadsMuteRateStretchFxAndExtensionData(t *testing.T) {

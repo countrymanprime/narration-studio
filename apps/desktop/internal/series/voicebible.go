@@ -10,14 +10,14 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/guide"
 )
 
-// VoiceBibleClip is one approved reference clip shown in the series voice bible (Phase 11): the fields the UI needs
+// VoiceBibleClip is one approved reference clip shown in the series voice bible: the fields the UI needs
 // to list it and say which book it came from, flattened from character.Reference rather than embedding it, so a
 // sibling clip (read cross-project, ChangedSinceApproval unknown) and the current project's own clip (annotated by
-// character.Service.References, Q2) share one shape on the wire.
+// character.Service.References) share one shape on the wire.
 type VoiceBibleClip struct {
 	ID          string `json:"id"`
 	ProjectPath string `json:"projectPath"`
-	// Book is the source project folder's own base name - a plain, always-available label (Phase 11's "source
+	// Book is the source project folder's own base name - a plain, always-available label (the "source
 	// book"). Nothing here reads a project's credits/front-matter title: that is a narrator-editable free-text
 	// field for a different purpose (front-matter Series/Book Number tokens) and reading it cross-project would be
 	// its own, unscoped feature.
@@ -44,7 +44,7 @@ type VoiceBibleCharacter struct {
 	Clips       []VoiceBibleClip `json:"clips"`
 }
 
-// VoiceBible is the Series tab's whole view of the current project's series (Phase 11). Characters is nil, not an
+// VoiceBible is the Series tab's whole view of the current project's series. Characters is nil, not an
 // empty list, whenever there is nothing to show - not in a series, or in one with no other book yet - so the UI can
 // render one honest "no other books in this series yet" state instead of an empty table.
 type VoiceBible struct {
@@ -55,7 +55,7 @@ type VoiceBible struct {
 	BookCount  int                   `json:"bookCount"`
 	Characters []VoiceBibleCharacter `json:"characters,omitempty"`
 	// UnreadableBooks names (by their own book label) any member project whose reference data exists but could not
-	// be decoded (Siblings' own Unreadable, Phase 9's "reported, not fatal" rule) - never fatal to the whole view.
+	// be decoded (Siblings' own Unreadable: reported, not fatal) - never fatal to the whole view.
 	UnreadableBooks []string `json:"unreadableBooks,omitempty"`
 }
 
@@ -69,10 +69,10 @@ type VoiceBibleConfig struct {
 	CurrentNames      func() (map[string]string, error)
 }
 
-// BuildVoiceBible resolves the current project's series (Q10) and, only once a second book actually has data to
-// share, pools every member project's approved references by character (Q11, narrowed by D87 to reference data
+// BuildVoiceBible resolves the current project's series and, only once a second book actually has data to
+// share, pools every member project's approved references by character (narrowed by D87 to reference data
 // only - see internal/series's own package doc). A project not in any series, or in a series with only itself as a
-// member so far, is the same honest empty state (Phase 11's own success signal): Characters stays nil and no
+// member so far, is the same honest empty state: Characters stays nil and no
 // sibling is read at all.
 func BuildVoiceBible(cfg VoiceBibleConfig) (VoiceBible, error) {
 	series, inSeries, err := cfg.SeriesStore.ForProject(cfg.CurrentProject)
