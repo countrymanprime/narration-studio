@@ -357,7 +357,9 @@ describe('needs-review-chip-and-row-pill', () => {
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
-  it('needs-review-category-still-lists-under-all: the kind chips are the types, so an entry the build was unsure of shows under All, apart from the flags', async () => {
+  // The title is cited by docs/research/studio-next-parity-script-and-bible.md (scripts/ci/studio-next-parity.mjs checks it); the category tabs
+  // are now kind chips, so the test checks that an entry in the Needs Review category lists under All and under no kind chip.
+  it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
     await renderBible(flagHatter);
     expect(screen.queryByRole('button', { name: /^Needs Review$/ })).toBeNull();
     expect(rowNames()).toContain('March Hare');
