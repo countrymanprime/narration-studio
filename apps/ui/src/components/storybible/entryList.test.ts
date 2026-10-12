@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import fc from 'fast-check';
-import type { GuideEntity } from '../../types';
+import type { GuideEntity, GuideType } from '../../types';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import {
   aliasCount,
@@ -14,6 +14,8 @@ import {
   reviewCount,
   reviewPill,
   saveEntrySort,
+  kindSwatch,
+  matchesQuery,
   sortEntries,
   type EntrySortKey,
 } from './entryList';
@@ -187,5 +189,30 @@ describe('row-pill-says-verify-or-review', () => {
   it('says Review for a flag with nothing to verify, and nothing otherwise', () => {
     expect(reviewPill(flagged, [suggestion('a', 'accepted-auto')])).toBe('Review');
     expect(reviewPill(entry('c', 'C'), [])).toBeUndefined();
+  });
+});
+
+describe('the-search-box-matches-names-and-aliases', () => {
+  const hatter = entry('h', 'The Hatter', { aliases: [{ text: 'Mad Hatter' }, { text: 'Tarrant' }] as GuideEntity['aliases'], category: 'Character' });
+  it('matches the name, ignoring case', () => expect(matchesQuery(hatter, 'the hat')).toBe(true));
+  it('matches another name of the entry', () => expect(matchesQuery(hatter, 'tarr')).toBe(true));
+  it('does not match the category', () => expect(matchesQuery(hatter, 'character')).toBe(false));
+  it('matches everything when the query is empty or blank', () => {
+    expect(matchesQuery(hatter, '')).toBe(true);
+    expect(matchesQuery(hatter, '  ')).toBe(true);
+  });
+});
+
+describe('a-kind-is-drawn-in-its-type-colour', () => {
+  const types: GuideType[] = [
+    { name: 'Character', colour: 'rose', speaks: true },
+    { name: 'Place', colour: 'blue', speaks: false },
+  ];
+  it('names the swatch of the colour the narrator set', () => expect(kindSwatch(types, 'Character')).toBe('event'));
+  it('draws the system states in the review hue', () => expect(kindSwatch(types, 'Needs Review')).toBe('review'));
+  it('draws a name no type has in the faint hue', () => expect(kindSwatch(types, 'Mystery')).toBe('non-text'));
+  it('orders the type sort by the kinds it is given', () => {
+    const rows = [entry('p', 'A', { category: 'Place' }), entry('c', 'B', { category: 'Character' })];
+    expect(ids(sortEntries(rows, 'type', ['Place', 'Character']))).toEqual(['p', 'c']);
   });
 });

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { CommandRouter } from '../../input/router';
 import { createMockApi } from '../../api/mockApi';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
@@ -29,7 +30,9 @@ async function renderGuide() {
       <ApiProvider api={api}>
         <StudioProvider>
           <OverlayProvider>
-            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            <CommandRouter>
+              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            </CommandRouter>
           </OverlayProvider>
         </StudioProvider>
       </ApiProvider>
@@ -40,8 +43,8 @@ async function renderGuide() {
 }
 
 const entryRow = (name: string) =>
-  within(screen.getByRole('table', { name: 'Story Bible entries' }))
-    .getAllByRole('row')
+  within(screen.getByRole('list', { name: 'Story Bible entries' }))
+    .queryAllByRole('button')
     .find((row) => row.textContent?.includes(name));
 
 describe('story-bible-route-mounts-the-new-pieces', () => {

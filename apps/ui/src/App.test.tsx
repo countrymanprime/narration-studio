@@ -529,6 +529,19 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe('/');
   });
 
+  it('the Story Bible route asks for a manuscript on its own page instead of sending a project without one home', async () => {
+    window.history.replaceState(null, '', '/story-bible');
+    const source = createMockApi();
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
+    await screen.findByRole('heading', { level: 1, name: 'Story Bible' });
+    expect(window.location.pathname).toBe('/story-bible');
+    expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
+    // The ask sends the narrator to the Production home, where the import lives.
+    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    expect(window.location.pathname).toBe('/');
+  });
+
   // ADR 0407: the retired Teleprompter route lands on the Booth with its
   // query and hash, and replaces the entry so Back never returns to the redirect.
   it('redirects /teleprompter to /booth, keeping the query and hash', async () => {

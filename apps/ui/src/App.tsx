@@ -557,7 +557,7 @@ function AppRoutes() {
     const nextPath = next.split(/[?#]/)[0] || '/';
     // A Proof chapter view reads the chapter's paragraphs and alignment, both manuscript-scoped, same as the fixed
     // routes below (a parameterised path, so it needs its own startsWith check rather than joining the exact-match list).
-    if (!data.manuscript && (['/script', '/story-bible', '/booth'].includes(nextPath) || nextPath.startsWith('/proof/'))) {
+    if (!data.manuscript && (['/script', '/booth'].includes(nextPath) || nextPath.startsWith('/proof/'))) {
       navigate('/', { replace: true });
       return;
     }
@@ -672,7 +672,12 @@ function AppRoutes() {
                   }
                 />
                 <Route path="/manuscript" element={<RedirectKeepingLocation to="/script" />} />
-                <Route path="/story-bible" element={data.manuscript ? <Guide notify={setNotice} goToManuscript={goToScript} /> : <Navigate to="/" replace />} />
+                <Route
+                  path="/story-bible"
+                  element={
+                    <Guide notify={setNotice} goToManuscript={goToScript} hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />
+                  }
+                />
                 {/* Retired by the engine panel: lands on Proof, where a chapter
                   is heard, with the panel open over it, since the Tracks page's REAPER tools live there. */}
                 <Route path="/tracks" element={<RetiredTracksRoute />} />

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { CommandRouter } from '../../input/router';
 import { createMockApi } from '../../api/mockApi';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { Guide } from './Guide';
@@ -20,7 +21,9 @@ async function renderAlice() {
     <MemoryRouter>
       <ApiProvider api={api}>
         <StudioProvider>
-          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          <CommandRouter>
+            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          </CommandRouter>
         </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,

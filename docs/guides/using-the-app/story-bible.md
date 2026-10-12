@@ -3,9 +3,9 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Category tabs filter the list.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour with how many names it has and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, and the Up and Down keys move through the rows. With no manuscript imported the page asks for one.
 
-![Story Bible filtered to the Characters category](../../images/ui/storybible-characters.webp)
+![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 
 Selecting an entry opens its detail panel, read-only at first. Press Edit to change
 pronunciation, aliases, and notes, then Save (or Cancel). Locked entries can't be edited until
@@ -153,7 +153,7 @@ confirm. It doesn't touch the manuscript, dialogue cues, or anything else in the
 
 ## Series voice bible
 
-If you're narrating a series, the **Series** tab (beside the category tabs) shows a character's
+If you're narrating a series, the **Series** tab (beside the **Entries** tab) shows a character's
 approved reference clips across every book of the series, each labeled by the book it came from.
 Name a series to start: type a name and press **Create series**. A series with only this one book
 in it still shows - honestly - "no other books in this series yet"; add a sibling book's project
