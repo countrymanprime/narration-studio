@@ -272,3 +272,35 @@ func TestClearedNeverInventsAFix(t *testing.T) {
 		t.Fatalf("summary = %+v, want an accepted finding decided and still open", summary)
 	}
 }
+
+func TestCompareOptionalPutsMissingValuesLastInEitherDirection(t *testing.T) {
+	one, two := 1.0, 2.0
+	for _, descending := range []bool{false, true} {
+		if got := compareOptional(nil, nil, descending); got != 0 {
+			t.Errorf("both missing (descending=%v) = %d, want 0", descending, got)
+		}
+		if got := compareOptional(nil, &one, descending); got != 1 {
+			t.Errorf("missing first (descending=%v) = %d, want 1", descending, got)
+		}
+		if got := compareOptional(&one, nil, descending); got != -1 {
+			t.Errorf("missing second (descending=%v) = %d, want -1", descending, got)
+		}
+	}
+	if got := compareOptional(&one, &two, false); got != -1 {
+		t.Errorf("ascending 1 vs 2 = %d, want -1", got)
+	}
+	if got := compareOptional(&one, &two, true); got != 1 {
+		t.Errorf("descending 1 vs 2 = %d, want 1", got)
+	}
+}
+
+func TestSummarizeListsChaptersInIDOrderWithTheirTitles(t *testing.T) {
+	later, earlier := testFinding("a", "c-0002", "v1"), testFinding("b", "c-0001", "v1")
+	later.Manuscript.ChapterTitle = "Two"
+	earlier.Manuscript.ChapterTitle = "One"
+	got := summarize([]Finding{later, earlier}).Chapters
+	want := []ChapterFacet{{ID: "c-0001", Title: "One"}, {ID: "c-0002", Title: "Two"}}
+	if !slices.Equal(got, want) {
+		t.Fatalf("chapters = %+v, want %+v", got, want)
+	}
+}
