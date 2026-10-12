@@ -25,6 +25,7 @@ import { estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secon
 import type { BoothStart } from './boothQuery';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
+const TAKE_SAVED = 'Take saved';
 const DEFAULT_TEXT_SIZE = 40;
 /** Something open over the Booth that Escape closes first: a dialog, a menu or a popover. */
 const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
@@ -57,8 +58,11 @@ export type BoothPageOptions = {
   navigate: (next: string) => void;
   /** Where Exit Booth goes. */
   exitTo: string;
-  /** A take stopped: the sentences it began and stopped on. `quiet` when it stopped because the narrator left. */
-  onTakeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void;
+  /**
+   * A take stopped: the sentences it began and stopped on. `quiet` when it stopped because the narrator left. Answers how many
+   * pickups it marked recorded, when it says so itself (its toast then says the take is saved).
+   */
+  onTakeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void | Promise<number>;
   /**
    * More right-click items for this target, put after Start from here (the bookmark items). When the target is a bookmark ribbon
    * (`[data-bm]`), they are the whole menu.
@@ -92,7 +96,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const view = useRef<BrowseView>(null);
 
   const control = useRecordControl({ chapterId: recordId, notify });
-  const { recording } = control;
+  const { recording, toggle: recordToggle } = control;
   const [seconds, setSeconds] = useState(0);
   const [paused, setPaused] = useState(false);
   const [recorded, setRecorded] = useState(0);
@@ -101,12 +105,14 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeAt = useRef(0);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
-  const tellStopped = useCallback((quiet: boolean) => {
+  const tellStopped = useCallback(async (quiet: boolean): Promise<number> => {
     const began = takeBegan.current;
-    if (began === null) return;
+    if (began === null) return 0;
     takeBegan.current = null;
-    extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, quiet });
+    return (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, quiet })) ?? 0;
   }, []);
+  // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
+  const endOfChapter = useRef(false);
 
   const latest = useRef({ at, position, units, paragraphs, spans, listening, seconds, session, recording });
   latest.current = { at, position, units, paragraphs, spans, listening, seconds, session, recording };
@@ -242,10 +248,33 @@ export function useBoothPage(options: BoothPageOptions) {
     }
     if (place) void writer.stop(place, now.seconds);
     if (now.session.active) now.session.stop();
-    tellStopped(false);
+    const said = endOfChapter.current;
+    endOfChapter.current = false;
+    void tellStopped(false).then((marked) => {
+      // A take that marked pickups says it was saved in that toast.
+      if (said && marked === 0) notify(TAKE_SAVED);
+    });
     setRecorded((total) => total + now.seconds);
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped]);
+  }, [recording, writer, tellStopped, notify]);
+
+  // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself (ADR 0106), and
+  // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops
+  // any other way leaves the take running.
+  const reachedEnd = useRef(false);
+  const heardStatus = session.session.position?.status;
+  useEffect(() => {
+    reachedEnd.current = recording && heardStatus === 'done';
+  }, [recording, heardStatus]);
+  const wasListening = useRef(session.active);
+  useEffect(() => {
+    const ended = wasListening.current && !session.active;
+    wasListening.current = session.active;
+    if (!ended || !reachedEnd.current || !latest.current.recording) return;
+    reachedEnd.current = false;
+    endOfChapter.current = true;
+    void recordToggle();
+  }, [session.active, recordToggle]);
 
   useEffect(() => {
     if (!recording || paused) return;
@@ -258,7 +287,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const result = await daw.recordStop();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
     // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
-    if (result.ok) tellStopped(true);
+    if (result.ok) void tellStopped(true);
     return result;
   }, [daw, tellStopped]);
   const askedByShell = useRef(false);

@@ -3,6 +3,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const host = vi.hoisted(() => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
+vi.mock('../../../api/hostWindow', () => host);
+
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
@@ -10,6 +14,11 @@ import type { RecorderState } from '../../../api/contracts/recording';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
+import type { MeasurementsPort } from '../../../ports/measurements';
+import { createMockMeasurements } from '../../../ports/measurements';
+import { PortOverrides } from '../../../ports/usePort';
+import type { GuideDialogueCue } from '../../../api/contracts/storyBible';
+import type { TeleprompterEvent } from '../../../api/contracts/teleprompter';
 import type { NarrationApi, TeleprompterState } from '../../../types';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
@@ -17,9 +26,17 @@ import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.clearAllMocks();
 });
 
-type Options = { setup?: DawSetupId; daw?: DawClient; search?: string; api?: Partial<NarrationApi>; hasManuscript?: boolean };
+type Options = {
+  setup?: DawSetupId;
+  daw?: DawClient;
+  search?: string;
+  api?: Partial<NarrationApi>;
+  hasManuscript?: boolean;
+  measurements?: MeasurementsPort;
+};
 
 /** A DAW that records but whose roll replaces audio: it asks first (the mock's Audacity without backups). */
 const destructive = (): DawClient => {
@@ -41,7 +58,7 @@ function spied(daw: DawClient) {
   };
 }
 
-function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true }: Options = {}) {
+function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true, measurements }: Options = {}) {
   const passageMapRecordRun = vi.fn(async () => {});
   const teleprompterStop = vi.fn(async () => {});
   const api = pageApi({ passageMapRecordRun, teleprompterStop, ...over } as Partial<NarrationApi>);
@@ -51,7 +68,9 @@ function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasM
   const navigate = vi.fn();
   const view = render(
     <BoothHost api={api} daw={daw} journal={journal} overlay={overlay} search={search}>
-      <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+      <PortOverrides clients={measurements ? { daw, measurements } : { daw }}>
+        <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+      </PortOverrides>
       <Driver />
     </BoothHost>,
   );
@@ -643,5 +662,191 @@ describe('a pickup session on the page', () => {
     expect(document.querySelector('#bkeys')?.textContent).not.toContain('Next pickup');
     await press('Escape');
     await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+  });
+});
+
+// SN-O11: the rest of the Booth parity audit (docs/research/studio-next-parity-booth.md, G2 to G15).
+const toasts = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((toast) => toast.text);
+
+/** A host whose listening session the test drives: it pushes the session's state and events as the sidecar would. */
+function voiceHost() {
+  const events = new Set<(event: TeleprompterEvent) => void>();
+  const states = new Set<(state: TeleprompterState) => void>();
+  return {
+    api: {
+      subscribeTeleprompterEvent: (on: (event: TeleprompterEvent) => void) => {
+        events.add(on);
+        return () => events.delete(on);
+      },
+      subscribeTeleprompterState: (on: (state: TeleprompterState) => void) => {
+        states.add(on);
+        return () => states.delete(on);
+      },
+      teleprompterStart: vi.fn(async () => ({ status: 'started' as const })),
+    } as Partial<NarrationApi>,
+    state: (state: Partial<TeleprompterState>) =>
+      act(() => states.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state }))),
+    event: (event: TeleprompterEvent) => act(() => events.forEach((on) => on(event))),
+  };
+}
+
+describe('a take stops by itself at the end of the chapter', () => {
+  it('a take stops by itself at the end of the chapter and says the take is saved', async () => {
+    const voice = voiceHost();
+    const page = renderPage({ api: voice.api });
+    await record(page);
+    await voice.state({});
+    await voice.event({ type: 'position', read: 30, committed: 30, status: 'done', jump: null, skipped: null });
+    // "Done - stopping in a few seconds unless you read on": the take runs on until the session stops itself.
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    await voice.state({ phase: 'stopped', message: 'Stopped at the end of the chapter.' });
+    // The same stop the Stop button makes: one recordStop through the Record control, and the passage map's run ends.
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    await waitFor(() => expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(toasts(page)).toContain('Take saved'));
+  });
+
+  it('reading on past the end keeps the take, and a session that stops elsewhere does not stop it', async () => {
+    const voice = voiceHost();
+    const page = renderPage({ api: voice.api });
+    await record(page);
+    await voice.state({});
+    await voice.event({ type: 'position', read: 30, committed: 30, status: 'done', jump: null, skipped: null });
+    await voice.event({ type: 'position', read: 12, committed: 12, status: 'listening', jump: 'restart', skipped: null });
+    await voice.state({ phase: 'stopped', message: '' });
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+  });
+});
+
+describe('the speaker chips write through the shared cues', () => {
+  it('confirming a suggested chip writes the shared speaker', async () => {
+    const cue: GuideDialogueCue = {
+      id: 'cue-1',
+      chapterId: 'c1',
+      paragraphId: 'p2',
+      quote_start: 0,
+      quote_end: 20,
+      quote_text: '“Off with her head,”',
+      speaker_entity_id: 'e-queen',
+      speaker_source: 'tag',
+      evidence: {},
+      corrected: false,
+    } as GuideDialogueCue;
+    const guideCorrectCue = vi.fn(async () => {});
+    renderPage({ api: { guideDialogueCues: async () => [cue], guideCorrectCue } as Partial<NarrationApi> });
+    await ready();
+    await userEvent.click(await screen.findByRole('button', { name: 'Speaker Queen. Change speaker' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Confirm “Queen”' }));
+    await waitFor(() => expect(guideCorrectCue).toHaveBeenCalledWith('cue-1', 'e-queen'));
+  });
+});
+
+describe('every way out of the page asks while a take records', () => {
+  it('every way out of the page asks while a take records', async () => {
+    const page = renderPage();
+    await record(page);
+    // Each exit the shell runs asks the page's guard before it moves: the palette's jump to a page, a link from a toast, the mouse's
+    // Back and Forward buttons (the shell asks with no destination), the rail, and a project switch (the start page).
+    const exits = { palette: '/proof', toast: '/pickups', mouseButtons: '', rail: '/production', projectSwitch: '/' };
+    for (const [exit, path] of Object.entries(exits))
+      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({ exit, verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }) } });
+    // Asking stops nothing: only the narrator's Stop and leave does.
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    expect(screen.getByText('REC')).toBeTruthy();
+  });
+});
+
+describe('the right-click menu', () => {
+  it('right-click offers the phrase, take and text commands', async () => {
+    const page = renderPage();
+    await ready();
+    const open = async () => {
+      act(() => {
+        fireEvent.contextMenu(document.querySelector('[data-unit="1"] [data-word="0"]')!, { button: 2, clientX: 10, clientY: 10 });
+      });
+      return screen.findByRole('menu');
+    };
+    const menu = await open();
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Start from here', 'Bookmark here', 'Next phrase', 'Back one phrase', 'Punch and roll', 'Larger text', 'Smaller text', 'Exit Booth']);
+    const text = () => document.querySelector<HTMLElement>('[data-booth-text] > div')!.style.fontSize;
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Larger text' }));
+    expect(text()).toBe('44px');
+    await userEvent.click(within(await open()).getByRole('menuitem', { name: 'Smaller text' }));
+    expect(text()).toBe('40px');
+    await userEvent.click(within(await open()).getByRole('menuitem', { name: 'Next phrase' }));
+    expect(current()).toBe('1');
+    await userEvent.click(within(await open()).getByRole('menuitem', { name: 'Back one phrase' }));
+    expect(current()).toBe('0');
+    await userEvent.click(within(await open()).getByRole('menuitem', { name: 'Exit Booth' }));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+  });
+});
+
+describe('F11 and the window', () => {
+  it('F11 takes the window fullscreen and the Booth gives it back on leaving', async () => {
+    const page = renderPage();
+    await ready();
+    await press('F11');
+    await waitFor(() => expect(host.toggleFullscreen).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(host.exitFullscreen).not.toHaveBeenCalled();
+    page.view.unmount();
+    expect(host.exitFullscreen).toHaveBeenCalledTimes(1);
+  });
+
+  it('a Booth that did not make the window fullscreen leaves it as it is', async () => {
+    const page = renderPage();
+    await ready();
+    page.view.unmount();
+    expect(host.exitFullscreen).not.toHaveBeenCalled();
+  });
+});
+
+describe('the footer room tone', () => {
+  it("the footer shows the project's measured room tone", async () => {
+    // The microphone saved in Settings is the one whose room tone the footer shows.
+    const settingsForScope = async (scope: string) => (scope === 'global' ? { Teleprompter: [{ key: 'input_device', value: 'USB Mic', isSet: true }] } : {});
+    renderPage({
+      api: { settingsForScope } as unknown as Partial<NarrationApi>,
+      measurements: createMockMeasurements({ roomTone: { 'USB Mic': -58.6 } }),
+    });
+    await ready();
+    expect(await screen.findByText('Room −58.6 dB')).toBeTruthy();
+  });
+
+  it('says the room is not measured yet when there is no reading', async () => {
+    renderPage({ measurements: createMockMeasurements({ none: true }) });
+    await ready();
+    expect(await screen.findByText('Room not measured yet')).toBeTruthy();
+  });
+});
+
+describe('Page Down and Page Up', () => {
+  it('Page Down and Page Up scroll the view without moving the reading position', async () => {
+    const sized = [
+      vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600),
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(5000),
+    ];
+    renderPage();
+    await ready();
+    const text = document.querySelector<HTMLElement>('[data-booth-text] > div')!;
+    const y = () => parseFloat(/-?[\d.]+(?=px)/.exec(text.style.transform)?.[0] ?? '0');
+    const y0 = y();
+    await press('PageDown');
+    expect(y0 - y()).toBeCloseTo(480);
+    expect(current()).toBe('0');
+    await press('PageUp');
+    expect(y()).toBeCloseTo(y0);
+    expect(current()).toBe('0');
+    sized.forEach((spy) => spy.mockRestore());
   });
 });
