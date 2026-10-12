@@ -2830,7 +2830,8 @@ export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: n
  * WorkspaceTakeEvidence answers, for each take WorkspaceTakes offers for the same passage and in the same order, the
  * share of the passage's script words it read as written (from the stored alignment of its range), what its own
  * source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
- * measured) and where its place came from ("aligned"; ADR 0140). It reads only and starts no job; a take whose file
+ * measured) and where its place came from ("map" for a take the Booth's passage map stamped over the passage, "aligned"
+ * for one recorded elsewhere; ADR 0140). It reads only and starts no job; a take whose file
  * cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
  */
 export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
