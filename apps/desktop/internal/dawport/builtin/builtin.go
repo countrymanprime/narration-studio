@@ -2,10 +2,11 @@
 // no DAW whose project records with the built-in recorder (dawport.LaunchKind). It wraps the recorder through Recorder, an
 // interface declared here that recording.Service satisfies, so the recorder itself knows nothing of the port.
 //
-// It declares what the recorder does: record (Experimental until the owner's hardware pass) and takes (choosing a line's take
-// marks it the keeper, keeper.go in internal/recording). It keeps no saved project, so project_read is Unsupported with its own
-// sentence. Punch and the edit rows the app will make itself (stack_takes, cut_range, fx_range) are NotYetAvailable; once one
-// has a role it declares mode "app" (Depth). Everything else is Unsupported.
+// It declares what the recorder does: record (Experimental until the owner's hardware pass), takes (choosing a line's take
+// marks it the keeper and hiding the others keeps their files, keeper.go in internal/recording) and cut_range (a cut is an edit
+// list the recorder plays and exports past, never a rewrite of the take file; mode "app"), the last two Experimental. It keeps no
+// saved project, so project_read is Unsupported with its own sentence. Punch and the edit rows the app has not built yet
+// (stack_takes, fx_range) are NotYetAvailable; once one has a role it declares mode "app" (Depth). Everything else is Unsupported.
 //
 // Importing the package registers its factory for dawport.KindBuiltIn.
 package builtin
@@ -28,6 +29,10 @@ type Recorder interface {
 	Stop()
 	// SetTakeKeeper marks or unmarks a take the keeper of its line.
 	SetTakeKeeper(takeName string, keeper bool) error
+	// HideOtherTakes keeps takeName and hides the other takes of its line, returning how many it newly hid. No file is deleted.
+	HideOtherTakes(takeName string) (int, error)
+	// CutTakeRange adds a cut (mode "gap" or "close") to takeName's edit list; the take's file is not rewritten.
+	CutTakeRange(takeName string, start, end float64, mode string) error
 }
 
 // Config is the adapter's recorder and where it reads the narrator's microphone.
@@ -62,8 +67,11 @@ var declares = func() map[dawport.Capability]dawport.Level {
 	}
 	d[dawport.CapRecord] = dawport.Experimental
 	d[dawport.CapTakes] = dawport.Experimental
+	d[dawport.CapCutRange] = dawport.Experimental
 	for c := range appMade {
-		d[c] = dawport.NotYetAvailable
+		if d[c] == dawport.Unsupported {
+			d[c] = dawport.NotYetAvailable
+		}
 	}
 	d[dawport.CapPunch] = dawport.NotYetAvailable
 	return d
@@ -122,10 +130,10 @@ func (a *Adapter) Kind() dawport.Kind { return dawport.KindBuiltIn }
 // Declares returns a copy of the declaration, the same on every call.
 func (a *Adapter) Declares() map[dawport.Capability]dawport.Level { return maps.Clone(declares) }
 
-// Role is the session for record and takes, and nil for everything else.
+// Role is the session for record, takes and cut_range, and nil for everything else.
 func (a *Adapter) Role(c dawport.Capability) any {
 	switch c {
-	case dawport.CapRecord, dawport.CapTakes:
+	case dawport.CapRecord, dawport.CapTakes, dawport.CapCutRange:
 		return a.session
 	default:
 		return nil
@@ -153,7 +161,7 @@ func (declaration) Runtime() dawport.Runtime                              { retu
 func (declaration) Explain(c dawport.Capability, r dawport.Reason) string { return explain(c, r) }
 func (declaration) Depth(c dawport.Capability) dawport.Depth              { return depthOf(declares, c) }
 
-// session is the record and takes roles over one recorder.
+// session is the record, takes and cut_range roles over one recorder.
 type session struct {
 	config Config
 }
@@ -161,6 +169,7 @@ type session struct {
 var (
 	_ dawport.Recorder     = (*session)(nil)
 	_ dawport.TakeSelector = (*session)(nil)
+	_ dawport.RangeCutter  = (*session)(nil)
 )
 
 func (s *session) ready(ctx context.Context) (Recorder, error) {
@@ -222,10 +231,36 @@ func (s *session) SetActiveTake(ctx context.Context, itemGUID, takeGUID string) 
 	return dawport.ActiveTakeSet{ItemGUID: itemGUID, TakeGUID: takeGUID, Changed: true}, nil
 }
 
-// HideTakes changes nothing: the built-in recorder plays only the kept take of a line, so the others are already silent.
-func (s *session) HideTakes(ctx context.Context, _, _ string) (dawport.Result, error) {
-	if _, err := s.ready(ctx); err != nil {
+// HideTakes keeps keepTakeGUID (a take's name) as its line's keeper and hides the line's other takes. Their files stay in the
+// Recordings folder; the recorder plays and exports only the keeper. itemGUID is the line and is not needed to find the others.
+func (s *session) HideTakes(ctx context.Context, _, keepTakeGUID string) (dawport.Result, error) {
+	recorder, err := s.ready(ctx)
+	if err != nil {
 		return dawport.Result{}, err
 	}
-	return dawport.OK("The built-in recorder plays only the kept take, so there is nothing to mute.", false), nil
+	count, err := recorder.HideOtherTakes(keepTakeGUID)
+	if err != nil {
+		return dawport.Refused(err.Error()), nil
+	}
+	if count == 0 {
+		return dawport.OK("No other takes of this line to hide.", false), nil
+	}
+	return dawport.OK("Hid the other takes of this line. Their files are kept.", true), nil
+}
+
+// DeleteRange cuts the range into the take's edit list (request.ItemGUID is the take's name); the take's file is not rewritten.
+// The default is a gap, which keeps the length; a cut that closes up is the same list with mode "close".
+func (s *session) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequest) (dawport.Result, error) {
+	recorder, err := s.ready(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	mode := request.Mode
+	if mode == "" {
+		mode = dawport.CutGap
+	}
+	if err := recorder.CutTakeRange(request.ItemGUID, request.Start, request.End, string(mode)); err != nil {
+		return dawport.RefusedStale(err.Error()), nil
+	}
+	return dawport.OK("Cut the range from the take's edit list. The take file is kept as recorded.", true), nil
 }

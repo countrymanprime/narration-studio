@@ -1881,6 +1881,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(Object.keys((await createMockApi({}, { recording: { engine: 'builtin' } }).recorderState()).takes[0]).sort()).toEqual(
       Object.keys(golden.takes[0] as object).sort(),
     );
+    // The recorder's own edits ride on each take: hidden (kept, never deleted) and the cut list (the file is not rewritten).
+    expect(
+      parseWire(recorderStateSchema, readGolden('recorder-state-takes.json'), { boundary: 'golden', payload: 'recorder-state-takes.json' }).takes[0],
+    ).toMatchObject({
+      hidden: false,
+      cuts: [],
+    });
     await expect(createMockApi({}, { recording: { unavailable: true } }).recorderChooseEngine('builtin')).rejects.toThrow('not available');
   });
 

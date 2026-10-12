@@ -165,6 +165,31 @@ describe('EditingPage', () => {
     });
   });
 
+  it("built-in recorder: hides the other takes and cleans up the app's own takes without a DAW", async () => {
+    const base = dawFor('builtin');
+    const hideTakes = vi.fn(async () => ({ ok: true, changed: true, message: 'Hid the other takes of this line. Their files are kept.', undoSteps: 1 }));
+    mount({ setup: 'builtin', passageId: 'ps-1', daw: { ...base, hideTakes } as DawClient });
+    await script();
+    await waitFor(() => expect(document.querySelectorAll('[data-takes="p1"] [data-take]')).toHaveLength(2));
+    // The recorder declares both edits itself: takes (hide) and cut_range (an edit list, mode app), with no DAW running.
+    const support = (await base.capabilities()).capabilities;
+    expect(support.takes).toMatchObject({ available: true, level: 'experimental' });
+    expect(support.cut_range).toMatchObject({ available: true, level: 'experimental', mode: 'app' });
+    expect(document.querySelector('#offbanner')).toBeNull();
+    const keep = await screen.findByRole('button', { name: 'Keep T-2' });
+    await waitFor(() => expect(keep.getAttribute('aria-disabled')).not.toBe('true'));
+    fireEvent.click(keep);
+    await waitFor(() => expect(overlay.getSnapshot().toasts.some((t) => /Kept T-2/.test(t.text))).toBe(true));
+    // Hide the other takes: asked first, then the recorder hides them (never deletes) and one undo entry is made.
+    fireEvent.click(await screen.findByRole('button', { name: /Hide the other 1 take/ }));
+    await waitFor(() => expect(overlay.getSnapshot().dialogs.some((d) => d.kind === 'confirm')).toBe(true));
+    act(() => {
+      const dialog = overlay.getSnapshot().dialogs.find((d) => d.kind === 'confirm');
+      if (dialog?.kind === 'confirm') dialog.answer(true);
+    });
+    await waitFor(() => expect(hideTakes).toHaveBeenCalledTimes(1));
+  });
+
   it('strip-and-drawer-toggles-follow-the-width', async () => {
     mount();
     await script();
