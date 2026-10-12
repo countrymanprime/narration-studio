@@ -3,12 +3,16 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour with how many names it has and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, and the Up and Down keys move through the rows. With no manuscript imported the page asks for one.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour with how many names it has and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one.
 
 ![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 
-Selecting an entry opens its detail panel, read-only at first. Press Edit to change
-pronunciation, aliases, and notes, then Save (or Cancel). Locked entries can't be edited until
+Selecting an entry opens its detail panel, read-only at first: its names and how you say each, its
+description, for a type that can speak **How they talk**, **How they act** and **What they know**, its
+properties, its **Relationships** to other entries, and **Appears in**, the chapters it is in, each with a
+button that opens it in the [Script](script.md). The kind beside the name is a menu that changes it, and the
+magnifier button opens the Script's Find on the name. Press Edit (the pencil) to change the entry, then Save
+(or Cancel). Locked entries can't be edited until
 unlocked. Rebuilding is deliberately strict: it favors missing a name over listing ordinary
 words, so add unusual names by hand with the + button.
 
@@ -29,11 +33,12 @@ Script lists them too.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
 
-Entries the build isn't sure about are filed under Needs Review, and their evidence is
-highlighted in the review color so it is clear which entries still need a decision. "Go to line"
-on an entry's evidence jumps to that spot in the [Script](script.md).
+Entries the build isn't sure what kind they are get the **Needs Review** kind, in the review colour;
+choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
+**Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
+**Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
 
-![Story Bible - a Needs Review entry, its evidence highlighted in the review color](../../images/ui/storybible-needs-review.webp)
+![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
 Typing into the alias field opens a dropdown of existing entries whose name or alias matches,
 so a name mentioned under a different spelling can be merged into the entry it already

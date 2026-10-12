@@ -55,7 +55,8 @@ The **Pickup session** panel beside the list counts the open lines in view that 
 **About** how many minutes they take to record, from the recordings' measured times (it says when there is no measured
 figure). From there:
 
-- **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter.
+- **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter (see
+  [A pickup session](booth.md#a-pickup-session)).
 - **Add N as markers in** the DAW puts a pickup marker at each line's place. It is off, with the reason, when the DAW
   cannot add markers.
 - **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere.
