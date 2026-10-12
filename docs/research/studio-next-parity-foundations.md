@@ -12,8 +12,8 @@ Method: these are the ten mock test files no page owns. Each mock case is a row 
 - 12 gaps in the cases (F1 to F12), under [Gaps](#gaps). Only F12 is DAW behaviour: a punch chosen before a take does not reach the DAW. F3 needs a ruling before any build.
 - `scenarios.test.tsx`, `no-hardcoded-speakers.test.ts` and `no-raw-controls.test.ts` are `covered` by their real counterparts (SN-S61, SN-S8, SN-F7). Each counterpart is narrower than the mock (F10, F11; one raw-control ceiling left for SN-C4).
 - All 30 `daw.test.ts` cases have a named real test: a `dawport` Go test, the `DawClient` contract suite (`apps/ui/src/ports/daw.contract.test.ts`, SN-D21) or a Lua harness test, except two rows whose strongest test is a binding test in the root `apps/desktop` package (the marker kind prefix, and several linked tracks).
-- Rulings: SN0-Q1 to Q9 and DQ-1 to DQ-18 are in [Rulings and their ADRs](#rulings-and-their-adrs). 16 rulings are recorded by a merged ADR. Nine need none, for the reason given. DQ-17 and DQ-18 have no ADR that records the supersession they rule (R1, R2).
-- Register check: one Status line was missing and is fixed in this PR (ADR 0165, superseded in part by ADR 0857). Five ADRs under the DQ-1 "where they differ" rows have not been compared with the mock (R3). Five superseding ADRs are still Proposed, for the owner (see [Owner steps](#owner-steps)).
+- Rulings: SN0-Q1 to Q9 and DQ-1 to DQ-18 are in [Rulings and their ADRs](#rulings-and-their-adrs). 16 rulings are recorded by a merged ADR (DQ-7, DQ-8 and DQ-15 by ADRs still Proposed). Nine need none, for the reason given. DQ-17 and DQ-18 have no ADR that records the supersession they rule (R1, R2).
+- Register check: two Status lines are fixed in this PR: ADR 0165 now names ADR 0857, and ADR 0147 now names ADR 0858 beside ADR 0860. Five ADRs under the DQ-1 "where they differ" rows have not been compared with the mock (R3). Five superseding ADRs are still Proposed, for the owner (see [Owner steps](#owner-steps)).
 
 **The checker has no status for a gap.** A mock case with no real test must still have a row, and only `mock-only` passes with an empty `real test`. Gap rows therefore carry `mock-only` and a note that starts `GAP Fn`, as the other parity notes do. They are not excused: each has an entry under [Gaps](#gaps), and SN-C4 should count them as open. A `covered` row whose note starts `GAP Fn` has a real test that asserts less than the mock case; it is open too.
 
@@ -216,7 +216,7 @@ Every SUPERSEDE row of the register, read against the old ADR's Status line. KEE
 | 0234, 0705 range (A9) | 0860 | "superseded in part by ADR 0860" | match |
 | 0246 roll (A8) | 0860 | "superseded in part by ADR 0860" | match |
 | 0262 (DQ-8) | 0860 | "superseded in part by ADR 0860" | match |
-| 0147 (DQ-7) | 0858, 0860 | "superseded in part by ADR 0860" | match; the line does not name 0858, which records the app's half |
+| 0147 (DQ-7) | 0858, 0860 | named 0860 only | **fixed in this PR**: now names ADR 0858 too |
 | 0165 (DQ-15) | 0857 | was "Proposed" with no supersession | **fixed in this PR**: "superseded in part by ADR 0857" |
 | 0660 (DQ-18) | none | "Proposed" | R2: no ADR records the supersession |
 | 0119 (DQ-17) | none | "Proposed" | R1: no ADR records the supersession |
