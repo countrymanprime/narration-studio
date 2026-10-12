@@ -81,6 +81,42 @@ describe('Settings page (SN-M52)', () => {
     expect((field as HTMLSelectElement).value).toBe(before);
   });
 
+  it('recording panel: chooses the DAW or the built-in recorder, and shows the DAW chosen while it is off', async () => {
+    const api = createMockApi();
+    const report = await api.dawCapabilities();
+    // The launch's DAW is not running: the report still names it, and the project's engine is still the DAW.
+    api.dawCapabilities = async () => ({ ...report, reachable: false });
+    const choose = vi.spyOn(api, 'recorderChooseEngine');
+    await renderPage({ api });
+    const recording = panel('Recording');
+    const group = await within(recording).findByRole('radiogroup', { name: 'Recording' });
+    const radios = within(group).getAllByRole('radio');
+    expect(radios).toHaveLength(2);
+    expect(radios[0]!.parentElement?.textContent).toBe(`${report.daw}. Recordings live in the DAW.`);
+    expect(radios[0]!.getAttribute('aria-checked')).toBe('true');
+    // The panel comes first, as the mock orders it.
+    expect(screen.getAllByRole('region')[0]).toBe(recording);
+
+    fireEvent.click(radios[1]!);
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('builtin'));
+    await waitFor(() =>
+      expect(
+        within(recording)
+          .getByRole('radio', { name: /^Built-in recorder/ })
+          .getAttribute('aria-checked'),
+      ).toBe('true'),
+    );
+    fireEvent.click(within(recording).getByRole('radio', { name: /Recordings live in the DAW/ }));
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('daw'));
+    await waitFor(() =>
+      expect(
+        within(recording)
+          .getByRole('radio', { name: /Recordings live in the DAW/ })
+          .getAttribute('aria-checked'),
+      ).toBe('true'),
+    );
+  });
+
   it('theme-radios-save-the-choice: system, light, dark', async () => {
     await renderPage();
     const appearance = panel('Appearance');
