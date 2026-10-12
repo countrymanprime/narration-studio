@@ -524,7 +524,7 @@ function AppRoutes() {
   // path params - "#p123" points at paragraph 123 (its globally unique
   // index, assigned when the manuscript is imported), "#c<chapter-id>" at a
   // chapter with no specific line, and "#<entityId>" at a Story Bible entry.
-  // See script/ScriptPage.tsx and Guide.tsx for where these are consumed. The pages that call it still name the prop
+  // See components/script/page/ScriptPage.tsx and Guide.tsx for where these are consumed. The pages that call it still name the prop
   // `goToManuscript` (it opens the manuscript's text on the Script page).
   const goToScript = (chapter: string, paragraph?: number) =>
     guardedNavigate(`/script#${paragraph !== undefined ? `p${paragraph}` : `c${encodeURIComponent(chapter)}`}`);
