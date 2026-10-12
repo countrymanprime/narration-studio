@@ -6,10 +6,10 @@ import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Select } from '../../../primitives/Select';
 import { clock } from '../../bar/clock';
 import { isLow, laterAudio, summarize, type ChapterDoc, type CutSpan, type SelSummary } from '../../model';
-import type { RangeLocator, SnappedEnd } from '../shared/locate';
-import { snapText } from '../shared/locate';
-import { cutPlanText, type RangePlan } from '../shared/rangePlan';
-import { Strips } from '../shared/Strips';
+import type { RangeLocator, SnappedEnd } from '../common/locate';
+import { snapText } from '../common/locate';
+import { cutPlanText, type RangePlan } from '../common/rangePlan';
+import { Strips } from '../common/Strips';
 import { DEFAULT_CUT, FADE_CHOICES, PAD_CHOICES, type CutOptions } from './cutCommand';
 
 type Acting = Exclude<RangePlan, { kind: 'refused' }>;
