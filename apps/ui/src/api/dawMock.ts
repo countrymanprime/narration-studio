@@ -53,6 +53,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   backups: 'not_yet_available',
   file_preview: 'experimental',
   file_reveal: 'experimental',
+  range_gain: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -85,6 +86,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   backups: 'running',
   file_preview: 'running',
   file_reveal: 'running',
+  range_gain: 'running',
 };
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
@@ -110,8 +112,9 @@ const AUDACITY_NEED_BACKUPS: Partial<Record<DawCapabilityKey, string>> = {
   stack_takes: 'Stacking takes',
   cut_range: 'Cutting words and their audio',
   fx_range: 'Adding an effect to words',
+  range_gain: 'Lowering stretches of a take',
 };
-const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range'];
+const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range', 'range_gain'];
 /** What the Audacity adapter declares Experimental until the owner's verification pass (ADR 0355, ADR 0863 for backups, SN-D83 for
  * the rows that need backups); the rest is not_yet_available. */
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
@@ -127,6 +130,7 @@ const AUDACITY_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; 
   stack_takes: { mode: 'steps' },
   cut_range: { mode: 'steps' },
   fx_range: { mode: 'steps' },
+  range_gain: { mode: 'steps' },
 };
 /** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
 const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
@@ -314,6 +318,7 @@ const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mo
   cut_range: { mode: 'native' },
   fx_range: { mode: 'native' },
   stack_takes: { mode: 'native' },
+  range_gain: { mode: 'native' },
 };
 
 /** Like the host's payload, `destructive` only when true and `mode` only when set. */

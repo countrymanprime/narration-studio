@@ -1,4 +1,4 @@
-import type { DawBackup, DawCapabilities, DawCutMode, DawProjectState, DawResult } from '../api/contracts/daw';
+import type { DawBackup, DawCapabilities, DawCutMode, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
   backupLabelOk,
@@ -23,6 +23,7 @@ import {
   takesHiddenOf,
   splitStaleOf,
   takeSplitOf,
+  rangeGainAnswerOf,
 } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
@@ -89,6 +90,10 @@ export type StackRequest = { chapterId: string; groups: StackGroup[]; shift: num
 /** A backup of the audio around a chapter's words before an edit (the Studio Next mock's backupAround, narrowed to what the page may
  * send: the host resolves the words' times and the chapter's track itself, and the DAW adds the narrator's window either side). `label`
  * is what the Backups list shows it was made for ("Roll at ¶ 3"). */
+/** Lower `stretches` (seconds into the take's own audio file) of `takeId`, a take of the chapter, by `reduceDb` (1 to 24): Clean up's
+ * Breaths, Plosives and Noise. */
+export type RangeGainRequest = { chapterId: string; takeId: string; stretches: DawGainStretch[]; reduceDb: number };
+
 export type BackupRequest = { chapterId: string; firstToken: number; lastToken: number; label: string };
 
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
@@ -128,6 +133,9 @@ export interface DawClient {
   /** Cut `takeId`, a take of the chapter that reads its line twice, into two takes of one item at `at` (project seconds), in one undo step
    * of the DAW's own. Nothing is deleted; the DAW refuses a take that is gone or a cut outside it (code `stale`). */
   splitTake(chapterId: string, takeId: string, at: number): Promise<DawResult>;
+  /** Lower the request's stretches of a take by its dB, in one undo step of the DAW's own where it can; the recorded audio is left as it
+   * was where the DAW can (a volume envelope). The DAW refuses a take that is gone or a stretch outside it (code `stale`). */
+  reduceRangeGain(request: RangeGainRequest): Promise<DawResult>;
   /** Clone the audio around the request's words before an edit, so it can be put back. It changes no audio (`changed: false`). */
   backupAround(request: BackupRequest): Promise<DawResult>;
   /** Put a backup's audio back over the window it came from. Refused when the DAW has no backup with that id. */
@@ -167,6 +175,7 @@ export type DawHostApi = Pick<
   | 'dawStackTakes'
   | 'dawUnstackTakes'
   | 'dawSplitTake'
+  | 'dawReduceRangeGain'
   | 'dawBackupAround'
   | 'dawRestoreBackup'
   | 'dawBackups'
@@ -339,6 +348,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
       ),
     /** The binding answers a DawResult already: it looks the take up on the chapter's track and checks the cut is inside it. */
     splitTake: (chapterId, takeId, at) => api.dawSplitTake(chapterId, takeId, at),
+    /** The binding answers a DawResult already: it looks the take up on the chapter's track and checks each stretch is inside it. */
+    reduceRangeGain: ({ chapterId, takeId, stretches, reduceDb }) => api.dawReduceRangeGain(chapterId, takeId, stretches, reduceDb),
     /** The bindings answer a DawResult already and take ids only: the host resolves the window and the track itself. */
     backupAround: ({ chapterId, firstToken, lastToken, label }) => api.dawBackupAround(chapterId, firstToken, lastToken, label),
     restoreBackup: (backupId) => api.dawRestoreBackup(backupId),
@@ -470,6 +481,12 @@ export function createMockDawClient(
       if (at <= take.start || at >= take.start + take.length) return refused(splitStaleOf(setup).outside, 'splitTake', true);
       const split = takeSplitOf(setup);
       return 'refused' in split ? refused(split.refused, 'splitTake') : done(true, 1, split.message);
+    },
+    async reduceRangeGain({ chapterId, takeId, stretches, reduceDb }) {
+      const sentence = unavailable(setup, 'range_gain', 'reduceRangeGain');
+      if (sentence) return refused(sentence, 'reduceRangeGain');
+      const answer = rangeGainAnswerOf(setup, project, chapterId, takeId, stretches, reduceDb);
+      return 'refused' in answer ? refused(answer.refused, 'reduceRangeGain', answer.stale) : answer.result;
     },
     ...mockBackups(setup, project),
     ...mockMasterFiles(setup, project),

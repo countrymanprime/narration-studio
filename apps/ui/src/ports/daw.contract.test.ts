@@ -36,6 +36,9 @@ import {
   splitOutsideAnswer,
   splitTakeStaleAnswer,
   takeSplitAnswer,
+  gainOutsideAnswer,
+  gainTakeStaleAnswer,
+  rangeGainAnswer,
   takesHiddenAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
@@ -49,6 +52,7 @@ import {
   NOTHING_TO_CHANGE,
   type StackRequest,
   type BackupRequest,
+  type RangeGainRequest,
 } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
@@ -84,6 +88,9 @@ const GOLDEN_FILES = [
   'daw-split-take-done.json',
   'daw-split-take-refused-stale.json',
   'daw-split-take-refused-capability.json',
+  'daw-reduce-range-gain-done.json',
+  'daw-reduce-range-gain-refused-stale.json',
+  'daw-reduce-range-gain-refused-capability.json',
   'daw-backup-done.json',
   'daw-backup-restored.json',
   'daw-backup-refused.json',
@@ -281,6 +288,22 @@ function hostApi(): DawHostApi {
       if (at !== 15.5) return Promise.reject(new Error(`no golden for a cut at ${at} s`));
       return Promise.resolve(read('daw-split-take-done.json', dawResultSchema));
     },
+    // DawReduceRangeGain on REAPER: the dB and the stretches' shape are checked first, a take the fixture project's track does not hold
+    // and a stretch outside the part of its file it plays are the stale refusals, and take-twice lowered by 9 dB at 4..5 and 8..8.5 s is
+    // the done golden. Anything else has no golden.
+    dawReduceRangeGain: (chapterId, takeId, stretches, reduceDb) => {
+      if (!Number.isFinite(reduceDb) || reduceDb < 1 || reduceDb > 24) return Promise.resolve(refusal(DAW_ANSWERS.gainBadDb));
+      if (stretches.length === 0 || stretches.length > 500 || stretches.some(({ start, end }) => !(start >= 0) || !Number.isFinite(end) || !(end > start))) {
+        return Promise.resolve(refusal(DAW_ANSWERS.gainBadStretches));
+      }
+      const take = known.chapterIds.includes(chapterId) ? known.gainTakes?.[takeId] : undefined;
+      if (!take) return Promise.resolve(staleRefusal(gainTakeStaleAnswer('REAPER')));
+      if (stretches.some(({ start, end }) => start < take.from || end > take.to)) return Promise.resolve(staleRefusal(gainOutsideAnswer('REAPER')));
+      if (reduceDb !== 9 || JSON.stringify(stretches) !== JSON.stringify(GAIN.stretches)) {
+        return Promise.reject(new Error(`no golden for ${JSON.stringify(stretches)} by ${reduceDb} dB`));
+      }
+      return Promise.resolve(read('daw-reduce-range-gain-done.json', dawResultSchema));
+    },
     // The backups bindings on REAPER: the capability's refusal (the refused golden) for a backup and a restore, and the table the list
     // golden holds.
     dawBackupAround: () => Promise.resolve(read('daw-backup-refused.json', dawResultSchema)),
@@ -288,6 +311,17 @@ function hostApi(): DawHostApi {
     dawBackups: () => Promise.resolve(read('daw-backups-list.json', dawBackupsFileSchema)),
   };
 }
+
+/** Two stretches of the fixture project's take-twice lowered by 9 dB: what the reduce-range-gain goldens' host lowered. */
+const GAIN: RangeGainRequest = {
+  chapterId: 'chapter-1',
+  takeId: 'take-twice',
+  stretches: [
+    { start: 4, end: 5 },
+    { start: 8, end: 8.5 },
+  ],
+  reduceDb: 9,
+};
 
 /** A backup of the fixture project's chapter around its words 140 to 159, which the mock times at 140 to 160 s: a 260 s window. */
 const BACKUP: BackupRequest = { chapterId: 'chapter-1', firstToken: 140, lastToken: 159, label: 'Roll at ¶ 3' };
@@ -351,6 +385,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.stackTakes(STACK),
         await daw.unstackTakes(UNSTACK),
         await daw.splitTake('chapter-1', 'take-twice', 15.5),
+        await daw.reduceRangeGain(GAIN),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -503,6 +538,26 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   {
     name: 'split-take: a time that is not one is refused alike',
     observe: async (daw) => [await daw.splitTake('chapter-1', 'take-twice', -1), await daw.splitTake('chapter-1', 'take-twice', Number.NaN)],
+  },
+  { name: 'reduce-range-gain: two stretches of a take lowered by 9 dB are answered alike', observe: (daw) => daw.reduceRangeGain(GAIN) },
+  {
+    name: 'reduce-range-gain: a take the track does not hold, an unknown chapter and a stretch outside the take are refused stale alike',
+    observe: async (daw) => [
+      await daw.reduceRangeGain({ ...GAIN, takeId: '{11111111-1111-4111-8111-111111111111}' }),
+      await daw.reduceRangeGain({ ...GAIN, chapterId: 'chapter-9' }),
+      await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: 1, end: 3 }] }),
+      await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: 11, end: 12.5 }] }),
+    ],
+  },
+  {
+    name: 'reduce-range-gain: a reduction or stretches out of bounds are refused alike',
+    observe: async (daw) => [
+      await daw.reduceRangeGain({ ...GAIN, reduceDb: 0 }),
+      await daw.reduceRangeGain({ ...GAIN, reduceDb: 25 }),
+      await daw.reduceRangeGain({ ...GAIN, stretches: [] }),
+      await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: 5, end: 4 }] }),
+      await daw.reduceRangeGain({ ...GAIN, stretches: [{ start: -1, end: 4 }] }),
+    ],
   },
   {
     name: 'dawclient-backups: REAPER refuses a backup and a restore alike, with the capability sentence',
@@ -937,6 +992,42 @@ describe('the mock setups', () => {
     });
     expect(await host.splitTake('chapter-1', 'take-twice', 15.5)).toEqual(stale);
     expect(calls).toEqual([['chapter-1', 'take-twice', 15.5]]);
+  });
+
+  it("reduce-range-gain: the mock refuses with the setup's range_gain sentence and answers undo steps by the capability's mode", async () => {
+    for (const [id, setup] of Object.entries(DAW_SETUPS)) {
+      const support = setup.capabilities.range_gain;
+      const got = await createMockDawClient(setup).reduceRangeGain(GAIN);
+      expectWellFormed(got);
+      if (!support?.available) expect(got, id).toEqual(refusal(support?.message ?? ''));
+      else if (support.mode === 'steps')
+        expect(got, id).toEqual({
+          ok: true,
+          changed: true,
+          message: `Lowered 2 stretches by 9 dB in ${setup.daw}.`,
+          undoSteps: 2,
+          steps: ['Select the stretch', 'Lower it by 9 dB'],
+        });
+      else expect(got, id).toEqual({ ok: true, changed: true, message: rangeGainAnswer(setup.daw, 2, 9), undoSteps: 1 });
+    }
+    expect(await createMockDawClient(DAW_SETUPS.reaper).reduceRangeGain(GAIN)).toEqual(read('daw-reduce-range-gain-done.json', dawResultSchema));
+    for (const file of ['daw-reduce-range-gain-refused-stale.json', 'daw-reduce-range-gain-refused-capability.json'])
+      expectWellFormed(read(file, dawResultSchema));
+    expect(read('daw-reduce-range-gain-refused-stale.json', dawResultSchema).code).toBe('stale');
+  });
+
+  it('reduce-range-gain: the host adapter sends the chapter, the take id, the stretches and the dB only, and answers the binding as it is', async () => {
+    const stale = read('daw-reduce-range-gain-refused-stale.json', dawResultSchema);
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawReduceRangeGain: (...args) => {
+        calls.push(args);
+        return Promise.resolve(stale);
+      },
+    });
+    expect(await host.reduceRangeGain(GAIN)).toEqual(stale);
+    expect(calls).toEqual([['chapter-1', 'take-twice', GAIN.stretches, 9]]);
   });
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {

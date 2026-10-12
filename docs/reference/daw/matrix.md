@@ -35,3 +35,4 @@ What each engine declares for each capability today. The levels are the adapters
 | `backups` | `BackupKeeper` | Engine answering | Not yet available | Experimental | Not reachable | Unsupported |
 | `file_preview` | `FilePreviewer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `file_reveal` | `FileRevealer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `range_gain` | `RangeGainReducer` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |

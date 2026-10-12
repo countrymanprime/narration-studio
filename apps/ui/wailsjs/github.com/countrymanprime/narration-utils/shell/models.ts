@@ -6,6 +6,34 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * DawGainStretch is a stretch of a take to lower: start to end seconds into the take's own audio file.
+ */
+export class DawGainStretch {
+    "start": number;
+    "end": number;
+
+    /** Creates a new DawGainStretch instance. */
+    constructor($$source: Partial<DawGainStretch> = {}) {
+        if (!("start" in $$source)) {
+            this["start"] = 0;
+        }
+        if (!("end" in $$source)) {
+            this["end"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DawGainStretch instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DawGainStretch {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DawGainStretch($$parsedSource as Partial<DawGainStretch>);
+    }
+}
+
+/**
  * ExportItem is one rendered WAV to master and encode: its place in the eventual package (one of packager.Kind's own
  * values, kept a plain string on the wire so the UI's contract does not depend on a Go enum type) and, for a
  * chapter, its title (packager.Assemble needs it to name the file; ignored for the other kinds).

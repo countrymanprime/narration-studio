@@ -559,6 +559,20 @@
       "kind": "choice",
       "label": "Show a file in the audio engine",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.range_gain",
+      "kind": "choice",
+      "label": "Lower stretches of a take",
+      "value": ""
     }
   ],
   "Editing": [

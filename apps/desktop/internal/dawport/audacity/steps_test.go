@@ -20,12 +20,13 @@ import (
 
 // editAudacity is the backups' fake Audacity (pipeAudacity) with the edit commands the steps send: Split (no change to the fake's
 // audio, which has no clips), SplitDelete (takes the selection out and leaves a gap), Delete (takes the selection out and moves
-// what follows up), ApplyMacro (marks the selection's audio "fx:"), and PunchAndRoll (clears the selected track from the cursor on,
+// what follows up), ApplyMacro (marks the selection's audio "fx:"), Amplify (marks it "amp:" and records the ratio), and PunchAndRoll (clears the selected track from the cursor on,
 // as a recording over it would). They are answered as the published scripting reference documents them; what only a real
 // Audacity can show is the owner's pass (docs/operations/audacity-verification-pass.md).
 type editAudacity struct {
 	*pipeAudacity
 	macros  []string
+	ratios  []string
 	punched []float64
 }
 
@@ -37,7 +38,7 @@ func (f *editAudacity) handle(line string) ([]string, bool) {
 		return f.pipeAudacity.handle(line)
 	}
 	switch cmd.Name {
-	case "Split", "SplitDelete", "Delete", "ApplyMacro", "PunchAndRoll":
+	case "Split", "SplitDelete", "Delete", "ApplyMacro", "Amplify", "PunchAndRoll":
 	default:
 		return f.pipeAudacity.handle(line)
 	}
@@ -74,6 +75,13 @@ func (f *editAudacity) handle(line string) ([]string, bool) {
 		for s := a; s < b; s++ {
 			if v, ok := t.audio[s]; ok {
 				t.audio[s] = "fx:" + v
+			}
+		}
+	case "Amplify":
+		f.ratios = append(f.ratios, cmd.Params["Ratio"])
+		for s := a; s < b; s++ {
+			if v, ok := t.audio[s]; ok {
+				t.audio[s] = "amp:" + v
 			}
 		}
 	case "PunchAndRoll":
@@ -164,7 +172,7 @@ func withoutReads(names []string) []string {
 }
 
 // editCommands are the commands that change the narrator's audio.
-var editCommands = []string{"Split", "SplitDelete", "Delete", "ApplyMacro", "PunchAndRoll", "RemoveTracks"}
+var editCommands = []string{"Split", "SplitDelete", "Delete", "ApplyMacro", "Amplify", "PunchAndRoll", "RemoveTracks"}
 
 func editsIn(log []string) []string {
 	var found []string
@@ -726,6 +734,81 @@ func TestDeleteRangeTakesThePadAndRefusesRoomTone(t *testing.T) {
 			}
 			if got := editsIn(fake.commands()); len(got) != 0 {
 				t.Errorf("edits %v were sent", got)
+			}
+		})
+	}
+}
+
+func gainRequest(stretches ...dawport.GainStretch) dawport.RangeGainRequest {
+	return dawport.RangeGainRequest{ChapterID: "ch-1", ItemGUID: "Chapter 1", TakeGUID: "Chapter 1", ReduceDB: 6, Stretches: stretches}
+}
+
+// Audacity lowers each stretch with Amplify after one backup of the audio from the first stretch to the last, counting a stretch's
+// seconds from the start of the track's audio; with no backups, a track that is gone, a stretch outside its audio or a request out of
+// shape, it refuses with a sentence and edits nothing.
+func TestAudacityReducesRangeGainAfterABackupOrRefuses(t *testing.T) {
+	if depth(dawport.CapRangeGain) != (dawport.Depth{Mode: dawport.ModeSteps}) || requires(dawport.CapRangeGain)[0] != dawport.CapBackups {
+		t.Fatalf("range_gain must be made in steps and need backups")
+	}
+	t.Run("lowers", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 10, 60, "a")
+		adapter, project := stepsOver(t, fake, true)
+		reducer := adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer)
+		result, err := reducer.ReduceRangeGain(t.Context(), gainRequest(dawport.GainStretch{Start: 30, End: 31.5}, dawport.GainStretch{Start: 20, End: 21}))
+		want := dawport.Result{OK: true, Changed: true, Message: "Lowered 2 stretches by 6 dB in Audacity.", UndoSteps: 2,
+			Steps: []string{stepSelectStretch, "Lower it by 6 dB"}}
+		if err != nil || fmt.Sprint(result) != fmt.Sprint(want) {
+			t.Fatalf("ReduceRangeGain = %+v, %v; want %+v", result, err, want)
+		}
+		after, backedUp := afterBackup(fake.commands())
+		if got := withoutReads(commandNames(after)); !backedUp || fmt.Sprint(got) != "[SelectTracks SelectTime Amplify SelectTracks SelectTime Amplify]" {
+			t.Errorf("after a backup (%v) the steps sent %v", backedUp, got)
+		}
+		row := onlyBackup(t, project)
+		if row.Label != "Lower 2 stretches by 6 dB" {
+			t.Errorf("backup label %q", row.Label)
+		}
+		if len(fake.ratios) != 2 || !strings.HasPrefix(fake.ratios[0], "0.50118") {
+			t.Errorf("Amplify ratios %v, want 10^(-6/20) twice", fake.ratios)
+		}
+		source := fake.track("Chapter 1")
+		if source.audio[29] != "a29" || source.audio[30] != "amp:a30" || source.audio[31] != "a31" || source.audio[40] != "amp:a40" ||
+			source.audio[41] != "amp:a41" || source.audio[42] != "a42" {
+			t.Errorf("audio 29..42 = %v; want 30, 40 and 41 lowered (the track's audio starts at 10 s)", audioIn(source, 29, 43))
+		}
+	})
+	gone := gainRequest(dawport.GainStretch{Start: 20, End: 21})
+	gone.ItemGUID = "Chapter 9"
+	bad := gainRequest(dawport.GainStretch{Start: 20, End: 21})
+	bad.ReduceDB = 30
+	for name, tc := range map[string]struct {
+		project bool
+		request dawport.RangeGainRequest
+		want    dawport.Result
+	}{
+		"no backups": {false, gainRequest(dawport.GainStretch{Start: 20, End: 21}),
+			dawport.Refused("Lowering stretches of a take needs Audacity backups. Turn on Audio backups in Settings.")},
+		"a track that is gone": {true, gone, dawport.RefusedStale(messageStepTrackGone)},
+		"outside the audio":    {true, gainRequest(dawport.GainStretch{Start: 45, End: 55}), dawport.Refused(messageGainOutside)},
+		"out of shape":         {true, bad, dawport.Refused(messageGainBad)},
+		"no stretch":           {true, gainRequest(), dawport.Refused(messageGainBad)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			fake := newEditAudacity()
+			fake.addAudio("Chapter 1", 10, 60, "a")
+			adapter, project := stepsOver(t, fake, tc.project)
+			result, err := adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer).ReduceRangeGain(t.Context(), tc.request)
+			if err != nil || fmt.Sprint(result) != fmt.Sprint(tc.want) {
+				t.Fatalf("ReduceRangeGain = %+v, %v; want %+v", result, err, tc.want)
+			}
+			if got := editsIn(fake.commands()); len(got) != 0 {
+				t.Errorf("edits %v were sent", got)
+			}
+			if project != "" {
+				if _, err := os.Stat(filepath.Join(project, "narration-utils", "backups.json")); err == nil {
+					t.Errorf("a refusal made a backup")
+				}
 			}
 		})
 	}

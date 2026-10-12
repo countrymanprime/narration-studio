@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"strconv"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -44,8 +45,8 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
-	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file
-	// (declared with the edit rows below).
+	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
+	// reduce_range_gain (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -73,6 +74,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// The file rows (SN-B98, narration_media_file.lua): preview_file_range, stop_file_preview and reveal_file.
 	dawport.CapFilePreview: dawport.Experimental,
 	dawport.CapFileReveal:  dawport.Experimental,
+	// range_gain is reduce_range_gain's (SN-E100, narration_range.lua): Experimental until the QA pass (#1495) hears the stretches
+	// lowered with no click at the edges.
+	dawport.CapRangeGain: dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -102,6 +106,7 @@ var commandCapability = map[string]dawport.Capability{
 	"preview_file_range":  dawport.CapFilePreview,
 	"stop_file_preview":   dawport.CapFilePreview,
 	"reveal_file":         dawport.CapFileReveal,
+	"reduce_range_gain":   dawport.CapRangeGain,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -211,6 +216,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapStackTakes:      takeStacker{actions, allowed},
 			dawport.CapFilePreview:     actions,
 			dawport.CapFileReveal:      actions,
+			dawport.CapRangeGain:       rangeGainReducer{actions, allowed},
 		},
 	}, nil
 }
@@ -237,9 +243,10 @@ func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) 
 // so cut_range is not destructive either, and a chain on a range is take FX on a split piece, which leaves the audio as it
 // was recorded and comes off again (point 3), so neither is fx_range. A stack makes later reads takes of the first read's item
 // in one undo block and moves their items to the Cuts track, deleting nothing (point 4), so stack_takes is native and not
-// destructive.
+// destructive. Lowering stretches puts points on the take's volume envelope in one undo block and leaves the recorded audio as it
+// was, so range_gain is native and not destructive.
 func depthOf(c dawport.Capability) dawport.Depth {
-	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange || c == dawport.CapStackTakes {
+	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange || c == dawport.CapStackTakes || c == dawport.CapRangeGain {
 		return dawport.Depth{Mode: dawport.ModeNative}
 	}
 	return dawport.Depth{}
@@ -443,6 +450,62 @@ func cutMessage(words int) string {
 	default:
 		return fmt.Sprintf("Deleted %d words and their audio in REAPER.", words)
 	}
+}
+
+// rangeGainReducer is the range_gain role over bridge's reduce_range_gain, answering a dawport.Result (ADR 0810).
+type rangeGainReducer struct {
+	actions *bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.RangeGainReducer = rangeGainReducer{}
+
+// ReduceRangeGain lowers the request's stretches of its take with points on the take's volume envelope, in one undo step (bridge's
+// reduce_range_gain). It asks allowed itself first, so a refusal is the capability's own sentence rather than bridge's
+// ErrExperimentalOff, and refuses a request out of shape before anything is sent.
+func (r rangeGainReducer) ReduceRangeGain(ctx context.Context, request dawport.RangeGainRequest) (dawport.Result, error) {
+	if r.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapRangeGain)); ok {
+			return refused, nil
+		}
+	}
+	if !request.Valid() {
+		return dawport.Refused(messageGainBad), nil
+	}
+	got, err := r.actions.ReduceRangeGain(ctx, request.ItemGUID, request.TakeGUID, request.ReduceDB, request.Stretches)
+	var stale *bridge.StaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.As(err, &stale) && stale.Reason == "take":
+		return dawport.RefusedStale("That item no longer has the take to lower. Read the project again."), nil
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That take's item moved or changed in the REAPER project. Read the project again."), nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), nil
+	case errors.Is(err, bridge.ErrScriptOutdated):
+		return dawport.Refused(messageGainScriptOutdated), nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), nil
+	case err != nil:
+		return dawport.Result{}, err
+	}
+	return dawport.OK(gainMessage(got.Stretches, got.ReduceDB), true).WithUndoSteps(got.UndoPoints), nil
+}
+
+const (
+	messageGainBad            = "The stretches to lower are not usable, so nothing was changed."
+	messageGainScriptOutdated = "The Narration Utils script in REAPER is older than this app and cannot lower a stretch, so nothing was changed. Import the script again from this app's REAPER folder."
+)
+
+// gainMessage words stretches lowered by db.
+func gainMessage(stretches int, db float64) string {
+	what := "1 stretch"
+	if stretches != 1 {
+		what = fmt.Sprintf("%d stretches", stretches)
+	}
+	return fmt.Sprintf("Lowered %s by %s dB in REAPER. Undo it there in one step.", what, strconv.FormatFloat(db, 'f', -1, 64))
 }
 
 // rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result (ADR 0810).

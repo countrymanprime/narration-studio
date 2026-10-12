@@ -1,20 +1,22 @@
 package audacity
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"sync"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// steps is the role of each capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range; PRD
-// DQ-18). Audacity keeps no takes and its edits change the audio itself, so each edit is a listed series of scripting commands
+// steps is the role of each capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range,
+// range_gain; PRD DQ-18). Audacity keeps no takes and its edits change the audio itself, so each edit is a listed series of scripting commands
 // made after BackupAround has cloned the audio around it (ADR 0863): a roll (steps_roll.go), a cut and an effect on a range
-// (steps_range.go), and a stack and an un-stack (steps_stack.go). Each answers a Result whose Steps are the edits in the order
+// (steps_range.go), a stack and an un-stack (steps_stack.go), and lowered stretches (ReduceRangeGain, below). Each answers a Result whose Steps are the edits in the order
 // they were sent and whose UndoSteps counts the ones that add an Audacity undo point (selecting and copying add none); how many
 // Audacity really adds is checked on the owner's pass (docs/operations/audacity-verification-pass.md).
 //
@@ -33,11 +35,12 @@ type steps struct {
 }
 
 var (
-	_ dawport.Puncher        = (*steps)(nil)
-	_ dawport.TakeSelector   = (*steps)(nil)
-	_ dawport.TakeStacker    = (*steps)(nil)
-	_ dawport.RangeCutter    = (*steps)(nil)
-	_ dawport.RangeFXApplier = (*steps)(nil)
+	_ dawport.Puncher          = (*steps)(nil)
+	_ dawport.TakeSelector     = (*steps)(nil)
+	_ dawport.TakeStacker      = (*steps)(nil)
+	_ dawport.RangeCutter      = (*steps)(nil)
+	_ dawport.RangeFXApplier   = (*steps)(nil)
+	_ dawport.RangeGainReducer = (*steps)(nil)
 )
 
 // stepTolerance is how far apart two times may be and still be the same, in seconds: GetInfo reports six significant digits.
@@ -123,6 +126,68 @@ func plural(n int, one, many string) string {
 		return "1 " + one
 	}
 	return fmt.Sprintf("%d %s", n, many)
+}
+
+// The steps and sentences of lowered stretches.
+const (
+	stepSelectStretch  = "Select the stretch"
+	messageGainBad     = "The stretches to lower are not usable, so nothing was changed."
+	messageGainOutside = "A stretch to lower is outside the track's audio in Audacity, so nothing was changed."
+)
+
+// ReduceRangeGain lowers each stretch of the request's track by ReduceDB with Amplify on the selection, after one backup of the
+// audio from the first stretch's start to the last one's end. Audacity has no takes, so a stretch's seconds, the take's own time,
+// are counted from the start of the track's audio (TrackInfo.Start); a stretch outside the track's audio is refused before the
+// backup. Amplify changes the audio itself and makes no ramp at the edges; one undo point per stretch.
+func (s *steps) ReduceRangeGain(ctx context.Context, request dawport.RangeGainRequest) (dawport.Result, error) {
+	if !s.canBackUp() {
+		return dawport.Refused(backupsSentence(dawport.CapRangeGain)), nil
+	}
+	if !request.Valid() || !backupText(request.ItemGUID) || !backupText(request.ChapterID) {
+		return dawport.Refused(messageGainBad), nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tracks, err := s.client.Tracks(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	track, refusal, ok := oneTrack(tracks, request.ItemGUID)
+	if !ok {
+		return refusal, nil
+	}
+	stretches := slices.Clone(request.Stretches)
+	slices.SortFunc(stretches, func(a, b dawport.GainStretch) int { return cmp.Compare(a.Start, b.Start) })
+	first, last := math.Inf(1), math.Inf(-1)
+	for i := range stretches {
+		stretches[i].Start += track.Start
+		stretches[i].End += track.Start
+		if !track.HasRange || stretches[i].End > track.End+stepTolerance {
+			return dawport.Refused(messageGainOutside), nil
+		}
+		first, last = math.Min(first, stretches[i].Start), math.Max(last, stretches[i].End)
+	}
+	db := strconv.FormatFloat(request.ReduceDB, 'f', -1, 64)
+	answer, ok, err := s.backUp(ctx, dawport.BackupRequest{
+		GUID: request.ItemGUID, ChapterID: request.ChapterID, Start: first, End: last,
+		Label: "Lower " + plural(len(stretches), "stretch", "stretches") + " by " + db + " dB",
+	})
+	if !ok {
+		return answer, err
+	}
+	ratio := math.Pow(10, -request.ReduceDB/20)
+	var e edits
+	for _, stretch := range stretches {
+		if err := s.selectRange(ctx, track.Index, stretch.Start, stretch.End); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did(stepSelectStretch, 0)
+		if _, err := s.client.Do(ctx, audacitybridge.NewCommand("Amplify").Float("Ratio", ratio).Bool("AllowClipping", false)); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did("Lower it by "+db+" dB", 1)
+	}
+	return e.done("Lowered " + plural(len(stretches), "stretch", "stretches") + " by " + db + " dB in Audacity."), nil
 }
 
 // What is not built for Audacity: ADR 0144's sentence, and nothing sent.

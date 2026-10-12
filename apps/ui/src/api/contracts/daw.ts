@@ -83,7 +83,8 @@ export type DawCapabilityKey =
   | 'stack_takes'
   | 'backups'
   | 'file_preview'
-  | 'file_reveal';
+  | 'file_reveal'
+  | 'range_gain';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -126,6 +127,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'backups', label: 'Audio backups' },
   { key: 'file_preview', label: 'Play part of a file' },
   { key: 'file_reveal', label: 'Show a file in the audio engine' },
+  { key: 'range_gain', label: 'Lower stretches of a take' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
@@ -229,6 +231,22 @@ export interface DawStackTakesApi {
  * sentence; a take the track no longer holds, a cut outside it and a take that changed since the host read it are code `stale`. */
 export interface DawSplitTakeApi {
   dawSplitTake(chapterId: string, takeId: string, at: number): Promise<DawResult>;
+}
+
+/** A stretch of a take to lower: `start` to `end` seconds into the take's own audio file. */
+export interface DawGainStretch {
+  start: number;
+  end: number;
+}
+
+/** DawReduceRangeGain (SN-E100; apps/desktop/bindings_daw_reduce_range_gain.go): lower `stretches` of `takeId`, a take of the chapter, by
+ * `reduceDb` (1 to 24), in one undo step of the DAW's own: Clean up's Breaths, Plosives and Noise. `takeId` is the take's id as the DAW
+ * reports it on the chapter's linked track now: the host looks it up there, checks every stretch (1 to 500) is inside the part of the
+ * file the take plays, and sends the item and take it read itself. A capability refusal carries the `range_gain` capability's sentence; a
+ * reduction or stretches out of bounds are refused with a sentence; a take the track no longer holds, a stretch outside it and a take
+ * that changed since the host read it are code `stale`. */
+export interface DawReduceRangeGainApi {
+  dawReduceRangeGain(chapterId: string, takeId: string, stretches: DawGainStretch[], reduceDb: number): Promise<DawResult>;
 }
 
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a
