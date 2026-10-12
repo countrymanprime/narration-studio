@@ -1,10 +1,9 @@
 // The browser mock's preview candidates, answering the shape
-// apps/desktop/bindings_preview.go's PreviewCandidates does. It is a simplified, deterministic stand-in for Phase
-// 1's real Go ranking engine (apps/desktop/internal/preview), not a port of it: good enough to drive every named
-// state (`ok` with candidates, `no_manuscript`, `nothing_eligible`) for the Phase 3 panel and its tests, not to
+// apps/desktop/bindings_preview.go's PreviewCandidates does. It is a simplified, deterministic stand-in for the real Go ranking engine (apps/desktop/internal/preview), not a port of it: good enough to drive every named
+// state (`ok` with candidates, `no_manuscript`, `nothing_eligible`) for the suggestions panel and its tests, not to
 // reproduce the engine's scoring byte for byte.
 //
-// Phase 8 adds the narrator's pin, kept in memory the same way createPrepMarkupMock (prepMarkupMock.ts) keeps its
+// The narrator's pin is kept in memory the same way createPrepMarkupMock (prepMarkupMock.ts) keeps its
 // spans: resolved against the mock manuscript's current chapters and paragraphs on every read, so a seed that
 // edits the manuscript after pinning (or simply asks for a stale one) is reported stale the same way the real host
 // binding (bindings_preview_pin.go) would be.
@@ -26,9 +25,9 @@ export type PreviewSeed = {
   /** Candidates to answer with instead of the default ones built from the mock manuscript's own chapters and
    * paragraphs (still requires `outcome` to be `'ok'`, or omitted with eligible chapters present). */
   candidates?: PreviewCandidate[];
-  /** Never resolves, so the panel's "Computing suggestions…" state can be captured (Phase 3's visual suite). */
+  /** Never resolves, so the panel's "Computing suggestions…" state can be captured (the panel's visual suite). */
   hold?: boolean;
-  /** Seeds a pinned window (Phase 8), present from the mock's very first read rather than requiring a
+  /** Seeds a pinned window, present from the mock's very first read rather than requiring a
    * `previewPinSet` call first - the visual suite's own way of capturing the pinned states directly. */
   pin?: {
     chapterId: string;
@@ -56,7 +55,7 @@ function wordCountOf(text: string): number {
 }
 
 /** One candidate per eligible (narration, or an unclassified import) chapter with at least one paragraph, in chapter
- * order, capped at three (Q12) - not ranked by the real features (dialogue, entities, hard words), since the mock
+ * order, capped at three - not ranked by the real features (dialogue, entities, hard words), since the mock
  * has no reason to reproduce that scoring to drive a state. */
 function defaultCandidates(chapters: ManuscriptChapter[], paragraphs: ManuscriptParagraph[]): PreviewCandidate[] {
   const eligible = [...chapters].sort((a, b) => a.index - b.index).filter((chapter) => !chapter.contentKind || chapter.contentKind === 'narration');

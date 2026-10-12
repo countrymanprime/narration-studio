@@ -1,4 +1,4 @@
-// The browser mock's pickup and duplicate scan job (take review Phase 5), answering the way apps/desktop/takereview_job.go
+// The browser mock's pickup and duplicate scan job, answering the way apps/desktop/takereview_job.go
 // does: the same scope checks and refusals, a running job whose percent and stage advance one step per poll (standing in
 // for the sidecar's own progress file, ADR 0015), and a finished scan that saves its findings into the findings mock, so
 // they reach the Review page through the same list the host's do. A scan of "Chapter 1" finds the fixture groups; any

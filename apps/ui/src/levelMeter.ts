@@ -1,13 +1,13 @@
 /**
  * Shared dBFS math for `LevelMeter` (the primitive) and the Booth's live level (`components/booth/frame/useLevels.ts`):
  * the dBFS-to-percent width map, which zone a reading falls in relative to the peak ceiling, and the peak-hold
- * ballistics (ADR 0360 Q2).
+ * ballistics (ADR 0360).
  */
 
 export type LevelMeterZone = 'body' | 'hot' | 'over';
 
 // How close to the ceiling a reading must get before it reads as the "hot" warning zone rather than the safe body
-// zone: a fixed margin below whatever ceiling the caller passes (Q2's props-with-ACX-defaults choice), so a stricter
+// zone: a fixed margin below whatever ceiling the caller passes (props with ACX defaults, ADR 0360), so a stricter
 // or looser platform's ceiling still gets a warning band instead of the whole safe range reading "hot" for the last
 // inch.
 const HOT_MARGIN_DB = 6;

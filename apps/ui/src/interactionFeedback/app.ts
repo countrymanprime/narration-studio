@@ -4,7 +4,7 @@ import { type FeedbackRow, row, startup, subscription } from './row';
 // prettier-ignore
 export const appFeedback: Record<string, FeedbackRow> = {
   // App.tsx
-  'src/App.tsx::bootstrap#1': row('event', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'refreshBootstrap catches its own failure and says so (phase 6); every caller runs it from an event or a `void`.'),
+  'src/App.tsx::bootstrap#1': row('event', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'refreshBootstrap catches its own failure and says so; every caller runs it from an event or a `void`.'),
   'src/App.tsx::ready#1': startup('Startup: the startup screen shows the error and Retry.'),
   'src/App.tsx::bootstrap#2': startup('Startup: the startup screen shows the error and Retry.'),
   'src/App.tsx::reportClientDiagnostic#1': row('effect', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),

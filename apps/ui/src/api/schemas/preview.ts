@@ -23,7 +23,7 @@ export const previewResultSchema = z.object({
   candidates: listFromNull(previewCandidateSchema),
 }) satisfies z.ZodType<PreviewResult>;
 
-// The narrator's pinned window (Phase 8). The host shape is bindings_preview_pin.go's pinnedPreviewView.
+// The narrator's pinned window. The host shape is bindings_preview_pin.go's pinnedPreviewView.
 
 const PREVIEW_PIN_STALE_REASONS = ['text_changed', 'paragraph_missing'] as const satisfies readonly PreviewPinStaleReason[];
 

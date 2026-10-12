@@ -1,7 +1,7 @@
-// The production tracking mock. Phase 3: the plan (deadline, contracted amount, payment type, milestones), answering the shape
+// The production tracking mock. The plan (deadline, contracted amount, payment type, milestones), answering the shape
 // apps/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline, ProductionSetPayment and ProductionSaveMilestones
 // do, with the same refusals (internal/production/plan.go): an impossible date, a negative amount, an amount under a royalty share
-// or none, an unknown payment type, a milestone with no name or a bad measure, estimate or template. Phase 4: the same
+// or none, an unknown payment type, a milestone with no name or a bad measure, estimate or template. The overview and timer follow the same
 // arithmetic and "Next up" order as the host (apps/desktop/internal/production/overview.go, ADR 0404) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
@@ -200,7 +200,7 @@ const hoursOf = (session: ProductionSession) =>
 
 const perFinishedHour = (hours: number, seconds: number) => (hours > 0 && seconds > 0 ? hours / (seconds / 3600) : null);
 
-// The host's Burndown (internal/production/burndown.go, Phase 6): one point per calendar date from the first stopped
+// The host's Burndown (internal/production/burndown.go): one point per calendar date from the first stopped
 // session's day to the last, running cumulatively; only stopped sessions count.
 function burndownOf(sessions: ProductionSession[]): ProductionBurndownPoint[] {
   const byDay = new Map<string, number>();
