@@ -651,13 +651,58 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.hash).toBe(hash);
   });
 
-  // ADR 0407: Master & QC replaced Delivery, and a finding's old /delivery#file=… link still lands on it.
-  it('redirects /delivery to Master & QC, keeping the query and the file and rule anchor', async () => {
-    window.history.replaceState(null, '', '/delivery?from=report#file=C%3A%2Fa.wav&rule=acx.rms');
+  // SN-M5 (ADR 0802): /settings, /master and /delivery mount the Studio Next pages; /delivery is a page again, not a redirect.
+  it('the-three-routes-mount-the-new-pages: Settings, Master & QC and Delivery each mount the mock page', async () => {
+    window.history.replaceState(null, '', '/settings');
     renderApp();
-    await screen.findByRole('heading', { name: 'Master & QC', level: 1 });
-    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe('/master?from=report#file=C%3A%2Fa.wav&rule=acx.rms');
-    expect(screen.queryAllByRole('button', { name: 'Delivery' })).toHaveLength(0);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy();
+    expect(screen.getAllByRole('heading', { level: 1, name: 'Settings' })).toHaveLength(1);
+    expect(await screen.findByRole('combobox', { name: 'Delivery profile' })).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'More settings' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Appearance' })).toBeNull();
+    cleanup();
+
+    window.history.replaceState(null, '', '/master');
+    renderApp();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Master & QC' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Book consistency' })).toBeTruthy();
+    expect(screen.queryByRole('group', { name: /platform/i })).toBeNull();
+    cleanup();
+
+    window.history.replaceState(null, '', '/delivery?from=report#file=C%3A%2Fa.wav');
+    renderApp();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Delivery' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Before you build' })).toBeTruthy();
+    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe('/delivery?from=report#file=C%3A%2Fa.wav');
+  });
+
+  it('the-three-routes-mount-the-new-pages: the Master profile pill opens Delivery and Delivery asks for a manuscript without one', async () => {
+    window.history.replaceState(null, '', '/master');
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Master & QC' });
+    fireEvent.click(await screen.findByTitle('Open Delivery'));
+    await waitFor(() => expect(window.location.pathname).toBe('/delivery'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Delivery' })).toBeTruthy();
+    cleanup();
+
+    const source = createMockApi();
+    window.history.replaceState(null, '', '/delivery');
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
+    expect(await screen.findByText(/Add the manuscript first/)).toBeTruthy();
+  });
+
+  it('opens Settings on Silence cleanup from #cleanup and on the kept Delivery category from #delivery', async () => {
+    for (const [anchor, heading] of [
+      ['#cleanup', 'Silence cleanup'],
+      ['#delivery', 'Delivery'],
+      ['#credits', 'Credits'],
+    ]) {
+      window.history.replaceState(null, '', `/settings${anchor}`);
+      renderApp();
+      expect(await screen.findByRole('heading', { name: heading })).toBeTruthy();
+      cleanup();
+    }
   });
 
   it('resets a compare run when the narrator leaves the chapter view it lives in, and not when there is none', async () => {

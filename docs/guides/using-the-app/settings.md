@@ -2,18 +2,25 @@
 
 # Settings
 
-Settings are split into Global (defaults for every project) and This Project (overrides for
-the current one), organized by category.
+Settings opens with four panels, then the rest of the settings by category.
 
-![Settings, Global scope, General category](../../images/ui/settings-general.webp)
+- **Delivery profile** picks the profile this project is judged against, on [Master &
+  QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
+- **Appearance** sets the theme: **Match my system**, **Light** or **Dark**.
+- **Keyboard shortcuts** lists the keys, read-only; the **Keyboard & pedals** category below changes them.
+- **Manuscript** names the imported manuscript, with **Replace manuscript** (or **Import manuscript** when
+  there is none).
 
-Appearance controls the light/dark theme.
-
-![Settings, Global scope, Appearance category](../../images/ui/settings-appearance.webp)
+![Settings, the top of the page: Delivery profile, Appearance, Keyboard shortcuts and Manuscript](../../images/ui/settings-appearance.webp)
 
 ![Home with Dark theme selected](../../images/ui/theme-dark.webp)
 
-Other categories mix dropdowns and color pickers — Manuscript's own category, for example,
+Below them, the categories are split into Global (defaults for every project) and This Project (overrides
+for the current one).
+
+![Settings, Global scope, General category](../../images/ui/settings-general.webp)
+
+The categories mix dropdowns and color pickers — Manuscript's own category, for example,
 controls the color used to mark reader notes in the text. **General** (Global only) also holds the
 **Narrator name (default for credits)** and the **Room tone per credits file (seconds)**, 0 to 10 and 0 by
 default: the silence the [Production](production.md#the-credits) credits estimate adds to the opening and to the closing credits file, head
@@ -42,10 +49,9 @@ and tail together (ACX asks for 1 to 5 seconds at each end of every file). In bo
   **Default pronunciation source** a fresh pronunciation tries first (Automatic, CMU, Wiktionary or
   eSpeak) at build time and when you add an alias; it never limits generating or replacing a
   pronunciation by hand for a specific entry, which always lets you pick.
-- **Delivery** chooses the delivery profile [Master & QC](master-and-qc.md) and its report judge
-  against. In This Project, pick this project's profile, or the Global default; in Global, pick the
-  default for every project that has not chosen one (ACX until you change it). A choice takes effect at
-  once. The **Profiles** list shows the built-in ACX profile, read-only, and your custom profiles with
+- **Delivery** (Global only) picks the default profile for every project that has not chosen one (ACX
+  until you change it); a project's own choice is the **Delivery profile** panel at the top of the page. A
+  choice takes effect at once. The **Profiles** list shows the built-in ACX profile, read-only, and your custom profiles with
   what each is based on, how many numbers you changed and how many rules are off. **Duplicate** makes a
   custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the
   lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can

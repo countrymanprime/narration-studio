@@ -4,6 +4,11 @@ import { settlePage } from '../helpers/settle';
 import { type Driver, clickNav, clickSettingsCategory, clickVisible, confirmDialog, goToPage, openLocalAssets, saveOnlineDictionaryKey } from './shared';
 
 export const settingsDrivers: Record<string, Driver> = {
+  'page-top': async (page) => {
+    await goToPage(page, 'Settings');
+    await page.getByRole('button', { name: 'Replace manuscript' }).waitFor();
+    await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
+  },
   'global-general': async (page) => {
     await goToPage(page, 'Settings');
     await clickVisible(page, 'tab', 'Global');
@@ -237,11 +242,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'About & updates');
     await page.getByText('Could not reach GitHub to check for updates.').waitFor();
   },
-  'global-appearance': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Appearance');
-  },
   'global-keyboard': async (page) => {
     await goToPage(page, 'Settings');
     await clickVisible(page, 'tab', 'Global');
@@ -281,14 +281,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickVisible(page, 'tab', 'This Project');
     await clickSettingsCategory(page, 'Story Bible');
   },
-  'project-delivery': async (page) => {
+  'delivery-profile-custom': async (page) => {
     await page.goto('/?mockDeliveryProfile=custom');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Delivery');
-    await page.getByRole('combobox', { name: 'Delivery profile for this project' }).waitFor();
-    await page.getByText('My ACX, tighter peak', { exact: true }).waitFor();
+    const select = page.getByRole('combobox', { name: 'Delivery profile', exact: true });
+    await select.getByRole('option', { name: 'My ACX, tighter peak', selected: true }).waitFor({ state: 'attached' });
   },
   'project-daw': async (page) => {
     await goToPage(page, 'Settings');

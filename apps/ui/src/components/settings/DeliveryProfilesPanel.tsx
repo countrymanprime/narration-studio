@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
-import type { DeliveryProfile, DeliveryProfileEdit, DeliveryProfileRef, DeliveryProfilesState, Scope } from '../../types';
+import type { DeliveryProfile, DeliveryProfileEdit, DeliveryProfileRef, DeliveryProfilesState } from '../../types';
 import { Button } from '../primitives/Button';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Select } from '../primitives/Select';
@@ -48,12 +48,12 @@ function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
 }
 
 /**
- * Settings > Delivery the profile this project is judged
- * against (or, in the Global scope, the default for every project that has not chosen one), and the profiles themselves. A
- * built-in cannot be changed; Duplicate makes a custom copy whose numbers can change and whose rules can be turned off. A
- * choice takes effect at once: Master & QC and the report judge against it the next time they are read.
+ * Settings > Delivery: the Global default profile, for every project that has not chosen one, and the profiles themselves. The
+ * project's own choice is the page's Delivery profile panel. A built-in cannot be changed; Duplicate makes a custom copy whose
+ * numbers can change and whose rules can be turned off. A choice takes effect at once: Master & QC and the report judge against
+ * it the next time they are read.
  */
-export function DeliveryProfilesPanel({ scope, notify }: { scope: Scope; notify: Notify }) {
+export function DeliveryProfilesPanel({ notify }: { notify: Notify }) {
   const api = useApi();
   const [state, setState] = useState<DeliveryProfilesState>();
   const [loadError, setLoadError] = useState<string>();
@@ -106,17 +106,12 @@ export function DeliveryProfilesPanel({ scope, notify }: { scope: Scope; notify:
     value: optionValue(profile),
     label: `${deliveryProfileTitle(profile)} · ${profile.builtIn ? 'built in' : 'custom'}`,
   }));
-  const projectOptions = [{ value: '', label: `The Global default (${globalProfile ? deliveryProfileTitle(globalProfile) : 'ACX'})` }, ...options];
   const choose = (value: string) =>
     run(async () => {
       const profile = state.profiles.find((candidate) => optionValue(candidate) === value);
-      const next = await api.deliverySelectProfile(scope, profile?.id ?? '', profile?.builtIn ? profile.version : '');
-      setState(next);
-      notify(
-        profile
-          ? `${scope === 'global' ? 'The Global default is now' : 'This project is now judged against'} ${deliveryProfileTitle(profile)}.`
-          : 'This project now uses the Global default.',
-      );
+      if (!profile) return;
+      setState(await api.deliverySelectProfile('global', profile.id, profile.builtIn ? profile.version : ''));
+      notify(`The Global default is now ${deliveryProfileTitle(profile)}.`);
     });
   const usedBy = (profile: DeliveryProfile) =>
     [
@@ -156,19 +151,15 @@ export function DeliveryProfilesPanel({ scope, notify }: { scope: Scope; notify:
   return (
     <div className="space-y-5 text-sm">
       <section className="space-y-2">
-        <h3 className="text-base font-semibold">{scope === 'global' ? 'Default delivery profile' : 'Delivery profile for this project'}</h3>
-        <p style={MUTED}>
-          {scope === 'global'
-            ? 'Every project that has not chosen its own profile is judged against this one.'
-            : 'Master & QC and the report judge this project’s files against it. Each project keeps its own choice.'}
-        </p>
+        <h3 className="text-base font-semibold">Default delivery profile</h3>
+        <p style={MUTED}>Every project that has not chosen its own profile is judged against this one.</p>
         <div className="max-w-md">
           <Select
-            label={scope === 'global' ? 'Default delivery profile' : 'Delivery profile for this project'}
-            value={scope === 'global' ? optionValue(state.globalDefault) : state.projectChoice ? optionValue(state.projectChoice) : ''}
+            label="Default delivery profile"
+            value={optionValue(state.globalDefault)}
             onChange={(value) => void choose(value)}
-            options={scope === 'global' ? options : projectOptions}
-            disabled={busy || (scope === 'project' && !state.hasProject)}
+            options={options}
+            disabled={busy}
             fullWidth
           />
         </div>

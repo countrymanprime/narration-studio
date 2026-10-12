@@ -4,7 +4,9 @@ import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile } from '../../../types';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
+import { FileRulesPanel } from '../../master/FileRulesPanel';
 import { MasteringChain, useMasteringProviders } from '../../master/MasteringChain';
+import { MasterToSpecPanel } from '../../master/MasterToSpecPanel';
 import { MultiPlatformExportPanel } from '../../master/MultiPlatformExportPanel';
 import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
@@ -24,10 +26,10 @@ const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
 
 /**
- * Master & QC (the Studio Next mock's Master page, without a route: the swap mounts it): the per-file checks and their detail, the
- * book's consistency against the profile, and the delivery package beside them. The profile pill and "Open Delivery" call
- * `onOpenDelivery`; this page navigates nowhere itself. The run controls, the mastering chain, the diagnostics, the multi-platform
- * export and the report export have no equivalent in the mock (D98) and stay as built, below its sections. Playing a stretch of a file
+ * Master & QC (the Studio Next mock's Master page, at `/master`): the per-file checks and their detail, the book's consistency
+ * against the profile, and the delivery package beside them. The profile pill and "Open Delivery" call `onOpenDelivery`; this page
+ * navigates nowhere itself. The run controls, a file's every-rule list, mastering to spec, the mastering chain, the diagnostics, the
+ * multi-platform export and the report export have no equivalent in the mock (D98) and stay as built, beside its sections. Playing a stretch of a file
  * and opening it in the DAW are the caller's (`fileActions`): the DAW port has no such call yet, so they do nothing until one is given.
  */
 export function MasterPage({
@@ -47,6 +49,8 @@ export function MasterPage({
   const [chosen, setChosen] = useState<DeliveryProfile>();
   const [profileProblem, setProfileProblem] = useState<string>();
   const [selected, setSelected] = useState<string>();
+  // The file whose every-rule list the narrator closed; selecting another file shows its list again.
+  const [rulesClosed, setRulesClosed] = useState<string>();
 
   useEffect(() => {
     let active = true;
@@ -69,6 +73,8 @@ export function MasterPage({
   const profile = run.job?.profile ?? chosen;
   const rows = useMemo(() => (profile ? buildRows(run.files, profile) : []), [run.files, profile]);
   const current = rows.find((row) => row.id === selected);
+  const currentFile = run.files.find((file) => file.path === selected && file.status === 'measured');
+  const chain = mastering.providers?.providers.find((row) => row.name === mastering.providers?.effective);
   const actions: FileActions = {
     onPlayQuietest: fileActions?.onPlayQuietest ?? (() => undefined),
     onOpenInDaw: fileActions?.onOpenInDaw ?? (() => undefined),
@@ -100,6 +106,9 @@ export function MasterPage({
             <>
               <FilesTable files={run.files} profile={profile} selected={selected} onSelect={setSelected} actions={actions} />
               <FileChecks row={current} actions={actions} />
+              {profile && currentFile && rulesClosed !== currentFile.path && (
+                <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
+              )}
             </>
           ) : (
             !run.running && (
@@ -111,6 +120,7 @@ export function MasterPage({
           <Panel title="Book consistency" subtitle={profile ? `RMS by file against the ${profileName(profile)} range` : undefined}>
             <Consistency files={run.files} profile={profile} />
           </Panel>
+          <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
           <MasteringChain providers={mastering.providers} problem={mastering.problem} />
           <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
           <ReportExportPanel busy={run.running} />

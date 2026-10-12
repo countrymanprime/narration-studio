@@ -56,6 +56,9 @@ const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare, requiresManus
 // Pickups dialog. Not gated: its import, export and jumps talk to REAPER and each says itself when REAPER is not there.
 const PICKUPS = { name: 'Pickups', path: '/pickups', icon: faRotateLeft, requiresManuscript: false, requiresDaw: false };
 const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, requiresManuscript: false, requiresDaw: false };
+// Delivery (the Studio Next mock's rail, ADR 0802): the profile card, the package build and what is left before it. Gated on a
+// manuscript, as the mock's page asks for one: it checks every chapter against the profile.
+const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery'), requiresManuscript: true, requiresDaw: false };
 
 // Grouped by production stage (ADR 0407): Production, Prep, Record, Review,
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
@@ -67,7 +70,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: 'Prep', items: [SCRIPT, STORY_BIBLE] },
   { label: 'Record', items: [BOOTH] },
   { label: 'Review', items: [PROOF, PICKUPS] },
-  { label: 'Finish', items: [MASTER_QC] },
+  { label: 'Finish', items: [MASTER_QC, DELIVERY] },
 ];
 /** The pages "Go to <page>" can open: the rail's items and Settings, minus the ones a project with no manuscript cannot show. */
 export function shellPages(hasManuscript: boolean): { id: string; label: string }[] {

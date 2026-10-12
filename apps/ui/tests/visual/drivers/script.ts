@@ -1,7 +1,7 @@
 // How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the Studio Next Script page (SN-B77, swapped in by SN-B8).
 import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, clickSettingsCategory, clickVisible, goToPage, selectReaderWord } from './shared';
+import { type Driver, chooseTheme, clickNav, clickVisible, goToPage, selectReaderWord } from './shared';
 
 const RAIL = 'Words, Story Bible and marks';
 
@@ -123,10 +123,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByText(/Retail sample starts/).waitFor();
   },
   'reader-dark': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Appearance');
-    await clickVisible(page, 'button', 'Dark');
+    await chooseTheme(page, 'Dark');
     await goToPage(page, 'Script');
   },
 };

@@ -4,8 +4,14 @@ import { REFLOW, KEEPS_DESKTOP_SCROLL } from './shared';
 
 export const settingsStates: StateEntry[] = [
   // Settings
-  { page: 'settings', state: 'global-general', description: 'Settings, Global scope / General category', ...REFLOW },
-  { page: 'settings', state: 'global-appearance', description: 'Settings, Global scope / Appearance category (theme switcher)', ...REFLOW },
+  {
+    page: 'settings',
+    state: 'page-top',
+    description:
+      "Settings, the top of the page (the Studio Next mock's panels): the Delivery profile select on ACX, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept categories",
+    ...REFLOW,
+  },
+  { page: 'settings', state: 'global-general', description: 'Settings, the kept categories, Global scope / General category', ...REFLOW },
   {
     page: 'settings',
     state: 'global-keyboard',
@@ -94,7 +100,7 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'global-manuscript',
-    description: 'Settings, Global scope / Manuscript category: the Manuscript panel with Replace manuscript, and the note color picker',
+    description: 'Settings, Global scope / Manuscript category: the reader-note colour picker (the Manuscript panel itself is at the top of the page)',
     ...REFLOW,
   },
   {
@@ -228,9 +234,9 @@ export const settingsStates: StateEntry[] = [
   { page: 'settings', state: 'project-storybible', description: 'Settings, Project scope / Story Bible category', ...REFLOW },
   {
     page: 'settings',
-    state: 'project-delivery',
+    state: 'delivery-profile-custom',
     description:
-      'Settings, Project scope / Delivery category (?mockDeliveryProfile=custom): the profile this project is judged against, and the profiles, ACX built in and a custom copy with its numbers changed and rules off, Duplicate, Edit and Delete',
+      'Settings\' Delivery profile panel with the project judged against a custom profile (?mockDeliveryProfile=custom): the select names "My ACX, tighter peak"',
     ...REFLOW,
   },
   {

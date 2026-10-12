@@ -18,13 +18,6 @@ export const masterDrivers: Record<string, Driver> = {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();
   },
-  'profile-rules': async (page) => {
-    await openMaster(page);
-    await page.getByRole('button', { name: /^Rules and their sources/ }).click();
-    const rules = page.getByRole('table', { name: 'Rules and their sources' });
-    await rules.waitFor();
-    await scrollToTop(page, page.getByRole('region', { name: 'Delivery profile' }));
-  },
   running: async (page) => {
     await measureOnMaster(page, '?mockMeasure=running');
     await page.getByRole('progressbar', { name: 'Measuring' }).waitFor();
@@ -35,15 +28,9 @@ export const masterDrivers: Record<string, Driver> = {
     await measurementEnded(page, MEASURED);
     await page.getByRole('region', { name: 'Chapter 01.wav · Why it fails' }).waitFor();
   },
-  'mock-fidelity-05': async (page) => {
-    await measureOnMaster(page, '?mockFidelity=05');
-    await measurementEnded(page, /^Measured 6 files\./);
-    await page.getByRole('region', { name: '04 The Rabbit Sends in a Little Bill.wav · Why it fails' }).waitFor();
-  },
   'file-rules': async (page) => {
     await measureOnMaster(page);
     await measurementEnded(page, MEASURED);
-    await page.getByRole('region', { name: 'Chapter 01.wav · Why it fails' }).getByRole('button', { name: 'Every rule' }).click();
     const detail = page.getByRole('table', { name: 'Chapter 01.wav, rule by rule' });
     await detail.waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Chapter 01.wav against ACX (September 2026)' }));
@@ -58,12 +45,12 @@ export const masterDrivers: Record<string, Driver> = {
   'custom-profile': async (page) => {
     await measureOnMaster(page, '?mockDeliveryProfile=custom');
     await measurementEnded(page, MEASURED);
-    await page.getByText(/^Every rule the app checks is met/).waitFor();
+    await page.getByTitle('Open Delivery').getByText('My ACX, tighter peak').waitFor();
   },
   cancelled: async (page) => {
     await measureOnMaster(page, '?mockMeasure=running');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await page.getByText(/^Measurement cancelled\./).waitFor();
+    await page.getByRole('table', { name: 'Per-file checks' }).getByText('Not measured').first().waitFor();
   },
   error: async (page) => {
     await measureOnMaster(page, '?mockMeasure=fails');
@@ -124,23 +111,6 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Master & encode' }).click();
     await page.getByRole('progressbar', { name: 'Preparing files' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
-  },
-  'package-built': async (page) => {
-    await openMaster(page);
-    await pickFilesToMaster(page);
-    await page.getByRole('button', { name: 'Master & encode' }).click();
-    await page
-      .getByRole('region', { name: 'Master to spec' })
-      .getByText(/^Prepared 5 files\./)
-      .waitFor({ timeout: 15_000 });
-    const pkg = page.getByRole('region', { name: 'Delivery package · ACX' });
-    await pkg.getByRole('button', { name: 'Build packages' }).click();
-    await pkg.getByText(/^Built the acx package/).waitFor();
-    await pkg.getByRole('heading', { name: 'Outputs' }).waitFor();
-    // Both jobs' ends raise a toast (job:ended, ADR 0076) that would cover the package; dismiss them, as measurementEnded does.
-    const dismiss = page.getByRole('button', { name: 'Dismiss message' });
-    while ((await dismiss.count()) > 0) await dismiss.first().click();
-    await scrollToTop(page, pkg);
   },
   'multi-export-empty': async (page) => {
     await openMaster(page);

@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { ALL_PASS, FilesDemo, Host, TWO_FAIL, failingTwo, passing } from './testFiles';
 
-// Master & QC's per-file checks (docs/research/mockups/studio-next/src/pages/Master.tsx): the table and the detail under it. No route
-// yet; the Master page (SN-M43) composes them and SN-M5 mounts it.
+// Master & QC's per-file checks (docs/research/mockups/studio-next/src/pages/Master.tsx): the table and the detail under it. The Master
+// page composes them at `/master`.
 const meta = {
   title: 'Master & QC/Files',
   component: FilesDemo,
