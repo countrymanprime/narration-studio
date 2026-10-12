@@ -148,7 +148,7 @@ A chapter's Proof view, at `/proof/:chapterId`, holds what the chapter page had 
 [Editing](editing.md) page replaced: the recording check's state, the comparison with the manuscript, the Preview
 panel, the readiness panel and, with the built-in recorder, the native takes. It has no nav item of its own; open it from a
 linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's
-Proof cell, **Open Proof** in its row's menu or its recording check's **Open in Proof** on [Production](production.md). Its
+Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
 
@@ -158,8 +158,8 @@ If the chapter hasn't been checked yet, the chapter view says so and offers **Ch
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)
 
 Under the heading "Proof · <chapter name>" the header names the check's state (current, or stale if an item changed
-since) and **as of last save**: the check reads the REAPER project as it was last saved, not whatever is open live in
-REAPER right now. **Check again** runs the check once more.
+since) and **as of last save**: the check reads the DAW project as it was last saved, not whatever is open live in
+the DAW right now. **Check again** runs the check once more.
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
