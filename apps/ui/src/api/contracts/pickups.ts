@@ -77,6 +77,58 @@ export type PickupsPunchResult = {
   message?: string;
 };
 
+/** Where a pickup on the host's list came from (ADR 0840): a gap of the recording check, a note decided "Needs pickup", the
+ * same decision on a note that is a sound, or a line the narrator added. */
+export const PICKUP_SOURCES = ['speech', 'proof', 'audio', 'you'] as const;
+export type PickupSource = (typeof PICKUP_SOURCES)[number];
+
+/** What a recording check found in the read part of a chapter (ADR 0830). */
+export const PICKUP_GAP_KINDS = ['missing', 'extra', 'misread', 'other'] as const;
+export type PickupGapKind = (typeof PICKUP_GAP_KINDS)[number];
+
+/** One line of the host's pickup list (`PickupsList`). */
+export type PickupItem = {
+  /** Stable across listings: `speech:<chapter>:<gap>`, `finding:<id>` or `you:<hash>`. */
+  id: string;
+  chapterId: string;
+  paragraphId: string | null;
+  /** The line's index in the manuscript, or null when the pickup names no line that is still there. */
+  paragraph: number | null;
+  /** Seconds into the chapter's recording, or null when the source gave none. */
+  time: number | null;
+  /** Where the pickup's DAW marker is or would be, in project seconds, or null when the host cannot place it. */
+  at: number | null;
+  /** The gap kind for a speech pickup, the note's type for proof and audio, `misread` for a line added by hand. */
+  type: string;
+  gap?: PickupGapKind;
+  script: string;
+  context: string;
+  source: PickupSource;
+  /** The source's own number, or null; `confReason` says why when it is null. */
+  confidence: number | null;
+  confReason: string;
+  /** The note the pickup came from, or the one an accepted gap became. */
+  findingId?: string;
+  /** In the next session, unless the narrator left it out. */
+  included: boolean;
+  done: boolean;
+  /** The done state is the app's and has not been written to the DAW's marker yet. */
+  waiting: boolean;
+};
+
+/** A chapter whose recording check added no pickups: `state` is never, stale or why it could not be read. */
+export type PickupLeftOutChapter = {
+  chapterId: string;
+  state: string;
+  reasons: string[];
+};
+
+/** The host's pickup list: every binding that changes it answers the whole list. */
+export type PickupList = {
+  pickups: PickupItem[];
+  leftOut: PickupLeftOutChapter[];
+};
+
 export interface PickupsApi {
   /** Parses and validates csvText (columns start,note,tag; an optional header row) in Go and, if any row is
    * usable, writes the payload and asks REAPER to import it. Throws when every row is unusable. */
@@ -97,4 +149,15 @@ export interface PickupsApi {
   subscribePickups(onUpdate: (state: PickupsState) => void): () => void;
   /** Move REAPER's edit cursor to `position` (a pickup's own project time) minus the punch pre-roll setting. */
   pickupsPunch(position: number): Promise<PickupsPunchResult>;
+  /** The merged pickup list (ADR 0840). With the DAW answering, done states that waited are written to the markers first. */
+  pickupsList(): Promise<PickupList>;
+  /** Adds a line by hand at `time` seconds into the chapter's recording. Refuses an empty line, a line over 500 characters or
+   * with control characters, an unknown chapter and a time outside the chapter. The same line twice is one pickup. */
+  pickupsAdd(chapterId: string, time: number, line: string): Promise<PickupList>;
+  /** Hides a pickup of any source from the list. */
+  pickupsRemove(id: string): Promise<PickupList>;
+  /** Puts a pickup in or leaves it out of the next session. */
+  pickupsSetIncluded(id: string, included: boolean): Promise<PickupList>;
+  /** Marks a pickup done or open: through its DAW marker when the DAW holds it (a refusal throws), otherwise kept until it can be. */
+  pickupsSetDone(id: string, done: boolean): Promise<PickupList>;
 }
