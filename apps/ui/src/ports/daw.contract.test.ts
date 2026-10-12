@@ -19,6 +19,8 @@ import {
   DAW_SETUPS,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
+  rolledAnswer,
+  rolledReplacingAnswer,
   takesHiddenAnswer,
 } from '../fixtures/daw';
 import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi, type DawPickupItem, NOTHING_TO_CHANGE } from './daw';
@@ -37,6 +39,9 @@ const GOLDEN_FILES = [
   'daw-hide-takes-done.json',
   'daw-hide-takes-nothing.json',
   'daw-hide-takes-refused.json',
+  'daw-roll-done.json',
+  'daw-roll-refused-confirm.json',
+  'daw-roll-refused-stale.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
   'workspace-use-take-done.json',
@@ -142,11 +147,22 @@ function hostApi(): DawHostApi {
       if (!known.chapterIds.includes(chapterId) || !known.candidateIds.includes(keepCandidateId)) return Promise.resolve(staleRefusal(DAW_ANSWERS.staleHide));
       return Promise.resolve(read(known.otherTakes?.[keepCandidateId] === 0 ? 'daw-hide-takes-nothing.json' : 'daw-hide-takes-done.json', dawResultSchema));
     },
+    // DawRoll on REAPER (punch not destructive, so confirmed is ignored): the time is checked first, a chapter with no track is the
+    // stale refusal, and a roll from 40 s is the done golden. Any other time has no golden.
+    dawRoll: (chapterId, at) => {
+      if (!Number.isFinite(at) || at < 0) return Promise.resolve(refusal(DAW_ANSWERS.rollBadTime));
+      if (!known.chapterIds.includes(chapterId)) return Promise.resolve(read('daw-roll-refused-stale.json', dawResultSchema));
+      if (at !== 40) return Promise.reject(new Error(`no golden for a roll from ${at} s`));
+      return Promise.resolve(read('daw-roll-done.json', dawResultSchema));
+    },
   };
 }
 
+/** A refusal with no code: the host's own sentence in `refused` and `message`. */
+const refusal = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
+
 /** The stale refusal (ADR 0861): the host's own sentence in `refused` and `message`, and the one code. */
-const staleRefusal = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence, code: 'stale' });
+const staleRefusal = (sentence: string): DawResult => ({ ...refusal(sentence), code: 'stale' });
 
 /** What every `DawResult` holds: a refusal changed nothing, repeats its sentence in `message`, and adds no undo point. */
 function expectWellFormed(result: unknown): void {
@@ -172,6 +188,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.recordStop(),
         await daw.useTake('chapter-1', 0, 4, 'take-1'),
         await daw.hideTakes('chapter-1', 0, 4, 'take-1'),
+        await daw.roll('chapter-1', 40),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -222,6 +239,11 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   { name: 'dawclient-hide-takes: a take with no others to hide is answered alike', observe: (daw) => daw.hideTakes('chapter-1', 0, 4, 'take-solo') },
   { name: 'dawclient-hide-takes: a stale kept take is refused alike', observe: (daw) => daw.hideTakes('chapter-1', 0, 4, 'stale-take') },
   { name: 'dawclient-hide-takes: an unknown chapter is refused alike', observe: (daw) => daw.hideTakes('chapter-9', 0, 4, 'take-1') },
+  { name: 'dawclient-roll: a roll that keeps the earlier audio is answered alike', observe: (daw) => daw.roll('chapter-1', 40) },
+  { name: 'dawclient-roll: confirmed is ignored where punch is not destructive', observe: (daw) => daw.roll('chapter-1', 40, { confirmed: true }) },
+  { name: 'dawclient-roll: a chapter with no track is refused stale alike', observe: (daw) => daw.roll('chapter-9', 40) },
+  { name: 'dawclient-roll: a negative time is refused alike', observe: (daw) => daw.roll('chapter-1', -1) },
+  { name: 'dawclient-roll: a time that is not a number is refused alike', observe: (daw) => daw.roll('chapter-1', Number.NaN) },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
@@ -338,6 +360,29 @@ describe('the host adapter maps each existing golden', () => {
     expect(calls).toEqual([['chapter-1', '2', '7', 'take-2']]);
   });
 
+  it("dawclient-roll: the host adapter answers the binding's DawResult as it is, and sends confirmed as the page gave it", async () => {
+    expect(await daw.roll('chapter-1', 40)).toEqual(read('daw-roll-done.json', dawResultSchema));
+    expect(await daw.roll('chapter-9', 40)).toEqual(read('daw-roll-refused-stale.json', dawResultSchema));
+    const confirm = read('daw-roll-refused-confirm.json', dawResultSchema);
+    expect(confirm).toEqual(refusal(DAW_ANSWERS.rollConfirm));
+    const calls: unknown[][] = [];
+    const destructive = createHostDawClient({
+      ...hostApi(),
+      dawRoll: (...args) => {
+        calls.push(args);
+        return Promise.resolve(confirm);
+      },
+    });
+    const answer = await destructive.roll('chapter-1', 12.5);
+    expectWellFormed(answer);
+    expect(answer).toEqual(confirm);
+    await destructive.roll('chapter-1', 12.5, { confirmed: true });
+    expect(calls).toEqual([
+      ['chapter-1', 12.5, false],
+      ['chapter-1', 12.5, true],
+    ]);
+  });
+
   it('host-adapter-maps-the-existing-results: a refusal without a sentence is an error, not a sentence the client words', async () => {
     const silent = createHostDawClient({ ...hostApi(), readAloudRecordStart: () => Promise.resolve({ outcome: 'refused', reason: 'timeout' }) });
     await expect(silent.recordStart('chapter-1')).rejects.toThrow('no sentence');
@@ -384,6 +429,30 @@ describe('the mock setups', () => {
       message: BUILTIN_NOTHING_TO_MUTE,
       undoSteps: 0,
     });
+  });
+
+  it("dawclient-roll: the mock refuses with the setup's punch sentence, asks first where punch is destructive, and keeps the earlier audio on REAPER", async () => {
+    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.punch.message;
+      expect(sentence, id).toBeTruthy();
+      expect(await createMockDawClient(DAW_SETUPS[id]).roll('chapter-1', 40, { confirmed: true }), id).toEqual(refusal(sentence ?? ''));
+    }
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await reaper.roll('chapter-1', 62.25)).toEqual({ ok: true, changed: true, message: rolledAnswer(62.25), undoSteps: 0 });
+    expect(rolledAnswer(40)).toBe(read('daw-roll-done.json', dawResultSchema).message);
+    expect(await reaper.roll('chapter-9', 40)).toEqual(staleRefusal(DAW_ANSWERS.rollStale));
+    expect(await reaper.roll('chapter-1', Number.POSITIVE_INFINITY)).toEqual(refusal(DAW_ANSWERS.rollBadTime));
+
+    // Audacity without backups, once punch is built: available, and a roll there replaces the audio.
+    const audacity = DAW_SETUPS.audacity;
+    const destructive: DawCapabilities = {
+      ...audacity,
+      capabilities: { ...audacity.capabilities, punch: { level: 'experimental', available: true, destructive: true } },
+    };
+    const mock = createMockDawClient(destructive);
+    expect(await mock.roll('chapter-1', 40)).toEqual(refusal(DAW_ANSWERS.rollConfirm));
+    expect(await mock.roll('chapter-1', 40, { confirmed: false })).toEqual(refusal(DAW_ANSWERS.rollConfirm));
+    expect(await mock.roll('chapter-1', 40, { confirmed: true })).toEqual({ ok: true, changed: true, message: rolledReplacingAnswer(40), undoSteps: 1 });
   });
 
   it('refusal-carries-the-capabilitys-sentence: take and marker calls use their own capability sentence', async () => {

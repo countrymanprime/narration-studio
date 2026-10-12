@@ -1,6 +1,15 @@
 import type { DawCapabilities, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
-import { DAW_ANSWERS, DAW_PROJECT, type DawProject, pickupMarkersReadAnswer, pickupsImportedAnswer, projectStateOf, takesHiddenOf } from '../fixtures/daw';
+import {
+  DAW_ANSWERS,
+  DAW_PROJECT,
+  type DawProject,
+  pickupMarkersReadAnswer,
+  pickupsImportedAnswer,
+  projectStateOf,
+  rolledOf,
+  takesHiddenOf,
+} from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
 // The DAW port (ADR 0770, ADR 0810): what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
@@ -37,6 +46,9 @@ export interface DawClient {
   useTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<DawResult>;
   /** Mute the other takes of the passage between the two tokens, keeping `keepCandidateId`, in one undo step. Nothing is deleted. */
   hideTakes(chapterId: string, firstToken: number, lastToken: number, keepCandidateId: string): Promise<DawResult>;
+  /** Roll again while recording: stop the recording this app started on the chapter's track and record again from `at` (project
+   * seconds), keeping the earlier audio as a take. Where `punch` is destructive it is refused until `confirmed`. */
+  roll(chapterId: string, at: number, opts?: { confirmed?: boolean }): Promise<DawResult>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
   /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
@@ -56,6 +68,7 @@ export type DawHostApi = Pick<
   | 'readAloudRecordStop'
   | 'workspaceUseTake'
   | 'workspaceHideTakes'
+  | 'dawRoll'
   | 'findingsAddMarker'
   | 'pickupsImport'
   | 'pickupsResolve'
@@ -202,6 +215,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     /** The binding answers a DawResult already, with code `stale` for a kept take it no longer offers (the #1164 mapping). */
     hideTakes: (chapterId, firstToken, lastToken, keepCandidateId) => api.workspaceHideTakes(chapterId, firstToken, lastToken, keepCandidateId),
+    /** The binding answers a DawResult already: it looks up the track, checks `at` and holds the confirmation rule itself. */
+    roll: (chapterId, at, opts) => api.dawRoll(chapterId, at, opts?.confirmed ?? false),
     async addMarker(findingId) {
       const result = await api.findingsAddMarker(findingId);
       if (result.outcome === 'refused') return refused(result.message, 'addMarker', result.reason === 'stale');
@@ -251,6 +266,15 @@ export function createMockDawClient(
       if (!project.chapterIds.includes(chapterId) || !project.candidateIds.includes(keepCandidateId)) return refused(DAW_ANSWERS.staleHide, 'hideTakes', true);
       const hidden = takesHiddenOf(setup, project.otherTakes?.[keepCandidateId] ?? 1);
       return done(hidden.changed, hidden.changed ? 1 : 0, hidden.message);
+    },
+    async roll(chapterId, at, opts = {}) {
+      const sentence = unavailable(setup, 'punch', 'roll');
+      if (sentence) return refused(sentence, 'roll');
+      if (!Number.isFinite(at) || at < 0) return refused(DAW_ANSWERS.rollBadTime, 'roll');
+      if (!project.chapterIds.includes(chapterId)) return refused(DAW_ANSWERS.rollStale, 'roll', true);
+      if (setup.capabilities.punch?.destructive && !opts.confirmed) return refused(DAW_ANSWERS.rollConfirm, 'roll');
+      const rolled = rolledOf(setup, at);
+      return done(true, rolled.undoSteps, rolled.message);
     },
     async addMarker(findingId) {
       const sentence = unavailable(setup, 'markers', 'addMarker');

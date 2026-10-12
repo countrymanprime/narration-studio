@@ -167,6 +167,14 @@ export interface DawHideTakesApi {
   workspaceHideTakes(chapterId: string, firstToken: number, lastToken: number, keepCandidateId: string): Promise<DawResult>;
 }
 
+/** DawRoll (SND-6a; apps/desktop/bindings_daw_roll.go): stop the recording this app started on the chapter's linked track and record
+ * again from `at` (project seconds), keeping the earlier audio as a take (ADR 0860). The host reads the track itself and checks `at`;
+ * where the `punch` capability is `destructive` it refuses until `confirmed`, and elsewhere `confirmed` is ignored. A capability refusal
+ * carries the capability's sentence and a gone track code `stale`. A chapter the manuscript does not have rejects. */
+export interface DawRollApi {
+  dawRoll(chapterId: string, at: number, confirmed: boolean): Promise<DawResult>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */

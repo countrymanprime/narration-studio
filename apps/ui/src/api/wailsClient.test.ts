@@ -1351,6 +1351,24 @@ describe('the DAW project state binding and event', () => {
   });
 });
 
+describe('the roll binding', () => {
+  const rolled = { ok: true, changed: true, message: 'Rolled again from 40.0 seconds. The earlier audio is kept as a take.', undoSteps: 0 };
+
+  it('sends the chapter, the time and whether the narrator confirmed, and decodes the DawResult', async () => {
+    const roll = vi.fn(() => Promise.resolve(JSON.stringify(rolled)));
+    standInHost({ DawRoll: roll });
+    await expect(wailsClient.dawRoll('c-0001', 40, false)).resolves.toEqual(rolled);
+    expect(roll).toHaveBeenCalledWith('c-0001', 40, false);
+  });
+
+  it('refuses an answer the dawResult schema does not accept', async () => {
+    standInHost({ DawRoll: () => Promise.resolve(JSON.stringify({ ...rolled, undoSteps: -1 })) });
+    await expect(wailsClient.dawRoll('c-0001', 40, true)).rejects.toBeInstanceOf(WireError);
+    standInHost({ DawRoll: () => Promise.resolve(JSON.stringify({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'x', code: 'gone' })) });
+    await expect(wailsClient.dawRoll('c-0001', 40, true)).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the hide takes binding', () => {
   const muted = { ok: true, changed: true, message: 'Muted 1 other take in REAPER. It is still in the project.', undoSteps: 1 };
 

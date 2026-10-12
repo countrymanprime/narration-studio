@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 108
+const hostAPIVersion = 109
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -211,6 +211,9 @@ type Host struct {
 	// takeSelector is the DAW port's takes role over the same adapter as takeCreator (ADR 0300): WorkspaceHideTakes
 	// (bindings_workspace_hide.go) asks it to hide a passage's other takes. Nil with no bridge client or no such role.
 	takeSelector dawport.TakeSelector
+	// puncher is the DAW port's punch role over the same adapter as takeCreator (ADR 0300): DawRoll (bindings_daw_roll.go)
+	// asks it to roll. Nil with no bridge client or no such role.
+	puncher dawport.Puncher
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
@@ -663,8 +666,9 @@ func (h *Host) configureLocked(next config) {
 		projectStateReader, _ = dawAdapter.Role(dawport.CapProjectState).(dawport.ProjectStateReader)
 		h.takeCreator, _ = dawAdapter.Role(dawport.CapTakeCreate).(dawport.TakeCreator)
 		h.takeSelector, _ = dawAdapter.Role(dawport.CapTakes).(dawport.TakeSelector)
+		h.puncher, _ = dawAdapter.Role(dawport.CapPunch).(dawport.Puncher)
 	} else {
-		h.takeCreator, h.takeSelector = nil, nil
+		h.takeCreator, h.takeSelector, h.puncher = nil, nil, nil
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,

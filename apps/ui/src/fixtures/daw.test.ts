@@ -12,6 +12,9 @@ import {
   type DawSetupId,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
+  rolledAnswer,
+  rolledOf,
+  rolledReplacingAnswer,
   takesHiddenAnswer,
 } from './daw';
 
@@ -149,5 +152,23 @@ describe('the hide-takes answers (SN-D52)', () => {
     expect(DAW_PROJECT.otherTakes?.['take-solo']).toBe(0);
     expect(Object.keys(DAW_PROJECT.otherTakes ?? {}).every((id) => DAW_PROJECT.candidateIds.includes(id))).toBe(true);
     expect(DAW_ANSWERS.staleHide).toMatch(/nothing was changed/);
+  });
+});
+
+describe('the roll answers (SN-D64)', () => {
+  const golden = (name: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+
+  it("rolledAnswer words what dawport/reaper's puncher does, and the refusals match the host goldens", () => {
+    expect(rolledAnswer(40)).toBe(golden('daw-roll-done.json').message);
+    expect(golden('daw-roll-refused-confirm.json').message).toBe(DAW_ANSWERS.rollConfirm);
+    expect(golden('daw-roll-refused-stale.json').message).toBe(DAW_ANSWERS.rollStale);
+  });
+
+  it('rolledOf keeps the earlier audio with no undo point where punch is not destructive, and replaces it in one step where it is', () => {
+    expect(rolledOf(DAW_SETUPS.reaper, 12)).toEqual({ message: rolledAnswer(12), undoSteps: 0 });
+    expect(DAW_SETUPS.audacity.capabilities.punch.destructive).toBe(true);
+    expect(rolledOf(DAW_SETUPS.audacity, 12)).toEqual({ message: rolledReplacingAnswer(12), undoSteps: 1 });
+    expect(DAW_SETUPS['audacity-backups'].capabilities.punch.destructive).toBeUndefined();
   });
 });

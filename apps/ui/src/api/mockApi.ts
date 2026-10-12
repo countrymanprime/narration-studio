@@ -59,9 +59,9 @@ import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommo
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
-import type { DawCapabilitiesApi, DawHideTakesApi, DawResult } from './contracts/daw';
+import type { DawCapabilitiesApi, DawHideTakesApi, DawResult, DawRollApi } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
-import { DAW_ANSWERS, takesHiddenOf } from '../fixtures/daw';
+import { DAW_ANSWERS, rolledOf, takesHiddenOf } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -350,6 +350,7 @@ export function createMockApi(
     },
     ...daw,
     ...createHideTakesMock(daw, workspaceTakes),
+    ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
     ...recording,
@@ -386,6 +387,25 @@ function createHideTakesMock(daw: DawCapabilitiesApi, takes: Pick<WorkspaceApi, 
       if (!keep.usable) return refused(keep.reason ?? DAW_ANSWERS.hideNotOnItem);
       const hidden = takesHiddenOf(setup, candidates.filter((candidate) => candidate.source === 'item_take' && candidate.id !== keep.id).length);
       return { ok: true, changed: hidden.changed, message: hidden.message, undoSteps: hidden.changed ? 1 : 0 };
+    },
+  };
+}
+
+const refusedResult = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
+
+/** DawRoll as bindings_daw_roll.go answers it: the punch capability's sentence first, then the time, the chapter (one the manuscript
+ * does not have rejects), and the confirmation where punch is destructive; then what the launch's DAW answers a roll. */
+function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawRollApi {
+  return {
+    dawRoll: async (chapterId, at, confirmed) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.punch;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (!Number.isFinite(at) || at < 0) return refusedResult(DAW_ANSWERS.rollBadTime);
+      if (!(await hasChapter(chapterId))) throw new Error('that chapter is not part of the current manuscript');
+      if (support.destructive && !confirmed) return refusedResult(DAW_ANSWERS.rollConfirm);
+      const rolled = rolledOf(setup, at);
+      return { ok: true, changed: true, message: rolled.message, undoSteps: rolled.undoSteps };
     },
   };
 }

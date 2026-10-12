@@ -65,6 +65,9 @@ type hostServices struct {
 	// takeSelector is the DAW port's takes role over the same bridge client; nil (a true nil interface) with no bridge
 	// client or no such role.
 	takeSelector dawport.TakeSelector
+	// puncher is the DAW port's punch role over the same bridge client; nil (a true nil interface) with no bridge client or
+	// no such role.
+	puncher dawport.Puncher
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
 	// teleprompterinput.go and chapterregions.go ask for (ADR 0300); nil with no bridge client.
 	dawPortResolver *dawport.Resolver
@@ -131,6 +134,7 @@ func (h *Host) services() hostServices {
 		navigation:      h.navigation,
 		takeCreator:     h.takeCreator,
 		takeSelector:    h.takeSelector,
+		puncher:         h.puncher,
 		dawPortResolver: h.dawPortResolver,
 	}
 }

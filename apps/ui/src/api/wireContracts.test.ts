@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
+import { DAW_ANSWERS, rolledAnswer } from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -2813,6 +2814,32 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi({}, linked).dawCapabilities()).capabilities.takes.message);
   });
 
+  it('dawRoll answers a dawResult: the host goldens parse, and the mock rolls, checks the time and refuses as the host does', async () => {
+    for (const file of ['daw-roll-done.json', 'daw-roll-refused-confirm.json', 'daw-roll-refused-stale.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-roll-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 0, message: rolledAnswer(40) });
+    expect(readGolden('daw-roll-refused-confirm.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, refused: DAW_ANSWERS.rollConfirm });
+    expect(readGolden('daw-roll-refused-stale.json')).toMatchObject({ ok: false, changed: false, code: 'stale', refused: DAW_ANSWERS.rollStale });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { punch: 'on' } } });
+    const rolled = await api.dawRoll(chapter.id, 40, false);
+    expectMatches(dawResultSchema, rolled, 'mock roll, done');
+    expect(rolled).toEqual(readGolden('daw-roll-done.json'));
+    expect(await api.dawRoll(chapter.id, 40, true)).toEqual(readGolden('daw-roll-done.json'));
+    for (const at of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const refused = await api.dawRoll(chapter.id, at, true);
+      expectMatches(dawResultSchema, refused, `mock roll, at ${at}`);
+      expect(refused.refused).toBe(DAW_ANSWERS.rollBadTime);
+    }
+    await expect(api.dawRoll('{11111111-1111-4111-8111-111111111111}', 40, true)).rejects.toThrow();
+
+    const off = await createMockApi().dawRoll(chapter.id, 40, true);
+    expectMatches(dawResultSchema, off, 'mock roll, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.punch.message);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3383,6 +3410,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspaceHideTakes',
+      'dawRoll',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',
