@@ -267,9 +267,24 @@ export function EditingBody(props: EditingBodyProps) {
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
   const cleanupDeps = useCleanupDeps();
   useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
+  // What the inspector needs to change an effect through the DAW and the history, and to hear its words through the page's playback.
+  const { playFrom, stop: stopPlayback, playing: isPlaying } = playback;
+  const effectHost = useMemo(
+    () => ({ chapterId, locator, journal, effects: read.effects, play: playFrom, stop: stopPlayback, playing: isPlaying }),
+    [chapterId, locator, journal, read.effects, playFrom, stopPlayback, isPlaying],
+  );
   useEffect(
-    () => registerEffectsSection({ effects: read.effects, cuts: read.cuts, total, selected: state.sel ? selected : [], fx, onSelectWords: selectWords }),
-    [read.effects, read.cuts, total, state.sel, selected, fx, selectWords],
+    () =>
+      registerEffectsSection({
+        effects: read.effects,
+        cuts: read.cuts,
+        total,
+        selected: state.sel ? selected : [],
+        fx,
+        onSelectWords: selectWords,
+        host: effectHost,
+      }),
+    [read.effects, read.cuts, total, state.sel, selected, fx, selectWords, effectHost],
   );
   useEffect(() => registerBackupsSection(caps, { chapterName, total, journal }), [caps, chapterName, total, journal]);
   const [flagKind, setFlagKind] = useState<FlagKind | null>(null);
