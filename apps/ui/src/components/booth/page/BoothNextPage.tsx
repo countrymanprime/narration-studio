@@ -53,19 +53,26 @@ type Props = {
  * the address (`?chapter=`, `?credits=`, and `&para=&at=` for Record from here). Not routed yet: SN-O10 mounts it and deletes the old Booth.
  */
 export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOTH_LINKS.script }: Props) {
-  if (!hasManuscript)
-    return (
-      <div className="p-4 md:p-6">
-        <h1 className="sr-only">Booth</h1>
-        <Panel title="Booth">
-          <div className="flex flex-col items-start gap-3">
-            <p>This project has no manuscript yet. Import one to begin.</p>
-            {onImport && <Button onClick={onImport}>Import manuscript</Button>}
-          </div>
-        </Panel>
-      </div>
-    );
-  return <BoothLoaded navigate={navigate} exitTo={exitTo} />;
+  // The page title is visually hidden: the reading surface is the page (as the old Booth's).
+  return (
+    <>
+      <h1 className="sr-only">Booth</h1>
+      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} /> : <NeedManuscript onImport={onImport} />}
+    </>
+  );
+}
+
+function NeedManuscript({ onImport }: { onImport?: () => void }) {
+  return (
+    <div className="p-4 md:p-6">
+      <Panel title="Booth">
+        <div className="flex flex-col items-start gap-3">
+          <p>This project has no manuscript yet. Import one to begin.</p>
+          {onImport && <Button onClick={onImport}>Import manuscript</Button>}
+        </div>
+      </Panel>
+    </div>
+  );
 }
 
 function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; exitTo: string }) {
@@ -90,13 +97,12 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   if (data.chapters?.length === 0)
     return (
       <div className="p-4 md:p-6">
-        <h1 className="sr-only">Booth</h1>
         <Panel title="This manuscript has no chapters to read">
           <p className="text-sm text-[var(--text-muted)]">The Booth reads narration chapters. Import a manuscript with at least one narration chapter first.</p>
         </Panel>
       </div>
     );
-  if (!source) return <h1 className="sr-only">Booth</h1>;
+  if (!source) return null;
   const key = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
   return (
     <PortOverrides clients={{ daw }}>
@@ -240,7 +246,6 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   return (
     <CommandScope kind="booth">
       <div ref={page.root} className="flex size-full flex-col bg-[var(--bg)] text-[var(--text)]">
-        <h1 className="sr-only">Booth</h1>
         {/* The top bar keeps the drawer open: its toggle opens and closes it, and nothing else on it is the text. */}
         <div data-booth-side-keep="">
           <BoothTop
