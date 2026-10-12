@@ -349,6 +349,7 @@ describe('the text ramp keeps its order', () => {
 // unmeasured. `text-[var(--x)]`, `color: 'var(--x)'` and a `color:` declaration in a stylesheet all count.
 const NO_TEXT_PAIR: Record<string, string> = {
   bookmark: 'a bookmark icon colour, not text',
+  'sp-text': 'the Script reader speaker chip sets it to var(--speaker-N-text); the speaker-1..7 pairs above measure each of those',
   'non-text': 'the colour of icons, status dots and decorative glyphs, held to 3:1 as a mark and never the colour of text that carries information',
 };
 
