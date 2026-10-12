@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMAND_CATALOG, findCommand } from './commands.catalog';
 import { gesture } from './gestures';
-import { codeLabel, FOOTER_SPECS, footerHints, gestureKeys } from './hints';
+import { codeLabel, FOOTER_SPECS, footerHints, gestureKeys, nonKeyHints } from './hints';
 import { defaultKeymap } from './keymap';
 
 describe('codeLabel', () => {
@@ -107,5 +107,18 @@ describe('footerHints', () => {
     const spec = [{ id: 'no.such.command', label: 'Nope' }];
     expect(spec.filter(({ id }) => !findCommand(id))).toHaveLength(1);
     expect(footerHints('booth', keymap, spec, [])).toEqual([]);
+  });
+});
+
+describe('nonKeyHints', () => {
+  it('every non-key hint follows a command the catalogue has', () => {
+    for (const surface of Object.keys(FOOTER_SPECS) as (keyof typeof FOOTER_SPECS)[]) {
+      for (const hint of nonKeyHints(surface)) expect(findCommand(hint.after), `${surface} hint "${hint.label}" follows "${hint.after}"`).toBeDefined();
+    }
+  });
+
+  it('lists the Booth right-click and no hint for a surface with none', () => {
+    expect(nonKeyHints('booth')).toEqual([{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }]);
+    expect(nonKeyHints('proof')).toEqual([]);
   });
 });
