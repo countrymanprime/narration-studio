@@ -1,5 +1,5 @@
--- Cut words and their audio, over the bridge (ADR 0860 point 2). Loaded by narration_ui_bridge.lua, which passes the
--- shared helpers as the chunk argument.
+-- Cut words and their audio (ADR 0860 point 2), and put a saved FX chain on a range of words and take it off again
+-- (point 3), over the bridge. Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- delete_range(run, item_guid, start, end, mode, fade_ms) cuts project seconds start..end out of the item named by GUID.
 -- In one undo block it splits the item at end and then at start (SplitMediaItem leaves the left part as the original
@@ -19,6 +19,30 @@
 --
 -- Answers RANGE_CUT|run|leftItemGuid|cutItemGuid|undoPoints: leftItemGuid is empty when the cut starts at the item's
 -- start (the cut piece is then the item itself).
+--
+-- apply_fx_range(run, item_guid, start, end, chain, fade_ms) puts one of the narrator's saved chains on start..end of the
+-- item. `chain` is a name as list_fx_chains (narration_workspace.lua) lists it: plain folder and file names under
+-- <resource path>/FXChains joined by '/', at most four parts, ending .RfxChain. A name with a control character, a
+-- backslash, a colon or an empty, '.' or '..' part is refused before any REAPER call; any other name must then be listed
+-- in REAPER's own folder listing, part by part, and its file be there, and the path is built here. The command never loads
+-- from a path the host sent. (list_fx_chains also stops at 500 chains; a chain past that is accepted here.) In one undo
+-- block it splits the item at both ends as delete_range does, adds the chain to the middle piece's active take with
+-- TakeFX_AddByName(take, path, -1), and records the chain name and the GUIDs of the FX it added in the take's P_EXT.
+-- fade_ms sets the fade at each new seam (the neighbours' and the middle piece's). A chain that adds no FX answers ERROR,
+-- saying one Undo rejoins the item when it was split. Answers RANGE_FX_APPLIED|run|middleItemGuid|middleTakeGuid|chain|
+-- undoPoints.
+--
+-- remove_fx_range(run, item_guid, chain) takes the FX that P_EXT records for that chain off the piece, clears the record,
+-- and joins the piece to each neighbour on its track that carries on its audio: the neighbour touches it, has the same
+-- takes (source, rate, and an offset that follows on), the same active take, the same mute and as many FX per take, and
+-- carries no chain of its own. The join lengthens the first piece over the others (D_LENGTH, keeping the last piece's
+-- fade-out) and deletes the pieces it folded in, whose audio the kept piece now plays, in one undo block. Answers
+-- RANGE_FX_REMOVED|run|itemGuid|chain|undoPoints: the item that remains, and 0 with no block when the piece no longer
+-- carries that chain or any FX of it.
+--
+-- Not run in REAPER (pending the QA pass, #1495): whether TakeFX_AddByName loads a .RfxChain onto a take with the full
+-- path and appends its FX at the end, whether a split copies a take's P_EXT, and whether the splits and the load, and the
+-- removal and the join, are each one undo step.
 
 local core = ...
 local event = core.event
@@ -35,6 +59,19 @@ local EDGE_TOLERANCE = 0.000001
 
 local BAD_RANGE = 'The range to cut is not a usable pair of times.'
 local OUTSIDE = 'The range to cut is not inside that item.'
+local BAD_FADE = 'The fade must be a whole number of milliseconds from 0 to 500.'
+local RECORDING = 'REAPER is recording. Stop recording first.'
+
+local UNDO_ADD_CHAIN = 'Narration Utils: add chain to range'
+local UNDO_REMOVE_CHAIN = 'Narration Utils: remove chain from range'
+-- The take P_EXT keys apply_fx_range writes: the chain's name, and the GUIDs of the FX it added, space-separated.
+local CHAIN_KEY = 'P_EXT:narration_utils_fx_range_chain'
+local CHAIN_FX_KEY = 'P_EXT:narration_utils_fx_range_fx'
+-- list_fx_chains' depth: a chain at most three folders under FXChains (narration_workspace.lua's CHAIN_DEPTH_LIMIT).
+local CHAIN_PARTS_LIMIT = 4
+local BAD_CHAIN = 'That FX chain is not in the FXChains folder REAPER lists.'
+local CHAIN_BAD_RANGE = 'The range for the chain is not a usable pair of times.'
+local CHAIN_OUTSIDE = 'The range for the chain is not inside that item.'
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -224,8 +261,318 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
   event(session_dir, 'RANGE_CUT', run_id, left and item_guid(left) or '', item_guid(middle), 1)
 end
 
+-- The parts of a name list_fx_chains could list, or nil. Pure Lua: it runs before any REAPER call.
+local function chain_parts(name)
+  if name == '' or name:find('[%c\\:]') or not name:lower():match('%.rfxchain$') then
+    return nil
+  end
+  local parts = {}
+  for part in (name .. '/'):gmatch('(.-)/') do
+    if part == '' or part == '.' or part == '..' then
+      return nil
+    end
+    parts[#parts + 1] = part
+  end
+  if #parts > CHAIN_PARTS_LIMIT then
+    return nil
+  end
+  return parts
+end
+
+-- Whether REAPER's listing of directory holds name exactly; index -1 first clears REAPER's cached listing, as
+-- list_fx_chains does.
+local function listed(enumerate, directory, name)
+  enumerate(directory, -1)
+  local index = 0
+  while true do
+    local found = enumerate(directory, index)
+    if not found or found == '' then
+      return false
+    end
+    if found == name then
+      return true
+    end
+    index = index + 1
+  end
+end
+
+-- The full path of the chain the parts name, built from REAPER's resource path, or nil unless each folder and the file
+-- are in REAPER's own listing and the file is there.
+local function chain_path(parts)
+  local path = core.join(reaper.GetResourcePath(), 'FXChains')
+  for index, part in ipairs(parts) do
+    local enumerate = index == #parts and reaper.EnumerateFiles or reaper.EnumerateSubdirectories
+    if not listed(enumerate, path, part) then
+      return nil
+    end
+    path = core.join(path, part)
+  end
+  return core.file_exists(path) and path or nil
+end
+
+local function take_guid(take)
+  local _, guid = reaper.GetSetMediaItemTakeInfo_String(take, 'GUID', '', false)
+  return normalize_guid(guid)
+end
+local function take_ext(take, key)
+  local _, value = reaper.GetSetMediaItemTakeInfo_String(take, key, '', false)
+  return value or ''
+end
+
+local function apply_fx_range(session_dir, run_id, guid_text, start_text, end_text, name, fade_text)
+  local parts = chain_parts(name)
+  if not parts then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  local first_fx, last_fx = finite(start_text), finite(end_text)
+  if not first_fx or not last_fx or last_fx - first_fx <= EDGE_TOLERANCE then
+    event(session_dir, 'ERROR', run_id, CHAIN_BAD_RANGE)
+    return
+  end
+  local fade = fade_from(fade_text)
+  if not fade then
+    event(session_dir, 'ERROR', run_id, BAD_FADE)
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local needed = { 'SplitMediaItem', 'TakeFX_AddByName', 'TakeFX_GetCount', 'TakeFX_GetFXGUID', 'EnumerateFiles', 'EnumerateSubdirectories' }
+  for _, api in ipairs(needed) do
+    if not reaper.APIExists(api) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot put an FX chain on a range.')
+      return
+    end
+  end
+  local path = chain_path(parts)
+  if not path then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  local wanted = normalize_guid(guid_text)
+  local item = nil
+  if wanted ~= '' then
+    item = find_item(wanted)
+  end
+  if not item then
+    event(session_dir, 'ITEM_STALE', run_id, guid_text, 'item')
+    return
+  end
+  if not reaper.GetActiveTake(item) then
+    event(session_dir, 'ERROR', run_id, 'That item has no take to put the chain on.')
+    return
+  end
+  local first = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+  local last = first + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+  if first_fx < first - EDGE_TOLERANCE or last_fx > last + EDGE_TOLERANCE then
+    event(session_dir, 'ERROR', run_id, CHAIN_OUTSIDE)
+    return
+  end
+  local split_start = first_fx - first > EDGE_TOLERANCE
+  local split_end = last - last_fx > EDGE_TOLERANCE
+
+  reaper.PreventUIRefresh(1)
+  reaper.Undo_BeginBlock2(0)
+  local middle, left, right, splits, failure = item, nil, nil, 0, nil
+  if split_end then
+    right = reaper.SplitMediaItem(item, last_fx)
+    splits = splits + (right and 1 or 0)
+    failure = not right and 'REAPER could not split the item.' or nil
+  end
+  if not failure and split_start then
+    middle = reaper.SplitMediaItem(item, first_fx)
+    left = middle and item or nil
+    splits = splits + (middle and 1 or 0)
+    failure = not middle and 'REAPER could not split the item.' or nil
+  end
+  local take = nil
+  if not failure then
+    take = reaper.GetActiveTake(middle)
+    local before = reaper.TakeFX_GetCount(take)
+    local index = reaper.TakeFX_AddByName(take, path, -1)
+    local count = reaper.TakeFX_GetCount(take)
+    if index < 0 or count <= before then
+      failure = 'REAPER did not load the FX chain.'
+    else
+      local guids = {}
+      for fx = before, count - 1 do
+        guids[#guids + 1] = reaper.TakeFX_GetFXGUID(take, fx) or ''
+      end
+      reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_KEY, name, true)
+      reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_FX_KEY, table.concat(guids, ' '), true)
+      for _, seam in ipairs({ { left, 'D_FADEOUTLEN', 'D_FADEINLEN' }, { right, 'D_FADEINLEN', 'D_FADEOUTLEN' } }) do
+        local neighbour, its_edge, middle_edge = seam[1], seam[2], seam[3]
+        if neighbour then
+          reaper.SetMediaItemInfo_Value(neighbour, its_edge, fade)
+          reaper.SetMediaItemInfo_Value(middle, middle_edge, fade)
+        end
+      end
+    end
+  end
+  reaper.Undo_EndBlock2(0, UNDO_ADD_CHAIN, -1)
+  reaper.PreventUIRefresh(-1)
+  reaper.UpdateArrange()
+  if failure then
+    if splits > 0 then
+      failure = failure .. ' The item was split: press Undo in REAPER to rejoin it.'
+    end
+    event(session_dir, 'ERROR', run_id, failure)
+    return
+  end
+  event(session_dir, 'RANGE_FX_APPLIED', run_id, item_guid(middle), take_guid(take), name, 1)
+end
+
+-- The item's takes as a join compares them: per take its source file, rate, offset and FX count, plus the active take's
+-- index and whether any take carries a range chain.
+local function takes_of(item)
+  local takes, active, carries = {}, reaper.GetActiveTake(item), false
+  local active_index = -1
+  for index = 0, reaper.CountTakes(item) - 1 do
+    local take = reaper.GetTake(item, index)
+    if take == active then
+      active_index = index
+    end
+    if take_ext(take, CHAIN_KEY) ~= '' then
+      carries = true
+    end
+    takes[#takes + 1] = {
+      file = reaper.GetMediaSourceFileName(reaper.GetMediaItemTake_Source(take), ''),
+      rate = reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE'),
+      offset = reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'),
+      fx = reaper.TakeFX_GetCount(take),
+    }
+  end
+  return { takes = takes, active = active_index, carries = carries, muted = reaper.GetMediaItemInfo_Value(item, 'B_MUTE') }
+end
+
+-- Whether b carries on a's audio from where a ends, so the two can be one item: a and b as takes_of reads them.
+local function follows(a, a_item, b, b_item)
+  local a_end = reaper.GetMediaItemInfo_Value(a_item, 'D_POSITION') + reaper.GetMediaItemInfo_Value(a_item, 'D_LENGTH')
+  local length = reaper.GetMediaItemInfo_Value(a_item, 'D_LENGTH')
+  if math.abs(reaper.GetMediaItemInfo_Value(b_item, 'D_POSITION') - a_end) > EDGE_TOLERANCE then
+    return false
+  end
+  if a.carries or b.carries or a.active ~= b.active or a.muted ~= b.muted or #a.takes ~= #b.takes then
+    return false
+  end
+  for index, take in ipairs(a.takes) do
+    local other = b.takes[index]
+    if take.file ~= other.file or take.rate ~= other.rate or take.fx ~= other.fx then
+      return false
+    end
+    if math.abs(take.offset + length * take.rate - other.offset) > EDGE_TOLERANCE then
+      return false
+    end
+  end
+  return true
+end
+
+-- The neighbour on the piece's track that a join folds in on one side (before: it ends where the piece starts), or nil.
+local function joinable(piece, shape, before)
+  local track = reaper.GetMediaItem_Track(piece)
+  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+    local other = reaper.GetTrackMediaItem(track, index)
+    if other ~= piece then
+      local other_shape = takes_of(other)
+      if before and follows(other_shape, other, shape, piece) then
+        return other
+      end
+      if not before and follows(shape, piece, other_shape, other) then
+        return other
+      end
+    end
+  end
+  return nil
+end
+
+local function remove_fx_range(session_dir, run_id, guid_text, name)
+  if not chain_parts(name) then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local needed = { 'TakeFX_Delete', 'TakeFX_GetFXGUID', 'TakeFX_GetCount', 'DeleteTrackMediaItem' }
+  for _, api in ipairs(needed) do
+    if not reaper.APIExists(api) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot take an FX chain off a range.')
+      return
+    end
+  end
+  local wanted = normalize_guid(guid_text)
+  local piece = wanted ~= '' and find_item(wanted) or nil
+  if not piece then
+    event(session_dir, 'ITEM_STALE', run_id, guid_text, 'item')
+    return
+  end
+  local take = nil
+  for index = 0, reaper.CountTakes(piece) - 1 do
+    local candidate = reaper.GetTake(piece, index)
+    if take_ext(candidate, CHAIN_KEY) == name then
+      take = candidate
+      break
+    end
+  end
+  -- The 0-based indices, highest first, of the FX the record names that are still on the take.
+  local doomed = {}
+  if take then
+    local recorded = {}
+    for guid in take_ext(take, CHAIN_FX_KEY):gmatch('%S+') do
+      recorded[guid] = true
+    end
+    for fx = reaper.TakeFX_GetCount(take) - 1, 0, -1 do
+      if recorded[reaper.TakeFX_GetFXGUID(take, fx) or ''] then
+        doomed[#doomed + 1] = fx
+      end
+    end
+  end
+  if #doomed == 0 then
+    event(session_dir, 'RANGE_FX_REMOVED', run_id, item_guid(piece), name, 0)
+    return
+  end
+
+  reaper.PreventUIRefresh(1)
+  reaper.Undo_BeginBlock2(0)
+  for _, fx in ipairs(doomed) do
+    reaper.TakeFX_Delete(take, fx)
+  end
+  reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_KEY, '', true)
+  reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_FX_KEY, '', true)
+  local shape = takes_of(piece)
+  local left, right = joinable(piece, shape, true), joinable(piece, shape, false)
+  local keep, last = left or piece, right or piece
+  if keep ~= last then
+    local track = reaper.GetMediaItem_Track(piece)
+    local first = reaper.GetMediaItemInfo_Value(keep, 'D_POSITION')
+    local ends = reaper.GetMediaItemInfo_Value(last, 'D_POSITION') + reaper.GetMediaItemInfo_Value(last, 'D_LENGTH')
+    local fadeout = reaper.GetMediaItemInfo_Value(last, 'D_FADEOUTLEN')
+    if left then
+      reaper.DeleteTrackMediaItem(track, piece)
+    end
+    if right then
+      reaper.DeleteTrackMediaItem(track, right)
+    end
+    reaper.SetMediaItemInfo_Value(keep, 'D_LENGTH', ends - first)
+    reaper.SetMediaItemInfo_Value(keep, 'D_FADEOUTLEN', fadeout)
+  end
+  reaper.Undo_EndBlock2(0, UNDO_REMOVE_CHAIN, -1)
+  reaper.PreventUIRefresh(-1)
+  reaper.UpdateArrange()
+  event(session_dir, 'RANGE_FX_REMOVED', run_id, item_guid(keep), name, 1)
+end
+
 return function(registry)
   registry.register('delete_range', function(ctx, args)
     delete_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5], args[6])
+  end)
+  registry.register('apply_fx_range', function(ctx, args)
+    apply_fx_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5] or '', args[6])
+  end)
+  registry.register('remove_fx_range', function(ctx, args)
+    remove_fx_range(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
   end)
 end

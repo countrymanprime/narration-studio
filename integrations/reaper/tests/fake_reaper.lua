@@ -294,8 +294,9 @@ function Fake:transport_calls()
   return out
 end
 
--- The tracks and items with the values an edit changes (position, length, track, mute, fades, names, extension data).
--- Takes are kept by reference: no command here changes a take's own fields inside an undo block it then undoes.
+-- The tracks and items with the values an edit changes (position, length, track, mute, fades, names, extension data),
+-- and each take's FX list and extension data (apply_fx_range and remove_fx_range change them inside their block). The
+-- rest of a take is kept by reference: no command here changes it inside an undo block a test then undoes.
 function Fake:snapshot()
   local copy = function(t)
     local out = {}
@@ -304,7 +305,7 @@ function Fake:snapshot()
     end
     return out
   end
-  local shot = { tracks = copy(self.tracks), items = copy(self.items), track_state = {}, item_state = {} }
+  local shot = { tracks = copy(self.tracks), items = copy(self.items), track_state = {}, item_state = {}, take_state = {} }
   for _, track in ipairs(self.tracks) do
     shot.track_state[track] = { items = copy(track.items), name = track.name, muted = track.muted, ext = copy(track.ext or {}) }
   end
@@ -317,6 +318,9 @@ function Fake:snapshot()
       fadein = item.fadein,
       fadeout = item.fadeout,
     }
+    for _, take in ipairs(item.takes) do
+      shot.take_state[take] = { fx = copy(take.fx or {}), ext = copy(take.ext or {}) }
+    end
   end
   return shot
 end
@@ -335,6 +339,9 @@ function Fake:undo_last_block()
     for key, value in pairs(state) do
       item[key] = value
     end
+  end
+  for take, state in pairs(shot.take_state) do
+    take.fx, take.ext = state.fx, state.ext
   end
   return entry.label
 end
@@ -890,7 +897,7 @@ function Fake:add_take_api(api)
     error('fake reaper: unmodelled take value ' .. tostring(key))
   end
   -- The setter counterpart of GetMediaItemTakeInfo_Value: D_STARTOFFS (the take-review source-offset alignment, Q4) and
-  -- D_VOL (hide_takes). Item D_LENGTH has no setter here on purpose - nothing in this bridge may touch it.
+  -- D_VOL (hide_takes). The item D_LENGTH setter is below; only remove_fx_range's join sets it.
   function api.SetMediaItemTakeInfo_Value(take, key, value)
     fake.calls[#fake.calls + 1] = { name = 'SetMediaItemTakeInfo_Value', key = key, value = value }
     if key == 'D_STARTOFFS' then
@@ -929,8 +936,9 @@ function Fake:add_take_api(api)
   function api.UpdateItemInProject(_)
     fake.item_updates = (fake.item_updates or 0) + 1
   end
-  -- Take FX (apply_fx_chain). A chain file adds one FX per `fake.chain_fx_count` (1 unless a test sets it); a test sets
-  -- fake.fx_load_fails to model REAPER refusing the file. Every call is recorded in fake.calls.
+  -- Take FX (add_take_fx, apply_fx_range). A chain file adds one FX per `fake.chain_fx_count` (1 unless a test sets it),
+  -- each with its own GUID; a test sets fake.fx_load_fails to model REAPER refusing the file. Every call is recorded in
+  -- fake.calls.
   function api.TakeFX_AddByName(take, name, instantiate)
     fake.calls[#fake.calls + 1] = { name = 'TakeFX_AddByName', fx = name, instantiate = instantiate }
     if fake.fx_load_fails then
@@ -939,12 +947,28 @@ function Fake:add_take_api(api)
     take.fx = take.fx or {}
     local first = #take.fx
     for _ = 1, fake.chain_fx_count or 1 do
-      take.fx[#take.fx + 1] = { name = name }
+      take.fx[#take.fx + 1] = { name = name, guid = fake:new_guid() }
     end
     return first
   end
   function api.TakeFX_GetCount(take)
     return #(take.fx or {})
+  end
+  -- TakeFX_GetFXGUID(take, fx): the FX's GUID, or nil for an index the take does not have (the ReaScript reference; not
+  -- run).
+  function api.TakeFX_GetFXGUID(take, index)
+    local fx = (take.fx or {})[index + 1]
+    return fx and fx.guid or nil
+  end
+  -- TakeFX_Delete(take, fx): removes the FX at a 0-based index; false for an index the take does not have. Recorded in
+  -- fake.calls.
+  function api.TakeFX_Delete(take, index)
+    fake.calls[#fake.calls + 1] = { name = 'TakeFX_Delete', index = index }
+    if not (take.fx or {})[index + 1] then
+      return false
+    end
+    table.remove(take.fx, index + 1)
+    return true
   end
   -- SplitMediaItem the way REAPER documents it: the original item becomes the left half and the right half is a new
   -- item (new GUID) returned, or nil when the position is not strictly inside the item. Both halves keep the item's
@@ -966,7 +990,7 @@ function Fake:add_take_api(api)
       copy.startoffs = take.startoffs + (at - item.position) * take.playrate
       copy.fx = {}
       for _, fx in ipairs(take.fx or {}) do
-        copy.fx[#copy.fx + 1] = { name = fx.name }
+        copy.fx[#copy.fx + 1] = { name = fx.name, guid = fake:new_guid() }
       end
       right.takes[index] = copy
     end
@@ -1172,6 +1196,10 @@ function Fake:add_lane_api(api)
       table.sort(item.track.items, function(a, b)
         return a.position < b.position
       end)
+    elseif key == 'D_LENGTH' then
+      -- remove_fx_range's join, the one command that sets an item's length: it lengthens the piece it keeps over the
+      -- pieces it folds back in.
+      item.length = value
     else
       error('fake reaper: unmodelled item value setter ' .. tostring(key))
     end

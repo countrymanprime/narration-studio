@@ -3,9 +3,9 @@ import { DAW_CAPABILITIES } from '../api/contracts/daw';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
-// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it, not yet available on
-// any engine until their command slices land. The sentences are the host's own wording (dawport resolver and adapters), so a refusal
-// here reads as the real one.
+// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it: REAPER declares the
+// first two Experimental (narration_range.lua), and the others are not yet available on any engine until their command slices land.
+// The sentences are the host's own wording (dawport resolver and adapters), so a refusal here reads as the real one.
 
 export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'audacity-backups';
 
@@ -45,7 +45,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   master_chain_read: 'experimental',
   macro_render: 'unsupported',
   cut_range: 'experimental',
-  fx_range: 'not_yet_available',
+  fx_range: 'experimental',
   stack_takes: 'not_yet_available',
   backups: 'not_yet_available',
 };
@@ -68,11 +68,13 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
   ]),
 );
 
-/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take and a cut moves the audio to the muted Cuts track,
- * so punch and cut_range are native and not destructive (ADR 0860). */
+/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, a cut moves the audio to the muted Cuts track and a
+ * chain on a range is take FX on a split piece that come off again, so punch, cut_range and fx_range are native and not destructive
+ * (ADR 0860). */
 const REAPER_DEPTH: Rows = {
   punch: { level: 'experimental', available: true, mode: 'native' },
   cut_range: { level: 'experimental', available: true, mode: 'native' },
+  fx_range: { level: 'experimental', available: true, mode: 'native' },
 };
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
@@ -90,6 +92,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
     ...REAPER_NOT_YET,
     punch: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     cut_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+    fx_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
   },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
