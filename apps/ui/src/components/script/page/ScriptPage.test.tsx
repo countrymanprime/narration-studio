@@ -583,8 +583,18 @@ describe('opening-credits-row', () => {
     const list = within(panel('chapters'));
     const row = await list.findByRole('button', { name: /Opening credits/ });
     expect(list.getAllByRole('button')[0]).toBe(row);
+    // The card still has [Token]s to fill in, so the dot says Not started.
+    expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('none');
     fireEvent.click(row);
     await waitFor(() => expect(document.querySelector('[data-credits-entry="opening"]')).not.toBeNull());
+  });
+
+  it('draws the credits row prepped once the opening credits have nothing left to fill in', async () => {
+    const api = createMockApi({ creditsPreview: async () => ({ text: 'Alice, written by Carroll.', words: 4, unresolved: [] }) });
+    mount({ api });
+    await firstHeading();
+    const row = await within(panel('chapters')).findByRole('button', { name: /Opening credits/ });
+    await waitFor(() => expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('prepped'));
   });
 
   it('lists no credits row when the library has no opening template', async () => {

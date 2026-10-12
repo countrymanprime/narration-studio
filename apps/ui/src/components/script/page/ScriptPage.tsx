@@ -361,14 +361,14 @@ function ScriptWorkspace({
 
   // The mock lists the opening credits above chapter 1 with the prep dot; here they are the card above the first chapter. A manuscript that
   // imported its own opening-credits chapter lists that one instead. The card has no prep state of its own: its dot is Prepped once the
-  // credits fields are filled in (the setup is no longer needed), else Not started.
+  // preview has no [Token] left to fill in, else Not started.
   const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
   const openingCredits = useMemo(
     () =>
       credits.hasOpening && !ownsOpening
-        ? { state: (credits.setup && !credits.setup.needed ? 'prepped' : 'none') as PrepState, onJump: () => navigate('/script#credits-opening') }
+        ? { state: (credits.previews.opening?.unresolved.length === 0 ? 'prepped' : 'none') as PrepState, onJump: () => navigate('/script#credits-opening') }
         : undefined,
-    [credits.hasOpening, credits.setup, ownsOpening, navigate],
+    [credits.hasOpening, credits.previews.opening, ownsOpening, navigate],
   );
 
   /* ---------- The reader's slots ---------- */
