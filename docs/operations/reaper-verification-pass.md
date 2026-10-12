@@ -75,6 +75,22 @@ Needs the owner present and approval for one test recording on a copy of a proje
 | B8 | The same microphone in REAPER and the app | With REAPER recording or monitoring the device, open the microphone popover's level meter (`TeleprompterMeterStart`, [ADR 0247](../adr/0247-the-input-level-comes-from-the-sidecars-own-capture-and-a-model-free-meter-child-runs-before-start.md)), then start a reading. | The meter moves with the owner's voice and the reading follows, or the open fails and `meter_stopped` or the session's error says why (REAPER holding the device exclusively). REAPER's own recording is never interrupted. Record which drivers share the device. |
 | B9 | `play_position` and `punch_to` while recording (the recording steps of A9b and A9c, which Part A cannot take) | During B2's recording, send `play_position`; then `punch_to` 42 with pre-roll 3. | `PLAY_POSITION` state 5 with both positions moving; `punch_to` is refused with "REAPER is recording. Stop it before moving to a word." and the cursor does not move. |
 
+## Part C: the Studio Next DAW commands (not scripted yet)
+
+The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) (SN-D44 to SN-D72). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-utils/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records, so it needs Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
+
+| # | Command | Steps | Pass when |
+| --- | --- | --- | --- |
+| C1 | `hide_takes` (`takes`; `takes_test.lua`) | Hide the other take of the two-take item, keeping take 2; send it again; press Undo; send it with a stale take GUID. | `TAKES_HIDDEN` mutes 1 other take (`D_VOL` 0, the old volume in the take's `P_EXT`) and makes take 2 active, in one undo point; the second send is unchanged with no undo point; one Undo gives back every take's volume and the active take; the stale GUID is refused `stale` and changes nothing. Nothing is deleted, moved or re-sourced |
+| C2 | `roll` (`punch`; `roll_test.lua`) | During B2's recording, with "New recording that overlaps existing media items" set to "Splits existing items and creates new takes", send `roll` at 2 s before the play position; then with that option set otherwise; then for a recording the app did not start. | `ROLLED`: REAPER records again from the time and the earlier pass stays as a take; the command opens no undo block of its own (count the points REAPER adds). The other option is refused, naming the setting, which the app does not change; the narrator's own recording answers `RECORD_NOT_OURS` |
+| C3 | `delete_range` (`cut_range`; `range_test.lua`) | Cut 1 to 2 s of the 12 s item in `close` mode; press Undo; cut it in `gap` mode; send a range that overlaps the next item. | The item is split at both ends and the middle piece moves to the muted Cuts track, in one undo point; `close` moves the later items on that track up by 1 s, `gap` leaves silence; one Undo gives the item back whole; the overlap is refused and changes nothing. No item, take or source file is deleted |
+| C4 | `apply_fx_range` (`fx_range`; `fx_range_test.lua`) | Put `Voice/Test EQ.RfxChain` on 1 to 2 s of the 12 s item; press Undo; send a chain name `list_fx_chains` does not list. | The item is split at both ends and the chain's FX load on the middle piece's active take with `TakeFX_AddByName`, in one undo point; the take's `P_EXT` records the chain and the FX it added; one Undo gives the item back whole; the unlisted name is refused and nothing is split |
+| C5 | `remove_fx_range` (`fx_range`; `fx_range_test.lua`) | After C4 (applied again), take the chain off the piece; send it again. | Only the FX the apply recorded come off and the piece joins the pieces the apply split off, in one undo point, playing the same audio; the second send changes nothing |
+| C6 | `stack_takes` (`stack_takes`; `stack_test.lua`) | With a first read and a later read of the same words on "Chapter 1", send a payload stacking the later read on the first; press Undo; send one with a stale GUID. | The later read becomes a take of the first read's item, its own item moves to the muted Cuts track and the audio after moves up by the shift, in one undo point; the first read stays active; one Undo gives every read back; the stale GUID refuses the whole request and changes nothing |
+| C7 | `unstack_takes` (`stack_takes`; `stack_test.lua`) | After C6 (stacked again and saved), send the un-stack payload. | The stacked take is removed and the read goes back by the offset its take recorded, in one undo point; nothing is deleted |
+| C8 | `reopen_pickup` (`pickups`; `pickups_test.lua`) | Import one pickup, `resolve_pickup` it, then `reopen_pickup` at its position; send it again. | `PICKUP_REOPENED`: the marker reads `PICKUP: <body>` again, in one undo point named "Narration Utils: reopen pickup"; the second send answers `ERROR` with no undo point |
+| C9 | `list_pickup_markers` (`pickups`; `pickups_test.lua`) | With one open and one resolved pickup, send it with an output path in the session folder. | `PICKUP_MARKERS_LISTED` with 1 open and 1 done; the file holds `start\|state\|tag\|note` rows in position order; no undo point |
+
 ## Switching a command on
 
 A command passes when every row that names it passes and the report is recorded. The rows each Experimental capability (`declares` in `apps/desktop/internal/dawport/reaper/reaper.go`) needs, besides A10 for every row that writes:
@@ -84,18 +100,23 @@ A command passes when every row that names it passes and the report is recorded.
 | `track_state` | `chapter_track_state` | A1, A2, A3 |
 | `track_select` | `select_track` | A11 |
 | `record` | `arm_only`, `record_start`, `record_stop` | A4, A5, B1 to B6 |
-| `punch` | `play_position`, `punch_to` | A9b, A9c, B9 |
+| `punch` | `play_position`, `punch_to`, `roll` | A9b, A9c, B9, C2 |
 | `regions` | `create_regions` | A9 |
-| `takes` | `set_active_take` | A6 |
+| `takes` | `set_active_take`, `hide_takes` | A6, C1 |
 | `fx_chains` | `list_fx_chains`, `list_fx`, `apply_fx_chain`, `add_take_fx` | A7, A8, A8b |
 | `silence_trim` | `preview_cleanup_markers`, `apply_cleanup_trims` | A12, A13 |
 | `item_gain` | `apply_item_gain` | A14 |
+| `cut_range` | `delete_range` | C3 |
+| `fx_range` | `apply_fx_range`, `remove_fx_range` | C4, C5 |
+| `stack_takes` | `stack_takes`, `unstack_takes` | C6, C7 |
 
 Then, in one PR:
 
 1. Record the run here (a "Verification record" section: date, REAPER version, OS, the report, every value that differed from the fake) and correct the fake to match.
 2. Take the command off the host's experimental list (`experimentalCommands` in `apps/desktop/internal/bridge/actions.go`) and move its capability's declaration in `apps/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR ([ADR 0400](../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md)), so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
 3. Update the threat model rows that say "pending" for it.
+
+`pickups` is Supported already, so C8 and C9 promote nothing: a failure there is a bug to fix. Which command is promoted when is in [the promotion plan](../research/studio-next-daw-promotion-plan.md).
 
 When every command is off the list, the switch has nothing left to gate; the PR that empties the list removes the switch and its `config/defaults.json` default.
 
