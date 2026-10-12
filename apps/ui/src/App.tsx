@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
 import { AppShell, shellPages } from './components/layout/AppShell';
@@ -42,6 +42,7 @@ import { EnginePanelProvider } from './components/engine/EnginePanelContext';
 import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
 import { ProofChapterPage } from './components/proof/ProofChapterPage';
 import { ProofPage } from './components/proof/ProofPage';
+import { EditingPage } from './components/editing/EditingPage';
 import { PickupsPage } from './components/pickups/PickupsPage';
 import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLocation';
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
@@ -529,10 +530,10 @@ function AppRoutes() {
   const goToScript = (chapter: string, paragraph?: number) =>
     guardedNavigate(`/script#${paragraph !== undefined ? `p${paragraph}` : `c${encodeURIComponent(chapter)}`}`);
   const goToStoryBible = (entityId: string) => guardedNavigate(`/story-bible#${encodeURIComponent(entityId)}`);
-  // A chapter's Proof view ("Open in workspace"): from Proof's notes, the Production board and Script. findingId is the deep link's ?finding=, so the
-  // chapter view lands on the flag that finding backs (Navigation and deep links).
-  const goToProofChapter = (chapterId: string, findingId?: string) => {
-    guardedNavigate(`/proof/${encodeURIComponent(chapterId)}${findingId ? `?finding=${encodeURIComponent(findingId)}` : ''}`);
+  // The Editing page at a chapter: from Proof's takes at a spot, the Production board's recording check and Proof's chapter view. findingId is the
+  // deep link's ?finding=, so the page opens with the flagged word that finding names selected (Navigation and deep links).
+  const goToEditing = (chapterId: string, findingId?: string) => {
+    guardedNavigate(`/editing/${encodeURIComponent(chapterId)}${findingId ? `?finding=${encodeURIComponent(findingId)}` : ''}`);
   };
   // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
   const goToBooth = (target: { chapter: string } | { credits: CreditsKind }) => guardedNavigate(`/booth${boothQuery(target)}`);
@@ -646,7 +647,7 @@ function AppRoutes() {
                       go={guardedNavigate}
                       notify={setNotice}
                       goToScript={goToScript}
-                      goToProofChapter={goToProofChapter}
+                      goToEditing={goToEditing}
                       goToBooth={(chapterId) => (chapterId ? goToBooth({ chapter: chapterId }) : guardedNavigate('/booth'))}
                       refreshBootstrap={refreshBootstrap}
                       onOverview={onProductionOverview}
@@ -662,7 +663,7 @@ function AppRoutes() {
                       <ScriptPage
                         notify={setNotice}
                         focusStoryBibleEntity={goToStoryBible}
-                        goToWorkspace={goToProofChapter}
+                        goToWorkspace={goToEditing}
                         projectFolder={data.projectFolder}
                         goToBooth={goToBooth}
                       />
@@ -690,6 +691,7 @@ function AppRoutes() {
                         transcript={data.transcript}
                         dawFileLinked={data.dawFileLinked}
                         goToManuscript={goToScript}
+                        goToEditing={goToEditing}
                         refreshKey={`${data.manuscript.id}:${data.manuscript.importedAt}`}
                       />
                     ) : (
@@ -697,6 +699,10 @@ function AppRoutes() {
                     )
                   }
                 />
+                {/* Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script is the editor. `/editing` opens the first chapter;
+                  with no manuscript the page asks for one. */}
+                <Route path="/editing" element={<EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />} />
+                <Route path="/editing/:chapterId" element={<EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />} />
                 <Route path="/booth" element={data.manuscript ? <BoothNextPage hasManuscript navigate={guardedNavigate} /> : <Navigate to="/" replace />} />
                 <Route
                   path="/companion"
@@ -712,7 +718,7 @@ function AppRoutes() {
                       goTo={guardedNavigate}
                       goToScript={(chapterId) => goToScript(chapterId)}
                       goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
-                      goToEditing={goToProofChapter}
+                      goToEditing={goToEditing}
                     />
                   }
                 />
@@ -724,9 +730,10 @@ function AppRoutes() {
                 {/* Retired by Proof (ADR 0407): old links land, query and hash kept. */}
                 <Route path="/review" element={<RedirectKeepingLocation to="/proof" />} />
                 <Route path="/proofing" element={<RedirectKeepingLocation to="/proof" />} />
+                {/* A chapter's old Tracks address lands on Editing at that chapter, ?t= and ?finding= kept. */}
                 <Route
                   path="/tracks/chapter/:chapterId"
-                  element={<RedirectKeepingLocation to={({ chapterId = '' }) => `/proof/${encodeURIComponent(chapterId)}`} />}
+                  element={<RedirectKeepingLocation to={({ chapterId = '' }) => `/editing/${encodeURIComponent(chapterId)}`} />}
                 />
                 {/* The Production page moved to `/`. */}
                 <Route path="/production" element={<RedirectKeepingLocation to="/" />} />
@@ -830,4 +837,27 @@ function AppRoutes() {
     else if (move.direction === -1) history.back();
     else history.forward();
   }
+}
+
+/**
+ * The Editing page's route: the chapter from the address, and `?finding=`, `?t=` and `?passage=` from its query (the deep links other pages
+ * open it with). Stepping to another chapter replaces the address, so Back leaves Editing rather than walking its chapters.
+ */
+function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onImport: () => void }) {
+  const { chapterId } = useParams<{ chapterId: string }>();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const t = params.get('t');
+  const seconds = t === null ? undefined : Number(t);
+  return (
+    <EditingPage
+      hasManuscript={hasManuscript}
+      chapterId={chapterId}
+      findingId={params.get('finding') ?? undefined}
+      passageId={params.get('passage') ?? undefined}
+      t={seconds !== undefined && Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined}
+      onChapter={(id) => navigate(`/editing/${encodeURIComponent(id)}`, { replace: true })}
+      onImport={onImport}
+    />
+  );
 }

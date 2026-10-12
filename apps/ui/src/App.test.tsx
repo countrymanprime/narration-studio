@@ -57,6 +57,21 @@ const startRunOnChapterOne = async () => {
   await screen.findByRole('button', { name: 'Cancel' });
 };
 
+/** Links Chapter 1 to its first track from the engine panel's Chapter links table (no chapter starts linked in the mock) and returns its row. */
+const linkChapterOne = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
+  const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+  const table = await within(panel).findByRole('table', { name: 'Chapter links' });
+  const row = within(table)
+    .getAllByRole('row')
+    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1( — |$)/ }))!;
+  const select = within(row).getByRole('combobox') as HTMLSelectElement;
+  fireEvent.change(select, { target: { value: select.options[0].value } });
+  fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
+  await within(row).findByRole('link', { name: 'Open in Editing' });
+  return row;
+};
+
 describe('App (integration, driven through the mock NarrationApi)', () => {
   it('shows the startup screen, then the Production home once bootstrap resolves', async () => {
     renderApp();
@@ -642,13 +657,56 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it.each([
     ['/review?from=bookmark#top', '/proof', '?from=bookmark', '#top'],
     ['/proofing', '/proof', '', ''],
-    ['/tracks/chapter/chapter-1?t=12.5&finding=f-1', '/proof/chapter-1', '?t=12.5&finding=f-1', ''],
   ])('redirects %s to Proof, keeping its query and hash', async (from, pathname, search, hash) => {
     window.history.replaceState(null, '', from);
     renderApp();
     await waitFor(() => expect(window.location.pathname).toBe(pathname));
     expect(window.location.search).toBe(search);
     expect(window.location.hash).toBe(hash);
+  });
+
+  // SN-E9 (route-and-rail): a chapter's old Tracks address lands on Editing at that chapter, ?t= and ?finding= kept.
+  it('route-and-rail: redirects /tracks/chapter/:chapterId to Editing at that chapter, keeping its query', async () => {
+    window.history.replaceState(null, '', '/tracks/chapter/chapter-1?t=12.5&finding=f-1');
+    renderApp();
+    await waitFor(() => expect(window.location.pathname).toBe('/editing/chapter-1'));
+    expect(window.location.search).toBe('?t=12.5&finding=f-1');
+    expect(await screen.findByRole('region', { name: 'Script editor' })).toBeTruthy();
+  });
+
+  it('route-and-rail: /editing/:chapterId draws the Editing page on that chapter, and the Editing item opens /editing', async () => {
+    window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[1].id}`);
+    renderApp();
+    const page = await screen.findByRole('region', { name: 'Script editor' });
+    await waitFor(() => expect(within(page).getAllByText(new RegExp(WIRE_CHAPTERS[1].title)).length).toBeGreaterThan(0));
+    expect(screen.queryByRole('heading', { name: /^Proof · / })).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editing' })[0]);
+    await screen.findByRole('region', { name: 'Script editor' });
+    expect(window.location.pathname).toBe('/editing');
+  });
+
+  // As the mock's page: with no manuscript the route stays and the page asks for one; its button goes to the import on Production.
+  it('route-and-rail: without a manuscript Editing asks for one instead of drawing a chapter', async () => {
+    window.history.replaceState(null, '', '/editing/chapter-1');
+    const source = createMockApi();
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
+    fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    expect(window.location.pathname).toBe('/');
+  });
+
+  // SN-E9 (every-workspace-deep-link-lands-on-editing): the engine panel's chapter link opens Editing at the chapter; Proof's chapter view
+  // (its compare run and stage panels) keeps its own link.
+  it('every-workspace-deep-link-lands-on-editing: the Chapter links table opens a linked chapter in Editing', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const row = await linkChapterOne();
+    expect(within(row).getByRole('link', { name: 'Open in Proof' }).getAttribute('href')).toBe(`/proof/${WIRE_CHAPTERS[0].id}`);
+    fireEvent.click(within(row).getByRole('link', { name: 'Open in Editing' }));
+    await screen.findByRole('region', { name: 'Script editor' });
+    expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
 
   // ADR 0407: Master & QC replaced Delivery, and a finding's old /delivery#file=… link still lands on it.
@@ -1213,8 +1271,8 @@ describe('App Back and Forward', () => {
     const transcriptReset = vi.fn(createMockApi().transcriptReset);
     renderApp({ transcriptReset });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    // Production's Proof cell opens the chapter workspace (/proof/:chapterId) until the Editing swap.
-    fireEvent.click((await screen.findAllByRole('button', { name: /: Proof / }))[0]);
+    // The engine panel's chapter link is the way into Proof's chapter view, where the compare run lives.
+    fireEvent.click(within(await linkChapterOne()).getByRole('link', { name: 'Open in Proof' }));
     await startRunOnChapterOne();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));

@@ -41,7 +41,7 @@ async function renderPage({ overrides = {}, initial = {} }: { overrides?: Partia
             go={go}
             notify={notify}
             goToScript={vi.fn()}
-            goToProofChapter={vi.fn()}
+            goToEditing={vi.fn()}
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
             onOverview={onOverview}

@@ -39,8 +39,7 @@ export function RecordingCheckReport({
   goToParagraph: (index: number) => void;
   /** Check again, placed after the chapter figures and before Pickups ): the one action the panel has, kept close to the figures it refreshes. */
   actionsSlot?: ReactNode;
-  /** "Open in Proof" (the summary component is shared and the dialog gets it). Undefined when there is none to open (the same
-   * summary rendered inside the workspace's own Check again). */
+  /** "Open in Editing" (the summary component is shared and the dialog gets it). Undefined when there is none to open. */
   openWorkspace?: () => void;
 }) {
   const { complete, headline, detail } = verdict(report, judgement);
@@ -132,7 +131,7 @@ export function RecordingCheckReport({
         {actionsSlot}
         {openWorkspace && (
           <Button variant="secondary" onClick={openWorkspace}>
-            Open in Proof
+            Open in Editing
           </Button>
         )}
       </div>

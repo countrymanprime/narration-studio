@@ -42,6 +42,9 @@ const DANGER = { color: 'var(--danger-text)' };
 
 type Load = { status: 'loading' } | { status: 'ready'; overview: ProductionOverview } | { status: 'error'; message: string };
 
+/** Proof on one chapter's notes (`?chapter=`), or on all of them. */
+const proofAt = (chapterId?: string) => (chapterId ? `/proof?chapter=${encodeURIComponent(chapterId)}` : '/proof');
+
 const isNarration = (chapter: { contentKind?: string }) => !chapter.contentKind || chapter.contentKind === 'narration';
 
 /**
@@ -98,7 +101,7 @@ export function ProductionPage({
   go,
   notify,
   goToScript,
-  goToProofChapter,
+  goToEditing,
   goToBooth,
   refreshBootstrap,
   onOverview,
@@ -107,7 +110,8 @@ export function ProductionPage({
   go: (page: string) => void;
   notify: Notify;
   goToScript: (chapter: string, paragraph?: number) => void;
-  goToProofChapter: (chapterId: string) => void;
+  /** Opens the Editing page at a chapter (the recording check's Open in Editing). */
+  goToEditing: (chapterId: string) => void;
   /** Opens the Booth, on a chapter when one is given. */
   goToBooth: (chapterId?: string) => void;
   refreshBootstrap: () => Promise<void>;
@@ -186,8 +190,8 @@ export function ProductionPage({
   const onGo = (target: GoTarget | OverviewTarget, chapterId?: string) => {
     if (target === 'script') return chapterId ? goToScript(chapterId) : go('/script');
     if (target === 'booth') return goToBooth(chapterId);
-    if (target === 'editing') return chapterId ? tools.openEditingCheck(chapterId) : go('/proof');
-    if (target === 'proof') return chapterId ? goToProofChapter(chapterId) : go('/proof');
+    if (target === 'editing') return chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
+    if (target === 'proof') return go(proofAt(chapterId));
     if (target === 'pickups') return go('/pickups');
     if (target === 'master') return go('/master');
     return go('/schedule');
@@ -196,9 +200,9 @@ export function ProductionPage({
   const tools = useChapterTools({
     rows: narrated,
     notify,
-    go: { script: (id) => goToScript(id), booth: (id) => goToBooth(id), proof: goToProofChapter, master: () => go('/master') },
+    go: { script: (id) => goToScript(id), booth: (id) => goToBooth(id), proof: (id) => go(proofAt(id)), master: () => go('/master') },
     goToScript,
-    goToProofChapter,
+    goToEditing,
     active: found,
     refreshKey: manuscriptKey,
     onChanged,

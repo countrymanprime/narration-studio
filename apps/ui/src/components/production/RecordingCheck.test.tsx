@@ -24,7 +24,7 @@ function Host({
   chapter: ManuscriptChapter;
   notify: Notify;
   goToScript: (paragraph?: number) => void;
-  goToProofChapter: () => void;
+  goToEditing: () => void;
 }) {
   const [coverage, setCoverage] = useState<CoverageState>({ phase: 'idle', percent: 0, message: '' });
   const [open, setOpen] = useState(true);
@@ -36,7 +36,7 @@ function Host({
       notify={props.notify}
       close={() => setOpen(false)}
       goToParagraph={props.goToScript}
-      openWorkspace={() => props.goToProofChapter()}
+      openWorkspace={() => props.goToEditing()}
     />
   ) : null;
 }
@@ -47,7 +47,7 @@ function Host({
 let current: {
   api: NarrationApi;
   goToManuscript: Mock<(chapter: string, paragraph?: number) => void>;
-  goToProofChapter: Mock<(chapterId: string) => void>;
+  goToEditing: Mock<(chapterId: string) => void>;
   notify: Mock<Notify>;
 };
 async function openBoard(initial: Initial = {}, overrides: Partial<NarrationApi> = {}) {
@@ -55,7 +55,7 @@ async function openBoard(initial: Initial = {}, overrides: Partial<NarrationApi>
   current = {
     api,
     goToManuscript: vi.fn<(chapter: string, paragraph?: number) => void>(),
-    goToProofChapter: vi.fn<(chapterId: string) => void>(),
+    goToEditing: vi.fn<(chapterId: string) => void>(),
     notify: vi.fn<Notify>(),
   };
   return current;
@@ -64,7 +64,7 @@ async function openBoard(initial: Initial = {}, overrides: Partial<NarrationApi>
 // The dialog title is the chapter's full name: a prefix match keeps this helper working whether or not the mock chapter also carries a
 // subtitle after the title.
 const openCheck = async (title: string) => {
-  const { api, goToManuscript, goToProofChapter, notify } = current;
+  const { api, goToManuscript, goToEditing, notify } = current;
   const chapter = (await api.manuscriptChapters()).find((candidate) => candidate.title === title);
   if (!chapter) throw new Error(`no chapter ${title}`);
   render(
@@ -75,7 +75,7 @@ const openCheck = async (title: string) => {
           chapter={chapter}
           notify={notify}
           goToScript={(paragraph?: number) => goToManuscript(chapter.id, paragraph)}
-          goToProofChapter={() => goToProofChapter(chapter.id)}
+          goToEditing={() => goToEditing(chapter.id)}
         />
       </ApiProvider>
     </MemoryRouter>,
@@ -83,18 +83,18 @@ const openCheck = async (title: string) => {
   return screen.findByRole('dialog', { name: new RegExp(`^Recording check: ${title}\\b`) });
 };
 
-// The check gets "Open in Proof", now the chapter's Proof view.
-describe('Open in Proof from the recording check', () => {
-  it('opens the Proof view of the check’s own chapter', async () => {
-    const { goToProofChapter } = await openBoard();
+// The check gets "Open in Editing": the Editing page at the check's chapter.
+describe('Open in Editing from the recording check', () => {
+  it('opens the Editing page at the check’s own chapter', async () => {
+    const { goToEditing } = await openBoard();
     const dialog = await openCheck('Chapter 1'); // a current, fully-recorded check, so the report (and its button) render
 
-    fireEvent.click(await within(dialog).findByRole('button', { name: 'Open in Proof' }));
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Open in Editing' }));
 
-    expect(goToProofChapter).toHaveBeenCalledWith(WIRE_CHAPTERS[0].id);
+    expect(goToEditing).toHaveBeenCalledWith(WIRE_CHAPTERS[0].id);
   });
 
-  it('renders no Open in Proof button when the caller has none', async () => {
+  it('renders no Open in Editing button when the caller has none', async () => {
     const api = createMockApi();
     const [chapter] = await api.manuscriptChapters();
     render(
@@ -106,7 +106,7 @@ describe('Open in Proof from the recording check', () => {
     );
     const dialog = await screen.findByRole('dialog', { name: /^Recording check: Chapter 1\b/ });
     expect(await within(dialog).findByText('Passes the check')).toBeTruthy();
-    expect(within(dialog).queryByRole('button', { name: 'Open in Proof' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Open in Editing' })).toBeNull();
   });
 });
 

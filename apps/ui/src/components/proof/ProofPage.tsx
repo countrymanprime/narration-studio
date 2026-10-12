@@ -73,7 +73,7 @@ const held = (finding: Finding): Finding => ({ ...finding, review: { ...finding.
  * Proof (Studio Next mock `pages/Proof.tsx`): the whole book as a strip of chapters and one list of notes, or one chapter with its
  * recording check, its waveform window and its notes; the Inspector for the selected note on the right and the key hints at the foot.
  * The host filters and sorts the notes (`FindingsQuery`); a decision goes through the Inspector's stale-evidence guard and moves on
- * to the next note with an Undo. The workspace (`/proof/:chapterId`) stays until the Editing swap.
+ * to the next note with an Undo.
  */
 export function ProofPage({
   hasManuscript,
@@ -89,7 +89,7 @@ export function ProofPage({
   goTo: (path: string) => void;
   goToScript: (chapterId: string) => void;
   goToBooth: (chapterId: string) => void;
-  /** The takes' "Open in Editing": the chapter's workspace on the note. */
+  /** The takes' "Open in Editing": the Editing page at the note's chapter, with its flagged word selected. */
   goToEditing: (chapterId: string, findingId?: string) => void;
 }) {
   const findingsApi = usePort('findings');
