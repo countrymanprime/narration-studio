@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
@@ -282,19 +281,6 @@ type frozenGuideReport struct {
 	} `json:"checks"`
 }
 
-// glinerInstallDir is the folder the optional GLiNER download is installed in under the per-user cache (assetcache.go's analysis
-// root), whether or not it is there; "" when the packaged analysis catalog cannot be read. The sidecar reads only this folder (ADR 0848).
-func glinerInstallDir(root, userCache string) string {
-	tools, err := analysistools.New(filepath.Join(root, "config", "analysis-assets.json"), filepath.Join(assets.CacheBaseIn(userCache), analysisCacheDir))
-	if err != nil {
-		return ""
-	}
-	if _, ok := tools.Tool(extractionport.Gliner); !ok {
-		return ""
-	}
-	return tools.InstallDir(extractionport.Gliner)
-}
-
 // checkFrozenGuide runs the frozen Story Bible sidecar's own check of the two things a freeze silently loses: the CMU dictionary and
 // Piper's espeak-ng data (and, with a voice, one spoken word). Each of its checks is one line of the report.
 func checkFrozenGuide(ctx context.Context, options smokeOptions, root string) []smokeCheck {
@@ -310,7 +296,7 @@ func checkFrozenGuide(ctx context.Context, options smokeOptions, root string) []
 	if options.PiperModel != "" {
 		args = append(args, "--piper-model", options.PiperModel)
 	}
-	if dir := glinerInstallDir(root, options.UserCache); dir != "" {
+	if dir := analysisToolInstallDir(filepath.Join(root, "config", "analysis-assets.json"), assets.CacheBaseIn(options.UserCache), extractionport.Gliner); dir != "" {
 		args = append(args, "--gliner-install", dir)
 	}
 	code, stdout, stderr, err := runBounded(ctx, options, executable, args...)

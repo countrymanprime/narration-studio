@@ -163,3 +163,17 @@ func buildAnalysisManager(cfg config, packagedRoot, root string) *analysistools.
 	}
 	return manager
 }
+
+// analysisToolInstallDir is the folder an analysis tool is installed in under the asset cache base, whether or not it is there, read from
+// the catalog at catalogPath; "" when the catalog cannot be read or does not list the tool. The packaged smoke test hands GLiNER's to the
+// Story Bible sidecar's self-check, which reads only that folder (ADR 0848).
+func analysisToolInstallDir(catalogPath, cacheBase, id string) string {
+	tools, err := analysistools.New(catalogPath, filepath.Join(cacheBase, analysisCacheDir))
+	if err != nil {
+		return ""
+	}
+	if _, ok := tools.Tool(id); !ok {
+		return ""
+	}
+	return tools.InstallDir(id)
+}
