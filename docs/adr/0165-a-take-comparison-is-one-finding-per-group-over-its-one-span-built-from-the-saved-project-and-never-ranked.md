@@ -1,6 +1,6 @@
 # 0165. A take comparison is one finding per group, over its one span, built from the saved project, and never ranked
 
-**Status:** Proposed
+**Status:** Proposed (superseded in part by [ADR 0857](0857-the-take-suggestion-is-evidence-first-and-its-confidence-is-null-with-a-reason-until-the-takes-are-comparable.md): the "never ranked" part, DQ-15; a take suggestion is now offered, evidence first, never applied by itself; a comparison stays one finding per group over its one span)
 **Date:** 2026-09-23
 
 ## Context
