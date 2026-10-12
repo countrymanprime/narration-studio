@@ -1,7 +1,9 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faArrowLeft,
   faChevronDown,
   faCodeMerge,
   faFloppyDisk,
@@ -10,6 +12,7 @@ import {
   faPause,
   faPen,
   faPlus,
+  faMagnifyingGlass,
   faRotate,
   faTrash,
   faWaveSquare,
@@ -42,6 +45,7 @@ import { nameRows } from './source/pronunciationRows';
 import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
+import { findQuery } from '../script/page/scriptQuery';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { EntryText } from './EntryText';
 import {
@@ -58,7 +62,6 @@ import {
 } from './propertyDraft';
 import { IconButton } from '../primitives/IconButton';
 import { Listbox, listboxOptionId } from '../primitives/Listbox';
-import { Select } from '../primitives/Select';
 import { TextField } from '../primitives/TextField';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import type { Notify } from '../primitives/Toast';
@@ -79,6 +82,61 @@ const draftOf = (entity: GuideEntity): Draft => ({
   properties: draftFrom(propertiesOf(entity).rest),
   talk: propertiesOf(entity).talk,
 });
+
+// The matches of the relationship picker's search box, named by the text box that drives it.
+const RELATION_MATCHES_ID = 'story-bible-relation-matches';
+const PICKER_LIMIT = 50;
+
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+const hasText = (entry: GuideEntity, text: string) => {
+  const needle = text.trim().toLowerCase();
+  return entry.canonical_name.toLowerCase().includes(needle) || entry.aliases.some((alias) => alias.text.toLowerCase().includes(needle));
+};
+const hasName = (entry: GuideEntity, text: string) => sameName(entry.canonical_name, text) || entry.aliases.some((alias) => sameName(alias.text, text));
+/** The other entry that already has `text` as its name or one of its names, ignoring case; a draft is not an entry yet. */
+const nameOwner = (entries: readonly GuideEntity[], text: string, exceptId: string) =>
+  entries.find((row) => row.id !== exceptId && row.category !== 'Draft' && hasName(row, text));
+
+/** One row of the Relationships table: the relationship and the other entry. The host holds a relationship on the entry it was written from. */
+type RelationRow = { key: string; label: string; otherId: string; otherName: string; incoming: boolean; holderId: string; targetId: string };
+const relationRows = (entity: GuideEntity, entries: readonly GuideEntity[]): RelationRow[] => [
+  ...entity.relationships.map((rel) => ({
+    key: `out:${rel.id}:${rel.label}`,
+    label: rel.label,
+    otherId: rel.id,
+    otherName: rel.name,
+    incoming: false,
+    holderId: entity.id,
+    targetId: rel.id,
+  })),
+  ...entries
+    .filter((other) => other.id !== entity.id && other.category !== 'Draft')
+    .flatMap((other) =>
+      other.relationships
+        .filter((rel) => rel.id === entity.id)
+        .map((rel) => ({
+          key: `in:${other.id}:${rel.label}`,
+          label: rel.label,
+          otherId: other.id,
+          otherName: other.canonical_name,
+          incoming: true,
+          holderId: other.id,
+          targetId: entity.id,
+        })),
+    ),
+];
+
+/** The entry's header button that opens the Script page's Find on its name. Drawn only inside the router, which every page has. */
+function FindInManuscript({ name }: { name: string }) {
+  const navigate = useNavigate();
+  return (
+    <TooltipTarget text="Find in the manuscript">
+      <IconButton label="Find in the manuscript" onClick={() => navigate(`/script${findQuery(name)}`)}>
+        <FontAwesomeIcon icon={faMagnifyingGlass} />
+      </IconButton>
+    </TooltipTarget>
+  );
+}
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
@@ -118,15 +176,23 @@ export function GuideDetail({
   suggested?: ReactNode;
 }) {
   const api = useApi();
+  // The Find button navigates, so it needs the router every page has; a detail drawn outside one (a story, a unit test) has none.
+  const inRouter = useInRouterContext();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [], talk: NO_TALK });
   const [propertyError, setPropertyError] = useState<string>();
   const [editing, setEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
   const [aliasSelectedId, setAliasSelectedId] = useState<string>();
   const [aliasActiveIndex, setAliasActiveIndex] = useState(0);
+  // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
+  const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string }>();
+  const [nameError, setNameError] = useState<string>();
   const [relationOtherId, setRelationOtherId] = useState('');
+  const [relationQuery, setRelationQuery] = useState('');
+  const [relationActiveIndex, setRelationActiveIndex] = useState(0);
   const [relationLabel, setRelationLabel] = useState('');
-  const [confirmation, setConfirmation] = useState<'delete' | 'merge'>();
+  const [confirmation, setConfirmation] = useState<'delete'>();
+  const nameField = useRef<HTMLInputElement>(null);
   // A slide-over, not select(id), so opening an alias match to review it
   // never resets the in-progress draft of the entry the user was already
   // editing - see the "Review entry" button below.
@@ -172,10 +238,25 @@ export function GuideDetail({
   // Selecting a different entry always starts read-only; a reload of the same
   // entry (after Save, an alias change, ...) keeps its mode.
   useEffect(() => setEditing(false), [entity?.id]);
+  // What was half done for one entry (an offer to merge, a relationship being written) is not carried to the next.
+  useEffect(() => {
+    setNameNote(undefined);
+    setRelationOtherId('');
+    setRelationQuery('');
+    setRelationActiveIndex(0);
+    setRelationLabel('');
+  }, [entity?.id]);
+  // A new entry opens with its name ready to type over (the mock's NameBox); starting another one while it is open does the same.
+  useEffect(() => {
+    if (!isNewDraft) return;
+    nameField.current?.focus();
+    nameField.current?.select();
+  }, [isNewDraft, entity]);
   useEffect(() => {
     setAliasQuery('');
     setAliasSelectedId(undefined);
     setAliasActiveIndex(0);
+    setNameError(undefined);
     setTtsPrompt(undefined);
     resetVoiceInstall();
     setPropertyError(undefined);
@@ -201,11 +282,16 @@ export function GuideDetail({
       setPropertyError(problem);
       return;
     }
+    const nameIssue = nameProblem(draft.name);
+    if (nameIssue) {
+      setNameError(nameIssue);
+      return;
+    }
     const saved = propertiesOf(entity);
     const properties = speaks(entity) ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
     const before = speaks(entity) ? withTalk(saved.rest, saved.talk) : entity.properties;
     const values: Record<string, string> = {
-      canonical_name: draft.name.trim() || entity.canonical_name,
+      canonical_name: draft.name.trim(),
       description: draft.description,
       personality: draft.personality,
       context: draft.context,
@@ -213,7 +299,17 @@ export function GuideDetail({
     if (!sameProperties(properties, before)) values.properties = JSON.stringify(properties);
     void save('save', values, 'Entry saved.').then((saved) => saved && setEditing(false));
   };
+  // An entry cannot be saved with no name or with one another entry has (the mock's renameEntry).
+  const nameProblem = (name: string) => {
+    if (!name.trim()) return 'Give this entry a name.';
+    const owner = nameOwner(entities, name, entity.id);
+    return owner ? `“${name.trim()}” is already a name of ${owner.canonical_name}.` : undefined;
+  };
   const otherEntities = entities.filter((row) => row.id !== entity.id && row.category !== 'Draft');
+  const relations = relationRows(entity, entities);
+  const pickedEntity = otherEntities.find((row) => row.id === relationOtherId);
+  // The picker lists matches only once the narrator types, as the alias box does; the arrow keys and Enter act on that list.
+  const relationMatches = relationQuery.trim() && !editingDisabled ? otherEntities.filter((row) => hasText(row, relationQuery)).slice(0, PICKER_LIMIT) : [];
   const aliasMatches = aliasSelectedId ? [] : findAliasMatches(entities, aliasQuery, entity.id);
   const selectedAliasMatch = aliasSelectedId ? entities.find((row) => row.id === aliasSelectedId) : undefined;
   const reviewOverlayEntity = reviewOverlayId ? entities.find((row) => row.id === reviewOverlayId) : undefined;
@@ -235,11 +331,25 @@ export function GuideDetail({
     setAliasQuery('');
     setAliasSelectedId(undefined);
     setAliasActiveIndex(0);
+    setNameNote(undefined);
+  };
+  // The text in the Names box is a name this entry or another entry already has (ignoring case): adding it would make a copy.
+  const typedOwner = () => {
+    const value = aliasQuery.trim();
+    if (!value) return undefined;
+    if (hasName(entity, value)) return { text: value };
+    const owner = nameOwner(entities, value, entity.id);
+    return owner ? { text: value, ownerId: owner.id } : undefined;
   };
   const addAliasFromQuery = () => {
     const value = aliasQuery.trim();
     // Another action is running: keep what was typed instead of clearing it and adding nothing.
     if (!value || mutation.isBusy) return;
+    const taken = typedOwner();
+    if (taken) {
+      setNameNote(taken);
+      return;
+    }
     clearAliasMatch();
     void setAliasTexts([...entity.aliases.map((alias) => alias.text), value]);
   };
@@ -247,16 +357,22 @@ export function GuideDetail({
     setTtsPrompt(undefined);
     resetVoiceInstall();
   };
-  const createNewEntity = (category: string) =>
-    mutation.run('create', async () => {
+  const createNewEntity = (category: string) => {
+    const issue = nameProblem(draft.name);
+    if (issue) {
+      setNameError(issue);
+      return;
+    }
+    return mutation.run('create', async () => {
       try {
-        const id = await api.guideCreate(draft.name.trim() || entity.canonical_name, category, []);
+        const id = await api.guideCreate(draft.name.trim(), category, []);
         notify('Entity created.');
         onCreatedNewDraft?.(id);
       } catch (error) {
         notify(describeApiError(error), 'error');
       }
     });
+  };
   const rescanOccurrences = () =>
     mutation.run('rescan', async () => {
       try {
@@ -316,15 +432,37 @@ export function GuideDetail({
       }
     });
   };
-  const removeRelationship = (relationId: string, label: string) =>
-    mutation.run(`unrelate:${relationId}:${label}`, async () => {
+  // A relationship is held by the entry it was written from, so an incoming one is removed from the other entry.
+  const removeRelationship = (row: RelationRow) =>
+    mutation.run(`unrelate:${row.key}`, async () => {
       try {
-        await api.guideUnrelate(entity.id, relationId, label);
+        await api.guideUnrelate(row.holderId, row.targetId, row.label);
         await reloadFor(entity.id);
       } catch (error) {
         notify(describeApiError(error), 'error');
       }
     });
+  const pickRelated = (id: string) => {
+    setRelationOtherId(id);
+    setRelationQuery('');
+    setRelationActiveIndex(0);
+  };
+  const onRelationKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setRelationQuery('');
+      return;
+    }
+    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && relationMatches.length) {
+      event.preventDefault();
+      setRelationActiveIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + relationMatches.length) % relationMatches.length);
+      return;
+    }
+    if (event.key === 'Enter' && relationMatches[relationActiveIndex]) {
+      event.preventDefault();
+      pickRelated(relationMatches[relationActiveIndex].id);
+    }
+  };
   const addRelationship = () => {
     if (!relationOtherId || !relationLabel.trim()) return;
     return mutation.run('relate', async () => {
@@ -342,7 +480,7 @@ export function GuideDetail({
     mutation.run('delete', async () => {
       try {
         await api.guideDelete(entity.id);
-        notify('Entity deleted.');
+        notify(`Deleted “${entity.canonical_name}”.`);
         await reload();
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -350,19 +488,43 @@ export function GuideDetail({
         setConfirmation(undefined);
       }
     });
-  const mergeEntry = (source: GuideEntity) =>
-    mutation.run('merge', async () => {
+  // The source is folded into this entry in one step, and the toast's Undo takes that step back (SB-3): both entries, the re-pointed
+  // relationships and the names the merge absorbed come back as they were, or the toast says why not.
+  const mergeEntry = (source: GuideEntity) => {
+    const target = entity;
+    return mutation.run('merge', async () => {
       try {
-        await api.guideMerge(source.id, entity.id);
-        notify(`Merged ${source.canonical_name} into ${entity.canonical_name}.`);
-        await reloadFor(entity.id);
+        const { undoId } = await api.guideMerge(source.id, target.id);
+        clearAliasMatch();
+        overlay.toastUndo(`Merged “${source.canonical_name}” into “${target.canonical_name}”.`, async () => {
+          try {
+            await api.guideUnmerge(undoId);
+            await reloadFor(target.id);
+            return { ok: true as const };
+          } catch (error) {
+            return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
+          }
+        });
+        await reloadFor(target.id);
       } catch (error) {
         notify(describeApiError(error), 'error');
-      } finally {
-        setConfirmation(undefined);
-        clearAliasMatch();
       }
     });
+  };
+  // Merges `source` into this entry; a locked source stays, since the merge would delete it.
+  const mergeButton = (source?: GuideEntity) =>
+    source?.locked ? (
+      <TooltipTarget text="Locked entries cannot be merged because the source would be deleted.">
+        <Button variant="primary" disabled>
+          Merge into this entry
+        </Button>
+      </TooltipTarget>
+    ) : (
+      <Button variant="primary" pending={mutation.isPending('merge')} disabled={!source || waiting('merge')} onClick={() => source && void mergeEntry(source)}>
+        <FontAwesomeIcon icon={faCodeMerge} />
+        Merge into this entry
+      </Button>
+    );
   // The others wait while one runs; the one that is running shows it is (`pending`).
   const waiting = (key: string) => mutation.isBlockedFor(key);
   const onAliasKeyDown = (event: React.KeyboardEvent) => {
@@ -379,7 +541,8 @@ export function GuideDetail({
     }
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (!aliasSelectedId && aliasMatches.length > 0) setAliasSelectedId(aliasMatches[aliasActiveIndex].id);
+      // A name that is already taken is answered, not read as a pick from the list of matches that contain it.
+      if (!aliasSelectedId && aliasMatches.length > 0 && !typedOwner()) setAliasSelectedId(aliasMatches[aliasActiveIndex].id);
       else if (!aliasSelectedId) addAliasFromQuery();
     }
   };
@@ -423,6 +586,7 @@ export function GuideDetail({
                 Mark reviewed
               </Button>
             ))}
+          {inRouter && <FindInManuscript name={entity.canonical_name} />}
           {/* Lock/Unlock is read-view only (ADR 0087): it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
           {!isNewDraft && !editing && (
             <TooltipTarget text={locked ? 'Unlock entry' : 'Lock entry'}>
@@ -500,7 +664,22 @@ export function GuideDetail({
         {(!editingDisabled || isNewDraft) && (
           <div>
             <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Name</div>
-            <TextField label="Name" disabled={editingDisabled} value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
+            <TextField
+              ref={nameField}
+              label="Name"
+              disabled={editingDisabled && !isNewDraft}
+              value={draft.name}
+              aria-invalid={nameError ? true : undefined}
+              onChange={(name) => {
+                setNameError(undefined);
+                setDraft({ ...draft, name });
+              }}
+            />
+            {nameError && (
+              <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger-text)' }}>
+                {nameError}
+              </p>
+            )}
           </div>
         )}
 
@@ -600,10 +779,21 @@ export function GuideDetail({
                 setAliasQuery(value);
                 setAliasSelectedId(undefined);
                 setAliasActiveIndex(0);
+                setNameNote(undefined);
               }}
               onKeyDown={onAliasKeyDown}
               placeholder="Add an alias or find a matching entry…"
             />
+            {nameNote && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {nameNote.ownerId
+                    ? `“${nameNote.text}” is already a name of ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
+                    : `“${nameNote.text}” is already a name of this entry.`}
+                </span>
+                {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
+              </div>
+            )}
             {selectedAliasMatch ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -613,18 +803,7 @@ export function GuideDetail({
                 <Button variant="secondary" onClick={() => setReviewOverlayId(selectedAliasMatch.id)}>
                   Review entry
                 </Button>
-                {selectedAliasMatch.locked ? (
-                  <TooltipTarget text="Locked entries cannot be merged because the source would be deleted.">
-                    <Button variant="primary" disabled>
-                      Merge into current entry
-                    </Button>
-                  </TooltipTarget>
-                ) : (
-                  <Button variant="primary" disabled={mutation.isBusy} onClick={() => setConfirmation('merge')}>
-                    <FontAwesomeIcon icon={faCodeMerge} />
-                    Merge into current entry
-                  </Button>
-                )}
+                {mergeButton(selectedAliasMatch)}
                 <Button variant="secondary" onClick={clearAliasMatch}>
                   Clear selection
                 </Button>
@@ -770,23 +949,36 @@ export function GuideDetail({
               </TableRow>
             </TableHead>
             <TableBody>
-              {entity.relationships.map((rel) => (
-                <TableRow key={`${rel.id}-${rel.label}`}>
-                  <TableCell>{rel.label}</TableCell>
-                  <TableCell>{rel.name}</TableCell>
+              {relations.map((row) => (
+                <TableRow key={row.key}>
+                  <TableCell>
+                    {row.incoming ? (
+                      <TooltipTarget text={`${row.otherName} ${row.label} ${entity.canonical_name}`}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span role="img" aria-label="Incoming" className="text-[var(--text-muted)]">
+                            <FontAwesomeIcon icon={faArrowLeft} />
+                          </span>
+                          {row.label}
+                        </span>
+                      </TooltipTarget>
+                    ) : (
+                      row.label
+                    )}
+                  </TableCell>
+                  <TableCell>{row.otherName}</TableCell>
                   <TableCell align="right">
                     <IconButton
                       label="Remove relationship"
-                      disabled={editingDisabled || waiting(`unrelate:${rel.id}:${rel.label}`)}
-                      pending={mutation.isPending(`unrelate:${rel.id}:${rel.label}`)}
-                      onClick={() => void removeRelationship(rel.id, rel.label)}
+                      disabled={editingDisabled || waiting(`unrelate:${row.key}`)}
+                      pending={mutation.isPending(`unrelate:${row.key}`)}
+                      onClick={() => void removeRelationship(row)}
                     >
                       <FontAwesomeIcon icon={faXmark} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
-              {entity.relationships.length === 0 && (
+              {relations.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} style={{ color: 'var(--text-muted)' }}>
                     No related entries yet.
@@ -795,7 +987,7 @@ export function GuideDetail({
               )}
             </TableBody>
           </Table>
-          <div className="mt-3 grid gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+          <div className="mt-3 grid items-start gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
             <TextField
               label="Relationship"
               disabled={editingDisabled}
@@ -803,22 +995,64 @@ export function GuideDetail({
               onChange={setRelationLabel}
               placeholder="Relationship, e.g. located in"
             />
-            <Select
-              label="Related entry"
-              fullWidth
-              disabled={editingDisabled}
-              value={relationOtherId}
-              onChange={setRelationOtherId}
-              options={[{ value: '', label: 'Choose entry…' }, ...otherEntities.map((row) => ({ value: row.id, label: row.canonical_name }))]}
-            />
-            <Button
-              variant="secondary"
+            <div>
+              {pickedEntity ? (
+                <div
+                  data-picked
+                  className="flex min-h-[var(--control-height)] items-center justify-between gap-2 rounded-[var(--control-radius)] border border-[var(--line-strong)] px-3"
+                >
+                  <span className="truncate">{pickedEntity.canonical_name}</span>
+                  <IconButton label="Choose another entry" disabled={editingDisabled} onClick={() => setRelationOtherId('')}>
+                    <FontAwesomeIcon icon={faXmark} />
+                  </IconButton>
+                </div>
+              ) : (
+                <>
+                  <TextField
+                    label="Search entries"
+                    role="combobox"
+                    aria-expanded={relationMatches.length > 0}
+                    aria-controls={relationMatches.length > 0 ? RELATION_MATCHES_ID : undefined}
+                    aria-activedescendant={
+                      relationMatches[relationActiveIndex] ? listboxOptionId(RELATION_MATCHES_ID, relationMatches[relationActiveIndex].id) : undefined
+                    }
+                    disabled={editingDisabled}
+                    value={relationQuery}
+                    onChange={(value) => {
+                      setRelationQuery(value);
+                      setRelationActiveIndex(0);
+                    }}
+                    onKeyDown={onRelationKeyDown}
+                    placeholder="Search entries…"
+                  />
+                  {relationQuery.trim() && !editingDisabled && (
+                    <div className="mt-1">
+                      <Listbox
+                        id={RELATION_MATCHES_ID}
+                        label="Matching entries"
+                        options={relationMatches.map((match) => ({
+                          id: match.id,
+                          label: match.canonical_name,
+                          description: categoryLabel(match.category),
+                          leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
+                        }))}
+                        activeIndex={relationActiveIndex}
+                        onPick={pickRelated}
+                        empty="No entries match."
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <IconButton
+              label="Add relationship"
               disabled={editingDisabled || waiting('relate')}
               pending={mutation.isPending('relate')}
               onClick={() => void addRelationship()}
             >
-              <FontAwesomeIcon icon={faPlus} /> Add
-            </Button>
+              <FontAwesomeIcon icon={faPlus} />
+            </IconButton>
           </div>
         </div>
 
@@ -857,17 +1091,6 @@ export function GuideDetail({
             confirmVariant="danger"
             pending={mutation.isPending('delete')}
             confirm={() => void deleteEntry()}
-            cancel={() => setConfirmation(undefined)}
-          />
-        )}
-        {confirmation === 'merge' && selectedAliasMatch && (
-          <ConfirmDialog
-            title="Merge entries"
-            body={`Merge “${selectedAliasMatch.canonical_name}” into “${entity.canonical_name}”? The source entry will be deleted.`}
-            confirmLabel="Merge & delete source"
-            confirmVariant="danger"
-            pending={mutation.isPending('merge')}
-            confirm={() => void mergeEntry(selectedAliasMatch)}
             cancel={() => setConfirmation(undefined)}
           />
         )}
