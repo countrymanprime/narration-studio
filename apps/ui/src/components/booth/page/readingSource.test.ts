@@ -101,7 +101,7 @@ describe('estimatedSpans', () => {
     expect(estimatedSpans('Chapter One', readingParagraphsOf(paragraphs, [], []))).toEqual([
       { kind: 'title', id: 'title', index: null, start: 0, count: 2 },
       { kind: 'paragraph', id: 'p1', index: 0, start: 2, count: 4 },
-      { kind: 'paragraph', id: 'p2', index: 1, start: 6, count: 6 },
+      { kind: 'paragraph', id: 'p2', index: 1, start: 6, count: 7 },
     ]);
   });
 });

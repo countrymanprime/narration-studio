@@ -15,7 +15,7 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import type { GuideEntity, ManuscriptChapter, ManuscriptParagraph, NarrationApi, TeleprompterLocateResult } from '../../../types';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 
-export const CHAPTERS: ManuscriptChapter[] = [
+const CHAPTERS: ManuscriptChapter[] = [
   { id: 'c1', title: 'Chapter One', index: 0, wordCount: 30, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
   { id: 'c2', title: 'Chapter Two', index: 1, wordCount: 6, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
 ];
@@ -29,7 +29,7 @@ const paragraph = (id: string, chapterId: string, index: number, text: string): 
   entityIds: [],
 });
 
-export const PARAGRAPHS: Record<string, ManuscriptParagraph[]> = {
+const PARAGRAPHS: Record<string, ManuscriptParagraph[]> = {
   c1: [
     paragraph('p1', 'c1', 0, 'The Garden was quiet. Nobody had come down since the morning.'),
     paragraph('p2', 'c1', 1, '“Off with her head,” said the Queen. “Not yet. The King is late.”'),
@@ -55,7 +55,7 @@ const entity = (id: string, canonical_name: string, category: string, extra: Par
   ...extra,
 });
 
-export const ENTITIES: GuideEntity[] = [
+const ENTITIES: GuideEntity[] = [
   entity('e-queen', 'Queen', 'Character', {
     personality_notes: [{ text: 'Clipped and loud.', evidence: {} }],
     pronunciation: { ipa: 'kwiːn', source: 'cmu', confidence: 'high' },

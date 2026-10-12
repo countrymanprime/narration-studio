@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DawResult } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { RecorderState } from '../../../api/contracts/recording';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
@@ -22,7 +22,7 @@ type Options = { setup?: DawSetupId; daw?: DawClient; search?: string; api?: Par
 /** A DAW that records but whose roll replaces audio: it asks first (the mock's Audacity without backups). */
 const destructive = (): DawClient => {
   const base = DAW_SETUPS.reaper;
-  const setup = {
+  const setup: DawCapabilities = {
     ...base,
     daw: 'Audacity',
     capabilities: { ...base.capabilities, punch: { level: 'experimental' as const, available: true, destructive: true } },

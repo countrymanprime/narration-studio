@@ -32,7 +32,7 @@ import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
-export const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible' } as const;
+const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible' } as const;
 
 const ROOM_TONE = 'Room not measured yet';
 
