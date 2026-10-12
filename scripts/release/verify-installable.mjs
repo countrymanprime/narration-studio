@@ -37,9 +37,9 @@ if (!(existsSync(guideInternal) && readdirSync(guideInternal).some((name) => /^c
 if (guideDataMissing.length) {
   throw new Error(`Release Story Bible data is incomplete: ${guideDataMissing.join(', ')}. Manuscript Guide must collect the Piper and cmudict data and the cmudict metadata (scripts/release/prepare-resources.py).`);
 }
-// The optional analysis tools (GLiNER, transformers, torch) are downloads the guide imports from the asset registry's install
+// The optional analysis tools (GLiNER, BookNLP, transformers, torch) are downloads the guide imports from the asset registry's install
 // folder (ADR 0848), never part of the freeze: prepare-resources.py excludes them, and this proves the exclusion held.
-const optionalToolsFrozen = ['gliner', 'transformers', 'torch'].filter((name) => existsSync(resolve(guideInternal, name)));
+const optionalToolsFrozen = ['gliner', 'booknlp', 'transformers', 'torch'].filter((name) => existsSync(resolve(guideInternal, name)));
 if (optionalToolsFrozen.length) {
   throw new Error(`Release Story Bible sidecar carries an optional download: ${optionalToolsFrozen.join(', ')}. Manuscript Guide loads these from the analysis tool's install folder; exclude them in scripts/release/prepare-resources.py.`);
 }

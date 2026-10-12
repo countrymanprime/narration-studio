@@ -1838,14 +1838,20 @@ def check_synthesis(piper_model: str) -> str:
     return f"spoke {SELF_CHECK_WORD!r}: {frames} frames"
 
 
-def run_self_check(piper_model: str | None = None, espeak_data_dir: Path | None = None, gliner_install: str | None = None) -> list[dict[str, Any]]:
+def run_self_check(
+    piper_model: str | None = None,
+    espeak_data_dir: Path | None = None,
+    gliner_install: str | None = None,
+    booknlp_installs: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Runs every check, never stopping at the first failure, and returns one result per check.
 
     The packaged-app smoke test (``narration-utils --smoke``) runs this against the frozen sidecar. The dictionary and the espeak-ng
     data are what a freeze can silently lose (PyInstaller has no hook for either), and losing them made previews fail and names lose
     their pronunciation. The 114 MB voice is not needed for them; pass ``piper_model`` to also speak a word. Given the folder the
     optional GLiNER download is installed in (the smoke test passes it), the last line reports its version, or "not installed",
-    which passes (``extraction_gliner.self_check``).
+    which passes (``extraction_gliner.self_check``). Given BookNLP's install folders, best first, a ``booknlp`` line does the same
+    (``extraction_booknlp.self_check``).
     """
     checks: list[tuple[str, Any]] = [("cmudict", check_cmudict), ("espeak", lambda: check_espeak(espeak_data_dir))]
     if piper_model:
@@ -1860,11 +1866,19 @@ def run_self_check(piper_model: str | None = None, espeak_data_dir: Path | None 
         import extraction_gliner
 
         results.append(extraction_gliner.self_check(gliner_install))
+    if booknlp_installs is not None:
+        import extraction_booknlp
+
+        results.append(extraction_booknlp.self_check(list(booknlp_installs)))
     return results
 
 
 def self_check(args: argparse.Namespace) -> None:
-    results = run_self_check(piper_model=args.piper_model or None, gliner_install=args.gliner_install or None)
+    results = run_self_check(
+        piper_model=args.piper_model or None,
+        gliner_install=args.gliner_install or None,
+        booknlp_installs=getattr(args, "booknlp_install", None) or None,
+    )
     ok = all(entry["ok"] for entry in results)
     print(json.dumps({"ok": ok, "checks": results}))
     if not ok:
@@ -1900,7 +1914,12 @@ def capabilities(args: argparse.Namespace) -> None:
 
 def suggest(args: argparse.Namespace) -> None:
     """`suggest`: one source's suggestions as JSON lines; it writes nothing (the rules: extraction_rules.py, SN-X32; GLiNER:
-    extraction_gliner.py, SN-X71)."""
+    extraction_gliner.py, SN-X71; BookNLP: extraction_booknlp.py, SN-X72)."""
+    if args.source == "booknlp":
+        import extraction_booknlp
+
+        extraction_booknlp.suggest(args)
+        return
     if args.source == "gliner":
         import extraction_gliner
 
@@ -2041,9 +2060,11 @@ def main() -> None:
     check_parser = command.add_parser("self-check", help="prove the dictionary and the espeak-ng data this program carries load (the packaged smoke test)")
     check_parser.add_argument("--piper-model", default="", help="also load this voice and speak one word")
     check_parser.add_argument("--gliner-install", default="", help="the GLiNER download's install folder, to report its version")
+    check_parser.add_argument("--booknlp-install", action="append", help="a BookNLP download's install folder, best first, to report its version")
     suggest_parser = command.add_parser("suggest", help="print one source's Story Bible suggestions, one JSON line each; writes nothing")
-    suggest_parser.add_argument("--source", choices=("rules", "gliner"), default="rules")
-    suggest_parser.add_argument("--install", default="", help="the source's install folder (gliner)")
+    suggest_parser.add_argument("--source", choices=("rules", "gliner", "booknlp"), default="rules")
+    suggest_parser.add_argument("--install", default="", help="the source's install folder (gliner, booknlp)")
+    suggest_parser.add_argument("--spacy-model", default="", help="the spaCy model BookNLP parses with: an installed model's folder or a name")
     suggest_parser.add_argument("--manuscript", required=True)
     suggest_parser.add_argument("--guide", required=True)
     command.add_parser(

@@ -182,7 +182,7 @@ def test_the_guide_freeze_carries_piper_data_and_the_cmu_dictionary(script, monk
 
 
 def test_the_guide_freeze_excludes_the_optional_tools_it_loads_from_their_install_folder(script, monkeypatch):
-    # GLiNER, transformers and torch are an optional download the guide imports from the asset registry's install folder
+    # GLiNER, BookNLP, transformers and torch are optional downloads the guide imports from the asset registry's install folder
     # (ADR 0848). Its import is a plain one PyInstaller follows, so a build machine that has them would ship about 5 GB.
     fake = FakePyInstaller()
     install(monkeypatch, script, fake)
@@ -190,8 +190,8 @@ def test_the_guide_freeze_excludes_the_optional_tools_it_loads_from_their_instal
     script.main()
 
     guide = next(call for call in fake.calls if call["name"] == "manuscript-guide")
-    assert {"gliner", "transformers", "torch"} <= set(flag_values(guide, "--exclude-module"))
-    assert not {"gliner", "transformers", "torch"} & set(flag_values(guide, "--collect-data") + flag_values(guide, "--collect-binaries"))
+    assert {"gliner", "booknlp", "transformers", "torch"} <= set(flag_values(guide, "--exclude-module"))
+    assert not {"gliner", "booknlp", "transformers", "torch"} & set(flag_values(guide, "--collect-data") + flag_values(guide, "--collect-binaries"))
 
 
 def test_sidecar_flag_freezes_only_that_sidecar(script, monkeypatch):
