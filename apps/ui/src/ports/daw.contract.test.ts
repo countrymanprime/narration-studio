@@ -32,6 +32,10 @@ import {
   rolledReplacingAnswer,
   STACK_STEPS,
   nothingToStackAnswer,
+  BUILTIN_NO_SPLIT,
+  splitOutsideAnswer,
+  splitTakeStaleAnswer,
+  takeSplitAnswer,
   takesHiddenAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
@@ -75,6 +79,9 @@ const GOLDEN_FILES = [
   'daw-stack-steps.json',
   'daw-unstack-done.json',
   'daw-stack-refused-stale.json',
+  'daw-split-take-done.json',
+  'daw-split-take-refused-stale.json',
+  'daw-split-take-refused-capability.json',
   'daw-backup-done.json',
   'daw-backup-restored.json',
   'daw-backup-refused.json',
@@ -257,6 +264,16 @@ function hostApi(): DawHostApi {
     // refusal, and the one known passage is the done golden. Anything else has no golden.
     dawStackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-stack-done.json')),
     dawUnstackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-unstack-done.json')),
+    // DawSplitTake on REAPER: the time is checked first, a take the fixture project's track does not hold and a cut outside it are the
+    // stale refusals, and take-twice cut at 15.5 s is the done golden. Any other time has no golden.
+    dawSplitTake: (chapterId, takeId, at) => {
+      if (!Number.isFinite(at) || at < 0) return Promise.resolve(refusal(DAW_ANSWERS.splitBadTime));
+      const take = known.chapterIds.includes(chapterId) ? known.splitTakes?.[takeId] : undefined;
+      if (!take) return Promise.resolve(staleRefusal(splitTakeStaleAnswer('REAPER')));
+      if (at <= take.start || at >= take.start + take.length) return Promise.resolve(staleRefusal(splitOutsideAnswer('REAPER')));
+      if (at !== 15.5) return Promise.reject(new Error(`no golden for a cut at ${at} s`));
+      return Promise.resolve(read('daw-split-take-done.json', dawResultSchema));
+    },
     // The backups bindings on REAPER: the capability's refusal (the refused golden) for a backup and a restore, and the table the list
     // golden holds.
     dawBackupAround: () => Promise.resolve(read('daw-backup-refused.json', dawResultSchema)),
@@ -326,6 +343,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain' }),
         await daw.stackTakes(STACK),
         await daw.unstackTakes(UNSTACK),
+        await daw.splitTake('chapter-1', 'take-twice', 15.5),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -453,6 +471,20 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     ],
   },
   { name: 'dawclient-stack: no passage is nothing to move alike', observe: (daw) => daw.stackTakes({ ...STACK, groups: [] }) },
+  { name: 'split-take: a take cut at the second read is answered alike', observe: (daw) => daw.splitTake('chapter-1', 'take-twice', 15.5) },
+  {
+    name: 'split-take: a take the track does not hold, an unknown chapter and a cut outside the take are refused stale alike',
+    observe: async (daw) => [
+      await daw.splitTake('chapter-1', '{11111111-1111-4111-8111-111111111111}', 15.5),
+      await daw.splitTake('chapter-9', 'take-twice', 15.5),
+      await daw.splitTake('chapter-1', 'take-twice', 10),
+      await daw.splitTake('chapter-1', 'take-twice', 25),
+    ],
+  },
+  {
+    name: 'split-take: a time that is not one is refused alike',
+    observe: async (daw) => [await daw.splitTake('chapter-1', 'take-twice', -1), await daw.splitTake('chapter-1', 'take-twice', Number.NaN)],
+  },
   {
     name: 'dawclient-backups: REAPER refuses a backup and a restore alike, with the capability sentence',
     observe: async (daw) => [await daw.backupAround(BACKUP), await daw.restoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')],
@@ -851,6 +883,34 @@ describe('the mock setups', () => {
     expect(steps).toEqual(read('daw-stack-steps.json', dawResultSchema));
     expect(steps.steps).toEqual([...STACK_STEPS]);
     expect((await createMockDawClient(withMode('app')).stackTakes(STACK)).undoSteps).toBe(0);
+  });
+
+  it("split-take: the mock refuses with the setup's takes sentence, the built-in recorder says why it cannot, and a DAW cuts in one undo step", async () => {
+    for (const [id, setup] of Object.entries(DAW_SETUPS)) {
+      const takes = setup.capabilities.takes;
+      const got = await createMockDawClient(setup).splitTake('chapter-1', 'take-twice', 15.5);
+      expectWellFormed(got);
+      if (!takes?.available) expect(got, id).toEqual(refusal(takes?.message ?? ''));
+      else if (setup === DAW_SETUPS.builtin) expect(got, id).toEqual(refusal(BUILTIN_NO_SPLIT));
+      else expect(got, id).toEqual({ ok: true, changed: true, message: takeSplitAnswer(setup.daw), undoSteps: 1 });
+    }
+    expect(await createMockDawClient(DAW_SETUPS.reaper).splitTake('chapter-1', 'take-twice', 15.5)).toEqual(read('daw-split-take-done.json', dawResultSchema));
+    for (const file of ['daw-split-take-refused-stale.json', 'daw-split-take-refused-capability.json']) expectWellFormed(read(file, dawResultSchema));
+    expect(read('daw-split-take-refused-stale.json', dawResultSchema).code).toBe('stale');
+  });
+
+  it('split-take: the host adapter sends the chapter, the take id and the time only, and answers the binding as it is', async () => {
+    const stale = read('daw-split-take-refused-stale.json', dawResultSchema);
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawSplitTake: (...args) => {
+        calls.push(args);
+        return Promise.resolve(stale);
+      },
+    });
+    expect(await host.splitTake('chapter-1', 'take-twice', 15.5)).toEqual(stale);
+    expect(calls).toEqual([['chapter-1', 'take-twice', 15.5]]);
   });
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {

@@ -453,7 +453,7 @@ describe('compare-the-takes-of-a-line', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'A then B' }));
     expect(played).toHaveLength(2);
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'A then B' }), { key: 'Escape' });
     await flush();
     expect(screen.queryByRole('button', { name: 'Stop comparing' })).toBeNull();
     endPlay();

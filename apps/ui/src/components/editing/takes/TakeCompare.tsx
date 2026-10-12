@@ -13,7 +13,18 @@ export function TakeCompare(props: TakeCompareArgs) {
   const options = passage.takes.map((t) => ({ value: t.id, label: t.label }));
   const notes = [...c.skipped, ...(c.abReason && passage.takes.length > 1 ? [c.abReason] : [])];
   return (
-    <div role="group" aria-label="Compare takes" data-compare className="flex flex-col gap-1.5">
+    <div
+      role="group"
+      aria-label="Compare takes"
+      data-compare
+      className="flex flex-col gap-1.5"
+      onKeyDown={(event) => {
+        // Escape stops a run in progress; with none it is left to the page (clear the selection, leave the text).
+        if (event.key !== 'Escape' || !c.running) return;
+        event.stopPropagation();
+        c.stop();
+      }}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <IconButton
           action="play"

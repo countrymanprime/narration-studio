@@ -45,7 +45,7 @@ interface Run {
 
 /**
  * Plays the takes of one line in a row through the take's own Play: every take in order, or the two the narrator picked, A then B. The next take
- * starts when the one playing ends; Stop and Escape end the run. The pickers start on the kept take (else the active one) and on the suggested
+ * starts when the one playing ends; Stop and Escape (while focus is on the compare controls, where a press of Play leaves it) end the run. The pickers start on the kept take (else the active one) and on the suggested
  * take (else the next one): a suggestion only fills a picker, it keeps nothing. A take that cannot be heard is left out of the run, with its reason.
  */
 export function useTakeCompare({ passage, keptId, playingId, onPlay }: TakeCompareArgs): TakeCompareState {
@@ -120,15 +120,6 @@ export function useTakeCompare({ passage, keptId, playingId, onPlay }: TakeCompa
     current.seen = false;
     onPlay(take);
   }, [playingId, byId, onPlay, end]);
-
-  useEffect(() => {
-    if (!running) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') stop();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [running, stop]);
 
   // Closing the takes mid-run stops what the run started.
   useEffect(

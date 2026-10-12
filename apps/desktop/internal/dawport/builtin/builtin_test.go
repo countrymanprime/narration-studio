@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -206,6 +207,26 @@ func TestRolesDriveTheRecorder(t *testing.T) {
 		RangeRequest: dawport.RangeRequest{ItemGUID: "Take 003", Start: 1, End: 2}})
 	if err != nil || !cut.OK || !cut.Changed || len(rec.cuts) != 1 || rec.cuts[0] != "Take 003 1.0-2.0 gap" {
 		t.Errorf("DeleteRange = %+v, %v, cuts %v; want a gap cut on Take 003", cut, err, rec.cuts)
+	}
+}
+
+// The recorder's take is one WAV file it lists by name; cutting it into two listed takes would mean rewriting or hiding that
+// file, which it never does (CF-1), so the split is a refusal in a whole sentence that changes nothing.
+func TestBuiltinRecorderSplitsItsOwnTakeOrSaysWhyNot(t *testing.T) {
+	rec := &fakeRecorder{}
+	splitter, ok := New(Config{Recorder: rec}).Role(dawport.CapTakes).(dawport.TakeSplitter)
+	if !ok {
+		t.Fatal("the built-in takes role must answer a split")
+	}
+	got, err := splitter.SplitTake(context.Background(), "chapter-1", "Take 003", 12.5)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(MessageNoSplit)) {
+		t.Errorf("SplitTake = %+v, %v; want Refused(%q)", got, err, MessageNoSplit)
+	}
+	if len(rec.keepers) != 0 || len(rec.started) != 0 || len(rec.stopped) != 0 {
+		t.Errorf("a refused split asked the recorder for something: %+v", rec)
+	}
+	if _, err := New(Config{}).Role(dawport.CapTakes).(dawport.TakeSplitter).SplitTake(context.Background(), "", "Take 003", 1); err == nil {
+		t.Error("SplitTake with no recorder = nil, want a refusal")
 	}
 }
 

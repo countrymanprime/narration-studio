@@ -92,6 +92,7 @@ The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabiliti
 | C9 | `list_pickup_markers` (`pickups`; `pickups_test.lua`) | With one open and one resolved pickup, send it with an output path in the session folder. | `PICKUP_MARKERS_LISTED` with 1 open and 1 done; the file holds `start\|state\|tag\|note` rows in position order; no undo point |
 | C10 | `preview_file_range`, `stop_file_preview` (`file_preview`; `media_file_test.lua`) | With SWS installed, the audio device open and the owner listening: note the change count, then send `preview_file_range` for 2 s from 1 s of a WAV outside the project; then for 30 s and `stop_file_preview` after 2 s; `stop_file_preview` again; a start past the end of the file; and once on a REAPER without SWS. | `FILE_PREVIEW_STARTED` and 2 s of that file heard, ending on its own; the 30 s one stops at the stop (`FILE_PREVIEW_STOPPED` 1), the second stop answers 0; past the end is refused; without SWS the SWS sentence. Throughout: no item added, no undo point, the change count and the transport unchanged, and no crash when the source is freed |
 | C11 | `reveal_file` (`file_reveal`; `media_file_test.lua`) | Send it for a WAV outside the project; then for a path on a network share. | The Media Explorer opens with the file selected; nothing plays, no item is added, the change count is unchanged; the share is refused and REAPER opens nothing |
+| C12 | `split_take` (`takes`; `split_take_test.lua`) | Give a one-take item on "Chapter 1" two reads of the same line (10 to 20 s, the second from 15.5 s); send `split_take` at 15.5 s; play both takes; press Undo; send it with a stale take GUID. | `TAKE_SPLIT`: one item, ending at 15.5 s, with two takes: the first read, still active, and a new take playing the second read from the same file on the first read's spot; one undo point; one Undo gives the one take back at its full length; the stale GUID is refused `stale` and changes nothing. Nothing is deleted, moved or re-sourced |
 
 ## Switching a command on
 
@@ -104,7 +105,7 @@ A command passes when every row that names it passes and the report is recorded.
 | `record` | `arm_only`, `record_start`, `record_stop` | A4, A5, B1 to B6 |
 | `punch` | `play_position`, `punch_to`, `roll` | A9b, A9c, B9, C2 |
 | `regions` | `create_regions` | A9 |
-| `takes` | `set_active_take`, `hide_takes` | A6, C1 |
+| `takes` | `set_active_take`, `hide_takes`, `split_take` | A6, C1, C12 |
 | `fx_chains` | `list_fx_chains`, `apply_fx_chain` | A7, A8 |
 | `item_gain` | `apply_item_gain` | A14 |
 | `cut_range` | `delete_range` | C3 |

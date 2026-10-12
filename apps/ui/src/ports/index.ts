@@ -56,6 +56,7 @@ import type {
   DawHideTakesApi,
   DawProjectStateApi,
   DawRollApi,
+  DawSplitTakeApi,
   DawStackTakesApi,
   MasterFilesApi,
 } from '../api/contracts/daw';
@@ -131,6 +132,7 @@ export type {
   DawDeleteRangeApi,
   DawFxRangeApi,
   DawStackTakesApi,
+  DawSplitTakeApi,
   DawBackupsApi,
   DawFilesApi,
   MasterFilesApi,
@@ -202,6 +204,7 @@ export interface PortMap {
   dawDeleteRange: DawDeleteRangeApi;
   dawFxRange: DawFxRangeApi;
   dawStackTakes: DawStackTakesApi;
+  dawSplitTake: DawSplitTakeApi;
   dawBackups: DawBackupsApi;
   dawFiles: DawFilesApi;
   masterFiles: MasterFilesApi;

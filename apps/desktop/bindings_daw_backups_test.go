@@ -310,6 +310,8 @@ func TestThePruneOnOpenUsesTheRetentionOnlyWhileBackupsCanBeUsed(t *testing.T) {
 	if err := host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
 		t.Fatal(err)
 	}
+	// Saving a shorter retention prunes at once (SN-E99); only the prune on open is under test here.
+	role.pruned = nil
 	host.pruneBackupsOnOpen(host.services(), role)
 	if !reflect.DeepEqual(role.pruned, []time.Duration{3 * 24 * time.Hour}) {
 		t.Fatalf("pruned %v, want once with three days", role.pruned)

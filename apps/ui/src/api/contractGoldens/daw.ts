@@ -43,6 +43,10 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-stack-steps.json': dawResultSchema,
   'daw-unstack-done.json': dawResultSchema,
   'daw-stack-refused-stale.json': dawResultSchema,
+  // DawSplitTake (bindings_daw_split_test.go): a cut in REAPER (one undo step), REAPER's stale refusal and the takes capability's refusal.
+  'daw-split-take-done.json': dawResultSchema,
+  'daw-split-take-refused-stale.json': dawResultSchema,
+  'daw-split-take-refused-capability.json': dawResultSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,
