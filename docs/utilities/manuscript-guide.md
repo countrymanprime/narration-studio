@@ -25,6 +25,12 @@ Every entry carries `review: {"entry", "aliases"}`: whether the entry itself sti
 - **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only a Character takes one, since only a character speaks.
 - All three refuse a locked entry (ADR 0007). `merge` keeps the target flagged if either was, with both entries' name flags that the target now has, and keeps the target's colour, else the source's; `split` gives a flagged name's flag to the new entry; removing an alias drops its flag; a rebuild keeps both fields.
 
+## Merge and its undo
+
+- **`merge --source-id --target-id`** folds the source into the target: the source's name and aliases become aliases of the target, each with its own pronunciation and occurrences; relationships move to the target and every other entry's relationship to the source points at the target's id; Appears in is the union of both. The source is deleted and its names are recorded in `absorbed_names`, so a rebuild folds them back into the target. It prints `MERGED|<target id>|<undo id>`.
+- The file keeps an undo record for each of the last ten merges (`merge_undo`): both entries as they were, every other entry's relationships the merge changed, and the absorbed names it set. A rebuild writes a file without them.
+- **`unmerge --undo-id`** puts both entries, those relationships and those absorbed names back as they were, and prints `UNMERGED|<source id>|<target id>`. It refuses, writing nothing, when the target or one of those entries changed after the merge, when an entry has the source's id again, or when the file no longer holds the record. Two merges into one target are undone newest first. The host checks the id is 16 lowercase hexadecimal characters before it starts the sidecar (`guide.Service.Unmerge`, the `GuideUnmerge` binding).
+
 ## Pronunciation: generate and replace
 
 Alongside the automatic CMU-then-eSpeak fallback used at build time (`pronunciation()`), a narrator can set a pronunciation
