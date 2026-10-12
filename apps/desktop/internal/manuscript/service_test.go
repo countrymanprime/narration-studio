@@ -1082,3 +1082,39 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 		t.Fatalf("Clear project data left the script prep behind: %v", err)
 	}
 }
+
+// A prepared preview is the narrator's work, so the project cannot be switched under it until it is cancelled; SetProject then
+// points the service at the new folder, whose manuscript is its own.
+func TestCanSwitchProjectWaitsForAPreparedPreview(t *testing.T) {
+	service := New(t.TempDir())
+	if !service.CanSwitchProject() {
+		t.Fatal("a service with no job refused a switch")
+	}
+	job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+	if _, err := service.Preview(job.ID, 1); err != nil {
+		t.Fatal(err)
+	}
+	if service.CanSwitchProject() {
+		t.Fatal("a prepared preview allowed a switch")
+	}
+	if err := service.Cancel(job.ID); err != nil {
+		t.Fatal(err)
+	}
+	if !service.CanSwitchProject() {
+		t.Fatal("a cancelled preview still refused a switch")
+	}
+	job = service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+	if _, err := service.Preview(job.ID, 1); err != nil {
+		t.Fatal(err)
+	}
+	if committed, err := service.Commit(job.ID, false, Choices{}); err != nil || committed.Phase != "success" {
+		t.Fatalf("commit = %#v, %v", committed, err)
+	}
+	if _, err := service.Load(); err != nil {
+		t.Fatalf("the committed manuscript did not load: %v", err)
+	}
+	service.SetProject(t.TempDir())
+	if _, err := service.Load(); err == nil {
+		t.Fatal("the new project read the old project's manuscript")
+	}
+}
