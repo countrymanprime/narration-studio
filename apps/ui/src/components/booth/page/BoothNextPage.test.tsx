@@ -614,6 +614,10 @@ describe('a pickup session on the page', () => {
     expect(decodeURIComponent(driver.search())).toContain('pickups=k1,k2');
     await waitFor(() => expect(bodyText()).toContain('A new day began in the court.'));
     await waitFor(() => expect(screen.getByRole('button', { name: /A new day began/ }).getAttribute('aria-current')).toBe('true'));
+    // Shift+N goes back, into the first line's chapter and onto its paragraph.
+    await press('N', 'KeyN', { shiftKey: true });
+    await waitFor(() => expect(driver.search()).toContain('chapter=c1'));
+    await waitFor(() => expect(currentText()).toContain('She turned'));
     await press('Escape');
     await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/pickups'));
   });
