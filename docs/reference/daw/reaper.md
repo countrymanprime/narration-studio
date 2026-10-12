@@ -74,9 +74,16 @@ What the bridge does with these: `narration_track_state.lua` reads `GetMediaSour
 - **Undo.** The command opens no undo block and reports 0; the points REAPER adds for the recorded media are REAPER's.
 - **Checked:** not checked. The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that `get_config_var_string` returns `autoxfade` as its decimal value and that the bits mean the same in REAPER 7; that `GetPlayState` reads stopped right after `OnStopButton`, so the record press restarts rather than stops; that the earlier pass becomes a take of an item the new pass overlaps, with nothing deleted; how many undo points a roll leaves; and that a roll at the current record position behaves.
 
+## Range cut
+
+- **What it does.** `delete_range` splits the named item at the range's end and then its start with `SplitMediaItem`, which leaves the left part as the original item and returns the right, and moves the middle piece with `MoveMediaItemToTrack` to the Cuts track ([ADR 0860](../../adr/0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md) point 2). Mode `close` moves the later items on that track up by the cut's length with `D_POSITION`; `gap` moves nothing and leaves silence. The fade goes on the new seams (`D_FADEOUTLEN` of the left piece, `D_FADEINLEN` of the right). Nothing is deleted.
+- **The Cuts track.** Found by the track key `P_EXT:narration_utils_cuts` (`GetSetMediaTrackInfo_String`), else by the name Cuts, else added after the last track with `InsertTrackAtIndex` and named with `P_NAME`. `B_MUTE` is set to 1 whenever it reads otherwise. The calls are the ReaScript reference's ([Ultraschall's copy](https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/blob/master/ultraschall_api/Documentation/Reaper_Api_Documentation.html); not run).
+- **Undo.** One block, "Narration Utils: delete words", around the splits, the track, the move and the close-up; the answer reports 1.
+- **Checked:** not checked. The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that the splits, the move to another track and the close-up in one block are one undo step and that one Undo gives the item back whole; that a track's `P_EXT` survives save and reload (if not, the name finds the track); what fades REAPER gives the pieces at a split, and that the seam fades set afterwards replace them; and that the piece on the muted Cuts track is silent and keeps its take and source.
+
 ## Not yet available
 
-`cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. A command's row changes to Experimental when it is verified ([capabilities](capabilities.md#cut_range)).
+`fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. A command's row changes to Experimental when its command is built ([capabilities](capabilities.md#fx_range)).
 
 ## Version rules
 

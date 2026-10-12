@@ -120,6 +120,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"roll":                dawport.CapPunch,
 	"punch_to":            dawport.CapPunch,
 	"master_chain_read":   dawport.CapMasterChainRead,
+	"delete_range":        dawport.CapCutRange,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -210,8 +211,10 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so it is Unsupported,
 	// not Supported like everything else this loop defaults to.
 	want[dawport.CapMacroRender] = dawport.Unsupported
-	// The edit rows (SND-3) have no bridge command yet: NotYetAvailable, with no role, until each command slice flips its own.
-	for _, c := range []dawport.Capability{dawport.CapCutRange, dawport.CapFXRange, dawport.CapStackTakes, dawport.CapBackups} {
+	// cut_range is delete_range's (SN-D62). The other edit rows (SND-3) have no bridge command yet: NotYetAvailable, with no role,
+	// until each command slice flips its own.
+	want[dawport.CapCutRange] = dawport.Experimental
+	for _, c := range []dawport.Capability{dawport.CapFXRange, dawport.CapStackTakes, dawport.CapBackups} {
 		want[c] = dawport.NotYetAvailable
 	}
 	if !maps.Equal(declared, want) {
@@ -598,17 +601,112 @@ func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 	}
 }
 
-// REAPER keeps the earlier audio as a take, so punch is native and not destructive, with REAPER up or down.
-func TestPunchIsNativeAndNotDestructive(t *testing.T) {
+// REAPER keeps the earlier audio as a take, and a cut moves the audio to the Cuts track, so punch and cut_range are native
+// and not destructive, with REAPER up or down.
+func TestPunchAndCutRangeAreNativeAndNotDestructive(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
+	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true}
 	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
-		if got := d.Depth(dawport.CapPunch); got != (dawport.Depth{Mode: dawport.ModeNative}) {
-			t.Errorf("%s: punch depth = %+v, want native and not destructive", name, got)
+		for c := range native {
+			if got := d.Depth(c); got != (dawport.Depth{Mode: dawport.ModeNative}) {
+				t.Errorf("%s: %s depth = %+v, want native and not destructive", name, c, got)
+			}
 		}
 		for _, spec := range dawport.Capabilities() {
-			if spec.Capability != dawport.CapPunch && d.Depth(spec.Capability) != (dawport.Depth{}) {
+			if !native[spec.Capability] && d.Depth(spec.Capability) != (dawport.Depth{}) {
 				t.Errorf("%s: %s declares a depth %+v", name, spec.Capability, d.Depth(spec.Capability))
 			}
 		}
+	}
+}
+
+const cutItem = "{00000002-0000-4000-8000-000000000002}"
+
+func rangeCutterAnswering(t *testing.T, answer func(command []string) [][]string) dawport.RangeCutter {
+	t.Helper()
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	answerCommands(t, client, dir, answer)
+	return adapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
+}
+
+func cutRequest(words int, mode dawport.CutMode) dawport.DeleteRangeRequest {
+	return dawport.DeleteRangeRequest{
+		RangeRequest: dawport.RangeRequest{ChapterID: "ch-1", ItemGUID: cutItem, Start: 14, End: 16, Words: words},
+		Mode:         mode,
+		FadeMs:       10,
+	}
+}
+
+// A cut is one undo step (ADR 0860 point 5), and the command gets the request's item, range, mode and fade.
+func TestDeleteRangeCutsTheWordsInOneUndoStep(t *testing.T) {
+	var sent []string
+	cut := rangeCutterAnswering(t, func(command []string) [][]string {
+		sent = command
+		return [][]string{{"RANGE_CUT", command[1], cutItem, "{00000009-0000-4000-8000-000000000009}", "1"}}
+	})
+	for words, message := range map[int]string{1: "Deleted 1 word and their audio in REAPER.", 3: "Deleted 3 words and their audio in REAPER.", 0: "Deleted the words and their audio in REAPER."} {
+		got, err := cut.DeleteRange(t.Context(), cutRequest(words, dawport.CutGap))
+		want := dawport.OK(message, true).WithUndoSteps(1)
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Fatalf("DeleteRange = %+v, %v; want %+v", got, err, want)
+		}
+	}
+	if want := []string{"delete_range", cutItem, "14.000000", "16.000000", "gap", "10"}; !reflect.DeepEqual(append([]string{sent[0]}, sent[2:]...), want) {
+		t.Errorf("command = %v, want %v after the run", sent, want)
+	}
+}
+
+func TestDeleteRangeRefusals(t *testing.T) {
+	overlap := "Another item on the track overlaps the range to cut, so nothing was cut."
+	for _, tc := range []struct {
+		name   string
+		answer []string
+		want   dawport.Result
+	}{
+		{"stale", []string{"ITEM_STALE", cutItem, "item"}, dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again.")},
+		{"recording", []string{"ERROR", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{"outside", []string{"ERROR", "The range to cut is not inside that item."}, dawport.Refused("The range to cut is not inside that item.")},
+		{"overlap", []string{"ERROR", overlap}, dawport.Refused(overlap)},
+		{"bad range", []string{"ERROR", "The range to cut is not a usable pair of times."}, dawport.Refused("The range to cut is not a usable pair of times.")},
+	} {
+		cut := rangeCutterAnswering(t, func(command []string) [][]string {
+			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}
+		})
+		got, err := cut.DeleteRange(t.Context(), cutRequest(2, dawport.CutClose))
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: DeleteRange = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+	}
+}
+
+func TestDeleteRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
+	adapter, dir := newAdapter(t, func(dawport.Capability) error { return nil })
+	cut := adapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
+	bad := cutRequest(2, dawport.CutClose)
+	bad.End = bad.Start
+	got, err := cut.DeleteRange(t.Context(), bad)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused("The range to cut is not a usable pair of times.")) {
+		t.Errorf("DeleteRange with an empty range = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused cut wrote %d commands", n)
+	}
+}
+
+func TestDeleteRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to cut words and audio."
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	got, err := adapter.Role(dawport.CapCutRange).(dawport.RangeCutter).DeleteRange(t.Context(), cutRequest(2, dawport.CutClose))
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("DeleteRange with cut_range refused = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused cut wrote %d commands", n)
 	}
 }

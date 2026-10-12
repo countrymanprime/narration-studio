@@ -63,13 +63,14 @@ var experimentalCommands = map[string]bool{
 	"play_position":       true,
 	"punch_to":            true,
 	"roll":                true,
+	"delete_range":        true,
 	"master_chain_read":   true,
 }
 
 // actionTags are the events Actions consumes: every answer of every command it sends, and ERROR.
 var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK_STALE", "TRACK_SELECTED", "ARMED", "RECORD_STARTED", "RECORD_STOPPED", "RECORD_ENDED", "RECORD_NOT_OURS",
 	"ACTIVE_TAKE_SET", "TAKES_HIDDEN", "ITEM_STALE", "FX_CHAIN", "FX_CHAINS_LISTED", "FX_CHAIN_APPLIED",
-	"FX_PLUGIN", "FX_PLUGINS_LISTED", "TAKE_FX_ADDED", "REGIONS_CREATED", "PLAY_POSITION", "PUNCHED", "ROLLED", "MASTER_CHAIN_FX", "MASTER_CHAIN_READ", "ERROR"}
+	"FX_PLUGIN", "FX_PLUGINS_LISTED", "TAKE_FX_ADDED", "REGIONS_CREATED", "PLAY_POSITION", "PUNCHED", "ROLLED", "RANGE_CUT", "MASTER_CHAIN_FX", "MASTER_CHAIN_READ", "ERROR"}
 
 // Gate is asked, with the command's name, before Actions sends it. nil lets the command go; an error refuses it and
 // nothing is written. A refusal matching ErrExperimentalOff (errors.Is) reaches the caller as ErrExperimentalOff itself;
