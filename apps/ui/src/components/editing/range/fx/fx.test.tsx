@@ -32,6 +32,7 @@ import { FxMarker } from './FxButtons';
 import { beforeFx, fxPlanFor, fxSpan, NEEDS_CONFIRM, NO_AUDIO, NO_BACKUP, ONLY_SAID, SPANS_TWO_PARAGRAPHS, SPANS_TWO_TAKES } from './fxCommand';
 import { fakeFxLog, listOf, withFxRange } from './fxFixtures';
 import { fxPlanText } from './fxText';
+import { ContextMenuHost } from '../../../layout/ContextMenuHost';
 import { useFxWords, type FxWords } from './useFxWords';
 import { fakeCutLog, locator } from '../cut/cutFixtures';
 
@@ -102,7 +103,9 @@ function Harness() {
   );
   return (
     <EditingPageProvider doc={d}>
-      <Inner effects={effects} setEffects={setEffects} />
+      <ContextMenuHost>
+        <Inner effects={effects} setEffects={setEffects} />
+      </ContextMenuHost>
     </EditingPageProvider>
   );
 }

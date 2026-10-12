@@ -71,7 +71,7 @@ export type ScriptPageProps = {
   notify: Notify;
   focusStoryBibleEntity: (id: string) => void;
   /** The old page's "Open in Proof". The mock's chapter card has no such button, so this page draws none; kept so the swap is one line. */
-  goToWorkspace?: (chapterId: string) => void;
+  goToEditing?: (chapterId: string) => void;
   /** Keys the credits cards' remembered open state: a project's own choice. */
   projectFolder: string;
   /** Record in Booth on a chapter or the credits. Omitted, no card offers it. */
