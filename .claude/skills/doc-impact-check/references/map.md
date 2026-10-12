@@ -17,7 +17,7 @@ Paths are repo-relative. A change can match several rows. Add a row when a new a
 | Stage or readiness signals | `docs/architecture/stage-recommendations.md`, `docs/workflows/chapter-stage-progression.md` |
 | `apps/desktop/internal/assets/**`, the asset catalogs in `config/` | `docs/architecture/first-use-dependency-provisioning.md`, `docs/architecture/model-provenance.md` (generated table), `docs/research/local-dependency-evaluation.md` |
 | `apps/desktop/internal/update/**` | `docs/architecture/in-app-update.md`, `docs/operations/ci-and-releases.md` |
-| A trust boundary: download, update, sidecar arguments, REAPER bridge, a file the app opens, the release pipeline | `docs/architecture/threat-model.md` (row and review date), `SECURITY.md`; see `feature-cleanup` step 7 |
+| A trust boundary: untrusted input crossing in (download, update, sidecar arguments, DAW bridge, a file from someone else, the release pipeline), a new privilege or network egress | `docs/architecture/threat-model.md` (row and review date), `SECURITY.md` if the reporter-facing scope changed; see `feature-cleanup` step 7. A file the app writes and reads back is not a trust boundary |
 | `.github/**`, `scripts/**`, `tools/**`, `package.json` scripts, `nx.json` | `docs/operations/ci-and-releases.md`, `docs/operations/verification-tooling.md`, `docs/operations/github-workflow.md`, `CONTRIBUTING.md` |
 | `tools/docs-site/**` | `docs/operations/ci-and-releases.md#the-public-docs-site` |
 | A moved, renamed or new top-level folder or project | `docs/architecture/codebase-map.md`, `scripts/ci/layout.json`, the Mermaid diagrams that name it |
