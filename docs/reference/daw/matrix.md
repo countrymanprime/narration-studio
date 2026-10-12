@@ -25,7 +25,6 @@ What each engine declares for each capability today. The levels are the adapters
 | `regions` | `RegionWriter` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `takes` | `TakeSelector` | Engine answering | Experimental | Experimental | Not reachable | Experimental |
 | `fx_chains` | `FXManager` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
-| `silence_trim` | `SilenceTrimmer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `item_gain` | `GainAdjuster` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `render_with_fx` | `FXRenderer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `master_chain_read` | `MasterChainReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |

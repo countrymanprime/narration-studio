@@ -24,32 +24,11 @@ type FXChains struct {
 	Truncated bool
 }
 
-// Passage is a stretch of one take's source audio, in source seconds, on the item that holds it.
-type Passage struct {
-	ItemGUID, TakeGUID     string
-	SourceStart, SourceEnd float64
-}
-
 // FXChainApplied is the chain REAPER added to a track and how many FX it added. Track is the track's GUID, or
 // MasterTrack.
 type FXChainApplied struct {
 	Chain, Track string
 	Added        int
-}
-
-// FXPlugins are REAPER's installed plug-ins by name (EnumInstalledFX), sorted, without the FX container or the video
-// processor. Truncated says the bridge's limit left some out.
-type FXPlugins struct {
-	Names     []string
-	Truncated bool
-}
-
-// TakeFXAdded is the piece of the item the plug-in went on (a new item and take when the passage was split out) and how
-// many splits it took (0 to 2).
-type TakeFXAdded struct {
-	Plugin             string
-	ItemGUID, TakeGUID string
-	Splits             int
 }
 
 // MasterTrack names the master track to ApplyFXChain.
@@ -58,8 +37,6 @@ const MasterTrack = "master"
 var (
 	// ErrBadChainName: the chain is not a plain .RfxChain name relative to FXChains, so nothing was sent.
 	ErrBadChainName = errors.New("that is not the name of an FX chain in REAPER's FXChains folder")
-	// ErrBadPluginName: a passage takes one plug-in by name, never an FX chain, so nothing was sent.
-	ErrBadPluginName = errors.New("a passage takes one plug-in by name; FX chains go on a track")
 	// ErrNoTrack: no track was named, so nothing was sent.
 	ErrNoTrack = errors.New("no track was named")
 )
@@ -104,7 +81,7 @@ func (a *Actions) ListFXChains(ctx context.Context) (FXChains, error) {
 
 // ApplyFXChain adds an FX chain, named as ListFXChains names it, to a whole track (its GUID) or the master track
 // (MasterTrack), in one undo step. Chains go only on tracks (ADR 0234, the owner's decision of 2026-09-25): a passage of
-// a take gets single plug-ins through AddTakeFX. The Lua resolves the name inside FXChains itself; this refuses a name
+// a take gets single plug-ins (add_take_fx, which the host no longer sends). The Lua resolves the name inside FXChains itself; this refuses a name
 // that could not be one before anything is sent. A track that is gone is a *TrackStaleError.
 func (a *Actions) ApplyFXChain(ctx context.Context, track, chain string) (FXChainApplied, error) {
 	if track == "" {
@@ -122,49 +99,6 @@ func (a *Actions) ApplyFXChain(ctx context.Context, track, chain string) (FXChai
 		return FXChainApplied{}, &TrackStaleError{GUID: event.Fields[2]}
 	}
 	return FXChainApplied{Chain: event.Fields[2], Track: event.Fields[3], Added: int(numberAt(event.Fields, 4))}, nil
-}
-
-// ListFX lists REAPER's installed plug-ins by name. It changes nothing.
-func (a *Actions) ListFX(ctx context.Context) (FXPlugins, error) {
-	events, err := a.request(ctx, "list_fx", []string{"FX_PLUGINS_LISTED"})
-	if err != nil {
-		return FXPlugins{}, err
-	}
-	plugins := FXPlugins{Names: []string{}}
-	for _, event := range events {
-		switch event.Tag {
-		case "FX_PLUGIN":
-			plugins.Names = append(plugins.Names, event.Fields[2])
-		case "FX_PLUGINS_LISTED":
-			plugins.Truncated = event.Fields[3] == "1"
-		}
-	}
-	return plugins, nil
-}
-
-// AddTakeFX splits the passage out of its item and adds one installed plug-in, named as ListFX names it, to the middle
-// piece's active take, in one undo step (ADR 0234). Sending it again for the piece adds another; an FX chain is never
-// accepted here (ErrBadPluginName, or REAPER's refusal when the name is not one it lists).
-func (a *Actions) AddTakeFX(ctx context.Context, passage Passage, plugin string) (TakeFXAdded, error) {
-	if passage.ItemGUID == "" || passage.TakeGUID == "" {
-		return TakeFXAdded{}, ErrNoItemIdentity
-	}
-	if !finite(passage.SourceStart) || !finite(passage.SourceEnd) || passage.SourceEnd <= passage.SourceStart {
-		return TakeFXAdded{}, ErrNoSourceTime
-	}
-	if strings.TrimSpace(plugin) == "" || strings.HasSuffix(strings.ToLower(plugin), ".rfxchain") {
-		return TakeFXAdded{}, ErrBadPluginName
-	}
-	events, err := a.request(ctx, "add_take_fx", []string{"TAKE_FX_ADDED", "ITEM_STALE"},
-		passage.ItemGUID, passage.TakeGUID, formatSeconds(passage.SourceStart), formatSeconds(passage.SourceEnd), plugin)
-	if err != nil {
-		return TakeFXAdded{}, err
-	}
-	event := events[len(events)-1]
-	if event.Tag == "ITEM_STALE" {
-		return TakeFXAdded{}, &StaleError{GUID: event.Fields[2], Reason: event.Fields[3]}
-	}
-	return TakeFXAdded{Plugin: event.Fields[2], ItemGUID: event.Fields[3], TakeGUID: event.Fields[4], Splits: int(numberAt(event.Fields, 5))}, nil
 }
 
 // plainChainName reports whether chain is a relative .RfxChain name with forward slashes and no empty, "." or ".."

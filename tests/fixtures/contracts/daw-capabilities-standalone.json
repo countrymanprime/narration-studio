@@ -132,12 +132,6 @@
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
-    "silence_trim": {
-      "available": false,
-      "level": "unsupported",
-      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
-      "reason": "standalone"
-    },
     "stack_takes": {
       "available": false,
       "level": "unsupported",

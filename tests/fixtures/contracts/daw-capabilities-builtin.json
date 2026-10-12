@@ -133,12 +133,6 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
-    "silence_trim": {
-      "available": false,
-      "level": "unsupported",
-      "message": "Not available with the built-in recorder.",
-      "reason": "unsupported"
-    },
     "stack_takes": {
       "available": false,
       "level": "not_yet_available",

@@ -30,7 +30,6 @@ const (
 	CapRegions      Capability = "regions"
 	CapTakes        Capability = "takes"
 	CapFXChains     Capability = "fx_chains"
-	CapSilenceTrim  Capability = "silence_trim"
 	CapItemGain     Capability = "item_gain"
 	// CapRenderWithFX is the mastering port's DAW row (ADR 0306), declared but not yet built. It is the one
 	// capability that makes the engine render, so each use needs the narrator's approval in the UI (threat model row 5o).
@@ -94,7 +93,6 @@ var specs = []Spec{
 	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter](), nil},
 	{CapTakes, "Choose the active take", NeedsRunning, reflect.TypeFor[TakeSelector](), nil},
 	{CapFXChains, "FX chains", NeedsRunning, reflect.TypeFor[FXManager](), nil},
-	{CapSilenceTrim, "Silence trim", NeedsRunning, reflect.TypeFor[SilenceTrimmer](), nil},
 	{CapItemGain, "Level matching", NeedsRunning, reflect.TypeFor[GainAdjuster](), nil},
 	{CapRenderWithFX, "Mastering with the project's FX", NeedsRunning, reflect.TypeFor[FXRenderer](), nil},
 	{CapMasterChainRead, "Master and track FX listing", NeedsRunning, reflect.TypeFor[MasterChainReader](), nil},
