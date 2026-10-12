@@ -2,47 +2,68 @@
 
 # Pickups
 
-Pickups works through a proofer's pickup list: the places in the recording they want read again. It sits under
-**Review** in the sidebar, after [Proof](proof.md). The list lives in REAPER as pickup markers, so the page talks to
-REAPER through the Narration Utils script the launcher runs there, and each action says so if REAPER is not
-answering.
+Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
+under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
+move the DAW's cursor. Each line opens in the Booth, where you record it.
 
-This is the proofer's list. The lines you recorded more than once are a different kind of pickup, found by
-[Find pickups and duplicates](proof.md#pickups-and-duplicates) on Proof and reviewed there with the rest of your
-findings.
+## Where the lines come from
 
-## Importing and exporting the list
+The list is built each time the page opens, from four places. The **From** column says which:
 
-**Import proofer CSV…** reads a CSV with a start time in seconds, a note and an optional tag on each row (a first
-row starting with `start` is skipped as a header), and adds a pickup marker in REAPER for each. Rows that cannot be
-used are listed with the reason, and the rows that can are still imported. Importing the same sheet again adds
-nothing twice.
+- **Speech**: a gap the [recording check](proof.md#one-chapter) found in a chapter (a missing passage, extra words, a
+  misread), with the check's score, or **no score** and why. Only a chapter whose check is current adds lines; an unread
+  start or end of a chapter is unfinished recording, not a pickup.
+- **Proof note**: a note you marked **Needs pickup** on [Proof](proof.md#a-note-and-your-decision).
+- **Audio**: a note about a sound (a mouth noise, a plosive, a breath) that you marked the same way.
+- **You**: a line you added by hand.
 
-The page shows how many pickups remain of the total, and how many are done. **Export CSV** saves the pickups still
-open as `pickups.csv`, in the same columns, to send back to the proofer.
+A gap you accepted on Proof's recording check card is one line, not two. The proofer's CSV sheet is imported and
+exported on [Proof](proof.md#the-notes).
 
-## Working through the pickups
+## The list
 
-**Next pickup** moves REAPER's edit cursor to the next open pickup and shows its time, tag and note.
+The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). The lines are grouped by
+chapter, each group with how many lines are open, and each line has:
 
-- **Open Chapter … in Proof** opens that chapter's [Proof view](proof.md#the-chapter-view) at the pickup's place,
-  to hear it against the script. It shows when a chapter is
-  [linked to its track](navigation.md#linking-chapters-to-tracks) and that track has audio at the pickup's time. When
-  chapter tracks share the timeline, every chapter that matches is offered, and none is guessed. With no match,
-  the page says the pickup is not on a linked chapter track.
-- **Punch from here** will move REAPER's edit cursor to just before the pickup, ready to record over it. It is an
-  experimental REAPER action and stays unavailable (shown greyed out) until it is supported.
-- **Mark this pickup done** marks the pickup resolved in REAPER, and the count goes down.
+- a box that includes it in the next session, or leaves it out (Space on a selected line does the same);
+- its time in the recording, its type, the line to re-record, where it came from and its status (**Open** or
+  **Recorded**);
+- **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
+  pickups**.
+
+Right-click a line for the same actions, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
+came from a note. Up and Down move between lines.
+
+A line is recorded once its pickup marker in the DAW says so: the marker is the record of what is done, and marking a
+line recorded renames its marker. While the DAW is not answering, the app keeps the change and writes it to the marker
+the next time it reads the list with the DAW answering.
+
+Removing a line hides it from this list only; its note or check keeps its own record. A line you added by hand can be put
+back with **Undo** on the message that follows; a line from a check or a note cannot.
+
+**Check recordings** opens the recording check on the chapters whose check is not current, so their gaps can join the
+list. It is off, with the reason, when the DAW is not reachable. **Add a pickup by hand** asks for the time in the
+recording (`05:12.0`) and the line to re-record, and adds it to the chapter in view (with every chapter shown, the
+last chapter you stepped to, or the first).
+
+With no lines at all, the page says **No pickups queued**, with the way to Proof; a chapter with none says **No pickups
+for this chapter**.
 
 ## Pickup session
 
-The **Pickup session** panel is not available yet. It will gather a chapter's pickups in script order, each with its
-line in context, ready to record in one sitting.
+The **Pickup session** panel beside the list counts the open lines in view that are not left out: **Lines**, and
+**About** how many minutes they take to record, from the recordings' measured times (it says when there is no measured
+figure). From there:
+
+- **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter.
+- **Add N as markers in** the DAW puts a pickup marker at each line's place. It is off, with the reason, when the DAW
+  cannot add markers.
+- **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere.
 
 ## In the Booth's companion panel
 
-The companion panel's **Pickups** section shows the same list: how many pickups remain, and the one you last jumped
-to. Jumping, punching and marking one done stay on this page.
+The companion panel's **Pickups** section shows how many of the DAW's pickup markers are still open, out of the total. It
+does not change them.
 
 ---
 

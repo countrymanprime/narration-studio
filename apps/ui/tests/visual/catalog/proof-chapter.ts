@@ -24,19 +24,12 @@ export const proofChapterStates: StateEntry[] = [
     description:
       'Proof chapter view, a current check - "Proof · Chapter 1" header, transport, script with its flags struck through/underlined in place, and the Flags panel with its legend',
   },
-  {
-    page: 'proof-chapter',
-    state: 'note-selected',
-    description:
-      'Proof chapter view led by benchmark mock 04: a pin on the notes strip pressed - the note open beside the chapter\'s notes table ("0:0x.x · Misread", Play ±3 s, Pickup/Waive/Defer), with the recording-check card under it',
-    // Below `xl` the detail sits under the notes table, so the driver scrolls it into view at each width.
-    ...KEEPS_DESKTOP_SCROLL,
-  },
+
   {
     page: 'proof-chapter',
     state: 'playing',
     description: 'Proof chapter view, Play pressed - transport shows Pause and a live elapsed readout, the currently spoken word highlighted in the script',
-    // The transport sits under benchmark mock 04's notes, below the fold under `xl`: the driver scrolls to it at each width.
+    // The transport sits below the fold under `xl`: the driver scrolls to it at each width.
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

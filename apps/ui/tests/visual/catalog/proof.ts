@@ -1,203 +1,67 @@
-// The `proof` rows of STATE_CATALOG: Proof's book level, the notes (formerly the `review` page key) (see state-catalog.ts), in the order they are captured.
+// The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
 
 export const proofStates: StateEntry[] = [
-  // Proof's notes, drawn as benchmark mock 04's notes table
   {
     page: 'proof',
     state: 'default',
     description:
-      'Proof, the latest run of every check in one list under benchmark mock 04\'s notes header ("Notes · 4", a chip per resolution, Import proofer sheet, Export for proofer), the Sources line, and a prompt to select a finding',
+      "Proof, all chapters (Studio Next mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",
   },
   {
     page: 'proof',
-    state: 'no-recording',
+    state: 'chapter',
     description:
-      "Proof with no chapter linked to a track - the waveform card draws a greyed placeholder waveform labelled as not the chapter's audio (ADR 0750), the notes of every chapter listed under it",
+      "Proof, Chapter 1 with its track linked (?mockChapterLink=confirmed): the recording check card, the waveform window with the note pins, the chapter's notes with the In view chip and a takes badge, and Esc All chapters in the key hints",
   },
   {
     page: 'proof',
-    state: 'chapter-selected',
+    state: 'chapter-no-recording',
     description:
-      "Proof, Chapter 1 (linked) picked in the waveform card's selector - its stored waveform, the notes table narrowed to that chapter and Show all chapters beside the selector (ADR 0750)",
+      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check, "No recording for this chapter yet" where the waveform goes',
   },
   {
     page: 'proof',
-    state: 'chapter-filtered',
+    state: 'takes-lanes',
     description:
-      'Proof, Chapter 2 (no recording) picked in the waveform card - the placeholder waveform and the notes table narrowed to Chapter 2 with Show all chapters offered (ADR 0750)',
+      'Proof, Chapter 1 linked, on the misread at 0:12.4 whose spot has several takes: the playing take as a band on the trace, the other takes in their lanes under it, and the takes at this spot in the Inspector',
   },
   {
     page: 'proof',
-    state: 'empty',
+    state: 'check-stale',
     description:
-      'Proof, a project with no findings at all - "Nothing to review yet" and where findings come from (reached via the ?mockFindings=empty mock seam)',
+      'Proof, Chapter 4 whose stored recording check is stale (?mockCoverage=stale): the check card says what changed since and offers to check again',
   },
   {
     page: 'proof',
-    state: 'filtered',
-    description: 'Proof, filtered to Local AI compare and to findings scored 50% or more - one row left and Clear filters offered',
+    state: 'check-never',
+    description: 'Proof, Chapter 7 never checked: the check card with no check yet and Check recordings',
   },
   {
     page: 'proof',
-    state: 'filtered-empty',
-    description: 'Proof, filters that match nothing (Deferred) - "No findings match these filters." with Clear filters in the list',
-  },
-  {
-    page: 'proof',
-    state: 'detail-open',
+    state: 'check-checking',
     description:
-      'Proof, a transcript difference selected - benchmark mock 04\'s "0:12.4 · Misread" title, Play ±3 s, what the script says and what was recorded, where, the evidence, the confidence reason, and Pickup, Waive and Defer',
-    ...KEEPS_DESKTOP_SCROLL,
+      "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",
   },
-
   {
     page: 'proof',
-    state: 'decision-saved',
-    description:
-      'Proof, a misread marked for a pickup with a note - "Saved: needs a pickup.", its resolution and time, Reopen offered, and the Pickup chip and "1 need pickup" in the list',
-    ...KEEPS_DESKTOP_SCROLL,
+    state: 'notes-filtered',
+    description: 'Proof, all chapters with the To review chip pressed: "Notes · 3 of 4" and the waived note left out',
+  },
+  {
+    page: 'proof',
+    state: 'find-open',
+    description: 'Proof, all chapters with find in notes open on "rabbit": the field beside the sort and the one matching note',
   },
   {
     page: 'proof',
     state: 'evidence-changed',
     description:
-      'Proof, a decision refused because the check ran again since the finding was shown (ADR 0120) - the plain-language alert, the latest version and the typed note kept (reached via the ?mockFindings=changed mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
+      'Proof, a note whose evidence changed after it was shown (?mockFindings=changed): the evidence-changed banner with before and now, the decisions held until the new evidence is taken, and the typed note kept',
   },
   {
     page: 'proof',
-    state: 'not-in-latest-run',
-    description: 'Proof, findings the latest run did not repeat included, and one selected - the "did not find this again" notice over its evidence',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Review in REAPER: Go to, Loop and Stop, and why they are off
-  {
-    page: 'proof',
-    state: 'reaper-go-to',
-    description: 'Proof, Go to in REAPER pressed on a transcript difference - REAPER selected its item and the cursor time is announced',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'reaper-looping',
-    description: 'Proof, Loop in REAPER pressed - the looped window is announced and Stop loop is offered beside Go to and Loop',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'reaper-stale',
-    description:
-      "Proof, Go to refused because the finding's item is no longer in the REAPER project - the plain-language alert, nothing moved (reached via the ?mockReaper=stale mock seam)",
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'reaper-not-running',
-    description:
-      'Proof, REAPER not answering (its heartbeat stopped) - Go to and Loop disabled with the reason under them (reached via the ?mockReaper=not-running mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'reaper-standalone',
-    description:
-      'Proof, the app opened on its own rather than from REAPER - Go to and Loop disabled, and how to connect REAPER (reached via the ?mockReaper=standalone mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // The approved marker: one take marker for an accepted finding, after a confirm
-  {
-    page: 'proof',
-    state: 'reaper-marker-confirm',
-    description:
-      'Proof, a transcript difference accepted and Add marker in REAPER pressed - the confirm dialog that says what REAPER will add and that one Undo removes it',
-  },
-  {
-    page: 'proof',
-    state: 'reaper-marker-added',
-    description: 'Proof, the approved marker confirmed - the take marker REAPER added is announced by name under the REAPER controls',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Pickups and duplicates on Proof
-  {
-    page: 'proof',
-    state: 'take-review-scan-form',
-    description: 'Proof, Find pickups and duplicates pressed - the scan dialog with the track to scan and the optional pickup track or stretch of the timeline',
-  },
-  {
-    page: 'proof',
-    state: 'take-review-scan-progress',
-    description:
-      "Proof, a pickup and duplicate scan running - the sidecar's own percent and stage, the live activity, Cancel and Continue in background (reached via the ?mockTakeReviewScan=running mock seam)",
-  },
-  {
-    page: 'proof',
-    state: 'take-review-results',
-    description: 'Proof, a scan of Chapter 1 closed - the list narrowed to take review, one partial pickup and one near duplicate, no ranking column',
-  },
-  {
-    page: 'proof',
-    state: 'take-review-group',
-    description:
-      'Proof, a pickup group selected - every read with its range in its own file, coverage and script match, each with Go to and Loop in REAPER, Audition reads and Add as take (off until accepted)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'take-review-read-looping',
-    description: 'Proof, Loop pressed on one read of a pickup group - the looped window is announced and Stop loop is offered under the reads',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'take-review-audition',
-    description:
-      'Proof, Audition reads pressed on a pickup group - the side-by-side A/B dialog with the "Raw source, no FX or edits applied" label and Read A/Read B pickers (phase 7)',
-  },
-  {
-    page: 'proof',
-    state: 'take-review-add-take',
-    description:
-      'Proof, a pickup group accepted and Add as take pressed - the confirm with the target item and the candidate read chosen by the narrator, never preselected',
-  },
-  // Take comparison on Proof
-  {
-    page: 'proof',
-    state: 'take-comparison-progress',
-    description:
-      "Proof, Compare takes pressed on a pickup group - the comparison running with the sidecar's own percent and stage, Cancel and Continue in background (reached via the ?mockTakeComparison=running mock seam)",
-  },
-  {
-    page: 'proof',
-    state: 'take-comparison',
-    description:
-      'Proof, a take comparison finished and opened - each read of the span word by word, the misread and unreached words marked and listed with their times, each read with Go to and Loop; no ranking',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof',
-    state: 'take-comparison-measurements',
-    description:
-      "Proof, a take comparison's audio table - clipping, room noise, level, length and pauses, a row each with what it measures and a column per read, an unavailable figure with its reason; nothing adds the rows up",
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Dashboard integration for an Audacity-sourced project: take management (Go
-  // to/Loop/Add marker in REAPER, take review, take comparison) has no Audacity analog, so it is left out entirely
-  // rather than shown disabled - everything else about a finding is unchanged.
-  {
-    page: 'proof',
-    state: 'audacity-detail',
-    description:
-      'Proof, the same transcript difference as detail-open, but the app is talking to Audacity - no "In REAPER" section, and Play ±3 s, Show in Script and the decision controls work exactly as they do for REAPER',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Delivery findings on Proof
-  {
-    page: 'proof',
-    state: 'delivery-finding',
-    description:
-      "Proof, after a measurement on Master & QC - its missed and unmeasurable rules listed as Delivery checks by file, one opened: the rule, ACX's requirement, the value measured and the profile that judged it, Open in Master & QC in place of Show in Script, and the same decision controls as every finding",
-    ...KEEPS_DESKTOP_SCROLL,
+    state: 'empty',
+    description: 'Proof, a project with no notes at all (?mockFindings=empty): no ring, every chapter tile empty, "No notes yet" in the Inspector',
   },
 ];

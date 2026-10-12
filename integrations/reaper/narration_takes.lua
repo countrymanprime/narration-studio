@@ -24,9 +24,10 @@
 -- with no move, a GUID named twice, or a shift of the wrong sign. Every item and take is resolved by GUID and checked
 -- before anything changes: a GUID that does not resolve, or a read that moved or changed length since the app read it
 -- (by more than POSITION_TOLERANCE), answers ITEM_STALE|run|guid|item or take; a read on another track, longer than the
--- first read (adding a take leaves D_LENGTH as it is), MIDI or with a changed playback rate, a destination other than
--- the first read's spot, a fixed-lane track (ADR 0147: the app never converts lanes), other audio between the reads, or
--- a shift the reads do not add up to answers ERROR. Then, in one undo block, each read becomes a new take of the first
+-- first read (adding a take leaves D_LENGTH as it is), MIDI, with a changed playback rate or with its file not on
+-- disk, a first read that already carries stacked takes, a destination other than the first read's spot, a fixed-lane
+-- track (ADR 0147: the app never converts lanes), other audio between the reads, or a shift the reads do not add up to
+-- answers ERROR. Then, in one undo block, each read becomes a new take of the first
 -- item (AddTakeToMediaItem, a source from the read's file, its D_STARTOFFS), the take's P_EXT records the read's item,
 -- take, track and start and its offset from the first read, the read's item moves to the muted Cuts track (found or
 -- added as delete_range does, narration_range.lua) with its own take, so nothing is deleted, and every later item on
@@ -35,7 +36,8 @@
 --
 -- unstack_takes(run, payload_path) reads the same payload, each move now from the first read's spot (`from`) to where
 -- the read was recorded (`to`: the first read's start plus the offset the take recorded), and a shift that is not
--- negative. A take the first item no longer carries, or a read no longer on the Cuts track, answers ITEM_STALE. In one
+-- negative. A take the first item no longer carries, or a read no longer on the Cuts track, answers ITEM_STALE; a
+-- request that leaves any stacked take on the first item answers ERROR, since every offset is from one stack. In one
 -- undo block it removes the stacked takes from the first item by rewriting the item's state chunk (REAPER's own
 -- take-delete action asks to confirm), keeps the active take (the first read when the active one was removed), moves
 -- every later item on the track out again, and moves each read back to its track and time. Answers
@@ -396,6 +398,17 @@ local function stack_ready(session_dir, run_id, needed, sentence)
   return true
 end
 
+-- What a stacked take recorded, or nil.
+local function stack_record(take)
+  local _, text = reaper.GetSetMediaItemTakeInfo_String(take, STACK_KEY, '', false)
+  local fields = split_fields(text or '')
+  local offset = tonumber(fields[5] or '')
+  if #fields ~= 5 or not offset then
+    return nil
+  end
+  return { item = normalize_guid(fields[1]), take = normalize_guid(fields[2]), track = normalize_guid(fields[3]), offset = offset }
+end
+
 -- Every group resolved and checked, or nil after answering the refusal. Changes nothing.
 local function plan_stack(session_dir, run_id, request, cuts)
   local groups, moving, takes = {}, {}, 0
@@ -417,6 +430,12 @@ local function plan_stack(session_dir, run_id, request, cuts)
     end
     if reaper.GetMediaTrackInfo_Value(track, 'I_FREEMODE') == 2 then
       return refuse('ERROR', 'This track uses fixed item lanes, so its reads cannot be stacked as takes.')
+    end
+    for index = 0, reaper.CountTakes(item) - 1 do
+      local take = reaper.GetTake(item, index)
+      if take and stack_record(take) then
+        return refuse('ERROR', 'That first read already has stacked takes. Move them back first, so nothing was stacked.')
+      end
     end
     local first, length = position_of(item), length_of(item)
     local group = { item = item, track = track, first = first, after = first + length, moves = {} }
@@ -450,6 +469,9 @@ local function plan_stack(session_dir, run_id, request, cuts)
       local file = reaper.GetMediaSourceFileName(reaper.GetMediaItemTake_Source(take), '')
       if not file or file == '' then
         return refuse('ERROR', 'A read to stack has no audio file.')
+      end
+      if not core.file_exists(file) then
+        return refuse('ERROR', 'The audio file of a read to stack is missing, so nothing was stacked.')
       end
       moving[read] = true
       group.moves[#group.moves + 1] = {
@@ -572,17 +594,6 @@ local function chunk_without(chunk, remove)
   return table.concat(out, '\n') .. '\n', removed
 end
 
--- What a stacked take recorded, or nil.
-local function stack_record(take)
-  local _, text = reaper.GetSetMediaItemTakeInfo_String(take, STACK_KEY, '', false)
-  local fields = split_fields(text or '')
-  local offset = tonumber(fields[5] or '')
-  if #fields ~= 5 or not offset then
-    return nil
-  end
-  return { item = normalize_guid(fields[1]), take = normalize_guid(fields[2]), track = normalize_guid(fields[3]), offset = offset }
-end
-
 local function plan_unstack(session_dir, run_id, request)
   local cuts = find_cuts()
   local groups, moving, takes = {}, {}, 0
@@ -635,6 +646,11 @@ local function plan_unstack(session_dir, run_id, request)
       group.remove[record.stacked] = true
       group.moves[#group.moves + 1] = { item = read, offset = record.offset }
       group.after = math.max(group.after, first + record.offset + span)
+    end
+    for _, record in pairs(records) do
+      if not group.remove[record.stacked] then
+        return refuse('ERROR', 'Every take stacked on that first read goes back together, so nothing was moved back.')
+      end
     end
     if group.remove[group.keep] then
       group.keep = wanted.base

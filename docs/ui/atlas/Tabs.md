@@ -17,7 +17,6 @@ Storybook title: `Primitives/Tabs`. Source: `src/components/primitives/Tabs.tsx`
 
 ## Used by
 
-- `src/components/booth/ReaderRail.tsx`
 - `src/components/editing/drawer/Drawer.tsx`
 - `src/components/script/page/layout/RailPanel.tsx`
 - `src/components/settings/Settings.tsx`

@@ -1,6 +1,5 @@
 // The interaction feedback rows for the Pickups call sites (see interactionFeedback.catalog.ts for what a row says): the
-// Pickups page (the Tracks page's Pickups dialog until then) and the
-// pickups state it shares with the Booth companion's Pickups section.
+// Studio Next Pickups page and the pickups state the Booth companion's Pickups section and Proof's proofer sheet read.
 import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
@@ -16,14 +15,15 @@ export const pickupsFeedback: Record<string, FeedbackRow> = {
     'silent',
     'na',
     'exempt',
-    'An automatic refresh right after the hydrate above settles, so the remaining count is current without an extra press; a failure here just leaves the count at whatever the hydrate answered, and the narrator can still press Import, Next or Export, each of which shows its own failure inline.',
+    'An automatic refresh right after the hydrate above settles, so the remaining count is current without an extra press; a failure here just leaves the count at whatever the hydrate answered, and the narrator can still import or export the proofer sheet on Proof, each of which shows its own failure.',
   ),
-  'src/components/pickups/PickupsPage.tsx::pickupsImport#1': row('input', 'job', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'Choosing a CSV file. Row errors and the import summary show inline; a request failure shows as an alert.'),
-  'src/components/pickups/PickupsPage.tsx::pickupsNext#1': row('click', 'job', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'A failure (no pickups remain) shows as an alert.'),
-  'src/components/pickups/PickupsPage.tsx::pickupsResolve#1': row('click', 'job', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'A failure (no open pickup at that position) shows as an alert.'),
-  'src/components/pickups/PickupsPage.tsx::pickupsPunch#1': row('click', 'job', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'Moves REAPER\'s edit cursor to the pickup\'s own position minus the pre-roll setting; no preview step, since the position is already known. A refusal (no DAW, or REAPER refuses the move) shows as an alert; nothing moves.'),
-  'src/components/pickups/PickupsPage.tsx::pickupsExport#1': row('click', 'job', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'A completed export triggers the browser file-save download; a failure shows as an alert.'),
-  'src/components/pickups/PickupsPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Read with the chapter links and tracks only to find which chapter a pickup falls in; without them a pickup just has no "Open in Proof" link, and it says so.'),
-  'src/components/pickups/PickupsPage.tsx::chapterTrackMapList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The confirmed chapter links, read with the chapters and tracks above for the same "Open in Proof" link.'),
-  'src/components/pickups/PickupsPage.tsx::tracksList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The linked project file\'s tracks and items, read with the chapters and links above to place a pickup\'s project time in its chapter.'),
+  // The Studio Next Pickups page (SNQ-9): the host's merged list, and every change answering the whole list (ADR 0840).
+  'src/components/pickups/PickupsPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Read with the list on opening for the chapter stepper and the group rows; a failure is a toast.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Read with the chapters on opening, which is what reconciles the list with the DAW\'s markers; a failure is a toast and the list stays empty.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsList#2': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Read again after adding markers, so the lines show their markers; a failure is the marker action\'s toast.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsAdd#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'no', 'ok', 'Add a pickup by hand: the popover\'s Add is pending until the host answers the list; a refusal (an empty line, a time outside the chapter) is a toast in the host\'s words.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsAdd#2': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'yes', 'ok', 'Undo of removing a line added by hand adds it again; a refusal is a toast.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsRemove#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'The row leaves the list when the host answers; a line added by hand offers Undo, a refusal is a toast.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsSetIncluded#1': row('input', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'The checkbox and the session panel follow the host\'s answer; a refusal is a toast and the box keeps the stored state.'),
+  'src/components/pickups/PickupsPage.tsx::pickupsSetDone#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'Mark recorded or open again goes through the DAW marker when the DAW holds it; a refusal is a toast in the DAW\'s words.'),
 };

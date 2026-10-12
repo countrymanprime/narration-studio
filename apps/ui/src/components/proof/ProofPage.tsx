@@ -1,284 +1,413 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilter } from '@fortawesome/free-solid-svg-icons';
-import { useApi } from '../../api/ApiContext';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import type { Finding, FindingsSummary } from '../../api/contracts/findings';
 import { describeApiError } from '../../api/errorMessage';
-import type { Finding, FindingsPage, FindingsSummary, ManuscriptChapter, TakeComparisonJob, TakeReviewScanJob } from '../../types';
-import { usePickupsState } from '../pickups/usePickupsState';
-import { ChapterWaveformCard } from './ChapterWaveformCard';
-import { loadLastChapter, saveLastChapter } from './lastChapterStorage';
-import { LoadError } from '../layout/LoadError';
-import { Button } from '../primitives/Button';
-import { Heading } from '../primitives/Heading';
+import { chapterName } from '../../chapterName';
+import { footerHints } from '../../input/hints';
+import { CommandScope } from '../../input/router';
+import { useUserKeymap } from '../../input/useUserKeymap';
+import { useOverlay } from '../../overlay/OverlayProvider';
+import { usePort } from '../../ports/usePort';
+import { useCapability } from '../../useCapability';
+import type { ManuscriptChapter } from '../../types';
+import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
-import { Panel } from '../primitives/Panel';
-import { Popover } from '../primitives/Popover';
-import type { Notify } from '../primitives/Toast';
-import { FindingDetail } from './FindingDetail';
-import { FindingsList } from './FindingsList';
-import { ReviewFilters } from './ReviewFilters';
-import { EMPTY_FILTERS, isFiltered, queryFor, REVIEW_PAGE_SIZE, type ReviewFilterValues } from './reviewQuery';
-import { NotesHeader, SourcesLine } from './NotesHeader';
-import { resolutionCounts, type ResolutionCounts } from './resolution';
-import { TakeReviewScanDialog } from './TakeReviewScanDialog';
-import { useReaperStatus } from './useReaperStatus';
-import { useDawKind } from '../../useDawKind';
+import { KeyHints } from '../primitives/KeyHints';
+import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
+import { NeedManuscript } from '../script/page/layout/NeedManuscript';
+import { CheckCard } from './checkcard/CheckCard';
+import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
+import type { Band, Pin } from './frame/pins';
+import { ProofHeader } from './frame/ProofHeader';
+import { WaveformWindow } from './frame/WaveformWindow';
+import { followSecond, MIN_WINDOW, type TimeWindow } from './frame/windowMath';
+import { Inspector } from './inspector/Inspector';
+import { TypeSelect } from './inspector/TypeSelect';
+import { NotesPanel } from './notes/NotesPanel';
+import { noteRow, queryFor, type NoteSort } from './notes/noteRows';
+import { proofProgress } from './proof.selectors';
+import { ProoferSheet } from './ProoferSheet';
+import { SpotTakes } from './spot/SpotTakes';
+import { TakeLanes } from './spot/TakeLanes';
+import { TakesBadge } from './spot/TakesBadge';
+import { useSpotTakes } from './spot/useSpotTakes';
+import { useChapterTimeline } from './useChapterTimeline';
+import { useProofKeys } from './useProofKeys';
+import { useNoteContextMenu } from './useNoteContextMenu';
 
-// The notes header's chips from the summary's own counts (over the latest run), with the accepted notes split into pickups and
-// edits by reading them: the summary counts statuses, and whether an accepted note is a pickup or an edit is the note's own.
-function headerCounts(summary: FindingsSummary | undefined, accepted: readonly Finding[]): ResolutionCounts {
-  const split = resolutionCounts(accepted);
-  return {
-    toReview: summary?.unreviewed ?? 0,
-    pickup: split.pickup,
-    edit: split.edit,
-    waived: summary?.dismissed ?? 0,
-    deferred: summary?.deferred ?? 0,
-  };
+/** A pin's ink by the kind of note: a misread or a skip in red, a pickup or a repeat in amber, a name in blue, the rest muted. */
+const PIN_COLOUR: Record<string, string> = {
+  transcript_discrepancy: 'var(--danger)',
+  pickup: 'var(--warn)',
+  duplicate_read: 'var(--warn)',
+  pronunciation: 'var(--info)',
+  entity: 'var(--info)',
+};
+
+// The last chapter the narrator looked at on Proof, per project (ADR 0750): stepping out of All chapters opens it. A per-viewer
+// convenience in browser storage, never a host field; storage can be missing, full or blocked, so every access is guarded.
+const lastChapterKey = (projectFolder: string): string => `narration.proof.lastChapter.${projectFolder}`;
+
+function loadLastChapter(projectFolder: string): string {
+  try {
+    return window.localStorage.getItem(lastChapterKey(projectFolder)) ?? '';
+  } catch {
+    return '';
+  }
 }
 
+function saveLastChapter(projectFolder: string, chapterId: string): void {
+  try {
+    window.localStorage.setItem(lastChapterKey(projectFolder), chapterId);
+  } catch {
+    /* storage unavailable: the choice lasts for this visit only */
+  }
+}
+
+const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
+const chapterOf = (finding: Finding) => finding.manuscript?.chapter_id ?? '';
+/** A note as the page holds it: its review copied, so Undo knows the decision before, whatever the client does with the object it returned. */
+const held = (finding: Finding): Finding => ({ ...finding, review: { ...finding.review } });
+
 /**
- * Proof, the book level (ADR 0470): every analyzer's notes in one queue, filtered
- * and sorted by the host, drawn as a notes table, with a note's evidence and the narrator's decision beside
- * it. A chapter opens its chapter view (`/proof/:chapterId`), where the recording plays against the script and
- * Transcript Compare runs. Find pickups and duplicates starts that analyzer's scan here, and its
- * groups are reviewed here like every other note.
+ * Proof (Studio Next mock `pages/Proof.tsx`): the whole book as a strip of chapters and one list of notes, or one chapter with its
+ * recording check, its waveform window and its notes; the Inspector for the selected note on the right and the key hints at the foot.
+ * The host filters and sorts the notes (`FindingsQuery`); a decision goes through the Inspector's stale-evidence guard and moves on
+ * to the next note with an Undo. The workspace (`/proof/:chapterId`) stays until the Editing swap.
  */
 export function ProofPage({
-  notify,
-  projectFolder,
   hasManuscript,
-  goToManuscript,
-  goToStoryBible,
-  goToWorkspace,
-  goToMaster,
-  openChapter,
+  projectFolder,
+  goTo,
+  goToScript,
+  goToBooth,
+  goToEditing,
 }: {
-  notify: Notify;
-  /** Keys the remembered chapter (`lastChapterStorage.ts`). */
-  projectFolder: string;
   hasManuscript: boolean;
-  goToManuscript: (chapter: string, paragraph?: number) => void;
-  goToStoryBible: (entityId: string) => void;
-  /** "Open in workspace": threaded straight through to FindingDetail. */
-  goToWorkspace?: (chapterId: string, findingId: string) => void;
-  /** Opens Master & QC on a measured file and rule, for a delivery finding. */
-  goToMaster: (file: string, rule?: string) => void;
-  /** Opens a chapter's view, `/proof/:chapterId`. */
-  openChapter: (chapterId: string) => void;
+  /** Keys the remembered chapter. */
+  projectFolder: string;
+  goTo: (path: string) => void;
+  goToScript: (chapterId: string) => void;
+  goToBooth: (chapterId: string) => void;
+  /** The takes' "Open in Editing": the chapter's workspace on the note. */
+  goToEditing: (chapterId: string, findingId?: string) => void;
 }) {
-  const api = useApi();
-  const [summary, setSummary] = useState<FindingsSummary>();
-  const [page, setPage] = useState<FindingsPage>();
-  const [accepted, setAccepted] = useState<Finding[]>([]);
-  const pickups = usePickupsState();
-  const [loadError, setLoadError] = useState<string>();
-  const [filters, setFilters] = useState<ReviewFilterValues>(EMPTY_FILTERS);
-  const [limit, setLimit] = useState(REVIEW_PAGE_SIZE);
-  const [selected, setSelected] = useState<Finding>();
-  const [reloadKey, setReloadKey] = useState(0);
-  const loadedOnce = useRef(false);
-  const reaper = useReaperStatus();
-  const dawKind = useDawKind();
-  const [scanning, setScanning] = useState(false);
+  const findingsApi = usePort('findings');
+  const manuscriptApi = usePort('manuscript');
+  const overlay = useOverlay();
+  const keymap = useUserKeymap();
+  const review = useCapability('review');
+  const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  // The chapter whose waveform the card draws (ADR 0750): the one the notes are filtered to, else the last chapter the
-  // narrator looked at in this project, else the first narration chapter.
-  const [lastChapter, setLastChapter] = useState(() => loadLastChapter(projectFolder));
-  const known = (id: string) => chapters.some((chapter) => chapter.id === id);
-  const waveformChapterId = known(filters.chapterId) ? filters.chapterId : known(lastChapter) ? lastChapter : (chapters[0]?.id ?? '');
+  const [findings, setFindings] = useState<Finding[]>([]);
+  const [summary, setSummary] = useState<FindingsSummary>();
+  const [sort, setSort] = useState<NoteSort>('time');
+  const [reload, setReload] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(params.get('finding'));
+  const [current, setCurrent] = useState(() => loadLastChapter(projectFolder));
+  const [win, setWin] = useState<TimeWindow>({ start: 0, len: MIN_WINDOW });
+  // The latest selection, set as it happens: the right-click menu reads it in the same event that selected the row.
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
+  // Set while a row is pressed (it opens the row's chapter) or selected for the right-click menu (it does not).
+  const opening = useRef(false);
+  const selectingForMenu = useRef(false);
 
-  // The chapter picker's list: the narration chapters, the ones with a recording to proof (front and back matter have none).
+  const scope = params.get('chapter') ?? ALL_CHAPTERS;
+  const all = scope === ALL_CHAPTERS;
+  const chapter = all ? undefined : chapters.find((c) => c.id === scope);
+  const fallback = chapters.find((c) => c.id === current) ?? chapters[0];
+
   useEffect(() => {
     if (!hasManuscript) return;
-    let active = true;
-    api
+    let live = true;
+    manuscriptApi
       .manuscriptChapters()
-      .then((all) => active && setChapters(all.filter((chapter) => (chapter.contentKind ?? 'narration') === 'narration')))
-      .catch((error) => active && notify(describeApiError(error), 'error'));
+      .then((list) => live && setChapters(list.filter(isNarration)))
+      .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }));
     return () => {
-      active = false;
+      live = false;
     };
-  }, [api, hasManuscript, notify]);
+  }, [manuscriptApi, hasManuscript, overlay]);
 
-  // A pickup and duplicate scan or a take comparison left running in the background saves its findings when it ends: the list is
-  // read again then.
-  useEffect(
-    () =>
-      api.subscribeJobEnded((event) => {
-        if ((event.kind === 'take_review' || event.kind === 'take_comparison') && event.outcome === 'success') setReloadKey((key) => key + 1);
-      }),
-    [api],
-  );
-
-  // A failure before anything is on screen is the page's load error with Retry; a later one keeps what is shown and is a toast.
-  const failed = useCallback(
-    (error: unknown) => {
-      if (loadedOnce.current) notify(describeApiError(error), 'error');
-      else setLoadError(describeApiError(error));
-    },
-    [notify],
-  );
-
-  // The counts and the list are read together, so the page is either loaded or not; an answer that arrives after a newer request
-  // was sent (the filters changed again) is dropped.
+  // The notes in scope, in the order the sort asked for, and the book's counts for the head; an answer to an older request is dropped.
   useEffect(() => {
-    let active = true;
-    Promise.all([api.findingsSummary(), api.findingsList(queryFor(filters, limit)), api.findingsList({ status: 'accepted' })])
-      .then(([nextSummary, nextPage, acceptedPage]) => {
-        if (!active) return;
-        loadedOnce.current = true;
-        setSummary(nextSummary);
-        setPage(nextPage);
-        setAccepted(acceptedPage.findings);
+    if (!hasManuscript) return;
+    let live = true;
+    Promise.all([findingsApi.findingsList(queryFor(sort, all ? undefined : scope)), findingsApi.findingsSummary()])
+      .then(([page, counts]) => {
+        if (!live) return;
+        setFindings(page.findings.map(held));
+        setSummary(counts);
       })
-      .catch((error) => active && failed(error));
+      .catch((error: unknown) => live && overlay.toast(describeApiError(error), { tone: 'error' }));
     return () => {
-      active = false;
+      live = false;
     };
-  }, [api, failed, filters, limit, reloadKey]);
+  }, [findingsApi, hasManuscript, sort, scope, all, reload, overlay]);
 
-  const changeFilters = (next: ReviewFilterValues) => {
-    setLimit(REVIEW_PAGE_SIZE);
-    setFilters(next);
-  };
+  const choose = useCallback(
+    (next: string) => {
+      if (next !== ALL_CHAPTERS) {
+        setCurrent(next);
+        saveLastChapter(projectFolder, next);
+      }
+      setParams(next === ALL_CHAPTERS ? {} : { chapter: next }, { replace: true });
+    },
+    [setParams, projectFolder],
+  );
+  // From All chapters a step opens the chapter last looked at, as the mock's `stepChapter` does; then it moves along the book.
+  const step = useCallback(
+    (direction: -1 | 1) => {
+      if (all) {
+        if (fallback) choose(fallback.id);
+        return;
+      }
+      const at = chapters.findIndex((c) => c.id === scope);
+      const next = chapters[at + direction];
+      if (next) choose(next.id);
+    },
+    [all, fallback, chapters, scope, choose],
+  );
 
-  // The detail's copy of a finding is the one the host answered last: a saved decision or the latest evidence after a refusal.
-  const changed = (finding: Finding, decided: boolean) => {
-    setSelected(finding);
-    setPage((current) => current && { ...current, findings: current.findings.map((row) => (row.id === finding.id ? finding : row)) });
-    if (decided) setReloadKey((key) => key + 1);
-  };
+  const select = useCallback((id: string) => {
+    selectedRef.current = id;
+    setSelectedId(id);
+  }, []);
+  // The first note is selected while none is (the mock opens on one), so the Inspector is never empty while there are notes.
+  useEffect(() => {
+    if (findings.length > 0 && !findings.some((f) => f.id === selectedId)) select(findings[0].id);
+  }, [findings, selectedId, select]);
+  const selected = findings.find((f) => f.id === selectedId) ?? null;
+  const order = useMemo(() => findings.map((f) => f.id), [findings]);
 
-  // A scan that found something shows its groups: the list is narrowed to take review, which Clear filters undoes.
-  const scanClosed = (ended?: TakeReviewScanJob) => {
-    setScanning(false);
-    if (ended?.phase !== 'success') return;
-    if (ended.found > 0) changeFilters({ ...EMPTY_FILTERS, analyzer: 'take-review', sort: filters.sort });
-    else setReloadKey((key) => key + 1);
-  };
+  const replace = useCallback((next: Finding) => setFindings((list) => list.map((f) => (f.id === next.id ? held(next) : f))), []);
+  // A saved decision moves to the next note and offers Undo, which puts the decision back and the selection with it (mock `decideNote`).
+  const changed = useCallback(
+    (next: Finding, decided: boolean) => {
+      const before = findings.find((f) => f.id === next.id);
+      replace(next);
+      setReload((n) => n + 1);
+      if (!decided || !before) return;
+      const after = order[order.indexOf(next.id) + 1];
+      if (after) select(after);
+      overlay.toastUndo(`${noteRow(next).resolution.label} · ${noteRow(next).time}`, async () => {
+        try {
+          const back = await findingsApi.findingsReview({
+            id: next.id,
+            evidenceVersion: next.evidence_version ?? '',
+            status: before.review.status,
+            note: before.review.note ?? '',
+          });
+          replace(back);
+          select(next.id);
+          setReload((n) => n + 1);
+          return { ok: true };
+        } catch (error) {
+          return { ok: false, refusal: { reason: describeApiError(error) } };
+        }
+      });
+    },
+    [findings, order, replace, select, overlay, findingsApi],
+  );
 
-  // A finished comparison is shown straight away: the list is narrowed to take comparisons and the new one is opened beside it.
-  const compared = (ended: TakeComparisonJob) => {
-    const id = ended.comparisonId;
-    changeFilters({ ...EMPTY_FILTERS, analyzer: 'take-comparison', sort: filters.sort });
-    if (!id) return;
-    api.findingsGet(id).then(setSelected, (error) => notify(describeApiError(error), 'error'));
-  };
+  const chapterNotes = useMemo(() => (chapter ? findings.filter((f) => chapterOf(f) === chapter.id) : []), [findings, chapter]);
+  const timeline = useChapterTimeline(chapter?.id);
+  const total = timeline?.total ?? 0;
+  const spots = useSpotTakes(chapter?.id ?? '', chapterNotes);
+  const spot = selected ? spots.spotFor(selected.id) : null;
 
-  const retry = () => {
-    setLoadError(undefined);
-    setReloadKey((key) => key + 1);
-  };
+  // The window follows the selected note (mock `followSelection`).
+  const selectedSecond = selected?.time_range && timeline ? timeline.toTimeline(selected.time_range.start) : null;
+  useEffect(() => {
+    if (selectedSecond === null || total <= 0) return;
+    setWin((w) => followSecond({ start: w.start, len: Math.min(w.len, total) }, selectedSecond, total));
+  }, [selectedSecond, total]);
 
-  if (loadError) return <LoadError title="Proof" message={loadError} retry={retry} />;
+  const pins = useMemo<Pin[]>(() => {
+    if (!timeline) return [];
+    return chapterNotes.flatMap((f) => {
+      const sec = f.time_range ? timeline.toTimeline(f.time_range.start) : null;
+      if (sec === null) return [];
+      const row = noteRow(f);
+      return [{ id: f.id, sec, colour: PIN_COLOUR[f.category] ?? 'var(--text-muted)', done: row.decided, label: `${row.type} at ${row.time}` }];
+    });
+  }, [chapterNotes, timeline]);
+  // The takes sit in project seconds and the window in seconds into the chapter's recording: `shift` is the one less the other.
+  const active = spot?.takes.find((t) => t.active);
+  const activeAt = active && timeline ? timeline.toTimeline(active.start) : null;
+  const shift = active && activeAt !== null ? active.start - activeAt : 0;
+  // The take that plays at the selected spot is a band on the trace; the others sit below in their own lanes.
+  const bands = useMemo<Band[]>(
+    () =>
+      active && activeAt !== null
+        ? [{ id: active.id, start: activeAt, end: activeAt + active.len, label: active.label + (active.kept ? ' · Kept' : ''), tone: 'ok' }]
+        : [],
+    [active, activeAt],
+  );
 
-  // The card's selector also narrows the notes table to that chapter; "Show all chapters" undoes it (ADR 0750).
-  const pickChapter = (chapterId: string) => {
-    setLastChapter(chapterId);
-    saveLastChapter(projectFolder, chapterId);
-    changeFilters({ ...filters, chapterId });
-  };
-  const waveformCard = (
-    <ChapterWaveformCard
-      chapters={chapters}
-      chapterId={waveformChapterId}
-      onChapterChange={pickChapter}
-      onOpenChapter={openChapter}
-      notesFiltered={known(filters.chapterId)}
-      onShowAllChapters={() => changeFilters({ ...filters, chapterId: '' })}
+  const strip = useMemo<StripChapter[]>(
+    () =>
+      chapters.map((c, i) => {
+        const rows = findings.filter((f) => chapterOf(f) === c.id).map(noteRow);
+        return { id: c.id, name: chapterName(c), number: i + 1, total: rows.length, open: rows.filter((r) => r.open).length };
+      }),
+    [chapters, findings],
+  );
+  const progress = useMemo(() => {
+    if (all) return proofProgress(summary ?? { total: 0, decided: 0, cleared: 0 }, 0);
+    const rows = findings.map(noteRow);
+    return proofProgress({ total: rows.length, decided: rows.filter((r) => r.decided).length, cleared: rows.filter((r) => !r.open).length }, 0);
+  }, [all, summary, findings]);
+
+  useProofKeys({ order, selectedId, select, step, allChapters: all, toAllChapters: () => choose(ALL_CHAPTERS) });
+  useNoteContextMenu({
+    findings,
+    selectedId: () => selectedRef.current,
+    select,
+    goToScript,
+    goToBooth,
+  });
+
+  if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
+
+  const stepper = (
+    <ChapterStepper
+      chapters={chapters.map((c) => ({ id: c.id, name: chapterName(c) }))}
+      value={chapter ? chapter.id : ALL_CHAPTERS}
+      allowAll
+      stepKeys={['←', '→']}
+      onChange={choose}
+      onStep={step}
     />
   );
-  const nothingYet = summary !== undefined && summary.total === 0 && summary.notInLatestRun === 0;
-
-  // Mock 04's header sits over the notes column only: the note's detail column starts at the top of the page beside it.
-  const header = (
-    <div className="flex flex-wrap items-start justify-between gap-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-        <Heading title="Proof" />
-        <SourcesLine analyzers={summary?.analyzers ?? []} proofer={pickups.total > 0} />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {!nothingYet && (
-          <Popover
-            label="Filter findings"
-            side="bottom"
-            align="end"
-            trigger={
-              <IconButton label={isFiltered(filters) ? 'Filters (some are hidden)' : 'Filters'}>
-                <FontAwesomeIcon icon={faFilter} />
-              </IconButton>
-            }
-          >
-            <div className="w-[34rem] max-w-[90vw]">
-              <ReviewFilters summary={summary} values={filters} onChange={changeFilters} />
-            </div>
-          </Popover>
-        )}
-        <Button variant="secondary" onClick={() => setScanning(true)}>
-          Find pickups and duplicates…
-        </Button>
-      </div>
-    </div>
-  );
-
-  if (nothingYet) {
-    return (
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
-        {header}
-        {hasManuscript && waveformCard}
-        <Panel title="No notes yet">
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Notes appear here when a check has something for you to look at: open a chapter and compare its recording with the script, build the Story Bible, or
-            find pickups and duplicates on a track. Each one waits here until you accept, dismiss or defer it.
-          </p>
-        </Panel>
-        {scanning && <TakeReviewScanDialog onClose={scanClosed} />}
-      </div>
-    );
-  }
+  const hints = footerHints('proof', keymap, undefined, undefined, new Set(all ? [] : ['chapterView' as const]));
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-      <div className="flex min-w-0 flex-col gap-3">
-        {header}
-        {hasManuscript && waveformCard}
-        <FindingsList
-          page={page}
-          selectedId={selected?.id}
-          onSelect={setSelected}
-          filtered={isFiltered(filters)}
-          onClearFilters={() => changeFilters({ ...EMPTY_FILTERS, sort: filters.sort })}
-          onShowMore={() => setLimit((current) => current + REVIEW_PAGE_SIZE)}
-          header={<NotesHeader total={summary?.total ?? 0} counts={headerCounts(summary, accepted)} pickups={pickups} />}
-        />
+    <CommandScope kind="page">
+      <div className="flex min-h-full flex-col">
+        <div
+          className="grid flex-1 gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_380px] min-[1100px]:grid-rows-[auto_minmax(0,1fr)]"
+          // A right click on a row selects it first, so the menu acts on the row under the pointer.
+          onContextMenuCapture={(event) => {
+            const row = (event.target as Element).closest<HTMLElement>('section[aria-label="Notes"] tr[data-row]');
+            if (!row) return;
+            selectingForMenu.current = true;
+            row.click();
+            selectingForMenu.current = false;
+          }}
+        >
+          <section
+            aria-label="Proof"
+            className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4"
+          >
+            <ProofHeader progress={progress} chapterBar={stepper} />
+            {all || !chapter ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-[var(--text-muted)]">Open notes, by chapter</span>
+                <ChapterStrip chapters={strip} current={current} onChooseChapter={choose} />
+              </div>
+            ) : (
+              <>
+                {/* The check card and the waveform sit under the page's h1 and before the notes' h2: a heading of their own keeps the outline in order. */}
+                <h2 className="sr-only">{`Recording of ${chapterName(chapter)}`}</h2>
+                <CheckCard chapter={chapter} onCheck={(id) => openCheckRecordings([id])} />
+                {timeline && total > 0 ? (
+                  <>
+                    <WaveformWindow
+                      total={total}
+                      window={{ start: win.start, len: Math.min(win.len, total) }}
+                      onWindowChange={setWin}
+                      segments={timeline.segments}
+                      pins={pins}
+                      bands={bands}
+                      selectedId={selectedId}
+                      onPin={select}
+                      noteCount={chapterNotes.length}
+                    />
+                    <TakeLanes spot={spot} winStart={win.start + shift} winLen={Math.min(win.len, total)} />
+                  </>
+                ) : (
+                  <p className="text-sm text-[var(--text-muted)]">{timeline ? 'No recording for this chapter yet.' : 'Reading the recording…'}</p>
+                )}
+              </>
+            )}
+          </section>
+          <div
+            className="min-h-0 min-w-0 min-[1100px]:row-start-2"
+            // A row pressed (a click or Enter), not stepped to with the keys, opens its chapter from All chapters, as in the mock.
+            onClickCapture={(event) => {
+              if (!selectingForMenu.current && (event.target as Element).closest('tr[data-row]')) opening.current = true;
+            }}
+            onKeyDownCapture={(event) => {
+              if (event.key === 'Enter' && (event.target as Element).closest('tr[data-row]')) opening.current = true;
+            }}
+          >
+            <NotesPanel
+              findings={findings}
+              allChapters={all}
+              sort={sort}
+              onSortChange={setSort}
+              selectedId={selectedId}
+              onSelect={(id) => {
+                const open = opening.current;
+                opening.current = false;
+                select(id);
+                const note = findings.find((f) => f.id === id);
+                if (open && all && note && chapterOf(note)) choose(chapterOf(note));
+              }}
+              window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
+              actions={
+                <>
+                  <IconButton
+                    action="checkRecordings"
+                    label="Check recordings…"
+                    aria-haspopup="dialog"
+                    disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
+                    onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
+                  />
+                  <ProoferSheet />
+                </>
+              }
+              badge={(row) => {
+                const count = spots.counts.get(row.id);
+                return count ? <TakesBadge count={count} /> : null;
+              }}
+            />
+          </div>
+          <div className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1100px]:col-start-2 min-[1100px]:row-span-2 min-[1100px]:row-start-1">
+            {selected ? (
+              <Inspector
+                key={selected.id}
+                finding={selected}
+                api={findingsApi}
+                order={order}
+                onSelect={select}
+                onChanged={changed}
+                onOpenScript={goToScript}
+                onOpenBooth={goToBooth}
+                typeControl={
+                  <TypeSelect
+                    finding={selected}
+                    onChange={(type) =>
+                      void findingsApi
+                        .findingsSetType(selected.id, selected.evidence_version ?? '', type)
+                        .then(replace)
+                        .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }))
+                    }
+                  />
+                }
+                spot={<SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id) => goToEditing(id, selected.id)} />}
+              />
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">{findings.length ? 'Choose a note to see what was heard.' : 'No notes yet.'}</p>
+            )}
+          </div>
+        </div>
+        <div className="sticky -bottom-4 z-[5] -mx-4 mt-4 -mb-4 md:-bottom-6 md:-mx-6 md:-mb-6">
+          <KeyHints hints={hints} />
+        </div>
       </div>
-      <div className="min-w-0">
-        {selected ? (
-          <FindingDetail
-            // One detail per finding, so a note typed on one never shows on the next; a refreshed finding keeps it.
-            key={selected.id}
-            finding={selected}
-            hasManuscript={hasManuscript}
-            onChanged={changed}
-            goToManuscript={goToManuscript}
-            goToStoryBible={goToStoryBible}
-            goToWorkspace={goToWorkspace}
-            goToMaster={goToMaster}
-            reaperStatus={reaper.status}
-            onReaperStatusChange={reaper.refresh}
-            onCompared={compared}
-            dawKind={dawKind}
-          />
-        ) : (
-          <Panel>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Select a note to see its evidence and decide what to do with it.
-            </p>
-          </Panel>
-        )}
-      </div>
-      {scanning && <TakeReviewScanDialog onClose={scanClosed} />}
-    </div>
+    </CommandScope>
   );
 }

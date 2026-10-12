@@ -27,11 +27,8 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 ## Used by
 
 - `src/chapterStatus.ts`
-- `src/components/booth/BoothView.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
 - `src/components/booth/CompanionShell.tsx`
 - `src/components/booth/CompanionThisChapter.tsx`
-- `src/components/booth/ReaderRail.tsx`
 - `src/components/booth/frame/BoothTop.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
@@ -45,6 +42,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/editing/takes/Suggested.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
 - `src/components/editing/takes/TakeLines.tsx`
+- `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/engine/EnginePanel.tsx`
 - `src/components/layout/HistoryPanel.tsx`
 - `src/components/manuscript/EntitySummary.tsx`
@@ -54,7 +52,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/masterqc/files/FileChecks.tsx`
 - `src/components/masterqc/files/FilesTable.tsx`
 - `src/components/masterqc/page/PackageChecks.tsx`
-- `src/components/pickups/PickupsPage.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/HeaderChip.tsx`
 - `src/components/primitives/SpeakerTag.tsx`
@@ -63,10 +60,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/production/readiness/ReadinessChip.tsx`
 - `src/components/production/readiness/ReadinessPanel.tsx`
 - `src/components/production/readiness/verdict.ts`
-- `src/components/proof/FindingsList.tsx`
 - `src/components/proof/FlagsPanel.tsx`
-- `src/components/proof/NotesHeader.tsx`
-- `src/components/proof/NotesStrip.tsx`
 - `src/components/proof/ScriptView.tsx`
 - `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
@@ -96,7 +90,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
-- `src/components/storybible/pronunciationStatus.ts`
 - `src/components/storybible/source/PronSourceTag.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/panel/EntryVerifyPill.tsx`

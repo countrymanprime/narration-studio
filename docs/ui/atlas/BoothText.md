@@ -13,4 +13,5 @@ Storybook title: `Booth/BoothText`. Source: `src/components/booth/reading/BoothT
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`
+- `src/components/booth/page/useBoothPage.ts`

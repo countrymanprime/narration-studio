@@ -40,7 +40,7 @@ export function gestureKeys(gesture: Gesture): string[] {
 }
 
 /** A fact about the screen that decides whether a conditional hint shows. */
-type FooterCondition = 'pickupSession';
+type FooterCondition = 'pickupSession' | 'chapterView';
 
 /**
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
@@ -51,11 +51,11 @@ export type FooterSpec = readonly { id: CommandId; with?: readonly CommandId[]; 
 /** A hint that is not a key ("Right-click"), drawn right after the hint of the command it names. */
 type FooterExtra = readonly { after: CommandId; keys: string[]; label: string }[];
 
-export type FooterSurface = 'booth';
+export type FooterSurface = 'booth' | 'proof';
 
 /**
  * The footers' specs, in the order of the mock's key hints. A spec may name only an id the catalogue has (`hints.test.ts`
- * fails otherwise), so the Proof and Editing footers join this table in the slices that add their commands.
+ * fails otherwise), so the Editing footer joins this table in the slice that adds its commands.
  */
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
@@ -69,10 +69,20 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
     { id: 'booth.fullscreen', label: 'Full screen' },
     { id: 'booth.exit', label: 'Exit' },
   ],
+  proof: [
+    { id: 'proof.note.prev', with: ['proof.note.next'], label: 'Notes' },
+    { id: 'proof.chapter.prev', with: ['proof.chapter.next'], label: 'Chapter' },
+    { id: 'proof.decide.pickup', label: 'Pickup' },
+    { id: 'proof.decide.edit', label: 'Edit' },
+    { id: 'proof.decide.waive', label: 'Waive' },
+    { id: 'proof.decide.defer', label: 'Defer' },
+    { id: 'proof.escape', label: 'All chapters', when: 'chapterView' },
+  ],
 };
 
 const FOOTER_EXTRAS: Record<FooterSurface, FooterExtra> = {
   booth: [{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }],
+  proof: [],
 };
 
 /** The caps of commands drawn as one chord. A key that carries the same modifiers as the one before is drawn without them ("Alt [ ]", not "Alt [ Alt ]"). */

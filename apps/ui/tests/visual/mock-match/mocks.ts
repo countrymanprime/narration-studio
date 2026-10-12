@@ -47,7 +47,11 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
     unscored: 'the Script page is built to the Studio Next mock, the only spec for a page it covers (D98, ADR 0760); this benchmark is not its target',
   },
   { file: '03-booth.webp', target: { page: 'booth', state: 'dark' }, theme: 'dark' },
-  { file: '04-proof-pickups.webp', target: { page: 'proof', state: 'default' }, theme: 'light' },
+  {
+    file: '04-proof-pickups.webp',
+    theme: 'light',
+    unscored: 'retired as a target (D98): the Studio Next mock is the spec for Proof and Pickups since the SN-Q9 swap',
+  },
   // Scored against its own fixture state (?mockFidelity=05, merged on main by N-B57).
   { file: '05-master-delivery.webp', target: { page: 'master', state: 'mock-fidelity-05' }, theme: 'light' },
   {

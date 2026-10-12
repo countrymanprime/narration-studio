@@ -272,6 +272,66 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Script',
     surfaces: ['help', 'settings'],
   },
+  // The Proof page's keys (SNQ-9; mock `Proof.tsx` `registerKeys('proof')`). `useProofKeys` registers the handlers while the page is mounted.
+  // Like the Script rows, each that takes a key another page row holds names it in `shadows`. Space is not claimed: Proof has no Play ±3 s.
+  {
+    id: 'proof.note.next',
+    label: 'Next note',
+    scope: 'page',
+    defaults: [key('ArrowDown'), key('KeyJ')],
+    shadows: ['workspace.paragraph.next'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'proof.note.prev',
+    label: 'Previous note',
+    scope: 'page',
+    defaults: [key('ArrowUp'), key('KeyK')],
+    shadows: ['workspace.paragraph.prev'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'proof.chapter.next',
+    label: 'Next chapter on Proof',
+    scope: 'page',
+    defaults: [key('ArrowRight')],
+    shadows: ['workspace.word.next', 'script.prep.next'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'proof.chapter.prev',
+    label: 'Previous chapter on Proof',
+    scope: 'page',
+    defaults: [key('ArrowLeft')],
+    shadows: ['workspace.word.prev', 'script.prep.prev'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'proof.decide.pickup', label: 'Needs pickup', scope: 'page', defaults: [key('KeyP')], group: 'Proof', surfaces: ['help', 'settings'] },
+  { id: 'proof.decide.edit', label: 'Fix in edit', scope: 'page', defaults: [key('KeyE')], group: 'Proof', surfaces: ['help', 'settings'] },
+  { id: 'proof.decide.waive', label: 'Waive', scope: 'page', defaults: [key('KeyW')], group: 'Proof', surfaces: ['help', 'settings'] },
+  { id: 'proof.decide.defer', label: 'Defer', scope: 'page', defaults: [key('KeyD')], group: 'Proof', surfaces: ['help', 'settings'] },
+  {
+    id: 'proof.find',
+    label: 'Find in notes',
+    scope: 'page',
+    defaults: [key('KeyF', ['Mod'])],
+    shadows: ['jump.open', 'script.find'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'proof.escape',
+    label: 'Back to all chapters',
+    scope: 'page',
+    defaults: [key('Escape')],
+    shadows: ['editing.escape', 'script.escape'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
   // Not noisy: it starts or pauses the live listening/transcription session (`useTeleprompterSession`), which plays
   // no audio of its own - unlike `workspace.play`, a recorded-audio player (ADR 0361 decision 7).
   // The Booth's keys (mock `Booth.tsx` `registerKeys('booth')`). They act on the open page, so they list in the sheet and Settings
@@ -328,7 +388,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
-  // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script, where `script.find` shadows it and wins by
+  // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script and Proof, where `script.find` and `proof.find` shadow it and wins by
   // scope priority (SNR-Q1, ADR 0780 decision 6). Not in `jumpMenu`: the menu would list the command that opened it.
   {
     id: 'jump.open',

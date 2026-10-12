@@ -14,4 +14,4 @@ Storybook title: `Proof/Inspector`. Source: `src/components/proof/inspector/Insp
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/proof/ProofPage.tsx`

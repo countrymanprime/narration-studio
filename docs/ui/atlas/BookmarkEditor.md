@@ -13,5 +13,6 @@ Storybook title: `Script/BookmarkEditor`. Source: `src/components/script/bookmar
 
 ## Used by
 
+- `src/components/booth/bookmarks/BookmarkRibbons.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/bookmarks/ui/BookmarksTab.tsx`

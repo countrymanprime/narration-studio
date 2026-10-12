@@ -168,12 +168,4 @@ export const masterStates: StateEntry[] = [
       'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - a per-profile result row for each: its name, Built, the output folder and how many files it wrote',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Delivery findings on Proof: "Open in Master & QC" lands here
-  {
-    page: 'master',
-    state: 'from-proof',
-    description:
-      'Master & QC, opened from a delivery finding on Proof - scrolled to that file opened rule by rule, under "Opened from a note on Proof: sample rate in Chapter 01.wav."',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
 ];

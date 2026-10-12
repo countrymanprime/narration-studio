@@ -48,6 +48,7 @@ export function NotesPanel({
   onSelect,
   window: win,
   badge,
+  actions,
 }: {
   findings: readonly Finding[];
   allChapters: boolean;
@@ -58,6 +59,8 @@ export function NotesPanel({
   /** The waveform window (SN-Q42 owns it): the "In view" chip appears only when it is narrower than the chapter. */
   window?: NoteWindow;
   badge?: (row: NoteRow) => ReactNode;
+  /** The page's icons after find in notes (mock: Check recordings, Import proofer sheet, Export for proofer). */
+  actions?: ReactNode;
 }) {
   const [chip, setChip] = useState<NoteChip>('all');
   const [inView, setInView] = useState(false);
@@ -159,6 +162,7 @@ export function NotesPanel({
             </div>
           )}
           <IconButton action="find" label="Find in notes" onClick={() => (findOpen ? closeFind() : setFindOpen(true))} />
+          {actions}
         </div>
       </div>
       <SourcesLine rows={rows} />

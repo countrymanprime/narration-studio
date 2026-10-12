@@ -15,9 +15,9 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 
 ## Used by
 
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ReadingControlBar.tsx`
 - `src/components/editing/EditingCheckPanel.tsx`
+- `src/components/editing/cleanup/CleanupHeader.tsx`
+- `src/components/editing/cleanup/CleanupInspector.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/master/MasterQcPage.tsx`
 - `src/components/production/report/ReportDialog.tsx`

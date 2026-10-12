@@ -24,14 +24,13 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 
 - `.storybook/preview.tsx`
 - `src/App.tsx`
-- `src/components/booth/BoothView.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ReaderRail.tsx`
 - `src/components/booth/ReaderText.tsx`
-- `src/components/booth/ReadingControlBar.tsx`
+- `src/components/booth/bookmarks/BookmarkRibbons.tsx`
+- `src/components/booth/page/CreditsWarning.tsx`
 - `src/components/booth/record/SetupChip.tsx`
 - `src/components/booth/resume/ResumeOffer.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
+- `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
@@ -55,12 +54,10 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/production/pipeline/PipelineTable.tsx`
 - `src/components/production/readiness/ReadinessChip.tsx`
 - `src/components/proof/CompareRun.tsx`
-- `src/components/proof/FindingDetail.tsx`
 - `src/components/proof/FlagsPanel.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ReaperControls.tsx`
 - `src/components/proof/TakeComparisonView.tsx`
-- `src/components/proof/TakeReviewReads.tsx`
 - `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/TransportBar.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
