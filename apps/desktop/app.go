@@ -1631,10 +1631,13 @@ var fieldSchemas = map[string][]fieldSchema{
 	// unreachable "done" in the other.
 	// A number field left unset reads back as "" (Store.Effective's own fallback, never "0"), which editing.PolicyFromSettings
 	// treats as "not checked" for that part, not as zero seconds.
+	// fx_cap_pct is the Effects tab's coverage cap: the share of a chapter, a whole percent from 1 to 100, effects may cover before
+	// the tab warns. It defaults to 10, and a stored value outside the range reads as the layer below (settings.wholeNumbers).
 	"Editing": {
 		{"max_gap_seconds", "Maximum gap before it's flagged (empty space)", "number", nil},
 		{"head_max_seconds", "Maximum leading silence (head)", "number", nil},
 		{"tail_max_seconds", "Maximum trailing silence (tail)", "number", nil},
+		{"fx_cap_pct", "Most of a chapter effects may cover (%)", "number", nil},
 	},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates

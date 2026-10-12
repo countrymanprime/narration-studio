@@ -18,7 +18,7 @@ import {
   takesUnstackedAnswer,
 } from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
-import type { JobEnded } from './contracts/system';
+import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
@@ -525,6 +525,26 @@ describe('Script.definition_source in the settings answer (SN-M93)', () => {
     expect(definitionSourceOf(before)).toBe('web');
     await api.saveSettings('Script', 'global', { definition_source: 'api' });
     expect(definitionSourceOf(parseWire(settingsForScopeSchema, await api.settingsForScope('global'), ctx('mock settings')))).toBe('api');
+  });
+});
+
+describe('Editing.fx_cap_pct in the settings answer (SN-E106)', () => {
+  const capField = (settings: Record<string, ScopedSettingField[]>) => settings.Editing?.find((item) => item.key === 'fx_cap_pct');
+
+  it('the golden settings offer a whole percent from 1 to 100 that reads as 10 unset and as the stored cap once saved', () => {
+    const unset = capField(parseWire(settingsForScopeSchema, readGolden('settings-fx-cap.json'), ctx('settings fx cap')));
+    expect(unset).toMatchObject({ kind: 'number', isSet: false, effectiveValue: '10', number: { min: 1, max: 100, step: 1, unit: '%' } });
+    const set = capField(parseWire(settingsForScopeSchema, readGolden('settings-fx-cap-set.json'), ctx('settings fx cap set')));
+    expect(set).toMatchObject({ isSet: true, value: '25', effectiveValue: '25', effectiveSource: 'project' });
+    expect(capField(parseWire(settingsForScopeSchema, readGolden('settings-project.json'), ctx('settings project')))?.effectiveValue).toBe('10');
+  });
+
+  it('the mock answers the field through the same schema, and a project save shows in the next read', async () => {
+    const api = createMockApi();
+    const before = parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings'));
+    expect(capField(before)).toMatchObject({ effectiveValue: '10', number: { min: 1, max: 100, step: 1 } });
+    await api.saveSettings('Editing', 'project', { fx_cap_pct: '30' });
+    expect(capField(parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings')))?.effectiveValue).toBe('30');
   });
 });
 

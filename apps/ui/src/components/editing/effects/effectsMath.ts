@@ -3,13 +3,17 @@ import type { CutSpan, Range } from '../model';
 import { fxSpan } from '../range/fx/fxCommand';
 
 /**
- * The most of a chapter effects may cover, in percent. The mock keeps it as a project setting; until a settings slice adds one it is this
- * constant, and the strip says so.
+ * The most of a chapter effects may cover, in percent, by default: the host's Editing.fx_cap_pct reads as this until the narrator sets it
+ * in the tab's cap field (useFxCap).
  */
 export const FX_CAP_PCT = 10;
 
-/** Where the cap comes from, shown beside it. */
-export const CAP_SOURCE = 'Fixed for now: a project setting is planned.';
+/** The cap's limits, the host's range for Editing.fx_cap_pct: a whole percent from 1 to 100. */
+export const FX_CAP_MIN = 1;
+export const FX_CAP_MAX = 100;
+
+/** The cap field's accessible name, as the mock gives it. */
+export const FX_CAP_LABEL = 'Most of a chapter effects may cover, in percent';
 
 export interface Span {
   start: number;

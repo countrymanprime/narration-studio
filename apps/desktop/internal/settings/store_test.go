@@ -121,3 +121,30 @@ func TestTheDefinitionSourceReadsAsWebWhenUnsetOrUnknown(t *testing.T) {
 		}
 	}
 }
+
+// Editing.fx_cap_pct reads as 10 until it is set, and a stored value that is not a whole number from 1 to 100 (a hand-edited file) reads as
+// the layer below it, so the Effects tab never judges its coverage against a cap it cannot draw.
+func TestTheFxCapReadsAsTenWhenUnsetOrOutOfRange(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	store := New(t.TempDir(), t.TempDir())
+	if value, source := store.Effective("Editing", "fx_cap_pct", ""); value != "10" || source != "repo_default" {
+		t.Fatalf("unset = %q from %q, want 10 from repo_default", value, source)
+	}
+	for _, step := range []struct{ scope, value, want, source string }{
+		{"global", "25", "25", "global"},
+		{"project", "0", "25", "global"},
+		{"project", "101", "25", "global"},
+		{"project", "12.5", "25", "global"},
+		{"global", "many", "10", "repo_default"},
+		{"project", "1", "1", "project"},
+		{"project", "100", "100", "project"},
+	} {
+		value := step.value
+		if err := store.Save("Editing", step.scope, map[string]*string{"fx_cap_pct": &value}); err != nil {
+			t.Fatal(err)
+		}
+		if got, source := store.Effective("Editing", "fx_cap_pct", ""); got != step.want || source != step.source {
+			t.Fatalf("after %s=%q: %q from %q, want %q from %q", step.scope, step.value, got, source, step.want, step.source)
+		}
+	}
+}

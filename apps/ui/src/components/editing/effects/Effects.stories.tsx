@@ -41,14 +41,20 @@ export const ListOverCap: Story = {
 };
 export const ListNarrow: Story = { render: () => list(MANY, TOTAL, 300) };
 
-const strip = (effects: typeof MANY, total = TOTAL, width = 420) =>
-  shell(<CoverageStrip effects={effects} cuts={[]} total={total} selectedId={effects[0]?.id ?? null} onSelect={fn()} />, width);
+const strip = (effects: typeof MANY, total = TOTAL, width = 420, cap = FX_CAP_PCT) =>
+  shell(<CoverageStrip effects={effects} cuts={[]} total={total} selectedId={effects[0]?.id ?? null} onSelect={fn()} cap={cap} onCapChange={fn()} />, width);
 
 export const StripNone: Story = { render: () => strip([]) };
 export const StripWithin: Story = { render: () => strip(ONE) };
 export const StripOver: Story = { render: () => strip(MANY) };
 export const StripFarOver: Story = { render: () => strip(MANY, 80) };
 export const StripNarrow: Story = { render: () => strip(MANY, TOTAL, 300) };
+// The narrator lowered the cap to 5%: one effect over 6% of the chapter is now over it (Editing.fx_cap_pct, SN-E106).
+export const StripCapLowered: Story = { render: () => strip(ONE, TOTAL, 420, 5) };
+// The cap field before the setting is read, or with no way to save it: it shows the cap and is off.
+export const StripCapReadOnly: Story = {
+  render: () => shell(<CoverageStrip effects={ONE} cuts={[]} total={TOTAL} selectedId={null} onSelect={fn()} capError="The settings could not be read." />),
+};
 
 export const OnWordsMany: Story = { render: () => shell(<OnWords effects={MANY} cuts={[]} onSelect={fn()} onRemove={fn()} />) };
 

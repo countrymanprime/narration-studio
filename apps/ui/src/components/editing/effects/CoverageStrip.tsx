@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import type { WordFx } from '../../../api/contracts/wordFx';
+import { NumberInput } from '../../primitives/NumberInput';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { clock } from '../bar/clock';
 import type { CutSpan } from '../model';
-import { CAP_SOURCE, FX_CAP_PCT, capState, coverageOf, fmtPct, liveEffects, spanOf, type CapState } from './effectsMath';
+import { FX_CAP_LABEL, FX_CAP_MAX, FX_CAP_MIN, FX_CAP_PCT, capState, coverageOf, fmtPct, liveEffects, spanOf, type CapState } from './effectsMath';
 
 const CAP_PILL: Record<CapState, [StatusTone, string]> = {
   within: ['success', 'Within the cap'],
@@ -14,23 +15,34 @@ const CAP_PILL: Record<CapState, [StatusTone, string]> = {
 
 const SHADE: Record<number, string> = { 1: 'var(--accent-soft)', 2: 'var(--accent)' };
 
-/** Where effects sit in the chapter, how much of it they cover, and the cap that figure is judged against. A click on the strip picks the effect there. */
+/**
+ * Where effects sit in the chapter, how much of it they cover, and the cap that figure is judged against, in a field beside it. A click on
+ * the strip picks the effect there. Without `onCapChange` the field shows the cap and is off.
+ */
 export function CoverageStrip({
   effects,
   cuts,
   total,
   selectedId,
   onSelect,
+  cap = FX_CAP_PCT,
+  onCapChange,
+  capError = '',
 }: {
   effects: readonly WordFx[];
   cuts: readonly CutSpan[];
   total: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** The cap in percent of the chapter (Editing.fx_cap_pct). */
+  cap?: number;
+  onCapChange?: (pct: number) => void;
+  /** Why the cap could not be read or saved, or ''. */
+  capError?: string;
 }) {
   const on = useMemo(() => liveEffects(effects).map((f) => ({ id: f.id, name: f.chainName, ...spanOf(f, cuts, total) })), [effects, cuts, total]);
   const cov = useMemo(() => coverageOf(on, total), [on, total]);
-  const [tone, state] = CAP_PILL[capState(cov.pct, FX_CAP_PCT)];
+  const [tone, state] = CAP_PILL[capState(cov.pct, cap)];
   /** The effect a click on a stretch selects: the last one to start there. */
   const topAt = (mid: number) => [...on].filter((r) => r.start <= mid && mid < r.end).sort((a, b) => b.start - a.start)[0];
   const at = (x: number): string => `${(x / total) * 100}%`;
@@ -40,10 +52,24 @@ export function CoverageStrip({
         <SectionLabel>Coverage</SectionLabel>
         <b data-cover-figure>Effects cover {fmtPct(cov.pct)} of this chapter</b>
         <StatusBadge tone={tone} label={state} />
+        <span className="flex-1" />
+        <label className="flex items-center gap-2 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+          <SectionLabel>Cap</SectionLabel>
+          <NumberInput
+            data-fxcap
+            label={FX_CAP_LABEL}
+            className="w-[76px]"
+            value={cap}
+            min={FX_CAP_MIN}
+            max={FX_CAP_MAX}
+            step={1}
+            disabled={!onCapChange}
+            onValueChange={(pct) => onCapChange?.(pct)}
+          />
+          %
+        </label>
       </div>
-      <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-        Cap {fmtPct(FX_CAP_PCT)} of a chapter. {CAP_SOURCE}
-      </p>
+      {capError ? <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--danger)]">{capError}</p> : null}
       <div
         role="group"
         aria-label={on.length ? 'Where effects sit in this chapter' : 'No effects on this chapter'}
