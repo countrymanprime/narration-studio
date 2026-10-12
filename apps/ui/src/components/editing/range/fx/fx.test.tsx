@@ -324,6 +324,21 @@ describe('the preview', () => {
   });
 });
 
+describe('the chain in the preview', () => {
+  it('the chain can be changed in the preview before applying', async () => {
+    mount();
+    await flush();
+    await choose();
+    fireEvent.change(within(dialog()).getByRole('combobox', { name: 'Effect' }), { target: { value: CHAINS[1] } });
+    expect(dialogText('data-fx-chain')).toBe(`${CHAINS[1]} · from “${SOURCE}”`);
+    expect(applied).toEqual([]);
+    await confirmAdd();
+    // The DAW is asked for the chain the preview showed, not the one the menu chose.
+    expect(applied).toEqual([{ chapterId: 'chapter-1', firstToken: 0, lastToken: 1, chainName: CHAINS[1], fadeMs: 8 }]);
+    expect(log.effects[0]).toMatchObject({ chainName: CHAINS[1] });
+  });
+});
+
 describe('applying', () => {
   it('applying-is-daw-first-recorded-and-one-undo: the DAW is asked, the accepted effect is recorded in original time, one entry; Undo takes it off', async () => {
     mount();
