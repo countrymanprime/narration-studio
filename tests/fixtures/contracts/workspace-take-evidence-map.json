@@ -1,0 +1,69 @@
+{
+  "chapterId": "ch-1",
+  "firstParagraph": 0,
+  "firstToken": 0,
+  "lastParagraph": 0,
+  "lastToken": 3,
+  "takes": [
+    {
+      "id": "take:{AAAAAAAA-0000-0000-0000-000000000001}:{11111111-0000-0000-0000-000000000001}",
+      "matched": {
+        "ok": true,
+        "value": 75
+      },
+      "measure": {
+        "breaths": {
+          "ok": true,
+          "value": 0
+        },
+        "clarity": {
+          "ok": false,
+          "reason": "Not measured"
+        },
+        "nf": {
+          "ok": true,
+          "value": -65
+        },
+        "pause": {
+          "ok": true,
+          "value": 1.2
+        },
+        "rms": {
+          "ok": true,
+          "value": -16.9
+        }
+      },
+      "via": "map"
+    },
+    {
+      "id": "take:{AAAAAAAA-0000-0000-0000-000000000001}:{22222222-0000-0000-0000-000000000002}",
+      "matched": {
+        "ok": false,
+        "reason": "This take was not aligned to the script, so its words were not matched. Run the recording check with it playing."
+      },
+      "measure": {
+        "breaths": {
+          "ok": true,
+          "value": 0
+        },
+        "clarity": {
+          "ok": false,
+          "reason": "Not measured"
+        },
+        "nf": {
+          "ok": true,
+          "value": -65
+        },
+        "pause": {
+          "ok": true,
+          "value": 1.2
+        },
+        "rms": {
+          "ok": true,
+          "value": -20.9
+        }
+      },
+      "via": "map"
+    }
+  ]
+}

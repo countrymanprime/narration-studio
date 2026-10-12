@@ -1,6 +1,6 @@
 import type { TrackItem } from '../../api/contracts/tracks';
 
-// The chapter's items, in the order the app plays them (useChapterPlayback.ts plays it): every
+// The chapter's items, in the order the app plays them (the Editing page's playback and useTrackPlayback play it): every
 // playable item, sorted by position, each one's played range honoured (SOFFS to SOFFS + length * playRate) so a trim
 // stops the app where REAPER would, instead of the whole source file from 0. The app plays raw source at its own
 // (1x, or the narrator's chosen speed) rate rather than REAPER's real-time-stretched render (the app player does not
@@ -19,7 +19,7 @@ export type PlaylistSegment = {
 };
 
 /** Builds the playlist from a track's items: filters to playable audio, sorts by position, and maps each item's
- * played range onto the app's own elapsed timeline. Shared by useChapterPlayback and useTrackPlayback so both honour
+ * played range onto the app's own elapsed timeline. Shared by the Editing page's playback and useTrackPlayback so both honour
  * the same played range. */
 export function buildPlaylist(items: TrackItem[]): PlaylistSegment[] {
   const playable = items.filter((item) => item.supported && item.sourceAvailable).sort((a, b) => a.position - b.position);

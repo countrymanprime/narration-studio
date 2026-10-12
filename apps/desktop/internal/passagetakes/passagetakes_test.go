@@ -6,6 +6,7 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/retakelanes"
 	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
@@ -272,5 +273,95 @@ func TestASavedComparisonMarksEachTakeItCovered(t *testing.T) {
 	}
 	if c := byTake[take2]; c.Compared || c.NotComparedReason != "" {
 		t.Errorf("take 2 was never in the comparison: %+v", c)
+	}
+}
+
+// mark is one stored mark of the Booth's passage map, stamped with item and take.
+func mark(run, kind, pid string, word int, sec float64, prev *passagemap.Place, item, take string) passagemap.Resolved {
+	return passagemap.Resolved{Mark: passagemap.Mark{
+		ID: run + "." + kind + pid, Run: run, ChapterID: "ch-1", PID: pid, Word: word, Sec: sec, Kind: kind, Prev: prev, ItemGUID: item, TakeGUID: take,
+	}}
+}
+
+func place(pid string, word int) *passagemap.Place { return &passagemap.Place{PID: pid, Word: word} }
+
+// boothRecorded: the Booth recorded paragraph p-1 whole as take on item A, from start to stop.
+func boothRecorded(take string) func(*Input) {
+	return func(in *Input) {
+		in.Marks = []passagemap.Resolved{
+			mark("ch-1.1", passagemap.KindStart, "p-1", 0, 0, nil, guidA, take),
+			mark("ch-1.1", passagemap.KindStop, "p-1", 3, 9, place("p-1", 3), guidA, take),
+		}
+	}
+}
+
+// unheard is the view of a chapter the alignment heard none of: Editing has only the Booth's marks to go on.
+func unheard(in *Input) {
+	for i := range in.View.Tokens {
+		in.View.Tokens[i].Item = nil
+	}
+}
+
+// TK-1 part 2: passages worked out from the marks alone. Take 1 reads p-1 whole and the first word of p-2, then the
+// narrator rolls back to the start of p-2 and take 2 reads it to the end: p-2 is covered by two takes, p-1 by one.
+func TestAPassageNobodyAlignedComesFromTheMarks(t *testing.T) {
+	rolledBack := func(in *Input) {
+		unheard(in)
+		in.Marks = []passagemap.Resolved{
+			mark("ch-1.1", passagemap.KindStart, "p-1", 0, 0, nil, guidA, take1),
+			mark("ch-1.1", passagemap.KindRoll, "p-2", 0, 12, place("p-2", 1), guidA, take2),
+			mark("ch-1.1", passagemap.KindStop, "p-2", 3, 20, place("p-2", 3), guidA, take2),
+		}
+	}
+	got := resolve(t, func(in *Input) { rolledBack(in); in.FirstToken, in.LastToken = 3, 5 })
+	if got.View.Message != "" || got.View.ItemGUID != guidA || got.View.PassageID == "" {
+		t.Fatalf("p-2 from the marks = %+v", got.View)
+	}
+	if takes := bySource(got.View.Candidates, SourceItemTake); len(takes) != 2 {
+		t.Fatalf("p-2's takes = %+v", got.View.Candidates)
+	}
+	evidence := Evidence(got, nil)
+	for _, take := range evidence.Takes[:2] {
+		if take.Via != ViaMap {
+			t.Errorf("%s is placed %q; both of item A's takes read p-2", take.ID, take.Via)
+		}
+	}
+
+	nothing := resolve(t, func(in *Input) { unheard(in); in.FirstToken, in.LastToken = 3, 5 })
+	if nothing.View.Message == "" || len(nothing.View.Candidates) != 0 {
+		t.Fatalf("with no marks an unheard passage still has no takes: %+v", nothing.View)
+	}
+	stale := resolve(t, func(in *Input) {
+		rolledBack(in)
+		for i := range in.Marks {
+			in.Marks[i].Stale = true
+		}
+		in.FirstToken, in.LastToken = 3, 5
+	})
+	if stale.View.Message == "" {
+		t.Fatalf("stale marks placed a passage: %+v", stale.View)
+	}
+}
+
+// The map wins over the alignment for a passage the Booth recorded (TK-1 part 2), and a later Booth recording of the same
+// paragraph on another item keeps the passage on its first read, so what Editing keyed by the passage id (its stack, its
+// retry mode, the take kept) still names it.
+func TestALaterBoothRecordingKeepsThePassagesFirstRead(t *testing.T) {
+	first := resolve(t, boothRecorded(take1))
+	again := resolve(t, func(in *Input) {
+		boothRecorded(take1)(in)
+		in.Marks = append(in.Marks,
+			mark("ch-1.2", passagemap.KindStart, "p-1", 0, 0, nil, guidD, take5),
+			mark("ch-1.2", passagemap.KindStop, "p-1", 3, 9, place("p-1", 3), guidD, take5))
+	})
+	if first.View.PassageID == "" || again.View.PassageID != first.View.PassageID || again.View.ItemGUID != guidA {
+		t.Fatalf("passage after a second recording = %q on %s, before %q", again.View.PassageID, again.View.ItemGUID, first.View.PassageID)
+	}
+	mapped := resolve(t, func(in *Input) {
+		in.View.Items[0] = coverage.AlignmentItem{Index: 0, ItemGUID: guidB, Live: true, TakeGUID: take3}
+		boothRecorded(take1)(in)
+	})
+	if mapped.View.ItemGUID != guidA {
+		t.Fatalf("the alignment heard p-1 on B, the Booth recorded it on A: placed on %s", mapped.View.ItemGUID)
 	}
 }

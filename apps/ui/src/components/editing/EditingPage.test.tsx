@@ -16,6 +16,7 @@ import { EditingPage, type EditingPageProps } from './EditingPage';
 import { useTakeControls } from './takes/takeControls';
 import { dawFor, EditingHost, FINDING, newJournal, pageApi } from './page/testPage';
 import { buildDoc } from './model';
+import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
 
 class FakeAudio extends EventTarget {
   src = '';
@@ -211,6 +212,44 @@ describe('EditingPage', () => {
     await script();
     expect(screen.queryByRole('button', { name: 'Timeline' })).toBeNull();
     expect(drawerButton()).toBeTruthy();
+  });
+
+  it('below 1360, S opens the drawer on Timeline and closes it again', async () => {
+    width = 1280;
+    mount();
+    await script();
+    expect(screen.queryByRole('button', { name: 'Timeline' })).toBeNull();
+    press('s');
+    expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
+    expect(
+      within(document.querySelector<HTMLElement>('#drawer')!)
+        .getByRole('tab', { name: /^Timeline/ })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
+    press('s');
+    expect(document.querySelector('#drawer')).toBeNull();
+    // On another tab, S moves to Timeline instead of closing.
+    fireEvent.click(drawerButton());
+    fireEvent.click(within(document.querySelector<HTMLElement>('#drawer')!).getByRole('tab', { name: /^Effects/ }));
+    press('s');
+    expect(
+      within(document.querySelector<HTMLElement>('#drawer')!)
+        .getByRole('tab', { name: /^Timeline/ })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
+  });
+
+  it('names the chapter in each heading style at 12 and 40 chapters', async () => {
+    for (const style of ['gutenberg', 'numbered', 'colon'] as HeadingStyle[]) {
+      for (const count of [12, 40]) {
+        for (const n of [1, count]) {
+          cleanup();
+          mount({ chapterId: `s${n}`, api: { manuscriptChapters: async () => styledChapters(style, count) } });
+          const name = `${HEADING_LABELS[style](n)} Title of ${n}`;
+          expect(await screen.findByRole('button', { name: `Chapter: ${name}. Change chapter` }), `${style} ${count}: ${name}`).toBeTruthy();
+        }
+      }
+    }
   });
 
   describe('opens-at-a-passage-from-another-page', () => {

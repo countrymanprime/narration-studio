@@ -1,3 +1,4 @@
+import type { DawProjectState } from '../../../api/contracts/daw';
 import type { TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterSpan } from '../../../types';
 
 /** Where a resume point was read from: REAPER's live project, the saved one, or the Booth's own record of where the last take stopped. */
@@ -79,4 +80,18 @@ const SOURCE_TEXT: Record<ResumeSource, string> = {
 /** The line's secondary text: where the place was read from, and that an estimate is not sure. */
 export function sourceText(offer: Pick<ResumeOffer, 'source' | 'confident'>): string {
   return offer.confident ? SOURCE_TEXT[offer.source] : `${SOURCE_TEXT[offer.source]} · an estimate, not sure`;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * What "as of last save" means now (the Studio Next mock's `saveNote`): when the project was saved, and whether the DAW has changes
+ * since that a place read from the saved project does not include. `savedAt` is the host's local time to the minute
+ * (`2026-09-26T08:40`). Empty when the DAW keeps no saved project or the host has not answered.
+ */
+export function saveNote(state: Pick<DawProjectState, 'savedAt' | 'unsavedChanges'> | null | undefined, daw: string): string {
+  const match = state?.savedAt ? /^\d{4}-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(state.savedAt) : null;
+  if (!state || !match) return '';
+  const when = `${MONTHS[Number(match[1]) - 1] ?? match[1]} ${Number(match[2])}${match[3] ? `, ${match[3]}` : ''}`;
+  return `Project saved ${when}${state.unsavedChanges ? `. Changes in ${daw} since then are not included` : ''}`;
 }
