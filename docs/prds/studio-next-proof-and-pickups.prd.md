@@ -142,7 +142,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 5 | Gap taxonomy | Sidecar and host fields; nullable confidence | pending | 4 | 1 | 1.2 | - |
 | 6 | Check card and engines | Card states, accept/ignore, host engine list | in review (feat/sn-q65-check-dialog: the Check recordings dialog) | - | 5, SNS-4 | 1.0 | - |
 | 7 | Takes at a spot | Lanes in the Inspector | pending | - | 2 | 0.6 | - |
-| 8 | Pickups | Source list, done write-through, to chapter, auto-mark recorded, points to Booth | in progress | - | SND-4, 5 | 1.0 | - |
+| 8 | Pickups | Source list, done write-through, to chapter, auto-mark recorded, points to Booth | in progress (SN-Q81 host list merged; SN-Q82 list components in review: claude/sn-q82-pickups-list) | - | SND-4, 5 | 1.0 | - |
 | 9 | Swap and close-out | Route swap, delete the old Proof and Pickups pages (Punch included), rows, guides, carried-over owner checks | pending | - | 2 to 8, SNO-8 | 0.5 | - |
 
 ### Phase Details
