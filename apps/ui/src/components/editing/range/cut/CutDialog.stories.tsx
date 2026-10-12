@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { Dialog } from '../../../primitives/Dialog';
 import { screen } from '../../../primitives/portalScreen';
 import { marksDoc } from '../../script/scriptFixtures';
@@ -46,6 +46,18 @@ export const Delete: Story = {
     await waitFor(() => expect(within(dialog).getByText(/moved 1\.2 ms to a zero crossing/)).toBeTruthy());
     await expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cancel' }));
     await expect(within(dialog).getByText(/one undo step in REAPER/)).toBeTruthy();
+  },
+};
+
+// A pad and room tone chosen: the audio kept at each edge shortens the range, and the gap keeps its length.
+export const PadAndRoomTone: Story = {
+  render: () => <Question plan={{ kind: 'daw', dawName: 'REAPER' }} />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Delete 2 words and their audio?' });
+    await waitFor(() => expect(within(dialog).getByText(/moved 1\.2 ms to a zero crossing/)).toBeTruthy());
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Keep audio at each edge of the cut' }), '100');
+    await userEvent.click(within(dialog).getByRole('radio', { name: /of room tone/ }));
+    await waitFor(() => expect(within(dialog).getByText(/does not move; room tone fills/)).toBeTruthy());
   },
 };
 

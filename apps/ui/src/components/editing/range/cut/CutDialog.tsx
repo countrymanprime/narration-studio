@@ -14,9 +14,6 @@ import { DEFAULT_CUT, FADE_CHOICES, PAD_CHOICES, type CutOptions } from './cutCo
 
 type Acting = Exclude<RangePlan, { kind: 'refused' }>;
 
-/** The DAW is sent the words, not times, so it cuts at their edges: the pad cannot reach it in this version and stays at None. */
-export const PAD_NOT_SENT = 'The DAW cuts at the edges of the words in this version.';
-
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const sec = (n: number): string => `${n.toFixed(1)} s`;
 
@@ -60,17 +57,20 @@ export interface CutDialogProps {
 export function CutDialog({ doc, keys, cuts, mute, plan, chapterName, locator, snap, onCancel, onConfirm }: CutDialogProps) {
   const [mode, setMode] = useState<CutOptions['mode']>(mute ? 'gap' : DEFAULT_CUT.mode);
   const [fade, setFade] = useState<number>(DEFAULT_CUT.fadeMs);
-  const [snapped, setSnapped] = useState<Map<number, SnappedEnd> | null>(null);
-  const asked = useMemo(() => summarize(doc, [...keys], cuts, (t) => t), [doc, keys, cuts]);
+  const [pad, setPad] = useState<number>(0);
+  const [snappedFor, setSnapped] = useState<{ asked: SelSummary; ends: Map<number, SnappedEnd> } | null>(null);
+  const asked = useMemo(() => summarize(doc, [...keys], cuts, (t) => t, pad), [doc, keys, cuts, pad]);
+  // Ends snapped for an earlier pad do not count: Delete waits for the new ones.
+  const snapped = snappedFor?.asked === asked ? snappedFor.ends : null;
   useEffect(() => {
     let live = true;
     const ends = [...new Set(asked.ranges.flatMap((r) => [r.start, r.end]))];
-    void Promise.all(ends.map(async (t) => [t, await snap(t)] as const)).then((pairs) => live && setSnapped(new Map(pairs)));
+    void Promise.all(ends.map(async (t) => [t, await snap(t)] as const)).then((pairs) => live && setSnapped({ asked, ends: new Map(pairs) }));
     return () => {
       live = false;
     };
   }, [asked, snap]);
-  const sum = useMemo(() => (snapped ? summarize(doc, [...keys], cuts, (t) => snapped.get(t)?.time ?? t) : asked), [doc, keys, cuts, snapped, asked]);
+  const sum = useMemo(() => (snapped ? summarize(doc, [...keys], cuts, (t) => snapped.get(t)?.time ?? t, pad) : asked), [doc, keys, cuts, snapped, asked, pad]);
   const r = sum.ranges[0];
   const first = asked.ranges[0];
   const ends = snapped && first ? snapText(snapped.get(first.start) ?? { time: 0, moved: 0 }, snapped.get(first.end) ?? { time: 0, moved: 0 }) : '';
@@ -142,14 +142,7 @@ export function CutDialog({ doc, keys, cuts, mute, plan, chapterName, locator, s
           <SectionLabel>Crossfade</SectionLabel>
           <Select label="Crossfade at the join" value={String(fade)} onChange={(v) => setFade(Number(v))} options={FADE_CHOICES.map(option)} />
           <SectionLabel>Keep audio at each edge</SectionLabel>
-          <Select
-            label="Keep audio at each edge of the cut"
-            value="0"
-            onChange={() => {}}
-            options={PAD_CHOICES.map(option)}
-            disabled
-            aria-description={PAD_NOT_SENT}
-          />
+          <Select label="Keep audio at each edge of the cut" value={String(pad)} onChange={(v) => setPad(Number(v))} options={PAD_CHOICES.map(option)} />
         </div>
         <Checkbox checked disabled onChange={() => {}}>
           {KEEP[plan.kind]}
@@ -163,7 +156,12 @@ export function CutDialog({ doc, keys, cuts, mute, plan, chapterName, locator, s
         <Button type="button" variant="secondary" autoFocus onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="button" variant="primary" disabled={!snapped || !r} onClick={() => onConfirm(sum, { mode: mute ? 'gap' : mode, fadeMs: fade })}>
+        <Button
+          type="button"
+          variant="primary"
+          disabled={!snapped || !r}
+          onClick={() => onConfirm(sum, { mode: mute ? 'gap' : mode, fadeMs: fade, padMs: pad })}
+        >
           {mute ? `Mute ${plural(n, 'word', 'words')}` : `Delete ${plural(n, 'word', 'words')} and audio`}
         </Button>
       </div>
