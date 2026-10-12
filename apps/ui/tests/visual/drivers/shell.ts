@@ -10,7 +10,7 @@ export const shellDrivers: Record<string, Driver> = {
     // differentiator this state is just a copy of whatever page it landed on - and Script's reader carries its own
     // pre-existing nested-interactive debt (#155, catalogued as flake 3 on #509) this row has no reason to inherit.
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().waitFor();
+    await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').first().waitFor();
     // Focus Back for its ring and tooltip: a bare Shift press, with no Tab and no destination, flips Chromium's
     // input-modality heuristic to keyboard without moving focus anywhere, so the following script .focus() still
     // matches :focus-visible (button:focus-visible, components.css) instead of landing as a plain, invisible focus.

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { CommandRouter } from '../../input/router';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
@@ -81,17 +82,16 @@ function renderGuide() {
     <MemoryRouter>
       <ApiProvider api={api}>
         <StudioProvider>
-          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          <CommandRouter>
+            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          </CommandRouter>
         </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
   return { api, ...spies };
 }
-const entryRows = () =>
-  within(screen.getByRole('table', { name: 'Story Bible entries' }))
-    .getAllByRole('row')
-    .slice(1);
+const entryRows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
 const rowNames = () => entryRows().map((row) => row.querySelector('.truncate')?.textContent);
 const addEntity = async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Add entity' }));
@@ -153,7 +153,9 @@ describe('deleting an entry', () => {
       <MemoryRouter>
         <ApiProvider api={api}>
           <StudioProvider>
-            <Guide notify={notify} goToManuscript={vi.fn()} />
+            <CommandRouter>
+              <Guide notify={notify} goToManuscript={vi.fn()} />
+            </CommandRouter>
           </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
@@ -224,7 +226,9 @@ describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
       <MemoryRouter>
         <ApiProvider api={api}>
           <StudioProvider>
-            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            <CommandRouter>
+              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            </CommandRouter>
           </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
@@ -242,9 +246,8 @@ describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () =
     expect(alice.textContent).toMatch(/Character · 0 names/);
     const rabbit = entryRows().find((row) => row.textContent?.includes('White Rabbit'))!;
     expect(rabbit.textContent).toMatch(/1 name/);
-    const list = within(screen.getByRole('table', { name: 'Story Bible entries' }));
-    expect(list.queryByRole('columnheader', { name: /Occurrences|Mentions|Lines/ })).toBeNull();
-    expect(list.getByRole('columnheader', { name: 'Chapters' })).toBeTruthy();
+    expect(alice.textContent).toMatch(/· \d+ chapters?$/);
+    expect(alice.textContent).not.toMatch(/Occurrences|Mentions|Lines/);
   });
 });
 
@@ -260,7 +263,9 @@ describe('needs-review-chip-and-row-pill', () => {
       <MemoryRouter>
         <ApiProvider api={api}>
           <StudioProvider>
-            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            <CommandRouter>
+              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            </CommandRouter>
           </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
@@ -298,7 +303,7 @@ describe('needs-review-chip-and-row-pill', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
     const stays = await screen.findByRole('button', { name: 'Needs review · 0' });
     expect(stays.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByText('No matching entries.')).toBeTruthy();
+    expect(screen.getByText('No entries match.')).toBeTruthy();
     fireEvent.click(stays);
     await waitFor(() => expect(chip()).toBeNull());
   });
@@ -322,7 +327,9 @@ describe('needs-review-chip-and-row-pill', () => {
       <MemoryRouter>
         <ApiProvider api={api}>
           <StudioProvider>
-            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            <CommandRouter>
+              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+            </CommandRouter>
           </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
@@ -399,16 +406,18 @@ describe('needs-review-chip-and-row-pill', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
     expect(rowNames()).toEqual(['Alice']);
-    expect(within(screen.getByRole('table', { name: 'Story Bible entries' })).getByText('Review')).toBeTruthy();
+    expect(within(screen.getByRole('list', { name: 'Story Bible entries' })).getByText('Review')).toBeTruthy();
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
+  // The title is cited by docs/research/studio-next-parity-script-and-bible.md (scripts/ci/studio-next-parity.mjs checks it); the category tabs
+  // are now kind chips, so the test checks that an entry in the Needs Review category lists under All and under no kind chip.
   it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
     await renderBible(flagHatter);
-    const tab = screen.getByRole('tab', { name: /^Needs Review · \d+$/ });
-    fireEvent.click(tab);
-    const names = rowNames();
-    expect(names).toEqual(['March Hare']);
+    expect(screen.queryByRole('button', { name: /^Needs Review$/ })).toBeNull();
+    expect(rowNames()).toContain('March Hare');
+    fireEvent.click(within(screen.getByRole('group', { name: 'Kind' })).getByRole('button', { name: 'Character' }));
+    expect(rowNames()).not.toContain('March Hare');
     expect(screen.getByRole('button', { name: /^Needs review · \d+$/ })).toBeTruthy();
   });
 });

@@ -47,11 +47,12 @@ export const storybibleStates: StateEntry[] = [
     description:
       "Story Bible, the Needs review chip on: the entries the host flagged or that have a suggestion to verify with their Verify or Review pill, and the selected entry with its own and its name's flags and Mark reviewed off until its two suggestions are decided",
   },
-  { page: 'storybible', state: 'category-all', description: 'Story Bible, All category tab' },
-  { page: 'storybible', state: 'category-character', description: 'Story Bible, Character category tab' },
-  { page: 'storybible', state: 'category-place', description: 'Story Bible, Place/Location category tab' },
-  { page: 'storybible', state: 'category-organization', description: 'Story Bible, Organization category tab' },
-  { page: 'storybible', state: 'category-needs-review', description: 'Story Bible, Needs Review category tab', ...KEEPS_DESKTOP_SCROLL },
+  { page: 'storybible', state: 'category-all', description: 'Story Bible, the kind chip All on: every entry as a two-line row with its type colour' },
+  { page: 'storybible', state: 'category-character', description: 'Story Bible, the Character kind chip on' },
+  { page: 'storybible', state: 'category-place', description: 'Story Bible, the Place kind chip on' },
+  { page: 'storybible', state: 'category-organization', description: 'Story Bible, the Organization kind chip on' },
+  { page: 'storybible', state: 'search-narrowed', description: 'Story Bible, a search for "hatter" narrowing the list by name and by alias' },
+  { page: 'storybible', state: 'no-manuscript', description: 'Story Bible, a project with no manuscript: the page asks for one (?mockNoManuscript=1)' },
   {
     page: 'storybible',
     state: 'entity-selected',

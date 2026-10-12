@@ -30,7 +30,7 @@ export const globalDrivers: Record<string, Driver> = {
   },
   'confirm-dialog': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.locator('tr[data-row]').first().click();
+    await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').first().click();
     const unlock = page.getByRole('button', { name: 'Unlock entry' });
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');

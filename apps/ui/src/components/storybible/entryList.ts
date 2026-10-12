@@ -3,8 +3,9 @@
 // storage can be missing or blocked, so every access is guarded and the list sorts by name when it fails.
 
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
-import type { GuideEntity, GuideReview } from '../../types';
-import { STORY_BIBLE_TABS } from '../../state';
+import type { GuideEntity, GuideReview, GuideType } from '../../types';
+import type { SwatchColour } from '../primitives/Swatch';
+import { typeColour } from '../../storyBibleTypes';
 import { verifyOf } from './suggested/row/selectors';
 
 export type EntrySortKey = 'name' | 'type' | 'chapters';
@@ -57,18 +58,38 @@ export function reviewPill(entry: GuideEntity, suggestions: readonly ExtractionS
   return entryFlagged(entry) ? 'Review' : undefined;
 }
 
-// Category tabs after "All" and before "Needs Review" give the order of types; an unknown category sorts last.
-const TYPE_ORDER = STORY_BIBLE_TABS.filter((tab) => tab !== 'All' && tab !== 'Needs Review');
-const typeIndex = (entry: GuideEntity): number => {
-  const label = entry.category === 'Place' ? 'Location' : entry.category;
-  const index = TYPE_ORDER.indexOf(label);
-  return index === -1 ? TYPE_ORDER.length : index;
-};
+/** The swatch each type colour is drawn with: the kind hue it names in styles.css. */
+const SWATCH_OF_COLOUR = {
+  green: 'character',
+  blue: 'place',
+  violet: 'org',
+  amber: 'lore',
+  teal: 'item',
+  rose: 'event',
+  review: 'review',
+  faint: 'non-text',
+} as const satisfies Record<ReturnType<typeof typeColour>, SwatchColour>;
+
+/** The swatch of a category's type colour, so a row and a chip follow what the narrator set in Settings (`typeColour`). */
+export const kindSwatch = (types: readonly GuideType[], category: string): SwatchColour => SWATCH_OF_COLOUR[typeColour(types, category)];
+
+/** Whether the entry's name or one of its other names contains the query, ignoring case; an empty query matches every entry. */
+export function matchesQuery(entry: GuideEntity, query: string): boolean {
+  const wanted = query.trim().toLowerCase();
+  return wanted === '' || [entry.canonical_name, ...entry.aliases.map((alias) => alias.text)].some((name) => name.toLowerCase().includes(wanted));
+}
+
+/** The types a fresh Story Bible starts with, in their order: what the type sort uses until the host's list is read. */
+const DEFAULT_KINDS: readonly string[] = ['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event'];
 const byName = (a: GuideEntity, b: GuideEntity): number =>
   a.canonical_name.toLowerCase().localeCompare(b.canonical_name.toLowerCase()) || a.canonical_name.localeCompare(b.canonical_name) || a.id.localeCompare(b.id);
 
-/** A sorted copy: name A to Z, type in tab order, chapters most first; the name breaks every tie, then the id, so the order is total. */
-export function sortEntries(entries: readonly GuideEntity[], key: EntrySortKey): GuideEntity[] {
+/** A sorted copy: name A to Z, type in the order of `kinds` (an unknown one last), chapters most first; the name breaks every tie, then the id, so the order is total. */
+export function sortEntries(entries: readonly GuideEntity[], key: EntrySortKey, kinds: readonly string[] = DEFAULT_KINDS): GuideEntity[] {
+  const typeIndex = (entry: GuideEntity): number => {
+    const index = kinds.indexOf(entry.category);
+    return index === -1 ? kinds.length : index;
+  };
   const compare =
     key === 'type'
       ? (a: GuideEntity, b: GuideEntity) => typeIndex(a) - typeIndex(b) || byName(a, b)

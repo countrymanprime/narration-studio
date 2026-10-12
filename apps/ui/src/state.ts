@@ -27,7 +27,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   Draft: 'Choose category',
 };
 export const CREATABLE_CATEGORIES = ['Character', 'Location', 'Organization', 'Lore', 'Item', 'Event'];
-export const STORY_BIBLE_TABS = ['All', 'Character', 'Location', 'Organization', 'Lore', 'Item', 'Event', 'Needs Review'];
 export const categoryLabel = (category: string): string => CATEGORY_LABELS[category] ?? category;
 export const categoryValue = (label: string): string => (label === 'Location' ? 'Place' : label);
 export const categoryCssName = (category: string): string => (category === 'Needs Review' ? 'Review' : category);
