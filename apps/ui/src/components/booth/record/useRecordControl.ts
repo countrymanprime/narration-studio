@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DawCapabilities } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawProjectState } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import { recordCheck, type ChapterRecordState } from './recordCheck';
@@ -11,6 +11,8 @@ function tracksOf(status: ReadAloudReaperStatus, reason?: ReadAloudReaperReason)
 
 export type RecordControlState = {
   capabilities: DawCapabilities | null;
+  /** The DAW project as last saved and whether it has unsaved changes; null until the DAW port answers. */
+  project: DawProjectState | null;
   recording: boolean;
   /** False when the DAW was already recording and this app did not start the take; the leave guard reads it (ADR 0232). */
   startedByApp: boolean;
@@ -25,12 +27,14 @@ export type RecordControlState = {
  * The Booth's Record control over the DAW port: the capabilities and the host's read of the chapter's track give `recordCheck`, a press
  * calls `recordStart(chapterId)` or `recordStop()` once, and a refused call shows the host's sentence and changes nothing.
  * Nothing is armed first, the host arms and starts in one call, and nothing stops a take when the Booth unmounts: the leave
- * guard (`useBoothLeaveGuard`) owns that question.
+ * guard (`useBoothLeaveGuard`) owns that question. The project's saved state is read when the Booth opens and again after each take
+ * starts or stops, the moments its unsaved changes are likely to change.
  */
 export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string) => void }): RecordControlState {
   const daw = usePort('daw');
   const teleprompter = usePort('teleprompter');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
+  const [project, setProject] = useState<DawProjectState | null>(null);
   const [match, setMatch] = useState<{ chapterId: string; tracks: ChapterRecordState['tracks']; message: string } | null>(null);
   const [recording, setRecording] = useState(false);
   const [refused, setRefused] = useState<{ chapterId: string; sentence: string } | null>(null);
@@ -47,6 +51,17 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
       current = false;
     };
   }, [daw]);
+
+  useEffect(() => {
+    let current = true;
+    daw
+      .projectState()
+      .then((state) => current && setProject(state))
+      .catch(() => current && setProject(null));
+    return () => {
+      current = false;
+    };
+  }, [daw, recording]);
 
   useEffect(() => {
     if (!readsTracks) return;
@@ -91,5 +106,5 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     }
   }, [daw, chapterId, notify]);
 
-  return { capabilities, recording, startedByApp: true, reason, disabled: !recording && !!check, toggle };
+  return { capabilities, project, recording, startedByApp: true, reason, disabled: !recording && !!check, toggle };
 }

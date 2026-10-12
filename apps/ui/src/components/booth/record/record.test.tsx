@@ -146,11 +146,29 @@ describe('SetupChip', () => {
     expect(screen.getByRole('group').textContent).toBe('Recorder');
   });
 
-  // Blocked on SN-D41's DawProjectState read (#1163), not on main yet: the chip must not invent the read.
-  it.todo("unsaved-changes-chip-text: the chip says so in the host's words once DawProjectState lands (#1163)");
+  it('unsaved-changes-chip-text', async () => {
+    const saved = { savedAt: '2026-09-26T08:40', unsavedChanges: false, playState: 'stopped' as const, playPosition: 0 };
+    const { rerender } = render(<SetupChip capabilities={setupCapabilities('reaper')} standaloneName="Recorder" project={saved} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER');
+    rerender(<SetupChip capabilities={setupCapabilities('reaper')} standaloneName="Recorder" project={{ ...saved, unsavedChanges: true }} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, unsaved changes in the project');
+    await userEvent.hover(screen.getByRole('group'));
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Recording settings · REAPER linked · unsaved changes in the project');
+  });
 });
 
 describe('useRecordControl', () => {
+  it('reads-the-daw-project-state-and-again-after-a-take', async () => {
+    const client = dawClientFor('reaper');
+    const read = vi.spyOn(client, 'projectState');
+    const { result } = renderHook(() => useRecordControl({ chapterId: 'c1', notify: vi.fn() }), { wrapper: wrapper(client) });
+    await waitFor(() => expect(result.current.project?.savedAt).toBe('2026-09-26T08:40'));
+    const before = read.mock.calls.length;
+    await act(() => result.current.toggle());
+    await act(() => result.current.toggle());
+    await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before));
+  });
+
   it('no-silent-stop-hook: exposes recording and startedByApp and does not stop on unmount', async () => {
     const client = dawClientFor('reaper');
     const stop = vi.spyOn(client, 'recordStop');

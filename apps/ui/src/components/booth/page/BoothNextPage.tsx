@@ -30,6 +30,8 @@ import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { SetupChip } from '../record/SetupChip';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
+import { saveNote } from '../resume/resumeOffer';
+import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord, markNote } from '../side/decorations';
 import { comingUpWords, voicesNearby } from '../side/nearby';
@@ -230,7 +232,14 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     onJump: jumpToLine,
     initialAt: pickAt,
   });
-  parts.current.takeStopped = (take) => pickups.takeStopped(take);
+  // A take that read over a suspected line puts it on the shared pickup list; the pickup session's toast, when it had one, said it was saved.
+  const suspected = useSuspectedPickups({ chapterId: recordId, flags: page.flags });
+  parts.current.takeStopped = async (take) => {
+    const marked = await pickups.takeStopped(take);
+    const read = units.slice(Math.min(take.began, take.stopped), Math.max(take.began, take.stopped) + 1);
+    const added = await suspected.takeStopped({ paragraphIds: new Set(read.map((unit) => unit.paragraphId)), quiet: take.quiet, saidSaved: marked > 0 });
+    return marked + added;
+  };
   // The reading starts on the session's line when it is in this chapter: opened from Pickups, or after a jump to another chapter.
   const startLine = pickups.lines.find((line) => line.id === pickups.at);
   const placed = useRef(false);
@@ -362,7 +371,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                 source.kind === 'credits' ? (
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
-                  <ResumeOfferLine state={page.resume} onChoose={page.chooseResume} />
+                  <ResumeOfferLine state={page.resume} saved={saveNote(control.project, page.dawName)} onChoose={page.chooseResume} />
                 )
               }
               setup={
@@ -370,6 +379,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                   <SetupChip
                     capabilities={capabilities}
                     standaloneName={dawShortName('none')}
+                    project={control.project}
                     onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
