@@ -3,7 +3,7 @@ import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
 
 // The shape of one entry of the DAW port's `DawCapabilities` payload, copied locally so this primitive imports
-// nothing from src/api (ADR 0360): only phase 12's `useCapability` knows the wire, and this gate takes whatever
+// nothing from src/api (ADR 0360): only the `useCapability` hook knows the wire, and this gate takes whatever
 // plain entry a caller hands it.
 type CapabilityLevel = 'unsupported' | 'not_yet_available' | 'experimental' | 'supported';
 
@@ -30,7 +30,7 @@ const swallow = (event: MouseEvent) => event.preventDefault();
 
 export function CapabilityGate({
   capability,
-  // Q3's opt-out: a caller may hide an `unsupported` control instead of showing it disabled with the host's message.
+  // A caller may hide an `unsupported` control instead of showing it disabled with the host's message.
   // A `not_yet_available` or an unavailable `experimental`/`supported` control is never hidden by this flag - the
   // narrator still learns the control exists and why it is off.
   hideWhenUnsupported = false,
