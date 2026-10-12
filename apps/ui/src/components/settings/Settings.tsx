@@ -16,6 +16,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemePreference } from '../../theme/theme';
 import { AboutPanel } from './AboutPanel';
+import { AnalysisToolsSection } from './analysis/AnalysisToolsSection';
 import { CreditsPanel } from './CreditsPanel';
 import { CapabilitySection } from './CapabilitySection';
 import { DawCatalogPanel } from './DawCatalogPanel';
@@ -31,6 +32,7 @@ import type { Notify } from '../primitives/Toast';
 
 // The one hand-written line per section: later sections register from their own files (SNM-2, SNM-3) and are rendered below.
 registerSettingsSection('Daw', 'capabilities', CapabilitySection, 10);
+registerSettingsSection('ManuscriptGuide', 'analysis-tools', AnalysisToolsSection, 20);
 type SettingsCategory = { key: string; label: string; tool?: string; scopes: Scope[]; filter?: (field: ScopedSettingField) => boolean };
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { key: 'General', label: 'General', tool: 'General', scopes: ['global'] },
@@ -513,6 +515,8 @@ export function Settings({
                       />
                     ))}
                   </div>
+                  {/* A registered section is this computer's, not a project's (the analysis tools), so it is drawn in Global only. */}
+                  {scope === 'global' && settingsSectionsFor(category).map(({ id, component: Section }) => <Section key={id} />)}
                   <div className="mt-5 flex items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
                     <span className="text-xs" style={{ color: 'var(--warn-text)' }}>
                       {dirty && 'Unsaved changes'}

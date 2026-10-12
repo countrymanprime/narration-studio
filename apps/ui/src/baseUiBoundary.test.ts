@@ -63,7 +63,11 @@ describe('the Base UI import boundary (ADR 0047)', () => {
     const offenders = files
       .map((file) => relative(uiRoot, file))
       .filter((file) => !file.startsWith(primitivesDir + sep))
-      .filter((file) => baseUiSpecifiers(readFileSync(join(uiRoot, file), 'utf8'), file).length > 0);
+      .filter((file) => {
+        const source = readFileSync(join(uiRoot, file), 'utf8');
+        // Every form the scan finds names the package as a literal, so a file without it needs no parse (the parse of ~2000 files is slow under load).
+        return source.includes('base-ui') && baseUiSpecifiers(source, file).length > 0;
+      });
     expect(offenders, 'Base UI is used only inside src/components/primitives/ (ADR 0047): import the primitive instead, or add one').toEqual([]);
   });
 

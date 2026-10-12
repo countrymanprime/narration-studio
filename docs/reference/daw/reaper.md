@@ -1,6 +1,6 @@
 # REAPER: what the app relies on
 
-Engine facts the REAPER adapter depends on, as of 2026-10-10. The last version a scripted run was made on is REAPER 7.80 ([spike S6](../../research/reaper-spike-s6-daw-reachability.md)). Each fact names where it was found. A fact with no run behind it says so.
+Engine facts the REAPER adapter depends on, as of 2026-10-12. The last version a scripted run was made on is REAPER 7.80 ([spike S6](../../research/reaper-spike-s6-daw-reachability.md)). Each fact names where it was found. A fact with no run behind it says so.
 
 ## How the app reaches REAPER
 
@@ -20,6 +20,25 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([ADR 00
 | Render settings keys, the predicted render targets, and what a render needs to run | [Spike S5](../../research/reaper-spike-s5-render-details.md) |
 | Which launch paths reach a running REAPER, and the heartbeat mechanism | [Spike S6](../../research/reaper-spike-s6-daw-reachability.md) |
 | Fixed-lane semantics: which lane plays, and the exclusive, with-others and silent modes | [Spike S7](../../research/reaper-spike-s7-fixed-lanes.md) |
+
+## What REAPER was seen to do
+
+Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated resource directory; another version may differ. The source note holds the method and the fixture. The harness's fake must agree with these rows: `integrations/reaper/tests/fake_fidelity_test.lua` pins them, and a run that shows the fake is wrong corrects that test first.
+
+| Area | What REAPER does | Source |
+| --- | --- | --- |
+| Item identity | `GetSetMediaItemInfo_String(item, 'GUID', '', false)` returns the item's GUID, upper case in braces. In a saved `.rpp` the item's own GUID is `IGUID`; each take has a `GUID`. | [S0](../../research/reaper-spike-s0-item-extension-data.md) |
+| Stale pointers | Undo and redo replace REAPER's item objects, so an item is looked up by GUID again afterwards. A `MediaItem` held across an undo is stale, and an item found by position or time may be a different one. | S0 |
+| `P_EXT` | A missing key reads `false, ''`. A set returns `true, value`. It is stored in the `.rpp` (`<EXTI` on an item, `<EXT` on a take, key without the `P_EXT:` prefix) and survives save and reload. Split: both halves keep it (the right half gets a new GUID). Duplicate and a state-chunk copy keep it. Undo removes a stamp exactly and redo restores it. | S0 |
+| Not exercised | REAPER's clipboard actions (copy and paste items) do nothing when driven headless, so a real paste is a manual check, pending with the owner. | S0 |
+| Undo | A change wrapped in `Undo_BeginBlock2(0)` / `Undo_EndBlock2(0, label, -1)` is one undo step. A read makes none. A command that finds nothing to change opens no block. | [S7](../../research/reaper-spike-s7-fixed-lanes.md), [planned commands](../../research/reaper-api-for-planned-commands.md) |
+| Markers and regions | Numbered separately. `EnumProjectMarkers3` is enumerated by time and returns index plus one as its first value. A region is two `MARKER` lines in the file. | S0, `fake_fidelity_test.lua` |
+| Fixed lanes | `I_FREEMODE=2` turns lanes on, but the API alone leaves the track half set up; a new item lands in lane 0; `I_FIXEDLANE=N` grows the track to N+1 lanes and it never shrinks. `C_LANEPLAYS:N` is 0 silent, 1 plays exclusively, 2 plays with others. `I_FREEMODE=0` puts every retake in one lane and plays them all at once. | S7 |
+| Lanes and line ids | Converting takes to lanes and adding comp areas copy the item's `P_EXT` onto new items, so a line id no longer names one item on a lane track. The app never sets `I_FREEMODE` or converts takes and lanes ([ADR 0147](../../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md)). | S7 |
+| Render | `$region` in `RENDER_PATTERN` with "all regions" bounds names one file per region, and `RENDER_TARGETS` read before rendering predicts the same paths. `Render_Execute` and `Render_EnumerateOutputMode` do not exist (`APIExists` is false). The `RENDER_STATS` getter is not safe to poke with an arbitrary action ID. Fifteen cited action IDs resolved (1013, 1016, 40044, 42230, 42437 and others; the table is in S5). | [S5](../../research/reaper-spike-s5-render-details.md) |
+| Transport | `GetPlayState()` is a bit field: 1 playing, 2 paused, 4 recording, read with arithmetic (`math.floor(state / 4) % 2`) since the Lua subset has no bit operators. `GetPlayPosition()` moves while recording and answers 0 just after Stop. A `defer` loop ticks about 30 times a second. Desk research, not a REAPER run. | [transport timing](../../research/reaper-transport-timing.md) |
+| Active project | `EnumProjects(-1, '')` returns the active tab's `.rpp`, and the exact empty string for an unsaved project. | [S6](../../research/reaper-spike-s6-daw-reachability.md) |
+| Startup | `reaper.exe -cfgfile <cfg> "<project.rpp>" "<script.lua>"` runs the script at startup with the project already open. | S6 |
 
 ## Documentation and research, not run in REAPER
 
@@ -42,7 +61,7 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([ADR 00
 ## Version rules
 
 - **Lua 5.4 subset.** No `goto`, no integer division, no bit operators: the code must run in REAPER 7's Lua and in the harness ([reaper-command-add](../../../.claude/skills/reaper-command-add/SKILL.md)).
-- **An older REAPER may lack a function.** The fake can remove a function (`remove_api`) to model it; a command that needs a newer call must check that the function exists.
+- **An older REAPER may lack a function.** The narrator imports the Lua, so it can run on an older REAPER than the app expects. A command that needs a call newer than REAPER 6 checks `reaper.APIExists('Name')` first and answers with an error event rather than a nil call; the fake can remove a function (`remove_api`) to model it.
 - **Versions tested.** Only REAPER 7.x has been run. Whether the bridge works on another major version has not been checked.
 
 ## Checking a capability in REAPER

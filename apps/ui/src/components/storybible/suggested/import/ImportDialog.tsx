@@ -61,7 +61,7 @@ function Preview({ plan }: { plan: ExtractionImportPlan }) {
         <StatusBadge tone={counts.errors ? 'danger' : 'neutral'} label={`${counts.errors} ${counts.errors === 1 ? 'error' : 'errors'}`} />
       </div>
       {plan.lines.length > 0 && (
-        <div className="max-h-64 overflow-auto">
+        <div className="max-h-64 overflow-auto" role="region" aria-label="What will be added" tabIndex={0}>
           <Table label="What will be added">
             <TableHead sticky>
               <TableRow>
@@ -90,7 +90,7 @@ function Preview({ plan }: { plan: ExtractionImportPlan }) {
         </div>
       )}
       {plan.errors.length > 0 && (
-        <div className="max-h-64 overflow-auto">
+        <div className="max-h-64 overflow-auto" role="region" aria-label="Rows with errors" tabIndex={0}>
           <Table label="Rows with errors">
             <TableHead sticky>
               <TableRow>
