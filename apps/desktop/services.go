@@ -93,6 +93,15 @@ type hostServices struct {
 // hostguard_test.go fails `go test` on any other read of these fields, so a new
 // binding cannot regress this by accident. h.recents and h.sidecars are set once
 // in NewHost and never reassigned, so they are read directly.
+//
+// Adding a binding:
+//  1. Start the body with `svc := h.services()` (or `service := h.services().guide`
+//     when one service is enough) and use it, and svc.config, only.
+//  2. Add a row to stressReaders in hostrace_test.go if it reads a service.
+//  3. Never call a service while holding h.mu; never re-read a field in a goroutine.
+//  4. Run `go -C apps/desktop test ./...`. A direct h.guide read fails
+//     TestHostReadsSwappableServicesOnlyThroughTheAccessor with the file, line and
+//     function.
 func (h *Host) services() hostServices {
 	h.mu.RLock()
 	defer h.mu.RUnlock()

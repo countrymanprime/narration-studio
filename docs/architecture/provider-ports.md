@@ -70,17 +70,11 @@ Every registered row passes its port's suite, and each registry's own test runs 
 - **Python:** `libs/python/tests/test_provider_guard.py` reads the provider names from the adapters' own `descriptor = …Descriptor(…)` declarations and fails on a comparison (`==`, `!=`, `in`, `is`, a `match` case) with one, or a set, list, tuple or dict literal listing two or more, in any `sidecars/*/core/` module that is not an adapter. Its two exceptions (`devices.py`, the dshow adapter's lister, where `"dshow"` is FFmpeg's log context; `locate.py`, a Whisper-only tool that refuses other engines) carry their reasons and fail when no longer needed.
 - Both guards run their own fixtures to prove they fire.
 
+The steps for adding an engine are in the docstring of `libs/python/narration_common/ports/__init__.py`.
+
 ## Capabilities on the wire
 
 `ProviderCapabilities()` (`apps/desktop/bindings_providers.go`) is a read-only binding that reports every row of the speech recognition, voice, pronunciation and capture registries: label, whether it is the default, platforms, modes, the asset kind with the installed count when its catalog is present, and a `support` in the DAW port's `Support` shape (supported on this platform, experimental for the capture port's `wasapi` row, or unsupported with a reason and a sentence for the narrator). It takes no input and changes nothing. Its schema is `apps/ui/src/api/schemas/providers.ts`, its goldens `tests/fixtures/contracts/provider-capabilities-{windows,darwin}.json`, and its mock `apps/ui/src/api/providersMock.ts` ([wire contracts](wire-contracts.md)). No screen reads it yet; a later feature may use it to explain a disabled choice (Moonshine off Windows) the way `DawCapabilities` explains a disabled DAW control. The empty encoder and packager registries are left off it until a row lands. The mastering rows have their own pair of bindings, `MasteringProviders()` and `MasteringChooseProvider(name)` (`apps/desktop/bindings_mastering.go`, schema `apps/ui/src/api/schemas/mastering.ts`, goldens `tests/fixtures/contracts/mastering-providers-*.json`, mock `apps/ui/src/api/masteringMock.ts`), because a project chooses one, which the read-only payload has no way to say.
-
-## Adding an engine
-
-1. Write the adapter beside its sidecar's code (`sidecars/<sidecar>/core/<engine>_adapter.py` or a row in the existing adapter module), implementing the port's Protocol, with a descriptor under the name the setting will store. Keep its heavy imports inside its methods.
-2. Import it from the sidecar's entry module, so it registers and PyInstaller sees it.
-3. Add the Go registry row with the same name and its descriptor (platforms, modes, asset kind). A new speech engine whose models install from a new asset kind also needs a branch in `liveModelDir` (`TestEveryLiveEngineInstallsFromACatalogLiveModelDirServes` fails until it has one).
-4. Run the port's suites: they pick up the new row by themselves. The guards need no change.
-5. If it becomes a default, append its row to `config/defaults.json`; nothing else changes.
 
 ## What is not a port
 

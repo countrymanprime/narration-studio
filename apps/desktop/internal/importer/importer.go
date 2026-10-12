@@ -1,3 +1,12 @@
+// Package importer reads a manuscript file (DOCX, Markdown, TXT, EPUB) into a Draft the import review shows before anything is
+// written. The formatting quirks it repairs are listed in docs/architecture/docx-import-quirks.md.
+//
+// Adding a quirk:
+//  1. Reproduce it with a minimal in-test document (docxFixture builds a .docx from WordprocessingML; importMarkdown takes a string; TXT
+//     tests write a plain string to a temp file; epubFixture builds an in-memory EPUB from a name-to-content map).
+//  2. Write the failing test, fix it in the importer, and add the quirk's row to docs/architecture/docx-import-quirks.md.
+//  3. If the repair guesses (as glued-heading splitting does), report it in Draft.Notices: the import log and the review dialog's Repairs
+//     group tell the narrator.
 package importer
 
 import (
