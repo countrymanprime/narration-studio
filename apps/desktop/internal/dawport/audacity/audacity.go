@@ -10,7 +10,7 @@
 // the table when the project opens, through Backups). Takes, punch, stack_takes, cut_range and fx_range exist in Audacity only
 // with backups on (the Studio Next mock's capabilitiesFor, PRD DQ-18): the adapter declares them Experimental and requires backups
 // for each (a dawport.Requirer), a roll destructive until backups make it safe and the three edits made in steps (a
-// dawport.Describer). Their roles refuse with ADR 0144's sentence until the steps are built (notYetSteps). Session
+// dawport.Describer). Their role makes each edit as a listed series of pipe commands after a backup (steps.go). Session
 // carries the Audacity-only operations the port has no capability for yet (import findings as labels, read them back, mark one
 // reviewed, export a chapter, write a hand-off label file). Every other capability stays NotYetAvailable with ADR 0144's
 // sentence; the review workflow's session on an Audacity launch still refuses every request with it (UnavailableReview).
@@ -19,7 +19,6 @@
 package audacity
 
 import (
-	"context"
 	"maps"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
@@ -110,8 +109,8 @@ func explainRequirement(c, required dawport.Capability, r dawport.Reason) string
 	if required != dawport.CapBackups || (r != dawport.ReasonTurnedOff && r != dawport.ReasonExperimentalOff) {
 		return ""
 	}
-	if what, ok := needBackups[c]; ok {
-		return what + " needs Audacity backups. Turn on Audio backups in Settings."
+	if _, ok := needBackups[c]; ok {
+		return backupsSentence(c)
 	}
 	return ""
 }
@@ -130,6 +129,7 @@ type Adapter struct {
 	client  *audacitybridge.Client
 	session *Session
 	backups *Backups
+	steps   *steps
 }
 
 var (
@@ -152,7 +152,8 @@ func New(client *audacitybridge.Client) *Adapter { return NewWithBackups(client,
 
 // NewWithBackups is the adapter over client whose backups role keeps its table under backups.Project.
 func NewWithBackups(client *audacitybridge.Client, backups BackupsConfig) *Adapter {
-	return &Adapter{client: client, session: NewSession(client), backups: NewBackups(client, backups)}
+	keeper := NewBackups(client, backups)
+	return &Adapter{client: client, session: NewSession(client), backups: keeper, steps: &steps{client: client, backups: keeper}}
 }
 
 func (a *Adapter) Kind() dawport.Kind { return dawport.KindAudacity }
@@ -160,11 +161,11 @@ func (a *Adapter) Kind() dawport.Kind { return dawport.KindAudacity }
 // Declares returns a copy of the declaration, the same on every call.
 func (a *Adapter) Declares() map[dawport.Capability]dawport.Level { return maps.Clone(declares) }
 
-// Role is the session for navigate and markers, the macro renderer for macro_render, the backups for backups, the refusing
-// stand-in for each capability that needs backups, and nil for everything else.
+// Role is the session for navigate and markers, the macro renderer for macro_render, the backups for backups, the steps for
+// each capability that needs backups, and nil for everything else.
 func (a *Adapter) Role(c dawport.Capability) any {
 	if _, ok := needBackups[c]; ok {
-		return notYetSteps{}
+		return a.steps
 	}
 	switch c {
 	case dawport.CapNavigate, dawport.CapMarkers:
@@ -237,50 +238,4 @@ func (declaration) Explain(_ dawport.Capability, r dawport.Reason) string {
 	default:
 		return ""
 	}
-}
-
-// notYetSteps is the role of every capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range)
-// until SN-D84 builds their steps: each method answers ADR 0144's sentence, a Result as Refused and anything else as
-// ErrNotAvailable, and none touches the pipe. The capabilities stay Experimental, behind the narrator's switch, meanwhile.
-type notYetSteps struct{}
-
-var (
-	_ dawport.Puncher        = notYetSteps{}
-	_ dawport.TakeSelector   = notYetSteps{}
-	_ dawport.TakeStacker    = notYetSteps{}
-	_ dawport.RangeCutter    = notYetSteps{}
-	_ dawport.RangeFXApplier = notYetSteps{}
-)
-
-var notYetResult = dawport.Refused(string(ErrNotAvailable))
-
-func (notYetSteps) PunchTo(context.Context, float64, float64) (float64, error) {
-	return 0, ErrNotAvailable
-}
-func (notYetSteps) PlayPosition(context.Context) (dawport.PlayPosition, error) {
-	return dawport.PlayPosition{}, ErrNotAvailable
-}
-func (notYetSteps) Roll(context.Context, string, float64) (dawport.Result, error) {
-	return notYetResult, nil
-}
-func (notYetSteps) SetActiveTake(context.Context, string, string) (dawport.ActiveTakeSet, error) {
-	return dawport.ActiveTakeSet{}, ErrNotAvailable
-}
-func (notYetSteps) HideTakes(context.Context, string, string) (dawport.Result, error) {
-	return notYetResult, nil
-}
-func (notYetSteps) StackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
-	return notYetResult, nil
-}
-func (notYetSteps) UnstackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
-	return notYetResult, nil
-}
-func (notYetSteps) DeleteRange(context.Context, dawport.DeleteRangeRequest) (dawport.Result, error) {
-	return notYetResult, nil
-}
-func (notYetSteps) ApplyFXToRange(context.Context, dawport.FXRangeRequest) (dawport.Result, error) {
-	return notYetResult, nil
-}
-func (notYetSteps) RemoveFXFromRange(context.Context, string, string) (dawport.Result, error) {
-	return notYetResult, nil
 }
