@@ -33,14 +33,15 @@ const layerOpen = (target: EventTarget | null) => (target instanceof Element && 
 /** The reader's scroller (`Reader.tsx`): Left and Right step prep only when it has focus itself, as in the mock. */
 const isReader = (target: EventTarget | null) => target instanceof Element && target.querySelector(':scope > [data-reader]') !== null;
 
-/** Escape closes Find when nothing else is open; else the drawer. A menu or popover closes itself and nothing else moves. */
+/** Escape closes Find when no menu is open and no drawer shows; else it closes the drawer, as the mock's does. A menu closes itself. */
 const escapePatch =
   (otherLayerOpen: boolean) =>
   (state: ScriptViewState): Partial<ScriptViewState> => {
-    if (otherLayerOpen) return {};
-    if (escapeClosesFind(state, false)) return closeFind(state);
+    if (escapeClosesFind(state, otherLayerOpen)) return closeFind(state);
     return state.drawer === null ? {} : { drawer: null };
   };
+
+const typing = (target: EventTarget | null) => target instanceof Element && target.closest(EDITABLE) !== null;
 
 /** Registers the Script page's search sources, context provider and keys while the caller is mounted. */
 export function useScriptRegistry(options: ScriptRegistryOptions): void {
@@ -84,9 +85,9 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     ),
   );
 
-  // Alt+Down and Alt+Up carry a modifier, so the router lets them through a field; the check is repeated here.
+  // Alt+Down, Alt+Up and Ctrl+F carry a modifier, so the router lets them through a field; the check is repeated here.
   const step = (delta: 1 | -1, target: EventTarget | null) => {
-    if (target instanceof Element && target.closest(EDITABLE) !== null) return;
+    if (typing(target)) return;
     const at = chapterList.findIndex((row) => row.id === currentChapterId());
     const next = chapterList[Math.max(0, Math.min(chapterList.length - 1, Math.max(0, at) + delta))];
     if (next) latest.current.goToChapter(next.id);
@@ -94,8 +95,10 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
   useCommand('editing.chapter.next', (e) => step(1, e.target));
   useCommand('editing.chapter.prev', (e) => step(-1, e.target));
 
-  // Ctrl+F opens Find on the query it had, as the mock's does; a term comes from the menus' Find items instead.
-  useCommand('script.find', () => updateView(openFind()));
+  // Ctrl+F opens Find on the query it had, as the mock's does (a term comes from the menus' Find items), but not while typing in a field.
+  useCommand('script.find', (e) => {
+    if (!typing(e.target)) updateView(openFind());
+  });
 
   // The chapter in view, or the first, as the reader's own key handling has it.
   const stepPrep = (delta: 1 | -1, target: EventTarget | null) => {

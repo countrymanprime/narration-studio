@@ -220,24 +220,30 @@ describe('registrations', () => {
     expect(hook.result.current.view.find.open).toBe(true);
   });
 
-  it('keys-follow-the-mock: Escape leaves Find and the drawer alone while a menu or popover is open (it closes itself)', () => {
+  it('keys-follow-the-mock: Escape leaves Find open while a menu or popover is open (it closes itself), and still closes a drawer', () => {
     const { hook, press } = setup();
-    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true }, drawer: 'ch' }));
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true } }));
     document.body.innerHTML = '<div role="menu"><span id="item">Copy</span></div>';
     press('Escape', [], document.getElementById('item'));
     document.body.innerHTML = '<div id="page"></div><div data-popover-popup=""></div>';
     press('Escape', [], document.getElementById('page'));
     expect(hook.result.current.view.find.open).toBe(true);
-    expect(hook.result.current.view.drawer).toBe('ch');
+    act(() => hook.result.current.update({ drawer: 'ch' }));
+    press('Escape', [], document.getElementById('page'));
+    expect(hook.result.current.view.drawer).toBeNull();
+    expect(hook.result.current.view.find.open).toBe(true);
   });
 
-  it('none fires while typing in a field: Escape, Left and Right', () => {
+  it('none fires while typing in a field: Escape and Ctrl+F', () => {
     const { hook, press } = setup();
     reader();
     act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true }, drawer: 'rail' }));
     press('Escape', [], document.getElementById('f'));
     expect(hook.result.current.view.drawer).toBe('rail');
     expect(hook.result.current.view.find.open).toBe(true);
+    const nonce = hook.result.current.view.findNonce;
+    press('KeyF', ['Ctrl'], document.getElementById('f'));
+    expect(hook.result.current.view.findNonce).toBe(nonce);
   });
 
   it('unregister-on-unmount: the Script keys are gone too', () => {
