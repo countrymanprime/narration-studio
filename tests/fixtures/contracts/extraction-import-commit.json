@@ -1,0 +1,145 @@
+{
+  "entryIds": [
+    "e2",
+    "white-rabbit"
+  ],
+  "skipped": 4,
+  "suggestions": [
+    {
+      "applied": {
+        "created": true,
+        "entryId": "e2"
+      },
+      "confidence": 0.9,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": "e2",
+      "evidence": [],
+      "fp": "entry|the cheshire cat",
+      "id": "s10",
+      "kind": "entry",
+      "payload": {
+        "aliases": [
+          "Cat"
+        ],
+        "description": "C:\\Windows\\system32\\cmd.exe",
+        "kind": "entry",
+        "name": "The Cheshire Cat",
+        "type": "Character"
+      },
+      "source": "imported",
+      "status": "accepted-auto"
+    },
+    {
+      "applied": {
+        "entryId": "e2"
+      },
+      "confidence": 0.8,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": "e2",
+      "evidence": [
+        {
+          "end": 102,
+          "paragraphId": "p-000001",
+          "start": 60,
+          "text": "taking a watch out of its waistcoat-pocket"
+        }
+      ],
+      "fp": "claim|the cheshire cat|act|grins",
+      "id": "s11",
+      "kind": "claim",
+      "payload": {
+        "claim": "act",
+        "entry": "The Cheshire Cat",
+        "kind": "claim",
+        "text": "Grins"
+      },
+      "source": "imported",
+      "status": "accepted-auto"
+    },
+    {
+      "applied": {
+        "aliases": [
+          "Mr Rabbit"
+        ],
+        "entryId": "white-rabbit"
+      },
+      "confidence": 0.95,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": "white-rabbit",
+      "evidence": [],
+      "fp": "entry|white rabbit",
+      "id": "s12",
+      "kind": "entry",
+      "payload": {
+        "aliases": [
+          "Mr Rabbit"
+        ],
+        "kind": "entry",
+        "name": "White Rabbit"
+      },
+      "source": "imported",
+      "status": "accepted-auto"
+    },
+    {
+      "confidence": null,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": null,
+      "evidence": [],
+      "fp": "entry|bill",
+      "id": "s13",
+      "kind": "entry",
+      "payload": {
+        "kind": "entry",
+        "name": "Bill"
+      },
+      "reason": "No confidence was given.",
+      "source": "imported",
+      "status": "needs-verification"
+    },
+    {
+      "confidence": 0.3,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": null,
+      "evidence": [],
+      "fp": "property|bill|job|lizard",
+      "id": "s14",
+      "kind": "property",
+      "payload": {
+        "entry": "Bill",
+        "key": "Job",
+        "kind": "property",
+        "value": "Lizard"
+      },
+      "reason": "Confidence is under the threshold. No evidence quote. The entry is not in the Story Bible.",
+      "source": "imported",
+      "status": "needs-verification"
+    },
+    {
+      "applied": {
+        "entryId": "white-rabbit",
+        "phraseKey": "cue-1"
+      },
+      "confidence": 0.9,
+      "createdAt": "2026-09-21T10:00:00Z",
+      "entryId": "white-rabbit",
+      "evidence": [
+        {
+          "end": 36,
+          "paragraphId": "p-000001",
+          "start": 0,
+          "text": "“Oh dear! Oh dear! I shall be late!”"
+        }
+      ],
+      "fp": "speaker|\"oh dear! oh dear! i shall be late!\"|white rabbit",
+      "id": "s15",
+      "kind": "speaker",
+      "payload": {
+        "kind": "speaker",
+        "quote": "\"Oh dear! Oh dear! I shall be late!\"",
+        "speaker": "White Rabbit"
+      },
+      "source": "imported",
+      "status": "accepted-auto"
+    }
+  ]
+}

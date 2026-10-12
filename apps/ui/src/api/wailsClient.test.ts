@@ -1240,6 +1240,48 @@ describe('the extraction bindings', () => {
   });
 });
 
+describe('the extraction import bindings', () => {
+  const plan = {
+    format: 'json',
+    lines: [
+      {
+        row: 1,
+        where: 'entries[0]',
+        kind: 'entry',
+        label: 'Bill',
+        action: 'add',
+        status: 'needs-verification',
+        confidence: null,
+        note: 'No confidence was given.',
+      },
+    ],
+    errors: [{ row: 2, where: 'entries[0].relationships[0]', reason: 'No entry “Nobody” in the Story Bible or in this file.' }],
+    offered: 1,
+  };
+  const result = { suggestions: [], entryIds: [], skipped: 0 };
+  const prompt = { format: 'csv', prompt: 'Answer with CSV.\nrecord,name', example: 'record,name', maxBytes: 2097152 };
+
+  it('calls the three host methods with the text and the hint and decodes each answer', async () => {
+    const preview = vi.fn().mockResolvedValue(JSON.stringify(plan));
+    const commit = vi.fn().mockResolvedValue(JSON.stringify(result));
+    const promptOf = vi.fn().mockResolvedValue(JSON.stringify(prompt));
+    standInHost({ ExtractionImportPreview: preview, ExtractionImportCommit: commit, ExtractionImportPrompt: promptOf });
+    await expect(wailsClient.extractionImportPreview('{"entries":[]}')).resolves.toEqual(plan);
+    expect(preview).toHaveBeenCalledWith('{"entries":[]}', '');
+    await expect(wailsClient.extractionImportCommit('record,name', 'csv')).resolves.toEqual(result);
+    expect(commit).toHaveBeenCalledWith('record,name', 'csv');
+    await expect(wailsClient.extractionImportPrompt('csv')).resolves.toEqual(prompt);
+    expect(promptOf).toHaveBeenCalledWith('csv');
+  });
+
+  it('refuses an answer the schemas reject', async () => {
+    standInHost({ ExtractionImportPreview: () => Promise.resolve(JSON.stringify({ ...plan, offered: 3 })) });
+    await expect(wailsClient.extractionImportPreview('x')).rejects.toBeInstanceOf(WireError);
+    standInHost({ ExtractionImportPrompt: () => Promise.resolve(JSON.stringify({ ...prompt, maxBytes: -1 })) });
+    await expect(wailsClient.extractionImportPrompt('csv')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the extraction scan bindings', () => {
   const source = { id: 'rules', label: 'Rules', icon: 'auto', runs: true, available: true };
   const job = {

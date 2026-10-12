@@ -90,3 +90,7 @@ A file over a limit is refused with a sentence before any row is built.
 - A locked entry is never edited (ADR 0007): a row that would change it is skipped.
 - Nothing is deleted.
 - Status comes from the shared rule (ADR 0803): no confidence, or under 75%, or a quote not found in the manuscript, or a property or claim with no quote, is `needs-verification`; otherwise `accepted-auto`.
+
+## The bindings
+
+The page sends the text of the file the narrator chose; no binding takes a path, so the host opens and fetches nothing. The commit parses and plans the text again and never takes the preview's word. Each binding's behaviour is in the doc comments of `apps/desktop/bindings_extraction_import.go`.

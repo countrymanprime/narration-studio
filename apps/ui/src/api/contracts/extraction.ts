@@ -85,6 +85,43 @@ export type ExtractionScanJob = {
   skipped: number;
 };
 
+/** The import formats (docs/architecture/storybible-import-format.md). */
+export const IMPORT_FORMATS = ['csv', 'json'] as const;
+export type ImportFormat = (typeof IMPORT_FORMATS)[number];
+export const IMPORT_RECORDS = ['entry', 'property', 'relationship', 'claim', 'speaker'] as const;
+export type ImportRecord = (typeof IMPORT_RECORDS)[number];
+export const IMPORT_ACTIONS = ['add', 'merge', 'skip'] as const;
+export type ImportAction = (typeof IMPORT_ACTIONS)[number];
+
+/** One row of an import preview: where it is in the file, what it is about, what importing it does, the status the 75% rule gives it
+ * (left out for a skipped row), its confidence (null when the file gave none) and why it is skipped, what a merge adds or why it needs
+ * verification. */
+export type ExtractionImportLine = {
+  row: number;
+  where: string;
+  kind: ImportRecord;
+  label: string;
+  action: ImportAction;
+  status?: 'accepted-auto' | 'needs-verification';
+  confidence: number | null;
+  note: string;
+};
+
+/** A row that cannot be read, or the refusal of the whole file (row 0: over the size cap, not UTF-8 text, a NUL, nothing to import). */
+export type ExtractionImportError = { row: number; where: string; reason: string };
+
+/** What importing a text would do, worked out by the host from the text with the code the commit runs. `format` is the one it was read
+ * as, left out for a file refused before it was read; `offered` counts the lines that add or merge, which is what a commit adds. */
+export type ExtractionImportPlan = { format?: ImportFormat; lines: ExtractionImportLine[]; errors: ExtractionImportError[]; offered: number };
+
+/** What a commit did: the suggestions it stored, as they are after the accepted ones were applied, the ids of the Story Bible entries it
+ * changed, and how many lines it skipped. One undo step. */
+export type ExtractionImportResult = { suggestions: ExtractionSuggestion[]; entryIds: string[]; skipped: number };
+
+/** The prompt the narrator copies into an LLM of their choice, the example it contains, and the size the page checks a chosen file
+ * against before reading it (the host refuses a longer text anyway). */
+export type ExtractionImportPrompt = { format: ImportFormat; prompt: string; example: string; maxBytes: number };
+
 /** A refusal (a locked entry, a name another entry owns, an unknown id) rejects with the sentence and changes nothing. */
 export interface ExtractionApi {
   /** Every suggestion, rejected ones included: entries first, then names, relationships, properties and claims, speakers. */
@@ -108,4 +145,12 @@ export interface ExtractionApi {
   extractionScanState(): Promise<ExtractionScanJob>;
   /** Stops the running scan and the source it is running; what the sources that finished added is kept. */
   extractionScanCancel(): Promise<ExtractionScanJob>;
+  /** What importing `text` (the chosen file's text, or what was pasted) would do; `hint` is the format, or undefined to work it out from
+   * the text. Writes nothing. The host never takes a path: the page reads the file. */
+  extractionImportPreview(text: string, hint?: ImportFormat): Promise<ExtractionImportPlan>;
+  /** Plans `text` again on the host and adds the rows that add or merge as imported suggestions, all or none; the ones the 75% rule
+   * accepts are applied and flagged for Review. A file refused before it is read rejects with the sentence. */
+  extractionImportCommit(text: string, hint?: ImportFormat): Promise<ExtractionImportResult>;
+  /** The prompt for one format; Copy puts exactly `prompt` on the clipboard. */
+  extractionImportPrompt(format: ImportFormat): Promise<ExtractionImportPrompt>;
 }
