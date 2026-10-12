@@ -159,6 +159,14 @@ export type DawProjectState = {
 
 export type DawPlayState = 'stopped' | 'playing' | 'recording';
 
+/** WorkspaceHideTakes (SND-5b; apps/desktop/bindings_workspace_hide.go): mute the other takes of the passage between the two tokens
+ * of the chapter's stored alignment, keeping `keepCandidateId`, an id `workspaceTakes` offered. The host reads the item and take
+ * GUIDs itself; an id it does not offer is refused with code `stale`, and a capability refusal carries the capability's sentence.
+ * One undo step when a take was muted; nothing is deleted. A token range outside the alignment rejects. */
+export interface DawHideTakesApi {
+  workspaceHideTakes(chapterId: string, firstToken: number, lastToken: number, keepCandidateId: string): Promise<DawResult>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */

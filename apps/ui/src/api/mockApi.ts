@@ -59,6 +59,9 @@ import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommo
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
+import type { DawCapabilitiesApi, DawHideTakesApi, DawResult } from './contracts/daw';
+import type { WorkspaceApi } from './contracts/workspace';
+import { DAW_ANSWERS, takesHiddenOf } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -346,6 +349,7 @@ export function createMockApi(
       return { outcome: 'stopped', restored: 1, kept: 0 };
     },
     ...daw,
+    ...createHideTakesMock(daw, workspaceTakes),
     ...providers,
     ...mastering,
     ...recording,
@@ -357,4 +361,31 @@ export function createMockApi(
   };
   const api = initial.invalidPayload ? { ...base, ...invalidPayloadOverrides(initial.invalidPayload, base) } : base;
   return { ...api, ...overrides };
+}
+
+/** WorkspaceHideTakes as bindings_workspace_hide.go answers it: the takes capability's sentence first, then the passage's candidates
+ * as `workspaceTakes` offers them; an id it does not offer is stale, and only a take of the passage's own item can be kept. */
+function createHideTakesMock(daw: DawCapabilitiesApi, takes: Pick<WorkspaceApi, 'workspaceTakes'>): DawHideTakesApi {
+  const refused = (sentence: string, stale = false): DawResult => ({
+    ok: false,
+    changed: false,
+    message: sentence,
+    undoSteps: 0,
+    refused: sentence,
+    ...(stale ? { code: 'stale' as const } : {}),
+  });
+  return {
+    workspaceHideTakes: async (chapterId, firstToken, lastToken, keepCandidateId) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.takes;
+      if (!support?.available) return refused(support?.message ?? '');
+      const { candidates } = await takes.workspaceTakes(chapterId, firstToken, lastToken);
+      const keep = candidates.find((candidate) => candidate.id === keepCandidateId);
+      if (!keep) return refused(DAW_ANSWERS.staleHide, true);
+      if (keep.source !== 'item_take') return refused(DAW_ANSWERS.hideNotOnItem);
+      if (!keep.usable) return refused(keep.reason ?? DAW_ANSWERS.hideNotOnItem);
+      const hidden = takesHiddenOf(setup, candidates.filter((candidate) => candidate.source === 'item_take' && candidate.id !== keep.id).length);
+      return { ok: true, changed: hidden.changed, message: hidden.message, undoSteps: hidden.changed ? 1 : 0 };
+    },
+  };
 }

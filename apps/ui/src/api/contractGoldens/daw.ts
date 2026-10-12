@@ -1,5 +1,5 @@
 // The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
-// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
+// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
@@ -19,4 +19,8 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-result-ok.json': dawResultSchema,
   'daw-result-refused-stale.json': dawResultSchema,
   'daw-result-multi-step.json': dawResultSchema,
+  // WorkspaceHideTakes (bindings_workspace_hide_test.go): other takes muted, nothing to mute, and a capability refusal.
+  'daw-hide-takes-done.json': dawResultSchema,
+  'daw-hide-takes-nothing.json': dawResultSchema,
+  'daw-hide-takes-refused.json': dawResultSchema,
 };

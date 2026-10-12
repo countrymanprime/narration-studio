@@ -4,7 +4,16 @@ import { describe, expect, it } from 'vitest';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import { dawCapabilitiesSchema, dawProjectStateSchema } from '../api/schemas/daw';
 import { parseWire } from '../api/wire/parseWire';
-import { DAW_ANSWERS, DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId, pickupMarkersReadAnswer, pickupsImportedAnswer } from './daw';
+import {
+  DAW_ANSWERS,
+  DAW_PROJECT,
+  DAW_PROJECT_STATES,
+  DAW_SETUPS,
+  type DawSetupId,
+  pickupMarkersReadAnswer,
+  pickupsImportedAnswer,
+  takesHiddenAnswer,
+} from './daw';
 
 const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity', 'audacity-backups'];
 
@@ -118,5 +127,22 @@ describe('the mock DAW setups', () => {
     expect(pickupsImportedAnswer(1, 0)).toBe('Imported 1 pickup.');
     expect(pickupsImportedAnswer(0, 2)).toBe('Imported 0 pickups, 2 already there.');
     expect(pickupMarkersReadAnswer(0, 1)).toBe('Read 1 pickup marker: 0 open, 1 done.');
+  });
+});
+
+describe('the hide-takes answers (SN-D52)', () => {
+  const golden = (name: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+
+  it("takesHiddenAnswer words what dawport/reaper's hiddenMessage does, and matches the host goldens", () => {
+    expect(takesHiddenAnswer(1, 'REAPER')).toBe(golden('daw-hide-takes-done.json').message);
+    expect(takesHiddenAnswer(0, 'REAPER')).toBe(golden('daw-hide-takes-nothing.json').message);
+    expect(takesHiddenAnswer(3, 'REAPER')).toBe('Muted 3 other takes in REAPER. They are still in the project.');
+  });
+
+  it('the sample project has a take with no others to hide, and every candidate it counts is one it holds', () => {
+    expect(DAW_PROJECT.otherTakes?.['take-solo']).toBe(0);
+    expect(Object.keys(DAW_PROJECT.otherTakes ?? {}).every((id) => DAW_PROJECT.candidateIds.includes(id))).toBe(true);
+    expect(DAW_ANSWERS.staleHide).toMatch(/nothing was changed/);
   });
 });
