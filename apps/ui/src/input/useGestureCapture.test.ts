@@ -113,7 +113,7 @@ describe('useGestureCapture', () => {
     expect(onCapture).toHaveBeenCalledTimes(1);
   });
 
-  it('captures a press from the MIDI source while active (Phase 9)', () => {
+  it('captures a press from the MIDI source while active', () => {
     const midi = fakeMidiSource();
     const onCapture = vi.fn();
     renderHook(() => useGestureCapture(true, onCapture, vi.fn(), document, midi.source));
@@ -148,7 +148,7 @@ describe('useGestureCapture', () => {
     expect(midi.subscribed()).toBe(false);
   });
 
-  it('captures a press from the HID source while active (Phase 11)', () => {
+  it('captures a press from the HID source while active', () => {
     const hid = fakeHidSource();
     const onCapture = vi.fn();
     renderHook(() => useGestureCapture(true, onCapture, vi.fn(), document, undefined, hid.source));

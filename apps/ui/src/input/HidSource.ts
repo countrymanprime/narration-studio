@@ -67,11 +67,10 @@ type NavigatorLike = { hid?: HidLike };
 const realNavigator: NavigatorLike = typeof navigator === 'undefined' ? {} : (navigator as unknown as NavigatorLike);
 
 /**
- * The Could input source (Solution Detail, Phase 11): WebHID button presses, gated on Phase 8's spike actually
- * finding the API usable (its own recommendation was "do not start before a real WebView2 build confirms the device
- * chooser renders" - unconfirmed, not a clean yes). Feature-detected (`navigatorLike.hid` absent) exactly like
- * `MidiSource`, so a platform without it - Phase 8 found neither WKWebView (macOS) nor WebKitGTK 6.0 (Linux) ship
- * WebHID either - simply contributes nothing.
+ * The optional (Could-priority) input source: WebHID button presses. Whether the API is usable is unconfirmed until a
+ * real WebView2 build shows the device chooser rendering. Feature-detected (`navigatorLike.hid` absent) exactly like
+ * `MidiSource`, so a platform without it - neither WKWebView (macOS) nor WebKitGTK 6.0 (Linux) ships WebHID - simply
+ * contributes nothing.
  *
  * Unlike `createMidiSource`, this never calls `requestDevice()` itself: WebHID requires a transient user gesture for
  * that call, so it can only ever run from inside a click handler, not automatically on subscribe. This source only
@@ -84,7 +83,7 @@ const realNavigator: NavigatorLike = typeof navigator === 'undefined' ? {} : (na
  * does.
  *
  * A gesture reaches every current subscriber, most recently subscribed first, and a subscriber that calls
- * `preventDefault()` stops it going to the rest - the same priority contract `MidiSource` documents, so the Phase 6
+ * `preventDefault()` stops it going to the rest - the same priority contract `MidiSource` documents, so the gesture
  * recorder can learn a press without the router also running whatever command that gesture already happens to be
  * bound to.
  */
@@ -202,10 +201,10 @@ export function createHidSource(navigatorLike: NavigatorLike = realNavigator): I
 }
 
 /**
- * Shows the browser's HID device chooser so the narrator can pair a new pedal (Phase 11). Unlike Web MIDI, WebHID
+ * Shows the browser's HID device chooser so the narrator can pair a new pedal. Unlike Web MIDI, WebHID
  * requires a transient user gesture for `requestDevice()`, so - unlike `createMidiSource`, which asks for access on
  * first subscribe - `createHidSource` above never calls this itself; it is meant to run from a future Keyboard &
- * pedals "Connect a pedal" button's click handler (not yet built - out of this phase's `src/input/hid*` scope).
+ * pedals "Connect a pedal" button's click handler (not yet built).
  * Once granted, `createHidSource`'s own `connect` listener picks the device up the same way it would a hot-plugged
  * already-granted one, with no extra wiring here.
  */
@@ -214,7 +213,7 @@ export async function requestHidDevice(navigatorLike: NavigatorLike = realNaviga
   try {
     await navigatorLike.hid.requestDevice({ filters: [] });
   } catch {
-    // The narrator dismissed the chooser, or - Phase 8's spike found this plausible on WebView2 - no chooser ever
+    // The narrator dismissed the chooser, or - plausible on WebView2 - no chooser ever
     // appeared at all; either way there is nothing to recover here beyond "no device got paired this time".
   }
 }

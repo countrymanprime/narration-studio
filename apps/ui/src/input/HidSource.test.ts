@@ -97,7 +97,7 @@ describe('createHidSource', () => {
     vi.useRealTimers();
   });
 
-  it('does nothing when the platform has no navigator.hid (Phase 8: WKWebView, WebKitGTK)', async () => {
+  it('does nothing when the platform has no navigator.hid (WKWebView, WebKitGTK)', async () => {
     const source = createHidSource({});
     const onGesture = vi.fn();
     source.subscribe(onGesture);
@@ -365,7 +365,7 @@ describe('createHidSource', () => {
     const recorder = vi.fn((event: GestureEvent) => event.preventDefault());
     source.subscribe(router); // subscribes first, like the router mounted at the app root
     await flushMicrotasks();
-    source.subscribe(recorder); // subscribes later, like the Phase 6 recorder opening
+    source.subscribe(recorder); // subscribes later, like the gesture recorder opening
 
     sendReport(0, [0]);
     sendReport(0, [1]);
