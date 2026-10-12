@@ -10,7 +10,7 @@ import { ProgressChart } from './ProgressChart';
 import { StageBar } from './StageBar';
 import { WeekCard } from './WeekCard';
 import { COUNTS, FINISHED, MID_BOOK, NO_TAKE_LOG, NOTHING_RECORDED, STORY_TODAY, nameOf, overviewFor } from './overviewFixtures';
-import { NOT_MEASURED } from './overviewFigures';
+import { deliveryCounts, NOT_MEASURED } from './overviewFigures';
 
 afterEach(cleanup);
 const view = (ui: ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
@@ -70,6 +70,26 @@ describe('KpiRow', () => {
   it('delivery check reads Not measured yet where the host has no chapter-level source', () => {
     view(<KpiRow {...overviewFor(MID_BOOK, undefined, NO_TAKE_LOG).kpi} onGo={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Delivery check/ }).textContent).toContain(NOT_MEASURED);
+  });
+
+  it("the book's pass and fail count comes from the chapters' QC verdicts", () => {
+    const master = {
+      c1: { mastered: true, qc: 'PASS' },
+      c2: { mastered: true, qc: 'PASS' },
+      c3: { mastered: true, qc: 'FAIL' },
+      c4: { mastered: false, qc: null },
+    };
+    const delivery = deliveryCounts(['c1', 'c2', 'c3', 'c4', 'c5'], master);
+    expect(delivery).toEqual({ ok: true, value: { pass: 2, fail: 1, total: 5 } });
+    expect(deliveryCounts(['c1', 'c2'], master)).toEqual({ ok: true, value: { pass: 2, fail: 0, total: 2 } });
+    // A review of a chapter that is not narrated is not counted; a book with no review is not measured.
+    expect(deliveryCounts(['c5'], master).ok).toBe(false);
+    expect(deliveryCounts(['c1'], undefined).ok).toBe(false);
+    view(<KpiRow {...overviewFor(MID_BOOK).kpi} delivery={delivery} onGo={vi.fn()} />);
+    const tile = screen.getByRole('button', { name: /Delivery check/ }).textContent;
+    expect(tile).toContain('2');
+    expect(tile).toContain('/ 5');
+    expect(tile).toContain('1 fail · 2 unchecked');
   });
 
   it('tiles-navigate-by-callback', async () => {
