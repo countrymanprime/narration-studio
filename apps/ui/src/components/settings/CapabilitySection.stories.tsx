@@ -56,8 +56,9 @@ export const EveryLevelAndMode: Story = {
   },
 };
 
-// The edit rows (SND-3) as REAPER reports them today: in the catalogue, not yet available, each with the host's sentence.
-const EDIT_ROWS = ['cut_range', 'fx_range', 'stack_takes', 'backups'] as const;
+// The edit rows (SND-3) REAPER still reports not yet available, each with the host's sentence. `cut_range` left this list
+// when delete_range landed (SN-D62): REAPER reports it Experimental.
+const EDIT_ROWS = ['fx_range', 'stack_takes', 'backups'] as const;
 
 export const EditCapabilitiesNotYetAvailable: Story = {
   args: {
@@ -69,8 +70,8 @@ export const EditCapabilitiesNotYetAvailable: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole('listitem')).toHaveLength(4);
-    for (const label of ['Cut words and audio', 'Add an effect to words', 'Stack takes', 'Audio backups']) {
+    await expect(canvas.getAllByRole('listitem')).toHaveLength(3);
+    for (const label of ['Add an effect to words', 'Stack takes', 'Audio backups']) {
       await expect(canvas.getByText(`${label} is not available with REAPER yet.`)).toBeTruthy();
     }
   },
