@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faArrowLeft,
   faChevronDown,
   faCodeMerge,
   faFloppyDisk,
@@ -12,7 +11,6 @@ import {
   faPause,
   faPen,
   faPlus,
-  faMagnifyingGlass,
   faRotate,
   faTrash,
   faWaveSquare,
@@ -27,6 +25,7 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { CAT_DOT_BG, EntitySummary, entityBadgeColors } from '../manuscript/EntitySummary';
+import { Icon } from '../primitives/Icon';
 import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
 import { SlideOver } from '../primitives/SlideOver';
 import { Button } from '../primitives/Button';
@@ -131,9 +130,7 @@ function FindInManuscript({ name }: { name: string }) {
   const navigate = useNavigate();
   return (
     <TooltipTarget text="Find in the manuscript">
-      <IconButton label="Find in the manuscript" onClick={() => navigate(`/script${findQuery(name)}`)}>
-        <FontAwesomeIcon icon={faMagnifyingGlass} />
-      </IconButton>
+      <IconButton action="find" label="Find in the manuscript" onClick={() => navigate(`/script${findQuery(name)}`)} />
     </TooltipTarget>
   );
 }
@@ -956,7 +953,7 @@ export function GuideDetail({
                       <TooltipTarget text={`${row.otherName} ${row.label} ${entity.canonical_name}`}>
                         <span className="inline-flex items-center gap-1.5">
                           <span role="img" aria-label="Incoming" className="text-[var(--text-muted)]">
-                            <FontAwesomeIcon icon={faArrowLeft} />
+                            <Icon name="incomingRelationship" />
                           </span>
                           {row.label}
                         </span>
