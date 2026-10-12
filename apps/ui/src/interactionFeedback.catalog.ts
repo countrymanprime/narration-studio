@@ -219,4 +219,12 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/companion/CompanionPage.tsx#3': 'The credits templates only decide whether the credits panel shows; with none, it stays absent.',
   'src/components/booth/frame/useLevels.ts#1':
     'Releases the meter-only child on cleanup; nothing is left mounted to tell, and the next start works either way.',
+  // The new Booth page (SN-O102): secondary reads that only add to a chapter that already reads.
+  'src/components/booth/page/useBoothData.ts#1': 'The credits templates only decide whether the picker offers the credits; with none, it offers the chapters.',
+  'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
+  'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
+  'src/components/booth/page/useBoothData.ts#4': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
+  'src/components/booth/page/useBoothData.ts#5': 'The prep marks only underline words; without them the chapter reads unmarked.',
+  'src/components/booth/page/useBoothPage.ts#1':
+    'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };

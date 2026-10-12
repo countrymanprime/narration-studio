@@ -69,6 +69,7 @@ const CEILING: Record<Copy, Record<string, number>> = {
   h1: {
     // The Booth's page title is visually hidden (`sr-only`): the reading surface is the page, and a Heading would show.
     'src/components/booth/BoothPage.tsx': 1,
+    'src/components/booth/page/BoothNextPage.tsx': 1,
   },
 };
 
