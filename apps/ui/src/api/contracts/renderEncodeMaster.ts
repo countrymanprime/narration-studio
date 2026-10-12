@@ -67,11 +67,11 @@ export type PackageManifestFile = { kind: PackageItemKind; name: string; destPat
 export type PackageChecklistStatus = 'included' | 'missing' | 'off' | 'not_applicable';
 export type PackageChecklistItem = { ruleId: string; label: string; status: PackageChecklistStatus; detail: string };
 
-/** The package job (PackageStart/State/Cancel), in the shape of the host's other jobs. Closing the folder picker
- * without choosing one leaves the job at its prior (often idle) state rather than erroring. */
 /** What DeliveryOpenPackageFolder answers: the folder of the last built package, which it showed in the file manager. */
 export type PackageFolderResult = { folder: string };
 
+/** The package job (PackageStart/State/Cancel), in the shape of the host's other jobs. Closing the folder picker
+ * without choosing one leaves the job at its prior (often idle) state rather than erroring. */
 export type PackageJob = {
   id: string | null;
   kind: 'render_package';
