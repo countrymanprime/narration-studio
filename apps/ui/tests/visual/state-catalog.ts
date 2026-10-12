@@ -5,6 +5,7 @@ import { scriptStates } from './catalog/script';
 import { storybibleStates } from './catalog/storybible';
 import { engineStates } from './catalog/engine';
 import { boothStates } from './catalog/booth';
+import { editingStates } from './catalog/editing';
 import { proofStates } from './catalog/proof';
 import { proofChapterStates } from './catalog/proof-chapter';
 import { pickupsStates } from './catalog/pickups';
@@ -31,6 +32,7 @@ export const STATE_CATALOG: StateEntry[] = [
   ...storybibleStates,
   ...engineStates,
   ...boothStates,
+  ...editingStates,
   ...proofStates,
   ...proofChapterStates,
   ...pickupsStates,

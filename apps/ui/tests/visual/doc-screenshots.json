@@ -127,20 +127,6 @@
   },
   {
     "page": "proof-chapter",
-    "state": "compare-results-misread",
-    "viewport": "desktop",
-    "docName": "proof-chapter-compare-misread",
-    "caption": "Proof chapter view - a comparison's misread as a flag, its script and heard text side by side"
-  },
-  {
-    "page": "proof-chapter",
-    "state": "compare-results-extra",
-    "viewport": "desktop",
-    "docName": "proof-chapter-compare-extra",
-    "caption": "Proof chapter view - an EXTRA (words heard but not written) discrepancy as a flag"
-  },
-  {
-    "page": "proof-chapter",
     "state": "render-chosen",
     "viewport": "desktop",
     "docName": "proof-chapter-render-chosen",
@@ -256,21 +242,7 @@
     "state": "current",
     "viewport": "desktop",
     "docName": "proof-chapter-default",
-    "caption": "Proof chapter view - script, transport, and the Flags panel with its legend"
-  },
-  {
-    "page": "proof-chapter",
-    "state": "playing",
-    "viewport": "desktop",
-    "docName": "proof-chapter-playing",
-    "caption": "Proof chapter view - playing, the spoken word highlighted and the script following along"
-  },
-  {
-    "page": "proof-chapter",
-    "state": "flag-selected",
-    "viewport": "desktop",
-    "docName": "proof-chapter-flag-detail",
-    "caption": "Proof chapter view - a flag selected from the Flags panel, its script and heard text shown"
+    "caption": "Proof chapter view - the recording check's state with Check again, above the compare run"
   },
   {
     "page": "settings",

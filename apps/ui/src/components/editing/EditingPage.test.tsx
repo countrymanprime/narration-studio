@@ -102,6 +102,8 @@ describe('EditingPage', () => {
   it('no-manuscript-and-no-text-states', async () => {
     mount({ hasManuscript: false });
     expect(screen.getByText(/This project has no manuscript yet/)).toBeTruthy();
+    // The page keeps its level-one heading, as the loaded page's header has it (axe's page-has-heading-one).
+    expect(screen.getByRole('heading', { level: 1, name: 'Editing' })).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('toolbar')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Script editor' })).toBeNull();

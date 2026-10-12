@@ -21,134 +21,6 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await page.getByText('Check current').waitFor();
   },
 
-  playing: async (page) => {
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await clickVisible(page, 'button', 'Play');
-    // The transport sits under benchmark mock 04's notes (ADR 0470), below the fold at the smaller widths, so it is scrolled into view
-    // at each one (KEEPS_DESKTOP_SCROLL on the row): otherwise small-desktop shows only the notes, the same as `current`.
-    const pause = page.getByRole('button', { name: 'Pause' });
-    await pause.waitFor();
-    await pause.scrollIntoViewIfNeeded();
-  },
-  'flag-selected': async (page) => {
-    // ?mockCoverage=pickups replaces the default findings seed with one scoped to Chapter 4 (main.tsx), so Chapter
-    // 1's own misread flag here carries no finding - a plain, read-only flag straight from the check's alignment,
-    // distinct from flag-finding-open below (the same flag, from the default seed, finding-backed).
-    await page.goto('/?mockCoverage=pickups');
-    await settlePage(page);
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await clickVisible(page, 'button', 'Next flag');
-    // Selecting a flag previews it: ProofChapterPage's selectFlag seeks the player and auto-plays if it wasn't already
-    // (a real feature, not a driver bug). Pausing first makes the capture deterministic (no live elapsed readout or
-    // highlighted word, and no follow-the-word scrolling of the script's own box while the picture is taken).
-    await clickVisible(page, 'button', 'Pause');
-    // Below `xl` the Flags panel's detail sits under the flags list and legend (openFindingRow's comment says the same
-    // of Proof's Notes table), so it needs scrolling into view itself - without it, a reused desktop scroll position
-    // leaves narrower viewports showing only the list, and flag-selected/flag-finding-open/flag-decided capture the
-    // same picture (KEEPS_DESKTOP_SCROLL below re-drives per viewport so this scroll happens at each width).
-    const detail = page.getByText('Play from here');
-    await detail.waitFor();
-    await detail.scrollIntoViewIfNeeded();
-  },
-  // Chapter 1's mock seeds a transcript_discrepancy finding at the same
-  // misread the check already flags (mockApi.ts's workspaceOverlayFinding), so "Next flag" selects the one flag on
-  // this chapter and it is finding-backed - the "From"/Decision section shown here is the merge, not a second flag.
-  'flag-finding-open': async (page) => {
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await clickVisible(page, 'button', 'Next flag');
-    // See flag-selected above: pause the preview playback the selection started, so the capture is deterministic.
-    await clickVisible(page, 'button', 'Pause');
-    const decision = page.getByText('Decision', { exact: true });
-    await decision.waitFor();
-    await decision.scrollIntoViewIfNeeded();
-  },
-  'flag-decided': async (page) => {
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await clickVisible(page, 'button', 'Next flag');
-    // See flag-selected above.
-    await clickVisible(page, 'button', 'Pause');
-    await clickVisible(page, 'button', 'Pickup');
-    const saved = page.getByText('Saved: needs a pickup.');
-    await saved.waitFor();
-    await saved.scrollIntoViewIfNeeded();
-  },
-  standalone: async (page) => {
-    await page.goto('/?mockReaper=standalone');
-    await settlePage(page);
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await page.getByText('Check current').waitFor();
-    // Go to/Loop are disabled once useReaperStatus's first poll answers 'standalone'. The transport is scrolled into
-    // view at each width, as `playing` does.
-    const goTo = page.getByRole('button', { name: 'Go to in REAPER' });
-    await goTo.waitFor();
-    await goTo.scrollIntoViewIfNeeded();
-  },
-  // The Takes panel: Chapter 1's first paragraph heard, its takes listed.
-  'takes-list': async (page) => {
-    await openTakes(page);
-  },
-  'takes-ab': async (page) => {
-    await openTakes(page);
-    await clickVisible(page, 'button', 'A/B');
-    await clickVisible(page, 'button', 'Play take 1');
-    await clickVisible(page, 'button', 'Play take 2');
-    await page.getByRole('button', { name: 'Pause take 2' }).waitFor();
-    await takesList(page).scrollIntoViewIfNeeded();
-  },
-  'takes-compared': async (page) => {
-    await openTakes(page);
-    await clickVisible(page, 'button', 'Compare');
-    // The mock job's stages advance one per poll; waiting them out is the same real timer compare-results-* waits on.
-    const progress = page.getByRole('dialog', { name: 'Comparing takes' });
-    await progress
-      .getByRole('status')
-      .filter({ hasText: /^Compared the takes/ })
-      .waitFor({ timeout: 15000 });
-    await progress.getByRole('button', { name: 'Close' }).click();
-    await page.getByRole('region', { name: 'Takes side by side' }).waitFor();
-    // The job-ended toast fades on its own timer: dismiss it, as compareTakes does for Proof's own comparison.
-    const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
-    await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
-    await dismissToast.waitFor({ state: 'detached' });
-    await takesList(page).scrollIntoViewIfNeeded();
-  },
-  'takes-used': async (page) => {
-    await openTakes(page);
-    await clickVisible(page, 'button', 'Use take 2');
-    await page.getByText(/^Made that take active in REAPER/).waitFor();
-    await takesList(page).scrollIntoViewIfNeeded();
-  },
-  'takes-confirm': async (page) => {
-    await openTakes(page);
-    await clickVisible(page, 'button', /^Use pickup read/);
-    await page.getByRole('alertdialog', { name: 'Add this read and make it active' }).waitFor();
-  },
-  'takes-standalone': async (page) => {
-    await page.goto('/?mockReaper=standalone');
-    await settlePage(page);
-    await openTakes(page);
-    // Use this take waits for the first REAPER status poll before it can say why it is off.
-    await page.getByRole('button', { name: 'Use take 2' }).and(page.locator(':disabled')).waitFor();
-  },
-  // Effects on a passage: a right click on the first heard word of the script opens the menu.
-  'effects-menu': async (page) => {
-    await openScriptMenu(page);
-  },
-  'effects-menu-standalone': async (page) => {
-    await page.goto('/?mockReaper=standalone');
-    await settlePage(page);
-    await openScriptMenu(page);
-  },
-  'effects-confirm': async (page) => {
-    await openScriptMenu(page);
-    await page.getByRole('menuitem', { name: /Add an effect to this passage/ }).click();
-    await page.getByRole('combobox', { name: 'Effect' }).waitFor();
-  },
-  'effects-chain-confirm': async (page) => {
-    await openScriptMenu(page);
-    await page.getByRole('menuitem', { name: /Put an FX chain on the chapter/ }).click();
-    await page.getByRole('combobox', { name: 'FX chain' }).waitFor();
-  },
   // The compare run (the retired Proofing page), on Chapter 1 opened from
   // Proof's chapter picker with no track linked, scrolled so the run fills the picture.
   'compare-setup': async (page) => {
@@ -164,16 +36,6 @@ export const proofChapterDrivers: Record<string, Driver> = {
     // Mid-progress: the first step landed and the run has not finished.
     await page.getByText(/^[1-9]\d?% ·/).waitFor();
   },
-  'compare-results-misread': async (page) => {
-    // Waits out the real mock timer (2.6 s) rather than using the mock-only "Skip to results (demo)" shortcut, since that button
-    // doesn't exist in the real (non-mock) app.
-    await finishComparison(page);
-    await selectCompareFlag(page, 'Misread');
-  },
-  'compare-results-extra': async (page) => {
-    await finishComparison(page);
-    await selectCompareFlag(page, 'Extra words');
-  },
   'compare-results-summary': async (page) => {
     await finishComparison(page);
     await compareRun(page).scrollIntoViewIfNeeded();
@@ -181,7 +43,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
   // "May have changed since comparison": reviewing the last completed
   // comparison (its mock fixture carries a baseline count of 41), whose default background check answers 42 - no
   // seam needed. Live just-finished results carry no baseline in this mock (the real host sets one at prepare_compare),
-  // so this state goes through "Last narrated take" rather than a fresh run, same path as compare-no-daw-review.
+  // so this state goes through "Last narrated take" rather than a fresh run.
   'compare-results-changed-since': async (page) => {
     await openCompare(page);
     await clickVisible(page, 'button', /Last narrated take/);
@@ -236,13 +98,6 @@ export const proofChapterDrivers: Record<string, Driver> = {
     // the reason as its description (its tooltip is not opened: the gating shows on the button itself).
     await openCompare(page, '/?mockNoDaw=1');
     await page.getByRole('button', { name: 'Start comparison' }).and(page.locator('[aria-disabled="true"]')).waitFor();
-  },
-  'compare-no-daw-review': async (page) => {
-    // Offline review of the last completed comparison stays reachable with no linked DAW file: "Last narrated take" in the
-    // run's setup shows its results as flags, where Play recorded audio and Export are off.
-    await openCompare(page, '/?mockNoDaw=1');
-    await clickVisible(page, 'button', /Last narrated take/);
-    await selectCompareFlag(page, 'Misread');
   },
   'preview-default': async (page) => {
     await openPanel(page, '/', page.getByRole('table', { name: 'Preview candidates' }));
@@ -365,28 +220,16 @@ async function openCompare(page: Page, url?: string): Promise<void> {
     await settlePage(page);
   }
   await openProofChapter(page);
-  await compareRun(page).scrollIntoViewIfNeeded();
+  // The run's top at the top of the page area: the chapter view is short since the workspace left it, and a scroll that only brings the
+  // run into view lands at the foot of the page, the same picture as the Preview rows'.
+  await compareRun(page).evaluate((run) => run.scrollIntoView({ block: 'start' }));
 }
 
-// Runs a comparison to the end: the mock's run takes 2.6 s, then its discrepancies are flags.
+// Runs a comparison to the end: the mock's run takes 2.6 s, then its summary shows.
 async function finishComparison(page: Page): Promise<void> {
   await openCompare(page);
   await clickVisible(page, 'button', 'Start comparison');
   await page.getByRole('button', { name: 'New comparison' }).waitFor({ timeout: 10_000 });
-}
-
-// Steps the Flags panel to the first compare flag of `label` (its detail offers Play recorded audio) and scrolls it into view.
-async function selectCompareFlag(page: Page, label: string): Promise<void> {
-  const panel = page.locator('section').filter({ has: page.getByRole('heading', { name: /^Flags · / }) });
-  for (let step = 0; step < 12; step += 1) {
-    await panel.getByRole('button', { name: 'Next flag' }).click();
-    const detail = panel.getByRole('button', { name: 'Play recorded audio' });
-    if ((await detail.count()) > 0 && (await panel.locator('.font-semibold', { hasText: new RegExp(`^${label}$`) }).count()) > 0) {
-      await panel.scrollIntoViewIfNeeded();
-      return;
-    }
-  }
-  throw new Error(`no compare flag labelled ${label}`);
 }
 
 // Opens a chapter's Proof view (Chapter 1 unless chapterTitle names another) after loading `url` for a mock seam,
@@ -398,25 +241,5 @@ async function openPanel(page: Page, url: string, ready: ReturnType<Page['getByT
   }
   await openProofChapter(page, chapterTitle);
   await ready.first().waitFor();
-  await ready.first().scrollIntoViewIfNeeded();
-}
-
-const takesList = (page: Page) => page.getByRole('list', { name: 'Takes of this passage' });
-
-// Chapter 1 opened from its track link, with the Takes panel's first paragraph read and scrolled into view.
-async function openTakes(page: Page): Promise<void> {
-  await openLinkedProofChapter(page, 'Chapter 1');
-  await page.getByText('Check current').waitFor();
-  await takesList(page).waitFor();
-  await takesList(page).scrollIntoViewIfNeeded();
-}
-
-// Opens the script's effects menu: Chapter 1 opened from its confirmed link, the script scrolled into view, and a right click
-// on its first word, which selects that word and opens the menu at the pointer.
-async function openScriptMenu(page: Page): Promise<void> {
-  await openLinkedProofChapter(page, 'Chapter 1');
-  const script = page.getByRole('region', { name: 'Script text' });
-  await script.scrollIntoViewIfNeeded();
-  await script.getByRole('button').first().click({ button: 'right' });
-  await page.getByRole('menuitem').first().waitFor();
+  await ready.first().evaluate((element) => element.scrollIntoView({ block: 'center' }));
 }

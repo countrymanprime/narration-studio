@@ -6,6 +6,7 @@ import { usePort } from '../../ports/usePort';
 import type { ManuscriptChapter } from '../../types';
 import { Button } from '../primitives/Button';
 import { ChapterStepper } from '../primitives/ChapterStepper';
+import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
@@ -84,8 +85,9 @@ export function EditingPage(props: EditingPageProps) {
 
 function NeedManuscript({ onImport }: { onImport?: () => void }) {
   return (
-    <div className="p-4 md:p-6">
-      <Panel title="Editing">
+    <div className="flex flex-col gap-4 p-4 md:p-6">
+      <Heading title="Editing" />
+      <Panel>
         <div className="flex flex-col items-start gap-3">
           <p>This project has no manuscript yet. Import one to edit its recording against the script.</p>
           {onImport && <Button onClick={onImport}>Import manuscript</Button>}

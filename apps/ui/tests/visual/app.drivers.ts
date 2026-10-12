@@ -6,6 +6,7 @@ import { startupDrivers } from './drivers/startup';
 import { scriptDrivers } from './drivers/script';
 import { storybibleDrivers } from './drivers/storybible';
 import { engineDrivers } from './drivers/engine';
+import { editingDrivers } from './drivers/editing';
 import { proofDrivers } from './drivers/proof';
 import { proofChapterDrivers } from './drivers/proof-chapter';
 import { pickupsDrivers } from './drivers/pickups';
@@ -78,6 +79,7 @@ export const APP_DRIVERS: Record<string, Record<string, Driver>> = {
   script: scriptDrivers,
   storybible: storybibleDrivers,
   engine: engineDrivers,
+  editing: editingDrivers,
   proof: proofDrivers,
   'proof-chapter': proofChapterDrivers,
   pickups: pickupsDrivers,

@@ -184,6 +184,8 @@ describe('timeline-tab-hosts-the-strip-below-1360', () => {
     await waitFor(() => expect(tabNames()).toHaveLength(4));
     await userEvent.click(screen.getByRole('tab', { name: 'Timeline' }));
     expect(document.querySelector('#drawer #timeline')).not.toBeNull();
+    // In the drawer the strip shows at the width the tab is offered at; jsdom draws no CSS, so the class is what is checked.
+    expect(document.querySelector('#drawer #timeline')!.className).not.toMatch(/(^|\s)hidden(\s|$)/);
   });
   it('is not offered at 1360 and a drawer left on it falls back', async () => {
     mount(STRIP_MIN_WIDTH);

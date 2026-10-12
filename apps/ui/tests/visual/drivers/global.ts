@@ -21,7 +21,8 @@ export const globalDrivers: Record<string, Driver> = {
   },
   toast: async (page) => {
     await openProofChapter(page);
-    await compareRun(page).scrollIntoViewIfNeeded();
+    // Scrolled as proof-chapter/compare-toast scrolls it (its openCompare), so the two pictures stay the same.
+    await compareRun(page).evaluate((run) => run.scrollIntoView({ block: 'start' }));
     // Suggesting hints from the manuscript answers with a toast (adding a term answers with none), and an information toast
     // fades on a real 5 s timer: freeze timers so it cannot race the screenshot.
     await freezeClock(page);
