@@ -48,7 +48,7 @@ Rename only the folder, the exe, the Nx project, the entry module's docstring an
 
 ## Go packages
 
-Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes come from the root package and the method name, so renaming an internal package changes no binding name. The one exception is a package whose struct appears in a `Host` signature: today `marks`, `liveflags`, `project` and `editlog` (generated folders under `apps/ui/wailsjs/.../shell/internal/`). Renaming one of these regenerates the bindings, but no hand-written TS import breaks. The [`go-package-split`](../../.claude/skills/go-package-split/SKILL.md) skill covers the mechanics. Event strings such as `"pickups:state"` are literals and do not change.
+Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes come from the root package and the method name, so renaming an internal package changes no binding name. The one exception is a package whose struct appears in a `Host` signature: today `marks`, `liveflags`, `project` and `editlog` (generated folders under `apps/ui/wailsjs/github.com/countrymanprime/narration-utils/shell/internal/`). Renaming one of these regenerates the bindings, but no hand-written TS import breaks. The [`go-package-split`](../../.claude/skills/go-package-split/SKILL.md) skill covers the mechanics. Event strings such as `"pickups:state"` are literals and do not change.
 
 | Current | What it does now | Proposed | Importers | Also names it | Risk |
 | --- | --- | --- | --- | --- | --- |

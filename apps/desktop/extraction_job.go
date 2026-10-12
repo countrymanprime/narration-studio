@@ -358,8 +358,11 @@ func (h *Host) cancelExtractionScan() ExtractionScanJob {
 		return h.extractionScanState()
 	}
 	job.say("Cancelling the scan.")
+	// The answer is the state the cancel was asked in: once cancel() runs, the scan can end (and say so) before a
+	// snapshot taken after it.
+	state := job.snapshot()
 	job.cancel()
-	return job.snapshot()
+	return state
 }
 
 // extractionRegistry is the scan's sources: the rules row runs the Manuscript Guide sidecar's suggest command, and the

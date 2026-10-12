@@ -158,7 +158,8 @@ func (h *Host) WorkspaceUseTake(chapterID string, firstToken int, lastToken int,
 	run := h.runLog.Begin("use_take", "chapter_id", chapterID, "action", choice.Candidate.Action, "source", choice.Candidate.Source)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*takeReviewCreateTakeTimeout)
 	defer cancel()
-	outcome := passagetakes.Use(ctx, workspaceTakeActors(svc, project, run), choice)
+	resolver, _ := h.dawResolverFor(svc)
+	outcome := passagetakes.Use(ctx, workspaceTakeActors(svc, resolver, project, run), choice)
 	if outcome.Outcome == passagetakes.OutcomeRefused {
 		run.End("refused")
 	} else {
@@ -169,18 +170,18 @@ func (h *Host) WorkspaceUseTake(chapterID string, firstToken int, lastToken int,
 
 // workspaceTakeActors are the REAPER requests WorkspaceUseTake may make, each through the DAW port's own role (or the
 // retake lanes service), so each is gated exactly as the same request from another page (dawport.CapTakes,
-// CapTakeCreate, CapRetakeLanes; ADR 0230).
-func workspaceTakeActors(svc hostServices, project tracks.Project, run *runlog.Run) passagetakes.Actors {
+// CapTakeCreate, CapRetakeLanes; ADR 0230). Making a take active uses svc.takeSelector behind the launch's resolver, as
+// WorkspaceHideTakes does: h.dawPortResolver's adapter (p5aAdapter) has no takes role.
+func workspaceTakeActors(svc hostServices, resolver *dawport.Resolver, project tracks.Project, run *runlog.Run) passagetakes.Actors {
 	return passagetakes.Actors{
 		SetActiveTake: func(ctx context.Context, itemGUID, takeGUID string) (bool, error) {
-			if svc.dawPortResolver == nil {
+			if support := resolver.Support(dawport.CapTakes); !support.Available {
+				return false, roleRefusal(&dawport.NotSupportedError{Capability: dawport.CapTakes, Support: support})
+			}
+			if svc.takeSelector == nil {
 				return false, bridge.ErrUnavailable
 			}
-			role, err := dawport.Role[dawport.TakeSelector](svc.dawPortResolver, dawport.CapTakes)
-			if err != nil {
-				return false, roleRefusal(err)
-			}
-			set, err := role.SetActiveTake(ctx, itemGUID, takeGUID)
+			set, err := svc.takeSelector.SetActiveTake(ctx, itemGUID, takeGUID)
 			return set.Changed, err
 		},
 		CreateTake: func(ctx context.Context, req takereview.CreateTakeRequest) (takereview.CreateTakeResult, error) {

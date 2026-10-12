@@ -23,12 +23,14 @@ const (
 )
 
 type fakeTakeSelector struct {
-	hidden [][2]string
-	answer dawport.Result
+	hidden    [][2]string
+	activated [][2]string
+	answer    dawport.Result
 }
 
-func (f *fakeTakeSelector) SetActiveTake(context.Context, string, string) (dawport.ActiveTakeSet, error) {
-	return dawport.ActiveTakeSet{}, nil
+func (f *fakeTakeSelector) SetActiveTake(_ context.Context, itemGUID, takeGUID string) (dawport.ActiveTakeSet, error) {
+	f.activated = append(f.activated, [2]string{itemGUID, takeGUID})
+	return dawport.ActiveTakeSet{Changed: true}, nil
 }
 
 func (f *fakeTakeSelector) HideTakes(_ context.Context, itemGUID, keepTakeGUID string) (dawport.Result, error) {
