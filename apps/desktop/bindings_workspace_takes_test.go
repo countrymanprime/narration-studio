@@ -1,8 +1,13 @@
 package main
 
 import (
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
+	"github.com/countrymanprime/narration-utils/shell/internal/daw"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
 // The Takes panel's bindings (ADR 0700). What they answer is internal/passagetakes' own (its tests pin the candidates,
@@ -62,6 +67,66 @@ func TestWorkspaceUseTakeRefusesATakeItDidNotOffer(t *testing.T) {
 
 	if answer["outcome"] != "refused" || answer["reason"] != "not_offered" || answer["changed"] != false {
 		t.Fatalf("answer = %v", answer)
+	}
+}
+
+// useTakeHost is a REAPER launch over twoTakeCoverageProject wired as the app wires one: a session folder, so the
+// bridge client, navigation and h.dawPortResolver are the attach's own, with REAPER answering and the takes capability
+// set to toggle. role stands in for the takes role the attach takes from the REAPER adapter.
+func useTakeHost(t *testing.T, role dawport.TakeSelector, toggle string) *Host {
+	t.Helper()
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	host.coverageLauncher = fakeAlignedCoverageSidecarWithSkip()
+	host.assets = newAssetRegistry(t.TempDir(), nil, whisperWithSmall(t, true), nil, nil)
+	next := host.config
+	next.projectFolder = twoTakeCoverageProject(t)
+	next.comparePython, next.compareBackend = "python-sidecar", "compare.py"
+	next.daw, next.sessionDir = "REAPER", t.TempDir()
+	if attached, reason := host.attachProjectLocked(next); !attached {
+		t.Fatalf("attach failed: %s", reason)
+	}
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+	// The finished check starts a chaptersync:state read of the project folder; Windows cannot remove the folder while it runs.
+	host.chapterSyncEmits.Wait()
+	if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapTakes): &toggle}); err != nil {
+		t.Fatal(err)
+	}
+	host.mu.Lock()
+	host.reachability.(*daw.Reachability).Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/Projects/Alice/Alice.rpp", "0"}})
+	host.takeSelector = role
+	host.mu.Unlock()
+	return host
+}
+
+// Making another take of the item active goes to the takes role, gated by the launch's resolver as WorkspaceHideTakes
+// is. h.dawPortResolver's adapter (p5aAdapter) has no takes role, so asking it for one refused every make-active once
+// the takes capability was on.
+func TestWorkspaceUseTakeMakesAnotherTakeActiveThroughTheTakesRole(t *testing.T) {
+	role := &fakeTakeSelector{}
+	host := useTakeHost(t, role, "on")
+
+	answer := decodeAnswer(t)(host.WorkspaceUseTake("c-0001", 0, 0, hideKeepA))
+
+	if answer["outcome"] != "done" || answer["changed"] != true {
+		t.Fatalf("answer = %v", answer)
+	}
+	if want := [][2]string{{"{ITEM-1}", "{TAKE-A}"}}; !reflect.DeepEqual(role.activated, want) {
+		t.Fatalf("sent %v, want %v", role.activated, want)
+	}
+}
+
+func TestWorkspaceUseTakeWithTakesTurnedOffRefusesAndSendsNothing(t *testing.T) {
+	role := &fakeTakeSelector{}
+	host := useTakeHost(t, role, "off")
+
+	answer := decodeAnswer(t)(host.WorkspaceUseTake("c-0001", 0, 0, hideKeepA))
+
+	if answer["outcome"] != "refused" || answer["reason"] != "experimental_off" || answer["changed"] != false || len(role.activated) != 0 {
+		t.Fatalf("answer = %v, sent %v", answer, role.activated)
 	}
 }
 
