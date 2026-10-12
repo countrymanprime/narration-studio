@@ -7,7 +7,9 @@ three parts side by side:
 
 - **Chapters** on the left: every narration chapter, the one in view marked, each with a dot for how far its prep is
   (**Not started**, **In progress** or **Prepped**; the key is under the list). A **?** beside a chapter means it has
-  questions for the author still open. Press a chapter to go to it.
+  questions for the author still open. Press a chapter to go to it. When the project has opening credits, an
+  **Opening credits** row comes first; it goes to the credits card, and its dot is **Prepped** once the credits have no
+  token left to fill in.
 - **The reader** in the middle: the whole book as one scrolling text, a card at the top of each chapter with its word
   count, its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours, a speaker's lines carry a chip with their name, and Story Bible
@@ -15,7 +17,12 @@ three parts side by side:
   (Ctrl+F) and the **text settings** (font, size, line spacing and column width).
 - **The rail** on the right, with five tabs: **Words**, **Story Bible**, **Notes**, **Queries** and **Bookmarks**.
 
-Below 1280 px the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
+A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
+**←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter; **B**
+bookmarks the line; **Alt+[** **Alt+]** go to the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
+under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
+
+At 1280 px and narrower the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
 chapter list does the same from its **Chapters** button.
 
 An old link to the Manuscript page (`/manuscript`, with a line or chapter after `#`) still works: it opens the Script
@@ -35,7 +42,7 @@ Select words in the reader and a toolbar appears over them:
   pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
   one's colour and line.
 - **Story Bible** makes a new entry of the kind you choose from the words.
-- **Bookmark here** and **Record here** (the [Booth](booth.md) from that line).
+- **Bookmark here** (the bookmark button).
 - **Look up** opens the words in the rail: a Story Bible name on its **Story Bible** tab, any other word on **Words**.
 
 ![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here and Look up](../../images/ui/script-selection-popup.webp)
@@ -51,7 +58,8 @@ Select words in the reader and a toolbar appears over them:
 - **Story Bible** lists the entries met in the chapter; one opens its summary, and **Open in Story Bible** goes there.
 - **Notes** and **Queries** list the chapter's marks with a note and its questions for the author; one goes to its
   place in the text.
-- **Bookmarks** lists your bookmarks, each with its chapter and line; one goes to its place, and the reader's margin shows a ribbon where each one is.
+- **Bookmarks** lists your bookmarks under their chapters, each with its line; one goes to its place, its pencil
+  button edits its label and note, and its bin button deletes it. The reader's margin shows a ribbon where each one is.
 
 ![Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab](../../images/ui/script-word-lookup.webp)
 
@@ -75,24 +83,24 @@ plain-text file with no chapter markings, or an EPUB with no table of contents o
 still imports as one narration chapter rather than failing or importing nothing narratable — the
 import log says so. Re-import a manuscript (Replace manuscript on [Production](production.md#importing-the-manuscript)) to pick this up in an older project.
 
-**Opening credits** sits before the first chapter and **Closing credits** after the last, when the
+**Opening credits** and **Closing credits** sit above the first chapter, when the
 credit template library (Settings, This Project, [Credits](settings.md#credits)) has an opening or a
 closing template. Each shows its word count and a read time, and opens and closes the same way a
 chapter card does — press anywhere on its header, not just the title — with a chevron showing which
-way it is set. Both are open by default and stay open or closed the way you leave them for as long as
-you keep the project open. Open one to read the credits with the project's values filled in. A token
+way it is set. Both are open by default, and the project remembers whether you left each open or closed. Open one to read the credits with the project's values filled in. A token
 with no value yet stays in brackets, highlighted, and a line below lists the unresolved tokens, with a
 **Fill in** next to it that opens the same "Set up the credits" dialog Production offers — see
 [Production](production.md#importing-the-manuscript) for what it asks and when. A banner above Opening credits does the same while any
 token stays unresolved and setup has not been dismissed for the project. These
-entries are read-only and are not chapters: they are not in the chapter list or Find. Record the
+entries are read-only and are not chapters: Find does not search them, and the chapter list has a row for
+the opening credits only. Record the
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits
 card also has a **Record in Booth** button once it has anything to read (see below).
 
-The [retail sample](settings.md#retail-sample), once picked, is marked where it is, with "Retail
-sample starts" and its length beside the first line and "Retail sample ends" beside the last.
+The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
+tag above each chapter it is in, and a bar in the margin beside each of its lines.
 
 A heading that isn't really a chapter (a part title, an epigraph, or front matter your source read in
 as one) is removed from recording from its track panel on [Production](production.md#a-chapters-track), not from here: choosing
@@ -102,10 +110,9 @@ narration chapter.
 
 ![Script, the retail sample marked on lines 1 to 3 of Chapter 3](../../images/ui/script-retail-sample.webp)
 
-Each narration chapter's header, and the Opening credits and Closing credits cards once they have
-something to read, has a **Record in Booth** button. It opens the [Booth](booth.md) on that chapter or those
-credits: the read-along that listens as you narrate, with the Where you stopped notice, the Story Bible and
-note marks, suspected flags and companion mode beside your DAW.
+Each narration chapter's card has a **Record in Booth** button (the microphone), as do the Opening
+credits and Closing credits cards once they have something to read. It opens the [Booth](booth.md) on that
+chapter or those credits.
 
 The reader shows only the manuscript's narratable chapters. A table of contents or a Characters
 section the importer recognized stays in the project's data (the Story Bible has the readable form
