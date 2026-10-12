@@ -1712,8 +1712,8 @@
   {
     "name": "reduce_range_gain: a stretch that ends before it starts is read",
     "file": "narration_range.lua",
-    "find": "    if not first or not last or last - first <= EDGE_TOLERANCE then\n      return nil\n    end\n    out[#out + 1] = { first, last }",
-    "replace": "    if not first or not last then\n      return nil\n    end\n    out[#out + 1] = { first, last }"
+    "find": "    if not first or not last or last - first <= EDGE_TOLERANCE then\n      return nil\n    end\n    out[#out + 1] = { first, last }\n  end\n  if #out > MAX_GAIN_STRETCHES then",
+    "replace": "    if not first or not last then\n      return nil\n    end\n    out[#out + 1] = { first, last }\n  end\n  if #out > MAX_GAIN_STRETCHES then"
   },
   {
     "name": "reduce_range_gain: a signed or exponent time is read",
@@ -1730,38 +1730,38 @@
   {
     "name": "reduce_range_gain: a stretch is lowered while REAPER records",
     "file": "narration_range.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local wanted_item",
-    "replace": "  local wanted_item"
+    "find": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot lower a stretch of a take.')\n      return\n    end\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local wanted_item",
+    "replace": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot lower a stretch of a take.')\n      return\n    end\n  end\n  local wanted_item"
   },
   {
     "name": "reduce_range_gain: a stale take resolves to the active take",
     "file": "narration_range.lua",
-    "find": "  if not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')",
-    "replace": "  take = take or reaper.GetActiveTake(item)\n  if not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')"
+    "find": "  if not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')\n    return\n  end\n  local function refuse(sentence)\n    event(session_dir, 'ERROR', run_id, sentence)\n  end\n  if reaper.GetActiveTake(item) ~= take then\n    return refuse('That is not the take the item plays, so nothing was lowered.')",
+    "replace": "  take = take or reaper.GetActiveTake(item)\n  if not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')\n    return\n  end\n  local function refuse(sentence)\n    event(session_dir, 'ERROR', run_id, sentence)\n  end\n  if reaper.GetActiveTake(item) ~= take then\n    return refuse('That is not the take the item plays, so nothing was lowered.')"
   },
   {
     "name": "reduce_range_gain: a take that does not play is lowered",
     "file": "narration_range.lua",
-    "find": "  if reaper.GetActiveTake(item) ~= take then",
-    "replace": "  if false then"
+    "find": "  if reaper.GetActiveTake(item) ~= take then\n    return refuse('That is not the take the item plays, so nothing was lowered.')",
+    "replace": "  if false then\n    return refuse('That is not the take the item plays, so nothing was lowered.')"
   },
   {
     "name": "reduce_range_gain: a MIDI take is lowered",
     "file": "narration_range.lua",
-    "find": "  if reaper.TakeIsMIDI(take) then\n    return refuse('A MIDI take",
-    "replace": "  if false then\n    return refuse('A MIDI take"
+    "find": "  if reaper.TakeIsMIDI(take) then\n    return refuse('A MIDI take has no audio to lower.')",
+    "replace": "  if false then\n    return refuse('A MIDI take has no audio to lower.')"
   },
   {
     "name": "reduce_range_gain: a take with a changed playback rate is lowered",
     "file": "narration_range.lua",
-    "find": "  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then\n    return refuse('A take with a changed playback rate cannot have",
-    "replace": "  if false then\n    return refuse('A take with a changed playback rate cannot have"
+    "find": "  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then\n    return refuse('A take with a changed playback rate cannot have a stretch lowered.')",
+    "replace": "  if false then\n    return refuse('A take with a changed playback rate cannot have a stretch lowered.')"
   },
   {
     "name": "reduce_range_gain: a stretch the item no longer plays is lowered",
     "file": "narration_range.lua",
-    "find": "    if span[1] < -EDGE_TOLERANCE or span[2] > length + EDGE_TOLERANCE then",
-    "replace": "    if false then"
+    "find": "  -- A stretch the item no longer plays is one the app read before the item was trimmed or its take moved.\n  for _, span in ipairs(spans) do\n    if span[1] < -EDGE_TOLERANCE or span[2] > length + EDGE_TOLERANCE then",
+    "replace": "  -- A stretch the item no longer plays is one the app read before the item was trimmed or its take moved.\n  for _, span in ipairs(spans) do\n    if false then"
   },
   {
     "name": "reduce_range_gain: a stretch already lowered is lowered again",
@@ -1796,14 +1796,14 @@
   {
     "name": "reduce_range_gain: the envelope's own scale is ignored",
     "file": "narration_range.lua",
-    "find": "      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }",
-    "replace": "      planned[#planned + 1] = { time, amplitude }"
+    "find": "      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }\n    end\n    for _, span in ipairs(spans) do\n      local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)",
+    "replace": "      planned[#planned + 1] = { time, amplitude }\n    end\n    for _, span in ipairs(spans) do\n      local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)"
   },
   {
     "name": "reduce_range_gain: the take's own level is ignored",
     "file": "narration_range.lua",
-    "find": "      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor",
-    "replace": "      local amplitude = factor"
+    "find": "      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor\n      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }\n    end\n    for _, span in ipairs(spans) do\n      local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)",
+    "replace": "      local amplitude = factor\n      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }\n    end\n    for _, span in ipairs(spans) do\n      local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)"
   },
   {
     "name": "reduce_range_gain: the selection is not put back",
@@ -1820,8 +1820,8 @@
   {
     "name": "reduce_range_gain: an existing envelope is toggled",
     "file": "narration_range.lua",
-    "find": "  if not env then\n    env = make_volume_envelope(item, take)",
-    "replace": "  if true then\n    env = make_volume_envelope(item, take)"
+    "find": "  local gain = 10 ^ (-db / 20)\n  reaper.Undo_BeginBlock2(0)\n  if not env then\n    env = make_volume_envelope(item, take)",
+    "replace": "  local gain = 10 ^ (-db / 20)\n  reaper.Undo_BeginBlock2(0)\n  if true then\n    env = make_volume_envelope(item, take)"
   },
   {
     "name": "a file on a network share is opened",
@@ -1876,5 +1876,125 @@
     "file": "narration_media_file.lua",
     "find": "(core.SEP == '/' and path:match('^/'))",
     "replace": "path:match('^/')"
+  },
+  {
+    "name": "repair_click: a click that ends before it starts is read",
+    "file": "narration_range.lua",
+    "find": "    if not first or not last or last - first <= EDGE_TOLERANCE then\n      return nil\n    end\n    out[#out + 1] = { first, last }\n  end\n  if #out > MAX_CLICKS then",
+    "replace": "    if not first or not last then\n      return nil\n    end\n    out[#out + 1] = { first, last }\n  end\n  if #out > MAX_CLICKS then"
+  },
+  {
+    "name": "repair_click: more than 500 clicks are repaired",
+    "file": "narration_range.lua",
+    "find": "  if #out > MAX_CLICKS then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "repair_click: a click longer than 50 ms is repaired",
+    "file": "narration_range.lua",
+    "find": "    if click[2] - click[1] > MAX_CLICK_LENGTH + EDGE_TOLERANCE then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "repair_click: the missing-API refusal is lifted",
+    "file": "narration_range.lua",
+    "find": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot repair a click in a take.')\n      return",
+    "replace": "      break"
+  },
+  {
+    "name": "repair_click: a click is repaired while REAPER records",
+    "file": "narration_range.lua",
+    "find": "a click in a take.')\n      return\n    end\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n",
+    "replace": "a click in a take.')\n      return\n    end\n  end\n"
+  },
+  {
+    "name": "repair_click: a stale take resolves to the active take",
+    "file": "narration_range.lua",
+    "find": "  if not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')\n    return\n  end\n  local function refuse(sentence)\n    event(session_dir, 'ERROR', run_id, sentence)\n  end\n  if reaper.GetActiveTake(item) ~= take then\n    return refuse('That is not the take the item plays, so no click was repaired.')",
+    "replace": "  take = take or reaper.GetActiveTake(item)\n  if not take then\n    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')\n    return\n  end\n  local function refuse(sentence)\n    event(session_dir, 'ERROR', run_id, sentence)\n  end\n  if reaper.GetActiveTake(item) ~= take then\n    return refuse('That is not the take the item plays, so no click was repaired.')"
+  },
+  {
+    "name": "repair_click: a take that does not play is repaired",
+    "file": "narration_range.lua",
+    "find": "  if reaper.GetActiveTake(item) ~= take then\n    return refuse('That is not the take the item plays, so no click was repaired.')",
+    "replace": "  if false then\n    return refuse('That is not the take the item plays, so no click was repaired.')"
+  },
+  {
+    "name": "repair_click: a MIDI take is repaired",
+    "file": "narration_range.lua",
+    "find": "  if reaper.TakeIsMIDI(take) then\n    return refuse('A MIDI take has no audio to repair.')",
+    "replace": "  if false then\n    return refuse('A MIDI take has no audio to repair.')"
+  },
+  {
+    "name": "repair_click: a take with a changed playback rate is repaired",
+    "file": "narration_range.lua",
+    "find": "  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then\n    return refuse('A take with a changed playback rate cannot have a click repaired.')",
+    "replace": "  if false then\n    return refuse('A take with a changed playback rate cannot have a click repaired.')"
+  },
+  {
+    "name": "repair_click: a click the item no longer plays is repaired",
+    "file": "narration_range.lua",
+    "find": "  -- A click the item no longer plays is one the app read before the item was trimmed or its take moved.\n  for _, span in ipairs(spans) do\n    if span[1] < -EDGE_TOLERANCE or span[2] > length + EDGE_TOLERANCE then",
+    "replace": "  -- A click the item no longer plays is one the app read before the item was trimmed or its take moved.\n  for _, span in ipairs(spans) do\n    if false then"
+  },
+  {
+    "name": "repair_click: a click already repaired is repaired again",
+    "file": "narration_range.lua",
+    "find": "      if has_point_within(env, span[1] - CLICK_RAMP, span[2] + CLICK_RAMP) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "repair_click: the clicks are not merged where their ramps meet",
+    "file": "narration_range.lua",
+    "find": "    if previous and click[1] - CLICK_RAMP <= previous[2] + CLICK_RAMP + EDGE_TOLERANCE then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "repair_click: the dip is by the dB as a factor of ten",
+    "file": "narration_range.lua",
+    "find": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)",
+    "replace": "  local dip = 10 ^ (-CLICK_DIP_DB / 10)"
+  },
+  {
+    "name": "repair_click: no ramp back to the take's level",
+    "file": "narration_range.lua",
+    "find": "        plan(math.min(last + CLICK_RAMP, length), 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "repair_click: no ramp down from the take's level",
+    "file": "narration_range.lua",
+    "find": "        plan(math.max(first - CLICK_RAMP, 0), 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "repair_click: the take's own level is ignored",
+    "file": "narration_range.lua",
+    "find": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)\n  reaper.Undo_BeginBlock2(0)\n  if not env then\n    env = make_volume_envelope(item, take)\n  end\n  if env then\n    local mode = reaper.GetEnvelopeScalingMode(env)\n    -- Every value is read before any point is added, so each one scales the take's level as it was.\n    local planned = {}\n    local function plan(time, factor)\n      local _, value = reaper.Envelope_Evaluate(env, time, 0, 0)\n      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor",
+    "replace": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)\n  reaper.Undo_BeginBlock2(0)\n  if not env then\n    env = make_volume_envelope(item, take)\n  end\n  if env then\n    local mode = reaper.GetEnvelopeScalingMode(env)\n    -- Every value is read before any point is added, so each one scales the take's level as it was.\n    local planned = {}\n    local function plan(time, factor)\n      local _, value = reaper.Envelope_Evaluate(env, time, 0, 0)\n      local amplitude = factor"
+  },
+  {
+    "name": "repair_click: the envelope's own scale is ignored",
+    "file": "narration_range.lua",
+    "find": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)\n  reaper.Undo_BeginBlock2(0)\n  if not env then\n    env = make_volume_envelope(item, take)\n  end\n  if env then\n    local mode = reaper.GetEnvelopeScalingMode(env)\n    -- Every value is read before any point is added, so each one scales the take's level as it was.\n    local planned = {}\n    local function plan(time, factor)\n      local _, value = reaper.Envelope_Evaluate(env, time, 0, 0)\n      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor\n      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }",
+    "replace": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)\n  reaper.Undo_BeginBlock2(0)\n  if not env then\n    env = make_volume_envelope(item, take)\n  end\n  if env then\n    local mode = reaper.GetEnvelopeScalingMode(env)\n    -- Every value is read before any point is added, so each one scales the take's level as it was.\n    local planned = {}\n    local function plan(time, factor)\n      local _, value = reaper.Envelope_Evaluate(env, time, 0, 0)\n      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor\n      planned[#planned + 1] = { time, amplitude }"
+  },
+  {
+    "name": "repair_click: the undo block is never closed",
+    "file": "narration_range.lua",
+    "find": "  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS, -1)\n",
+    "replace": ""
+  },
+  {
+    "name": "repair_click: an existing envelope is toggled",
+    "file": "narration_range.lua",
+    "find": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)\n  reaper.Undo_BeginBlock2(0)\n  if not env then\n",
+    "replace": "  local dip = 10 ^ (-CLICK_DIP_DB / 20)\n  reaper.Undo_BeginBlock2(0)\n  if true then\n"
+  },
+  {
+    "name": "repair_click: no envelope point is added",
+    "file": "narration_range.lua",
+    "find": "      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)\n    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS",
+    "replace": "    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS"
   }
 ]

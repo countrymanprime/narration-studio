@@ -79,6 +79,19 @@
 -- Not run in REAPER (pending the QA pass, #1495): whether action 40693 makes a visible take volume envelope on the selected
 -- item's active take, whether the envelope's point times are seconds from the item's start, what GetEnvelopeScalingMode answers
 -- for it, that the edges do not click, and that one Undo removes the points and the envelope.
+--
+-- repair_click(run, item_guid, take_guid, clicks) smooths short clicks in the item's active take with a dip on the take's
+-- volume envelope, leaving the source file, the item and every other item as they were: Clean up's Clicks (SN-E101).
+-- REAPER's own Repair Pops/Clicks is a dialog the narrator works, so this is the stock means a command can use. clicks is
+-- 'start:end' pairs in the take's source seconds, joined by ',' (at most 500, each at most 50 ms, plain decimals only),
+-- mapped to envelope time as reduce_range_gain maps a stretch, with the same ITEM_STALE answers. Clicks whose CLICK_RAMP ramps
+-- would meet are made one. In one undo block it makes the take a volume envelope when it has none (as reduce_range_gain) and
+-- adds four linear points per click: the level the envelope held CLICK_RAMP before it, that level lowered by CLICK_DIP_DB at
+-- the click's start and end, and the level CLICK_RAMP after (none outside the item). The same refusals as reduce_range_gain
+-- come before any change. Answers CLICKS_REPAIRED|run|itemGuid|takeGuid|clicks|undoPoints.
+--
+-- Not run in REAPER (pending the QA pass, #1495): as reduce_range_gain, and that a click dipped by CLICK_DIP_DB is no longer
+-- heard and the dip itself is not.
 
 local core = ...
 local event = core.event
@@ -1017,6 +1030,172 @@ local function reduce_range_gain(session_dir, run_id, item_text, take_text, db_t
   event(session_dir, 'RANGE_GAIN_REDUCED', run_id, item_guid(item), take_guid(take), #spans, string.format('%.1f', db), 1)
 end
 
+-- repair_click ------------------------------------------------------------------------------------------------------
+
+local UNDO_REPAIR_CLICKS = 'Narration Utils: repair clicks'
+local CLICKS_UNREADABLE = 'The clicks to repair are not readable, so nothing changed.'
+local MAX_CLICKS = 500
+-- The longest click repaired, in seconds: a click lasts a few milliseconds, and a longer dip would be heard as a gap.
+local MAX_CLICK_LENGTH = 0.05
+-- The ramp, in seconds, outside each edge of a click, and how far the click is lowered between the ramps. Starting values to
+-- tune in REAPER on real narration (the QA pass, #1495).
+local CLICK_RAMP = 0.002
+local CLICK_DIP_DB = 30
+
+-- 'start:end,start:end' as { { start, end } } in the order given; nil when any pair is not two plain times with start
+-- before end; 'count' when there are more than MAX_CLICKS, and 'long' when a click is longer than MAX_CLICK_LENGTH.
+local function clicks_from(text)
+  local out = {}
+  for part in (text .. ','):gmatch('([^,]*),') do
+    local first_text, last_text = part:match('^([^:]+):([^:]+)$')
+    local first, last = plain_seconds(first_text or ''), plain_seconds(last_text or '')
+    if not first or not last or last - first <= EDGE_TOLERANCE then
+      return nil
+    end
+    out[#out + 1] = { first, last }
+  end
+  if #out > MAX_CLICKS then
+    return 'count'
+  end
+  for _, click in ipairs(out) do
+    if click[2] - click[1] > MAX_CLICK_LENGTH + EDGE_TOLERANCE then
+      return 'long'
+    end
+  end
+  return out
+end
+
+-- The clicks in item time (source time less the take's offset), sorted, with any two whose ramps would meet made one.
+local function item_clicks(clicks, offset)
+  local sorted = {}
+  for _, click in ipairs(clicks) do
+    sorted[#sorted + 1] = { click[1] - offset, click[2] - offset }
+  end
+  table.sort(sorted, function(a, b)
+    return a[1] < b[1]
+  end)
+  local merged = {}
+  for _, click in ipairs(sorted) do
+    local previous = merged[#merged]
+    if previous and click[1] - CLICK_RAMP <= previous[2] + CLICK_RAMP + EDGE_TOLERANCE then
+      previous[2] = math.max(previous[2], click[2])
+    else
+      merged[#merged + 1] = { click[1], click[2] }
+    end
+  end
+  return merged
+end
+
+local function repair_click(session_dir, run_id, item_text, take_text, clicks_text)
+  local clicks = clicks_from(clicks_text or '')
+  if clicks == 'count' then
+    event(session_dir, 'ERROR', run_id, 'A take can have at most 500 clicks repaired at once, so nothing changed.')
+    return
+  end
+  if clicks == 'long' then
+    event(session_dir, 'ERROR', run_id, 'A click to repair is at most 50 ms long, so nothing changed.')
+    return
+  end
+  if not clicks then
+    event(session_dir, 'ERROR', run_id, CLICKS_UNREADABLE)
+    return
+  end
+  for _, call in ipairs(GAIN_NEEDED) do
+    if not reaper.APIExists(call) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot repair a click in a take.')
+      return
+    end
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)
+  local item = wanted_item ~= '' and find_item(wanted_item) or nil
+  if not item then
+    event(session_dir, 'ITEM_STALE', run_id, item_text, 'item')
+    return
+  end
+  local take
+  for index = 0, reaper.CountTakes(item) - 1 do
+    local candidate = reaper.GetTake(item, index)
+    if candidate and wanted_take ~= '' and take_guid(candidate) == wanted_take then
+      take = candidate
+    end
+  end
+  if not take then
+    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')
+    return
+  end
+  local function refuse(sentence)
+    event(session_dir, 'ERROR', run_id, sentence)
+  end
+  if reaper.GetActiveTake(item) ~= take then
+    return refuse('That is not the take the item plays, so no click was repaired.')
+  end
+  if reaper.TakeIsMIDI(take) then
+    return refuse('A MIDI take has no audio to repair.')
+  end
+  if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then
+    return refuse('A take with a changed playback rate cannot have a click repaired.')
+  end
+  local length = reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+  local spans = item_clicks(clicks, reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'))
+  -- A click the item no longer plays is one the app read before the item was trimmed or its take moved.
+  for _, span in ipairs(spans) do
+    if span[1] < -EDGE_TOLERANCE or span[2] > length + EDGE_TOLERANCE then
+      event(session_dir, 'ITEM_STALE', run_id, item_guid(item), 'item')
+      return
+    end
+  end
+  local env = reaper.GetTakeEnvelopeByName(take, 'Volume')
+  if env then
+    for _, span in ipairs(spans) do
+      if has_point_within(env, span[1] - CLICK_RAMP, span[2] + CLICK_RAMP) then
+        return refuse('That take already has volume changes where a click would be repaired, so no click was repaired.')
+      end
+    end
+  end
+
+  local dip = 10 ^ (-CLICK_DIP_DB / 20)
+  reaper.Undo_BeginBlock2(0)
+  if not env then
+    env = make_volume_envelope(item, take)
+  end
+  if env then
+    local mode = reaper.GetEnvelopeScalingMode(env)
+    -- Every value is read before any point is added, so each one scales the take's level as it was.
+    local planned = {}
+    local function plan(time, factor)
+      local _, value = reaper.Envelope_Evaluate(env, time, 0, 0)
+      local amplitude = reaper.ScaleFromEnvelopeMode(mode, value) * factor
+      planned[#planned + 1] = { time, reaper.ScaleToEnvelopeMode(mode, amplitude) }
+    end
+    for _, span in ipairs(spans) do
+      local first, last = math.max(span[1], 0), math.min(span[2], length)
+      if first > EDGE_TOLERANCE then
+        plan(math.max(first - CLICK_RAMP, 0), 1)
+      end
+      plan(first, dip)
+      plan(last, dip)
+      if last < length - EDGE_TOLERANCE then
+        plan(math.min(last + CLICK_RAMP, length), 1)
+      end
+    end
+    for _, point in ipairs(planned) do
+      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)
+    end
+    reaper.Envelope_SortPoints(env)
+  end
+  reaper.UpdateItemInProject(item)
+  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS, -1)
+  reaper.UpdateArrange()
+  if not env then
+    return refuse('REAPER did not make a volume envelope for that take, so no click was repaired.')
+  end
+  event(session_dir, 'CLICKS_REPAIRED', run_id, item_guid(item), take_guid(take), #spans, 1)
+end
+
 return function(registry)
   registry.register('delete_range', function(ctx, args)
     local fade, pad, tone = cut_tail(args[6])
@@ -1030,5 +1209,8 @@ return function(registry)
   end)
   registry.register('reduce_range_gain', function(ctx, args)
     reduce_range_gain(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4], args[5])
+  end)
+  registry.register('repair_click', function(ctx, args)
+    repair_click(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4])
   end)
 end
