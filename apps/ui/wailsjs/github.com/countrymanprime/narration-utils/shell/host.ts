@@ -2672,7 +2672,7 @@ export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $Cancellab
  * keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the Studio Next mock's hideTakes). Nothing is
  * deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
  * indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
- * refused as stale (threat model row 5f). The answer is a DawResult (ADR 0810): the takes capability's own sentence when
+ * refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult (ADR 0810): the takes capability's own sentence when
  * the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked
  * before the passage is read, and nothing is sent to REAPER on any refusal. A token range outside the alignment is an
  * error, as for WorkspaceTakes.

@@ -164,9 +164,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNB-2 | Phase 2 | SNB-1 | yes | Sidecar and Go tests; ported bible tests; visual row |
 | SNB-3 | Phase 3 | SNB-1 | yes | Ported tests; visual rows |
 | SNB-4 | Phase 4 | SNB-1 | yes | Ported tests |
-| SNB-5 | Phase 5 | SNB-1 | yes | Go tests; goldens `bookmarks-*.json`; wire rows; threat model row 6u; ADR 0820 |
+| SNB-5 | Phase 5 | SNB-1 | yes | Go tests; goldens `bookmarks-*.json`; wire rows; data-files row; ADR 0820 |
 | SNB-6 | Phase 6 | SNB-5, SNR-4, SNF-3 | yes | Ported `bookmarks.test.tsx`; visual; aria |
-| SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests; marks host (SN-B721): Go tests, goldens `marks-*.json`, wire rows, threat model row 6z; mark threads (SN-B722): Go tests, goldens `marks-thread*.json`, wire rows; prep states and flagged words (SN-B73): Go tests, goldens `script-prep-*.json`, wire rows, threat model row 6za, ADR 0849; page data layer (SN-B70): hook tests over the browser mock and refusing fakes, selector property tests, feedback rows; reader (SN-B742): layer, paragraph and reader tests, stories in the atlas |
+| SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests; marks host (SN-B721): Go tests, goldens `marks-*.json`, wire rows, data-files row; mark threads (SN-B722): Go tests, goldens `marks-thread*.json`, wire rows; prep states and flagged words (SN-B73): Go tests, goldens `script-prep-*.json`, wire rows, data-files row, ADR 0849; page data layer (SN-B70): hook tests over the browser mock and refusing fakes, selector property tests, feedback rows; reader (SN-B742): layer, paragraph and reader tests, stories in the atlas |
 | SNB-8 | Phase 8 | SNB-2..7 | no (page swap) | Full visual suite for the two pages; Screenshots against the mock pages; deleted code gone from Knip |
 
 ## Decisions Log

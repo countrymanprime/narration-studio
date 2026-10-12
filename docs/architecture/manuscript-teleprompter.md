@@ -527,7 +527,7 @@ Story Bible entries and notes for the marks; it mounts one `BoothSession`, keyed
 `useTeleprompterSession` subscription, the flags kept as findings, the resume prompt and Record in REAPER. `BoothView`
 lays it out on `FocusShell`: a status line, the chapter picker above the text while idle, the rail and the
 `ReadingControlBar` as its command bar (microphone, engine and model, Record in REAPER). Companion mode (`CompanionShell`,
-ADR 0401) is entered from the Booth's header. The text highlights the current word as you read: read words dim, the
+ADR 0401) is entered from the Booth's header. It takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was on is gone (`bindings_companion_test.go`). The text highlights the current word as you read: read words dim, the
 current word is a solid accent fill (the `Cursor` kind of `Highlight`), words the tracker says you skipped get a dotted
 underline, and the text scrolls to keep the current word near the middle; scrolling by hand pauses following until
 Follow. It does not reuse `ParagraphView` (that renders character-offset annotations, not words). The design choices are

@@ -22,5 +22,5 @@ The Studio Next mock's recording check card lets the narrator accept a finding, 
 ## Consequences
 
 - The recording check card (SN-Q64) accepts and ignores through three bindings and a finding the review page already lists.
-- A new persisted file, three bindings and a `hostAPIVersion` bump; the threat model has a row (6w) and `SECURITY.md` a bullet.
+- A new persisted file, three bindings and a `hostAPIVersion` bump; the file is listed in [data files](../reference/data-files.md) and `SECURITY.md` has a bullet.
 - Ignoring is per check run: after a new check the narrator sees the gaps again, as the mock's findings come back with a new check.

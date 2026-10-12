@@ -213,3 +213,12 @@ help narrators for free and to stay that way: anyone who distributes it, or runs
 copy as a network service, must offer the corresponding source under the same terms. See
 [ADR 0039](docs/adr/0039-the-project-is-licensed-agpl-3-or-later.md). Releases up to and
 including v0.2.7-rc were published under the MIT license and remain available under it.
+
+Every release carries its notices, as a release asset and inside the zip: the third-party licences
+and the AGPL text with a source offer, generated from what the release contains
+([third-party notices](docs/operations/ci-and-releases.md#third-party-notices)). Every model has a
+recorded licence and commercial-use finding, and one with an unclear licence stays out of the
+catalog ([model provenance](docs/architecture/model-provenance.md)). `moonshine-voice` (MIT) ships
+two prebuilt DLLs, `moonshine.dll` and its own ONNX Runtime 1.23 (MIT, a manual entry in the
+notices), pinned by the wheel's hash in `uv.lock`. Not yet verified: whether the FFmpeg build inside
+the PyAV wheel is LGPL or GPL, and libx265's licence; both are recorded in the notices' manual entries.
