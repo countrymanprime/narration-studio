@@ -1264,10 +1264,9 @@ describe('App shortcut sheet', () => {
 
     fireEvent.keyDown(document, { key: '?', code: 'Slash', shiftKey: true });
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
-    // The page behind an open dialog is `aria-hidden` (ADR 0047/0048, `dialogs.spec.ts`'s isolation check), so
-    // `hidden: true` is needed to still see Script's own heading underneath - it never left, only the sheet
-    // covers it, which is what "Alt+Left did nothing" means here.
-    expect(screen.getByRole('heading', { name: 'Script', hidden: true })).toBeTruthy();
+    // The page behind an open dialog is `aria-hidden` (ADR 0047/0048, `dialogs.spec.ts`'s isolation check), so the route is what shows
+    // Script never left, only the sheet covers it, which is what "Alt+Left did nothing" means here.
+    expect(window.location.pathname).toBe('/script');
     expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
   });
 });

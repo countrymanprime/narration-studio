@@ -4,28 +4,7 @@ import { type FeedbackRow, row } from './row';
 // prettier-ignore
 export const manuscriptFeedback: Record<string, FeedbackRow> = {
   // Manuscript
-  'src/components/script/ScriptPage.tsx::readerStateSave#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'A small file write on every reader change; the reader has already moved.'),
-  'src/components/script/ScriptPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'The page shows a load error with Retry (ADR 0069).'),
-  'src/components/script/ScriptPage.tsx::guideEntities#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loaded with the chapters: the page shows a load error with Retry.'),
-  'src/components/script/ScriptPage.tsx::readerState#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loaded with the chapters: the page shows a load error with Retry.'),
-  'src/components/script/ScriptPage.tsx::noteList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loaded with the chapters: the page shows a load error with Retry.'),
-  'src/components/script/ScriptPage.tsx::manuscriptParagraphs#1': row('effect', 'file-io', 'inline', 'na', 'ui', 'toast', 'na', 'ok', 'The chapter shows a loading state while its lines load.'),
-  'src/components/script/ScriptPage.tsx::readerBookmarkDelete#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'A small file write.'),
-  'src/components/script/ScriptPage.tsx::readerBookmarkCreate#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'A small file write.'),
-  'src/components/script/ScriptPage.tsx::manuscriptSearch#1': row('input', 'file-io', 'none', 'na', 'ui', 'toast', 'na', 'ok', 'About 3 ms on a 90,000 word manuscript (docs/research/interaction-latency-baseline.md); a stale answer is dropped.'),
-  'src/components/script/ScriptPage.tsx::noteCreate#1': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'A small file write.'),
-  'src/components/script/ScriptPage.tsx::noteDelete#1': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'A small file write.'),
-  'src/components/script/ScriptPage.tsx::prepMarkupList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Read with each chapter\'s lines: a small file read plus a check of each mark against the chapter\'s text; the lines show while it loads, and a markup file that cannot be read is a toast while the chapter stays readable, unmarked.'),
-  'src/components/script/ScriptPage.tsx::prepMarkupSave#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Add mark in the Mark up dialog: a small file write; the dialog closes, the mark is drawn on the line and a toast confirms it, or says why not.'),
-  'src/components/script/ScriptPage.tsx::prepMarkupDelete#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Remove on a stale-mark notice or in the Mark up dialog: a small file write; the mark or its notice goes and a toast confirms it, or says why not.'),
-  'src/components/script/ScriptPage.tsx::guideCreate#1': row('click', 'python', 'pending', 'pending', 'ui', 'toast', 'no', 'ok', '"Add to Story Bible" shows the button busy while the entry is created (a Python process, about 0.6 s), ignores a second press and shows a failure (phase 3).'),
-  'src/components/script/ScriptPage.tsx::readerBookmarkDelete#2': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'A small file write.'),
-  'src/components/script/ScriptPage.tsx::guidePronunciationQueries#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'The Script rail\'s Queries tab and each chapter\'s prep status: read with the page and again after the queries panel changes one; the tab says "Loading the queries…" until it answers and says why in an alert if it cannot, while the rest of the page works.'),
-  'src/components/manuscript/useWordLookup.ts::systemLookup#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'na', 'ok', 'Look up in the selection menu: a Go read of the dictionary index (about 1.5 ms; the first lookup of a session reads the index in full against its hash). The button is busy and the other selection actions are off meanwhile; the answer opens the panel; a failure is a toast and the selection stays.'),
-  'src/components/manuscript/useWordLookup.ts::assetsInstall#1': row('click', 'download', 'dialog', 'host', 'dialog', 'dialog', 'no', 'ok', 'The dictionary download a lookup asked for, only after the narrator confirms the first-use question: the same flow as every other download (useAssetInstall), and the host joins a download that is already running. It ends by answering the lookup.'),
-  'src/components/manuscript/useWordLookup.ts::assetsInstallState#1': row('timer', 'download', 'dialog', 'na', 'poll', 'dialog', 'no', 'ok', 'The one install-poll loop (useAssetInstall): the dialog shows the bytes as they arrive and a failed poll in the dialog.'),
-  'src/components/manuscript/useWordLookup.ts::assetsInstallCancel#1': row('click', 'download', 'dialog', 'dialog', 'dialog', 'dialog', 'no', 'ok', 'Cancel stops the download and the dialog says so; it is drawn only while bytes arrive.'),
-  'src/components/script/ScriptPage.tsx::creditsTemplates#1': row(
+  'src/components/script/scriptPageHost.ts::creditsTemplates#1': row(
     'mount',
     'file-io',
     'na',
@@ -36,8 +15,8 @@ export const manuscriptFeedback: Record<string, FeedbackRow> = {
     'exempt',
     'Loads the credits template library behind the Opening/Closing credits pseudo-entries; a failed load simply renders no credits entries rather than a toast over the manuscript itself, which already has its own load-error state for the chapters it cannot do without.',
   ),
-  'src/components/script/ScriptPage.tsx::creditsRetailSample#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the retail sample to mark its lines (ADR 0152); a failed read leaves the reader unmarked, and Settings > Credits shows the real error.'),
-  'src/components/script/ScriptPage.tsx::creditsPreview#1': row(
+  'src/components/script/scriptPageHost.ts::creditsRetailSample#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the retail sample to mark its lines (ADR 0152); a failed read leaves the reader unmarked, and Settings > Credits shows the real error.'),
+  'src/components/script/scriptPageHost.ts::creditsPreview#1': row(
     'effect',
     'instant',
     'na',
@@ -48,7 +27,7 @@ export const manuscriptFeedback: Record<string, FeedbackRow> = {
     'exempt',
     'Renders the first opening-kind template (ADR 0093\'s convention) with the current project values for the Opening credits entry; a failed render leaves that entry showing "Nothing to preview yet." (same fallback as CreditsPanel.tsx) rather than a toast.',
   ),
-  'src/components/script/ScriptPage.tsx::creditsPreview#2': row(
+  'src/components/script/scriptPageHost.ts::creditsPreview#2': row(
     'effect',
     'instant',
     'na',
@@ -60,4 +39,9 @@ export const manuscriptFeedback: Record<string, FeedbackRow> = {
     'Renders the first closing-kind template (ADR 0093\'s convention) with the current project values for the Closing credits entry; a failed render leaves that entry showing "Nothing to preview yet." rather than a toast.',
   ),
 
+  // The Script page's Words tab and Define marks dialog (scriptPageHost.ts)
+  'src/components/script/scriptPageHost.ts::pronunciationCandidate#1': row('click', 'python', 'pending', 'pending', 'ui', 'inline', 'na', 'ok', 'Choosing a source on a word card asks it for the word alone: the card is busy until it answers; a miss or a refused call is a note under the card and the saved value stays.'),
+  'src/components/script/scriptPageHost.ts::pronunciationOnlineLookup#1': row('input', 'download', 'inline', 'na', 'ui', 'inline', 'na', 'ok', 'With the online service chosen as the definition source, the word card reads Merriam-Webster for that one word (D72): the block says it is loading, and a failure is the host\'s sentence in the block with Try again.'),
+  'src/components/script/scriptPageHost.ts::pronunciationLookupOpen#1': row('click', 'instant', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Opens a fixed look-up page in the browser; the browser is the acknowledgment, a refusal is a toast.'),
+  'src/components/script/scriptPageHost.ts::marksSaveTypes#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Define marks saves each change at once: a small file write; the dialog shows the types the host answers and the marks are read again, a refusal is a toast and the dialog keeps the last saved list.'),
 };

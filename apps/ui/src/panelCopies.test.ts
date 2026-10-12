@@ -63,12 +63,12 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/booth/CompanionShell.tsx': 1,
     'src/components/booth/ReaderRail.tsx': 1,
     'src/components/master/BookConsistency.tsx': 1,
-    'src/components/script/ScriptChapterList.tsx': 2,
-    'src/components/script/ScriptPage.tsx': 6,
   },
   h1: {
     // The Booth's page title is visually hidden (`sr-only`): the reading surface is the page, and a Heading would show.
     'src/components/booth/BoothPage.tsx': 1,
+    // The Script page's title is visually hidden too: the mock draws none, the reader is the page.
+    'src/components/script/page/ScriptPage.tsx': 1,
   },
 };
 

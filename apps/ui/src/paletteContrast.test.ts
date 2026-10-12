@@ -393,7 +393,6 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/layout/AppShell.tsx': { count: 1, what: 'the folder icon beside the project name' },
   'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
-  'components/manuscript/ChapterNav.tsx': { count: 1, what: 'a line-hit result row icon (faParagraph)' },
   'components/manuscript/ReaderCard.tsx': { count: 1, what: 'the idle chapter bookmark icon' },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
   'components/settings/DawCatalogPanel.tsx': { count: 1, what: 'the not-detected DAW catalog entry dot' },

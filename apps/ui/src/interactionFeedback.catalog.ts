@@ -116,9 +116,10 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/production/ManuscriptImport.tsx#1':
     'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
-  'src/components/script/ScriptPage.tsx#1':
-    'Renders the Opening credits pseudo-entry preview; a failed render just leaves that entry showing "Nothing to preview yet." rather than a toast over the manuscript itself.',
-  'src/components/script/ScriptPage.tsx#2': 'Renders the Closing credits pseudo-entry preview; same fallback as the opening one above.',
+  'src/components/script/scriptPageHost.ts#1':
+    'Renders the Opening credits card preview; a failed render just leaves that card showing "Nothing to preview yet." rather than a toast over the manuscript itself.',
+  'src/components/script/scriptPageHost.ts#2': 'Renders the Closing credits card preview; same fallback as the opening one above.',
+  'src/components/script/scriptPageHost.ts#3': 'Saving the definition source is a convenience for this viewer: the choice still holds until the page is left.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
