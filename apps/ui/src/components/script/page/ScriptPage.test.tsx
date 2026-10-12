@@ -40,7 +40,7 @@ afterEach(() => {
 type Mount = { api?: NarrationApi; at?: string; props?: Partial<ScriptPageProps> };
 
 function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}) {
-  const handlers = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToWorkspace: vi.fn() };
+  const handlers = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const utils = render(
     <MemoryRouter initialEntries={[at]}>
       <ApiProvider api={api}>
@@ -441,11 +441,11 @@ describe('props-match-the-old-page', () => {
     type Old = {
       notify: ScriptPageProps['notify'];
       focusStoryBibleEntity: (id: string) => void;
-      goToWorkspace?: (chapterId: string) => void;
+      goToEditing?: (chapterId: string) => void;
       projectFolder: string;
       goToBooth?: ScriptPageProps['goToBooth'];
     };
-    const same: Old = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToWorkspace: vi.fn(), projectFolder: '/p', goToBooth: vi.fn() };
+    const same: Old = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToEditing: vi.fn(), projectFolder: '/p', goToBooth: vi.fn() };
     const asNew: ScriptPageProps = same;
     const back: Old = asNew;
     expect(back).toBe(same);
