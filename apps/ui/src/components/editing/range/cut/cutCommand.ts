@@ -12,6 +12,8 @@ export interface CutOptions {
   mode: 'close' | 'gap';
   /** The crossfade at the join, in milliseconds. */
   fadeMs: number;
+  /** Milliseconds of audio kept at each edge of the cut, so the cut is shorter by twice this. */
+  padMs?: number;
 }
 export const DEFAULT_CUT: CutOptions = { mode: 'close', fadeMs: 12 };
 export const FADE_CHOICES = [0, 6, 12, 25] as const;
@@ -75,6 +77,9 @@ export interface CutDone {
   refused?: string;
 }
 
+/** The sentence added when the DAW would not lay room tone and the cut was made with silence instead. */
+const silentGap = (reason: string): string => `The gap is silent: ${reason}`;
+
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const refusal = (code: string, reason: string): Result<never> => ({ ok: false, refusal: { code, reason } });
 const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message: why(e), undoSteps: 0, refused: why(e) });
@@ -104,14 +109,35 @@ export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<Cu
       }
       const ids: string[] = [];
       let message = '';
+      // Room tone fills a gap that keeps its length; muting keeps the audio, so there is nothing to fill. A DAW with none refuses before changing anything.
+      let roomTone = !mute && mode === 'gap';
+      let silent = '';
       const partly = (reason: string): Result<CutDone> =>
         ids.length ? { ok: true, value: { ids, message, refused: reason } } : refusal('daw_refused', reason);
       for (const r of summary.ranges) {
         const tokens = tokensOf(locator, r);
         if (!tokens) return partly(ONLY_SAID);
-        const res = await deps.daw.deleteRange({ chapterId, ...tokens, mode, fadeMs: options.fadeMs }).catch(failed);
+        const ask = (withTone: boolean) =>
+          deps.daw
+            .deleteRange({
+              chapterId,
+              ...tokens,
+              mode,
+              fadeMs: options.fadeMs,
+              ...(options.padMs ? { padMs: options.padMs } : {}),
+              ...(withTone ? { roomTone: true } : {}),
+            })
+            .catch(failed);
+        let res = await ask(roomTone);
+        if (roomTone && !res.ok && res.code !== 'stale') {
+          // Nothing was cut: say why there is no room tone and cut again, leaving silence. Any other refusal comes back the same.
+          const reason = res.refused ?? res.message;
+          roomTone = false;
+          res = await ask(false);
+          if (res.ok) silent = silentGap(reason);
+        }
         if (!res.ok) return ids.length ? partly(res.refused ?? res.message) : refusal(res.code ?? 'daw_refused', res.refused ?? res.message);
-        message ||= res.message;
+        message ||= silent ? `${res.message} ${silent}` : res.message;
         if (!res.changed) continue;
         try {
           const change = await deps.log.editingCutRecord(chapterId, {
