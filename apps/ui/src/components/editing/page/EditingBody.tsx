@@ -43,6 +43,7 @@ import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
 import { useKeepTakes } from '../takes/keepTake';
 import { useHideOthers } from '../takes/prep/useHideOthers';
 import { usePrepSteps } from '../takes/prep/usePrepSteps';
+import { dawSplitter } from '../takes/split/splitCommand';
 import { useSplitDuplicate } from '../takes/split/useSplitDuplicate';
 import { TakeChip } from '../takes/TakeChip';
 import { TakeLines } from '../takes/TakeLines';
@@ -128,6 +129,7 @@ export function EditingBody(props: EditingBodyProps) {
   const { doc, state, dispatch, selected } = useEditingPage();
   const tracks = usePort('tracks');
   const findings = usePort('findings');
+  const daw = usePort('daw');
   const journal = useJournal();
   const gate = useTakesGate();
   const root = useRef<HTMLDivElement>(null);
@@ -194,16 +196,23 @@ export function EditingBody(props: EditingBodyProps) {
   }, [lineTakes.open, current, lines]);
   const view = useCallback((line: LinePassage): LinePassage => prep.prepared(hide.shown(line)), [prep, hide]);
 
-  const split = useSplitDuplicate({
+  const splitter = useMemo(() => dawSplitter(daw, chapterId), [daw, chapterId]);
+  useSplitDuplicate({
     journal,
+    splitter,
     resolve: (id) => {
       const line = lines.byId.get(id);
       const take = line?.takes.find((t) => t.active) ?? line?.takes[0];
-      const at = doubledCut(read, id);
-      return line && take && at !== null ? { chapterId, takeId: take.id, label: take.label, at } : null;
+      const cut = doubledCut(read, id);
+      const start = doc.paras.find((p) => p.p.id === id)?.start;
+      // The cut is seconds into the paragraph; the DAW wants the project's time, so it goes through the item the paragraph was heard on.
+      const heard = cut !== null && start != null ? locator.source(start + cut) : null;
+      const item = heard ? read.workspace.items.find((it) => it.itemGuid === heard.itemGuid) : undefined;
+      if (!line || !take || !heard || item?.position === undefined || item.sourceStart === undefined || !item.playRate) return null;
+      const at = item.position + (heard.sourceTime - item.sourceStart) / item.playRate;
+      return { chapterId, takeId: take.id, label: take.label, at: Math.round(at * 1000) / 1000 };
     },
   });
-  void split;
 
   const stackLines = useMemo((): StackLine[] => {
     const out: StackLine[] = [];
