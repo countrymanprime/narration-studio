@@ -74,7 +74,7 @@ type ReportView struct {
 	// stored report (ClassifyGaps, ADR 0830); both are additive.
 	Gaps       []GapLine  `json:"gaps"`
 	Unfinished Unfinished `json:"unfinished"`
-	// Recheck is the model cascade's second pass (Phase 5), straight from the stored result; nil for a plain check.
+	// Recheck is the model cascade's second pass, straight from the stored result; nil for a plain check.
 	Recheck *Recheck `json:"recheck,omitempty"`
 }
 

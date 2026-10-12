@@ -2,11 +2,12 @@
 
 # Navigation
 
-The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md)),
+The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md), [Schedule](production.md#schedule)),
 **Prep** ([Script](script.md), [Story Bible](story-bible.md)), **Record** ([Booth](booth.md)), **Edit** ([Editing](editing.md)),
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](master-and-qc.md#delivery)).
 From 1360 px wide each group shows as a heading over its pages. Below that the rail shrinks to icons, grouped by a thin line,
-and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme.
+and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
+the notes still open and **Pickups** the pickups the DAW last reported open; a zero, or a count the app cannot read, shows no badge.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
@@ -57,7 +58,7 @@ chapter, or the previous Story Bible entry are not Back steps.
 
 Three controls at the right of the header, before the audio engine chip, make the whole app bigger or smaller:
 `[−] [100%] [+]`. The middle button is a readout of the current level and also resets it: click it, or press
-`Ctrl+0` (`Cmd+0` on macOS), to return to 100% from any level; it is itself disabled at 100%, since there is
+`Ctrl+0` to return to 100% from any level; it is itself disabled at 100%, since there is
 nothing to reset. **Zoom out** (`Ctrl+-`, disabled at 100%) and **Zoom in** (`Ctrl+=`, disabled at 200%) step
 through 100%, 110%, 125%, 150%, 175% and 200%. The numpad's `+`, `-` and `0` keys do the same as their main-row
 equivalents.

@@ -75,7 +75,7 @@ func TestEvaluateAudioCheckedIsNeverMetWithAnAmbiguousMapping(t *testing.T) {
 	}
 }
 
-// TestEvaluateAudioCheckedIsNeverMetWithAnOpenWindowedFindingInRange is Phase 7's own DX-4 gate (ADR 0327: not
+// TestEvaluateAudioCheckedIsNeverMetWithAnOpenWindowedFindingInRange is the DX-4 gate (ADR 0327: not
 // reachable with real data today, but the composition is proven correct against a constructed finding so it
 // works the moment that gap closes).
 func TestEvaluateAudioCheckedIsNeverMetWithAnOpenWindowedFindingInRange(t *testing.T) {

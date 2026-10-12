@@ -48,8 +48,8 @@ var epubSkipTags = map[string]bool{"script": true, "style": true, "img": true, "
 // own epub:type (read from <body epub:type="...">, Architecture notes,
 // "Classification"; "" if it carries none).
 //
-// files, budget, docDir and cssCache let it resolve E3's CSS-class emphasis
-// (Phase 3): a linked stylesheet is read once per href across the whole book
+// files, budget, docDir and cssCache let it resolve the CSS-class emphasis:
+// a linked stylesheet is read once per href across the whole book
 // (docDir resolves a relative href, the shared cssCache avoids re-reading and
 // re-charging the size budget for every document that links it) and merged
 // with any inline <style> the document carries itself. unresolvedClasses

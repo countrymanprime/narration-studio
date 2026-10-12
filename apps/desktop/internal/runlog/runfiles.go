@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	// maxRunFiles and maxRunFileAge are Q3's per-run retention: the last 20 runs or 7 days, whichever keeps fewer. A
+	// maxRunFiles and maxRunFileAge are the per-run retention: the last 20 runs or 7 days, whichever keeps fewer. A
 	// file must be within both to survive a prune — the more aggressive of the two limits wins, never the looser one.
 	maxRunFiles   = 20
 	maxRunFileAge = 7 * 24 * time.Hour
@@ -65,7 +65,7 @@ func (w *stderrFileWriter) Write(p []byte) (int, error) {
 func (w *stderrFileWriter) Close() error { return nil }
 
 // pruneRunFiles keeps the newest maxRunFiles files in dir and drops any older than maxRunFileAge, run on every Begin
-// so a burst of short runs cannot fill the disk and a quiet week does not keep stale debug detail around (Q3). A
+// so a burst of short runs cannot fill the disk and a quiet week does not keep stale debug detail around. A
 // missing dir (nothing has run yet) is not an error.
 func (l *Logger) pruneRunFiles(dir string) {
 	entries, err := os.ReadDir(dir)

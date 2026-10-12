@@ -107,7 +107,7 @@ func (s *Service) assess(ctx context.Context, chapter ChapterContext, view Evide
 
 // required is stage's required set: every id its providers declare, narrowed
 // by the narrator's required-check settings when Config.RequiredSignals is
-// set (Phase 6, Q8). An empty result is never treated as "not configured
+// set An empty result is never treated as "not configured
 // yet" - the engine's own empty-required-set rule (NoneNoRequiredSignals)
 // applies to it, which is also how the settings' master switch turns
 // suggestions off.

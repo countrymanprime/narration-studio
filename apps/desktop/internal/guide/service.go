@@ -409,7 +409,7 @@ func (s *Service) Edit(id, field, value string) error {
 }
 
 // EditFields changes every field of an entity in one sidecar process. The sidecar applies them all in memory and writes the file once, so a
-// field it refuses leaves the file as it was, and a Save of four fields costs one process instead of four (interaction feedback audit, phase 4).
+// field it refuses leaves the file as it was, and a Save of four fields costs one process instead of four.
 // The fields are sent in name order, so the same edit always produces the same command.
 func (s *Service) EditFields(id string, values map[string]string) error {
 	if len(values) == 0 {

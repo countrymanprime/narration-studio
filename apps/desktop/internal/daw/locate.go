@@ -89,7 +89,7 @@ func looksLikeReaper(displayName string) bool {
 // parseAssociationCommand extracts the executable from a Windows file-association
 // command string such as `"C:\Program Files\REAPER (x64)\reaper.exe" -project "%1"`
 // (the real value read from HKCR\Reaper.Project\shell\open64\command in the
-// Phase 6 spike). It returns false when the string does not start with a
+// REAPER reachability spike, docs/research/reaper-spike-s6-daw-reachability.md). It returns false when the string does not start with a
 // quoted path.
 func parseAssociationCommand(command string) (string, bool) {
 	command = strings.TrimSpace(command)

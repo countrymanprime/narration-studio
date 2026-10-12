@@ -87,7 +87,7 @@ type FeatureEvidence struct {
 }
 
 // NarrationEvidence is the line's distance to the narration baseline
-// (Q9 option A), or why it is unavailable.
+// (the second comparison, besides the character's own), or why it is unavailable.
 type NarrationEvidence struct {
 	Available                bool     `json:"available"`
 	Reason                   string   `json:"reason,omitempty"`

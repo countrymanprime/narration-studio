@@ -111,7 +111,7 @@ it.
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When
-the DAW refuses (the note's item was deleted or trimmed, or REAPER is recording), nothing changes and the Inspector says
+the DAW refuses (the note's item was deleted or trimmed, or the DAW is recording), nothing changes and the Inspector says
 why.
 
 ## Keys
@@ -147,8 +147,9 @@ last measurement again, and the list follows it.
 A chapter's Proof view, at `/proof/:chapterId`, holds what the chapter page had besides its workspace, which the
 [Editing](editing.md) page replaced: the recording check's state, the comparison with the manuscript, the Preview
 panel, the readiness panel and, with the built-in recorder, the native takes. It has no nav item of its own; open it from a
-linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks). Its notes and
-its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
+linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's
+Proof cell, **Open Proof** in its row's menu or its recording check's **Open in Proof** on [Production](production.md). Its
+notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
 
 If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
@@ -198,8 +199,8 @@ with **Cancel** to stop it.
 When it finishes, a summary reads "N discrepancies in \<chapter>", with how many more are in other chapters.
 **Export N markers** adds a take marker in REAPER for each discrepancy not already marked, the same
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
-mark a spot twice. **New comparison** starts over. Without a connected REAPER, **Last narrated take:
-…** reviews the last completed comparison instead, with Export off.
+mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
+comparison; Export markers is off while you review it.
 
 Leaving the chapter view while a run is under way or showing results resets the run, the same way
 leaving used to reset the Proofing page's own run.
@@ -235,14 +236,14 @@ do on [Production](production.md#stage-readiness); Why opens the same evidence v
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).
 
 Below the suggestion, **Rendered file** shows which file the delivery checks measure and lets you change
-it: **Choose rendered file** opens a file picker and attests the file was made from the chapter as it is
-now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
+it: **Choose rendered file** (**Change** once one is chosen) opens a file picker and attests the file was made
+from the chapter as it is now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
 uses, with its real progress, and needs no second file picker. If the file changes on disk, or the
 chapter's recorded audio changes, after you chose it, the section says so ("changed since you chose it")
 and every delivery check reads unknown until you choose the file again and measure it — a stale render
 never counts as a pass.
 
-![Proof chapter view - the readiness panel's Rendered file section, a render just chosen and measured](../../images/ui/proof-chapter-render-chosen.webp)
+![Proof chapter view - the readiness panel's Rendered file section with a render chosen: Change, Clear and Measure](../../images/ui/proof-chapter-render-chosen.webp)
 
 ---
 

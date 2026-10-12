@@ -305,7 +305,7 @@ func TestMeasureTakeIsReproducibleAndHasNoCompositeScore(t *testing.T) {
 	}
 	for _, banned := range []string{"score", "rank", "grade", "best"} {
 		if strings.Contains(strings.ToLower(string(first)), `"`+banned) {
-			t.Fatalf("take metrics JSON has a %q field; per-category evidence only (Q9): %s", banned, first)
+			t.Fatalf("take metrics JSON has a %q field; per-category evidence only: %s", banned, first)
 		}
 	}
 }

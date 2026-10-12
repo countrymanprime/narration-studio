@@ -199,7 +199,7 @@ func TestSeedingACharacterIsOneProcessNotTwo(t *testing.T) {
 	}
 }
 
-// TestSeedingACharacterSendsItsPropertiesInTheSameCreateCall covers import-structure-toc-and-characters Phase 3: a candidate's
+// TestSeedingACharacterSendsItsPropertiesInTheSameCreateCall covers seeding a character: a candidate's
 // labelled facts (Codename, Abilities, ...) go to the sidecar's create --properties in the same process as the name and
 // description - not a second edit - and a candidate with none sends no --properties flag at all.
 func TestSeedingACharacterSendsItsPropertiesInTheSameCreateCall(t *testing.T) {

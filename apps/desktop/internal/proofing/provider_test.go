@@ -136,7 +136,7 @@ func TestSignalProviderNeedsAProject(t *testing.T) {
 }
 
 // TestSignalProviderUnknownWithNothingRun: an empty roll-up is unknown, never
-// met (Phase 1's success signal).
+// met.
 func TestSignalProviderUnknownWithNothingRun(t *testing.T) {
 	p := newTestProject(t)
 	signal := pickupsOf(t, NewSignalProvider(Config{Findings: p.findings}), p.view())

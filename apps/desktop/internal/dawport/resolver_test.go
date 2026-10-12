@@ -255,7 +255,7 @@ func TestRoleOfTheWrongInterfaceIsARoleError(t *testing.T) {
 }
 
 // Allowed is the declaration and settings half of Support: what the narrator's settings permit, whatever the engine's runtime state.
-// bridge.Actions' gate asks it, so a command still goes out (and fails on its own terms) while REAPER is not answering, as before P3.
+// bridge.Actions' gate asks it, so a command still goes out (and fails on its own terms) while REAPER is not answering.
 func TestAllowedIsTheDeclarationAndSettingsHalfOfSupport(t *testing.T) {
 	cases := []struct {
 		name         string

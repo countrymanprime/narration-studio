@@ -31,7 +31,7 @@ func TestMapParagraphsToTimeAnswersUnmappedForAParagraphNoItemNames(t *testing.T
 	}
 }
 
-// TestMapParagraphsToTimeAnswersStaleAfterAReimport is Q4's own currentness rule, applied here: a re-import
+// TestMapParagraphsToTimeAnswersStaleAfterAReimport applies the currentness rule: a re-import
 // changes the manuscript's source hash, so a stamp made before it can never be trusted as this paragraph's
 // current time range even though exactly one item still claims it.
 func TestMapParagraphsToTimeAnswersStaleAfterAReimport(t *testing.T) {
@@ -74,7 +74,7 @@ func TestMapParagraphsToTimeIgnoresAnUnrecognizedStampAndOtherParagraphsStayUnaf
 	}
 }
 
-// TestMapParagraphsToTimeAgainstARealReaperSavedFixture is Phase 6's own scope: "REAPER-saved fixtures". This
+// TestMapParagraphsToTimeAgainstARealReaperSavedFixture uses a REAPER-saved fixture. This
 // project (internal/tracks/testdata/reaper/line-identity.rpp) was written by REAPER 7.80 itself against the
 // real bridge (docs/research/reaper-spike-s0-item-extension-data.md): one item stamped, then split, duplicated
 // and chunk-copied, so four items carry the identical raw stamp "line-000002" - a real example of both the

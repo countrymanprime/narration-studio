@@ -28,7 +28,7 @@ type node struct {
 // sequence keeps: a REAPER take repeats NAME, SOFFS, PLAYRATE, GUID and
 // <SOURCE> once per take with no wrapping chunk of its own, and a <BIN>
 // extension block's base64 is only reconstructable in the order its lines
-// were written. The item-model parser superset (EL Phase 1) walks this to
+// were written. The item-model item-model parser walks this to
 // split an <ITEM> chunk into its takes and to decode extension data.
 type seqEntry struct {
 	key    string

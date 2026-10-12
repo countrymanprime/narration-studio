@@ -16,7 +16,7 @@ const waveSourceKind = "WAVE"
 const edgeTolerance = 1e-6
 
 // RegionAudio resolves a reference's approved region to source audio in a
-// parsed project. It resolves the snapshot taken at approval (Q2), so what
+// parsed project. It resolves the snapshot taken at approval, so what
 // is measured is what the narrator approved; a reference whose region has
 // changed since is excluded before it gets here.
 type RegionAudio struct {

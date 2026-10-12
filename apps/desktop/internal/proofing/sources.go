@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// The analyzers whose findings are pickup sources (Q1). Transcript Compare's
+// The analyzers whose findings are pickup sources. Transcript Compare's
 // name is spelled here rather than imported so this package does not depend on
 // the transcript service (a test pins it to transcript.AnalyzerName).
 const (
@@ -20,7 +20,7 @@ const (
 	AnalyzerTeleprompter      = liveflags.AnalyzerName
 )
 
-// pickupCategories are Q1's option A: every category a tool or proofer raises
+// pickupCategories are every category a tool or proofer raises
 // for "look at this again". take_comparison is evidence for choosing a take,
 // not a defect, and is left out.
 var pickupCategories = []findings.Category{
@@ -33,7 +33,7 @@ var pickupCategories = []findings.Category{
 // store merge happens after a complete, whole-chapter run and never after a
 // partial or failed one (take review: takereview.Scanner.Scan saves only after
 // a successful scan of the chapter's full scope). Transcript Compare's absence
-// is judged per finding by its run's coverage instead (Phase 2); read-aloud
+// is judged per finding by its run's coverage instead; read-aloud
 // flags are merged, never marked absent (findings.Store.MergeAnalyzerFindings).
 type sourceSpec struct {
 	label          string

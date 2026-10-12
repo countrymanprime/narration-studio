@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
-// This file is Phase 8's own sidecar I/O for PinnedRange, kept separate from the pure, no-I/O engine files
+// This file holds the sidecar I/O for PinnedRange, kept separate from the pure, no-I/O engine files
 // (types.go's own doc comment: "It has no I/O and no clock") the same way chaptersync splits its own Store
 // (store.go) from its pure planning logic (plan.go).
 
@@ -33,7 +33,7 @@ type pinFileShape struct {
 	PinnedAt      time.Time         `json:"pinnedAt"`
 }
 
-// PinStore keeps at most one PinnedRange per project ("a pin per book", Q9): setting a new one replaces whatever
+// PinStore keeps at most one PinnedRange per project ("a pin per book"): setting a new one replaces whatever
 // was pinned before. Like a reader bookmark, it is disposable: a file that cannot be read is logged and treated
 // as no pin, never surfaced as an error the narrator has to act on - re-pinning takes one click.
 type PinStore struct {

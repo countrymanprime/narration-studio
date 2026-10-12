@@ -19,8 +19,8 @@ type SignalSources struct {
 	Now         func() time.Time
 }
 
-// SignalProvider is the recording stage's stages.Provider (docs/utilities/recording-coverage.md
-// Phase 7). It reads stored coverage results, the ledger and the confirmed
+// SignalProvider is the recording stage's stages.Provider (docs/utilities/recording-coverage.md).
+// It reads stored coverage results, the ledger and the confirmed
 // mapping of the service's project, and never starts a check (Q14): the
 // narrator does that from Home.
 type SignalProvider struct {

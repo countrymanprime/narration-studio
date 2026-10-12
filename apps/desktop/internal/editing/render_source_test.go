@@ -28,7 +28,7 @@ func roomToneSamples(rate int, seconds, rmsDB float64, seed uint64) []float64 {
 	return out
 }
 
-// TestDecodeRenderFindsAKnownClick is Phase 8's own success signal: "A
+// TestDecodeRenderFindsAKnownClick pins that "a
 // render with a known click reports it." The fixture mirrors
 // apps/desktop/internal/measure/cleanup_test.go's own
 // TestCleanupFindsAClickInsideSilence exactly (speech either side of a room-

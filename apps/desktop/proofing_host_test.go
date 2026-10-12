@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
 )
 
-// TestMeasuringAChosenRenderRecordsItForItsChapter is Phase 4 through the host: a render chosen for a chapter, measured
+// TestMeasuringAChosenRenderRecordsItForItsChapter through the host: a render chosen for a chapter, measured
 // by Master & QC's measurement job, becomes a ledger record the chapter's render status reads back; a file that is
 // no chapter's render records nothing.
 func TestMeasuringAChosenRenderRecordsItForItsChapter(t *testing.T) {
@@ -56,7 +56,7 @@ func TestMeasuringAChosenRenderRecordsItForItsChapter(t *testing.T) {
 	}
 }
 
-// TestAFinishedComparisonIsRecordedForItsChapter is Phase 2 through the host: the recorder resolves the run's chapter
+// TestAFinishedComparisonIsRecordedForItsChapter through the host: the recorder resolves the run's chapter
 // title through the real manuscript, stamps its documentId, reads the run's manifest and writes one ledger record; a
 // cancelled run and a title no chapter has write none.
 func TestAFinishedComparisonIsRecordedForItsChapter(t *testing.T) {

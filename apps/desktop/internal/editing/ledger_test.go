@@ -95,7 +95,7 @@ func TestCurrentItemRecordStaleAfterMove(t *testing.T) {
 }
 
 // TestCurrentItemRecordStaleAfterAnalyzerVersionChange proves the
-// validated-detector gate's mechanism (Q5, used by Phase 6): asking with a
+// validated-detector gate's mechanism: asking with a
 // different analyzerVersion than what was recorded must read as stale, so a
 // class can be forced back to unknown just by changing what version this
 // package reports itself as.

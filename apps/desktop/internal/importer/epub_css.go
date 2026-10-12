@@ -8,19 +8,19 @@ import (
 // epubCSSRule matches one "<selector-list> { <body> }" rule. It is a
 // deliberately light-weight scan, not a CSS parser: exporter stylesheets
 // (Calibre, Vellum, Sigil) write one selector and one or two declarations
-// per formatting class, and that is the only shape E3 (Phase 3) asks to
-// recognize.
+// per formatting class, and that is the only shape the EPUB importer
+// recognizes.
 var epubCSSRule = regexp.MustCompile(`([^{}]+)\{([^{}]*)\}`)
 
 // epubCSSClassSelector matches a bare single-class selector such as
 // ".italic" - not a compound (".foo.bar"), tag-qualified ("p.foo") or
-// descendant selector, which stay unresolved (E3: "anything else is text
-// without a span and a count in Notices").
+// descendant selector, which stay unresolved (anything else is text
+// without a span and a count in Notices).
 var epubCSSClassSelector = regexp.MustCompile(`^\.([A-Za-z0-9_-]+)$`)
 
 // parseEPUBCSSClasses reads a stylesheet's simple single-class,
 // single-declaration font-style/font-weight rules into a class -> Style map
-// (E3's Phase 3 scope), and separately reports every class name that names a
+// (the EPUB importer's CSS-class emphasis), and separately reports every class name that names a
 // real rule but was not reduced to a Style bit (a multi-declaration rule, a
 // property this importer does not model, or a compound selector) so the
 // caller can count it in Notices rather than silently drop it.

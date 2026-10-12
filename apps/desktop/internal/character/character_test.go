@@ -13,8 +13,8 @@ import (
 
 // projectFile writes a minimal saved .rpp with two named regions (with GUIDs)
 // and returns a Config whose ProjectFile resolves to it, exactly the shape
-// tracks.Parse already reads (Q3 option A: region parse from the saved
-// project, never a live bridge command).
+// tracks.Parse already reads (regions are parsed from the saved
+// project, never through a live bridge command).
 func projectFile(t *testing.T, rpp string) Config {
 	t.Helper()
 	dir := t.TempDir()
@@ -214,8 +214,7 @@ func TestRevokingOneCharactersReferenceLeavesAnotherCharactersAlone(t *testing.T
 	}
 }
 
-// Character ids are opaque strings this package never validates (phase 3
-// scope): a reference for a character id nothing else currently mentions -
+// Character ids are opaque strings this package never validates: a reference for a character id nothing else currently mentions -
 // an "orphaned" character, for example after the Story Bible entity that
 // used to carry that id was deleted or merged away - is neither dropped nor
 // specially marked. Only an explicit Revoke ever removes a reference.

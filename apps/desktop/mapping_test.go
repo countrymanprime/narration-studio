@@ -74,7 +74,7 @@ func TestChapterTrackMapConfirmThenListRoundTrips(t *testing.T) {
 		t.Fatalf("ChapterTrackMapConfirm returned %#v", confirmed)
 	}
 	if confirmed["chapterTitle"] != "Chapter I: Down the Rabbit-Hole" {
-		t.Fatalf("chapterTitle = %v, want the real chapter title (Q6/Q9 depend on it)", confirmed["chapterTitle"])
+		t.Fatalf("chapterTitle = %v, want the real chapter title (re-suggestion after a re-import depends on it)", confirmed["chapterTitle"])
 	}
 	if confirmed["confirmedAt"] == "" || confirmed["confirmedAt"] == nil {
 		t.Fatal("confirmedAt was not stamped")
@@ -144,7 +144,7 @@ func TestChapterTrackMapListErrorsWithoutAnImportedManuscript(t *testing.T) {
 	}
 }
 
-// A confirmed link is keyed by documentId (Q6): after a manuscript
+// A confirmed link is keyed by documentId: after a manuscript
 // re-import produces a new store (a fresh evidence.NewMappingStore over the
 // same project once resetDerived cleared the old file, as
 // manuscript.resetDerived now does), the old confirmation must not leak

@@ -92,7 +92,7 @@ func TestDeleteOnAMissingEntryIsNotAnError(t *testing.T) {
 	}
 }
 
-// --- Key computation (Q5) ---
+// --- Key computation ---
 
 func TestKeyIsStableAcrossSourceModTimeChanges(t *testing.T) {
 	// The analysis key (fingerprint.go) deliberately excludes ModTime so a
@@ -152,7 +152,7 @@ func TestKeyDiffersBetweenTwoDifferentPlayedRanges(t *testing.T) {
 	}
 }
 
-// --- Survives a trim (Q5's central property: whole-source entries outlive
+// --- Survives a trim (the central property: whole-source entries outlive
 // a played-range change, unlike a per-range entry would) ---
 
 func TestAWholeSourceEntrySurvivesATrimAndSlicesCorrectlyAfterIt(t *testing.T) {
@@ -197,7 +197,7 @@ func TestAWholeSourceEntrySurvivesATrimAndSlicesCorrectlyAfterIt(t *testing.T) {
 	// the correct, different answer.
 	after, ok := store.Read(key)
 	if !ok {
-		t.Fatal("Read did not find the whole-source entry after the trim; a whole-source cache entry must survive a trim (Q5)")
+		t.Fatal("Read did not find the whole-source entry after the trim; a whole-source cache entry must survive a trim")
 	}
 	var afterFeatures []TimedFeature
 	if err := json.Unmarshal(after, &afterFeatures); err != nil {
@@ -220,8 +220,8 @@ func TestAWholeSourceEntrySurvivesATrimAndSlicesCorrectlyAfterIt(t *testing.T) {
 }
 
 func TestAPlayedRangeStyleEntryDoesNotSurviveATrim(t *testing.T) {
-	// The contrast case: a B-style analyzer that cannot slice and instead
-	// caches one blob per played range (Q5's non-recommended fallback) is
+	// The contrast case: an analyzer that cannot slice and instead
+	// caches one blob per played range (the fallback shape) is
 	// correctly invalidated by a trim, because PlayedRange is part of its
 	// key.
 	store := NewCacheStore(t.TempDir())
@@ -240,7 +240,7 @@ func TestAPlayedRangeStyleEntryDoesNotSurviveATrim(t *testing.T) {
 	}
 }
 
-// --- Hit/miss counters (Phase 4 success signal; ER's Phase 5 measurement) ---
+// --- Hit/miss counters ---
 
 func TestHitsAndMissesCountReadCallsSeparately(t *testing.T) {
 	store := NewCacheStore(t.TempDir())
@@ -265,7 +265,7 @@ func TestHitsAndMissesCountReadCallsSeparately(t *testing.T) {
 }
 
 func TestASecondIdenticalRunReadsEveryEntry(t *testing.T) {
-	// Phase 4 success signal, paraphrased for a per-item cache: writing N
+	// The success signal for a per-item cache: writing N
 	// entries once, then reading all N keys again, is N hits and 0 misses -
 	// nothing needs to be re-analyzed.
 	store := NewCacheStore(t.TempDir())

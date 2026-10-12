@@ -131,8 +131,8 @@ func TestServiceSaveFindingsResolvesUpstreamWhenEntityBecomesLocked(t *testing.T
 }
 
 // TestSaveFindingsNeverInvokesTheSidecarPythonExecutable proves the adapter
-// stays a pure reader (Q7's "a finding decision never mutates the Story
-// Bible" applies just as much to the adapter itself): Service is configured
+// stays a pure reader (a finding decision never mutates the Story
+// Bible, and that applies just as much to the adapter itself): Service is configured
 // with a Python path that does not exist, so any call through Run/command
 // (every mutating method: Edit, EditFields, Pronounce, Rescan, Merge,
 // Delete, Create, CreateFull, Relate, Unrelate) would fail with "configure

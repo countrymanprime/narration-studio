@@ -59,3 +59,23 @@ export const SpaceToggles: Story = {
     await expect(args.onChange).toHaveBeenLastCalledWith(true);
   },
 };
+
+// The mixed state of a parent whose children are partly selected: a dash on the accent fill, aria-checked="mixed".
+export const Indeterminate: Story = {
+  args: { indeterminate: true },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('checkbox', { name: /Alice/ })).toHaveAttribute('aria-checked', 'mixed');
+  },
+};
+
+// No visible text: the box alone, named by its aria-label (a table-row select box); data-* lands on the box.
+export const LabelLess: Story = {
+  args: { 'aria-label': 'Select Alice', 'data-row': 'alice', children: undefined },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('checkbox', { name: 'Select Alice' })).toHaveAttribute('data-row', 'alice');
+  },
+};
+
+export const LabelLessIndeterminate: Story = {
+  args: { 'aria-label': 'Select all', indeterminate: true, children: undefined },
+};

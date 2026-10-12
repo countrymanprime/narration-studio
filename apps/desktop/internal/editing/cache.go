@@ -1,19 +1,18 @@
 // This file bridges the editing package's own decode results (decode.go) to
-// EL's per-item result cache (apps/desktop/internal/evidence/cache.go, Q5,
-// D8). Architecture Notes leaves the exact cache shape ("per-source features
-// or per-range results") to EL's own judgement, noting only that "ER
-// requires that trimming one item does not force a re-decode of unrelated
-// items". This package uses EL's Q5 option B shape (evidence.CacheEntryKey
+// the evidence ledger's per-item result cache (apps/desktop/internal/evidence/cache.go).
+// The cache shape ("per-source features or per-range results") is left to the
+// analyzer, with one requirement: trimming one item must not force a re-decode
+// of unrelated items. This package uses the per-range shape (evidence.CacheEntryKey
 // with PlayedRange set): one cache blob per item's own played range, keyed on
 // that item's Source identity, analyzer id/version, parameter hash and
 // played range. A trim changes PlayedRange, so it costs exactly one re-decode
-// of that item (a documented, deliberate simplification versus Q5's
-// recommended option A, a whole-source sliceable cache: this analyzer
+// of that item (a documented, deliberate simplification versus a
+// whole-source sliceable cache, which the evidence package also supports: this analyzer
 // decodes only a played range in the first place, never the whole source
-// file - Architecture Notes' own "trimmed dead air stays in the source file,
-// so whole-file analysis would keep reporting it" is exactly why - so there
+// file - trimmed dead air stays in the source file, so whole-file analysis
+// would keep reporting it, which is exactly why - so there
 // is no naturally-whole-source feature set to slice from). It never forces a
-// re-decode of any other item, satisfying Phase 5's own success signal.
+// re-decode of any other item, so a trim re-decodes only that item.
 package editing
 
 import (

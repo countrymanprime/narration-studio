@@ -99,8 +99,8 @@ func ftoa(v float64) string {
 	return strconv.FormatFloat(v, 'f', -1, 64)
 }
 
-// TestServiceScanCompletesAndCachesHits is Phase 5's own success signal:
-// "Cache hit costs 0 decodes." A first scan decodes both items; a second
+// TestServiceScanCompletesAndCachesHits pins that a cache hit costs
+// 0 decodes. A first scan decodes both items; a second
 // scan of the same, unchanged project answers entirely from cache.
 func TestServiceScanCompletesAndCachesHits(t *testing.T) {
 	svc := newTestService(t)
@@ -194,7 +194,7 @@ func TestServiceFindsEmptySpace(t *testing.T) {
 	}
 }
 
-// TestServiceCancelYieldsPartial proves Phase 5's cancel rule: cancelling
+// TestServiceCancelYieldsPartial proves the cancel rule: cancelling
 // mid-scan must stop the loop and leave the run's own state as PhaseCancelled
 // rather than PhaseComplete, without crashing or hanging.
 func TestServiceCancelYieldsPartial(t *testing.T) {
@@ -216,8 +216,8 @@ func TestServiceCancelYieldsPartial(t *testing.T) {
 	}
 }
 
-// TestServiceOneFailedItemDoesNotAbortTheRest is Phase 5's own scope: "one
-// failed item not aborting the rest." Item A's source file is corrupted
+// TestServiceOneFailedItemDoesNotAbortTheRest proves that one
+// failed item does not abort the rest. Item A's source file is corrupted
 // (still present, so Resolve still hands it to Decode - a genuine decode
 // failure, not an input-level refusal like a missing file); item B must
 // still be analyzed.

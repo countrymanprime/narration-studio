@@ -67,9 +67,9 @@ func runRenderScan(t *testing.T, svc *testService) {
 	}
 }
 
-// TestRenderPathReportsAKnownClick is Phase 8's own success signal (a): "A
+// TestRenderPathReportsAKnownClick pins that "a
 // render with a known click reports it." The click signal must stay unknown
-// (Q5 - never met, Phase 4 has not run) but its evidence must name the click.
+// (never met, the detector is not validated) but its evidence must name the click.
 func TestRenderPathReportsAKnownClick(t *testing.T) {
 	svc, renders, choices := renderTestService(t)
 	renderPath := writeRenderFixture(t, svc.dir)
@@ -93,7 +93,7 @@ func TestRenderPathReportsAKnownClick(t *testing.T) {
 		}
 	}
 	if click.State != stages.SignalUnknown {
-		t.Fatalf("click signal state = %q, want %q (never met, Q5)", click.State, stages.SignalUnknown)
+		t.Fatalf("click signal state = %q, want %q (never met, detector not validated)", click.State, stages.SignalUnknown)
 	}
 	var sawCandidate, sawSource bool
 	for _, entry := range click.Evidence {
@@ -112,8 +112,8 @@ func TestRenderPathReportsAKnownClick(t *testing.T) {
 	}
 }
 
-// TestSwitchingSourceChoiceChangesTheEmptySpaceSignal is Phase 8's own
-// success signal (b): "switching the chosen source changes the signal and
+// TestSwitchingSourceChoiceChangesTheEmptySpaceSignal pins that
+// "switching the chosen source changes the signal and
 // the evidence names the source." The fixture's two items sit 3 s apart (as
 // TestServiceFindsEmptySpace already relies on), well past a 1 s maximum
 // gap, so the items path reads not_met; the render fixture has no such gap,
@@ -165,8 +165,7 @@ func TestSwitchingSourceChoiceChangesTheEmptySpaceSignal(t *testing.T) {
 	}
 }
 
-// TestRenderStaleAfterALaterItemEditIsUnknown is Phase 8's own success
-// signal (c): "a render older than the last item edit is stale." Attesting
+// TestRenderStaleAfterALaterItemEditIsUnknown pins that "a render older than the last item edit is stale." Attesting
 // the render, then trimming an item afterward, makes
 // proofing.EvaluateRender's own status RenderStale; the render-choice
 // empty-space signal must read unknown with a stale cause, never met or

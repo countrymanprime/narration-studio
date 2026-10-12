@@ -6,13 +6,13 @@ import (
 )
 
 // preferredDialogueBand is the dialogue share a window scores best at: enough to show narration mixed with
-// dialogue, not so much it reads as a transcript (Q5's "a dialogue share of the window inside a band scores best").
+// dialogue, not so much it reads as a transcript (a window whose dialogue share falls inside the band scores best).
 const (
 	preferredDialogueLow  = 0.15
 	preferredDialogueHigh = 0.6
 )
 
-// quoteDialogueShare is the precision-first quote heuristic (Q5 option A): the share of paragraphs that contain a
+// quoteDialogueShare is the precision-first quote heuristic: the share of paragraphs that contain a
 // complete pair of double quotes (straight or curly), counted per paragraph rather than per character so one long
 // quoted paragraph cannot alone claim the whole window is dialogue. No speaker attribution; other languages and
 // single-quote or dash dialogue styles score as no dialogue (a known, stated limitation, not a bug).
@@ -68,7 +68,7 @@ func hardWordDensity(paragraphs []Paragraph, hardWords map[string]bool) float64 
 	return float64(hard) / float64(total)
 }
 
-// presetWeights are the named-feature weights Q1's two presets use. Equal today (Phase 1 is text-only, so there is
+// presetWeights are the named-feature weights the two presets use. Equal today (suggestions are text-only, so there is
 // no audio evidence yet for Sample and SpotCheck to actually pull apart - Architecture Notes: "presets differ only
 // in weights"), kept as two separate constants so a later phase changes only these two lines, never the ranking
 // logic in score().
@@ -107,7 +107,7 @@ func dialogueBandDistance(share float64) float64 {
 }
 
 // reasonsFor computes this window's features and turns them into the human-readable reasons and warnings a
-// narrator reads (Phase 1: "each feature returns its value and a human reason; the reasons are the evidence").
+// narrator reads (each feature returns its value and a human reason; the reasons are the evidence).
 func reasonsFor(chapter Chapter, paragraphs []Paragraph, hardWords map[string]bool) ([]string, []string) {
 	var reasons, warnings []string
 	if chapter.ContentKind == "" {

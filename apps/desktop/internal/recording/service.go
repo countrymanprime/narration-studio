@@ -454,7 +454,7 @@ func (s *Service) SetTakeLine(takeName, entityID, sourceSHA256 string) error {
 	return nil
 }
 
-// SetTakeKeeper marks or unmarks takeName the keeper of its line (keeper.go, Q5): narrator-confirmed and always
+// SetTakeKeeper marks or unmarks takeName the keeper of its line (keeper.go): narrator-confirmed and always
 // undoable by marking it again with keeper false or by marking a different take of the same line. It publishes the
 // updated state afterward, like every other change here; it never touches the take's audio file.
 func (s *Service) SetTakeKeeper(takeName string, keeper bool) error {

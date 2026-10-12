@@ -24,8 +24,7 @@ const (
 	// unknown. Never treated as met (D2).
 	VerdictUnknown Verdict = "unknown"
 	// VerdictDismissed means the verdict would be recommended, but the
-	// narrator dismissed this exact basis; it returns when the basis changes
-	// (Q7).
+	// narrator dismissed this exact basis; it returns when the basis changes.
 	VerdictDismissed Verdict = "dismissed"
 	// VerdictNone means the chapter is not evaluated; NoneReason says why.
 	VerdictNone Verdict = "none"
@@ -36,10 +35,10 @@ type NoneReason string
 
 const (
 	// NoneStageNotEvaluated: the chapter's status is not_started, finalized
-	// or a value the engine does not know (Q4).
+	// or a value the engine does not know.
 	NoneStageNotEvaluated NoneReason = "stage_not_evaluated"
 	// NoneNoRequiredSignals: the stage's required set is empty, which never
-	// recommends (Q8).
+	// recommends.
 	NoneNoRequiredSignals NoneReason = "no_required_signals"
 )
 

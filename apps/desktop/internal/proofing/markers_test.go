@@ -60,7 +60,7 @@ func TestMarkerSourceCurrentWithOpenMarker(t *testing.T) {
 
 // TestMarkerSourceCurrentWithOnlyDoneMarkers: every marker resolved (the done
 // convention) still means the source ran for this chapter - it just has
-// nothing open, so it can vouch (Q3 option A: markers alone may vouch).
+// nothing open, so it can vouch (markers alone may vouch).
 func TestMarkerSourceCurrentWithOnlyDoneMarkers(t *testing.T) {
 	p := newTestProject(t)
 	p.project.Tracks[0].Items = []tracks.Item{audioItem("{ITEM-1}", "take.wav", 0, 10, 0)}
@@ -106,7 +106,7 @@ func TestMarkerSourcePropagatesTheChapterTrackProblem(t *testing.T) {
 	}
 }
 
-// TestMarkerSourceThroughTheProvider: registered as a Phase 1 source, an open
+// TestMarkerSourceThroughTheProvider: registered as a source, an open
 // marker makes the overall pickups signal not_met, naming the marker's text.
 func TestMarkerSourceThroughTheProvider(t *testing.T) {
 	p := newTestProject(t)
@@ -131,7 +131,7 @@ func TestMarkerSourceThroughTheProvider(t *testing.T) {
 
 // TestMarkerSourceAloneCanVouch: with no Compare or take-review run at all, a
 // current marker source with nothing open is enough to make the chapter met
-// (Q3 option A: a narrator who proofs only by markers is not blocked on tools
+// (a narrator who proofs only by markers is not blocked on tools
 // they never use).
 func TestMarkerSourceAloneCanVouch(t *testing.T) {
 	p := newTestProject(t)
