@@ -24,6 +24,12 @@ export type CommandDescriptor = {
   hint?: string;
   /** Where the row is listed. A row with `[]` shows nowhere and says why in a comment. Read through `commandsFor` in `surfaces.ts`. */
   surfaces?: readonly CommandSurface[];
+  /**
+   * Rows whose gesture this page row takes while its page is mounted. The catalogue cannot tell pages apart, but only one page
+   * is mounted at a time: there this row wins by scope priority, and on every other page the router falls through to the
+   * shadowed row. `findConflicts` skips each named pair and still reports any other row on the gesture.
+   */
+  shadows?: readonly CommandId[];
 };
 
 function key(code: string, modifiers: DefaultGesture['modifiers'] = [], source: GestureSource = 'keyboard'): DefaultGesture {
@@ -227,6 +233,45 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Bookmarks',
     surfaces: ['help', 'settings'],
   },
+  // The Script page's keys (SNB-7b; mock `pages/script/keys.ts`, `Reader.tsx` and `app/keys.ts`). `useScriptRegistry` registers the handlers while the
+  // page is mounted. Each takes a key another row holds, named in `shadows`: on Script these win by scope priority, and on every other page the router
+  // falls through to the shadowed row, so Ctrl+F still opens the jump menu there. Left and Right act only while the reader itself has focus.
+  {
+    id: 'script.find',
+    label: 'Find in the manuscript',
+    scope: 'page',
+    defaults: [key('KeyF', ['Mod'])],
+    shadows: ['jump.open'],
+    group: 'Script',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'script.prep.prev',
+    label: 'Previous prep state of the chapter in view',
+    scope: 'page',
+    defaults: [key('ArrowLeft')],
+    shadows: ['workspace.word.prev'],
+    group: 'Script',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'script.prep.next',
+    label: 'Next prep state of the chapter in view',
+    scope: 'page',
+    defaults: [key('ArrowRight')],
+    shadows: ['workspace.word.next'],
+    group: 'Script',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'script.escape',
+    label: 'Close Find, or the drawer',
+    scope: 'page',
+    defaults: [key('Escape')],
+    shadows: ['editing.escape'],
+    group: 'Script',
+    surfaces: ['help', 'settings'],
+  },
   // Not noisy: it starts or pauses the live listening/transcription session (`useTeleprompterSession`), which plays
   // no audio of its own - unlike `workspace.play`, a recorded-audio player (ADR 0361 decision 7).
   // The Booth's keys (mock `Booth.tsx` `registerKeys('booth')`). They act on the open page, so they list in the sheet and Settings
@@ -283,7 +328,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
-  // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script, where the Script page's own Find row wins by
+  // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script, where `script.find` shadows it and wins by
   // scope priority (SNR-Q1, ADR 0780 decision 6). Not in `jumpMenu`: the menu would list the command that opened it.
   {
     id: 'jump.open',

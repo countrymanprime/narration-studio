@@ -180,6 +180,61 @@ describe('CommandRouter', () => {
     expect(onFire).toHaveBeenCalledTimes(1);
   });
 
+  it('falls through to the row a page row shadows when the page row has no handler (Ctrl+F opens the jump menu off the Script page)', () => {
+    const source = fakeSource();
+    const jump = vi.fn();
+    const find: CommandDescriptor = { id: 'test.find', label: 'Find', scope: 'page', defaults: [], shadows: ['test.global'] };
+    render(
+      <CommandRouter source={source} catalog={[find, GLOBAL_COMMAND]} keymap={keymapFor(find, GLOBAL_COMMAND)}>
+        <CommandScope kind="page">
+          <Registrar id="test.global" onFire={jump} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP') }));
+
+    expect(jump).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes the page row over the global row it shadows once the page registers it', () => {
+    const source = fakeSource();
+    const jump = vi.fn();
+    const onFind = vi.fn();
+    const find: CommandDescriptor = { id: 'test.find', label: 'Find', scope: 'page', defaults: [], shadows: ['test.global'] };
+    render(
+      <CommandRouter source={source} catalog={[GLOBAL_COMMAND, find]} keymap={keymapFor(find, GLOBAL_COMMAND)}>
+        <CommandScope kind="page">
+          <Registrar id="test.global" onFire={jump} />
+          <Registrar id="test.find" onFire={onFind} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP') }));
+
+    expect(onFind).toHaveBeenCalledTimes(1);
+    expect(jump).not.toHaveBeenCalled();
+  });
+
+  it('takes whichever of two page rows on one gesture the mounted page registered, whatever their catalogue order', () => {
+    const source = fakeSource();
+    const onSecond = vi.fn();
+    const first: CommandDescriptor = { id: 'test.first', label: 'First', scope: 'page', defaults: [] };
+    const second: CommandDescriptor = { id: 'test.second', label: 'Second', scope: 'page', defaults: [], shadows: ['test.first'] };
+    render(
+      <CommandRouter source={source} catalog={[first, second]} keymap={keymapFor(first, second)}>
+        <CommandScope kind="page">
+          <Registrar id="test.second" onFire={onSecond} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP') }));
+
+    expect(onSecond).toHaveBeenCalledTimes(1);
+  });
+
   it('does not resolve a page-scoped command while a dialog is open on top', () => {
     const source = fakeSource();
     const onFire = vi.fn();

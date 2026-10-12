@@ -53,9 +53,9 @@ export function CommandScope({ kind, children }: { kind: Scope; children: ReactN
   return <>{children}</>;
 }
 
-function commandForGesture(catalog: readonly CommandDescriptor[], keymap: Keymap, scope: Scope, gesture: Gesture): CommandDescriptor | undefined {
+function commandsForGesture(catalog: readonly CommandDescriptor[], keymap: Keymap, scope: Scope, gesture: Gesture): CommandDescriptor[] {
   const wanted = serializeGesture(gesture);
-  return catalog.find((command) => command.scope === scope && (keymap[command.id] ?? []).some((bound) => serializeGesture(bound) === wanted));
+  return catalog.filter((command) => command.scope === scope && (keymap[command.id] ?? []).some((bound) => serializeGesture(bound) === wanted));
 }
 
 export type CommandRouterProps = {
@@ -76,11 +76,12 @@ export type CommandRouterProps = {
  * 2. For a gesture with no modifier held, applies the target guard (`targets.ts`) - a field or widget that owns the
  *    key keeps it, whatever scope is active.
  * 3. Looks up the keymap in scope-priority order (`SCOPE_PRIORITY`) and takes the first command bound to the
- *    gesture in an active scope.
+ *    gesture in an active scope that has a handler registered. Two rows share a gesture only where one `shadows` the
+ *    other, so off the shadowing row's page the gesture falls through to the shadowed row.
  * 4. If a `noisy` command is found while `isRecording()` is true, the gesture is still consumed (so nothing else
  *    reacts to it) but the handler does not run. A suppressed press posts "Not while recording." to a status
  *    region instead (ADR 0361 decision 7), so a narrator who cannot see the screen still gets feedback.
- * 5. A gesture no command takes, and a command whose catalog row has nothing registered yet, are left untouched.
+ * 5. A gesture no command takes, and one whose catalog rows have nothing registered yet, are left untouched.
  */
 export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, keymap, isRecording = () => false }: CommandRouterProps) {
   const resolvedKeymap = useMemo(() => keymap ?? defaultKeymap(catalog), [keymap, catalog]);
@@ -127,10 +128,10 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
       const active = activeScopes(scopeStack.current);
       for (const scope of SCOPE_PRIORITY) {
         if (!active.has(scope)) continue;
-        const command = commandForGesture(catalogRef.current, keymapRef.current, scope, event.gesture);
+        // A row with nothing registered (its page isn't mounted) is skipped; with none registered at all the gesture is left alone.
+        const command = commandsForGesture(catalogRef.current, keymapRef.current, scope, event.gesture).find((row) => handlers.current.has(row.id));
         if (!command) continue;
-        const handler = handlers.current.get(command.id);
-        if (!handler) return; // catalogued, but nothing registered yet (not migrated this phase, or its page isn't mounted): leave it alone
+        const handler = handlers.current.get(command.id)!;
         event.preventDefault();
         if (command.noisy && isRecordingRef.current()) {
           announceSuppressed();

@@ -46,6 +46,36 @@ describe('findConflicts', () => {
     expect(findConflicts(catalog, keymap)).toEqual([{ gesture: 'KeyP', commands: ['a', 'b'] }]);
   });
 
+  it('does not report a page row and a row it names in `shadows` (one page is mounted at a time, and the page row wins by scope)', () => {
+    const catalog: CommandDescriptor[] = [
+      { id: 'jump', label: 'Jump', scope: 'global', defaults: [] },
+      { id: 'find', label: 'Find', scope: 'page', defaults: [], shadows: ['jump'] },
+      { id: 'word', label: 'Word', scope: 'page', defaults: [] },
+      { id: 'prep', label: 'Prep', scope: 'page', defaults: [], shadows: ['word'] },
+    ];
+    const keymap: Keymap = {
+      jump: [gesture('keyboard', 'KeyF', ['Ctrl'])],
+      find: [gesture('keyboard', 'KeyF', ['Ctrl'])],
+      word: [gesture('keyboard', 'ArrowLeft')],
+      prep: [gesture('keyboard', 'ArrowLeft')],
+    };
+    expect(findConflicts(catalog, keymap)).toEqual([]);
+  });
+
+  it('still reports an unrelated row on a shadowed gesture: `shadows` exempts only the pair it names', () => {
+    const catalog: CommandDescriptor[] = [
+      { id: 'jump', label: 'Jump', scope: 'global', defaults: [] },
+      { id: 'find', label: 'Find', scope: 'page', defaults: [], shadows: ['jump'] },
+      { id: 'other', label: 'Other', scope: 'page', defaults: [] },
+    ];
+    const ctrlF = gesture('keyboard', 'KeyF', ['Ctrl']);
+    const keymap: Keymap = { jump: [ctrlF], find: [ctrlF], other: [ctrlF] };
+    expect(findConflicts(catalog, keymap)).toEqual([
+      { gesture: 'Ctrl+KeyF', commands: ['jump', 'other'] },
+      { gesture: 'Ctrl+KeyF', commands: ['find', 'other'] },
+    ]);
+  });
+
   it('does not report two commands bound to distinct gestures', () => {
     const catalog: CommandDescriptor[] = [
       { id: 'a', label: 'A', scope: 'global', defaults: [] },

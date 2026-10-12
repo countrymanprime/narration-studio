@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// The Script page's registrations over the mock host: what the sources answer once the lists load, the provider, the chapter keys, and that
+// The Script page's registrations over the mock host: what the sources answer once the lists load, the provider, the page's keys, and that
 // unmounting removes every one of them.
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
@@ -9,10 +9,11 @@ import { createMockApi } from '../../../../api/mockApi';
 import { gesture } from '../../../../input/gestures';
 import type { GestureEvent, InputSource } from '../../../../input/InputSource';
 import { CommandRouter, CommandScope } from '../../../../input/router';
+import { useCommand } from '../../../../input/useCommand';
 import { contextItemsFor } from '../../../../registries/context';
 import { searchAll } from '../../../../registries/search';
 import { StudioProvider } from '../../../../studio/StudioProvider';
-import { useChapters } from '../data/useScriptData';
+import { useChapters, useScriptPrep, useScriptView } from '../data/useScriptData';
 import { useScriptRegistry, type ScriptRegistryOptions } from './useScriptRegistry';
 
 afterEach(() => {
@@ -54,11 +55,18 @@ function setup(extra: Partial<ScriptRegistryOptions> = {}) {
   const hook = renderHook(
     () => {
       useScriptRegistry({ ...handlers, lines: () => [], kinds: ['Character'], currentChapterId: () => current, ...extra });
-      return useChapters();
+      const [view, update] = useScriptView((state) => state);
+      return { ...useChapters(), view, update, prepOf: useScriptPrep().prepOf };
     },
     { wrapper },
   );
-  return { hook, press, handlers, at: (id: string | null) => void (current = id) };
+  return { hook, press: (...args: Parameters<typeof press>) => act(() => void press(...args)), handlers, at: (id: string | null) => void (current = id) };
+}
+
+/** The reader's scroller as `Reader.tsx` draws it: the focusable region whose child is the `[data-reader]` text. */
+function reader(): HTMLElement {
+  document.body.innerHTML = '<div id="rd" role="region" tabindex="0"><div data-reader=""><p id="text">Words</p></div></div><input id="f" />';
+  return document.getElementById('rd')!;
 }
 
 describe('registrations', () => {
@@ -111,5 +119,141 @@ describe('registrations', () => {
     expect(contextItemsFor(document.getElementById('in')!)).toBeNull();
     press('ArrowDown', ['Alt']);
     expect(handlers.goToChapter).not.toHaveBeenCalled();
+  });
+
+  it('script-find-is-a-catalogue-row: Ctrl+F opens the Script’s Find and keeps the query, through the handler the page registers', async () => {
+    const { hook, press } = setup();
+    act(() => hook.result.current.update({ find: { open: false, q: 'rabbit', i: 2, list: false } }));
+    const nonce = hook.result.current.view.findNonce;
+    press('KeyF', ['Ctrl']);
+    expect(hook.result.current.view.find).toEqual({ open: true, q: 'rabbit', i: 2, list: true });
+    expect(hook.result.current.view.findNonce).toBe(nonce + 1);
+  });
+
+  it('script-find-is-a-catalogue-row: on every other page Ctrl+F still opens the jump menu, and on Script it does not', () => {
+    let listener: ((event: GestureEvent) => void) | undefined;
+    const source: InputSource = { subscribe: (onGesture) => ((listener = onGesture), () => void (listener = undefined)) };
+    const ctrlF = () => act(() => listener?.({ gesture: gesture('keyboard', 'KeyF', ['Ctrl']), target: null, preventDefault: () => {} }));
+    const jump = vi.fn();
+    function Jump() {
+      useCommand('jump.open', jump);
+      return null;
+    }
+    function Script() {
+      useScriptRegistry({
+        selectionAt: () => null,
+        openFind: vi.fn(),
+        showMark: vi.fn(),
+        showWord: vi.fn(),
+        showEntry: vi.fn(),
+        lookUp: vi.fn(),
+        copy: vi.fn(),
+        goToChapter: vi.fn(),
+        composeMark: vi.fn(),
+        lines: () => [],
+        kinds: [],
+        currentChapterId: () => null,
+      });
+      return null;
+    }
+    const tree = (onScript: boolean) => (
+      <ApiProvider api={createMockApi()}>
+        <StudioProvider>
+          <CommandRouter source={source}>
+            <Jump />
+            <CommandScope kind="page">{onScript ? <Script /> : null}</CommandScope>
+          </CommandRouter>
+        </StudioProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(false));
+    ctrlF();
+    expect(jump).toHaveBeenCalledTimes(1);
+    view.rerender(tree(true));
+    ctrlF();
+    expect(jump).toHaveBeenCalledTimes(1);
+    view.rerender(tree(false));
+    ctrlF();
+    expect(jump).toHaveBeenCalledTimes(2);
+  });
+
+  it('keys-follow-the-mock: Left and Right on the reader step the prep state of the chapter in view', async () => {
+    const { hook, press, at } = setup();
+    await waitFor(() => expect(hook.result.current.value?.length).toBeGreaterThan(1));
+    const id = hook.result.current.value![1].id;
+    at(id);
+    const scroller = reader();
+    const before = hook.result.current.prepOf(id);
+    const [key, after] = before === 'prepped' ? ['ArrowLeft', 'progress'] : ['ArrowRight', before === 'none' ? 'progress' : 'prepped'];
+    press(key, [], scroller);
+    await waitFor(() => expect(hook.result.current.prepOf(id)).toBe(after));
+  });
+
+  it('keys-follow-the-mock: Left and Right do nothing unless the reader itself has focus', async () => {
+    const { hook, press, at } = setup();
+    await waitFor(() => expect(hook.result.current.value?.length).toBeGreaterThan(1));
+    const id = hook.result.current.value![1].id;
+    at(id);
+    reader();
+    const before = hook.result.current.prepOf(id);
+    press('ArrowRight', [], document.getElementById('text'));
+    press('ArrowLeft', [], document.body);
+    press('ArrowRight', [], document.getElementById('f'));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(hook.result.current.prepOf(id)).toBe(before);
+  });
+
+  it('keys-follow-the-mock: Escape closes Find when no menu is open and no drawer shows', () => {
+    const { hook, press } = setup();
+    const scroller = reader();
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true } }));
+    press('Escape', [], scroller);
+    expect(hook.result.current.view.find.open).toBe(false);
+  });
+
+  it('keys-follow-the-mock: Escape closes the drawer and leaves Find open while a drawer shows', () => {
+    const { hook, press } = setup();
+    const scroller = reader();
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true }, drawer: 'rail' }));
+    press('Escape', [], scroller);
+    expect(hook.result.current.view.drawer).toBeNull();
+    expect(hook.result.current.view.find.open).toBe(true);
+  });
+
+  it('keys-follow-the-mock: Escape leaves Find open while a menu or popover is open (it closes itself), and still closes a drawer', () => {
+    const { hook, press } = setup();
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true } }));
+    document.body.innerHTML = '<div role="menu"><span id="item">Copy</span></div>';
+    press('Escape', [], document.getElementById('item'));
+    document.body.innerHTML = '<div id="page"></div><div data-popover-popup=""></div>';
+    press('Escape', [], document.getElementById('page'));
+    expect(hook.result.current.view.find.open).toBe(true);
+    act(() => hook.result.current.update({ drawer: 'ch' }));
+    press('Escape', [], document.getElementById('page'));
+    expect(hook.result.current.view.drawer).toBeNull();
+    expect(hook.result.current.view.find.open).toBe(true);
+  });
+
+  it('none fires while typing in a field: Escape and Ctrl+F', () => {
+    const { hook, press } = setup();
+    reader();
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true }, drawer: 'rail' }));
+    press('Escape', [], document.getElementById('f'));
+    expect(hook.result.current.view.drawer).toBe('rail');
+    expect(hook.result.current.view.find.open).toBe(true);
+    const nonce = hook.result.current.view.findNonce;
+    press('KeyF', ['Ctrl'], document.getElementById('f'));
+    expect(hook.result.current.view.findNonce).toBe(nonce);
+  });
+
+  it('unregister-on-unmount: the Script keys are gone too', () => {
+    const { hook, press } = setup();
+    const scroller = reader();
+    act(() => hook.result.current.update({ find: { open: false, q: '', i: 0, list: true } }));
+    const view = hook.result.current.view;
+    hook.unmount();
+    press('KeyF', ['Ctrl']);
+    press('Escape', [], scroller);
+    expect(view.find.open).toBe(false);
   });
 });
