@@ -69,6 +69,7 @@ import type {
   DawRollApi,
   DawFilesApi,
   DawStackTakesApi,
+  DawSplitTakeApi,
 } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
 import type { TakeEvidenceApi } from './contracts/takeEvidence';
@@ -87,6 +88,10 @@ import {
   rolledOf,
   stackOf,
   takesHiddenOf,
+  DAW_PROJECT,
+  splitOutsideAnswer,
+  splitTakeStaleAnswer,
+  takeSplitOf,
 } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -373,6 +378,7 @@ export function createMockApi(
       () => workspace.workspaceListFXChains(),
     ),
     ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createSplitTakeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFilesMock(daw, measurePicked),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
@@ -555,6 +561,25 @@ function createFxRangeMock(
       if (!plainChainName(chainName)) return refusedResult(DAW_ANSWERS.fxBadChain);
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ok: true, changed: true, message: fx.message, undoSteps: fx.undoSteps, ...(fx.steps ? { steps: fx.steps } : {}) };
+    },
+  };
+}
+
+/** DawSplitTake as bindings_daw_split.go answers it: the takes capability's sentence first, then a time that is not one, then a chapter the
+ * manuscript does not have or a take the sample project's track does not hold, and a cut outside it (code stale); then what the launch's
+ * DAW answers. The mock reads no track, so the takes are the fixtures' DAW_PROJECT.splitTakes. */
+function createSplitTakeMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawSplitTakeApi {
+  return {
+    async dawSplitTake(chapterId, takeId, at) {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.takes;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (!Number.isFinite(at) || at < 0) return refusedResult(DAW_ANSWERS.splitBadTime);
+      const take = (await hasChapter(chapterId)) ? DAW_PROJECT.splitTakes?.[takeId] : undefined;
+      if (!take) return { ...refusedResult(splitTakeStaleAnswer(setup.daw)), code: 'stale' };
+      if (at <= take.start || at >= take.start + take.length) return { ...refusedResult(splitOutsideAnswer(setup.daw)), code: 'stale' };
+      const split = takeSplitOf(setup);
+      return 'refused' in split ? refusedResult(split.refused) : { ok: true, changed: true, message: split.message, undoSteps: 1 };
     },
   };
 }

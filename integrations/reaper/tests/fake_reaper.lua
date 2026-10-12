@@ -911,7 +911,7 @@ function Fake:add_take_api(api)
     error('fake reaper: unmodelled take value ' .. tostring(key))
   end
   -- The setter counterpart of GetMediaItemTakeInfo_Value: D_STARTOFFS (the take-review source-offset alignment) and
-  -- D_VOL (hide_takes). The item D_LENGTH setter is below; only remove_fx_range's join sets it.
+  -- D_VOL (hide_takes). The item D_LENGTH setter is below (remove_fx_range's join, split_take).
   function api.SetMediaItemTakeInfo_Value(take, key, value)
     fake.calls[#fake.calls + 1] = { name = 'SetMediaItemTakeInfo_Value', key = key, value = value }
     if key == 'D_STARTOFFS' then
@@ -1321,8 +1321,8 @@ function Fake:add_lane_api(api)
         return a.position < b.position
       end)
     elseif key == 'D_LENGTH' then
-      -- remove_fx_range's join, the one command that sets an item's length: it lengthens the piece it keeps over the
-      -- pieces it folds back in.
+      -- remove_fx_range's join lengthens the piece it keeps over the pieces it folds back in; split_take ends the item
+      -- at its cut.
       item.length = value
     else
       error('fake reaper: unmodelled item value setter ' .. tostring(key))

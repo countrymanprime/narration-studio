@@ -181,6 +181,8 @@ export type DawProject = {
   fxChains?: readonly string[];
   /** The passages the DAW could stack (bindings_daw_stack.go names them `pm-<chapter>-<paragraph>`). */
   passageIds?: readonly string[];
+  /** The takes on a chapter's track the DAW could split, by id, with where each starts and how long it is in project seconds. */
+  splitTakes?: Readonly<Record<string, { start: number; length: number }>>;
 };
 
 export const DAW_PROJECT: DawProject = {
@@ -191,6 +193,7 @@ export const DAW_PROJECT: DawProject = {
   // The chains of tests/fixtures/contracts/workspace-fx-chains.json, so the mock lists what the host stand-in does.
   fxChains: ['Podcast Voice.RfxChain', 'Vocal Chain/Warmth.RfxChain'],
   passageIds: ['pm-chapter-1-p-1'],
+  splitTakes: { 'take-twice': { start: 10, length: 10 } },
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
@@ -244,6 +247,8 @@ export const DAW_ANSWERS = {
   /** bindings_daw_stack.go (SN-D72): a passage id the chapter's passage map does not list (code stale), and a kept take. */
   stackNotAPassage: "That passage is not one of this chapter's passages any more, so nothing was changed. Read the chapter again.",
   stackKept: 'A take of this passage has been kept, so its reads cannot be stacked or moved back.',
+  /** bindings_daw_split.go (SN-E94): a cut at a time that is not one. */
+  splitBadTime: 'A take can only be split at a time in the chapter.',
   /** bindings_daw_backups.go (SN-D82): a label that is empty, too long or holds a control character. */
   backupLabel: 'A backup needs a label of 1 to 256 bytes of plain text saying what it was made for.',
 } as const;
@@ -406,6 +411,34 @@ export function stackOf(setup: DawCapabilities, takes: number, unstack = false):
     default:
       return { message, undoSteps: 1 };
   }
+}
+
+/** dawport/reaper's takes role: a take cut into two takes of one item in `daw`, one undo step there. */
+export function takeSplitAnswer(daw: string): string {
+  return `Split the take into 2 takes in ${daw}. Undo it there in one step.`;
+}
+
+/** bindings_daw_split.go: a take the chapter's track no longer holds, and a cut outside it, both answered with code stale. */
+export function splitTakeStaleAnswer(daw: string): string {
+  return `That take is no longer on this chapter's track in the ${daw} project, so nothing was split. Read the project again.`;
+}
+export function splitOutsideAnswer(daw: string): string {
+  return `The cut is no longer inside that take in the ${daw} project, so nothing was split. Read the project again.`;
+}
+
+/** splitTakeStaleAnswer and splitOutsideAnswer for one of DAW_SETUPS, named for its DAW. */
+export function splitStaleOf(setup: DawCapabilities): { gone: string; outside: string } {
+  return { gone: splitTakeStaleAnswer(setup.daw), outside: splitOutsideAnswer(setup.daw) };
+}
+
+/** dawport/builtin's SplitTake: the recorder keeps each take as one file it lists, so it cannot cut one into two listed takes. */
+export const BUILTIN_NO_SPLIT = 'The built-in recorder cannot split a take into two yet: it keeps each take as one audio file and never rewrites one.';
+
+/** What a cut answers on one of DAW_SETUPS once `takes` is available, as its adapter words it: the built-in recorder refuses (the
+ * capability is the one the Booth's own take choice uses), and any other DAW cuts it in one undo step, naming itself. */
+export function takeSplitOf(setup: DawCapabilities): { refused: string } | { message: string } {
+  if (setup === DAW_SETUPS.builtin || setup.daw === 'none' || setup.daw === 'Built-in') return { refused: BUILTIN_NO_SPLIT };
+  return { message: takeSplitAnswer(setup.daw) };
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */

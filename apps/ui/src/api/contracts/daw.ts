@@ -212,6 +212,15 @@ export interface DawStackTakesApi {
   dawUnstackTakes(chapterId: string, passageIds: string[]): Promise<DawResult>;
 }
 
+/** DawSplitTake (SN-E94; apps/desktop/bindings_daw_split.go): cut `takeId`, a take of the chapter that reads its line twice, into two
+ * takes of one item at `at` (project seconds), in one undo step of the DAW's own; nothing is deleted. `takeId` is the take's id as the
+ * DAW reports it on the chapter's linked track now: the host looks it up there and sends the item and take it read itself. A capability
+ * refusal carries the `takes` capability's sentence; an engine that cannot split, and a time that is not one, are refused with a
+ * sentence; a take the track no longer holds, a cut outside it and a take that changed since the host read it are code `stale`. */
+export interface DawSplitTakeApi {
+  dawSplitTake(chapterId: string, takeId: string, at: number): Promise<DawResult>;
+}
+
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a
  * chapter's words before an edit, put a backup back, and list the backups. The page sends a chapter id, two token indices and the label
  * the list shows, or a backup id DawBackups listed; the host resolves the words' times and the chapter's track itself, and the DAW adds

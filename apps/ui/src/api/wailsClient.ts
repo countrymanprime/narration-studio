@@ -636,6 +636,7 @@ export const wailsClient: NarrationApi = {
     decode(dawResultSchema, 'DawRemoveFxFromRange', host.DawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName)),
   dawStackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawStackTakes', host.DawStackTakes(chapterId, passageIds)),
   dawUnstackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawUnstackTakes', host.DawUnstackTakes(chapterId, passageIds)),
+  dawSplitTake: (chapterId, takeId, at) => decode(dawResultSchema, 'DawSplitTake', host.DawSplitTake(chapterId, takeId, at)),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),

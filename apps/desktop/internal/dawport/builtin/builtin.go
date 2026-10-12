@@ -51,6 +51,9 @@ const (
 	MessageUnsupported = "Not available with the built-in recorder."
 	// MessageNotYet is a capability the app will make itself and has not built yet.
 	MessageNotYet = "Not available with the built-in recorder yet."
+	// MessageNoSplit is the takes role's answer to a split: the recorder lists every take file in its folder, so cutting one
+	// into two listed takes would leave the whole file listed beside them unless it deleted or rewrote it (CF-1: never).
+	MessageNoSplit = "The built-in recorder cannot split a take into two yet: it keeps each take as one audio file and never rewrites one."
 	// messageNotReady is a runtime refusal; the recorder is the app's own, so only a missing recorder causes one.
 	messageNotReady = "The built-in recorder is not ready. Open a project, then try again."
 )
@@ -169,6 +172,7 @@ type session struct {
 var (
 	_ dawport.Recorder     = (*session)(nil)
 	_ dawport.TakeSelector = (*session)(nil)
+	_ dawport.TakeSplitter = (*session)(nil)
 	_ dawport.RangeCutter  = (*session)(nil)
 )
 
@@ -263,4 +267,13 @@ func (s *session) DeleteRange(ctx context.Context, request dawport.DeleteRangeRe
 		return dawport.RefusedStale(err.Error()), nil
 	}
 	return dawport.OK("Cut the range from the take's edit list. The take file is kept as recorded.", true), nil
+}
+
+// SplitTake changes nothing and says why: every "Take NNN.wav" in the Recordings folder is a take (internal/recording's
+// listTakes), so two takes cut from one would be listed beside the whole one, and the recorder deletes and rewrites no take.
+func (s *session) SplitTake(ctx context.Context, _, _ string, _ float64) (dawport.Result, error) {
+	if _, err := s.ready(ctx); err != nil {
+		return dawport.Result{}, err
+	}
+	return dawport.Refused(MessageNoSplit), nil
 }
