@@ -27,6 +27,7 @@ import {
   pickupsImportedAnswer,
   RANGE_CUT_STEPS,
   rangeCutAnswer,
+  recordingFromAnswer,
   rolledAnswer,
   rolledReplacingAnswer,
   STACK_STEPS,
@@ -81,6 +82,7 @@ const GOLDEN_FILES = [
   'workspace-fx-chains.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
+  'readaloud-record-start-at.json',
   'workspace-use-take-done.json',
   'workspace-use-take-refused.json',
   'findings-add-marker.json',
@@ -169,6 +171,16 @@ function hostApi(): DawHostApi {
     dawCapabilities: () => Promise.resolve(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)),
     dawProjectState: () => Promise.resolve(read('daw-project-state-saved.json', dawProjectStateSchema)),
     readAloudRecordStart: (chapterId) => Promise.resolve(recording(known.chapterIds.includes(chapterId) ? 'ready.start' : 'track_missing.start')),
+    // ReadAloudRecordStartAt: the time is checked first, a chapter with no track is the start's stale refusal, and a start at 30 s is
+    // the started golden. Any other time has no golden.
+    readAloudRecordStartAt: (chapterId, at) => {
+      const startAt = goldens['readaloud-record-start-at.json'] as Record<string, unknown>;
+      const answer = (key: string) => parseWire(readAloudRecordingSchema, startAt[key], { boundary: 'daw contract', payload: key });
+      if (!Number.isFinite(at) || at < 0) return Promise.resolve(answer('bad_time'));
+      if (!known.chapterIds.includes(chapterId)) return Promise.resolve(recording('track_missing.start'));
+      if (at !== 30) return Promise.reject(new Error(`no golden for a record start at ${at} s`));
+      return Promise.resolve(answer('started'));
+    },
     readAloudRecordStop: () => Promise.resolve(recording('ready.stop')),
     workspaceUseTake: (chapterId, _first, _last, candidateId) =>
       Promise.resolve(
@@ -326,6 +338,17 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   { name: 'project-state-is-answered-alike', observe: (daw) => daw.projectState() },
   { name: 'unknown-chapter-is-refused-alike', observe: (daw) => daw.recordStart('no-such-chapter') },
   { name: 'known-chapter-is-accepted-alike', observe: (daw) => daw.recordStart('chapter-1') },
+  {
+    name: 'record-start-at-a-punch-starts-there',
+    check: async (daw) => {
+      expect(await daw.recordStart('chapter-1', 30)).toEqual({ ok: true, changed: true, message: recordingFromAnswer(30), undoSteps: 0 });
+      expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    },
+  },
+  { name: 'record-start-at-a-punch-starts-there: a start at a punch is answered alike', observe: (daw) => daw.recordStart('chapter-1', 30) },
+  { name: 'record-start-at-a-punch-starts-there: a negative time is refused alike', observe: (daw) => daw.recordStart('chapter-1', -1) },
+  { name: 'record-start-at-a-punch-starts-there: a time that is not a number is refused alike', observe: (daw) => daw.recordStart('chapter-1', Number.NaN) },
+  { name: 'record-start-at-a-punch-starts-there: an unknown chapter is refused stale alike', observe: (daw) => daw.recordStart('no-such-chapter', 30) },
   { name: 'stale-take-is-refused-alike', observe: (daw) => daw.useTake('chapter-1', 0, 4, 'stale-take') },
   {
     name: 'mock-refuses-stale-the-same-way: an old take or a missing track changes nothing and answers code stale',
@@ -512,6 +535,19 @@ describe('the host adapter maps each existing golden', () => {
     expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
   });
 
+  it('record-start-at-a-punch-starts-there: the host adapter sends a time to ReadAloudRecordStartAt and none to ReadAloudRecordStart', async () => {
+    const calls: string[] = [];
+    const spy = createHostDawClient({
+      ...hostApi(),
+      readAloudRecordStart: (chapterId) => (calls.push(`start ${chapterId}`), Promise.resolve(recording('ready.start'))),
+      readAloudRecordStartAt: (chapterId, at) => (calls.push(`start ${chapterId} at ${at}`), Promise.resolve(recording('ready.start'))),
+    });
+    await spy.recordStart('chapter-1');
+    await spy.recordStart('chapter-1', 30);
+    await spy.recordStart('chapter-1', 0);
+    expect(calls).toEqual(['start chapter-1', 'start chapter-1 at 30', 'start chapter-1 at 0']);
+  });
+
   it("dawclient-hide-takes: the host adapter answers the binding's DawResult as it is, the stale code and the capability refusal included", async () => {
     expect(await daw.hideTakes('chapter-1', 0, 4, 'take-1')).toEqual(read('daw-hide-takes-done.json', dawResultSchema));
     expect(await daw.hideTakes('chapter-1', 0, 4, 'take-solo')).toEqual(read('daw-hide-takes-nothing.json', dawResultSchema));
@@ -617,6 +653,21 @@ describe('the mock setups', () => {
     for (const result of [await mock.recordStart('chapter-1'), await mock.recordStop()]) {
       expect(result).toEqual({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
     }
+  });
+
+  it("record-start-at-a-punch-starts-there: the mock refuses a start at a time with the setup's punch sentence where it cannot place the cursor", async () => {
+    for (const id of ['builtin', 'reaper-off'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.punch.message ?? '';
+      const record = DAW_SETUPS[id].capabilities.record;
+      const expected = record.available ? sentence : (record.message ?? '');
+      expect(await createMockDawClient(DAW_SETUPS[id]).recordStart('chapter-1', 30), id).toEqual(refusal(expected));
+    }
+    expect(await createMockDawClient(DAW_SETUPS.reaper).recordStart('chapter-1', 12.25)).toEqual({
+      ok: true,
+      changed: true,
+      message: recordingFromAnswer(12.25),
+      undoSteps: 0,
+    });
   });
 
   it('mock-refuses-stale-the-same-way: the stale take answer is DAW_ANSWERS.staleTake with code stale', async () => {

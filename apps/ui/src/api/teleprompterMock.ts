@@ -8,6 +8,7 @@ import { recordedStreamSchema } from './schemas/teleprompter';
 import { parseWire } from './wire/parseWire';
 import { CREDITS_LABEL, creditsParagraphs, tokenize, wordOffsets, type CreditsKind } from '../components/booth/readerModel';
 import { mockRecordedEnd } from './chapterTrackMatchMock';
+import { DAW_ANSWERS, recordingFromAnswer } from '../fixtures/daw';
 import { seedLastReading, seedLocateResult, seedTrackMatch, type LocateDraft, type MockResumeSeed } from './resumeMockSeed';
 import type {
   ChapterTrackMatch,
@@ -693,6 +694,15 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       const chapter = findChapter(chapterId);
       if (!chapter) throw new Error('that chapter is not part of the current manuscript');
       return mockReadAloudRecording(deps.reaper ?? 'ready', 'start', chapterDisplayTitle(chapter));
+    },
+    // ReadAloudRecordStartAt checks the time before anything else, then answers as a start does, from the punch.
+    readAloudRecordStartAt: async (chapterId, at) => {
+      await deps.ready;
+      if (!Number.isFinite(at) || at < 0) return { outcome: 'refused', reason: 'bad_time', message: DAW_ANSWERS.recordBadTime };
+      const chapter = findChapter(chapterId);
+      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
+      const started = mockReadAloudRecording(deps.reaper ?? 'ready', 'start', chapterDisplayTitle(chapter));
+      return started.outcome === 'started' ? { ...started, position: at, message: recordingFromAnswer(at) } : started;
     },
     readAloudRecordStop: async () => {
       await deps.ready;
