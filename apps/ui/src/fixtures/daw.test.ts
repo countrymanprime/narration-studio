@@ -79,9 +79,9 @@ describe('the mock DAW setups', () => {
   });
 
   it.each(['reaper', 'reaper-off'] as const)(
-    'ui-mirror-names-exactly-the-go-catalogue: %s declares the edit capabilities not yet available with the host sentence',
+    'ui-mirror-names-exactly-the-go-catalogue: %s declares the edit capabilities with no bridge command not yet available with the host sentence',
     (id) => {
-      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['cut_range', 'fx_range', 'stack_takes', 'backups'].includes(c.key))) {
+      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['fx_range', 'stack_takes', 'backups'].includes(c.key))) {
         expect(DAW_SETUPS[id].capabilities[key], key).toEqual({
           level: 'not_yet_available',
           available: false,
@@ -95,6 +95,12 @@ describe('the mock DAW setups', () => {
   it.each(['reaper', 'reaper-off'] as const)('mock-setup-agrees-with-the-host: %s declares punch native and not destructive', (id) => {
     expect(DAW_SETUPS[id].capabilities.punch.mode).toBe('native');
     expect(DAW_SETUPS[id].capabilities.punch.destructive).toBeUndefined();
+  });
+
+  it.each(['reaper', 'reaper-off'] as const)('mock-setup-agrees-with-the-host: %s declares cut_range experimental, native and not destructive', (id) => {
+    expect(DAW_SETUPS[id].capabilities.cut_range.level).toBe('experimental');
+    expect(DAW_SETUPS[id].capabilities.cut_range.mode).toBe('native');
+    expect(DAW_SETUPS[id].capabilities.cut_range.destructive).toBeUndefined();
   });
 
   it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {

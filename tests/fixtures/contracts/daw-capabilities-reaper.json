@@ -14,9 +14,10 @@
     },
     "cut_range": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Cut words and audio is not available with REAPER yet.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "native",
+      "reason": "experimental_off"
     },
     "fx_chains": {
       "available": false,

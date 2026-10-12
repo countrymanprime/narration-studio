@@ -47,7 +47,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   render_with_fx: 'experimental',
   master_chain_read: 'experimental',
   macro_render: 'unsupported',
-  cut_range: 'not_yet_available',
+  cut_range: 'experimental',
   fx_range: 'not_yet_available',
   stack_takes: 'not_yet_available',
   backups: 'not_yet_available',
@@ -205,9 +205,13 @@ function supportFor(daw: DawKind, key: DawCapabilityKey, seed: DawMockSeed, conn
   return { level, available: true };
 }
 
-/** REAPER's Describer (dawport/reaper's depthOf): a roll keeps the earlier audio as a take, so punch is native and not
- * destructive (ADR 0860 point 1). No other engine declares a depth yet. */
-const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = { punch: { mode: 'native' } };
+/** REAPER's Describer (dawport/reaper's depthOf): a roll keeps the earlier audio as a take and a cut moves the audio to the
+ * muted Cuts track, so punch and cut_range are native and not destructive (ADR 0860 points 1 and 2). No other engine declares
+ * a depth yet. */
+const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = {
+  punch: { mode: 'native' },
+  cut_range: { mode: 'native' },
+};
 
 /** Like the host's payload, `destructive` only when true and `mode` only when set. */
 function withDepth(support: DawCapabilitySupport, depth: { destructive?: boolean; mode?: DawCapabilityMode } | undefined): DawCapabilitySupport {

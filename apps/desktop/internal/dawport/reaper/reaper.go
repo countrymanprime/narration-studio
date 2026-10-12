@@ -43,7 +43,8 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
-	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read.
+	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read;
+	// delete_range.
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -62,9 +63,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so this is Unsupported,
 	// not NotYetAvailable (port.go's own example is exactly this shape, the other way around: "Audacity has no punch-and-roll").
 	dawport.CapMacroRender: dawport.Unsupported,
-	// The edit rows (SND-3): REAPER can make each edit, but the bridge has no command for them yet. Each command slice flips its own row
-	// to Experimental.
-	dawport.CapCutRange:   dawport.NotYetAvailable,
+	// The edit rows (SND-3): cut_range is delete_range's (SN-D62, narration_range.lua). REAPER can make the others, but the bridge has
+	// no command for them yet; each command slice flips its own row to Experimental.
+	dawport.CapCutRange:   dawport.Experimental,
 	dawport.CapFXRange:    dawport.NotYetAvailable,
 	dawport.CapStackTakes: dawport.NotYetAvailable,
 	dawport.CapBackups:    dawport.NotYetAvailable,
@@ -90,6 +91,7 @@ var commandCapability = map[string]dawport.Capability{
 	"list_fx":             dawport.CapFXChains,
 	"add_take_fx":         dawport.CapFXChains,
 	"master_chain_read":   dawport.CapMasterChainRead,
+	"delete_range":        dawport.CapCutRange,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -195,6 +197,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapItemGain:        bridge.NewLevelMatchClient(client),
 			dawport.CapRenderWithFX:    fxRenderer{commands},
 			dawport.CapMasterChainRead: masterChainReader{actions},
+			dawport.CapCutRange:        rangeCutter{actions, allowed},
 		},
 	}, nil
 }
@@ -217,9 +220,10 @@ func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) 
 
 // depthOf: a roll keeps the earlier audio as a take (ADR 0860 point 1), so punch is not destructive, and REAPER makes it
 // itself. That rests on the overlapping-recording setting the roll command reads and refuses without; the QA pass (#1495)
-// confirms that setting keeps the audio.
+// confirms that setting keeps the audio. A cut moves the middle piece to the muted Cuts track and deletes nothing (point 2),
+// so cut_range is not destructive either.
 func depthOf(c dawport.Capability) dawport.Depth {
-	if c == dawport.CapPunch {
+	if c == dawport.CapPunch || c == dawport.CapCutRange {
 		return dawport.Depth{Mode: dawport.ModeNative}
 	}
 	return dawport.Depth{}
@@ -336,5 +340,54 @@ func hiddenMessage(got bridge.TakesHidden) string {
 		return "No other take to mute in REAPER; the kept take is the active one."
 	default:
 		return "No other take to mute in REAPER."
+	}
+}
+
+// rangeCutter is the cut_range role over bridge's delete_range, answering a dawport.Result (ADR 0810), which bridge cannot import.
+type rangeCutter struct {
+	actions *bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.RangeCutter = rangeCutter{}
+
+// DeleteRange splits the request's item at both ends of the range and moves the middle piece to the muted Cuts track, in one
+// undo step (bridge's delete_range). It asks allowed itself first, so a refusal is the capability's own sentence rather than
+// bridge's ErrExperimentalOff.
+func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequest) (dawport.Result, error) {
+	if r.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapCutRange)); ok {
+			return refused, nil
+		}
+	}
+	got, err := r.actions.DeleteRange(ctx, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs)
+	var stale *bridge.StaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), nil
+	case errors.Is(err, bridge.ErrBadRange):
+		return dawport.Refused("The range to cut is not a usable pair of times."), nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), nil
+	case err != nil:
+		return dawport.Result{}, err
+	}
+	return dawport.OK(cutMessage(request.Words), true).WithUndoSteps(got.UndoPoints), nil
+}
+
+// cutMessage words a cut as the mock does (studio-next/src/state/daw.ts, deleteRange).
+func cutMessage(words int) string {
+	switch {
+	case words <= 0:
+		return "Deleted the words and their audio in REAPER."
+	case words == 1:
+		return "Deleted 1 word and their audio in REAPER."
+	default:
+		return fmt.Sprintf("Deleted %d words and their audio in REAPER.", words)
 	}
 }

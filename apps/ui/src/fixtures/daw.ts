@@ -44,7 +44,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   render_with_fx: 'experimental',
   master_chain_read: 'experimental',
   macro_render: 'unsupported',
-  cut_range: 'not_yet_available',
+  cut_range: 'experimental',
   fx_range: 'not_yet_available',
   stack_takes: 'not_yet_available',
   backups: 'not_yet_available',
@@ -68,8 +68,12 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
   ]),
 );
 
-/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, so punch is native and not destructive (ADR 0860). */
-const REAPER_DEPTH: Rows = { punch: { level: 'experimental', available: true, mode: 'native' } };
+/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take and a cut moves the audio to the muted Cuts track,
+ * so punch and cut_range are native and not destructive (ADR 0860). */
+const REAPER_DEPTH: Rows = {
+  punch: { level: 'experimental', available: true, mode: 'native' },
+  cut_range: { level: 'experimental', available: true, mode: 'native' },
+};
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
   macro_render: macroUnsupported,
@@ -85,6 +89,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
     macro_render: macroUnsupported,
     ...REAPER_NOT_YET,
     punch: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+    cut_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
   },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
