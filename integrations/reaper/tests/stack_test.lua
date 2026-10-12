@@ -24,6 +24,13 @@ local STALE = '{FFFFFFFF-0000-4000-8000-00000000FFFF}'
 
 -- Chapter 1: an intro (0-8), the first read (10-15), two retries (16-20 and 21-26) and a later passage (30-35); a second
 -- track's item spans the same time (12-40) and must never move.
+-- A read's audio file, written in the session folder: the script refuses a read whose file is not on disk.
+local function audio(s, name)
+  local path = s:path(name)
+  H.write_file(path, 'RIFF')
+  return path
+end
+
 local function project()
   local s = H.session()
   local chapter = s.fake:add_track('Chapter 1')
@@ -31,8 +38,8 @@ local function project()
   local p = { chapter = chapter, other = other }
   p.intro = s.fake:add_item(chapter, { position = 0, length = 8, source = 'intro.wav' })
   p.base = s.fake:add_item(chapter, { guid = BASE, take_guid = BASE_TAKE, position = 10, length = 5, source = 'read1.wav' })
-  p.retry1 = s.fake:add_item(chapter, { guid = RETRY1, take_guid = RETRY1_TAKE, position = 16, length = 4, source = 'read2.wav', startoffs = 1.5 })
-  p.retry2 = s.fake:add_item(chapter, { guid = RETRY2, take_guid = RETRY2_TAKE, position = 21, length = 5, source = 'read3.wav' })
+  p.retry1 = s.fake:add_item(chapter, { guid = RETRY1, take_guid = RETRY1_TAKE, position = 16, length = 4, source = audio(s, 'read2.wav'), startoffs = 1.5 })
+  p.retry2 = s.fake:add_item(chapter, { guid = RETRY2, take_guid = RETRY2_TAKE, position = 21, length = 5, source = audio(s, 'read3.wav') })
   p.later = s.fake:add_item(chapter, { position = 30, length = 5, source = 'later.wav' })
   p.elsewhere = s.fake:add_item(other, { position = 12, length = 28, source = 'ch2.wav' })
   s.fake.calls = {}
@@ -42,7 +49,7 @@ end
 -- A second passage after the first: its first read (40-44) and one retry (45-49), and an item after it (52-55).
 local function second_passage(s, p)
   p.base_b = s.fake:add_item(p.chapter, { guid = BASE_B, take_guid = BASE_B_TAKE, position = 40, length = 4, source = 'b1.wav' })
-  p.retry_b = s.fake:add_item(p.chapter, { guid = RETRY_B, take_guid = RETRY_B_TAKE, position = 45, length = 4, source = 'b2.wav' })
+  p.retry_b = s.fake:add_item(p.chapter, { guid = RETRY_B, take_guid = RETRY_B_TAKE, position = 45, length = 4, source = audio(s, 'b2.wav') })
   p.last = s.fake:add_item(p.chapter, { position = 52, length = 3, source = 'end.wav' })
   s.fake.calls = {}
 end
@@ -102,7 +109,7 @@ end
 local function sources(item)
   local out = {}
   for _, take in ipairs(item.takes) do
-    out[#out + 1] = take.source.file
+    out[#out + 1] = take.source.file:match('[^/\\]+$')
   end
   return out
 end
@@ -307,6 +314,22 @@ H.test('all-or-nothing-validation: what REAPER cannot stack is refused before an
       'A read with a changed playback rate cannot be stacked.',
     },
     {
+      'a MIDI read',
+      function(_, p)
+        p.retry1.takes[1].midi = true
+      end,
+      stack_lines(),
+      'A MIDI read cannot be stacked.',
+    },
+    {
+      'a read whose audio file is no longer on disk',
+      function(_, p)
+        os.remove(p.retry2.takes[1].source.file)
+      end,
+      stack_lines(),
+      'The audio file of a read to stack is missing, so nothing was stacked.',
+    },
+    {
       'the first read named as a retry',
       nil,
       { 'shift|0', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. BASE_TAKE .. '|10|10|5' },
@@ -335,6 +358,33 @@ H.test('all-or-nothing-validation: nothing changes while REAPER records or witho
   s.fake.play_state = 0
   s.fake:remove_api('AddTakeToMediaItem')
   refused(s, p, stack_lines(), { 'ERROR', 's1', 'This REAPER version cannot stack takes.' })
+end)
+
+H.test('all-or-nothing-validation: another take of the first item named as a read is refused', function()
+  local s, p = project()
+  local own = s.fake.reaper.AddTakeToMediaItem(p.base)
+  s.fake.reaper.SetMediaItemTake_Source(own, s.fake.reaper.PCM_Source_CreateFromFile(audio(s, 'pass1.wav')))
+  s.fake.calls = {}
+  local tracks = #s.fake.tracks
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', { 'shift|0', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. own.guid .. '|10|10|5' }))
+  H.eq(s:events(), { { 'ERROR', 's1', 'The stacking request is not readable, so nothing changed.' } })
+  H.truthy(p.base.track == p.chapter, 'the first read is not moved to the Cuts track')
+  H.eq(#p.base.takes, 2)
+  H.eq(#s.fake.tracks, tracks)
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('all-or-nothing-validation: a first read on the Cuts track is refused', function()
+  local s, p = project()
+  local cuts = s.fake:add_track('Cuts')
+  cuts.ext[CUTS_KEY] = '1'
+  s.fake.reaper.MoveMediaItemToTrack(p.base, cuts)
+  s.fake.calls = {}
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
+  H.eq(s:events(), { { 'ERROR', 's1', 'That audio is already on the Cuts track.' } })
+  H.eq(#p.base.takes, 1)
+  H.eq(calls_named(s, 'MoveMediaItemToTrack'), 0)
+  H.eq(#s.fake.undo, 0)
 end)
 
 H.test('all-or-nothing-validation: a read already on the Cuts track is refused', function()
@@ -415,17 +465,40 @@ H.test('unstack-restores-by-recorded-offsets: one Undo stacks them again', funct
   H.eq(positions(p.chapter), { 0, 10, 19 })
 end)
 
-H.test('unstack-restores-by-recorded-offsets: one take of a stack goes back and the other stays', function()
+H.test('unstack-restores-by-recorded-offsets: one take of a stack cannot go back without the others', function()
   local s, p = project()
   s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
   s:events()
-  -- Back out only the second retry: it ends at 21 + 5 - 10 = 16 s past the first read's start, so the audio after moves
-  -- out by 16 - 5 = 11 s again.
-  s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', { 'shift|11', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. RETRY2_TAKE .. '|10|21|5' }))
-  H.eq(s:events(), { { 'TAKES_UNSTACKED', 'u1', '1', '1', '11.000', '1' } })
+  s.fake.calls = {}
+  -- Moving only one read back would open the gap for it alone, and a later un-stack of the other would move the first
+  -- one again with the audio after it: every offset is from the same stack, so the stack goes back whole.
+  for _, move in ipairs({ 'move|' .. RETRY2_TAKE .. '|10|21|5', 'move|' .. RETRY1_TAKE .. '|10|16|4' }) do
+    local shift = move:find(RETRY2_TAKE, 1, true) and 'shift|11' or 'shift|5'
+    s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', { shift, 'group|' .. BASE .. '|' .. BASE_TAKE, move }))
+    H.eq(s:events(), { { 'ERROR', 'u1', 'Every take stacked on that first read goes back together, so nothing was moved back.' } })
+  end
+  H.eq(sources(p.base), { 'read1.wav', 'read2.wav', 'read3.wav' })
+  H.eq(positions(p.chapter), { 0, 10, 19 })
+  H.eq(calls_named(s, 'SetItemStateChunk'), 0)
+  H.eq(calls_named(s, 'MoveMediaItemToTrack'), 0)
+  H.eq(s.fake:undo_labels(), { STACK_LABEL })
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('stack-makes-later-reads-takes-of-the-first-item: a first read that already carries stacked takes is refused', function()
+  local s, p = project()
+  -- A second stack's offsets would be from the chapter as the first stack left it, so one un-stack could not put both
+  -- back: the narrator moves the first stack back before stacking again.
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', { 'shift|-5', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. RETRY1_TAKE .. '|16|10|4' }))
+  H.eq(s:events()[1][1], 'TAKES_STACKED')
+  s.fake.calls = {}
+  s:send('stack_takes', 's2', payload(s, 'stack2.txt', { 'shift|-6', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. RETRY2_TAKE .. '|16|10|5' }))
+  H.eq(s:events(), { { 'ERROR', 's2', 'That first read already has stacked takes. Move them back first, so nothing was stacked.' } })
   H.eq(sources(p.base), { 'read1.wav', 'read2.wav' })
-  H.eq(positions(p.chapter), { 0, 10, 21, 30 })
-  H.truthy(p.retry1.track == cuts_track(s))
+  H.eq(p.retry2.position, 16)
+  H.truthy(p.retry2.track == p.chapter)
+  H.eq(calls_named(s, 'AddTakeToMediaItem'), 0)
+  H.eq(s.fake:undo_labels(), { STACK_LABEL })
 end)
 
 H.test('unstack-restores-by-recorded-offsets: an earlier passage unstacked while a later one is stacked restores both', function()
@@ -557,13 +630,66 @@ end)
 
 H.test('unstack-restores-by-recorded-offsets: an active take the narrator chose stays active', function()
   local s, p = project()
+  -- A take the first read already had (an earlier pass kept by a roll) is not stacked and stays.
+  local own = s.fake.reaper.AddTakeToMediaItem(p.base)
+  s.fake.reaper.SetMediaItemTake_Source(own, s.fake.reaper.PCM_Source_CreateFromFile('pass1.wav'))
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
+  H.eq(s:events()[1][1], 'TAKES_STACKED')
+  s.fake.reaper.SetActiveTake(own)
+  s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', unstack_lines()))
+  H.eq(s:events()[1][1], 'TAKES_UNSTACKED')
+  H.eq(s.fake.reaper.GetActiveTake(p.base).guid, own.guid)
+  H.eq(sources(p.base), { 'read1.wav', 'pass1.wav' })
+end)
+
+H.test('unstack-restores-by-recorded-offsets: a first read moved to another track since the stack answers ITEM_STALE', function()
+  local s, p = project()
   s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
   s:events()
-  s.fake.reaper.SetActiveTake(p.base.takes[2])
-  s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', { 'shift|11', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. RETRY2_TAKE .. '|10|21|5' }))
-  H.eq(s:events()[1][1], 'TAKES_UNSTACKED')
-  H.eq(s.fake.reaper.GetActiveTake(p.base).guid, p.base.takes[2].guid)
-  H.eq(p.base.takes[2].source.file, 'read2.wav')
+  s.fake.reaper.MoveMediaItemToTrack(p.base, p.other)
+  s.fake.calls = {}
+  s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', unstack_lines()))
+  H.eq(s:events(), { { 'ITEM_STALE', 'u1', BASE, 'item' } })
+  H.eq(#p.base.takes, 3)
+  H.truthy(p.retry1.track == cuts_track(s))
+  H.eq(calls_named(s, 'SetItemStateChunk'), 0)
+  H.eq(s.fake:undo_labels(), { STACK_LABEL })
+end)
+
+H.test('unstack-restores-by-recorded-offsets: a state chunk that does not list the stacked takes changes nothing', function()
+  local s, p = project()
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
+  s:events()
+  local get = s.fake.reaper.GetItemStateChunk
+  s.fake.reaper.GetItemStateChunk = function(item, ...)
+    local ok, chunk = get(item, ...)
+    return ok, (chunk:gsub('\nTAKE[^\n]*', ''))
+  end
+  s.fake.calls = {}
+  s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', unstack_lines()))
+  H.eq(s:events(), { { 'ERROR', 'u1', 'REAPER did not list the stacked takes, so nothing was moved back.' } })
+  H.eq(#p.base.takes, 3)
+  H.eq(positions(p.chapter), { 0, 10, 19 })
+  H.eq(calls_named(s, 'SetItemStateChunk'), 0)
+  H.eq(s.fake:undo_labels(), { STACK_LABEL })
+end)
+
+H.test('unstack-restores-by-recorded-offsets: nothing changes while REAPER records or without the calls it needs', function()
+  local s, p = project()
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
+  s:events()
+  s.fake.calls = {}
+  s.fake.play_state = 5
+  s:send('unstack_takes', 'u1', payload(s, 'unstack.txt', unstack_lines()))
+  H.eq(s:events(), { { 'ERROR', 'u1', 'REAPER is recording. Stop recording first.' } })
+  s.fake.play_state = 0
+  s.fake:remove_api('SetItemStateChunk')
+  s:send('unstack_takes', 'u2', payload(s, 'unstack.txt', unstack_lines()))
+  H.eq(s:events(), { { 'ERROR', 'u2', 'This REAPER version cannot un-stack takes.' } })
+  H.eq(#p.base.takes, 3)
+  H.eq(positions(p.chapter), { 0, 10, 19 })
+  H.eq(calls_named(s, 'MoveMediaItemToTrack'), 0)
+  H.eq(s.fake:undo_labels(), { STACK_LABEL })
 end)
 
 H.test('unstack-restores-by-recorded-offsets: nothing to move back opens no undo block', function()

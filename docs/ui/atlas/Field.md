@@ -29,9 +29,6 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 
 ## Used by
 
-- `src/components/booth/BoothPage.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/MicrophoneField.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
@@ -40,10 +37,7 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - `src/components/pickups/list/AddPickup.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/project/NewProjectDialog.tsx`
-- `src/components/proof/FindingDetail.tsx`
 - `src/components/proof/FlagsPanel.tsx`
-- `src/components/proof/TakeReviewReads.tsx`
-- `src/components/proof/TakeReviewScanDialog.tsx`
 - `src/components/proof/inspector/Inspector.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/script/page/tools/select/MarkComposer.tsx`

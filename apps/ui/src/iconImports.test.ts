@@ -34,7 +34,6 @@ const CEILING: Record<string, number> = {
   'src/components/proof/FlagsPanel.tsx': 3,
   'src/components/proof/NativeTakesPanel.tsx': 3,
   'src/components/proof/PreviewPanel.tsx': 9,
-  'src/components/proof/ProofPage.tsx': 2,
   'src/components/proof/TakesPanel.tsx': 4,
   'src/components/proof/TransportBar.tsx': 5,
   'src/components/storybible/Guide.tsx': 5,

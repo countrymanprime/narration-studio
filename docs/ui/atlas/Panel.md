@@ -26,9 +26,8 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 
 ## Used by
 
-- `src/components/booth/BoothPage.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
 - `src/components/booth/ReadAlongView.tsx`
+- `src/components/booth/page/BoothNextPage.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
@@ -52,7 +51,6 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/masterqc/files/FilesTable.tsx`
 - `src/components/masterqc/page/MasterPage.tsx`
 - `src/components/masterqc/page/PackageChecks.tsx`
-- `src/components/pickups/PickupsPage.tsx`
 - `src/components/pickups/list/SessionPanel.tsx`
 - `src/components/production/ProductionPage.tsx`
 - `src/components/production/RemovedFromRecordingList.tsx`
@@ -63,17 +61,12 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/production/pipeline/NoManuscript.tsx`
 - `src/components/production/useChapterTools.tsx`
 - `src/components/project/ProjectPicker.tsx`
-- `src/components/proof/ChapterWaveformCard.tsx`
 - `src/components/proof/CompareRun.tsx`
-- `src/components/proof/FindingDetail.tsx`
 - `src/components/proof/FlagsPanel.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
-- `src/components/proof/NotesHeader.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`
-- `src/components/proof/ProofPage.tsx`
 - `src/components/proof/ProofingStagePanel.tsx`
-- `src/components/proof/RecordingCheckCard.tsx`
 - `src/components/proof/ScriptView.tsx`
 - `src/components/proof/TakesPanel.tsx`
 - `src/components/proof/TransportBar.tsx`

@@ -41,7 +41,6 @@ import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
 import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
 import { ProofChapterPage } from './components/proof/ProofChapterPage';
-import { saveLastChapter } from './components/proof/lastChapterStorage';
 import { ProofPage } from './components/proof/ProofPage';
 import { PickupsPage } from './components/pickups/PickupsPage';
 import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLocation';
@@ -51,7 +50,7 @@ import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
 import type { ProductionOverview } from './api/contracts/production';
-import { masterHash, parseMasterHash } from './components/master/masterLink';
+import { parseMasterHash } from './components/master/masterLink';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -533,12 +532,8 @@ function AppRoutes() {
   // A chapter's Proof view ("Open in workspace"): from Proof's notes, the Production board and Script. findingId is the deep link's ?finding=, so the
   // chapter view lands on the flag that finding backs (Navigation and deep links).
   const goToProofChapter = (chapterId: string, findingId?: string) => {
-    // Proof's book-level waveform card opens on the last chapter the narrator looked at (ADR 0750).
-    saveLastChapter(data.projectFolder, chapterId);
     guardedNavigate(`/proof/${encodeURIComponent(chapterId)}${findingId ? `?finding=${encodeURIComponent(findingId)}` : ''}`);
   };
-  // A delivery finding opens Master & QC on its file and rule: "#file=<path>&rule=<id>" (masterLink.ts).
-  const goToMaster = (file: string, rule?: string) => guardedNavigate(`/master${masterHash({ file, ...(rule ? { rule } : {}) })}`);
   // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
   const goToBooth = (target: { chapter: string } | { credits: CreditsKind }) => guardedNavigate(`/booth${boothQuery(target)}`);
 
@@ -690,7 +685,6 @@ function AppRoutes() {
                         transcript={data.transcript}
                         dawFileLinked={data.dawFileLinked}
                         goToManuscript={goToScript}
-                        goToStoryBible={goToStoryBible}
                         refreshKey={`${data.manuscript.id}:${data.manuscript.importedAt}`}
                       />
                     ) : (
@@ -708,19 +702,20 @@ function AppRoutes() {
                   path="/proof"
                   element={
                     <ProofPage
-                      notify={setNotice}
-                      projectFolder={data.projectFolder}
                       hasManuscript={Boolean(data.manuscript)}
-                      goToManuscript={goToScript}
-                      goToStoryBible={goToStoryBible}
-                      goToWorkspace={(chapterId, findingId) => goToProofChapter(chapterId, findingId)}
-                      goToMaster={goToMaster}
-                      openChapter={(chapterId) => goToProofChapter(chapterId)}
+                      projectFolder={data.projectFolder}
+                      goTo={guardedNavigate}
+                      goToScript={(chapterId) => goToScript(chapterId)}
+                      goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
+                      goToEditing={goToProofChapter}
                     />
                   }
                 />
                 {/* Pickups replaces the Tracks page's Pickups dialog, which had no route. */}
-                <Route path="/pickups" element={<PickupsPage />} />
+                <Route
+                  path="/pickups"
+                  element={<PickupsPage hasManuscript={Boolean(data.manuscript)} goTo={guardedNavigate} goToScript={(chapterId) => goToScript(chapterId)} />}
+                />
                 {/* Retired by Proof (ADR 0407): old links land, query and hash kept. */}
                 <Route path="/review" element={<RedirectKeepingLocation to="/proof" />} />
                 <Route path="/proofing" element={<RedirectKeepingLocation to="/proof" />} />

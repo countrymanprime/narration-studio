@@ -65,7 +65,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/useCapability.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', 'Seeds the entry useCapability exposes before the very next daw_capabilities_changed event takes over; a failed seed just leaves the capability unsupported/unavailable a moment longer, the same as an unknown capability.'),
   'src/useCapability.ts::subscribeDawCapabilities#1': subscription("The DAW port's capability report: every caller of useCapability for the same or a different capability reads this one subscription."),
 
-  // useDawKind.ts: the session's DAW kind, for FindingDetail's take-management gating.
+  // useDawKind.ts: the session's DAW kind, for the take-management gating.
   'src/useDawKind.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', "Seeds the kind useDawKind exposes before the very next daw_capabilities_changed event takes over; a failed seed just leaves the kind unknown a moment longer, the same as before the first answer."),
   'src/useDawKind.ts::subscribeDawCapabilities#1': subscription("The DAW port's capability report, the same event useCapability reads: a second subscription, since useDawKind wants the whole payload's daw field rather than one capability's entry."),
 

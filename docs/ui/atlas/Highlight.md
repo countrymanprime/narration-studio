@@ -29,7 +29,6 @@ Storybook title: `Primitives/Highlight`. Source: `src/components/primitives/High
 
 ## Used by
 
-- `src/components/booth/BoothView.tsx`
 - `src/components/booth/ReaderKey.tsx`
 - `src/components/booth/ReaderText.tsx`
 - `src/components/manuscript/EntitySummary.tsx`

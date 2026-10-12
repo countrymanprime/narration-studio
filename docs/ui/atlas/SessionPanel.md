@@ -13,4 +13,4 @@ Storybook title: `Pickups/SessionPanel`. Source: `src/components/pickups/list/Se
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/pickups/PickupsPage.tsx`

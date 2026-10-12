@@ -13,4 +13,4 @@ Storybook title: `Booth/Frame`. Source: `src/components/booth/frame/BoothTop.tsx
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`

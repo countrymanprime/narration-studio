@@ -74,6 +74,7 @@ Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has 
 - **DQ-16.** The mock's Proof percent with its two counters, decided and cleared; [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md) is superseded to that extent.
 - **DQ-18.** Capability-driven take management for Audacity, as in the mock; [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) is superseded to that extent.
 - **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
+- **Applied by the SN-Q9 swap (2026-10-12).** The Studio Next mock replaced the old pages: [ADR 0650](../adr/0650-proofs-notes-card-composes-table-flush-statusbadge-and-panels-header-and-the-filters-move-behind-a-popover.md), [ADR 0651](../adr/0651-proofs-book-level-draws-no-waveform-header-because-its-notes-span-more-than-one-chapter.md), [ADR 0652](../adr/0652-a-book-level-waveform-and-a-denser-notes-list-measurably-lower-mock-04s-score-so-adr-0651-stands.md) and [ADR 0715](../adr/0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md) (DQ-1), [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md) (DQ-16), [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) (DQ-15) and [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
 - **Process defaults, taken as recommended (2026-10-11).** "Waived" maps to `dismissed` with reason `waived` (no new status, no migration); "as of last save" is the DAW's `savedAt` ([DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md)).
 
 ## Users & Context
@@ -136,14 +137,14 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADRs and audit | ADRs; audit of what exists and of each old file's consumers | in review (ADR 0793; audit: docs/sn-q1-proof-audit) | - | SN0-1 | 0.4 | - |
-| 2 | Counters | `cleared` in the summary; selector; rail and Production read it | pending | 3 | 1 | 0.8 | - |
-| 3 | Guard and history UI | Inspector before/now, typed note kept, history list | in review (feat/sn-q3-evidence-banner) | 2 | 1 | 0.9 | - |
-| 4 | Notes polish | Sort, sources line, takes badge | pending | 5 | 2 | 0.6 | - |
-| 5 | Gap taxonomy | Sidecar and host fields; nullable confidence | pending | 4 | 1 | 1.2 | - |
-| 6 | Check card and engines | Card states, accept/ignore, host engine list | in review (feat/sn-q65-check-dialog: the Check recordings dialog) | - | 5, SNS-4 | 1.0 | - |
-| 7 | Takes at a spot | Lanes in the Inspector | pending | - | 2 | 0.6 | - |
-| 8 | Pickups | Source list, done write-through, to chapter, auto-mark recorded, points to Booth | in progress (SN-Q81 host list merged; SN-Q82 list components in review: claude/sn-q82-pickups-list) | - | SND-4, 5 | 1.0 | - |
-| 9 | Swap and close-out | Route swap, delete the old Proof and Pickups pages (Punch included), rows, guides, carried-over owner checks | pending | - | 2 to 8, SNO-8 | 0.5 | - |
+| 2 | Counters | `cleared` in the summary; selector; rail and Production read it | done (SN-Q2, [#1130](https://github.com/countrymanprime/narration-utils/pull/1130)) | 3 | 1 | 0.8 | - |
+| 3 | Guard and history UI | Inspector before/now, typed note kept, history list | done (SN-Q3, [#1089](https://github.com/countrymanprime/narration-utils/pull/1089); the history list is not built, owner default) | 2 | 1 | 0.9 | - |
+| 4 | Notes polish | Sort, sources line, takes badge | done (SN-Q40 [#1291](https://github.com/countrymanprime/narration-utils/pull/1291), SN-Q41 [#1324](https://github.com/countrymanprime/narration-utils/pull/1324), SN-Q42 [#1366](https://github.com/countrymanprime/narration-utils/pull/1366), SN-Q44 [#1340](https://github.com/countrymanprime/narration-utils/pull/1340)) | 5 | 2 | 0.6 | - |
+| 5 | Gap taxonomy | Sidecar and host fields; nullable confidence | done (SN-Q5, [#1127](https://github.com/countrymanprime/narration-utils/pull/1127)) | 4 | 1 | 1.2 | - |
+| 6 | Check card and engines | Card states, accept/ignore, host engine list | done (SN-Q61 [#1116](https://github.com/countrymanprime/narration-utils/pull/1116), SN-Q62 [#1374](https://github.com/countrymanprime/narration-utils/pull/1374), SN-Q63 [#1389](https://github.com/countrymanprime/narration-utils/pull/1389), SN-Q64 [#1405](https://github.com/countrymanprime/narration-utils/pull/1405), SN-Q65 [#1390](https://github.com/countrymanprime/narration-utils/pull/1390)) | - | 5, SNS-4 | 1.0 | - |
+| 7 | Takes at a spot | Lanes in the Inspector | done (SN-Q7, [#1376](https://github.com/countrymanprime/narration-utils/pull/1376)) | - | 2 | 0.6 | - |
+| 8 | Pickups | Source list, done write-through, to chapter, auto-mark recorded, points to Booth | done (SN-Q81 [#1442](https://github.com/countrymanprime/narration-utils/pull/1442), SN-Q82 [#1449](https://github.com/countrymanprime/narration-utils/pull/1449)) | - | SND-4, 5 | 1.0 | - |
+| 9 | Swap and close-out | Route swap, delete the old Proof and Pickups pages (Punch included), rows, guides, carried-over owner checks | done ([#1306](https://github.com/countrymanprime/narration-utils/issues/1306); supersedes ADR 0650, 0651, 0652 and 0715 by DQ-1, ADR 0525 to the extent of DQ-16, ADR 0165 to the extent of DQ-15 and ADR 0660 by DQ-18) | - | 2 to 8, SNO-8 | 0.5 | - |
 
 ### Phase Details
 

@@ -13,11 +13,12 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 
 ## Used by
 
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ReaderFlagsPanel.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/profile/FormatRows.tsx`
 - `src/components/delivery/profile/ProfileCard.tsx`
+- `src/components/editing/cleanup/CleanupInspector.tsx`
+- `src/components/editing/range/common/Strips.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/engine/ChapterSyncConsentDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
@@ -25,7 +26,6 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/master/DeliveryPackagePanel.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/pickups/PickupsCompanionSummary.tsx`
-- `src/components/pickups/PickupsPage.tsx`
 - `src/components/primitives/StatTile.tsx`
 - `src/components/primitives/WorkDialog.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`

@@ -1,63 +1,49 @@
-// How to reach each `pickups` state (the Pickups page) in STATE_CATALOG
-// (see app.drivers.ts).
-import type { Page } from '@playwright/test';
-import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, goToPage } from './shared';
+// How to reach each `pickups` state (the Studio Next Pickups page) in STATE_CATALOG (see app.drivers.ts).
+import type { Locator, Page } from '@playwright/test';
+import { type Driver, goToPage } from './shared';
 
-async function openPickups(page: Page, query = ''): Promise<void> {
-  if (query) {
-    await page.goto(`/${query}`);
-    await settlePage(page);
-  }
+const list = (page: Page): Locator => page.getByRole('region', { name: 'Pickups' });
+
+// Opens Pickups and waits for the host's list to have drawn its lines.
+async function openPickups(page: Page): Promise<void> {
   await goToPage(page, 'Pickups');
-}
-
-async function importCsv(page: Page, text: string): Promise<void> {
-  await page.locator('input[type="file"]').setInputFiles({ name: 'pickups.csv', mimeType: 'text/csv', buffer: Buffer.from(text) });
+  await list(page).getByRole('button', { name: 'Open in Booth at this line' }).first().waitFor();
 }
 
 export const pickupsDrivers: Record<string, Driver> = {
+  list: async (page) => {
+    await openPickups(page);
+    await page.getByRole('heading', { name: 'Pickup session' }).waitFor();
+  },
+  scoped: async (page) => {
+    await openPickups(page);
+    await list(page)
+      .getByRole('button', { name: /^Chapter: .*\. Change chapter$/ })
+      .click();
+    await page.getByRole('menuitemradio', { name: /^Chapter 1( — |$)/ }).click();
+    await page.getByText('No pickups for this chapter').waitFor();
+  },
+  'session-left-out': async (page) => {
+    await openPickups(page);
+    await list(page).getByRole('checkbox').first().click();
+    await page.getByRole('button', { name: 'Open 2 in Booth' }).waitFor();
+  },
+  'add-popover': async (page) => {
+    await openPickups(page);
+    await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
+    await page.getByRole('textbox', { name: 'Line to re-record' }).waitFor();
+  },
   empty: async (page) => {
     await openPickups(page);
-    await page.getByText('No pickups yet').waitFor();
-  },
-  imported: async (page) => {
-    await openPickups(page);
-    await importCsv(page, 'start,note,tag\n1.5,Mispronounced "labyrinthine",narrator\n42,Dog barked in the background,\n');
-    await page.getByText('2 pickups remaining of 2').waitFor();
-  },
-  'import-errors': async (page) => {
-    await openPickups(page);
-    await importCsv(page, '1.5,Good row\nnot-a-number,Bad row\n');
-    await page.getByText(/1 row could not be used/).waitFor();
-    // The row report lands immediately; the run itself settles 300ms later in the mock. Wait for the completed message
-    // too, so the screenshot shows the settled "1 pickup remaining" count, not a still-busy Import button.
-    await page.getByText('Imported 1 pickup.').waitFor();
-  },
-  next: async (page) => {
-    await openPickups(page, '?mockPickups=import-success');
-    await clickVisible(page, 'button', 'Next pickup');
-    await page.getByRole('button', { name: 'Mark this pickup done' }).waitFor();
-    await page.getByText(/Not on a linked chapter track/).waitFor();
-  },
-  'next-in-chapter': async (page) => {
-    await openPickups(page, '?mockPickups=import-success&mockChapterLink=confirmed');
-    await clickVisible(page, 'button', 'Next pickup');
-    await page.getByRole('link', { name: /Open Chapter 1 .* in Proof/ }).waitFor();
-  },
-  // "Punch from here" wired to dawport.Puncher: the punch capability is turned on
-  // directly (?mockPunchCapabilityOn=1), the same bypass mockRegionsCapabilityOn uses.
-  'next-punch-enabled': async (page) => {
-    await openPickups(page, '?mockPickups=import-success&mockPunchCapabilityOn=1');
-    await clickVisible(page, 'button', 'Next pickup');
-    const button = page.getByRole('button', { name: 'Punch from here' });
-    await button.waitFor();
-    if (await button.getAttribute('aria-disabled')) throw new Error('Punch from here is still gated with the capability on');
-  },
-  error: async (page) => {
-    await openPickups(page, '?mockPickups=error');
-    const message = page.getByText(/Narration Utils script/).first();
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
+    const remove = list(page).getByRole('button', { name: 'Remove from pickups' });
+    while ((await remove.count()) > 0) {
+      const before = await remove.count();
+      await remove.first().click();
+      await page.waitForFunction(
+        ([n]) => document.querySelectorAll('section[aria-label="Pickups"] button[aria-label="Remove from pickups"]').length < n,
+        [before],
+      );
+    }
+    await page.getByText('No pickups queued').waitFor();
   },
 };

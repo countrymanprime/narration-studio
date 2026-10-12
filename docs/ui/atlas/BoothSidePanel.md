@@ -15,4 +15,4 @@ Storybook title: `Booth/BoothSidePanel`. Source: `src/components/booth/side/Boot
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`

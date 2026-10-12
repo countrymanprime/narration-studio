@@ -46,9 +46,6 @@ import {
 } from '../mockFixtures';
 import type { MockApiSeed } from './state';
 
-// The repo default pre-roll (apps/desktop/settings_number.go, Teleprompter.punch_preroll_seconds), for pickupsPunch.
-const PICKUPS_MOCK_PUNCH_PREROLL = 3;
-
 /**
  * The REAPER actions the audio engine panel runs, each a run with its own state and live event: line identity, pickups,
  * the chapter render, the cleanup tools, the project-state check, retake lanes and chapter tags.
@@ -350,7 +347,6 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
     pickupsState: async () => wireClone(pickups),
     // "Punch from here" on a pickup: the position is already known, so this
     // just moves the mock cursor there minus the repo default pre-roll (Teleprompter.punch_preroll_seconds).
-    pickupsPunch: async (position) => ({ outcome: 'punched', cursor: Math.max(0, position - PICKUPS_MOCK_PUNCH_PREROLL) }),
     subscribePickups: (onUpdate) => {
       pickupsSubscribers.add(onUpdate);
       onUpdate(wireClone(pickups));

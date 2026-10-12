@@ -15,4 +15,4 @@ Storybook title: `Pickups/PickupsTable`. Source: `src/components/pickups/list/Pi
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/pickups/PickupsPage.tsx`
