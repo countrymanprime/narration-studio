@@ -137,6 +137,7 @@ import {
   guideDialogueCuesSchema,
   guideEntitiesSchema,
   guidePreviewSchema,
+  guideTypesSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
@@ -846,8 +847,34 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect((await read())?.speaker_color).toBeUndefined();
     await expect(api.guideSetSpeakerColor(entity.id, 8)).rejects.toThrow('1 to 7');
     const place = (await api.guideEntities()).find((row) => row.category !== 'Character' && !row.locked);
-    if (place) await expect(api.guideSetSpeakerColor(place.id, 2)).rejects.toThrow('Only a character speaks');
+    if (place) await expect(api.guideSetSpeakerColor(place.id, 2)).rejects.toThrow('type can speak');
     expectMatches(guideEntitiesSchema, await api.guideEntities(), 'mock entities after review and colour');
+  });
+
+  it('the Story Bible types: the defaults, then an add, a colour, Can speak, a rename that moves entries and the refused removes', async () => {
+    const api = createMockApi();
+    const defaults = await api.guideTypes();
+    expectMatches(guideTypesSchema, defaults, 'mock Story Bible types');
+    expect(defaults.filter((row) => row.speaks).map((row) => row.name)).toEqual(['Character']);
+    await api.guideTypeAdd(' Creature ');
+    await expect(api.guideTypeAdd('creature')).rejects.toThrow('already');
+    await expect(api.guideTypeAdd('Needs Review')).rejects.toThrow('own use');
+    await api.guideTypeSetColour('Creature', 'rose');
+    await api.guideTypeSetSpeaks('Creature', true);
+    expect((await api.guideTypes()).at(-1)).toEqual({ name: 'Creature', colour: 'rose', speaks: true });
+    const character = (await api.guideEntities()).find((row) => row.category === 'Character');
+    await api.guideTypeRename('Character', 'Person');
+    if (character) expect((await api.guideEntities()).find((row) => row.id === character.id)?.category).toBe('Person');
+    await expect(api.guideTypeRename('Person', '')).rejects.toThrow('one line');
+    if (character) await expect(api.guideTypeRemove('Person')).rejects.toThrow('in use');
+    await api.guideTypeRemove('Creature');
+    await expect(api.guideTypeRemove('Creature')).rejects.toThrow('no type');
+    expectMatches(guideTypesSchema, await api.guideTypes(), 'mock Story Bible types after edits');
+  });
+
+  it('the Story Bible types schema refuses an empty list and a colour outside the palette', () => {
+    expect(guideTypesSchema.safeParse([]).success).toBe(false);
+    expect(guideTypesSchema.safeParse([{ name: 'Character', colour: 'pink', speaks: true }]).success).toBe(false);
   });
 
   it('the character bible: regions, approving a reference, revoking it and removing every reference', async () => {
@@ -3278,6 +3305,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideCreate',
       'guidePreview',
       'guideDialogueCues',
+      'guideTypes',
       'characterListRegions',
       'characterApprove',
       'characterReferences',
@@ -3512,6 +3540,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideMarkReviewed',
       'guideFlagReview',
       'guideSetSpeakerColor',
+      'guideTypeAdd',
+      'guideTypeRename',
+      'guideTypeSetColour',
+      'guideTypeSetSpeaks',
+      'guideTypeRemove',
       'characterRevoke',
       'characterRemoveVoiceData',
       'seriesDelete',

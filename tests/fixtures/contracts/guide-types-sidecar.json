@@ -1,0 +1,37 @@
+[
+  {
+    "builtin": "Character",
+    "colour": "green",
+    "name": "Character",
+    "speaks": true
+  },
+  {
+    "builtin": "Place",
+    "colour": "blue",
+    "name": "Location",
+    "speaks": false
+  },
+  {
+    "builtin": "Organization",
+    "colour": "violet",
+    "name": "Organization",
+    "speaks": false
+  },
+  {
+    "builtin": "Lore",
+    "colour": "amber",
+    "name": "Lore",
+    "speaks": false
+  },
+  {
+    "builtin": "Item",
+    "colour": "teal",
+    "name": "Item",
+    "speaks": false
+  },
+  {
+    "colour": "amber",
+    "name": "Creature",
+    "speaks": true
+  }
+]

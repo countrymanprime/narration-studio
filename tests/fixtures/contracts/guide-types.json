@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Character",
+    "colour": "green",
+    "speaks": true
+  },
+  {
+    "name": "Location",
+    "colour": "blue",
+    "speaks": false
+  },
+  {
+    "name": "Organization",
+    "colour": "violet",
+    "speaks": false
+  },
+  {
+    "name": "Lore",
+    "colour": "amber",
+    "speaks": false
+  },
+  {
+    "name": "Item",
+    "colour": "teal",
+    "speaks": false
+  },
+  {
+    "name": "Creature",
+    "colour": "amber",
+    "speaks": true
+  }
+]

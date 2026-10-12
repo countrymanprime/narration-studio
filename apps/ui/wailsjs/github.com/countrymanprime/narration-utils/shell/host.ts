@@ -1204,6 +1204,49 @@ export function GuideSetSpeakerColor(id: string, index: number | null): $Cancell
     return $Call.ByID(2072746294, id, index);
 }
 
+/**
+ * GuideTypeAdd adds a type at the end, with the next colour, that does not speak. An empty, taken or reserved name is refused.
+ */
+export function GuideTypeAdd(name: string): $CancellablePromise<string> {
+    return $Call.ByID(3243869917, name);
+}
+
+/**
+ * GuideTypeRemove removes a type no entry uses; the last type is kept.
+ */
+export function GuideTypeRemove(name: string): $CancellablePromise<string> {
+    return $Call.ByID(956814906, name);
+}
+
+/**
+ * GuideTypeRename renames a type and moves every entry of it. An empty, taken or reserved name is refused.
+ */
+export function GuideTypeRename(name: string, to: string): $CancellablePromise<string> {
+    return $Call.ByID(211967224, name, to);
+}
+
+/**
+ * GuideTypeSetColour sets a type's colour: green, blue, violet, amber, teal or rose.
+ */
+export function GuideTypeSetColour(name: string, colour: string): $CancellablePromise<string> {
+    return $Call.ByID(1130453514, name, colour);
+}
+
+/**
+ * GuideTypeSetSpeaks sets whether a type's entries speak: they can have a speaker colour, and the next build attributes dialogue to them.
+ */
+export function GuideTypeSetSpeaks(name: string, speaks: boolean): $CancellablePromise<string> {
+    return $Call.ByID(832338841, name, speaks);
+}
+
+/**
+ * GuideTypes returns the Story Bible's types in order: {name, colour, speaks}. A Story Bible without a list, or none yet, has the
+ * default types: the fixed categories, their colours, and only Character speaking.
+ */
+export function GuideTypes(): $CancellablePromise<string> {
+    return $Call.ByID(975543863);
+}
+
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {
     return $Call.ByID(171684836, id, otherID, label);
 }

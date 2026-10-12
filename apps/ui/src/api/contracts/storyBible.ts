@@ -51,6 +51,15 @@ export type GuideEntity = {
   speaker_color?: number;
 };
 
+/** The colours a Story Bible type can take: the six kind hues (green `--character`, blue `--place`, violet `--org`, amber `--lore`,
+ * teal `--item`, rose `--event`). */
+export const GUIDE_TYPE_COLOURS = ['green', 'blue', 'violet', 'amber', 'teal', 'rose'] as const;
+export type GuideTypeColour = (typeof GUIDE_TYPE_COLOURS)[number];
+/** One Story Bible type (SN-B95): the name an entry's `category` takes, its colour, and whether its entries speak (can be a line's
+ * speaker and have a speaker colour). A Story Bible with no list of its own has the defaults: Character (speaks), Place, Organization,
+ * Lore, Item and Event. `Needs Review` and `Draft` are the Story Bible's own states, never a type. */
+export type GuideType = { name: string; colour: GuideTypeColour; speaks: boolean };
+
 export type GuidePreview =
   | { status: 'ready'; audioBase64: string; mimeType: string }
   | {
@@ -138,6 +147,17 @@ export interface StoryBibleApi {
   guideMarkReviewed(id: string, aliasIndex?: number): Promise<void>;
   /** Flags the entry (`aliasIndex` omitted), or one name, as needing review: the undo of `guideMarkReviewed`. A set flag stays as it is. Refused on a locked entry. */
   guideFlagReview(id: string, aliasIndex?: number): Promise<void>;
-  /** Sets a character's speaker colour, 1..7; null or 0 puts it back to automatic. Refused outside 0..7, on a locked entry and for a category that cannot speak. */
+  /** Sets a speaking entry's speaker colour, 1..7; null or 0 puts it back to automatic. Refused outside 0..7, on a locked entry and for an entry whose type cannot speak. */
   guideSetSpeakerColor(id: string, index: number | null): Promise<void>;
+  /** The Story Bible's types, in order (the defaults until the narrator changes one). Read it again after each change below. */
+  guideTypes(): Promise<GuideType[]>;
+  /** Adds a type at the end, with the next colour, that does not speak. Refused for an empty, taken (whatever its case) or reserved name. */
+  guideTypeAdd(name: string): Promise<void>;
+  /** Renames a type and moves every entry of it, a locked one too. Refused for an empty, taken or reserved name. */
+  guideTypeRename(name: string, to: string): Promise<void>;
+  guideTypeSetColour(name: string, colour: GuideTypeColour): Promise<void>;
+  /** Whether the type's entries speak; the dialogue cues follow on the next build. */
+  guideTypeSetSpeaks(name: string, speaks: boolean): Promise<void>;
+  /** Removes a type no entry uses. The last type cannot be removed. */
+  guideTypeRemove(name: string): Promise<void>;
 }
