@@ -76,6 +76,7 @@ func TestRollAnswers(t *testing.T) {
 			var refusal *RefusalError
 			return errors.Is(err, ErrRollStopped) && !errors.As(err, &refusal)
 		}},
+		{"stopped during the roll", []string{"ERROR", "The recording was stopped before REAPER recorded again after the roll. The earlier audio is kept."}, func(err error) bool { return errors.Is(err, ErrRollStopped) }},
 		{"stop not seen", []string{"ERROR", "REAPER did not stop recording at once, so the roll did not record again. The earlier audio is kept."}, func(err error) bool { return errors.Is(err, ErrRollStopped) }},
 		{"the setting", []string{"ERROR", setting}, func(err error) bool {
 			var refusal *RefusalError

@@ -20,6 +20,7 @@ var ErrRollStopped = errors.New("REAPER stopped recording for the roll but did n
 var rollStopped = map[string]bool{
 	"REAPER did not stop recording at once, so the roll did not record again. The earlier audio is kept.": true,
 	"REAPER did not start recording again after the roll. The earlier audio is kept.":                     true,
+	"The recording was stopped before REAPER recorded again after the roll. The earlier audio is kept.":   true,
 }
 
 // Rolled is what roll did: the track REAPER records on again, the project time it records from, and the undo points the

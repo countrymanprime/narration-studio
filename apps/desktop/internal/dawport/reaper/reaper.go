@@ -283,6 +283,8 @@ func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID stri
 	return dawport.OK(hiddenMessage(got), got.Changed), nil
 }
 
+const messageRollStopped = "REAPER stopped recording for the roll but did not record again. The earlier audio is kept; press record to go on."
+
 // puncher is the punch role: bridge.Actions' PunchTo and PlayPosition as they are, and Roll answering a dawport.Result
 // (ADR 0810), which bridge cannot import.
 type puncher struct {
@@ -314,6 +316,9 @@ func (p puncher) Roll(ctx context.Context, trackGUID string, at float64) (dawpor
 		return dawport.Refused(refusal.Sentence), nil
 	case errors.Is(err, bridge.ErrExperimentalOff):
 		return dawport.Refused(err.Error()), nil
+	case errors.Is(err, bridge.ErrRollStopped):
+		// Not a refusal: the recording has ended. Nothing was deleted and the roll added no undo point.
+		return dawport.Result{Changed: true, Message: messageRollStopped}, nil
 	case err != nil:
 		return dawport.Result{}, err
 	}

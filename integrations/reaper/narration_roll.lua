@@ -24,6 +24,11 @@ local event = core.event
 -- How many defer cycles roll waits for REAPER to report recording again, as record_start waits (about a second).
 local START_WAIT_CYCLES = 30
 
+-- The answers after the roll stopped the recording: the earlier audio is kept, and the recording has ended.
+local NOT_STOPPED = 'REAPER did not stop recording at once, so the roll did not record again. The earlier audio is kept.'
+local NOT_RESTARTED = 'REAPER did not start recording again after the roll. The earlier audio is kept.'
+local STOPPED_DURING_ROLL = 'The recording was stopped before REAPER recorded again after the roll. The earlier audio is kept.'
+
 -- The overlapping-recording settings by their autoxfade bits (4, 8), in REAPER's menu wording.
 local TAKES_SETTING = 'Splits existing items and creates new takes'
 local OTHER_SETTINGS = {
@@ -84,17 +89,27 @@ local function overlap_refusal()
   return OTHER_SETTINGS[mode]
 end
 
--- Waits for REAPER to report the new recording, then answers.
-local function watch(session_dir, run_id, guid, at)
+-- Waits for REAPER to report the new recording, then answers. The transport's recording stays the app's only while
+-- narration_transport.lua still holds this record: record_stop, or its own watch giving up, ends it, and then so does
+-- this wait.
+local function watch(session_dir, ours, record, run_id, guid, at)
   local waited = 0
   local function tick()
+    if record.cancelled then
+      event(session_dir, 'ERROR', run_id, STOPPED_DURING_ROLL)
+      return
+    end
+    if ours() ~= record then
+      event(session_dir, 'ERROR', run_id, NOT_RESTARTED)
+      return
+    end
     if recording() then
       event(session_dir, 'ROLLED', run_id, guid, seconds(at), 0)
       return
     end
     waited = waited + 1
     if waited >= START_WAIT_CYCLES then
-      event(session_dir, 'ERROR', run_id, 'REAPER did not start recording again after the roll. The earlier audio is kept.')
+      event(session_dir, 'ERROR', run_id, NOT_RESTARTED)
       return
     end
     reaper.defer(tick)
@@ -108,7 +123,8 @@ local function roll(session_dir, ours, run_id, guid_text, at_text)
     event(session_dir, 'ERROR', run_id, 'The roll time is not a usable number of seconds.')
     return
   end
-  for _, name in ipairs({ 'CSurf_OnRecord', 'OnStopButton', 'get_config_var_string', 'GetProjectLength' }) do
+  local needed = { 'CSurf_OnRecord', 'OnStopButton', 'get_config_var_string', 'GetProjectLength', 'GetPlayPosition2' }
+  for _, name in ipairs(needed) do
     if not reaper.APIExists(name) then
       event(session_dir, 'ERROR', run_id, 'This REAPER version cannot roll a recording.')
       return
@@ -120,12 +136,19 @@ local function roll(session_dir, ours, run_id, guid_text, at_text)
     return
   end
   local record = ours()
+  if record and record.track == guid and not record.started then
+    -- record_start, or an earlier roll, pressed record and REAPER has not reported it yet.
+    event(session_dir, 'ERROR', run_id, 'REAPER has not reported the recording yet. Roll again in a moment.')
+    return
+  end
   if not record or record.track ~= guid or not recording() then
     event(session_dir, 'RECORD_NOT_OURS', run_id)
     return
   end
-  -- The recording in progress is not an item yet, so it ends where REAPER records now, past GetProjectLength.
-  if at > math.max(reaper.GetProjectLength(0), reaper.GetPlayPosition()) then
+  -- The recording in progress is not an item yet, so it ends where REAPER records now, past GetProjectLength. Which play
+  -- position is "now" is spike S4's question (narration_punch.lua), so the later of the two bounds it.
+  local now = math.max(reaper.GetPlayPosition(), reaper.GetPlayPosition2())
+  if at > math.max(reaper.GetProjectLength(0), now) then
     event(session_dir, 'ERROR', run_id, 'The roll time is past the end of the recording.')
     return
   end
@@ -158,7 +181,7 @@ local function roll(session_dir, ours, run_id, guid_text, at_text)
   reaper.OnStopButton()
   if recording() then
     -- CSurf_OnRecord is a toggle: pressed while REAPER still records, it would stop rather than restart.
-    event(session_dir, 'ERROR', run_id, 'REAPER did not stop recording at once, so the roll did not record again. The earlier audio is kept.')
+    event(session_dir, 'ERROR', run_id, NOT_STOPPED)
     return
   end
   -- Like punch_to: scroll the view, do not seek playback, open no undo block.
@@ -170,9 +193,10 @@ local function roll(session_dir, ours, run_id, guid_text, at_text)
     return
   end
   -- REAPER reports the new recording later: narration_transport.lua's watch waits for it as it waits after
-  -- record_start, rather than taking the stop for the narrator's, and this command answers once it records.
+  -- record_start, rather than taking the stop for the narrator's (it answers RECORD_STARTED on the start's run once
+  -- REAPER records, or its own ERROR and forgets the recording), and this command answers once it records.
   record.started, record.waited = false, 0
-  watch(session_dir, run_id, guid, at)
+  watch(session_dir, ours, record, run_id, guid, at)
 end
 
 return function(registry)

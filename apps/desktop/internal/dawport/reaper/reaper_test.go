@@ -572,13 +572,15 @@ func TestRollRefusals(t *testing.T) {
 	}
 }
 
-// A roll that stopped the recording but did not record again changed something, so it is an error, never a refusal.
-func TestRollThatStoppedButDidNotRecordAgainIsAnError(t *testing.T) {
+// A roll that stopped the recording but did not record again changed something: not ok, changed, and never a refusal.
+func TestRollThatStoppedButDidNotRecordAgainSaysTheRecordingEnded(t *testing.T) {
 	punch := puncherAnswering(t, func(command []string) [][]string {
 		return [][]string{{"ERROR", command[1], "REAPER did not start recording again after the roll. The earlier audio is kept."}}
 	})
-	if got, err := punch.Roll(t.Context(), rollTrack, 40); !errors.Is(err, bridge.ErrRollStopped) {
-		t.Fatalf("Roll = %+v, %v; want ErrRollStopped", got, err)
+	got, err := punch.Roll(t.Context(), rollTrack, 40)
+	want := dawport.Result{Changed: true, Message: messageRollStopped}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("Roll = %+v, %v; want %+v", got, err, want)
 	}
 }
 

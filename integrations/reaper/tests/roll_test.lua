@@ -12,7 +12,14 @@ local TAKES, TAPE, LANES = 1, 1 + 4, 1 + 8
 
 -- A session recording on the chapter track, started through record_start the way the host starts it.
 local function recording_session(overlap)
-  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local registry
+  local s = H.session({
+    project_path = H.join(host.tmpdir(), 'Book.rpp'),
+    setup = function(r)
+      registry = r
+    end,
+  })
+  s.registry = registry
   local chapter = s.fake:add_track('Chapter 1')
   local other = s.fake:add_track('Chapter 2')
   s.fake:add_item(chapter, { position = 0, length = 30, source = 'earlier.wav' })
@@ -94,14 +101,19 @@ end)
 
 H.test('the stop comes before the cursor move and the record press', function()
   local s, chapter = recording_session()
+  local move = s.fake.reaper.SetEditCurPos
+  s.fake.reaper.SetEditCurPos = function(...)
+    s.fake.calls[#s.fake.calls + 1] = { name = 'SetEditCurPos' }
+    return move(...)
+  end
   s:send('roll', 'o1', chapter.guid, '40')
   local order = {}
   for _, call in ipairs(s.fake.calls) do
-    if call.name == 'OnStopButton' or call.name == 'CSurf_OnRecord' then
+    if call.name == 'OnStopButton' or call.name == 'CSurf_OnRecord' or call.name == 'SetEditCurPos' then
       order[#order + 1] = call.name
     end
   end
-  H.eq(order, { 'OnStopButton', 'CSurf_OnRecord' })
+  H.eq(order, { 'OnStopButton', 'SetEditCurPos', 'CSurf_OnRecord' })
 end)
 
 H.test('after a roll the recording is still the one the app started: record_stop stops it and puts the arms back', function()
@@ -115,6 +127,17 @@ H.test('after a roll the recording is still the one the app started: record_stop
   H.eq(other.armed, false)
 end)
 
+-- The events of one defer cycle, in a fixed order: the roll's watch and the transport's run in the same cycle, and
+-- which one REAPER runs first is not the bridge's to choose.
+local function sorted(events)
+  local out = {}
+  for _, event in ipairs(events) do
+    out[#out + 1] = table.concat(event, '|')
+  end
+  table.sort(out)
+  return out
+end
+
 H.test('when REAPER reports the new recording a few cycles later, roll waits for it and answers then', function()
   local s, chapter = recording_session()
   s.fake.record_delay_ticks = 3
@@ -123,8 +146,15 @@ H.test('when REAPER reports the new recording a few cycles later, roll waits for
   for _ = 1, 3 do
     s:tick()
   end
-  H.truthy(has(s:events(), { 'ROLLED', 'o1', chapter.guid, '40.000000', '0' }), 'ROLLED once REAPER records')
+  H.eq(sorted(s:events()), {
+    'RECORD_STARTED|r1|' .. chapter.guid .. '|40.000000',
+    'ROLLED|o1|' .. chapter.guid .. '|40.000000|0',
+  }, 'the transport announces the restart on its own run, and the roll answers')
   H.eq(calls_named(s, 'CSurf_OnRecord'), 1)
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s:events(), {}, 'nothing more: no RECORD_ENDED, no second answer')
   s:send('record_stop', 's1')
   H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0' } }, 'the restarted recording is still ours')
 end)
@@ -137,10 +167,56 @@ H.test('when REAPER does not record again, roll says so and the earlier audio st
   for _ = 1, 40 do
     s:tick()
   end
-  local message = 'REAPER did not start recording again after the roll. The earlier audio is kept.'
-  H.truthy(has(s:events(), { 'ERROR', 'o1', message }), message)
+  H.eq(sorted(s:events()), {
+    'ERROR|o1|REAPER did not start recording again after the roll. The earlier audio is kept.',
+    'ERROR|r1|REAPER did not start recording.',
+  })
   H.eq(calls_named(s, 'CSurf_OnRecord'), 1, 'the toggle is pressed once and never again to "fix" it')
   H.eq(items_of(chapter), before)
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } }, 'the recording has ended, as after a record_start that never began')
+end)
+
+H.test('a record_stop while the roll waits ends the roll with its own answer, never ROLLED', function()
+  local s, chapter = recording_session()
+  s.fake.record_delay_ticks = 3
+  s:send('roll', 'o1', chapter.guid, '40')
+  s:send('record_stop', 's1')
+  for _ = 1, 40 do
+    s:tick()
+  end
+  H.eq(sorted(s:events()), {
+    'ERROR|o1|The recording was stopped before REAPER recorded again after the roll. The earlier audio is kept.',
+    'ERROR|r1|Recording was stopped before REAPER started it.',
+    'RECORD_STOPPED|s1|0|0',
+  })
+  H.eq(s.fake.play_state, 0, 'a start that comes late is stopped, as after record_stop on a pending record_start')
+end)
+
+H.test('a record_start that takes over while the roll waits ends the roll with an error, never ROLLED', function()
+  local s, chapter = recording_session()
+  s.fake.record_delay_ticks = 2
+  s:send('roll', 'o1', chapter.guid, '40')
+  s:send('record_start', 'r2', chapter.guid)
+  for _ = 1, 5 do
+    s:tick()
+  end
+  local events = s:events()
+  H.truthy(has(events, { 'ERROR', 'o1', 'REAPER did not start recording again after the roll. The earlier audio is kept.' }), 'roll error')
+  for _, event in ipairs(events) do
+    H.truthy(event[1] ~= 'ROLLED', 'no ROLLED for a recording that is no longer the one rolled')
+  end
+end)
+
+H.test('a second roll while REAPER has not reported the first one yet is refused, and presses nothing', function()
+  local s, chapter = recording_session()
+  s.fake.record_delay_ticks = 5
+  s:send('roll', 'o1', chapter.guid, '40')
+  s.fake.calls = {}
+  s:send('roll', 'o2', chapter.guid, '30')
+  H.eq(s:events(), { { 'ERROR', 'o2', 'REAPER has not reported the recording yet. Roll again in a moment.' } })
+  H.eq(calls_named(s, 'OnStopButton'), 0)
+  H.eq(calls_named(s, 'CSurf_OnRecord'), 0)
 end)
 
 H.test('when REAPER is still recording after Stop, roll does not press record and says so', function()
@@ -155,6 +231,19 @@ H.test('when REAPER is still recording after Stop, roll does not press record an
   })
   H.eq(calls_named(s, 'CSurf_OnRecord'), 0, 'record is a toggle: pressing it while recording would stop, not restart')
   s.fake.reaper.OnStopButton = stop
+end)
+
+H.test('roll finds the track by its GUID in any case, with or without braces', function()
+  local s, chapter = recording_session()
+  s:send('roll', 'o1', chapter.guid:lower():gsub('[{}]', ''), '40')
+  H.eq(s:events(), { { 'ROLLED', 'o1', chapter.guid, '40.000000', '0' } })
+end)
+
+H.test('after a roll the transport records where the new pass began', function()
+  local s, chapter = recording_session()
+  s:send('roll', 'o1', chapter.guid, '40')
+  s:events()
+  H.eq(s.registry.transport_recording().position, 40)
 end)
 
 -- 2. roll-refuses-with-a-reason-instead-of-changing-preferences --------------------------------------------------
@@ -192,6 +281,17 @@ H.test('roll refuses when new recordings go to separate lanes, and names that se
   })
   H.eq(calls_named(s, 'OnStopButton'), 0)
   H.eq(changing_calls(s), {})
+end)
+
+H.test('roll refuses a value with both overlap bits set, and ignores the other autoxfade bits', function()
+  local s, chapter = recording_session(1 + 4 + 8)
+  s:send('roll', 'o1', chapter.guid, '40')
+  local events = s:events()
+  H.contains(events[1][3], 'It is set to "an unknown value".')
+  H.eq(calls_named(s, 'OnStopButton'), 0)
+  local s2, chapter2 = recording_session(1 + 2 + 16 + 32)
+  s2:send('roll', 'o1', chapter2.guid, '40')
+  H.eq(s2:events(), { { 'ROLLED', 'o1', chapter2.guid, '40.000000', '0' } })
 end)
 
 H.test('roll refuses when REAPER does not report the setting, rather than guess it', function()
@@ -320,6 +420,13 @@ H.test('roll accepts at up to where REAPER records now, past the last saved item
   H.eq(s:events(), { { 'ROLLED', 'o1', chapter.guid, '75.000000', '0' } })
 end)
 
+H.test('roll takes the later of the two play positions as where REAPER records now', function()
+  local s, chapter = recording_session()
+  s.fake.play_position, s.fake.play_position2 = 70, 75.2
+  s:send('roll', 'o1', chapter.guid, '75.1')
+  H.eq(s:events(), { { 'ROLLED', 'o1', chapter.guid, '75.100000', '0' } })
+end)
+
 H.test('roll accepts the project start', function()
   local s, chapter = recording_session()
   s:send('roll', 'o1', chapter.guid, '0')
@@ -347,7 +454,7 @@ end)
 -- Versions -------------------------------------------------------------------------------------------------------
 
 H.test('roll needs the record and config APIs', function()
-  for _, name in ipairs({ 'CSurf_OnRecord', 'OnStopButton', 'get_config_var_string', 'GetProjectLength' }) do
+  for _, name in ipairs({ 'CSurf_OnRecord', 'OnStopButton', 'get_config_var_string', 'GetProjectLength', 'GetPlayPosition2' }) do
     local s, chapter = recording_session()
     s.fake:remove_api(name)
     s:send('roll', 'o1', chapter.guid, '40')
