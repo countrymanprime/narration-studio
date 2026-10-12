@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DawCapabilities, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupsState } from '../api/contracts/pickups';
-import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
+import { dawBackupsFileSchema, dawCapabilitiesSchema, dawFxRangeSettingsSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
 import { findingMarkerSchema } from '../api/schemas/findings';
 import { pickupsStateSchema } from '../api/schemas/pickups';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
@@ -23,6 +23,11 @@ import {
   fxChainAddedAnswer,
   fxChainRemovedAnswer,
   fxChainsSource,
+  fxBypassAnswer,
+  fxSettingSetAnswer,
+  fxSettingsReadAnswer,
+  FX_RANGE_SETTINGS,
+  plainChainName,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
   RANGE_CUT_STEPS,
@@ -86,6 +91,11 @@ const GOLDEN_FILES = [
   'daw-apply-fx-range-done.json',
   'daw-apply-fx-range-refused.json',
   'daw-remove-fx-range-done.json',
+  'daw-fx-range-params-done.json',
+  'daw-fx-range-params-refused.json',
+  'daw-fx-range-params-set-done.json',
+  'daw-fx-range-bypass-done.json',
+  'daw-fx-range-bypass-refused-stale.json',
   'daw-stack-done.json',
   'daw-stack-steps.json',
   'daw-unstack-done.json',
@@ -120,6 +130,9 @@ const GOLDEN_FILES = [
   'master-file-refused-not-in-run.json',
   'master-file-refused-no-quiet-stretch.json',
 ] as const;
+/** The chain on one word the fx-range-params-and-bypass cases read and change (SN-E104). */
+const FX_TARGET = { chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain' } as const;
+
 const goldens: Goldens = Object.fromEntries(GOLDEN_FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 
 const read = <S extends StandardSchemaV1>(file: string, schema: S): InferOutput<S> =>
@@ -267,6 +280,32 @@ function hostApi(): DawHostApi {
       }
       if (chainName !== 'Podcast Voice.RfxChain') return Promise.reject(new Error(`no golden for taking ${chainName} off`));
       return Promise.resolve(read('daw-remove-fx-range-done.json', dawResultSchema));
+    },
+    // DawFxRangeParams, DawSetFxRangeParam and DawBypassFxRange on REAPER (SN-E104): an unknown chapter or a range read backwards is the
+    // range's stale refusal, a chain must be a plain name, a setting the effect does not have or a value that is not a number is refused,
+    // and Podcast Voice's settings, its gain set to -3 and its bypass are the done goldens. Anything else has no golden.
+    dawFxRangeParams: (chapterId, firstToken, lastToken, chainName) => {
+      const none = (result: DawResult) => Promise.resolve({ result, settings: [], truncated: false, bypassed: false });
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return none(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (!plainChainName(chainName)) return none(refusal(DAW_ANSWERS.fxBadChain));
+      if (chainName !== 'Podcast Voice.RfxChain') return Promise.reject(new Error(`no golden for the settings of ${chainName}`));
+      return Promise.resolve(read('daw-fx-range-params-done.json', dawFxRangeSettingsSchema));
+    },
+    dawSetFxRangeParam: (chapterId, firstToken, lastToken, chainName, fx, index, value) => {
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return Promise.resolve(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (!plainChainName(chainName)) return Promise.resolve(refusal(DAW_ANSWERS.fxBadChain));
+      if (fx < 0 || index < 0) return Promise.resolve(refusal(DAW_ANSWERS.fxNoSetting));
+      if (!Number.isFinite(value)) return Promise.resolve(refusal(DAW_ANSWERS.fxBadValue));
+      if (chainName !== 'Podcast Voice.RfxChain' || fx !== 0 || index !== 0 || value !== -3) {
+        return Promise.reject(new Error(`no golden for setting ${fx}/${index} of ${chainName} to ${value}`));
+      }
+      return Promise.resolve(read('daw-fx-range-params-set-done.json', dawResultSchema));
+    },
+    dawBypassFxRange: (chapterId, firstToken, lastToken, chainName, bypass) => {
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return Promise.resolve(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (!plainChainName(chainName)) return Promise.resolve(refusal(DAW_ANSWERS.fxBadChain));
+      if (chainName !== 'Podcast Voice.RfxChain' || !bypass) return Promise.reject(new Error(`no golden for bypass ${bypass} of ${chainName}`));
+      return Promise.resolve(read('daw-fx-range-bypass-done.json', dawResultSchema));
     },
     workspaceListFXChains: () => Promise.resolve(read('workspace-fx-chains.json', workspaceFXChainsResultSchema)),
     // MasterPlayQuietest and MasterOpenInDaw (SN-M97): a file the fixture's last run does not list is the stale golden; the run's first
@@ -545,6 +584,29 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     observe: (daw) => daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 501 }),
   },
   { name: 'dawclient-fx-range: the chain list is answered alike', observe: (daw) => daw.fxChains() },
+  { name: 'fx-range-params-and-bypass: the settings of a chain on words are read alike', observe: (daw) => daw.fxRangeParams(FX_TARGET) },
+  {
+    name: 'fx-range-params-and-bypass: a setting changed is answered alike',
+    observe: (daw) => daw.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: -3 }),
+  },
+  { name: 'fx-range-params-and-bypass: a bypass is answered alike', observe: (daw) => daw.bypassFxRange(FX_TARGET, true) },
+  {
+    name: 'fx-range-params-and-bypass: an unknown chapter or a range read backwards is refused stale alike',
+    observe: async (daw) => [
+      await daw.fxRangeParams({ ...FX_TARGET, chapterId: 'chapter-9' }),
+      await daw.setFxRangeParam({ ...FX_TARGET, firstToken: 4, fx: 0, index: 0, value: -3 }),
+      await daw.bypassFxRange({ ...FX_TARGET, chapterId: 'chapter-9' }, false),
+    ],
+  },
+  {
+    name: 'fx-range-params-and-bypass: a path for a chain, a setting the effect does not have and a value that is not a number are refused alike',
+    observe: async (daw) => [
+      await daw.fxRangeParams({ ...FX_TARGET, chainName: '../reaper.ini' }),
+      await daw.bypassFxRange({ ...FX_TARGET, chainName: 'C:\\FXChains\\Podcast Voice.RfxChain' }, true),
+      await daw.setFxRangeParam({ ...FX_TARGET, fx: -1, index: 0, value: 1 }),
+      await daw.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: Number.NaN }),
+    ],
+  },
   { name: 'dawclient-stack: a stack of one retry is answered alike', observe: (daw) => daw.stackTakes(STACK) },
   { name: 'dawclient-stack: an un-stack of one take is answered alike', observe: (daw) => daw.unstackTakes(UNSTACK) },
   {
@@ -1320,5 +1382,77 @@ describe("pickup markers are the DAW's truth", () => {
   it("the host's own sentences: the import and the read answers match the goldens internal/pickups wrote", () => {
     expect(pickupsImportedAnswer(2, 0)).toBe(read('pickups-import-success.json', pickupsStateSchema).message);
     expect(pickupMarkersReadAnswer(1, 1)).toBe(read('pickups-markers-listed.json', pickupsStateSchema).message);
+  });
+});
+
+describe('fx-range-params-and-bypass', () => {
+  it('fx-range-params-and-bypass: the host adapter sends the words, the chain and the setting only, and answers the bindings as they are', async () => {
+    const capability = read('daw-fx-range-params-refused.json', dawFxRangeSettingsSchema);
+    const stale = read('daw-fx-range-bypass-refused-stale.json', dawResultSchema);
+    expect(capability.result.ok).toBe(false);
+    expect(capability.settings).toEqual([]);
+    expect(stale).toMatchObject({ ok: false, code: 'stale' });
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawFxRangeParams: (...args) => {
+        calls.push(['params', ...args]);
+        return Promise.resolve(capability);
+      },
+      dawSetFxRangeParam: (...args) => {
+        calls.push(['set', ...args]);
+        return Promise.resolve(stale);
+      },
+      dawBypassFxRange: (...args) => {
+        calls.push(['bypass', ...args]);
+        return Promise.resolve(stale);
+      },
+    });
+    expect(await host.fxRangeParams(FX_TARGET)).toEqual(capability);
+    expect(await host.setFxRangeParam({ ...FX_TARGET, fx: 1, index: 2, value: 0.5 })).toEqual(stale);
+    expect(await host.bypassFxRange(FX_TARGET, false)).toEqual(stale);
+    expect(calls).toEqual([
+      ['params', 'chapter-1', 3, 3, 'Podcast Voice.RfxChain'],
+      ['set', 'chapter-1', 3, 3, 'Podcast Voice.RfxChain', 1, 2, 0.5],
+      ['bypass', 'chapter-1', 3, 3, 'Podcast Voice.RfxChain', false],
+    ]);
+  });
+
+  it("fx-range-params-and-bypass: the mock refuses with the setup's fx_range sentence, Audacity says the effect is baked in, and REAPER answers", async () => {
+    for (const id of ['reaper-off', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.fx_range.message ?? '';
+      const daw = createMockDawClient(DAW_SETUPS[id]);
+      expect(await daw.fxRangeParams(FX_TARGET), id).toEqual({ result: refusal(sentence), settings: [], truncated: false, bypassed: false });
+      expect(await daw.bypassFxRange(FX_TARGET, true), id).toEqual(refusal(sentence));
+    }
+    const audacity = createMockDawClient(DAW_SETUPS['audacity-backups']);
+    expect((await audacity.fxRangeParams(FX_TARGET)).result).toEqual(refusal(DAW_ANSWERS.fxBakedIn));
+    expect(await audacity.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: -3 })).toEqual(refusal(DAW_ANSWERS.fxBakedIn));
+    expect(await audacity.bypassFxRange(FX_TARGET, true)).toEqual(refusal(DAW_ANSWERS.fxBakedIn));
+
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    const settings = await reaper.fxRangeParams(FX_TARGET);
+    expect(settings).toEqual({
+      result: { ok: true, changed: false, message: fxSettingsReadAnswer('Podcast Voice.RfxChain', FX_RANGE_SETTINGS.length, 'REAPER'), undoSteps: 0 },
+      settings: [...FX_RANGE_SETTINGS],
+      truncated: false,
+      bypassed: false,
+    });
+    expect(dawFxRangeSettingsSchema.safeParse(settings).success).toBe(true);
+    expect(await reaper.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 1, value: 2 })).toEqual({
+      ok: true,
+      changed: true,
+      message: fxSettingSetAnswer('Podcast Voice.RfxChain', '2', 'REAPER'),
+      undoSteps: 1,
+    });
+    expect(await reaper.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: 0 })).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
+    expect(await reaper.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 2, value: 0 })).toEqual(refusal(DAW_ANSWERS.fxNoSetting));
+    expect(await reaper.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: 25 })).toEqual(refusal(DAW_ANSWERS.fxValueOutside));
+    expect(await reaper.bypassFxRange(FX_TARGET, false)).toEqual({
+      ok: true,
+      changed: true,
+      message: fxBypassAnswer('Podcast Voice.RfxChain', false, 'REAPER'),
+      undoSteps: 1,
+    });
   });
 });

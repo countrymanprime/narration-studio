@@ -13,6 +13,10 @@ import {
   quietestOf,
   fileRevealAnswer,
   fxChainAddedAnswer,
+  fxBypassAnswer,
+  fxSettingSetAnswer,
+  fxSettingsReadAnswer,
+  FX_RANGE_SETTINGS,
   fxChainRemovedAnswer,
   nothingToStackAnswer,
   rangeCutAnswer,
@@ -181,7 +185,14 @@ import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schema
 import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
-import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
+import {
+  dawBackupsFileSchema,
+  dawCapabilitiesSchema,
+  dawFxRangeSettingsSchema,
+  dawProjectStateSchema,
+  dawResultSchema,
+  dawTransportSchema,
+} from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -2974,6 +2985,65 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off).toEqual(readGolden('daw-apply-fx-range-refused.json'));
   });
 
+  it('dawFxRangeParams, dawSetFxRangeParam and dawBypassFxRange answer their schemas: the host goldens parse, and the mock answers as the host does', async () => {
+    const chain = 'Podcast Voice.RfxChain';
+    for (const file of ['daw-fx-range-params-done.json', 'daw-fx-range-params-refused.json']) {
+      expectMatches(dawFxRangeSettingsSchema, readGolden(file), file);
+    }
+    for (const file of ['daw-fx-range-params-set-done.json', 'daw-fx-range-bypass-done.json', 'daw-fx-range-bypass-refused-stale.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-fx-range-params-done.json')).toEqual({
+      result: { ok: true, changed: false, undoSteps: 0, message: fxSettingsReadAnswer(chain, FX_RANGE_SETTINGS.length, 'REAPER') },
+      settings: FX_RANGE_SETTINGS,
+      truncated: false,
+      bypassed: false,
+    });
+    expect(readGolden('daw-fx-range-params-refused.json')).toMatchObject({ result: { ok: false, changed: false, undoSteps: 0 }, settings: [] });
+    expect(readGolden('daw-fx-range-params-set-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      undoSteps: 1,
+      message: fxSettingSetAnswer(chain, '-3 dB', 'REAPER'),
+    });
+    expect(readGolden('daw-fx-range-bypass-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      undoSteps: 1,
+      message: fxBypassAnswer(chain, true, 'REAPER'),
+    });
+    expect(readGolden('daw-fx-range-bypass-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+
+    // A setting outside its range, a refused read that carries settings and a step below 0 are not payloads the host sends.
+    const done = readGolden('daw-fx-range-params-done.json') as { settings: Record<string, unknown>[] };
+    expect(dawFxRangeSettingsSchema.safeParse({ ...done, settings: [{ ...done.settings[0], value: 25 }] }).success).toBe(false);
+    expect(dawFxRangeSettingsSchema.safeParse({ ...done, settings: [{ ...done.settings[0], step: -1 }] }).success).toBe(false);
+    const refused = readGolden('daw-fx-range-params-refused.json') as Record<string, unknown>;
+    expect(dawFxRangeSettingsSchema.safeParse({ ...refused, settings: done.settings }).success).toBe(false);
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const settings = await api.dawFxRangeParams(chapter.id, 0, 0, chain);
+    expectMatches(dawFxRangeSettingsSchema, settings, 'mock settings of a chain on a range');
+    expect(settings).toEqual(readGolden('daw-fx-range-params-done.json'));
+    const set = await api.dawSetFxRangeParam(chapter.id, 0, 0, chain, 0, 0, -3);
+    expectMatches(dawResultSchema, set, 'mock setting of a chain on a range');
+    expect(set).toEqual(readGolden('daw-fx-range-params-set-done.json'));
+    const bypassed = await api.dawBypassFxRange(chapter.id, 0, 0, chain, true);
+    expectMatches(dawResultSchema, bypassed, 'mock bypass of a chain on a range');
+    expect(bypassed).toEqual(readGolden('daw-fx-range-bypass-done.json'));
+    expect((await api.dawSetFxRangeParam(chapter.id, 0, 0, chain, 0, 9, 1)).refused).toBe(DAW_ANSWERS.fxNoSetting);
+    expect((await api.dawSetFxRangeParam(chapter.id, 0, 0, chain, 0, 0, 99)).refused).toBe(DAW_ANSWERS.fxValueOutside);
+    expect((await api.dawBypassFxRange(chapter.id, 0, 0, '../x.RfxChain', true)).refused).toBe(DAW_ANSWERS.fxBadChain);
+    const stale = await api.dawFxRangeParams('{11111111-1111-4111-8111-111111111111}', 0, 0, chain);
+    expectMatches(dawFxRangeSettingsSchema, stale, 'mock settings, unknown chapter');
+    expect(stale).toMatchObject({ result: { ok: false, code: 'stale', refused: DAW_ANSWERS.rangeStale }, settings: [] });
+
+    const off = await createMockApi().dawFxRangeParams(chapter.id, 0, 0, chain);
+    expectMatches(dawFxRangeSettingsSchema, off, 'mock settings, experimental off');
+    expect(off).toEqual(readGolden('daw-fx-range-params-refused.json'));
+  });
+
   it('dawStackTakes and dawUnstackTakes answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
     for (const file of ['daw-stack-done.json', 'daw-stack-steps.json', 'daw-unstack-done.json', 'daw-stack-refused-stale.json']) {
       expectMatches(dawResultSchema, readGolden(file), file);
@@ -3801,6 +3871,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawDeleteRange',
       'dawApplyFxToRange',
       'dawRemoveFxFromRange',
+      'dawFxRangeParams',
+      'dawSetFxRangeParam',
+      'dawBypassFxRange',
       'dawStackTakes',
       'dawUnstackTakes',
       'dawSplitTake',

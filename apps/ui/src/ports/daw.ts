@@ -1,4 +1,4 @@
-import type { DawBackup, DawCapabilities, DawClick, DawCutMode, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
+import type { DawBackup, DawCapabilities, DawClick, DawCutMode, DawFxRangeSettings, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
   backupLabelOk,
@@ -8,6 +8,9 @@ import {
   type DawProject,
   fxListOf,
   fxRangeOf,
+  fxRangeBypassAnswerOf,
+  fxRangeParamsAnswerOf,
+  fxRangeSetAnswerOf,
   nothingToStackOf,
   stackOf,
   fxRangeRemovedOf,
@@ -71,6 +74,12 @@ export type FxRangeRequest = { chapterId: string; firstToken: number; lastToken:
 /** A chain to take off the words between two tokens again. */
 export type FxRangeRemoval = { chapterId: string; firstToken: number; lastToken: number; chainName: string };
 
+/** The chain on the words between two tokens whose settings to read, or to bypass (SN-E104): the same words and chain an apply was sent. */
+export type FxRangeTarget = FxRangeRemoval;
+
+/** One setting of the chain on the words to set: `fx` and `index` as `fxRangeParams` numbered it, and the value, in its range. */
+export type FxRangeSettingChange = FxRangeTarget & { fx: number; index: number; value: number };
+
 /** One saved chain, effect or macro as the DAW lists it (the mock's `FxChoice`). REAPER names a chain by its path under FXChains, which
  * is both its id and its name. */
 export type FxChoice = { id: string; name: string };
@@ -128,6 +137,13 @@ export interface DawClient {
   applyFxToRange(request: FxRangeRequest): Promise<DawResult>;
   /** Take the chain off the words again and join the piece back. A piece without the chain answers `changed: false`. */
   removeFxFromRange(request: FxRangeRemoval): Promise<DawResult>;
+  /** The settings of the chain on the words, in order, read and nothing changed; a refusal (`result.ok` false) has none. A chain the DAW
+   * no longer has on the words is code `stale`; a DAW that bakes the effect into the audio refuses. */
+  fxRangeParams(target: FxRangeTarget): Promise<DawFxRangeSettings>;
+  /** Set one setting of the chain on the words, in one undo step of the DAW's own; a setting already at the value answers `changed: false`. */
+  setFxRangeParam(change: FxRangeSettingChange): Promise<DawResult>;
+  /** Bypass every effect of the chain on the words, or turn them back on, in one undo step of the DAW's own. */
+  bypassFxRange(target: FxRangeTarget, bypass: boolean): Promise<DawResult>;
   /** The DAW's own saved chains, for Add FX. Rejects when the DAW cannot list them now. */
   fxChains(): Promise<FxList>;
   /** Put the later reads of the request's passages on the first read's spot as takes, and move the audio after them up. */
@@ -178,6 +194,9 @@ export type DawHostApi = Pick<
   | 'dawDeleteRange'
   | 'dawApplyFxToRange'
   | 'dawRemoveFxFromRange'
+  | 'dawFxRangeParams'
+  | 'dawSetFxRangeParam'
+  | 'dawBypassFxRange'
   | 'workspaceListFXChains'
   | 'dawStackTakes'
   | 'dawUnstackTakes'
@@ -274,6 +293,17 @@ function refused(sentence: string | undefined, call: string, stale = false): Daw
   return stale ? { ...result, code: 'stale' } : result;
 }
 
+/** The checks the three effect edits share with a removal, in the host's order (bindings_daw_fx_range.go): the fx_range capability's
+ * sentence, a chapter the project does not have or a range read backwards (code stale), then a chain name that could be a path. */
+function fxTargetRefusal(setup: DawCapabilities, project: DawProject, target: FxRangeTarget, call: string): DawResult | null {
+  const sentence = unavailable(setup, 'fx_range', call);
+  if (sentence) return refused(sentence, call);
+  if (!project.chapterIds.includes(target.chapterId) || target.firstToken < 0 || target.lastToken < target.firstToken)
+    return refused(DAW_ANSWERS.rangeStale, call, true);
+  if (!plainChainName(target.chainName)) return refused(DAW_ANSWERS.fxBadChain, call);
+  return null;
+}
+
 /** The host sends no sentence with a plain success, so `message` is empty then rather than worded here. */
 const done = (changed: boolean, undoSteps: number, message = ''): DawResult => ({ ok: true, changed, message, undoSteps });
 
@@ -343,6 +373,11 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     /** The bindings answer a DawResult already: they resolve the range on the host and check the chain against the DAW's list. */
     applyFxToRange: ({ chapterId, firstToken, lastToken, chainName, fadeMs }) => api.dawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs),
     removeFxFromRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName),
+    /** The bindings answer already and take the words and the chain only: the host resolves the item, and the DAW the piece it is on. */
+    fxRangeParams: ({ chapterId, firstToken, lastToken, chainName }) => api.dawFxRangeParams(chapterId, firstToken, lastToken, chainName),
+    setFxRangeParam: ({ chapterId, firstToken, lastToken, chainName, fx, index, value }) =>
+      api.dawSetFxRangeParam(chapterId, firstToken, lastToken, chainName, fx, index, value),
+    bypassFxRange: ({ chapterId, firstToken, lastToken, chainName }, bypass) => api.dawBypassFxRange(chapterId, firstToken, lastToken, chainName, bypass),
     /** The bindings answer a DawResult already and take passage ids only: the host rebuilds the plan from what the DAW reports now. */
     stackTakes: ({ chapterId, groups }) =>
       api.dawStackTakes(
@@ -479,6 +514,25 @@ export function createMockDawClient(
       if (!plainChainName(chainName)) return refused(DAW_ANSWERS.fxBadChain, 'removeFxFromRange');
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ...done(true, fx.undoSteps, fx.message), ...(fx.steps ? { steps: fx.steps } : {}) };
+    },
+    async fxRangeParams({ chapterId, firstToken, lastToken, chainName }) {
+      const none = (result: DawResult): DawFxRangeSettings => ({ result, settings: [], truncated: false, bypassed: false });
+      const refusal = fxTargetRefusal(setup, project, { chapterId, firstToken, lastToken, chainName }, 'fxRangeParams');
+      if (refusal) return none(refusal);
+      const answer = fxRangeParamsAnswerOf(setup, chainName);
+      return 'refused' in answer ? none(refused(answer.refused, 'fxRangeParams')) : answer.settings;
+    },
+    async setFxRangeParam(change) {
+      const refusal = fxTargetRefusal(setup, project, change, 'setFxRangeParam');
+      if (refusal) return refusal;
+      const answer = fxRangeSetAnswerOf(setup, change.chainName, change.fx, change.index, change.value);
+      return 'refused' in answer ? refused(answer.refused, 'setFxRangeParam') : answer.result;
+    },
+    async bypassFxRange(target, bypass) {
+      const refusal = fxTargetRefusal(setup, project, target, 'bypassFxRange');
+      if (refusal) return refusal;
+      const answer = fxRangeBypassAnswerOf(setup, target.chainName, bypass);
+      return 'refused' in answer ? refused(answer.refused, 'bypassFxRange') : answer.result;
     },
     stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
     unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),

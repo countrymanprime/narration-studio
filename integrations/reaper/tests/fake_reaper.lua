@@ -207,6 +207,26 @@ function Fake:add_action(id, name)
   self.actions[#self.actions + 1] = { id = id, name = name }
 end
 
+-- The parameters a loaded FX has: a copy of fake.fx_param_template when a test sets one, else a gain in dB (continuous),
+-- a mix from 0 to 1 and a mode with whole steps.
+function Fake:fx_params()
+  local template = self.fx_param_template
+    or {
+      { name = 'Gain', value = 0, min = -24, max = 24, unit = ' dB' },
+      { name = 'Mix', value = 1, min = 0, max = 1 },
+      { name = 'Mode', value = 0, min = 0, max = 3, step = 1 },
+    }
+  local out = {}
+  for index, param in ipairs(template) do
+    local copy = {}
+    for key, value in pairs(param) do
+      copy[key] = value
+    end
+    out[index] = copy
+  end
+  return out
+end
+
 -- Makes `APIExists(name)` answer false, the way an older REAPER lacks a newer function.
 function Fake:remove_api(name)
   self.missing_api[name] = true
@@ -314,9 +334,9 @@ function Fake:transport_calls()
 end
 
 -- The tracks and items with the values an edit changes (position, length, track, mute, fades, names, extension data),
--- and each take's FX list, extension data and volume envelope (apply_fx_range, remove_fx_range and reduce_range_gain change
--- them inside their block). The rest of a take is kept by reference: no command here changes it inside an undo block a
--- test then undoes.
+-- and each take's FX list, each FX's parameter values and enabled state, extension data and volume envelope (apply_fx_range,
+-- remove_fx_range, fx_range_set_param, fx_range_bypass and reduce_range_gain change them inside their block). The rest of a
+-- take is kept by reference: no command here changes it inside an undo block a test then undoes.
 function Fake:snapshot()
   local copy = function(t)
     local out = {}
@@ -341,8 +361,17 @@ function Fake:snapshot()
       active_index = item.active_index or false,
     }
     for _, take in ipairs(item.takes) do
+      local fx_state = {}
+      for _, fx in ipairs(take.fx or {}) do
+        local values = {}
+        for index, param in ipairs(fx.params or {}) do
+          values[index] = param.value
+        end
+        fx_state[#fx_state + 1] = { fx = fx, enabled = fx.enabled, values = values }
+      end
       shot.take_state[take] = {
         fx = copy(take.fx or {}),
+        fx_state = fx_state,
         ext = copy(take.ext or {}),
         volume_env = take.volume_env or false,
         env_points = take.volume_env and copy(take.volume_env.points) or false,
@@ -369,6 +398,12 @@ function Fake:undo_last_block()
   end
   for take, state in pairs(shot.take_state) do
     take.fx, take.ext = state.fx, state.ext
+    for _, saved in ipairs(state.fx_state) do
+      saved.fx.enabled = saved.enabled
+      for index, value in ipairs(saved.values) do
+        saved.fx.params[index].value = value
+      end
+    end
     take.volume_env = state.volume_env or nil
     if take.volume_env then
       take.volume_env.points = state.env_points
@@ -991,7 +1026,7 @@ function Fake:add_take_api(api)
     take.fx = take.fx or {}
     local first = #take.fx
     for _ = 1, fake.chain_fx_count or 1 do
-      take.fx[#take.fx + 1] = { name = name, guid = fake:new_guid() }
+      take.fx[#take.fx + 1] = { name = name, guid = fake:new_guid(), enabled = true, params = fake:fx_params() }
     end
     return first
   end
@@ -1011,6 +1046,71 @@ function Fake:add_take_api(api)
       return false, ''
     end
     return true, fx.name
+  end
+  -- An FX's parameters and its enabled state (fx_range_params, fx_range_set_param, fx_range_bypass), as the ReaScript
+  -- reference documents the calls (not run in REAPER, #1495). Every setter is recorded in fake.calls. An index the take
+  -- or the FX does not have answers false, 0 or '' the way REAPER answers it for a bad index.
+  local function fx_at(take, index)
+    return (take.fx or {})[index + 1]
+  end
+  local function param_at(take, index, param)
+    local fx = fx_at(take, index)
+    return fx and (fx.params or {})[param + 1] or nil
+  end
+  function api.TakeFX_GetNumParams(take, index)
+    local fx = fx_at(take, index)
+    return fx and #(fx.params or {}) or 0
+  end
+  function api.TakeFX_GetParamName(take, index, param, _)
+    local p = param_at(take, index, param)
+    return p ~= nil, p and p.name or ''
+  end
+  -- TakeFX_GetParam(take, fx, param): the value, then the lowest and highest it takes.
+  function api.TakeFX_GetParam(take, index, param)
+    local p = param_at(take, index, param)
+    if not p then
+      return 0, 0, 0
+    end
+    return p.value, p.min, p.max
+  end
+  -- TakeFX_GetParameterStepSizes(take, fx, param): false for a continuous parameter; else true, the step, the small and
+  -- large steps, and whether it is a toggle.
+  function api.TakeFX_GetParameterStepSizes(take, index, param)
+    local p = param_at(take, index, param)
+    if not p or not p.step then
+      return false, 0, 0, 0, false
+    end
+    return true, p.step, p.step, p.step, p.toggle or false
+  end
+  -- TakeFX_GetFormattedParamValue(take, fx, param, buf): the value as the FX shows it.
+  function api.TakeFX_GetFormattedParamValue(take, index, param, _)
+    local p = param_at(take, index, param)
+    if not p then
+      return false, ''
+    end
+    return true, string.format('%g', p.value) .. (p.unit or '')
+  end
+  -- fake.param_set_fails makes TakeFX_SetParam refuse; fake.param_quantum rounds what it stores, as an FX with steps does.
+  function api.TakeFX_SetParam(take, index, param, value)
+    fake.calls[#fake.calls + 1] = { name = 'TakeFX_SetParam', fx = index, param = param, value = value, in_block = fake.open_undo_blocks > 0 }
+    local p = param_at(take, index, param)
+    if fake.param_set_fails or not p then
+      return false
+    end
+    local quantum = fake.param_quantum
+    p.value = quantum and math.floor(value / quantum + 0.5) * quantum or value
+    return true
+  end
+  function api.TakeFX_GetEnabled(take, index)
+    local fx = fx_at(take, index)
+    return fx ~= nil and fx.enabled ~= false
+  end
+  function api.TakeFX_SetEnabled(take, index, enabled)
+    fake.calls[#fake.calls + 1] = { name = 'TakeFX_SetEnabled', fx = index, enabled = enabled, in_block = fake.open_undo_blocks > 0 }
+    local fx = fx_at(take, index)
+    if fx then
+      fx.enabled = enabled
+    end
   end
   -- fake.fx_delete_fails makes TakeFX_Delete refuse, as REAPER answers false for an FX it does not delete.
   -- TakeFX_Delete(take, fx): removes the FX at a 0-based index; false for an index the take does not have. Recorded in

@@ -92,6 +92,21 @@
 --
 -- Not run in REAPER (pending the QA pass, #1495): as reduce_range_gain, and that a click dipped by CLICK_DIP_DB is no longer
 -- heard and the dip itself is not.
+--
+-- fx_range_params(run, item_guid, take_guid, chain), fx_range_set_param(run, item_guid, take_guid, chain, fx, param|value) and
+-- fx_range_bypass(run, item_guid, take_guid, chain, on) read and change the chain apply_fx_range put on a piece (SN-E104).
+-- item_guid and take_guid are as apply_fx_range answered them; an empty take_guid is the piece's take that carries the chain.
+-- The take must carry that chain in its P_EXT and still hold every FX the record names, else ITEM_STALE|run|guid|item, take
+-- or fx and nothing changes. The chain's FX are numbered in the order the record names them, so an FX the narrator added is
+-- never read or changed. fx_range_params answers RANGE_FX_PARAM|run|fx|fxName|param|name|value|min|max|step|formatted per
+-- setting (at most MAX_FX_PARAMS; step 0 when continuous), then RANGE_FX_PARAMS|run|itemGuid|takeGuid|chain|count|truncated|
+-- bypassed. fx_range_set_param sets one setting to a value inside its range in one undo block and answers RANGE_FX_PARAM_SET|
+-- run|itemGuid|takeGuid|fx|param|value|formatted|undoPoints with the value REAPER holds; fx_range_bypass ('1' bypass, '0' on)
+-- switches every FX of the chain in one undo block and answers RANGE_FX_BYPASSED|run|itemGuid|takeGuid|chain|bypassed|
+-- undoPoints. Neither opens a block when nothing needs changing (undoPoints 0); both refuse while recording.
+--
+-- Not run in REAPER (pending the QA pass, #1495): whether TakeFX_GetParam's bounds are the plug-in's units, whether a
+-- parameter change and a bypass are each one undo step that Undo reverses, and that both are heard.
 
 local core = ...
 local event = core.event
@@ -1196,6 +1211,260 @@ local function repair_click(session_dir, run_id, item_text, take_text, clicks_te
   event(session_dir, 'CLICKS_REPAIRED', run_id, item_guid(item), take_guid(take), #spans, 1)
 end
 
+-- fx_range_params, fx_range_set_param, fx_range_bypass ---------------------------------------------------------------
+
+local UNDO_SET_PARAM = 'Narration Utils: change effect setting'
+local UNDO_BYPASS = 'Narration Utils: bypass effect'
+local UNDO_ENABLE = 'Narration Utils: turn effect back on'
+-- The most parameters fx_range_params lists, over every FX of the chain: a plug-in can have thousands.
+local MAX_FX_PARAMS = 512
+local FX_EDIT_NEEDED = {
+  'TakeFX_GetCount',
+  'TakeFX_GetFXGUID',
+  'TakeFX_GetFXName',
+  'TakeFX_GetNumParams',
+  'TakeFX_GetParamName',
+  'TakeFX_GetParam',
+  'TakeFX_GetParameterStepSizes',
+  'TakeFX_GetFormattedParamValue',
+  'TakeFX_SetParam',
+  'TakeFX_GetEnabled',
+  'TakeFX_SetEnabled',
+}
+local FX_EDIT_UNSUPPORTED = 'This REAPER version cannot read or change an effect on words.'
+local NO_SUCH_SETTING = 'That effect has no such setting.'
+
+-- A number as the events carry it: every digit a double needs, and no '.0' on a whole number.
+local function num(value)
+  return string.format('%.17g', value)
+end
+
+-- Whether every call the three commands make is there; answers ERROR when one is not.
+local function fx_edit_supported(session_dir, run_id)
+  for _, call in ipairs(FX_EDIT_NEEDED) do
+    if not reaper.APIExists(call) then
+      event(session_dir, 'ERROR', run_id, FX_EDIT_UNSUPPORTED)
+      return false
+    end
+  end
+  return true
+end
+
+-- The chain apply_fx_range put on a piece: the item, the take, and the take's FX indices of the FX the take's record names,
+-- in the order recorded. take_text empty is the item's take that carries the chain. Answers ITEM_STALE and returns nil
+-- when the item (reason item) or the named take (reason take) no longer resolves, or when the take no longer carries
+-- that chain or an FX the record names is gone (reason fx).
+local function applied_chain(session_dir, run_id, item_text, take_text, name)
+  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)
+  local item = wanted_item ~= '' and find_item(wanted_item) or nil
+  if not item then
+    event(session_dir, 'ITEM_STALE', run_id, item_text, 'item')
+    return nil
+  end
+  local take = nil
+  for index = 0, reaper.CountTakes(item) - 1 do
+    local candidate = reaper.GetTake(item, index)
+    if wanted_take ~= '' and take_guid(candidate) == wanted_take then
+      take = candidate
+    elseif wanted_take == '' and not take and take_ext(candidate, CHAIN_KEY) == name then
+      take = candidate
+    end
+  end
+  if wanted_take ~= '' and not take then
+    event(session_dir, 'ITEM_STALE', run_id, take_text, 'take')
+    return nil
+  end
+  local slots = {}
+  if take and take_ext(take, CHAIN_KEY) == name then
+    local at = {}
+    for fx = 0, reaper.TakeFX_GetCount(take) - 1 do
+      at[reaper.TakeFX_GetFXGUID(take, fx) or ''] = fx
+    end
+    for guid in take_ext(take, CHAIN_FX_KEY):gmatch('%S+') do
+      if not at[guid] then
+        slots = {}
+        break
+      end
+      slots[#slots + 1] = at[guid]
+    end
+  end
+  if #slots == 0 then
+    event(session_dir, 'ITEM_STALE', run_id, item_guid(item), 'fx')
+    return nil
+  end
+  return item, take, slots
+end
+
+-- fx_range_set_param's last field: param|value (the bridge splits a line into at most eight fields and the last keeps the
+-- rest). Any other number of parts is nil, which refuses.
+local function setting_tail(field)
+  local parts = {}
+  for part in ((field or '') .. '|'):gmatch('(.-)|') do
+    parts[#parts + 1] = part
+  end
+  if #parts ~= 2 then
+    return nil
+  end
+  return parts[1], parts[2]
+end
+
+-- A whole number 0 or more written in plain digits, or nil.
+local function index_from(text)
+  if not (text or ''):match('^%d+$') then
+    return nil
+  end
+  return tonumber(text)
+end
+
+local function fx_range_params(session_dir, run_id, item_text, take_text, name)
+  if not chain_parts(name) then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  if not fx_edit_supported(session_dir, run_id) then
+    return
+  end
+  local item, take, slots = applied_chain(session_dir, run_id, item_text, take_text, name)
+  if not item then
+    return
+  end
+  local listed_count, truncated, bypassed = 0, 0, 1
+  for position, fx in ipairs(slots) do
+    if reaper.TakeFX_GetEnabled(take, fx) then
+      bypassed = 0
+    end
+    local _, fx_name = reaper.TakeFX_GetFXName(take, fx, '')
+    for param = 0, reaper.TakeFX_GetNumParams(take, fx) - 1 do
+      if listed_count == MAX_FX_PARAMS then
+        truncated = 1
+        break
+      end
+      local value, low, high = reaper.TakeFX_GetParam(take, fx, param)
+      local _, param_name = reaper.TakeFX_GetParamName(take, fx, param, '')
+      local stepped, step = reaper.TakeFX_GetParameterStepSizes(take, fx, param)
+      local _, formatted = reaper.TakeFX_GetFormattedParamValue(take, fx, param, '')
+      -- A value that is not a finite number is not one the host can read or send back, so it is not listed.
+      if finite(value) and finite(low) and finite(high) then
+        step = stepped and finite(step) or 0
+        event(
+          session_dir,
+          'RANGE_FX_PARAM',
+          run_id,
+          position - 1,
+          fx_name or '',
+          param,
+          param_name or '',
+          num(value),
+          num(low),
+          num(high),
+          num(step),
+          formatted or ''
+        )
+        listed_count = listed_count + 1
+      end
+    end
+  end
+  event(session_dir, 'RANGE_FX_PARAMS', run_id, item_guid(item), take_guid(take), name, listed_count, truncated, bypassed)
+end
+
+local function fx_range_set_param(session_dir, run_id, item_text, take_text, name, fx_text, param_text, value_text)
+  if not chain_parts(name) then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  local position, param = index_from(fx_text), index_from(param_text)
+  if not position or not param then
+    event(session_dir, 'ERROR', run_id, NO_SUCH_SETTING)
+    return
+  end
+  local value = finite(value_text)
+  if not value then
+    event(session_dir, 'ERROR', run_id, 'The value for that setting is not a number.')
+    return
+  end
+  if not fx_edit_supported(session_dir, run_id) then
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local item, take, slots = applied_chain(session_dir, run_id, item_text, take_text, name)
+  if not item then
+    return
+  end
+  local fx = slots[position + 1]
+  if not fx or param >= reaper.TakeFX_GetNumParams(take, fx) then
+    event(session_dir, 'ERROR', run_id, NO_SUCH_SETTING)
+    return
+  end
+  local current, low, high = reaper.TakeFX_GetParam(take, fx, param)
+  if value < low - EDGE_TOLERANCE or value > high + EDGE_TOLERANCE then
+    event(session_dir, 'ERROR', run_id, 'That value is outside what the setting takes.')
+    return
+  end
+  local function answer(undo_points)
+    local held = reaper.TakeFX_GetParam(take, fx, param)
+    local _, formatted = reaper.TakeFX_GetFormattedParamValue(take, fx, param, '')
+    event(session_dir, 'RANGE_FX_PARAM_SET', run_id, item_guid(item), take_guid(take), position, param, num(held), formatted or '', undo_points)
+  end
+  if current == value then
+    answer(0)
+    return
+  end
+
+  reaper.Undo_BeginBlock2(0)
+  local changed = reaper.TakeFX_SetParam(take, fx, param, value)
+  reaper.Undo_EndBlock2(0, UNDO_SET_PARAM, -1)
+  reaper.UpdateArrange()
+  if not changed then
+    event(session_dir, 'ERROR', run_id, 'REAPER did not change the setting.')
+    return
+  end
+  answer(1)
+end
+
+local function fx_range_bypass(session_dir, run_id, item_text, take_text, name, on_text)
+  if not chain_parts(name) then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  if on_text ~= '1' and on_text ~= '0' then
+    event(session_dir, 'ERROR', run_id, 'Bypass must be 1 (on) or 0 (off).')
+    return
+  end
+  if not fx_edit_supported(session_dir, run_id) then
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local item, take, slots = applied_chain(session_dir, run_id, item_text, take_text, name)
+  if not item then
+    return
+  end
+  local enable = on_text == '0'
+  local switch = {}
+  for _, fx in ipairs(slots) do
+    if (reaper.TakeFX_GetEnabled(take, fx) and true or false) ~= enable then
+      switch[#switch + 1] = fx
+    end
+  end
+  if #switch == 0 then
+    event(session_dir, 'RANGE_FX_BYPASSED', run_id, item_guid(item), take_guid(take), name, on_text, 0)
+    return
+  end
+
+  reaper.Undo_BeginBlock2(0)
+  for _, fx in ipairs(switch) do
+    reaper.TakeFX_SetEnabled(take, fx, enable)
+  end
+  reaper.Undo_EndBlock2(0, enable and UNDO_ENABLE or UNDO_BYPASS, -1)
+  reaper.UpdateArrange()
+  event(session_dir, 'RANGE_FX_BYPASSED', run_id, item_guid(item), take_guid(take), name, on_text, 1)
+end
+
 return function(registry)
   registry.register('delete_range', function(ctx, args)
     local fade, pad, tone = cut_tail(args[6])
@@ -1212,5 +1481,15 @@ return function(registry)
   end)
   registry.register('repair_click', function(ctx, args)
     repair_click(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4])
+  end)
+  registry.register('fx_range_params', function(ctx, args)
+    fx_range_params(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
+  end)
+  registry.register('fx_range_set_param', function(ctx, args)
+    local param, value = setting_tail(args[6])
+    fx_range_set_param(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5], param, value)
+  end)
+  registry.register('fx_range_bypass', function(ctx, args)
+    fx_range_bypass(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5] or '')
   end)
 end

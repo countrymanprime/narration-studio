@@ -559,6 +559,14 @@ export function DawBackups(): $CancellablePromise<string> {
 }
 
 /**
+ * DawBypassFxRange bypasses every effect of the chain chainName on the words (bypass true) or turns them back on, in one undo step
+ * of the DAW's own; a chain already as asked answers changed false. The same refusals as DawFxRangeParams.
+ */
+export function DawBypassFxRange(chapterID: string, firstToken: number, lastToken: number, chainName: string, bypass: boolean): $CancellablePromise<string> {
+    return $Call.ByID(3650497681, chapterID, firstToken, lastToken, chainName, bypass);
+}
+
+/**
  * DawCapabilities answers the launch's DAW, whether it is reachable, and every capability's level, availability and (when
  * unavailable) reason and message.
  */
@@ -609,6 +617,18 @@ export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<stri
  */
 export function DawDeleteRange(chapterID: string, firstToken: number, lastToken: number, mode: string, fadeMs: number, padMs: number, roomTone: boolean): $CancellablePromise<string> {
     return $Call.ByID(3764148814, chapterID, firstToken, lastToken, mode, fadeMs, padMs, roomTone);
+}
+
+/**
+ * DawFxRangeParams reads the settings of the chain chainName on the words firstToken..lastToken of chapterID's stored alignment
+ * (SN-E104; the mock's effect inspector), resolved as DawApplyFxToRange resolves them: the DAW finds the piece the chain went on
+ * from the answer it gave the apply, or, after the chapter is checked again, from the item the words resolve to. The page sends a
+ * chapter id, two token indices and a chain name, never a GUID or a path. The answer is the DawFxRangeParams payload: a DawResult
+ * (ADR 0810) with the settings, whether the list was cut short and whether the chain is bypassed; a refusal has no settings. The
+ * same capability and range refusals as DawRemoveFxFromRange, then a chain the DAW no longer has on those words, with code stale.
+ */
+export function DawFxRangeParams(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
+    return $Call.ByID(612559995, chapterID, firstToken, lastToken, chainName);
 }
 
 /**
@@ -716,6 +736,15 @@ export function DawRevealFile(path: string): $CancellablePromise<string> {
  */
 export function DawRoll(chapterID: string, at: number, confirmed: boolean): $CancellablePromise<string> {
     return $Call.ByID(2752092233, chapterID, at, confirmed);
+}
+
+/**
+ * DawSetFxRangeParam sets setting index of effect fx of the chain chainName on the words (both as DawFxRangeParams numbers them)
+ * to value, in one undo step of the DAW's own; a setting already at the value answers changed false. The same refusals as
+ * DawFxRangeParams, then a setting the effect does not have and a value outside its range, each with a sentence.
+ */
+export function DawSetFxRangeParam(chapterID: string, firstToken: number, lastToken: number, chainName: string, fx: number, index: number, value: number): $CancellablePromise<string> {
+    return $Call.ByID(3554935570, chapterID, firstToken, lastToken, chainName, fx, index, value);
 }
 
 /**

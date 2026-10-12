@@ -29,6 +29,11 @@ export const dawFeedback = {
   'src/ports/daw.ts::dawDeleteRange#1': adapter('Forwards Delete words and audio; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawApplyFxToRange#1': adapter('Forwards Add effect to words; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawRemoveFxFromRange#1': adapter('Forwards Remove effect from words; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawFxRangeParams#1': adapter("Reads an effect's settings on words for the inspector; the binding already answers a DawResult with them."),
+  'src/ports/daw.ts::dawSetFxRangeParam#1': adapter(
+    'Forwards a changed effect setting with the words, chain and setting only; the binding already answers a DawResult.',
+  ),
+  'src/ports/daw.ts::dawBypassFxRange#1': adapter('Forwards Bypass with the words and chain only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawStackTakes#1': adapter('Forwards Stack retries as takes with the passage ids only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawBackupAround#1': adapter(
     'Forwards Back up the audio around the words with the chapter, tokens and label only; the binding already answers a DawResult.',

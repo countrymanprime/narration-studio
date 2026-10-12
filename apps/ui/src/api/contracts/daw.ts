@@ -213,7 +213,44 @@ export interface DawDeleteRangeApi {
 export interface DawFxRangeApi {
   dawApplyFxToRange(chapterId: string, firstToken: number, lastToken: number, chainName: string, fadeMs: number): Promise<DawResult>;
   dawRemoveFxFromRange(chapterId: string, firstToken: number, lastToken: number, chainName: string): Promise<DawResult>;
+  /** DawFxRangeParams (SN-E104): the settings of the chain on the words, read and nothing changed. The same refusals as a removal, then
+   * a chain the DAW no longer has on the words (code `stale`); an engine that bakes an effect into the audio refuses with a sentence. */
+  dawFxRangeParams(chapterId: string, firstToken: number, lastToken: number, chainName: string): Promise<DawFxRangeSettings>;
+  /** DawSetFxRangeParam (SN-E104): set setting `index` of effect `fx` of the chain on the words (as `dawFxRangeParams` numbers them) to
+   * `value`, in one undo step of the DAW's own; a setting already at the value answers `changed: false`. A setting the effect does not
+   * have and a value outside its range are refused with a sentence. */
+  dawSetFxRangeParam(chapterId: string, firstToken: number, lastToken: number, chainName: string, fx: number, index: number, value: number): Promise<DawResult>;
+  /** DawBypassFxRange (SN-E104): bypass every effect of the chain on the words, or turn them back on, in one undo step of the DAW's own;
+   * a chain already as asked answers `changed: false`. */
+  dawBypassFxRange(chapterId: string, firstToken: number, lastToken: number, chainName: string, bypass: boolean): Promise<DawResult>;
 }
+
+/** The most settings `dawFxRangeParams` lists over a chain's effects (bridge.MaxFXRangeParams); `truncated` says it stopped there. */
+export const DAW_FX_RANGE_MAX_SETTINGS = 512;
+
+/** One setting of one effect of a chain on words (dawport.FXSetting). `fx` is the effect's place in the chain and `index` the setting's
+ * place in that effect, both from 0; `value` lies in `min`..`max`; `step` is the DAW's step for it, 0 when it is continuous; `formatted`
+ * is the value as the effect shows it ("-6.0 dB"). */
+export type DawFxSetting = {
+  fx: number;
+  fxName: string;
+  index: number;
+  name: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  formatted: string;
+};
+
+/** What `dawFxRangeParams` answers (dawport.FXRangeSettings): the call's DawResult, the chain's settings in order (none on a refusal),
+ * whether the list stopped at DAW_FX_RANGE_MAX_SETTINGS, and whether every effect of the chain is bypassed. */
+export type DawFxRangeSettings = {
+  result: DawResult;
+  settings: DawFxSetting[];
+  truncated: boolean;
+  bypassed: boolean;
+};
 
 /** DawStackTakes and DawUnstackTakes (SND-7b; apps/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the
  * first read's spot as takes, and move them back (ADR 0860 point 4). The page sends a chapter id and passage ids only: the host rebuilds

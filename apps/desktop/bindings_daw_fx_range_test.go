@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"maps"
+	"math"
 	"reflect"
 	"slices"
 	"testing"
@@ -364,5 +366,207 @@ func TestDawFxRangeContractGoldenIsCurrent(t *testing.T) {
 			host := fxRangeHost(t, "REAPER", liveReachability(), role, c.toggle)
 			contractfile.Check(t, name, applyFx(t, host, role, listing(fxRangeChain), 0, 0, fxRangeChain, 10))
 		})
+	}
+}
+
+// DawFxRangeParams, DawSetFxRangeParam and DawBypassFxRange (SN-E104) over the same launch: the words resolve to "{ITEM-1}" from 1
+// to 1.5 s, and a fake editor stands in for REAPER's fx_range role.
+
+type fakeRangeFXEditor struct {
+	fakeRangeFX
+	targets  []dawport.FXRangeTarget
+	set      [][3]float64
+	bypassed []bool
+	settings dawport.FXRangeSettings
+}
+
+func (f *fakeRangeFXEditor) FXRangeParams(_ context.Context, target dawport.FXRangeTarget) (dawport.FXRangeSettings, error) {
+	f.targets = append(f.targets, target)
+	return f.settings, f.err
+}
+
+func (f *fakeRangeFXEditor) SetFXRangeParam(_ context.Context, target dawport.FXRangeTarget, fx, index int, value float64) (dawport.Result, error) {
+	f.targets = append(f.targets, target)
+	f.set = append(f.set, [3]float64{float64(fx), float64(index), value})
+	return f.answer, f.err
+}
+
+func (f *fakeRangeFXEditor) BypassFXRange(_ context.Context, target dawport.FXRangeTarget, bypass bool) (dawport.Result, error) {
+	f.targets = append(f.targets, target)
+	f.bypassed = append(f.bypassed, bypass)
+	return f.answer, f.err
+}
+
+// gainSetting is what REAPER's fx_range role reads for a chain of one effect with a continuous gain and a stepped mode: the settings
+// apps/ui's mocks read (fixtures/daw.ts FX_RANGE_SETTINGS), so the goldens and the mock answer alike.
+func gainSetting() dawport.FXRangeSettings {
+	return dawport.FXRangeSettings{
+		Result: dawport.OK("Read 2 settings of Podcast Voice.RfxChain in REAPER.", false),
+		Settings: []dawport.FXSetting{
+			{FX: 0, FXName: "VST: ReaEQ (Cockos)", Index: 0, Name: "Gain", Value: 0, Min: -24, Max: 24, Formatted: "0 dB"},
+			{FX: 0, FXName: "VST: ReaEQ (Cockos)", Index: 1, Name: "Mode", Value: 0, Min: 0, Max: 3, Step: 1, Formatted: "0"},
+		},
+	}
+}
+
+func decodeFxSettings(t *testing.T) func(string, error) dawport.FXRangeSettings {
+	t.Helper()
+	return func(payload string, err error) dawport.FXRangeSettings {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got dawport.FXRangeSettings
+		if err := json.Unmarshal([]byte(payload), &got); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+}
+
+func fxEditHost(t *testing.T, editor *fakeRangeFXEditor, toggle string) *Host {
+	t.Helper()
+	var role dawport.RangeFXApplier
+	if editor != nil {
+		role = editor
+	}
+	return fxRangeHost(t, "REAPER", liveReachability(), role, toggle)
+}
+
+func TestDawFxRangeEditsSendTheResolvedRangeAndChainAndAnswer(t *testing.T) {
+	editor := &fakeRangeFXEditor{settings: gainSetting()}
+	host := fxEditHost(t, editor, "on")
+
+	got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+	if !reflect.DeepEqual(got, gainSetting()) {
+		t.Fatalf("DawFxRangeParams = %+v, want %+v", got, gainSetting())
+	}
+	editor.answer = dawport.OK("Set Podcast Voice.RfxChain to -3 dB in REAPER. Undo it there in one step.", true)
+	if got := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, -3)); !reflect.DeepEqual(got, editor.answer) || got.UndoSteps != 1 {
+		t.Fatalf("DawSetFxRangeParam = %+v", got)
+	}
+	editor.answer = dawport.OK("Podcast Voice.RfxChain bypassed in REAPER. Undo it there in one step.", true)
+	if got := decodeDawResult(t)(host.DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true)); !reflect.DeepEqual(got, editor.answer) {
+		t.Fatalf("DawBypassFxRange = %+v", got)
+	}
+	target := dawport.FXRangeTarget{RangeRequest: dawport.RangeRequest{ChapterID: "c-0001", ItemGUID: "{ITEM-1}", Start: 1, End: 1.5, Words: 1}, ChainName: fxRangeChain}
+	if want := []dawport.FXRangeTarget{target, target, target}; !reflect.DeepEqual(editor.targets, want) {
+		t.Fatalf("targets = %+v, want %+v", editor.targets, want)
+	}
+	if !reflect.DeepEqual(editor.set, [][3]float64{{0, 0, -3}}) || !reflect.DeepEqual(editor.bypassed, []bool{true}) {
+		t.Fatalf("set %v, bypassed %v", editor.set, editor.bypassed)
+	}
+}
+
+func TestDawFxRangeEditsRefuseWithTheResolversSentenceAndSendNothing(t *testing.T) {
+	for _, toggle := range []string{"", "off"} {
+		editor := &fakeRangeFXEditor{settings: gainSetting()}
+		host := fxEditHost(t, editor, toggle)
+		support := fxRangeSupport(t, host)
+		want := dawport.Refused(support.Message)
+		params := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+		set := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, 1))
+		bypass := decodeDawResult(t)(host.DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true))
+		if support.Available || !reflect.DeepEqual(params.Result, want) || params.Settings == nil || len(params.Settings) != 0 ||
+			!reflect.DeepEqual(set, want) || !reflect.DeepEqual(bypass, want) || len(editor.targets) != 0 {
+			t.Fatalf("toggle %q: params %+v, set %+v, bypass %+v, sent %d", toggle, params, set, bypass, len(editor.targets))
+		}
+	}
+}
+
+func TestDawFxRangeEditsRefuseABadRangeChainOrSettingAndSendNothing(t *testing.T) {
+	editor := &fakeRangeFXEditor{settings: gainSetting()}
+	host := fxEditHost(t, editor, "on")
+	if got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 2, fxRangeChain)); got.Result.Code != dawport.CodeStale || len(got.Settings) != 0 {
+		t.Errorf("stale range: %+v", got)
+	}
+	if got := decodeDawResult(t)(host.DawBypassFxRange("c-0001", 0, 1, fxRangeChain, true)); !reflect.DeepEqual(got, dawport.Refused(fxRangeNotHeardSentence)) {
+		t.Errorf("unheard words: %+v", got)
+	}
+	for _, chain := range []string{"../reaper.ini", `C:\x.RfxChain`, "VST: ReaEQ (Cockos)"} {
+		if got := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, chain, 0, 0, 1)); !reflect.DeepEqual(got, dawport.Refused(fxRangeBadChainSentence)) {
+			t.Errorf("chain %q: %+v", chain, got)
+		}
+	}
+	for _, setting := range [][2]int{{-1, 0}, {0, -1}} {
+		if got := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, setting[0], setting[1], 1)); !reflect.DeepEqual(got, dawport.Refused(fxRangeNoSettingSentence)) {
+			t.Errorf("setting %v: %+v", setting, got)
+		}
+	}
+	editor.answer = dawport.OK("Set.", true)
+	if got, err := dawFxRangeEditIn(t.Context(), host.services(), fxRangeSupport(t, host), editor, "c-0001", 0, 0, fxRangeChain,
+		func(e dawport.RangeFXEditor, target dawport.FXRangeTarget) (dawport.Result, error) {
+			return e.SetFXRangeParam(t.Context(), target, 0, 0, 1)
+		}); err != nil || !got.OK {
+		t.Errorf("a good edit through the shared checks = %+v, %v", got, err)
+	}
+	editor.targets = nil
+	if got := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, math.Inf(1))); !reflect.DeepEqual(got, dawport.Refused(fxRangeBadValueSentence)) {
+		t.Errorf("infinite value: %+v", got)
+	}
+	if len(editor.targets) != 0 {
+		t.Fatalf("sent %+v", editor.targets)
+	}
+}
+
+// An engine whose fx_range role keeps no live effect, or no role at all, refuses; a role's error is worded as a refusal; a stale
+// answer passes on with its code.
+func TestDawFxRangeEditsPassOnTheRolesAnswers(t *testing.T) {
+	applyOnly := fxRangeHost(t, "REAPER", liveReachability(), &fakeRangeFX{answer: chainOnInREAPER()}, "on")
+	if got := decodeDawResult(t)(applyOnly.DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true)); got.OK || got.Refused != "REAPER cannot read or change an effect on words." {
+		t.Errorf("no editor: %+v", got)
+	}
+	none := fxEditHost(t, nil, "on")
+	if got := decodeFxSettings(t)(none.DawFxRangeParams("c-0001", 0, 0, fxRangeChain)); got.Result.OK || got.Result.Refused == "" {
+		t.Errorf("no role: %+v", got)
+	}
+	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
+	stale := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: gone}, settings: dawport.FXRangeSettings{Result: gone}}
+	host := fxEditHost(t, stale, "on")
+	if got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain)); !reflect.DeepEqual(got.Result, gone) || got.Settings == nil {
+		t.Errorf("stale params: %+v", got)
+	}
+	if got := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, 1)); !reflect.DeepEqual(got, gone) {
+		t.Errorf("stale set: %+v", got)
+	}
+	for _, err := range []error{bridge.ErrNoAnswer, context.DeadlineExceeded, errors.New("boom")} {
+		failing := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{err: err}}
+		host := fxEditHost(t, failing, "on")
+		if got := decodeFxSettings(t)(host.DawFxRangeParams("c-0001", 0, 0, fxRangeChain)); got.Result.OK || got.Result.Refused == "" || got.Settings == nil {
+			t.Errorf("%v: params %+v", err, got)
+		}
+		if got := decodeDawResult(t)(host.DawBypassFxRange("c-0001", 0, 0, fxRangeChain, false)); got.OK || got.Refused == "" {
+			t.Errorf("%v: bypass %+v", err, got)
+		}
+	}
+}
+
+// TestDawFxRangeEditsContractGoldenIsCurrent pins the edits' answers: the settings read, the capability's refusal of a read, a
+// setting changed and a chain bypassed (one undo step each), and a chain no longer on the words (code stale). UPDATE_CONTRACTS=1
+// rewrites tests/fixtures/contracts/daw-fx-range-{params,bypass}-*.json.
+func TestDawFxRangeEditsContractGoldenIsCurrent(t *testing.T) {
+	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
+	cases := map[string]func(t *testing.T) any{
+		"daw-fx-range-params-done": func(t *testing.T) any {
+			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}, "on").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+		},
+		"daw-fx-range-params-refused": func(t *testing.T) any {
+			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}, "").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+		},
+		"daw-fx-range-params-set-done": func(t *testing.T) any {
+			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: dawport.OK("Set Podcast Voice.RfxChain to -3 dB in REAPER. Undo it there in one step.", true)}}
+			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, -3))
+		},
+		"daw-fx-range-bypass-done": func(t *testing.T) any {
+			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: dawport.OK("Podcast Voice.RfxChain bypassed in REAPER. Undo it there in one step.", true)}}
+			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawBypassFxRange("c-0001", 0, 0, fxRangeChain, true))
+		},
+		"daw-fx-range-bypass-refused-stale": func(t *testing.T) any {
+			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: gone}}
+			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawBypassFxRange("c-0001", 0, 0, fxRangeChain, false))
+		},
+	}
+	for _, name := range slices.Sorted(maps.Keys(cases)) {
+		t.Run(name, func(t *testing.T) { contractfile.Check(t, name, cases[name](t)) })
 	}
 }

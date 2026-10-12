@@ -18,6 +18,7 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/dawporttest"
 )
 
@@ -130,6 +131,9 @@ var experimentalCapability = map[string]dawport.Capability{
 	"reveal_file":         dawport.CapFileReveal,
 	"reduce_range_gain":   dawport.CapRangeGain,
 	"repair_click":        dawport.CapClickRepair,
+	"fx_range_params":     dawport.CapFXRange,
+	"fx_range_set_param":  dawport.CapFXRange,
+	"fx_range_bypass":     dawport.CapFXRange,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -1197,5 +1201,194 @@ func TestDeleteRangeSendsThePadAndRoomToneAndAnswersAnOlderScript(t *testing.T) 
 	})
 	if got, err := older.DeleteRange(t.Context(), request); err != nil || !reflect.DeepEqual(got, dawport.Refused(messageCutScriptOutdated)) {
 		t.Errorf("an older script: DeleteRange = %+v, %v; want Refused(%q)", got, err, messageCutScriptOutdated)
+	}
+}
+
+// The fx_range edits (SN-E104): fx_range_params, fx_range_set_param and fx_range_bypass.
+
+const fxRangeTake = "{0000000A-0000-4000-8000-00000000000A}"
+
+func fxEditorAnswering(t *testing.T, answer func(command []string) [][]string) (dawport.RangeFXApplier, dawport.RangeFXEditor) {
+	t.Helper()
+	role := rangeFXApplierAnswering(t, answer)
+	return role, role.(dawport.RangeFXEditor)
+}
+
+func fxTarget() dawport.FXRangeTarget {
+	return dawport.FXRangeTarget{RangeRequest: fxRangeRequest(2).RangeRequest, ChainName: fxRangeChain}
+}
+
+func TestRangeFXParamsAndBypassAreExperimentalAndAudacityRefuses(t *testing.T) {
+	for _, command := range []string{"fx_range_params", "fx_range_set_param", "fx_range_bypass"} {
+		if !bridge.Experimental(command) || commandCapability[command] != dawport.CapFXRange {
+			t.Errorf("%s must be an experimental fx_range command", command)
+		}
+	}
+	if declares[dawport.CapFXRange] != dawport.Experimental {
+		t.Errorf("fx_range is declared %v, want Experimental until the QA pass (#1495)", declares[dawport.CapFXRange])
+	}
+	adapter, _ := newAdapter(t, func(dawport.Capability) error { return nil })
+	if _, ok := adapter.Role(dawport.CapFXRange).(dawport.RangeFXEditor); !ok {
+		t.Error("REAPER's fx_range role must also be a RangeFXEditor")
+	}
+
+	// Audacity bakes the effect into the audio after its backup: each edit is refused with a sentence and sends nothing.
+	steps, ok := audacity.New(nil).Role(dawport.CapFXRange).(dawport.RangeFXEditor)
+	if !ok {
+		t.Fatal("Audacity's fx_range role must be a RangeFXEditor that refuses")
+	}
+	settings, err := steps.FXRangeParams(t.Context(), fxTarget())
+	if err != nil || settings.Result.Refused == "" || settings.Result.OK || settings.Settings == nil || len(settings.Settings) != 0 {
+		t.Errorf("Audacity FXRangeParams = %+v, %v", settings, err)
+	}
+	set, err := steps.SetFXRangeParam(t.Context(), fxTarget(), 0, 0, 1)
+	if err != nil || set.Refused == "" || set.Changed || set.Code != "" {
+		t.Errorf("Audacity SetFXRangeParam = %+v, %v", set, err)
+	}
+	bypass, err := steps.BypassFXRange(t.Context(), fxTarget(), true)
+	if err != nil || bypass.Refused == "" || bypass.Changed || bypass.Refused != set.Refused || set.Refused != settings.Result.Refused {
+		t.Errorf("Audacity BypassFXRange = %+v, %v", bypass, err)
+	}
+	if !strings.Contains(set.Refused, "Audacity") || !strings.Contains(set.Refused, "backup") {
+		t.Errorf("the refusal must say why: %q", set.Refused)
+	}
+}
+
+// After an apply, the edits name the piece and take it answered; before one (or after a check names the piece), the item the
+// words resolve to and no take.
+func TestFXRangeEditsNameThePieceTheApplyAnswered(t *testing.T) {
+	var sent [][]string
+	fx, editor := fxEditorAnswering(t, func(command []string) [][]string {
+		sent = append(sent, command)
+		switch command[0] {
+		case "apply_fx_range":
+			return [][]string{{"RANGE_FX_APPLIED", command[1], fxRangePiece, fxRangeTake, fxRangeChain, "1"}}
+		case "fx_range_params":
+			return [][]string{
+				{"RANGE_FX_PARAM", command[1], "0", "C:/FXChains/Voice/Radio.RfxChain", "0", "Gain", "-6", "-24", "24", "0", "-6 dB"},
+				{"RANGE_FX_PARAMS", command[1], command[2], fxRangeTake, fxRangeChain, "1", "0", "1"},
+			}
+		}
+		return [][]string{{"ITEM_STALE", command[1], command[2], "fx"}}
+	})
+	got, err := editor.FXRangeParams(t.Context(), fxTarget())
+	if err != nil || len(sent) != 1 || sent[0][2] != cutItem || sent[0][3] != "" {
+		t.Fatalf("before an apply: %+v, %v, sent %v", got, err, sent)
+	}
+	if _, err := fx.ApplyFXToRange(t.Context(), fxRangeRequest(2)); err != nil {
+		t.Fatal(err)
+	}
+	got, err = editor.FXRangeParams(t.Context(), fxTarget())
+	want := dawport.FXRangeSettings{
+		Result:   dawport.OK("Read 1 setting of Voice/Radio.RfxChain in REAPER.", false),
+		Settings: []dawport.FXSetting{{FX: 0, FXName: "C:/FXChains/Voice/Radio.RfxChain", Index: 0, Name: "Gain", Value: -6, Min: -24, Max: 24, Formatted: "-6 dB"}},
+		Bypassed: true,
+	}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("FXRangeParams = %+v, %v; want %+v", got, err, want)
+	}
+	if last := sent[len(sent)-1]; !reflect.DeepEqual(append([]string{last[0]}, last[2:]...), []string{"fx_range_params", fxRangePiece, fxRangeTake, fxRangeChain}) {
+		t.Errorf("command = %v", last)
+	}
+	// A stale answer forgets the piece, so the next request names the item the words resolve to again.
+	if got, err := editor.BypassFXRange(t.Context(), fxTarget(), true); err != nil || got.Code != dawport.CodeStale {
+		t.Fatalf("stale bypass = %+v, %v", got, err)
+	}
+	if _, err := editor.SetFXRangeParam(t.Context(), fxTarget(), 0, 0, 1); err != nil {
+		t.Fatal(err)
+	}
+	if last := sent[len(sent)-1]; last[2] != cutItem || last[3] != "" {
+		t.Errorf("after a stale answer the edit named %v", last)
+	}
+}
+
+func TestSetFXRangeParamAndBypassFXRangeAreOneUndoStepOrNone(t *testing.T) {
+	undo := "1"
+	var sent []string
+	_, editor := fxEditorAnswering(t, func(command []string) [][]string {
+		sent = command
+		if command[0] == "fx_range_set_param" {
+			return [][]string{{"RANGE_FX_PARAM_SET", command[1], command[2], fxRangeTake, command[5], command[6], "-6.5", "-6.5 dB", undo}}
+		}
+		return [][]string{{"RANGE_FX_BYPASSED", command[1], command[2], fxRangeTake, fxRangeChain, command[5], undo}}
+	})
+	cases := []struct {
+		call func() (dawport.Result, error)
+		want dawport.Result
+		none dawport.Result
+	}{
+		{func() (dawport.Result, error) { return editor.SetFXRangeParam(t.Context(), fxTarget(), 1, 0, -6.5) },
+			dawport.OK("Set Voice/Radio.RfxChain to -6.5 dB in REAPER. Undo it there in one step.", true),
+			dawport.OK("That setting of Voice/Radio.RfxChain is already -6.5 dB in REAPER, so nothing changed.", false)},
+		{func() (dawport.Result, error) { return editor.BypassFXRange(t.Context(), fxTarget(), true) },
+			dawport.OK("Voice/Radio.RfxChain bypassed in REAPER. Undo it there in one step.", true),
+			dawport.OK("Voice/Radio.RfxChain is already bypassed in REAPER, so nothing changed.", false)},
+		{func() (dawport.Result, error) { return editor.BypassFXRange(t.Context(), fxTarget(), false) },
+			dawport.OK("Voice/Radio.RfxChain turned back on in REAPER. Undo it there in one step.", true),
+			dawport.OK("Voice/Radio.RfxChain is already on in REAPER, so nothing changed.", false)},
+	}
+	for i, tc := range cases {
+		undo = "1"
+		if got, err := tc.call(); err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("case %d = %+v, %v; want %+v", i, got, err, tc.want)
+		}
+		undo = "0"
+		if got, err := tc.call(); err != nil || !reflect.DeepEqual(got, tc.none) {
+			t.Errorf("case %d with nothing to change = %+v, %v; want %+v", i, got, err, tc.none)
+		}
+	}
+	if want := []string{"fx_range_bypass", cutItem, "", fxRangeChain, "0"}; !reflect.DeepEqual(append([]string{sent[0]}, sent[2:]...), want) {
+		t.Errorf("command = %v, want %v after the run", sent, want)
+	}
+}
+
+func TestFXRangeEditRefusals(t *testing.T) {
+	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
+	for _, tc := range []struct {
+		name   string
+		answer []string
+		want   dawport.Result
+	}{
+		{"stale item", []string{"ITEM_STALE", cutItem, "item"}, gone},
+		{"stale take", []string{"ITEM_STALE", fxRangeTake, "take"}, gone},
+		{"stale fx", []string{"ITEM_STALE", cutItem, "fx"}, gone},
+		{"recording", []string{"ERROR", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{"outside", []string{"ERROR", "That value is outside what the setting takes."}, dawport.Refused("That value is outside what the setting takes.")},
+		{"old script", []string{"ERROR", "Unsupported workspace command"},
+			dawport.Refused("The Narration Utils script in REAPER is older than this app and cannot read or change an effect on words, so nothing was changed. Import the script again from this app's REAPER folder.")},
+	} {
+		_, editor := fxEditorAnswering(t, func(command []string) [][]string {
+			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}
+		})
+		settings, err := editor.FXRangeParams(t.Context(), fxTarget())
+		if err != nil || !reflect.DeepEqual(settings.Result, tc.want) || settings.Settings == nil || len(settings.Settings) != 0 {
+			t.Errorf("%s: FXRangeParams = %+v, %v; want %+v", tc.name, settings, err, tc.want)
+		}
+		if got, err := editor.SetFXRangeParam(t.Context(), fxTarget(), 0, 0, 1); err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: SetFXRangeParam = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+		if got, err := editor.BypassFXRange(t.Context(), fxTarget(), true); err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: BypassFXRange = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+	}
+}
+
+func TestFXRangeEditsAreGatedByTheResolverAndSendNothingWhenRefused(t *testing.T) {
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to add an effect to words."
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	editor := adapter.Role(dawport.CapFXRange).(dawport.RangeFXEditor)
+	if got, err := editor.FXRangeParams(t.Context(), fxTarget()); err != nil || !reflect.DeepEqual(got.Result, dawport.Refused(sentence)) {
+		t.Errorf("FXRangeParams = %+v, %v", got, err)
+	}
+	if got, err := editor.SetFXRangeParam(t.Context(), fxTarget(), 0, 0, 1); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("SetFXRangeParam = %+v, %v", got, err)
+	}
+	if got, err := editor.BypassFXRange(t.Context(), fxTarget(), true); err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("BypassFXRange = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused edit wrote %d commands", n)
 	}
 }

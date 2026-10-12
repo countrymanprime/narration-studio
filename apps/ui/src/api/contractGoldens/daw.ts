@@ -2,7 +2,14 @@
 // (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go), the stack (bindings_daw_stack_test.go), the backups bindings (bindings_daw_backups_test.go), the file bindings (bindings_daw_files_test.go), the Audacity backups table (internal/dawport/audacity/backups_contract_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
-import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
+import {
+  dawBackupsFileSchema,
+  dawCapabilitiesSchema,
+  dawFxRangeSettingsSchema,
+  dawProjectStateSchema,
+  dawResultSchema,
+  dawTransportSchema,
+} from '../schemas/daw';
 
 export const dawGoldens: Record<string, z.ZodType> = {
   'daw-capabilities-standalone.json': dawCapabilitiesSchema,
@@ -40,6 +47,13 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-apply-fx-range-done.json': dawResultSchema,
   'daw-apply-fx-range-refused.json': dawResultSchema,
   'daw-remove-fx-range-done.json': dawResultSchema,
+  // DawFxRangeParams, DawSetFxRangeParam and DawBypassFxRange (bindings_daw_fx_range_test.go, SN-E104): a chain's settings read, the
+  // capability's refusal of a read, a setting changed and a chain bypassed (one undo step each), and a chain no longer on the words.
+  'daw-fx-range-params-done.json': dawFxRangeSettingsSchema,
+  'daw-fx-range-params-refused.json': dawFxRangeSettingsSchema,
+  'daw-fx-range-params-set-done.json': dawResultSchema,
+  'daw-fx-range-bypass-done.json': dawResultSchema,
+  'daw-fx-range-bypass-refused-stale.json': dawResultSchema,
   // DawStackTakes and DawUnstackTakes (bindings_daw_stack_test.go): a stack and an un-stack in REAPER (one undo step each), a stack in a
   // DAW that makes it in steps, and REAPER's stale refusal.
   'daw-stack-done.json': dawResultSchema,

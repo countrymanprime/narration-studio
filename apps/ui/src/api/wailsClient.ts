@@ -28,7 +28,14 @@ import {
   retailSampleAnswerSchema,
 } from './schemas/credits';
 import { dawCatalogListSchema } from './schemas/dawCatalog';
-import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
+import {
+  dawBackupsFileSchema,
+  dawCapabilitiesSchema,
+  dawFxRangeSettingsSchema,
+  dawProjectStateSchema,
+  dawResultSchema,
+  dawTransportSchema,
+} from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
@@ -634,6 +641,12 @@ export const wailsClient: NarrationApi = {
     decode(dawResultSchema, 'DawApplyFxToRange', host.DawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs)),
   dawRemoveFxFromRange: (chapterId, firstToken, lastToken, chainName) =>
     decode(dawResultSchema, 'DawRemoveFxFromRange', host.DawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName)),
+  dawFxRangeParams: (chapterId, firstToken, lastToken, chainName) =>
+    decode(dawFxRangeSettingsSchema, 'DawFxRangeParams', host.DawFxRangeParams(chapterId, firstToken, lastToken, chainName)),
+  dawSetFxRangeParam: (chapterId, firstToken, lastToken, chainName, fx, index, value) =>
+    decode(dawResultSchema, 'DawSetFxRangeParam', host.DawSetFxRangeParam(chapterId, firstToken, lastToken, chainName, fx, index, value)),
+  dawBypassFxRange: (chapterId, firstToken, lastToken, chainName, bypass) =>
+    decode(dawResultSchema, 'DawBypassFxRange', host.DawBypassFxRange(chapterId, firstToken, lastToken, chainName, bypass)),
   dawStackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawStackTakes', host.DawStackTakes(chapterId, passageIds)),
   dawUnstackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawUnstackTakes', host.DawUnstackTakes(chapterId, passageIds)),
   dawSplitTake: (chapterId, takeId, at) => decode(dawResultSchema, 'DawSplitTake', host.DawSplitTake(chapterId, takeId, at)),
