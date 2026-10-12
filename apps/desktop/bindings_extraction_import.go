@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
 )
 
-// A Story Bible written outside the app, imported (the `storybible-import` format, docs/architecture/storybible-import-format.md).
+// A Story Bible written outside the app, imported (the `storybible-import` format, docs/reference/storybible-import-format.md).
 // The page reads the file the narrator chose and sends its text; no binding takes a path, so the host opens nothing and fetches
 // nothing. The text is untrusted: internal/extraction/importer refuses it over its caps before it builds a row, and the preview and the
 // commit both parse and plan it here, from the text, so the commit never takes the page's word for what the preview said. This file

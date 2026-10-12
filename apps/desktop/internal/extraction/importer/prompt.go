@@ -9,7 +9,7 @@ import (
 )
 
 // ExampleJSON and ExampleCSV are the same Story Bible in both formats. They are shown beside the format, put into the
-// prompt, and printed in docs/architecture/storybible-import-format.md, where a test keeps the three equal.
+// prompt, and printed in docs/reference/storybible-import-format.md, where a test keeps the three equal.
 const ExampleJSON = `{
   "entries": [
     {

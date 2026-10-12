@@ -163,15 +163,17 @@ after updates.
 
 - **Check for updates on startup** (on by default): once a day, when the app starts, it asks GitHub which releases exist. That
   request sends nothing about you, your projects or your computer, and it never downloads anything by itself. Switch it off
-  if you would rather look yourself with **Check now**.
+  if you would rather look yourself with **Check now**. When that check finds a newer version, a message also pops up
+  ("Version 0.2.7 is available. See Settings, About & updates.").
 - **Update channel**: *Candidates and stable* (the default; every release so far is a release candidate) or *Stable only*.
-- **Download update** asks first, then downloads the new version with a progress bar and checks it against the release's
-  checksum. You can cancel while it downloads.
+- **Download update** asks first, then downloads the new version with a progress bar showing the megabytes received, and
+  checks it against the release's checksum. You can cancel while it downloads; the checks and unpacking after it cannot be
+  cancelled, and the dialog says so.
 - **Install and restart** asks again, then closes Narration Studio and starts it again on the new version with the same
   project. It will not install while an import, a Story Bible build, a download, a comparison or a teleprompter session is
   running: finish or stop it and try again. If the new version does not start, the previous one comes back by itself.
 - If Narration Studio is installed somewhere it is not allowed to change (for example under Program Files) it says so and
-  offers **Show the downloaded file**, so you can replace the program yourself.
+  offers **Show the downloaded file**, so you can replace the program yourself. It never asks for administrator rights.
 - **Release notes** opens the release page in your browser.
 
 Narration Studio runs on Windows only, for now, so updates are for Windows.

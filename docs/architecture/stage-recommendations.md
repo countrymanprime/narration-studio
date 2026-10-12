@@ -193,24 +193,16 @@ project copy (`STAGES_TIMING_PROJECT`).
 
 ## On the Production board
 
-The recommendations show on the Production
-home's board (`apps/ui/src/components/stages/`, wired into `components/production/ChapterBoard.tsx`): a chapter's
-current-stage cell reads the verdict and opens `StageEvidence`, where Confirm, Dismiss, Revert and the status override
-live. `useStageRecommendations` reads `StageRecommendations()` when the page opens,
-after a manuscript import, after a recording check ends or its dialog closes, after a status is changed by hand, when the
-window regains focus or the page becomes visible again (`useRefreshOnFocus`, throttled to once per 30 s and skipped while
-a decision is pending) and, on a
-failed read, when Try again is pressed; nothing is cached across reads. `StageSuggestion` sits under each
-chapter's status select, which stays the narrator's override: the verdict in a few words, Confirm and Dismiss for
-`recommended`, Revert for a live confirmation, and the "evidence changed since you confirmed" notice with Revert for a
-`contradiction`. `StageEvidence` is the evidence view in the existing `SlideOver`: each signal's state, reason and
-evidence (a paragraph it names links to the manuscript), the saved project's modified time and its age, and for an
-unknown cause what resolves it (`stageText.ts`, `CAUSE_TEXT`: the recording check dialog, the audio engine panel, or Check now).
-`StageSummary` holds the chips on the collapsed card; `StageCheckLine` above the table renders nothing while the read
-succeeds and only the reason and a Try again retry when it fails. Confirm is one
-click, reversible by Revert. A refusal is shown as an error toast and the recommendations are read again; a failed
-read shows "Couldn't check" in every row. The mock's `?mockStages=mixed|error` seeds (`apps/ui/src/main.tsx`) drive the
-visual states `production/stage-*`.
+The recommendations show on the Production home's board (`apps/ui/src/components/stages/`, wired into `components/production/ChapterBoard.tsx`). What the narrator sees and does there is in [the Production guide](../guides/using-the-app/production.md#stage-readiness).
+
+| Piece | Role |
+| --- | --- |
+| `useStageRecommendations` | Reads `StageRecommendations()` when the page opens, after a manuscript import, after a recording check ends or its dialog closes, after a status is changed by hand, when the window regains focus or the page becomes visible again (`useRefreshOnFocus`, throttled to once per 30 s and skipped while a decision is pending) and, on a failed read, on Try again. Nothing is cached across reads. A refusal is an error toast followed by a fresh read |
+| `StageSuggestion` | Under each chapter's status select, which stays the narrator's override: the verdict in a few words, Confirm and Dismiss for `recommended`, Revert for a live confirmation, and the contradiction notice with Revert |
+| `StageEvidence` | The evidence view in the shared `SlideOver`: each signal's state, reason and evidence (a paragraph it names links to the manuscript), the saved project's modified time and its age, and for an unknown cause what resolves it (`stageText.ts`, `CAUSE_TEXT`) |
+| `StageSummary`, `StageCheckLine` | The chips on the collapsed card; above the table, nothing while the read succeeds, else the reason and Try again |
+
+The mock's `?mockStages=mixed|error` seeds (`apps/ui/src/main.tsx`) drive the visual states `production/stage-*`.
 
 ## Elsewhere
 
