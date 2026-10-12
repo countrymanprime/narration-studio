@@ -66,17 +66,6 @@ export type PickupsImportResult = {
 
 export type PickupsStartResult = { status: 'started' };
 
-/**
- * "Punch from here" on a pickup (`PickupsPunch`): a pickup marker's own project
- * time is already known, so unlike the teleprompter's punch this needs no word-to-time resolution. `punched` carries
- * `cursor`, where REAPER's edit cursor landed; `refused` carries `message`, and nothing moved.
- */
-export type PickupsPunchResult = {
-  outcome: 'punched' | 'refused';
-  cursor?: number;
-  message?: string;
-};
-
 /** Where a pickup on the host's list came from (ADR 0840): a gap of the recording check, a note decided "Needs pickup", the
  * same decision on a note that is a sound, or a line the narrator added. */
 export const PICKUP_SOURCES = ['speech', 'proof', 'audio', 'you'] as const;
@@ -147,8 +136,6 @@ export interface PickupsApi {
   pickupsCount(): Promise<PickupsStartResult>;
   pickupsState(): Promise<PickupsState>;
   subscribePickups(onUpdate: (state: PickupsState) => void): () => void;
-  /** Move REAPER's edit cursor to `position` (a pickup's own project time) minus the punch pre-roll setting. */
-  pickupsPunch(position: number): Promise<PickupsPunchResult>;
   /** The merged pickup list (ADR 0840). With the DAW answering, done states that waited are written to the markers first. */
   pickupsList(): Promise<PickupList>;
   /** Adds a line by hand at `time` seconds into the chapter's recording. Refuses an empty line, a line over 500 characters or

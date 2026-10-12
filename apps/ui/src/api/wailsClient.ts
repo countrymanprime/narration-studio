@@ -125,7 +125,7 @@ import {
 import type { TeleprompterStartOptions } from './contracts/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
@@ -551,7 +551,6 @@ export const wailsClient: NarrationApi = {
   pickupsReopen: (position) => decode(pickupsStartResultSchema, 'PickupsReopen', host.PickupsReopen(position)),
   pickupsListMarkers: () => decode(pickupsStartResultSchema, 'PickupsListMarkers', host.PickupsListMarkers()),
   pickupsCount: () => decode(pickupsStartResultSchema, 'PickupsCount', host.PickupsCount()),
-  pickupsPunch: (position) => decode(pickupsPunchResultSchema, 'PickupsPunch', host.PickupsPunch(position)),
   pickupsState: () => decode(pickupsStateSchema, 'PickupsState', host.PickupsState()),
   pickupsList: () => decode(pickupListSchema, 'PickupsList', host.PickupsList()),
   pickupsAdd: (chapterId, time, line) => decode(pickupListSchema, 'PickupsAdd', host.PickupsAdd(chapterId, time, line)),

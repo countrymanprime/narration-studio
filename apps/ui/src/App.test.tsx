@@ -580,7 +580,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(await screen.findByRole('dialog', { name: 'Audio engine' })).toBeTruthy();
   });
 
-  it('opens Proof from the navigation, and a note there opens the manuscript at its line', async () => {
+  it('opens Proof from the navigation, and a note there opens its chapter in Script', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
@@ -588,20 +588,18 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe('/proof');
     const row = await screen.findByText(/pink eyes/);
     fireEvent.click(row);
-    fireEvent.click(await screen.findByRole('button', { name: 'Show in Script' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open this chapter in Script' }));
     await waitFor(() => expect(window.location.pathname).toBe('/script'));
   });
 
-  it('opens a chapter view from Proof’s chapter picker', async () => {
+  it('steps into one chapter on Proof from the chapter stepper', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
-    const picker = (await screen.findByRole('combobox', { name: 'Chapter to open' })) as HTMLSelectElement;
-    const first = picker.options[1];
-    fireEvent.change(picker, { target: { value: first.value } });
-    fireEvent.click(screen.getByRole('button', { name: 'Open chapter' }));
-    await screen.findByRole('heading', { name: `Proof · ${first.textContent}` });
-    expect(window.location.pathname).toBe(`/proof/${encodeURIComponent(first.value)}`);
+    await screen.findByRole('heading', { name: 'Proof' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
+    await waitFor(() => expect(window.location.search).toMatch(/^\?chapter=/));
+    expect(window.location.pathname).toBe('/proof');
   });
 
   it('keeps Proof reachable without a manuscript', async () => {
@@ -1189,14 +1187,12 @@ describe('App Back and Forward', () => {
     const transcriptReset = vi.fn(createMockApi().transcriptReset);
     renderApp({ transcriptReset });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]);
-    const picker = (await screen.findByRole('combobox', { name: 'Chapter to open' })) as HTMLSelectElement;
-    fireEvent.change(picker, { target: { value: picker.options[1].value } });
-    fireEvent.click(screen.getByRole('button', { name: 'Open chapter' }));
+    // Production's Proof cell opens the chapter workspace (/proof/:chapterId) until the Editing swap.
+    fireEvent.click((await screen.findAllByRole('button', { name: /: Proof / }))[0]);
     await startRunOnChapterOne();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    await screen.findByRole('heading', { name: 'Proof' });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(transcriptReset).toHaveBeenCalled();
   });
 

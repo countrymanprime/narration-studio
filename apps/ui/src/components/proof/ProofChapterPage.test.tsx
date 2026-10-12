@@ -29,7 +29,6 @@ function renderWorkspace(overrides: Partial<NarrationApi> = {}, initial: Paramet
     transcript: WIRE_TRANSCRIPT,
     dawFileLinked: true,
     goToManuscript: () => {},
-    goToStoryBible: () => {},
     refreshKey: 'test',
     ...page,
   };
@@ -147,16 +146,7 @@ describe('ProofChapterPage', () => {
             <Routes>
               <Route
                 path="/proof/:chapterId"
-                element={
-                  <ProofChapterPage
-                    notify={() => {}}
-                    transcript={WIRE_TRANSCRIPT}
-                    dawFileLinked
-                    goToManuscript={() => {}}
-                    goToStoryBible={() => {}}
-                    refreshKey="test"
-                  />
-                }
+                element={<ProofChapterPage notify={() => {}} transcript={WIRE_TRANSCRIPT} dawFileLinked goToManuscript={() => {}} refreshKey="test" />}
               />
             </Routes>
           </MemoryRouter>
@@ -242,16 +232,7 @@ describe('ProofChapterPage findings in the text', () => {
             <Routes>
               <Route
                 path="/proof/:chapterId"
-                element={
-                  <ProofChapterPage
-                    notify={() => {}}
-                    transcript={WIRE_TRANSCRIPT}
-                    dawFileLinked
-                    goToManuscript={() => {}}
-                    goToStoryBible={() => {}}
-                    refreshKey="test"
-                  />
-                }
+                element={<ProofChapterPage notify={() => {}} transcript={WIRE_TRANSCRIPT} dawFileLinked goToManuscript={() => {}} refreshKey="test" />}
               />
             </Routes>
           </MemoryRouter>
@@ -398,38 +379,3 @@ describe('ProofChapterPage compare results', () => {
 
 // ADR 0470: the chapter view leads with the notes strip, the chapter's notes table and a
 // note's detail, then the recording-check card.
-describe('ProofChapterPage, the notes on the chapter view', () => {
-  it('lists the chapter’s notes with no Chapter column, under the notes header', async () => {
-    renderWorkspace();
-    const table = await screen.findByRole('table', { name: 'Notes' });
-    await waitFor(() => expect(within(table).getAllByRole('row').length).toBeGreaterThan(1));
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    expect(headers).toEqual(['Time', 'Type', 'Script vs. heard', 'From', 'Resolution']);
-    expect(screen.getByRole('heading', { name: /^Notes · \d+$/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Import proofer sheet' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Export for proofer' })).toBeTruthy();
-  });
-
-  it('pins each timed note on the strip, and a pin opens the note with Play ±3 s', async () => {
-    const user = userEvent.setup();
-    renderWorkspace();
-    const strip = await screen.findByRole('region', { name: 'Notes in the recording' });
-    const pins = within(strip).getAllByRole('button');
-    expect(pins.length).toBeGreaterThan(0);
-    await user.click(pins[0]);
-    const play = await screen.findByRole('button', { name: 'Play ±3 s' });
-    expect((play as HTMLButtonElement).disabled).toBe(false);
-    await user.click(play);
-    expect(await screen.findByRole('button', { name: 'Stop' })).toBeTruthy();
-  });
-
-  it('shows the recording-check card with the chapter’s own figures', async () => {
-    renderWorkspace();
-    const card = await screen.findByRole('region', { name: 'Recording check' });
-    expect(await within(card).findByText('Recorded')).toBeTruthy();
-    expect(within(card).getByText('100%')).toBeTruthy();
-    expect(within(card).getByText(/Current for the project saved/)).toBeTruthy();
-  });
-});

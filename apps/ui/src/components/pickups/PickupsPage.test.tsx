@@ -1,169 +1,95 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PickupsPage } from './PickupsPage';
 import { ApiProvider } from '../../api/ApiContext';
+import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
-import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
+import { TooltipProvider } from '../primitives/Tooltip';
+import * as checkRecordings from '../recordingcheck/openCheckRecordings';
+import { CHAPTERS, MIXED } from './list/pickupFixtures';
+import { boothSessionPath, PickupsPage } from './PickupsPage';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
-function renderPage(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}) {
-  const api = createMockApi(overrides, initial);
+const LIST: PickupList = { pickups: MIXED, leftOut: [{ chapterId: 'c2', state: 'stale', reasons: [] }] };
+
+function renderPage(api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) })) {
+  vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
+    CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' }) as never),
+  );
+  const goTo = vi.fn();
+  const goToScript = vi.fn();
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <PickupsPage />
+        <TooltipProvider>
+          <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+          <OverlayHost />
+        </TooltipProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
-  return { api };
+  return { api, goTo, goToScript };
 }
 
-function csvFile(text: string): File {
-  return new File([text], 'pickups.csv', { type: 'text/csv' });
-}
-
-// Chapter 1 linked to the mock project's first track (0 to 612.4 s), so the mock's next pickup at 9.25 s falls in it.
-const CHAPTER_1_LINKED = {
-  chapterTrackMappings: [
-    {
-      trackGuid: WIRE_TRACKS_PROJECT.tracks[0].guid,
-      chapterId: WIRE_CHAPTERS[0].id,
-      chapterTitle: WIRE_CHAPTERS[0].title,
-      confirmedAt: '2026-09-01T12:00:00Z',
-    },
-  ],
-};
-
-describe('PickupsPage', () => {
-  it('is a page with its own level-1 heading, not a dialog', async () => {
+describe('pickups-route-draws-the-mock-page', () => {
+  it('draws the list grouped by chapter and the pickup session panel', async () => {
     renderPage();
-    expect(await screen.findByRole('heading', { level: 1, name: 'Pickups' })).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Pickups' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Pickup session' })).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Open in Booth at this line' }).length).toBeGreaterThan(0));
   });
 
-  it('shows the remaining count once seeded with an import', async () => {
-    renderPage({}, { pickups: 'import-success' });
-    expect(await screen.findByText('2 pickups remaining of 2')).toBeTruthy();
+  it('"Open in Booth at this line" goes to the Booth with that pickup', async () => {
+    const { goTo } = renderPage();
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole('button', { name: 'Open in Booth at this line' }))[0]);
+    expect(goTo).toHaveBeenCalledWith(boothSessionPath([MIXED[0]]));
+    expect(goTo.mock.calls[0][0]).toContain(`pickups=${encodeURIComponent(MIXED[0].id)}`);
   });
 
-  it('shows "No pickups yet" before any import', async () => {
+  it('"Open N in Booth" goes to the Booth with the open lines of the session', async () => {
+    const { goTo } = renderPage();
+    const user = userEvent.setup();
+    const open = await screen.findByRole('button', { name: /^Open \d+ in Booth$/ });
+    await user.click(open);
+    const ids = MIXED.filter((p) => !p.done && p.included).map((p) => p.id);
+    expect(goTo).toHaveBeenCalledWith(boothSessionPath(MIXED.filter((p) => ids.includes(p.id))));
+  });
+
+  it('has no Punch and no Next pickup', async () => {
     renderPage();
-    expect(await screen.findByText('No pickups yet')).toBeTruthy();
+    await screen.findByRole('heading', { name: 'Pickup session' });
+    expect(screen.queryByRole('button', { name: /punch/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /next pickup/i })).toBeNull();
   });
 
-  it('imports a CSV file and reports the result', async () => {
+  it('marking a line recorded goes through the host and draws its answer', async () => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST) });
+    const setDone = vi.spyOn(api, 'pickupsSetDone').mockResolvedValue({ ...LIST, pickups: LIST.pickups.map((p) => ({ ...p, done: true })) });
+    renderPage(api);
     const user = userEvent.setup();
-    const { api } = renderPage();
-    const importSpy = vi.spyOn(api, 'pickupsImport');
-
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(input, csvFile('start,note,tag\n1.5,Mispronounced,narrator\n9.25,Second pickup,\n'));
-
-    await waitFor(() => expect(importSpy).toHaveBeenCalledWith('start,note,tag\n1.5,Mispronounced,narrator\n9.25,Second pickup,\n'));
-    expect(await screen.findByText('2 pickups remaining of 2')).toBeTruthy();
+    const row = (await screen.findAllByRole('button', { name: 'Mark recorded' }))[0];
+    await user.click(row);
+    expect(setDone).toHaveBeenCalledWith(expect.any(String), true);
+    await waitFor(() => expect(screen.queryAllByRole('button', { name: 'Mark recorded' })).toHaveLength(0));
   });
+});
 
-  it('reports rows that could not be used without throwing away the ones that could', async () => {
-    const user = userEvent.setup();
+describe('check-recordings-opens-from-pickups', () => {
+  it('opens the Check recordings dialog with the chapters whose check is not current', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
     renderPage();
-
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(input, csvFile('1.5,Good row\nnot-a-number,Bad row\n'));
-
-    expect(await screen.findByText(/1 row could not be used/)).toBeTruthy();
-    expect(screen.getByText(/line 2: could not parse this row/)).toBeTruthy();
-  });
-
-  it('jumps to the next pickup and offers to mark it done', async () => {
     const user = userEvent.setup();
-    renderPage({}, { pickups: 'import-success' });
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-
-    expect(await screen.findByText(/Mispronounced/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Mark this pickup done' })).toBeTruthy();
-  });
-
-  it("opens the pickup's chapter in Proof at the pickup's place when a linked chapter track holds it", async () => {
-    const user = userEvent.setup();
-    renderPage({}, { pickups: 'import-success', ...CHAPTER_1_LINKED });
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-
-    const link = await screen.findByRole('link', { name: /Open Chapter 1 .* in Proof/ });
-    expect(link.getAttribute('href')).toBe(`/proof/${WIRE_CHAPTERS[0].id}?t=9.25`);
-  });
-
-  it('says so when no linked chapter track holds the pickup, rather than guessing a chapter', async () => {
-    const user = userEvent.setup();
-    renderPage({}, { pickups: 'import-success' });
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-
-    expect(await screen.findByText(/Not on a linked chapter track/)).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /in Proof/ })).toBeNull();
-  });
-
-  it('resolves the pickup that was jumped to', async () => {
-    const user = userEvent.setup();
-    const { api } = renderPage({}, { pickups: 'import-success' });
-    const resolveSpy = vi.spyOn(api, 'pickupsResolve');
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-    await user.click(await screen.findByRole('button', { name: 'Mark this pickup done' }));
-
-    await waitFor(() => expect(resolveSpy).toHaveBeenCalledWith(9.25));
-    expect(await screen.findByText(/Marked done/)).toBeTruthy();
-  });
-
-  it('punches to the pickup that was jumped to', async () => {
-    const user = userEvent.setup();
-    const { api } = renderPage({}, { pickups: 'import-success', daw: { toggles: { punch: 'on' } } });
-    const punchSpy = vi.spyOn(api, 'pickupsPunch');
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-    await user.click(await screen.findByRole('button', { name: 'Punch from here' }));
-
-    await waitFor(() => expect(punchSpy).toHaveBeenCalledWith(9.25));
-  });
-
-  it('reports a punch refusal inline without touching the pickup list', async () => {
-    const user = userEvent.setup();
-    renderPage(
-      { pickupsPunch: async () => ({ outcome: 'refused', message: 'REAPER is not answering. Check that REAPER is open, then try again.' }) },
-      { pickups: 'import-success', daw: { toggles: { punch: 'on' } } },
-    );
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-    await user.click(await screen.findByRole('button', { name: 'Punch from here' }));
-
-    expect(await screen.findByText('REAPER is not answering. Check that REAPER is open, then try again.')).toBeTruthy();
-  });
-
-  it('shows "Punch from here" disabled while the punch capability is off (the default)', async () => {
-    const user = userEvent.setup();
-    renderPage({}, { pickups: 'import-success' });
-
-    await user.click(await screen.findByRole('button', { name: 'Next pickup' }));
-
-    const button = await screen.findByRole('button', { name: 'Punch from here' });
-    expect(button.getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it('shows a REAPER error state', async () => {
-    renderPage({}, { pickups: 'error' });
-    const alerts = await screen.findAllByRole('alert');
-    expect(alerts.some((alert) => alert.textContent?.includes('Narration Utils script'))).toBe(true);
-  });
-
-  it('keeps the pickup session slot honest until closed-loop proofing plans one', async () => {
-    renderPage();
-    const session = await screen.findByRole('region', { name: 'Pickup session' });
-    expect(session.textContent).toMatch(/not available yet/i);
+    const head = await screen.findByRole('heading', { name: 'Pickups' });
+    await user.click(within(head.closest('section') ?? document.body).getByRole('button', { name: /Check recordings/ }));
+    expect(open).toHaveBeenCalledWith(['c2']);
   });
 });

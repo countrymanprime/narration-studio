@@ -152,8 +152,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The one-time browser-storage-to-settings migration write; a failure leaves the device in local state for this visit and the migration is retried next load since the settings value never got marked set.',
   'src/components/manuscript/creditsExpandedStorage.ts#1':
     "Remembering a credits card's open state per project in localStorage; the choice lasts for this visit only when storage is disabled.",
-  'src/components/proof/lastChapterStorage.ts#1':
-    'Remembering the last chapter looked at on Proof per project in localStorage (ADR 0750); the choice lasts for this visit only when storage is disabled.',
+  'src/components/proof/ProofPage.tsx#1':
+    'Reading the last chapter looked at on Proof per project from localStorage (ADR 0750); with storage unavailable a step from All chapters opens the first chapter.',
+  'src/components/proof/useChapterTimeline.ts#1':
+    "The chapter's alignment only names which peaks belong to which item; a chapter not aligned yet draws flat lines in the waveform window.",
   'src/components/script/scriptPageHost.ts#1':
     'Renders the opening credits card preview; a failed render leaves that card without one rather than a toast over the manuscript.',
   'src/components/script/scriptPageHost.ts#2': 'Renders the closing credits card preview; same fallback as the opening one above.',
@@ -176,14 +178,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Hydrates whatever stamp or read was already in flight when the dialog reopened; the live event follows anyway.',
   'src/components/pickups/usePickupsState.ts#1':
     'Hydrates whatever run was already in flight, then refreshes the count; a failure here leaves the count at its last known value, and every narrator-triggered action still shows its own failure inline.',
-  'src/components/pickups/PickupsPage.tsx#1':
-    'Reads the chapters, chapter links and tracks only to place a pickup in its chapter; without them the pickup says it is not on a linked chapter track, and every pickup action still works and shows its own failure inline.',
-  'src/components/proof/FindingDetail.tsx#1':
-    'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden.',
   'src/components/proof/inspector/useShownEvidence.ts#1':
-    'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (mirrors FindingDetail.tsx#1).',
+    'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (the same reading the Proof Inspector makes).',
   'src/components/editing/EditingCandidateRow.tsx#1':
-    'Re-reads a candidate after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (mirrors FindingDetail.tsx#1).',
+    'Re-reads a candidate after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (the same reading the Proof Inspector makes).',
   'src/components/editing/EditingCheckPanel.tsx#1':
     "Reads the chapter's stored analysis-source choice on open; a failed read just leaves the default (items) selected, which is already correct for a chapter with no choice made yet, so there is nothing to guard or retry.",
   'src/components/engine/RetakeLanesDialog.tsx#1':

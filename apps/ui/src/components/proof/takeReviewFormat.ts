@@ -1,5 +1,5 @@
 import { takeComparisonEvidenceSchema, takeReviewEvidenceSchema } from '../../api/schemas/takeReview';
-import type { Finding, TakeComparisonEvidence, TakeReviewEvidence, TakeReviewMember } from '../../types';
+import type { Finding, TakeComparisonEvidence, TakeReviewEvidence } from '../../types';
 
 // How the Review page words a take-review finding's reads (internal/repeats.Member over the wire), shared by the reads list,
 // the "Add as take" pickers and the audition's A/B pickers so one read is named the same everywhere. Display only.
@@ -34,17 +34,6 @@ export const spanLabel = (evidence: TakeReviewEvidence): string =>
     ? `Sentence ${evidence.matched_span_first + 1}`
     : `Sentences ${evidence.matched_span_first + 1}–${evidence.matched_span_last + 1}`;
 
-/** A read covers the whole span when the sidecar measured (nearly) all of it; the host's own full-coverage threshold decided the kind. */
-const FULL_COVERAGE = 0.999;
-
-export const coverageLabel = (member: TakeReviewMember): string =>
-  member.coverage >= FULL_COVERAGE ? 'Whole span' : `Part of the span (${Math.round(member.coverage * 100)}%)`;
-
 export function sourceFileName(path: string): string {
   return path.split(/[\\/]/).pop() || path;
-}
-
-export function memberLabel(member: TakeReviewMember, index: number): string {
-  const coverage = Math.round(member.coverage * 100);
-  return `Read ${index + 1} — ${sourceFileName(member.source_file)} (${coverage}% coverage)`;
 }

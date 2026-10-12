@@ -24,8 +24,6 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   // reuses this exact maroon (ADR 0656).
   'src/components/booth/BoothView.tsx': { chip: 1, dot: 1, owner: 'REC pill, ADR 0656' },
   // The Proof notes header's sources line and the legend's dots.
-  'src/components/proof/NotesHeader.tsx': { chip: 1, owner: 'sources line' },
-  'src/components/proof/NotesStrip.tsx': { dot: 1, owner: 'legend dots' },
   // The Booth side panel's reference category chip and speaker alias chip (SN-O63): both are text-only, so they migrate onto `Badge`.
   // The bookmark ribbon's note dot: a 6 px dot absolutely placed on the ribbon icon, which `Dot` (8 px, inline) does not size or place.
   // The take chip's state dot and the check card's count chip (SN-E5, SN-Q66) landed with no row; both should migrate onto `Dot` and `Badge`.

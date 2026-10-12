@@ -166,7 +166,7 @@ import {
 } from './schemas/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
@@ -393,9 +393,6 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), teleprompterPunchResultSchema).parse(readGolden('teleprompter-punch-results.json'));
     Object.entries(golden).forEach(([name, result]) => expectMatches(teleprompterPunchResultSchema, result, `host teleprompter punch ${name}`));
 
-    const pickupsGolden = z.record(z.string(), pickupsPunchResultSchema).parse(readGolden('pickups-punch-results.json'));
-    Object.entries(pickupsGolden).forEach(([name, result]) => expectMatches(pickupsPunchResultSchema, result, `host pickups punch ${name}`));
-
     const api = createMockApi();
     const preview = await api.teleprompterPunchPreview(4);
     expectMatches(teleprompterPunchResultSchema, preview, 'mock teleprompter punch preview');
@@ -403,9 +400,6 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const punched = await api.teleprompterPunch(4);
     expectMatches(teleprompterPunchResultSchema, punched, 'mock teleprompter punch');
     expect(punched.outcome).toBe('punched');
-    const pickupsPunched = await api.pickupsPunch(10);
-    expectMatches(pickupsPunchResultSchema, pickupsPunched, 'mock pickups punch');
-    expect(pickupsPunched.outcome).toBe('punched');
   });
 
   it("every mock arm, record start and record stop passes the schema and agrees with the host's golden for the same REAPER state", async () => {
@@ -3256,7 +3250,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'packageMultiCancel',
       'teleprompterPunchPreview',
       'teleprompterPunch',
-      'pickupsPunch',
       'ready',
       'bootstrap',
       'systemLookup',

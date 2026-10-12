@@ -1563,13 +1563,6 @@ export function PickupsNext(): $CancellablePromise<string> {
 }
 
 /**
- * PickupsPunch moves REAPER's edit cursor to position minus the Teleprompter.punch_preroll_seconds setting.
- */
-export function PickupsPunch(position: number): $CancellablePromise<string> {
-    return $Call.ByID(3486630797, position);
-}
-
-/**
  * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
  */
 export function PickupsRemove(id: string): $CancellablePromise<string> {
