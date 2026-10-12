@@ -150,7 +150,7 @@ func TestTeleprompterSaveFlagsWithNothingToSaveWritesNothing(t *testing.T) {
 	}
 }
 
-// The findings TeleprompterSaveFlags answers (Phase 7, ADR 0117): one flag of every kind, the misread dismissed in the
+// The findings TeleprompterSaveFlags answers (ADR 0117): one flag of every kind, the misread dismissed in the
 // dialog, so the result pins both categories, a zero-width extra and a dismissed decision. The temp project folder is
 // replaced with a fixed one so the file is stable.
 func TestContractTeleprompterSaveFlags(t *testing.T) {

@@ -904,7 +904,7 @@ func (h *Host) TakeReviewScanCancel() (string, error) {
 	return encodeBinding(h.cancelTakeReviewScan(), nil)
 }
 
-// TakeComparisonStart compares the takes of one take-review group as a job (take-review phase 10, ADR 0165): findingID
+// TakeComparisonStart compares the takes of one take-review group as a job (ADR 0165): findingID
 // names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
 // answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
 // take_comparison finding, read and decided through the generic findings bindings.
@@ -923,14 +923,14 @@ func (h *Host) TakeComparisonCancel() (string, error) {
 }
 
 // TakeReviewCreateTake adds a narrator-approved candidate's source range as a
-// new take on the target item (take-review phase 6): findingID is the
-// finding this candidate came from (provenance, ADR 0098); targetItemGUID
+// new take on the target item (ADR 0098): findingID is the
+// finding this candidate came from (provenance); targetItemGUID
 // is the item the narrator explicitly chose (never preselected);
 // candidateItemGUID is the candidate's own item GUID when it has one (empty
 // skips that extra staleness check); sourceFile, sourceRangeStart and
 // sourceRangeEnd (seconds, source-file-relative) locate the candidate's
 // matched span within its own source. The previously active take and the
-// item's length are never touched (the phase 1 spike).
+// item's length are never touched.
 func (h *Host) TakeReviewCreateTake(findingID, targetItemGUID, candidateItemGUID, sourceFile string, sourceRangeStart, sourceRangeEnd float64) (string, error) {
 	return encodeBinding(h.takeReviewCreateTake(takereview.CreateTakeRequest{
 		FindingID:         findingID,

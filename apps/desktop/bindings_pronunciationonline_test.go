@@ -77,7 +77,7 @@ func TestPronunciationOnlineKeyStatusNeverCarriesTheKey(t *testing.T) {
 	}
 }
 
-// D72 and Q11: neither the key nor the looked-up word is ever written to the host log or the run log, even with debug
+// D72: neither the key nor the looked-up word is ever written to the host log or the run log, even with debug
 // logging on, after a key is saved, a word looked up (fetched, then cached), a batch run, and every refusal the
 // bindings give.
 func TestPronunciationOnlineNeverLogsTheKeyOrTheWord(t *testing.T) {

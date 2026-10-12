@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
 )
 
-// The Piper.tts_provider choices are the TTS registry's engines for the host's platform (provider-ports P9), which today is the
+// The Piper.tts_provider choices are the TTS registry's engines for the host's platform, which today is the
 // one choice the setting has always offered.
 func TestTtsProviderChoicesComeFromTheTtsRegistry(t *testing.T) {
 	for _, platform := range port.Platforms {

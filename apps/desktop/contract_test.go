@@ -716,7 +716,7 @@ func TestContractCreditsRecordedLengths(t *testing.T) {
 }
 
 // The take-review findings as the Review page lists them (FindingsList filtered to the take-review analyzer,
-// take-review phase 5, ADR 0069): one partial pickup (a read below full coverage) and one near-identical
+// ADR 0069): one partial pickup (a read below full coverage) and one near-identical
 // duplicate_read (full coverage, both reads above the quality bar), each with its reads in evidence.members, which
 // the page decodes with its own schema. Built from internal/repeats.ToFindings, the adapter the scan job saves
 // through, into a real findings store: no sidecar, no REAPER project.
@@ -751,9 +751,9 @@ func TestContractTakeReviewFindings(t *testing.T) {
 	checkBindingContract(t, "findings-list-take-review", listed)
 }
 
-// What TakeReviewScanStart, TakeReviewScanState and TakeReviewScanCancel send (take-review phase 5): the idle job
+// What TakeReviewScanStart, TakeReviewScanState and TakeReviewScanCancel send: the idle job
 // offering the project's saved pickup track, a scan running at the sidecar's own stage, and each way one ends.
-// What TakeComparisonStart, TakeComparisonState and TakeComparisonCancel send (take-review phase 10): the idle job, a
+// What TakeComparisonStart, TakeComparisonState and TakeComparisonCancel send: the idle job, a
 // comparison running at the sidecar's own stage, and each way one ends.
 func TestContractTakeComparisonJob(t *testing.T) {
 	pin := func(name string, job TakeComparisonJob) {
@@ -776,7 +776,7 @@ func TestContractTakeComparisonJob(t *testing.T) {
 	pin("takecomparison-error", finished(findings.Finding{}, fmt.Errorf("takecompare: the take aligner exited 1: no chapter with id 'ch-1'"), false))
 }
 
-// A take_comparison finding as the Review page lists it (take-review phase 10): three reads of one span compared by
+// A take_comparison finding as the Review page lists it: three reads of one span compared by
 // the real Comparer over tone fixtures, from the sidecar's own pinned results, so every per-take category is filled.
 // The temporary project folder is replaced by a fixed one before pinning.
 func TestContractTakeComparisonFinding(t *testing.T) {
@@ -838,7 +838,7 @@ func TestContractTakeReviewScanJob(t *testing.T) {
 }
 
 // FindingsGoToRead and FindingsLoopRead answer in FindingNavigation's shape, pinned here for the read a take-review
-// finding names (take-review phase 5); every refusal is the one FindingsGoTo pins.
+// finding names; every refusal is the one FindingsGoTo pins.
 func TestContractFindingsReadNavigation(t *testing.T) {
 	fake := &fakeNavigator{navigate: bridge.Navigated{ItemGUID: readItemB, ProjectTime: 40.25}, loop: bridge.LoopStarted{ItemGUID: readItemB, Start: 38.25, End: 45.35}}
 	host, id := newReadsHost(t, fake)
@@ -853,8 +853,8 @@ func TestContractFindingsReadNavigation(t *testing.T) {
 	checkBindingContract(t, "findings-loop-read", payload)
 }
 
-// The result TakeReviewCreateTake sends once REAPER confirms a take was added (take-review
-// phase 6, ADR 0098): the target item's own GUID (unchanged) and the new take's GUID, both
+// The result TakeReviewCreateTake sends once REAPER confirms a take was added (ADR 0098): the target item's own
+// GUID (unchanged) and the new take's GUID, both
 // re-resolved by narration_take_review.lua after its Undo_EndBlock2.
 func TestContractTakeReviewCreateTakeResult(t *testing.T) {
 	result := takereview.CreateTakeResult{

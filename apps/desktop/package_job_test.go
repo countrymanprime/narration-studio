@@ -66,7 +66,7 @@ func TestPackageRefusesAnOutputFolderInsideTheProjectsSidecarTree(t *testing.T) 
 	}
 }
 
-// TestPackageAssemblesARealPackage runs the real packager.Assemble (Phase 4) over an export's own encoded files,
+// TestPackageAssemblesARealPackage runs the real packager.Assemble over an export's own encoded files,
 // end to end: the job answers the manifest and checklist Assemble built.
 func TestPackageAssemblesARealPackage(t *testing.T) {
 	dir := t.TempDir()

@@ -158,7 +158,7 @@ func (p spacyProvider) install(ctx context.Context, id string, options assets.Op
 func (p spacyProvider) verify(id string) (string, error) { return p.manager.Verify(id) }
 func (p spacyProvider) remove(id string) error           { return p.manager.Remove(id) }
 
-// moonshineProvider serves the Moonshine streaming speech-to-text models the live Teleprompter engine uses (phase 5). Its ids (`tiny`,
+// moonshineProvider serves the Moonshine streaming speech-to-text models the live Teleprompter engine uses. Its ids (`tiny`,
 // `small`) are the same words the Whisper catalog uses; the two never collide because assetItem.dir is built from the catalog entry's own
 // Provider ("moonshine" here), not the kind alone.
 type moonshineProvider struct{ manager *moonshine.Manager }

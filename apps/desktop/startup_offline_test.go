@@ -282,7 +282,7 @@ func TestChoosingAModelInSettingsMakesNoRequestAndDownloadsNothing(t *testing.T)
 	}
 }
 
-// The retired bootstrap kept voices and models in `.piper`, `.runtime` and `.bootstrap` folders (owner decision Q7: they are ignored and
+// The retired bootstrap kept voices and models in `.piper`, `.runtime` and `.bootstrap` folders (owner decision: they are ignored and
 // documented, never adopted, because a file whose version and hash nobody checked is exactly what the catalog exists to refuse). A file
 // there is not an installed asset, even when it is byte for byte the catalog's own file in the layout the cache uses.
 func TestAFileInARetiredBootstrapFolderIsNeverAnInstalledAsset(t *testing.T) {
