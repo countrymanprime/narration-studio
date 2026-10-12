@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
@@ -137,4 +138,38 @@ func TestContractDeliveryProfiles(t *testing.T) {
 		Profiles: deliveryprofile.BuiltIns(), GlobalDefault: deliveryprofile.Ref{ID: "acx", Version: "2026-09"}, ProjectProfile: "acx@2026-09",
 		Notice: "Your custom delivery profiles could not be read (your delivery profiles file could not be read); the built-in profiles still work.",
 	})
+}
+
+func TestSelectingACXGivesAnUnsetPaymentPerFinishedHourAndKeepsOneTheNarratorSet(t *testing.T) {
+	paymentAfterChoosing := func(t *testing.T, stored string, id string) string {
+		t.Helper()
+		host, folder := profileHost(t)
+		manifest := projectmanifest.New("Alice", time.Now())
+		manifest.Payment = stored
+		if err := manifest.Save(folder); err != nil {
+			t.Fatal(err)
+		}
+		version := ""
+		if id == "acx" {
+			version = "2026-09"
+		} else {
+			id = answered[deliveryprofile.Profile](t)(host.DeliveryDuplicateProfile("acx", "2026-09")).ID
+		}
+		answered[DeliveryProfilesState](t)(host.DeliverySelectProfile("project", id, version))
+		saved, _, _ := projectmanifest.Load(nil, folder)
+		return saved.Payment
+	}
+	for _, test := range []struct{ name, stored, profile, want string }{
+		{"unset becomes per finished hour", "", "acx", "per_finished_hour"},
+		{"royalty share is kept", "royalty_share", "acx", "royalty_share"},
+		{"an explicit none is kept", "none", "acx", "none"},
+		{"per finished hour is kept", "per_finished_hour", "acx", "per_finished_hour"},
+		{"a custom profile changes nothing", "", "custom", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := paymentAfterChoosing(t, test.stored, test.profile); got != test.want {
+				t.Fatalf("payment = %q, want %q", got, test.want)
+			}
+		})
+	}
 }
