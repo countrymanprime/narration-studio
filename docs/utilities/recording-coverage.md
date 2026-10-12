@@ -230,7 +230,7 @@ flowchart LR
 
 ## Decisions
 
-Code comments and the text above name these decisions by their labels: D, Q for the recording check and MC1-MC7 for the model cascade.
+This table is the key to the labels that code comments, tests and the text above cite: D and Q for the recording check, MC1 to MC7 for the model cascade. Where an ADR records one, the row links it.
 
 | Label | Decision |
 | --- | --- |
@@ -241,7 +241,7 @@ Code comments and the text above name these decisions by their labels: D, Q for 
 | D12 | No default ships before it has been scored on labelled chapters (amended by Q15) |
 | Q1 | Word-level alignment reported per paragraph (`p-NNNNNN`), with each region's first and last words |
 | Q2 | Reuse the take markers' `SequenceMatcher` alignment. The spike found no reason to move to a DP |
-| Q3 | Four settings: two thresholds and two alignment parameters. Started at 0.95, 3, 8 and 3, and shipped at 0.8, 3, 8 and 3 (ADR 0132) |
+| Q3 | Four settings: two thresholds and two alignment parameters. Started at 0.95, 3, 8 and 3, and shipped at 0.8, 3, 8 and 3 ([ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md)) |
 | Q4 | Narration chapters only. Front Matter is not a target |
 | Q5 | The active take of each item only |
 | Q6 | The saved `.rpp` is the only basis. A live Transcript Compare run never feeds the signal |
@@ -294,13 +294,4 @@ manifest names the audio the sidecar reads and the words files it writes) is row
 
 ## Not done yet
 
-Tracked in [#425](https://github.com/countrymanprime/narration-utils/issues/425):
-
-- **A cross-check against REAPER.** An optional, owner-run check that the standalone manifest matches the Lua
-  `manifest_<run>.txt` for one chapter. It is read-only, but it needs REAPER open.
-- **A real, permissioned corpus.** It would replace the synthetic calibration and drop the "uncalibrated" label,
-  and is also what turns the model cascade on by default (MC1): the first pass has never given a false "met" on the
-  synthetic corpus, but that has not been checked against real narration (noise, breaths, pace).
-- **Play from a region** over `/media`.
-- **Spot checks of "met" paragraphs** (MC6): re-checking a small sample of
-  paragraphs the first pass calls complete, so a false "met" would show up in use even before a real corpus exists.
+A cross-check against REAPER's own manifest, a real permissioned corpus (which would drop the "uncalibrated" label and turn the cascade on by default, MC1) and playing from a region were tracked in [#425](https://github.com/countrymanprime/narration-utils/issues/425), closed as not planned on 2026-10-11 in favour of the Studio Next work. Spot checks of "met" paragraphs are MC6.
