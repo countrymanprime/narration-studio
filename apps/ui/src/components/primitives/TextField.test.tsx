@@ -107,4 +107,22 @@ describe('TextField', () => {
     expect(box.className).toContain('bg-[var(--surface-2)]');
     expect(box.className).toContain('cursor-default');
   });
+
+  it('is 36px high by default and 32px for size sm; a w- class sets the width', () => {
+    render(
+      <>
+        <TextField label="a" value="" onChange={() => undefined} />
+        <TextField label="b" size="sm" className="w-40" value="" onChange={() => undefined} />
+      </>,
+    );
+    const a = screen.getByLabelText('a').className;
+    const b = screen.getByLabelText('b').className;
+    expect(a).toContain('h-9');
+    expect(a).not.toContain('h-8');
+    expect(a).toContain('w-full');
+    expect(b).toContain('h-8');
+    expect(b).not.toContain('h-9');
+    expect(b).not.toContain('w-full');
+    expect(b).toContain('w-40');
+  });
 });
