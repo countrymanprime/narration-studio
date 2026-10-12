@@ -107,7 +107,7 @@ export const ArrowsHomeAndEndMoveFocus: Story = {
   },
 };
 
-// A segmented-looking bar whose items touch and share a border instead of a gap (`manuscript/SelectionMenu`).
+// A segmented-looking bar whose items touch and share a border instead of a gap (the Script page's selection menu).
 export const FlushSegmentedBar: Story = {
   render: (args) => (
     <Toolbar {...args} gapClassName="gap-0" className="overflow-hidden rounded-[0.45rem] border border-[var(--border)]">
