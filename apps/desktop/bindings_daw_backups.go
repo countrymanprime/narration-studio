@@ -243,6 +243,25 @@ type backupPruner interface {
 // Audacity would not remove keeps its row, and the failure is logged. configureLocked starts it in its own goroutine with svc, a
 // snapshot it took under h.mu, so it never reads the Host's swappable fields itself.
 func (h *Host) pruneBackupsOnOpen(svc hostServices, keeper dawport.BackupKeeper) {
+	h.pruneBackups(svc, keeper, backupRetention(svc.settings))
+}
+
+// pruneBackupsOnRetentionChange is the same prune as pruneBackupsOnOpen, run when the narrator saves a shorter
+// backups.retention_days, so the backups the new rule names leave at once instead of at the next project open (SN-E99). It prunes
+// only when the retention got shorter: a longer one, an unchanged one or one that cannot be read keeps everything. svc is the
+// snapshot taken after the save, so it reads the new value; before is the retention in force before it. Prune holds the role's lock,
+// so it waits for a restore in flight rather than running over it.
+func (h *Host) pruneBackupsOnRetentionChange(svc hostServices, before time.Duration) {
+	after := backupRetention(svc.settings)
+	if after <= 0 || after >= before {
+		return
+	}
+	h.pruneBackups(svc, svc.backupKeeper, after)
+}
+
+// pruneBackups removes the backups older than retention through keeper's Prune, only while the resolver says backups can be used
+// and never for a role a later project already replaced. A failure keeps the rows it could not remove and is logged.
+func (h *Host) pruneBackups(svc hostServices, keeper dawport.BackupKeeper, retention time.Duration) {
 	pruner, ok := keeper.(backupPruner)
 	if !ok {
 		return
@@ -256,7 +275,7 @@ func (h *Host) pruneBackupsOnOpen(svc hostServices, keeper dawport.BackupKeeper)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), backupTimeout)
 	defer cancel()
-	if _, err := pruner.Prune(ctx, backupRetention(svc.settings)); err != nil {
+	if _, err := pruner.Prune(ctx, retention); err != nil {
 		_ = h.log.Report("daw_backups_prune", "Some old Audacity backups were kept, because removing them failed: "+err.Error())
 	}
 }

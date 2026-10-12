@@ -45,9 +45,10 @@ const why = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
 /**
  * The backups settings through the settings port, at project scope (the mock keeps them with the project). Turning backups off saves the
- * toggle `off`, and on gives it back to `auto`, so the DAW decides again whether it has them. Each change is saved, then read back.
+ * toggle `off`, and on gives it back to `auto`, so the DAW decides again whether it has them. Each change is saved, then read back. The host prunes the
+ * backups the new retention names as it saves a shorter one, so onRetentionSaved runs once that save is answered, for the list to read again.
  */
-export function useBackupSettings(): BackupSettingsState {
+export function useBackupSettings(onRetentionSaved?: () => void): BackupSettingsState {
   const system = usePort('system');
   const [settings, setSettings] = useState<BackupSettings | null>(null);
   const [error, setError] = useState('');
@@ -72,11 +73,14 @@ export function useBackupSettings(): BackupSettingsState {
   const save = useCallback(
     (key: string, value: string) => {
       system.saveSettings(TOOL, 'project', { [key]: value }).then(
-        () => setVersion((v) => v + 1),
+        () => {
+          setVersion((v) => v + 1);
+          if (key === RETENTION_KEY) onRetentionSaved?.();
+        },
         (e) => setError(why(e)),
       );
     },
-    [system],
+    [system, onRetentionSaved],
   );
 
   return {
