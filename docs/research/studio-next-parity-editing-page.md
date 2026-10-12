@@ -250,4 +250,4 @@ git grep -n -i "<old name>" -- apps docs/guides   (one per old item; the command
 pnpm lint:md && node scripts/ci/docs-slop.mjs && node scripts/ci/docs-references.mjs
 ```
 
-Results on this branch: Vitest passes (23 files, 315 tests). No row cites Go, so no Go test was run.
+Results on this branch: the checker passes (8 docs, 755 cases mapped, 101 excused). Vitest passes (23 files, 315 tests). `pnpm lint:md`, `docs-slop` and `docs-references` report nothing. No row cites Go, so no Go test was run.
