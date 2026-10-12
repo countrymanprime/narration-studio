@@ -3,11 +3,18 @@
 // applied as given), reject takes back and keeps a tombstone, review makes an automatic acceptance the narrator's, reopen puts a decided
 // suggestion back to the status the rule gave it, and a refusal (an unknown id, a locked entry, a name another entry owns) rejects with the
 // host's sentence and changes nothing. A scan paces the sources one per poll the way apps/desktop/extraction_job.go runs them, offering
-// SCAN_OFFERS as the rules; scanning again offers nothing twice. Offline: nothing is read and nothing is fetched.
+// SCAN_OFFERS as the rules; scanning again offers nothing twice. An import reads a small JSON or CSV text in memory under the host's
+// caps and plans it the way apps/desktop/bindings_extraction_import.go does (add, merge, skip, a row about no one is an error); the
+// commit plans again from the text. Offline: nothing is read and nothing is fetched.
+import { z } from 'zod';
 import { SUGGESTION_TEXT_MAX_BYTES } from './contracts/extraction';
 import type {
   ExtractionApi,
   ExtractionDecision,
+  ExtractionImportError,
+  ExtractionImportLine,
+  ExtractionImportPlan,
+  ImportFormat,
   ExtractionScanJob,
   ExtractionSource,
   ExtractionSuggestion,
@@ -18,6 +25,7 @@ import type {
 } from './contracts/extraction';
 import type { JobEnded } from './contracts/system';
 import { wireClone } from './mockFixtures';
+import { parseWireJson } from './wire/parseWire';
 
 type MockEntry = { id: string; name: string; aliases: string[]; locked: boolean; flagged: boolean };
 
@@ -196,6 +204,155 @@ const idleScan = (): ExtractionScanJob => ({
   added: 0,
   skipped: 0,
 });
+
+/** The importer's caps and refusals (apps/desktop/internal/extraction/importer). */
+const IMPORT_MAX_BYTES = 2 << 20;
+const IMPORT_EXAMPLE_JSON = `{
+  "entries": [
+    {"name": "The Mad Hatter", "type": "Character", "aliases": ["Hatter"], "confidence": 0.9}
+  ]
+}`;
+const IMPORT_EXAMPLE_CSV = `record,name,type,aliases,confidence
+entry,The Mad Hatter,Character,Hatter,0.9`;
+
+/** An import file's top level: an object with `entries` and `speakers`, or a bare list read as `entries`. */
+const importDocument = z.union([z.array(z.unknown()), z.record(z.string(), z.unknown())]);
+
+/** One row the mock's import read: the fields of a payload, a confidence and the quote it gives, if any. */
+type ImportRow = { row: number; where: string; payload: SuggestionPayload; confidence: number | null; quote?: string };
+
+function confidenceOf(value: unknown): number | null | string {
+  if (value === undefined || value === null || value === '') return null;
+  const n = typeof value === 'number' ? value : Number(String(value).trim().replace(/%$/, '')) / (String(value).trim().endsWith('%') ? 100 : 1);
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : `confidence must be a number from 0 to 1 (${JSON.stringify(String(value))} is not)`;
+}
+
+const str = (value: unknown): string => (typeof value === 'string' ? value.trim() : typeof value === 'number' ? String(value) : '');
+const list = (value: unknown): string[] => (Array.isArray(value) ? value.map(str) : str(value).split(/[;|]/)).map((item) => item.trim()).filter(Boolean);
+
+/** Reads the text the way the importer does, enough for the mock: the caps first, then JSON (entries with their properties,
+ * relationships and claims, and speakers) or a CSV whose cells hold no commas. */
+function parseImport(text: string, hint?: ImportFormat): { format?: ImportFormat; rows: ImportRow[]; errors: ExtractionImportError[] } {
+  const bytes = new TextEncoder().encode(text).length;
+  const refuse = (reason: string) => ({ format: hint, rows: [], errors: [{ row: 0, where: '', reason }] });
+  if (bytes > IMPORT_MAX_BYTES) return refuse(`The file is ${Math.ceil(bytes / 1024)} KB; the limit is ${IMPORT_MAX_BYTES / 1024} KB.`);
+  if (text.includes('\uFFFD')) return refuse('The file is not valid UTF-8 text. Save it as UTF-8 and try again.');
+  if (text.includes('\0')) return refuse('The file contains a NUL byte, so it is not a text file.');
+  const body = text.replace(/^\uFEFF/, '').trim();
+  const format: ImportFormat = hint ?? (body.startsWith('{') || body.startsWith('[') ? 'json' : 'csv');
+  if (!body) return refuse('Nothing to import.');
+  const rows: ImportRow[] = [];
+  const errors: ExtractionImportError[] = [];
+  let n = 0;
+  const add = (where: string, cells: Record<string, unknown>, make: () => SuggestionPayload | string, quote?: string) => {
+    n += 1;
+    const confidence = confidenceOf(cells.confidence);
+    const payload = make();
+    if (typeof confidence === 'string' || typeof payload === 'string') {
+      errors.push({ row: n, where, reason: typeof confidence === 'string' ? confidence : typeof payload === 'string' ? payload : '' });
+      return;
+    }
+    rows.push({ row: n, where, payload, confidence, ...(quote ? { quote } : {}) });
+  };
+  const need = (cells: Record<string, unknown>, ...names: string[]) => names.find((name) => !str(cells[name]));
+  const entry = (where: string, c: Record<string, unknown>) =>
+    add(where, c, () => {
+      const missing = need(c, 'name');
+      if (missing) return `${missing} is required`;
+      const p: SuggestionPayload = { kind: 'entry', name: str(c.name) };
+      if (str(c.type)) p.type = str(c.type);
+      if (list(c.aliases).length) p.aliases = list(c.aliases);
+      if (str(c.description)) p.description = str(c.description);
+      return p;
+    });
+  const property = (where: string, owner: string, c: Record<string, unknown>) =>
+    add(
+      where,
+      c,
+      () => need(c, 'key', 'value')?.concat(' is required') ?? { kind: 'property', entry: owner, key: str(c.key), value: str(c.value) },
+      str(c.evidence),
+    );
+  const relationship = (where: string, owner: string, c: Record<string, unknown>) =>
+    add(where, c, () => need(c, 'to', 'relation')?.concat(' is required') ?? { kind: 'relationship', entry: owner, to: str(c.to), relation: str(c.relation) });
+  const claim = (where: string, owner: string, c: Record<string, unknown>) =>
+    add(
+      where,
+      c,
+      () => {
+        const kind = str(c.kind);
+        if (kind !== 'talk' && kind !== 'act' && kind !== 'know') return 'kind must be talk, act or know';
+        return need(c, 'text')?.concat(' is required') ?? { kind: 'claim', entry: owner, claim: kind, text: str(c.text) };
+      },
+      str(c.evidence),
+    );
+  const speaker = (where: string, c: Record<string, unknown>) =>
+    add(where, c, () => need(c, 'quote', 'speaker')?.concat(' is required') ?? { kind: 'speaker', quote: str(c.quote), speaker: str(c.speaker) }, str(c.quote));
+  if (format === 'json') {
+    let doc: z.infer<typeof importDocument>;
+    try {
+      doc = parseWireJson(importDocument, body, { boundary: 'mock import', payload: 'storybible-import' });
+    } catch {
+      return refuse('The file is not valid JSON.');
+    }
+    const objects = (value: unknown): Record<string, unknown>[] =>
+      Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null) : [];
+    const top: Record<string, unknown> = Array.isArray(doc) ? { entries: doc } : doc;
+    objects(top.entries).forEach((e, i) => {
+      entry(`entries[${i}]`, e);
+      const owner = str(e.name);
+      objects(e.properties).forEach((c, j) => property(`entries[${i}].properties[${j}]`, owner, c));
+      objects(e.relationships).forEach((c, j) => relationship(`entries[${i}].relationships[${j}]`, owner, c));
+      objects(e.claims).forEach((c, j) => claim(`entries[${i}].claims[${j}]`, owner, c));
+    });
+    objects(top.speakers).forEach((c, i) => speaker(`speakers[${i}]`, c));
+    return { format, rows, errors };
+  }
+  const [header, ...records] = body.split(/\r?\n/);
+  const columns = header.split(',').map((cell) => cell.trim().toLowerCase());
+  records.forEach((line, i) => {
+    if (!line.trim()) return;
+    const cells = Object.fromEntries(line.split(',').map((cell, j) => [columns[j] ?? '', cell.trim()]));
+    const where = `row ${i + 2}`;
+    const owner = str(cells.name);
+    const record = str(cells.record);
+    if (record === 'entry') entry(where, cells);
+    else if (record === 'property') property(where, owner, cells);
+    else if (record === 'relationship') relationship(where, owner, cells);
+    else if (record === 'claim') claim(where, owner, { ...cells, kind: cells.kind });
+    else if (record === 'speaker') speaker(where, cells);
+    else {
+      n += 1;
+      errors.push({ row: n, where, reason: 'record must be entry, property, relationship, claim or speaker' });
+    }
+  });
+  return { format, rows, errors };
+}
+
+function importLabel(p: SuggestionPayload): string {
+  switch (p.kind) {
+    case 'entry':
+      return p.name + (p.type ? ' · ' + p.type : '');
+    case 'property':
+      return `${p.entry}: ${p.key} = ${p.value}`;
+    case 'relationship':
+      return `${p.entry} ${p.relation} ${p.to}`;
+    case 'claim':
+      return `${p.entry} ${{ talk: 'says', act: 'does', know: 'knows' }[p.claim]}: ${p.text}`;
+    case 'speaker':
+      return `${p.speaker}: ${p.quote}`;
+    case 'alias':
+      return `${p.entry}: ${p.alias}`;
+  }
+}
+
+/** The manuscript's own text for a quote, looked up in the fixture lines. */
+function findQuote(quote: string) {
+  for (const id of Object.keys(LINES)) {
+    const found = evidence(id, quote);
+    if (found.length) return found;
+  }
+  return [];
+}
 
 const plural = (n: number) => (n === 1 ? '1 suggestion' : `${n} suggestions`);
 
@@ -384,7 +541,120 @@ export function createExtractionMock(publish: (event: JobEnded) => void = () => 
     scan = { ...scan, percent, logs, message: logs[logs.length - 1], added, skipped, elapsed: scan.elapsed + 1 };
   };
 
+  type Planned = { plan: ExtractionImportPlan; offers: ImportRow[] };
+
+  /** Plans an import against the entries and the suggestions as they are now; it changes nothing. */
+  function planImport(text: string, hint?: ImportFormat): Planned {
+    const parsed = parseImport(text, hint);
+    const plan: ExtractionImportPlan = { ...(parsed.format ? { format: parsed.format } : {}), lines: [], errors: [...parsed.errors], offered: 0 };
+    const offers: ImportRow[] = [];
+    const inFile = new Set(parsed.rows.flatMap((r) => (r.payload.kind === 'entry' ? [r.payload.name, ...(r.payload.aliases ?? [])].map(fold) : [])));
+    const seen = new Map(suggestions.map((s) => [s.fp, s.status] as const));
+    const ordered = [...parsed.rows].sort((a, b) => Number(b.payload.kind === 'entry') - Number(a.payload.kind === 'entry'));
+    for (const r of ordered) {
+      const p = r.payload;
+      const refs = p.kind === 'relationship' ? [p.entry, p.to] : p.kind === 'speaker' ? [p.speaker] : p.kind === 'entry' ? [] : [p.entry];
+      const missing = refs.find((ref) => !resolve(ref) && !inFile.has(fold(ref)));
+      if (missing !== undefined) {
+        plan.errors.push({ row: r.row, where: r.where, reason: `No entry “${missing}” in the Story Bible or in this file.` });
+        continue;
+      }
+      const line: ExtractionImportLine = {
+        row: r.row,
+        where: r.where,
+        kind: p.kind === 'alias' ? 'entry' : p.kind,
+        label: importLabel(p),
+        action: 'add',
+        confidence: r.confidence,
+        note: '',
+      };
+      const prior = seen.get(fp(p));
+      const owner = p.kind === 'entry' ? [p.name, ...(p.aliases ?? [])].map(resolve).find(Boolean) : p.kind === 'speaker' ? undefined : resolve(p.entry);
+      if (prior) {
+        line.action = 'skip';
+        line.note = prior === 'rejected' ? 'Rejected before' : 'Already suggested';
+      } else if (owner?.locked) {
+        line.action = 'skip';
+        line.note = 'Locked entry; it is not edited';
+      } else if (p.kind === 'entry' && owner) {
+        const have = new Set([owner.name, ...owner.aliases].map(fold));
+        const added = [p.name, ...(p.aliases ?? [])].filter((name) => !have.has(fold(name)));
+        if (added.length) {
+          line.action = 'merge';
+          line.note = `adds ${added.join(', ')}.`;
+        } else {
+          line.action = 'skip';
+          line.note = 'Already in the Story Bible';
+        }
+      }
+      if (line.action !== 'skip') {
+        const quoted = p.kind === 'entry' || p.kind === 'relationship' || findQuote(r.quote ?? '').length > 0;
+        const reasons = [
+          r.confidence === null ? 'No confidence was given.' : r.confidence < 0.75 ? 'Confidence is under the threshold.' : '',
+          quoted ? '' : 'No evidence quote.',
+        ].filter(Boolean);
+        line.status = reasons.length ? 'needs-verification' : 'accepted-auto';
+        line.note = [line.note, ...reasons].filter(Boolean).join(' ');
+        seen.set(fp(p), line.status);
+        offers.push(r);
+      }
+      plan.lines.push(line);
+    }
+    plan.lines.sort((a, b) => a.row - b.row);
+    plan.errors.sort((a, b) => a.row - b.row);
+    plan.offered = offers.length;
+    return { plan, offers };
+  }
+
   return {
+    extractionImportPreview: (text, hint) => Promise.resolve(wireClone(planImport(text, hint).plan)),
+    extractionImportCommit: (text, hint) => {
+      const { plan, offers } = planImport(text, hint);
+      const whole = plan.errors.find((error) => error.row === 0);
+      if (whole && plan.lines.length === 0) return Promise.reject(new Error(whole.reason));
+      const added: ExtractionSuggestion[] = [];
+      const touched: string[] = [];
+      for (const offer of offers) {
+        const line = plan.lines.find((l) => l.row === offer.row);
+        const s: ExtractionSuggestion = {
+          id: 's' + (suggestions.length + 1),
+          kind: offer.payload.kind,
+          payload: offer.payload,
+          entryId: null,
+          evidence: offer.quote ? findQuote(offer.quote) : [],
+          confidence: offer.confidence,
+          source: 'imported',
+          status: line?.status ?? 'needs-verification',
+          fp: fp(offer.payload),
+          createdAt: '2026-10-11T09:00:00Z',
+        };
+        if (s.status === 'needs-verification') s.reason = line?.note.replace(/^adds [^.]*\.\s*/, '') || 'Confidence is under the threshold.';
+        else {
+          try {
+            s.entryId = applyOne(s, true);
+            if (!touched.includes(s.entryId)) touched.push(s.entryId);
+          } catch (error) {
+            s.status = 'needs-verification';
+            s.reason = error instanceof Error ? error.message : String(error);
+          }
+        }
+        if (offer.payload.kind === 'entry' && s.applied && !s.applied.created) {
+          const entry = entries.find((e) => e.id === s.applied?.entryId);
+          const names = (offer.payload.aliases ?? []).concat(offer.payload.name).filter((name) => entry && !resolve(name));
+          if (entry) entry.aliases.push(...names);
+          s.applied = { ...s.applied, aliases: names };
+        }
+        suggestions.push(s);
+        seeds.ruled.set(s.id, s.status === 'needs-verification' ? { status: s.status, reason: s.reason } : { status: s.status });
+        added.push(s);
+      }
+      return Promise.resolve(wireClone({ suggestions: added, entryIds: touched, skipped: plan.lines.length - offers.length }));
+    },
+    extractionImportPrompt: (format) => {
+      const example = format === 'csv' ? IMPORT_EXAMPLE_CSV : IMPORT_EXAMPLE_JSON;
+      const prompt = `You are helping an audiobook narrator prepare a Story Bible from a book manuscript.\nAnswer with ${format.toUpperCase()} only, in exactly this format.\n\nExample:\n${example}\n\nMANUSCRIPT\n`;
+      return Promise.resolve({ format, prompt, example, maxBytes: IMPORT_MAX_BYTES });
+    },
     extractionSources: () => Promise.resolve(wireClone(SOURCES)),
     extractionScan: (sourceIds) => {
       const runnable = SOURCES.filter((s) => s.runs).map((s) => s.id);

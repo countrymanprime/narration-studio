@@ -282,9 +282,12 @@ type RegionWriter interface {
 	CreateRegions(ctx context.Context, rows []Region, colour string, update bool) (RegionsCreated, error)
 }
 
-// TakeSelector makes one take of an item the active one.
+// TakeSelector makes one take of an item the active one, and hides (mutes, never deletes) the item's other takes.
 type TakeSelector interface {
 	SetActiveTake(ctx context.Context, itemGUID, takeGUID string) (ActiveTakeSet, error)
+	// HideTakes mutes every take of itemGUID but keepTakeGUID and makes that one active, as one undo point. The Result is
+	// changed when a take was hidden; an item or take that is gone is RefusedStale, and nothing is ever deleted.
+	HideTakes(ctx context.Context, itemGUID, keepTakeGUID string) (Result, error)
 }
 
 // FXManager lists and applies FX chains and adds a plugin to a passage's take.

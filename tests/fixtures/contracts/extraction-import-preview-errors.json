@@ -1,0 +1,17 @@
+{
+  "errors": [
+    {
+      "reason": "confidence must be a number from 0 to 1 (\"lots\" is not)",
+      "row": 2,
+      "where": "row 2"
+    },
+    {
+      "reason": "key is required",
+      "row": 3,
+      "where": "row 3"
+    }
+  ],
+  "format": "csv",
+  "lines": [],
+  "offered": 0
+}

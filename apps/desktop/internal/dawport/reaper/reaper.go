@@ -10,6 +10,7 @@
 package reaper
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -42,7 +43,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
-	// play_position; create_regions; set_active_take; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read.
+	// play_position; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain, list_fx, add_take_fx; master_chain_read.
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -82,6 +83,7 @@ var commandCapability = map[string]dawport.Capability{
 	"play_position":       dawport.CapPunch,
 	"create_regions":      dawport.CapRegions,
 	"set_active_take":     dawport.CapTakes,
+	"hide_takes":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
 	"list_fx":             dawport.CapFXChains,
@@ -184,7 +186,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapRecord:          actions,
 			dawport.CapPunch:           actions,
 			dawport.CapRegions:         actions,
-			dawport.CapTakes:           actions,
+			dawport.CapTakes:           takeSelector{actions, allowed},
 			dawport.CapFXChains:        actions,
 			dawport.CapSilenceTrim:     bridge.NewCleanupClient(client),
 			dawport.CapItemGain:        bridge.NewLevelMatchClient(client),
@@ -230,3 +232,50 @@ func (a *Adapter) Explain(_ dawport.Capability, r dawport.Reason) string {
 type ProjectReader struct{}
 
 func (ProjectReader) ReadProject(path string) (dawport.Project, error) { return tracks.Parse(path) }
+
+// takeSelector is the takes role: bridge.Actions' SetActiveTake as it is, and HideTakes answering a dawport.Result (ADR 0810),
+// which bridge cannot import.
+type takeSelector struct {
+	*bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.TakeSelector = takeSelector{}
+
+// HideTakes mutes every take of itemGUID but keepTakeGUID (bridge's hide_takes). It asks allowed itself first, so a refusal is
+// the capability's own sentence rather than bridge's ErrExperimentalOff.
+func (t takeSelector) HideTakes(ctx context.Context, itemGUID, keepTakeGUID string) (dawport.Result, error) {
+	if t.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(t.allowed(dawport.CapTakes)); ok {
+			return refused, nil
+		}
+	}
+	got, err := t.Actions.HideTakes(ctx, itemGUID, keepTakeGUID)
+	var stale *bridge.StaleError
+	switch {
+	case errors.As(err, &stale) && stale.Reason == "take":
+		return dawport.RefusedStale("That item no longer has the take you kept. Read the project again."), nil
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), nil
+	case err != nil:
+		return dawport.Result{}, err
+	}
+	return dawport.OK(hiddenMessage(got), got.Changed), nil
+}
+
+func hiddenMessage(got bridge.TakesHidden) string {
+	switch {
+	case got.Hidden == 1:
+		return "Muted 1 other take in REAPER. It is still in the project."
+	case got.Hidden > 1:
+		return fmt.Sprintf("Muted %d other takes in REAPER. They are still in the project.", got.Hidden)
+	case got.Changed:
+		return "No other take to mute in REAPER; the kept take is the active one."
+	default:
+		return "No other take to mute in REAPER."
+	}
+}

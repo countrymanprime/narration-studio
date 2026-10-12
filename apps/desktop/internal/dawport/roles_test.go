@@ -17,7 +17,6 @@ var (
 	_ Recorder         = (*bridge.Actions)(nil)
 	_ Puncher          = (*bridge.Actions)(nil)
 	_ RegionWriter     = (*bridge.Actions)(nil)
-	_ TakeSelector     = (*bridge.Actions)(nil)
 	_ FXManager        = (*bridge.Actions)(nil)
 	_ SilenceTrimmer   = (*bridge.CleanupClient)(nil)
 	_ GainAdjuster     = (*bridge.LevelMatchClient)(nil)

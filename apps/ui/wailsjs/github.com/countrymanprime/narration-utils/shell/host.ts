@@ -844,6 +844,31 @@ export function ExtractionAccept(id: string, text: string | null): $CancellableP
 }
 
 /**
+ * ExtractionImportCommit parses and plans text again and stores the rows that add or merge as suggestions from an imported file, in one
+ * write: all of them or, when the write fails, none. The ones the 75% rule accepts are applied through the Story Bible's own commands
+ * and flagged for Review. A file refused before parsing is refused with the importer's sentence.
+ */
+export function ExtractionImportCommit(text: string, hint: string): $CancellablePromise<string> {
+    return $Call.ByID(4139892219, text, hint);
+}
+
+/**
+ * ExtractionImportPreview works out what importing text would do, against the Story Bible, the manuscript and the suggestions as they
+ * are now. hint is "csv", "json" or "" (worked out from the text). It writes nothing.
+ */
+export function ExtractionImportPreview(text: string, hint: string): $CancellablePromise<string> {
+    return $Call.ByID(738991394, text, hint);
+}
+
+/**
+ * ExtractionImportPrompt returns the prompt for format ("csv" or "json"): importer.Prompt's text, which is what Copy puts on the
+ * clipboard, with the example it contains and the byte cap.
+ */
+export function ExtractionImportPrompt(format: string): $CancellablePromise<string> {
+    return $Call.ByID(1099454356, format);
+}
+
+/**
  * ExtractionList returns every suggestion, rejected ones included, entries first and then by kind in the mock's
  * order, each kind in the order it was stored.
  */

@@ -1,0 +1,109 @@
+{
+  "errors": [
+    {
+      "reason": "No entry “Nobody” in the Story Bible or in this file.",
+      "row": 10,
+      "where": "entries[5].relationships[0]"
+    }
+  ],
+  "format": "json",
+  "lines": [
+    {
+      "action": "add",
+      "confidence": 0.9,
+      "kind": "entry",
+      "label": "The Cheshire Cat · Character",
+      "note": "",
+      "row": 1,
+      "status": "accepted-auto",
+      "where": "entries[0]"
+    },
+    {
+      "action": "add",
+      "confidence": 0.8,
+      "kind": "claim",
+      "label": "The Cheshire Cat does: Grins",
+      "note": "",
+      "row": 2,
+      "status": "accepted-auto",
+      "where": "entries[0].claims[0]"
+    },
+    {
+      "action": "merge",
+      "confidence": 0.95,
+      "kind": "entry",
+      "label": "White Rabbit",
+      "note": "adds Mr Rabbit.",
+      "row": 3,
+      "status": "accepted-auto",
+      "where": "entries[1]"
+    },
+    {
+      "action": "skip",
+      "confidence": 0.9,
+      "kind": "claim",
+      "label": "White Rabbit says: Worries about being late",
+      "note": "Already suggested",
+      "row": 4,
+      "where": "entries[1].claims[0]"
+    },
+    {
+      "action": "skip",
+      "confidence": 0.9,
+      "kind": "entry",
+      "label": "Alice",
+      "note": "Already in the Story Bible",
+      "row": 5,
+      "where": "entries[2]"
+    },
+    {
+      "action": "skip",
+      "confidence": 0.9,
+      "kind": "entry",
+      "label": "The Duchess",
+      "note": "Locked entry; it is not edited",
+      "row": 6,
+      "where": "entries[3]"
+    },
+    {
+      "action": "skip",
+      "confidence": 0.9,
+      "kind": "entry",
+      "label": "The Dodo · Character",
+      "note": "Rejected before",
+      "row": 7,
+      "where": "entries[4]"
+    },
+    {
+      "action": "add",
+      "confidence": null,
+      "kind": "entry",
+      "label": "Bill",
+      "note": "No confidence was given.",
+      "row": 8,
+      "status": "needs-verification",
+      "where": "entries[5]"
+    },
+    {
+      "action": "add",
+      "confidence": 0.3,
+      "kind": "property",
+      "label": "Bill: Job = Lizard",
+      "note": "Confidence is under the threshold. No evidence quote.",
+      "row": 9,
+      "status": "needs-verification",
+      "where": "entries[5].properties[0]"
+    },
+    {
+      "action": "add",
+      "confidence": 0.9,
+      "kind": "speaker",
+      "label": "White Rabbit: \"Oh dear! Oh dear! I shall be late!\"",
+      "note": "",
+      "row": 11,
+      "status": "accepted-auto",
+      "where": "speakers[0]"
+    }
+  ],
+  "offered": 6
+}
