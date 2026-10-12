@@ -150,7 +150,7 @@ The train's worker template ([Worker template](../operations/agent-train.md#work
 3. Tests first, named in the issue; mock-first behind the port (D67).
 4. Targeted checks per D43; `full-verification-gate` when the slice ends the stream (D44); look at every viewport's PNG; atlas for primitives; aria for dialogs.
 5. `design-spec-guard`, `feature-cleanup` (threat model and diagrams where a boundary moved).
-6. PR title a Conventional Commit; body: `Closes #<slice>`, `Part of #<PRD>`, what changed, checks run, **Screenshots** (mock | before | after at 1440x900, the other viewports in `<details>`, images on `pr-images/<branch>`), "New ADRs for review", "Base:". Ends with the attribution lines.
+6. PR title a Conventional Commit; body: `Closes #<slice>`, `Part of #<PRD>`, what changed, checks run, **Screenshots** (mock | before | after at 1440x900, the other viewports in `<details>`, images committed under `pr-screenshots/<slice>/` and embedded by commit SHA, the folder deleted by the last commit before merge), "New ADRs for review", "Base:". Ends with the attribution lines.
 7. Subscribe; stay the owner of the PR until it merges (D82): merge `main` in on conflict, never rebase; fix red checks; answer review threads; hourly `send_later`.
 
 ### PR babysitting as a standing duty

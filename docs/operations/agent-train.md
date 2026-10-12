@@ -202,9 +202,9 @@ Permanent owner rule, 2026-09-29. A PR that changes what `apps/ui` draws must sh
 
 - **What to show.** A "Screenshots" section, one row per changed state at 1440×900: the Studio Next mock page | before (`main`) | after (the branch). Same state, viewport and fixture in the before and after captures, and the mock cropped or scaled to match. There is no match percentage for Studio Next pages; the owner looks at the images.
 - **Other viewports.** Small-desktop and tablet (and `reflow` at 390 px for Settings) as before/after pairs in a collapsed `<details>`.
-- **Where the images live.** On a branch named `pr-images/<the PR's branch>`, never on the PR's own branch, so they don't reach `main`. Embed with `https://github.com/countrymanprime/narration-utils/blob/pr-images/<branch>/<file>.png?raw=true`. Regenerate them after every push that changes the UI.
+- **Where the images live.** On the PR's own branch, under `pr-screenshots/<slice or branch>/`. Embed them by commit SHA: `https://github.com/countrymanprime/narration-utils/blob/<commit-sha>/pr-screenshots/<slice>/<file>.png?raw=true`. After every push that changes the UI, regenerate them and update the SHA in the body. The last commit on the branch before merge deletes `pr-screenshots/`, so the squash has no net change there and the images never reach `main`. GitHub keeps every PR commit reachable through the PR ref, so the SHA links keep rendering after the merge. The separate `pr-images/*` branch is retired; don't create one. The lasting record is `docs/images/ui/` (curated, refreshed by the periodic guide-refresh worker) and the Playwright visual suite; `apps/ui/screenshots/` stays gitignored scratch.
 - **How to capture.** `cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"` writes `apps/ui/screenshots/app/<page>/<state>/<viewport>.png` (gitignored). The mock runs from `docs/research/mockups/studio-next/` (`npm ci` there, then its Playwright scripts in `e2e/`); a worker without network lists the missing mock image in the PR and the owner supplies it.
-- **Who checks.** The worker adds them before it says the PR is ready. The coordinator checks the PR body for the images at every sweep, and does not merge a UI PR without them, whatever the score or the CI result.
+- **Who checks.** The worker adds them before it says the PR is ready, and pushes the commit that deletes `pr-screenshots/` once nothing else on the PR is left to change. The coordinator checks the PR body for the images at every sweep, and does not merge a UI PR without them, whatever the score or the CI result.
 
 ## Owner standing rules
 
@@ -251,7 +251,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Links (offline)` instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
-   - a UI PR carries its Screenshots section ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). There is no match % bar to check (D97);
+   - a UI PR carries its Screenshots section, and its head no longer has `pr-screenshots/` ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). There is no match % bar to check (D97);
    - the `Test ratchet` check succeeded on the head ([Safety net](#safety-net));
    - it has no `risk:high` label, or the owner has approved it on #992 for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
@@ -344,7 +344,7 @@ docs/operations/ runbooks that a person follows. A spike's research note has a d
 or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
-Screenshots (any UI change; see "UI PRs show their screenshots": the PR is not ready without them), "Base: <branch>", "Closes #<slice>" for a slice,
+Screenshots (any UI change; see "UI PRs show their screenshots": the PR is not ready without them; PNGs under pr-screenshots/ on this branch, embedded by commit SHA, deleted by the last commit before merge), "Base: <branch>", "Closes #<slice>" for a slice,
 else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
 Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
 METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); tests first;
