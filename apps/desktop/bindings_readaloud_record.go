@@ -13,7 +13,7 @@ import (
 // Record in REAPER: arming a chapter's linked track, and starting and stopping a REAPER recording alongside a reading
 // session. The Lua and bridge half (arm_only, record_start, record_stop in narration_transport.lua and bridge.Actions,
 // and the DAW port's Recorder role) is already built and harness-tested; this file is the remaining caller. Every
-// command is sent only from a click (or the Space shortcut on Play, ReadingControlBar.tsx), with the track GUID taken
+// command is sent only from a click (or the Space shortcut on Play, the Booth's reading control bar), with the track GUID taken
 // from the chapter-track mapping the same way ReadAloudReaperState reads it, never from the UI (threat-model row 5k).
 
 // readAloudRecordStartTimeout bounds how long RecordStart waits for REAPER to report recording: on a timeout nothing
@@ -162,7 +162,7 @@ func (h *Host) ReadAloudArmOnly(chapterID string) (string, error) {
 // and come back on stop, ADR 0232), then starts recording at the end of the track's last item, and waits for ctx's
 // deadline for the DAW to confirm. A precondition that fails first - playing, already recording - refuses before
 // anything is armed or moved; reader is the track-state role that reads them, nil when it is not available. Another
-// track being armed is no longer a refusal. Sent only from Play with the Record toggle on (ReadingControlBar.tsx) and
+// track being armed is no longer a refusal. Sent only from Play with the Record toggle on (the Booth's reading control bar) and
 // the Companion's Record; TeleprompterStart follows only once this answers "started".
 func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, reader trackStateReader, chapterID string) (ReadAloudRecording, error) {
 	name := readAloudAdapterName(svc)

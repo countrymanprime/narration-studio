@@ -62,18 +62,7 @@ export type ManuscriptNote = {
   anchorEnd?: number;
   anchorText?: string;
 };
-export type ReaderBookmark = {
-  id: string;
-  kind: 'chapter' | 'line' | 'note';
-  chapter: string;
-  chapterId?: string;
-  paragraph?: number;
-  paragraphId?: string;
-  sourceLine?: number;
-  noteId?: string;
-  createdAt: string;
-};
-export type ReaderState = { activeChapter?: string; activeSourceLine?: number; expandedChapters?: string[]; bookmarks: ReaderBookmark[] };
+export type ReaderState = { activeChapter?: string; activeSourceLine?: number; expandedChapters?: string[] };
 // `matchStart` is the excerpt's own match offset (UTF-16 code units), added for the windowing helper
 // - additive, so no hostAPIVersion bump (this shape carries inside a map[string]any-style payload, not a fixed
 // binding signature).

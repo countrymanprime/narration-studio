@@ -88,9 +88,8 @@ field and a source tag:
   menu offers **Use mine** or **Use the dictionary's** to switch back.
 
 A rebuild keeps all of this. Which source a *fresh* pronunciation tries first (at build time, or when you add an alias)
-follows **Settings > Story Bible > Default pronunciation source**. A note written on a pronunciation in an earlier
-version still shows under its name; pronunciation statuses and the queries list are gone (a question for the author is
-a mark on the [Script](script.md#select-text) page).
+follows **Settings > Story Bible > Default pronunciation source**. A note written on a pronunciation shows under its
+name. A question for the author is a mark on the [Script](script.md#select-text) page.
 
 ## Looking a name up online (Merriam-Webster)
 

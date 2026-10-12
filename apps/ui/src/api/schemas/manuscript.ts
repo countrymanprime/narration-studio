@@ -9,7 +9,6 @@ import type {
   ManuscriptNote,
   ManuscriptParagraph,
   ManuscriptReader,
-  ReaderBookmark,
   ReaderState,
   SearchHit,
   TextSpan,
@@ -75,24 +74,11 @@ const noteSchema = z.object({
   anchorText: optionalFromNull(z.string()),
 }) satisfies z.ZodType<ManuscriptNote>;
 
-const bookmarkSchema = z.object({
-  id: z.string(),
-  kind: z.enum(['chapter', 'line', 'note']),
-  chapter: z.string(),
-  chapterId: optionalFromNull(z.string()),
-  paragraph: optionalFromNull(z.number()),
-  paragraphId: optionalFromNull(z.string()),
-  sourceLine: optionalFromNull(z.number()),
-  noteId: optionalFromNull(z.string()),
-  createdAt: z.string(),
-}) satisfies z.ZodType<ReaderBookmark>;
-
 // A reader that has not been opened yet has null for every optional field and a null expanded list (manuscript/reader.go).
 export const readerStateSchema = z.object({
   activeChapter: optionalFromNull(z.string()),
   activeSourceLine: optionalFromNull(z.number()),
   expandedChapters: optionalFromNull(z.array(z.string())),
-  bookmarks: listFromNull(bookmarkSchema),
 }) satisfies z.ZodType<ReaderState>;
 
 const searchHitSchema = z.object({
