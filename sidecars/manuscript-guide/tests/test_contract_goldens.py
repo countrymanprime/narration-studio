@@ -66,10 +66,11 @@ class PronunciationDepthContractGoldenTests(unittest.TestCase):
             guide.write_json(path, {"schema_version": 2, "entities": [entity]})
             target = {"guide": path, "entity_id": "entity-wren"}
             guide.pronounce_user(argparse.Namespace(**target, alias_index=None, ipa="wɹɛn"))
-            guide.pronunciation_status(argparse.Namespace(**target, alias_index=None, status="query_sent", note="Asked the author by email."))
-            guide.pronunciation_status(argparse.Namespace(**target, alias_index=0, status="author_confirmed", note=None))
             with open(path, encoding="utf-8") as handle:
                 entities = json.load(handle)["entities"]
+        # A file written before ADR 0792 still holds a status and a note; the sidecar no longer writes either.
+        entities[0]["pronunciation"].update(status="query_sent", note="Asked the author by email.")
+        entities[0]["aliases"][0]["pronunciation"]["status"] = "author_confirmed"
         contract_files.check("guide-entities-pronunciation-sidecar", entities)
 
 
