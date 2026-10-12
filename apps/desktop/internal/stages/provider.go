@@ -31,8 +31,8 @@ type EvidenceView struct {
 // signals judge as finished; SignalIDs declares every id it can report, which
 // is the default required set and what settings keys derive from; Signals
 // answers for one chapter. A provider reads existing evidence only: it must
-// not decode audio, transcribe, reach the network or start an analysis
-// (Q12). An error means it could not answer at all.
+// not decode audio, transcribe, reach the network or start an analysis.
+// An error means it could not answer at all.
 type Provider interface {
 	Stage() Stage
 	SignalIDs() []string

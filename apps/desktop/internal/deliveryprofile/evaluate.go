@@ -49,8 +49,8 @@ var fromSamples = map[string]bool{
 func otherKindWhy(report measure.Report, metric string) string {
 	switch {
 	case report.MP3 != nil && fromSamples[metric] && !report.MP3LevelsDecoded:
-		// No Decoder measured this MP3's samples (Phase 8, P11): its levels stay exactly as unchecked as Phase 6
-		// left them. Once report.MP3LevelsDecoded is true, a decode was attempted; a value that came of it is
+		// No Decoder measured this MP3's samples (the MP3 decode is optional): its levels stay exactly as unchecked as they were before
+		// MP3 decoding existed. Once report.MP3LevelsDecoded is true, a decode was attempted; a value that came of it is
 		// judged normally below, and one that did not (nil) falls through to "not measurable", never here.
 		return whyNotDecoded
 	case report.MP3 == nil && metric == "mp3_format":

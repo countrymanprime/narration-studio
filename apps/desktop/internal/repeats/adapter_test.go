@@ -18,7 +18,7 @@ func TestToFindingsSkipsGroupsWithFewerThanTwoMembers(t *testing.T) {
 	}
 }
 
-// Q11 recommendation A: an exact byte-identical copy is a pickup-category
+// An exact byte-identical copy is a pickup-category
 // signal (evidence.kind exact_copy), not duplicate_read, regardless of
 // coverage or quality - the narrator re-recorded the line, even if the
 // bytes came out identical.
@@ -47,7 +47,7 @@ func TestToFindingsClassifiesAnExactCopyAsAPickupRegardlessOfCoverage(t *testing
 
 // Full coverage with quality below the near-duplicate threshold is a
 // restart (a clean re-read from the top after a stumble or false start,
-// still category pickup per Q11 recommendation A).
+// still category pickup).
 func TestToFindingsClassifiesFullCoverageBelowQualityThresholdAsARestartPickup(t *testing.T) {
 	groups := []Group{{
 		ID: 0, FirstUnit: 0, LastUnit: 3,
@@ -66,8 +66,7 @@ func TestToFindingsClassifiesFullCoverageBelowQualityThresholdAsARestartPickup(t
 }
 
 // Full coverage with every member's quality at or above the near-duplicate
-// threshold is a near-identical re-read: category duplicate_read, per Q11
-// recommendation A.
+// threshold is a near-identical re-read: category duplicate_read.
 func TestToFindingsClassifiesFullCoverageHighQualityAsANearDuplicateDuplicateRead(t *testing.T) {
 	groups := []Group{{
 		ID: 0, FirstUnit: 0, LastUnit: 3,
@@ -102,7 +101,7 @@ func TestToFindingsClassifiesPartialCoverageAsAPickup(t *testing.T) {
 	}
 }
 
-// Custom, narrower thresholds (Q12: layered project settings) change the
+// Custom, narrower thresholds (from layered project settings) change the
 // classification outcome for the same evidence, proving the thresholds are
 // actually load-bearing and not just plumbed through unused.
 func TestToFindingsUsesTheGivenThresholdsNotHardcodedOnes(t *testing.T) {

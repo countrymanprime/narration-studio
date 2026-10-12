@@ -61,7 +61,7 @@ func playedItems(track tracks.Track) []tracks.Item {
 // chapterRange is the timeline span of track's played items, first start to
 // last end (gaps included), or ok=false when nothing plays. Used both for the
 // chapter's rendered-length span (provider.go's chapterSpan) and to attribute
-// a project marker to the chapter (Phase 3's markerSource, Q15).
+// a project marker to the chapter (markerSource).
 func chapterRange(track tracks.Track) (start, end float64, ok bool) {
 	played := playedItems(track)
 	if len(played) == 0 {

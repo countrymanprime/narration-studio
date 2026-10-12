@@ -145,7 +145,7 @@ func TestParseManifest(t *testing.T) {
 	}
 }
 
-// TestRecorderWritesOneRecordPerFinishedRun is Phase 2's first success signal:
+// TestRecorderWritesOneRecordPerFinishedRun pins that
 // every finished run has a chapter, a compared set and an outcome, including a
 // clean one, and comparing chapter 2 after chapter 1 keeps chapter 1's record.
 func TestRecorderWritesOneRecordPerFinishedRun(t *testing.T) {
@@ -197,7 +197,7 @@ func TestRecorderAttributesOnlyWhatItCan(t *testing.T) {
 	}
 }
 
-// TestComparisonJudge is Q4 over the scenarios Phase 2's success signal names.
+// TestComparisonJudge judges each comparison scenario: clean, partial and complete re-runs.
 func TestComparisonJudge(t *testing.T) {
 	cases := []struct {
 		name      string
@@ -322,7 +322,7 @@ func TestComparisonCoversOnlyWhatItCompared(t *testing.T) {
 	}
 }
 
-// TestComparisonJudgeThroughTheProvider is the end-to-end Phase 1 + 2 path: a
+// TestComparisonJudgeThroughTheProvider is the end-to-end path through the provider: a
 // finding a partial re-run did not reproduce stays open; after a complete,
 // saved re-run of every item it is resolved and the chapter's pickups are met.
 func TestComparisonJudgeThroughTheProvider(t *testing.T) {

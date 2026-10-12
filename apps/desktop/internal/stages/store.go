@@ -29,7 +29,7 @@ const (
 	// chapter's status was set to Target.
 	DecisionConfirmed DecisionKind = "confirmed"
 	// DecisionDismissed: the narrator dismissed a recommendation; it stays
-	// hidden while its basis key is unchanged (Q7).
+	// hidden while its basis key is unchanged.
 	DecisionDismissed DecisionKind = "dismissed"
 	// DecisionReverted: the narrator undid a live confirmation, and the
 	// chapter's status was set back from From to Target.
@@ -78,7 +78,7 @@ func DecisionsFile(project string) string {
 }
 
 // DecisionStore keeps the narrator's confirmations, dismissals and reverts
-// beside the chapter status, never inside it (D4, Q1). Writes are a temporary
+// beside the chapter status, never inside it (D4). Writes are a temporary
 // file then a rename, under a mutex. The file is the narrator's own work: one
 // that cannot be decoded is kept aside and the narrator told (ADR 0069), and
 // the read that met it returns an error rather than an empty list.

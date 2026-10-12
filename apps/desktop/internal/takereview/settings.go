@@ -7,13 +7,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// settingsTool is the settings.Store tool name for this package's Q12
-// thresholds and Q3 pickup-scope settings, layered project/global/repo
+// settingsTool is the settings.Store tool name for this package's
+// detection-threshold and pickup-scope settings, layered project/global/repo
 // default/hardcoded like every other tool (settings.Store.Effective);
 // defaults are mirrored in config/defaults.json's TakeReview entry.
 const settingsTool = "TakeReview"
 
-// ResolveThresholds reads Q12's layered detection thresholds from store. An
+// ResolveThresholds reads the layered detection thresholds from store. An
 // unparseable or out-of-range stored value (a hand-edited settings file, or
 // a corrupt one) falls back to the conservative built-in default for that
 // one threshold rather than failing the scan - a narrator's typo should
@@ -36,7 +36,7 @@ func parseFraction(raw string, fallback float64) float64 {
 	return value
 }
 
-// ResolvePickupScope reads Q3's narrator-designated pickup track or time
+// ResolvePickupScope reads the narrator-designated pickup track or time
 // range from store, layered the same way as ResolveThresholds.
 // chapterTrackName is supplied by the caller (which track this one scan
 // covers), not stored: it names the scan, not a standing preference. A

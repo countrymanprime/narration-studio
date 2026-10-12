@@ -56,7 +56,7 @@ func TestPinStoreWriteReplacesAnyEarlierPin(t *testing.T) {
 	}
 	got, ok := store.Read()
 	if !ok || got.ChapterID != "c2" {
-		t.Fatalf("Read = %+v, ok=%v; want the second pin only (a pin per book, Q9)", got, ok)
+		t.Fatalf("Read = %+v, ok=%v; want the second pin only (a pin per book)", got, ok)
 	}
 }
 

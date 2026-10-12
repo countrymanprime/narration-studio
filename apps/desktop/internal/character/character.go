@@ -67,8 +67,8 @@ type RegionSnapshot struct {
 // REAPER region approved for a character id, or for NarrationCharacterID.
 // CharacterID is an opaque string this package never validates against the
 // Story Bible - a character deleted or merged away there does not remove or
-// otherwise change an existing Reference (phase 3's own scope: "opaque
-// character ids").
+// otherwise change an existing Reference (character ids are
+// opaque to this package).
 type Reference struct {
 	ID          string         `json:"id"`
 	CharacterID string         `json:"characterId"`

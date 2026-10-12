@@ -20,7 +20,7 @@ import (
 
 const (
 	// DefaultMaxBytes caps the log; two backups (`run.jsonl.1`, `run.jsonl.2`) are kept, so the log never holds more
-	// than about three times this (Decisions Log, Q3).
+	// than about three times this.
 	DefaultMaxBytes int64 = 5 << 20
 	maxBackups            = 2
 
@@ -44,7 +44,7 @@ type Logger struct {
 }
 
 // New returns a run logger at path. A maxBytes of 0 or less means DefaultMaxBytes. NARRATION_DEBUG=1 turns on debug
-// records from construction and cannot be turned off by SetDebug (Q1): a scripted or agent run asks for debug detail
+// records from construction and cannot be turned off by SetDebug: a scripted or agent run asks for debug detail
 // without touching the Settings page, and a stale setting must not silently defeat it.
 func New(path string, maxBytes int64) *Logger {
 	if maxBytes <= 0 {
@@ -119,7 +119,7 @@ type Run struct {
 	logger  *slog.Logger
 	now     func() time.Time
 	started time.Time
-	// runsDir and level back phase 2's StderrWriter (the folder a sidecar's stderr lands in) and Level (the shared
+	// runsDir and level back StderrWriter (the folder a sidecar's stderr lands in) and Level (the shared
 	// level a launched sidecar reads into NARRATION_LOG_LEVEL). Begin fills both; a Run built any other way (there is
 	// none today) would find them nil-safe regardless.
 	runsDir string
@@ -159,7 +159,7 @@ func (l *Logger) Begin(tool string, attrs ...any) *Run {
 
 // End writes this run's `run.end` record: outcome (for example "ok", "failed", "cancelled"), how long it ran, and
 // attrs (counts and ids — never content). It is a no-op on a nil Run, so a launch path that never wrapped its run in
-// Begin fails a guard test (phase 3) rather than a nil check at every call site.
+// Begin fails a guard test rather than a nil check at every call site.
 func (r *Run) End(outcome string, attrs ...any) {
 	if r == nil {
 		return
