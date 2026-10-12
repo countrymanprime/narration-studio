@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Marks } from '../../../api/contracts/marks';
 import type { PickupItem } from '../../../api/contracts/pickups';
+import type { GuideEntity } from '../../../api/contracts/storyBible';
 import { useSearchParams } from 'react-router-dom';
+import { chapterHeading } from '../../../chapterHeading';
 import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
 import { CommandScope } from '../../../input/router';
@@ -28,9 +31,11 @@ import { RecordControl } from '../record/RecordControl';
 import { SetupChip } from '../record/SetupChip';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
-import { boothDecorations } from '../side/decorations';
+import { boothDecorations, markAtWord, markNote } from '../side/decorations';
 import { comingUpWords, voicesNearby } from '../side/nearby';
 import type { BoothReference } from '../side/sections';
+import { useBoothMarks } from '../side/useBoothMarks';
+import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
 import { withBuiltinRecorder } from './builtinRecorder';
@@ -41,6 +46,12 @@ import { useBoothPage } from './useBoothPage';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
+
+/** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
+const headingName = (chapter: Parameters<typeof chapterHeading>[0]): string => {
+  const { label, title } = chapterHeading(chapter);
+  return label ? `${label} ${title}` : title;
+};
 
 // In a pickup session the lines are the side panel's first section.
 registerPickupSession();
@@ -174,8 +185,8 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     chapter,
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
   });
-  const title = chapter ? chapterName(chapter, 'full') : CREDITS_LABEL[source.kind === 'credits' ? source.credits : 'opening'];
-  const { entities, cues, spans } = data;
+  const title = chapter ? headingName(chapter) : CREDITS_LABEL[source.kind === 'credits' ? source.credits : 'opening'];
+  const { entities, cues } = data;
   const paragraphs = useMemo(
     () => (source.kind === 'credits' ? creditsParagraphs(source.credits, source.preview.text) : readingParagraphsOf(session.paragraphs ?? [], cues, entities)),
     [source, session.paragraphs, cues, entities],
@@ -244,11 +255,14 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
 
   const side = useBoothSideOpen();
-  const [reference, setReference] = useState<BoothReference | null>(null);
+  const marks = useBoothMarks((message) => overlay.toast(message, { tone: 'error' }));
   const decorated = useMemo(
-    () => (source.kind === 'chapter' ? boothDecorations(paragraphs, entities, spans) : { decorations: [], notes: [] }),
-    [source, paragraphs, entities, spans],
+    () => (source.kind === 'chapter' ? boothDecorations(paragraphs, entities, marks) : { decorations: [], notes: [] }),
+    [source, paragraphs, entities, marks],
   );
+  // What the side panel's Reference shows: a clicked Story Bible name, a marked word or a note under a paragraph, read-only.
+  const referenced = useBoothReference(recordId);
+  const reference = useMemo(() => referenceOf(referenced.target, entities, marks), [referenced.target, entities, marks]);
 
   // A chapter asked for in the address while a take runs: leaving this one is asked about like any other way out; staying puts the
   // address back. The picker is disabled during a take, so this is a link from elsewhere (a Script card, a bookmark, a pickup).
@@ -303,7 +317,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
 
   const pickerChapters = [
     ...(data.previews.opening ? [{ id: 'credits:opening', name: CREDITS_LABEL.opening }] : []),
-    ...(data.chapters ?? []).map((item) => ({ id: item.id, name: chapterName(item, 'short') })),
+    ...(data.chapters ?? []).map((item) => ({ id: item.id, name: headingName(item) })),
     ...(data.previews.closing ? [{ id: 'credits:closing', name: CREDITS_LABEL.closing }] : []),
   ];
   const pickerValue = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
@@ -365,6 +379,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               panelOpen={side.open}
               onTogglePanel={side.toggle}
               panelId="booth-side"
+              text={{ font: page.text.font, size: page.text.size, onFont: page.text.setFont, onSize: page.text.setSize }}
             />
           </div>
           <div className="relative flex min-h-0 flex-1">
@@ -376,11 +391,15 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                 onBrowse={page.setBrowse}
                 onSeek={(paragraphId, word) => {
                   page.seek(paragraphId, word);
-                  // A Story Bible name shows its entry in the side panel; any other word clears it.
+                  // A Story Bible name or a marked word shows its reference in the side panel; any other word clears it.
                   const name = entityAtWord(paragraphs, decorated.decorations, paragraphId, word);
-                  const entry = name && entities.find((item) => item.canonical_name === name);
-                  setReference(entry ? { entry } : null);
+                  const entryId = name ? entities.find((item) => item.canonical_name === name)?.id : undefined;
+                  const noteId = markAtWord(paragraphs, marks, paragraphId, word)?.id;
+                  if (entryId || noteId) referenced.show({ entryId, noteId });
+                  else referenced.clear();
                 }}
+                onNote={(noteId) => referenced.show({ noteId })}
+                onBackground={referenced.clear}
                 speakers={characters.map((entity) => entity.canonical_name)}
                 speakerColour={colourOf}
                 onSetSpeaker={setSpeaker}
@@ -388,7 +407,8 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                 notes={decorated.notes}
                 punchAt={page.punchAt}
                 pickupLines={pickups.bars}
-                size={page.size}
+                size={page.text.size}
+                font={page.text.fontFamily}
                 viewRef={page.view}
                 margin={
                   chapter && bookmarks.bookmarks ? (
@@ -450,3 +470,11 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
 
 const sameSource = (a: BoothTarget, b: BoothTarget): boolean =>
   'credits' in a ? 'credits' in b && a.credits === b.credits : 'chapter' in b && a.chapter === b.chapter;
+
+/** The entry and the mark a reference target names, as the side panel draws them; nothing when neither is there any more. */
+function referenceOf(target: ReferenceTarget | null, entities: readonly GuideEntity[], marks: Marks): BoothReference | null {
+  if (!target) return null;
+  const entry = target.entryId ? entities.find((item) => item.id === target.entryId) : undefined;
+  const mark = target.noteId ? marks.marks.find((item) => item.id === target.noteId) : undefined;
+  return entry || mark ? { entry, note: mark && markNote(mark, marks) } : null;
+}

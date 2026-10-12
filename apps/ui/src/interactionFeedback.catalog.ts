@@ -144,6 +144,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Remembering the Words tab's definition source in localStorage; with storage blocked or full the choice lasts until the page is left.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
+  'src/components/booth/page/useTextChoices.ts#1':
+    "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
   'src/theme/ThemeContext.tsx#1': 'Remembering the theme in localStorage; the preference just does not persist when storage is disabled.',

@@ -12,19 +12,24 @@ and a link land on the same chapter. The Booth fills the window and follows the 
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 1 of 24 · 0% · ~13:48 finished left`), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens [Settings](settings.md). The button at the right shows or hides the side panel; in a
-window 1280 pixels wide or narrower the panel is a drawer that starts closed.
+built-in recorder). The chip opens [Settings](settings.md). The chapter is named as the manuscript heads it
+(`CHAPTER I. Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
+[Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
+you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
+drawer that starts closed.
 
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
-The text fills the middle, with speaker chips beside the lines a character speaks and Story Bible names marked. The word you
+The text fills the middle, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
+marked on [Script](script.md) underlined in their mark's colour; a mark's note shows under its paragraph. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
 
-The side panel has **Reference** (the Story Bible entry of a name you click in the text), the suspected lines of this take,
-**Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the next names with a pronunciation),
-**Last punch** and **This session** (how long you have recorded and how many punches). In a [pickup session](#a-pickup-session)
-the pickup lines come first.
+Clicking a Story Bible name, a marked word or a note shows it in the side panel's **Reference**, read-only: the entry, or the
+mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
+lines of this take, **Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the next names with a
+pronunciation), **Last punch** and **This session** (how long you have recorded and how many punches). In a
+[pickup session](#a-pickup-session) the pickup lines come first.
 
 The footer has **Record**, the take's timer, **Levels** (the input level and the microphone in use), a level bar and the room tone
 the recorder reports for that microphone (**Room not measured yet** until it reports one), and the keys the Booth answers, drawn

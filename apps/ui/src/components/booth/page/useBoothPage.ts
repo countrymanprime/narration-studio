@@ -23,10 +23,10 @@ import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
 import type { BoothStart } from './boothQuery';
+import { useTextChoices } from './useTextChoices';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
-const DEFAULT_TEXT_SIZE = 40;
 /** Something open over the Booth that Escape closes first: a dialog, a menu or a popover. */
 const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
@@ -92,7 +92,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const position: ReadingPosition | undefined = positionOf(paragraphs, units, at) ?? undefined;
   const [browse, setBrowse] = useState(false);
   const [punchAt, setPunchAt] = useState<number | null>(null);
-  const [size, setSize] = useState(DEFAULT_TEXT_SIZE);
+  const text = useTextChoices();
+  const { setSize } = text;
   const view = useRef<BrowseView>(null);
 
   const control = useRecordControl({ chapterId: recordId, notify });
@@ -419,7 +420,7 @@ export function useBoothPage(options: BoothPageOptions) {
         ];
       },
     }),
-    [hold, roll, moveTo, exit],
+    [hold, roll, moveTo, exit, setSize],
   );
   useContextProvider(menu);
 
@@ -438,7 +439,7 @@ export function useBoothPage(options: BoothPageOptions) {
     browse,
     setBrowse,
     punchAt,
-    size,
+    text,
     control,
     paused,
     seconds,

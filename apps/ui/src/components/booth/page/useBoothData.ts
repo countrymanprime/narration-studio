@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { PrepMarkupSpan } from '../../../api/contracts/prepMarkup';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, ManuscriptChapter } from '../../../types';
 import type { CreditsKind } from '../readerModel';
@@ -38,8 +37,8 @@ function useCreditsPreviews(): Partial<Record<CreditsKind, CreditsRenderResult>>
 
 /**
  * What the Booth page loads: the narration chapters, the credits, and the Story Bible's entries and dialogue cues. The cues are
- * secondary, so a failure leaves them out. `spans` is always empty: SN-B8 removed the prep markup bindings. With no target in the address the page opens on the chapter
- * a running session reads, else the first. `correctCue` records the narrator's speaker for a quote and reads the cues again.
+ * secondary, so a failure leaves them out. With no target in the address the page opens on the chapter a running session reads, else
+ * the first. `correctCue` records the narrator's speaker for a quote and reads the cues again.
  */
 export function useBoothData(target: BoothTarget | null) {
   const manuscript = usePort('manuscript');
@@ -97,7 +96,6 @@ export function useBoothData(target: BoothTarget | null) {
     error,
     entities,
     cues,
-    spans: NONE as PrepMarkupSpan[],
     correctCue,
   };
 }
