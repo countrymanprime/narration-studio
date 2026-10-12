@@ -21,7 +21,7 @@ import { planStart, recordedSeries, weekFigures } from './measured/measured.sele
 import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
-import { checkCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
+import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
@@ -37,6 +37,7 @@ import { openReportDialog } from './report/openReportDialog';
 import { TargetInfoButton } from './target/TargetInfoButton';
 import { PIPELINE_AREA, useChapterTools } from './useChapterTools';
 import { useChapterSyncToast } from './useChapterSyncToast';
+import { usePipelineSources } from './usePipelineSources';
 
 const DANGER = { color: 'var(--danger-text)' };
 
@@ -168,6 +169,7 @@ export function ProductionPage({
   }, [pickupsPort]);
 
   const measured = useMeasured(measurements, '', []);
+  const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
 
   const overview = found && load.status === 'ready' ? load.overview : undefined;
@@ -248,6 +250,7 @@ export function ProductionPage({
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
   const rows = buildPipelineRows(narrated, {
+    ...pipelineSources,
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
@@ -310,7 +313,7 @@ export function ProductionPage({
             due={due}
             openPickups={openPickups}
             pickupMinutes={pickupMinutes}
-            delivery={{ ok: false, reason: 'No chapter has a delivery check on the wire yet.' }}
+            delivery={deliveryCounts([...narrationIds], pipelineSources.master)}
             onGo={(target) => onGo(target)}
             targetInfo={<TargetInfoButton />}
           />

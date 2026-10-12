@@ -29,7 +29,6 @@ import { marksDoc } from '../../script/scriptFixtures';
 import { docCutsOf } from '../common/locate';
 import { cutPlanText } from '../common/rangePlan';
 import { fakeCutLog, locator } from './cutFixtures';
-import { PAD_NOT_SENT } from './CutDialog';
 import { beforeCut, CUT_ALREADY, cutCommand, NO_AUDIO, NO_BACKUP, ONLY_SAID, type BeforeCutStep } from './cutCommand';
 import { useCutWords, type CutWords } from './useCutWords';
 
@@ -49,6 +48,7 @@ let last: 'this' | 'other' | 'unknown';
 let log: ReturnType<typeof fakeCutLog>;
 let calls: Parameters<DawClient['deleteRange']>[0][];
 let snapMoved: number | 'refused';
+let toneRefusal: string | null;
 let page: ReturnType<typeof useEditingPage>;
 let cut: CutWords;
 let doc: ChapterDoc;
@@ -90,7 +90,13 @@ let press: (code: string) => void;
 function mount(setup: DawCapabilities | DawSetupId = 'reaper') {
   const caps = typeof setup === 'string' ? DAW_SETUPS[setup] : setup;
   const base = createMockDawClient(caps);
-  const daw: DawClient = { ...base, deleteRange: (r) => (calls.push(r), base.deleteRange(r)) };
+  const daw: DawClient = {
+    ...base,
+    deleteRange: (r) => (
+      calls.push(r),
+      toneRefusal && r.roomTone ? Promise.resolve({ ok: false, changed: false, message: toneRefusal, undoSteps: 0, refused: toneRefusal }) : base.deleteRange(r)
+    ),
+  };
   const api = Object.assign(createMockApi(), log);
   let listener: ((e: GestureEvent) => void) | undefined;
   const source: InputSource = {
@@ -134,6 +140,7 @@ beforeEach(() => {
   log = fakeCutLog();
   calls = [];
   snapMoved = 0;
+  toneRefusal = null;
   toast = vi.spyOn(overlay, 'toast');
   toastUndo = vi.spyOn(overlay, 'toastUndo');
 });
@@ -267,18 +274,53 @@ describe('Delete words and audio', () => {
     expect((await journal.entries())[0].label).toMatch(/^Muted 2 words at 0:0\d$/);
   });
 
-  it('crossfade-and-pad-reach-the-daw: the chosen fade is in the call; the pad cannot be sent, so it stays at None and says why', async () => {
+  it('crossfade-and-pad-reach-the-daw: the chosen fade is in the call', async () => {
     mount();
     await flush();
     await select('p-1:0', 'p-1:1');
     act(() => cut.remove());
     fireEvent.change(within(dialog()).getByRole('combobox', { name: 'Crossfade at the join' }), { target: { value: '25' } });
-    const pad = within(dialog()).getByRole('combobox', { name: 'Keep audio at each edge of the cut' });
-    expect(enabled(pad)).toBe(false);
-    expect(pad.getAttribute('aria-description')).toBe(PAD_NOT_SENT);
     await confirm(/Delete 2 words and audio/);
     expect(calls[0].fadeMs).toBe(25);
     expect(log.cuts[0].fadeMs).toBe(25);
+  });
+
+  it('the pad reaches the DAW and cuts less; room tone fills the gap', async () => {
+    mount();
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    act(() => cut.remove());
+    await waitFor(() => expect(enabled(within(dialog()).getByRole('button', { name: /Delete 2 words/ }))).toBe(true));
+    const whole = dialogText('data-cut-range');
+    const full = summarize(doc, ['p-1:0', 'p-1:1'], [], (t) => t).len;
+    const pad = within(dialog()).getByRole('combobox', { name: 'Keep audio at each edge of the cut' });
+    expect(enabled(pad)).toBe(true);
+    fireEvent.change(pad, { target: { value: '100' } });
+    await waitFor(() => expect(dialogText('data-cut-range')).not.toBe(whole));
+    fireEvent.click(within(dialog()).getByRole('radio', { name: /Leave .* of room tone/ }));
+    await confirm(/Delete 2 words and audio/);
+    expect(calls).toEqual([{ chapterId: 'chapter-1', firstToken: 0, lastToken: 1, mode: 'gap', fadeMs: 12, padMs: 100, roomTone: true }]);
+    const [rec] = log.cuts;
+    expect(rec.b - rec.a).toBeCloseTo(full - 0.2, 2);
+    expect(rec.mode).toBe('gap');
+  });
+
+  it('a DAW that refuses room tone says why and the cut leaves silence', async () => {
+    const why = 'This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.';
+    toneRefusal = why;
+    mount();
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    act(() => cut.remove());
+    await waitFor(() => expect(enabled(within(dialog()).getByRole('button', { name: /Delete 2 words/ }))).toBe(true));
+    fireEvent.click(within(dialog()).getByRole('radio', { name: /Leave .* of room tone/ }));
+    await confirm(/Delete 2 words and audio/);
+    expect(calls.map((c) => c.roomTone ?? false)).toEqual([true, false]);
+    expect(log.cuts).toHaveLength(1);
+    expect(log.cuts[0].mode).toBe('gap');
+    const [said] = toastUndo.mock.calls[0];
+    expect(said).toContain(why);
+    expect(said).toContain('The gap is silent');
   });
 
   it('one-undo-step-named-and-a-daw-change: two paragraphs are two DAW calls and one entry; Undo puts them back; a later change refuses', async () => {

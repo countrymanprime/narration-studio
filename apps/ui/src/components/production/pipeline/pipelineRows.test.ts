@@ -75,6 +75,30 @@ describe('proof-cell-counts-cleared-notes', () => {
   });
 });
 
+describe('proof-master-and-qc-cells-read-the-chapters-data', () => {
+  it("derives the proof, master and QC cells from the chapter's data", () => {
+    const chapters = [
+      chapter('c1', { status: 'proofing' }),
+      chapter('c2', { status: 'finalized' }),
+      chapter('c3', { status: 'finalized' }),
+      chapter('c4', { status: 'finalized' }),
+    ];
+    const rows = rowsOf(chapters, {
+      proof: { c1: { cleared: 5, total: 10 } },
+      master: { c2: { mastered: true, qc: 'PASS' }, c3: { mastered: true, qc: 'FAIL' }, c4: { mastered: false, qc: null } },
+    });
+    const [c1, c2, c3, c4] = rows;
+    expect(c1!.cells.proof).toMatchObject({ kind: 'progress', text: '50%', tip: '5 of 10 notes cleared' });
+    expect(c1!.cells.master.state).toBe('not measured yet');
+    expect(c1!.cells.qc.tip).toBe(NOT_MEASURED);
+    expect(c2!.cells.master).toMatchObject({ kind: 'done', tip: 'Mastered' });
+    expect(c2!.cells.qc).toMatchObject({ kind: 'done', text: 'PASS' });
+    expect(c3!.cells.qc).toMatchObject({ kind: 'open', text: 'FAIL', state: 'fails: FAIL' });
+    expect(c4!.cells.master).toMatchObject({ kind: 'none', tip: 'Not mastered' });
+    expect(c4!.cells.qc).toMatchObject({ kind: 'none', tip: 'Not checked' });
+  });
+});
+
 describe('pickups-cell-waits-for-a-full-recording', () => {
   it('is a dash that goes nowhere until the chapter is recorded to the end', () => {
     const [row] = rowsOf([chapter('c1', { status: 'recording' })], { pickups: { c1: 3 } });
