@@ -1,0 +1,481 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { DawResult } from '../../../api/contracts/daw';
+import type { RecorderState } from '../../../api/contracts/recording';
+import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
+import { createOverlayService } from '../../../overlay/overlayService';
+import { createMockDawClient, type DawClient } from '../../../ports/daw';
+import type { NarrationApi, TeleprompterState } from '../../../types';
+import { BoothNextPage } from './BoothNextPage';
+import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+type Options = { setup?: DawSetupId; daw?: DawClient; search?: string; api?: Partial<NarrationApi>; hasManuscript?: boolean };
+
+/** A DAW that records but whose roll replaces audio: it asks first (the mock's Audacity without backups). */
+const destructive = (): DawClient => {
+  const base = DAW_SETUPS.reaper;
+  const setup = {
+    ...base,
+    daw: 'Audacity',
+    capabilities: { ...base.capabilities, punch: { level: 'experimental' as const, available: true, destructive: true } },
+  };
+  return createMockDawClient(setup, { chapterIds: ['c1'], candidateIds: [], findingIds: [] });
+};
+
+function spied(daw: DawClient) {
+  return {
+    ...daw,
+    recordStart: vi.fn(daw.recordStart),
+    recordStop: vi.fn(daw.recordStop),
+    roll: vi.fn(daw.roll),
+  };
+}
+
+function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true }: Options = {}) {
+  const passageMapRecordRun = vi.fn(async () => {});
+  const teleprompterStop = vi.fn(async () => {});
+  const api = pageApi({ passageMapRecordRun, teleprompterStop, ...over } as Partial<NarrationApi>);
+  const daw = spied(given ?? dawFor(setup));
+  const journal = newJournal();
+  const overlay = createOverlayService();
+  const navigate = vi.fn();
+  const view = render(
+    <BoothHost api={api} daw={daw} journal={journal} overlay={overlay} search={search}>
+      <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+      <Driver />
+    </BoothHost>,
+  );
+  const dialog = () => overlay.getSnapshot().dialogs[0] as { spec: { title: string; body: string }; answer: (yes: boolean) => void } | undefined;
+  return { view, daw, journal, overlay, navigate, dialog, passageMapRecordRun, teleprompterStop };
+}
+
+/** The router, from inside it: what the address is and a way to change it, as a link elsewhere in the app would. */
+const driver = { go: (_to: string): void => undefined, search: (): string => '' };
+function Driver() {
+  const navigateTo = useNavigate();
+  const location = useLocation();
+  driver.go = (to) => void navigateTo(to);
+  driver.search = () => location.search;
+  return null;
+}
+
+const press = (key: string, code = key, init: KeyboardEventInit = {}, target: Element = document.body) =>
+  act(() => {
+    fireEvent.keyDown(target, { key, code, ...init });
+  });
+const space = () => press(' ', 'Space');
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+const ready = async () => {
+  await screen.findByText('Nobody', { exact: false });
+  await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
+};
+const record = async (page: ReturnType<typeof renderPage>) => {
+  await ready();
+  await space();
+  await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+  expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+};
+const current = () => document.querySelector<HTMLElement>('[data-state="cur"]')?.dataset.unit;
+
+describe('the-page-asks-for-a-manuscript-first', () => {
+  it('asks for a manuscript when there is none', () => {
+    renderPage({ hasManuscript: false });
+    expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
+  });
+});
+
+describe('space-records-and-stops-and-nothing-else-records', () => {
+  it('Space records and stops through the Record control', async () => {
+    const page = renderPage();
+    await record(page);
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1');
+    expect(screen.getByText('REC')).toBeTruthy();
+    await space();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1));
+    expect(page.passageMapRecordRun.mock.calls[0]).toMatchObject(['c1', [{ kind: 'start', pid: 'p1' }, { kind: 'stop' }]]);
+  });
+
+  it('a pedal only starts and stops: no other key records, rolls or flags', async () => {
+    const page = renderPage();
+    await ready();
+    for (const [key, code] of [
+      ['r', 'KeyR'],
+      ['f', 'KeyF'],
+      ['p', 'KeyP'],
+      ['Enter', 'Enter'],
+      ['ArrowDown', 'ArrowDown'],
+      ['n', 'KeyN'],
+    ])
+      await press(key, code);
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(page.daw.roll).not.toHaveBeenCalled();
+    // A USB pedal set to Space is a keyboard Space: the one recording key.
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+  });
+
+  it('a refused precondition says why and starts nothing', async () => {
+    const page = renderPage({ setup: 'reaper-off' });
+    await screen.findByText('Nobody', { exact: false });
+    const button = await screen.findByRole('button', { name: /^Record$/ });
+    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(true));
+    expect(button.getAttribute('aria-describedby')).toBe('brec-why');
+    await space();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+});
+
+describe('every-way-out-asks-while-recording', () => {
+  it('Escape asks "Stop recording?" once; Keep recording changes nothing', async () => {
+    const page = renderPage();
+    await record(page);
+    await press('Escape');
+    await press('Escape');
+    expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
+    expect(page.dialog()?.spec.title).toBe('Stop recording?');
+    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
+    // The question holds the take while it is open.
+    expect(screen.getByText('REC paused')).toBeTruthy();
+    await act(async () => page.dialog()!.answer(false));
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    expect(page.navigate).not.toHaveBeenCalled();
+    expect(screen.getByText('REC')).toBeTruthy();
+  });
+
+  it('Stop and leave stops the recording the app started, writes the passage map and then leaves', async () => {
+    const page = renderPage();
+    await record(page);
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('the setup chip asks too', async () => {
+    const page = renderPage();
+    await record(page);
+    await userEvent.click(screen.getByRole('button', { name: 'Recording setup: REAPER' }));
+    expect(page.dialog()?.spec.title).toBe('Stop recording?');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/settings#recording'));
+  });
+
+  it('the shell asks before the nav, Back, Forward, Alt+Arrow or a chapter opened in Script; its Yes stops the take as the page goes', async () => {
+    const page = renderPage();
+    expect(page.journal.checkLeave('/proof')).toBe('allow');
+    await record(page);
+    for (const path of ['/proof', '/script']) expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }) });
+    // The shell asked and the narrator said yes: the shell moves and the page goes.
+    page.view.unmount();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1));
+  });
+
+  it('a chapter asked for in the address during a take asks first; Keep recording stays, Stop and leave changes chapter', async () => {
+    const page = renderPage();
+    await record(page);
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(false));
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    expect(driver.search()).toBe('?chapter=c1');
+    expect(screen.getByText('Nobody', { exact: false })).toBeTruthy();
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await waitFor(() => expect(page.dialog()).toBeTruthy());
+    await act(async () => page.dialog()!.answer(true));
+    await screen.findByText('court.', { exact: false });
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('with nothing recording, leaving needs no question', async () => {
+    const page = renderPage();
+    await ready();
+    await press('Escape');
+    expect(page.overlay.getSnapshot().dialogs).toHaveLength(0);
+    expect(page.navigate).toHaveBeenCalledWith('/script');
+  });
+});
+
+describe('a-built-in-take-is-guarded-too', () => {
+  const recorder = () => {
+    let phase: RecorderState['phase'] = 'idle';
+    const state = () => ({ phase, device: 'USB Mic', message: '', engine: 'builtin' }) as RecorderState;
+    return {
+      recorderState: vi.fn(async () => state()),
+      recorderStart: vi.fn(async () => {
+        phase = 'recording';
+        return state();
+      }),
+      recorderStop: vi.fn(async () => {
+        phase = 'idle';
+        return state();
+      }),
+    };
+  };
+
+  it('records with the built-in recorder; leaving asks, and unmounting without the answer does not stop the take', async () => {
+    const r = recorder();
+    const page = renderPage({ setup: 'builtin', api: r });
+    await ready();
+    await space();
+    await waitFor(() => expect(r.recorderStart).toHaveBeenCalledWith('USB Mic'));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await press('Escape');
+    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth stops it.');
+    await act(async () => page.dialog()!.answer(false));
+    page.view.unmount();
+    await settle();
+    expect(r.recorderStop).not.toHaveBeenCalled();
+  });
+});
+
+describe('a-reading-only-session-keeps-adr-0388', () => {
+  const running: TeleprompterState = { phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null };
+
+  it('the nav leaves a listening session running; Exit asks "Stop reading?" and stops it', async () => {
+    const page = renderPage({ api: { teleprompterState: async () => running } });
+    await screen.findByText('Nobody', { exact: false });
+    await settle();
+    expect(page.journal.checkLeave('/proof')).toBe('allow');
+    await press('Escape');
+    expect(page.dialog()?.spec.title).toBe('Stop reading?');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+    expect(page.teleprompterStop).toHaveBeenCalled();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+});
+
+describe('keys-register-through-the-catalogue', () => {
+  it('down and up step a phrase, left and right a word', async () => {
+    renderPage();
+    await ready();
+    expect(current()).toBe('0');
+    await press('ArrowDown');
+    expect(current()).toBe('1');
+    await press('ArrowUp');
+    expect(current()).toBe('0');
+    await press('ArrowRight');
+    expect(document.querySelector('[data-current]')?.textContent).toBe('Garden');
+    await press('ArrowLeft');
+    expect(document.querySelector('[data-current]')?.textContent).toBe('The');
+  });
+
+  it('ignores keys while typing and with Ctrl held', async () => {
+    const page = renderPage();
+    await ready();
+    const field = document.createElement('input');
+    document.body.append(field);
+    await press('ArrowDown', 'ArrowDown', {}, field);
+    await press(' ', 'Space', {}, field);
+    await press(' ', 'Space', { ctrlKey: true });
+    await settle();
+    expect(current()).toBe('0');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    field.remove();
+  });
+
+  it('+ and - change the text size within 24 to 72', async () => {
+    renderPage();
+    await ready();
+    const text = () => document.querySelector<HTMLElement>('[data-booth-text] > div')!.style.fontSize;
+    expect(text()).toBe('40px');
+    await press('=', 'Equal');
+    expect(text()).toBe('44px');
+    for (let i = 0; i < 20; i++) await press('-', 'Minus');
+    expect(text()).toBe('24px');
+  });
+});
+
+describe('escape-closes-the-drawer-then-a-popover-then-exits', () => {
+  it('at 1280 and below Escape closes the open drawer before it exits', async () => {
+    // The medium layout: the side panel is a drawer and starts closed.
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('1280'), addEventListener: () => {}, removeEventListener: () => {} }));
+    const page = renderPage();
+    await ready();
+    const panel = document.getElementById('booth-side')!;
+    expect(panel.hidden).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: /side panel/i }));
+    expect(panel.hidden).toBe(false);
+    await press('Escape');
+    expect(panel.hidden).toBe(true);
+    expect(page.navigate).not.toHaveBeenCalled();
+    await press('Escape');
+    expect(page.navigate).toHaveBeenCalledWith('/script');
+    vi.unstubAllGlobals();
+  });
+
+  it('a popover takes Escape first; then Escape exits', async () => {
+    const page = renderPage();
+    await ready();
+    await userEvent.click(screen.getByRole('button', { name: /levels/i }));
+    const popover = await screen.findByRole('dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(popover.isConnected).toBe(false));
+    expect(page.navigate).not.toHaveBeenCalled();
+    await press('Escape');
+    expect(page.navigate).toHaveBeenCalledWith('/script');
+  });
+});
+
+describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
+  const openMenu = async () => {
+    const word = document.querySelector('[data-unit="1"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    return screen.findByRole('menu');
+  };
+
+  it('opening a menu while recording holds the take; Escape lets go', async () => {
+    const page = renderPage();
+    await record(page);
+    const menu = await openMenu();
+    await waitFor(() => expect(screen.getByText('REC paused')).toBeTruthy());
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(menu.isConnected).toBe(false));
+    await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
+  });
+
+  it('choosing an item lets go and runs it', async () => {
+    const page = renderPage();
+    await record(page);
+    const menu = await openMenu();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Next phrase' }));
+    await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
+  });
+
+  it('a menu opened when not recording starts nothing', async () => {
+    const page = renderPage();
+    await ready();
+    await openMenu();
+    expect(screen.queryByText('REC paused')).toBeNull();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('a destructive roll asks with the take held; no rolls nothing, yes rolls confirmed', async () => {
+    const page = renderPage({ setup: 'reaper', daw: destructive() });
+    await record(page);
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Roll again from ¶ 1?'));
+    expect(page.dialog()?.spec.body).toBe('Audacity will record over the audio from here, and what it replaces is not kept as a take.');
+    expect(screen.getByText('REC paused')).toBeTruthy();
+    await act(async () => page.dialog()!.answer(false));
+    await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
+    expect(page.daw.roll).not.toHaveBeenCalled();
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.dialog()).toBeTruthy());
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.daw.roll).toHaveBeenCalledWith('c1', expect.any(Number), { confirmed: true }));
+  });
+
+  it('REAPER rolls without a question and counts the punch', async () => {
+    const page = renderPage();
+    await record(page);
+    await press('ArrowDown');
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.daw.roll).toHaveBeenCalledWith('c1', expect.any(Number), { confirmed: false }));
+    expect(page.overlay.getSnapshot().dialogs).toHaveLength(0);
+    await waitFor(() => expect(screen.getByText(/1 punch\b/)).toBeTruthy());
+  });
+});
+
+describe('start-from-here-and-record-from-here', () => {
+  it('right-click Start from here moves the reading position there and marks the next start', async () => {
+    renderPage();
+    await ready();
+    const word = document.querySelector('[data-unit="3"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await waitFor(() => expect(current()).toBe('3'));
+    expect(screen.getByText(/Next roll starts from ¶ 2/)).toBeTruthy();
+  });
+
+  it('opening the Booth at a paragraph and offset from Script starts there', async () => {
+    renderPage({ search: '?chapter=c1&para=p3&at=28' });
+    await ready();
+    await waitFor(() => expect(current()).toBe('6'));
+    expect(screen.getByText(/Next roll starts from ¶ 3/)).toBeTruthy();
+  });
+});
+
+describe('the-chapter-cannot-change-during-a-take', () => {
+  it('the picker and its arrows are disabled while recording', async () => {
+    const page = renderPage();
+    await ready();
+    const picker = screen.getByRole('button', { name: /Chapter: .*Change chapter/ });
+    expect((picker as HTMLButtonElement).disabled).toBe(false);
+    await record(page);
+    // A disabled fieldset disables every control in it.
+    expect(picker.matches(':disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Next chapter' }).matches(':disabled')).toBe(true);
+  });
+});
+
+describe('engine-and-model-are-not-in-the-booth', () => {
+  it('has no engine, model, microphone field or "Record with" control', async () => {
+    renderPage();
+    await ready();
+    expect(screen.queryByText(/record with/i)).toBeNull();
+    expect(screen.queryByRole('combobox', { name: /engine|model|microphone/i })).toBeNull();
+    expect(screen.queryByText(/whisper|moonshine/i)).toBeNull();
+  });
+});
+
+describe('credits-are-readable-and-recordable', () => {
+  const credits = {
+    creditsTemplates: async () => [{ id: 'o', kind: 'opening', name: 'Opening', body: '[Title]' }],
+    creditsPreview: async () => ({ text: 'This is [Title].\nRead by the narrator.', words: 7, unresolved: ['Title'] }),
+  };
+
+  it('open as a source with the unresolved-token warning, and record to their own region', async () => {
+    const page = renderPage({ search: '?credits=opening', api: credits as Partial<NarrationApi> });
+    await screen.findByText('Read', { exact: false });
+    expect(screen.getByRole('button', { name: /Credits tokens with no value: Title/ })).toBeTruthy();
+    await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledWith('credits-opening'));
+  });
+});
+
+describe('the resume line', () => {
+  it('offers where the recording ends and choosing it moves the reading position', async () => {
+    renderPage({ api: { teleprompterLocate: async () => LOCATED } });
+    await ready();
+    await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶ 2/ }));
+    expect(current()).not.toBe('0');
+  });
+});
+
+describe('a refused stop keeps the take and the question', () => {
+  it('shows the sentence and does not leave', async () => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    const page = renderPage();
+    page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.dialog()?.spec.body).toBe('Not now.'));
+    expect(page.navigate).not.toHaveBeenCalled();
+  });
+});
