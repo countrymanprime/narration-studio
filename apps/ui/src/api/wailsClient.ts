@@ -483,9 +483,9 @@ export const wailsClient: NarrationApi = {
   editingState: () => decode(editingStateSchema, 'EditingState', host.EditingState()),
   editingCancel: () => decode(voidResult, 'EditingCancel', host.EditingCancel()),
   editingCandidates: (chapterId) => decode(editingCandidatesSchema, 'EditingCandidates', host.EditingCandidates(chapterId)),
-  // Phase 8 (Q6): EditingSourceChoice/EditingSetSourceChoice are not yet in wailsjs/.../host.ts - this sandbox has no
+  // EditingSourceChoice/EditingSetSourceChoice are not yet in wailsjs/.../host.ts - this sandbox has no
   // wails3 CLI to regenerate it (bindings_editing.go's own doc comment; `pnpm --dir apps/desktop bindings` fails the
-  // same way here it did for Phase 5). host.EditingSourceChoice/EditingSetSourceChoice below type-check once that
+  // same way here). host.EditingSourceChoice/EditingSetSourceChoice below type-check once that
   // regeneration adds them, the same shape every other bare-string binding above already has.
   editingSourceChoice: (chapterId) => decode(editingSourceChoiceSchema, 'EditingSourceChoice', host.EditingSourceChoice(chapterId)),
   editingSetSourceChoice: (chapterId, choice) => decode(editingSourceChoiceSchema, 'EditingSetSourceChoice', host.EditingSetSourceChoice(chapterId, choice)),

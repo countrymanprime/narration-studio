@@ -69,7 +69,7 @@ describe('useAppHistory', () => {
     expect(result.current.canGoBack).toBe(false);
   });
 
-  it('resetFloor stops Back at the page open when a project attaches (Q8)', async () => {
+  it('resetFloor stops Back at the page open when a project attaches', async () => {
     const { result } = renderAppHistory();
     act(() => result.current.navigate('/manuscript'));
     act(() => result.current.resetFloor());

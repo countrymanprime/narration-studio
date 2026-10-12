@@ -2,7 +2,7 @@
 // ordinary findings, read and decided through the Review page's generic bindings (FindingsApi, ADR 0120); what is its
 // own is the reads a finding groups (its `evidence`, decoded on the page with takeReviewEvidenceSchema), the scan job
 // that finds them, and the take-creation action. Evidence field names are the wire's own snake_case
-// (docs/architecture/findings-contract.md). Q9: no composite score, so nothing here ranks one read over another.
+// (docs/architecture/findings-contract.md). There is no composite score, so nothing here ranks one read over another.
 
 import type { WorkJob } from './manuscript';
 import type { MeasureClipRun, MeasureReport } from './measure';
@@ -31,7 +31,7 @@ export type TakeReviewEvidence = {
 };
 
 /**
- * What a scan covers (Q3): a chapter track's items and all their takes, plus at most one pickup addition, a pickup track or
+ * What a scan covers: a chapter track's items and all their takes, plus at most one pickup addition, a pickup track or
  * a time range in project seconds. The idle job carries the project's saved pickup addition with no chapter track, to offer.
  */
 export type TakeReviewScanScope = {
@@ -54,8 +54,8 @@ export type TakeReviewScanJob = Omit<WorkJob, 'kind' | 'phase' | 'preview' | 're
 
 /**
  * What TakeReviewCreateTake needs to attach a narrator-approved candidate's source range as a new take on the target item
- * (take-review phase 6): the finding it came from (provenance, ADR 0098), the target item the narrator explicitly chose
- * (Q4/Q6: never preselected), the candidate's own item GUID when it has one (an extra staleness check the Lua command
+ * (confirmed and undoable): the finding it came from (provenance, ADR 0098), the target item the narrator explicitly chose
+ * (never preselected), the candidate's own item GUID when it has one (an extra staleness check the Lua command
  * re-resolves; empty skips it), its source file, and the matched span's range within that source (seconds,
  * source-file-relative: sourceRangeStart becomes the new take's D_STARTOFFS).
  */
@@ -75,10 +75,10 @@ export type TakeReviewCreateTakeResult = {
 };
 
 /**
- * A take comparison (take review Phase 10, ADR 0165): a `take_comparison` finding whose `evidence` sets the reads of one
+ * A take comparison (ADR 0165): a `take_comparison` finding whose `evidence` sets the reads of one
  * take-review group side by side over the group's one span of the script. Each read is compared or says why not; a compared one
  * has how it read every word of the span (from the sidecar's --take-divergence mode, ADR 0141) and its audio measurements, one
- * category each, measured or unavailable with a reason (ADR 0140). Nothing adds the categories up or orders the reads (Q9).
+ * category each, measured or unavailable with a reason (ADR 0140). Nothing adds the categories up or orders the reads.
  */
 export type TakeComparisonWordStatus = 'matched' | 'misread' | 'skipped' | 'unread';
 
@@ -191,6 +191,6 @@ export interface TakeReviewApi {
   takeReviewScanState(): Promise<TakeReviewScanJob>;
   /** Stops a running scan; nothing it found is saved. Answers the job. */
   takeReviewScanCancel(): Promise<TakeReviewScanJob>;
-  /** Adds a narrator-approved candidate's source range as a new take on the target item (phase 6, confirmed and undoable). */
+  /** Adds a narrator-approved candidate's source range as a new take on the target item (confirmed and undoable). */
   takeReviewCreateTake(request: TakeReviewCreateTakeRequest): Promise<TakeReviewCreateTakeResult>;
 }

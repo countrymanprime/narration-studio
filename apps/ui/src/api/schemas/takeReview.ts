@@ -62,7 +62,7 @@ export const takeReviewCreateTakeResultSchema = z.object({
   newTakeGuid: z.string(),
 }) satisfies z.ZodType<TakeReviewCreateTakeResult>;
 
-// Take comparison (take review Phase 10). A comparison is a `take_comparison` finding; the Review page checks its evidence
+// Take comparison (ADR 0165). A comparison is a `take_comparison` finding; the Review page checks its evidence
 // against takeComparisonEvidenceSchema before it shows a single figure, so a mismatch is shown as the generic evidence only.
 
 const metricStatus = { status: z.enum(['measured', 'unavailable']), reason: z.string().optional() };

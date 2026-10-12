@@ -11,7 +11,7 @@ import {
 } from '../schemas/production';
 
 export const productionGoldens: Record<string, z.ZodType> = {
-  // Phase 3: the plan (ProductionPlan, ProductionSetDeadline, ProductionSaveMilestones).
+  // The plan (ProductionPlan, ProductionSetDeadline, ProductionSaveMilestones).
   'production-plan-empty.json': productionPlanSchema,
   'production-plan-set.json': productionPlanSchema,
   // SN-P2: the payment type and the milestone measure, estimate, done flag and template (ADR 0800; ProductionSetPayment).
@@ -20,17 +20,17 @@ export const productionGoldens: Record<string, z.ZodType> = {
   'production-plan-milestone-measure.json': productionPlanSchema,
   // SN-P51: the schedule basis (ProductionSetRateBasis).
   'production-plan-rate-basis.json': productionPlanSchema,
-  // Phase 4: the Production page's overview and the stage timer.
+  // The Production page's overview and the stage timer.
   'production-overview.json': productionOverviewSchema,
   'production-overview-empty.json': productionOverviewSchema,
   'production-timer-started.json': productionStartResultSchema,
   'production-timer-refused.json': productionStartResultSchema,
   'production-timer-stopped.json': productionStopResultSchema,
   'production-timer-stop-none.json': productionStopResultSchema,
-  // Phase 5: the status report export (ProductionStatusReport).
+  // The status report export (ProductionStatusReport).
   'production-status-report.json': productionReportExportSchema,
   // SN-P621: the preview of that report (ProductionStatusReportPreview).
   'production-status-report-preview.json': productionReportPreviewSchema,
-  // Phase 6: the burndown data (ProductionBurndown, Could).
+  // The burndown data (ProductionBurndown).
   'production-burndown.json': productionBurndownSchema,
 };
