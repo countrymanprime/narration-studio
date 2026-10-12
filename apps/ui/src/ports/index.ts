@@ -44,6 +44,7 @@ import type { ScriptPrepApi } from '../api/contracts/scriptPrep';
 import type { ExtractionApi } from '../api/contracts/extraction';
 import type { EditCutsApi } from '../api/contracts/editCuts';
 import type { EditWordFxApi } from '../api/contracts/wordFx';
+import type { EditStacksApi } from '../api/contracts/editStacks';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
 import type { DawCapabilitiesApi } from '../api/contracts/daw';
@@ -111,6 +112,7 @@ export type {
   ExtractionApi,
   EditCutsApi,
   EditWordFxApi,
+  EditStacksApi,
   WorkspaceApi,
   PreviewApi,
   DawCapabilitiesApi,
@@ -178,6 +180,7 @@ export interface PortMap {
   extraction: ExtractionApi;
   editCuts: EditCutsApi;
   editWordFx: EditWordFxApi;
+  editStacks: EditStacksApi;
   workspace: WorkspaceApi;
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;
