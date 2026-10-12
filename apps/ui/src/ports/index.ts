@@ -64,8 +64,9 @@ import type { DawClient } from './daw';
 import type { MeasurementsPort } from './measurements';
 import type { AlignmentPort } from './alignment';
 import type { TakesPort } from './takes';
+import type { FxChainsPort } from './fxchains';
 
-export type { DawClient, MeasurementsPort, AlignmentPort, TakesPort };
+export type { DawClient, MeasurementsPort, AlignmentPort, TakesPort, FxChainsPort };
 
 export type {
   SystemApi,
