@@ -43,7 +43,9 @@ func (h *Host) MasterPlayQuietest(fileID string) (string, error) {
 	clean, picked := h.pickedFile(file.Path)
 	result := dawPreviewFileIn(ctx, svc, support, svc.filePreviewer, clean, picked, start, length)
 	if result.OK {
-		result.Message = fmt.Sprintf("Playing the quietest %s s of %s, from %.1f s.", strconv.FormatFloat(length, 'f', -1, 64), file.Name, start)
+		// Shortest exact form for both, as the UI's mock prints them: the start is a whole number of quarter seconds or a clamp.
+		seconds := func(value float64) string { return strconv.FormatFloat(value, 'f', -1, 64) }
+		result.Message = fmt.Sprintf("Playing the quietest %s s of %s, from %s s.", seconds(length), file.Name, seconds(start))
 	}
 	return encodeBinding(result, nil)
 }

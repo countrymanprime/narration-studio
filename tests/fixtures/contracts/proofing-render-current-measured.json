@@ -13,7 +13,7 @@
     "head_room_tone_seconds": null,
     "integrated_lufs": -19.4,
     "noise_floor_dbfs": -66.8,
-    "noise_floor_start_seconds": null,
+    "noise_floor_start_seconds": 412.5,
     "rms_dbfs": -21.2,
     "sample_peak_dbfs": -3.6,
     "sample_rate": 48000,

@@ -63,7 +63,7 @@ func TestMasterPlayQuietestPlaysTheFiveSecondsAroundTheQuietestWindow(t *testing
 	role := &fakeFiles{}
 	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")
 	lastRun(host, measuredFile(path, 600, floatPtr(12)))
-	if got, want := decodeDawResult(t)(host.MasterPlayQuietest(path)), dawport.OK("Playing the quietest 5 s of Chapter 01.wav, from 9.8 s.", false); !reflect.DeepEqual(got, want) {
+	if got, want := decodeDawResult(t)(host.MasterPlayQuietest(path)), dawport.OK("Playing the quietest 5 s of Chapter 01.wav, from 9.75 s.", false); !reflect.DeepEqual(got, want) {
 		t.Fatalf("MasterPlayQuietest = %+v, want %+v", got, want)
 	}
 }
