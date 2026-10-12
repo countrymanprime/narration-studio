@@ -1,6 +1,6 @@
 # 0705. The workspace adds an effect to a passage, or a chain to the chapter's track, only after the narrator confirms, and the host names both targets
 
-**Status:** Accepted
+**Status:** Accepted (superseded in part by ADR 0860: the chain on a range, which may now be one of the narrator's saved chains on the split piece; the confirm-first rule and host-named targets stand)
 **Date:** 2026-09-29
 
 ## Context

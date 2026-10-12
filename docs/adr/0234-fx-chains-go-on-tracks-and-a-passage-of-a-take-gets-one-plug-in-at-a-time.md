@@ -1,6 +1,6 @@
 # 0234. FX chains go on tracks, and a passage of a take gets one plug-in at a time
 
-**Status:** Accepted (the owner, 2026-09-25)
+**Status:** Accepted (the owner, 2026-09-25; superseded in part by ADR 0860: the "chains only on tracks" limit, for a range of words, which may take a saved chain on its split piece; the rest stands)
 **Date:** 2026-09-25
 
 ## Context
