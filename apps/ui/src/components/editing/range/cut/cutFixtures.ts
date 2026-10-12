@@ -1,5 +1,5 @@
 import type { EditCut, EditCutRequest, EditCutsApi } from '../../../../api/contracts/editCuts';
-import type { RangeLocator } from '../shared/locate';
+import type { RangeLocator } from '../common/locate';
 
 /** The tokens of `marksDoc`'s chapter: p-1's words are tokens 0 to 8, p-2's start at 100; a word said and not in the script has none. */
 export const locator: RangeLocator = {
