@@ -1,0 +1,381 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import axe from 'axe-core';
+import { useMemo, useState } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import type { DawCapabilities } from '../../../api/contracts/daw';
+import type { WordFx } from '../../../api/contracts/wordFx';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS, fxChainsSource } from '../../../fixtures/daw';
+import { OverlayHost } from '../../../overlay/OverlayHost';
+import { overlay } from '../../../overlay/overlayService';
+import type { AlignmentPort } from '../../../ports/alignment';
+import { createMockDawClient, type DawClient, type FxList } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import { createJournal } from '../../../studio/journal/createJournal';
+import { Drawer } from '../drawer/Drawer';
+import { drawSections } from '../drawer/drawerSections';
+import { summarize } from '../model';
+import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
+import { marksDoc } from '../script/scriptFixtures';
+import { applyFxCommand, fxPlanFor } from '../range/fx/fxCommand';
+import { fakeFxLog, listOf, withFxRange } from '../range/fx/fxFixtures';
+import { useFxWords, type FxWords } from '../range/fx/useFxWords';
+import { locator } from '../range/cut/cutFixtures';
+import { planRange } from '../range/common/rangePlan';
+import { AddEffect, SELECT_FIRST } from './AddEffect';
+import { CoverageStrip } from './CoverageStrip';
+import { EffectInspector } from './EffectInspector';
+import { EffectsList } from './EffectsList';
+import { capSentence, capState, coverageOf, coverageOfEffects, FX_CAP_PCT, impactOf } from './effectsMath';
+import { EffectsTab, effectsCount, type EffectsTabProps } from './EffectsTab';
+import { MANY, ONE, TOTAL, wordFx } from './effectsFixtures';
+import { OnWords } from './OnWords';
+import { registerEffectsSection } from './registerEffectsSection';
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+const SOURCE = fxChainsSource('REAPER');
+const LIST: FxList = { source: SOURCE, choices: [{ id: 'Podcast Voice.RfxChain', name: 'Podcast Voice.RfxChain' }] };
+const doc = marksDoc();
+const CHAINS = listOf(SOURCE, ['Podcast Voice.RfxChain']);
+
+describe('coverage is the union of the effects that are on', () => {
+  it('counts overlapping effects once and gives the figure as a share of the chapter', () => {
+    const c = coverageOf(
+      [
+        { start: 0, end: 10 },
+        { start: 5, end: 15 },
+      ],
+      100,
+    );
+    expect(c.segs).toEqual([
+      { start: 0, end: 5, n: 1 },
+      { start: 5, end: 10, n: 2 },
+      { start: 10, end: 15, n: 1 },
+    ]);
+    expect(c.sec).toBe(15);
+    expect(c.pct).toBe(15);
+    expect(coverageOfEffects(MANY, [], TOTAL).sec).toBe(24);
+    expect(coverageOfEffects(MANY, [], TOTAL).pct).toBe(12);
+  });
+  it('leaves out an effect whose words changed, and follows the audio when earlier audio is cut', () => {
+    expect(coverageOfEffects([wordFx('s', { stale: true })], [], TOTAL).sec).toBe(0);
+    expect(coverageOfEffects(ONE, [{ a: 0, b: 4, mode: 'close' }], TOTAL).segs).toEqual([{ start: 6, end: 18, n: 1 }]);
+  });
+  it('judges the figure against the cap: within, over, far over', () => {
+    expect(capState(10, 10)).toBe('within');
+    expect(capState(10.1, 10)).toBe('over');
+    expect(capState(20.1, 10)).toBe('far');
+  });
+  it('the strip draws each effect span, and the figure and legend update when an effect is added or removed', () => {
+    const view = render(<CoverageStrip effects={ONE} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText('Effects cover 6.0% of this chapter')).toBeTruthy();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    view.rerender(<CoverageStrip effects={MANY} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText('Effects cover 12.0% of this chapter')).toBeTruthy();
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+    expect(screen.getByText('2 or more')).toBeTruthy();
+    view.rerender(<CoverageStrip effects={[]} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText('Effects cover 0.0% of this chapter')).toBeTruthy();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
+  it('shows the cap with its source and a stronger state when it is crossed far', () => {
+    const view = render(<CoverageStrip effects={ONE} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText(/Cap 10.0% of a chapter\. Fixed for now/)).toBeTruthy();
+    expect(screen.getByText('Within the cap')).toBeTruthy();
+    view.rerender(<CoverageStrip effects={MANY} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText('Over the cap')).toBeTruthy();
+    view.rerender(<CoverageStrip effects={ONE} cuts={[]} total={40} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText('Far over the cap')).toBeTruthy();
+  });
+});
+
+describe('the list, the words and the inspector', () => {
+  it('on-words-lists-each-effect-with-its-chain-words-and-place', () => {
+    const select = vi.fn();
+    const remove = vi.fn();
+    render(<OnWords effects={MANY} cuts={[]} onSelect={select} onRemove={remove} />);
+    const row = document.querySelector('[data-wfx="fx1"]') as HTMLElement;
+    expect(row.textContent).toContain('Podcast Voice');
+    expect(row.textContent).toContain('“The first” · 0:10–0:22');
+    expect(screen.getByText('On words · 3')).toBeTruthy();
+    fireEvent.click(within(row).getByRole('button', { name: 'Select the words' }));
+    expect(select).toHaveBeenCalledWith(MANY[0]);
+    fireEvent.click(within(row).getByRole('button', { name: 'Remove the effect' }));
+    expect(remove).toHaveBeenCalledWith(MANY[0]);
+  });
+  it('draws nothing for a chapter with no effects on words', () => {
+    const { container } = render(<OnWords effects={[]} cuts={[]} onSelect={() => {}} onRemove={() => {}} />);
+    expect(container.textContent).toBe('');
+  });
+  it('lists each effect with its range, what it is on and its share of the chapter', () => {
+    render(<EffectsList effects={MANY} cuts={[]} total={TOTAL} selectedId="fx2" onSelect={() => {}} />);
+    const rows = [...document.querySelectorAll('[data-fxr]')];
+    expect(rows.map((r) => r.getAttribute('data-fxr'))).toEqual(['fx1', 'fx2', 'fx3']);
+    expect(rows[0].closest('tr')?.textContent).toContain('0:10–0:22');
+    expect(rows[0].closest('tr')?.textContent).toContain('6.0%');
+    expect(rows[1].getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('Effects · 3')).toBeTruthy();
+  });
+  it('says so when there are none', () => {
+    render(<EffectsList effects={[]} cuts={[]} total={TOTAL} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByText('No effects on this chapter yet.')).toBeTruthy();
+  });
+  it('inspector-controls-the-daw-cannot-do-are-disabled-with-a-reason: Remove works', () => {
+    const remove = vi.fn();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={remove} />
+      </ApiProvider>,
+    );
+    expect(screen.getByText('Podcast Voice', { selector: 'h3' })).toBeTruthy();
+    expect(screen.getByText('“The first”')).toBeTruthy();
+    expect(screen.getByText('6.0% of this chapter')).toBeTruthy();
+    for (const name of ['Settings', 'Preview', 'Compare']) {
+      const b = screen.getByRole('button', { name }) as HTMLButtonElement;
+      expect(b.disabled).toBe(true);
+      expect(document.getElementById(b.getAttribute('aria-describedby') ?? '')?.textContent).toBe('Not available in REAPER.');
+    }
+    const bypass = screen.getByRole('checkbox', { name: 'Bypass this effect' });
+    expect(bypass.hasAttribute('disabled') || bypass.getAttribute('aria-disabled') === 'true' || bypass.hasAttribute('data-disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove this effect' }));
+    expect(remove).toHaveBeenCalledWith(MANY[0]);
+  });
+});
+
+describe('Add effect', () => {
+  const add = (over: Partial<Parameters<typeof AddEffect>[0]> = {}) => {
+    const onAdd = vi.fn();
+    render(<AddEffect hasSelection reason="" impact={{ before: 6, after: 7, over: false, far: false }} cap={FX_CAP_PCT} list={LIST} onAdd={onAdd} {...over} />);
+    return onAdd;
+  };
+  it('add-effect-needs-a-selection: with no words it is off and says so', () => {
+    const onAdd = add({ hasSelection: false, impact: null });
+    const b = screen.getByRole('button', { name: 'Add effect' }) as HTMLButtonElement;
+    expect(b.disabled).toBe(true);
+    expect(screen.getByText(SELECT_FIRST)).toBeTruthy();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+  it('with a selection it asks for the question, and shows what coverage becomes', () => {
+    const onAdd = add();
+    expect(document.querySelector('[data-impact]')?.textContent).toBe('Coverage 6.0% → 7.0%');
+    fireEvent.click(screen.getByRole('button', { name: 'Add effect' }));
+    expect(onAdd).toHaveBeenCalledOnce();
+  });
+  it('a DAW that cannot shows its own reason and keeps the control, disabled', () => {
+    add({ reason: 'REAPER is not running.' });
+    expect((screen.getByRole('button', { name: 'Add effect' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('REAPER is not running.')).toBeTruthy();
+  });
+  it('lists the DAW’s own chains under their source', () => {
+    add();
+    expect(within(screen.getByRole('group', { name: SOURCE })).getByText('Podcast Voice.RfxChain')).toBeTruthy();
+  });
+  it('cap-warns-before-it-is-crossed-never-silently: over it the button reads Add anyway; a much larger cover says more', () => {
+    add({ impact: { before: 9, after: 12, over: true, far: false } });
+    expect(screen.getByRole('alert').textContent).toContain('from 9.0% to 12.0%, over the 10.0% cap.');
+    expect(screen.getByRole('button', { name: 'Add anyway' })).toBeTruthy();
+    cleanup();
+    add({ impact: { before: 9, after: 25, over: true, far: true } });
+    expect(screen.getByRole('alert').textContent).toContain('more than twice the cap');
+  });
+  it('the command refuses without the confirmation over the cap', () => {
+    const range = summarize(doc, ['p-1:0', 'p-1:1'], [], (t) => t).ranges[0];
+    expect(capSentence(MANY, [], TOTAL, { start: 50, end: 70 })).toBe('This takes coverage from 12.0% to 22.0%, over the 10.0% cap.');
+    expect(capSentence(ONE, [], TOTAL, range)).toBe('');
+    expect(impactOf(MANY, [], TOTAL, { start: 50, end: 70 }).far).toBe(true);
+    const plan = planRange(withFxRange(DAW_SETUPS.reaper, 'native'), 'fx_range');
+    const summary = summarize(doc, ['p-1:0', 'p-1:1'], [], (t) => t);
+    const result = fxPlanFor({ plan, summary, locator, effects: [], cap: () => capSentence(MANY, [], TOTAL, { start: 50, end: 70 }) });
+    expect(result.over?.cap).toContain('over the 10.0% cap');
+    if (plan.kind === 'refused') throw new Error('plan');
+    const log = fakeFxLog();
+    const daw = createMockDawClient(withFxRange(DAW_SETUPS.reaper, 'native'));
+    const command = applyFxCommand({ daw, log, onEffects: () => {} }, plan, {
+      chapterId: 'chapter-1',
+      range: summary.ranges[0],
+      chain: { id: 'Podcast Voice.RfxChain', name: 'Podcast Voice' },
+      source: SOURCE,
+      locator,
+      needsOver: true,
+      confirmedOver: false,
+    });
+    return expect(command.run()).resolves.toMatchObject({ ok: false, refusal: { code: 'needs_confirm' } });
+  });
+});
+
+let dawSetup: DawCapabilities;
+let fxStub: EffectsTabProps['fx'];
+let selectWords: EffectsTabProps['onSelectWords'] & ReturnType<typeof vi.fn>;
+const base = (over: Partial<EffectsTabProps> = {}): EffectsTabProps => ({
+  doc,
+  effects: MANY,
+  cuts: [],
+  total: TOTAL,
+  selected: [],
+  fx: fxStub,
+  onSelectWords: selectWords,
+  ...over,
+});
+const withApi = (node: React.ReactNode) => (
+  <ApiProvider api={{ ...createMockApi(), dawCapabilities: async () => dawSetup, subscribeDawCapabilities: () => () => {} }}>{node}</ApiProvider>
+);
+
+beforeEach(() => {
+  dawSetup = DAW_SETUPS.reaper;
+  selectWords = vi.fn() as typeof selectWords;
+  fxStub = { list: LIST, ask: vi.fn(), remove: vi.fn(async () => {}), refusalOf: () => '' };
+});
+
+describe('the tab', () => {
+  it('click-on-the-strip-selects-the-effect-and-shows-it-in-the-inspector', async () => {
+    render(withApi(<EffectsTab {...base()} />));
+    const inspector = () => screen.getByRole('region', { name: 'Effect' });
+    expect(within(inspector()).getByText('Podcast Voice', { selector: 'h3' })).toBeTruthy();
+    fireEvent.click(document.querySelector('button[data-fx="fx3"]') as HTMLElement);
+    expect(within(inspector()).getByText('De-ess', { selector: 'h3' })).toBeTruthy();
+    expect(within(inspector()).getByText('“Second”')).toBeTruthy();
+    expect(within(inspector()).getByText('1:40–1:44')).toBeTruthy();
+    expect(within(inspector()).getByText('2.0% of this chapter')).toBeTruthy();
+  });
+  it('Select the words and Remove the effect go through the page', () => {
+    render(withApi(<EffectsTab {...base()} />));
+    const row = document.querySelector('[data-wfx="fx2"]') as HTMLElement;
+    fireEvent.click(within(row).getByRole('button', { name: 'Select the words' }));
+    expect(selectWords).toHaveBeenCalledWith(['p-1:1', 'p-1:2']);
+    fireEvent.click(within(row).getByRole('button', { name: 'Remove the effect' }));
+    expect(fxStub.remove).toHaveBeenCalledWith(MANY[1]);
+  });
+  it('add-effect-needs-a-selection and, with one, opens the question', () => {
+    const view = render(withApi(<EffectsTab {...base()} />));
+    expect((screen.getByRole('button', { name: 'Add effect' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(SELECT_FIRST)).toBeTruthy();
+    view.rerender(withApi(<EffectsTab {...base({ effects: ONE, selected: ['p-2:0', 'p-2:1'] })} />));
+    fireEvent.click(screen.getByRole('button', { name: 'Add effect' }));
+    expect(fxStub.ask).toHaveBeenCalledWith(['p-2:0', 'p-2:1']);
+  });
+  it('a DAW that cannot add shows the capability’s reason as a note', () => {
+    fxStub = { ...fxStub, refusalOf: () => 'REAPER cannot add effects to a range here.' };
+    render(withApi(<EffectsTab {...base({ effects: ONE, selected: ['p-2:0'] })} />));
+    expect((screen.getByRole('button', { name: 'Add effect' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('REAPER cannot add effects to a range here.')).toBeTruthy();
+  });
+  it('over the cap the button reads Add anyway', () => {
+    render(withApi(<EffectsTab {...base({ selected: ['p-1:0', 'p-1:1', 'p-1:2', 'p-1:3', 'p-1:4', 'p-1:5', 'p-1:6', 'p-1:7', 'p-1:8'], total: 40 })} />));
+    expect(screen.getByRole('button', { name: 'Add anyway' })).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('over the 10.0% cap');
+  });
+  it('recorder-and-audacity-wording: the built-in recorder names itself; Audacity lists its macros under its source', async () => {
+    dawSetup = DAW_SETUPS.builtin;
+    const view = render(withApi(<EffectsTab {...base()} />));
+    await waitFor(() => expect(screen.getAllByText('Not available in the built-in recorder.').length).toBe(3));
+    view.unmount();
+    dawSetup = DAW_SETUPS['audacity-backups'];
+    fxStub = { ...fxStub, list: { source: 'Your Audacity macros', choices: [{ id: 'Normalize', name: 'Normalize' }] } };
+    render(withApi(<EffectsTab {...base()} />));
+    await waitFor(() => expect(screen.getAllByText('Not available in Audacity.').length).toBe(3));
+    expect(within(screen.getByRole('group', { name: 'Your Audacity macros' })).getByText('Normalize')).toBeTruthy();
+  });
+});
+
+describe('the drawer', () => {
+  it('tab-count-matches: the tab wears the number of effects and the section is registered through the registry', () => {
+    const off = registerEffectsSection({ effects: MANY, cuts: [], total: TOTAL, selected: [], fx: fxStub, onSelectWords: selectWords });
+    const tabs = [
+      ['cleanup', 'Clean up'],
+      ['effects', 'Effects'],
+    ] as const;
+    render(
+      withApi(
+        <Drawer
+          doc={doc}
+          chapterId="chapter-1"
+          tab="effects"
+          tabs={tabs}
+          counts={{ effects: effectsCount(MANY) }}
+          onTab={() => {}}
+          onClose={() => {}}
+          flagKind={null}
+          onReview={() => {}}
+          strip={{} as never}
+        />,
+      ),
+    );
+    expect(screen.getByRole('tab', { name: 'Effects · 3' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Effects' })).toBeTruthy();
+    off();
+    expect(drawSections('effects', { doc, chapterId: 'chapter-1' })).toHaveLength(0);
+  });
+});
+
+describe('the page’s own Add FX and Remove', () => {
+  let fx: FxWords | undefined;
+  let removed: unknown[];
+  const alignment: AlignmentPort = {
+    heard: () => Promise.reject(new Error('not used')),
+    snap: (_c, _g, t) => Promise.resolve({ snapped: true, time: t, moved: 0 }),
+  };
+  function Inner({ effects, setEffects }: { effects: WordFx[]; setEffects: (e: WordFx[]) => void }) {
+    const page = useEditingPage();
+    fx = useFxWords({
+      journal: createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+      chapterId: 'chapter-1',
+      chapterName: 'Chapter 1',
+      effects,
+      cuts: [],
+      locator,
+      onEffects: setEffects,
+      chains: CHAINS,
+    });
+    return <EffectsTab doc={page.doc} effects={effects} cuts={[]} total={TOTAL} selected={page.selected} fx={fx} onSelectWords={() => {}} />;
+  }
+  function Harness() {
+    const [effects, setEffects] = useState<WordFx[]>(ONE);
+    const d = useMemo(() => marksDoc(), []);
+    return (
+      <EditingPageProvider doc={d}>
+        <Inner effects={effects} setEffects={setEffects} />
+      </EditingPageProvider>
+    );
+  }
+  it('Remove takes the effect off through the DAW and the record, and the figure follows', async () => {
+    removed = [];
+    const base = createMockDawClient(withFxRange(DAW_SETUPS.reaper, 'native'));
+    const daw: DawClient = { ...base, removeFxFromRange: (r) => (removed.push(r), base.removeFxFromRange(r)) };
+    const log = fakeFxLog();
+    log.effects.push(ONE[0]);
+    vi.spyOn(overlay, 'toastUndo');
+    render(
+      <ApiProvider api={Object.assign(createMockApi(), log)}>
+        <PortOverrides clients={{ daw, alignment }}>
+          <Harness />
+          <OverlayHost />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    expect(screen.getByText('Effects cover 6.0% of this chapter')).toBeTruthy();
+    await waitFor(() => expect(fx?.plan?.kind).toBe('daw'));
+    await act(async () => {
+      fireEvent.click(within(document.querySelector('[data-wfx="fx1"]') as HTMLElement).getByRole('button', { name: 'Remove the effect' }));
+    });
+    expect(removed).toHaveLength(1);
+    await waitFor(() => expect(screen.getByText('Effects cover 0.0% of this chapter')).toBeTruthy());
+    expect(log.effects).toHaveLength(0);
+  });
+});
+
+describe('accessibility', () => {
+  it('atlas-and-axe: the tab has no axe violations with effects, over the cap, and with none', async () => {
+    for (const effects of [MANY, ONE, []]) {
+      const view = render(withApi(<EffectsTab {...base({ effects, selected: effects.length ? ['p-2:0'] : [] })} />));
+      const result = await axe.run(view.container, { rules: { 'color-contrast': { enabled: false } } });
+      expect(result.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
+      view.unmount();
+    }
+  });
+});

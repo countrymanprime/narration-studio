@@ -88,8 +88,6 @@ when you came in, the Booth did not start that take and does not stop it, and th
 
 ![Booth - Escape during a take asks "Stop recording?", with the take held until the narrator answers](../../images/ui/booth-flag.webp)
 
-The old Teleprompter page and the Manuscript's Read aloud dialog are now this page: a link to the Teleprompter opens the Booth.
-
 ---
 
 [← Story Bible](story-bible.md) · [Index](README.md) · [Proof →](proof.md)

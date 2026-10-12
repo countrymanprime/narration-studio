@@ -60,3 +60,6 @@ apps/ui/storybook-static/
 tools/docs-site/build/
 .lycheecache
 apps/ui/playwright.local.config.ts
+
+# The Wails build output (go build in apps/desktop names its binary after the directory)
+/apps/desktop/shell
