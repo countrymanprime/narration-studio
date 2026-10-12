@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName, context } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
@@ -12,12 +13,10 @@ import { SlideOver } from '../primitives/SlideOver';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import type { Notify } from '../primitives/Toast';
 import { MappingConfirm } from '../mapping/MappingConfirm';
-import { useReaperStatus } from '../proof/useReaperStatus';
 import { formatWhen } from '../production/recordingCheckText';
 import { formatAge, SIGNAL_STATE_LABEL } from '../stages/stageText';
 import { CleanupAction } from './CleanupAction';
-import { EditingCandidateRow } from './EditingCandidateRow';
-import { EDITING_CLASSES, EDITING_CLASS_LABEL, EDITING_SIGNAL_ID, PROCESSED_AUDIO_CAVEAT, candidateClass, sortCandidates } from './editingCheckText';
+import { EDITING_CLASSES, EDITING_CLASS_LABEL, EDITING_SIGNAL_ID, PROCESSED_AUDIO_CAVEAT, candidateClass } from './editingCheckText';
 
 /** The host's own refusal sentences (apps/desktop/internal/editing/service.go), for a reason the mapping prompt
  * below does not already explain in place. */
@@ -92,26 +91,20 @@ function stateBadgeColor(state: StageSignalState): string | undefined {
  * the chapter is in the Editing stage, apps/desktop/internal/stages): state, reason, and the saved-project
  * basis with its age. Outside the Editing stage the signal is not evaluated at all, so the summary falls back to a
  * plain candidate count from the last scan - never a state, since a state this build did not compute is not one it
- * can vouch for.
+ * can vouch for. The candidates themselves are worked on the Editing page's Clean up tab.
  */
 function ClassSummary({
   cls,
   signal,
   candidates,
   now,
-  reaperStatus,
-  onReaperStatusChange,
-  onCandidateChanged,
 }: {
   cls: (typeof EDITING_CLASSES)[number];
   signal: StageSignal | undefined;
   candidates: Finding[];
   now: number;
-  reaperStatus: ReturnType<typeof useReaperStatus>['status'];
-  onReaperStatusChange: () => Promise<void>;
-  onCandidateChanged: (finding: Finding) => void;
 }) {
-  const ordered = sortCandidates(candidates);
+  const count = candidates.length;
   return (
     <InsetCard as="section" className="space-y-2">
       <p className="font-semibold">{EDITING_CLASS_LABEL[cls]}</p>
@@ -130,39 +123,26 @@ function ClassSummary({
         </>
       ) : (
         <p style={{ color: 'var(--text-muted)' }}>
-          {ordered.length > 0 ? `${ordered.length} candidate${ordered.length === 1 ? '' : 's'} from the last scan.` : 'No candidates from the last scan.'} A met
-          or not-met status shows only while this chapter is in Editing.
+          {count > 0 ? `${count} candidate${count === 1 ? '' : 's'} from the last scan.` : 'No candidates from the last scan.'} A met or not-met status shows
+          only while this chapter is in Editing.
         </p>
       )}
-      {ordered.map((finding) => (
-        <EditingCandidateRow
-          key={finding.id}
-          finding={finding}
-          reaperStatus={reaperStatus}
-          onReaperStatusChange={onReaperStatusChange}
-          onChanged={onCandidateChanged}
-        />
-      ))}
     </InsetCard>
   );
 }
 
 /**
- * The editing check panel: a `SlideOver` opened from the stage evidence
- * popover (`StageEvidence`'s "Open editing check") and from the audio engine panel's chapter list. It runs the scan
- * (the host's job, cache-first, with real progress and Cancel), reads the three signals the host computes when the
- * chapter is in the Editing stage, and lists every open candidate under its own class with a Hear control, Accept /
- * Dismiss / Defer through `findingsReview`, and Go to / Loop in REAPER when the bridge is connected. Analysis
- * never starts on its own: opening the panel only reads what is already known.
+ * The editing check panel: a `SlideOver` opened from the Production board's row menu and from the audio engine panel's chapter list. It
+ * runs the scan (the host's job, cache-first, with real progress and Cancel), reads the three signals the host computes when the chapter
+ * is in the Editing stage, and counts the open candidates of each class. The candidates are heard and decided on the Editing page's
+ * Clean up tab, which the panel links to (SN-E9); the item-gain row stays here, as the Studio Next mock has none. Analysis never starts
+ * on its own: opening the panel only reads what is already known.
  *
- * There is no live event for the scan job (unlike the recording check's `coverage:state`): the panel polls `editingState()` itself while a run for this chapter is going, so the panel
- * stays open with its previous candidates visible underneath the progress bar rather than swapping to a separate
- * dialog the way the recording check does - the narrator can keep reading the last scan's candidates while a
- * re-check of a mostly-cached chapter finishes in a second or two.
+ * There is no live event for the scan job (unlike the recording check's `coverage:state`): the panel polls `editingState()` itself while
+ * a run for this chapter is going, so the panel stays open with the last scan's counts under the progress bar.
  */
 export function EditingCheckPanel({ chapter, notify, close }: { chapter: ManuscriptChapter; notify: Notify; close: () => void }) {
   const api = useApi();
-  const reaper = useReaperStatus();
   const action = usePendingAction();
   const [job, setJob] = useState<EditingState>();
   const [refusal, setRefusal] = useState<{ reason: EditingRefusalReason; message: string }>();
@@ -271,8 +251,6 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
       }
     });
 
-  const onCandidateChanged = (finding: Finding) => setCandidates((current) => current.map((item) => (item.id === finding.id ? finding : item)));
-
   const mappingRefusal = refusal && MAPPING_REFUSALS.has(refusal.reason);
   const checked = job?.phase === 'complete' || job?.phase === 'cancelled' || job?.phase === 'failed';
   const sourceEvidenceLabel = signals?.flatMap((signal) => signal.evidence).find((entry) => entry.kind === 'source')?.value;
@@ -361,14 +339,18 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
               signal={signals?.find((signal) => signal.id === EDITING_SIGNAL_ID[cls])}
               candidates={candidates.filter((finding) => candidateClass(finding) === cls)}
               now={now}
-              reaperStatus={reaper.status}
-              onReaperStatusChange={reaper.refresh}
-              onCandidateChanged={onCandidateChanged}
             />
           ))}
         </div>
 
-        {/* Silence trim and item gain: its own row, appended below the candidates. */}
+        <p>
+          <Link className="font-semibold underline" to={`/editing/${encodeURIComponent(chapter.id)}?drawer=cleanup`} onClick={close}>
+            Clean up in Editing
+          </Link>{' '}
+          <span style={{ color: 'var(--text-muted)' }}>to hear each candidate and trim, keep or skip it.</span>
+        </p>
+
+        {/* Item gain: its own row, below the summaries. */}
         <CleanupAction chapterId={chapter.id} notify={notify} />
       </div>
     </SlideOver>

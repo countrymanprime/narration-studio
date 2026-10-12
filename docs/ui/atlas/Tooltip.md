@@ -30,6 +30,9 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/booth/record/SetupChip.tsx`
 - `src/components/booth/resume/ResumeOffer.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
+- `src/components/editing/page/EditingHeader.tsx`
+- `src/components/editing/stack/RetryBar.tsx`
+- `src/components/editing/stack/StackControls.tsx`
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/layout/AppShell.tsx`
@@ -54,12 +57,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/production/pipeline/PipelineTable.tsx`
 - `src/components/production/readiness/ReadinessChip.tsx`
 - `src/components/proof/CompareRun.tsx`
-- `src/components/proof/FlagsPanel.tsx`
 - `src/components/proof/PreviewPanel.tsx`
-- `src/components/proof/ReaperControls.tsx`
-- `src/components/proof/TakeComparisonView.tsx`
-- `src/components/proof/TakesPanel.tsx`
-- `src/components/proof/TransportBar.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
@@ -69,6 +67,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/script/page/tools/select/SelectionTool.tsx`
 - `src/components/script/page/tools/select/harness.tsx`
 - `src/components/settings/ScopedSetting.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PropertiesSection.tsx`

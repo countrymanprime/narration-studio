@@ -34,7 +34,7 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
   const sections = drawSections(tab, { doc, chapterId });
   let body: ReactNode;
   if (tab === 'timeline') {
-    body = <TimelineStrip {...strip} />;
+    body = <TimelineStrip {...strip} inDrawer />;
   } else {
     body = (
       <>

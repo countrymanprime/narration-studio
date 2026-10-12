@@ -27,10 +27,15 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/booth/side/BoothSidePanel.tsx`
 - `src/components/booth/side/Reference.tsx`
 - `src/components/booth/suspected/SuspectedLines.tsx`
+- `src/components/editing/backups/BackupsInspector.tsx`
+- `src/components/editing/backups/BackupsList.tsx`
 - `src/components/editing/bar/SelToolbar.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
 - `src/components/editing/bar/SelectionBar.tsx`
 - `src/components/editing/drawer/Drawer.tsx`
+- `src/components/editing/effects/OnWords.tsx`
+- `src/components/editing/page/DawOffBanner.tsx`
+- `src/components/editing/page/EditingHeader.tsx`
 - `src/components/editing/takes/TakeLines.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/manuscript/EntitySummary.tsx`
@@ -53,8 +58,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ProofPage.tsx`
 - `src/components/proof/ProoferSheet.tsx`
-- `src/components/proof/TakesPanel.tsx`
-- `src/components/proof/TransportBar.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
 - `src/components/proof/inspector/InspectorActions.tsx`
@@ -78,6 +81,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/script/page/tools/select/SelectionTool.tsx`
 - `src/components/script/page/tools/text/TextSettings.tsx`
 - `src/components/settings/analysis/ToolRow.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/storybible/AppearsIn.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`

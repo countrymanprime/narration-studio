@@ -48,6 +48,8 @@ export interface TimelineStripProps {
   /** Plays the take's own source range through the playback hook; called again for the take that plays, it stops. */
   onPlay: (take: LineTake) => void;
   chapterId: string;
+  /** Drawn in the drawer's Timeline tab, which is offered only where the strip does not fit: shown at every width, not only from 1360 px. */
+  inDrawer?: boolean;
 }
 
 /**
@@ -55,7 +57,7 @@ export interface TimelineStripProps {
  * The selection is mirrored as a band; dragging on the audio selects the words under it (the selection keys do the same from the keyboard), and a
  * lane plays its take.
  */
-export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, chapterId }: TimelineStripProps) {
+export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, chapterId, inDrawer = false }: TimelineStripProps) {
   const { doc, state, dispatch, selected: cursorOrSel } = useEditingPage();
   // The cursor's own word is not a selection: no band until a run is selected.
   const selected = useMemo(() => (state.sel ? cursorOrSel : []), [state.sel, cursorOrSel]);
@@ -80,7 +82,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
       {layout?.band ? <StatusBadge tone="info" label={`${layout.band.length.toFixed(1)} s`} shape="tag" /> : null}
     </div>
   );
-  const region = `${STRIP_OFFERED} border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
+  const region = `${inDrawer ? '' : STRIP_OFFERED} border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
   if (!layout || !base) {
     return (
       <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>

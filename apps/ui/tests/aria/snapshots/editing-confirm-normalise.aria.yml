@@ -1,0 +1,22 @@
+# The page behind a modal is aria-hidden, so <body> holds the dialog and the live regions Base UI leaves exposed, nothing else.
+- /children: equal
+# Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
+# page's selection announcer and its bar (a live region that says what is selected), and the toast pair under <main>.
+- main:
+  - group "Zoom"
+  - region "Script editor":
+    - status
+    - toolbar "Playback and selection"
+  - alert
+  - status
+# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- alert
+- status
+- status
+- alertdialog "Normalise?":
+  - heading "Normalise?" [level=2]
+  - button "Close"
+  - paragraph: /^Bring \d+ items? on this chapter's linked track to/
+  - paragraph: /one undo step in REAPER/
+  - button "Cancel"
+  - button "Normalise"

@@ -1,137 +1,27 @@
 // The `proof-chapter` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: Proof's chapter view,
-// `/proof/:chapterId`. It is the chapter workspace with the
-// Proofing page folded in (the `proofing` page key): the compare run, its results as flags, and the Preview and stage panels.
+// `/proof/:chapterId`. The Editing page replaced its workspace (SN-E9); what is left is the recording check's state, the Proofing page
+// folded in (the `proofing` page key: the compare run and its summary, and the Preview and stage panels) and the native takes.
 import type { StateEntry } from '../lib/types';
 import { FREEZES_THE_CLOCK, KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON } from './shared';
 
 export const proofChapterStates: StateEntry[] = [
-  // The chapter workspace, reached from a linked chapter's "Open in Proof" link.
+  // The chapter view, reached from a linked chapter's "Open in Proof" link in the engine panel.
   {
     page: 'proof-chapter',
     state: 'never',
-    description:
-      'Proof chapter view, a chapter with a confirmed track link that has never been checked - "hasn’t been checked yet", Check recording, no player or script yet',
+    description: 'Proof chapter view, a chapter with a confirmed track link that has never been checked - "hasn’t been checked yet" and Check recording',
   },
   {
     page: 'proof-chapter',
     state: 'stale',
-    description:
-      'Proof chapter view, a stale check (an item was trimmed since) - "Check stale" state pill, the script and player still shown from the last check',
+    description: 'Proof chapter view, a stale check (an item was trimmed since) - the "Check stale" state pill and Check again',
   },
   {
     page: 'proof-chapter',
     state: 'current',
-    description:
-      'Proof chapter view, a current check - "Proof · Chapter 1" header, transport, script with its flags struck through/underlined in place, and the Flags panel with its legend',
+    description: 'Proof chapter view, a current check - "Proof · Chapter 1" header with the "Check current" pill and Check again, then the compare run',
   },
 
-  {
-    page: 'proof-chapter',
-    state: 'playing',
-    description: 'Proof chapter view, Play pressed - transport shows Pause and a live elapsed readout, the currently spoken word highlighted in the script',
-    // The transport sits below the fold under `xl`: the driver scrolls to it at each width.
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'flag-selected',
-    description: 'Proof chapter view, a flag selected from the Flags panel - its script/heard text and "Play from here" shown in the panel’s detail section',
-    // Below `xl` the detail sits under the flags list, off the bottom of a reused desktop scroll position: the driver scrolls it into view per viewport.
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'flag-finding-open',
-    description:
-      'Proof chapter view, a finding-backed flag selected: "From <analyzer>", Go to/Loop in REAPER for that word, and the Decision section (Pickup/Waive/Defer, a note field)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'flag-decided',
-    description:
-      'Proof chapter view, the finding-backed flag just marked for a pickup in place - "Saved: needs a pickup." and the decision reflected, without leaving the page',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'standalone',
-    description:
-      'Proof chapter view with REAPER not running - Go to in REAPER and Loop in REAPER on the transport bar are disabled, with the reason under a tooltip; everything else still works',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // The Takes panel (ADR 0700): the takes of the
-  // paragraph at the playhead in the chapter view's right column, heard one at a time or A/B, compared, and chosen. It shows on
-  // Chapter 1 (a current check with a live item).
-  {
-    page: 'proof-chapter',
-    state: 'takes-list',
-    description:
-      'Proof chapter view, the Takes panel opened on the first paragraph heard - "Takes · 4 alternates" with the paragraph and its word count, "Evidence per word, never a score.", the One/A-B switch, and four takes (another take of the item, a second take, a retake on a lane, a read from Find pickups), each with a play button, where it came from, "Plays now" on the one REAPER plays, Use this take on the others and "Not compared yet"',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'takes-ab',
-    description:
-      'Proof chapter view, the Takes panel in A/B mode - Take 1 in slot A and Take 2 in slot B, Take 2 playing (pause button, its card outlined), Swap switches A and B at the same word, Use this take on each take REAPER does not play',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'takes-compared',
-    description:
-      'Proof chapter view, the takes compared - each card shows the passage’s words around where that take departs from the script with the departure marked, and one line of evidence (what it misread, its longest pause, its level against its neighbours), and the full Takes side by side comparison is drawn under the script; nothing ranks them',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'takes-used',
-    description:
-      'Proof chapter view, Use this take pressed on another take of the item - "Made that take active in REAPER, in one undo step", and that take now marked "Plays now"',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'takes-confirm',
-    description:
-      'Proof chapter view, Use this take pressed on a read from another item - the confirm that says REAPER adds it as a new take and makes it active (two undo steps) before anything is sent',
-  },
-  {
-    page: 'proof-chapter',
-    state: 'takes-standalone',
-    description:
-      'Proof chapter view with REAPER not running - the takes are listed and can be played, and Use this take is off on each, with the reason in a line under the list',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  // Effects on a passage (ADR 0705): the right-click menu on the script, and its confirm step.
-  {
-    page: 'proof-chapter',
-    state: 'effects-menu',
-    description:
-      'Proof chapter view, a right click on a script word - the word selected and a context menu open beside it: "Add an effect to this passage…" and "Put an FX chain on the chapter’s track…"',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'effects-menu-standalone',
-    description: 'Proof chapter view with REAPER not running, a right click on a script word - both effect items disabled, each with the reason under it',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'effects-confirm',
-    description:
-      'Proof chapter view, "Add an effect to this passage…" chosen - the confirm dialog names the passage, lists REAPER’s effects and says what REAPER will do and that one Undo takes it back',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'effects-chain-confirm',
-    description:
-      'Proof chapter view, "Put an FX chain on the chapter’s track…" chosen - the confirm dialog lists the narrator’s FX chains and says the chain changes everything on that track',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
   // The compare run (the Proofing page's setup, run and results), scrolled into view.
   {
     page: 'proof-chapter',
@@ -148,19 +38,6 @@ export const proofChapterStates: StateEntry[] = [
     state: 'compare-running',
     description: 'Proof chapter view, a comparison running mid-progress with its live activity log',
     ...LIVE_PROGRESS_MOVES_ON,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'compare-results-misread',
-    description:
-      "Proof chapter view, a finished comparison's misread selected in the Flags panel - the inline script/heard diff, its marker state, Show in Script, Play recorded audio and Add pronunciation equivalence (the Proofing page's expanded results row)",
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'proof-chapter',
-    state: 'compare-results-extra',
-    description: 'Proof chapter view, a finished comparison’s EXTRA (words heard but not written) selected in the Flags panel, with its inline diff',
-    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
@@ -202,18 +79,16 @@ export const proofChapterStates: StateEntry[] = [
     state: 'compare-no-daw',
     description: 'Proof chapter view with no linked REAPER project file (?mockNoDaw=1): Start comparison is gated, with the reason as its description',
   },
-  {
-    page: 'proof-chapter',
-    state: 'compare-no-daw-review',
-    description:
-      'Proof chapter view reviewing the last completed comparison with no linked REAPER project file (?mockNoDaw=1): its misread selected, Play recorded audio off, and Export off in the summary',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
   // The Preview panel: a suggested five-minute excerpt from the manuscript, computed on
   // read (never applied, exported or stored), beside the compare run.
   {
     page: 'proof-chapter',
     state: 'preview-default',
+    sameAs: {
+      of: 'proof-chapter/compare-setup',
+      reason:
+        'The chapter view is about one screen tall since the Editing page took its workspace: the compare run and the default Preview table show in the same picture, scrolled to the foot of the page.',
+    },
     description: 'Proof chapter view, the Preview panel with its default candidates from the demo manuscript: three full-length chapters, no warnings',
   },
   {
@@ -240,12 +115,14 @@ export const proofChapterStates: StateEntry[] = [
     state: 'preview-shorter',
     description:
       'Proof chapter view, the Preview panel with a candidate shorter than the target length even in full (?mockPreviewCandidates=shorter), warned in text and an icon',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof-chapter',
     state: 'preview-warnings',
     description:
       'Proof chapter view, the Preview panel with a full-length candidate warned for a reason other than being short (an unclassified import, ?mockPreviewCandidates=warnings) - text and an icon, never colour alone',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   // The pin and adjust UI: the narrator's own pinned window, settled on
   // rather than recomputed, with edge adjustment and a stale banner when the manuscript has moved on since.

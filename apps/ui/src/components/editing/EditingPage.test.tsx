@@ -102,6 +102,8 @@ describe('EditingPage', () => {
   it('no-manuscript-and-no-text-states', async () => {
     mount({ hasManuscript: false });
     expect(screen.getByText(/This project has no manuscript yet/)).toBeTruthy();
+    // The page keeps its level-one heading, as the loaded page's header has it (axe's page-has-heading-one).
+    expect(screen.getByRole('heading', { level: 1, name: 'Editing' })).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('toolbar')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Script editor' })).toBeNull();
@@ -191,6 +193,13 @@ describe('EditingPage', () => {
       await waitFor(() => expect(cursorKey()).toBe('w-p1:3'));
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
       expect(document.querySelector('[data-flagcard]')).not.toBeNull();
+    });
+    // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
+    it('opens with the drawer on the tab it is given', async () => {
+      mount({ drawer: 'cleanup' });
+      await script();
+      expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
+      expect(await screen.findByRole('region', { name: 'Clean up findings' })).toBeTruthy();
     });
     it('opens a time with the playhead there', async () => {
       mount({ t: 1.1 });

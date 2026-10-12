@@ -16,8 +16,8 @@ makes a take active, moves or deletes audio, or ranks the reads.
 Since the Proof swap (SN-Q9, 2026-10-12) no page starts a scan, lists a group's reads or offers Add as take: the scan
 dialog and the reads list were deleted with the old Proof notes page, and the take suggestion belongs to Editing (DQ-15 in
 the [Studio Next Proof and Pickups PRD](../prds/studio-next-proof-and-pickups.prd.md#decisions)). The host side below is
-unchanged. A pickup read an earlier scan set beside a paragraph is a card in the chapter view's
-[Takes panel](../guides/using-the-app/proof.md#choosing-between-takes), where Compare and Use this take work. The steps the
+unchanged. A pickup read an earlier scan set beside a paragraph is one of that line's
+[takes on Editing](../guides/using-the-app/editing.md#takes), where Keep take makes it the one that plays. The steps the
 host supports:
 
 1. The scan (`TakeReviewScanStart`) takes the chapter track and at most one pickup addition, a pickup track or a stretch
@@ -51,7 +51,7 @@ The narrator's flow before SN-Q9 is in the [recording and comping workflow](../w
 | Audition: two raw-source ranges with pre and post roll, one playing at a time | `apps/ui/src/components/proof/AuditionDialog.tsx`, `apps/ui/src/components/engine/useRangePlayer.ts` | |
 | Take metrics: clipping, noise, level against neighbours, duration, pause profile, each measured or unavailable with a reason | `apps/desktop/internal/measure` (`MeasureTake`, `TakeSourceRange`) | [ADR 0140](../adr/0140-take-metrics-are-per-category-evidence-over-a-takes-source-range.md) |
 | Per-take divergence: every span word's status and time, every divergence as words plus seconds | `compare.py --take-divergence` (`core/take_divergence.py`, `core/take_divergence_mode.py`) | [ADR 0141](../adr/0141-per-take-divergence-is-localized-by-the-markers-diff-and-asr-word-timestamps.md) |
-| Take comparison: same-span checks, manifest from the saved project, one `take_comparison` finding, the view | `apps/desktop/internal/takecompare`, `apps/desktop/takecompare_job.go`; `apps/ui/src/components/proof/TakeComparisonView.tsx`, `TakeComparisonDialog.tsx` | [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) |
+| Take comparison: same-span checks, manifest from the saved project, one `take_comparison` finding, the view | `apps/desktop/internal/takecompare`, `apps/desktop/takecompare_job.go` (the view of a comparison went with the chapter workspace's Takes panel, SN-E9; the Editing page's takes show their own evidence) | [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) |
 
 The wire contracts (`TakeReviewScanStart/State/Cancel`, `TakeReviewCreateTake`, `TakeComparisonStart/State/Cancel`, the
 evidence of both finding kinds) are in `apps/ui/src/api/schemas/takeReview.ts`, pinned by the goldens under

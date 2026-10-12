@@ -3,19 +3,17 @@ import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useCapability } from '../../useCapability';
-import type { CleanupPreviewResult, LevelMatchPreviewResult } from '../../types';
+import type { LevelMatchPreviewResult } from '../../types';
 import { Button } from '../primitives/Button';
 import { CapabilityGate } from '../primitives/CapabilityGate';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import type { Notify } from '../primitives/Toast';
 
 /**
- * Silence trim and item gain: the Editing view's own row for `bridge.CleanupClient`
- * and `bridge.LevelMatchClient`, the first real callers of either (Evidence section, apps/desktop/internal/bridge/
- * {cleanup.go,levelnormalize.go}). Each action previews its candidates through the host before offering Apply in a
- * `ConfirmDialog` (a button here, no new page), and each is gated behind its own
- * `CapabilityGate` so the control is visible - disabled with the host's "Experimental" message - from day one and
- * switches live with no code change once the owner's verification pass promotes it.
+ * Item gain: the editing check's row for `bridge.LevelMatchClient` (apps/desktop/internal/bridge/levelnormalize.go). It previews the items
+ * through the host before offering Match in a `ConfirmDialog`, and is gated behind its own `CapabilityGate` so the control is visible,
+ * disabled with the host's "Experimental" message, until the owner's verification pass promotes it. Silence trim moved to the Editing
+ * page's Clean up tab (SN-E9); the Studio Next mock has no item-gain row, so this one stays as built (D98).
  */
 
 /** The level-match target this action offers (no per-narrator target setting exists yet). ACX's own RMS window is -23 to -18 dBFS;
@@ -26,73 +24,6 @@ const LEVEL_MATCH_TOLERANCE_DB = 2;
 
 function pluralize(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
-function CleanupTrimAction({ chapterId, notify }: { chapterId: string; notify: Notify }) {
-  const api = useApi();
-  const capability = useCapability('silence_trim');
-  const action = usePendingAction();
-  const [preview, setPreview] = useState<CleanupPreviewResult>();
-
-  const openPreview = () =>
-    action.run('cleanup-preview', async () => {
-      try {
-        setPreview(await api.cleanupPreview(chapterId));
-      } catch (reason) {
-        notify(describeApiError(reason), 'error');
-      }
-    });
-
-  const apply = () =>
-    action.run('cleanup-apply', async () => {
-      try {
-        const result = await api.cleanupApply(chapterId);
-        notify(`Trimmed ${pluralize(result.applied, 'candidate')} of ${result.candidates}.`, 'info');
-      } catch (reason) {
-        notify(describeApiError(reason), 'error');
-      } finally {
-        setPreview(undefined);
-      }
-    });
-
-  return (
-    <>
-      <CapabilityGate capability={capability}>
-        <Button
-          variant="secondary"
-          onClick={() => void openPreview()}
-          pending={action.isPending('cleanup-preview')}
-          disabled={action.isBlockedFor('cleanup-preview')}
-        >
-          Trim silence…
-        </Button>
-      </CapabilityGate>
-      {preview && (
-        <ConfirmDialog
-          title="Trim silence"
-          confirmLabel="Trim"
-          confirm={() => void apply()}
-          cancel={() => setPreview(undefined)}
-          pending={action.isPending('cleanup-apply')}
-          body={
-            <>
-              <p>
-                {pluralize(preview.candidates, 'silence candidate')} in this chapter. REAPER has marked {pluralize(preview.added, 'take marker')} for preview
-                {preview.existing > 0 ? ` (${pluralize(preview.existing, 'marker')} already there)` : ''}.
-              </p>
-              {preview.stale.length > 0 && (
-                <p style={{ color: 'var(--danger-text)' }}>
-                  {pluralize(preview.stale.length, 'candidate')} {preview.stale.length === 1 ? 'is' : 'are'} stale (the saved project has changed since the last
-                  check) and will be skipped.
-                </p>
-              )}
-              <p>Trimming removes the marked audio in REAPER, in one undo step.</p>
-            </>
-          }
-        />
-      )}
-    </>
-  );
 }
 
 function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: Notify }) {
@@ -159,7 +90,6 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
 export function CleanupAction({ chapterId, notify }: { chapterId: string; notify: Notify }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <CleanupTrimAction chapterId={chapterId} notify={notify} />
       <LevelMatchAction chapterId={chapterId} notify={notify} />
     </div>
   );

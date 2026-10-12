@@ -77,9 +77,8 @@ export function RecordingCheck({
   notify: Notify;
   close: () => void;
   goToParagraph: (index: number) => void;
-  /** "Open in Proof" (Proof's chapter view):
-   * undefined when this dialog is itself opened from the workspace (WorkspacePage.tsx's own Check again), where
-   * there is nothing to open. */
+  /** "Open in Editing" (the Editing page at this chapter): undefined when this dialog is opened from Proof's chapter view (its own
+   * Check again) or for a credits row, where there is nothing to open. */
   openWorkspace?: () => void;
 }) {
   const api = useApi();

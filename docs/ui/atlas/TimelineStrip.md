@@ -16,4 +16,7 @@ Storybook title: `Editing/TimelineStrip`. Source: `src/components/editing/strip/
 
 ## Used by
 
+- `src/components/editing/EditingPage.tsx`
 - `src/components/editing/drawer/Drawer.tsx`
+- `src/components/editing/page/EditingBody.tsx`
+- `src/components/editing/page/EditingHeader.tsx`

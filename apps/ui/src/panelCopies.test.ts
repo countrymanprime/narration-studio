@@ -32,7 +32,6 @@ const CEILING: Record<Copy, Record<string, number>> = {
     // The chapter card's sticky header rounds its own top corners (`rounded-lg border-b-0`); the card is PANEL_FRAME_CLASS.
     'src/components/manuscript/ReaderCard.tsx': 1,
     // The waveform's frame, with its own tight padding round the drawing.
-    'src/components/proof/WaveformStrip.tsx': 1,
     // The bookmarks tab's list frame (SN-B62), to move onto Panel with #1119.
     'src/components/script/bookmarks/ui/BookmarksTab.tsx': 1,
     // The Script rail's Story Bible panel frame and entry card and the Notes thread card (SN-B752), to move onto Panel and InsetCard with #1119.

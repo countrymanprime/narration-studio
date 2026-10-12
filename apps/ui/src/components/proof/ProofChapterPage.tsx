@@ -1,9 +1,7 @@
-import { ApplyFxDialog, type FxRequest } from './ApplyFxDialog';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
-import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
 import { formatWhen } from '../production/recordingCheckText';
 import { RecordingCheck } from '../production/RecordingCheck';
@@ -12,30 +10,13 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Notify } from '../primitives/Toast';
-import type { CoverageState, Discrepancy, Finding, FindingReviewStatus, ManuscriptChapter, TrackItem, TranscriptState } from '../../types';
-import type { WorkspaceAlignmentResult, WorkspacePeaksResult, WorkspaceToken } from '../../api/contracts/workspace';
-import { WaveformStrip } from './WaveformStrip';
+import type { CoverageState, ManuscriptChapter, TranscriptState } from '../../types';
+import type { WorkspaceAlignmentResult } from '../../api/contracts/workspace';
 import { CommandScope } from '../../input/router';
-import { useCommand } from '../../input/useCommand';
-import { buildFlags, type Flag } from './flags';
-import { overlayFindings } from './findingFlags';
-import { buildPlaylist } from './playlist';
-import { buildTokenIndex, currentTokenIndex, seekTargetForToken } from './tokenAtTime';
-import { useChapterPlayback } from './useChapterPlayback';
-import { useWorkspaceReaper } from './useWorkspaceReaper';
-import { TransportBar } from './TransportBar';
-import { ScriptView } from './ScriptView';
-import { FlagsPanel, type CompareFlagActions, type FlagDecisionResult } from './FlagsPanel';
 import { CompareRun } from './CompareRun';
-import { overlayDiscrepancies } from './compareFlags';
 import { PreviewPanel } from './PreviewPanel';
 import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
-import { TakesPanel } from './TakesPanel';
-import { useReaperStatus } from './useReaperStatus';
-
-/** How long before a clicked word's start the app player starts, so the narrator hears it in context. */
-const PRE_ROLL_SECONDS = 1;
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -50,46 +31,34 @@ type ChapterViewProps = {
   /** The compare run and its REAPER actions need a linked project file. */
   dawFileLinked: boolean;
   goToManuscript: (chapter: string, paragraph?: number) => void;
+  /** Opens the Editing page at this chapter, on a finding's flagged word (the stage panel's finding links). */
+  goToEditing: (chapterId: string, findingId?: string) => void;
   /** Changes after a manuscript import or replacement, so the stage panel reads again. */
   refreshKey: string;
 };
 
 /**
- * The chapter workspace, `/proof/:chapterId`, until the Editing swap replaces it (its notes moved to the Studio Next Proof page,
- * SNQ-9), with the compare run folded in. It plays
- * the chapter's recorded audio in the app, honouring each item's played range, follows the script with a karaoke
- * highlight and auto-scroll, shows the check's flags inline, and seeks on a click, with Go to/Loop in REAPER
- * for the word at the playhead (`useWorkspaceReaper`). The chapter's stored findings are overlaid on the same
- * flags (`overlayFindings`) and reviewed in place through the same `findingsReview` binding the book's notes
- * use, and `?finding=<id>` selects the flag that finding backs. Transcript Compare runs from here against this chapter
- * (CompareRun) and its discrepancies become flags too (`overlayDiscrepancies`), with the Preview and stage panels
- * beside it. One component per chapter (keyed by the id), so nothing selected on one chapter carries to the next.
+ * Proof's chapter view, `/proof/:chapterId`: what the chapter page held besides the workspace, which the Editing page replaced (SN-E9,
+ * ADR 0804). The recording check's state and Check again, the native takes, Transcript Compare's run against this chapter (CompareRun),
+ * and the Preview and stage panels; none of them is in the Studio Next mock, so they stay as built (D98). One component per chapter
+ * (keyed by the id).
  */
 export function ProofChapterPage(props: ChapterViewProps) {
   const { chapterId = '' } = useParams<{ chapterId: string }>();
   return <ChapterView key={chapterId} chapterId={chapterId} {...props} />;
 }
 
-function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, refreshKey }: ChapterViewProps & { chapterId: string }) {
+function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, goToEditing, refreshKey }: ChapterViewProps & { chapterId: string }) {
   const api = useApi();
-  const reaperStatus = useReaperStatus();
-  const [searchParams] = useSearchParams();
-
   const [chapter, setChapter] = useState<ManuscriptChapter>();
   const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
-  const [trackItems, setTrackItems] = useState<TrackItem[]>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
-  const [peaks, setPeaks] = useState<WorkspacePeaksResult>();
   const [loadError, setLoadError] = useState('');
   const [coverage, setCoverage] = useState<CoverageState>({ phase: 'idle', percent: 0, message: '' });
   const [checking, setChecking] = useState(false);
-  const [selectedFlagIndex, setSelectedFlagIndex] = useState<number>();
-  const [findings, setFindings] = useState<Finding[]>([]);
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
-  // The effect the narrator is confirming for a passage or the chapter's track.
-  const [fxRequest, setFxRequest] = useState<FxRequest>();
-  const [takesDetail, setTakesDetail] = useState<HTMLElement | null>(null);
+  const [reload, setReload] = useState(0);
 
   // The last completed comparison, offered for review without running again (it needs no linked project file).
   useEffect(() => {
@@ -101,40 +70,21 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   useEffect(() => api.subscribeCoverage(setCoverage), [api]);
 
-  const loadAlignment = useCallback(() => {
+  // The check's state for the header; read again after Check again closes.
+  useEffect(() => {
     api
       .workspaceAlignment(chapterId)
       .then(setAlignment)
       .catch((reason: unknown) => setLoadError(String(reason)));
-    // The waveform strip's peaks: loaded alongside the alignment, since a
-    // re-check that changes the chapter's items should refresh both. A failure here never blocks the rest of the
-    // page - the strip just shows nothing until it succeeds.
-    api
-      .workspacePeaks(chapterId)
-      .then(setPeaks)
-      .catch(() => undefined);
-  }, [api, chapterId]);
-
-  // Chapter findings for the text overlay: read fresh whenever the chapter
-  // changes, or after a decision made here (below) so the flag it backs shows its new status straight away. A
-  // failure here never blocks the page - the check-derived flags still show with nothing lost.
-  const loadFindings = useCallback(() => {
-    api
-      .findingsList({ chapterId })
-      .then((page) => setFindings(page.findings))
-      .catch(() => undefined);
-  }, [api, chapterId]);
-  useEffect(loadFindings, [loadFindings]);
+  }, [api, chapterId, reload]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.manuscriptChapters(), api.chapterTrackMapList(), api.tracksList()])
-      .then(([chapters, mapping, project]) => {
+    Promise.all([api.manuscriptChapters(), api.chapterTrackMapList()])
+      .then(([chapters, mapping]) => {
         if (!active) return;
         setChapter(chapters.find((candidate) => candidate.id === chapterId));
-        const trackGuid = mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid;
-        setLinkedTrackGuid(trackGuid);
-        setTrackItems(project.tracks.find((track) => track.guid === trackGuid)?.items ?? []);
+        setLinkedTrackGuid(mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid);
       })
       .catch((reason: unknown) => {
         if (active) setLoadError(String(reason));
@@ -144,151 +94,13 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     };
   }, [api, chapterId]);
 
-  useEffect(loadAlignment, [loadAlignment]);
-
-  const playlist = useMemo(() => buildPlaylist(trackItems ?? []), [trackItems]);
-  const player = useChapterPlayback(playlist, api.mediaUrl);
-
-  const tokenIndexByItem = useMemo(() => buildTokenIndex(alignment?.tokens ?? []), [alignment?.tokens]);
-  const currentToken = currentTokenIndex(tokenIndexByItem, alignment?.items ?? [], player.currentItemGuid, player.currentSourceTime);
-  const checkFlags = useMemo(() => buildFlags(alignment?.tokens ?? [], alignment?.extras ?? []), [alignment?.tokens, alignment?.extras]);
-  // The compare run's results for this chapter: the live run's once it succeeds, or the last completed one while the
-  // narrator reviews it. A run covers the selected REAPER audio, so rows for other chapters are left out here.
+  // How many of the compare run's results are this chapter's: the live run's once it succeeds, or the last completed one while the
+  // narrator reviews it. A run covers the selected REAPER audio, so rows for other chapters are left out.
   const compareResults = reviewingLast ? lastCompleted : transcript.phase === 'success' ? transcript : undefined;
-  const compareRows = useMemo<Discrepancy[]>(
-    () => (chapter ? (compareResults?.rows ?? []).filter((row) => row.chapter === chapter.title) : []),
+  const foundHere = useMemo(
+    () => (chapter ? (compareResults?.rows ?? []).filter((row) => row.chapter === chapter.title).length : 0),
     [compareResults?.rows, chapter],
   );
-  const flags = useMemo(
-    () =>
-      overlayDiscrepancies(
-        overlayFindings(checkFlags, findings, alignment?.items ?? [], alignment?.tokens ?? []),
-        compareRows,
-        alignment?.tokens ?? [],
-        chapter?.paragraphIds ?? [],
-      ),
-    [checkFlags, findings, alignment?.items, alignment?.tokens, compareRows, chapter?.paragraphIds],
-  );
-  const compareActions: CompareFlagActions = {
-    canJump: dawFileLinked,
-    jump: (row) => void api.transcriptJump(row.id).catch((error) => notify(describeApiError(error), 'error')),
-    addEquivalence: (row) =>
-      void api.transcriptAddEquivalence(row.id).then(
-        (message) => notify(message),
-        (error) => notify(describeApiError(error), 'error'),
-      ),
-    showInManuscript: (row) => goToManuscript(row.chapter || '', row.paragraph || 0),
-  };
-  const reaper = useWorkspaceReaper(chapterId, currentToken, alignment?.tokens ?? []);
-
-  const seekToken = useCallback(
-    (token: WorkspaceToken) => {
-      const target = seekTargetForToken(token, alignment?.items ?? [], PRE_ROLL_SECONDS);
-      if (!target) return;
-      player.seekToSource(target.itemGuid, target.sourceTime);
-      if (!player.isPlaying) player.play();
-    },
-    [alignment?.items, player],
-  );
-
-  // ?t=<seconds> (a deep link to a word, App Navigation "Navigation and deep links"): seek once the playlist is
-  // ready, then forget it - a later reload of the same URL should not keep pinning playback there.
-  const appliedDeepLinkRef = useRef(false);
-  useEffect(() => {
-    if (appliedDeepLinkRef.current || playlist.length === 0) return;
-    const seconds = Number(searchParams.get('t'));
-    if (Number.isFinite(seconds) && seconds >= 0) player.seekToElapsed(seconds);
-    appliedDeepLinkRef.current = true;
-    // player is stable across renders (its identity comes from useChapterPlayback's own refs/state, not this
-    // effect's business), and re-running this on every player change would re-seek on every playback tick.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playlist.length, searchParams]);
-
-  const selectFlag = useCallback(
-    (index: number) => {
-      setSelectedFlagIndex(index);
-      const flag = flags[index];
-      if (flag?.seekTokenIndex !== undefined) seekToken(alignment!.tokens[flag.seekTokenIndex]);
-    },
-    [flags, alignment, seekToken],
-  );
-
-  // ?finding=<id> ("Open in workspace" from Proof's notes, the Production board and Script):
-  // selects the flag that finding backs and seeks the app player to it, once its flag exists - a finding whose
-  // overlay flag isn't ready yet on the first render (findings and the alignment load separately) is retried on
-  // every render until it is, then forgotten so a later selection by hand is never fought.
-  const appliedFindingLinkRef = useRef(false);
-  useEffect(() => {
-    if (appliedFindingLinkRef.current) return;
-    const findingId = searchParams.get('finding');
-    if (!findingId) {
-      appliedFindingLinkRef.current = true;
-      return;
-    }
-    const index = flags.findIndex((flag) => flag.findingId === findingId);
-    if (index === -1) return;
-    appliedFindingLinkRef.current = true;
-    selectFlag(index);
-  }, [flags, searchParams, selectFlag]);
-
-  const stepWord = useCallback(
-    (direction: -1 | 1) => {
-      const tokens = alignment?.tokens ?? [];
-      const timed = tokens.filter((token) => token.start !== undefined);
-      if (timed.length === 0) return;
-      const from = currentToken;
-      const candidates =
-        direction === 1
-          ? timed.filter((token) => from === undefined || token.i > from)
-          : [...timed].reverse().filter((token) => from !== undefined && token.i < from);
-      const next = candidates[0] ?? (direction === -1 ? timed[timed.length - 1] : undefined);
-      if (next) seekToken(next);
-    },
-    [alignment?.tokens, currentToken, seekToken],
-  );
-
-  const stepParagraph = useCallback(
-    (direction: -1 | 1) => {
-      const paragraphs = alignment?.paragraphs ?? [];
-      const currentParagraphId = alignment?.tokens.find((token) => token.i === currentToken)?.p;
-      const index = paragraphs.findIndex((paragraph) => paragraph.id === currentParagraphId);
-      const nextIndex = Math.max(0, Math.min(paragraphs.length - 1, (index === -1 ? 0 : index) + direction));
-      const nextParagraph = paragraphs[nextIndex];
-      const firstTimedToken = alignment?.tokens.find((token) => token.p === nextParagraph?.id && token.start !== undefined);
-      if (firstTimedToken) seekToken(firstTimedToken);
-    },
-    [alignment?.paragraphs, alignment?.tokens, currentToken, seekToken],
-  );
-
-  // A flag's decision: the same findingsReview binding the Review page uses, so a decision made here shows
-  // there too (and the other way round - loadFindings re-reads the store, picking up a decision made elsewhere since
-  // this page was opened). The evidence version and finding id come from the flag itself (set by overlayFindings from
-  // the finding it was built from), never guessed.
-  const decideFlag = useCallback(
-    async (flag: Flag, status: FindingReviewStatus, note: string): Promise<FlagDecisionResult> => {
-      if (!flag.findingId) return { ok: false, message: 'This flag has no finding to decide on.' };
-      try {
-        await api.findingsReview({ id: flag.findingId, evidenceVersion: flag.evidenceVersion ?? '', status, note });
-        loadFindings();
-        return { ok: true };
-      } catch (error) {
-        return { ok: false, message: apiErrorMessage(error) };
-      }
-    },
-    [api, loadFindings],
-  );
-
-  // workspace.* page commands, replacing the old window `keydown`
-  // listener: the registry (src/input/) applies the "not while typing" and modifier rules once, in one place,
-  // instead of this page repeating them. `workspace.play` is `noisy: true` in the catalog (silenced while the DAW
-  // records, by LiveCommandRouter).
-  useCommand('workspace.play', () => player.togglePlay());
-  useCommand('workspace.word.prev', () => stepWord(-1));
-  useCommand('workspace.word.next', () => stepWord(1));
-  useCommand('workspace.paragraph.prev', () => stepParagraph(-1));
-  useCommand('workspace.paragraph.next', () => stepParagraph(1));
-  useCommand('workspace.flag.prev', () => selectFlag(Math.max(0, (selectedFlagIndex ?? 0) - 1)));
-  useCommand('workspace.flag.next', () => selectFlag(selectedFlagIndex === undefined ? 0 : Math.min(flags.length - 1, selectedFlagIndex + 1)));
 
   let content: ReactNode;
   if (loadError) {
@@ -319,7 +131,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         </div>
         {alignment?.needsAlignAgain && (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            This chapter was last checked before the app could read its word alignment. Run Check again to see flags and word-by-word playback.
+            This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.
           </p>
         )}
         {!linkedTrackGuid && (
@@ -333,73 +145,11 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         {alignment?.state === 'never' && (
           <Panel>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              This chapter hasn&rsquo;t been checked yet. Run Check recording to see its script, follow along, and see any flags.
+              This chapter hasn&rsquo;t been checked yet. Run Check recording to see what was heard against the script.
             </p>
           </Panel>
         )}
         <NativeTakesPanel chapter={chapter} />
-        {alignment && alignment.state !== 'never' && (
-          <WaveformStrip
-            playlist={playlist}
-            alignmentItems={alignment.items}
-            peaks={peaks}
-            tokens={alignment.tokens}
-            flags={flags}
-            elapsed={player.elapsed}
-            duration={player.duration}
-            onSelectFlag={selectFlag}
-          />
-        )}
-        {alignment && alignment.state !== 'never' && <TransportBar player={player} reaper={reaper} />}
-        {alignment && (alignment.state !== 'never' || flags.length > 0) && (
-          <div className={alignment.state !== 'never' ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_22rem]' : 'max-w-md'}>
-            {alignment.state !== 'never' && (
-              <ScriptView
-                paragraphs={alignment.paragraphs}
-                tokens={alignment.tokens}
-                extras={alignment.extras}
-                currentTokenIndex={currentToken}
-                isPlaying={player.isPlaying}
-                onSeekToken={seekToken}
-                effects={{
-                  blocked:
-                    reaperStatus.status === undefined
-                      ? 'Checking whether REAPER is connected…'
-                      : reaperStatus.status.connection === 'connected'
-                        ? undefined
-                        : reaperStatus.status.message,
-                  onRequest: setFxRequest,
-                }}
-              />
-            )}
-            <div className="flex min-w-0 flex-col gap-4">
-              {alignment.state !== 'never' && (
-                <TakesPanel
-                  chapterId={chapterId}
-                  alignment={alignment}
-                  currentToken={currentToken}
-                  findings={findings}
-                  reaper={reaperStatus.status}
-                  onReaperStatusChange={reaperStatus.refresh}
-                  onFindingsChanged={loadFindings}
-                  detailTarget={takesDetail}
-                />
-              )}
-              <FlagsPanel
-                flags={flags}
-                tokens={alignment.tokens}
-                selectedIndex={selectedFlagIndex}
-                onSelect={selectFlag}
-                onPlayFromFlag={(flag: Flag) => flag.seekTokenIndex !== undefined && seekToken(alignment.tokens[flag.seekTokenIndex])}
-                reaper={reaper}
-                onDecide={decideFlag}
-                compare={compareRows.length > 0 ? compareActions : undefined}
-              />
-            </div>
-          </div>
-        )}
-        {/* The Takes panel's full comparison (words and audio measurements side by side) is drawn here, wider than its column. */}
-        <div ref={setTakesDetail} />
         <CompareRun
           chapterTitle={chapterName(chapter, 'short')}
           state={transcript}
@@ -407,15 +157,9 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           dawFileLinked={dawFileLinked}
           lastCompleted={lastCompleted}
           reviewingLast={reviewingLast}
-          onReviewLast={() => {
-            setSelectedFlagIndex(undefined);
-            setReviewingLast(true);
-          }}
-          onCloseLast={() => {
-            setSelectedFlagIndex(undefined);
-            setReviewingLast(false);
-          }}
-          foundHere={compareRows.length}
+          onReviewLast={() => setReviewingLast(true)}
+          onCloseLast={() => setReviewingLast(false)}
+          foundHere={foundHere}
         />
         <PreviewPanel notify={notify} goToManuscript={goToManuscript} />
         <ProofingStagePanel
@@ -424,24 +168,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           goToManuscript={goToManuscript}
           refreshKey={refreshKey}
           onStatusChanged={(status) => setChapter((current) => (current ? { ...current, status } : current))}
-          onOpenFinding={(findingId) => {
-            const index = flags.findIndex((flag) => flag.findingId === findingId);
-            if (index !== -1) selectFlag(index);
-          }}
+          onOpenFinding={(findingId) => goToEditing(chapterId, findingId)}
         />
-        {fxRequest && (
-          <ApplyFxDialog
-            chapterId={chapterId}
-            request={fxRequest}
-            onClose={() => setFxRequest(undefined)}
-            onDone={(message) => {
-              setFxRequest(undefined);
-              notify(message);
-              void reaperStatus.refresh();
-              loadAlignment();
-            }}
-          />
-        )}
         {checking && (
           <RecordingCheck
             chapter={chapter}
@@ -449,12 +177,9 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
             notify={notify}
             close={() => {
               setChecking(false);
-              loadAlignment();
+              setReload((n) => n + 1);
             }}
-            goToParagraph={(index) => {
-              const targetId = chapter.paragraphIds?.find((entry) => entry.index === index)?.id;
-              if (targetId) document.getElementById(`workspace-paragraph-${targetId}`)?.scrollIntoView?.({ block: 'center' });
-            }}
+            goToParagraph={(index) => goToManuscript(chapterId, index)}
           />
         )}
       </div>

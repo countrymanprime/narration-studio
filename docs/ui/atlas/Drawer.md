@@ -15,4 +15,4 @@ Storybook title: `Editing/Drawer`. Source: `src/components/editing/drawer/Drawer
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/editing/page/EditingBody.tsx`

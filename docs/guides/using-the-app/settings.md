@@ -133,7 +133,7 @@ The settings under it:
 - **Experimental REAPER actions** (off by default): the DAW actions not yet verified in REAPER stay
   refused while it is off, unless you set that action's own row below to `on`; while it is on, every one left on
   `auto` is allowed.
-- **Favourite effects (FX chains and plug-ins)**: the effects [Proof](proof.md#adding-an-effect-to-a-passage)
+- **Favourite effects (FX chains and plug-ins)**: the effects [Editing](editing.md#effects-on-words)
   offers first.
 - One row per DAW action (`auto`, `on` or `off`), such as **Record**, **Punch and roll** or **Chapter
   regions**.
