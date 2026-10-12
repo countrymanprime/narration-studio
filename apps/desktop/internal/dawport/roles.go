@@ -351,9 +351,12 @@ type CutMode string
 const (
 	// CutClose moves the audio after the cut up to close the gap.
 	CutClose CutMode = "close"
-	// CutGap keeps the length, filling the cut with room tone.
+	// CutGap keeps the length: silence, or room tone where the request asks for it and the engine has some.
 	CutGap CutMode = "gap"
 )
+
+// MaxCutPadMs is the most a cut leaves uncut at each end of its range.
+const MaxCutPadMs = 500
 
 // RangeRequest is a stretch of words in a chapter's recording: the audio from Start to End seconds (snapped to a zero crossing) of
 // the item the words sit in.
@@ -369,11 +372,24 @@ type RangeRequest struct {
 	Words int
 }
 
-// DeleteRangeRequest cuts a range's words and audio.
+// DeleteRangeRequest cuts a range's words and audio. PadMs (0 to MaxCutPadMs) cuts that much less at each end of the range.
+// RoomTone (CutGap only) fills the gap with the chapter's room tone instead of silence; an engine with none refuses and cuts
+// nothing.
 type DeleteRangeRequest struct {
 	RangeRequest
-	Mode   CutMode
-	FadeMs int
+	Mode     CutMode
+	FadeMs   int
+	PadMs    int
+	RoomTone bool
+}
+
+// Padded is the request's range with PadMs taken off each end, and false when the pad leaves nothing of it, for an engine
+// that cuts the times it is given.
+func (r DeleteRangeRequest) Padded() (RangeRequest, bool) {
+	pad := float64(r.PadMs) / 1000
+	padded := r.RangeRequest
+	padded.Start, padded.End = r.Start+pad, r.End-pad
+	return padded, padded.End > padded.Start
 }
 
 // FXRangeRequest puts one of the engine's own saved chains, effects or macros on a range. ChainID and ChainName are as the engine

@@ -1019,3 +1019,28 @@ func TestStackTakesIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) 
 		t.Errorf("a refused stack wrote %d commands", n)
 	}
 }
+
+// SN-E97: the pad and the room tone go after the fade, and a script older than them, which refuses the field as a fade and
+// cuts nothing, is answered with a sentence that says to import it again.
+func TestDeleteRangeSendsThePadAndRoomToneAndAnswersAnOlderScript(t *testing.T) {
+	var sent []string
+	cut := rangeCutterAnswering(t, func(command []string) [][]string {
+		sent = command
+		return [][]string{{"RANGE_CUT", command[1], cutItem, "{00000009-0000-4000-8000-000000000009}", "1"}}
+	})
+	request := cutRequest(2, dawport.CutGap)
+	request.PadMs, request.RoomTone = 100, true
+	if got, err := cut.DeleteRange(t.Context(), request); err != nil || !got.OK {
+		t.Fatalf("DeleteRange = %+v, %v", got, err)
+	}
+	if want := []string{"delete_range", cutItem, "14.000000", "16.000000", "gap", "10", "0.100000", "1"}; !reflect.DeepEqual(append([]string{sent[0]}, sent[2:]...), want) {
+		t.Errorf("command = %v, want %v after the run", sent, want)
+	}
+
+	older := rangeCutterAnswering(t, func(command []string) [][]string {
+		return [][]string{{"ERROR", command[1], "The fade must be a whole number of milliseconds from 0 to 500."}}
+	})
+	if got, err := older.DeleteRange(t.Context(), request); err != nil || !reflect.DeepEqual(got, dawport.Refused(messageCutScriptOutdated)) {
+		t.Errorf("an older script: DeleteRange = %+v, %v; want Refused(%q)", got, err, messageCutScriptOutdated)
+	}
+}

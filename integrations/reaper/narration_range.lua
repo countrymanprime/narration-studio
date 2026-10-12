@@ -20,6 +20,21 @@
 -- Answers RANGE_CUT|run|leftItemGuid|cutItemGuid|undoPoints: leftItemGuid is empty when the cut starts at the item's
 -- start (the cut piece is then the item itself).
 --
+-- Two arguments follow fade_ms (SN-E97); omitted or empty, the command does what it did before them. pad (seconds, 0 to
+-- 0.5) cuts that much less at each end of the range, so the cut is start + pad to end - pad. room_tone ('1'; gap mode only)
+-- fills the gap the cut leaves with the chapter's room tone instead of silence: the first region named "Room tone" (any
+-- case) that lies inside one item on the cut item's track and clear of the cut. Copies of that stretch, each a new item
+-- whose take opens the same file the marked item plays (a path read from the project, never sent by the host), are laid
+-- end to end across the gap with the seam fade at each edge and P_EXT:narration_utils_room_tone set, in the same undo block.
+-- With no such region, the command refuses and cuts nothing. The answer is RANGE_CUT as above.
+--
+-- The bridge splits a command line into at most eight fields and the last keeps the rest, so pad and room_tone arrive in
+-- the fade's field as fade|pad|room_tone. The host sends them only when it asks for either, so a script older than them
+-- reads that field as a fade that is not a number and refuses, cutting nothing, rather than cutting without them.
+--
+-- Not run in REAPER (pending the QA pass, #1495): whether a take on a new item plays a source opened from the same file
+-- at the offset set, and whether the room-tone items are in the cut's one undo step.
+--
 -- apply_fx_range(run, item_guid, start, end, chain, fade_ms) puts one of the narrator's saved chains on start..end of the
 -- item. `chain` is a name as list_fx_chains (narration_workspace.lua) lists it: plain folder and file names under
 -- <resource path>/FXChains joined by '/', at most four parts, ending .RfxChain. A name with a control character, a
@@ -64,6 +79,15 @@ local BAD_RANGE = 'The range to cut is not a usable pair of times.'
 local OUTSIDE = 'The range to cut is not inside that item.'
 local BAD_FADE = 'The fade must be a whole number of milliseconds from 0 to 500.'
 local RECORDING = 'REAPER is recording. Stop recording first.'
+
+local MAX_PAD = 0.5
+-- The item P_EXT key a room-tone piece carries, the region name that marks the room tone, and the most pieces one gap
+-- takes: a stretch so short that the gap needs more is refused rather than laid as hundreds of items.
+local ROOM_TONE_KEY = 'P_EXT:narration_utils_room_tone'
+local ROOM_TONE_REGION = 'room tone'
+local MAX_ROOM_TONE_PIECES = 64
+local BAD_PAD = 'The pad must be from 0 to 500 milliseconds.'
+local NO_ROOM_TONE = 'This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.'
 
 local UNDO_ADD_CHAIN = 'Narration Utils: add chain to range'
 local UNDO_REMOVE_CHAIN = 'Narration Utils: remove chain from range'
@@ -183,7 +207,107 @@ local function items_from(track, item, time)
   return out
 end
 
-local function delete_range(session_dir, run_id, guid_text, start_text, end_text, mode, fade_text)
+-- The pad in seconds: 0 when omitted or empty, nil when it is not a number from 0 to MAX_PAD.
+local function pad_from(text)
+  if text == nil or text == '' then
+    return 0
+  end
+  local value = finite(text)
+  if not value or value < 0 or value > MAX_PAD + EDGE_TOLERANCE then
+    return nil
+  end
+  return value
+end
+
+-- The room tone for a cut of first..last on track: the first region named Room tone that lies inside one audio item on the
+-- track, as { file, offset, rate, length }, or nil and the sentence to refuse with. Reads only.
+local function find_room_tone(track, first, last)
+  local index, overlaps = 0, false
+  while true do
+    local found, is_region, start, ends, name = reaper.EnumProjectMarkers3(0, index)
+    if not found or found == 0 then
+      break
+    end
+    index = index + 1
+    local label = tostring(name or ''):lower():gsub('^%s+', ''):gsub('%s+$', '')
+    if is_region and label == ROOM_TONE_REGION and ends - start > EDGE_TOLERANCE then
+      if start < last - EDGE_TOLERANCE and ends > first + EDGE_TOLERANCE then
+        overlaps = true
+      else
+        for slot = 0, reaper.CountTrackMediaItems(track) - 1 do
+          local item = reaper.GetTrackMediaItem(track, slot)
+          local position = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+          local item_end = position + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+          local take = reaper.GetActiveTake(item)
+          if take and not reaper.TakeIsMIDI(take) and start >= position - EDGE_TOLERANCE and ends <= item_end + EDGE_TOLERANCE then
+            local rate = reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE')
+            return {
+              file = reaper.GetMediaSourceFileName(reaper.GetMediaItemTake_Source(take), ''),
+              offset = reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS') + (start - position) * rate,
+              rate = rate,
+              length = ends - start,
+            }
+          end
+        end
+      end
+    end
+  end
+  if overlaps then
+    return nil, 'The room tone region overlaps the words to cut. Mark room tone elsewhere on the track.'
+  end
+  return nil, NO_ROOM_TONE
+end
+
+-- The pieces of room tone a gap of first..last takes, as { position, length }, or nil when it needs more than
+-- MAX_ROOM_TONE_PIECES.
+local function room_tone_spans(tone, first, last)
+  local spans, at = {}, first
+  while last - at > EDGE_TOLERANCE do
+    if #spans == MAX_ROOM_TONE_PIECES then
+      return nil
+    end
+    spans[#spans + 1] = { at, math.min(tone.length, last - at) }
+    at = at + tone.length
+  end
+  return spans
+end
+
+-- One source per piece, opened from the room tone's file before any change: a take owns its source. nil, having let go of
+-- every source it opened, when REAPER cannot open one.
+local function open_sources(tone, count)
+  local sources = {}
+  for index = 1, count do
+    local source = reaper.PCM_Source_CreateFromFile(tone.file)
+    if not source then
+      for _, opened in ipairs(sources) do
+        reaper.PCM_Source_Destroy(opened)
+      end
+      return nil
+    end
+    sources[index] = source
+  end
+  return sources
+end
+
+-- Inside the undo block: a room-tone item per span on track, each playing its source from the room tone's offset.
+local function lay_room_tone(track, tone, spans, sources, fade)
+  for index, at in ipairs(spans) do
+    local piece = reaper.AddMediaItemToTrack(track)
+    reaper.SetMediaItemInfo_Value(piece, 'D_POSITION', at[1])
+    reaper.SetMediaItemInfo_Value(piece, 'D_LENGTH', at[2])
+    local take = reaper.AddTakeToMediaItem(piece)
+    reaper.SetMediaItemTake_Source(take, sources[index])
+    reaper.SetMediaItemTakeInfo_Value(take, 'D_STARTOFFS', tone.offset)
+    if tone.rate ~= 1 then
+      reaper.SetMediaItemTakeInfo_Value(take, 'D_PLAYRATE', tone.rate)
+    end
+    reaper.SetMediaItemInfo_Value(piece, 'D_FADEINLEN', math.min(fade, at[2] / 2))
+    reaper.SetMediaItemInfo_Value(piece, 'D_FADEOUTLEN', math.min(fade, at[2] / 2))
+    reaper.GetSetMediaItemInfo_String(piece, ROOM_TONE_KEY, '1', true)
+  end
+end
+
+local function delete_range(session_dir, run_id, guid_text, start_text, end_text, mode, fade_text, pad_text, tone_text)
   local first_cut, last_cut = finite(start_text), finite(end_text)
   if not first_cut or not last_cut or last_cut - first_cut <= EDGE_TOLERANCE then
     event(session_dir, 'ERROR', run_id, BAD_RANGE)
@@ -198,6 +322,20 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
     event(session_dir, 'ERROR', run_id, 'The fade must be a whole number of milliseconds from 0 to 500.')
     return
   end
+  local pad = pad_from(pad_text)
+  if not pad then
+    event(session_dir, 'ERROR', run_id, BAD_PAD)
+    return
+  end
+  if tone_text ~= nil and tone_text ~= '' and tone_text ~= '0' and tone_text ~= '1' then
+    event(session_dir, 'ERROR', run_id, 'The room tone choice must be 0 or 1.')
+    return
+  end
+  local with_tone = tone_text == '1'
+  if with_tone and mode ~= 'gap' then
+    event(session_dir, 'ERROR', run_id, 'Room tone fills a gap that keeps its length, so it needs the gap mode.')
+    return
+  end
   if recording() then
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
     return
@@ -207,6 +345,15 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
     if not reaper.APIExists(name) then
       event(session_dir, 'ERROR', run_id, 'This REAPER version cannot cut words and their audio.')
       return
+    end
+  end
+  if with_tone then
+    local tone_needed = { 'EnumProjectMarkers3', 'AddMediaItemToTrack', 'AddTakeToMediaItem', 'PCM_Source_CreateFromFile', 'SetMediaItemTake_Source' }
+    for _, api in ipairs(tone_needed) do
+      if not reaper.APIExists(api) then
+        event(session_dir, 'ERROR', run_id, 'This REAPER version cannot fill a cut with room tone.')
+        return
+      end
     end
   end
   local wanted = normalize_guid(guid_text)
@@ -227,6 +374,11 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
     event(session_dir, 'ERROR', run_id, OUTSIDE)
     return
   end
+  first_cut, last_cut = first_cut + pad, last_cut - pad
+  if last_cut - first_cut <= EDGE_TOLERANCE then
+    event(session_dir, 'ERROR', run_id, 'The pad leaves nothing to cut.')
+    return
+  end
   local split_start = first_cut - first > EDGE_TOLERANCE
   local split_end = last - last_cut > EDGE_TOLERANCE
   if not split_start then
@@ -238,6 +390,25 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
   if overlapping(track, item, first_cut, last_cut) then
     event(session_dir, 'ERROR', run_id, 'Another item on the track overlaps the range to cut, so nothing was cut.')
     return
+  end
+  local tone, spans, sources = nil, {}, {}
+  if with_tone then
+    local refusal
+    tone, refusal = find_room_tone(track, first_cut, last_cut)
+    if not tone then
+      event(session_dir, 'ERROR', run_id, refusal)
+      return
+    end
+    spans = room_tone_spans(tone, first_cut, last_cut)
+    if not spans then
+      event(session_dir, 'ERROR', run_id, 'The marked room tone is too short to fill that gap.')
+      return
+    end
+    sources = open_sources(tone, #spans)
+    if not sources then
+      event(session_dir, 'ERROR', run_id, 'REAPER could not open the room tone audio.')
+      return
+    end
   end
   local length = last_cut - first_cut
   local later = mode == 'close' and items_from(track, item, last_cut) or {}
@@ -261,9 +432,25 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
   for _, moved in ipairs(later) do
     reaper.SetMediaItemInfo_Value(moved, 'D_POSITION', reaper.GetMediaItemInfo_Value(moved, 'D_POSITION') - length)
   end
+  if tone then
+    lay_room_tone(track, tone, spans, sources, fade)
+  end
   reaper.Undo_EndBlock2(0, UNDO_DELETE_WORDS, -1)
   reaper.UpdateArrange()
   event(session_dir, 'RANGE_CUT', run_id, left and item_guid(left) or '', item_guid(middle), 1)
+end
+
+-- delete_range's last field: fade_ms, or fade_ms|pad|room_tone. More parts than that leave the whole field as the fade,
+-- which then refuses.
+local function cut_tail(field)
+  local parts = {}
+  for part in ((field or '') .. '|'):gmatch('(.-)|') do
+    parts[#parts + 1] = part
+  end
+  if #parts > 3 then
+    return field
+  end
+  return parts[1], parts[2], parts[3]
 end
 
 -- The parts of a name list_fx_chains could list, or nil. Pure Lua: it runs before any REAPER call.
@@ -602,7 +789,8 @@ end
 
 return function(registry)
   registry.register('delete_range', function(ctx, args)
-    delete_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5], args[6])
+    local fade, pad, tone = cut_tail(args[6])
+    delete_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5], fade, pad, tone)
   end)
   registry.register('apply_fx_range', function(ctx, args)
     apply_fx_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5] or '', args[6])

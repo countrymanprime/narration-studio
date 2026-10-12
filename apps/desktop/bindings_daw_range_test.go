@@ -82,7 +82,7 @@ func TestDawDeleteRangeSendsTheResolvedItemAndSecondsAndAnswersADawResult(t *tes
 		role := &fakeRangeCutter{answer: cutInREAPER()}
 		host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
 
-		got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, string(mode), 12))
+		got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, string(mode), 12, 0, false))
 
 		if !reflect.DeepEqual(got, cutInREAPER()) {
 			t.Fatalf("%s: DawDeleteRange = %+v, want %+v", mode, got, cutInREAPER())
@@ -120,7 +120,7 @@ func TestDawDeleteRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing
 				t.Fatalf("cut_range support = %+v, want reason %s", support, c.reason)
 			}
 
-			got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0))
+			got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false))
 
 			if !reflect.DeepEqual(got, dawport.Refused(support.Message)) || len(role.cut) != 0 {
 				t.Fatalf("DawDeleteRange = %+v, sent %v; want Refused(%q) and nothing sent", got, role.cut, support.Message)
@@ -134,7 +134,7 @@ func TestDawDeleteRangeAnswersAnEnginesOwnCutRangeReason(t *testing.T) {
 	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "on")
 	support := dawport.Support{Message: "Turn on backups before cutting audio in Audacity."}
 	role := &fakeRangeCutter{answer: cutInREAPER()}
-	got, err := dawDeleteRangeIn(t.Context(), host.services(), support, role, host.editLog(), "c-0001", 0, 0, "close", 0)
+	got, err := dawDeleteRangeIn(t.Context(), host.services(), support, role, host.editLog(), "c-0001", 0, 0, "close", 0, 0, false)
 	if err != nil || !reflect.DeepEqual(got, dawport.Refused(support.Message)) || len(role.cut) != 0 {
 		t.Fatalf("got %+v, %v; sent %v", got, err, role.cut)
 	}
@@ -146,18 +146,18 @@ func TestDawDeleteRangeTakesAChapterTokensAModeAndAFadeOnly(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
 	for _, mode := range []string{"", "Close", "{ITEM-1}", "1.5", "C:/Projects/Alice/Alice.rpp", "delete"} {
-		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, mode, 0)); !reflect.DeepEqual(got, dawport.Refused(cutBadModeSentence)) {
+		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, mode, 0, 0, false)); !reflect.DeepEqual(got, dawport.Refused(cutBadModeSentence)) {
 			t.Errorf("mode %q: %+v", mode, got)
 		}
 	}
 	for _, fade := range []int{-1, 501} {
-		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "gap", fade)); !reflect.DeepEqual(got, dawport.Refused(cutBadFadeSentence)) {
+		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "gap", fade, 0, false)); !reflect.DeepEqual(got, dawport.Refused(cutBadFadeSentence)) {
 			t.Errorf("fade %d: %+v", fade, got)
 		}
 	}
 	// A chapter the manuscript does not have has no stored alignment, so its tokens are the stale refusal.
 	for _, id := range []string{"{ITEM-1}", "{TRACK-1}", "1.5", "C:/Projects/Alice/Alice.rpp"} {
-		if got := decodeDawResult(t)(host.DawDeleteRange(id, 0, 0, "close", 0)); got.OK || got.Code != dawport.CodeStale {
+		if got := decodeDawResult(t)(host.DawDeleteRange(id, 0, 0, "close", 0, 0, false)); got.OK || got.Code != dawport.CodeStale {
 			t.Errorf("DawDeleteRange(%q) = %+v, want a stale refusal", id, got)
 		}
 	}
@@ -165,7 +165,7 @@ func TestDawDeleteRangeTakesAChapterTokensAModeAndAFadeOnly(t *testing.T) {
 		t.Fatalf("sent %v", role.cut)
 	}
 	// The bridge refuses the same mode and fade in the same words, so either side reads alike.
-	if _, err := (&bridge.Actions{}).DeleteRange(t.Context(), "{ITEM-1}", 1, 2, "x", 0); !errors.Is(err, bridge.ErrBadRange) {
+	if _, err := (&bridge.Actions{}).DeleteRange(t.Context(), "{ITEM-1}", 1, 2, "x", 0, 0, false); !errors.Is(err, bridge.ErrBadRange) {
 		t.Fatalf("bridge mode check: %v", err)
 	}
 }
@@ -175,12 +175,12 @@ func TestDawDeleteRangeRefusesUnheardWordsAndAStaleRange(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
 
-	unheard := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 1, "close", 0))
+	unheard := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 1, "close", 0, 0, false))
 	if unheard.OK || unheard.Code != "" || unheard.Refused != "These words weren't heard in the recording, so there's no audio to cut. Run the check again if the chapter has changed." {
 		t.Fatalf("unheard = %+v", unheard)
 	}
 	for _, tokens := range [][2]int{{0, 2}, {1, 0}, {-1, 0}} {
-		stale := decodeDawResult(t)(host.DawDeleteRange("c-0001", tokens[0], tokens[1], "close", 0))
+		stale := decodeDawResult(t)(host.DawDeleteRange("c-0001", tokens[0], tokens[1], "close", 0, 0, false))
 		if stale.OK || stale.Changed || stale.Code != dawport.CodeStale {
 			t.Fatalf("tokens %v: %+v, want a stale refusal", tokens, stale)
 		}
@@ -202,7 +202,7 @@ func TestDawDeleteRangeOfWordsAlreadyCutChangesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0))
+	got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false))
 
 	if !reflect.DeepEqual(got, dawport.OK(cutAlreadyCutSentence, false)) || len(role.cut) != 0 {
 		t.Fatalf("DawDeleteRange = %+v, sent %v", got, role.cut)
@@ -214,18 +214,18 @@ func TestDawDeleteRangePassesOnTheRolesAnswers(t *testing.T) {
 	stale := dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again.")
 	role := &fakeRangeCutter{answer: stale}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
-	if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0)); !reflect.DeepEqual(got, stale) {
+	if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false)); !reflect.DeepEqual(got, stale) {
 		t.Fatalf("stale = %+v", got)
 	}
 	for _, err := range []error{bridge.ErrNoAnswer, bridge.ErrUnavailable, context.DeadlineExceeded, errors.New("boom")} {
 		failing := &fakeRangeCutter{err: err}
 		host := deleteRangeHost(t, "REAPER", liveReachability(), failing, "on")
-		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0)); got.OK || got.Refused == "" {
+		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false)); got.OK || got.Refused == "" {
 			t.Errorf("%v: %+v, want a refusal", err, got)
 		}
 	}
 	none := deleteRangeHost(t, "REAPER", liveReachability(), nil, "on")
-	if got := decodeDawResult(t)(none.DawDeleteRange("c-0001", 0, 0, "close", 0)); got.OK || got.Refused == "" {
+	if got := decodeDawResult(t)(none.DawDeleteRange("c-0001", 0, 0, "close", 0, 0, false)); got.OK || got.Refused == "" {
 		t.Fatalf("no role: %+v, want a refusal", got)
 	}
 }
@@ -248,7 +248,69 @@ func TestDawDeleteRangeContractGoldenIsCurrent(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeRangeCutter{answer: cutInREAPER()}
 			host := deleteRangeHost(t, "REAPER", liveReachability(), role, c.toggle)
-			contractfile.Check(t, name, decodeDawResult(t)(host.DawDeleteRange("c-0001", c.first, c.last, c.mode, 12)))
+			contractfile.Check(t, name, decodeDawResult(t)(host.DawDeleteRange("c-0001", c.first, c.last, c.mode, 12, 0, false)))
+		})
+	}
+}
+
+// SN-E97: the pad and the room tone reach the role as they were asked for; a pad outside 0 to 500 ms, room tone with "close", or
+// a pad that leaves nothing of the words is refused in delete_range's words with nothing sent. That Audacity takes the pad and
+// refuses room tone is dawport/audacity's TestDeleteRangeTakesThePadAndRefusesRoomTone; that REAPER lays it,
+// integrations/reaper/tests/range_test.lua.
+func TestDeleteRangeSendsPadAndRoomToneAndAudacityRefusesRoomTone(t *testing.T) {
+	role := &fakeRangeCutter{answer: cutInREAPER()}
+	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+	got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, "gap", 12, 100, true))
+	if !reflect.DeepEqual(got, cutInREAPER()) {
+		t.Fatalf("DawDeleteRange = %+v", got)
+	}
+	want := []dawport.DeleteRangeRequest{{
+		RangeRequest: dawport.RangeRequest{ChapterID: "c-0001", ItemGUID: "{ITEM-1}", Start: 1, End: 1.5, Words: 1},
+		Mode:         dawport.CutGap, FadeMs: 12, PadMs: 100, RoomTone: true,
+	}}
+	if !reflect.DeepEqual(role.cut, want) {
+		t.Fatalf("sent %+v, want %+v", role.cut, want)
+	}
+	role.cut = nil
+	for _, c := range []struct {
+		mode     string
+		pad      int
+		roomTone bool
+		want     string
+	}{
+		{"gap", -1, false, cutBadPadSentence},
+		{"gap", 501, false, cutBadPadSentence},
+		{"close", 0, true, cutRoomToneSentence},
+		{"gap", 250, false, cutPadAllSentence},
+	} {
+		if got := decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, c.mode, 0, c.pad, c.roomTone)); !reflect.DeepEqual(got, dawport.Refused(c.want)) {
+			t.Errorf("%+v: %+v, want Refused(%q)", c, got, c.want)
+		}
+	}
+	if len(role.cut) != 0 {
+		t.Fatalf("sent %v", role.cut)
+	}
+}
+
+// TestDawDeleteRangePadContractGoldenIsCurrent pins DawDeleteRange's answer with a pad and room tone: a padded gap cut filled
+// with room tone, the host's refusal of room tone for a cut that closes up, and the engine's refusal when the chapter has no
+// room tone. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-delete-range-pad*.json.
+func TestDawDeleteRangePadContractGoldenIsCurrent(t *testing.T) {
+	noRoomTone := dawport.Refused("This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.")
+	cases := map[string]struct {
+		mode   string
+		answer dawport.Result
+	}{
+		"daw-delete-range-pad-room-tone":            {"gap", cutInREAPER()},
+		"daw-delete-range-pad-refused-close":        {"close", cutInREAPER()},
+		"daw-delete-range-pad-refused-no-room-tone": {"gap", noRoomTone},
+	}
+	for _, name := range slices.Sorted(maps.Keys(cases)) {
+		c := cases[name]
+		t.Run(name, func(t *testing.T) {
+			role := &fakeRangeCutter{answer: c.answer}
+			host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")
+			contractfile.Check(t, name, decodeDawResult(t)(host.DawDeleteRange("c-0001", 0, 0, c.mode, 12, 100, true)))
 		})
 	}
 }

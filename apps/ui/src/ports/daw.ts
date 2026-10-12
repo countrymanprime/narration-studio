@@ -45,11 +45,22 @@ export type DawPickupMarker = PickupMarker & { ref?: string };
 export type DawPickupMarkersRead = DawResult & { markers: DawPickupMarker[] };
 
 /** A cut of the words between two tokens of a chapter's stored alignment (the Studio Next mock's `DeleteRangeRequest`, narrowed to what
- * the page may send: the host resolves the item, its times and the word count itself). `fadeMs` is the fade at each seam, 0 to 500. */
-export type DeleteRangeRequest = { chapterId: string; firstToken: number; lastToken: number; mode: DawCutMode; fadeMs: number };
+ * the page may send: the host resolves the item, its times and the word count itself). `fadeMs` is the fade at each seam, 0 to 500.
+ * `padMs` (0 to 500, none when left out) cuts that much less at each end; `roomTone` (mode `gap` only) fills the gap with the chapter's
+ * room tone instead of silence, which a DAW with none refuses, cutting nothing. */
+export type DeleteRangeRequest = {
+  chapterId: string;
+  firstToken: number;
+  lastToken: number;
+  mode: DawCutMode;
+  fadeMs: number;
+  padMs?: number;
+  roomTone?: boolean;
+};
 
-/** The longest fade at a cut's seam (bridge.MaxCutFadeMs). */
+/** The longest fade at a cut's seam (bridge.MaxCutFadeMs), and the most a cut leaves at each end (dawport.MaxCutPadMs). */
 const MAX_CUT_FADE_MS = 500;
+const MAX_CUT_PAD_MS = 500;
 
 /** One of the narrator's saved chains on the words between two tokens (the Studio Next mock's `FxRangeRequest`, narrowed as
  * `DeleteRangeRequest` is). `chainName` is a name `fxChains()` listed; `fadeMs` is the fade at each new seam, 0 to 500. */
@@ -310,7 +321,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     /** The binding answers a DawResult already: it looks up the track, checks `at` and holds the confirmation rule itself. */
     roll: (chapterId, at, opts) => api.dawRoll(chapterId, at, opts?.confirmed ?? false),
     /** The binding answers a DawResult already: it resolves the range to an item and its times on the host. */
-    deleteRange: ({ chapterId, firstToken, lastToken, mode, fadeMs }) => api.dawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs),
+    deleteRange: ({ chapterId, firstToken, lastToken, mode, fadeMs, padMs = 0, roomTone = false }) =>
+      api.dawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone),
     /** The bindings answer a DawResult already: they resolve the range on the host and check the chain against the DAW's list. */
     applyFxToRange: ({ chapterId, firstToken, lastToken, chainName, fadeMs }) => api.dawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs),
     removeFxFromRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName),
@@ -418,11 +430,13 @@ export function createMockDawClient(
       const rolled = rolledOf(setup, at);
       return done(true, rolled.undoSteps, rolled.message);
     },
-    async deleteRange({ chapterId, firstToken, lastToken, mode, fadeMs }) {
+    async deleteRange({ chapterId, firstToken, lastToken, mode, fadeMs, padMs = 0, roomTone = false }) {
       const sentence = unavailable(setup, 'cut_range', 'deleteRange');
       if (sentence) return refused(sentence, 'deleteRange');
       if (mode !== 'close' && mode !== 'gap') return refused(DAW_ANSWERS.cutBadMode, 'deleteRange');
       if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > MAX_CUT_FADE_MS) return refused(DAW_ANSWERS.cutBadFade, 'deleteRange');
+      if (!Number.isInteger(padMs) || padMs < 0 || padMs > MAX_CUT_PAD_MS) return refused(DAW_ANSWERS.cutBadPad, 'deleteRange');
+      if (roomTone && mode !== 'gap') return refused(DAW_ANSWERS.cutRoomToneNeedsGap, 'deleteRange');
       if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'deleteRange', true);
       const cut = rangeCutOf(setup, lastToken - firstToken + 1);
       return { ...done(true, cut.undoSteps, cut.message), ...(cut.steps ? { steps: cut.steps } : {}) };

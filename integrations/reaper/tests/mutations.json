@@ -1116,6 +1116,54 @@
     "replace": "    if false then"
   },
   {
+    "name": "delete_range: the pad is not taken off the range",
+    "file": "narration_range.lua",
+    "find": "  first_cut, last_cut = first_cut + pad, last_cut - pad\n",
+    "replace": ""
+  },
+  {
+    "name": "delete_range: a pad past 500 ms is accepted",
+    "file": "narration_range.lua",
+    "find": "value < 0 or value > MAX_PAD + EDGE_TOLERANCE",
+    "replace": "value < 0"
+  },
+  {
+    "name": "delete_range: room tone is asked for but the gap stays silent",
+    "file": "narration_range.lua",
+    "find": "  if tone then\n    lay_room_tone(track, tone, spans, sources, fade)\n  end\n",
+    "replace": ""
+  },
+  {
+    "name": "delete_range: room tone is laid after the undo block closes",
+    "file": "narration_range.lua",
+    "find": "  if tone then\n    lay_room_tone(track, tone, spans, sources, fade)\n  end\n  reaper.Undo_EndBlock2(0, UNDO_DELETE_WORDS, -1)\n",
+    "replace": "  reaper.Undo_EndBlock2(0, UNDO_DELETE_WORDS, -1)\n  if tone then\n    lay_room_tone(track, tone, spans, sources, fade)\n  end\n"
+  },
+  {
+    "name": "delete_range: a Room tone region over the words to cut is used",
+    "file": "narration_range.lua",
+    "find": "      if start < last - EDGE_TOLERANCE and ends > first + EDGE_TOLERANCE then\n        overlaps = true",
+    "replace": "      if false then\n        overlaps = true"
+  },
+  {
+    "name": "delete_range: a Room tone region over no audio on the track is used",
+    "file": "narration_range.lua",
+    "find": "start >= position - EDGE_TOLERANCE and ends <= item_end + EDGE_TOLERANCE then",
+    "replace": "true then"
+  },
+  {
+    "name": "delete_range: room tone is laid in close mode",
+    "file": "narration_range.lua",
+    "find": "  if with_tone and mode ~= 'gap' then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "delete_range: room tone has no cap on its pieces",
+    "file": "narration_range.lua",
+    "find": "    if #spans == MAX_ROOM_TONE_PIECES then",
+    "replace": "    if false then"
+  },
+  {
     "name": "apply_fx_range: a stale item GUID falls back to another item",
     "file": "narration_range.lua",
     "find": "    item = find_item(wanted)",

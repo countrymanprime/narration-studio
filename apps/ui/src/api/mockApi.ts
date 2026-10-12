@@ -537,16 +537,19 @@ function createMasterFilesMock(daw: DawCapabilitiesApi, lastRun: () => readonly 
   };
 }
 
-/** DawDeleteRange as bindings_daw_range.go answers it: the cut_range capability's sentence first, then the mode and the fade, then a
- * chapter the manuscript does not have or a range read backwards (code stale); then what the launch's DAW answers a cut. */
+/** DawDeleteRange as bindings_daw_range.go answers it: the cut_range capability's sentence first, then the mode, the fade, the pad and
+ * room tone with `close`, then a chapter the manuscript does not have or a range read backwards (code stale); then what the launch's DAW
+ * answers a cut. The mock's chapters have room tone marked. */
 function createDeleteRangeMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawDeleteRangeApi {
   return {
-    dawDeleteRange: async (chapterId, firstToken, lastToken, mode, fadeMs) => {
+    dawDeleteRange: async (chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone) => {
       const setup = await daw.dawCapabilities();
       const support = setup.capabilities.cut_range;
       if (!support?.available) return refusedResult(support?.message ?? '');
       if (mode !== 'close' && mode !== 'gap') return refusedResult(DAW_ANSWERS.cutBadMode);
       if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return refusedResult(DAW_ANSWERS.cutBadFade);
+      if (!Number.isInteger(padMs) || padMs < 0 || padMs > 500) return refusedResult(DAW_ANSWERS.cutBadPad);
+      if (roomTone && mode !== 'gap') return refusedResult(DAW_ANSWERS.cutRoomToneNeedsGap);
       if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { ...refusedResult(DAW_ANSWERS.rangeStale), code: 'stale' };
       const cut = rangeCutOf(setup, lastToken - firstToken + 1);
       return { ok: true, changed: true, message: cut.message, undoSteps: cut.undoSteps, ...(cut.steps ? { steps: cut.steps } : {}) };
