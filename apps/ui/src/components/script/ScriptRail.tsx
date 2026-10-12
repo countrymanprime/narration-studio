@@ -9,7 +9,7 @@ import { pronunciationStatusInfo } from '../storybible/pronunciationStatus';
 type RailTab = 'pronunciations' | 'characters' | 'queries';
 
 // A name in a rail list: plain text that opens the entry's Story Bible summary, the same shape as the reader rail's entries
-// (teleprompter/ReaderRail.tsx), which `Button`'s padded, uppercase chrome does not fit.
+// (the old Booth rail had the same), which `Button`'s padded, uppercase chrome does not fit.
 const NAME_BUTTON = 'text-left font-semibold text-[var(--text)] underline-offset-2 hover:underline';
 
 // The Script page's rail: Pronunciations, Characters and Queries

@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * The Companion's route (`/companion?chapter=<id>` or `?credits=opening`): the chapter rule of `BoothPage` without its
+ * The Companion's route (`/companion?chapter=<id>` or `?credits=opening`): the chapter rule of the old Booth page without its
  * picker. With neither in the address it reads the chapter a running session is on, else the last chapter read; an unknown
  * chapter sends the narrator to `/booth`.
  */

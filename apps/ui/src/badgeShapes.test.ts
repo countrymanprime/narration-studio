@@ -17,8 +17,8 @@ type Shape = 'chip' | 'dot' | 'tag';
 
 const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {
   // The Booth's control-bar chip (the start-point chip: a quoted sentence fragment with a nested clear button, which
-  // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip) and BuiltinRecorder's
-  // chip use `HeaderChip`/primitives and have no entry.
+  // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip)
+  // use `HeaderChip`/primitives and have no entry.
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
   // reuses this exact maroon (ADR 0656).
   // The Proof notes header's sources line and the legend's dots.

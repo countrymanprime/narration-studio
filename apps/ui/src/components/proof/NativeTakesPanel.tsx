@@ -18,7 +18,7 @@ function entityIdOf(lineId: string): string {
   return at <= 0 ? lineId : lineId.slice(0, at);
 }
 
-/** Plays one take at a time through the media route, like BuiltinRecorder's own take player. */
+/** Plays one take at a time through the media route. */
 function useTakePlayer() {
   const api = useApi();
   const audio = useRef<HTMLAudioElement | undefined>(undefined);

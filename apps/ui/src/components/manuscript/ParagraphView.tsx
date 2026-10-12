@@ -215,7 +215,7 @@ function ParagraphRow({
           <div className="mb-0.5">
             {/* speakerId is the resolved canonical name, not the entity id speakerLabelForParagraph already
                 discarded (dialogueCues.ts): the Booth's "Voices in scene" tags key off the same canonical name
-                (BoothView.tsx), so a speaker's colour still matches across both places. */}
+                (booth/page/BoothNextPage.tsx), so a speaker's colour still matches across both places. */}
             <SpeakerTag label={speakerLabel} speakerId={speakerLabel} />
           </div>
         )}

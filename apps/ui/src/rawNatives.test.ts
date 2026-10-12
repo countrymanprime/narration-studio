@@ -40,7 +40,7 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // fit. One JSX `<button>`, written once inside the chapters `.map()`.
     'src/components/script/ScriptChapterList.tsx': 1,
     // The Script rail's names: a name in a table cell or a list row that opens its Story Bible summary, the same
-    // case as ReaderRail.tsx's entries below. Two JSX `<button>`s, one inside the Pronunciations rows and one inside the
+    // case as the Booth rail's entries had. Two JSX `<button>`s, one inside the Pronunciations rows and one inside the
     // Characters rows.
     'src/components/script/ScriptRail.tsx': 2,
     // The click-to-seek word ("Start here" / "Go back to here"):

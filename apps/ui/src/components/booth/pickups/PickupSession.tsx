@@ -43,7 +43,7 @@ export function PickupSession({
                 data-pj={line.id}
                 aria-current={line.id === session.at ? 'true' : undefined}
                 onClick={() => session.jump(line.id)}
-                className={`min-w-0 flex-1 justify-start text-left ${line.done ? 'opacity-60' : ''}`}
+                className={`min-w-0 flex-1 justify-start text-left ${line.done ? 'text-[var(--text-muted)]' : ''}`}
               >
                 <span className="font-mono text-xs font-normal whitespace-nowrap normal-case">{rowLabel(line, chapterLabel)}</span>
                 <span className="min-w-0 flex-1 truncate font-normal normal-case">{line.script}</span>

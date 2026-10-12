@@ -100,7 +100,7 @@ export type UseTeleprompterSessionOptions = {
 
 /**
  * The reading session: host subscription, device and model choice, model-download prompt, start/stop and the rows the
- * reader shows. `BoothSession` is its one caller. Chapter *choice* stays
+ * reader shows. The Booth page's session and the Companion host call it. Chapter *choice* stays
  * with each caller (the page has a picker; the modal is opened already pointed at one chapter) - callers pass `reset()`
  * after changing `chapterId` themselves.
  */

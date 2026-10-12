@@ -35,7 +35,7 @@ type Props = {
 
 /**
  * The Companion's own host (SNO-10a): the session, header and recording `CompanionShell` needs, composed from the same
- * hooks `BoothSession` uses for its companion mode, so the Companion no longer lives inside the Booth. The shell is
+ * hooks the old Booth's companion mode used, so the Companion no longer lives inside the Booth. The shell is
  * frozen as built (DQ-13, ADR 0381, ADR 0401). There is no F11 here: the narrow panel never goes fullscreen.
  *
  * Flags the session raised are kept as findings when it ends and when the Companion is left (ADR 0117), as in the Booth.
