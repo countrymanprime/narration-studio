@@ -37,7 +37,7 @@ If the base is settled once, page slices need no primitive work and no token edi
 
 - Anything the mock does not show. Tokens are diffed against the mock, not redrawn.
 - A port of `app.css`, of the mock's zoom mechanism, or of its Font Awesome map as a second icon system.
-- Per-page forced light or dark (one app-wide theme, [D69](../operations/agent-train.md#owner-standing-rules)).
+- Per-page forced light or dark (one app-wide theme, [D69](../design/design-system.md#theme)).
 - A phone layout ([ADR 0037](../adr/0037-visual-suite-captures-no-phone-viewport.md)).
 - Storybook rewrites beyond the new primitives' stories.
 

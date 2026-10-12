@@ -1,5 +1,5 @@
 // Checks the `slice-meta` header of a Studio Next slice issue, so the coordinator can compute collisions without opening code.
-// The spec is docs/prds/studio-next-agent-delivery.prd.md ("The slice issue"); this comment is the one home of the header's keys.
+// The spec is .claude/skills/agent-train/references/studio-next-delivery.md ("The slice issue"); this comment is the one home of the header's keys.
 //
 //   node scripts/dev/slice-lint.mjs <file | ->                paste an issue body (or just the block) into a file, or pipe it
 //   node scripts/dev/slice-lint.mjs body.md --issue 1002      also check the cycle through the issues this one depends on
@@ -8,7 +8,7 @@
 // The header is a fenced block tagged `slice-meta` holding a small YAML subset (scalars, `[a, b]` lists, `- item` lists):
 //
 //   id: SN-A1                       SN-<code><n>: the PRD code in capitals, then the slice number
-//   lane: D                         one of K A B U C D X (docs/operations/agent-train.md, "Lanes")
+//   lane: D                         one of K A B U C D X (.claude/skills/agent-train/SKILL.md, "Lanes")
 //   kind: docs                      one of spike adr seam page swap host lua docs
 //   depends: [996]                  issue numbers (`996` or `#996`) that must be merged first; `[]` for none
 //   owns:                           globs this slice may touch; at least one

@@ -34,8 +34,33 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
    [Which document](docs/README.md#which-document) says where each kind of fact goes: a file the app writes and reads
    back goes in [data files](docs/reference/data-files.md), a new way untrusted data reaches the app goes in the
    [threat model](docs/architecture/threat-model.md).
-5. If you settled a decision that changes the structure, a dependency, an interface between parts or a platform and is
+5. If your change alters what `apps/ui` draws, show it in the pull request: see
+   [UI PRs show their screenshots](#ui-prs-show-their-screenshots).
+6. If you settled a decision that changes the structure, a dependency, an interface between parts or a platform and is
    costly to reverse, record it as an ADR in `docs/adr/`.
+
+## UI PRs show their screenshots
+
+A permanent owner rule (2026-09-29). A pull request that changes what `apps/ui` draws shows the change as images in its
+description. Without them the owner rejects it: the owner has to see that it looks better and does not trust a number.
+
+- **What to show.** A **Screenshots** section with one row per changed state at 1440×900: the Studio Next mock page,
+  before (`main`) and after (your branch). Capture the before and after in the same state, viewport and fixture, and
+  crop or scale the mock to match. There is no match percentage for Studio Next pages; the owner looks at the images.
+- **Other viewports.** Small-desktop and tablet (and `reflow` at 390 px for Settings) as before/after pairs in a
+  collapsed `<details>`.
+- **Where the images live.** Commit them on the pull request's own branch under `pr-screenshots/<branch>/` and embed
+  them by commit SHA:
+  `https://github.com/countrymanprime/narration-utils/blob/<commit-sha>/pr-screenshots/<branch>/<file>.png?raw=true`.
+  After every push that changes the UI, regenerate them and update the SHA in the description. The last commit on the
+  branch before merge deletes `pr-screenshots/`, so the squash has no net change there and the images never reach
+  `main`. GitHub keeps every commit of a pull request reachable through its ref, so the SHA links keep rendering after
+  the merge. Do not create a separate `pr-images/*` branch; that scheme is retired. The lasting record is
+  `docs/images/ui/` and the Playwright visual suite; `apps/ui/screenshots/` stays ignored scratch.
+- **How to capture.** `cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"` writes
+  `apps/ui/screenshots/app/<page>/<state>/<viewport>.png`. The mock runs from `docs/research/mockups/studio-next/`
+  (`npm ci` there, then its Playwright scripts in `e2e/`). Without network, list the missing mock image in the pull
+  request and the owner supplies it.
 
 ## Licensing of contributions
 

@@ -96,21 +96,15 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 
 The Booth (03) and the companion (07) are scored at `booth/speaker-tags` (1440×900, dark) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons).
 
-## Skill evals
-
-`pnpm run eval:skills` (`scripts/ci/skill-evals.mjs`) checks that a project skill triggers on the prompts it should and stays quiet on near misses. Each skill keeps its cases in `.claude/skills/<name>/evals/evals.json`: an `id`, a `prompt` and `expect` of `trigger` or `no-trigger`. A run copies `.claude/skills` into an empty scratch directory and runs `claude -p` there with only the `Skill` tool. `CLAUDE.md` names several skills outright, so the scratch directory has none, and a trigger has to come from the skill's description. A case passes when the named skill was called (`trigger`) or was not called (`no-trigger`). `--skill <name>` runs one skill, and `--dry-run` lists the cases without calling the model.
-
-It makes real model calls (about $0.06 a case, $0.71 for the 12 cases of the four skills that have them), so it is not part of `pnpm check`. Run it after changing a skill's description and after a model change. It measures triggering only; whether a skill then does the right thing is not checked. A skill's evals file needs at least one `trigger` and one `no-trigger` case, and `scripts/ci/skill-evals.test.mjs` fails when one is malformed or missing for a skill that has them.
-
 ## Gate stamp
 
 `scripts/ci/gate-stamp.mjs` records that `pnpm check` passed on an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `pnpm check` runs `record` as its last step.
 
-Nothing blocks on the stamp. The script's `--hook` mode (exit 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the stamp does not match) was a `Stop` and `SubagentStop` hook until the full gate stopped being a precondition for pushing: the pull-request pipeline runs it, and a session pushes after its targeted checks and watches the PR instead of waiting about 15 minutes for a local run. To bring the hook back, add `node "$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs" --hook` to the `Stop` and `SubagentStop` lists in `.claude/settings.json`.
+Nothing blocks on the stamp; `pnpm check` is not a precondition for pushing, because the pull-request pipeline runs the full gate. The script's `--hook` mode, and how to register it again, is described with the other agent hooks in [`.claude/skills/README.md`](../../.claude/skills/README.md#hooks).
 
-## Agent-train safety checks
+## Merge safety checks
 
-Four scripts in `scripts/ci/` keep the unattended [agent train](agent-train.md#safety-net) honest. Each exports pure functions with a `node --test` file beside it, and the two that gate a pull request run from the base branch in CI, so a pull request cannot edit its own check.
+Four scripts in `scripts/ci/` check what merges while no person watches each pull request (the reasons are in [ADR 0758](../adr/0758-the-agent-train-is-watched-from-outside-and-gated-by-checks-a-worker-cannot-edit.md)). Each exports pure functions with a `node --test` file beside it, and the two that gate a pull request run from the base branch in CI, so a pull request cannot edit its own check.
 
 - `train-health.mjs heartbeat` reads `Last pass:` from #509's body and comments once per stall on #510 when it is over two hours old and `HOLD` is not ticked. `train-health.mjs hold <reason>` ticks `HOLD` on #509 and says why. Both need `gh` and a token with `issues: write`.
 - `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any. Run it locally before pushing a test change.

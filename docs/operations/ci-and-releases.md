@@ -93,14 +93,14 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
 | `pages.yml` (`Pages`) | paused (an owner decision, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
-| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old ([the agent train's safety net](agent-train.md#safety-net)) | not a pull request check |
+| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old ([ADR 0758](../adr/0758-the-agent-train-is-watched-from-outside-and-gated-by-checks-a-worker-cannot-edit.md)) | not a pull request check |
 | `main-health.yml` (`Main health`) | nightly (07:37 UTC), manual | the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
-| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; the agent-train coordinator reads it |
-| `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; the coordinator does not merge a `risk:high` pull request without the owner |
+| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
+| `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; a `risk:high` pull request is not merged without the owner |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
 The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / quick-ubuntu`. Nothing runs on a schedule except
-CodeQL, the security scan, the online link check, and the two agent-train health checks (`train-health.yml`, `main-health.yml`). There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
+CodeQL, the security scan, the online link check, and the two health checks (`train-health.yml`, `main-health.yml`). There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
 request runs (see [Nx projects and the quality gate](#nx-projects-and-the-quality-gate)).
 
 Issues, labels, milestones, and the project board are covered in
@@ -426,8 +426,8 @@ A change to code that `docs/` describes has to touch one of those docs, or say w
 
 - **Opt-out.** A line `Docs: none — <reason>` in the pull request description (or a commit message, which is what `pnpm check` reads) waives the check. A reason under 12 characters, or one such as "not needed", "n/a" or "trivial", does not count.
 - **Where it runs.** `Docs / Docs impact` runs on every pull request, with no path filter and on `edited` too, so adding the opt-out line re-runs it. `pnpm check` runs the same script against `origin/main` first.
-- **Agents.** `.claude/settings.json` runs it as a `Stop` and `SubagentStop` hook. A failure exits 2, which stops the agent from finishing and shows it the reason. It lets the stop through when `stop_hook_active` is set, so an agent that cannot satisfy it is asked once and not trapped, and when git cannot compare (no `origin/main`). In a session the agent states the opt-out line in its last message.
-- **Limits.** It compares paths, so an empty edit to a mapped doc satisfies it. It diffs the whole branch, so the hook also asks an agent that stopped on a branch with an existing gap, once per stop. `doc-impact-check` and review judge whether the doc changed in substance. A rule over a wide folder fails a refactor that changes no documented behaviour; that is what the opt-out is for.
+- **Hook.** `.claude/settings.json` also runs it when a coding session stops; [`.claude/skills/README.md`](../../.claude/skills/README.md#hooks) describes how.
+- **Limits.** It compares paths, so an empty edit to a mapped doc satisfies it. Review judges whether the doc changed in substance. A rule over a wide folder fails a refactor that changes no documented behaviour; that is what the opt-out is for.
 
 ### The docs prose checks
 

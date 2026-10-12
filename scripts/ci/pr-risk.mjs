@@ -5,7 +5,7 @@
 // node scripts/ci/pr-risk.mjs --json      Same, as JSON, reading the changed paths from stdin (one per line).
 //
 // The `PR risk` workflow puts the `risk:high` label on a pull request that rates high. The coordinator does not
-// merge one until the owner approves it on #510 (docs/operations/agent-train.md, "Safety net"). The boundaries are
+// merge one until the owner approves it on #510 (.claude/skills/agent-train/SKILL.md, "Safety net"). The boundaries are
 // the ones CLAUDE.md names and docs/architecture/threat-model.md tracks, plus the files that decide what runs
 // unattended: the workflows, the agent config and the scripts in this safety net itself.
 
