@@ -1,4 +1,4 @@
-"""asr_batch.FasterWhisperEngine (provider-ports P6): the ASR port's batch role for Transcript Compare, and
+"""asr_batch.FasterWhisperEngine (ADR 0301): the ASR port's batch role for Transcript Compare, and
 compare.transcribe()'s thin wrapper around it. No test here touches a real model or the network."""
 
 import importlib.util

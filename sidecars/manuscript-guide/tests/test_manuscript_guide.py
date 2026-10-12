@@ -861,7 +861,7 @@ class SelfCheckTests(unittest.TestCase):
         self.assertTrue(results[1]["detail"])  # the phonemes espeak-ng made of "hello"
 
     def test_a_dictionary_that_cannot_load_fails_that_check_and_says_why(self):
-        # The frozen guide logged exactly this in the phase 4 spike: the freeze carried no cmudict metadata.
+        # A frozen guide has logged exactly this: the freeze carried no cmudict metadata.
         with patch("pronouncing.phones_for_word", side_effect=RuntimeError("No package metadata was found for cmudict")):
             results = guide.run_self_check()
         cmudict = results[0]

@@ -16,6 +16,8 @@ export type PickupSessionOptions = {
   recording: boolean;
   /** Takes the page to a line: its chapter (when another) and its place in the text. */
   onJump: (line: PickupItem) => void;
+  /** The line the session was on before the page changed chapter under it; left out: the first line. */
+  initialAt?: string | null;
 };
 
 /** Where a take began and stopped, as indices into the chapter's sentences. `quiet`: leaving the Booth, no toast and no Undo. */
@@ -43,13 +45,13 @@ export type PickupSessionModel = {
  * host to its marker, a refusal being the answer. `N` and `Shift+N` are registered only while a session runs.
  */
 export function usePickupSession(options: PickupSessionOptions): PickupSessionModel {
-  const { ids, chapterId, units, recording, onJump } = options;
+  const { ids, chapterId, units, recording, onJump, initialAt = null } = options;
   const pickups = usePort('pickups');
   const overlay = useOverlay();
   const active = ids.length > 0;
   const key = ids.join('\n');
   const [list, setList] = useState<readonly PickupItem[]>([]);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(initialAt);
 
   // Opening the Booth on a session reads the list again, so a pickup done in the DAW is done here and a reopened one is open here.
   useEffect(() => {

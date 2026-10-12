@@ -47,7 +47,7 @@ function Fake.new(host)
   self.change_count = 0
   -- Transport and loop state (narration_navigation.lua). A new project has an empty time selection and loop range
   -- (both 0..0), repeat off and the transport stopped. The time selection and the loop points are kept apart unless a
-  -- test sets linked_loop: REAPER 7.80 links them by default (the Phase 6 check) but the link is a preference, so a
+  -- test sets linked_loop: REAPER 7.80 links them by default (seen in a real REAPER 7.80 check) but the link is a preference, so a
   -- bridge that wants repeat to loop a window must set both, and the unlinked fake proves it does.
   -- play_state is GetPlayState's bit field: 1 playing, 2 paused, 4 recording.
   self.time_selection = { 0, 0 }
@@ -587,7 +587,7 @@ function Fake:add_transport_api(api)
   local fake = self
   -- GetSet_LoopTimeRange2(proj, isSet, isLoop, start, end, allowautoseek): isLoop picks the loop points over the time
   -- selection; it answers the (new) start and end either way.
-  -- With fake.linked_loop (REAPER 7.80's default, "Loop points linked to time selection", seen in the Phase 6 check),
+  -- With fake.linked_loop (REAPER 7.80's default, "Loop points linked to time selection", seen in a real REAPER 7.80 check),
   -- setting either one sets both.
   function api.GetSet_LoopTimeRange2(_, is_set, is_loop, first, last, _)
     local range = is_loop and fake.loop_points or fake.time_selection
@@ -898,7 +898,7 @@ function Fake:add_take_api(api)
     end
     error('fake reaper: unmodelled take value ' .. tostring(key))
   end
-  -- The setter counterpart of GetMediaItemTakeInfo_Value: D_STARTOFFS (the take-review source-offset alignment, Q4) and
+  -- The setter counterpart of GetMediaItemTakeInfo_Value: D_STARTOFFS (the take-review source-offset alignment) and
   -- D_VOL (hide_takes). The item D_LENGTH setter is below; only remove_fx_range's join sets it.
   function api.SetMediaItemTakeInfo_Value(take, key, value)
     fake.calls[#fake.calls + 1] = { name = 'SetMediaItemTakeInfo_Value', key = key, value = value }

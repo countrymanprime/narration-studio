@@ -8,6 +8,7 @@ import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
 import { useDawKind } from '../../useDawKind';
 import type { ManuscriptChapter } from '../../types';
+import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../script/page/layout/NeedManuscript';
 import { ALL_SCOPE, inScope, plainLine, type ChapterRef } from './list/pickupRows';
@@ -20,10 +21,12 @@ const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording ti
 /** The Booth's address for a pickup session: the first line's chapter, and the pickups in the order they were chosen. */
 export function boothSessionPath(pickups: readonly PickupItem[]): string {
   const chapter = pickups[0]?.chapterId;
-  const query = new URLSearchParams();
-  if (chapter) query.set('chapter', chapter);
-  query.set('pickups', pickups.map((pickup) => pickup.id).join(','));
-  return `/booth?${query.toString()}`;
+  return chapter
+    ? `/booth${boothQuery(
+        { chapter },
+        pickups.map((pickup) => pickup.id),
+      )}`
+    : '/booth';
 }
 
 /**

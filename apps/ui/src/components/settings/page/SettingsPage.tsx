@@ -7,14 +7,15 @@ import { Settings } from '../Settings';
 import { AppearancePanel } from './AppearancePanel';
 import { DeliveryProfileField } from './DeliveryProfileField';
 import { KeysPanel } from './KeysPanel';
+import { StoryBibleTypesPanel } from './StoryBibleTypesPanel';
 
 // Backups belongs to the kept DAW category, after the capability list.
 registerSettingsSection('Daw', 'backups', BackupsSection, 20);
 
 /**
- * The Studio Next Settings page, at `/settings`: an 860 px column of the mock's panels the repo can back (Delivery profile, Appearance,
- * Keyboard shortcuts, Manuscript), then `Settings` trimmed to the categories the mock does not cover. The mock's Recording,
- * Definitions, Reader text, Marks and Story Bible types panels have no host model yet, and the capability, backups and analysis
+ * The Studio Next Settings page, at `/settings`: an 860 px column of the mock's panels the repo can back (Delivery profile, Story
+ * Bible types, Appearance, Keyboard shortcuts, Manuscript), then `Settings` trimmed to the categories the mock does not cover. The
+ * mock's Recording, Definitions, Reader text and Marks panels have no host model yet, and the capability, backups and analysis
  * sections mount in the kept DAW and Story Bible categories through `sections.ts`. `initialCategory` (a `#credits`, `#delivery`,
  * `#cleanup` or `#booth` link) opens that kept category and scrolls to it.
  */
@@ -30,6 +31,7 @@ export function SettingsPage(props: ComponentProps<typeof Settings>) {
     <div className="mx-auto flex max-w-[860px] flex-col gap-4">
       <Heading title="Settings" />
       <DeliveryProfileField />
+      <StoryBibleTypesPanel />
       <AppearancePanel />
       <KeysPanel />
       <ManuscriptSection data={data} go={go} notify={notify} refreshBootstrap={refreshBootstrap} />

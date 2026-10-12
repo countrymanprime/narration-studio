@@ -6,6 +6,7 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import { useContextProvider } from '../../../registries/context';
+import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import { dawShortName } from '../../../studio/StudioProvider';
 import type { TeleprompterLocateResult } from '../../../types';
@@ -56,6 +57,13 @@ export type BoothPageOptions = {
   navigate: (next: string) => void;
   /** Where Exit Booth goes. */
   exitTo: string;
+  /** A take stopped: the sentences it began and stopped on. `quiet` when it stopped because the narrator left. */
+  onTakeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void;
+  /**
+   * More right-click items for this target, put after Start from here (the bookmark items). When the target is a bookmark ribbon
+   * (`[data-bm]`), they are the whole menu.
+   */
+  menuItems?: (target: Element) => ContextMenuItem[];
 };
 
 /**
@@ -65,6 +73,8 @@ export type BoothPageOptions = {
  */
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
+  const extras = useRef({ onTakeStopped: options.onTakeStopped, menuItems: options.menuItems });
+  extras.current = { onTakeStopped: options.onTakeStopped, menuItems: options.menuItems };
   const notify = useCallback((sentence: string) => overlay.toast(sentence), [overlay]);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
@@ -89,6 +99,14 @@ export function useBoothPage(options: BoothPageOptions) {
   const [punches, setPunches] = useState<Punch[]>([]);
   const [kept, setKept] = useState<KeptResume | null>(null);
   const takeAt = useRef(0);
+  // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
+  const takeBegan = useRef<number | null>(null);
+  const tellStopped = useCallback((quiet: boolean) => {
+    const began = takeBegan.current;
+    if (began === null) return;
+    takeBegan.current = null;
+    extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, quiet });
+  }, []);
 
   const latest = useRef({ at, position, units, paragraphs, spans, listening, seconds, session, recording });
   latest.current = { at, position, units, paragraphs, spans, listening, seconds, session, recording };
@@ -217,15 +235,17 @@ export function useBoothPage(options: BoothPageOptions) {
       setSeconds(0);
       setPaused(false);
       setBrowse(false);
+      takeBegan.current = now.at.cur;
       if (place) writer.begin(place, takeAt.current);
       if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
     if (place) void writer.stop(place, now.seconds);
     if (now.session.active) now.session.stop();
+    tellStopped(false);
     setRecorded((total) => total + now.seconds);
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer]);
+  }, [recording, writer, tellStopped]);
 
   useEffect(() => {
     if (!recording || paused) return;
@@ -237,8 +257,10 @@ export function useBoothPage(options: BoothPageOptions) {
   const stopRecording = useCallback(async (): Promise<DawResult> => {
     const result = await daw.recordStop();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
+    // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
+    if (result.ok) tellStopped(true);
     return result;
-  }, [daw]);
+  }, [daw, tellStopped]);
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({
@@ -365,8 +387,11 @@ export function useBoothPage(options: BoothPageOptions) {
         const phrase = unit ? Number(unit.dataset.unit) : null;
         const larger = () => setSize((s) => Math.min(TEXT_SIZE.max, s + TEXT_SIZE.step));
         const smaller = () => setSize((s) => Math.max(TEXT_SIZE.min, s - TEXT_SIZE.step));
+        const more = (extras.current.menuItems?.(target) ?? []).map((item) => ({ ...item, onSelect: run(item.onSelect) }));
+        if (target.closest('[data-bm]')) return more;
         return [
           ...(phrase === null ? [] : [{ key: 'start', label: 'Start from here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
+          ...more,
           { key: 'next', label: 'Next phrase', onSelect: run(() => moveTo(nextPhrase(latest.current.units, latest.current.at))) },
           { key: 'back', label: 'Back one phrase', onSelect: run(() => moveTo(backPhrase(latest.current.at))) },
           { key: 'roll', label: 'Punch and roll', onSelect: run(() => void roll.punchAndRoll()) },

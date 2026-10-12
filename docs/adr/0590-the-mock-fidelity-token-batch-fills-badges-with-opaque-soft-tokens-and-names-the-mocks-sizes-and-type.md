@@ -13,7 +13,7 @@ The mock values come from measuring the mocks. This batch checked each value aga
 1. **The badge fills.** The mocks fill status pills and Production board cells with opaque `-soft` colours. The ok cell measures `#d8e8dc` (`--character-soft`), the danger cells `#f4dedc` (`--review-soft`), the info cell `#dce4f2` (`--place-soft`) and the warn pill `#f2ead6`. ADR 0362's badge fills are 14% tints over whatever sits behind them, so they draw differently on a card and on a selected row. The warn fill has no entity twin: `--warn` at 18% over `--surface` gives `#f2e9d6`, one step from the measurement.
 2. **The selected row.** Mocks 04 and 05 draw it as `#faf1ed`. The first formula tried, `--accent-soft` at 40% over `--surface`, gives `#f9f1e7`, six steps off in blue. `--accent` at 8% over `--surface` gives `#f9f2ed`.
 3. **The waveform and the target zone.** The measured values fail a mark's 3:1. Mock 04's bars measure 65% to 77% accent over the card; 70% is 2.77:1 in light. Mock 05's target zone is exactly `--ok` at 18% over `--surface-2` (`#c8d4c2`), but the band's `--accent` chapter ticks are then 2.98:1 on it.
-4. **The toast text.** The dark set (daw-chapter-track-auto-sync/03) draws the inverted toast with a fill of `#f1ece2` (dark `--text`) and text no lighter than `#1a140b`. That is dark `--bg`, not `--surface`. The app's existing `toast` pair was already `--bg` on `--text`.
+4. **The toast text.** The mocks' dark set draws the inverted toast with a fill of `#f1ece2` (dark `--text`) and text no lighter than `#1a140b`. That is dark `--bg`, not `--surface`. The app's existing `toast` pair was already `--bg` on `--text`.
 
 ## Decision
 

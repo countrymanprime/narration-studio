@@ -278,7 +278,7 @@ describe('the side panel section', () => {
     function Panel() {
       const session = usePickupSession({ ids: ['a', 'b'], chapterId: 'c3', units: UNITS, recording: false, onJump: () => undefined });
       return (
-        <PickupSessionProvider value={session}>
+        <PickupSessionProvider value={{ session }}>
           <BoothSidePanel data={sideData()} open drawer={false} onOpenChange={() => undefined} />
         </PickupSessionProvider>
       );

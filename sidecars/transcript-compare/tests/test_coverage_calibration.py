@@ -1,4 +1,4 @@
-"""The Phase 8 calibration, pinned: the app ships the settings the calibration chose, those settings
+"""The calibration, pinned: the app ships the settings the calibration chose, those settings
 hold on the held-out cases at every simulated noise level, the two resolution settings are the
 loosest that catch a skipped or replaced phrase, and the tooling reads the sidecar's results the way
 the host does (`docs/research/recording-coverage-calibration.md`, ADR 0132)."""
@@ -282,7 +282,7 @@ def test_transcript_errors_counts_a_dropped_word(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# the model cascade (the calibration note's "Model cascade (Phase 1)")
+# the model cascade (the calibration note's "Model cascade" section)
 
 
 def _played(*ranges):

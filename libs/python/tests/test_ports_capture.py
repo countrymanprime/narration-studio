@@ -1,4 +1,4 @@
-"""The capture port (provider-ports P10): its descriptor, its roles and its conformance suite."""
+"""The capture port (ADR 0301): its descriptor, its roles and its conformance suite."""
 
 import ast
 import re
@@ -31,7 +31,7 @@ FAKE = CaptureDescriptor("fake", "Fake capture", platforms=PLATFORMS)
 
 
 class FakeBackend:
-    """A test-only backend that implements the port by shape alone: no base class, as the dshow adapter (P11) will.
+    """A test-only backend that implements the port by shape alone: no base class, as the dshow adapter will.
 
     Each device is a tone of ``seconds`` seconds; ``endless`` devices never run out, like a microphone. ``chunks`` is a generator,
     as ``iter_microphone_chunks`` is, so the device opens on the first ``next`` and closes when the generator is closed.
@@ -98,7 +98,7 @@ def test_the_port_imports_no_backend_and_no_numpy():
 
 
 def test_the_backends_registry_speaks_of_capture_backends_and_starts_empty():
-    """The dshow adapter (P11) fills it at import; the port itself registers nothing."""
+    """The dshow adapter fills it at import; the port itself registers nothing."""
     assert isinstance(BACKENDS, Registry) and BACKENDS.kind == "capture backend" and len(BACKENDS) == 0
 
 

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
+import { createBookmarksMock } from '../../../api/bookmarksMock';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { CommandRouter } from '../../../input/router';
@@ -75,9 +76,17 @@ export const LOCATED: TeleprompterLocateResult = {
   verdict: { kind: 'daw_only', start: null, daw: { word: 14, number: 15, sentence: null, confident: true, source: 'saved' }, prompter: null, tokens: 34 },
 } as unknown as TeleprompterLocateResult;
 
-/** The api the page reads: the two chapters, the Story Bible, no session running, and no resume point unless `locate` is given. */
+/**
+ * The api the page reads: the two chapters, the Story Bible, no session running, no resume point unless `locate` is given, and a
+ * bookmarks host that checks a spot against these two chapters.
+ */
 export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
   return createMockApi({
+    ...createBookmarksMock(
+      Promise.resolve(),
+      () => CHAPTERS,
+      () => Object.values(PARAGRAPHS).flat(),
+    ),
     manuscriptChapters: async () => CHAPTERS,
     manuscriptParagraphs: async (chapterId: string) => PARAGRAPHS[chapterId] ?? [],
     teleprompterState: async () => ({ phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null }),

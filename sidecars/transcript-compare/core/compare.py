@@ -425,7 +425,7 @@ def locate_in_segments(concat_time, segments):
 
 
 def transcribe(audio_array, model_size, language, device="cpu", progress_path=None, hotwords=None, return_info=False, model_dir=None):
-    """Transcribes ``audio_array`` with the ASR port's Whisper engine (provider-ports P6: ``asr_batch.FasterWhisperEngine``).
+    """Transcribes ``audio_array`` with the ASR port's Whisper engine (``asr_batch.FasterWhisperEngine``, ADR 0301).
 
     A thin wrapper: it only translates this call's arguments to and from ``BatchRequest``/``BatchResult`` and turns
     ``progress_path``'s file-based reporting and cancellation into the request's ``progress`` callback. The engine itself
@@ -1644,8 +1644,8 @@ def detect_exact_copies(segments):
     resolved source file plus source range - is identical, meaning they
     would decode to the exact same audio bytes (e.g. a take duplicated
     onto another item, or two items both trimmed to the same underlying
-    range). This is the "exact-copy detection from item source identity"
-    half of Q1's recommendation, and it needs no transcription at all.
+    range). This is the exact-copy detection from item source identity, and it
+    needs no transcription at all.
 
     Returns a dict mapping segment index -> copy-group label ("EC0",
     "EC1", ...) for every segment that has at least one exact-copy peer;
@@ -1698,7 +1698,7 @@ def group_repeated_spans(covered_ranges, min_overlap=0.5):
     Segments are processed in the order given by first_unit so a group's
     union only grows forward; this is a simple greedy pass, not full
     interval graph clustering, which is enough for the conservative,
-    narrator-reviewed groups this milestone wants (see Q1, Q12).
+    narrator-reviewed groups the take-review scan wants.
 
     Returns a list of groups; each group is (first_unit, last_unit, [indices]),
     sorted by first_unit. Only groups with 2 or more members are returned -
@@ -1727,7 +1727,7 @@ def group_repeated_spans(covered_ranges, min_overlap=0.5):
 
 
 def find_repeated_spans(args):
-    """Additive detector mode (Q1/Q2): independently transcribes and aligns
+    """Additive detector mode: independently transcribes and aligns
     every read named in --manifest, clusters the reads that cover the same
     manuscript span, and flags exact-copy pairs by source identity. Writes
     new, additive tagged lines only - SUMMARY plus SPAN_GROUP/SPAN_MEMBER -
@@ -1975,13 +1975,13 @@ def main():
     ap.add_argument(
         "--take-divergence",
         action="store_true",
-        help="Additive mode (take-review phase 9): align every take in --manifest (a JSON manifest) to one fixed manuscript span "
+        help="Additive mode: align every take in --manifest (a JSON manifest) to one fixed manuscript span "
         "and write where each diverges, as TAKE_DIVERGENCE lines to --out (see core/take_divergence_mode.py)",
     )
     ap.add_argument(
         "--find-repeats",
         action="store_true",
-        help="Additive mode (take-review Q1/Q2): instead of one concatenated compare, independently transcribe and "
+        help="Additive mode: instead of one concatenated compare, independently transcribe and "
         "align every read in --manifest (item_index|source_file|start_offset|length|item_guid|take_guid) and write "
         "SPAN_GROUP/SPAN_MEMBER lines grouping reads that cover the same manuscript span, plus exact-copy flags",
     )

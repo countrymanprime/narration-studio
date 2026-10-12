@@ -58,7 +58,10 @@ especially welcome:
 - The file protocol between the app and REAPER (the session folder under REAPER's resource path, the command files the Lua bridge
   reads and the paths it opens), the arguments a DAW or a shortcut starts the app with, and the local `/media` route that plays a
   project's audio: a command that another process can forge into opening or writing a path, running an action or code, rendering,
-  changing the project beyond what the narrator approved (a `delete_range` that deletes audio rather than moving it to the muted
+  changing the project beyond what the narrator approved (a `hide_takes` that deletes, moves or re-sources a take rather than
+  muting it, or mutes a take of an item it was not named; a `resolve_pickup` or `reopen_pickup` that renames a marker other than the
+  one pickup marker nearest the position it was sent; a `list_pickup_markers` list the app reads from a path other than the one it
+  named; a `delete_range` that deletes audio rather than moving it to the muted
   Cuts track, or that cuts an item it was not named; an `apply_fx_range` that loads a chain from a path rather than a name REAPER's
   `FXChains` listing holds, or a `remove_fx_range` that joins pieces that do not play the same audio; a `stack_takes` or
   `unstack_takes` that opens a file other than the payload the app wrote in the session folder, reads past its size and count

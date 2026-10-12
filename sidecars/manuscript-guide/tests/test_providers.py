@@ -1,4 +1,4 @@
-"""Piper, CMU, Wiktextract and eSpeak as provider-ports adapters (ADR 0301, provider-ports P8; the wiktextract row is
+"""Piper, CMU, Wiktextract and eSpeak as provider-ports adapters (ADR 0301; the wiktextract row is
 ADR 0405): each row passes its port's conformance suite, exercised with the same fakes test_pronounce.py and test_manuscript_guide.py already patch phonemizer and Piper with, and (for Wiktextract) a tiny
 hand-built index file standing in for the Go asset manager's derived one (docs/research/wiktextract-pronunciation-source.md).
 """
@@ -35,7 +35,7 @@ def test_the_build_time_fallback_tries_cmu_then_wiktextract_then_espeak(monkeypa
 
 
 def test_the_build_time_fallback_logs_each_failed_source_in_its_own_words(monkeypatch):
-    # The texts were a name-keyed dict in manuscript_guide.py until the provider guard (provider-ports P15) moved them here.
+    # The texts were a name-keyed dict in manuscript_guide.py until the provider guard moved them here.
     import manuscript_guide
 
     messages: list[str] = []

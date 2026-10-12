@@ -1,10 +1,10 @@
-"""Live ASR engine adapters for the Manuscript Teleprompter (provider-ports P5, ADR 0301): what `live_asr.py`'s
+"""Live ASR engine adapters for the Manuscript Teleprompter (ADR 0301): what `live_asr.py`'s
 `--engine whisper`/`--engine moonshine` become underneath. `WhisperEngine` wraps `live_asr`'s own
 `_load_whisper_decoder` and `whisper_hypotheses`; `MoonshineEngine` wraps `moonshine_engine.load_transcriber` and
 `live_asr`'s `moonshine_hypotheses`. Each also carries its own argument rules (`check`), checked before either engine
 loads a model, so a bad `--model` or `--language` is refused exactly as it always was.
 
-Only live is declared here: batch (Transcript Compare's faster-whisper adapter, provider-ports P6) registers its own
+Only live is declared here: batch (Transcript Compare's faster-whisper adapter, `asr_batch.py`) registers its own
 "whisper" row in that sidecar's own process, so there is no name clash - each sidecar's `ENGINES` is a separate
 process-local registry.
 

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import { createMockApi } from '../../../api/mockApi';
+import { providedCommands } from '../../../input/commandProviders';
 import { gesture } from '../../../input/gestures';
 import type { GestureEvent, InputSource } from '../../../input/InputSource';
 import { CommandRouter, CommandScope } from '../../../input/router';
@@ -216,6 +217,28 @@ describe('next-and-previous-move-the-reading-position', () => {
     await setup();
     press('BracketRight', ['Alt']);
     expect(toast).toHaveBeenCalledWith('No bookmarks yet.');
+  });
+});
+
+describe('choosing a bookmark in the jump menu puts the reading position there in its chapter', () => {
+  const choose = (label: RegExp) => {
+    const command = providedCommands().find((item) => label.test(item.label));
+    expect(command).toBeTruthy();
+    act(() => command!.run());
+  };
+
+  it('in this chapter: the reading position moves to the word', async () => {
+    await setup({}, undefined, [held('x', chapters[0].id, paragraphs[1].id, 1, wordStart(paragraphs[1].text, 2))]);
+    choose(/^Bookmark: /);
+    expect(seek).toHaveBeenLastCalledWith(paragraphs[1].id, 2);
+    expect(goToChapter).not.toHaveBeenCalled();
+  });
+
+  it('in another chapter: the page is asked to open that chapter at it', async () => {
+    await setup({}, undefined, [held('x', chapters[1].id, 'q1', 99, 3)]);
+    choose(/^Bookmark: /);
+    expect(goToChapter).toHaveBeenCalledWith(chapters[1].id, { paragraphId: 'q1', offset: 3 });
+    expect(seek).not.toHaveBeenCalled();
   });
 });
 

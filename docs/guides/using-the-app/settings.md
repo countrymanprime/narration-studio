@@ -2,10 +2,12 @@
 
 # Settings
 
-Settings opens with four panels, then the rest of the settings by category.
+Settings opens with five panels, then the rest of the settings by category.
 
 - **Delivery profile** picks the profile this project is judged against, on [Master &
   QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
+- **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry: rename one, change its colour,
+  add a type or remove one no entry uses. A refused change says why under the list.
 - **Appearance** sets the theme: **Match my system**, **Light** or **Dark**.
 - **Keyboard shortcuts** lists the keys, read-only; the **Keyboard & pedals** category below changes them.
 - **Manuscript** names the imported manuscript, with **Replace manuscript** (or **Import manuscript** when

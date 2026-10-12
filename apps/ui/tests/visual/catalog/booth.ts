@@ -50,6 +50,18 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'bookmarks-ribbon',
+    description:
+      'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+  },
+  {
+    page: 'booth',
+    state: 'pickup-session',
+    description:
+      'Booth opened from Pickups\' "Open in Booth at this line" (/booth?chapter=<id>&pickups=<id>): the top bar\'s "Pickups · n open" chip, the pickup\'s paragraph marked with a bar in the text and the reading position on it, the side panel\'s Pickups section listing the line first, and N "Next pickup" in the footer hints',
+  },
+  {
+    page: 'booth',
     state: 'credits-unresolved',
     description:
       "Booth on the closing credits (?credits=closing, the record capability on): the credits read as the text, and the top bar's warning chip says how many tokens have no value; it opens Settings > Credits",
