@@ -8,7 +8,7 @@ import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '.
 import { findingMarkerSchema } from '../api/schemas/findings';
 import { pickupsStateSchema } from '../api/schemas/pickups';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
-import { workspaceUseTakeResultSchema } from '../api/schemas/workspace';
+import { workspaceFXChainsResultSchema, workspaceUseTakeResultSchema } from '../api/schemas/workspace';
 import { parseWire } from '../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../api/wire/standardSchema';
 import {
@@ -17,6 +17,10 @@ import {
   DAW_PROJECT,
   DAW_PROJECT_STATES,
   DAW_SETUPS,
+  FX_RANGE_STEPS,
+  fxChainAddedAnswer,
+  fxChainRemovedAnswer,
+  fxChainsSource,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
   RANGE_CUT_STEPS,
@@ -48,6 +52,10 @@ const GOLDEN_FILES = [
   'daw-delete-range-gap.json',
   'daw-delete-range-refused-stale.json',
   'daw-delete-range-refused-capability.json',
+  'daw-apply-fx-range-done.json',
+  'daw-apply-fx-range-refused.json',
+  'daw-remove-fx-range-done.json',
+  'workspace-fx-chains.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
   'workspace-use-take-done.json',
@@ -172,6 +180,27 @@ function hostApi(): DawHostApi {
       if (firstToken !== lastToken || fadeMs !== 12) return Promise.reject(new Error(`no golden for a cut of ${firstToken}..${lastToken} with ${fadeMs} ms`));
       return Promise.resolve(read(mode === 'close' ? 'daw-delete-range-done.json' : 'daw-delete-range-gap.json', dawResultSchema));
     },
+    // DawApplyFxToRange and DawRemoveFxFromRange on REAPER: the fade is checked first, an unknown chapter or a range read backwards is the
+    // range's stale refusal, an apply's chain must be one workspace-fx-chains.json lists and a removal's a plain name, and one word with
+    // Podcast Voice (a 10 ms fade) is the done golden. Anything else has no golden.
+    dawApplyFxToRange: (chapterId, firstToken, lastToken, chainName, fadeMs) => {
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return Promise.resolve(refusal(DAW_ANSWERS.cutBadFade));
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return Promise.resolve(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (!read('workspace-fx-chains.json', workspaceFXChainsResultSchema).names.includes(chainName)) return Promise.resolve(refusal(DAW_ANSWERS.fxBadChain));
+      if (firstToken !== lastToken || chainName !== 'Podcast Voice.RfxChain' || fadeMs !== 10) {
+        return Promise.reject(new Error(`no golden for ${chainName} on ${firstToken}..${lastToken} with ${fadeMs} ms`));
+      }
+      return Promise.resolve(read('daw-apply-fx-range-done.json', dawResultSchema));
+    },
+    dawRemoveFxFromRange: (chapterId, firstToken, lastToken, chainName) => {
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return Promise.resolve(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (!/^[^\\:]+\.RfxChain$/i.test(chainName) || chainName.split('/').some((part) => part === '' || part === '.' || part === '..')) {
+        return Promise.resolve(refusal(DAW_ANSWERS.fxBadChain));
+      }
+      if (chainName !== 'Podcast Voice.RfxChain') return Promise.reject(new Error(`no golden for taking ${chainName} off`));
+      return Promise.resolve(read('daw-remove-fx-range-done.json', dawResultSchema));
+    },
+    workspaceListFXChains: () => Promise.resolve(read('workspace-fx-chains.json', workspaceFXChainsResultSchema)),
   };
 }
 
@@ -207,6 +236,8 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.hideTakes('chapter-1', 0, 4, 'take-1'),
         await daw.roll('chapter-1', 40),
         await daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 }),
+        await daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 10 }),
+        await daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain' }),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -282,6 +313,37 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     name: 'dawclient-delete-range: a fade over 500 ms is refused alike',
     observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'gap', fadeMs: 501 }),
   },
+  {
+    name: 'dawclient-fx-range: a chain on one word is answered alike',
+    observe: (daw) => daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 10 }),
+  },
+  {
+    name: 'dawclient-fx-range: taking a chain off is answered alike',
+    observe: (daw) => daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain' }),
+  },
+  {
+    name: 'dawclient-fx-range: a chain the DAW does not list is refused alike',
+    observe: (daw) => daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Not Listed.RfxChain', fadeMs: 10 }),
+  },
+  {
+    name: 'dawclient-fx-range: a path for a chain is refused alike, on and off',
+    observe: async (daw) => [
+      await daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: '../reaper.ini', fadeMs: 10 }),
+      await daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'C:\\FXChains\\Podcast Voice.RfxChain' }),
+    ],
+  },
+  {
+    name: 'dawclient-fx-range: an unknown chapter or a range read backwards is refused stale alike',
+    observe: async (daw) => [
+      await daw.applyFxToRange({ chapterId: 'chapter-9', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 10 }),
+      await daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 4, lastToken: 3, chainName: 'Podcast Voice.RfxChain' }),
+    ],
+  },
+  {
+    name: 'dawclient-fx-range: a fade over 500 ms is refused alike',
+    observe: (daw) => daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 501 }),
+  },
+  { name: 'dawclient-fx-range: the chain list is answered alike', observe: (daw) => daw.fxChains() },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
@@ -439,6 +501,36 @@ describe('the host adapter maps each existing golden', () => {
     expect(calls).toEqual([['chapter-1', 2, 7, 'gap', 25]]);
   });
 
+  it('dawclient-fx-range: the host adapter sends each request as the bindings take it and lists the chains as the mock FxList', async () => {
+    expect(await daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 10 })).toEqual(
+      read('daw-apply-fx-range-done.json', dawResultSchema),
+    );
+    const capability = read('daw-apply-fx-range-refused.json', dawResultSchema);
+    expectWellFormed(capability);
+    const calls: unknown[][] = [];
+    const off = createHostDawClient({
+      ...hostApi(),
+      dawApplyFxToRange: (...args) => {
+        calls.push(['apply', ...args]);
+        return Promise.resolve(capability);
+      },
+      dawRemoveFxFromRange: (...args) => {
+        calls.push(['remove', ...args]);
+        return Promise.resolve(capability);
+      },
+    });
+    expect(await off.applyFxToRange({ chapterId: 'chapter-1', firstToken: 2, lastToken: 7, chainName: 'Podcast Voice.RfxChain', fadeMs: 25 })).toEqual(
+      capability,
+    );
+    expect(await off.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 2, lastToken: 7, chainName: 'Podcast Voice.RfxChain' })).toEqual(capability);
+    expect(calls).toEqual([
+      ['apply', 'chapter-1', 2, 7, 'Podcast Voice.RfxChain', 25],
+      ['remove', 'chapter-1', 2, 7, 'Podcast Voice.RfxChain'],
+    ]);
+    const names = read('workspace-fx-chains.json', workspaceFXChainsResultSchema).names;
+    expect(await daw.fxChains()).toEqual({ source: fxChainsSource('REAPER'), choices: names.map((name) => ({ id: name, name })) });
+  });
+
   it('host-adapter-maps-the-existing-results: a refusal without a sentence is an error, not a sentence the client words', async () => {
     const silent = createHostDawClient({ ...hostApi(), readAloudRecordStart: () => Promise.resolve({ outcome: 'refused', reason: 'timeout' }) });
     await expect(silent.recordStart('chapter-1')).rejects.toThrow('no sentence');
@@ -537,6 +629,49 @@ describe('the mock setups', () => {
       steps: [...RANGE_CUT_STEPS],
     });
     expect((await createMockDawClient(withMode('app')).deleteRange(request)).undoSteps).toBe(0);
+  });
+
+  it("dawclient-fx-range: the mock refuses with the setup's fx_range sentence, lists the setup's chains and answers undo steps by the mode", async () => {
+    const request = { chapterId: 'chapter-1', firstToken: 2, lastToken: 4, chainName: 'Podcast Voice.RfxChain', fadeMs: 0 } as const;
+    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.fx_range.message;
+      expect(sentence, id).toBeTruthy();
+      expect(await createMockDawClient(DAW_SETUPS[id]).applyFxToRange(request), id).toEqual(refusal(sentence ?? ''));
+      expect(await createMockDawClient(DAW_SETUPS[id]).removeFxFromRange(request), id).toEqual(refusal(sentence ?? ''));
+    }
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await reaper.applyFxToRange(request)).toEqual({
+      ok: true,
+      changed: true,
+      message: fxChainAddedAnswer('Podcast Voice.RfxChain', 3, 'REAPER'),
+      undoSteps: 1,
+    });
+    expect(await reaper.removeFxFromRange(request)).toEqual({
+      ok: true,
+      changed: true,
+      message: fxChainRemovedAnswer('Podcast Voice.RfxChain', 'REAPER'),
+      undoSteps: 1,
+    });
+    expect(await reaper.applyFxToRange({ ...request, chapterId: 'chapter-9' })).toEqual(staleRefusal(DAW_ANSWERS.rangeStale));
+    expect(await reaper.applyFxToRange({ ...request, fadeMs: 2.5 })).toEqual(refusal(DAW_ANSWERS.cutBadFade));
+    expect(await reaper.removeFxFromRange({ ...request, chainName: 'Radio.RfxChain\n' })).toEqual(refusal(DAW_ANSWERS.fxBadChain));
+    expect(await reaper.fxChains()).toEqual({
+      source: 'Your REAPER FX chains',
+      choices: (DAW_PROJECT.fxChains ?? []).map((name) => ({ id: name, name })),
+    });
+
+    const withMode = (mode: 'steps' | 'app'): DawCapabilities => ({
+      ...DAW_SETUPS.reaper,
+      capabilities: { ...DAW_SETUPS.reaper.capabilities, fx_range: { level: 'experimental', available: true, mode } },
+    });
+    expect(await createMockDawClient(withMode('steps')).applyFxToRange(request)).toEqual({
+      ok: true,
+      changed: true,
+      message: fxChainAddedAnswer('Podcast Voice.RfxChain', 3, 'REAPER'),
+      undoSteps: FX_RANGE_STEPS.length,
+      steps: [...FX_RANGE_STEPS],
+    });
+    expect((await createMockDawClient(withMode('app')).removeFxFromRange(request)).undoSteps).toBe(0);
   });
 
   it('refusal-carries-the-capabilitys-sentence: take and marker calls use their own capability sentence', async () => {

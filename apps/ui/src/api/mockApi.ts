@@ -59,9 +59,9 @@ import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommo
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
-import type { DawCapabilitiesApi, DawDeleteRangeApi, DawHideTakesApi, DawResult, DawRollApi } from './contracts/daw';
+import type { DawCapabilitiesApi, DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawResult, DawRollApi } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
-import { DAW_ANSWERS, rangeCutOf, rolledOf, takesHiddenOf } from '../fixtures/daw';
+import { DAW_ANSWERS, fxRangeOf, fxRangeRemovedOf, plainChainName, rangeCutOf, rolledOf, takesHiddenOf } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -352,6 +352,11 @@ export function createMockApi(
     ...createHideTakesMock(daw, workspaceTakes),
     ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createFxRangeMock(
+      daw,
+      (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId)),
+      () => workspace.workspaceListFXChains(),
+    ),
     ...providers,
     ...mastering,
     ...recording,
@@ -424,6 +429,44 @@ function createDeleteRangeMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: 
       if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { ...refusedResult(DAW_ANSWERS.rangeStale), code: 'stale' };
       const cut = rangeCutOf(setup, lastToken - firstToken + 1);
       return { ok: true, changed: true, message: cut.message, undoSteps: cut.undoSteps, ...(cut.steps ? { steps: cut.steps } : {}) };
+    },
+  };
+}
+
+/** DawApplyFxToRange and DawRemoveFxFromRange as bindings_daw_fx_range.go answers them: the fx_range capability's sentence first, then an
+ * apply's fade, then a chapter the manuscript does not have or a range read backwards (code stale), then the chain (an apply's must be one
+ * the workspace's chain list names, a removal's a plain chain name); then what the launch's DAW answers. */
+function createFxRangeMock(
+  daw: DawCapabilitiesApi,
+  hasChapter: (chapterId: string) => Promise<boolean>,
+  listChains: () => Promise<{ names: string[] }>,
+): DawFxRangeApi {
+  const stale = { ...refusedResult(DAW_ANSWERS.rangeStale), code: 'stale' as const };
+  return {
+    dawApplyFxToRange: async (chapterId, firstToken, lastToken, chainName, fadeMs) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.fx_range;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return refusedResult(DAW_ANSWERS.cutBadFade);
+      if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return stale;
+      let names: string[];
+      try {
+        names = (await listChains()).names;
+      } catch (error) {
+        return refusedResult(error instanceof Error ? error.message : String(error));
+      }
+      if (!names.includes(chainName)) return refusedResult(DAW_ANSWERS.fxBadChain);
+      const fx = fxRangeOf(setup, chainName, lastToken - firstToken + 1);
+      return { ok: true, changed: true, message: fx.message, undoSteps: fx.undoSteps, ...(fx.steps ? { steps: fx.steps } : {}) };
+    },
+    dawRemoveFxFromRange: async (chapterId, firstToken, lastToken, chainName) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.fx_range;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return stale;
+      if (!plainChainName(chainName)) return refusedResult(DAW_ANSWERS.fxBadChain);
+      const fx = fxRangeRemovedOf(setup, chainName);
+      return { ok: true, changed: true, message: fx.message, undoSteps: fx.undoSteps, ...(fx.steps ? { steps: fx.steps } : {}) };
     },
   };
 }

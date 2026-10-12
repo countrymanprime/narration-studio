@@ -538,6 +538,21 @@ export function CreditsTemplates(): $CancellablePromise<string> {
 }
 
 /**
+ * DawApplyFxToRange puts one of the narrator's saved FX chains on the words firstToken..lastToken of chapterID's stored
+ * alignment (SND-6c, ADR 0860 point 3; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
+ * range and puts the chain on the middle piece, with fadeMs at each new seam. The page sends a chapter id, two token
+ * indices, a chain name and the fade, never a GUID, a time or a path: the item and its project seconds are resolved here
+ * from the stored alignment and the saved project (ADR 0242; threat model row 5f), one item per request (ADR 0705), and
+ * the chain must be one the DAW's own list (WorkspaceListFXChains, the list the Add FX menu shows) names. The answer is a
+ * DawResult (ADR 0810): the fx_range capability's own sentence when the resolver refuses it, checked first; then a fade
+ * apply_fx_range does not take; then the range's refusals (words not heard, two items, and a range or item that is stale
+ * with code stale); then a chain the DAW does not list. Nothing is sent to the DAW on any of them.
+ */
+export function DawApplyFxToRange(chapterID: string, firstToken: number, lastToken: number, chainName: string, fadeMs: number): $CancellablePromise<string> {
+    return $Call.ByID(279520550, chapterID, firstToken, lastToken, chainName, fadeMs);
+}
+
+/**
  * DawCapabilities answers the launch's DAW, whether it is reachable, and every capability's level, availability and (when
  * unavailable) reason and message.
  */
@@ -610,6 +625,18 @@ export function DawLaunch(): $CancellablePromise<string> {
  */
 export function DawProjectState(): $CancellablePromise<string> {
     return $Call.ByID(2311648888);
+}
+
+/**
+ * DawRemoveFxFromRange takes the chain chainName off the words firstToken..lastToken of chapterID's stored alignment and
+ * joins the piece back to the audio either side (the mock's removeFxFromRange), resolved as DawApplyFxToRange resolves
+ * them. The name is not checked against the DAW's list, so a chain deleted from FXChains since it went on still comes off;
+ * it must still be a plain chain name, never a path, and REAPER takes off only the FX its own record on the piece names.
+ * The same capability and range refusals as DawApplyFxToRange; a piece that does not carry the chain answers ok with
+ * changed false. The piece is a new item after the apply, so the alignment names it only once the chapter is checked again.
+ */
+export function DawRemoveFxFromRange(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
+    return $Call.ByID(433050377, chapterID, firstToken, lastToken, chainName);
 }
 
 /**

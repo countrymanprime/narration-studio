@@ -26,6 +26,10 @@ export const dawFeedback = {
   'src/ports/daw.ts::workspaceHideTakes#1': adapter('Forwards Hide other takes; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawRoll#1': adapter('Forwards Roll; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawDeleteRange#1': adapter('Forwards Delete words and audio; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawApplyFxToRange#1': adapter('Forwards Add effect to words; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawRemoveFxFromRange#1': adapter('Forwards Remove effect from words; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::workspaceListFXChains#1': adapter("Reads the DAW's saved FX chains for the Add FX list; a refusal rejects for the page to show."),
+  'src/ports/daw.ts::dawCapabilities#3': adapter("Reads the capability report beside the chain list, for the list's source label."),
   'src/ports/daw.ts::findingsAddMarker#1': adapter('Forwards Add marker.'),
   // The pickup marker methods (SN-D44): each reads the pickups capability first, refusing with its sentence, then starts one pickups run and
   // waits for that run's finished pickups:state.
