@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -24,7 +24,8 @@ export function InHost({
   children: ReactNode;
 }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
+  // A passive effect: a child's layout effect runs before the ref of the element around it is set.
+  useEffect(() => {
     const target = root.current?.querySelector<HTMLElement>(selector);
     if (!target) {
       setHost(null);

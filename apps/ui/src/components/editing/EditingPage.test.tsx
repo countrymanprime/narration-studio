@@ -250,6 +250,7 @@ describe('EditingPage', () => {
       fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 2 });
       const bar = screen.getByRole('toolbar', { name: 'Playback and selection' });
       for (const name of [/^Delete/, /^Mute/, /^Add FX/]) expect(within(bar).getAllByRole('button', { name })).toHaveLength(1);
+      expect(await screen.findAllByRole('toolbar', { name: 'Selection' })).toHaveLength(1);
       fireEvent.click(drawerButton());
       const drawer = document.querySelector<HTMLElement>('#drawer')!;
       expect(within(drawer).getAllByRole('region', { name: 'Clean up findings' })).toHaveLength(1);
