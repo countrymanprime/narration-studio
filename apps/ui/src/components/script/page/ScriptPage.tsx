@@ -415,10 +415,10 @@ function ScriptWorkspace({
     if (!phrase) return null;
     return {
       phrase,
-      inChapter: speakersInChapter(entries.entries, speakers.value ?? [], paragraphs.paragraphsOf(cue.chapterId) ?? [], cue.chapterId),
-      everyone: speakerChoices(entries.entries),
+      inChapter: speakersInChapter(entries.entries, entries.types, speakers.value ?? [], paragraphs.paragraphsOf(cue.chapterId) ?? [], cue.chapterId),
+      everyone: speakerChoices(entries.entries, entries.types),
     };
-  }, [picking, speakers, entries.entries, paragraphs]);
+  }, [picking, speakers, entries.entries, entries.types, paragraphs]);
 
   const toolbar: ReactNode = (
     <>

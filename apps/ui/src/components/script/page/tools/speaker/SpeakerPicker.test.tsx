@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../../api/ApiContext';
-import type { GuideDialogueCue, GuideEntity } from '../../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../../api/contracts/storyBible';
 import { createMockApi } from '../../../../../api/mockApi';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import { speakerColorIndex } from '../../../../primitives/speakerColor';
@@ -15,6 +15,10 @@ import { speakerChoices, speakersInChapter } from './speakerChoices';
 
 afterEach(cleanup);
 
+const TYPES: GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+];
 const entry = (id: string, name: string, extra: Partial<GuideEntity> = {}): GuideEntity =>
   ({ id, canonical_name: name, aliases: [], category: 'Character', ...extra }) as GuideEntity;
 const alias = (text: string) => ({ text, pronunciation: {}, occurrences: [] }) as unknown as GuideEntity['aliases'][number];
@@ -23,7 +27,7 @@ const duchess = entry('e1', 'The Duchess', { aliases: [alias('Her Grace')], spea
 const hatter = entry('e2', 'The Hatter');
 const gardener = entry('e3', 'Five', { aliases: [alias('The gardeners')] });
 const entries = [duchess, hatter, gardener];
-const everyone = speakerChoices(entries);
+const everyone = speakerChoices(entries, TYPES);
 const here = everyone.filter((choice) => choice.entryId !== 'e1');
 
 const suggested: Pick<Phrase, 'speaker' | 'state'> = { speaker: hatter, state: 'suggested' };
@@ -155,7 +159,7 @@ describe('choosing confirms the speaker through the data layer', () => {
     };
     expect(phrase().state).toBe('suggested');
 
-    const choices = speakerChoices(result.current.entries.entries);
+    const choices = speakerChoices(result.current.entries.entries, result.current.entries.types);
     render(
       <SpeakerPicker
         phrase={phrase()}
@@ -184,8 +188,14 @@ describe('speakersInChapter over the mock host', () => {
     await waitFor(() => expect(result.current.speakers.value?.length).toBeGreaterThan(0));
     await act(async () => {});
     const chapterId = (result.current.speakers.value as GuideDialogueCue[])[0]?.chapterId as string;
-    const inChapter = speakersInChapter(result.current.entries.entries, result.current.speakers.value as GuideDialogueCue[], [], chapterId);
+    const inChapter = speakersInChapter(
+      result.current.entries.entries,
+      result.current.entries.types,
+      result.current.speakers.value as GuideDialogueCue[],
+      [],
+      chapterId,
+    );
     expect(inChapter.length).toBeGreaterThan(0);
-    expect(inChapter.length).toBeLessThanOrEqual(speakerChoices(result.current.entries.entries).length);
+    expect(inChapter.length).toBeLessThanOrEqual(speakerChoices(result.current.entries.entries, result.current.entries.types).length);
   });
 });

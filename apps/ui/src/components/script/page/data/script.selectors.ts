@@ -3,13 +3,11 @@
 // Bible entries (`guideEntities`) and dialogue cues (`guideDialogueCues`). Each takes plain lists and returns a new value; none
 // mutates its input or reads anything else, so the hooks bind them and a story or test calls them with no host.
 
-import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/contracts/storyBible';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord, WordStatus } from '../../../../api/contracts/scriptPrep';
-
-/** The Story Bible category that speaks: the host gives a speaker colour to this category only. */
-const SPEAKING_CATEGORY = 'Character';
+import { canSpeak } from '../../../../storyBibleTypes';
 
 /** A flagged word's key as the host stores it: the text trimmed and lower-cased. */
 export const wordKey = (text: string): string => text.trim().toLowerCase();
@@ -117,8 +115,9 @@ export function entriesInChapter(entries: readonly GuideEntity[], paragraphs: re
 
 /* ---------- Speakers ---------- */
 
-/** Entries that can be picked as a speaker. */
-export const speakerCandidates = (entries: readonly GuideEntity[]): GuideEntity[] => entries.filter((entry) => entry.category === SPEAKING_CATEGORY);
+/** Entries that can be picked as a speaker: those whose Story Bible type can speak, so the type's Can speak flag decides. */
+export const speakerCandidates = (entries: readonly GuideEntity[], types: readonly GuideType[]): GuideEntity[] =>
+  entries.filter((entry) => canSpeak(types, entry.category));
 
 /** A speaker the narrator confirmed (a correction), one the Story Bible suggests, or none. */
 type PhraseState = 'confirmed' | 'suggested' | 'unknown';
@@ -126,24 +125,27 @@ type PhraseState = 'confirmed' | 'suggested' | 'unknown';
 /** A quoted phrase of a paragraph, from the Story Bible's dialogue cues. */
 export type Phrase = { cueId: string; start: number; end: number; text: string; speaker: GuideEntity | null; state: PhraseState };
 
-const phraseOf = (entries: readonly GuideEntity[], cue: GuideDialogueCue): Phrase => {
-  const speaker = entryById(entries, cue.speaker_entity_id) ?? null;
+const phraseOf = (speakers: readonly GuideEntity[], cue: GuideDialogueCue): Phrase => {
+  const speaker = entryById(speakers, cue.speaker_entity_id) ?? null;
   const state: PhraseState = !speaker ? 'unknown' : cue.speaker_source === 'correction' ? 'confirmed' : 'suggested';
   return { cueId: cue.id, start: cue.quote_start, end: cue.quote_end, text: cue.quote_text, speaker, state };
 };
 
-/** The quoted phrases of a paragraph in reading order, each with its speaker entry. */
+/**
+ * The quoted phrases of a paragraph in reading order, each with its speaker entry. `speakers` are the entries a phrase can be
+ * attributed to; the page passes `speakerCandidates`, so a line given to an entry whose type cannot speak counts as unknown.
+ */
 export function phrasesOf(
   cues: readonly GuideDialogueCue[],
-  entries: readonly GuideEntity[],
+  speakers: readonly GuideEntity[],
   paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>,
 ): Phrase[] {
   return cues
     .filter((cue) => cue.paragraphId === paragraph.id && cue.chapterId === paragraph.chapterId)
-    .map((cue) => phraseOf(entries, cue))
+    .map((cue) => phraseOf(speakers, cue))
     .sort((a, b) => a.start - b.start);
 }
 
-/** Quoted phrases in a chapter that nothing attributes to a speaker. */
-export const unattributed = (cues: readonly GuideDialogueCue[], entries: readonly GuideEntity[], chapterId: string): number =>
-  cues.filter((cue) => cue.chapterId === chapterId && phraseOf(entries, cue).state === 'unknown').length;
+/** Quoted phrases in a chapter that nothing attributes to one of the `speakers` (see `phrasesOf`). */
+export const unattributed = (cues: readonly GuideDialogueCue[], speakers: readonly GuideEntity[], chapterId: string): number =>
+  cues.filter((cue) => cue.chapterId === chapterId && phraseOf(speakers, cue).state === 'unknown').length;

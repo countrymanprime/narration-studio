@@ -1,5 +1,5 @@
 // The Script page's read cache: the chapter list, each chapter's paragraphs, the marks, the prep record, the Story Bible's
-// entries and its dialogue cues, each read once through its port and kept until something says it changed. A failed read is
+// entries, its types and its dialogue cues, each read once through its port and kept until something says it changed. A failed read is
 // a state holding the host's sentence, never a throw, and a reload keeps the last value on show while it runs. When a job ends
 // (an import, a Story Bible build) everything loaded is read again; a project switch drops the old answers and reads the same
 // lists for the new project. The hooks in
@@ -8,7 +8,7 @@
 import type { ManuscriptApi, ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Marks, MarksApi } from '../../../../api/contracts/marks';
 import type { ScriptPrep, ScriptPrepApi } from '../../../../api/contracts/scriptPrep';
-import type { GuideDialogueCue, GuideEntity, StoryBibleApi } from '../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuideType, StoryBibleApi } from '../../../../api/contracts/storyBible';
 import type { SystemApi } from '../../../../api/contracts/system';
 import { apiErrorMessage } from '../../../../api/errorMessage';
 
@@ -16,7 +16,7 @@ export type ScriptPorts = {
   manuscript: Pick<ManuscriptApi, 'manuscriptChapters' | 'manuscriptParagraphs'>;
   marks: Pick<MarksApi, 'marksList'>;
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepList'>;
-  storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideDialogueCues'>;
+  storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideTypes' | 'guideDialogueCues'>;
   system: Pick<SystemApi, 'subscribeJobEnded' | 'subscribeProjectAttach'>;
 };
 
@@ -24,13 +24,15 @@ export type ScriptPorts = {
 export type Loadable<T> = { status: 'loading'; value?: T } | { status: 'ready'; value: T } | { status: 'error'; message: string; value?: T };
 
 /** The lists read once for the whole page. */
-export type ScriptList = 'chapters' | 'marks' | 'prep' | 'entries' | 'cues';
+export type ScriptList = 'chapters' | 'marks' | 'prep' | 'entries' | 'types' | 'cues';
 
 export type ScriptDataState = {
   chapters?: Loadable<ManuscriptChapter[]>;
   marks?: Loadable<Marks>;
   prep?: Loadable<ScriptPrep>;
   entries?: Loadable<GuideEntity[]>;
+  /** The Story Bible's types: which of them speak and their colours (SN-B95). */
+  types?: Loadable<GuideType[]>;
   cues?: Loadable<GuideDialogueCue[]>;
   paragraphs: Readonly<Record<string, Loadable<ManuscriptParagraph[]>>>;
 };
@@ -64,6 +66,7 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
     marks: () => ports.marks.marksList(),
     prep: () => ports.scriptPrep.scriptPrepList(),
     entries: () => ports.storyBible.guideEntities(),
+    types: () => ports.storyBible.guideTypes(),
     cues: () => ports.storyBible.guideDialogueCues(),
   };
 
