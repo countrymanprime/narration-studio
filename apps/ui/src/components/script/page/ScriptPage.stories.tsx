@@ -13,9 +13,9 @@ import { setImportPrompted } from './layout/NeedManuscript';
 import { ScriptPage } from './ScriptPage';
 
 // The Studio Next Script page (docs/research/mockups/studio-next/src/pages/script/ScriptPage.tsx) over the browser mock host: the chapter
-// list, the reader and the rail, with drawers below the mock's widths (the rail from 1280 px, the chapter list from 1180 px). It has no
-// route until SN-B8 swaps it in; these are the states SN-B8 adds to the visual suite (reader with marks, each rail tab, the drawers at
-// 1024 and 768 px). The atlas draws each at its own wide and narrow widths, where both columns are drawers.
+// list, the reader and the rail, with drawers below the mock's widths (the rail from 1280 px, the chapter list from 1180 px). The
+// `/script` route mounts it (SN-B8), and the visual suite captures the same states in the app (tests/visual/catalog/script.ts). The atlas
+// draws each at its own wide and narrow widths, where both columns are drawers.
 
 let api: NarrationApi;
 

@@ -1,5 +1,5 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronDown,
@@ -15,7 +15,7 @@ import {
   faWaveSquare,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
-import type { GuideEntity, GuidePreview, GuidePronunciationStatus, TtsInstallJob } from '../../types';
+import type { GuideEntity, GuidePreview, TtsInstallJob } from '../../types';
 import { categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
@@ -31,17 +31,18 @@ import { Field } from '../primitives/Field';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Menu } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
-import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
-import { CANONICAL_PREVIEW, previewKey, usePreviewAudio } from './usePreviewAudio';
+import { TooltipTarget } from '../primitives/Tooltip';
+import { previewKey, usePreviewAudio } from './usePreviewAudio';
 import { PropertiesSection } from './PropertiesSection';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
 import { SpeakerColourField } from './SpeakerColourField';
-import { PronunciationWork } from './PronunciationWork';
+import { NamePronunciation } from './source/NamePronunciation';
+import { nameRows } from './source/pronunciationRows';
+import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
-import { pronunciationSourceLabel } from './pronunciationStatus';
 import { draftFrom, propertiesFrom, propertyProblem, sameProperties, type DraftProperty } from './propertyDraft';
 import { IconButton } from '../primitives/IconButton';
 import { Listbox, listboxOptionId } from '../primitives/Listbox';
@@ -63,6 +64,7 @@ const draftOf = (entity: GuideEntity): Draft => ({
   properties: draftFrom(entity.properties),
 });
 
+const NO_CHAPTERS: readonly ChapterRef[] = [];
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
 
@@ -76,6 +78,8 @@ export function GuideDetail({
   notify,
   goToManuscript,
   toVerify = 0,
+  chapters = NO_CHAPTERS,
+  suggested,
 }: {
   entity?: GuideEntity;
   // A brand-new entity with no backend record yet - see Guide.tsx's
@@ -92,6 +96,10 @@ export function GuideDetail({
   goToManuscript(chapter: string, paragraph?: number): void;
   // How many of this entry's extraction suggestions are still to be verified; Mark reviewed waits until none are.
   toVerify?: number;
+  /** The manuscript's chapters, for Appears in; the page reads them once. */
+  chapters?: readonly ChapterRef[];
+  /** The entry's accepted claims and the suggestions to verify (the mock's EntryEditor), built by the page that holds the suggestion list. */
+  suggested?: ReactNode;
 }) {
   const api = useApi();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [] });
@@ -127,11 +135,7 @@ export function GuideDetail({
   // Every action that changes the Story Bible goes through this (ADR 0075): one at a time, the control that started it says so, and the others
   // wait. Each is a Python process that rewrites the same file, so two at once could lose an update.
   const mutation = usePendingAction();
-  // The pronunciation controls in edit mode start closed, so edit mode stays compact, and stay open across a save's reload.
-  const [pronunciationOpen, setPronunciationOpen] = useState(false);
-  // One alias's pronunciation-details panel is independent of the entity's and of every other alias's (phase 11);
-  // keyed by alias index, so it also survives a reload (aliases keep their order across a save).
-  const [aliasPronunciationOpen, setAliasPronunciationOpen] = useState<Record<number, boolean>>({});
+  const pronunciationSources = usePronunciationSources();
   // An action that outlives a switch to another entry must not pull the selection back to the one it started on when it reloads.
   const currentId = useRef(entity?.id);
   currentId.current = entity?.id;
@@ -149,17 +153,6 @@ export function GuideDetail({
     notify,
   });
 
-  const [manuscriptChapters, setManuscriptChapters] = useState<ChapterRef[]>([]);
-  useEffect(() => {
-    let live = true;
-    api.manuscriptChapters().then(
-      (list) => live && setManuscriptChapters(list),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [api]);
   // Selecting a different entry always starts read-only; a reload of the same
   // entry (after Save, an alias change, ...) keeps its mode.
   useEffect(() => setEditing(false), [entity?.id]);
@@ -206,9 +199,6 @@ export function GuideDetail({
   const aliasMatches = aliasSelectedId ? [] : findAliasMatches(entities, aliasQuery, entity.id);
   const selectedAliasMatch = aliasSelectedId ? entities.find((row) => row.id === aliasSelectedId) : undefined;
   const reviewOverlayEntity = reviewOverlayId ? entities.find((row) => row.id === reviewOverlayId) : undefined;
-  // Play is gated on a pronunciation existing (B8): the preview always speaks the name as spelled and ignores the IPA, so this is a
-  // UI policy, not a technical limit - the reason says so.
-  const canonicalPlayReason = entity.pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
 
   const save = async (key: string, values: Record<string, string>, message: string): Promise<boolean> =>
     (await mutation.run(key, async () => {
@@ -254,59 +244,6 @@ export function GuideDetail({
       try {
         await api.guideRescan(entity.id);
         notify('Occurrences rescanned.');
-        await reloadFor(entity.id);
-      } catch (error) {
-        notify(describeApiError(error), 'error');
-      }
-    });
-  // A phase-11 alias call reuses the entity's own key so the two never race (mutation is one-at-a-time, ADR 0075); the
-  // alias suffix only keeps one alias's `pending`/`waiting` state from lighting up another alias's button.
-  const pronunciationKey = (base: string, aliasIndex?: number) => (aliasIndex === undefined ? base : `${base}-alias-${aliasIndex}`);
-  const pronounceEntity = (source: 'cmu' | 'espeak', aliasIndex?: number) =>
-    mutation.run(pronunciationKey('pronounce', aliasIndex), async () => {
-      try {
-        // One call site (interactionFeedback.catalog.ts keys a row per call expression, ADR 0075): aliasIndex is
-        // folded into the argument tuple rather than branched into two calls, and left out entirely for the entity
-        // (not passed as an explicit `undefined`), so a spy on the entity's own call keeps its old two-argument shape.
-        const args: Parameters<typeof api.guidePronounce> = aliasIndex === undefined ? [entity.id, source] : [entity.id, source, aliasIndex];
-        await api.guidePronounce(...args);
-        notify('Pronunciation generated.');
-        await reloadFor(entity.id);
-      } catch (error) {
-        notify(describeApiError(error), 'error');
-      }
-    });
-  const pronounceUser = async (ipa: string, aliasIndex?: number): Promise<boolean> =>
-    (await mutation.run(pronunciationKey('pronunciation-user', aliasIndex), async () => {
-      try {
-        const args: Parameters<typeof api.guidePronounceUser> = aliasIndex === undefined ? [entity.id, ipa] : [entity.id, ipa, aliasIndex];
-        await api.guidePronounceUser(...args);
-        notify('Your pronunciation is in use.');
-        await reloadFor(entity.id);
-        return true;
-      } catch (error) {
-        notify(describeApiError(error), 'error');
-        return false;
-      }
-    })) ?? false;
-  const switchToAlternatePronunciation = (aliasIndex?: number) =>
-    mutation.run(pronunciationKey('pronunciation-alternate', aliasIndex), async () => {
-      try {
-        const args: Parameters<typeof api.guidePronunciationUseAlternate> = aliasIndex === undefined ? [entity.id] : [entity.id, aliasIndex];
-        await api.guidePronunciationUseAlternate(...args);
-        notify('Pronunciation switched.');
-        await reloadFor(entity.id);
-      } catch (error) {
-        notify(describeApiError(error), 'error');
-      }
-    });
-  const setPronunciationStatus = (status: GuidePronunciationStatus, note: string, aliasIndex?: number) =>
-    mutation.run(pronunciationKey('pronunciation-status', aliasIndex), async () => {
-      try {
-        const args: Parameters<typeof api.guidePronunciationSetStatus> =
-          aliasIndex === undefined ? [entity.id, status, note] : [entity.id, status, note, aliasIndex];
-        await api.guidePronunciationSetStatus(...args);
-        notify('Pronunciation status saved.');
         await reloadFor(entity.id);
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -541,187 +478,94 @@ export function GuideDetail({
             Choose a category above to finish setting up this entry.
           </p>
         )}
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Name</div>
-            <TextField label="Name" disabled={editingDisabled} value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-          </div>
-          <div>
-            <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">
-              Pronunciation
-              <Tooltip text="Generated pronunciation; the waveform button plays an audio preview." />
-            </div>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <TextField
-                label="Pronunciation"
-                mono
-                readOnly
-                value={entity.pronunciation.ipa || 'Not generated'}
-                onChange={() => undefined}
-                style={{ paddingRight: canEdit && editing ? '5rem' : '2.75rem' }}
-              />
-              <div className="flex items-center gap-1" style={{ position: 'absolute', right: '.25rem', top: '50%', transform: 'translateY(-50%)' }}>
-                <TooltipTarget
-                  text={playingPreview === CANONICAL_PREVIEW ? 'Pause pronunciation preview' : (canonicalPlayReason ?? 'Play provider-generated pronunciation')}
-                >
-                  <IconButton
-                    label={playingPreview === CANONICAL_PREVIEW ? 'Pause preview' : 'Play preview'}
-                    disabledReason={playingPreview === CANONICAL_PREVIEW ? undefined : canonicalPlayReason}
-                    pending={loadingPreview === CANONICAL_PREVIEW}
-                    onClick={() => void playPreview()}
-                  >
-                    <FontAwesomeIcon icon={playingPreview === CANONICAL_PREVIEW ? faPause : faWaveSquare} />
-                  </IconButton>
-                </TooltipTarget>
-                {/* Generate/Replace live in edit mode only, blocked for locked entries by never reaching edit mode (D13, ADR 0007);
-                    they offer CMU and eSpeak explicitly (B10), and the chosen value is marked so a rebuild keeps it (B11). */}
-                {canEdit && editing && (
-                  <TooltipTarget text={entity.pronunciation.ipa ? 'Replace this pronunciation' : 'Generate a pronunciation for this name'}>
-                    <Menu
-                      disabled={mutation.isPending('pronounce') || waiting('pronounce')}
-                      render={<IconButton label={entity.pronunciation.ipa ? 'Replace pronunciation' : 'Generate pronunciation'} />}
-                      items={[
-                        { key: 'cmu', label: 'From the CMU dictionary', onSelect: () => void pronounceEntity('cmu') },
-                        { key: 'espeak', label: 'From eSpeak NG', onSelect: () => void pronounceEntity('espeak') },
-                      ]}
-                    >
-                      <FontAwesomeIcon icon={entity.pronunciation.ipa ? faRotate : faPlus} />
-                    </Menu>
-                  </TooltipTarget>
-                )}
-              </div>
-            </div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-              Source: {pronunciationSourceLabel(entity.pronunciation)} · Confidence: {entity.pronunciation.confidence}
-            </p>
-            <PronunciationWork
-              key={`${entity.id}:${entity.pronunciation.source}:${entity.pronunciation.ipa}:${entity.pronunciation.status ?? ''}:${entity.pronunciation.note ?? ''}`}
-              name={entity.canonical_name}
-              value={entity.pronunciation}
-              editing={canEdit && editing}
-              expanded={pronunciationOpen}
-              onExpandedChange={setPronunciationOpen}
-              disabled={mutation.isBusy}
-              pending={(key) => mutation.isPending(`pronunciation-${key}`)}
-              onSaveUser={pronounceUser}
-              onUseAlternate={() => void switchToAlternatePronunciation()}
-              onSaveStatus={(status, note) => void setPronunciationStatus(status, note)}
-            />
-          </div>
+        <div>
+          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Name</div>
+          <TextField label="Name" disabled={editingDisabled} value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
         </div>
 
         <div>
-          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Aliases</div>
-          <Table label="Aliases">
-            <TableHead>
-              <TableRow>
-                <TableHeader>Alias</TableHeader>
-                <TableHeader style={{ minWidth: '9rem' }}>Pronunciation</TableHeader>
-                <TableHeader hiddenLabel="Actions" />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {entity.aliases.map((alias, index) => (
-                <TableRow key={alias.text}>
-                  <TableCell className="font-['IBM_Plex_Mono',ui-monospace,monospace]">
-                    {alias.text}
-                    {aliasFlagged(entity, alias.text) && <StatusBadge tone="warning" label="Needs review" className="ml-2" />}
-                  </TableCell>
-                  <TableCell>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <TextField
-                        label={`${alias.text}'s pronunciation`}
-                        mono
-                        readOnly
-                        value={alias.pronunciation.ipa || 'Not generated'}
-                        onChange={() => undefined}
-                        // The table row is compact: the inline style wins over the primitive's own mono size (a plain
-                        // utility class can't be layered safely over it, see TextField.tsx).
-                        style={{ fontSize: '0.75rem', paddingRight: canEdit && editing ? '4.5rem' : '2.75rem' }}
-                      />
-                      <div className="flex items-center gap-1" style={{ position: 'absolute', right: '.25rem', top: '50%', transform: 'translateY(-50%)' }}>
-                        <TooltipTarget
-                          text={
-                            playingPreview === previewKey(index)
-                              ? 'Pause alias pronunciation preview'
-                              : ((alias.pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON) ?? 'Play this alias pronunciation')
-                          }
-                        >
-                          <IconButton
-                            label={playingPreview === previewKey(index) ? 'Pause alias pronunciation' : 'Play alias pronunciation'}
-                            disabledReason={playingPreview === previewKey(index) ? undefined : alias.pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON}
-                            pending={loadingPreview === previewKey(index)}
-                            onClick={() => void playPreview(index)}
-                          >
-                            <FontAwesomeIcon icon={playingPreview === previewKey(index) ? faPause : faWaveSquare} />
-                          </IconButton>
-                        </TooltipTarget>
-                        {/* Generate/Replace live in edit mode only, same rule and sources as the entity's own control above. */}
-                        {canEdit && editing && (
-                          <TooltipTarget text={alias.pronunciation.ipa ? 'Replace this pronunciation' : 'Generate a pronunciation for this name'}>
-                            <Menu
-                              disabled={mutation.isPending(pronunciationKey('pronounce', index)) || waiting(pronunciationKey('pronounce', index))}
-                              render={<IconButton label={alias.pronunciation.ipa ? 'Replace alias pronunciation' : 'Generate alias pronunciation'} />}
-                              items={[
-                                { key: 'cmu', label: 'From the CMU dictionary', onSelect: () => void pronounceEntity('cmu', index) },
-                                { key: 'espeak', label: 'From eSpeak NG', onSelect: () => void pronounceEntity('espeak', index) },
-                              ]}
-                            >
-                              <FontAwesomeIcon icon={alias.pronunciation.ipa ? faRotate : faPlus} />
-                            </Menu>
-                          </TooltipTarget>
-                        )}
-                      </div>
-                    </div>
-                    {canEdit && editing && (
-                      <p className="mt-1 text-[0.7rem]" style={{ color: 'var(--text-muted)' }}>
-                        Source: {pronunciationSourceLabel(alias.pronunciation)} · Confidence: {alias.pronunciation.confidence}
-                      </p>
-                    )}
-                    <PronunciationWork
-                      key={`${entity.id}:${index}:${alias.pronunciation.source}:${alias.pronunciation.ipa}:${alias.pronunciation.status ?? ''}:${alias.pronunciation.note ?? ''}`}
-                      name={alias.text}
-                      value={alias.pronunciation}
+          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Names the app links in the text, and how I say each</div>
+          <ul aria-label="Names" className="m-0 list-none space-y-3 p-0">
+            {nameRows(entity).map((row) => {
+              const { aliasIndex, name, pronunciation } = row;
+              const key = previewKey(aliasIndex);
+              const playing = playingPreview === key;
+              const playReason = playing || pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
+              const flagged = aliasIndex !== undefined && aliasFlagged(entity, name);
+              return (
+                <li key={`${aliasIndex ?? 'entry'}:${name}`} className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <NamePronunciation
+                      entityId={entity.id}
+                      row={row}
                       editing={canEdit && editing}
-                      expanded={Boolean(aliasPronunciationOpen[index])}
-                      onExpandedChange={(open) => setAliasPronunciationOpen((prior) => ({ ...prior, [index]: open }))}
-                      disabled={mutation.isBusy}
-                      pending={(key) => mutation.isPending(pronunciationKey(`pronunciation-${key}`, index))}
-                      onSaveUser={(ipa) => pronounceUser(ipa, index)}
-                      onUseAlternate={() => void switchToAlternatePronunciation(index)}
-                      onSaveStatus={(status, note) => void setPronunciationStatus(status, note, index)}
+                      locked={locked}
+                      sources={pronunciationSources}
+                      reload={() => reloadFor(entity.id)}
+                      notify={notify}
                     />
-                  </TableCell>
-                  <TableCell align="right">
-                    {aliasFlagged(entity, alias.text) && (
-                      <TooltipTarget text={`Mark ${alias.text} reviewed`}>
-                        <IconButton
-                          action="markReviewed"
-                          label={`Mark ${alias.text} reviewed`}
-                          pending={mutation.isPending(`review:${index}`)}
-                          disabled={waiting(`review:${index}`)}
-                          onClick={() => void markReviewed(index)}
-                        />
-                      </TooltipTarget>
-                    )}
+                    {flagged && <StatusBadge tone="warning" label="Needs review" />}
+                    {/* A note from before pronunciation statuses were removed (ADR 0792): kept readable, no longer edited. */}
+                    {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
+                  </div>
+                  <TooltipTarget
+                    text={
+                      aliasIndex === undefined
+                        ? playing
+                          ? 'Pause pronunciation preview'
+                          : (playReason ?? 'Play provider-generated pronunciation')
+                        : playing
+                          ? 'Pause alias pronunciation preview'
+                          : (playReason ?? 'Play this alias pronunciation')
+                    }
+                  >
                     <IconButton
-                      label={`Remove alias ${alias.text}`}
-                      disabled={editingDisabled || waiting(`alias:${alias.text}`)}
-                      pending={mutation.isPending(`alias:${alias.text}`)}
+                      label={
+                        aliasIndex === undefined
+                          ? playing
+                            ? 'Pause preview'
+                            : 'Play preview'
+                          : playing
+                            ? 'Pause alias pronunciation'
+                            : 'Play alias pronunciation'
+                      }
+                      disabledReason={playReason}
+                      pending={loadingPreview === key}
+                      onClick={() => void playPreview(aliasIndex)}
+                    >
+                      <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
+                    </IconButton>
+                  </TooltipTarget>
+                  {flagged && (
+                    <TooltipTarget text={`Mark ${name} reviewed`}>
+                      <IconButton
+                        action="markReviewed"
+                        label={`Mark ${name} reviewed`}
+                        pending={mutation.isPending(`review:${aliasIndex}`)}
+                        disabled={waiting(`review:${aliasIndex}`)}
+                        onClick={() => void markReviewed(aliasIndex)}
+                      />
+                    </TooltipTarget>
+                  )}
+                  {aliasIndex !== undefined && canEdit && editing && (
+                    <IconButton
+                      label={`Remove alias ${name}`}
+                      disabled={waiting(`alias:${name}`)}
+                      pending={mutation.isPending(`alias:${name}`)}
                       onClick={() =>
                         void setAliasTexts(
-                          entity.aliases.filter((other) => other.text !== alias.text).map((other) => other.text),
-                          `alias:${alias.text}`,
+                          entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
+                          `alias:${name}`,
                         )
                       }
                     >
                       <FontAwesomeIcon icon={faXmark} />
                     </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
           <div className="mt-3">
             <TextField
               label="Add an alias or find a matching entry"
@@ -887,6 +731,8 @@ export function GuideDetail({
           <Field label="Lore context" textarea disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
         )}
 
+        {suggested}
+
         <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
           <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Relationships</div>
           <Table label="Relationships">
@@ -950,7 +796,7 @@ export function GuideDetail({
           </div>
         </div>
 
-        <AppearsIn entity={entity} manuscript={manuscriptChapters} onGo={(chapterId) => goToManuscript(chapterId)} />
+        <AppearsIn entity={entity} manuscript={chapters} onGo={(chapterId) => goToManuscript(chapterId)} />
         {ttsPrompt && (
           <AssetInstallPrompt
             ask={{

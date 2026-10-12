@@ -80,7 +80,7 @@ Method: each mock case is a row below, mapped to a real test by reading the real
 | batch-b.test.tsx | says "not measured yet" when nothing has been measured | ported | apps/ui/src/components/production/overview/overview.test.tsx::this-week-sourced-or-reason: with none |  |
 | batch-b.test.tsx | draws the recorded line from the take log, and none without one | ported | apps/ui/src/components/production/measured/measured.selectors.test.ts::recorded-series-is-cumulative-by-day-from-the-plan-start | Without a take log: overview.test.tsx "chart without a take log has no actual line and says why". |
 | batch-b.test.tsx | room tone comes from the provider for the microphone in use | ported | apps/ui/src/components/production/measured/measured.selectors.test.ts::room-tone-label-says-the-reading-or-the-reason |  |
-| batch-b.test.tsx | the Booth footer chip shows the reading, and "not measured yet" when there is none | covered | apps/ui/src/components/booth/BoothView.test.tsx::say only what the app knows: no room reading, no microphone chosen, REAPER not recording | Booth part; SN-C33 owns the Booth audit. The real chip reads the input level, not a provider. |
+| batch-b.test.tsx | the Booth footer chip shows the reading, and "not measured yet" when there is none | covered | apps/ui/src/components/booth/frame/frame.test.tsx::opens a menu with the microphone choice and the level meter, and leaves the room tone in the footer | Booth part; SN-C33 owns the Booth audit. The old Booth's test went with it in SN-O10; the new footer's room tone is this test, and the page passes "Room not measured yet" while there is no reading (`page/BoothNextPage.tsx`). |
 | batch-b.test.tsx | booth time for pickups comes from the provider; unmeasured pickups take the measured average | ported | apps/ui/src/components/production/measured/measured.selectors.test.ts::session-minutes-rounds-and-floors-at-one |  |
 | batch-b.test.tsx | Pickups shows the session time, and "not measured yet" without a source | mock-only |  | GAP G7: The Pickups session time is a Pickups figure; no test in apps/ui/src/components/pickups asserts it or its not-measured state. SN-C34 owns the Pickups audit. |
 | batch-b.test.tsx | the fixed inputs live in one config module | mock-only |  | GAP G6: The fixed inputs sit in schedule/estimates.ts, but no real test scans for stray copies of the numbers (the mock scans src for 9300 and the others). |
@@ -199,7 +199,7 @@ The cited tests, run together at `e4deb06`:
 
 ```text
 pnpm --dir apps/ui exec vitest run \
-  src/components/booth/BoothView.test.tsx src/components/production/ProductionPage.test.tsx \
+  src/components/booth/frame/frame.test.tsx src/components/production/ProductionPage.test.tsx \
   src/components/production/RecordingCheck.test.tsx src/components/production/chapterCheckStatus.test.ts \
   src/components/production/measured src/components/production/overview \
   src/components/production/pipeline src/components/production/readiness \

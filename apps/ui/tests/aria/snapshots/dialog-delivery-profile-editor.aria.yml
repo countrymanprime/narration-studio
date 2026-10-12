@@ -3,7 +3,7 @@
 # rule, number boxes named for the rule and the bound (with the unit), a fixed rule that can only be turned off, and Cancel and
 # Save profile. The page behind it is aria-hidden.
 - /children: equal
-# The two toast live regions stay in the tree on purpose (see dialog-add-note.aria.yml); Duplicate's toast is in the status one.
+# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); Duplicate's toast is in the status one.
 - main:
   - alert
   - status

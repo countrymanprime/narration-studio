@@ -14,10 +14,10 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 
 ## Used by
 
-- `src/components/booth/ReaderFlagsPanel.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/devtools/MockStatesPanel.tsx`
 - `src/components/editing/cleanup/CleanupList.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`

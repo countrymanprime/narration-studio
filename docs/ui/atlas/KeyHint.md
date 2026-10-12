@@ -16,4 +16,4 @@ Storybook title: `Primitives/KeyHint`. Source: `src/components/primitives/KeyHin
 
 ## Used by
 
-- `src/components/booth/ReadingControlBar.tsx`
+- nothing outside its own stories and tests yet

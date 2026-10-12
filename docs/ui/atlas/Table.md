@@ -33,7 +33,6 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/proof/TakeComparisonView.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
-- `src/components/script/ScriptRail.tsx`
 - `src/components/script/page/rail/words/WordsTab.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`

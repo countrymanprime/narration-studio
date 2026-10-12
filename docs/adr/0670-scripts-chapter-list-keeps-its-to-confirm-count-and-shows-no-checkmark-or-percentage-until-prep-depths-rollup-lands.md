@@ -1,6 +1,6 @@
 # 0670. Script's chapter list keeps its to-confirm count and shows no checkmark or percentage until prep-depth's rollup lands
 
-**Status:** Proposed (superseded in part by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), where it differs from the Studio Next mock)
+**Status:** Superseded by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md) (the Studio Next Script page, swapped in by SN-B8, shows the narrator's own prep state per chapter and no to-confirm count)
 **Date:** 2026-09-28
 **Supersedes:** none
 

@@ -4,6 +4,10 @@ import {
   DAW_ANSWERS,
   DAW_PROJECT,
   type DawProject,
+  fxListOf,
+  fxRangeOf,
+  fxRangeRemovedOf,
+  plainChainName,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
   projectStateOf,
@@ -38,6 +42,20 @@ export type DeleteRangeRequest = { chapterId: string; firstToken: number; lastTo
 /** The longest fade at a cut's seam (bridge.MaxCutFadeMs). */
 const MAX_CUT_FADE_MS = 500;
 
+/** One of the narrator's saved chains on the words between two tokens (the Studio Next mock's `FxRangeRequest`, narrowed as
+ * `DeleteRangeRequest` is). `chainName` is a name `fxChains()` listed; `fadeMs` is the fade at each new seam, 0 to 500. */
+export type FxRangeRequest = { chapterId: string; firstToken: number; lastToken: number; chainName: string; fadeMs: number };
+
+/** A chain to take off the words between two tokens again. */
+export type FxRangeRemoval = { chapterId: string; firstToken: number; lastToken: number; chainName: string };
+
+/** One saved chain, effect or macro as the DAW lists it (the mock's `FxChoice`). REAPER names a chain by its path under FXChains, which
+ * is both its id and its name. */
+export type FxChoice = { id: string; name: string };
+
+/** What the DAW offers for Add FX (the mock's `FxList`): where the list comes from, and the entries. */
+export type FxList = { source: string; choices: FxChoice[] };
+
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
 export const NOTHING_TO_CHANGE = 'Nothing to change.';
 
@@ -60,6 +78,13 @@ export interface DawClient {
   /** Cut the request's words and their audio: the DAW moves the cut audio aside rather than deleting it. `close` moves the later audio
    * up, `gap` keeps the length. Words already cut answer `changed: false`. */
   deleteRange(request: DeleteRangeRequest): Promise<DawResult>;
+  /** Put one of the narrator's saved chains on the request's words: the DAW splits the item at both ends and the chain goes on the middle
+   * piece. The chain must be one `fxChains()` listed. */
+  applyFxToRange(request: FxRangeRequest): Promise<DawResult>;
+  /** Take the chain off the words again and join the piece back. A piece without the chain answers `changed: false`. */
+  removeFxFromRange(request: FxRangeRemoval): Promise<DawResult>;
+  /** The DAW's own saved chains, for Add FX. Rejects when the DAW cannot list them now. */
+  fxChains(): Promise<FxList>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
   /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
@@ -81,6 +106,9 @@ export type DawHostApi = Pick<
   | 'workspaceHideTakes'
   | 'dawRoll'
   | 'dawDeleteRange'
+  | 'dawApplyFxToRange'
+  | 'dawRemoveFxFromRange'
+  | 'workspaceListFXChains'
   | 'findingsAddMarker'
   | 'pickupsImport'
   | 'pickupsResolve'
@@ -231,6 +259,14 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     roll: (chapterId, at, opts) => api.dawRoll(chapterId, at, opts?.confirmed ?? false),
     /** The binding answers a DawResult already: it resolves the range to an item and its times on the host. */
     deleteRange: ({ chapterId, firstToken, lastToken, mode, fadeMs }) => api.dawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs),
+    /** The bindings answer a DawResult already: they resolve the range on the host and check the chain against the DAW's list. */
+    applyFxToRange: ({ chapterId, firstToken, lastToken, chainName, fadeMs }) => api.dawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs),
+    removeFxFromRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName),
+    /** WorkspaceListFXChains, the list the Add FX menu shows, named for the launch's DAW. */
+    async fxChains() {
+      const [capabilities, listing] = await Promise.all([api.dawCapabilities(), api.workspaceListFXChains()]);
+      return fxListOf(capabilities, listing.names);
+    },
     async addMarker(findingId) {
       const result = await api.findingsAddMarker(findingId);
       if (result.outcome === 'refused') return refused(result.message, 'addMarker', result.reason === 'stale');
@@ -298,6 +334,29 @@ export function createMockDawClient(
       if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'deleteRange', true);
       const cut = rangeCutOf(setup, lastToken - firstToken + 1);
       return { ...done(true, cut.undoSteps, cut.message), ...(cut.steps ? { steps: cut.steps } : {}) };
+    },
+    async applyFxToRange({ chapterId, firstToken, lastToken, chainName, fadeMs }) {
+      const sentence = unavailable(setup, 'fx_range', 'applyFxToRange');
+      if (sentence) return refused(sentence, 'applyFxToRange');
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > MAX_CUT_FADE_MS) return refused(DAW_ANSWERS.cutBadFade, 'applyFxToRange');
+      if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'applyFxToRange', true);
+      if (!(project.fxChains ?? []).includes(chainName)) return refused(DAW_ANSWERS.fxBadChain, 'applyFxToRange');
+      const fx = fxRangeOf(setup, chainName, lastToken - firstToken + 1);
+      return { ...done(true, fx.undoSteps, fx.message), ...(fx.steps ? { steps: fx.steps } : {}) };
+    },
+    async removeFxFromRange({ chapterId, firstToken, lastToken, chainName }) {
+      const sentence = unavailable(setup, 'fx_range', 'removeFxFromRange');
+      if (sentence) return refused(sentence, 'removeFxFromRange');
+      if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken)
+        return refused(DAW_ANSWERS.rangeStale, 'removeFxFromRange', true);
+      if (!plainChainName(chainName)) return refused(DAW_ANSWERS.fxBadChain, 'removeFxFromRange');
+      const fx = fxRangeRemovedOf(setup, chainName);
+      return { ...done(true, fx.undoSteps, fx.message), ...(fx.steps ? { steps: fx.steps } : {}) };
+    },
+    async fxChains() {
+      const sentence = unavailable(setup, 'fx_chains', 'fxChains');
+      if (sentence) throw new Error(sentence);
+      return fxListOf(setup, project.fxChains ?? []);
     },
     async addMarker(findingId) {
       const sentence = unavailable(setup, 'markers', 'addMarker');

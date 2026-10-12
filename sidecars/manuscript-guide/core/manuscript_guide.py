@@ -465,20 +465,9 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
 # up, so it is not in SOURCES and the pronounce command does not offer it. A file written before ADR 0792 says ``user``.
 MANUAL_SOURCE = "manual"
 LEGACY_MANUAL_SOURCE = "user"
-# Where the narrator is with a pronunciation: looked up (the default, and what an entry written before status existed reads as),
-# asked of the author, or confirmed by the author.
-PRONUNCIATION_STATUSES = ("researched", "query_sent", "author_confirmed")
-DEFAULT_PRONUNCIATION_STATUS = "researched"
 MAX_USER_PRONUNCIATION = 200
-MAX_PRONUNCIATION_NOTE = 1000
 # The fields that are the pronunciation itself; the note and the alternate are about the name and travel with it.
 _PRONUNCIATION_VALUE_FIELDS = ("ipa", "source", "confidence")
-
-
-def pronunciation_status_of(value: dict[str, Any] | None) -> str:
-    """The status of a pronunciation, ``researched`` when it has none (an entry written before status existed) or an unknown one."""
-    status = (value or {}).get("status")
-    return status if status in PRONUNCIATION_STATUSES else DEFAULT_PRONUNCIATION_STATUS
 
 
 def read_pronunciation_source(value: dict[str, Any]) -> dict[str, Any]:
@@ -1339,27 +1328,6 @@ def pronunciation_use_alternate(args: argparse.Namespace) -> None:
     print(f"PRONOUNCED|{args.entity_id}|{value.get('source', '')}")
 
 
-def pronunciation_status(args: argparse.Namespace) -> None:
-    """Sets a pronunciation's status and, when ``note`` is given, its note (an empty note clears it). The IPA is untouched."""
-    if args.status not in PRONUNCIATION_STATUSES:
-        raise ValueError(f"Unknown pronunciation status: {args.status}")
-    note = None if args.note is None else args.note.strip()
-    if note is not None and len(note) > MAX_PRONUNCIATION_NOTE:
-        raise ValueError(f"A pronunciation note is at most {MAX_PRONUNCIATION_NOTE} characters.")
-    guide = _load_guide_for_edit(args.guide)
-    holder, _ = _pronunciation_holder(guide, args.entity_id, args.alias_index)
-    value = dict(holder.get("pronunciation") or {})
-    value["status"] = args.status
-    if note is not None:
-        if note:
-            value["note"] = note
-        else:
-            value.pop("note", None)
-    holder["pronunciation"] = value
-    write_json(args.guide, guide)
-    print(f"PRONUNCIATION_STATUS|{args.entity_id}|{args.status}")
-
-
 def create(args: argparse.Namespace) -> None:
     # A manuscript import can seed manual character candidates before the
     # Story Bible has ever been Built, so there may be no guide file yet -
@@ -1996,12 +1964,6 @@ def main() -> None:
     alternate_parser.add_argument("--guide", required=True)
     alternate_parser.add_argument("--entity-id", required=True)
     alternate_parser.add_argument("--alias-index", type=int, default=None)
-    status_parser = command.add_parser("pronunciation-status")
-    status_parser.add_argument("--guide", required=True)
-    status_parser.add_argument("--entity-id", required=True)
-    status_parser.add_argument("--alias-index", type=int, default=None)
-    status_parser.add_argument("--status", required=True, choices=PRONUNCIATION_STATUSES)
-    status_parser.add_argument("--note", default=None)
     create_parser = command.add_parser("create")
     create_parser.add_argument("--guide", required=True)
     create_parser.add_argument("--manuscript", required=True)
@@ -2095,7 +2057,6 @@ def main() -> None:
             "candidate": candidate,
             "pronounce-user": pronounce_user,
             "pronunciation-use-alternate": pronunciation_use_alternate,
-            "pronunciation-status": pronunciation_status,
             "create": create,
             "merge": merge,
             "split": split,

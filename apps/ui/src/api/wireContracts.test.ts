@@ -4,15 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
-import { DAW_ANSWERS, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
+import { DAW_ANSWERS, fxChainAddedAnswer, fxChainRemovedAnswer, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
-import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
-// The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
@@ -32,13 +30,12 @@ import {
   extractionSuggestionSchema,
   extractionSuggestionsSchema,
 } from './schemas/extraction';
-import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema, takeFigureSchema } from './schemas/takeEvidence';
-import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
+import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { WIRE_TAKE_COMPARISON_FINDING } from './takeComparisonMock';
 import { MOCK_MEASURE_PATHS } from './measureMock';
 import { judgeMock } from './coverageMock';
@@ -50,12 +47,10 @@ import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/de
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
 import {
-  bookmarkSchema,
   chapterKindResultSchema,
   chapterSchema,
   chaptersSchema,
   fileSelectionSchema,
-  noteSchema,
   notesSchema,
   paragraphsSchema,
   readerSchema,
@@ -142,9 +137,6 @@ import {
   guideDialogueCuesSchema,
   guideEntitiesSchema,
   guidePreviewSchema,
-  pronunciationQueriesCsvSchema,
-  pronunciationQueriesSchema,
-  queryImportResultSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
@@ -703,11 +695,6 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(paragraphsSchema, await api.manuscriptParagraphs(chapters[0]?.id ?? ''), 'mock paragraphs');
     expectMatches(searchHitsSchema, await api.manuscriptSearch('alice'), 'mock search');
     expectMatches(notesSchema, await api.noteList(), 'mock notes');
-    expectMatches(
-      readerStateSchema,
-      await api.readerStateSave({ activeChapter: chapters[0]?.id, activeSourceLine: 3, expandedChapters: [] }),
-      'mock saved state',
-    );
     expectMatches(chapterSchema, await api.manuscriptSetChapterStatus(chapters[0]?.id ?? '', 'recording'), 'mock chapter status');
   });
 
@@ -780,57 +767,6 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.manuscriptSetChapterKind('no-such-chapter', 'reference')).rejects.toThrow('unknown manuscript chapter');
   });
 
-  it('the PrepMarkupList, PrepMarkupSave and PrepMarkupDelete answers, fresh and stale', async () => {
-    const api = createMockApi({}, { prepMarkup: [{ chapter: 0, line: 0, words: 'Alice', kind: 'stress', stale: { reason: 'text_changed', was: 'Queen' } }] });
-    const chapter = (await api.manuscriptChapters())[0];
-    const paragraph = (await api.manuscriptParagraphs(chapter?.id ?? ''))[1];
-    const saved = await api.prepMarkupSave(chapter?.id ?? '', paragraph?.id ?? '', 0, 5, 'character_tag', ' Alice ');
-    expectMatches(prepMarkupSpanSchema, saved, 'mock markup span');
-    expect(saved).toMatchObject({ stale: false, value: 'Alice', paragraph: paragraph?.index });
-    const listed = await api.prepMarkupList(chapter?.id ?? '');
-    expectMatches(prepMarkupChapterSchema, listed, 'mock markup list');
-    expect(listed.spans.map((span) => span.stale)).toEqual([true, false]);
-    expect(listed.spans[0]).toMatchObject({ staleReason: 'text_changed', anchorText: 'Queen' });
-    await api.prepMarkupDelete(chapter?.id ?? '', listed.spans[0].id);
-    expect((await api.prepMarkupList(chapter?.id ?? '')).spans).toHaveLength(1);
-    await expect(api.prepMarkupSave(chapter?.id ?? '', 'no-such-line', 0, 1, 'stress', '')).rejects.toThrow('no longer in this chapter');
-    await expect(api.prepMarkupSave(chapter?.id ?? '', paragraph?.id ?? '', 0, 5, 'pause', '')).rejects.toThrow('short or long');
-  });
-
-  // The per-chapter rollup reads the same two calls above, never a third store.
-  it('the prep completeness summary rolls up open queries and stale markup per chapter', async () => {
-    const api = createMockApi({}, { prepMarkup: [{ chapter: 0, line: 0, words: 'Alice', kind: 'stress', stale: { reason: 'text_changed', was: 'Queen' } }] });
-    const chapters = await api.manuscriptChapters();
-    const summary = await api.prepCompletenessSummary();
-    expectMatches(prepCompletenessSummarySchema, summary, 'mock prep completeness summary');
-    expect(summary.chapters.map((row) => row.chapterId)).toEqual(chapters.map((c) => c.id));
-    expect(summary.totals.chapters).toBe(chapters.length);
-    const firstChapter = summary.chapters.find((row) => row.chapterId === chapters[0]?.id);
-    expect(firstChapter?.staleMarkupSpans).toBe(1);
-    expect(firstChapter?.complete).toBe(false);
-    const openAcrossChapters = summary.chapters.reduce((sum, row) => sum + row.openQueries, 0);
-    expect(summary.totals.openQueries).toBe(openAcrossChapters + summary.totals.unattributedQueries);
-    expect(summary.totals.staleMarkupSpans).toBeGreaterThanOrEqual(1);
-  });
-
-  it('a created note and bookmark', async () => {
-    const api = createMockApi();
-    const chapter = (await api.manuscriptChapters())[0];
-    const paragraph = (await api.manuscriptParagraphs(chapter?.id ?? ''))[0];
-    expectMatches(noteSchema, await api.noteCreate(chapter?.id ?? '', paragraph?.id ?? '', 'A note', 0, 4, 'Alic'), 'mock note');
-    expectMatches(
-      bookmarkSchema,
-      await api.readerBookmarkCreate({
-        kind: 'line',
-        chapter: chapter?.title ?? '',
-        chapterId: chapter?.id,
-        paragraphId: paragraph?.id,
-        paragraph: paragraph?.index,
-      }),
-      'mock bookmark',
-    );
-  });
-
   it('the manuscript import jobs from file selection to a committed import', async () => {
     const api = createMockApi();
     const selection = await api.selectManuscript();
@@ -874,13 +810,6 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(guideCreatedSchema, { id: await api.guideCreate('New', 'Character', []) }, 'mock guide create');
     const entity = (await api.guideEntities())[0];
     expectMatches(guidePreviewSchema, await api.guidePreview(entity?.id ?? ''), 'mock preview');
-    const queries = await api.guidePronunciationQueries();
-    expectMatches(pronunciationQueriesSchema, queries, 'mock pronunciation queries');
-    expect(queries.length).toBeGreaterThan(0);
-    expect(queries.every((row) => row.status !== 'author_confirmed')).toBe(true);
-    const csv = await api.guidePronunciationQueriesCsv();
-    expectMatches(pronunciationQueriesCsvSchema, csv, 'mock pronunciation queries CSV');
-    expect(csv.count).toBe(queries.length);
   });
 
   it('the Story Bible dialogue cues and their correction', async () => {
@@ -976,25 +905,6 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.seriesSave('', '  ', [])).rejects.toThrow('needs a name');
     await api.seriesDelete(created.id);
     expect((await api.seriesList()).some((series) => series.id === created.id)).toBe(false);
-  });
-
-  it('re-importing an answered pronunciation query file applies a matched row and reports an unmatched one', async () => {
-    const api = createMockApi();
-    const queries = await api.guidePronunciationQueries();
-    const row = queries[0];
-    const aliasCell = row.aliasIndex === null ? '' : String(row.aliasIndex);
-    const csvText =
-      'word,entry_id,alias_index,status,note\n' +
-      `${row.name},${row.entityId},${aliasCell},author_confirmed,Confirmed by the author\n` +
-      'Ghost,not-a-real-entity,,researched,\n';
-    const result = await api.guidePronunciationImportQueriesCsv(csvText);
-    expectMatches(queryImportResultSchema, result, 'mock pronunciation query import');
-    expect(result.applied).toBe(1);
-    expect(result.issues).toHaveLength(1);
-    expect(result.issues[0]).toContain('line 3:');
-    expect(result.issues[0]).toContain('Ghost');
-    const after = await api.guidePronunciationQueries();
-    expect(after.some((query) => query.entityId === row.entityId && query.aliasIndex === row.aliasIndex)).toBe(false);
   });
 
   it('the dictionary lookup answers: a word it has, one it does not, and the first-use gate', async () => {
@@ -1198,11 +1108,6 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     // One word only: a passage or a file name is refused, as the host refuses it.
     await expect(api.pronunciationOnlineLookup('The Mock Turtle sighed deeply')).rejects.toThrow(/one word/);
     await expect(api.pronunciationOnlineLookup('C:\\Books\\alice.docx')).rejects.toThrow(/one word/);
-    // A batch needs its distinct word count confirmed.
-    await expect(api.pronunciationOnlineLookupBatch(['wren', 'Wren', 'alice'], 3)).rejects.toThrow(/confirmation/);
-    const batch = await api.pronunciationOnlineLookupBatch(['wren', 'Wren', 'alice'], 2);
-    expectMatches(pronunciationOnlineBatchResultSchema, batch, 'mock batch');
-    expect(batch).toMatchObject({ words: 2, fetched: 2 });
     await expect(api.pronunciationOnlineSignUpOpen()).resolves.toBeUndefined();
     expectMatches(pronunciationOnlineKeyStatusSchema, await api.pronunciationOnlineKeyClear(), 'mock key clear');
   });
@@ -1710,6 +1615,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // delete_range moves the cut audio to the muted Cuts track: cut_range is Experimental, native and not destructive.
     expect(disconnectedReaper.capabilities.cut_range).toMatchObject({ level: 'experimental', mode: 'native' });
     expect(disconnectedReaper.capabilities.cut_range?.destructive).toBeUndefined();
+    // apply_fx_range puts take FX on a split piece and remove_fx_range takes them off: fx_range is Experimental, native and not
+    // destructive.
+    expect(disconnectedReaper.capabilities.fx_range).toMatchObject({ level: 'experimental', mode: 'native' });
+    expect(disconnectedReaper.capabilities.fx_range?.destructive).toBeUndefined();
   });
 
   it('dawCapabilities reports a connected-but-unreachable REAPER as not_running, except the heartbeat capability itself', async () => {
@@ -2873,6 +2782,50 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.cut_range.message);
   });
 
+  it('dawApplyFxToRange and dawRemoveFxFromRange answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-apply-fx-range-done.json', 'daw-apply-fx-range-refused.json', 'daw-remove-fx-range-done.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    const chain = 'Podcast Voice.RfxChain';
+    expect(readGolden('daw-apply-fx-range-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      undoSteps: 1,
+      message: fxChainAddedAnswer(chain, 1, 'REAPER'),
+    });
+    expect(readGolden('daw-remove-fx-range-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      undoSteps: 1,
+      message: fxChainRemovedAnswer(chain, 'REAPER'),
+    });
+    expect(readGolden('daw-apply-fx-range-refused.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const added = await api.dawApplyFxToRange(chapter.id, 0, 0, chain, 10);
+    expectMatches(dawResultSchema, added, 'mock chain on a range');
+    expect(added).toEqual(readGolden('daw-apply-fx-range-done.json'));
+    const removed = await api.dawRemoveFxFromRange(chapter.id, 0, 0, chain);
+    expectMatches(dawResultSchema, removed, 'mock chain off a range');
+    expect(removed).toEqual(readGolden('daw-remove-fx-range-done.json'));
+    for (const name of ['Not Listed.RfxChain', '../reaper.ini', 'C:\\FXChains\\x.RfxChain']) {
+      expect((await api.dawApplyFxToRange(chapter.id, 0, 0, name, 0)).refused).toBe(DAW_ANSWERS.fxBadChain);
+    }
+    expect((await api.dawRemoveFxFromRange(chapter.id, 0, 0, '../x.RfxChain')).refused).toBe(DAW_ANSWERS.fxBadChain);
+    for (const fadeMs of [-1, 501, 2.5]) {
+      expect((await api.dawApplyFxToRange(chapter.id, 0, 0, chain, fadeMs)).refused).toBe(DAW_ANSWERS.cutBadFade);
+    }
+    const stale = await api.dawRemoveFxFromRange('{11111111-1111-4111-8111-111111111111}', 0, 0, chain);
+    expectMatches(dawResultSchema, stale, 'mock chain off, unknown chapter');
+    expect(stale).toMatchObject({ ok: false, code: 'stale', refused: DAW_ANSWERS.rangeStale });
+
+    const off = await createMockApi().dawApplyFxToRange(chapter.id, 0, 0, chain, 0);
+    expectMatches(dawResultSchema, off, 'mock chain on a range, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.fx_range.message);
+    expect(off).toEqual(readGolden('daw-apply-fx-range-refused.json'));
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3269,9 +3222,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'manuscriptSetChapterStatus',
       'manuscriptSetChapterKind',
       'noteList',
-      'noteCreate',
-      'prepMarkupList',
-      'prepMarkupSave',
       'bookmarksList',
       'bookmarksAdd',
       'bookmarksUpdate',
@@ -3318,16 +3268,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pronunciationCandidate',
       'manuscriptReader',
       'readerState',
-      'readerStateSave',
-      'readerBookmarkCreate',
       'guideBuild',
       'guideBuildState',
       'guideEntities',
       'guideCreate',
       'guidePreview',
-      'guidePronunciationQueries',
-      'guidePronunciationQueriesCsv',
-      'guidePronunciationImportQueriesCsv',
       'guideDialogueCues',
       'characterListRegions',
       'characterApprove',
@@ -3444,6 +3389,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceHideTakes',
       'dawRoll',
       'dawDeleteRange',
+      'dawApplyFxToRange',
+      'dawRemoveFxFromRange',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',
@@ -3466,7 +3413,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionOverview',
       'productionStartTimer',
       'productionStopTimer',
-      'prepCompletenessSummary',
       'productionStatusReport',
       'productionStatusReportPreview',
       'productionBurndown',
@@ -3544,21 +3490,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pronunciationOnlineKeySet',
       'pronunciationOnlineKeyClear',
       'pronunciationOnlineLookup',
-      'pronunciationOnlineLookupBatch',
     ];
     const VOID = [
       'manuscriptImportCancel',
       'clearProjectData',
-      'readerBookmarkDelete',
-      'noteDelete',
-      'prepMarkupDelete',
       'guideEdit',
       'guideSetLocked',
       'guideRescan',
       'guidePronounce',
       'guidePronounceUser',
       'guidePronunciationUseAlternate',
-      'guidePronunciationSetStatus',
       'guideMerge',
       'guideDelete',
       'guideRelate',

@@ -30,13 +30,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 
 - `src/components/assets/LocalAssetRow.tsx`
 - `src/components/assets/LocalAssets.tsx`
-- `src/components/booth/BoothView.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ChapterSuggestionHint.tsx`
 - `src/components/booth/CompanionShell.tsx`
-- `src/components/booth/MicrophoneField.tsx`
-- `src/components/booth/ReaderFlagsPanel.tsx`
-- `src/components/booth/ReadingControlBar.tsx`
 - `src/components/booth/ResumePrompt.tsx`
 - `src/components/booth/UnresolvedCreditsWarning.tsx`
 - `src/components/booth/page/BoothNextPage.tsx`
@@ -54,6 +48,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/editing/drawer/FoundList.tsx`
 - `src/components/editing/flags/FlagCard.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/editing/strip/TimelineStrip.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
 - `src/components/editing/takes/prep/PrepControls.tsx`
@@ -74,12 +69,8 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/layout/HistoryPanel.tsx`
 - `src/components/layout/LoadError.tsx`
 - `src/components/layout/StartupScreen.tsx`
-- `src/components/manuscript/AddNoteDialog.tsx`
 - `src/components/manuscript/CreditsEntry.tsx`
-- `src/components/manuscript/MarkupDialog.tsx`
-- `src/components/manuscript/MarkupMark.tsx`
 - `src/components/manuscript/ReaderCard.tsx`
-- `src/components/manuscript/SelectionMenu.tsx`
 - `src/components/mapping/MappingConfirm.tsx`
 - `src/components/master/DeliveryPackagePanel.tsx`
 - `src/components/master/DeliveryProfilePanel.tsx`
@@ -135,8 +126,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/recordingcheck/RunningView.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/schedule/SchedulePage.tsx`
-- `src/components/script/ScriptPage.tsx`
-- `src/components/script/ScriptRail.tsx`
 - `src/components/script/page/layout/NeedManuscript.tsx`
 - `src/components/script/page/rail/threads/MessageEditor.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
@@ -169,8 +158,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/storybible/CommonsAudioLookup.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/OnlinePronunciationLookup.tsx`
-- `src/components/storybible/PronunciationQueries.tsx`
-- `src/components/storybible/PronunciationWork.tsx`
 - `src/components/storybible/VoiceDataPanel.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`

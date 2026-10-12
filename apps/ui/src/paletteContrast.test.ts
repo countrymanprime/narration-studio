@@ -145,8 +145,7 @@ const PAIRS: PairSpec[] = [
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
   mark('meter-over', 'LevelMeter: the zone at or over the peak ceiling', 'var(--meter-over)', ['surface']),
-  // The two 14% badge tints left (ADR 0362, 0600): each tone's -text colour on its own tint of that tone.
-  text('badge-danger-fill', "ReadingControlBar's chip: danger text on the 14% danger tint", 'var(--danger-text)', ['surface'], 'var(--badge-danger-fill)'),
+  // The 14% badge tint left (ADR 0362, 0600): the tone's -text colour on its own tint of that tone.
   text(
     'badge-experimental-fill',
     "StatusBadge (experimental): experimental text on the badge's own 14% tint",
@@ -388,12 +387,10 @@ const tokensUsedAsText = (): Set<string> => new Set([...textColourUses().values(
 const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/master/BookChecklist.tsx': { count: 1, what: 'the ear icon beside a book rule the narrator checks by listening' },
   'components/master/DeliveryProfilePanel.tsx': { count: 1, what: 'the ear icon beside a rule the narrator checks by listening' },
-  'chapterStatus.ts': { count: 1, what: 'the Not Started status colour: a dot and a meter segment, never text' },
   'components/production/ChapterTrackPanel.tsx': { count: 1, what: "the panel header's linked-track colour dot" },
   'components/layout/AppShell.tsx': { count: 1, what: 'the folder icon beside the project name' },
   'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
-  'components/manuscript/ChapterNav.tsx': { count: 1, what: 'a line-hit result row icon (faParagraph)' },
   'components/manuscript/ReaderCard.tsx': { count: 1, what: 'the idle chapter bookmark icon' },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
   'components/settings/DawCatalogPanel.tsx': { count: 1, what: 'the not-detected DAW catalog entry dot' },

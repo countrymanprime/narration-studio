@@ -33,11 +33,6 @@ const CEILING: Record<string, number> = {
   // TitleSubtitle (`subtitle={heading.subtitle}`), and one is the Subtitle checkbox's own accessible-name suffix
   // ("Subtitle — {section.subtitle}"), which shows the raw second line, not a formatted chapter name.
   [join('src', 'components', 'production', 'ImportReview.tsx')]: 2,
-  // The row goes through TitleSubtitle; the one read is the prop handoff (`subtitle={chapter.subtitle}`).
-  [join('src', 'components', 'manuscript', 'ChapterNav.tsx')]: 1,
-  // The chapter card is ReaderCard.tsx; the one read is the prop
-  // handoff (`subtitle={chapter.subtitle}`), since ReaderCard reads the plain `subtitle` prop.
-  [join('src', 'components', 'script', 'ScriptPage.tsx')]: 1,
 };
 
 const uiRoot = join(__dirname, '..');

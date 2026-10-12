@@ -1,15 +1,5 @@
 // The mock host (mockApi.ts): the manuscript.
-import type {
-  GuideEvidence,
-  ManuscriptChapter,
-  ManuscriptContentKind,
-  ManuscriptNote,
-  ManuscriptParagraph,
-  NarrationApi,
-  ReaderBookmark,
-  ReaderState,
-  WorkJob,
-} from '../../types';
+import type { GuideEvidence, ManuscriptChapter, ManuscriptContentKind, ManuscriptParagraph, NarrationApi, ReaderState, WorkJob } from '../../types';
 import { aliceChapterSeeds, WIRE_NOTES, WIRE_READER_STATE, WIRE_TRACKS_PROJECT, wireClone, withFormatting } from '../mockFixtures';
 import { loadAliceManuscript } from '../aliceManuscript';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
@@ -84,8 +74,8 @@ export function createManuscriptMock(
 ) {
   // The kind each reclassified chapter was imported as (the host's `importedKind`), so Restore knows it was removed.
   const importedKinds = new Map<string, ManuscriptContentKind>();
-  let notes = wireClone(WIRE_NOTES);
-  let readerState: ReaderState = wireClone(WIRE_READER_STATE);
+  const notes = wireClone(WIRE_NOTES);
+  const readerState: ReaderState = wireClone(WIRE_READER_STATE);
   const manuscriptReady = loadAliceManuscript(aliceChapterSeeds).then((loaded) => {
     // A seeded book (fixtures/scenario.ts) is the manuscript; the bundled text does not replace it.
     if (!loaded || initial.chapters) return;
@@ -258,39 +248,6 @@ export function createManuscriptMock(
       return { chapters: wireClone(s.chapters.map(withMeasurement)), paragraphs: wireClone(s.paragraphs), notes: wireClone(notes) };
     },
     readerState: async () => wireClone(readerState),
-    readerStateSave: async (values) => {
-      readerState = { ...readerState, ...values };
-      return wireClone(readerState);
-    },
-    readerBookmarkCreate: async (bookmark) => {
-      const item: ReaderBookmark = { ...bookmark, id: `bookmark-${s.nextId++}`, createdAt: new Date().toISOString() };
-      readerState = { ...readerState, bookmarks: [...readerState.bookmarks, item] };
-      return wireClone(item);
-    },
-    readerBookmarkDelete: async (id) => {
-      readerState = { ...readerState, bookmarks: readerState.bookmarks.filter((bookmark) => bookmark.id !== id) };
-    },
-    noteCreate: async (chapterId, paragraphId, text, anchorStart, anchorEnd, anchorText) => {
-      const paragraph = s.paragraphs.find((item) => item.id === paragraphId);
-      if (!paragraph || paragraph.chapterId !== chapterId) throw new Error('Unknown manuscript paragraph');
-      const note: ManuscriptNote = {
-        id: `note-${s.nextId++}`,
-        chapter: paragraph.chapter,
-        chapterId,
-        paragraph: paragraph.index,
-        paragraphId,
-        text,
-        createdAt: new Date().toISOString(),
-        anchorStart,
-        anchorEnd,
-        anchorText,
-      };
-      notes = [...notes, note];
-      return wireClone(note);
-    },
-    noteDelete: async (id) => {
-      notes = notes.filter((note) => note.id !== id);
-    },
   } satisfies Partial<NarrationApi>;
   return { bindings, manuscriptReady };
 }

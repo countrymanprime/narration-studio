@@ -1389,6 +1389,30 @@ describe('the delete range binding', () => {
   });
 });
 
+describe('the FX range bindings', () => {
+  const added = { ok: true, changed: true, message: 'Added Podcast Voice.RfxChain to 1 word in REAPER.', undoSteps: 1 };
+  const removed = { ok: true, changed: true, message: 'Podcast Voice.RfxChain taken off in REAPER.', undoSteps: 1 };
+
+  it('sends the chapter, the two tokens, the chain and the fade, and decodes the DawResult', async () => {
+    const apply = vi.fn(() => Promise.resolve(JSON.stringify(added)));
+    const remove = vi.fn(() => Promise.resolve(JSON.stringify(removed)));
+    standInHost({ DawApplyFxToRange: apply, DawRemoveFxFromRange: remove });
+    await expect(wailsClient.dawApplyFxToRange('c-0001', 3, 5, 'Podcast Voice.RfxChain', 10)).resolves.toEqual(added);
+    expect(apply).toHaveBeenCalledWith('c-0001', 3, 5, 'Podcast Voice.RfxChain', 10);
+    await expect(wailsClient.dawRemoveFxFromRange('c-0001', 3, 5, 'Podcast Voice.RfxChain')).resolves.toEqual(removed);
+    expect(remove).toHaveBeenCalledWith('c-0001', 3, 5, 'Podcast Voice.RfxChain');
+  });
+
+  it('refuses an answer the dawResult schema does not accept', async () => {
+    standInHost({
+      DawApplyFxToRange: () => Promise.resolve(JSON.stringify({ ...added, undoSteps: -1 })),
+      DawRemoveFxFromRange: () => Promise.resolve(JSON.stringify({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'x', code: 'gone' })),
+    });
+    await expect(wailsClient.dawApplyFxToRange('c-0001', 3, 5, 'Podcast Voice.RfxChain', 0)).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.dawRemoveFxFromRange('c-0001', 3, 5, 'Podcast Voice.RfxChain')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the hide takes binding', () => {
   const muted = { ok: true, changed: true, message: 'Muted 1 other take in REAPER. It is still in the project.', undoSteps: 1 };
 

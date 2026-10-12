@@ -146,6 +146,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
         </>
       )}
     </div>,
-    document.body,
+    // Inside the app's `<main>`, so the toolbar is in a landmark (axe `region`); it is `fixed`, so where it sits in the tree does not move it.
+    document.querySelector('main') ?? document.body,
   );
 }

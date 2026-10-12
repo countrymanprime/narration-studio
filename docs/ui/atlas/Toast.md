@@ -27,7 +27,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
-- `src/components/manuscript/useWordLookup.ts`
 - `src/components/production/ChapterTrackPanel.tsx`
 - `src/components/production/ManuscriptImport.tsx`
 - `src/components/production/ProductionPage.tsx`
@@ -42,7 +41,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/proof/ProofingStagePanel.tsx`
 - `src/components/proof/RenderAssociationSection.tsx`
 - `src/components/proof/useProofingRender.ts`
-- `src/components/script/ScriptPage.tsx`
 - `src/components/script/page/ScriptPage.tsx`
 - `src/components/script/page/layout/ScriptCredits.tsx`
 - `src/components/series/SeriesTab.tsx`
@@ -58,7 +56,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
-- `src/components/storybible/PronunciationQueries.tsx`
 - `src/components/storybible/VoiceDataPanel.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/NamePronunciation.tsx`

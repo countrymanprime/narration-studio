@@ -15,8 +15,6 @@ Storybook title: `Primitives/CapabilityGate`. Source: `src/components/primitives
 
 ## Used by
 
-- `src/components/booth/ReaderFlagsPanel.tsx`
-- `src/components/booth/ReadingControlBar.tsx`
 - `src/components/editing/CleanupAction.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/proof/CompareRun.tsx`

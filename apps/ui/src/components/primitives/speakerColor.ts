@@ -1,6 +1,6 @@
 // Assigns a stable colour per speaker (D85 #6 on #509, ADR 0367): the Script reader's speaker attribution
-// (manuscript/ParagraphView.tsx via the primitives/SpeakerTag chip) and the Booth's "Voices in scene" tags
-// (booth/BoothView.tsx, via Highlight's colorToken override) both call this, so the same speaker id lands on the
+// (script/page/reader/layers.ts) and the Booth's "Voices in scene" tags
+// (booth/page/BoothNextPage.tsx, via Highlight's colorToken override) both call this, so the same speaker id lands on the
 // same colour in both places.
 
 /** How many distinct speaker colours styles.css declares (--speaker-1..--speaker-N). */

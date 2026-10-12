@@ -23,9 +23,7 @@ type Copy = keyof typeof COPIES;
 
 const CEILING: Record<Copy, Record<string, number>> = {
   card: {
-    // Page components not yet on the primitives: the Booth's rail, Production and Proof's findings. The
-    // companion panel's own card is at 0 (ADR 0659: full-bleed sections, not cards).
-    'src/components/booth/ReaderRail.tsx': 1,
+    // The companion panel's own card is at 0 (ADR 0659: full-bleed sections, not cards).
     // Not cards. A warning on a tinted fill, which neither Panel nor InsetCard draws.
     'src/components/booth/UnresolvedCreditsWarning.tsx': 1,
     // A card that is a button (the .rpp picker's rows, the recent projects): a Panel is a section, not a control.
@@ -43,7 +41,6 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/script/page/rail/threads/NoteCard.tsx': 1,
   },
   inset: {
-    // Proof's finding detail.
     // The disagree choice's card, which is a button (the source and the sentence it names).
     'src/components/booth/ResumePrompt.tsx': 1,
     // The editing ribbon's inset (SN-E7) and the bookmarks tab's row card (SN-B62), to move onto InsetCard with #1119.
@@ -57,17 +54,14 @@ const CEILING: Record<Copy, Record<string, number>> = {
     // class string (they style the label, they do not draw one).
     'src/components/layout/AppShell.tsx': 6,
     // Page components not yet on the primitives: the Booth, Master and Script.
-    'src/components/booth/BoothView.tsx': 1,
     'src/components/booth/CompanionShell.tsx': 1,
-    'src/components/booth/ReaderRail.tsx': 1,
     'src/components/master/BookConsistency.tsx': 1,
-    'src/components/script/ScriptChapterList.tsx': 2,
-    'src/components/script/ScriptPage.tsx': 6,
   },
   h1: {
     // The Booth's page title is visually hidden (`sr-only`): the reading surface is the page, and a Heading would show.
-    'src/components/booth/BoothPage.tsx': 1,
     'src/components/booth/page/BoothNextPage.tsx': 1,
+    // The Script page's title is visually hidden too: the mock draws none, the reader is the page.
+    'src/components/script/page/ScriptPage.tsx': 1,
   },
 };
 

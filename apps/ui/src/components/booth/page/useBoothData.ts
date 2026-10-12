@@ -37,21 +37,19 @@ function useCreditsPreviews(): Partial<Record<CreditsKind, CreditsRenderResult>>
 }
 
 /**
- * What the Booth page loads: the narration chapters, the credits, the Story Bible's entries and dialogue cues, and the chapter's prep
- * marks. The marks and cues are secondary, so a failure leaves them out. With no target in the address the page opens on the chapter
+ * What the Booth page loads: the narration chapters, the credits, and the Story Bible's entries and dialogue cues. The cues are
+ * secondary, so a failure leaves them out. `spans` is always empty: SN-B8 removed the prep markup bindings. With no target in the address the page opens on the chapter
  * a running session reads, else the first. `correctCue` records the narrator's speaker for a quote and reads the cues again.
  */
 export function useBoothData(target: BoothTarget | null) {
   const manuscript = usePort('manuscript');
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
-  const prepMarkup = usePort('prepMarkup');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [fallback, setFallback] = useState('');
   const [error, setError] = useState('');
   const [entities, setEntities] = useState<GuideEntity[]>(NONE);
   const [cues, setCues] = useState<GuideDialogueCue[]>(NONE);
-  const [marks, setMarks] = useState<{ chapterId: string; spans: PrepMarkupSpan[] } | null>(null);
   const previews = useCreditsPreviews();
 
   useEffect(() => {
@@ -82,18 +80,6 @@ export function useBoothData(target: BoothTarget | null) {
   const chapterId = credits ? '' : target && 'chapter' in target ? target.chapter : fallback;
   const chapter = chapters?.find((item) => item.id === chapterId);
 
-  useEffect(() => {
-    if (!chapter) return;
-    let live = true;
-    void prepMarkup
-      .prepMarkupList(chapter.id)
-      .then((next) => live && setMarks({ chapterId: chapter.id, spans: next.spans }))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [prepMarkup, chapter]);
-
   const correctCue = useCallback(
     async (cueId: string, entityId: string) => {
       await storyBible.guideCorrectCue(cueId, entityId);
@@ -111,7 +97,7 @@ export function useBoothData(target: BoothTarget | null) {
     error,
     entities,
     cues,
-    spans: marks && chapter && marks.chapterId === chapter.id ? marks.spans : NONE,
+    spans: NONE as PrepMarkupSpan[],
     correctCue,
   };
 }

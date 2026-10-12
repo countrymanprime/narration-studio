@@ -36,7 +36,6 @@ import type { DeliveryProfilesApi } from '../api/contracts/deliveryProfiles';
 import type { DiagnosticsApi } from '../api/contracts/diagnostics';
 import type { EditingApi } from '../api/contracts/editing';
 import type { CleanupActionApi } from '../api/contracts/cleanup';
-import type { PrepMarkupApi } from '../api/contracts/prepMarkup';
 import type { BookmarksApi } from '../api/contracts/bookmarks';
 import type { PassageMapApi } from '../api/contracts/passageMap';
 import type { EditLogApi } from '../api/contracts/editLog';
@@ -48,7 +47,7 @@ import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
 import type { DawCapabilitiesApi } from '../api/contracts/daw';
-import type { DawDeleteRangeApi, DawHideTakesApi, DawProjectStateApi, DawRollApi } from '../api/contracts/daw';
+import type { DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawProjectStateApi, DawRollApi } from '../api/contracts/daw';
 import type { ProviderCapabilitiesApi } from '../api/contracts/providers';
 import type { MasteringApi } from '../api/contracts/mastering';
 import type { RecordingApi } from '../api/contracts/recording';
@@ -59,7 +58,6 @@ import type { PronunciationOnlineApi } from '../api/contracts/pronunciationOnlin
 import type { PronunciationSourcesApi } from '../api/contracts/pronunciationSources';
 import type { TakeEvidenceApi } from '../api/contracts/takeEvidence';
 import type { ProofingRenderApi } from '../api/contracts/proofingRender';
-import type { PrepCompletenessApi } from '../api/contracts/prepCompleteness';
 import type { RenderEncodeMasterApi } from '../api/contracts/renderEncodeMaster';
 import type { WorkspaceSnapApi } from '../api/contracts/workspaceSnap';
 import type { DawClient } from './daw';
@@ -104,7 +102,6 @@ export type {
   DiagnosticsApi,
   EditingApi,
   CleanupActionApi,
-  PrepMarkupApi,
   BookmarksApi,
   PassageMapApi,
   EditLogApi,
@@ -119,6 +116,7 @@ export type {
   DawHideTakesApi,
   DawRollApi,
   DawDeleteRangeApi,
+  DawFxRangeApi,
   DawProjectStateApi,
   ProviderCapabilitiesApi,
   MasteringApi,
@@ -130,7 +128,6 @@ export type {
   PronunciationSourcesApi,
   TakeEvidenceApi,
   ProofingRenderApi,
-  PrepCompletenessApi,
   RenderEncodeMasterApi,
   WorkspaceSnapApi,
 };
@@ -171,7 +168,6 @@ export interface PortMap {
   diagnostics: DiagnosticsApi;
   editing: EditingApi;
   cleanupAction: CleanupActionApi;
-  prepMarkup: PrepMarkupApi;
   bookmarks: BookmarksApi;
   passageMap: PassageMapApi;
   editLog: EditLogApi;
@@ -186,6 +182,7 @@ export interface PortMap {
   dawHideTakes: DawHideTakesApi;
   dawRoll: DawRollApi;
   dawDeleteRange: DawDeleteRangeApi;
+  dawFxRange: DawFxRangeApi;
   dawProjectState: DawProjectStateApi;
   providerCapabilities: ProviderCapabilitiesApi;
   mastering: MasteringApi;
@@ -197,7 +194,6 @@ export interface PortMap {
   pronunciationSources: PronunciationSourcesApi;
   takeEvidence: TakeEvidenceApi;
   proofingRender: ProofingRenderApi;
-  prepCompleteness: PrepCompletenessApi;
   renderEncodeMaster: RenderEncodeMasterApi;
   workspaceSnap: WorkspaceSnapApi;
 }

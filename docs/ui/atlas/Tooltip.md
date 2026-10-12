@@ -24,11 +24,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 
 - `.storybook/preview.tsx`
 - `src/App.tsx`
-- `src/components/booth/BoothView.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ReaderRail.tsx`
 - `src/components/booth/ReaderText.tsx`
-- `src/components/booth/ReadingControlBar.tsx`
 - `src/components/booth/bookmarks/BookmarkRibbons.tsx`
 - `src/components/booth/page/CreditsWarning.tsx`
 - `src/components/booth/record/SetupChip.tsx`
@@ -67,7 +63,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/proof/frame/WaveformWindow.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
-- `src/components/script/ScriptPage.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`

@@ -26,8 +26,6 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 
 ## Used by
 
-- `src/components/booth/BoothPage.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
 - `src/components/booth/ReadAlongView.tsx`
 - `src/components/booth/page/BoothNextPage.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`

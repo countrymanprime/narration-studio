@@ -15,12 +15,11 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 
 ## Used by
 
-- `src/components/booth/BoothPage.tsx`
-- `src/components/booth/MicrophoneField.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/delivery/profile/ProfileMenu.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
@@ -48,7 +47,5 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
-- `src/components/storybible/PronunciationQueries.tsx`
-- `src/components/storybible/PronunciationWork.tsx`
 - `src/components/storybible/SpeakerColourField.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`

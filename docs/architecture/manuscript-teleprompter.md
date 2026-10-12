@@ -382,8 +382,8 @@ exposed as the `TeleprompterDevices` host binding) runs
 the sidecar in `--list-devices` mode with a caller-supplied timeout and caches
 nothing; a failure at any layer (bad exit code, unparseable output, a timeout)
 comes back as an empty list plus a message, never a rejected call, so the UI
-always gets a result to react to. `useTeleprompterSession.ts` calls it and
-`apps/ui/src/components/booth/MicrophoneField.tsx` is the picker.
+always gets a result to react to. `useTeleprompterSession.ts` calls it; the device is
+chosen in Settings › Booth, and a session starts with the saved one.
 
 ## Input level and the meter
 
@@ -417,11 +417,13 @@ it replaced the Teleprompter page, the Manuscript's Read aloud dialog and its bo
 redirects here keeping its query and hash. What the narrator sees and does on it is in the
 [Booth guide](../guides/using-the-app/booth.md).
 
-- **What owns what.** `BoothPage` owns what the Booth reads (`?chapter=<id>` or `?credits=opening|closing`, else the
-  DAW's confident suggestion, ADR 0113, else the last chapter read) and loads the Story Bible entries and notes for the
-  marks. It mounts one `BoothSession`, keyed by what it reads, which holds the one `useTeleprompterSession`
-  subscription, the flags kept as findings, the resume prompt and recording in the DAW. `BoothView` lays it out on
-  `FocusShell`, with the `ReadingControlBar` as its command bar. Companion mode is `CompanionShell` (ADR 0401). It
+- **What owns what.** `page/BoothNextPage.tsx` owns what the Booth reads (`?chapter=<id>`, `&para=&at=` for Record from here,
+  or `?credits=opening|closing`, `page/boothQuery.ts`) and loads the Story Bible entries, cues and spans for the text. It mounts
+  one session per chapter, keyed by it, which holds the one `useTeleprompterSession` subscription; `page/useBoothPage.ts`
+  composes the Record control (`record/`), the leave guard (`leave/`, ADR 0790), the resume offer (`resume/`), the passage-map
+  writer (`passagemap/`) and the key commands. The frame is `frame/` (top bar, footer with the catalogue's key hints), the text
+  `reading/BoothText.tsx`, the side panel `side/`. The Companion has its own route, `/companion` (`companion/CompanionPage.tsx`,
+  `CompanionHost.tsx`), around `CompanionShell` (ADR 0401). It
   takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved
   bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was
   on is gone (`bindings_companion_test.go`).
@@ -434,8 +436,9 @@ redirects here keeping its query and hash. What the narrator sees and does on it
 
 ## Resume: where REAPER is and where the prompter was
 
-The Booth opens a chapter with a compact **Where you stopped** prompt above the
-text (`apps/ui/src/components/booth/ResumePrompt.tsx`). It reconciles two
+The Companion opens a chapter with a compact **Where you stopped** prompt above the
+text (`apps/ui/src/components/booth/ResumePrompt.tsx`); the Booth shows the same lookup as one line, "Resume at ¶ n"
+(`resume/ResumeOffer.tsx`). It reconciles two
 sources and asks only when they disagree (owner report of 2026-09-24: "find where
 the track was, and find out where you were in the script, and if they match, you
 keep going").
@@ -479,7 +482,7 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 
 ## Punch from here: where a word's time comes from
 
-"Punch from here" on a flag (`ReaderFlagsPanel.tsx`) previews a time before anything moves, and names its source
+"Punch from here" on a flag (the old Booth's flags panel, removed with it in SN-O10; the bindings stay) previews a time before anything moves, and names its source
 (`TeleprompterPunchPreview`/`TeleprompterPunch`, `apps/desktop/teleprompterpunch.go`):
 
 - **`anchor`**: the live anchors the host records while a session reads the chapter (REAPER's play position polled

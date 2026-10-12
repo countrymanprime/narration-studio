@@ -27,8 +27,6 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 - `src/App.tsx`
 - `src/components/assets/AssetInstallPrompt.tsx`
 - `src/components/assets/LocalAssetRow.tsx`
-- `src/components/booth/BoothSession.tsx`
-- `src/components/booth/ReaderFlagsPanel.tsx`
 - `src/components/booth/RecordInReaperConfirm.tsx`
 - `src/components/editing/CleanupAction.tsx`
 - `src/components/production/ManuscriptImport.tsx`
@@ -41,6 +39,5 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 - `src/components/settings/UpdatesPanel.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/storybible/GuideDetail.tsx`
-- `src/components/storybible/PronunciationQueries.tsx`
 - `src/components/storybible/VoiceDataPanel.tsx`
 - `src/overlay/OverlayHost.tsx`

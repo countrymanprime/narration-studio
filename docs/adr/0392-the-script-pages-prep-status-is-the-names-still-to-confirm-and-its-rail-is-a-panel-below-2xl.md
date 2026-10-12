@@ -1,6 +1,6 @@
 # 0392. The Script page's prep status is the names still to confirm, and its rail is a panel below `2xl`
 
-**Status:** Proposed (point 2's `2xl` rail breakpoint is superseded by [ADR 0393](0393-the-script-pages-three-columns-show-from-1440px-and-the-reader-card-header-keys-off-its-own-width.md), the owner's decision on issue #509: the rail shows from 1440 px, mock 02's own capture width. Points 1 and 3 stand.)
+**Status:** Superseded by [ADR 0760](0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md) (the Studio Next Script page, swapped in by SN-B8: a chapter's prep is the narrator's own state shown as a dot, there is no names-to-confirm count, and the rail is a column from 1281 px and a drawer below)
 **Date:** 2026-09-27
 
 ## Context

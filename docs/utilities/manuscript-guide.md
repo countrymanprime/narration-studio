@@ -36,39 +36,19 @@ a locked entity (ADR 0007), same as every other edit.
 
 The Go host exposes it as `GuidePronounce(id, aliasIndex *int, source string)` / the `GuidePronounce` binding
 (`hostAPIVersion` 13). The UI gates the play button on a pronunciation existing (the preview always speaks the name as
-spelled and ignores the IPA, so this is a UI policy, not a technical limit) and offers Generate (missing) or Replace
-(present) in edit mode only, each choosing explicitly between the CMU dictionary and eSpeak NG.
+spelled and ignores the IPA, so this is a UI policy, not a technical limit); in edit mode each name's source tag asks the
+chosen source for a candidate and then calls `GuidePronounce` with that source (SN-B22).
 
 `candidate --word=<text> --source cmu|espeak|wiktextract` prints one JSON line, `{"ok":true,"say":...}` or `{"ok":false,"reason":...}`, and changes nothing; a word over 80 characters, or with a newline or NUL, is refused. The host calls it through `guide.Service.Candidate`.
 
-A narrator can also keep their own pronunciation and track where each one stands
+A narrator can also keep their own pronunciation
 ([ADR 0346](../adr/0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md)):
 `pronounce-user --ipa=<text>` sets one with source `manual` (a file written earlier says `user`; it reads as `manual`) that never asks a dictionary, and keeps the dictionary's answer beside
-it as `alternate`; `pronunciation-use-alternate` swaps the two back, losslessly and without a lookup; `pronunciation-status
---status researched|query_sent|author_confirmed [--note=<text>]` records whether the author was asked or has confirmed it. An
-entry with no `status` reads as `researched`. Since [ADR 0792](../adr/0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md) the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`, `espeak`) or `manual`. The host bindings are `GuidePronounceUser`, `GuidePronunciationUseAlternate` and
-`GuidePronunciationSetStatus` (`hostAPIVersion` 69); the Story Bible shows the status and note, and in edit mode offers "Your
-pronunciation", the switch to the kept one, and the status with its note.
-
-The host derives the **pronunciation query list** from those statuses on every read
-([ADR 0347](../adr/0347-the-pronunciation-query-export-is-csv-with-its-ids-last-and-a-formula-guard-and-is-a-download.md)):
-`guide.Service.PronunciationQueries` returns every name, the entity's own and each alias, that is not `author_confirmed`, each
-once, in reading order (first paragraph that uses it; never used last), with that first use's chapter and excerpt.
-`guide.QueriesCSV` writes it as CSV (`word, entry, category, chapter, excerpt, pronunciation, source, status, note, entry_id,
-alias_index`) with a formula guard, and `guide.ParseQueriesCSV` reads an exported or hand-edited file back, reporting every row
-it cannot use. The bindings are `GuidePronunciationQueries` and `GuidePronunciationQueriesCSV` (`hostAPIVersion` 70); the Story
-Bible's Pronunciation queries panel saves the CSV as a download and marks a row sent or answered through
-`GuidePronunciationSetStatus`.
-
-Once the author replies, the narrator can **re-import** the answered file instead of marking each row by hand
-([ADR 0352](../adr/0352-a-re-imported-query-answer-is-matched-by-entry-id-and-alias-index-and-a-blank-note-column-leaves-the-note-alone.md)):
-`guide.MatchQueryAnswers` matches each of `ParseQueriesCSV`'s rows to a still-existing entity or alias by `entry_id` and
-`alias_index`, never by the free-text word, and reports a row whose entry or alias is gone the same way a row it could not
-parse is reported. `guide.Service.ImportQueriesCSV` then applies every matched row through the existing
-`SetPronunciationStatus` call, one sidecar call per row; a blank note column is sent as no note (leaving an existing one
-alone), never as a note that clears it. The binding is `GuidePronunciationImportQueriesCSV` (`hostAPIVersion` 71), which
-takes the file's text (the UI reads whatever file the narrator picks) and answers `{applied, issues}`; the panel's Import
-answers button shows the count and lists any row it could not use.
+it as `alternate`; `pronunciation-use-alternate` swaps the two back, losslessly and without a lookup. Since
+[ADR 0792](../adr/0792-a-pronunciation-records-the-source-it-came-from-and-there-is-no-query-status-query-csv-or-open-queries-badge.md)
+the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept, and
+the Story Bible shows an old note read-only. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`,
+`espeak`) or `manual`. The host bindings are `GuidePronounceUser` and `GuidePronunciationUseAlternate`. The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
 
 ## Rules suggestions
 

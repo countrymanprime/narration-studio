@@ -538,6 +538,21 @@ export function CreditsTemplates(): $CancellablePromise<string> {
 }
 
 /**
+ * DawApplyFxToRange puts one of the narrator's saved FX chains on the words firstToken..lastToken of chapterID's stored
+ * alignment (SND-6c, ADR 0860 point 3; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
+ * range and puts the chain on the middle piece, with fadeMs at each new seam. The page sends a chapter id, two token
+ * indices, a chain name and the fade, never a GUID, a time or a path: the item and its project seconds are resolved here
+ * from the stored alignment and the saved project (ADR 0242; threat model row 5f), one item per request (ADR 0705), and
+ * the chain must be one the DAW's own list (WorkspaceListFXChains, the list the Add FX menu shows) names. The answer is a
+ * DawResult (ADR 0810): the fx_range capability's own sentence when the resolver refuses it, checked first; then a fade
+ * apply_fx_range does not take; then the range's refusals (words not heard, two items, and a range or item that is stale
+ * with code stale); then a chain the DAW does not list. Nothing is sent to the DAW on any of them.
+ */
+export function DawApplyFxToRange(chapterID: string, firstToken: number, lastToken: number, chainName: string, fadeMs: number): $CancellablePromise<string> {
+    return $Call.ByID(279520550, chapterID, firstToken, lastToken, chainName, fadeMs);
+}
+
+/**
  * DawCapabilities answers the launch's DAW, whether it is reachable, and every capability's level, availability and (when
  * unavailable) reason and message.
  */
@@ -610,6 +625,18 @@ export function DawLaunch(): $CancellablePromise<string> {
  */
 export function DawProjectState(): $CancellablePromise<string> {
     return $Call.ByID(2311648888);
+}
+
+/**
+ * DawRemoveFxFromRange takes the chain chainName off the words firstToken..lastToken of chapterID's stored alignment and
+ * joins the piece back to the audio either side (the mock's removeFxFromRange), resolved as DawApplyFxToRange resolves
+ * them. The name is not checked against the DAW's list, so a chain deleted from FXChains since it went on still comes off;
+ * it must still be a plain chain name, never a path, and REAPER takes off only the FX its own record on the piece names.
+ * The same capability and range refusals as DawApplyFxToRange; a piece that does not carry the chain answers ok with
+ * changed false. The piece is a new item after the apply, so the alignment names it only once the chapter is checked again.
+ */
+export function DawRemoveFxFromRange(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
+    return $Call.ByID(433050377, chapterID, firstToken, lastToken, chainName);
 }
 
 /**
@@ -1153,33 +1180,6 @@ export function GuidePronounceUser(id: string, aliasIndex: number | null, ipa: s
     return $Call.ByID(867110926, id, aliasIndex, ipa);
 }
 
-/**
- * GuidePronunciationImportQueriesCSV applies an author's answered file back onto the Story Bible: the UI
- * reads whatever file the narrator picks in their own file input and sends its text; the host never opens a file of its
- * own. Every row it could not read, match to a still-existing entry or apply is reported with its line, never dropped.
- */
-export function GuidePronunciationImportQueriesCSV(csvText: string): $CancellablePromise<string> {
-    return $Call.ByID(385033758, csvText);
-}
-
-/**
- * GuidePronunciationQueries lists every name whose pronunciation the author has not confirmed, in reading order.
- */
-export function GuidePronunciationQueries(): $CancellablePromise<string> {
-    return $Call.ByID(2256334941);
-}
-
-/**
- * GuidePronunciationQueriesCSV is the same list as CSV text for the narrator to send to the author; the UI saves it as a file.
- */
-export function GuidePronunciationQueriesCSV(): $CancellablePromise<string> {
-    return $Call.ByID(2380759975);
-}
-
-export function GuidePronunciationSetStatus(id: string, aliasIndex: number | null, status: string, note: string | null): $CancellablePromise<string> {
-    return $Call.ByID(3849731891, id, aliasIndex, status, note);
-}
-
 export function GuidePronunciationUseAlternate(id: string, aliasIndex: number | null): $CancellablePromise<string> {
     return $Call.ByID(661717092, id, aliasIndex);
 }
@@ -1254,22 +1254,6 @@ export function ManuscriptClearProjectData(confirmed: boolean): $CancellableProm
     return $Call.ByID(3870475648, confirmed);
 }
 
-export function ManuscriptCreateBookmark(values: { [_ in string]?: any }): $CancellablePromise<string> {
-    return $Call.ByID(322983534, values);
-}
-
-export function ManuscriptCreateNote(chapterID: string, paragraphID: string, text: string, anchorText: string, anchorStart: number | null, anchorEnd: number | null): $CancellablePromise<string> {
-    return $Call.ByID(3408945682, chapterID, paragraphID, text, anchorText, anchorStart, anchorEnd);
-}
-
-export function ManuscriptDeleteBookmark(id: string): $CancellablePromise<string> {
-    return $Call.ByID(3257770689, id);
-}
-
-export function ManuscriptDeleteNote(id: string): $CancellablePromise<string> {
-    return $Call.ByID(612332533, id);
-}
-
 export function ManuscriptImportCancel(jobID: string): $CancellablePromise<string> {
     return $Call.ByID(2367548281, jobID);
 }
@@ -1305,10 +1289,6 @@ export function ManuscriptReader(): $CancellablePromise<string> {
 
 export function ManuscriptReaderState(): $CancellablePromise<string> {
     return $Call.ByID(3073538398);
-}
-
-export function ManuscriptSaveReaderState(activeChapter: string, activeSourceLine: number | null, expandedChapters: string[]): $CancellablePromise<string> {
-    return $Call.ByID(574229509, activeChapter, activeSourceLine, expandedChapters);
 }
 
 export function ManuscriptSearch(query: string): $CancellablePromise<string> {
@@ -1601,38 +1581,6 @@ export function PickupsState(): $CancellablePromise<string> {
 }
 
 /**
- * PrepCompletenessSummary reads every manuscript chapter and answers one row each: how many of its names still have
- * an open pronunciation query, and how many of its markup spans are stale, plus the book-wide totals. With no project
- * open, or no Story Bible or manuscript yet, it answers an empty summary rather than an error, the same way
- * GuidePronunciationQueries and PrepMarkupList already do for a phase this early in prep.
- */
-export function PrepCompletenessSummary(): $CancellablePromise<string> {
-    return $Call.ByID(1398522399);
-}
-
-/**
- * PrepMarkupDelete removes one span by its id; a stale span needs nothing else.
- */
-export function PrepMarkupDelete(chapterID: string, id: string): $CancellablePromise<string> {
-    return $Call.ByID(636931274, chapterID, id);
-}
-
-/**
- * PrepMarkupList returns a chapter's markup spans, each resolved against the chapter's current text.
- */
-export function PrepMarkupList(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(1627753729, chapterID);
-}
-
-/**
- * PrepMarkupSave places one span on a line of a chapter: start and end are UTF-16 offsets into the line's text (the
- * reader's own selection), kind is stress, pause or character_tag, and value is the pause length or the character's name.
- */
-export function PrepMarkupSave(chapterID: string, paragraphID: string, start: number, end: number, kind: string, value: string): $CancellablePromise<string> {
-    return $Call.ByID(554283720, chapterID, paragraphID, start, end, kind, value);
-}
-
-/**
  * PreviewCandidates reads up to three ranked five-minute preview candidates from the imported manuscript
  * (preview.Suggest over this file's own adapter). It never runs anything and stores nothing.
  */
@@ -1907,15 +1855,6 @@ export function PronunciationOnlineKeyStatus(): $CancellablePromise<string> {
  */
 export function PronunciationOnlineLookup(word: string): $CancellablePromise<string> {
     return $Call.ByID(2880033266, word);
-}
-
-/**
- * PronunciationOnlineLookupBatch looks every word in words up once (opt-in, after a notice). confirmedCount is the word
- * count the narrator confirmed in the notice; the Service refuses the batch unless it is exactly the number of distinct
- * words it would send.
- */
-export function PronunciationOnlineLookupBatch(words: string[], confirmedCount: number): $CancellablePromise<string> {
-    return $Call.ByID(132804926, words, confirmedCount);
 }
 
 /**

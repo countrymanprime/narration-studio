@@ -13,8 +13,8 @@ Read them in order the first time, or jump straight to the page you need.
 | [Getting started](getting-started.md) | The project picker shown before a project is open. |
 | [Navigation](navigation.md) | The sidebar, its icon-only and drawer layouts, and locked entries; the header's engine chip and the audio engine panel it opens: the linked REAPER project, its tracks and chapter links, chapter sync, and the REAPER tools (chapter stamps, chapter render setup, chapter tags, cleanup tools, retakes on lanes). |
 | [Production](production.md) | The page a project opens on: importing the manuscript, hours logged by stage, PFH and effective rate from measured audio, the delivery date, which chapters to work on next, and the chapter pipeline whose cells open each chapter's track, recording check, stage suggestion and editing check. |
-| [Script](script.md) | Prep: the chapter list with each chapter's prep status, the reader (highlights, notes, bookmarks, markup, formatting) and the Pronunciations, Characters and Queries rail. |
-| [Story Bible](story-bible.md) | Characters, places, and organizations with pronunciation and notes. |
+| [Script](script.md) | Prep: the chapter list with each chapter's prep state, the continuous reader with your marks, speakers and bookmarks, and the rail of words, Story Bible entries, notes, queries and bookmarks. |
+| [Story Bible](story-bible.md) | Characters, places, and organizations with how you say each name, notes, and the suggestions a scan or an import offers. |
 | [Booth](booth.md) | Where you record: a live read-along that follows you as you narrate a chapter, with companion mode beside your DAW. |
 | [Proof](proof.md) | Every check's notes in one list, all chapters or one, with the chapter's recording check and waveform, the evidence and your pickup, edit, waive or defer decision on each; and the chapter view, for listening to the recording against its script, comparing it to the manuscript, and choosing between takes. |
 | [Pickups](pickups.md) | Every line to record again, from the recording check, your Proof notes and lines you add, grouped by chapter, with the pickup session that opens them in the Booth. |

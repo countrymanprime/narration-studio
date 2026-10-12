@@ -4,7 +4,8 @@ import type { WorkJob } from './manuscript';
 
 export type GuideEvidence = { chapter: string; chapterId?: string; paragraph: number; paragraphId?: string; excerpt: string; sourceLine?: number };
 export type GuideRelationship = { id: string; name: string; label: string };
-/** Where the narrator is with a pronunciation (ADR 0346): looked up, asked of the author, or confirmed by the author. */
+/** Where the narrator was with a pronunciation (ADR 0346, superseded by ADR 0792): read from an older file, set no longer; the Booth still
+ * prints it until its swap (SNO-10). */
 export type GuidePronunciationStatus = 'researched' | 'query_sent' | 'author_confirmed';
 /** The pronunciation itself, without the narrator's bookkeeping about it. */
 export type GuidePronunciationValue = { ipa: string; source: string; confidence: string };
@@ -49,32 +50,6 @@ export type GuideEntity = {
   /** The narrator's speaker colour, 1..7 (`--speaker-N`, ADR 0367), which wins over the stable pick; absent means automatic. */
   speaker_color?: number;
 };
-
-/**
- * One name whose pronunciation the author has not confirmed: the entity's own (`aliasIndex` null) or one alias, with
- * the chapter and excerpt of its first occurrence (empty when it never occurs). Derived from the Story Bible on every read.
- */
-export type PronunciationQuery = {
-  entityId: string;
-  aliasIndex: number | null;
-  name: string;
-  entry: string;
-  category: string;
-  ipa: string;
-  source: string;
-  status: GuidePronunciationStatus;
-  note: string;
-  chapter: string;
-  excerpt: string;
-};
-/** The query list as CSV text (header plus one row per query) and how many rows it has. */
-export type PronunciationQueriesCsv = { csv: string; count: number };
-/**
- * What re-importing an answered query file did: how many rows it applied, and every row it could not
- * use, each a plain sentence naming the row's line, whether ParseQueriesCSV could not read it or it named an entry or
- * alias no longer in the Story Bible.
- */
-export type QueryImportResult = { applied: number; issues: string[] };
 
 export type GuidePreview =
   | { status: 'ready'; audioBase64: string; mimeType: string }
@@ -151,19 +126,6 @@ export interface StoryBibleApi {
   guidePronounceUser(id: string, ipa: string, aliasIndex?: number): Promise<void>;
   /** Puts the kept alternate back in use, keeping the one it replaces: lossless both ways. */
   guidePronunciationUseAlternate(id: string, aliasIndex?: number): Promise<void>;
-  /** Sets a pronunciation's status and, when `note` is given, its note (an empty one clears it). */
-  guidePronunciationSetStatus(id: string, status: GuidePronunciationStatus, note?: string, aliasIndex?: number): Promise<void>;
-  /** Every name not yet author confirmed, once each, in reading order. */
-  guidePronunciationQueries(): Promise<PronunciationQuery[]>;
-  /** The same list as CSV text, for the narrator to save and send to the author. */
-  guidePronunciationQueriesCsv(): Promise<PronunciationQueriesCsv>;
-  /**
-   * Applies an author's answered file back onto the Story Bible: the one the queries CSV export wrote,
-   * sent out and back, or a hand-edited one. The UI reads whatever file the narrator picks and passes its text; the host
-   * never opens a file of its own. A row it could not read, match to a still-existing entry, or apply is reported by its
-   * line, never dropped.
-   */
-  guidePronunciationImportQueriesCsv(csvText: string): Promise<QueryImportResult>;
   /** The Story Bible's extracted dialogue cues: one entry per quoted
    * span, with its resolved or unknown speaker. */
   guideDialogueCues(): Promise<GuideDialogueCue[]>;

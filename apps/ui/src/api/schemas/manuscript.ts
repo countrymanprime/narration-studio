@@ -62,7 +62,7 @@ const paragraphSchema = z.object({
   entityIds: listFromNull(z.string()),
 }) satisfies z.ZodType<ManuscriptParagraph>;
 
-export const noteSchema = z.object({
+const noteSchema = z.object({
   id: z.string(),
   chapter: z.string(),
   chapterId: optionalFromNull(z.string()),
@@ -75,7 +75,7 @@ export const noteSchema = z.object({
   anchorText: optionalFromNull(z.string()),
 }) satisfies z.ZodType<ManuscriptNote>;
 
-export const bookmarkSchema = z.object({
+const bookmarkSchema = z.object({
   id: z.string(),
   kind: z.enum(['chapter', 'line', 'note']),
   chapter: z.string(),

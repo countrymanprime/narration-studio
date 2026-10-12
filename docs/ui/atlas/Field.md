@@ -29,17 +29,11 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 
 ## Used by
 
-- `src/components/booth/BoothPage.tsx`
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/MicrophoneField.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
-- `src/components/manuscript/AddNoteDialog.tsx`
-- `src/components/manuscript/MarkupDialog.tsx`
-- `src/components/manuscript/WordLookup.tsx`
 - `src/components/pickups/list/AddPickup.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/project/NewProjectDialog.tsx`
@@ -51,4 +45,3 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/OnlineDictionaryPanel.tsx`
 - `src/components/storybible/GuideDetail.tsx`
-- `src/components/storybible/PronunciationWork.tsx`

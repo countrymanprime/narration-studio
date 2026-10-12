@@ -18,6 +18,7 @@ Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/Inse
 - `src/components/booth/ResumePrompt.tsx`
 - `src/components/editing/EditingCandidateRow.tsx`
 - `src/components/editing/EditingCheckPanel.tsx`
+- `src/components/editing/range/common/Strips.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/layout/StartupScreen.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
@@ -40,5 +41,4 @@ Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/Inse
 - `src/components/settings/OnlineDictionaryPanel.tsx`
 - `src/components/stages/StageEvidence.tsx`
 - `src/components/storybible/DialogueCueAttribution.tsx`
-- `src/components/storybible/PronunciationWork.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`

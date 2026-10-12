@@ -1,4 +1,4 @@
-import type { Discrepancy, GuideEntity, GuideEvidence, ManuscriptChapter, ManuscriptParagraph, TranscriptState } from './types';
+import type { Discrepancy, GuideEntity, GuideEvidence, ManuscriptChapter, TranscriptState } from './types';
 
 export const isTranscriptActive = (phase: TranscriptState['phase']) => phase === 'preparing' || phase === 'running' || phase === 'inspecting';
 // Reference-material sections (Contents, Characters, ...) stay in manuscript.json for data
@@ -124,26 +124,11 @@ export const readTimeLabel = (words: number): string => {
   return `~${Math.round(words / 200)} min read`;
 };
 
-// The reader numbers each paragraph 1, 2, 3... within its own chapter (see
-// ParagraphView's chapterParagraphIndex) rather than by its global index or
-// its raw source-document line - anything elsewhere that references "line
-// N" (search results, bookmarks) needs this same number, keyed by global
-// paragraph index, to point at what the reader actually shows.
-export const chapterLineNumbers = (paragraphs: ManuscriptParagraph[]): Map<number, number> => {
-  const map = new Map<number, number>();
-  const counts: Record<string, number> = {};
-  paragraphs.forEach((paragraph) => {
-    counts[paragraph.chapter] = (counts[paragraph.chapter] || 0) + 1;
-    map.set(paragraph.index, counts[paragraph.chapter]);
-  });
-  return map;
-};
-
 // The line number a search hit or bookmark should show for a global paragraph index, in a chapter
 // that may not be loaded (collapsed, never expanded). `chapter.paragraphIds` already carries each
 // paragraph's position within its own chapter as imported, so this needs no paragraph body to be
 // fetched. Manuscripts imported before `paragraphIds` existed fall back to `loadedLineNumbers`
-// (chapterLineNumbers of whatever chapters happen to be expanded), and finally to the raw global
+// (the line numbers of whatever chapters happen to be loaded), and finally to the raw global
 // paragraph index if neither source has it - never undefined, so a row always shows something.
 export const chapterLineNumber = (
   chapter: Pick<ManuscriptChapter, 'paragraphIds'> | undefined,

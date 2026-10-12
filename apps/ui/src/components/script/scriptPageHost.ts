@@ -103,7 +103,9 @@ export function useWordsHost(): WordsHost {
     () => ({
       definitionSource,
       setDefinitionSource,
-      candidate: (word, sourceId) => sources.pronunciationCandidate(word, sourceId),
+      // The tab reads a miss as a result (`WordsHost.candidate`), so a refused call becomes one with the host's sentence.
+      candidate: (word, sourceId) =>
+        sources.pronunciationCandidate(word, sourceId).catch((error: unknown) => ({ ok: false as const, reason: apiErrorMessage(error) })),
       onlineDefinition: (word) => online.pronunciationOnlineLookup(word),
       async openLookup(source, word) {
         try {

@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// The narrator's own pronunciation, switching to the kept alternate, and a pronunciation's status and note. Each
-// is one sidecar call; free text goes as --ipa=VALUE / --note=VALUE so a value starting with "-" stays a value.
+// The narrator's own pronunciation and switching to the kept alternate. Each is one sidecar call; free text goes as
+// --ipa=VALUE so a value starting with "-" stays a value.
 
 func TestGuidePronounceUserSendsTheTextAsOneArgument(t *testing.T) {
 	service, calls := countingGuide(t)
@@ -51,49 +51,6 @@ func TestGuidePronunciationUseAlternateSendsTheEntity(t *testing.T) {
 	}
 }
 
-func TestGuidePronunciationSetStatusSendsTheStatusAndNote(t *testing.T) {
-	service, calls := countingGuide(t)
-	host := &Host{guide: service}
-	note := "-asked by email"
-	if _, err := host.GuidePronunciationSetStatus("entity-1", nil, "query_sent", &note); err != nil {
-		t.Fatal(err)
-	}
-	call := calls()[0]
-	if call[0] != "pronunciation-status" || !slices.Contains(call, "query_sent") || !slices.Contains(call, "--note=-asked by email") {
-		t.Fatalf("call = %v", call)
-	}
-}
-
-func TestGuidePronunciationSetStatusWithoutANoteLeavesItAlone(t *testing.T) {
-	service, calls := countingGuide(t)
-	host := &Host{guide: service}
-	if _, err := host.GuidePronunciationSetStatus("entity-1", nil, "author_confirmed", nil); err != nil {
-		t.Fatal(err)
-	}
-	for _, arg := range calls()[0] {
-		if strings.HasPrefix(arg, "--note") {
-			t.Fatalf("a note was sent: %v", arg)
-		}
-	}
-}
-
-func TestGuidePronunciationSetStatusRefusesAnUnknownStatusOrOverlongNote(t *testing.T) {
-	long := strings.Repeat("x", 1001)
-	for _, c := range []struct {
-		status string
-		note   *string
-	}{{"guessed", nil}, {"researched", &long}} {
-		service, calls := countingGuide(t)
-		host := &Host{guide: service}
-		if _, err := host.GuidePronunciationSetStatus("entity-1", nil, c.status, c.note); err == nil {
-			t.Fatalf("status %q accepted", c.status)
-		}
-		if len(calls()) != 0 {
-			t.Fatal("the sidecar started")
-		}
-	}
-}
-
 func TestPronunciationDepthBindingsAreUnavailableWithoutTheStoryBible(t *testing.T) {
 	host := &Host{}
 	if _, err := host.GuidePronounceUser("entity-1", nil, "x"); err == nil {
@@ -101,8 +58,5 @@ func TestPronunciationDepthBindingsAreUnavailableWithoutTheStoryBible(t *testing
 	}
 	if _, err := host.GuidePronunciationUseAlternate("entity-1", nil); err == nil {
 		t.Fatal("GuidePronunciationUseAlternate: expected an error")
-	}
-	if _, err := host.GuidePronunciationSetStatus("entity-1", nil, "researched", nil); err == nil {
-		t.Fatal("GuidePronunciationSetStatus: expected an error")
 	}
 }

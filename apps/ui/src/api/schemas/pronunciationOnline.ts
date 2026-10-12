@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import type {
-  PronunciationOnlineBatchResult,
-  PronunciationOnlineKeyStatus,
-  PronunciationOnlineResult,
-  PronunciationOnlineSpelling,
-} from '../contracts/pronunciationOnline';
+import type { PronunciationOnlineKeyStatus, PronunciationOnlineResult, PronunciationOnlineSpelling } from '../contracts/pronunciationOnline';
 import { listFromNull } from './base';
 
 // The key status carries no key: a payload that ever grows a field holding one fails here (strict), not in a screen.
@@ -30,15 +25,3 @@ export const pronunciationOnlineResultSchema = z.object({
   cached: z.boolean(),
   fetchedAt: z.string(),
 }) satisfies z.ZodType<PronunciationOnlineResult>;
-
-const count = z.number().int().nonnegative();
-
-export const pronunciationOnlineBatchResultSchema = z.object({
-  words: count,
-  fetched: count,
-  fromCache: count,
-  notFound: count,
-  failed: count,
-  stopped: z.boolean(),
-  stopReason: z.string(),
-}) satisfies z.ZodType<PronunciationOnlineBatchResult>;

@@ -21,9 +21,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 
 ## Used by
 
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ReaderRail.tsx`
-- `src/components/booth/ReadingControlBar.tsx`
 - `src/components/booth/frame/BoothTop.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/booth/pickups/PickupSession.tsx`
@@ -66,7 +63,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/proof/spot/SpotTakes.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/schedule/SchedulePage.tsx`
-- `src/components/script/ScriptPage.tsx`
 - `src/components/script/bookmarks/ui/BookmarkEditor.tsx`
 - `src/components/script/bookmarks/ui/BookmarksTab.tsx`
 - `src/components/script/page/ScriptPage.tsx`

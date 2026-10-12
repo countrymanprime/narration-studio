@@ -8,6 +8,21 @@ import { DESKTOP, openApp } from './helpers';
 // not fail the suite but a lost role, name, heading or button does.
 const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
   {
+    name: 'the Script mark composer is a modal dialog named for the selected words, with the mark type, the note and Save',
+    state: ['script', 'mark-composer'],
+    snapshot: 'dialog-mark-composer.aria.yml',
+  },
+  {
+    name: 'Define marks is a modal dialog: each mark type with its name, colour and line, and Done',
+    state: ['script', 'define-marks'],
+    snapshot: 'dialog-define-marks.aria.yml',
+  },
+  {
+    name: 'the Story Bible import is a modal dialog with its file choice',
+    state: ['storybible', 'import-dialog'],
+    snapshot: 'dialog-import-entries.aria.yml',
+  },
+  {
     name: 'a delete confirm is an alert dialog with its title, message and both actions',
     state: ['storybible', 'delete-confirm'],
     snapshot: 'confirm-delete-entry.aria.yml',
@@ -18,22 +33,7 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     state: ['settings', 'navigate-away-confirm'],
     snapshot: 'confirm-unsaved-settings.aria.yml',
   },
-  { name: 'the add-note form is a modal dialog with a labelled field', state: ['script', 'add-note-dialog'], snapshot: 'dialog-add-note.aria.yml' },
-  {
-    name: 'the pronunciation queries are a modal slide-over with the filter, the count, Export CSV, Look up online and a list of queries each with its marks',
-    state: ['storybible', 'pronunciation-queries'],
-    snapshot: 'slide-over-pronunciation-queries.aria.yml',
-  },
-  {
-    name: 'the notice before a batch online lookup is an alert dialog naming how many names it sends, with Cancel and the lookup',
-    state: ['storybible', 'pronunciation-queries-online-confirm'],
-    snapshot: 'confirm-pronunciation-online-batch.aria.yml',
-  },
-  {
-    name: 'the chapters overlay is a modal slide-over named for what it holds',
-    state: ['script', 'chapters-overlay-open'],
-    snapshot: 'slide-over-chapters.aria.yml',
-  },
+
   {
     name: 'the recording check is a modal slide-over with its count, the missing region and its paragraph link, and Check again',
     state: ['production', 'recording-check-incomplete'],
@@ -44,21 +44,13 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     state: ['settings', 'delivery-profile-editor'],
     snapshot: 'dialog-delivery-profile-editor.aria.yml',
   },
-  {
-    name: 'the look-up panel is a modal slide-over named for the word, its definitions a list under a heading per part of speech',
-    state: ['script', 'word-lookup-definition'],
-    snapshot: 'slide-over-word-lookup.aria.yml',
-  },
+
   {
     name: 'the stage readiness is a modal slide-over: the verdict, the evidence the app measured, and Confirm and Dismiss',
     state: ['production', 'stage-evidence-recommended'],
     snapshot: 'slide-over-stage-evidence.aria.yml',
   },
-  {
-    name: 'the dictionary download question is an alert dialog',
-    state: ['script', 'word-lookup-not-installed'],
-    snapshot: 'confirm-download-dictionary.aria.yml',
-  },
+
   {
     name: 'the chapter track panel is a modal slide-over named for the chapter, with its facts, the Another track…/Unlink link and the Chapter section',
     state: ['production', 'chapter-track-panel-linked'],
@@ -95,9 +87,9 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'companion-panel.aria.yml',
   },
   {
-    name: 'leaving the Booth while it listens asks first: an alert dialog with Stop reading? and both actions',
-    state: ['booth', 'exit-confirm'],
-    snapshot: 'confirm-stop-reading.aria.yml',
+    name: 'leaving the Booth during a take asks first: an alert dialog with Stop recording? and both actions',
+    state: ['booth', 'leave-dialog'],
+    snapshot: 'confirm-stop-recording.aria.yml',
   },
   {
     name: 'the passage-effect confirm is an alert dialog naming the passage, with the Effect select and both actions',

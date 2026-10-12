@@ -13,16 +13,15 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 
 ## Used by
 
-- `src/components/booth/BuiltinRecorder.tsx`
-- `src/components/booth/ReaderFlagsPanel.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/profile/FormatRows.tsx`
 - `src/components/delivery/profile/ProfileCard.tsx`
 - `src/components/editing/cleanup/CleanupInspector.tsx`
+- `src/components/editing/range/common/Strips.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/engine/ChapterSyncConsentDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
-- `src/components/manuscript/MarkupDialog.tsx`
 - `src/components/manuscript/ReaderCard.tsx`
 - `src/components/master/DeliveryPackagePanel.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`

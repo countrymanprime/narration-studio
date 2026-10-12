@@ -3,9 +3,9 @@ import { DAW_CAPABILITIES } from '../api/contracts/daw';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
-// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it, not yet available on
-// any engine until their command slices land. The sentences are the host's own wording (dawport resolver and adapters), so a refusal
-// here reads as the real one.
+// only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it: REAPER declares the
+// first two Experimental (narration_range.lua), and the others are not yet available on any engine until their command slices land.
+// The sentences are the host's own wording (dawport resolver and adapters), so a refusal here reads as the real one.
 
 export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'audacity-backups';
 
@@ -45,7 +45,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   master_chain_read: 'experimental',
   macro_render: 'unsupported',
   cut_range: 'experimental',
-  fx_range: 'not_yet_available',
+  fx_range: 'experimental',
   stack_takes: 'not_yet_available',
   backups: 'not_yet_available',
 };
@@ -68,11 +68,13 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
   ]),
 );
 
-/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take and a cut moves the audio to the muted Cuts track,
- * so punch and cut_range are native and not destructive (ADR 0860). */
+/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, a cut moves the audio to the muted Cuts track and a
+ * chain on a range is take FX on a split piece that come off again, so punch, cut_range and fx_range are native and not destructive
+ * (ADR 0860). */
 const REAPER_DEPTH: Rows = {
   punch: { level: 'experimental', available: true, mode: 'native' },
   cut_range: { level: 'experimental', available: true, mode: 'native' },
+  fx_range: { level: 'experimental', available: true, mode: 'native' },
 };
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
@@ -90,6 +92,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
     ...REAPER_NOT_YET,
     punch: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     cut_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+    fx_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
   },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
@@ -153,6 +156,8 @@ export type DawProject = {
   candidateIds: readonly string[];
   findingIds: readonly string[];
   otherTakes?: Readonly<Record<string, number>>;
+  /** The narrator's saved FX chains as the DAW lists them (list_fx_chains). */
+  fxChains?: readonly string[];
 };
 
 export const DAW_PROJECT: DawProject = {
@@ -160,6 +165,8 @@ export const DAW_PROJECT: DawProject = {
   candidateIds: ['take-1', 'take-2', 'take-solo'],
   findingIds: ['finding-1'],
   otherTakes: { 'take-1': 1, 'take-2': 1, 'take-solo': 0 },
+  // The chains of tests/fixtures/contracts/workspace-fx-chains.json, so the mock lists what the host stand-in does.
+  fxChains: ['Podcast Voice.RfxChain', 'Vocal Chain/Warmth.RfxChain'],
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
@@ -191,6 +198,9 @@ export const DAW_ANSWERS = {
   rangeStale: "That selection is not in this chapter's alignment any more, so nothing was changed. Reload the chapter and select the words again.",
   rangeNotHeard: "These words weren't heard in the recording, so there's no audio to cut. Run the check again if the chapter has changed.",
   rangeCrossesItems: 'These words cross two REAPER items. Select words from one item at a time.',
+  /** bindings_daw_fx_range.go (SN-D66): a chain REAPER does not list (apply_fx_range's own sentence), and words not heard, in an effect's words. */
+  fxBadChain: 'That FX chain is not in the FXChains folder REAPER lists.',
+  fxNotHeard: "These words weren't heard in the recording, so there's no audio to put an effect on. Run the check again if the chapter has changed.",
 } as const;
 
 const plural = (count: number): string => (count === 1 ? '' : 's');
@@ -245,6 +255,60 @@ export function rangeCutOf(setup: DawCapabilities, words: number): { message: st
       return { message, undoSteps: 0 };
     case 'steps':
       return { message, undoSteps: RANGE_CUT_STEPS.length, steps: [...RANGE_CUT_STEPS] };
+    default:
+      return { message, undoSteps: 1 };
+  }
+}
+
+/** dawport/reaper's rangeFXApplier: a chain put on `words` words in `daw`. */
+export function fxChainAddedAnswer(chain: string, words: number, daw: string): string {
+  return `Added ${chain} to ${words} word${plural(words)} in ${daw}.`;
+}
+
+/** dawport/reaper's rangeFXApplier: a chain taken off its piece in `daw`. */
+export function fxChainRemovedAnswer(chain: string, daw: string): string {
+  return `${chain} taken off in ${daw}.`;
+}
+
+/** bindings_daw_fx_range.go: a removal from an item that does not carry the chain (changed false). */
+export function fxNotOnItemAnswer(chain: string): string {
+  return `${chain} is not on the item these words were checked in, so nothing changed. If you added it since the last check, run the check again so the app finds the piece it is on.`;
+}
+
+/** Where a DAW's chain list comes from, as the Add FX menu names it (the Studio Next mock's `FxList.source`). */
+export function fxChainsSource(daw: string): string {
+  return `Your ${daw} FX chains`;
+}
+
+/** What taking a chain off answers on one of DAW_SETUPS: it costs what putting it on did, by the capability's mode. */
+export function fxRangeRemovedOf(setup: DawCapabilities, chain: string): { message: string; undoSteps: number; steps?: string[] } {
+  return { ...fxRangeOf(setup, chain, 1), message: fxChainRemovedAnswer(chain, setup.daw) };
+}
+
+/** A DAW's chain list as the Add FX menu shows it (the Studio Next mock's `FxList`): where it comes from, named for the setup's DAW, and
+ * each chain by its name, which is also its id. */
+export function fxListOf(setup: DawCapabilities, names: readonly string[]): { source: string; choices: { id: string; name: string }[] } {
+  return { source: fxChainsSource(setup.daw), choices: names.map((name) => ({ id: name, name })) };
+}
+
+/** A chain name as list_fx_chains could list it (bridge's plainChainName): relative, ending .RfxChain, no backslash, colon or control
+ * character, and no empty, `.` or `..` part. */
+export function plainChainName(chain: string): boolean {
+  if (!chain.toLowerCase().endsWith('.rfxchain') || /[\\:\p{Cc}]/u.test(chain)) return false;
+  return chain.split('/').every((part) => part !== '' && part !== '.' && part !== '..');
+}
+
+/** The edits a `steps` DAW makes for one effect on a range, in order (the Studio Next mock's RANGE_PLAN: select, then apply). */
+export const FX_RANGE_STEPS = ['Select the range', 'Apply the effect'] as const;
+
+/** What a chain on `words` words answers on one of DAW_SETUPS once `fx_range` is available, by its mode, as rangeCutOf does. */
+export function fxRangeOf(setup: DawCapabilities, chain: string, words: number): { message: string; undoSteps: number; steps?: string[] } {
+  const message = fxChainAddedAnswer(chain, words, setup.daw);
+  switch (setup.capabilities.fx_range?.mode) {
+    case 'app':
+      return { message, undoSteps: 0 };
+    case 'steps':
+      return { message, undoSteps: FX_RANGE_STEPS.length, steps: [...FX_RANGE_STEPS] };
     default:
       return { message, undoSteps: 1 };
   }

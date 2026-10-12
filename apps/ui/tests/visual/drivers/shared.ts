@@ -33,33 +33,6 @@ export async function openBooth(page: Page, query = ''): Promise<void> {
   await goToPage(page, 'Booth');
 }
 
-// Opens the Booth and waits for its resume prompt to have answered (the lookup's "Checking..." line is gone.
-export async function openResumePrompt(page: Page, query = ''): Promise<void> {
-  await openBooth(page, query);
-  const card = page.getByRole('region', { name: 'Where you stopped' });
-  await card.waitFor();
-  await card.getByText(/Checking where REAPER and your last reading are/).waitFor({ state: 'detached' });
-}
-
-// The control bar's own toolbar, scoped so its Microphone/Settings triggers never collide with a same-named control
-// elsewhere on the page (the Booth's nav rail also has a "Settings" link).
-export const controlBar = (page: Page) => page.getByRole('toolbar', { name: 'Reading controls' });
-
-// The microphone picker sits behind the control bar's popover: its combobox
-// does not exist in the DOM until the trigger button is clicked (Popover unmounts its content while closed).
-export async function openMicPopover(page: Page): Promise<void> {
-  await controlBar(page)
-    .getByRole('button', { name: /^Microphone:/ })
-    .click();
-  await page.getByRole('combobox', { name: 'Microphone' }).waitFor();
-}
-
-// Engine and Model sit behind the control bar's Settings popover, same reasoning as `openMicPopover`.
-export async function openSettingsPopover(page: Page): Promise<void> {
-  await controlBar(page).getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('group', { name: 'Model' }).waitFor();
-}
-
 export async function clickVisible(page: Page, role: Parameters<Page['getByRole']>[0], name: string | RegExp): Promise<void> {
   // The nav rail is visible at every captured viewport except the reflow one, where only Settings states are captured
   // and they navigate through clickNav, so the click's own auto-wait is enough.
@@ -92,9 +65,9 @@ export const PAGE_HEADING: Record<AppPage, string> = {
 const PAGE_CONTENT: Partial<Record<AppPage, (page: Page) => Locator>> = {
   // The chapter pipeline is drawn once the production overview has answered.
   Production: (page) => page.getByRole('table', { name: 'Chapter pipeline' }),
-  Script: (page) => page.locator('[data-paragraph-text]'),
-  // The chapter's text, whatever the session is doing (credits states pick theirs afterwards).
-  Booth: (page) => page.getByRole('region', { name: 'Chapter text' }),
+  Script: (page) => page.locator('p[data-pid]'),
+  // The footer's Record control, drawn once the chapter has loaded (credits states pick theirs afterwards).
+  Booth: (page) => page.getByRole('button', { name: /^(Record|Stop)$/ }),
 };
 
 // Clicks an item of the app's own navigation, and only that: the Settings category rail reuses the labels "Proof"
@@ -420,71 +393,12 @@ export async function openLocalAssets(page: Page, seed?: string): Promise<void> 
   await page.getByRole('heading', { level: 3, name: 'Small', exact: true }).waitFor();
 }
 
-// The Booth on the `flagged` mock session, once its first
-// default-visible flag (a skip) is drawn as a control in the text. extraQuery adds more mock params (for example
-// `&mockPunchCapabilityOn=1`) to the same navigation.
-export async function openFlaggedBooth(page: Page, extraQuery = '') {
-  await openBooth(page, `?mockTeleprompter=flagged${extraQuery}`);
-  await page.locator('[data-highlight="Skipped"][role="button"]').first().waitFor();
-}
-
-// A real mouse wheel over the reader text, far enough that the
-// highlighted word leaves the view, then waits for "Following paused" and for the smooth scroll to finish, so the shot
-// shows where the narrator left the text rather than a frame mid-scroll.
-export async function scrollReaderByHand(page: Page): Promise<void> {
-  const text = page.getByRole('region', { name: 'Chapter text' });
-  const box = await text.boundingBox();
-  const viewport = page.viewportSize();
-  if (!box || !viewport) throw new Error('The reader text has no box to scroll over.');
-  await page.mouse.move(box.x + box.width / 2, Math.min(box.y + 120, viewport.height - 40));
-  await page.mouse.wheel(0, 1500);
-  await page.getByText('Following paused.', { exact: false }).waitFor();
-  await page.waitForFunction(() => {
-    const rect = document.querySelector('[data-current-word]')?.getBoundingClientRect();
-    return rect !== undefined && rect.bottom < 0;
-  });
-  await settlePage(page);
-}
-
-// Playwright's synthetic page.mouse.down/move/up drag doesn't reliably
-// produce a non-empty window.getSelection() range for useTextSelection.ts's
-// mouseup listener to pick up (unlike a real Chromium user drag, or RTL's
-// fireEvent.mouseUp against a manually-constructed Range in jsdom). Building
-// the Range directly and dispatching mouseup ourselves - mirroring how the
-// component's own test does it - is deterministic across viewports.
-export async function selectFirstParagraphText(page: Page): Promise<void> {
-  // Chapter paragraphs load after the page mounts; wait for real prose, not just the container.
-  await page.waitForFunction(() => [...document.querySelectorAll('[data-paragraph-text]')].some((node) => (node.textContent?.length ?? 0) >= 20));
-  const selected = await page.evaluate(() => {
-    // The paragraph's own firstChild is often a <mark>/<span> entity highlight, and
-    // the first paragraphs can be short titles - walk every paragraph to the first
-    // real Text node with enough content instead of assuming layout.
-    for (const paragraph of document.querySelectorAll('[data-paragraph-text]')) {
-      const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
-      while (walker.nextNode()) {
-        const candidate = walker.currentNode as Text;
-        if ((candidate.textContent?.length ?? 0) < 20) continue;
-        const range = document.createRange();
-        range.setStart(candidate, 0);
-        range.setEnd(candidate, 20);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        paragraph.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-        return true;
-      }
-    }
-    return false;
-  });
-  if (!selected) throw new Error('no paragraph with enough text to select - did the reader markup change?');
-}
-
-/** Selects the first whole occurrence of `word` in the reader text, the way selectFirstParagraphText selects (a Range and a mouseup). */
+/** Selects the first whole occurrence of `word` in the reader text, as a narrator's drag does (a Range, then a mouseup the reader hears). */
 export async function selectReaderWord(page: Page, word: string): Promise<void> {
-  await page.waitForFunction(() => [...document.querySelectorAll('[data-paragraph-text]')].some((node) => (node.textContent?.length ?? 0) >= 20));
+  await page.waitForFunction(() => [...document.querySelectorAll('p[data-pid]')].some((node) => (node.textContent?.length ?? 0) >= 20));
   const selected = await page.evaluate((target) => {
     const whole = new RegExp(`\\b${target}\\b`);
-    for (const paragraph of document.querySelectorAll('[data-paragraph-text]')) {
+    for (const paragraph of document.querySelectorAll('p[data-pid]')) {
       const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
       while (walker.nextNode()) {
         const candidate = walker.currentNode as Text;
@@ -493,12 +407,9 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
         const range = document.createRange();
         range.setStart(candidate, match.index);
         range.setEnd(candidate, match.index + target.length);
-        // A real selection is always on screen already (a narrator can only drag-select what they can see) - this
-        // programmatic one is not, so it scrolls the words into view first. Without this, a chapter whose card sits
-        // far enough down the page (a narrower reader card wraps its header cluster below the title, taking a second
-        // row per card above it - the Script page's three columns) can select text
-        // below the fold, and SelectionMenu's popup (`fixed`, placed from the selection's own viewport rect) then
-        // renders off-screen too, since it does not itself scroll anything into view.
+        // A real selection is always on screen already (a narrator can only drag-select what they can see); this programmatic one is
+        // not, so it scrolls the words into view first, or the selection toolbar (`fixed`, placed from the selection's own rect)
+        // would draw off-screen.
         paragraph.scrollIntoView({ block: 'center' });
         const selection = window.getSelection();
         selection?.removeAllRanges();
@@ -510,17 +421,6 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
     return false;
   }, word);
   if (!selected) throw new Error(`no "${word}" in the reader text - did the demo manuscript change?`);
-}
-
-/** Opens the Script page (with a mock seam, when given), selects `word` and presses Look up. */
-export async function lookUpInReader(page: Page, word: string, url?: string): Promise<void> {
-  if (url) {
-    await page.goto(url);
-    await settlePage(page);
-  }
-  await goToPage(page, 'Script');
-  await selectReaderWord(page, word);
-  await clickVisible(page, 'button', 'Look up');
 }
 
 /** Links a chapter to its first available track from the engine panel's Chapter links table (the same real-UI path

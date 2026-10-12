@@ -78,39 +78,45 @@ export const storybibleStates: StateEntry[] = [
   {
     page: 'storybible',
     state: 'entry-pronunciation-missing',
-    description: 'Story Bible, an entry with no pronunciation in edit mode: Play disabled with a reason, and Generate offered',
+    description:
+      'Story Bible, an entry with no pronunciation in edit mode: each name a row with its "How I say" field and source tag (SN-B22), Play disabled with a reason',
   },
   {
     page: 'storybible',
-    state: 'entry-pronunciation-work',
+    state: 'entry-names-own-pronunciation',
     description:
-      "Story Bible, an entry in edit mode after the narrator used their own pronunciation and marked it Query sent with a note: the status badge, the note, the dictionary's answer kept beside it and the switch back",
+      "Story Bible, an entry in edit mode after the narrator typed their own pronunciation of its first name: the source tag reads Entered by me, the dictionary's answer kept as the alternate",
   },
   {
     page: 'storybible',
     state: 'entry-pronunciation-online',
-    description: "Story Bible, an entry's pronunciation details after Look up online: Merriam-Webster's respelling with Use this, on the narrator's own key",
+    description: "Story Bible, a name's Look up elsewhere after Look up online: Merriam-Webster's respelling with Use this, on the narrator's own key",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
     state: 'alias-pronunciation-editing',
-    description:
-      'Story Bible, an entry in edit mode after the narrator worked on one alias’s own pronunciation (Generate/Replace, Pronunciation details, Use mine, the kept alternate): independent of the entity’s own pronunciation controls above it',
+    description: 'Story Bible, an entry in edit mode with an alias’s own pronunciation typed: each alias its own row, independent of the first name',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
-    state: 'pronunciation-queries',
+    state: 'verification-filter',
     description:
-      'Story Bible, the Pronunciation queries slide-over: every name not yet author confirmed in reading order, the first marked sent, with the filter, the open/sent count, Export CSV and Mark sent / Mark answered',
+      'Story Bible, Needs verification on: the suggestions not in the Story Bible yet listed above the entries, each with its kind and confidence, and only the entries with something to verify (SN-X42)',
   },
   {
     page: 'storybible',
-    state: 'pronunciation-queries-online-confirm',
-    description:
-      'Story Bible, the notice before a batch online lookup: how many names it sends to Merriam-Webster, one at a time, and that nothing else leaves',
+    state: 'loose-suggestion',
+    description: 'Story Bible, a suggestion with no entry yet chosen from the list: its row with the quote, the confidence chip and Accept, Edit and Reject',
   },
+  {
+    page: 'storybible',
+    state: 'entry-suggestions',
+    description: 'Story Bible, an entry with suggestions to verify: its Verify pill, its accepted claims and its Suggested list (SN-X41)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  { page: 'storybible', state: 'import-dialog', description: 'Story Bible, the Import entries dialog (CSV or JSON, SN-X522)' },
 
   {
     page: 'storybible',

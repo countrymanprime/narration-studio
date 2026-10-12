@@ -13,7 +13,6 @@ import type { AxeDebt } from './lib/validators';
 
 const PORTALLED_POPUP = 'The popup is portalled to <body>, outside the landmarks, so axe cannot place it (#157)';
 export const AXE_DEBT: AxeDebt[] = [
-  { page: 'script', state: 'selection-popup', rules: ['region'], reason: PORTALLED_POPUP },
   { page: 'global', state: 'tooltip', rules: ['region'], reason: PORTALLED_POPUP },
   // The rail shows labels at the desktop width, so the hint only exists (and is only reported) below it.
   { page: 'shell', state: 'history-enabled', rules: ['region'], reason: PORTALLED_POPUP },

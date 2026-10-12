@@ -13,11 +13,7 @@ import { describe, expect, test } from 'vitest';
 // that migrates it.
 type Shape = 'underline-tab' | 'segmented-group';
 
-const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {
-  // Four independent actions (Note, Mark up, Story Bible, Look up) glued into one strip by a Toolbar wrapper — not
-  // a single choice among them, so it is a toolbar's look, not ToggleGroup's.
-  'src/components/manuscript/SelectionMenu.tsx': { 'segmented-group': 3, owner: 'none: independent toolbar actions, not a single-choice group' },
-};
+const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {};
 
 function shapesOf(classes: string): Shape[] {
   const tokens = classes.split(/\s+/).map((token) => token.replace(/^[a-z-]+:/, ''));

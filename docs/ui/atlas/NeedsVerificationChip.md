@@ -19,4 +19,4 @@ Storybook title: `Story Bible/Extraction panel`. Source: `src/components/storybi
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/storybible/Guide.tsx`

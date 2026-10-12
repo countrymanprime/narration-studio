@@ -27,9 +27,10 @@
     },
     "fx_range": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Add an effect to words is not available with REAPER yet.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "native",
+      "reason": "experimental_off"
     },
     "heartbeat": {
       "available": false,

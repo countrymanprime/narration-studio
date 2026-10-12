@@ -309,12 +309,24 @@ describe('Story Bible Appears in', () => {
       { chapterId: 'chapter-2', chapter: 'chapter-2', sceneIndex: 0 },
     ],
   };
+  // The page reads the chapters once and hands them down (Guide.tsx).
+  const chapters = [
+    { id: 'chapter-1', title: 'Chapter 1' },
+    { id: 'chapter-2', title: 'Chapter 2' },
+  ];
 
   it('lists the chapters after the editable parts and opens one in Script', async () => {
     const goToManuscript = vi.fn();
     render(
       <ApiProvider api={createMockApi()}>
-        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={goToManuscript} />
+        <GuideDetail
+          entity={entity}
+          entities={WIRE_ENTITIES}
+          chapters={chapters}
+          reload={vi.fn().mockResolvedValue(undefined)}
+          notify={vi.fn()}
+          goToManuscript={goToManuscript}
+        />
       </ApiProvider>,
     );
     expect(await screen.findByText('Appears in · 2 chapters')).toBeTruthy();
@@ -328,7 +340,14 @@ describe('Story Bible Appears in', () => {
   it('shows no line or mention counts', async () => {
     render(
       <ApiProvider api={createMockApi()}>
-        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+        <GuideDetail
+          entity={entity}
+          entities={WIRE_ENTITIES}
+          chapters={chapters}
+          reload={vi.fn().mockResolvedValue(undefined)}
+          notify={vi.fn()}
+          goToManuscript={vi.fn()}
+        />
       </ApiProvider>,
     );
     await screen.findByText('Appears in · 2 chapters');
@@ -417,7 +436,7 @@ describe('mark-reviewed-in-the-detail', () => {
   it('editor-shows-the-flags: the entry and each flagged name show Needs review, and a clean name has no button', () => {
     renderReview(rabbit({ review: { entry: true, aliases: ['Rabbit'] } }));
     expect(screen.getAllByText('Needs review')).toHaveLength(2);
-    expect(within(screen.getByRole('table', { name: 'Aliases' })).getAllByText('Needs review')).toHaveLength(1);
+    expect(within(screen.getByRole('list', { name: 'Names' })).getAllByText('Needs review')).toHaveLength(1);
     cleanup();
     renderReview(rabbit({ review: { entry: true, aliases: [] } }));
     expect(screen.queryByRole('button', { name: 'Mark Rabbit reviewed' })).toBeNull();

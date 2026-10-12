@@ -41,8 +41,12 @@ export const SPEC_DIR = 'docs/research/mockups/audiobook-studio-benchmark';
 export const APPROVED_MOCKS: ApprovedMock[] = [
   // Scored against its own data (?mockFidelity=01).
   { file: '01-production-home.webp', target: { page: 'production', state: 'mock-fidelity-01' }, theme: 'light' },
-  { file: '02-prep-script.webp', target: { page: 'script', state: 'prep-rail-pronunciations' }, theme: 'light' },
-  { file: '03-booth.webp', target: { page: 'booth', state: 'speaker-tags' }, theme: 'dark' },
+  {
+    file: '02-prep-script.webp',
+    theme: 'light',
+    unscored: 'the Script page is built to the Studio Next mock, the only spec for a page it covers (D98, ADR 0760); this benchmark is not its target',
+  },
+  { file: '03-booth.webp', target: { page: 'booth', state: 'dark' }, theme: 'dark' },
   {
     file: '04-proof-pickups.webp',
     theme: 'light',

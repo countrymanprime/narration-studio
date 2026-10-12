@@ -17,12 +17,10 @@ type Shape = 'chip' | 'dot' | 'tag';
 
 const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }> = {
   // The Booth's control-bar chip (the start-point chip: a quoted sentence fragment with a nested clear button, which
-  // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip) and BuiltinRecorder's
-  // chip use `HeaderChip`/primitives and have no entry.
-  'src/components/booth/ReadingControlBar.tsx': { chip: 1, owner: 'start-point chip' },
+  // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip)
+  // use `HeaderChip`/primitives and have no entry.
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
   // reuses this exact maroon (ADR 0656).
-  'src/components/booth/BoothView.tsx': { chip: 1, dot: 1, owner: 'REC pill, ADR 0656' },
   // The Proof notes header's sources line and the legend's dots.
   // The Booth side panel's reference category chip and speaker alias chip (SN-O63): both are text-only, so they migrate onto `Badge`.
   // The bookmark ribbon's note dot: a 6 px dot absolutely placed on the ribbon icon, which `Dot` (8 px, inline) does not size or place.
@@ -34,9 +32,6 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   'src/components/booth/side/VoicesNearby.tsx': { chip: 1, owner: 'alias chip, #1119' },
   // The script document's inline insertion marker (SN-E3): a mono pill drawn inside running text, which `Badge` has no inline form for.
   'src/components/editing/script/Word.tsx': { chip: 1, owner: 'inline marker, #1119' },
-  // Not a copy to migrate: the script mark's character tag is CSS generated content (`before:`), never an element, so the
-  // selection offsets see only the manuscript's text (ADR 0382); it is sized in em to ride the reading text.
-  'src/components/manuscript/MarkupMark.tsx': { tag: 1, owner: 'none: generated content, ADR 0382' },
 };
 
 const DOT_SIZES = new Set(['size-1.5', 'size-2', 'size-[6px]', 'size-[7px]', 'size-[8px]', 'size-[0.5rem]']);

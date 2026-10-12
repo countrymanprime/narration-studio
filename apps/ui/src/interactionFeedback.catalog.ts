@@ -13,7 +13,6 @@
 // is added in apps/desktop/jobs.go (see the comment on the job kinds).
 import type { FeedbackRow } from './interactionFeedback/row';
 import { appFeedback } from './interactionFeedback/app';
-import { manuscriptFeedback } from './interactionFeedback/manuscript';
 import { projectFeedback } from './interactionFeedback/project';
 import { settingsFeedback } from './interactionFeedback/settings';
 import { storyBibleFeedback } from './interactionFeedback/storyBible';
@@ -36,7 +35,6 @@ export type { FeedbackRow } from './interactionFeedback/row';
 // in two areas fails here rather than one silently replacing the other.
 const AREAS: Array<Record<string, FeedbackRow>> = [
   appFeedback,
-  manuscriptFeedback,
   projectFeedback,
   settingsFeedback,
   storyBibleFeedback,
@@ -116,9 +114,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/production/ManuscriptImport.tsx#1':
     'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
-  'src/components/script/ScriptPage.tsx#1':
-    'Renders the Opening credits pseudo-entry preview; a failed render just leaves that entry showing "Nothing to preview yet." rather than a toast over the manuscript itself.',
-  'src/components/script/ScriptPage.tsx#2': 'Renders the Closing credits pseudo-entry preview; same fallback as the opening one above.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
@@ -126,23 +121,9 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The same background check's REAPER round trip: a failed ask (REAPER closed, no bridge) is routine while results sit reviewed, not a narrator-facing failure, so it is silent and retried next poll.",
   'src/components/proof/NativeTakesPanel.tsx#1':
     "The panel's first read of the chapter's native takes; a failure just leaves it unrendered a moment longer until the next recording:state event (subscribeRecorderState) catches up, the same fallback useRecorder.ts::recorderState#2 already uses.",
-  // The device/settings catches live in `useTeleprompterSession.ts`;
-  // `BoothPage.tsx` keeps only the chapter-selection catches.
-  'src/components/booth/BoothPage.tsx#1':
-    'Only renders the opening or closing credits for the picker; a failed render leaves those credits out of the picker, as the Manuscript page leaves its entry empty, and the chapters are unaffected.',
-  'src/components/booth/BoothPage.tsx#2': 'Only picks the chapter the narrator last read; the first chapter is used without it.',
-  'src/components/booth/BoothPage.tsx#3':
-    'The REAPER chapter suggestion (ADR 0113) is a hint: no .rpp, or none chosen, is normal for a narrator not using REAPER, so it means no hint.',
-  'src/components/booth/BoothPage.tsx#4':
-    'Only guards the REAPER preselection against a running session; useTeleprompterSession reads the state again and reports its failure.',
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
-  'src/components/booth/useRecorder.ts#2':
-    'Leaving the Booth stops a take; nothing is left mounted to show a failure, and the host finishes the take when the app quits.',
-  'src/components/booth/useRecorder.ts#3': 'Leaving the Booth releases a level check; nothing is left mounted to show a failure.',
-  'src/components/booth/useInputLevel.ts#1':
-    'Best-effort release of the meter-only child (popover close, session start, device change or unmount); nothing is left mounted to show a failure, and the meter simply starts fresh the next time the popover opens.',
   'src/components/booth/useTeleprompterSession.ts#1':
     'Clearing the migrated browser-storage device once it is written to settings; if storage cannot be reached the stale value is simply left behind and never read again (the settings value now wins).',
   'src/components/booth/useTeleprompterSession.ts#2': 'Hydrates a session that was already running; the state event follows anyway.',
@@ -165,10 +146,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
-  'src/components/booth/readerPreferences.ts#1':
-    'Remembering the read-aloud rail (open, tab) in localStorage; the choice lasts for this dialog only when storage is disabled.',
-  'src/components/booth/readerPreferences.ts#2':
-    'Remembering which flag kinds the read-aloud dialog shows in localStorage; the choice lasts for this dialog only when storage is disabled.',
   'src/theme/ThemeContext.tsx#1': 'Remembering the theme in localStorage; the preference just does not persist when storage is disabled.',
   'src/components/engine/EnginePanel.tsx#1':
     'Only decides whether the "Link chapters…" tool shows; without it the button is absent, same as a project with no chapters.',
@@ -227,7 +204,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
   'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothData.ts#4': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
-  'src/components/booth/page/useBoothData.ts#5': 'The prep marks only underline words; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };

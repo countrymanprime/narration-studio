@@ -65,29 +65,23 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 	}
 	pin(t, "manuscript-search", hits)
 
-	start, end := 1, 6
-	note, err := service.CreateNote(first, paragraphs[0]["id"].(string), "Check the rhyme", &start, &end, "oses a")
-	if err != nil {
+	// The notes and the reader state are read only now (the Booth's notes, the migration into marks, SN-B721): the file is written as
+	// the old reader left it, a note with its anchor and a line bookmark.
+	paragraphID := paragraphs[0]["id"].(string)
+	notesFile := `{"notes":[{"id":"0123456789abcdef0123456789abcdef","chapter":"Chapter One","chapterId":"` + first + `","paragraph":0,"paragraphId":"` + paragraphID +
+		`","text":"Check the rhyme","anchorStart":1,"anchorEnd":6,"anchorText":"oses a","createdAt":"2026-09-21T10:00:00Z"}],` +
+		`"readerState":{"activeChapter":"` + first + `","activeSourceLine":2,"expandedChapters":["` + first + `"],"bookmarks":[{"id":"fedcba9876543210fedcba9876543210",` +
+		`"kind":"line","chapter":"Chapter One","chapterId":"` + first + `","paragraph":0,"paragraphId":"` + paragraphID + `","createdAt":"2026-09-21T10:00:00Z"}]}}`
+	if err := os.WriteFile(filepath.Join(project, "narration-utils", "manuscript-notes.json"), []byte(notesFile), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	pin(t, "manuscript-note", note)
 	pin(t, "manuscript-notes", service.Notes(first))
+	pin(t, "manuscript-reader-state", service.ReaderState())
 	status, err := service.SetChapterStatus(first, "recording")
 	if err != nil {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-chapter-status", status)
-	bookmark, err := service.CreateBookmark(map[string]any{"kind": "line", "chapter": "Chapter One", "chapterId": first, "paragraphId": paragraphs[0]["id"], "paragraph": 0})
-	if err != nil {
-		t.Fatal(err)
-	}
-	pin(t, "manuscript-bookmark", bookmark)
-	line := 2
-	state, err := service.SaveReaderState(first, &line, []string{first}, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pin(t, "manuscript-reader-state", state)
 	reader, err := service.Reader()
 	if err != nil {
 		t.Fatal(err)

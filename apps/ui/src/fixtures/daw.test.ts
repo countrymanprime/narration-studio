@@ -12,6 +12,12 @@ import {
   type DawSetupId,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
+  FX_RANGE_STEPS,
+  fxChainAddedAnswer,
+  fxChainRemovedAnswer,
+  fxChainsSource,
+  fxNotOnItemAnswer,
+  fxRangeOf,
   RANGE_CUT_STEPS,
   rangeCutAnswer,
   rangeCutOf,
@@ -84,7 +90,7 @@ describe('the mock DAW setups', () => {
   it.each(['reaper', 'reaper-off'] as const)(
     'ui-mirror-names-exactly-the-go-catalogue: %s declares the edit capabilities with no bridge command not yet available with the host sentence',
     (id) => {
-      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['fx_range', 'stack_takes', 'backups'].includes(c.key))) {
+      for (const { key, label } of DAW_CAPABILITIES.filter((c) => ['stack_takes', 'backups'].includes(c.key))) {
         expect(DAW_SETUPS[id].capabilities[key], key).toEqual({
           level: 'not_yet_available',
           available: false,
@@ -104,6 +110,12 @@ describe('the mock DAW setups', () => {
     expect(DAW_SETUPS[id].capabilities.cut_range.level).toBe('experimental');
     expect(DAW_SETUPS[id].capabilities.cut_range.mode).toBe('native');
     expect(DAW_SETUPS[id].capabilities.cut_range.destructive).toBeUndefined();
+  });
+
+  it.each(['reaper', 'reaper-off'] as const)('mock-setup-agrees-with-the-host: %s declares fx_range experimental, native and not destructive', (id) => {
+    expect(DAW_SETUPS[id].capabilities.fx_range.level).toBe('experimental');
+    expect(DAW_SETUPS[id].capabilities.fx_range.mode).toBe('native');
+    expect(DAW_SETUPS[id].capabilities.fx_range.destructive).toBeUndefined();
   });
 
   it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {
@@ -201,5 +213,39 @@ describe('the range cut answers (SN-D65)', () => {
       capabilities: { ...DAW_SETUPS.reaper.capabilities, cut_range: { level: 'experimental' as const, available: true, mode: 'steps' as const } },
     };
     expect(rangeCutOf(steps, 2)).toEqual({ message: rangeCutAnswer(2, 'REAPER'), undoSteps: 2, steps: [...RANGE_CUT_STEPS] });
+  });
+});
+
+describe('the FX range answers (SN-D66)', () => {
+  const golden = (name: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+  const chain = 'Podcast Voice.RfxChain';
+
+  it("words what dawport/reaper's rangeFXApplier and the binding do, as the host goldens have them", () => {
+    expect(fxChainAddedAnswer(chain, 1, 'REAPER')).toBe(golden('daw-apply-fx-range-done.json').message);
+    expect(fxChainAddedAnswer(chain, 3, 'REAPER')).toBe('Added Podcast Voice.RfxChain to 3 words in REAPER.');
+    expect(fxChainRemovedAnswer(chain, 'REAPER')).toBe(golden('daw-remove-fx-range-done.json').message);
+    expect(fxNotOnItemAnswer(chain)).toMatch(/^Podcast Voice\.RfxChain is not on the item .* run the check again/);
+    expect(fxChainsSource('REAPER')).toBe('Your REAPER FX chains');
+  });
+
+  it('the fixture project lists the chains of the host golden', () => {
+    const listed = JSON.parse(
+      readFileSync(fileURLToPath(new URL('../../../../tests/fixtures/contracts/workspace-fx-chains.json', import.meta.url)), 'utf8'),
+    ) as {
+      names: string[];
+    };
+    expect(DAW_PROJECT.fxChains).toEqual(listed.names);
+  });
+
+  it("fxRangeOf answers one undo step on REAPER (native), and the steps list where the capability's mode is steps", () => {
+    expect(DAW_SETUPS.reaper.capabilities.fx_range.mode).toBe('native');
+    expect(fxRangeOf(DAW_SETUPS.reaper, chain, 2)).toEqual({ message: fxChainAddedAnswer(chain, 2, 'REAPER'), undoSteps: 1 });
+    const withMode = (mode: 'steps' | 'app') => ({
+      ...DAW_SETUPS.reaper,
+      capabilities: { ...DAW_SETUPS.reaper.capabilities, fx_range: { level: 'experimental' as const, available: true, mode } },
+    });
+    expect(fxRangeOf(withMode('steps'), chain, 2)).toEqual({ message: fxChainAddedAnswer(chain, 2, 'REAPER'), undoSteps: 2, steps: [...FX_RANGE_STEPS] });
+    expect(fxRangeOf(withMode('app'), chain, 2).undoSteps).toBe(0);
   });
 });
