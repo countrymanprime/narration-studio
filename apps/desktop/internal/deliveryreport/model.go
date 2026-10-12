@@ -206,7 +206,7 @@ type AssetsInfo struct {
 func units() map[string]string {
 	return map[string]string{
 		"integrated_lufs": "LUFS", "rms_dbfs": "dBFS", "sample_peak_dbfs": "dBFS", "true_peak_dbtp": "dBTP",
-		"noise_floor_dbfs": "dBFS", "duration_seconds": "s", "sample_rate": "Hz", "time_range": "s from the start of the file",
+		"noise_floor_dbfs": "dBFS", "noise_floor_start_seconds": "s from the start of the file", "duration_seconds": "s", "sample_rate": "Hz", "time_range": "s from the start of the file",
 	}
 }
 

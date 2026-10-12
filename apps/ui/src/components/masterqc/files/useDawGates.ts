@@ -9,11 +9,11 @@ export type DawGates = { dawName: string; open: Gate; play: Gate; recheck: Gate 
 const CHECKING = 'Checking what the DAW can do…';
 const NOT_OFFERED = 'Your DAW does not offer this.';
 
-// Which capability each action rides on: going to a file's place in the project and playing a stretch of it need the DAW to
-// navigate; checking the files again reads the project's items. The host words the refusal; this file words none (except the
-// two moments before it has answered).
-const OPEN = 'navigate';
-const PLAY = 'navigate';
+// Which capability each action rides on: showing a file in the DAW and playing a stretch of it are the DAW's file_reveal and
+// file_preview (bindings_master_files.go); checking the files again reads the project's items. The host words the refusal; this
+// file words none (except the two moments before it has answered).
+const OPEN = 'file_reveal';
+const PLAY = 'file_preview';
 const RECHECK = 'project_read';
 
 function gateOf(capabilities: DawCapabilities | undefined, name: string): Gate {

@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "That file is not in the last measurement. Check the files again, then try again.",
+  "undoSteps": 0,
+  "refused": "That file is not in the last measurement. Check the files again, then try again.",
+  "code": "stale"
+}

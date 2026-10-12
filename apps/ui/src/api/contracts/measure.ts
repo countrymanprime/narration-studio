@@ -27,6 +27,9 @@ export type MeasureReport = {
   sample_peak_dbfs: number | null;
   true_peak_dbtp: number | null;
   noise_floor_dbfs: number | null;
+  /** Where the quietest window `noise_floor_dbfs` measures starts, in seconds from the start of the measured audio; null whenever
+   * the floor is (no window, so no time to play). */
+  noise_floor_start_seconds: number | null;
   digital_silent_windows: number;
   /**
    * The room tone at the audio's edges, in seconds: up to the first and after the last 50 ms window at or above -50 dBFS,

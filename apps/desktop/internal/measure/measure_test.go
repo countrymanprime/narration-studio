@@ -146,3 +146,36 @@ func BenchmarkAnalyzeMinuteOfSpeechLikeAudio(b *testing.B) {
 		}
 	}
 }
+
+func TestMeasureReportsWhereTheQuietestWindowStarts(t *testing.T) {
+	const rate = 48000
+	tone := func(seconds, rmsdBFS float64) []float64 {
+		return sine(rate, seconds, 1000, rmsdBFS+20*math.Log10(math.Sqrt2), 0)
+	}
+	// Speech, then the quietest room tone from 3.0 s to 4.0 s, then louder room tone and speech again.
+	mono := concat(tone(3, -20), tone(1, -66), tone(1, -55), tone(3, -20))
+
+	report := analyzeBytes(t, encodeWAV(t, 1, rate, 32, true, mono))
+	within(t, "noise floor", report.NoiseFloordBFS, -66, 0.1)
+	within(t, "quietest window start", report.NoiseFloorStartSeconds, 3, 1e-9)
+
+	// A range report times it from the range's start, as it does its edges: it is the report of that slice of audio.
+	ranged, err := AnalyzeRange(bytes.NewReader(encodeWAV(t, 1, rate, 32, true, mono)), Range{StartSeconds: 2, LengthSeconds: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	within(t, "ranged quietest window start", ranged.NoiseFloorStartSeconds, 1, 1e-9)
+
+	// With no window to find (digital silence), there is no start either: never an invented time (ADR 0015).
+	silent := analyzeBytes(t, encodeWAV(t, 1, rate, 16, false, silence(rate, 2)))
+	if silent.NoiseFloorStartSeconds != nil {
+		t.Fatalf("quietest window start of silence = %v, want null", *silent.NoiseFloorStartSeconds)
+	}
+	raw, err := json.Marshal(silent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"noise_floor_start_seconds":null`) {
+		t.Fatalf("a missing start must serialise as null: %s", raw)
+	}
+}

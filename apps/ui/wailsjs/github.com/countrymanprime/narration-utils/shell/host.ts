@@ -1566,6 +1566,23 @@ export function MarksSetStatus(id: string, status: string): $CancellablePromise<
 }
 
 /**
+ * MasterOpenInDaw shows fileID in the DAW's own file browser, without importing or playing it. The file_reveal sentence
+ * comes first, then a file not in the last measurement (code stale); then the file bindings' own checks and refusals.
+ */
+export function MasterOpenInDaw(fileID: string): $CancellablePromise<string> {
+    return $Call.ByID(1825396369, fileID);
+}
+
+/**
+ * MasterPlayQuietest plays the 5 s of fileID centred on the quietest window its measurement found, clamped to the file,
+ * through the DAW's file preview. The file_preview sentence comes first, then a file not in the last measurement (code
+ * stale), then a file with no quietest window; then the file bindings' own checks and refusals.
+ */
+export function MasterPlayQuietest(fileID: string): $CancellablePromise<string> {
+    return $Call.ByID(1587772586, fileID);
+}
+
+/**
  * MasteringChooseProvider saves the current project's mastering row and answers the rows again. An empty name clears the choice,
  * so the project masters with the default row. A row that is not registered, or not available on this computer yet, is refused
  * with its sentence, and nothing is saved.

@@ -63,6 +63,7 @@ function measurementFor(path: string): MeasureReport {
     sample_peak_dbfs: -3.6,
     true_peak_dbtp: -3.1,
     noise_floor_dbfs: -66.8,
+    noise_floor_start_seconds: 412.5,
     digital_silent_windows: 0,
     head_room_tone_seconds: 0.8,
     tail_room_tone_seconds: 2.5,

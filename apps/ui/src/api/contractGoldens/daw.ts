@@ -64,6 +64,12 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-file-preview-playing.json': dawResultSchema,
   'daw-file-preview-stopped.json': dawResultSchema,
   'daw-file-revealed.json': dawResultSchema,
+  // MasterPlayQuietest and MasterOpenInDaw (bindings_master_files_test.go): the quietest 5 s playing, a file shown, and the host's
+  // refusals of a file not in the last measurement (code stale) and of one with no quietest window.
+  'master-file-play-quietest.json': dawResultSchema,
+  'master-file-opened.json': dawResultSchema,
+  'master-file-refused-not-in-run.json': dawResultSchema,
+  'master-file-refused-no-quiet-stretch.json': dawResultSchema,
   'daw-file-refused-not-picked.json': dawResultSchema,
   'daw-file-refused-bad-stretch.json': dawResultSchema,
 };
