@@ -648,6 +648,9 @@ export const wailsClient: NarrationApi = {
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),
+  dawPreviewFileRange: (path, start, length) => decode(dawResultSchema, 'DawPreviewFileRange', host.DawPreviewFileRange(path, start, length)),
+  dawStopFilePreview: () => decode(dawResultSchema, 'DawStopFilePreview', host.DawStopFilePreview()),
+  dawRevealFile: (path) => decode(dawResultSchema, 'DawRevealFile', host.DawRevealFile(path)),
   dawBackups: () => decode(dawBackupsFileSchema, 'DawBackups', host.DawBackups()),
   subscribeDawProjectState: (onUpdate) => subscribeChecked('daw_project_state_changed', dawProjectStateSchema, onUpdate),
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),

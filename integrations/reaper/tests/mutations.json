@@ -1636,5 +1636,53 @@
     "file": "narration_takes.lua",
     "find": "    if removed ~= #group.moves then",
     "replace": "    if false then"
+  },
+  {
+    "name": "a file on a network share is opened",
+    "file": "narration_media_file.lua",
+    "find": "  if path:match('^[\\\\/][\\\\/]') then\n    return false\n  end\n",
+    "replace": ""
+  },
+  {
+    "name": "a path with a .. segment is used",
+    "file": "narration_media_file.lua",
+    "find": "    if segment == '..' then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a file that is not audio is previewed or shown",
+    "file": "narration_media_file.lua",
+    "find": "return extension ~= nil and AUDIO_EXTENSIONS[extension:lower()] == true",
+    "replace": "return true"
+  },
+  {
+    "name": "a file preview plays while REAPER records",
+    "file": "narration_media_file.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)"
+  },
+  {
+    "name": "a file preview plays past the end of its stretch",
+    "file": "narration_media_file.lua",
+    "find": "    if position >= current.finish then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a second file preview leaves the first one playing",
+    "file": "narration_media_file.lua",
+    "find": "  stop_current(free_later)\n  local preview",
+    "replace": "  local preview"
+  },
+  {
+    "name": "showing a file plays it",
+    "file": "narration_media_file.lua",
+    "find": "reaper.OpenMediaExplorer(path, false)",
+    "replace": "reaper.OpenMediaExplorer(path, true)"
+  },
+  {
+    "name": "a file preview is longer than the cap",
+    "file": "narration_media_file.lua",
+    "find": " or length > MAX_SECONDS then",
+    "replace": " then"
   }
 ]

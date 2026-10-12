@@ -18,6 +18,18 @@
       "message": "Not available with the built-in recorder yet.",
       "reason": "not_yet"
     },
+    "file_preview": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
+    "file_reveal": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "fx_chains": {
       "available": false,
       "level": "unsupported",

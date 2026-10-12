@@ -225,6 +225,11 @@ type Host struct {
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
+	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator
+	// (ADR 0300): DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files.go) ask them to play a stretch of
+	// a file on disk and to show one. Nil with no bridge client or no such role.
+	filePreviewer dawport.FilePreviewer
+	fileRevealer  dawport.FileRevealer
 	// backupKeeper is the DAW port's backups role (ADR 0863): on an Audacity launch with a project open, the Audacity adapter's,
 	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
@@ -686,8 +691,11 @@ func (h *Host) configureLocked(next config) {
 		h.rangeCutter, _ = dawAdapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
 		h.rangeFX, _ = dawAdapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
 		h.takeStacker, _ = dawAdapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+		h.filePreviewer, _ = dawAdapter.Role(dawport.CapFilePreview).(dawport.FilePreviewer)
+		h.fileRevealer, _ = dawAdapter.Role(dawport.CapFileReveal).(dawport.FileRevealer)
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
+		h.filePreviewer, h.fileRevealer = nil, nil
 	}
 	if previous, ok := h.backupKeeper.(audacityBackups); ok {
 		previous.closePipe()

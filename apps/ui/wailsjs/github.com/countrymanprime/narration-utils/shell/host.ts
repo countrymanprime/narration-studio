@@ -643,6 +643,15 @@ export function DawLaunch(): $CancellablePromise<string> {
 }
 
 /**
+ * DawPreviewFileRange plays length seconds of the file at path from start (the file's own seconds) through the DAW's preview,
+ * never through the project, stopping a preview this app started before. The resolver's file_preview sentence comes first,
+ * then the stretch, then the path; nothing is sent to the DAW on any refusal.
+ */
+export function DawPreviewFileRange(path: string, start: number, length: number): $CancellablePromise<string> {
+    return $Call.ByID(4279548801, path, start, length);
+}
+
+/**
  * DawProjectState answers {savedAt, unsavedChanges, playState, playPosition} (dawport.ProjectState). With no DAW, the
  * heartbeat capability unavailable or turned off, or a DAW not answering, it is the idle payload: stopped, 0, null, false.
  */
@@ -673,6 +682,14 @@ export function DawRestoreBackup(backupID: string): $CancellablePromise<string> 
 }
 
 /**
+ * DawRevealFile shows the file at path in the DAW's own file browser without importing or playing it. The resolver's
+ * file_reveal sentence comes first, then the path; nothing is sent to the DAW on any refusal.
+ */
+export function DawRevealFile(path: string): $CancellablePromise<string> {
+    return $Call.ByID(4263544213, path);
+}
+
+/**
  * DawRoll stops the recording this app started on chapterID's linked track and records again from at (project seconds),
  * keeping the earlier audio as a take (SND-6a, ADR 0860 point 1; the Studio Next mock's roll). The page sends the chapter
  * id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
@@ -700,6 +717,13 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
  */
 export function DawStackTakes(chapterID: string, passageIDs: string[]): $CancellablePromise<string> {
     return $Call.ByID(2899813770, chapterID, passageIDs);
+}
+
+/**
+ * DawStopFilePreview stops the preview this app started; with none playing it changes nothing.
+ */
+export function DawStopFilePreview(): $CancellablePromise<string> {
+    return $Call.ByID(1026294444);
 }
 
 /**
@@ -2376,7 +2400,7 @@ export function TakeComparisonCancel(): $CancellablePromise<string> {
 }
 
 /**
- * TakeComparisonStart compares the takes of one take-review group as a job (take-review phase 10, ADR 0165): findingID
+ * TakeComparisonStart compares the takes of one take-review group as a job (ADR 0165): findingID
  * names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
  * answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
  * take_comparison finding, read and decided through the generic findings bindings.
@@ -2394,14 +2418,14 @@ export function TakeComparisonState(): $CancellablePromise<string> {
 
 /**
  * TakeReviewCreateTake adds a narrator-approved candidate's source range as a
- * new take on the target item (take-review phase 6): findingID is the
- * finding this candidate came from (provenance, ADR 0098); targetItemGUID
+ * new take on the target item (ADR 0098): findingID is the
+ * finding this candidate came from (provenance); targetItemGUID
  * is the item the narrator explicitly chose (never preselected);
  * candidateItemGUID is the candidate's own item GUID when it has one (empty
  * skips that extra staleness check); sourceFile, sourceRangeStart and
  * sourceRangeEnd (seconds, source-file-relative) locate the candidate's
  * matched span within its own source. The previously active take and the
- * item's length are never touched (the phase 1 spike).
+ * item's length are never touched.
  */
 export function TakeReviewCreateTake(findingID: string, targetItemGUID: string, candidateItemGUID: string, sourceFile: string, sourceRangeStart: number, sourceRangeEnd: number): $CancellablePromise<string> {
     return $Call.ByID(3742993354, findingID, targetItemGUID, candidateItemGUID, sourceFile, sourceRangeStart, sourceRangeEnd);

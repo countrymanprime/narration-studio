@@ -34,3 +34,5 @@ What each engine declares for each capability today. The levels are the adapters
 | `fx_range` | `RangeFXApplier` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `stack_takes` | `TakeStacker` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `backups` | `BackupKeeper` | Engine answering | Not yet available | Experimental | Not reachable | Unsupported |
+| `file_preview` | `FilePreviewer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `file_reveal` | `FileRevealer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |

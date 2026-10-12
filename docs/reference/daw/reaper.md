@@ -95,6 +95,20 @@ What the bridge does with these: `narration_track_state.lua` reads `GetMediaSour
 - **Undo.** One block each, "Narration Utils: stack takes" and "Narration Utils: unstack takes"; the answer reports 1. A request that is refused opens no block.
 - **Checked:** not checked; expected result is rows C6 and C7 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet). The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that a stack with moves to another track is one undo step and one Undo gives every read back; that the new take plays the read's audio from the first read's start; that a take's `P_EXT` and source survive save and reload; that `SetItemStateChunk` without a take's `TAKE` section removes only that take and keeps the active take and the item's GUID; and that an un-stack is one undo step.
 
+## Playing and showing a file on disk
+
+From the reference text, read on GitHub on 2026-10-12 because `reaper.fm` and `sws-extension.org` are not reachable from a cloud session; not run in REAPER.
+
+| Subject | What the reference says | Source |
+| --- | --- | --- |
+| `CF_CreatePreview(source)` (SWS) | Creates a preview object that does not take ownership of the source. It is destroyed at the end of a defer cycle once playback finished, playback was never started with `CF_Preview_Play`, or its output track is gone. | [SWS `ReaScript.cpp`](https://github.com/reaper-oss/sws/blob/master/ReaScript.cpp) |
+| `CF_Preview_SetValue`, `CF_Preview_GetValue` (SWS) | Attributes include `B_LOOP` (seek to the start at the end of the source), `D_POSITION` (the current playback position), `D_LENGTH` (read only: the source's length times the rate) and `I_OUTCHAN` (the first hardware output channel). | the same |
+| `CF_Preview_Play`, `CF_Preview_Stop` (SWS) | Play starts the configured preview; Stop "stops and destroys" it. | the same |
+| `OpenMediaExplorer(mediafn, play)` | Opens the file in the Media Explorer; `play` true plays it (or toggles playback), false "will just select it". | [REAPER SDK `reaper_plugin_functions.h`](https://github.com/justinfrankel/reaper-sdk/blob/main/sdk/reaper_plugin_functions.h) |
+| `PCM_Source_Destroy(src)` | Deletes a source; remove any project reference to it first. | the same |
+
+What the bridge does with these: `narration_media_file.lua` ([capabilities](capabilities.md#file_preview)). What a run must confirm is rows C10 and C11 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet).
+
 ## Not yet available
 
 `backups` is in the catalogue but not yet available with REAPER: the bridge has no command for it ([capabilities](capabilities.md#backups)).

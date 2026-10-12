@@ -126,6 +126,9 @@ var experimentalCapability = map[string]dawport.Capability{
 	"remove_fx_range":     dawport.CapFXRange,
 	"stack_takes":         dawport.CapStackTakes,
 	"unstack_takes":       dawport.CapStackTakes,
+	"preview_file_range":  dawport.CapFilePreview,
+	"stop_file_preview":   dawport.CapFilePreview,
+	"reveal_file":         dawport.CapFileReveal,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.

@@ -9,6 +9,8 @@ import {
   backupRestoredAnswer,
   noBackupAnswer,
   DAW_ANSWERS,
+  filePreviewAnswer,
+  fileRevealAnswer,
   fxChainAddedAnswer,
   fxChainRemovedAnswer,
   nothingToStackAnswer,
@@ -2993,6 +2995,60 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(noBackupAnswer('Audacity')).toBe('Audacity has no backup with that id.');
   });
 
+  it('dawPreviewFileRange, dawStopFilePreview and dawRevealFile: the host goldens parse, and the mock answers as the host does', async () => {
+    const files = [
+      'daw-file-preview-playing.json',
+      'daw-file-preview-stopped.json',
+      'daw-file-revealed.json',
+      'daw-file-refused-not-picked.json',
+      'daw-file-refused-bad-stretch.json',
+    ];
+    for (const file of files) expectMatches(dawResultSchema, readGolden(file), file);
+    expect(readGolden('daw-file-preview-playing.json')).toEqual({
+      ok: true,
+      changed: false,
+      undoSteps: 0,
+      message: filePreviewAnswer('C:/Renders/Chapter 01.wav', 12.5, 5),
+    });
+    expect(readGolden('daw-file-preview-stopped.json')).toMatchObject({ ok: true, changed: false, undoSteps: 0, message: DAW_ANSWERS.fileStopped });
+    expect(readGolden('daw-file-revealed.json')).toMatchObject({
+      ok: true,
+      changed: false,
+      undoSteps: 0,
+      message: fileRevealAnswer('Chapter 01.wav', 'REAPER'),
+    });
+    expect(readGolden('daw-file-refused-not-picked.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.fileNotPicked });
+    expect(readGolden('daw-file-refused-bad-stretch.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.fileBadStretch });
+
+    // Off by default (Experimental): the capability's sentence, as the host answers it.
+    const off = createMockApi();
+    const [path] = (await off.measurePickFiles()).paths;
+    const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
+    expect(offSupport.available).toBe(false);
+    expect((await off.dawPreviewFileRange(path, 0, 5)).refused).toBe(offSupport.message);
+
+    const api = createMockApi({}, { daw: { toggles: { file_preview: 'on', file_reveal: 'on' } } });
+    expect((await api.dawPreviewFileRange(path, 0, 5)).refused).toBe(DAW_ANSWERS.fileNotPicked);
+    const [picked] = (await api.measurePickFiles()).paths;
+    const playing = await api.dawPreviewFileRange(picked, 12.5, 5);
+    expectMatches(dawResultSchema, playing, 'mock file preview');
+    expect(playing).toEqual({ ok: true, changed: false, undoSteps: 0, message: filePreviewAnswer(picked, 12.5, 5) });
+    for (const [start, length] of [
+      [-1, 5],
+      [0, 0],
+      [0, 61],
+      [Number.NaN, 5],
+    ]) {
+      expect((await api.dawPreviewFileRange(picked, start, length)).refused).toBe(DAW_ANSWERS.fileBadStretch);
+    }
+    expect(await api.dawStopFilePreview()).toEqual(readGolden('daw-file-preview-stopped.json'));
+    expect((await api.dawStopFilePreview()).message).toBe(DAW_ANSWERS.fileNothingPlaying);
+    const shown = await api.dawRevealFile(picked);
+    expectMatches(dawResultSchema, shown, 'mock reveal');
+    expect(shown.message).toBe(fileRevealAnswer(picked, 'REAPER'));
+    expect((await api.dawRevealFile('C:/elsewhere/Other.wav')).refused).toBe(DAW_ANSWERS.fileNotPicked);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3570,6 +3626,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
+      'dawPreviewFileRange',
+      'dawStopFilePreview',
+      'dawRevealFile',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',

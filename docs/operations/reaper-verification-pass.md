@@ -77,7 +77,7 @@ Needs the owner present and approval for one test recording on a copy of a proje
 
 ## Part C: the Studio Next DAW commands (not scripted yet)
 
-The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) (SN-D44 to SN-D72). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-utils/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records, so it needs Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
+The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) (SN-D44 to SN-D72), and the file commands of SN-B98 (C10, C11). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-utils/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records and C10 plays audio, so they need Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
 
 | # | Command | Steps | Pass when |
 | --- | --- | --- | --- |
@@ -90,6 +90,8 @@ The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabiliti
 | C7 | `unstack_takes` (`stack_takes`; `stack_test.lua`) | After C6 (stacked again and saved), send the un-stack payload. | The stacked take is removed and the read goes back by the offset its take recorded, in one undo point; nothing is deleted |
 | C8 | `reopen_pickup` (`pickups`; `pickups_test.lua`) | Import one pickup, `resolve_pickup` it, then `reopen_pickup` at its position; send it again. | `PICKUP_REOPENED`: the marker reads `PICKUP: <body>` again, in one undo point named "Narration Utils: reopen pickup"; the second send answers `ERROR` with no undo point |
 | C9 | `list_pickup_markers` (`pickups`; `pickups_test.lua`) | With one open and one resolved pickup, send it with an output path in the session folder. | `PICKUP_MARKERS_LISTED` with 1 open and 1 done; the file holds `start\|state\|tag\|note` rows in position order; no undo point |
+| C10 | `preview_file_range`, `stop_file_preview` (`file_preview`; `media_file_test.lua`) | With SWS installed, the audio device open and the owner listening: note the change count, then send `preview_file_range` for 2 s from 1 s of a WAV outside the project; then for 30 s and `stop_file_preview` after 2 s; `stop_file_preview` again; a start past the end of the file; and once on a REAPER without SWS. | `FILE_PREVIEW_STARTED` and 2 s of that file heard, ending on its own; the 30 s one stops at the stop (`FILE_PREVIEW_STOPPED` 1), the second stop answers 0; past the end is refused; without SWS the SWS sentence. Throughout: no item added, no undo point, the change count and the transport unchanged, and no crash when the source is freed |
+| C11 | `reveal_file` (`file_reveal`; `media_file_test.lua`) | Send it for a WAV outside the project; then for a path on a network share. | The Media Explorer opens with the file selected; nothing plays, no item is added, the change count is unchanged; the share is refused and REAPER opens nothing |
 
 ## Switching a command on
 
@@ -109,6 +111,8 @@ A command passes when every row that names it passes and the report is recorded.
 | `cut_range` | `delete_range` | C3 |
 | `fx_range` | `apply_fx_range`, `remove_fx_range` | C4, C5 |
 | `stack_takes` | `stack_takes`, `unstack_takes` | C6, C7 |
+| `file_preview` | `preview_file_range`, `stop_file_preview` | C10 |
+| `file_reveal` | `reveal_file` | C11 |
 
 Then, in one PR:
 

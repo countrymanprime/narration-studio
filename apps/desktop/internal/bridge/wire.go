@@ -173,6 +173,12 @@ var eventSpecs = map[string]eventSpec{
 	"MASTER_CHAIN_READ": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
 	"FX_RENDER_FILE":    {required: []fieldSpec{text("run"), text("region"), text("path")}},
 	"FX_RENDERED":       {required: []fieldSpec{text("run"), text("folder"), count("count")}},
+	// preview_file_range, stop_file_preview, reveal_file (narration_media_file.lua): a file on disk played or shown, the project
+	// unchanged. start and length are the stretch playing, length shortened to the end of the file; stopped is 1 when a
+	// preview this app started was playing.
+	"FILE_PREVIEW_STARTED": {required: []fieldSpec{text("run"), text("path"), number("start"), number("length")}},
+	"FILE_PREVIEW_STOPPED": {required: []fieldSpec{text("run"), count("stopped")}},
+	"FILE_REVEALED":        {required: []fieldSpec{text("run"), text("path")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

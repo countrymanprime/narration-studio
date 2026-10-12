@@ -46,6 +46,10 @@ const (
 	CapFXRange    Capability = "fx_range"
 	CapStackTakes Capability = "stack_takes"
 	CapBackups    Capability = "backups"
+	// CapFilePreview plays a stretch of a file on disk and CapFileReveal shows one (SN-B98), both leaving the project unchanged:
+	// Master & QC acts on rendered files that are not project items, which navigate cannot reach.
+	CapFilePreview Capability = "file_preview"
+	CapFileReveal  Capability = "file_reveal"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -103,6 +107,8 @@ var specs = []Spec{
 	{CapFXRange, "Add an effect to words", NeedsRunning, reflect.TypeFor[RangeFXApplier](), nil},
 	{CapStackTakes, "Stack takes", NeedsRunning, reflect.TypeFor[TakeStacker](), nil},
 	{CapBackups, "Audio backups", NeedsRunning, reflect.TypeFor[BackupKeeper](), nil},
+	{CapFilePreview, "Play part of a file", NeedsRunning, reflect.TypeFor[FilePreviewer](), nil},
+	{CapFileReveal, "Show a file in the audio engine", NeedsRunning, reflect.TypeFor[FileRevealer](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.
