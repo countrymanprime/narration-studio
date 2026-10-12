@@ -32,9 +32,11 @@ describe('keys-register-through-the-catalogue', () => {
       'booth.text.larger',
       'booth.text.smaller',
       'booth.exit',
-      'booth.fullscreen',
     ])
       expect(page).toContain(`useCommand('${id}'`);
+    // F11 is the one shared hook's `useCommand('booth.fullscreen')`, and the page binds it nowhere else.
+    expect(page).toContain('useFullscreenKey()');
+    expect(page).not.toContain(`'booth.fullscreen'`);
     expect(page).not.toMatch(/['"]keydown['"]|onKeyDown|\.key\s*===|\.code\s*===/);
   });
 });

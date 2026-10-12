@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
-import { exitFullscreen, toggleFullscreen } from '../../../api/hostWindow';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient } from '../../../ports/daw';
@@ -11,6 +10,7 @@ import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import { dawShortName } from '../../../studio/StudioProvider';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
+import { useFullscreenKey } from '../useFullscreenKey';
 import { placeOf } from '../passagemap/placeOf';
 import { usePassageMapWriter } from '../passagemap/usePassageMapWriter';
 import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
@@ -370,13 +370,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const goTo = useCallback((next: string) => leave(next, navigate), [leave, navigate]);
 
   // F11: the window's fullscreen; a window the Booth made fullscreen goes back when the Booth is left.
-  const fullscreen = useRef(false);
-  useEffect(
-    () => () => {
-      if (fullscreen.current) void exitFullscreen();
-    },
-    [],
-  );
+  useFullscreenKey();
 
   // The keys: every one is a catalogue command; the router keeps a field's own keys and any modified press away from them.
   const toggleTake = useCallback(() => (latest.current.recording ? control.toggle() : roll.startTake()), [control, roll]);
@@ -394,11 +388,6 @@ export function useBoothPage(options: BoothPageOptions) {
     // A dialog, menu or popover closes on its own Escape first; the side panel's drawer takes Escape before it reaches here.
     if (document.querySelector(OPEN_OVER)) return;
     exit();
-  });
-  useCommand('booth.fullscreen', () => {
-    void toggleFullscreen().then((on) => {
-      fullscreen.current = on;
-    });
   });
 
   // Right-click: a running take is held while the menu is open, and every way it closes lets go of it.
