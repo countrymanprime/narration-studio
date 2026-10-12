@@ -305,6 +305,8 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               viewRef={page.view}
             />
           </div>
+          {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
+          <h2 className="sr-only">Side panel</h2>
           <BoothSidePanel
             open={side.open}
             drawer={side.drawer}

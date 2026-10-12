@@ -31,7 +31,7 @@ function Page({ setup, resume, navigate }: Args) {
     overlay: createOverlayService(),
   }));
   return (
-    <div className="h-[40rem]">
+    <div className="h-[calc(100vh-2rem)]">
       <BoothHost {...host}>
         <BoothNextPage hasManuscript navigate={navigate} />
       </BoothHost>

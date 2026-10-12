@@ -120,7 +120,7 @@ export function BoothHost({
           <CommandRouter>
             <StudioProvider journal={journal}>
               <OverlayProvider service={overlay}>
-                <main className="h-[40rem]">
+                <main className="h-full">
                   <ContextMenuHost className="size-full">{children}</ContextMenuHost>
                 </main>
               </OverlayProvider>
