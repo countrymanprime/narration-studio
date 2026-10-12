@@ -2,7 +2,6 @@
 gives the file back as it was, or refuses with a reason when something it would overwrite changed since (SN-B93, G14)."""
 
 import argparse
-import copy
 import importlib.util
 import io
 import json
@@ -193,10 +192,22 @@ class MergeUndoTests(unittest.TestCase):
 
     def test_a_rebuild_drops_the_undo_records(self):
         undo_id = run_merge(self.path)
-        previous = read(self.path)
-        rebuilt = {"entities": copy.deepcopy(previous["entities"]), "absorbed_names": previous["absorbed_names"]}
+        manuscript = self.root / "manuscript.json"
+        manuscript.write_text(
+            json.dumps(
+                {
+                    "schemaVersion": 1,
+                    "documentId": "test",
+                    "chapters": [{"id": "c-0001", "title": "One"}],
+                    "paragraphs": [{"id": "p-000001", "chapterId": "c-0001", "chapterTitle": "One", "text": "Nicholas met Wren by the river."}],
+                }
+            ),
+            encoding="utf-8",
+        )
+        guide.build(argparse.Namespace(manuscript=str(manuscript), out=str(self.path), progress=None, spacy_model=guide.RULES_ONLY, espeak_library=""))
+        rebuilt = read(self.path)
         self.assertNotIn("merge_undo", rebuilt)
-        guide.write_json(str(self.path), rebuilt)
+        self.assertEqual(rebuilt["absorbed_names"]["nico"], "nicholas")
         with self.assertRaisesRegex(ValueError, "can no longer be undone"):
             run_unmerge(self.path, undo_id)
 
