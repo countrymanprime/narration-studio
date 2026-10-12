@@ -3,6 +3,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { Diff } from './TakeDiff';
 import { MiniWave } from './MiniWave';
 import { Suggested } from './Suggested';
+import { TakeCompare } from './TakeCompare';
 import { TakeEvidence } from './TakeEvidence';
 import { matchedShare, takeDiff } from './diff';
 import { placedLabel, suggestionFor } from './evidence';
@@ -113,6 +114,7 @@ export function TakeLines(props: TakeLinesProps) {
           <TakeRow key={t.id} {...props} take={t} suggestedId={suggestion.take} />
         ))}
       </div>
+      <TakeCompare passage={passage} keptId={keptId} playingId={props.playingId} onPlay={props.onPlay} />
       {rows.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2" data-takes-footer>
           {rows.map((r) => (
