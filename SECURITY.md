@@ -23,7 +23,9 @@ especially welcome:
   [ADR 0342](docs/adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md)) that skip the integrity checks described in
   [first-use dependency provisioning](docs/architecture/first-use-dependency-provisioning.md), a downloaded executable that runs without matching its pinned hash, and a downloaded dataset or the lookup index
   the app builds from it (the dictionary, [ADR 0097](docs/adr/0097-the-manuscript-reader-word-lookup-uses-the-open-english-wordnet-as-a-downloadable-asset.md))
-  that can crash the app, exhaust its memory or reach outside its install folder when it is parsed or read.
+  that can crash the app, exhaust its memory or reach outside its install folder when it is parsed or read. This covers the optional
+  Story Bible analysis tools (GLiNER and BookNLP weights and their Python wheels): a download that starts without the narrator's
+  install, a row that installs before every file is pinned, or a wheel that is run or imported at download time is in scope.
 - The in-app update ([ADR 0072](docs/adr/0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md)): once a day the app asks GitHub for the list of releases of this repository (it sends no identifier beyond the program name and version, and it can be switched off in Settings). Reports about that request revealing more than that, about the app trusting the release list beyond what it validates, or about an update being applied without the narrator's click are in scope.
 - Path traversal, command injection, or unsafe file handling when opening projects, manuscripts, or archives, including the
   recorded audio a REAPER project names (the teleprompter reads the last seconds of a chapter's recording to find where to resume,

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -84,6 +84,7 @@ test('checkDocument reports a table that no longer matches the catalogs', () => 
   writeFileSync(join(dir, 'config', 'dictionary-assets.json'), JSON.stringify({ dictionaries: [] }));
   writeFileSync(join(dir, 'config', 'wiktextract-assets.json'), JSON.stringify({ sources: [] }));
   writeFileSync(join(dir, 'config', 'encoder-assets.json'), JSON.stringify({ encoders: [] }));
+  writeFileSync(join(dir, 'config', 'analysis-assets.json'), JSON.stringify({ tools: [] }));
   const generated = generateDocument(`${BEGIN}\n${END}\n`, loadCatalogs(join(dir, 'config')), review);
 
   assert.equal(checkDocument(generated, loadCatalogs(join(dir, 'config')), review), true);
@@ -108,8 +109,20 @@ test('the encoder catalog is read with the model catalogs, under its own key', (
   assert.ok(items.some((item) => item.kind === 'encoder' && `${item.provider}/${item.id}` === 'ffmpeg/ffmpeg-7.1-essentials-win64'));
 });
 
-test('the committed provenance document matches the seven catalogs (run `node scripts/licenses/models.mjs` to rewrite it)', async () => {
-  const { readFileSync } = await import('node:fs');
+test('the analysis tools catalog is read with the model catalogs, under its own key, every tool with its review row', () => {
+  const items = loadCatalogs(join(REPO_ROOT, 'config')).filter((item) => item.kind === 'analysis');
+  const reviewFile = JSON.parse(readFileSync(join(REPO_ROOT, 'scripts/licenses/model-review.json'), 'utf8'));
+
+  assert.deepEqual(
+    items.map((item) => `${item.provider}/${item.id}`),
+    ['gliner/gliner', 'booknlp/booknlp-small', 'booknlp/booknlp-big', 'local-llm/local-llm'],
+  );
+  for (const item of items) assert.ok(reviewFile.catalogued[`${item.provider}/${item.id}`], `${item.provider}/${item.id} has no review row`);
+  assert.match(reviewFile.catalogued['booknlp/booknlp-small'].commercialUse, /no stated licence[^]*SNX-Q3/);
+  assert.match(reviewFile.catalogued['booknlp/booknlp-big'].commercialUse, /no stated licence[^]*SNX-Q3/);
+});
+
+test('the committed provenance document matches the eight catalogs (run `node scripts/licenses/models.mjs` to rewrite it)', async () => {
   const document = readFileSync(join(REPO_ROOT, 'docs/architecture/model-provenance.md'), 'utf8');
   const reviewFile = JSON.parse(readFileSync(join(REPO_ROOT, 'scripts/licenses/model-review.json'), 'utf8'));
 

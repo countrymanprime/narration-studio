@@ -73,9 +73,32 @@ func assetEntry(provider assetProvider, item assetItem, state, activeJob string)
 			installedAt, verifiedAt = manifest.InstalledAt, manifest.VerifiedAt
 		}
 	}
-	return map[string]any{"kind": item.kind, "kindLabel": provider.label(), "id": item.id, "displayName": item.displayName, "version": item.version, "publisher": item.publisher,
+	entry := map[string]any{"kind": item.kind, "kindLabel": provider.label(), "id": item.id, "displayName": item.displayName, "version": item.version, "publisher": item.publisher,
 		"license": item.license, "licenseUrl": item.licenseURL, "modelCardUrl": item.modelCardURL, "provenanceUrl": item.provenanceURL, "attribution": item.attribution,
 		"downloadSize": item.downloadSize(), "diskSize": item.installedSize(), "installState": state, "path": item.dir, "installedAt": installedAt, "verifiedAt": verifiedAt, "activeJobId": activeJob}
+	addConsentFacts(entry, item.consent)
+	return entry
+}
+
+// addConsentFacts adds an analysis tool's consent facts to its entry. A fact that is not known (no download host, no time per book, no
+// extraction source, no reason it cannot be installed) is left out, as every fact is for the other kinds.
+func addConsentFacts(entry map[string]any, consent *assetConsent) {
+	if consent == nil {
+		return
+	}
+	entry["description"], entry["ramGB"], entry["rank"], entry["recommended"] = consent.description, consent.ramGB, consent.rank, consent.recommended
+	if consent.downloadHost != "" {
+		entry["downloadHost"] = consent.downloadHost
+	}
+	if consent.minutesPerBook != nil {
+		entry["minutesPerBook"] = *consent.minutesPerBook
+	}
+	if consent.source != nil {
+		entry["source"] = *consent.source
+	}
+	if consent.unavailableReason != "" {
+		entry["unavailableReason"] = consent.unavailableReason
+	}
 }
 
 // runningInstallID is the id of the download running for one asset, or "".
@@ -90,10 +113,21 @@ func (h *Host) runningInstallID(kind, id string) string {
 	return ""
 }
 
+// assetGate is a provider whose catalog lists rows nothing may install yet (an analysis tool that is not offered or not pinned): refuse
+// answers with the narrator's sentence for such a row, and nil for one that can be installed.
+type assetGate interface {
+	refuse(id string) error
+}
+
 func (h *Host) startAssetInstall(kind, id string) (map[string]any, error) {
 	provider, item, err := h.registry().lookup(kind, id)
 	if err != nil {
 		return nil, err
+	}
+	if gate, ok := provider.(assetGate); ok {
+		if err := gate.refuse(id); err != nil {
+			return nil, err
+		}
 	}
 	return h.startInstall(installSpec{kind: kind, assetID: id, endedKind: provider.endedKind(), noun: provider.noun(), files: item.files,
 		run: func(ctx context.Context, options assets.Options) error { return provider.install(ctx, id, options) }})
