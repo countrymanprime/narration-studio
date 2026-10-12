@@ -32,7 +32,7 @@ import { useFxWords } from '../range/fx/useFxWords';
 import { Ribbon } from '../ribbon/Ribbon';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
-import { ScriptDoc } from '../script/ScriptDoc';
+import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
 import type { StackLine } from '../stack/types';
 import { useStackRetries } from '../stack/useStackRetries';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
@@ -334,7 +334,14 @@ export function EditingBody(props: EditingBodyProps) {
         <DrawerLayout open={drawerOpen} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <ScriptHost box={scriptBox} root={root}>
-              <ScriptDoc reason={reason} />
+              {doc.paras.length ? (
+                <ScriptDoc reason={reason} />
+              ) : (
+                // The page's own empty state, so its heading sits under the page's h1.
+                <div className="px-4 py-10">
+                  <h2 className="text-lg font-semibold">{NO_TEXT}</h2>
+                </div>
+              )}
             </ScriptHost>
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             <SelectionBar playback={playback} end={total} />
