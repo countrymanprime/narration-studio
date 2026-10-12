@@ -1,17 +1,20 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { defaultKeymap } from '../../../input/keymap';
 import type { NarrationApi, TeleprompterEvent } from '../../../types';
+import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
+import { BOOTH_SIZE_STORAGE_KEY, useTextChoices } from '../page/useTextChoices';
 import { BoothFooter } from './BoothFooter';
 import { BoothTop } from './BoothTop';
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
 type Over = Partial<NarrationApi>;
@@ -212,5 +215,45 @@ describe('the-footer-hints-come-from-the-catalogue', () => {
   it('adds Next pickup in a pickup session', () => {
     footer(api(), { pickupSession: true });
     expect(screen.getByRole('note', { name: 'Keyboard shortcuts' }).textContent).toContain('Next pickup');
+  });
+});
+
+describe('the text popover', () => {
+  // The bar with the page's own text choices, so a change lands where the page reads it.
+  function WithChoices() {
+    const text = useTextChoices();
+    return (
+      <>
+        <BoothTop
+          progress=""
+          recording={false}
+          panelOpen={false}
+          onTogglePanel={() => {}}
+          text={{ font: text.font, size: text.size, onFont: text.setFont, onSize: text.setSize }}
+        />
+        <span data-testid="shown">{`${text.size}px ${text.fontFamily}`}</span>
+      </>
+    );
+  }
+
+  it('the text popover writes the reader font and the Booth size', async () => {
+    window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ font: 'Georgia', size: 18, spacing: 1.6, width: 48 }));
+    render(<WithChoices />);
+    await userEvent.click(screen.getByRole('button', { name: 'Text settings' }));
+    const size = await screen.findByRole('slider', { name: 'Size' });
+    expect([size.getAttribute('min'), size.getAttribute('max'), size.getAttribute('step')]).toEqual(['24', '72', '4']);
+    expect(screen.getByText('40 px')).toBeTruthy();
+    fireEvent.keyDown(size, { key: 'ArrowRight' });
+    expect(screen.getByText('44 px')).toBeTruthy();
+    expect(window.localStorage.getItem(BOOTH_SIZE_STORAGE_KEY)).toBe('44');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Font' }), 'Verdana');
+    // The reader font is the Script's saved choice: its other text choices are kept.
+    expect(JSON.parse(window.localStorage.getItem(TEXT_PREFS_STORAGE_KEY)!)).toEqual({ font: 'Verdana', size: 18, spacing: 1.6, width: 48 });
+    expect(screen.getByTestId('shown').textContent).toBe('44px Verdana, Geneva, sans-serif');
+  });
+
+  it('is not drawn without the choices', () => {
+    top();
+    expect(screen.queryByRole('button', { name: 'Text settings' })).toBeNull();
   });
 });

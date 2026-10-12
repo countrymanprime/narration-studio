@@ -2,6 +2,7 @@
 import {
   type Driver,
   checkOnDiagnostics,
+  clickNav,
   diagnosticsEnded,
   measurementEnded,
   measureOnMaster,
@@ -11,6 +12,7 @@ import {
   panelTitled,
   scrollToTop,
 } from './shared';
+import { settlePage } from '../helpers/settle';
 
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
 
@@ -27,7 +29,7 @@ export const masterDrivers: Record<string, Driver> = {
   measured: async (page) => {
     await measureOnMaster(page);
     await measurementEnded(page, MEASURED);
-    await page.getByRole('heading', { name: 'Chapter 01.wav · Why it fails' }).waitFor();
+    await page.getByRole('heading', { name: 'Chapter 2 — The Pool of Tears · Why it fails' }).waitFor();
   },
   'file-rules': async (page) => {
     await measureOnMaster(page);
@@ -167,5 +169,11 @@ export const masterDrivers: Record<string, Driver> = {
     await panel.getByRole('list', { name: 'Multi-platform export results' }).waitFor();
     while ((await dismiss.count()) > 0) await dismiss.first().click();
     await scrollToTop(page, panel);
+  },
+  'no-manuscript': async (page) => {
+    await page.goto('/?mockNoManuscript=1');
+    await settlePage(page);
+    await clickNav(page, 'Master & QC');
+    await page.getByRole('button', { name: 'Import manuscript' }).waitFor();
   },
 };

@@ -99,6 +99,15 @@ describe('EditingPage', () => {
     expect(document.querySelector('#timeline')).toBeNull();
   });
 
+  it('the key hints sit at the bottom of the scrolling page', async () => {
+    mount();
+    await script();
+    const wrap = screen.getByRole('note', { name: 'Keyboard shortcuts' }).parentElement!;
+    expect(wrap.className).toContain('sticky');
+    expect(wrap.className).toContain('bottom-0');
+    expect(wrap.parentElement!.lastElementChild).toBe(wrap);
+  });
+
   it('no-manuscript-and-no-text-states', async () => {
     mount({ hasManuscript: false });
     expect(screen.getByText(/This project has no manuscript yet/)).toBeTruthy();

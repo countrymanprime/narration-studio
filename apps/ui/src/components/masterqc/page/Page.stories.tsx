@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, within } from 'storybook/test';
 import { MasterPage } from './MasterPage';
-import { ALL_PASS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
+import { ALL_PASS, CHAPTERS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
 
 // Master & QC's page body (docs/research/mockups/studio-next/src/pages/Master.tsx): files, consistency and the package checks beside
 // the kept panels. Mounted at `/master`.
 const meta = {
   title: 'Master & QC/Page',
   component: MasterPage,
-  args: { onOpenDelivery: fn(), openSettings: fn() },
+  args: { hasManuscript: true, projectFolder: '/p', onImport: fn(), onOpenDelivery: fn(), openSettings: fn() },
   render: (args, { parameters }) => (
-    <PageHost api={apiOf(jobOf(parameters.files ?? []), acx)}>
+    <PageHost api={apiOf(jobOf(parameters.files ?? []), acx, { manuscriptChapters: async () => (parameters.chapters ? CHAPTERS : []) })}>
       <div className="bg-[var(--bg)] p-4">
         <MasterPage {...args} />
       </div>
@@ -34,6 +34,21 @@ export const PartlyWaiting: Story = {
   parameters: { files: TWO_FAIL },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('1 chapter not ready')).toBeTruthy();
+  },
+};
+
+export const ChapterBar: Story = {
+  parameters: { files: TWO_FAIL, chapters: true },
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByRole('button', { name: /^Chapter: Chapter 4 — The Rabbit Sends/ })).toBeTruthy();
+  },
+};
+
+export const NoManuscript: Story = {
+  args: { hasManuscript: false },
+  parameters: { files: [] },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Import manuscript')).toBeTruthy();
   },
 };
 

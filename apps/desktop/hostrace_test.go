@@ -192,7 +192,6 @@ var stressReaders = []stressReader{
 	{"FindingsGoToRead (unknown finding)", func(h *Host) { _, _ = h.FindingsGoToRead("missing", 0) }},
 	{"FindingsLoopRead (unknown finding)", func(h *Host) { _, _ = h.FindingsLoopRead("missing", 0) }},
 	{"WorkspaceGoTo (no project)", func(h *Host) { _, _ = h.WorkspaceGoTo("missing", 0) }},
-	{"WorkspaceLoop (no project)", func(h *Host) { _, _ = h.WorkspaceLoop("missing", 0, 0) }},
 	{"WorkspaceTakes (no project)", func(h *Host) { _, _ = h.WorkspaceTakes("missing", 0, 0) }},
 	{"WorkspaceTakesCompareStart (no project)", func(h *Host) { _, _ = h.WorkspaceTakesCompareStart("missing", 0, 0) }},
 	{"WorkspaceUseTake (no project)", func(h *Host) { _, _ = h.WorkspaceUseTake("missing", 0, 0, "missing") }},

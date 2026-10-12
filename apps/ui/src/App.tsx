@@ -49,7 +49,7 @@ import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLoca
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
 import { MasterPage } from './components/masterqc/page/MasterPage';
 import { DeliveryPage } from './components/delivery/page/DeliveryPage';
-import { parseMasterHash } from './components/master/masterLink';
+import { masterHash, parseMasterHash } from './components/master/masterLink';
 import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
@@ -752,6 +752,9 @@ function AppRoutes() {
                   path="/master"
                   element={
                     <MasterPage
+                      hasManuscript={Boolean(data.manuscript)}
+                      projectFolder={data.projectFolder}
+                      onImport={() => guardedNavigate('/')}
                       onOpenDelivery={() => guardedNavigate('/delivery')}
                       openSettings={() => guardedNavigate('/settings#cleanup')}
                       focusFile={parseMasterHash(location.hash)?.file}
@@ -765,7 +768,10 @@ function AppRoutes() {
                     parseMasterHash(location.hash) ? (
                       <RedirectKeepingLocation to="/master" />
                     ) : (
-                      <DeliveryPage hasManuscript={Boolean(data.manuscript)} onOpenInMaster={() => guardedNavigate('/master')} />
+                      <DeliveryPage
+                        hasManuscript={Boolean(data.manuscript)}
+                        onOpenInMaster={(chapterId) => guardedNavigate(`/master${masterHash({ file: chapterId })}`)}
+                      />
                     )
                   }
                 />

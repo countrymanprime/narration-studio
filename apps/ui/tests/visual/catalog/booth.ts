@@ -50,6 +50,18 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'text-popover',
+    description:
+      "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",
+  },
+  {
+    page: 'booth',
+    state: 'marked-note',
+    description:
+      "Booth after a word was marked on the Script with a Word stress note: the word underlined in its type colour, the note under its paragraph, and a click on the word shows the note in the side panel's Reference",
+  },
+  {
+    page: 'booth',
     state: 'bookmarks-ribbon',
     description:
       'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',

@@ -96,3 +96,28 @@ func TestTheEditCapabilityRowsDefaultToAuto(t *testing.T) {
 		}
 	}
 }
+
+// Script.definition_source reads as web until it is set, and a stored value outside web, local and api (a hand-edited file) reads as the
+// layer below it, so the Words tab never meets a source it cannot draw.
+func TestTheDefinitionSourceReadsAsWebWhenUnsetOrUnknown(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	project := t.TempDir()
+	store := New(t.TempDir(), project)
+	if value, source := store.Effective("Script", "definition_source", ""); value != "web" || source != "repo_default" {
+		t.Fatalf("unset = %q from %q, want web from repo_default", value, source)
+	}
+	for _, step := range []struct{ scope, value, want, source string }{
+		{"global", "local", "local", "global"},
+		{"project", "dictionary.com", "local", "global"},
+		{"global", "thesaurus", "web", "repo_default"},
+		{"project", "api", "api", "project"},
+	} {
+		value := step.value
+		if err := store.Save("Script", step.scope, map[string]*string{"definition_source": &value}); err != nil {
+			t.Fatal(err)
+		}
+		if got, source := store.Effective("Script", "definition_source", ""); got != step.want || source != step.source {
+			t.Fatalf("after %s=%q: %q from %q, want %q from %q", step.scope, step.value, got, source, step.want, step.source)
+		}
+	}
+}

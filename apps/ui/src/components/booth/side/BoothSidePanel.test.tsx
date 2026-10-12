@@ -142,6 +142,13 @@ describe('the panel can be hidden', () => {
     expect(panel().hidden).toBe(true);
   });
 
+  it('above 1280 clicking the text does not close the inline panel', async () => {
+    matchMedia(false);
+    render(<Harness />);
+    await userEvent.click(screen.getByTestId('text-word'));
+    expect(panel().hidden).toBe(false);
+  });
+
   it('at 1280 and below it starts closed as a drawer, the toggle opens it, Esc closes it before exiting', async () => {
     matchMedia(true);
     render(<Harness />);

@@ -207,7 +207,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** preview silences as take markers, then trim them.
 - **Role:** `SilenceTrimmer`, synchronous (`Preview`, `Apply`).
 - **Result:** the preview adds `CLEANUP_SILENCE_START` and `CLEANUP_SILENCE_END` take markers and answers `CLEANUP_PREVIEWED` with added and existing counts; repeating it adds none. Apply answers `CLEANUP_APPLIED`; the item keeps its GUID, a new piece starts after the cut, and the source file is untouched. An unknown item or a range past the end answers `CLEANUP_STALE` and is not applied.
-- **REAPER:** `preview_cleanup_markers`, `apply_cleanup_trims`, reached through the host's `CleanupPreview` and `CleanupApply` bindings. Experimental until the pass.
+- **REAPER:** `preview_cleanup_markers`, `apply_cleanup_trims`, through `bridge.CleanupClient`. No host binding reaches them since [#1308](https://github.com/countrymanprime/narration-utils/issues/1308) removed `CleanupPreview` and `CleanupApply`; `internal/cleanuptools` holds the role for a later trigger. Experimental until the pass.
 - **Audacity:** not built.
 - **Checked:** harness (`cleanup_preview_test.lua`); expected result is rows A12 and A13; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 

@@ -1,7 +1,9 @@
 // The rows of Master & QC's per-file checks, drawn from what the host measured and judged (ADR 0440, ADR 0170): a cell is a
 // measured value or a dash, and a check row exists only for a rule the host answered `met` or `not_met`. A rule it did not
 // measure (`not_measurable`, `not_checked`, `off`) has no row here, and no value is made up for it.
-import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult, MeasureReport } from '../../../types';
+import { chapterName } from '../../../chapterName';
+import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, ManuscriptChapter, MeasureFileResult, MeasureReport } from '../../../types';
+import { chapterOfFile } from '../../master/chapterFile';
 import { formatLength, formatLevel } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
@@ -31,6 +33,21 @@ export type FileRow = {
 };
 
 const DASH = '—';
+
+/** The retail sample is a file of its own, not a chapter's (the package checks name it the same way). */
+const isSampleFile = (file: MeasureFileResult): boolean => /sample/i.test(file.name);
+
+/**
+ * The files named the way the manuscript names them: a chapter's file by its chapter's name (`chapterName`, ADR 0191), the retail sample
+ * "Retail sample", and a file that matches no chapter by its own file name. Only `name` changes; a file stays keyed by its path.
+ */
+export function labelFiles(files: readonly MeasureFileResult[], chapters: readonly ManuscriptChapter[]): MeasureFileResult[] {
+  return files.map((file) => {
+    if (isSampleFile(file)) return { ...file, name: 'Retail sample' };
+    const chapter = chapterOfFile(file, chapters);
+    return chapter ? { ...file, name: chapterName(chapter) } : file;
+  });
+}
 
 function waitingText(file: MeasureFileResult): { text: string; pill: string } {
   switch (file.status) {

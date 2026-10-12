@@ -39,16 +39,41 @@ func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporte
 func (s *Store) reporter() *persist.Reporter { return s.persist.Load() }
 
 func (s *Store) Effective(tool, key, fallback string) (string, string) {
-	if value, ok := s.Project(tool)[key]; ok {
+	if value, ok := s.Project(tool)[key]; ok && known(tool, key, value) {
 		return value, "project"
 	}
-	if value, ok := s.Global(tool)[key]; ok {
+	if value, ok := s.Global(tool)[key]; ok && known(tool, key, value) {
 		return value, "global"
 	}
 	if value, ok := s.Defaults(tool)[key]; ok {
 		return value, "repo_default"
 	}
 	return fallback, "hardcoded"
+}
+
+// closedChoices are the settings whose stored value must be one of a fixed set: a value outside it (a hand-edited file, a
+// choice a later build dropped) is skipped, so the layer below answers and the setting reads as its default.
+// Script.definition_source is where the Words tab's definitions come from (wordsHost.ts's DEFINITION_SOURCES).
+var closedChoices = map[string]map[string][]string{
+	"Script": {"definition_source": {"web", "local", "api"}},
+}
+
+// DefinitionSources is Script.definition_source's choices, in the order Settings lists them.
+func DefinitionSources() []string {
+	return append([]string(nil), closedChoices["Script"]["definition_source"]...)
+}
+
+func known(tool, key, value string) bool {
+	choices, closed := closedChoices[tool][key]
+	if !closed {
+		return true
+	}
+	for _, choice := range choices {
+		if choice == value {
+			return true
+		}
+	}
+	return false
 }
 
 // builtinDefaults mirrors config/defaults.json. That file only exists in
@@ -63,7 +88,10 @@ var builtinDefaults = map[string]Values{
 	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
-	"ManuscriptGuide":   {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
+	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
+	// definition_source defaults to web: the Words tab opens the dictionary site and shows nothing inline until the narrator picks
+	// the local dictionary or the online service.
+	"Script":            {"definition_source": "web"},
 	"Piper":             {"tts_provider": "piper", "tts_voice_id": "en_US-ljspeech-high"},
 	"Updates":           {"check_on_startup": "true", "channel": "candidates"},
 	"Manuscript":        {"color_note": "B85C1E"},

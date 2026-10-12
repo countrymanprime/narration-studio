@@ -101,35 +101,6 @@ export type WorkspaceAlignmentResult = {
  * narrator's favourites are a Settings field (DAW.fx_favourites), not part of this read. */
 export type WorkspaceFXChainsResult = { names: string[]; truncated: boolean };
 
-/** REAPER's installed plug-ins by name (list_fx, ADR 0234), sorted, without the
- * FX container or the video processor; truncated is true when the bridge's limit left some out. Read-only. */
-export type WorkspaceFXPluginsResult = { names: string[]; truncated: boolean };
-
-/** Why adding an effect was refused before or by REAPER (apps/desktop/bindings_workspace_fx_apply.go); nothing in REAPER
- * changed. The first eight are the navigation refusals every workspace REAPER action shares; crosses_items (a passage
- * on two items), bad_range (a selection outside the alignment), bad_name (a plug-in or chain name REAPER would not
- * take) and no_track (the chapter has no checked track for a chain) are this action's own. */
-export type WorkspaceFXRefusalReason =
-  | 'standalone'
-  | 'not_running'
-  | 'no_item'
-  | 'no_source_time'
-  | 'stale'
-  | 'recording'
-  | 'script_outdated'
-  | 'failed'
-  | 'crosses_items'
-  | 'bad_range'
-  | 'bad_name'
-  | 'no_track';
-
-/** What adding a plug-in to a passage, or a chain to the chapter's track, did. `added`: the plug-in went on the middle
- * piece of the split item (itemGuid and takeGuid name that piece; splits is 0 to 2 cuts). `applied`: the chain went on
- * the track, `added` FX in all. Either is one Undo in REAPER. */
-export type WorkspaceFXResult =
-  | { outcome: 'added'; plugin: string; itemGuid: string; takeGuid: string; splits: number }
-  | { outcome: 'applied'; chain: string; track: string; added: number }
-  | { outcome: 'refused'; reason: WorkspaceFXRefusalReason; message: string };
 /** Where a take offered for a passage comes from (ADR 0700): another take
  * of the item the passage was heard on, another retake of its line on a fixed-lane track, or a read a take-review
  * group set beside it. */
@@ -221,22 +192,9 @@ export interface WorkspaceApi {
   /** Selects tokenIndex's item in REAPER and puts the edit cursor on the spot it was heard (navigate_item): the host resolves the
    * token's item, take and source time, exactly as findingsGoTo does for a finding. Connection status is shared with the Review page (findingsReaperStatus). */
   workspaceGoTo(chapterId: string, tokenIndex: number): Promise<FindingNavigation>;
-  /** Loops the chapter passage from firstToken to lastToken (inclusive, both heard on the same item) in REAPER, as
-   * findingsLoop does for a finding. findingsStopLoop stops it: the workspace holds no loop state of its own. */
-  workspaceLoop(chapterId: string, firstToken: number, lastToken: number): Promise<FindingNavigation>;
   /** Lists the narrator's FX chains (list_fx_chains). Refused offline or before the DAW port's FX chains
-   * capability is on (the same experimental gate as applying a plug-in). */
+   * capability is on (dawport.CapFXChains, experimental). */
   workspaceListFXChains(): Promise<WorkspaceFXChainsResult>;
-  /** Lists REAPER's installed plug-ins (list_fx), for the passage menu. Refused offline like the chains list. */
-  workspaceListFX(): Promise<WorkspaceFXPluginsResult>;
-  /** Puts one plug-in on the passage firstToken..lastToken of a chapter (add_take_fx, ADR 0234): the host
-   * resolves the tokens to one item's source range, REAPER splits the passage out and adds the plug-in to it, in one
-   * undo step. The page sends no GUID or time. Send it only after the narrator confirms. */
-  workspaceAddTakeFX(chapterId: string, firstToken: number, lastToken: number, plugin: string): Promise<WorkspaceFXResult>;
-  /** Puts one of the narrator's FX chains (a name workspaceListFXChains listed) on the chapter's own track
-   * (apply_fx_chain): the host names the track, the page cannot. One undo step. Send it only after the
-   * narrator confirms. */
-  workspaceApplyFXChain(chapterId: string, chain: string): Promise<WorkspaceFXResult>;
   /** Lists the takes that can be set beside a passage (the tokens firstToken to lastToken, snapped out to whole
    * paragraphs). Reads only, and works with REAPER closed. */
   workspaceTakes(chapterId: string, firstToken: number, lastToken: number): Promise<WorkspaceTakesResult>;

@@ -21,7 +21,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'measured',
     description:
-      'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 01.wav · Why it fails" with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
+      'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 2 — The Pool of Tears · Why it fails" (the file named by its chapter) with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
   },
   {
     page: 'master',
@@ -144,5 +144,10 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - a per-profile result row for each: its name, Built, the output folder and how many files it wrote',
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'no-manuscript',
+    description: 'Master & QC with no manuscript imported (?mockNoManuscript=1) - the page asks for the manuscript first, with Import manuscript',
   },
 ];

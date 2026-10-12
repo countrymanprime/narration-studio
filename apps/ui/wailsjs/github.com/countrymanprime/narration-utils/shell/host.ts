@@ -279,23 +279,6 @@ export function CharacterRevoke(id: string): $CancellablePromise<string> {
 }
 
 /**
- * CleanupApply asks REAPER to remove every silence-trim candidate's cut range (apply_cleanup_trims), in one undo
- * block; a candidate the saved project has made stale is left untouched.
- */
-export function CleanupApply(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2485590750, chapterID);
-}
-
-/**
- * CleanupPreview asks REAPER to mark every silence-trim candidate's cut range (preview_cleanup_markers) without
- * changing anything else: which take markers were newly added, and which candidates the saved project has since made
- * stale.
- */
-export function CleanupPreview(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(2152353530, chapterID);
-}
-
-/**
  * CleanupToolsLaunch asks REAPER to open an allow-listed cleanup tool (cleanuptools.Tools: "repair_pops_clicks" or
  * "magnolius_declick") on the selected items. It changes nothing itself; the dialog it opens is the narrator's.
  */
@@ -2789,15 +2772,6 @@ export function WindowZoom(): $CancellablePromise<string> {
 }
 
 /**
- * WorkspaceAddTakeFX splits the passage firstToken..lastToken of chapterID out of its item and puts one installed
- * plug-in on the middle piece's take, in one undo step in REAPER (add_take_fx, ADR 0234). Refused, with nothing sent,
- * for a selection that cannot be placed or a REAPER that is not listening.
- */
-export function WorkspaceAddTakeFX(chapterID: string, firstToken: number, lastToken: number, plugin: string): $CancellablePromise<string> {
-    return $Call.ByID(3923966015, chapterID, firstToken, lastToken, plugin);
-}
-
-/**
  * WorkspaceAlignment reads a chapter's stored word alignment (ADR 0242) joined
  * with its current paragraphs and its items' current played ranges (coverage.AlignmentView). It never runs anything
  * (Q14), exactly like CoverageResult, whose state, reasons and basis it shares. A stored report from before the
@@ -2805,14 +2779,6 @@ export function WorkspaceAddTakeFX(chapterID: string, firstToken: number, lastTo
  */
 export function WorkspaceAlignment(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(2240146208, chapterID);
-}
-
-/**
- * WorkspaceApplyFXChain puts one of the narrator's FX chains (a name WorkspaceListFXChains listed) on the track the
- * chapter's newest check covered, in one undo step in REAPER (apply_fx_chain, ADR 0234). The page sends no track.
- */
-export function WorkspaceApplyFXChain(chapterID: string, chain: string): $CancellablePromise<string> {
-    return $Call.ByID(691001412, chapterID, chain);
 }
 
 /**
@@ -2839,30 +2805,12 @@ export function WorkspaceHideTakes(chapterID: string, firstToken: number, lastTo
 }
 
 /**
- * WorkspaceListFX lists REAPER's installed plug-ins by name (list_fx), for the passage menu. It changes nothing and is
- * refused offline or before the DAW port's FX chains capability is on, as WorkspaceListFXChains is.
- */
-export function WorkspaceListFX(): $CancellablePromise<string> {
-    return $Call.ByID(10293913);
-}
-
-/**
  * WorkspaceListFXChains lists the narrator's FX chains from REAPER's FXChains folder (list_fx_chains), by relative
  * name, sorted, capped. It changes nothing and is refused (bridge.ErrUnavailable) offline or before the DAW port's
  * FX chains capability is on, exactly as list_fx_chains itself already is (ADR 0230, ADR 0234).
  */
 export function WorkspaceListFXChains(): $CancellablePromise<string> {
     return $Call.ByID(2672396379);
-}
-
-/**
- * WorkspaceLoop loops the chapter passage from firstToken to lastToken (inclusive, both heard on the same item) in
- * REAPER: the time selection and loop points around it, repeat on, and Play, exactly as FindingsLoop does.
- * FindingsStopLoop stops it - the workspace holds no loop state of its own, sharing the one app loop
- * findingNavigation already tracks.
- */
-export function WorkspaceLoop(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
-    return $Call.ByID(465077885, chapterID, firstToken, lastToken);
 }
 
 /**

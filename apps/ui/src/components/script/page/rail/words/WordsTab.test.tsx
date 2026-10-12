@@ -14,6 +14,7 @@ import type { NarrationApi } from '../../../../../types';
 import { TooltipProvider } from '../../../../primitives/Tooltip';
 import { DEFINITION_SOURCES, type DefinitionSource, type WordsHost } from './wordsHost';
 import { WordsTab } from './WordsTab';
+import { useWordsHost } from '../../../scriptPageHost';
 
 const CHAPTER = 'chapter-1';
 let api: NarrationApi;
@@ -219,6 +220,64 @@ describe('definitions-follow-the-source-preference', () => {
     for (const label of Object.values(DEFINITION_SOURCES)) expect(await screen.findByRole('button', { name: label })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: DEFINITION_SOURCES.local }));
     expect(host.setDefinitionSource).toHaveBeenCalledWith('local' satisfies DefinitionSource);
+  });
+});
+
+describe('the definition source is a host setting (SN-M93)', () => {
+  const LEGACY_KEY = 'narration.script.definitions';
+  const sourceButton = () => screen.findByRole('button', { name: /^Definition source:/ });
+  const held = async () => (await api.settingsForScope('global')).Script?.find((field) => field.key === 'definition_source');
+
+  function HostedTab() {
+    return <WordsTab chapterId={CHAPTER} host={useWordsHost()} />;
+  }
+  const mountHosted = () =>
+    render(
+      <ApiProvider api={api}>
+        <StudioProvider>
+          <TooltipProvider>
+            <HostedTab />
+          </TooltipProvider>
+        </StudioProvider>
+      </ApiProvider>,
+    );
+  afterEach(() => window.localStorage.clear());
+
+  it('reads the definition source from the host, and a choice made in Settings shows there', async () => {
+    await api.saveSettings('Script', 'global', { definition_source: 'local' });
+    mountHosted();
+    await screen.findByRole('button', { name: 'Definition source: Local dictionary' });
+    // Settings saves another source while the tab is mounted; the window coming back reads it.
+    await api.saveSettings('Script', 'global', { definition_source: 'api' });
+    window.dispatchEvent(new Event('focus'));
+    await screen.findByRole('button', { name: 'Definition source: Online service' });
+    // A choice in the tab is saved to the host, where Settings reads it.
+    await userEvent.click(await sourceButton());
+    await userEvent.click(await screen.findByRole('button', { name: 'Web page' }));
+    await waitFor(async () => expect((await held())?.value).toBe('web'));
+  });
+
+  it('moves a source kept in localStorage to the host once', async () => {
+    window.localStorage.setItem(LEGACY_KEY, 'api');
+    const save = vi.spyOn(api, 'saveSettings');
+    mountHosted();
+    await screen.findByRole('button', { name: 'Definition source: Online service' });
+    expect((await held())?.value).toBe('api');
+    expect(window.localStorage.getItem(LEGACY_KEY)).toBeNull();
+    const moves = save.mock.calls.length;
+    cleanup();
+    mountHosted();
+    await screen.findByRole('button', { name: 'Definition source: Online service' });
+    expect(save).toHaveBeenCalledTimes(moves);
+  });
+
+  it('keeps the source the host already holds over one left in localStorage, and forgets the old key', async () => {
+    await api.saveSettings('Script', 'global', { definition_source: 'local' });
+    window.localStorage.setItem(LEGACY_KEY, 'api');
+    mountHosted();
+    await screen.findByRole('button', { name: 'Definition source: Local dictionary' });
+    await waitFor(() => expect(window.localStorage.getItem(LEGACY_KEY)).toBeNull());
+    expect((await held())?.value).toBe('local');
   });
 });
 

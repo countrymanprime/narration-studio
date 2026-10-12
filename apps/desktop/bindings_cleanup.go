@@ -11,29 +11,14 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// The Editing view's silence-trim and item-gain action: the first non-test
-// callers of bridge.CleanupClient and bridge.LevelMatchClient (apps/desktop/internal/bridge/{cleanup.go,
-// levelnormalize.go}), reached the same way bindings_navigation.go and chapterregions.go already reach their own
-// REAPER roles - through dawport.Role[T](resolver, capability), never a cached adapter, so a capability the narrator
-// promotes or a toggle they flip in Settings takes effect on the next click, with no restart. Preview never changes
-// anything; Apply recomputes the same candidates rather than trusting whatever a caller last saw (chapterregions.go's
-// own rule), so a stale UI can never apply a trim or a gain change the current project no longer supports.
+// The Editing view's item-gain action: the first non-test caller of bridge.LevelMatchClient
+// (apps/desktop/internal/bridge/levelnormalize.go), reached the same way bindings_navigation.go and chapterregions.go
+// already reach their own REAPER roles - through dawport.Role[T](resolver, capability), never a cached adapter, so a
+// capability the narrator promotes or a toggle they flip in Settings takes effect on the next click, with no restart.
+// Preview never changes anything; Apply recomputes the same candidates rather than trusting whatever a caller last saw
+// (chapterregions.go's own rule), so a stale UI can never apply a gain change the current project no longer supports.
 
-var (
-	errNoCleanupCandidates = errors.New("no silence-trim candidates were found for this chapter")
-	errNoGainCandidates    = errors.New("no item on this chapter's linked track needs a gain change")
-)
-
-func silenceTrimmerFrom(svc hostServices) dawport.SilenceTrimmer {
-	if svc.dawPortResolver == nil {
-		return nil
-	}
-	role, err := dawport.Role[dawport.SilenceTrimmer](svc.dawPortResolver, dawport.CapSilenceTrim)
-	if err != nil {
-		return nil
-	}
-	return role
-}
+var errNoGainCandidates = errors.New("no item on this chapter's linked track needs a gain change")
 
 func gainAdjusterFrom(svc hostServices) dawport.GainAdjuster {
 	if svc.dawPortResolver == nil {
@@ -44,118 +29,6 @@ func gainAdjusterFrom(svc hostServices) dawport.GainAdjuster {
 		return nil
 	}
 	return role
-}
-
-// cleanupCandidatesIn builds this chapter's silence-trim candidates from its already-scanned editing findings
-// (bindings_editing.go's EditingCandidates service call): only class "silence" carries a usable item, take and
-// source-relative cut range today (click and breath findings are not produced yet, editingCheckText.ts's own note),
-// so this reads exactly what EditingCandidates already reads, never a second scan.
-func cleanupCandidatesIn(svc hostServices, chapterID string) ([]bridge.CleanupCandidate, error) {
-	service := svc.editing
-	if service == nil {
-		return nil, nil
-	}
-	found, err := service.Candidates(chapterID)
-	if err != nil {
-		return nil, err
-	}
-	candidates := make([]bridge.CleanupCandidate, 0, len(found))
-	for _, f := range found {
-		if f.ID == "" || f.Source.ItemGUID == "" || f.TimeRange == nil {
-			continue
-		}
-		if f.TimeRange.SourceStart == nil || f.TimeRange.SourceEnd == nil || *f.TimeRange.SourceEnd <= *f.TimeRange.SourceStart {
-			continue
-		}
-		candidates = append(candidates, bridge.CleanupCandidate{
-			ItemGUID: f.Source.ItemGUID, TakeGUID: f.Source.TakeGUID, Class: "silence",
-			CutStartSeconds: *f.TimeRange.SourceStart, CutEndSeconds: *f.TimeRange.SourceEnd, FindingID: f.ID,
-		})
-	}
-	return candidates, nil
-}
-
-type staleCandidateWire struct {
-	FindingID string `json:"findingId"`
-	ItemGUID  string `json:"itemGuid"`
-	Reason    string `json:"reason"`
-}
-
-func staleCandidatesWire(stale []bridge.StaleCandidate) []staleCandidateWire {
-	out := make([]staleCandidateWire, len(stale))
-	for i, s := range stale {
-		out[i] = staleCandidateWire{FindingID: s.FindingID, ItemGUID: s.GUID, Reason: s.Reason}
-	}
-	return out
-}
-
-// cleanupPreviewAnswer is CleanupPreview's payload: how many candidates this chapter has, and preview_cleanup_
-// markers' own answer (bridge.PreviewResult) - which take markers were newly added, which already existed, and
-// which candidates REAPER found stale (the saved project has moved on since the last scan).
-type cleanupPreviewAnswer struct {
-	Candidates int                  `json:"candidates"`
-	Added      int                  `json:"added"`
-	Existing   int                  `json:"existing"`
-	Stale      []staleCandidateWire `json:"stale"`
-}
-
-func cleanupPreviewIn(ctx context.Context, svc hostServices, chapterID string) (cleanupPreviewAnswer, error) {
-	candidates, err := cleanupCandidatesIn(svc, chapterID)
-	if err != nil {
-		return cleanupPreviewAnswer{}, err
-	}
-	if len(candidates) == 0 {
-		return cleanupPreviewAnswer{}, errNoCleanupCandidates
-	}
-	role := silenceTrimmerFrom(svc)
-	if role == nil {
-		return cleanupPreviewAnswer{}, bridge.ErrUnavailable
-	}
-	result, err := role.Preview(ctx, candidates)
-	if err != nil {
-		return cleanupPreviewAnswer{}, err
-	}
-	return cleanupPreviewAnswer{Candidates: len(candidates), Added: result.Added, Existing: result.Existing, Stale: staleCandidatesWire(result.Stale)}, nil
-}
-
-// cleanupApplyAnswer is CleanupApply's payload: apply_cleanup_trims' own answer - how many candidates were actually
-// trimmed, and which were stale and so left untouched.
-type cleanupApplyAnswer struct {
-	Candidates int                  `json:"candidates"`
-	Applied    int                  `json:"applied"`
-	Stale      []staleCandidateWire `json:"stale"`
-}
-
-func cleanupApplyIn(ctx context.Context, svc hostServices, chapterID string) (cleanupApplyAnswer, error) {
-	candidates, err := cleanupCandidatesIn(svc, chapterID)
-	if err != nil {
-		return cleanupApplyAnswer{}, err
-	}
-	if len(candidates) == 0 {
-		return cleanupApplyAnswer{}, errNoCleanupCandidates
-	}
-	role := silenceTrimmerFrom(svc)
-	if role == nil {
-		return cleanupApplyAnswer{}, bridge.ErrUnavailable
-	}
-	result, err := role.Apply(ctx, candidates)
-	if err != nil {
-		return cleanupApplyAnswer{}, err
-	}
-	return cleanupApplyAnswer{Candidates: len(candidates), Applied: result.Applied, Stale: staleCandidatesWire(result.Stale)}, nil
-}
-
-// CleanupPreview asks REAPER to mark every silence-trim candidate's cut range (preview_cleanup_markers) without
-// changing anything else: which take markers were newly added, and which candidates the saved project has since made
-// stale.
-func (h *Host) CleanupPreview(chapterID string) (string, error) {
-	return encodeBinding(cleanupPreviewIn(context.Background(), h.services(), chapterID))
-}
-
-// CleanupApply asks REAPER to remove every silence-trim candidate's cut range (apply_cleanup_trims), in one undo
-// block; a candidate the saved project has made stale is left untouched.
-func (h *Host) CleanupApply(chapterID string) (string, error) {
-	return encodeBinding(cleanupApplyIn(context.Background(), h.services(), chapterID))
 }
 
 // linkedTrackGUID reads chapterID's own row of links (chapterTrackLinksIn, chapterlinks.go), refusing exactly the way

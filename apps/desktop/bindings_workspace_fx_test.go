@@ -11,7 +11,7 @@ import (
 )
 
 // WorkspaceListFXChains (ADR 0234): a read-only list of the narrator's FX chains, over the DAW port's FXManager role,
-// exactly as silenceTrimmerFrom/CleanupPreview are tested (bindings_cleanup_test.go) - fakeResolver is defined there
+// exactly as gainAdjusterFrom/LevelMatchPreview are tested (bindings_cleanup_test.go) - fakeResolver is defined there
 // and reused here.
 
 func TestFxManagerFromComesFromTheResolver(t *testing.T) {

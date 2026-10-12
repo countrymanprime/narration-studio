@@ -24,7 +24,7 @@ import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
-import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT, editingCandidateFor } from './mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
@@ -47,7 +47,7 @@ import {
   extractionSuggestionsSchema,
 } from './schemas/extraction';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
-import { cleanupApplyResultSchema, cleanupPreviewResultSchema, levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
+import { levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './schemas/cleanup';
 import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema, takeFigureSchema } from './schemas/takeEvidence';
@@ -76,7 +76,7 @@ import {
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
-import { settingsForScopeSchema } from './schemas/settings';
+import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
 import {
   takeComparisonEvidenceSchema,
@@ -97,8 +97,6 @@ import {
 import {
   workspaceAlignmentResultSchema,
   workspaceFXChainsResultSchema,
-  workspaceFXPluginsResultSchema,
-  workspaceFXResultSchema,
   workspacePeaksResultSchema,
   workspaceTakesResultSchema,
   workspaceUseTakeResultSchema,
@@ -493,6 +491,42 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(overrides?.kind).toBe('text');
     const document = parseWireJson(keymapOverridesSchema, overrides?.effectiveValue ?? '', ctx('keymap overrides'));
     expect(document).toEqual({ version: 1, bindings: {} });
+  });
+});
+
+describe('Script.definition_source in the settings answer (SN-M93)', () => {
+  it('the golden settings offer web, local and api, read as web unset and as the stored choice once saved', () => {
+    const unset = parseWire(settingsForScopeSchema, readGolden('settings-definition-source.json'), ctx('settings definition source'));
+    const field = unset.Script?.find((item) => item.key === 'definition_source');
+    expect(field?.choices).toEqual(definitionSourceSchema.options);
+    expect(field?.isSet).toBe(false);
+    expect(definitionSourceOf(unset)).toBe('web');
+    const local = parseWire(settingsForScopeSchema, readGolden('settings-definition-source-local.json'), ctx('settings definition source local'));
+    expect(definitionSourceOf(local)).toBe('local');
+    expect(definitionSourceOf(parseWire(settingsForScopeSchema, readGolden('settings-global.json'), ctx('settings global')))).toBe('web');
+  });
+
+  it('a value this build does not know, or an older host without the field, reads as web', () => {
+    const field = {
+      key: 'definition_source',
+      label: 'Show definitions from',
+      kind: 'choice' as const,
+      choices: ['web'],
+      value: 'x',
+      isSet: true,
+      effectiveValue: 'thesaurus',
+      effectiveSource: 'global',
+    };
+    expect(definitionSourceOf({ Script: [field] })).toBe('web');
+    expect(definitionSourceOf({})).toBe('web');
+  });
+
+  it('the mock answers the field through the same schema, and a save shows in the next read', async () => {
+    const api = createMockApi();
+    const before = parseWire(settingsForScopeSchema, await api.settingsForScope('global'), ctx('mock settings'));
+    expect(definitionSourceOf(before)).toBe('web');
+    await api.saveSettings('Script', 'global', { definition_source: 'api' });
+    expect(definitionSourceOf(parseWire(settingsForScopeSchema, await api.settingsForScope('global'), ctx('mock settings')))).toBe('api');
   });
 });
 
@@ -2633,13 +2667,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const alignment = await api.workspaceAlignment(measured.id);
     if (alignment.tokens.length < 2) throw new Error('the mock chapter needs at least two heard tokens');
 
-    const answers: Array<[string, Promise<unknown>]> = [
-      ['go to', api.workspaceGoTo(measured.id, 0)],
-      ['loop', api.workspaceLoop(measured.id, 0, 1)],
-    ];
+    const answers: Array<[string, Promise<unknown>]> = [['go to', api.workspaceGoTo(measured.id, 0)]];
     for (const reaper of ['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const) {
       const refusing = createMockApi({}, { reaper });
-      answers.push([`${reaper} go to`, refusing.workspaceGoTo(measured.id, 0)], [`${reaper} loop`, refusing.workspaceLoop(measured.id, 0, 1)]);
+      answers.push([`${reaper} go to`, refusing.workspaceGoTo(measured.id, 0)]);
     }
     for (const [name, answer] of answers) expectMatches(findingNavigationSchema, await answer, `mock workspace ${name}`);
   });
@@ -2651,47 +2682,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(chains.truncated).toBe(false);
 
     await expect(createMockApi({}, { reaper: 'standalone' }).workspaceListFXChains()).rejects.toThrow();
-  });
-
-  it('the passage effects: the plug-in list, add-to-passage and chain-on-track answer the schema, and refuse what the host refuses', async () => {
-    const measured = (await createMockApi().manuscriptChapters()).find((chapter) => chapter.recordedFraction !== undefined);
-    if (!measured) throw new Error('the mock chapters carry a measured recordedFraction');
-    // A live item needs a confirmed chapter link (the peaks test above seeds the same one).
-    const [linkedTrack] = WIRE_TRACKS_PROJECT.tracks;
-    const chapterTrackMappings = [
-      {
-        trackGuid: linkedTrack.guid,
-        chapterId: measured.id,
-        chapterTitle: measured.title,
-        confirmedAt: '2026-09-24T09:00:00Z',
-        origin: 'manual' as const,
-        match: null,
-      },
-    ];
-    const api = createMockApi({}, { chapterTrackMappings });
-    const plugins = await api.workspaceListFX();
-    expectMatches(workspaceFXPluginsResultSchema, plugins, 'mock workspace plug-ins');
-    expect(plugins.names.length).toBeGreaterThan(0);
-    await expect(createMockApi({}, { reaper: 'standalone' }).workspaceListFX()).rejects.toThrow();
-
-    const alignment = await api.workspaceAlignment(measured.id);
-    const heard = alignment.tokens.filter((token) => token.item !== undefined);
-    expect(heard.length).toBeGreaterThan(1);
-    const answers: [string, Promise<unknown>][] = [
-      ['added', api.workspaceAddTakeFX(measured.id, heard[0].i, heard[1].i, 'ReaEQ (Cockos)')],
-      ['applied', api.workspaceApplyFXChain(measured.id, 'Podcast Voice.RfxChain')],
-      ['bad range', api.workspaceAddTakeFX(measured.id, 5, 2, 'ReaEQ (Cockos)')],
-      ['outside the alignment', api.workspaceAddTakeFX(measured.id, 0, 999999, 'ReaEQ (Cockos)')],
-    ];
-    for (const reaper of ['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const) {
-      const refusing = createMockApi({}, { reaper, chapterTrackMappings });
-      answers.push([`${reaper} add`, refusing.workspaceAddTakeFX(measured.id, heard[0].i, heard[1].i, 'ReaEQ (Cockos)')]);
-      answers.push([`${reaper} chain`, refusing.workspaceApplyFXChain(measured.id, 'Podcast Voice.RfxChain')]);
-    }
-    for (const [name, answer] of answers) expectMatches(workspaceFXResultSchema, await answer, `mock workspace effect ${name}`);
-    expect(await answers[0][1]).toMatchObject({ outcome: 'added', plugin: 'ReaEQ (Cockos)' });
-    expect(await answers[1][1]).toMatchObject({ outcome: 'applied', chain: 'Podcast Voice.RfxChain' });
-    expect(await answers[2][1]).toMatchObject({ outcome: 'refused', reason: 'bad_range' });
   });
 
   it('the Takes panel bindings answer: the passage takes, their comparison and every outcome of using one', async () => {
@@ -3232,21 +3222,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     );
   });
 
-  it('the CleanupPreview, CleanupApply, LevelMatchPreview and LevelMatchApply answers', async () => {
+  it('the LevelMatchPreview and LevelMatchApply answers', async () => {
     const chapterId = 'chapter-1';
-    const api = createMockApi({}, { findings: [editingCandidateFor(chapterId, 'Chapter One')] });
-
-    const preview = await api.cleanupPreview(chapterId);
-    expectMatches(cleanupPreviewResultSchema, preview, 'mock cleanup preview');
-    expect(preview).toMatchObject({ candidates: 1, added: 1, existing: 0, stale: [] });
-
-    const applied = await api.cleanupApply(chapterId);
-    expectMatches(cleanupApplyResultSchema, applied, 'mock cleanup apply');
-    expect(applied).toMatchObject({ candidates: 1, applied: 1, stale: [] });
-
-    const noCandidates = createMockApi({}, { findings: [] });
-    await expect(noCandidates.cleanupPreview(chapterId)).rejects.toThrow();
-    await expect(noCandidates.cleanupApply(chapterId)).rejects.toThrow();
+    const api = createMockApi();
 
     const levelPreview = await api.levelMatchPreview(chapterId, 'rms_dbfs', -6, 1);
     expectMatches(levelMatchPreviewResultSchema, levelPreview, 'mock level match preview');
@@ -3608,10 +3586,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceAlignment',
       'workspaceGoTo',
       'workspaceListFXChains',
-      'workspaceListFX',
-      'workspaceAddTakeFX',
-      'workspaceApplyFXChain',
-      'workspaceLoop',
       'workspaceTakes',
       'workspaceTakeEvidence',
       'workspaceTakesCompareStart',
@@ -3675,8 +3649,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingCandidates',
       'editingSourceChoice',
       'editingSetSourceChoice',
-      'cleanupPreview',
-      'cleanupApply',
       'levelMatchPreview',
       'levelMatchApply',
       'findingsList',

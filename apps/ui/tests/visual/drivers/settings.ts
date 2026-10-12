@@ -13,6 +13,13 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
     await page.getByRole('radio', { name: /^Built-in recorder/ }).waitFor();
   },
+  'marks-dialog': async (page) => {
+    await goToPage(page, 'Settings');
+    await page.getByRole('button', { name: 'Edit marks…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Define how you mark up' });
+    await dialog.waitFor();
+    await dialog.getByLabel('Mark name').first().waitFor();
+  },
   'recording-builtin': async (page) => {
     await goToPage(page, 'Settings');
     const builtin = page.getByRole('radio', { name: /^Built-in recorder/ });

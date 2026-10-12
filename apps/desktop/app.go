@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 120
+const hostAPIVersion = 121
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1525,6 +1525,10 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"analysis_prompt", "Offer better analysis tools", "choice", []string{"ask", "basic"}},
 		{"default_pronunciation_source", "Default pronunciation source", "choice", append([]string{""}, pronunciationport.FallbackOrder("")...)},
 	},
+	// definition_source is where the Script page's Words tab reads a word's definition: web (the dictionary site, nothing inline), local
+	// (the offline dictionary asset) or api (the online pronunciation service). Settings' Definitions panel and the Words tab's source menu
+	// both save it; a stored value outside the three reads as web (settings.closedChoices).
+	"Script":            {{"definition_source", "Show definitions from", "choice", settings.DefinitionSources()}},
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
 	"Updates":           {{"check_on_startup", "Check for updates on startup", "bool", nil}, {"channel", "Update channel", "choice", []string{"candidates", "stable"}}},
 	"TranscriptCompare": {{"model_size", "Default Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}}, {"chunk_seconds", "Default chunk length", "choice", []string{"30", "60", "300", "600"}}, {"color_misread", "Misread marker color", "color", nil}, {"color_skipped", "Skipped marker color", "color", nil}, {"color_extra", "Extra marker color", "color", nil}},
@@ -1794,8 +1798,12 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 			return err
 		}
 	}
+	retentionBefore := backupRetention(h.services().settings)
 	if err := h.services().settings.Save(tool, scope, values); err != nil {
 		return err
+	}
+	if _, ok := values[backupRetentionKey]; ok && tool == "DAW" {
+		h.pruneBackupsOnRetentionChange(h.services(), retentionBefore)
 	}
 	if tool == "General" {
 		if value, ok := values["debug_logging"]; ok && value != nil {

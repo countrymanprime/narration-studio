@@ -209,7 +209,7 @@ func newFixture(t *testing.T, rows func(server string, wheel, data []byte) []map
 }
 
 func pinnedRow(server string, wheel, data []byte) map[string]any {
-	return map[string]any{"id": "tool", "provider": "test", "displayName": "Test tool", "version": "1", "ramGB": 1,
+	return map[string]any{"id": "tool", "provider": "test", "displayName": "Test tool", "version": "1", "license": "MIT", "ramGB": 1,
 		"files": []map[string]any{
 			{"name": "weights.model", "url": server + "/weights.model", "sha256": digest(data), "size": len(data)},
 			{"name": "tool-1-py3-none-any.whl", "url": server + "/tool-1-py3-none-any.whl", "sha256": digest(wheel), "size": len(wheel), "extract": "wheel-tool", "expand": 4096},
@@ -357,5 +357,33 @@ func TestHostOfReadsTheHostNameOfAnAddress(t *testing.T) {
 		if got := hostOf(address); got != want {
 			t.Errorf("hostOf(%q) = %q, want %q", address, got, want)
 		}
+	}
+}
+
+// G21: a row the consent screen could not describe is refused when the catalog loads, naming the row and what it lacks; the shipped
+// catalog still loads (productionManager).
+func TestNewRefusesARowMissingItsConsentFacts(t *testing.T) {
+	productionManager(t)
+	for field, want := range map[string]string{"id": "has no id", "displayName": "has no displayName", "license": "has no license", "ramGB": "has no ramGB"} {
+		row := map[string]any{"id": "gliner", "provider": "test", "displayName": "GLiNER", "version": "1", "license": "Apache-2.0", "ramGB": 2.5}
+		delete(row, field)
+		path := filepath.Join(t.TempDir(), "analysis.json")
+		raw, _ := json.Marshal(map[string]any{"catalogVersion": 1, "tools": []map[string]any{pinnedRow("https://example.test", nil, nil), row}})
+		if err := os.WriteFile(path, raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := New(path, t.TempDir())
+		if err == nil || !strings.Contains(err.Error(), "row 2") || !strings.Contains(err.Error(), want) {
+			t.Errorf("without %s: New = %v, want a refusal naming row 2 and %q", field, err, want)
+		}
+	}
+	zero := map[string]any{"id": "tool", "displayName": "Tool", "license": "MIT", "ramGB": 0}
+	path := filepath.Join(t.TempDir(), "analysis.json")
+	raw, _ := json.Marshal(map[string]any{"catalogVersion": 1, "tools": []map[string]any{zero}})
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(path, t.TempDir()); err == nil || !strings.Contains(err.Error(), `row 1 ("tool") has no ramGB`) {
+		t.Errorf("a zero ramGB: New = %v", err)
 	}
 }

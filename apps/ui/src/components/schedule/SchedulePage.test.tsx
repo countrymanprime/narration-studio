@@ -329,6 +329,19 @@ describe('the contract', () => {
     expect((await api.productionPlan()).contractedAmount).toBeNull();
   });
 
+  it('choosing ACX gives an unset contract per finished hour and keeps a payment the narrator set', async () => {
+    await mount({ seed: { contractedAmount: undefined, payment: undefined } });
+    expect((await api.productionPlan()).payment).toBe('none');
+    await api.deliverySelectProfile('project', 'acx', '2026-09');
+    expect((await api.productionPlan()).payment).toBe('per_finished_hour');
+    await api.setProductionPayment('royalty_share');
+    await api.deliverySelectProfile('project', 'acx', '2026-09');
+    expect((await api.productionPlan()).payment).toBe('royalty_share');
+    await api.setProductionPayment('none');
+    await api.deliverySelectProfile('project', 'acx', '2026-09');
+    expect((await api.productionPlan()).payment).toBe('none');
+  });
+
   it('puts the amount back when the change of payment is undone', async () => {
     await mount();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'How you are paid' }), 'none');

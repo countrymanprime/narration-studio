@@ -25,6 +25,7 @@ const (
 	refusedSnapNoAudio    = "no_audio"
 	refusedSnapSilent     = "silent"
 	refusedSnapNoCrossing = "no_crossing"
+	refusedNoTrack        = "no_track"
 
 	messageSnapNoTrack    = "This chapter has no checked track in REAPER to cut. Run the check first."
 	messageSnapStale      = "This item is no longer in the REAPER project as it was checked, so the cut was not moved. Run the check again to find it where it is now."

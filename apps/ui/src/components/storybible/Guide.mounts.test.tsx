@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 // SN-B8: the Story Bible route mounts the Studio Next pieces built before it, and the old pronunciation query UI is gone.
+// SN-X91: the page's Scan button reaches the first-scan prompt or the scan, over the mock host and the fake asset registry.
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { CommandRouter } from '../../input/router';
 import { createMockApi } from '../../api/mockApi';
+import type { NarrationApi } from '../../types';
+import { ANALYSIS_TOOLS, createFakeTools } from '../settings/analysis/fixtures';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { Guide } from './Guide';
@@ -22,9 +25,9 @@ afterEach(async () => {
   cleanup();
 });
 
-async function renderGuide() {
+async function renderGuide(overrides: Partial<NarrationApi> = {}) {
   window.localStorage.clear();
-  const api = createMockApi();
+  const api = createMockApi(overrides);
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
@@ -80,5 +83,41 @@ describe('story-bible-route-mounts-the-new-pieces', () => {
     expect(within(names).getAllByRole('listitem').length).toBeGreaterThan(1);
     await waitFor(() => expect(document.querySelector('[data-suggested]')?.textContent).toMatch(/Suggested · \d+/));
     expect(screen.queryByText(/Query sent|Author confirmed/)).toBeNull();
+  });
+});
+
+describe('the first scan from the page', () => {
+  // The fake registry with the tools given installed, the prompt setting at its default, and the host's sources answering the installed
+  // ones as available, as ExtractionSources does once the registry has them.
+  const withTools = (installed: string[]) => {
+    const fake = createFakeTools({ tools: ANALYSIS_TOOLS.map((t) => (installed.includes(t.id) ? { ...t, installState: 'installed' as const } : t)) });
+    const base = createMockApi();
+    const extractionScan = vi.fn(base.extractionScan);
+    const overrides: Partial<NarrationApi> = {
+      ...fake.port,
+      settingsForScope: vi.fn(async () => ({ ManuscriptGuide: [{ key: 'analysis_prompt', effectiveValue: 'ask' }] }) as never),
+      extractionSources: async () =>
+        (await base.extractionSources()).map((s) => (installed.some((id) => id.startsWith(s.id)) ? { ...s, available: true, reason: undefined } : s)),
+      extractionScan,
+    };
+    return { overrides, extractionScan };
+  };
+  const scanButton = () => screen.getByRole('button', { name: 'Scan the manuscript for suggestions' });
+
+  it('Scan with nothing installed opens the prompt; with a tool installed it starts the scan with that source', async () => {
+    const none = withTools([]);
+    await renderGuide(none.overrides);
+    await userEvent.click(scanButton());
+    expect(await screen.findByRole('dialog', { name: 'Scan the manuscript' })).toBeTruthy();
+    expect(none.extractionScan).not.toHaveBeenCalled();
+    cleanup();
+    const { overlay } = await import('../../overlay/overlayService');
+    for (const entry of overlay.getSnapshot().dialogs) if (entry.kind !== 'confirm') entry.close();
+
+    const gliner = withTools(['gliner']);
+    await renderGuide(gliner.overrides);
+    await userEvent.click(scanButton());
+    await waitFor(() => expect(gliner.extractionScan).toHaveBeenCalledWith(['rules', 'gliner']));
+    expect(screen.queryByRole('dialog', { name: 'Scan the manuscript' })).toBeNull();
   });
 });

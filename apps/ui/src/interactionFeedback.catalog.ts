@@ -133,6 +133,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The one-time browser-storage-to-settings migration write; a failure leaves the device in local state for this visit and the migration is retried next load since the settings value never got marked set.',
   'src/components/manuscript/creditsExpandedStorage.ts#1':
     "Remembering a credits card's open state per project in localStorage; the choice lasts for this visit only when storage is disabled.",
+  'src/components/masterqc/page/sharedChapter.ts#1':
+    'Remembering the chapter Master & QC is on, under the key Proof reads (ADR 0750), in localStorage; with storage unavailable the choice lasts for this visit only.',
   'src/components/proof/ProofPage.tsx#1':
     'Reading the last chapter looked at on Proof per project from localStorage (ADR 0750); with storage unavailable a step from All chapters opens the first chapter.',
   'src/components/proof/useChapterTimeline.ts#1':
@@ -141,9 +143,13 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Renders the opening credits card preview; a failed render leaves that card without one rather than a toast over the manuscript.',
   'src/components/script/scriptPageHost.ts#2': 'Renders the closing credits card preview; same fallback as the opening one above.',
   'src/components/script/scriptPageHost.ts#3':
-    "Remembering the Words tab's definition source in localStorage; with storage blocked or full the choice lasts until the page is left.",
+    "Reading the Words tab's old per-viewer definition source from localStorage, once, to move it to the host setting; with storage blocked there is nothing to move and the host's setting is used.",
+  'src/components/script/scriptPageHost.ts#4':
+    "Reading Script.definition_source for the Words tab's source menu (or moving the old localStorage choice into it); a failed read keeps the source the menu shows, and the next window focus reads again. A choice the narrator makes has its own toast on failure.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
+  'src/components/booth/page/useTextChoices.ts#1':
+    "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
   'src/theme/ThemeContext.tsx#1': 'Remembering the theme in localStorage; the preference just does not persist when storage is disabled.',

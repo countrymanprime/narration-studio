@@ -12,8 +12,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 )
 
-// Unit coverage of resolveWorkspaceTarget over a hand-built coverage.AlignmentView: the shape WorkspaceGoTo and
-// WorkspaceLoop resolve tokens against, without needing a running coverage service for every edge case.
+// Unit coverage of resolveWorkspaceTarget over a hand-built coverage.AlignmentView: the shape WorkspaceGoTo
+// resolves tokens against, without needing a running coverage service for every edge case.
 
 func heardToken(index, item int, start, end float64) coverage.TokenLine {
 	return coverage.TokenLine{Index: index, Item: &item, Start: &start, End: &end, Status: "read"}
@@ -151,25 +151,7 @@ func TestWorkspaceGoToSendsTheTokensItemTakeAndSourceTimeAndAnswersWhereREAPERWe
 	}
 }
 
-func TestWorkspaceLoopAnswersTheWindowAndStopLoopStopsIt(t *testing.T) {
-	fake := &fakeNavigator{loop: bridge.LoopStarted{ItemGUID: "{ITEM-1}", Start: 0, End: 1.5}, stop: bridge.LoopStopped{Restored: 1, Kept: 0}}
-	host := workspaceNavigationHost(t, fake)
-
-	looping := bindingAnswer[FindingNavigation](t)(host.WorkspaceLoop("c-0001", 0, 0))
-	if looping.Outcome != "looping" || *looping.LoopStart != 0 || *looping.LoopEnd != 1.5 {
-		t.Fatalf("loop: %+v", looping)
-	}
-	if status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus()); status.LoopingFindingID != "workspace:c-0001:0-0" {
-		t.Fatalf("status while looping: %+v", status)
-	}
-
-	stopped := bindingAnswer[FindingNavigation](t)(host.FindingsStopLoop())
-	if stopped.Outcome != "stopped" || *stopped.Restored != 1 {
-		t.Fatalf("stop: %+v", stopped)
-	}
-}
-
-func TestWorkspaceGoToAndLoopOfAnUnheardTokenAreRefusedAndNothingIsSent(t *testing.T) {
+func TestWorkspaceGoToOfAnUnheardTokenIsRefusedAndNothingIsSent(t *testing.T) {
 	fake := &fakeNavigator{}
 	host := workspaceNavigationHost(t, fake)
 
@@ -178,7 +160,6 @@ func TestWorkspaceGoToAndLoopOfAnUnheardTokenAreRefusedAndNothingIsSent(t *testi
 		call func() (string, error)
 	}{
 		{"go to", func() (string, error) { return host.WorkspaceGoTo("c-0001", 1) }},
-		{"loop", func() (string, error) { return host.WorkspaceLoop("c-0001", 1, 1) }},
 	} {
 		got := bindingAnswer[FindingNavigation](t)(check.call())
 		if got.Outcome != "refused" || got.Reason != "no_item" || got.Message == "" {

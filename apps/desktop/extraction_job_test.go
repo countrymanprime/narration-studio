@@ -2,18 +2,26 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
 	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-utils/shell/internal/process"
 )
 
 // scanSource is a test source: it is available unless unavailable gives a reason, and extract is what it offers.
@@ -410,5 +418,124 @@ func TestExtractionScanRefusesWithNoProjectOrManuscript(t *testing.T) {
 	}
 	if job := decodeScanJob(t)(host.ExtractionScanState()); job.Phase != "idle" || job.Sources == nil || job.Logs == nil {
 		t.Fatalf("idle = %+v", job)
+	}
+}
+
+// toolsHost is a host over a fresh project whose scan sources are the real registry: the Manuscript Guide sidecar is
+// this test binary (runFakeGuideRender, which writes the arguments it was started with to the file returned and prints
+// no suggestion), and the analysis catalog holds a pinned GLiNER and BookNLP small row, one small file each, neither
+// installed.
+func toolsHost(t *testing.T) (*Host, *analysistools.Manager, string) {
+	t.Helper()
+	weights := []byte("fake-weights")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(weights) }))
+	t.Cleanup(server.Close)
+	sum := sha256.Sum256(weights)
+	row := func(id, source string) map[string]any {
+		return map[string]any{"id": id, "provider": "test", "displayName": id, "version": "1", "license": "MIT", "ramGB": 1, "source": source,
+			"files": []map[string]any{{"name": "weights.model", "url": server.URL + "/" + id, "sha256": hex.EncodeToString(sum[:]), "size": len(weights)}}}
+	}
+	catalog := filepath.Join(t.TempDir(), "analysis.json")
+	raw, _ := json.Marshal(map[string]any{"catalogVersion": 1, "tools": []map[string]any{row("gliner", "gliner"), row("booknlp-small", "booknlp")}})
+	if err := os.WriteFile(catalog, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tools, err := analysistools.New(catalog, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	host, _, _ := scanHost(t)
+	host.extractionSources = nil
+	host.assets = newAssetRegistry(t.TempDir(), nil, nil, nil, nil)
+	host.assets.registerAnalysisTools(tools)
+	host.config.manuscriptPython = os.Args[0]
+	host.sidecars = process.NewSupervisor()
+	t.Cleanup(func() { _ = host.sidecars.Close() })
+	args := filepath.Join(t.TempDir(), "args.txt")
+	t.Setenv(fakeGuideRenderEnv, "ok")
+	t.Setenv("SHELL_FAKE_GUIDE_ARGS", args)
+	return host, tools, args
+}
+
+// sourceRows is ExtractionSources by id.
+func sourceRows(t *testing.T, host *Host) map[string]ExtractionSource {
+	t.Helper()
+	payload, err := host.ExtractionSources()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rows []ExtractionSource
+	if err := json.Unmarshal([]byte(payload), &rows); err != nil {
+		t.Fatal(err)
+	}
+	byID := map[string]ExtractionSource{}
+	for _, row := range rows {
+		byID[row.ID] = row
+	}
+	return byID
+}
+
+// scanWith runs one scan of source to its end and answers the job and the arguments the sidecar was last started with.
+func scanWith(t *testing.T, host *Host, args, source string) (ExtractionScanJob, []string) {
+	t.Helper()
+	_ = os.Remove(args)
+	if _, err := host.ExtractionScan([]string{source}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitScan(t, host)
+	raw, _ := os.ReadFile(args)
+	return job, strings.Split(strings.TrimSpace(string(raw)), "\n")
+}
+
+func argAfter(args []string, flag string) string {
+	if i := slices.Index(args, flag); i >= 0 && i+1 < len(args) {
+		return args[i+1]
+	}
+	return ""
+}
+
+// G22: the host scan registers the GLiNER and BookNLP adapters. Not installed, each answers not downloaded and a scan
+// skips it with that reason; installed, a scan with that source starts the sidecar's suggest command for it with the
+// registry's install folder.
+func TestExtractionRegistryRunsTheGlinerAndBookNLPAdaptersWhenInstalled(t *testing.T) {
+	host, tools, args := toolsHost(t)
+	rows := sourceRows(t, host)
+	if ids := slices.Sorted(func(yield func(string) bool) {
+		for id := range rows {
+			if !yield(id) {
+				return
+			}
+		}
+	}); strings.Join(ids, ",") != "booknlp,gliner,imported,local-model,rules" {
+		t.Fatalf("sources = %v", ids)
+	}
+	for id, reason := range map[string]string{extractionport.Gliner: "GLiNER is not downloaded.", extractionport.BookNLP: "BookNLP is not downloaded."} {
+		if row := rows[id]; row.Available || row.Reason != reason || !row.Runs {
+			t.Fatalf("%s before install = %+v, want unavailable with %q", id, row, reason)
+		}
+		job, _ := scanWith(t, host, args, id)
+		if job.Phase != "success" || !slices.ContainsFunc(job.Logs, func(l string) bool { return strings.Contains(l, "Skipped") && strings.Contains(l, reason) }) {
+			t.Fatalf("a scan with %s not installed = %+v", id, job)
+		}
+	}
+
+	for _, tool := range []struct{ asset, source, label string }{
+		{"gliner", extractionport.Gliner, "GLiNER"},
+		{"booknlp-small", extractionport.BookNLP, "BookNLP"},
+	} {
+		if err := tools.Install(context.Background(), tool.asset); err != nil {
+			t.Fatal(err)
+		}
+		if row := sourceRows(t, host)[tool.source]; !row.Available {
+			t.Fatalf("%s installed = %+v, want available", tool.source, row)
+		}
+		job, started := scanWith(t, host, args, tool.source)
+		if job.Phase != "success" || !slices.Contains(job.Logs, tool.label+" offered 0 suggestions.") {
+			t.Fatalf("a scan with %s installed = %+v", tool.source, job)
+		}
+		if len(started) == 0 || started[0] != "suggest" || argAfter(started, "--source") != tool.source ||
+			argAfter(started, "--install") != tools.InstallDir(tool.asset) {
+			t.Fatalf("the %s sidecar started with %q, want suggest --source %s --install %s", tool.source, started, tool.source, tools.InstallDir(tool.asset))
+		}
 	}
 }

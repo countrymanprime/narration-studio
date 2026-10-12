@@ -10,9 +10,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// The chapter workspace's REAPER navigation: Go to and Loop for a chapter token, over the same bridge.Navigator, the
-// same navigate_item and loop_context commands, and the same connection status and refusal order as the Review page's
-// FindingsGoTo/FindingsLoop (bindings_navigation.go, ADR 0121; docs/architecture/reaper-navigation.md, "From the
+// The chapter workspace's REAPER navigation: Go to for a chapter token, over the same bridge.Navigator, the same
+// navigate_item command, and the same connection status and refusal order as the Review page's FindingsGoTo (bindings_navigation.go, ADR 0121; docs/architecture/reaper-navigation.md, "From the
 // workspace"). No new Lua command: what is new is resolving a token, in the host, to the item GUID, take GUID and
 // source time bridge.Target needs, from the chapter's stored alignment (WorkspaceAlignment, ADR 0242) checked against
 // the saved project - the page sends only a chapter id and token indices, never a GUID or a time, exactly as the Review
@@ -31,16 +30,11 @@ func workspaceRefusal(err error) FindingNavigation {
 		return refused(refusedStale, capitalized(workspaceStaleMessage(stale.Reason))+messageStaleSuffix)
 	case errors.Is(err, bridge.ErrNoItemIdentity):
 		return refused(refusedNoItem, messageWorkspaceNoItem)
-	case errors.Is(err, bridge.ErrNoSourceTime):
-		return refused(refusedNoSourceTime, messageWorkspaceNoSourceTime)
 	}
 	return refusal(err)
 }
 
-const (
-	messageWorkspaceNoItem       = "This word wasn't heard in the recording, so there's nothing to go to. Run the check again if the chapter has changed."
-	messageWorkspaceNoSourceTime = "This word has no time in its audio to loop. Go to it instead."
-)
+const messageWorkspaceNoItem = "This word wasn't heard in the recording, so there's nothing to go to. Run the check again if the chapter has changed."
 
 // workspaceStaleMessage is bridge.StaleError's reason in the workspace's words, mirroring what StaleError.Error()
 // says for a finding: reason is "item", "take" or "range" (bridge.StaleError, reaper-navigation.md).
@@ -60,24 +54,14 @@ func workspaceStaleMessage(reason string) string {
 // FindingsGoTo does for a finding: navigate_item, sent only once the token resolves to an item REAPER can be asked
 // about and REAPER is listening.
 func (h *Host) WorkspaceGoTo(chapterID string, tokenIndex int) (string, error) {
-	return h.navigateWorkspace(chapterID, tokenIndex, tokenIndex, false, goTo)
+	return h.navigateWorkspace(chapterID, tokenIndex, goTo)
 }
 
-// WorkspaceLoop loops the chapter passage from firstToken to lastToken (inclusive, both heard on the same item) in
-// REAPER: the time selection and loop points around it, repeat on, and Play, exactly as FindingsLoop does.
-// FindingsStopLoop stops it - the workspace holds no loop state of its own, sharing the one app loop
-// findingNavigation already tracks.
-func (h *Host) WorkspaceLoop(chapterID string, firstToken int, lastToken int) (string, error) {
-	id := fmt.Sprintf("workspace:%s:%d-%d", chapterID, firstToken, lastToken)
-	return h.navigateWorkspace(chapterID, firstToken, lastToken, true, loopFor(id))
-}
-
-// navigateWorkspace resolves [firstToken, lastToken] of chapterID's stored alignment to a bridge.Target and sends it
-// exactly as navigateFinding does for a finding: refused before anything is sent for a token that cannot be placed
-// (no_item), for a loop with no source time (no_source_time), or a REAPER that is not listening; nothing in REAPER
-// changes for a refusal. A token index outside the alignment, or a passage whose tokens were heard on two different
-// items, is the caller's error, not a refusal: the page already has the tokens it sends, from WorkspaceAlignment.
-func (h *Host) navigateWorkspace(chapterID string, firstToken, lastToken int, needsTime bool,
+// navigateWorkspace resolves tokenIndex of chapterID's stored alignment to a bridge.Target and sends it exactly as
+// navigateFinding does for a finding: refused before anything is sent for a token that cannot be placed (no_item) or a
+// REAPER that is not listening; nothing in REAPER changes for a refusal. A token index outside the alignment is the
+// caller's error, not a refusal: the page already has the tokens it sends, from WorkspaceAlignment.
+func (h *Host) navigateWorkspace(chapterID string, tokenIndex int,
 	send func(*findingNavigation, bridge.Target) FindingNavigation) (string, error) {
 	svc := h.services()
 	if svc.coverage == nil {
@@ -87,15 +71,12 @@ func (h *Host) navigateWorkspace(chapterID string, firstToken, lastToken int, ne
 	if err != nil {
 		return "", err
 	}
-	target, err := resolveWorkspaceTarget(view, firstToken, lastToken)
+	target, err := resolveWorkspaceTarget(view, tokenIndex, tokenIndex)
 	if err != nil {
 		return "", err
 	}
 	if target.ItemGUID == "" {
 		return encodeBinding(workspaceRefusal(bridge.ErrNoItemIdentity), nil)
-	}
-	if needsTime && target.SourceEnd == nil {
-		return encodeBinding(workspaceRefusal(bridge.ErrNoSourceTime), nil)
 	}
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return encodeBinding(refused(status.Connection, status.Message), nil)
@@ -159,12 +140,12 @@ func alignmentItemAt(items []coverage.AlignmentItem, index int) (coverage.Alignm
 }
 
 // FX discovery (ADR 0234): a read-only list of the narrator's own FX chains, over the DAW port's FXManager role
-// (list_fx_chains; internal/dawport/roles.go), so it is gated and refused exactly as WorkspaceApplyFXChain is
+// (list_fx_chains; internal/dawport/roles.go), so it is gated and refused like every FX chains action
 // (dawport.CapFXChains, ADR 0230, ADR 0304). The narrator's favourites are a Settings row (DAW.fx_favourites), not part
 // of this read: the effects menu combines the two client-side, since a favourite is just a name this listing (or a
 // future FX plug-in listing) already lists.
 
-// fxManagerFrom is svc's FX chains role, or nil exactly as silenceTrimmerFrom is nil (bindings_cleanup.go): no DAW
+// fxManagerFrom is svc's FX chains role, or nil exactly as gainAdjusterFrom is nil (bindings_cleanup.go): no DAW
 // port resolver, no adapter, the capability toggled off, or REAPER unreachable right now.
 func fxManagerFrom(svc hostServices) dawport.FXManager {
 	if svc.dawPortResolver == nil {
