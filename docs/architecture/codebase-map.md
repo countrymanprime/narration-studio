@@ -71,6 +71,13 @@ Every folder above that has a `project.json` is an Nx project (all except `docs/
   ([ADR 0357](../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md)).
   Feature-specific analysis stays with its tool.
 
+### Dependency rules
+
+- Every new analyzer emits the shared finding format ([findings contract](findings-contract.md)) before it gets a bespoke UI.
+- The dashboard consumes findings but does not reproduce analyzer algorithms.
+- Take creation requires narrator approval, explicit target item identity, and an undoable REAPER action.
+- Character reference analysis only uses clips explicitly approved by the narrator.
+
 ## How the parts connect
 
 Everything runs on the narrator's machine. The things that leave it are the two dashed boxes at the bottom, each started by the narrator (a confirmed download or update) or switched off in Settings (the update check), and the narrator-keyed Merriam-Webster lookup, which is drawn in no box ([threat model](threat-model.md#what-the-app-sends-off-the-machine), row 15). The diagram is a container view: one box per running thing or store, one arrow per call that crosses a boundary; the table under it says what each arrow is. The [threat model](threat-model.md) walks the same boundaries one by one, and the flows that need a sequence are drawn beside the doc that owns them.
