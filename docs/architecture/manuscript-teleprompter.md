@@ -495,8 +495,9 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 - **`estimate`**: the anchors' pace, only when the recording cannot answer.
 
 A punch after its preview reuses the preview's alignment; a successful punch drops the anchors at or after the word.
-How REAPER answers the live read for an unsaved take's file, a `SECTION` source's file name and a take still recording
-has not been checked in REAPER yet ([#1476](https://github.com/countrymanprime/narration-utils/issues/1476)).
+What REAPER documents for an unsaved take's file, a `SECTION` source's file name and a take still recording is in
+[REAPER: media sources and recording](../reference/daw/reaper.md#media-sources-and-recording); none of it has been run
+in REAPER yet ([#1476](https://github.com/countrymanprime/narration-utils/issues/1476)).
 
 ## The passage map
 
