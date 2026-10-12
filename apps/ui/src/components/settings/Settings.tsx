@@ -515,6 +515,8 @@ export function Settings({
                       />
                     ))}
                   </div>
+                  {/* A registered section is this computer's, not a project's (the analysis tools), so it is drawn in Global only. */}
+                  {scope === 'global' && settingsSectionsFor(category).map(({ id, component: Section }) => <Section key={id} />)}
                   <div className="mt-5 flex items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
                     <span className="text-xs" style={{ color: 'var(--warn-text)' }}>
                       {dirty && 'Unsaved changes'}

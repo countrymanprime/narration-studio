@@ -4,8 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
+import { ThemeProvider } from '../../../theme/ThemeContext';
 import { settingsSectionsFor } from '../sections';
-import '../Settings';
+import { Settings } from '../Settings';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
 import { createFakeTools, type FakeInstall } from './fixtures';
 
@@ -187,6 +188,35 @@ describe('AnalysisToolsSection', () => {
     const sections = settingsSectionsFor('ManuscriptGuide');
     expect(sections.filter((section) => section.id === 'analysis-tools')).toHaveLength(1);
     expect(sections.find((section) => section.id === 'analysis-tools')?.component).toBe(AnalysisToolsSection);
+  });
+
+  it('is drawn on the Settings page in Story Bible, after its fields, in Global only', async () => {
+    const fake = createFakeTools();
+    const api = createMockApi({ ...fake.port });
+    const data = await api.bootstrap();
+    render(
+      <ThemeProvider>
+        <ApiProvider api={api}>
+          <Settings
+            data={data}
+            notify={vi.fn()}
+            onDirtyChange={vi.fn()}
+            registerActions={vi.fn()}
+            onProjectDataCleared={async () => undefined}
+            onLinkDawFile={vi.fn()}
+            go={vi.fn()}
+            refreshBootstrap={async () => undefined}
+            initialCategory="ManuscriptGuide"
+          />
+        </ApiProvider>
+      </ThemeProvider>,
+    );
+    const heading = await screen.findByRole('heading', { name: 'Story Bible analysis' });
+    const field = await screen.findByText('Offer better analysis tools');
+    expect(field.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await row('gliner')).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'This Project' }));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Story Bible analysis' })).toBeNull());
   });
 
   it('says why the list could not be read, and reads it again', async () => {
