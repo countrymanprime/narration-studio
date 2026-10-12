@@ -6,8 +6,8 @@ import "time"
 // docs/architecture/preview-suggestion.md, and ADR 0383 for the pin's own design decisions).
 
 // PinnedRange is the narrator's own decision to keep one window: "a pin per book", not per chapter - settling on a
-// preview replaces whatever was pinned before. AnchorText reuses prepmarkup's own per-paragraph staleness idea
-// (apps/desktop/internal/prepmarkup) rather than inventing a second one: the paragraph's text at pin (or last
+// preview replaces whatever was pinned before. AnchorText reuses the prep-markup spans' per-paragraph staleness idea
+// (the stale reasons in the UI's prep-markup contract) rather than inventing a second one: the paragraph's text at pin (or last
 // adjustment) time, compared against the manuscript's current text for the same paragraph id on every read. Nothing
 // here is a computed verdict: a pin is never suggested, only kept when the narrator asks, and Suggest never reads it
 // back.
@@ -19,7 +19,7 @@ type PinnedRange struct {
 	PinnedAt   time.Time
 }
 
-// StaleReason mirrors prepmarkup's own two causes: a pin is never silently moved to a guess, only reported stale
+// StaleReason mirrors the prep-markup spans' two causes: a pin is never silently moved to a guess, only reported stale
 // with why.
 type StaleReason string
 
@@ -34,7 +34,7 @@ const (
 )
 
 // CheckStale compares pin's stored anchor text against paragraphs' current text (keyed by paragraph id, the caller's
-// own read of the manuscript's current state). It is an exact comparison, not prepmarkup's UTF-16-offset anchoring: a
+// own read of the manuscript's current state). It is an exact comparison, not the prep-markup spans' UTF-16-offset anchoring: a
 // pin covers whole paragraphs, never a sub-paragraph span, so there is no offset to reconcile - only "is this still the
 // same text".
 func CheckStale(pin PinnedRange, paragraphs map[string]string) StaleReason {

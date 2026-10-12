@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { providedCommands } from '../../../input/commandProviders';
+import { overlay } from '../../../overlay/overlayService';
 import { CommandRouter } from '../../../input/router';
 import { contextItemsFor } from '../../../registries/context';
 import { searchAll } from '../../../registries/search';
@@ -461,4 +462,144 @@ describe('props-match-the-old-page', () => {
 beforeEach(() => {
   // The reader remembers its place in storage; each test starts at the top.
   window.localStorage.clear();
+});
+
+describe('key-hints-under-the-reader', () => {
+  it('draws the key hints under the reader', async () => {
+    mount();
+    await firstHeading();
+    const reader = document.getElementById('reader')!;
+    const hints = within(reader).getByRole('note', { name: 'Keyboard shortcuts' });
+    // The mock Legend's hints, drawn from the key catalogue; the caps are the default keymap's.
+    expect(hints.textContent).toContain('Select text to mark it, add a note or query, or look it up.');
+    for (const label of ['scroll', 'prep state', 'chapter', 'bookmark', 'bookmarks', 'find']) expect(within(hints).getByText(label)).toBeTruthy();
+    // Under the reader's text, not above it.
+    expect(reader.lastElementChild).toBe(hints);
+  });
+});
+
+describe('dictionary-download-in-place', () => {
+  it('offers the dictionary download in place', async () => {
+    window.localStorage.setItem('narration.script.definitions', 'local');
+    const api = createMockApi({}, { dictionary: 'missing' });
+    const install = vi.spyOn(api, 'assetsInstall');
+    // A flagged word in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
+    for (const chapter of await api.manuscriptChapters()) {
+      const [line] = await api.manuscriptParagraphs(chapter.id);
+      const found = /\p{L}+/u.exec(line!.text)!;
+      await api.scriptWordFlag(chapter.id, line!.id, found.index, found.index + found[0].length);
+    }
+    mount({ api });
+    await firstHeading();
+    const body = () => document.getElementById('railbody')!;
+    // A flagged word's row opens its card, which reads the definition from the chosen source.
+    fireEvent.click((await within(body()).findAllByRole('row', {}, { timeout: 5000 }))[1]!);
+    await waitFor(() => expect(within(body()).getByText(/is not installed/)).toBeTruthy(), { timeout: 5000 });
+    expect(install).not.toHaveBeenCalled();
+    fireEvent.click(within(body()).getByRole('button', { name: 'Download dictionary' }));
+    const question = await screen.findByRole('alertdialog', { name: 'Download the dictionary?' });
+    expect(install).not.toHaveBeenCalled();
+    fireEvent.click(within(question).getByRole('button', { name: 'Download dictionary' }));
+    await waitFor(() => expect(install).toHaveBeenCalledWith('dictionary', expect.any(String)));
+  });
+});
+
+describe('bookmarks-from-the-jump-menu', () => {
+  /** Makes one bookmark in the second paragraph with the keyboard, as a narrator would, and returns it. */
+  async function bookmarked(api: NarrationApi) {
+    await firstHeading();
+    await waitFor(() => expect(document.querySelector('p[data-pid="p-2"]')).not.toBeNull());
+    selectIn('p-2', 3, 6);
+    press('KeyB', 'b');
+    await waitFor(async () => expect(await api.bookmarksList()).toHaveLength(1));
+    await screen.findByRole('dialog', { name: 'Edit bookmark' });
+    press('Escape', 'Escape');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit bookmark' })).toBeNull());
+    window.getSelection()!.removeAllRanges();
+    return (await api.bookmarksList())[0]!;
+  }
+
+  it('choosing Bookmark: label in the jump menu scrolls the reader to it', async () => {
+    const { api } = mount();
+    const bookmark = await bookmarked(api);
+    const reader = document.querySelector<HTMLElement>('section[aria-label="Reader"] [role="region"]')!;
+    const tops: number[] = [];
+    let top = 0;
+    Object.defineProperty(reader, 'scrollTop', {
+      configurable: true,
+      get: () => top,
+      set: (value: number) => {
+        top = value;
+        tops.push(value);
+      },
+    });
+    const entry = providedCommands().find((row) => row.id === `bookmark.go.${bookmark.id}`);
+    expect(entry?.label).toMatch(/^Bookmark: /);
+    act(() => entry!.run());
+    // The reader is asked once, scrolls, and the bookmark's ribbon pulses.
+    await waitFor(() => expect(tops.length).toBeGreaterThan(0));
+    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] .motion-safe\\:animate-pulse`)).not.toBeNull());
+  });
+
+  it('Next bookmark with none says No bookmarks yet.', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    mount();
+    await firstHeading();
+    press('BracketRight', ']', { altKey: true });
+    expect(toast).toHaveBeenCalledWith('No bookmarks yet.');
+    toast.mockClear();
+    act(() =>
+      providedCommands()
+        .find((row) => row.id === 'bookmark.menu.next')!
+        .run(),
+    );
+    expect(toast).toHaveBeenCalledWith('No bookmarks yet.');
+    toast.mockRestore();
+  });
+});
+
+describe('find-address', () => {
+  it('/script?find=Alice opens the Find bar on Alice', async () => {
+    mount({ at: '/script?find=Alice' });
+    await firstHeading();
+    await waitFor(() => expect(view.find).toMatchObject({ open: true, q: 'Alice' }));
+    expect((within(await screen.findByRole('search')).getByRole('textbox') as HTMLInputElement).value).toBe('Alice');
+  });
+
+  it('takes the query off the address once read, so Back does not search again', async () => {
+    mount({ at: '/script?find=Alice' });
+    await firstHeading();
+    await waitFor(() => expect(view.find.open).toBe(true));
+    press('Escape', 'Escape');
+    await waitFor(() => expect(view.find.open).toBe(false));
+    expect(view.find.q).toBe('Alice');
+  });
+});
+
+describe('opening-credits-row', () => {
+  it('lists the opening credits above chapter 1 and jumps to the card', async () => {
+    mount();
+    await firstHeading();
+    const list = within(panel('chapters'));
+    const row = await list.findByRole('button', { name: /Opening credits/ });
+    expect(list.getAllByRole('button')[0]).toBe(row);
+    // The card still has [Token]s to fill in, so the dot says Not started.
+    expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('none');
+    fireEvent.click(row);
+    await waitFor(() => expect(document.querySelector('[data-credits-entry="opening"]')).not.toBeNull());
+  });
+
+  it('draws the credits row prepped once the opening credits have nothing left to fill in', async () => {
+    const api = createMockApi({ creditsPreview: async () => ({ text: 'Alice, written by Carroll.', words: 4, unresolved: [] }) });
+    mount({ api });
+    await firstHeading();
+    const row = await within(panel('chapters')).findByRole('button', { name: /Opening credits/ });
+    await waitFor(() => expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('prepped'));
+  });
+
+  it('lists no credits row when the library has no opening template', async () => {
+    mount({ api: createMockApi({ creditsTemplates: async () => [] }) });
+    await firstHeading();
+    expect(within(panel('chapters')).queryByRole('button', { name: /Opening credits/ })).toBeNull();
+  });
 });

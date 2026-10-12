@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
+import type { ManuscriptChapter } from './api/contracts/manuscript';
 import { cardLabel, chapterHeading, endedName } from './chapterHeading';
 
 const chapter = (over: Partial<ManuscriptChapter>): ManuscriptChapter => ({

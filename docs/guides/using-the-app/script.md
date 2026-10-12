@@ -112,9 +112,6 @@ section the importer recognized stays in the project's data (the Story Bible has
 of Characters) but is never a page you page through in the reader, and a saved or shared link into
 one tells you so instead of landing there.
 
-Marks replaced the reader notes and the script markup of earlier versions: notes written then became marks the first
-time the page read them, and the old markup file (`narration-utils/prep/markup.json`) is no longer read.
-
 ---
 
 [← Production](production.md) · [Index](README.md) · [Story Bible →](story-bible.md)

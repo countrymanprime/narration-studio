@@ -13,6 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/editing"
 	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	extractionstore "github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
 	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 	"github.com/countrymanprime/narration-utils/shell/internal/importer"
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
@@ -981,6 +982,108 @@ func TestReplaceAndClearRemoveTheWordFxFile(t *testing.T) {
 	}
 }
 
+// The script prep names chapter and line ids and UTF-16 ranges in them, so a confirmed replace and Clear project data remove the
+// file; an import that resets nothing keeps it.
+func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writePrep := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(scriptprep.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writePrep()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(scriptprep.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the script prep: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the script prep behind: %v", err)
+	}
+	writePrep()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the script prep behind: %v", err)
+	}
+}
+
+// The extraction suggestions name entries and quote paragraphs of the manuscript, so a confirmed replace and Clear project data remove
+// the file; an import that resets nothing keeps it (extraction.test.tsx row 23).
+func TestReplaceAndClearRemoveTheSuggestionsFile(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	importAlice := func(confirmedReset bool) ImportJob {
+		t.Helper()
+		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+		if _, err := service.Preview(job.ID, 1); err != nil {
+			t.Fatal(err)
+		}
+		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return committed
+	}
+	writeSuggestions := func() {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(extractionstore.File(project)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(extractionstore.File(project), []byte(`{"version":1,"suggestions":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeSuggestions()
+	if committed := importAlice(false); committed.Phase != "success" {
+		t.Fatalf("first import = %#v", committed)
+	}
+	if _, err := os.Stat(extractionstore.File(project)); err != nil {
+		t.Fatalf("an import without a reset removed the suggestions: %v", err)
+	}
+	if committed := importAlice(false); !committed.RequiresReset || committed.Phase == "success" {
+		t.Fatalf("an unconfirmed replace committed: %#v", committed)
+	}
+	if _, err := os.Stat(extractionstore.File(project)); err != nil {
+		t.Fatalf("an unconfirmed replace removed the suggestions: %v", err)
+	}
+	if committed := importAlice(true); committed.Phase != "success" {
+		t.Fatalf("confirmed replace = %#v", committed)
+	}
+	if _, err := os.Stat(extractionstore.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a confirmed replace left the suggestions behind: %v", err)
+	}
+	writeSuggestions()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(extractionstore.File(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the suggestions behind: %v", err)
+	}
+}
+
 // Stacks and retry modes name chapter ids and the passages and takes of the recording, so replacing the manuscript and Clear
 // project data remove editing/stacks.json as well (ADR 0858); an import that resets nothing keeps it.
 func TestReplaceAndClearRemoveTheStacksFile(t *testing.T) {
@@ -1032,54 +1135,6 @@ func TestReplaceAndClearRemoveTheStacksFile(t *testing.T) {
 	}
 	if _, err := os.Stat(editlog.StacksFile(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the stacks behind: %v", err)
-	}
-}
-
-// The script prep names chapter and line ids and UTF-16 ranges in them, so a confirmed replace and Clear project data remove the
-// file; an import that resets nothing keeps it.
-func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
-	project := t.TempDir()
-	service := New(project)
-	importAlice := func(confirmedReset bool) ImportJob {
-		t.Helper()
-		job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
-		if _, err := service.Preview(job.ID, 1); err != nil {
-			t.Fatal(err)
-		}
-		committed, err := service.Commit(job.ID, confirmedReset, Choices{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return committed
-	}
-	writePrep := func() {
-		t.Helper()
-		if err := os.MkdirAll(filepath.Dir(scriptprep.File(project)), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	writePrep()
-	if committed := importAlice(false); committed.Phase != "success" {
-		t.Fatalf("first import = %#v", committed)
-	}
-	if _, err := os.Stat(scriptprep.File(project)); err != nil {
-		t.Fatalf("an import without a reset removed the script prep: %v", err)
-	}
-	if committed := importAlice(true); committed.Phase != "success" {
-		t.Fatalf("confirmed replace = %#v", committed)
-	}
-	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
-		t.Fatalf("a confirmed replace left the script prep behind: %v", err)
-	}
-	writePrep()
-	if err := service.Clear(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
-		t.Fatalf("Clear project data left the script prep behind: %v", err)
 	}
 }
 

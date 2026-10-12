@@ -8,7 +8,6 @@ afterEach(cleanup);
 
 function renderCard(overrides: Partial<Parameters<typeof ReaderCard>[0]> = {}) {
   const onToggleExpand = vi.fn();
-  const onToggleBookmark = vi.fn();
   const onRecordInBooth = vi.fn();
   render(
     <ReaderCard
@@ -17,8 +16,6 @@ function renderCard(overrides: Partial<Parameters<typeof ReaderCard>[0]> = {}) {
       subtitle="The Pool of Tears"
       expanded={false}
       onToggleExpand={onToggleExpand}
-      bookmarked={false}
-      onToggleBookmark={onToggleBookmark}
       onRecordInBooth={onRecordInBooth}
       wordCount={3182}
       {...overrides}
@@ -26,7 +23,7 @@ function renderCard(overrides: Partial<Parameters<typeof ReaderCard>[0]> = {}) {
       <p>Body</p>
     </ReaderCard>,
   );
-  return { onToggleExpand, onToggleBookmark, onRecordInBooth };
+  return { onToggleExpand, onRecordInBooth };
 }
 
 describe('ReaderCard', () => {
@@ -61,21 +58,12 @@ describe('ReaderCard', () => {
   it('Enter and Space on the focused toggle activate it, like any native button', async () => {
     const user = userEvent.setup();
     const { onToggleExpand } = renderCard();
-    await user.tab(); // bookmark
     await user.tab(); // the toggle
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Chapter 2 — The Pool of Tears' }));
     await user.keyboard('{Enter}');
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
     await user.keyboard(' ');
     expect(onToggleExpand).toHaveBeenCalledTimes(2);
-  });
-
-  it('pressing the bookmark toggles the bookmark, not the card', async () => {
-    const user = userEvent.setup();
-    const { onToggleBookmark, onToggleExpand } = renderCard();
-    await user.click(screen.getByRole('button', { name: 'Bookmark this chapter' }));
-    expect(onToggleBookmark).toHaveBeenCalledTimes(1);
-    expect(onToggleExpand).not.toHaveBeenCalled();
   });
 
   it('pressing Record in Booth opens the Booth, not the card', async () => {
@@ -146,17 +134,12 @@ describe('ReaderCard', () => {
     expect(expanded.querySelector('[data-icon="chevron-up"]')).toBeTruthy();
   });
 
-  it('renders no bookmark button when onToggleBookmark is omitted (MC1: credits have no bookmark)', () => {
-    renderCard({ onToggleBookmark: undefined, bookmarked: undefined });
-    expect(screen.queryByRole('button', { name: /bookmark/i })).toBeNull();
-  });
-
-  it('still reserves the leading grid cell with no bookmark, so the toggle and the stat cluster keep their own grid columns', () => {
+  it('still reserves the leading grid cell, so the toggle and the stat cluster keep their own grid columns', () => {
     // A React child that is entirely absent (not merely empty) is not a grid item, so CSS grid auto-placement shifts
     // every following item left by one column and the last (stat/action/chevron) column collapses to 0 width - the
-    // real bug this pins: credits (no bookmark) rendered its stat block flush against the title instead of at the
+    // real bug this pins: a card whose leading cell was absent rendered its stat block flush against the title instead of at the
     // header's right edge, in a real browser, even though every relevant jsdom test still passed.
-    renderCard({ onToggleBookmark: undefined, bookmarked: undefined });
+    renderCard();
     const header = document.querySelector('header')!;
     expect(header.children).toHaveLength(3);
   });

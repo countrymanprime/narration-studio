@@ -160,6 +160,8 @@ export type DawProject = {
   otherTakes?: Readonly<Record<string, number>>;
   /** The narrator's saved FX chains as the DAW lists them (list_fx_chains). */
   fxChains?: readonly string[];
+  /** The passages the DAW could stack (bindings_daw_stack.go names them `pm-<chapter>-<paragraph>`). */
+  passageIds?: readonly string[];
 };
 
 export const DAW_PROJECT: DawProject = {
@@ -169,6 +171,7 @@ export const DAW_PROJECT: DawProject = {
   otherTakes: { 'take-1': 1, 'take-2': 1, 'take-solo': 0 },
   // The chains of tests/fixtures/contracts/workspace-fx-chains.json, so the mock lists what the host stand-in does.
   fxChains: ['Podcast Voice.RfxChain', 'Vocal Chain/Warmth.RfxChain'],
+  passageIds: ['pm-chapter-1-p-1'],
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
@@ -203,6 +206,9 @@ export const DAW_ANSWERS = {
   /** bindings_daw_fx_range.go (SN-D66): a chain REAPER does not list (apply_fx_range's own sentence), and words not heard, in an effect's words. */
   fxBadChain: 'That FX chain is not in the FXChains folder REAPER lists.',
   fxNotHeard: "These words weren't heard in the recording, so there's no audio to put an effect on. Run the check again if the chapter has changed.",
+  /** bindings_daw_stack.go (SN-D72): a passage id the chapter's passage map does not list (code stale), and a kept take. */
+  stackNotAPassage: "That passage is not one of this chapter's passages any more, so nothing was changed. Read the chapter again.",
+  stackKept: 'A take of this passage has been kept, so its reads cannot be stacked or moved back.',
 } as const;
 
 const plural = (count: number): string => (count === 1 ? '' : 's');
@@ -311,6 +317,50 @@ export function fxRangeOf(setup: DawCapabilities, chain: string, words: number):
       return { message, undoSteps: 0 };
     case 'steps':
       return { message, undoSteps: FX_RANGE_STEPS.length, steps: [...FX_RANGE_STEPS] };
+    default:
+      return { message, undoSteps: 1 };
+  }
+}
+
+/** dawport/reaper's takeStacker: `takes` later reads stacked on their first read in `daw`. */
+export function takesStackedAnswer(takes: number, daw: string): string {
+  return `Stacked ${takes} take${plural(takes)} in ${daw}.`;
+}
+
+/** dawport/reaper's takeStacker: `takes` stacked takes moved back to where they were recorded in `daw`. */
+export function takesUnstackedAnswer(takes: number, daw: string): string {
+  return `Moved back ${takes} take${plural(takes)} in ${daw}.`;
+}
+
+/** dawport/reaper's takeStacker and passagetakes.StackPlan: a request with nothing to move. */
+export function nothingToStackAnswer(daw: string): string {
+  return `There are no retries to move in ${daw}.`;
+}
+
+/** nothingToStackAnswer for one of DAW_SETUPS, named for its DAW. */
+export function nothingToStackOf(setup: DawCapabilities): string {
+  return nothingToStackAnswer(setup.daw);
+}
+
+/** The edits a `steps` DAW makes to stack retries, in order (the Studio Next mock's STACK_PLAN.steps). */
+export const STACK_STEPS = [
+  'Add a take track',
+  'Paste each later read into it',
+  'Split at the point where the reads line up',
+  'Shift the audio that follows to close the gap',
+  'Mute the reads that are not on top',
+] as const;
+
+/** What a stack (or, with `unstack`, an un-stack) of `takes` takes answers on one of DAW_SETUPS once `stack_takes` is available, by its
+ * mode, as the mock's restack does: one undo step natively, the steps listed and one undo step each in steps, none where the app makes
+ * it. */
+export function stackOf(setup: DawCapabilities, takes: number, unstack = false): { message: string; undoSteps: number; steps?: string[] } {
+  const message = (unstack ? takesUnstackedAnswer : takesStackedAnswer)(takes, setup.daw);
+  switch (setup.capabilities.stack_takes?.mode) {
+    case 'app':
+      return { message, undoSteps: 0 };
+    case 'steps':
+      return { message: `${message} Done in ${STACK_STEPS.length} steps.`, undoSteps: STACK_STEPS.length, steps: [...STACK_STEPS] };
     default:
       return { message, undoSteps: 1 };
   }

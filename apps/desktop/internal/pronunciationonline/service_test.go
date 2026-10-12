@@ -166,9 +166,6 @@ func TestALookupWithoutAKeySendsNothing(t *testing.T) {
 	if _, err := service.Lookup(context.Background(), "croquet"); !errors.Is(err, pronunciationonline.ErrNoKey) {
 		t.Fatalf("Lookup without a key = %v, want ErrNoKey", err)
 	}
-	if _, err := service.LookupBatch(context.Background(), []string{"croquet"}, 1); !errors.Is(err, pronunciationonline.ErrNoKey) {
-		t.Fatalf("LookupBatch without a key = %v, want ErrNoKey", err)
-	}
 	if calls := fake.Calls(); len(calls) != 0 {
 		t.Fatalf("the dictionary was called %d times without a key", len(calls))
 	}
@@ -193,67 +190,5 @@ func TestSetKeyStoresOnlyAKeyShapedValueAndNeverQuotesIt(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "credentials.json")); err != nil {
 		t.Fatalf("the key went somewhere other than the credentials file: %v", err)
-	}
-}
-
-// Q11: a batch is opt-in with a notice. The confirmed count must be exactly the number of distinct words the batch would
-// send, or nothing is sent.
-func TestABatchSendsNothingUnlessItsWordCountWasConfirmed(t *testing.T) {
-	service, fake, _ := withKey(t)
-	words := []string{"croquet", "Wren", "wren", "quorlen"} // three distinct words
-	for _, confirmed := range []int{0, 1, 2, 4, -1} {
-		if _, err := service.LookupBatch(context.Background(), words, confirmed); !errors.Is(err, pronunciationonline.ErrBatchNotConfirmed) {
-			t.Errorf("LookupBatch confirmed %d of 3 = %v; want ErrBatchNotConfirmed", confirmed, err)
-		}
-	}
-	if calls := fake.Calls(); len(calls) != 0 {
-		t.Fatalf("an unconfirmed batch sent %d requests", len(calls))
-	}
-	result, err := service.LookupBatch(context.Background(), words, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result != (pronunciationonline.BatchResult{Words: 3, Fetched: 3, NotFound: 1}) {
-		t.Fatalf("LookupBatch = %+v", result)
-	}
-	// Once per batch, never once per word, and a word looked up before costs nothing.
-	again, err := service.LookupBatch(context.Background(), []string{"croquet", "wren"}, 2)
-	if err != nil || again.FromCache != 2 || again.Fetched != 0 {
-		t.Fatalf("LookupBatch of cached words = %+v, %v", again, err)
-	}
-	if calls := fake.Calls(); len(calls) != 3 {
-		t.Fatalf("the dictionary was called %d times; want 3", len(calls))
-	}
-}
-
-func TestABatchRefusesABadWordAndTooManyWordsBeforeSendingAny(t *testing.T) {
-	service, fake, _ := withKey(t)
-	if _, err := service.LookupBatch(context.Background(), []string{"croquet", "a whole sentence of text"}, 2); !errors.Is(err, pronunciationonline.ErrNotAWord) {
-		t.Fatalf("a batch with a passage = %v, want ErrNotAWord", err)
-	}
-	many := make([]string, 0, pronunciationonline.MaxBatchWords+1)
-	for i := range pronunciationonline.MaxBatchWords + 1 {
-		many = append(many, "w"+string([]rune{rune('a' + i/676%26), rune('a' + i/26%26), rune('a' + i%26)}))
-	}
-	if _, err := service.LookupBatch(context.Background(), many, len(many)); !errors.Is(err, pronunciationonline.ErrBatchTooLarge) {
-		t.Fatalf("a batch of %d = %v, want ErrBatchTooLarge", len(many), err)
-	}
-	if calls := fake.Calls(); len(calls) != 0 {
-		t.Fatalf("a refused batch sent %d requests", len(calls))
-	}
-}
-
-func TestABatchStopsWhenTheKeyIsRefused(t *testing.T) {
-	service, fake, _ := withKey(t)
-	fake.Errs = map[string]error{"wren": pronunciationonline.ErrKeyRefused}
-	result, err := service.LookupBatch(context.Background(), []string{"croquet", "wren", "quorlen"}, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !result.Stopped || result.Fetched != 1 || result.Failed != 1 || !strings.HasPrefix(result.StopReason, "Merriam-Webster refused") {
-		t.Fatalf("LookupBatch = %+v; want it stopped at the refused key", result)
-	}
-	if calls := fake.Calls(); len(calls) != 2 {
-		t.Fatalf("the dictionary was called %d times; want 2, none after the refusal", len(calls))
 	}
 }

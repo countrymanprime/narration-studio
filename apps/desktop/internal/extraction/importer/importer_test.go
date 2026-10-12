@@ -55,6 +55,42 @@ func TestCSVReadsQuotedCellsAndNumbersRowsByLine(t *testing.T) {
 	}
 }
 
+// A sheet saved tab-separated parses like a comma one (extraction.test.tsx row 31): every record type, with a comma or a semicolon
+// inside a cell kept as text, and each row numbered by its line.
+func TestATabSeparatedSheetParses(t *testing.T) {
+	r := Parse([]byte(strings.Join([]string{
+		"record\tname\ttype\taliases\tdescription\tkey\tvalue\tto\trelation\tkind\ttext\tevidence\tquote\tspeaker\tconfidence",
+		"entry\tZed\tCharacter\tZ;Zee\tTall, and quiet\t\t\t\t\t\t\t\t\t\t0.9",
+		"property\tZed\t\t\t\tHeight\tTall\t\t\t\t\the, was tall\t\t\t80%",
+		"relationship\tZed\t\t\t\t\t\tAlice\tknows\t\t\t\t\t\t",
+		"claim\tZed\t\t\t\t\t\t\t\tact\tRuns\t\t\t\t0.5",
+		"speaker\t\t\t\t\t\t\t\t\t\t\t\t“Hi”\tZed\t1",
+	}, "\n")), "")
+	if len(r.Errors) != 0 {
+		t.Fatalf("errors: %v", r.Errors)
+	}
+	if !reflect.DeepEqual(records(r.Rows), Records) {
+		t.Fatalf("records = %v", records(r.Rows))
+	}
+	if want := []*float64{f64(0.9), f64(0.8), nil, f64(0.5), f64(1)}; !reflect.DeepEqual(confs(r.Rows), want) {
+		t.Fatalf("confidences = %v", confs(r.Rows))
+	}
+	var lines []int
+	for _, row := range r.Rows {
+		lines = append(lines, row.Row)
+	}
+	if !reflect.DeepEqual(lines, []int{2, 3, 4, 5, 6}) {
+		t.Fatalf("rows = %v", lines)
+	}
+	zed, height := r.Rows[0].Item, r.Rows[1].Item
+	if zed.Name != "Zed" || zed.Type != "Character" || zed.Description != "Tall, and quiet" || !reflect.DeepEqual(zed.Aliases, []string{"Z", "Zee"}) {
+		t.Fatalf("entry: %+v", zed)
+	}
+	if height.Key != "Height" || height.Value != "Tall" || height.Evidence != "he, was tall" {
+		t.Fatalf("property: %+v", height)
+	}
+}
+
 func TestCSVParsesEveryRecordType(t *testing.T) {
 	r := Parse([]byte(strings.Join([]string{
 		"record,name,type,aliases,description,key,value,to,relation,kind,text,evidence,quote,speaker,confidence",

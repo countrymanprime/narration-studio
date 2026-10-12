@@ -12,8 +12,8 @@ type Props = {
   session: TeleprompterSession;
   /**
    * Following for the shared reader: computed by the caller and shared with
-   * `ReadingControlBar`'s Follow button, which lives outside this view (the
-   * dialog's non-scrolling footer, or the standalone page's own sticky bar).
+   * the Follow button, which lives outside this view (the caller's own
+   * control bar).
    */
   follow: FollowCursor;
   /**
@@ -47,10 +47,9 @@ type Props = {
 
 /**
  * The reader text, status line and model-download prompt - everything a reading session shows once a chapter is chosen.
- * Mounted by `BoothView` (the Booth, which replaced the Teleprompter page
- * and the Read aloud dialog that shared it) and by `CompanionShell`. Chapter choice is not this component's job, and neither
- * is Start/Stop, the microphone or the engine/model choice: those moved
- * into `ReadingControlBar`, which the caller renders outside this view (a `Dialog` footer, or the page's own sticky bar).
+ * Mounted by `CompanionShell`. Chapter choice is not this component's job, and neither
+ * is Start/Stop, the microphone or the engine/model choice: those are
+ * the caller's, outside this view.
  */
 export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, aside, hideKey = false, fullBleed = false, dense = false, speakers }: Props) {
   const text = (

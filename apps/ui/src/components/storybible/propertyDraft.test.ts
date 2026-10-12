@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { addDraftRow, draftFrom, moveDraftRow, propertiesFrom, propertyProblem, removeDraftRow, sameProperties, updateDraftRow } from './propertyDraft';
+import {
+  addDraftRow,
+  draftFrom,
+  moveDraftRow,
+  propertiesFrom,
+  propertyProblem,
+  removeDraftRow,
+  sameProperties,
+  splitTalk,
+  updateDraftRow,
+  withTalk,
+} from './propertyDraft';
 
 const PAIRS = [
   { key: 'Codename', value: 'Wren' },
@@ -80,5 +91,36 @@ describe('what a Save sends', () => {
     expect(sameProperties(PAIRS, [PAIRS[0], { key: 'Abilities', value: 'Flying' }])).toBe(false);
     expect(sameProperties(PAIRS, PAIRS.slice(0, 1))).toBe(false);
     expect(sameProperties([], [])).toBe(true);
+  });
+});
+
+describe('the talk, act and know properties', () => {
+  it('splits them out by key, whatever its case, and keeps the others in order', () => {
+    const { rest, talk } = splitTalk([
+      { key: 'Age', value: '7' },
+      { key: 'Says', value: 'Clipped' },
+      { key: 'Home', value: 'Oxford' },
+      { key: ' knows ', value: 'The code' },
+      { key: 'says', value: 'second one is dropped' },
+    ]);
+    expect(rest).toEqual([
+      { key: 'Age', value: '7' },
+      { key: 'Home', value: 'Oxford' },
+    ]);
+    expect(talk).toEqual({ says: 'Clipped', does: '', knows: 'The code' });
+  });
+
+  it('puts the ones with text back after the rest under their own keys', () => {
+    expect(withTalk([{ key: 'Age', value: '7' }], { says: ' Slow ', does: '  ', knows: 'All' })).toEqual([
+      { key: 'Age', value: '7' },
+      { key: 'says', value: 'Slow' },
+      { key: 'knows', value: 'All' },
+    ]);
+  });
+
+  it('refuses a row named like one of them only for a character', () => {
+    const rows = [{ id: 0, key: 'Does', value: 'x' }];
+    expect(propertyProblem(rows, true)).toBe('“Does” is the How they act field above. Write it there.');
+    expect(propertyProblem(rows)).toBeUndefined();
   });
 });

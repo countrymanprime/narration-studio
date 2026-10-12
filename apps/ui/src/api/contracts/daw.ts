@@ -199,6 +199,17 @@ export interface DawFxRangeApi {
   dawRemoveFxFromRange(chapterId: string, firstToken: number, lastToken: number, chainName: string): Promise<DawResult>;
 }
 
+/** DawStackTakes and DawUnstackTakes (SND-7b; apps/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the
+ * first read's spot as takes, and move them back (ADR 0860 point 4). The page sends a chapter id and passage ids only: the host rebuilds
+ * the groups, moves and shift itself from the Booth's passage map, the chapter's track as the DAW reports it now and, to move back, the
+ * offsets the saved project's stacked takes recorded, so the plan a dialog showed is never sent. A capability refusal carries the
+ * capability's sentence; a passage id the chapter does not list, a track that is gone, and an item that changed since the host read it
+ * are code `stale`; a kept take, reads two passages share and nothing to move are refused with a sentence. */
+export interface DawStackTakesApi {
+  dawStackTakes(chapterId: string, passageIds: string[]): Promise<DawResult>;
+  dawUnstackTakes(chapterId: string, passageIds: string[]): Promise<DawResult>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */
