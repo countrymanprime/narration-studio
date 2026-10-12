@@ -25,7 +25,7 @@ const plainId = (id: string) => id !== '' && [...id].length <= STACK_MAX_ID && !
 
 function checkResult(stack: EditStackRecordRequest): void {
   const missing = 'a stack is recorded only after the DAW stacked the takes: its result is missing';
-  const undo = stack.undoSteps as number | null | undefined;
+  const undo: unknown = stack.undoSteps;
   if (typeof undo !== 'number' || !Number.isInteger(undo) || undo < 0 || undo > STACK_MAX_UNDO_STEPS) throw new Error(missing);
   if (stack.backupId !== undefined && stack.backupId !== '' && !plainId(stack.backupId)) throw new Error('a backup is named by the id the DAW gave it');
   const steps = stack.steps ?? [];
