@@ -11,7 +11,7 @@ import { DAW_SETUPS, fxChainsSource } from '../../../fixtures/daw';
 import { OverlayHost } from '../../../overlay/OverlayHost';
 import { overlay } from '../../../overlay/overlayService';
 import type { AlignmentPort } from '../../../ports/alignment';
-import { createMockDawClient, type DawClient, type FxList } from '../../../ports/daw';
+import { createMockDawClient, type DawClient, type FxList, type FxRangeSettingChange } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { createJournal } from '../../../studio/journal/createJournal';
 import { Drawer } from '../drawer/Drawer';
@@ -27,6 +27,7 @@ import { planRange } from '../range/common/rangePlan';
 import { AddEffect, SELECT_FIRST } from './AddEffect';
 import { CoverageStrip } from './CoverageStrip';
 import { EffectInspector } from './EffectInspector';
+import { EffectHostProvider, type EffectHost } from './EffectSettings';
 import { EffectsList } from './EffectsList';
 import { capSentence, capState, coverageOf, coverageOfEffects, FX_CAP_LABEL, FX_CAP_PCT, impactOf } from './effectsMath';
 import { EffectsTab, effectsCount, type EffectsTabProps } from './EffectsTab';
@@ -405,6 +406,150 @@ describe('the page’s own Add FX and Remove', () => {
     expect(removed).toHaveLength(1);
     await waitFor(() => expect(screen.getByText('Effects cover 0.0% of this chapter')).toBeTruthy());
     expect(log.effects).toHaveLength(0);
+  });
+});
+
+describe('the inspector with a DAW that has the commands', () => {
+  const target = { chapterId: 'chapter-1', firstToken: 0, lastToken: 1, chainName: 'Podcast Voice.RfxChain' };
+  let sets: FxRangeSettingChange[];
+  let bypasses: boolean[];
+  let bypassed: boolean;
+  let plays: [number, number][];
+  let journal: ReturnType<typeof createJournal>;
+  const host = (over: Partial<EffectHost> = {}): EffectHost => ({
+    chapterId: 'chapter-1',
+    locator,
+    journal,
+    effects: MANY,
+    play: (from, to) => void plays.push([from, to]),
+    stop: () => {},
+    playing: false,
+    ...over,
+  });
+  const dawWith = (setup: DawCapabilities): DawClient => {
+    const base = createMockDawClient(setup);
+    return {
+      ...base,
+      fxRangeParams: async (t) => ({ ...(await base.fxRangeParams(t)), bypassed }),
+      setFxRangeParam: (c) => (sets.push(c), base.setFxRangeParam(c)),
+      bypassFxRange: (t, b) => ((bypassed = b), bypasses.push(b), base.bypassFxRange(t, b)),
+    };
+  };
+  const show = (fx: WordFx, daw: DawClient, h: EffectHost = host()) =>
+    render(
+      <ApiProvider api={{ ...createMockApi(), dawCapabilities: async () => DAW_SETUPS.reaper }}>
+        <PortOverrides clients={{ daw }}>
+          <EffectHostProvider value={h}>
+            <EffectInspector fx={fx} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} />
+          </EffectHostProvider>
+          <OverlayHost />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+  beforeEach(() => {
+    sets = [];
+    bypasses = [];
+    plays = [];
+    bypassed = false;
+    journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+  });
+
+  it('changes a setting, bypasses, previews and compares an effect, and asks before turning one on over the cap', async () => {
+    const daw = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
+    const view = show(MANY[0], daw, host({ effects: ONE }));
+    // The settings the DAW lists: a stepped one is a number field, a continuous one a slider.
+    const mode = (await screen.findByRole('textbox', { name: 'Mode' })) as HTMLInputElement;
+    expect(screen.getByRole('slider', { name: 'Gain' })).toBeTruthy();
+    // A change is one DAW call and one journal entry.
+    fireEvent.change(mode, { target: { value: '2' } });
+    await waitFor(() => expect(sets).toEqual([{ ...target, fx: 0, index: 1, value: 2 }]));
+    await waitFor(async () => expect((await journal.entries()).map((e) => e.label)).toEqual(['Set Mode of Podcast Voice to 2']));
+    // Bypass is one DAW call and one entry; the box follows the DAW.
+    const box = screen.getByRole('checkbox', { name: 'Bypass this effect' });
+    fireEvent.click(box);
+    await waitFor(() => expect(bypasses).toEqual([true]));
+    await waitFor(() => expect(box.getAttribute('aria-checked')).toBe('true'));
+    expect((await journal.entries())[0].label).toBe('Bypassed Podcast Voice');
+    // Turning it back on while it stays inside the cap needs no question.
+    fireEvent.click(box);
+    await waitFor(() => expect(bypasses).toEqual([true, false]));
+    // Preview plays the effect's words with 2 s either side.
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(plays).toEqual([[8, 24]]);
+    view.unmount();
+    cleanup();
+
+    // fx3 sits apart; the other two cover 10%, so turning fx3 on takes the chapter to 12%, over the 10% cap: it asks first.
+    bypassed = true;
+    bypasses = [];
+    show(MANY[2], daw);
+    const inspector = () => within(screen.getByRole('region', { name: 'Effect' }));
+    const off = await screen.findByRole('checkbox', { name: 'Bypass this effect' });
+    await waitFor(() => expect(off.getAttribute('aria-checked')).toBe('true'));
+    fireEvent.click(off);
+    expect(inspector().getByRole('alert').textContent).toContain('Turning this on takes coverage over the 10.0% cap.');
+    expect(bypasses).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(inspector().queryByRole('alert')).toBeNull();
+    expect(bypasses).toEqual([]);
+    fireEvent.click(off);
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on anyway' }));
+    await waitFor(() => expect(bypasses).toEqual([false]));
+    expect(inspector().queryByRole('alert')).toBeNull();
+  });
+
+  it('a slider sends the one value it was let go on', async () => {
+    show(MANY[0], dawWith(withFxRange(DAW_SETUPS.reaper, 'native')));
+    const gain = await screen.findByRole('slider', { name: 'Gain' });
+    fireEvent.change(gain, { target: { value: '4.8' } });
+    fireEvent.change(gain, { target: { value: '9.6' } });
+    expect(sets).toEqual([]);
+    fireEvent.keyUp(gain, { key: 'ArrowRight' });
+    await waitFor(() => expect(sets).toEqual([{ ...target, fx: 0, index: 0, value: 9.6 }]));
+  });
+
+  it('compares the words without the effect, then with it, and leaves the effect as it was', async () => {
+    const daw = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
+    const h = host();
+    const view = show(MANY[0], daw, h);
+    await screen.findByRole('textbox', { name: 'Mode' });
+    fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
+    await waitFor(() => expect(plays).toEqual([[10, 22]]));
+    expect(bypasses).toEqual([true]);
+    // Playing, then stopped: the first pass is over and the second plays with the effect on.
+    const again = (playing: boolean) =>
+      view.rerender(
+        <ApiProvider api={{ ...createMockApi(), dawCapabilities: async () => DAW_SETUPS.reaper }}>
+          <PortOverrides clients={{ daw }}>
+            <EffectHostProvider value={{ ...h, playing }}>
+              <EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} />
+            </EffectHostProvider>
+          </PortOverrides>
+        </ApiProvider>,
+      );
+    again(true);
+    again(false);
+    await waitFor(() =>
+      expect(plays).toEqual([
+        [10, 22],
+        [10, 22],
+      ]),
+    );
+    expect(bypasses).toEqual([true, false]);
+    again(true);
+    again(false);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Compare' }).hasAttribute('disabled')).toBe(false));
+    expect(bypasses).toEqual([true, false]);
+  });
+
+  it('a DAW without the commands keeps the controls off and says why', async () => {
+    show(MANY[0], dawWith(DAW_SETUPS.builtin));
+    await waitFor(() => expect(screen.getAllByText('Not available in REAPER.').length).toBe(3));
+    for (const name of ['Settings', 'Preview', 'Compare']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('textbox', { name: 'Mode' })).toBeNull();
+    expect(document.querySelector('[data-why]')?.textContent).toBeTruthy();
+    expect(sets).toEqual([]);
+    expect(bypasses).toEqual([]);
   });
 });
 

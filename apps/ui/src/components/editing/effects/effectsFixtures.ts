@@ -1,4 +1,7 @@
 import type { WordFx } from '../../../api/contracts/wordFx';
+import { createJournal } from '../../../studio/journal/createJournal';
+import { locator } from '../range/cut/cutFixtures';
+import type { EffectHost } from './EffectSettings';
 
 /** A stored effect on `keys` of p-1, in original time `a` to `b`. */
 export function wordFx(id: string, over: Partial<WordFx> = {}): WordFx {
@@ -38,3 +41,17 @@ export const MANY: WordFx[] = [
   wordFx('fx2', { keys: ['p-1:1', 'p-1:2'], text: 'first line', a: 20, b: 30, chainId: 'Warmth.RfxChain', chainName: 'Warmth' }),
   wordFx('fx3', { pid: 'p-2', keys: ['p-2:0'], text: 'Second', a: 100, b: 104, chainId: 'De-ess.RfxChain', chainName: 'De-ess' }),
 ];
+
+/** What the page lends the inspector, over `effects`: a history that keeps its entries, a locator for the fixtures' chapter, and a playback that does nothing. */
+export function effectHost(effects: readonly WordFx[] = MANY, over: Partial<EffectHost> = {}): EffectHost {
+  return {
+    chapterId: 'chapter-1',
+    locator,
+    journal: createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+    effects,
+    play: () => {},
+    stop: () => {},
+    playing: false,
+    ...over,
+  };
+}
