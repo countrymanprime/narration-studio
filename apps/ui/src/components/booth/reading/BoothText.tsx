@@ -28,6 +28,10 @@ type Props = {
   onBrowse: (on: boolean) => void;
   /** A click on a word. The view also snaps back from browsing. */
   onSeek: (paragraphId: string, word: number) => void;
+  /** A click on a note under a paragraph, by the note's id. */
+  onNote?: (id: string) => void;
+  /** A click on empty space: not on a sentence, a note or a speaker chip. */
+  onBackground?: () => void;
   /** Who can speak a quoted phrase, narrator excluded; the picker offers these. */
   speakers: readonly string[];
   /** The speaker's entity colour token (`--speaker-2`), by name. */
@@ -129,6 +133,8 @@ export function BoothText({
   browse,
   onBrowse,
   onSeek,
+  onNote,
+  onBackground,
   speakers,
   speakerColour,
   onSetSpeaker,
@@ -158,7 +164,15 @@ export function BoothText({
 
   let index = -1;
   return (
-    <div ref={box} onWheel={onWheel} data-booth-text className="relative h-full overflow-hidden px-7">
+    <div
+      ref={box}
+      onWheel={onWheel}
+      onClick={(event) => {
+        if (!(event.target as Element).closest('[data-unit],[data-note],button')) onBackground?.();
+      }}
+      data-booth-text
+      className="relative h-full overflow-hidden px-7"
+    >
       <div
         ref={text}
         style={{ fontSize: `${textSizePx(size)}px`, fontFamily: font, '--tsize': `${textSizePx(size)}px` } as CSSProperties}
@@ -198,12 +212,16 @@ export function BoothText({
               {notes
                 .filter((note) => note.paragraphId === paragraph.id)
                 .map((note) => (
-                  <span
+                  // native-control-ok: a note set in the running text at its size, which Button's padded chrome would break
+                  <button
+                    type="button"
                     key={note.id}
-                    className="mt-2 block w-fit rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-[0.42em] font-medium text-[var(--accent-strong)]"
+                    data-note={note.id}
+                    onClick={() => onNote?.(note.id)}
+                    className="mt-2 block w-fit cursor-pointer rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-left text-[0.42em] font-medium text-[var(--accent-strong)]"
                   >
                     {note.name}: {note.text}
-                  </span>
+                  </button>
                 ))}
             </p>
           );

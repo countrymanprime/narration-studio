@@ -19,7 +19,13 @@ const meta = {
   title: 'Booth/Frame',
   component: BoothTop,
   decorators: [withApi],
-  args: { progress: '¶ 38 of 71 · 41% · ~8:10 finished left', recording: false, panelOpen: true, onTogglePanel: fn() },
+  args: {
+    progress: '¶ 38 of 71 · 41% · ~8:10 finished left',
+    recording: false,
+    panelOpen: true,
+    onTogglePanel: fn(),
+    text: { font: 'Georgia', size: 40, onFont: fn(), onSize: fn() },
+  },
 } satisfies Meta<typeof BoothTop>;
 
 export default meta;
@@ -85,4 +91,16 @@ export const Drawer: Story = {
   parameters: { viewport: { defaultViewport: 'tablet' } },
   args: { panelOpen: false },
   render: (args) => <BoothTop {...args} />,
+};
+
+// The text popover: the reader font and the Booth size.
+export const TextSettings: Story = {
+  render: (args) => <BoothTop {...args} />,
+  play: async ({ canvasElement, args }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Text settings' }));
+    const body = within(document.body);
+    await expect(await body.findByText('40 px')).toBeTruthy();
+    await userEvent.selectOptions(body.getByRole('combobox', { name: 'Font' }), 'Verdana');
+    await expect(args.text?.onFont).toHaveBeenCalledWith('Verdana');
+  },
 };

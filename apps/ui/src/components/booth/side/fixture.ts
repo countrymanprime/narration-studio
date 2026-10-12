@@ -1,4 +1,4 @@
-import type { PrepMarkupSpan } from '../../../api/contracts/prepMarkup';
+import type { Mark, Marks } from '../../../api/contracts/marks';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { BoothUnit, ReadingParagraph } from '../reading/boothUnits';
 import { voicesNearby, comingUpWords } from './nearby';
@@ -57,35 +57,39 @@ const units: BoothUnit[] = [
   unit(2, 1, '“Not yet,” said Alice.', 'Alice', true),
 ];
 
-export const spans: PrepMarkupSpan[] = [
-  {
-    id: 's1',
-    chapterId: 'c1',
-    paragraphId: 'p1',
-    paragraph: 1,
-    start: 4,
-    end: 10,
-    anchorText: 'Garden',
-    kind: 'stress',
-    value: 'lean on it',
-    createdAt: '',
-    stale: false,
-  },
-  { id: 's2', chapterId: 'c1', paragraphId: 'p1', paragraph: 1, start: 12, end: 16, anchorText: 'was ', kind: 'pause', value: '', createdAt: '', stale: false },
-  {
-    id: 's3',
-    chapterId: 'c1',
-    paragraphId: 'p2',
-    paragraph: 2,
-    start: 0,
-    end: 3,
-    anchorText: 'Off',
-    kind: 'stress',
-    value: 'gone',
-    createdAt: '',
-    stale: true,
-  },
-];
+const mark = (over: Partial<Mark> & Pick<Mark, 'id' | 'paragraphId' | 'start' | 'end' | 'quote' | 'type'>): Mark => ({
+  chapterId: 'c1',
+  paragraph: 1,
+  text: '',
+  thread: [],
+  createdAt: '',
+  stale: false,
+  ...over,
+});
+
+/** The chapter's marks: a stressed name with a note and a reply, a pause with no note, a stale mark and an open question. */
+export const marks: Marks = {
+  types: [
+    { key: 'stress', name: 'Word stress', colour: 'copper', style: 'highlight', asks: false },
+    { key: 'breath', name: 'Breath / pause', colour: 'info', style: 'dotted', asks: false },
+    { key: 'ask', name: 'Query for author', colour: 'warn', style: 'highlight', asks: true },
+  ],
+  marks: [
+    mark({
+      id: 'm1',
+      paragraphId: 'p1',
+      start: 4,
+      end: 10,
+      quote: 'Garden',
+      type: 'stress',
+      text: 'lean on it',
+      thread: [{ who: 'author', text: 'yes', at: '2026-10-01T10:00:00Z' }],
+    }),
+    mark({ id: 'm2', paragraphId: 'p1', start: 11, end: 14, quote: 'was', type: 'breath' }),
+    mark({ id: 'm3', paragraphId: 'p2', paragraph: 2, start: 1, end: 4, quote: 'Off', type: 'stress', text: 'gone', stale: true }),
+    mark({ id: 'm4', paragraphId: 'p2', paragraph: 2, start: 53, end: 58, quote: 'Alice', type: 'ask', text: 'Which Alice?', status: 'open' }),
+  ],
+};
 
 export function sideData(overrides: Partial<BoothSideData> = {}): BoothSideData {
   return {

@@ -9,6 +9,8 @@ vi.mock('../../../api/hostWindow', () => host);
 
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
+import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
+import type { Mark, Marks } from '../../../api/contracts/marks';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import type { RecorderState } from '../../../api/contracts/recording';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
@@ -20,13 +22,16 @@ import { PortOverrides } from '../../../ports/usePort';
 import type { GuideDialogueCue } from '../../../api/contracts/storyBible';
 import type { TeleprompterEvent } from '../../../api/contracts/teleprompter';
 import type { NarrationApi, TeleprompterState } from '../../../types';
+import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BoothNextPage } from './BoothNextPage';
+import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 type Options = {
@@ -848,5 +853,119 @@ describe('Page Down and Page Up', () => {
     expect(y()).toBeCloseTo(y0);
     expect(current()).toBe('0');
     sized.forEach((spy) => spy.mockRestore());
+  });
+});
+
+describe('the text choices are saved', () => {
+  const text = () => document.querySelector<HTMLElement>('[data-booth-text] > div')!;
+
+  it('the text size and font come from the saved choices', async () => {
+    window.localStorage.setItem(BOOTH_SIZE_STORAGE_KEY, '52');
+    window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ font: 'Verdana', size: 18, spacing: 1.8, width: 64 }));
+    renderPage();
+    await ready();
+    expect(text().style.fontSize).toBe('52px');
+    expect(text().style.fontFamily).toContain('Verdana');
+  });
+
+  it('a size changed by the keys is the one the next visit opens with', async () => {
+    renderPage();
+    await ready();
+    await press('=', 'Equal');
+    expect(window.localStorage.getItem(BOOTH_SIZE_STORAGE_KEY)).toBe('44');
+    cleanup();
+    renderPage();
+    await ready();
+    expect(text().style.fontSize).toBe('44px');
+  });
+});
+
+describe('the chapter is named as the manuscript heads it', () => {
+  const chapters = (title: string, next: string): ManuscriptChapter[] =>
+    [
+      { id: 'c1', title, subtitle: 'Down the Rabbit-Hole', index: 0, wordCount: 30, status: 'not_started', contentKind: 'narration' },
+      { id: 'c2', title: next, subtitle: 'The Pool of Tears', index: 1, wordCount: 6, status: 'not_started', contentKind: 'narration' },
+    ] as ManuscriptChapter[];
+
+  it.each([
+    ['gutenberg', 'CHAPTER I.', 'CHAPTER II.'],
+    ['numbered', '1.', '2.'],
+    ['colon', 'Chapter 1:', 'Chapter 2:'],
+  ])('names the chapter in the manuscript style (%s)', async (_style, title, next) => {
+    renderPage({ api: { manuscriptChapters: async () => chapters(title, next) } });
+    await ready();
+    const picker = screen.getByRole('button', { name: /Chapter: .*Change chapter/ });
+    expect(picker.textContent).toContain(`${title} Down the Rabbit-Hole`);
+    await userEvent.click(picker);
+    expect(await screen.findByRole('menuitemradio', { name: `${next} The Pool of Tears` })).toBeTruthy();
+  });
+});
+
+describe('the reference in the side panel', () => {
+  const mark = (over: Partial<Mark>): Mark => ({
+    id: 'm1',
+    chapterId: 'c1',
+    paragraphId: 'p1',
+    paragraph: 0,
+    start: 15,
+    end: 20,
+    quote: 'quiet',
+    type: 'stress',
+    text: 'Soft, almost a whisper.',
+    thread: [{ who: 'author', text: 'Yes, hushed.', at: '2026-10-01T10:00:00Z' }],
+    createdAt: '2026-10-01T09:00:00Z',
+    stale: false,
+    ...over,
+  });
+  const MARKS: Marks = {
+    types: [{ key: 'stress', name: 'Word stress', colour: 'copper', style: 'highlight', asks: false }],
+    marks: [mark({})],
+  };
+  const reference = () => document.getElementById('booth-reference');
+  const word = (unit: number, index: number) => document.querySelector<HTMLElement>(`[data-unit="${unit}"] [data-word="${index}"]`)!;
+
+  it('clicking a marked word shows the note and its thread in the side panel', async () => {
+    renderPage({ api: { marksList: async () => MARKS } });
+    await ready();
+    await waitFor(() => expect(word(0, 3).title).toBe('Word stress'));
+    expect(reference()).toBeNull();
+    await userEvent.click(word(0, 3));
+    const ref = within(reference()!);
+    expect(ref.getByText('Word stress')).toBeTruthy();
+    expect(ref.getByText('“quiet”')).toBeTruthy();
+    expect(ref.getByText('Soft, almost a whisper.')).toBeTruthy();
+    expect(ref.getByText('Yes, hushed.')).toBeTruthy();
+    expect(ref.getByText(/Author/)).toBeTruthy();
+    // The click still moves the reading position.
+    expect(current()).toBe('0');
+  });
+
+  it('a note under a paragraph opens its text; empty space or a plain word clears the reference', async () => {
+    renderPage({ api: { marksList: async () => MARKS } });
+    await ready();
+    const note = await screen.findByRole('button', { name: 'Word stress: Soft, almost a whisper.' });
+    await userEvent.click(note);
+    expect(within(reference()!).getByText('Yes, hushed.')).toBeTruthy();
+    await userEvent.click(document.querySelector<HTMLElement>('[data-booth-text]')!);
+    expect(reference()).toBeNull();
+    await userEvent.click(note);
+    expect(reference()).not.toBeNull();
+    await userEvent.click(word(2, 1));
+    expect(reference()).toBeNull();
+    expect(current()).toBe('2');
+  });
+
+  it('a Story Bible name shows its entry', async () => {
+    renderPage({ api: { marksList: async () => MARKS } });
+    await ready();
+    await userEvent.click(word(0, 1));
+    expect(within(reference()!).getByText('The walled rose garden.')).toBeTruthy();
+  });
+
+  it('a marks list the host refuses leaves the text unmarked and says why', async () => {
+    const page = renderPage({ api: { marksList: () => Promise.reject(new Error('The marks file could not be read.')) } });
+    await ready();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.map((toast) => toast.text)).toContain('The marks file could not be read.'));
+    expect(screen.queryByRole('button', { name: /Word stress/ })).toBeNull();
   });
 });
