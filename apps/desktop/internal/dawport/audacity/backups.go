@@ -65,9 +65,9 @@ const (
 	messageBackupTwoBackups = "More than one Audacity track has the backup's name, so nothing was restored."
 )
 
-// ErrBackupLost: Audacity took the commands but the backup track could not be found holding the window afterwards. The track may
-// be in the project; no row was written for it.
-var ErrBackupLost = audacitybridge.Sentence("Audacity did not keep the backup: its track could not be found holding the audio afterwards")
+// ErrBackupLost is the answer when Audacity took the backup's commands but its track could not be found holding the window
+// afterwards. The track may be in the project; no row was written for it.
+const ErrBackupLost = audacitybridge.Sentence("Audacity did not keep the backup: its track could not be found holding the audio afterwards")
 
 func (b *Backups) now() time.Time {
 	if b.config.Now != nil {
