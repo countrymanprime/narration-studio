@@ -1,13 +1,15 @@
 import type { EditCut, EditCutsApi } from '../api/contracts/editCuts';
 import type { AcceptedWord, EditLogApi } from '../api/contracts/editLog';
+import type { EditStacksApi } from '../api/contracts/editStacks';
 import type { EditWordFxApi, WordFx } from '../api/contracts/wordFx';
 
-// The Editing records port (ADR 0856): the words the narrator kept as read, and later the cuts and word effects, each kept by
-// the host in the project's editing/ folder and checked against the current text on every read. A page reads and changes
+// The Editing records port (ADR 0856): the words the narrator kept as read, the cuts and the word effects, each kept by the
+// host in the project's editing/ folder and checked against the current text on every read, and the stacks and retry modes
+// (ADR 0858), kept beside them. A page reads and changes
 // them through this port only. A later Editing slice adds its methods here together with its binding (ISP).
 
-/** What a page asks of the Editing records: the accepted words, the cuts and the word effects. */
-export type EditLogPort = EditLogApi & EditCutsApi & EditWordFxApi;
+/** What a page asks of the Editing records: the accepted words, the cuts, the word effects, the stacks and the retry modes. */
+export type EditLogPort = EditLogApi & EditCutsApi & EditWordFxApi & EditStacksApi;
 
 /** The `NarrationApi` methods the host adapter calls. */
 export type EditLogHostApi = Pick<
@@ -21,6 +23,11 @@ export type EditLogHostApi = Pick<
   | 'editingWordFxList'
   | 'editingWordFxRecord'
   | 'editingWordFxRemove'
+  | 'editingStacksList'
+  | 'editingStackRecord'
+  | 'editingStackRemove'
+  | 'editingRetryModeGet'
+  | 'editingRetryModeSet'
 >;
 
 /** The port over the host's bindings (or the mock's): the answers pass through as the schemas decoded them. */
@@ -35,6 +42,11 @@ export function createHostEditLog(api: EditLogHostApi): EditLogPort {
     editingWordFxList: (chapterId) => api.editingWordFxList(chapterId),
     editingWordFxRecord: (chapterId, fx) => api.editingWordFxRecord(chapterId, fx),
     editingWordFxRemove: (chapterId, id) => api.editingWordFxRemove(chapterId, id),
+    editingStacksList: (chapterId) => api.editingStacksList(chapterId),
+    editingStackRecord: (chapterId, stack) => api.editingStackRecord(chapterId, stack),
+    editingStackRemove: (chapterId, passageId, takeIds) => api.editingStackRemove(chapterId, passageId, takeIds),
+    editingRetryModeGet: (level, chapterId, passageId) => api.editingRetryModeGet(level, chapterId, passageId),
+    editingRetryModeSet: (level, chapterId, passageId, mode) => api.editingRetryModeSet(level, chapterId, passageId, mode),
   };
 }
 

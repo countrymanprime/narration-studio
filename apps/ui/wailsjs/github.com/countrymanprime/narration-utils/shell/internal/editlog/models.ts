@@ -87,6 +87,94 @@ export class CutRequest {
 }
 
 /**
+ * StackMove is one take a stack moved onto the first read: its id as WorkspaceTakes offered it, and the seconds after the
+ * first read's start where it began before it was stacked.
+ */
+export class StackMove {
+    "takeId": string;
+    "offset": number;
+
+    /** Creates a new StackMove instance. */
+    constructor($$source: Partial<StackMove> = {}) {
+        if (!("takeId" in $$source)) {
+            this["takeId"] = "";
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StackMove instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StackMove {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StackMove($$parsedSource as Partial<StackMove>);
+    }
+}
+
+/**
+ * StackRecordRequest is what the app sends after the DAW accepted stackTakes: the passage, its first read, the takes the
+ * passage offers, the moves, and the DAW's result. UndoSteps is a pointer so a request without it is refused, not read as 0.
+ */
+export class StackRecordRequest {
+    "passageId": string;
+    "base": string;
+    "takes": string[];
+    "moves": StackMove[];
+    "mode": string;
+    "undoSteps": number | null;
+    "steps"?: string[];
+    "backupId"?: string;
+
+    /** Creates a new StackRecordRequest instance. */
+    constructor($$source: Partial<StackRecordRequest> = {}) {
+        if (!("passageId" in $$source)) {
+            this["passageId"] = "";
+        }
+        if (!("base" in $$source)) {
+            this["base"] = "";
+        }
+        if (!("takes" in $$source)) {
+            this["takes"] = [];
+        }
+        if (!("moves" in $$source)) {
+            this["moves"] = [];
+        }
+        if (!("mode" in $$source)) {
+            this["mode"] = "";
+        }
+        if (!("undoSteps" in $$source)) {
+            this["undoSteps"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StackRecordRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StackRecordRequest {
+        const $$createField2_0 = $$createType0;
+        const $$createField3_0 = $$createType2;
+        const $$createField6_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("takes" in $$parsedSource) {
+            $$parsedSource["takes"] = $$createField2_0($$parsedSource["takes"]);
+        }
+        if ("moves" in $$parsedSource) {
+            $$parsedSource["moves"] = $$createField3_0($$parsedSource["moves"]);
+        }
+        if ("steps" in $$parsedSource) {
+            $$parsedSource["steps"] = $$createField6_0($$parsedSource["steps"]);
+        }
+        return new StackRecordRequest($$parsedSource as Partial<StackRecordRequest>);
+    }
+}
+
+/**
  * WordFxRequest is what the app sends after the DAW accepted applyFxToRange: the words, the range, the chain as the DAW
  * lists it, and the DAW's answer. A, B, Off0 and Off1 are in the chapter recording as it was before any cut (the app
  * converts them with origTime), so a later cut moves where the effect is shown, not what is stored.
@@ -173,3 +261,5 @@ export class WordFxRequest {
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = StackMove.createFrom;
+const $$createType2 = $Create.Array($$createType1);

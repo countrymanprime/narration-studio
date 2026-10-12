@@ -1497,6 +1497,59 @@ describe('the word effects bindings', () => {
   });
 });
 
+describe('the stack record and retry mode bindings', () => {
+  const request = {
+    passageId: 'passage-1',
+    base: 'take:{ITEM-1}:{TAKE-1}',
+    takes: ['take:{ITEM-1}:{TAKE-1}', 'take:{ITEM-1}:{TAKE-2}'],
+    moves: [{ takeId: 'take:{ITEM-1}:{TAKE-2}', offset: 6.7 }],
+    mode: 'native',
+    undoSteps: 1,
+  } as const;
+  const stack = {
+    id: 'stk-passage-1',
+    chapterId: 'c-0001',
+    passageId: 'passage-1',
+    base: 'take:{ITEM-1}:{TAKE-1}',
+    offsets: { 'take:{ITEM-1}:{TAKE-2}': 6.7 },
+    mode: 'native',
+    undoSteps: 1,
+    at: '2026-10-11T10:00:00Z',
+  };
+  const stacks = { chapterId: 'c-0001', stacks: [stack] };
+  const answer = { level: 'passage', chapterId: 'c-0001', passageId: 'passage-1', mode: 'stack', from: 'passage', set: 'stack' };
+
+  it('calls the five host methods with their arguments and decodes each answer', async () => {
+    const list = vi.fn().mockResolvedValue(JSON.stringify(stacks));
+    const record = vi.fn().mockResolvedValue(JSON.stringify({ ...stacks, changed: ['take:{ITEM-1}:{TAKE-2}'] }));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', stacks: [], changed: ['take:{ITEM-1}:{TAKE-2}'] }));
+    const get = vi.fn().mockResolvedValue(JSON.stringify({ level: 'project', mode: 'leave', from: 'default' }));
+    const set = vi.fn().mockResolvedValue(JSON.stringify(answer));
+    standInHost({ EditingStacksList: list, EditingStackRecord: record, EditingStackRemove: remove, EditingRetryModeGet: get, EditingRetryModeSet: set });
+
+    await expect(wailsClient.editingStacksList('c-0001')).resolves.toEqual(stacks);
+    expect(list).toHaveBeenCalledWith('c-0001');
+    const sent = { ...request, takes: [...request.takes], moves: request.moves.map((move) => ({ ...move })) };
+    await expect(wailsClient.editingStackRecord('c-0001', sent)).resolves.toMatchObject({ changed: ['take:{ITEM-1}:{TAKE-2}'] });
+    expect(record).toHaveBeenCalledWith('c-0001', request);
+    await expect(wailsClient.editingStackRemove('c-0001', 'passage-1', ['take:{ITEM-1}:{TAKE-2}'])).resolves.toMatchObject({ stacks: [] });
+    expect(remove).toHaveBeenCalledWith('c-0001', 'passage-1', ['take:{ITEM-1}:{TAKE-2}']);
+    await expect(wailsClient.editingRetryModeGet('project', '', '')).resolves.toEqual({ level: 'project', mode: 'leave', from: 'default' });
+    expect(get).toHaveBeenCalledWith('project', '', '');
+    await expect(wailsClient.editingRetryModeSet('passage', 'c-0001', 'passage-1', 'stack')).resolves.toEqual(answer);
+    expect(set).toHaveBeenCalledWith('passage', 'c-0001', 'passage-1', 'stack');
+  });
+
+  it('refuses an answer its schema does not accept, a path for a take among them', async () => {
+    standInHost({ EditingStacksList: () => Promise.resolve(JSON.stringify({ ...stacks, stacks: [{ ...stack, offsets: { 'take:{ITEM-1}:{TAKE-2}': -1 } }] })) });
+    await expect(wailsClient.editingStacksList('c-0001')).rejects.toBeInstanceOf(WireError);
+    standInHost({ EditingStacksList: () => Promise.resolve(JSON.stringify({ ...stacks, stacks: [{ ...stack, offsets: { 'C:\\take.wav': 1 } }] })) });
+    await expect(wailsClient.editingStacksList('c-0001')).rejects.toBeInstanceOf(WireError);
+    standInHost({ EditingRetryModeGet: () => Promise.resolve(JSON.stringify({ ...answer, mode: 'always' })) });
+    await expect(wailsClient.editingRetryModeGet('passage', 'c-0001', 'passage-1')).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the script prep bindings', () => {
   const flag = {
     id: 'f1',

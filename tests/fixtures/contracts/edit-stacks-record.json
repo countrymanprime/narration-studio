@@ -1,0 +1,40 @@
+{
+  "changed": [
+    "take:{ITEM-1}:{TAKE-3}"
+  ],
+  "chapterId": "c-0001",
+  "stacks": [
+    {
+      "at": "2026-09-21T10:00:00Z",
+      "backupId": "bk1",
+      "base": "take:{ITEM-1}:{TAKE-1}",
+      "chapterId": "c-0001",
+      "id": "stk-passage-1",
+      "mode": "steps",
+      "offsets": {
+        "take:{ITEM-1}:{TAKE-2}": 6.7,
+        "take:{ITEM-1}:{TAKE-3}": 14.2
+      },
+      "passageId": "passage-1",
+      "steps": [
+        "Moved the read at 41.2 s onto the first read",
+        "Closed the gap it left",
+        "Muted the read's old place"
+      ],
+      "undoSteps": 3
+    },
+    {
+      "at": "2026-09-21T10:00:00Z",
+      "base": "take:{ITEM-1}:{TAKE-1}",
+      "chapterId": "c-0001",
+      "id": "stk-passage-2",
+      "mode": "native",
+      "offsets": {
+        "take:{ITEM-1}:{TAKE-2}": 6.7,
+        "take:{ITEM-1}:{TAKE-3}": 14.2
+      },
+      "passageId": "passage-2",
+      "undoSteps": 1
+    }
+  ]
+}
