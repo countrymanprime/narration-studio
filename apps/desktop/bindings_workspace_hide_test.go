@@ -97,6 +97,8 @@ func hideTakesHost(t *testing.T, kind string, reach *daw.Reachability, role dawp
 		t.Fatal(err)
 	}
 	host.services().coverage.Wait()
+	// The finished check starts a chaptersync:state read of the project folder; Windows cannot remove the folder while it runs.
+	host.chapterSyncEmits.Wait()
 	if toggle != "" {
 		if err := host.saveSettings("DAW", "global", map[string]*string{dawport.ToggleKey(dawport.CapTakes): &toggle}); err != nil {
 			t.Fatal(err)

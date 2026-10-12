@@ -313,6 +313,8 @@ type Host struct {
 	chapterSyncEvents func(chapterSyncState)
 	// chapterSyncRuns serialises chapter syncs (chaptersync.go).
 	chapterSyncRuns chapterSyncRuns
+	// chapterSyncEmits counts the chaptersync:state reads emitCoverage starts, so a test can wait for them to finish with the project folder.
+	chapterSyncEmits sync.WaitGroup
 	// chapterSyncWatch is what the saved-.rpp watcher saw last (chaptersync_watch.go).
 	chapterSyncWatch chapterSyncWatcher
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).

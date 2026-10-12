@@ -205,7 +205,11 @@ func (h *Host) emitCoverage(state coverage.State) {
 		h.publishJobEnded(event)
 		// The chapter's status on chaptersync:state changes with its check: the ledger record and
 		// the stored result are written before this state is sent, so the status read now is the new one.
-		go h.emitChapterSyncState()
+		h.chapterSyncEmits.Add(1)
+		go func() {
+			defer h.chapterSyncEmits.Done()
+			h.emitChapterSyncState()
+		}()
 	}
 	h.mu.RLock()
 	ctx := h.ctx
