@@ -407,7 +407,8 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 			return refused, nil
 		}
 	}
-	got, err := r.actions.DeleteRange(ctx, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs)
+	got, err := r.actions.DeleteRange(ctx, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
+		request.PadMs, request.RoomTone)
 	var stale *bridge.StaleError
 	var refusal *bridge.RefusalError
 	switch {
@@ -417,6 +418,8 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 		return dawport.Refused("REAPER is recording. Stop recording first."), nil
 	case errors.Is(err, bridge.ErrBadRange):
 		return dawport.Refused("The range to cut is not a usable pair of times."), nil
+	case errors.Is(err, bridge.ErrScriptOutdated):
+		return dawport.Refused(messageCutScriptOutdated), nil
 	case errors.As(err, &refusal):
 		return dawport.Refused(refusal.Sentence), nil
 	case errors.Is(err, bridge.ErrExperimentalOff):
@@ -426,6 +429,9 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 	}
 	return dawport.OK(cutMessage(request.Words), true).WithUndoSteps(got.UndoPoints), nil
 }
+
+// messageCutScriptOutdated answers a pad or room tone sent to a script older than them, which refused and cut nothing.
+const messageCutScriptOutdated = "The Narration Utils script in REAPER is older than this app and cannot pad a cut or fill it with room tone, so nothing was cut. Import the script again from this app's REAPER folder."
 
 // cutMessage words a cut as the mock does (studio-next/src/state/daw.ts, deleteRange).
 func cutMessage(words int) string {

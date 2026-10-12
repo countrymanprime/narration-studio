@@ -2890,21 +2890,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const [chapter] = await createMockApi().manuscriptChapters();
     const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
     for (const mode of ['close', 'gap'] as const) {
-      const cut = await api.dawDeleteRange(chapter.id, 0, 0, mode, 12);
+      const cut = await api.dawDeleteRange(chapter.id, 0, 0, mode, 12, 0, false);
       expectMatches(dawResultSchema, cut, `mock cut, ${mode}`);
       expect(cut).toEqual(readGolden(mode === 'close' ? 'daw-delete-range-done.json' : 'daw-delete-range-gap.json'));
     }
-    expect((await api.dawDeleteRange(chapter.id, 0, 0, 'cut' as 'close', 0)).refused).toBe(DAW_ANSWERS.cutBadMode);
+    expect((await api.dawDeleteRange(chapter.id, 0, 0, 'cut' as 'close', 0, 0, false)).refused).toBe(DAW_ANSWERS.cutBadMode);
     for (const fadeMs of [-1, 501, 2.5]) {
-      expect((await api.dawDeleteRange(chapter.id, 0, 0, 'close', fadeMs)).refused).toBe(DAW_ANSWERS.cutBadFade);
+      expect((await api.dawDeleteRange(chapter.id, 0, 0, 'close', fadeMs, 0, false)).refused).toBe(DAW_ANSWERS.cutBadFade);
     }
-    const stale = await api.dawDeleteRange('{11111111-1111-4111-8111-111111111111}', 0, 0, 'close', 0);
+    const stale = await api.dawDeleteRange('{11111111-1111-4111-8111-111111111111}', 0, 0, 'close', 0, 0, false);
     expectMatches(dawResultSchema, stale, 'mock cut, unknown chapter');
     expect(stale).toEqual(readGolden('daw-delete-range-refused-stale.json'));
 
-    const off = await createMockApi().dawDeleteRange(chapter.id, 0, 0, 'close', 0);
+    const off = await createMockApi().dawDeleteRange(chapter.id, 0, 0, 'close', 0, 0, false);
     expectMatches(dawResultSchema, off, 'mock cut, experimental off');
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.cut_range.message);
+  });
+
+  it('dawDeleteRange with a pad and room tone (SN-E97): the host goldens parse, and the mock cuts and refuses as the host does', async () => {
+    for (const file of ['daw-delete-range-pad-room-tone.json', 'daw-delete-range-pad-refused-close.json', 'daw-delete-range-pad-refused-no-room-tone.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-delete-range-pad-room-tone.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: rangeCutAnswer(1, 'REAPER') });
+    expect(readGolden('daw-delete-range-pad-refused-close.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.cutRoomToneNeedsGap });
+    expect(readGolden('daw-delete-range-pad-refused-no-room-tone.json')).toMatchObject({ ok: false, changed: false, refused: DAW_ANSWERS.cutNoRoomTone });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
+    const cut = await api.dawDeleteRange(chapter.id, 0, 0, 'gap', 12, 100, true);
+    expectMatches(dawResultSchema, cut, 'mock cut, pad and room tone');
+    expect(cut).toEqual(readGolden('daw-delete-range-pad-room-tone.json'));
+    const close = await api.dawDeleteRange(chapter.id, 0, 0, 'close', 12, 100, true);
+    expectMatches(dawResultSchema, close, 'mock cut, room tone with close');
+    expect(close).toEqual(readGolden('daw-delete-range-pad-refused-close.json'));
+    for (const padMs of [-1, 501, 2.5]) {
+      expect((await api.dawDeleteRange(chapter.id, 0, 0, 'gap', 0, padMs, false)).refused).toBe(DAW_ANSWERS.cutBadPad);
+    }
   });
 
   it('dawApplyFxToRange and dawRemoveFxFromRange answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {

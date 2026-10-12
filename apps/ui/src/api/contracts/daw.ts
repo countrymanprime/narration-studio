@@ -181,12 +181,22 @@ export interface DawRollApi {
 export type DawCutMode = 'close' | 'gap';
 
 /** DawDeleteRange (SND-6b; apps/desktop/bindings_daw_range.go): cut the words between the two tokens of the chapter's stored alignment
- * together with their audio (ADR 0860 point 2), with `fadeMs` (0 to 500) at each seam. The host resolves the item and its project
- * seconds itself, one item per request. A capability refusal carries the capability's sentence; a mode or fade it does not take, words
- * not heard and words across two items are refused with a sentence; a range outside the alignment (a chapter with none included) or a
- * gone item is code `stale`; words already cut answer `changed: false`. */
+ * together with their audio (ADR 0860 point 2), with `fadeMs` (0 to 500) at each seam. `padMs` (0 to 500) cuts that much less at each end,
+ * and `roomTone` (mode `gap` only) fills the gap with the chapter's room tone, which a DAW with none refuses, cutting nothing (SN-E97).
+ * The host resolves the item and its project seconds itself, one item per request. A capability refusal carries the capability's
+ * sentence; a mode, fade or pad it does not take, room tone with `close`, words not heard and words across two items are refused with a
+ * sentence; a range outside the alignment (a chapter with none included) or a gone item is code `stale`; words already cut answer
+ * `changed: false`. */
 export interface DawDeleteRangeApi {
-  dawDeleteRange(chapterId: string, firstToken: number, lastToken: number, mode: DawCutMode, fadeMs: number): Promise<DawResult>;
+  dawDeleteRange(
+    chapterId: string,
+    firstToken: number,
+    lastToken: number,
+    mode: DawCutMode,
+    fadeMs: number,
+    padMs: number,
+    roomTone: boolean,
+  ): Promise<DawResult>;
 }
 
 /** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; apps/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains

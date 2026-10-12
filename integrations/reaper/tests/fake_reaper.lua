@@ -833,6 +833,12 @@ function Fake:add_item_api(api)
   end
   -- MoveMediaItemToTrack(item, track): the item leaves its track's list for the other's, keeping its position, GUID and
   -- takes (the ReaScript reference; not run). Recorded in fake.calls.
+  -- AddMediaItemToTrack (delete_range's room tone): a new empty item at 0, 0 seconds long and with no take, a new GUID, on
+  -- the track, the way the ReaScript reference documents it; recorded in fake.calls with whether an undo block was open.
+  function api.AddMediaItemToTrack(track)
+    fake.calls[#fake.calls + 1] = { name = 'AddMediaItemToTrack', in_block = fake.open_undo_blocks > 0 }
+    return fake:add_item(track, { position = 0, length = 0 })
+  end
   function api.MoveMediaItemToTrack(item, track)
     fake.calls[#fake.calls + 1] = { name = 'MoveMediaItemToTrack' }
     for index, candidate in ipairs(item.track.items) do
@@ -911,7 +917,7 @@ function Fake:add_take_api(api)
     error('fake reaper: unmodelled take value ' .. tostring(key))
   end
   -- The setter counterpart of GetMediaItemTakeInfo_Value: D_STARTOFFS (the take-review source-offset alignment) and
-  -- D_VOL (hide_takes). The item D_LENGTH setter is below (remove_fx_range's join, split_take).
+  -- D_VOL (hide_takes) and D_PLAYRATE (delete_range's room tone). The item D_LENGTH setter is below (remove_fx_range's join, split_take).
   function api.SetMediaItemTakeInfo_Value(take, key, value)
     fake.calls[#fake.calls + 1] = { name = 'SetMediaItemTakeInfo_Value', key = key, value = value }
     if key == 'D_STARTOFFS' then
@@ -919,6 +925,9 @@ function Fake:add_take_api(api)
       return true
     elseif key == 'D_VOL' then
       take.vol = value
+      return true
+    elseif key == 'D_PLAYRATE' then
+      take.playrate = value
       return true
     end
     error('fake reaper: unmodelled take value setter ' .. tostring(key))
