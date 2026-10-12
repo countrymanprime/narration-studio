@@ -48,14 +48,6 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
-    state: 'stack-dialog',
-    description:
-      'Editing, Stack picked for the first line’s retries and Stack retries as takes pressed - the question with the plan of retries to stack as takes',
-    undriven:
-      'The mock project has no retries (a line read again later in the chapter), so Stack retries as takes stays off with "There are no retries to stack."; the dialog is drawn by the atlas (Editing/Stack stories)',
-  },
-  {
-    page: 'editing',
     state: 'drawer-cleanup',
     description: 'Editing, the drawer open on Clean up - what was found in the chapter and the findings by operation',
   },
