@@ -28,6 +28,8 @@ Words carry what the last [recording check](production.md#checking-a-chapters-re
 Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
 takes, the one that plays, and whether one was chosen yet.
 
+![Editing - Chapter 1 linked to its track: the chapter step and the legend, the script with each line's takes chip and time, the bar and the key hints](../../images/ui/editing-default.webp)
+
 The bar at the foot plays the chapter in the app, from its recorded audio with each item's trims, so it works with the
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
@@ -51,13 +53,17 @@ play, copy, delete or mute the words, mark them for a pickup, add a note.
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
 
+![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio](../../images/ui/editing-selection.webp)
+
 ## Deleting words and their audio
 
 **Delete words and audio** (Delete) asks first. The question names the words, where the cut starts and ends (moved to
 the nearest zero crossings), the track, and what happens to the gap: close it, so later audio on the track moves up, or
-leave room tone of the same length so the timing does not move. You also choose the crossfade at the join and whether
-the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
+leave room tone of the same length so the timing does not move. You also choose the crossfade at the join, how much audio to keep at each
+edge of the cut, and whether the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
 touched. **Mute** keeps the audio and silences the words.
+
+![Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do](../../images/ui/editing-delete-dialog.webp)
 
 ## Effects on words
 
@@ -65,6 +71,8 @@ touched. **Mute** keeps the audio and silences the words.
 the words, where the splits fall, the fades at the joins and what the DAW does: it splits the item at both ends and puts
 the chain on the middle piece only. Nothing else moves, and one undo step in the DAW takes it off. The words with an
 effect are underlined, and the drawer's Effects tab lists them.
+
+![Editing - an FX chain chosen for four words: how the item is split around the words](../../images/ui/editing-fx-dialog.webp)
 
 ## Takes
 
@@ -78,6 +86,8 @@ script it read as written, and its pause, level, noise, clarity and breaths. Pla
 stacked as a take of the first read or left where it was. With Stack, **Stack retries as takes** shows the plan before
 the DAW moves anything.
 
+![Editing - a line's takes opened under it: the suggested take with the steps that would make it surer and each take's evidence](../../images/ui/editing-takes.webp)
+
 ## The drawer
 
 The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window.
@@ -89,16 +99,22 @@ each with **Review** to step through them) and the clean-up findings by kind: ga
 Pick a strength, preview the change and apply it to the findings you selected. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
 
+![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
+
 ### Effects, Backups and Timeline
 
 **Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
 backups of its project. **Timeline** shows the line the cursor is on as the chapter's audio and one lane per take on
 one time axis; on a wide window it is a strip under the text instead (S).
 
+![Editing - the drawer on Timeline: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
+
 ## When the DAW is not connected
 
 A banner at the top says the DAW is not answering and why, with **Retry**. You can still read, select and play; the
 actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
+
+![Editing with the DAW not connected - the banner with its reason and Retry](../../images/ui/editing-daw-off.webp)
 
 ---
 

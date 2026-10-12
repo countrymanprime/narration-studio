@@ -2,8 +2,12 @@
 
 # Settings
 
-Settings opens with five panels, then the rest of the settings by category.
+Settings opens with six panels, then the rest of the settings by category.
 
+- **Recording** chooses where this project's takes are recorded: in the DAW the app was started with (the DAW's
+  name, then **Recordings live in the DAW.**) or with the **Built-in recorder. Recordings live in the app.** The DAW
+  stays chosen while it is not running. A refused choice (no project open, a take running, or the built-in
+  recorder not available) says why under the radios, and the choice stays where it was.
 - **Delivery profile** picks the profile this project is judged against, on [Master &
   QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
 - **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a
@@ -17,7 +21,7 @@ Settings opens with five panels, then the rest of the settings by category.
 - **Manuscript** says when the manuscript was imported (or **No manuscript yet**), with **Replace
   manuscript** (or **Import manuscript** when there is none). The replace confirm names what it clears.
 
-![Settings, the top of the page: the Delivery profile, Story Bible types and Appearance panels](../../images/ui/settings-appearance.webp)
+![Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types](../../images/ui/settings-appearance.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
