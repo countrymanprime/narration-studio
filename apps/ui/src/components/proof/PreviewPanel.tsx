@@ -75,7 +75,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
     pinned.candidate.paragraphIds.length === candidate.paragraphIds.length &&
     pinned.candidate.paragraphIds.every((id, index) => id === candidate.paragraphIds[index]);
 
-  // The "Copied" confirmation reverts itself after a couple of seconds (ScriptView.tsx's own flash-then-clear
+  // The "Copied" confirmation reverts itself after a couple of seconds (the usual flash-then-clear
   // pattern), a fresh timer per copy so two quick copies of different candidates each get their own window.
   useEffect(() => {
     if (!copiedChapterId) return;

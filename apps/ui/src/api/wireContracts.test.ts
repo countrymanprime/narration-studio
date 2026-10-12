@@ -3980,6 +3980,45 @@ describe('the take evidence binding', () => {
     expect(evidence.takes.map((take) => take.id)).toEqual((await api.workspaceTakes(chapter.id, 0, 1)).candidates.map((candidate) => candidate.id));
     await expect(api.workspaceTakeEvidence(chapter.id, 0, 99999)).rejects.toThrow(/not in this chapter's alignment/);
   });
+
+  // TK-1 part 2: a take the Booth's passage map stamped over the passage is placed `map`; one recorded elsewhere stays `aligned`.
+  it('a take the Booth mapped is placed from the map, in the host golden and the mock', async () => {
+    const mapped = parseWire(takeEvidenceResultSchema, readGolden('workspace-take-evidence-map.json'), ctx('take evidence map'));
+    expect(mapped.takes.length).toBeGreaterThan(0);
+    expect(mapped.takes.every((take) => take.via === 'map')).toBe(true);
+
+    const [chapter] = WIRE_CHAPTERS;
+    const [track] = WIRE_TRACKS_PROJECT.tracks;
+    const seed = {
+      chapterTrackMappings: [
+        {
+          trackGuid: track.guid,
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          confirmedAt: '2026-10-11T09:00:00Z',
+          origin: 'manual' as const,
+          match: null,
+        },
+      ],
+    };
+    const offered = (await createMockApi({}, seed).workspaceTakes(chapter.id, 0, 1)).candidates;
+    const [first] = offered;
+    const [paragraph] = await createMockApi({}, seed).manuscriptParagraphs(chapter.id);
+    const words = paragraph.text.split(/\s+/).filter(Boolean).length;
+    const mark = { run: `${chapter.id}.1`, chapterId: chapter.id, pid: paragraph.id, itemGuid: first.itemGuid, takeGuid: first.takeGuid, stale: false };
+    const api = createMockApi(
+      {
+        passageMapList: async () => [
+          { ...mark, id: `${chapter.id}.1.0`, word: 0, sec: 0, kind: 'start' as const },
+          { ...mark, id: `${chapter.id}.1.1`, word: words, sec: 9, kind: 'stop' as const, prev: { pid: paragraph.id, word: words } },
+        ],
+      },
+      seed,
+    );
+    const evidence = await api.workspaceTakeEvidence(chapter.id, 0, 1);
+    expectMatches(takeEvidenceResultSchema, evidence, 'mock take evidence, mapped');
+    expect(evidence.takes.map((take) => take.via)).toEqual(offered.map((candidate) => (candidate.id === first.id ? 'map' : 'aligned')));
+  });
 });
 
 // The narrator's bookmarks (ADR 0820): the mock answers through the same schemas as the host's goldens, and the schemas refuse

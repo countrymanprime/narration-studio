@@ -16,7 +16,7 @@ export interface BackupsTabProps {
 /** The Backups tab: the chapter's backups, newest first, and the settings with the one picked in the list. */
 export function BackupsTab({ chapterId, chapterName, total, journal }: BackupsTabProps) {
   const backups = useBackups(journal, chapterId);
-  const settings = useBackupSettings();
+  const settings = useBackupSettings(backups.reload);
   const [pick, setPick] = useState<string | null>(null);
   const current = backups.list.find((b) => b.id === pick) ?? null;
   const restore = (id: string) => void backups.restore(id);

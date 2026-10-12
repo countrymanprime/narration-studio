@@ -32,6 +32,7 @@ import { FxMarker } from './FxButtons';
 import { beforeFx, fxPlanFor, fxSpan, NEEDS_CONFIRM, NO_AUDIO, NO_BACKUP, ONLY_SAID, SPANS_TWO_PARAGRAPHS, SPANS_TWO_TAKES } from './fxCommand';
 import { fakeFxLog, listOf, withFxRange } from './fxFixtures';
 import { fxPlanText } from './fxText';
+import { ContextMenuHost } from '../../../layout/ContextMenuHost';
 import { useFxWords, type FxWords } from './useFxWords';
 import { fakeCutLog, locator } from '../cut/cutFixtures';
 
@@ -102,7 +103,9 @@ function Harness() {
   );
   return (
     <EditingPageProvider doc={d}>
-      <Inner effects={effects} setEffects={setEffects} />
+      <ContextMenuHost>
+        <Inner effects={effects} setEffects={setEffects} />
+      </ContextMenuHost>
     </EditingPageProvider>
   );
 }
@@ -321,6 +324,21 @@ describe('the preview', () => {
     expect(applied).toEqual([]);
     expect(log.effects).toEqual([]);
     expect(await journal.entries()).toEqual([]);
+  });
+});
+
+describe('the chain in the preview', () => {
+  it('the chain can be changed in the preview before applying', async () => {
+    mount();
+    await flush();
+    await choose();
+    fireEvent.change(within(dialog()).getByRole('combobox', { name: 'Effect' }), { target: { value: CHAINS[1] } });
+    expect(dialogText('data-fx-chain')).toBe(`${CHAINS[1]} · from “${SOURCE}”`);
+    expect(applied).toEqual([]);
+    await confirmAdd();
+    // The DAW is asked for the chain the preview showed, not the one the menu chose.
+    expect(applied).toEqual([{ chapterId: 'chapter-1', firstToken: 0, lastToken: 1, chainName: CHAINS[1], fadeMs: 8 }]);
+    expect(log.effects[0]).toMatchObject({ chainName: CHAINS[1] });
   });
 });
 

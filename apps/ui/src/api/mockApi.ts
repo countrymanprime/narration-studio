@@ -32,6 +32,7 @@ import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
 import { createPassageMapMock } from './passageMapMock';
+import { takesPerParagraph } from './passageMapSpans';
 import { createEditLogMock } from './editLogMock';
 import { createMarksMock } from './marksMock';
 import { createScriptPrepMock } from './scriptPrepMock';
@@ -70,6 +71,8 @@ import type {
   DawSplitTakeApi,
 } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
+import type { TakeEvidenceApi } from './contracts/takeEvidence';
+import type { PassageMark } from './contracts/passageMap';
 import {
   backupLabelOk,
   DAW_ANSWERS,
@@ -351,7 +354,12 @@ export function createMockApi(
     ...coverage,
     ...workspace,
     ...workspaceTakes,
-    ...createTakeEvidenceMock(workspaceTakes),
+    ...withMapPlacement(
+      createTakeEvidenceMock(workspaceTakes),
+      workspaceTakes,
+      (chapterId) => final.passageMapList(chapterId),
+      (chapterId) => s.paragraphs.filter((paragraph) => paragraph.chapterId === chapterId),
+    ),
     ...preview,
     ...stages,
     ...proofingRender,
@@ -379,7 +387,38 @@ export function createMockApi(
     ...createPronunciationSourcesMock(),
   };
   const api = initial.invalidPayload ? { ...base, ...invalidPayloadOverrides(initial.invalidPayload, base) } : base;
-  return { ...api, ...overrides };
+  const final: NarrationApi = { ...api, ...overrides };
+  return final;
+}
+
+/**
+ * The mock's take evidence placed as passagetakes/evidence.go places it: `map` for a take whose item and take ids one of the passage map's
+ * takes over the passage carries (TK-1 part 2), `aligned` for the rest. The map is read through the api as it was finally built, so a
+ * `passageMapList` override places takes too.
+ */
+function withMapPlacement(
+  evidence: TakeEvidenceApi,
+  takes: Pick<WorkspaceApi, 'workspaceTakes'>,
+  marks: (chapterId: string) => Promise<PassageMark[]>,
+  paragraphs: (chapterId: string) => Array<{ id: string; text: string }>,
+): TakeEvidenceApi {
+  return {
+    workspaceTakeEvidence: async (chapterId, firstToken, lastToken) => {
+      const answer = await evidence.workspaceTakeEvidence(chapterId, firstToken, lastToken);
+      const [view, map] = await Promise.all([takes.workspaceTakes(chapterId, firstToken, lastToken), marks(chapterId).catch((): PassageMark[] => [])]);
+      const chapter = paragraphs(chapterId);
+      const read = takesPerParagraph(map, chapter);
+      const over = chapter.slice(answer.firstParagraph, answer.lastParagraph + 1).flatMap((paragraph) => read.get(paragraph.id) ?? []);
+      const mapped = (id: string) => {
+        const candidate = view.candidates.find((c) => c.id === id);
+        return (
+          !!candidate &&
+          over.some((span) => span.itemGuid !== '' && span.takeGuid !== '' && span.itemGuid === candidate.itemGuid && span.takeGuid === candidate.takeGuid)
+        );
+      };
+      return { ...answer, takes: answer.takes.map((take) => ({ ...take, via: mapped(take.id) ? 'map' : 'aligned' })) };
+    },
+  };
 }
 
 /** WorkspaceHideTakes as bindings_workspace_hide.go answers it: the takes capability's sentence first, then the passage's candidates

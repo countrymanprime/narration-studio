@@ -29,7 +29,7 @@ export interface TakeEvidence {
   /** Percent of the passage's script words the take read as written, from the stored alignment of its range. */
   matched: TakeFigure;
   measure: TakeEvidenceMeasure;
-  /** `aligned` until the Booth's passage map exists. */
+  /** `map` for a take the Booth's passage map stamped over the passage, `aligned` for one recorded elsewhere. */
   via: TakePlacement;
 }
 

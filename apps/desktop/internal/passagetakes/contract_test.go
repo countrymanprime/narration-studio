@@ -9,6 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
 )
 
@@ -84,4 +85,15 @@ func TestContractWorkspaceTakeEvidence(t *testing.T) {
 
 	none := evidenceOf(t, cache, func(in *Input) { in.FirstToken, in.LastToken = 5, 5 })
 	pin(t, "workspace-take-evidence-none", none)
+
+	// A passage the Booth recorded with a roll back (TK-1 part 2): both of item A's takes read it, so both are placed from
+	// the map.
+	mapped := evidenceOf(t, cache, fourWords, recorded(t, dir), func(in *Input) {
+		in.Marks = []passagemap.Resolved{
+			mark("ch-1.1", passagemap.KindStart, "p-1", 0, 0, nil, guidA, take1),
+			mark("ch-1.1", passagemap.KindRoll, "p-1", 2, 4, place("p-1", 3), guidA, take2),
+			mark("ch-1.1", passagemap.KindStop, "p-1", 4, 6, place("p-1", 4), guidA, take2),
+		}
+	})
+	pin(t, "workspace-take-evidence-map", mapped)
 }
