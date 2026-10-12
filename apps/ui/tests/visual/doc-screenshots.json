@@ -144,7 +144,7 @@
     "state": "render-chosen",
     "viewport": "desktop",
     "docName": "proof-chapter-render-chosen",
-    "caption": "Proof chapter view - the readiness panel's Rendered file section, a render just chosen and measured"
+    "caption": "Proof chapter view - the readiness panel's Rendered file section with a render chosen: Change, Clear and Measure"
   },
   {
     "page": "proof-chapter",
@@ -158,7 +158,7 @@
     "state": "category-character",
     "viewport": "desktop",
     "docName": "storybible-characters",
-    "caption": "Story Bible - filtered to the Characters category"
+    "caption": "Story Bible - filtered to the Character kind"
   },
   {
     "page": "storybible",
@@ -256,7 +256,7 @@
     "state": "current",
     "viewport": "desktop",
     "docName": "proof-chapter-default",
-    "caption": "Proof chapter view - script, transport, and the Flags panel with its legend"
+    "caption": "Proof chapter view - the waveform, the transport, the script and the Takes panel"
   },
   {
     "page": "proof-chapter",
@@ -284,7 +284,7 @@
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Delivery profile select, the Story Bible types, the Appearance theme radios, the keyboard shortcuts and the Manuscript panel"
+    "caption": "Settings - the top of the page: the Delivery profile select, the Story Bible types and the Appearance theme radios"
   },
   {
     "page": "settings",
@@ -319,7 +319,7 @@
     "state": "theme-dark",
     "viewport": "desktop",
     "docName": "theme-dark",
-    "caption": "Home with Dark theme selected"
+    "caption": "Production with the Dark theme selected"
   },
   {
     "page": "production",
@@ -361,7 +361,7 @@
     "state": "entry-needs-review",
     "viewport": "desktop",
     "docName": "storybible-needs-review",
-    "caption": "Story Bible - a Needs Review entry, its evidence highlighted in the review color"
+    "caption": "Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in"
   },
   {
     "page": "settings",
@@ -431,7 +431,7 @@
     "state": "measured",
     "viewport": "desktop",
     "docName": "master-measured",
-    "caption": "Master & QC - three files checked against ACX: length, RMS, peak, noise floor and head / tail per file, a 48 kHz render selected with why it fails, and the book's consistency"
+    "caption": "Master & QC - three files checked against ACX: length, RMS, peak, noise floor and head / tail per file, a 48 kHz render selected with why it fails, and the same file against ACX rule by rule"
   },
   {
     "page": "master",
