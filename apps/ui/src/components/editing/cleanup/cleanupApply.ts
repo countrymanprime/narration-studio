@@ -96,7 +96,8 @@ export function outcomeSentence(kind: CleanupKind, outcome: ApplyOutcome, params
 /**
  * The selected findings as one journal entry. A finding with no item (no take or source time, for a reduction or a repair), or whose
  * item the DAW no longer finds, is reported stale and skipped; findings already done are not touched; none selected calls nothing. A
- * refusal stops the apply: nothing after it is tried, and the entry is refused outright when nothing had been applied yet.
+ * refusal stops the apply: nothing after it is tried, and the entry is refused outright when nothing had been applied yet. A trim the
+ * DAW made that the cuts refuse to record also stops it, kept in the entry with the reason and the DAW's own undo.
  */
 export function applyCleanupCommand(
   kind: CleanupKind,
@@ -128,9 +129,13 @@ export function applyCleanupCommand(
           if (!outcome.applied.length) return { ok: false, refusal: { code: 'daw_refused', reason } };
           return { ok: true, value: { ...outcome, refused: reason } };
         }
-        await call.done?.(result);
+        const recorded = await call.done?.(result).then(
+          () => '',
+          (e: unknown) => `${e instanceof Error ? e.message : String(e)} ${dawName} made the change: undo it there (Edit > Undo).`,
+        );
         if (result.changed) outcome.applied.push(...call.keys);
         outcome.undoSteps += result.undoSteps;
+        if (recorded) return { ok: true, value: { ...outcome, refused: recorded } };
       }
       if (!outcome.applied.length && outcome.stale.length) {
         return { ok: false, refusal: { code: 'stale', reason: STALE_ROW } };
@@ -150,10 +155,13 @@ interface Call {
   done?: (result: DawResult) => Promise<void>;
 }
 
-/** A gap is trimmed one piece at a time, each recorded in the cuts. A row with no item is stale before any call. */
+/**
+ * A gap is trimmed one piece at a time, latest first, each recorded in the cuts. A trim splits its item and moves the audio after it
+ * up, so the earlier gaps keep the item and the times their findings recorded. A row with no item is stale before any call.
+ */
 function trimCalls(todo: readonly CleanupRow[], params: CleanupParams, chapterId: string, deps: CleanupDeps, outcome: ApplyOutcome): Call[] {
   const calls: Call[] = [];
-  for (const row of todo) {
+  for (const row of [...todo].sort((x, y) => y.sec - x.sec)) {
     if (!row.itemGuid) {
       outcome.stale.push(row.key);
       continue;

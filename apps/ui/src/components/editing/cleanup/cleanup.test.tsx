@@ -19,6 +19,8 @@ import { actionText, appliedLabel, levelOf, measureText, opSpec } from './cleanu
 import { cleanupRows, countsOf, noiseFloorOf, proposals, trimRange } from './cleanupRows';
 import { FINDINGS, finding } from './cleanupFixtures';
 import { CleanupTab } from './CleanupTab';
+import { fakeCutLog } from '../range/cut/cutFixtures';
+import { useCleanupDeps } from './useCleanupDeps';
 import { registerCleanupSection } from './registerCleanupSection';
 
 afterEach(() => {
@@ -218,6 +220,54 @@ describe('the Clean up tab', () => {
     expect(entries.map((e) => e.label)).toEqual(['Shortened 1 gap']);
   });
 
+  it('Apply on Gaps removes the gap through the DAW and adds it to the Cuts track', async () => {
+    // The live page's deps (useCleanupDeps, as EditingBody lends them) over the mock DAW and an in-memory cuts log.
+    const setup = DAW_SETUPS.reaper;
+    const daw = createMockDawClient(setup, { chapterIds: ['5'], candidateIds: [], findingIds: [], trimItems: { 'item-1': { start: 0, length: 60 } } });
+    const trimSpy = vi.spyOn(daw, 'trimRange');
+    const log = fakeCutLog();
+    const onCuts = vi.fn();
+    const base = createMockApi();
+    const api = {
+      ...base,
+      ...log,
+      findingsList: vi.fn(async () => ({ findings: FINDINGS, total: FINDINGS.length })),
+      editingCandidates: vi.fn(async () => FINDINGS),
+      dawCapabilities: async () => setup,
+    };
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
+    function LivePage() {
+      const deps = useCleanupDeps({ cuts: log.cuts, onCuts });
+      return <CleanupTab chapterId="5" journal={journal} {...(deps ? { deps } : {})} />;
+    }
+    render(
+      <ApiProvider api={api as typeof base}>
+        <PortOverrides clients={{ daw }}>
+          <main>
+            <LivePage />
+          </main>
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Apply to 2 selected' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 2 selected' }));
+    await waitFor(() => expect(log.cuts).toHaveLength(2));
+    // Latest first, so the earlier gap is still in the item its finding named, at the time it recorded.
+    expect(trimSpy.mock.calls.map(([r]) => [r.itemId, r.start, r.end])).toEqual([
+      ['item-1', 51.2, 53],
+      ['item-1', 11.2, 12.4],
+    ]);
+    expect(log.cuts.map((c) => [c.pid, c.keys, c.mode, c.a, c.b])).toEqual([
+      ['', [], 'close', 11.2, 12.4],
+      ['', [], 'close', 51.2, 53],
+    ]);
+    expect(onCuts).toHaveBeenLastCalledWith(log.cuts);
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect(toast.mock.calls[0]?.[0]).toMatch(/^Hid 2 on the muted Cuts track\./);
+    expect((await journal.entries()).map((e) => e.label)).toEqual(['Shortened 2 gaps']);
+  });
+
   it('applies each operation as one DAW change with an undo', async () => {
     const { journal } = mount();
     await screen.findByRole('button', { name: /^Gaps 2/ });
@@ -305,6 +355,20 @@ describe('the Clean up tab', () => {
     await waitFor(() => expect(toast).toHaveBeenCalled());
     expect(trim).toHaveBeenCalledTimes(2);
     expect(toast.mock.calls[0]?.[0]).toMatch(/Hid 1 .* 2 no longer matched an item and were left alone/);
+    expect((await journal.entries()).length).toBe(1);
+  });
+
+  it('a trim the cuts refuse to record stops the apply and names the DAW undo, and the DAW change stays in the history', async () => {
+    record.mockRejectedValueOnce(new Error('that chapter is not in the manuscript'));
+    const { journal } = mount();
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 2 selected' }));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect(trim).toHaveBeenCalledTimes(1);
+    expect(toast.mock.calls[0]?.[0]).toBe(
+      'Hid 1 on the muted Cuts track. that chapter is not in the manuscript REAPER made the change: undo it there (Edit > Undo).',
+    );
+    expect(toast.mock.calls[0]?.[1]).toEqual({ tone: 'error' });
     expect((await journal.entries()).length).toBe(1);
   });
 

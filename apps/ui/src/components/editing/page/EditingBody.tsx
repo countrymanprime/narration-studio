@@ -265,7 +265,7 @@ export function EditingBody(props: EditingBodyProps) {
   const tab = resolveTab(panels.drawer.want, offered);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
-  const cleanupDeps = useCleanupDeps();
+  const cleanupDeps = useCleanupDeps({ cuts: read.cuts, onCuts: props.onCuts });
   useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
   useEffect(
     () => registerEffectsSection({ effects: read.effects, cuts: read.cuts, total, selected: state.sel ? selected : [], fx, onSelectWords: selectWords }),
