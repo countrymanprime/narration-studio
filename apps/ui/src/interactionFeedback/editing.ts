@@ -80,4 +80,7 @@ export const editingFeedback: Record<string, FeedbackRow> = {
   'src/ports/editLog.ts::editingStackRemove#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'Forwards forgetting stacked takes the DAW put back. The adapter passes the answer through and a rejection reaches the caller, and the first screen to call the port shows it.', '#1119'),
   'src/ports/editLog.ts::editingRetryModeGet#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'Forwards the retry mode read. The adapter passes the answer through and a rejection reaches the caller, and the first screen to call the port shows it.', '#1119'),
   'src/ports/editLog.ts::editingRetryModeSet#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'Forwards setting the retry mode. The adapter passes the answer through and a rejection reaches the caller, and the first screen to call the port shows it.', '#1119'),
+  // The Editing drawer's Backups tab (SN-E87): the DAW settings it edits, at project scope
+  'src/components/editing/backups/useBackupSettings.ts::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the project layer when the tab opens and again after each save; a failure is written in the tab.'),
+  'src/components/editing/backups/useBackupSettings.ts::saveSettings#1': row('input', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A one-field write per change, the same tier-1 cost as Settings.tsx\'s own saveSettings rows, then read back; a refusal is written in the tab.'),
 };
