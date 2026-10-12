@@ -55,8 +55,11 @@ var eventSpecs = map[string]eventSpec{
 	"LINES_CONFLICT": {required: []fieldSpec{text("run"), text("guid")}},
 	// updated, ambiguous and failed were appended by create_regions (narration_regions.lua), which replaced
 	// create_chapter_regions: optional, so the older three-count answer still reads.
-	"PLAY_POSITION":         {required: []fieldSpec{text("run"), count("state"), number("heard"), number("processed"), number("cursor")}},
-	"PUNCHED":               {required: []fieldSpec{text("run"), number("cursor")}},
+	"PLAY_POSITION": {required: []fieldSpec{text("run"), count("state"), number("heard"), number("processed"), number("cursor")}},
+	"PUNCHED":       {required: []fieldSpec{text("run"), number("cursor")}},
+	// roll (narration_roll.lua, ADR 0860): the track REAPER records on again, the time it records from, and the undo points
+	// the command added (0; the points for the recorded media are REAPER's).
+	"ROLLED":                {required: []fieldSpec{text("run"), text("track"), number("at"), count("undoPoints")}},
 	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},

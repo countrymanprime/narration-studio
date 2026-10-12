@@ -31,6 +31,7 @@ func (p plainAdapter) Explain() {} // shadows the method with a different signat
 type punch struct{}
 
 func (punch) PunchTo(context.Context, float64, float64) (float64, error) { return 0, nil }
+func (punch) Roll(context.Context, string, float64) (Result, error)      { return Result{}, nil }
 func (punch) PlayPosition(context.Context) (PlayPosition, error)         { return PlayPosition{}, nil }
 
 func togglesOf(m map[Capability]Toggle) func(Capability) Toggle {

@@ -80,6 +80,9 @@ func (panickingPuncher) PunchTo(context.Context, float64, float64) (float64, err
 func (panickingPuncher) PlayPosition(context.Context) (dawport.PlayPosition, error) {
 	return dawport.PlayPosition{}, nil
 }
+func (panickingPuncher) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return dawport.Result{}, nil
+}
 
 type hangingPuncher struct{ release chan struct{} }
 
@@ -89,6 +92,9 @@ func (h hangingPuncher) PunchTo(context.Context, float64, float64) (float64, err
 }
 func (h hangingPuncher) PlayPosition(context.Context) (dawport.PlayPosition, error) {
 	return dawport.PlayPosition{}, nil
+}
+func (h hangingPuncher) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return dawport.Result{}, nil
 }
 
 func TestTheSuiteCatchesABrokenAdapter(t *testing.T) {

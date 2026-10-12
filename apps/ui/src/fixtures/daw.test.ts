@@ -89,6 +89,11 @@ describe('the mock DAW setups', () => {
     },
   );
 
+  it.each(['reaper', 'reaper-off'] as const)('mock-setup-agrees-with-the-host: %s declares punch native and not destructive', (id) => {
+    expect(DAW_SETUPS[id].capabilities.punch.mode).toBe('native');
+    expect(DAW_SETUPS[id].capabilities.punch.destructive).toBeUndefined();
+  });
+
   it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {
     expect(DAW_SETUPS['audacity-backups'].capabilities.backups).toEqual(DAW_SETUPS.audacity.capabilities.backups);
     expect(DAW_SETUPS['audacity-backups'].capabilities.backups.level).toBe('not_yet_available');

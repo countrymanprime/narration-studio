@@ -162,12 +162,14 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 ### `punch`
 
-- **Intent:** put the cursor a pre-roll before a word, and read the play position.
-- **Role:** `Puncher`, synchronous.
-- **Result:** `PUNCHED` with the cursor at `max(0, time - pre-roll)`, in view, without starting playback. Refused while recording and for a pre-roll out of range. `PLAY_POSITION` reports the play state, the position being heard, the position being processed and the cursor; while recording the state is 5.
-- **REAPER:** `punch_to`, `play_position`.
+- **Intent:** put the cursor a pre-roll before a word, read the play position, and roll again while recording: record again from an earlier time and keep the earlier audio.
+- **Role:** `Puncher`, synchronous. `Roll` answers a `Result`.
+- **Result:** `PUNCHED` with the cursor at `max(0, time - pre-roll)`, in view, without starting playback. Refused while recording and for a pre-roll out of range. `PLAY_POSITION` reports the play state, the position being heard, the position being processed and the cursor; while recording the state is 5. A roll is ok and changed, with the earlier audio kept as a take; it is refused, changing nothing, when the app is not recording on that track, for a time that is not finite, is negative or is past where the recording is now, and when the engine's own recording setting would not keep the earlier audio (the refusal names the setting; the app never changes it). A track that is gone is refused stale. A roll that stopped the recording but could not record again is an error, not a refusal.
+- **Undo:** a punch and a play position add none. A roll opens no undo block of its own, so `undoSteps` is 0; the points the engine adds for the recorded media are its own ([ADR 0860](../../adr/0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md) point 1).
+- **Depth:** an engine where a roll replaces audio declares `destructive` and the page asks before rolling; the call itself never asks.
+- **REAPER:** `punch_to`, `play_position`, `roll`. Mode `native`, not destructive: the roll stops the recording, moves the cursor and records again, so the new pass overlaps the earlier one, and refuses unless "New recording that overlaps existing media items" is "Splits existing items and creates new takes" ([REAPER](reaper.md#roll)).
 - **Audacity:** not built.
-- **Checked:** harness (`punch_test.lua`); expected result is rows A9b and A9c; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)). The heard-versus-processed gap is community research, not a measurement made here ([REAPER transport timing](../../research/reaper-transport-timing.md)).
+- **Checked:** harness (`punch_test.lua`, `roll_test.lua`); expected result is rows A9b and A9c; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)). The heard-versus-processed gap is community research, not a measurement made here ([REAPER transport timing](../../research/reaper-transport-timing.md)). Roll: not checked; the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
 
 ### `regions`
 

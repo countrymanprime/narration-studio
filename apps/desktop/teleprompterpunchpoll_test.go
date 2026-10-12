@@ -15,6 +15,9 @@ type fakePuncherRole struct {
 }
 
 func (f fakePuncherRole) PunchTo(context.Context, float64, float64) (float64, error) { return 0, nil }
+func (f fakePuncherRole) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return dawport.Result{}, nil
+}
 func (f fakePuncherRole) PlayPosition(context.Context) (dawport.PlayPosition, error) {
 	return f.position, f.err
 }

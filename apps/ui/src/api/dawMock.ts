@@ -128,7 +128,7 @@ export type DawMockSeed = {
   /** The old DAW.experimental_reaper_actions switch: while true, every Experimental capability left on 'auto' is on. */
   experimentalOn?: boolean;
   /** What the adapter declares about how a capability acts (dawport.Describer), by key; reported on every answer for the
-   * key, available or not. No declaration today sets one, so the default seeds match the host goldens. */
+   * key, available or not. A key left out takes the engine's own declaration (REAPER_DEPTH), as the host goldens do. */
   depth?: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>>;
   /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
@@ -205,6 +205,10 @@ function supportFor(daw: DawKind, key: DawCapabilityKey, seed: DawMockSeed, conn
   return { level, available: true };
 }
 
+/** REAPER's Describer (dawport/reaper's depthOf): a roll keeps the earlier audio as a take, so punch is native and not
+ * destructive (ADR 0860 point 1). No other engine declares a depth yet. */
+const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = { punch: { mode: 'native' } };
+
 /** Like the host's payload, `destructive` only when true and `mode` only when set. */
 function withDepth(support: DawCapabilitySupport, depth: { destructive?: boolean; mode?: DawCapabilityMode } | undefined): DawCapabilitySupport {
   return { ...support, ...(depth?.destructive ? { destructive: true } : {}), ...(depth?.mode ? { mode: depth.mode } : {}) };
@@ -216,7 +220,10 @@ function currentCapabilities(seed: DawMockSeed): DawCapabilities {
   const connected = daw === 'Built-in' || (daw === 'REAPER' && (seed.connected ?? true));
   const reachable = daw === 'Built-in' || (connected && (seed.reachable ?? true));
   const capabilities: Record<string, DawCapabilitySupport> = {};
-  for (const { key } of DAW_CAPABILITIES) capabilities[key] = withDepth(supportFor(daw, key, seed, connected, reachable), seed.depth?.[key]);
+  const declared = daw === 'REAPER' ? REAPER_DEPTH : {};
+  for (const { key } of DAW_CAPABILITIES) {
+    capabilities[key] = withDepth(supportFor(daw, key, seed, connected, reachable), seed.depth?.[key] ?? declared[key]);
+  }
   return { daw, reachable, capabilities };
 }
 

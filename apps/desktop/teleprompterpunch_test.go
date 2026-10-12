@@ -290,3 +290,6 @@ func (f *fakePuncherStub) PunchTo(_ context.Context, wordTime, preRoll float64) 
 func (f *fakePuncherStub) PlayPosition(context.Context) (dawport.PlayPosition, error) {
 	return dawport.PlayPosition{}, nil
 }
+func (f *fakePuncherStub) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return dawport.Result{}, nil
+}

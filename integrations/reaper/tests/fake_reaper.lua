@@ -61,6 +61,9 @@ function Fake.new(host)
   self.play_position2 = 0
   -- GetAudioDeviceInfo('IDENT_IN'): the open input device's name; nil when the device is closed (REAPER answers false).
   self.audio_input = nil
+  -- REAPER's configuration variables, by name, as the text get_config_var_string answers (narration_roll.lua reads
+  -- autoxfade). A name a test leaves unset reads as `false, ''`. Nothing in the fake writes them.
+  self.config = {}
   self.exit_handlers = {}
   -- The master track (GetMasterTrack): not in self.tracks, as REAPER keeps it out of CountTracks/GetTrack. Its GUID is
   -- fixed so it never shifts the GUIDs the other tests' tracks and items get.
@@ -339,6 +342,24 @@ function Fake:add_project_api(api)
   end
   function api.GetResourcePath()
     return fake.resource_path or ''
+  end
+  -- get_config_var_string(name): `true, value` for a known variable, `false, ''` otherwise. The ReaScript reference
+  -- says it returns the variable "as string"; how REAPER formats an integer variable is not run (narration_roll.lua).
+  function api.get_config_var_string(name)
+    local value = fake.config[name]
+    if value == nil then
+      return false, ''
+    end
+    return true, value
+  end
+  -- GetProjectLength(proj): the end of the last item, from the items the fake holds. A recording in progress is not
+  -- an item yet, as in REAPER (docs/reference/daw/reaper.md, "Media sources and recording").
+  function api.GetProjectLength(_)
+    local last = 0
+    for _, item in ipairs(fake.items) do
+      last = math.max(last, (item.position or 0) + (item.length or 0))
+    end
+    return last
   end
   function api.GetProjectStateChangeCount(_)
     return fake.change_count

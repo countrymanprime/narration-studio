@@ -117,6 +117,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"add_take_fx":         dawport.CapFXChains,
 	"create_regions":      dawport.CapRegions,
 	"play_position":       dawport.CapPunch,
+	"roll":                dawport.CapPunch,
 	"punch_to":            dawport.CapPunch,
 	"master_chain_read":   dawport.CapMasterChainRead,
 }
@@ -228,7 +229,7 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 		dawport.CapHeartbeat:   "*daw.Reachability",
 		dawport.CapTrackState:  "*bridge.Actions",
 		dawport.CapRecord:      "*bridge.Actions",
-		dawport.CapPunch:       "*bridge.Actions",
+		dawport.CapPunch:       "reaper.puncher",
 		dawport.CapRegions:     "*bridge.Actions",
 		dawport.CapTakes:       "reaper.takeSelector",
 		dawport.CapFXChains:    "*bridge.Actions",
@@ -296,7 +297,7 @@ func TestTurningPunchOnAloneSendsPunchAndNothingElse(t *testing.T) {
 	if n := commandsWritten(t, dir); n != 0 {
 		t.Fatalf("a refused FX command wrote %d files", n)
 	}
-	adapter.roles[dawport.CapPunch].(*bridge.Actions).SetTimeout(time.Millisecond)
+	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(time.Millisecond)
 	punch := adapter.Role(dawport.CapPunch).(dawport.Puncher)
 	if _, err := punch.PlayPosition(t.Context()); errors.Is(err, bridge.ErrExperimentalOff) {
 		t.Fatalf("PlayPosition with punch on = %v: it was refused", err)
@@ -319,7 +320,7 @@ func TestTheOldSwitchStillTurnsExperimentalCapabilitiesOn(t *testing.T) {
 	if n := commandsWritten(t, dir); n != 0 {
 		t.Fatalf("a refused FX command wrote %d files", n)
 	}
-	adapter.roles[dawport.CapPunch].(*bridge.Actions).SetTimeout(time.Millisecond)
+	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(time.Millisecond)
 	if _, err := adapter.Role(dawport.CapPunch).(dawport.Puncher).PlayPosition(t.Context()); errors.Is(err, bridge.ErrExperimentalOff) {
 		t.Fatalf("PlayPosition on auto with the old switch on = %v: it was refused", err)
 	}
@@ -518,5 +519,94 @@ func TestHideTakesIsGatedByTheResolver(t *testing.T) {
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused hide wrote %d commands", n)
+	}
+}
+
+const rollTrack = "{00000001-0000-4000-8000-000000000001}"
+
+func puncherAnswering(t *testing.T, answer func(command []string) [][]string) dawport.Puncher {
+	t.Helper()
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	answerCommands(t, client, dir, answer)
+	return adapter.Role(dawport.CapPunch).(dawport.Puncher)
+}
+
+// A roll is a change with no undo point of its own (ADR 0860 point 1): the points for the recorded media are REAPER's.
+func TestRollKeepsTheEarlierAudioAndAddsNoUndoPointOfItsOwn(t *testing.T) {
+	punch := puncherAnswering(t, func(command []string) [][]string {
+		return [][]string{{"ROLLED", command[1], rollTrack, "62.250000", "0"}}
+	})
+	got, err := punch.Roll(t.Context(), rollTrack, 62.25)
+	want := dawport.OK("Rolled again from 62.2 seconds. The earlier audio is kept as a take.", true).WithUndoSteps(0)
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("Roll = %+v, %v; want %+v", got, err, want)
+	}
+	if got.UndoSteps != 0 || !got.Changed || !got.OK {
+		t.Fatalf("Roll = %+v, want ok, changed and no undo step", got)
+	}
+}
+
+func TestRollRefusals(t *testing.T) {
+	setting := `Roll keeps the earlier audio as a take only when REAPER's option "New recording that overlaps existing media items" is set to "Splits existing items and creates new takes". It is set to "Trims existing items behind new recording (tape mode)". Change it in REAPER's Options menu; this app never changes it.`
+	for _, tc := range []struct {
+		name   string
+		answer []string
+		want   dawport.Result
+	}{
+		{"not ours", []string{"RECORD_NOT_OURS"}, dawport.Refused("REAPER is not recording anything this app started on that track, so there is nothing to roll.")},
+		{"stale", []string{"TRACK_STALE", rollTrack}, dawport.RefusedStale("That track is no longer in the REAPER project. Read the project again.")},
+		{"setting", []string{"ERROR", setting}, dawport.Refused(setting)},
+		{"time", []string{"ERROR", "The roll time is not a usable number of seconds."}, dawport.Refused("The roll time is not a usable number of seconds.")},
+	} {
+		punch := puncherAnswering(t, func(command []string) [][]string {
+			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}
+		})
+		got, err := punch.Roll(t.Context(), rollTrack, 40)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: Roll = %+v, %v; want %+v", tc.name, got, err, tc.want)
+		}
+	}
+}
+
+// A roll that stopped the recording but did not record again changed something, so it is an error, never a refusal.
+func TestRollThatStoppedButDidNotRecordAgainIsAnError(t *testing.T) {
+	punch := puncherAnswering(t, func(command []string) [][]string {
+		return [][]string{{"ERROR", command[1], "REAPER did not start recording again after the roll. The earlier audio is kept."}}
+	})
+	if got, err := punch.Roll(t.Context(), rollTrack, 40); !errors.Is(err, bridge.ErrRollStopped) {
+		t.Fatalf("Roll = %+v, %v; want ErrRollStopped", got, err)
+	}
+}
+
+func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
+	sentence := "Experimental REAPER actions are off. Turn them on in Settings to roll."
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
+	})
+	got, err := adapter.Role(dawport.CapPunch).(dawport.Puncher).Roll(t.Context(), rollTrack, 40)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		t.Errorf("Roll with punch refused = %+v, %v", got, err)
+	}
+	if n := len(sentCommands(t, dir)); n != 0 {
+		t.Errorf("a refused roll wrote %d commands", n)
+	}
+}
+
+// REAPER keeps the earlier audio as a take, so punch is native and not destructive, with REAPER up or down.
+func TestPunchIsNativeAndNotDestructive(t *testing.T) {
+	adapter, _ := newAdapter(t, nil)
+	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
+		if got := d.Depth(dawport.CapPunch); got != (dawport.Depth{Mode: dawport.ModeNative}) {
+			t.Errorf("%s: punch depth = %+v, want native and not destructive", name, got)
+		}
+		for _, spec := range dawport.Capabilities() {
+			if spec.Capability != dawport.CapPunch && d.Depth(spec.Capability) != (dawport.Depth{}) {
+				t.Errorf("%s: %s declares a depth %+v", name, spec.Capability, d.Depth(spec.Capability))
+			}
+		}
 	}
 }

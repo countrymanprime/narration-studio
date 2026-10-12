@@ -68,15 +68,24 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
   ]),
 );
 
+/** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, so punch is native and not destructive (ADR 0860). */
+const REAPER_DEPTH: Rows = { punch: { level: 'experimental', available: true, mode: 'native' } };
+
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
   macro_render: macroUnsupported,
   ...REAPER_NOT_YET,
+  ...REAPER_DEPTH,
 });
 
 /** REAPER that does not answer: everything that needs it waits, and reading the saved project still works. */
 const REAPER_OFF_CAPABILITIES = everyCapability(
   (key) => ({ level: REAPER_LEVELS[key], available: false, reason: 'not_running', message: REAPER_NOT_RUNNING }),
-  { project_read: { level: 'supported', available: true }, macro_render: macroUnsupported, ...REAPER_NOT_YET },
+  {
+    project_read: { level: 'supported', available: true },
+    macro_render: macroUnsupported,
+    ...REAPER_NOT_YET,
+    punch: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
+  },
 );
 const audacityExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
 
