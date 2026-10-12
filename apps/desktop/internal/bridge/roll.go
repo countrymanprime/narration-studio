@@ -9,12 +9,13 @@ import (
 // Roll again while recording (ADR 0860 point 1; roll in narration_roll.lua). Experimental (actions.go) until the QA pass
 // has run it in a real REAPER (#1495).
 
-// ErrBadRoll: the roll time is not a finite, non-negative number of seconds, or no track was named, so nothing was sent.
-// The script also refuses a time past where REAPER records now, which only it can read.
+// ErrBadRoll is the refusal when the roll time is not a finite, non-negative number of seconds, or no track was named,
+// so nothing was sent. The script also refuses a time past where REAPER records now, which only it can read.
 var ErrBadRoll = errors.New("the roll time is not a usable number of seconds")
 
-// ErrRollStopped: the roll stopped the recording but REAPER did not record again (it did not report the stop at once, or
-// did not start). The earlier audio is kept; the recording has ended, so this is not a refusal that changed nothing.
+// ErrRollStopped is the answer when the roll stopped the recording but REAPER did not record again (it did not report
+// the stop at once, or did not start). The earlier audio is kept; the recording has ended, so this is not a refusal that
+// changed nothing.
 var ErrRollStopped = errors.New("REAPER stopped recording for the roll but did not record again; the earlier audio is kept")
 
 var rollStopped = map[string]bool{
