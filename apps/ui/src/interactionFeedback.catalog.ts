@@ -147,6 +147,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Remembering a credits card's open state per project in localStorage; the choice lasts for this visit only when storage is disabled.",
   'src/components/proof/lastChapterStorage.ts#1':
     'Remembering the last chapter looked at on Proof per project in localStorage (ADR 0750); the choice lasts for this visit only when storage is disabled.',
+  'src/components/script/page/tools/text/readerText.ts#1':
+    'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
   'src/components/booth/readerPreferences.ts#1':
     'Remembering the read-aloud rail (open, tab) in localStorage; the choice lasts for this dialog only when storage is disabled.',
   'src/components/booth/readerPreferences.ts#2':
