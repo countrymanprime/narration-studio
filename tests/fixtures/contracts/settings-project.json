@@ -573,6 +573,20 @@
       "kind": "choice",
       "label": "Lower stretches of a take",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.click_repair",
+      "kind": "choice",
+      "label": "Repair clicks in a take",
+      "value": ""
     }
   ],
   "Editing": [

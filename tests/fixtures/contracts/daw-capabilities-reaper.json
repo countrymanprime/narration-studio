@@ -12,6 +12,13 @@
       "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
       "reason": "standalone"
     },
+    "click_repair": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "native",
+      "reason": "experimental_off"
+    },
     "cut_range": {
       "available": false,
       "level": "experimental",

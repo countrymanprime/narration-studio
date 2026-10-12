@@ -74,12 +74,13 @@ var declares = func() map[dawport.Capability]dawport.Level {
 // needBackups is each capability that Audacity has only with its backups on, and the words a refusal for them starts with. Audacity
 // keeps no takes and changes the audio itself, so keeping, stacking or cutting takes, and an effect on words, need a backup first.
 var needBackups = map[dawport.Capability]string{
-	dawport.CapTakes:      "Keeping takes",
-	dawport.CapPunch:      "Rolling without losing the earlier audio",
-	dawport.CapStackTakes: "Stacking takes",
-	dawport.CapCutRange:   "Cutting words and their audio",
-	dawport.CapFXRange:    "Adding an effect to words",
-	dawport.CapRangeGain:  "Lowering stretches of a take",
+	dawport.CapTakes:       "Keeping takes",
+	dawport.CapPunch:       "Rolling without losing the earlier audio",
+	dawport.CapStackTakes:  "Stacking takes",
+	dawport.CapCutRange:    "Cutting words and their audio",
+	dawport.CapFXRange:     "Adding an effect to words",
+	dawport.CapRangeGain:   "Lowering stretches of a take",
+	dawport.CapClickRepair: "Repairing clicks in a take",
 }
 
 // requires is the declaration's requirement: backups, for each capability in needBackups.
@@ -91,13 +92,13 @@ func requires(c dawport.Capability) []dawport.Capability {
 }
 
 // depth is how the capabilities that need backups act: a roll replaces the audio it records over, so it is destructive until the
-// backups keep it (the resolver clears the flag while backups are available), and a stack, a cut, an effect on words or lowered
-// stretches is a series of Audacity commands with one undo step each.
+// backups keep it (the resolver clears the flag while backups are available), and a stack, a cut, an effect on words, lowered
+// stretches or repaired clicks is a series of Audacity commands with one undo step each.
 func depth(c dawport.Capability) dawport.Depth {
 	switch c {
 	case dawport.CapPunch:
 		return dawport.Depth{Destructive: true}
-	case dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange, dawport.CapRangeGain:
+	case dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange, dawport.CapRangeGain, dawport.CapClickRepair:
 		return dawport.Depth{Mode: dawport.ModeSteps}
 	default:
 		return dawport.Depth{}

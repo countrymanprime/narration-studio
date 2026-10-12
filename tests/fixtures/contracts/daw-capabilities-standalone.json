@@ -12,6 +12,12 @@
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
+    "click_repair": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
     "cut_range": {
       "available": false,
       "level": "unsupported",

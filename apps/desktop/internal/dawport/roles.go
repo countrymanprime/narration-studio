@@ -502,6 +502,45 @@ type RangeGainReducer interface {
 	ReduceRangeGain(ctx context.Context, request RangeGainRequest) (Result, error)
 }
 
+// The bounds of a ClickRepairRequest, the bridge's own.
+const (
+	MaxClicks      = bridge.MaxClicks
+	MaxClickLength = bridge.MaxClickLength
+)
+
+// Click is a click Start to End seconds into a take's own audio (its source file's time), at most MaxClickLength long.
+type Click = bridge.Click
+
+// ClickRepairRequest smooths short clicks in one take: Clean up's Clicks. ItemGUID and TakeGUID are as the app last read them; the
+// engine refuses a request whose ids no longer match, or a click the item no longer plays.
+type ClickRepairRequest struct {
+	ChapterID string
+	ItemGUID  string
+	TakeGUID  string
+	Clicks    []Click
+}
+
+// Valid is whether the request is in shape: ids, and 1 to MaxClicks clicks each starting at or after 0, ending after it starts
+// and at most MaxClickLength long.
+func (r ClickRepairRequest) Valid() bool {
+	if r.ItemGUID == "" || r.TakeGUID == "" || len(r.Clicks) == 0 || len(r.Clicks) > MaxClicks {
+		return false
+	}
+	for _, click := range r.Clicks {
+		if !bridge.ClickInShape(click) {
+			return false
+		}
+	}
+	return true
+}
+
+// ClickRepairer smooths short clicks in a take, leaving the recorded audio as it was where the engine can (a volume envelope). One
+// undo point where the engine can make it as one action; the Result says how many it added, and the Steps it performed when it had
+// to make it in several.
+type ClickRepairer interface {
+	RepairClick(ctx context.Context, request ClickRepairRequest) (Result, error)
+}
+
 // BackupKeeper clones the audio around an edit before it is made, so it can be put back, for an engine that keeps no takes of its
 // own. RestoreBackup is refused when the engine has no backup with that id.
 type BackupKeeper interface {

@@ -6,6 +6,34 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * DawClick is a click in a take to repair: start to end seconds into the take's own audio file, at most 50 ms long.
+ */
+export class DawClick {
+    "start": number;
+    "end": number;
+
+    /** Creates a new DawClick instance. */
+    constructor($$source: Partial<DawClick> = {}) {
+        if (!("start" in $$source)) {
+            this["start"] = 0;
+        }
+        if (!("end" in $$source)) {
+            this["end"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DawClick instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DawClick {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DawClick($$parsedSource as Partial<DawClick>);
+    }
+}
+
+/**
  * DawGainStretch is a stretch of a take to lower: start to end seconds into the take's own audio file.
  */
 export class DawGainStretch {

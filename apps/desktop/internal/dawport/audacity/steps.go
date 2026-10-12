@@ -14,9 +14,9 @@ import (
 )
 
 // steps is the role of each capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range,
-// range_gain; PRD DQ-18). Audacity keeps no takes and its edits change the audio itself, so each edit is a listed series of scripting commands
+// range_gain, click_repair; PRD DQ-18). Audacity keeps no takes and its edits change the audio itself, so each edit is a listed series of scripting commands
 // made after BackupAround has cloned the audio around it (ADR 0863): a roll (steps_roll.go), a cut and an effect on a range
-// (steps_range.go), a stack and an un-stack (steps_stack.go), and lowered stretches (ReduceRangeGain, below). Each answers a Result whose Steps are the edits in the order
+// (steps_range.go), a stack and an un-stack (steps_stack.go), lowered stretches (ReduceRangeGain, below) and repaired clicks (RepairClick, below). Each answers a Result whose Steps are the edits in the order
 // they were sent and whose UndoSteps counts the ones that add an Audacity undo point (selecting and copying add none); how many
 // Audacity really adds is checked on the owner's pass (docs/operations/audacity-verification-pass.md).
 //
@@ -41,6 +41,7 @@ var (
 	_ dawport.RangeCutter      = (*steps)(nil)
 	_ dawport.RangeFXApplier   = (*steps)(nil)
 	_ dawport.RangeGainReducer = (*steps)(nil)
+	_ dawport.ClickRepairer    = (*steps)(nil)
 )
 
 // stepTolerance is how far apart two times may be and still be the same, in seconds: GetInfo reports six significant digits.
@@ -188,6 +189,75 @@ func (s *steps) ReduceRangeGain(ctx context.Context, request dawport.RangeGainRe
 		e.did("Lower it by "+db+" dB", 1)
 	}
 	return e.done("Lowered " + plural(len(stretches), "stretch", "stretches") + " by " + db + " dB in Audacity."), nil
+}
+
+// The steps and sentences of repaired clicks.
+const (
+	stepSelectClick     = "Select around the click"
+	stepRemoveClick     = "Run Click Removal on it"
+	messageClickBad     = "The clicks to repair are not usable, so nothing was changed."
+	messageClickOutside = "A click to repair is outside the track's audio in Audacity, so nothing was changed."
+)
+
+// clickContext is how far either side of a click the selection reaches, in seconds: Click Removal refuses a selection shorter than
+// half its 8192-sample window, about 93 ms at 44.1 kHz, and finds a click against the audio around it.
+const clickContext = 0.1
+
+// RepairClick runs Audacity's Click Removal (its default threshold and spike width) on a selection reaching clickContext either side
+// of each click, after one backup of the audio from the first selection's start to the last one's end. Audacity has no takes, so a
+// click's seconds, the take's own time, are counted from the start of the track's audio (TrackInfo.Start); a click outside the
+// track's audio is refused before the backup, and selections that meet are made one. Click Removal changes the audio itself and
+// repairs any click it finds in the selection; one undo point per selection.
+func (s *steps) RepairClick(ctx context.Context, request dawport.ClickRepairRequest) (dawport.Result, error) {
+	if !s.canBackUp() {
+		return dawport.Refused(backupsSentence(dawport.CapClickRepair)), nil
+	}
+	if !request.Valid() || !backupText(request.ItemGUID) || !backupText(request.ChapterID) {
+		return dawport.Refused(messageClickBad), nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tracks, err := s.client.Tracks(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	track, refusal, ok := oneTrack(tracks, request.ItemGUID)
+	if !ok {
+		return refusal, nil
+	}
+	clicks := slices.Clone(request.Clicks)
+	slices.SortFunc(clicks, func(a, b dawport.Click) int { return cmp.Compare(a.Start, b.Start) })
+	var spans []dawport.Click
+	for _, click := range clicks {
+		if !track.HasRange || click.End+track.Start > track.End+stepTolerance {
+			return dawport.Refused(messageClickOutside), nil
+		}
+		span := dawport.Click{Start: math.Max(click.Start+track.Start-clickContext, track.Start), End: math.Min(click.End+track.Start+clickContext, track.End)}
+		if n := len(spans); n > 0 && span.Start <= spans[n-1].End {
+			spans[n-1].End = math.Max(spans[n-1].End, span.End)
+			continue
+		}
+		spans = append(spans, span)
+	}
+	what := plural(len(clicks), "click", "clicks")
+	answer, ok, err := s.backUp(ctx, dawport.BackupRequest{
+		GUID: request.ItemGUID, ChapterID: request.ChapterID, Start: spans[0].Start, End: spans[len(spans)-1].End, Label: "Repair " + what,
+	})
+	if !ok {
+		return answer, err
+	}
+	var e edits
+	for _, span := range spans {
+		if err := s.selectRange(ctx, track.Index, span.Start, span.End); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did(stepSelectClick, 0)
+		if err := s.do(ctx, "ClickRemoval"); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did(stepRemoveClick, 1)
+	}
+	return e.done("Repaired " + what + " in Audacity."), nil
 }
 
 // What is not built for Audacity: ADR 0144's sentence, and nothing sent.

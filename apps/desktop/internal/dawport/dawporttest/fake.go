@@ -78,6 +78,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapFilePreview:     filePreviewRole{r(dawport.CapFilePreview)},
 		dawport.CapFileReveal:      fileRevealRole{r(dawport.CapFileReveal)},
 		dawport.CapRangeGain:       rangeGainRole{r(dawport.CapRangeGain)},
+		dawport.CapClickRepair:     clickRepairRole{r(dawport.CapClickRepair)},
 	}
 	return f
 }
@@ -265,6 +266,12 @@ type rangeGainRole struct{ role }
 
 func (r rangeGainRole) ReduceRangeGain(context.Context, dawport.RangeGainRequest) (dawport.Result, error) {
 	return dawport.Result{}, r.do("ReduceRangeGain")
+}
+
+type clickRepairRole struct{ role }
+
+func (r clickRepairRole) RepairClick(context.Context, dawport.ClickRepairRequest) (dawport.Result, error) {
+	return dawport.Result{}, r.do("RepairClick")
 }
 
 type recordRole struct{ role }

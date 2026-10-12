@@ -52,6 +52,8 @@ const (
 	// CapRangeGain lowers stretches of a take by some dB (SN-E100): the one DAW change behind Clean up's Breaths, Plosives and
 	// Noise.
 	CapRangeGain Capability = "range_gain"
+	// CapClickRepair smooths short clicks in a take (SN-E101): the one DAW change behind Clean up's Clicks.
+	CapClickRepair Capability = "click_repair"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -111,6 +113,7 @@ var specs = []Spec{
 	{CapFilePreview, "Play part of a file", NeedsRunning, reflect.TypeFor[FilePreviewer](), nil},
 	{CapFileReveal, "Show a file in the audio engine", NeedsRunning, reflect.TypeFor[FileRevealer](), nil},
 	{CapRangeGain, "Lower stretches of a take", NeedsRunning, reflect.TypeFor[RangeGainReducer](), nil},
+	{CapClickRepair, "Repair clicks in a take", NeedsRunning, reflect.TypeFor[ClickRepairer](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.

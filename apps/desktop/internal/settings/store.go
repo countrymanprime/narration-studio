@@ -128,7 +128,8 @@ var builtinDefaults = map[string]Values{
 		"capability.track_select": "auto", "capability.render_with_fx": "auto", "capability.master_chain_read": "auto",
 		"capability.macro_render": "auto", "capability.cut_range": "auto", "capability.fx_range": "auto",
 		"capability.stack_takes": "auto", "capability.backups": "auto",
-		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto"},
+		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto",
+		"capability.click_repair": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md, ADR 0132).
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while
