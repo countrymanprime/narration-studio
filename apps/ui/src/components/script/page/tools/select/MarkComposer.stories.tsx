@@ -29,7 +29,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Note: Story = {
   play: async ({ canvasElement }) => {
-    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'Alice' });
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'tired' });
     await expect(within(dialog).getByLabelText('Note (optional)')).toBeVisible();
   },
 };
@@ -37,7 +37,7 @@ export const Note: Story = {
 export const Query: Story = {
   args: { type: 'ask' },
   play: async ({ canvasElement }) => {
-    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'Alice' });
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'tired' });
     // The types arrive from the host after the first paint; only then does the field ask for a query.
     await within(dialog).findByLabelText('Your query');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));

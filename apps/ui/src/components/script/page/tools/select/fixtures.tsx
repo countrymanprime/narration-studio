@@ -28,7 +28,7 @@ export function selectIn(id: string, from: number, to: number, toId = id): void 
   selection.addRange(range);
 }
 
-export const SELECTION: ReaderSelection = { chapterId: 'chapter-1', paragraphId: 'p1', start: 0, end: 5, quote: 'Alice' };
+export const SELECTION: ReaderSelection = { chapterId: 'chapter-1', paragraphId: 'p1', start: 0, end: 5, quote: 'tired' };
 
 /** A selection of one word, as the toolbar draws it, and one that crosses paragraphs. */
 export const TOOL_SELECTION = { ...SELECTION, rect: { ...RECT, left: 160, top: 90 } as DOMRect };
