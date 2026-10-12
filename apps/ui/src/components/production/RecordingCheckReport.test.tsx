@@ -89,16 +89,16 @@ describe('RecordingCheckReport', () => {
     expect(screen.queryByText('Pace')).toBeNull();
   });
 
-  // The recording check dialog gets an "Open in Proof" button.
-  it('shows an Open in Proof button when the caller has one, and calls it', () => {
+  // The recording check dialog gets an "Open in Editing" button.
+  it('shows an Open in Editing button when the caller has one, and calls it', () => {
     const openWorkspace = vi.fn();
     renderReport(openWorkspace);
-    fireEvent.click(screen.getByRole('button', { name: 'Open in Proof' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open in Editing' }));
     expect(openWorkspace).toHaveBeenCalledTimes(1);
   });
 
-  it('renders no Open in Proof button when the caller has none', () => {
+  it('renders no Open in Editing button when the caller has none', () => {
     renderReport();
-    expect(screen.queryByRole('button', { name: 'Open in Proof' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
   });
 });

@@ -40,7 +40,6 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - `src/components/primitives/WorkDialog.tsx`
 - `src/components/project/NewProjectDialog.tsx`
 - `src/components/proof/AuditionDialog.tsx`
-- `src/components/proof/TakeComparisonDialog.tsx`
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`

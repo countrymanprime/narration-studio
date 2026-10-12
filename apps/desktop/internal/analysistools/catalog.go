@@ -99,6 +99,7 @@ type Catalog struct {
 	Tools   []Tool `json:"tools"`
 }
 
+// Manager serves one catalog. New refuses a catalog with a row missing a consent fact (consentFacts).
 type Manager struct {
 	catalog Catalog
 	root    string
@@ -113,7 +114,27 @@ func New(catalogPath, root string) (*Manager, error) {
 	if err = json.Unmarshal(raw, &c); err != nil {
 		return nil, err
 	}
+	for i, tool := range c.Tools {
+		if err := tool.consentFacts(); err != nil {
+			return nil, fmt.Errorf("%s: row %d (%q) %w", catalogPath, i+1, tool.ID, err)
+		}
+	}
 	return &Manager{catalog: c, root: root}, nil
+}
+
+// consentFacts refuses a row the consent screen could not describe: one with no id, no name, no licence or no memory figure.
+func (t Tool) consentFacts() error {
+	switch {
+	case t.ID == "":
+		return errors.New("has no id")
+	case t.DisplayName == "":
+		return errors.New("has no displayName")
+	case t.License == "":
+		return errors.New("has no license")
+	case !(t.RAMGB > 0):
+		return errors.New("has no ramGB")
+	}
+	return nil
 }
 
 // pinned is whether every file has a real address, size and SHA-256, and every archive the bytes it may unpack to.

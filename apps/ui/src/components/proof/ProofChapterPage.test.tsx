@@ -1,22 +1,20 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_DISCREPANCIES, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chapterName } from '../../chapterName';
 import { CommandRouter } from '../../input/router';
 import type { NarrationApi } from '../../types';
 import { ProofChapterPage } from './ProofChapterPage';
 
 afterEach(cleanup);
-
-beforeEach(() => {
-  vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-  vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
-});
 
 const chapter = WIRE_CHAPTERS[0];
 const linkedTrackGuid = WIRE_TRACKS_PROJECT.tracks[0].guid;
@@ -29,6 +27,7 @@ function renderWorkspace(overrides: Partial<NarrationApi> = {}, initial: Paramet
     transcript: WIRE_TRANSCRIPT,
     dawFileLinked: true,
     goToManuscript: () => {},
+    goToEditing: () => {},
     refreshKey: 'test',
     ...page,
   };
@@ -57,73 +56,18 @@ describe('ProofChapterPage', () => {
     expect(await screen.findByText('Check current')).toBeTruthy();
   });
 
-  it('renders the script’s words and a flag from the alignment', async () => {
+  // SN-E9 (no-flag-no-second-page): the chapter view is Proof's, never the old workspace: no script, transport, takes or flags panel.
+  it('no-flag-no-second-page: draws none of the workspace the Editing page replaced', async () => {
     renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    expect(await screen.findByText(/Flags/)).toBeTruthy();
-    // The mock places one deterministic misread flag on a current, fully-recorded chapter.
-    expect((await screen.findAllByText('Misread')).length > 0).toBeTruthy();
+    await screen.findByText('Check current');
+    expect(screen.queryByRole('button', { name: /^Play/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: /^Flags/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: /^Takes/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /in REAPER$/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Start comparison/ })).toBeTruthy();
   });
 
-  it('plays from a clicked word', async () => {
-    const user = userEvent.setup();
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    const words = await screen.findAllByRole('button', { name: /./ });
-    const wordButton = words.find((button) => button.hasAttribute('data-token-index'));
-    expect(wordButton).toBeTruthy();
-    await user.click(wordButton!);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy());
-  });
-
-  it('toggles play/pause from the transport', async () => {
-    const user = userEvent.setup();
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await user.click(await screen.findByRole('button', { name: 'Play' }));
-    expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
-  });
-
-  it('goes to and loops the word at the playhead in REAPER, then stops the loop', async () => {
-    const user = userEvent.setup();
-    // The default mock REAPER (connected) and Chapter 1's alignment (every token 'read', per the alignment test
-    // above): both Go to and Loop of the word at the playhead (token 0) succeed for real, through
-    // workspaceGoTo/workspaceLoop, and Stop loop reads it back from findingsReaperStatus's loopingFindingId, exactly
-    // as a real REAPER session would (useWorkspaceReaper.ts).
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-
-    await user.click(await screen.findByRole('button', { name: 'Go to in REAPER' }));
-    expect(screen.queryByRole('alert')).toBeNull();
-
-    await user.click(await screen.findByRole('button', { name: 'Loop in REAPER' }));
-    const stop = await screen.findByRole('button', { name: 'Stop loop' });
-
-    await user.click(stop);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Stop loop' })).toBeNull());
-    expect(await screen.findByRole('button', { name: 'Loop in REAPER' })).toBeTruthy();
-  });
-
-  it('disables Go to and Loop in REAPER, with the reason, when REAPER is not connected', async () => {
-    renderWorkspace({}, { reaper: 'standalone' });
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-
-    const goTo = await screen.findByRole('button', { name: 'Go to in REAPER' });
-    const loop = await screen.findByRole('button', { name: 'Loop in REAPER' });
-    await waitFor(() => expect(goTo.hasAttribute('disabled')).toBe(true));
-    expect(loop.hasAttribute('disabled')).toBe(true);
-  });
-
-  it('shows REAPER’s refusal as an alert and changes nothing', async () => {
-    const user = userEvent.setup();
-    renderWorkspace({}, { reaper: 'recording' });
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-
-    await user.click(await screen.findByRole('button', { name: 'Go to in REAPER' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('REAPER is recording');
-  });
-
-  it('shows the "not checked yet" state, with no player, for a chapter never checked', async () => {
+  it('shows the "not checked yet" state for a chapter never checked', async () => {
     const neverChecked = WIRE_CHAPTERS[9]; // status 'proofing'/'not_started' tier, no recordedFraction seeded
     render(
       <ApiProvider
@@ -146,7 +90,16 @@ describe('ProofChapterPage', () => {
             <Routes>
               <Route
                 path="/proof/:chapterId"
-                element={<ProofChapterPage notify={() => {}} transcript={WIRE_TRANSCRIPT} dawFileLinked goToManuscript={() => {}} refreshKey="test" />}
+                element={
+                  <ProofChapterPage
+                    notify={() => {}}
+                    transcript={WIRE_TRANSCRIPT}
+                    dawFileLinked
+                    goToManuscript={() => {}}
+                    goToEditing={() => {}}
+                    refreshKey="test"
+                  />
+                }
               />
             </Routes>
           </MemoryRouter>
@@ -162,220 +115,57 @@ describe('ProofChapterPage', () => {
   });
 });
 
-// Findings in the text: the mock seeds one transcript_discrepancy finding
-// at chapter-1's own deterministic misread token (mockApi.ts's workspaceOverlayFinding, built from the same position
-// workspaceMock.ts times it at), so it merges into that check-derived "Misread" flag rather than adding a second one.
-describe('ProofChapterPage findings in the text', () => {
-  it('merges the chapter’s finding into the misread flag rather than duplicating it, with where it came from', async () => {
-    const user = userEvent.setup();
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await screen.findAllByText('Misread');
-
-    // The mock's only flag on this chapter is the misread; "Next flag" selects it (same as the ]/[ keyboard tests).
-    await user.click(await screen.findByRole('button', { name: 'Next flag' }));
-    expect(await within(screen.getByRole('region', { name: /^Flags/ })).findByText('From')).toBeTruthy();
-    expect(await within(screen.getByRole('region', { name: /^Flags/ })).findByText(/Local AI compare/)).toBeTruthy();
-    // The flags legend row and the selected flag's own heading - never a second flag row (the third is the notes table's Type chip).
-    const flagsPanel = screen.getByRole('region', { name: /^Flags/ });
-    expect(within(flagsPanel).getAllByText('Misread')).toHaveLength(2);
-  });
-
-  it('accepts a finding-backed flag in place, and the decision shows without leaving the page', async () => {
-    const user = userEvent.setup();
-    const api = renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await user.click(await screen.findByRole('button', { name: 'Next flag' }));
-
-    await user.click(await screen.findByRole('button', { name: 'Pickup' }));
-    expect(await screen.findByText('Saved: needs a pickup.')).toBeTruthy();
-
-    const decided = await api.findingsGet('workspace-overlay-chapter-1');
-    expect(decided.review.status).toBe('accepted');
-  });
-
-  it('shows a note field and rejects one over the limit', async () => {
-    const user = userEvent.setup();
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await user.click(await screen.findByRole('button', { name: 'Next flag' }));
-
-    const note = await screen.findByLabelText('Note (optional)');
-    await user.type(note, 'a'.repeat(2001));
-    expect(await screen.findByText(/at most 2000 characters/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Pickup' }).hasAttribute('disabled')).toBe(true);
-    // user.type sends 2001 keystrokes, about 10 s alone and over the 15 s default when the gate runs other tasks in parallel.
-  }, 45_000);
-
-  it('does not offer a decision on a flag with no backing finding', async () => {
-    const user = userEvent.setup();
-    // No findings at all here (overriding the mock's default overlay finding away): every flag comes straight from
-    // the check's own alignment, so whichever one "Next flag" lands on first must show no decision controls.
-    renderWorkspace({}, { coverage: { pickups: [chapter.id] }, findings: [] });
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await user.click(await screen.findByRole('button', { name: 'Next flag' }));
-
-    expect(screen.queryByText('Decision')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Pickup' })).toBeNull();
-  });
-
-  it('selects the flag a ?finding= deep link names ("Open chapter view" from Proof’s notes, Home or the Manuscript)', async () => {
-    render(
-      <ApiProvider
-        api={createMockApi(
-          {},
-          { chapterTrackMappings: [{ trackGuid: linkedTrackGuid, chapterId: chapter.id, chapterTitle: chapter.title, confirmedAt: '2026-01-01T00:00:00Z' }] },
-        )}
-      >
-        <CommandRouter>
-          <MemoryRouter initialEntries={[`/proof/${chapter.id}?finding=workspace-overlay-chapter-1`]}>
-            <Routes>
-              <Route
-                path="/proof/:chapterId"
-                element={<ProofChapterPage notify={() => {}} transcript={WIRE_TRANSCRIPT} dawFileLinked goToManuscript={() => {}} refreshKey="test" />}
-              />
-            </Routes>
-          </MemoryRouter>
-        </CommandRouter>
-      </ApiProvider>,
-    );
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    expect(await within(screen.getByRole('region', { name: /^Flags/ })).findByText('From')).toBeTruthy();
-    expect(await within(await screen.findByRole('region', { name: /^Flags/ })).findByText(/Local AI compare/)).toBeTruthy();
-  });
-});
-
-// The workspace's shortcuts are `workspace.*` page-scope commands, registered through `useCommand`, not a
-// hand-written `window` `keydown` listener. Every key the old listener handled has a test here. `renderWorkspace` wraps in a real `<CommandRouter>` with the real catalog and default keymap, and
-// dispatches through the real `KeyboardSource` (`userEvent.keyboard`, which bubbles to `document`), so these tests
-// exercise the actual router, not a mock of it.
-describe('ProofChapterPage keyboard commands', () => {
-  it('toggles play/pause on Space (workspace.play)', async () => {
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await screen.findByRole('button', { name: 'Play' });
-
-    await userEvent.keyboard(' ');
-    expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
-
-    await userEvent.keyboard(' ');
-    expect(await screen.findByRole('button', { name: 'Play' })).toBeTruthy();
-  });
-
-  // stepWord/stepParagraph seek with a 1-second pre-roll ahead of the actual word/paragraph target, which - at
-  // 155 words/minute - is worth more than two words: the DOM's karaoke highlight (`isCurrent`) lags the raw target by
-  // that same amount and can stay pinned near a chapter's start across repeated presses. That pre-roll/highlight
-  // interaction is stepWord/stepParagraph's own pre-existing behaviour (unit-untested before this phase, and out of
-  // this migration's scope), so these tests prove the command fires - a seek that starts playback, the same signal
-  // `workspace.play` uses - rather than asserting on the highlighted token index, which pre-roll makes unreliable.
-  it.each([
-    ['ArrowRight', 'workspace.word.next'],
-    ['ArrowLeft', 'workspace.word.prev'],
-    ['ArrowDown', 'workspace.paragraph.next'],
-    ['ArrowUp', 'workspace.paragraph.prev'],
-  ] as const)('seeks and starts playback on %s (%s)', async (key, _commandId) => {
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await screen.findByRole('button', { name: 'Play' });
-
-    await userEvent.keyboard(`{${key}}`);
-
-    expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
-  });
-
-  it('selects flags forward and back on ]/[ (workspace.flag.next/prev)', async () => {
-    // Pickups seed a skip, a short read and a tail on top of the deterministic misread (see workspaceMock.ts /
-    // coverageMock.ts's pickupsReportFor), so the chapter has several flags to move between instead of just one.
-    renderWorkspace({}, { coverage: { pickups: [chapter.id] } });
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await screen.findByText(/Flags/);
-
-    await userEvent.keyboard(']');
-    expect(await screen.findByText(/Flag 1 of \d+/)).toBeTruthy();
-
-    await userEvent.keyboard(']');
-    expect(await screen.findByText(/Flag 2 of \d+/)).toBeTruthy();
-
-    // user-event's keyboard() syntax treats `[` as the start of a key descriptor, so a literal `[` is `[[` (doubled).
-    await userEvent.keyboard('[[');
-    expect(await screen.findByText(/Flag 1 of \d+/)).toBeTruthy();
-  });
-
-  it('does not fire a workspace command while a field is focused', async () => {
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await screen.findByRole('button', { name: 'Play' });
-    const input = document.createElement('input');
-    document.body.appendChild(input);
-    input.focus();
-
-    await userEvent.keyboard(' ');
-
-    expect(screen.getByRole('button', { name: 'Play' })).toBeTruthy();
-    input.remove();
-  });
-
-  it('does not fire workspace.play when a modifier is held (exact-modifier match)', async () => {
-    // The registry's default gesture for workspace.play is a bare Space (modifiers must match exactly), so Alt+Space
-    // does not toggle play here.
-    renderWorkspace();
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    await screen.findByRole('button', { name: 'Play' });
-
-    await userEvent.keyboard('{Alt>}{ }{/Alt}');
-
-    expect(screen.getByRole('button', { name: 'Play' })).toBeTruthy();
-  });
-});
-
-// The compare run and its results are in the chapter view. A finished
-// run's discrepancies for this chapter are flags, with the inline diff and the results row's actions in the flag detail.
-describe('ProofChapterPage compare results', () => {
+// The compare run stays on the chapter view with its summary; its discrepancies were flags in the workspace, which the Editing page replaced.
+describe('ProofChapterPage compare run', () => {
   const success = { ...WIRE_TRANSCRIPT, phase: 'success' as const, rows: WIRE_DISCREPANCIES };
-  const flagsPanel = async () => {
-    await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` });
-    return (await screen.findByRole('heading', { name: /^Flags · / })).closest('section')!;
-  };
-  // Steps through the flags until the selected one carries a discrepancy (its detail offers Play recorded audio).
-  const selectCompareFlag = async (user: ReturnType<typeof userEvent.setup>, panel: HTMLElement) => {
-    for (let step = 0; step < 10 && !within(panel).queryByRole('button', { name: 'Play recorded audio' }); step += 1) {
-      await user.click(within(panel).getByRole('button', { name: 'Next flag' }));
-    }
-    return within(panel).getByRole('button', { name: 'Play recorded audio' });
-  };
 
-  it('adds this chapter’s discrepancies to the flags, leaving other chapters’ out', async () => {
+  it('counts this chapter’s discrepancies in the summary, leaving other chapters’ out', async () => {
     renderWorkspace({}, {}, { transcript: success });
-    const panel = await flagsPanel();
-    // Chapter 1's extra words become a flag; Chapter 8's skipped words are not this chapter's, so no Skipped row.
-    await within(panel).findByText('Extra words');
-    expect(within(panel).queryByText('Skipped')).toBeNull();
-    expect(screen.getByText(/2 discrepancies in Chapter 1/)).toBeTruthy();
+    expect(await screen.findByText(/2 discrepancies in Chapter 1/)).toBeTruthy();
   });
 
-  it('shows a discrepancy’s inline diff, marker state and actions in the flag detail, and reports a failed jump', async () => {
-    const user = userEvent.setup();
-    const notify = vi.fn();
-    renderWorkspace({ transcriptJump: () => Promise.reject(new Error('REAPER is not running')) }, {}, { transcript: success, notify });
-    const panel = await flagsPanel();
-    await within(panel).findByText('Extra words');
-    const play = await selectCompareFlag(user, panel);
-    expect(within(panel).getAllByText('Heard').length).toBeGreaterThan(0);
-    expect(within(panel).getByText(/Ready to export|Exported|Already marked/)).toBeTruthy();
-    await user.click(play);
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER is not running'), 'error'));
-  });
-
-  it('reviews the last comparison with no linked DAW file, with Play recorded audio off', async () => {
+  it('reviews the last comparison with no linked DAW file, with Export off', async () => {
     const user = userEvent.setup();
     renderWorkspace({}, {}, { dawFileLinked: false });
     await user.click(await screen.findByRole('button', { name: /Last narrated take/ }));
-    const panel = await flagsPanel();
-    await within(panel).findByText('Extra words');
-    expect(((await selectCompareFlag(user, panel)) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: /Export \d+ marker/ }) as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect((screen.getByRole('button', { name: /Export \d+ marker/ }) as HTMLButtonElement).disabled).toBe(true));
   });
 });
 
-// ADR 0470: the chapter view leads with the notes strip, the chapter's notes table and a
-// note's detail, then the recording-check card.
+// SN-E9 (old-files-are-gone-and-nothing-imports-them): the workspace's files are deleted, and nothing in the app imports one.
+describe('the old workspace', () => {
+  const GONE = [
+    'ScriptView',
+    'TransportBar',
+    'WaveformStrip',
+    'TakesPanel',
+    'ApplyFxDialog',
+    'useChapterPlayback',
+    'tokenAtTime',
+    'takesPassage',
+    'findingFlags',
+    'compareFlags',
+    'waveformLayout',
+    'peaksDecode',
+    'useWorkspaceReaper',
+    'FlagsPanel',
+    'InlineDiff',
+  ];
+  const here = dirname(fileURLToPath(import.meta.url));
+  const src = join(here, '..', '..');
+  const sources = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory() ? sources(join(dir, entry.name)) : /\.tsx?$/.test(entry.name) ? [join(dir, entry.name)] : [],
+    );
+
+  it('old-files-are-gone-and-nothing-imports-them: no workspace file is left in proof/', () => {
+    const left = readdirSync(here).map((name) => name.replace(/\.(test\.)?tsx?$/, ''));
+    expect(GONE.filter((name) => left.includes(name))).toEqual([]);
+  });
+
+  it('old-files-are-gone-and-nothing-imports-them: no source imports a deleted workspace file', () => {
+    const importer = new RegExp(`from '[^']*/proof/(${GONE.join('|')})'|from '\\./(${GONE.join('|')})'`);
+    const offenders = sources(src).filter((file) => importer.test(readFileSync(file, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
+});

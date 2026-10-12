@@ -3,6 +3,7 @@ import { mockImportPreview } from '../../api/mockImportPreview';
 import type { ManuscriptImportPreview } from '../../types';
 import {
   describeReview,
+  headingName,
   effectiveKind,
   groupSections,
   hasSubtitleChoices,
@@ -170,5 +171,16 @@ describe('describeReview', () => {
   it('a PDF, which has no sections, keeps the proposed chapter count', () => {
     const pdf: ManuscriptImportPreview = { format: 'pdf', sourceName: 'a.pdf', paragraphCount: 3, chapterTitles: ['One', 'Two'] };
     expect(describeReview(pdf, reviewCounts(pdf, {}))).toEqual({ headline: 'PDF · 3 paragraphs · 2 proposed chapters.', detail: '' });
+  });
+});
+
+describe('headingName', () => {
+  it('writes a label heading the way the manuscript does, and every other with the em dash', () => {
+    expect(headingName({ title: 'CHAPTER VIII.', subtitle: 'Croquet' })).toBe('CHAPTER VIII. Croquet');
+    expect(headingName({ title: '8.', subtitle: 'Croquet' })).toBe('8. Croquet');
+    expect(headingName({ title: 'Chapter 8:', subtitle: 'Croquet' })).toBe('Chapter 8: Croquet');
+    expect(headingName({ title: 'Chapter 8:' })).toBe('Chapter 8:');
+    expect(headingName({ title: 'Chapter Eight', subtitle: 'Croquet' })).toBe('Chapter Eight — Croquet');
+    expect(headingName({ title: 'Prologue' })).toBe('Prologue');
   });
 });

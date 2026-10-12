@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
-import { chapterName } from '../../chapterName';
 import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
@@ -15,6 +14,8 @@ import {
   describeReview,
   effectiveKind,
   groupSections,
+  headingName,
+  headingParts,
   hasSubtitleChoice,
   hasSubtitleChoices,
   isGroupOpen,
@@ -43,7 +44,7 @@ const REFERENCE_NOTE = 'Excluded from audiobook totals, Proof and the chapter li
 function sectionName(section: ManuscriptImportSection, selection: ManuscriptImportSelection): string {
   const heading = reviewedHeading(section, selection);
   if (heading.textLine) return `${heading.title} · ${heading.textLine} ${TEXT_LINE_NOTE}`;
-  return chapterName(heading);
+  return headingName(heading);
 }
 
 // Said of a subtitle line turned off that becomes the chapter's first paragraph again, so it is narrated (an epigraph under a plain-text heading).
@@ -145,6 +146,7 @@ export function ImportReview({
           {groups[kind].map((section) => {
             const heading = reviewedHeading(section, selection);
             const name = sectionName(section, selection);
+            const styled = headingParts(heading);
             return (
               <div key={section.id} className="flex items-center gap-3 text-sm">
                 <span className="min-w-0 flex-1 truncate" title={name}>
@@ -156,6 +158,10 @@ export function ImportReview({
                         · {heading.textLine} {TEXT_LINE_NOTE}
                       </span>
                     </>
+                  ) : styled.label ? (
+                    <span className="normal-case">
+                      <span className="font-semibold">{styled.label}</span> <span className="text-[var(--text-muted)]">{styled.rest}</span>
+                    </span>
                   ) : (
                     <TitleSubtitle title={heading.title} subtitle={heading.subtitle} />
                   )}

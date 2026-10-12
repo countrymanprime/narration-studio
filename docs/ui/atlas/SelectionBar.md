@@ -13,4 +13,4 @@ Storybook title: `Editing/Bar`. Source: `src/components/editing/bar/SelectionBar
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/editing/page/EditingBody.tsx`

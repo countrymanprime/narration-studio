@@ -11,7 +11,7 @@ import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
 import { bootstrapSchema } from './api/schemas/system';
 import type { GuideBuildResult, WorkJob } from './types';
-import { WIRE_CHAPTERS } from './api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from './api/mockFixtures';
 import type { JobEnded } from './api/contracts/system';
 import type { DawTransport } from './api/contracts/daw';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -55,6 +55,21 @@ const startRunOnChapterOne = async () => {
   await screen.findByRole('heading', { name: /^Proof · / });
   fireEvent.click(await screen.findByRole('button', { name: /Start comparison/ }));
   await screen.findByRole('button', { name: 'Cancel' });
+};
+
+/** Links Chapter 1 to its first track from the engine panel's Chapter links table (no chapter starts linked in the mock) and returns its row. */
+const linkChapterOne = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
+  const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+  const table = await within(panel).findByRole('table', { name: 'Chapter links' });
+  const row = within(table)
+    .getAllByRole('row')
+    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1( — |$)/ }))!;
+  const select = within(row).getByRole('combobox') as HTMLSelectElement;
+  fireEvent.change(select, { target: { value: select.options[0].value } });
+  fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
+  await within(row).findByRole('link', { name: 'Open in Editing' });
+  return row;
 };
 
 describe('App (integration, driven through the mock NarrationApi)', () => {
@@ -642,13 +657,84 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it.each([
     ['/review?from=bookmark#top', '/proof', '?from=bookmark', '#top'],
     ['/proofing', '/proof', '', ''],
-    ['/tracks/chapter/chapter-1?t=12.5&finding=f-1', '/proof/chapter-1', '?t=12.5&finding=f-1', ''],
   ])('redirects %s to Proof, keeping its query and hash', async (from, pathname, search, hash) => {
     window.history.replaceState(null, '', from);
     renderApp();
     await waitFor(() => expect(window.location.pathname).toBe(pathname));
     expect(window.location.search).toBe(search);
     expect(window.location.hash).toBe(hash);
+  });
+
+  // SN-E9 (route-and-rail): a chapter's old Tracks address lands on Editing at that chapter, ?t= and ?finding= kept.
+  it('route-and-rail: redirects /tracks/chapter/:chapterId to Editing at that chapter, keeping its query', async () => {
+    window.history.replaceState(null, '', '/tracks/chapter/chapter-1?t=12.5&finding=f-1');
+    renderApp();
+    await waitFor(() => expect(window.location.pathname).toBe('/editing/chapter-1'));
+    expect(window.location.search).toBe('?t=12.5&finding=f-1');
+    expect(await screen.findByRole('region', { name: 'Script editor' })).toBeTruthy();
+  });
+
+  it('route-and-rail: /editing/:chapterId draws the Editing page on that chapter, and the Editing item opens /editing', async () => {
+    window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[1].id}`);
+    renderApp();
+    const page = await screen.findByRole('region', { name: 'Script editor' });
+    await waitFor(() => expect(within(page).getAllByText(new RegExp(WIRE_CHAPTERS[1].title)).length).toBeGreaterThan(0));
+    expect(screen.queryByRole('heading', { name: /^Proof · / })).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editing' })[0]);
+    await screen.findByRole('region', { name: 'Script editor' });
+    expect(window.location.pathname).toBe('/editing');
+  });
+
+  // The editing check's "Clean up in Editing" (?drawer=cleanup) opens the page's drawer on Clean up.
+  it('every-workspace-deep-link-lands-on-editing: ?drawer=cleanup opens Editing with the Clean up tab', async () => {
+    window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[0].id}?drawer=cleanup`);
+    renderApp();
+    expect(await screen.findByRole('region', { name: 'Clean up findings' }, { timeout: 4000 })).toBeTruthy();
+  });
+
+  // Proof's takes at a spot: Manage takes in Editing opens the note's chapter with the note's word selected and the passage's takes open.
+  it('every-workspace-deep-link-lands-on-editing: Manage takes in Editing on Proof opens Editing with ?finding= and ?passage=', async () => {
+    window.history.replaceState(null, '', '/proof?chapter=chapter-1');
+    // Chapter 1 linked to its track (the visual suite's ?mockChapterLink=confirmed), so a note on it has takes at its spot.
+    const track = WIRE_TRACKS_PROJECT.tracks.find((candidate) => candidate.name === 'Chapter 1')!;
+    renderApp(
+      {},
+      { chapterTrackMappings: [{ trackGuid: track.guid, chapterId: 'chapter-1', chapterTitle: WIRE_CHAPTERS[0].title, confirmedAt: '2026-09-01T12:00:00Z' }] },
+    );
+    const note = await screen.findByText(/pink eyes/, {}, { timeout: 4000 });
+    fireEvent.click(note.closest('tr')!);
+    const spot = await screen.findByRole('region', { name: 'Takes at this spot' }, { timeout: 4000 });
+    const manage = within(spot).getByRole('button', { name: 'Manage takes in Editing' });
+    fireEvent.click(manage);
+    await screen.findByRole('region', { name: 'Script editor' });
+    expect(window.location.pathname).toBe('/editing/chapter-1');
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('finding')).toBeTruthy();
+    expect(params.get('passage')).toBeTruthy();
+  });
+
+  // As the mock's page: with no manuscript the route stays and the page asks for one; its button goes to the import on Production.
+  it('route-and-rail: without a manuscript Editing asks for one instead of drawing a chapter', async () => {
+    window.history.replaceState(null, '', '/editing/chapter-1');
+    const source = createMockApi();
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
+    fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    expect(window.location.pathname).toBe('/');
+  });
+
+  // SN-E9 (every-workspace-deep-link-lands-on-editing): the engine panel's chapter link opens Editing at the chapter; Proof's chapter view
+  // (its compare run and stage panels) keeps its own link.
+  it('every-workspace-deep-link-lands-on-editing: the Chapter links table opens a linked chapter in Editing', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const row = await linkChapterOne();
+    expect(within(row).getByRole('link', { name: 'Open in Proof' }).getAttribute('href')).toBe(`/proof/${WIRE_CHAPTERS[0].id}`);
+    fireEvent.click(within(row).getByRole('link', { name: 'Open in Editing' }));
+    await screen.findByRole('region', { name: 'Script editor' });
+    expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
 
   // SN-M5 (ADR 0802): /settings, /master and /delivery mount the Studio Next pages; /delivery is a page again, not a redirect.
@@ -1267,8 +1353,8 @@ describe('App Back and Forward', () => {
     const transcriptReset = vi.fn(createMockApi().transcriptReset);
     renderApp({ transcriptReset });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    // Production's Proof cell opens the chapter workspace (/proof/:chapterId) until the Editing swap.
-    fireEvent.click((await screen.findAllByRole('button', { name: /: Proof / }))[0]);
+    // The engine panel's chapter link is the way into Proof's chapter view, where the compare run lives.
+    fireEvent.click(within(await linkChapterOne()).getByRole('link', { name: 'Open in Proof' }));
     await startRunOnChapterOne();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));

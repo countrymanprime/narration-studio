@@ -41,7 +41,7 @@ async function renderPage({ overrides = {}, initial = {} }: { overrides?: Partia
             go={go}
             notify={notify}
             goToScript={vi.fn()}
-            goToProofChapter={vi.fn()}
+            goToEditing={vi.fn()}
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
             onOverview={onOverview}
@@ -77,6 +77,15 @@ describe('production-route-draws-the-mock-page', () => {
     expect(await screen.findByRole('button', { name: 'Import manuscript' })).toBeTruthy();
     expect(screen.queryByRole('list', { name: 'Production figures' })).toBeNull();
     expect(screen.queryByRole('table', { name: 'Chapter pipeline' })).toBeNull();
+  });
+
+  // ML-5: Replace manuscript is in Settings, under Manuscript, and nowhere else.
+  it('has no Replace manuscript once a manuscript exists', async () => {
+    await renderPage();
+    await pipeline();
+    expect(screen.queryByRole('button', { name: /replace manuscript/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /import manuscript/i })).toBeNull();
+    expect(screen.queryByText(/replace manuscript/i)).toBeNull();
   });
 
   it('imports no file the swap deleted', () => {

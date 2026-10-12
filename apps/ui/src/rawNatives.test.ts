@@ -47,7 +47,6 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // ReaderText.tsx above - one word among a chapter's worth of running prose, needing Button's bare click/keyboard
     // semantics without its padded, uppercase chrome breaking the text flow. One JSX `<button>`, written once inside
     // the tokens `.map()`.
-    'src/components/proof/ScriptView.tsx': 1,
     // The resume prompt's disagree choice ("a card that is a button" - two places, REAPER
     // and Last reading - written once as `card()`, called twice): `Button`'s uppercase chrome does not fit a card naming a
     // source, a time and a quoted sentence. (Its text links are `Button variant="link"`, ADR 0595, like every underlined

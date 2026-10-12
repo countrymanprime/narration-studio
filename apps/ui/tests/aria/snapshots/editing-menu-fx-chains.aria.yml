@@ -1,0 +1,8 @@
+# Add FX on selected words: a menu of the DAW's own FX chains under a disabled heading row, and the item the app cannot open yet,
+# disabled with its reason read as part of its name.
+- menu:
+  - /children: equal
+  - menuitem "Your REAPER FX chains" [disabled]
+  - menuitem "Podcast Voice.RfxChain"
+  - menuitem "Vocal Warmth.RfxChain"
+  - menuitem /^Manage in REAPER…/ [disabled]

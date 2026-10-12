@@ -39,16 +39,13 @@ const RESOLUTION: Record<FindingReviewStatus, { label: string; tone: StatusTone 
 };
 
 /** The resolution chip for a status and fix: an accepted edit reads Edit, an accepted pickup Pickup. */
-export function resolutionFor(status: FindingReviewStatus, fix: FixKind): { label: string; tone: StatusTone } {
+function resolutionFor(status: FindingReviewStatus, fix: FixKind): { label: string; tone: StatusTone } {
   if (status === 'accepted' && fix === 'edit') return { label: 'Edit', tone: 'warning' };
   return RESOLUTION[status];
 }
 
 /** A note's Resolution column chip (mock 04): Pickup, Edit or Waived once decided; To review or Deferred otherwise. */
 export const resolutionOf = (finding: Finding) => resolutionFor(finding.review.status, fixKindOf(finding));
-
-/** The decision buttons, in order; accepting a note records the fix it asks for, so its button says which. */
-export const DECISION_ORDER: readonly FindingReviewStatus[] = ['accepted', 'dismissed', 'deferred'];
 
 export function decisionLabel(status: FindingReviewStatus, fix: FixKind): string {
   switch (status) {

@@ -32,6 +32,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
 - `src/components/delivery/profile/ProfileCard.tsx`
+- `src/components/editing/EditingPage.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
@@ -62,14 +63,10 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/production/useChapterTools.tsx`
 - `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/CompareRun.tsx`
-- `src/components/proof/FlagsPanel.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`
 - `src/components/proof/ProofingStagePanel.tsx`
-- `src/components/proof/ScriptView.tsx`
-- `src/components/proof/TakesPanel.tsx`
-- `src/components/proof/TransportBar.tsx`
 - `src/components/schedule/ContractPanel.tsx`
 - `src/components/schedule/SchedulePage.tsx`
 - `src/components/schedule/WorkedOut.tsx`
@@ -78,5 +75,9 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/script/page/tools/find/FindBar.tsx`
 - `src/components/settings/ManuscriptSection.tsx`
 - `src/components/settings/Settings.tsx`
+- `src/components/settings/page/AppearancePanel.tsx`
+- `src/components/settings/page/DeliveryProfileField.tsx`
+- `src/components/settings/page/KeysPanel.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`

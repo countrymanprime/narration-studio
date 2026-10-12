@@ -2,8 +2,12 @@
 
 # Settings
 
-Settings opens with six panels, then the rest of the settings by category.
+Settings opens with seven panels, then the rest of the settings by category.
 
+- **Recording** chooses where this project's takes are recorded: in the DAW the app was started with (the DAW's
+  name, then **Recordings live in the DAW.**) or with the **Built-in recorder. Recordings live in the app.** The DAW
+  stays chosen while it is not running. A refused choice (no project open, a take running, or the built-in
+  recorder not available) says why under the radios, and the choice stays where it was.
 - **Delivery profile** picks the profile this project is judged against, on [Master &
   QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
 - **Definitions and pronunciations** chooses where the Script page's **Words** tab shows definitions from: the
@@ -22,7 +26,7 @@ Settings opens with six panels, then the rest of the settings by category.
 - **Manuscript** says when the manuscript was imported (or **No manuscript yet**), with **Replace
   manuscript** (or **Import manuscript** when there is none). The replace confirm names what it clears.
 
-![Settings, the top of the page: the Delivery profile, Story Bible types and Appearance panels](../../images/ui/settings-appearance.webp)
+![Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types](../../images/ui/settings-appearance.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
@@ -138,7 +142,7 @@ The settings under it:
 - **Experimental REAPER actions** (off by default): the DAW actions not yet verified in REAPER stay
   refused while it is off, unless you set that action's own row below to `on`; while it is on, every one left on
   `auto` is allowed.
-- **Favourite effects (FX chains and plug-ins)**: the effects [Proof](proof.md#adding-an-effect-to-a-passage)
+- **Favourite effects (FX chains and plug-ins)**: the effects [Editing](editing.md#effects-on-words)
   offers first.
 - One row per DAW action (`auto`, `on` or `off`), such as **Record**, **Punch and roll** or **Chapter
   regions**.

@@ -39,7 +39,7 @@ type Options = {
   notify: Notify;
   go: RowGo;
   goToScript: (chapter: string, paragraph?: number) => void;
-  goToProofChapter: (chapterId: string) => void;
+  goToEditing: (chapterId: string) => void;
   /** False while there is no manuscript: nothing is read. */
   active: boolean;
   /** Changes after a manuscript import or replacement, so the chapter list is read again. */
@@ -55,7 +55,7 @@ type Options = {
  * Returns the row menu's items for a target, the panels, the opener the page's Edit cell uses, and the track links the chapter-sync
  * toast names a track from.
  */
-export function useChapterTools({ rows, notify, go, goToScript, goToProofChapter, active, refreshKey, onChanged }: Options) {
+export function useChapterTools({ rows, notify, go, goToScript, goToEditing, active, refreshKey, onChanged }: Options) {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
@@ -222,9 +222,9 @@ export function useChapterTools({ rows, notify, go, goToScript, goToProofChapter
           coverage={coverage}
           notify={notify}
           close={close}
-          // A credits row's synthetic chapter (ADR 0333) opens the Manuscript credits entry, never a Proof workspace or a paragraph.
+          // A credits row's synthetic chapter (ADR 0333) opens the Manuscript credits entry, never the Editing page or a paragraph.
           goToParagraph={checkingCredits ? () => goToScript(`credits-${checkingCredits}`) : (paragraph) => goToScript(open.chapter.id, paragraph)}
-          openWorkspace={checkingCredits ? undefined : () => goToProofChapter(open.chapter.id)}
+          openWorkspace={checkingCredits ? undefined : () => goToEditing(open.chapter.id)}
         />
       )}
       {open?.kind === 'editing' && <EditingCheckPanel key={open.chapter.id} chapter={open.chapter} notify={notify} close={close} />}

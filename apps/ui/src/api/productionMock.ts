@@ -249,7 +249,12 @@ function nextUp(chapters: ProductionChapter[]): ProductionNextUpItem[] {
     }));
 }
 
-export function createProductionMock(deps: Deps): ProductionApi {
+/** The payment type choosing the delivery profile profileId gives a contract that has none yet (production.DefaultPaymentFor): ACX pays per finished hour. */
+const defaultPaymentFor = (profileId: string): ProductionPayment | null => (profileId === 'acx' ? 'per_finished_hour' : null);
+
+/** The production API, and the step the project's delivery-profile choice takes on the plan: a payment still unset takes the profile's default,
+ * one the narrator set (an explicit `none` too) is kept (apps/desktop/delivery_profiles.go selectDeliveryProfile, ADR 0800). */
+export function createProductionMock(deps: Deps): ProductionApi & { applyProfileDefaultPayment: (profileId: string) => void } {
   const seed = deps.seed ?? {};
   let plan: StoredPlan = {
     deadline: seed.deadline ?? null,
@@ -323,6 +328,9 @@ export function createProductionMock(deps: Deps): ProductionApi {
   };
 
   return {
+    applyProfileDefaultPayment: (profileId) => {
+      if (plan.payment === null) plan = { ...plan, payment: defaultPaymentFor(profileId) };
+    },
     productionPlan: async () => answer(plan),
     setProductionDeadline: async (deadline, contractedAmount) => {
       const checked = deadline === '' ? null : checkDate(deadline);

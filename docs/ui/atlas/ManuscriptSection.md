@@ -12,3 +12,4 @@ Storybook title: `Settings/ManuscriptSection`. Source: `src/components/settings/
 ## Used by
 
 - `src/components/settings/Settings.tsx`
+- `src/components/settings/page/SettingsPage.tsx`
