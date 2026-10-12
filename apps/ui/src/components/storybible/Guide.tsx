@@ -98,7 +98,7 @@ function AskForManuscript({ onImport }: { onImport?: () => void }) {
   return (
     <Panel label="Story Bible">
       <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-        <h1 className="m-0 text-lg font-semibold">Story Bible</h1>
+        <Heading title="Story Bible" />
         <p className="m-0 text-[var(--text-muted)]">This project has no manuscript yet. Import one to begin.</p>
         {onImport && <Button onClick={onImport}>Import manuscript</Button>}
       </div>
