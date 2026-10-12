@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
-import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
+import { DAW_PROJECT_STATES, DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import { createMockMeasurements } from '../../../ports/measurements';
@@ -12,7 +12,15 @@ import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 
 // The Booth page (docs/research/mockups/studio-next/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
-type Args = { setup: DawSetupId | 'destructive'; resume: boolean; pickups?: boolean; roomTone?: number; navigate: (next: string) => void };
+type Args = {
+  setup: DawSetupId | 'destructive';
+  resume: boolean;
+  pickups?: boolean;
+  roomTone?: number;
+  /** The DAW project has changes its saved file does not have. */
+  unsaved?: boolean;
+  navigate: (next: string) => void;
+};
 
 const pickup = (id: string, chapterId: string, paragraphId: string, script: string, done = false): PickupItem => ({
   id,
@@ -53,13 +61,21 @@ const destructive = (): DawClient =>
     { chapterIds: ['c1'], candidateIds: [], findingIds: [] },
   );
 
-function Page({ setup, resume, pickups = false, roomTone, navigate }: Args) {
+/** REAPER with edits its saved project does not have yet. */
+const unsavedReaper = (): DawClient =>
+  createMockDawClient(
+    DAW_SETUPS.reaper,
+    { chapterIds: ['c1', 'c2'], candidateIds: [], findingIds: [] },
+    { ...DAW_PROJECT_STATES.reaper, unsavedChanges: true },
+  );
+
+function Page({ setup, resume, pickups = false, roomTone, unsaved = false, navigate }: Args) {
   const [host] = useState(() => ({
     api: pageApi({
       ...(resume ? { teleprompterLocate: async () => LOCATED } : {}),
       ...(pickups ? { pickupsList: async () => SESSION } : {}),
     } as Partial<NarrationApi>),
-    daw: setup === 'destructive' ? destructive() : dawFor(setup),
+    daw: setup === 'destructive' ? destructive() : unsaved ? unsavedReaper() : dawFor(setup),
     journal: newJournal(),
     overlay: createOverlayService(),
     // The microphone's room tone, whichever microphone is chosen; without it the host's port has no reading.
@@ -148,6 +164,16 @@ export const Resume: Story = {
   args: { resume: true },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByRole('button', { name: 'Resume at ¶ 2' }, { timeout: 4000 })).toBeTruthy();
+  },
+};
+
+// The project has changes since it was saved: the resume line says it is as of the save, and the setup chip says there are unsaved changes.
+export const UnsavedChanges: Story = {
+  args: { resume: true, unsaved: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText(/Project saved Sep 26, 08:40\. Changes in REAPER since then are not included/, {}, { timeout: 4000 })).toBeTruthy();
+    await expect(await canvas.findByRole('button', { name: 'Recording setup: REAPER, unsaved changes in the project' })).toBeTruthy();
   },
 };
 
