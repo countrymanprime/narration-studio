@@ -255,7 +255,7 @@ class SceneAppearanceTests(unittest.TestCase):
 
 
 class DialogueCueTests(unittest.TestCase):
-    """Q4, option A: quote spans, adjacent 'said Name'/alias patterns, per-scene continuation, `unknown` on ambiguity."""
+    """Dialogue cues come from quote spans, adjacent 'said Name'/alias patterns, per-scene continuation, `unknown` on ambiguity."""
 
     def _character_index(self, *names: str) -> dict[str, str]:
         return {guide.normalize_name(name): guide.entity_id(name) for name in names}

@@ -1,4 +1,4 @@
-"""The batch role of the Whisper engine (ADR 0301, provider-ports P6): wraps faster-whisper for Transcript Compare.
+"""The batch role of the Whisper engine (ADR 0301): wraps faster-whisper for Transcript Compare.
 
 ``FasterWhisperEngine`` is the body of ``compare.transcribe()`` behind the ``AsrEngine`` port. It declares ``batch`` only -
 Transcript Compare never listens live - and refuses ``live``. ``compare.transcribe()`` stays a thin function with its
