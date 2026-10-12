@@ -1,12 +1,10 @@
 # Editing readiness: the corpus, the labeling format and the evaluation harness
 
-**Status: synthetic baseline only, 2026-09-27.** This is Phase 1 of
-`editing-readiness-analysis.prd.md` (deleted) ("Editing corpus and evaluation
-harness"): no product code, a labeling format, a corpus plan, synthetic generators, and a Go harness that scores
+**Status: synthetic baseline only, 2026-09-27.** Issue: [#794](https://github.com/countrymanprime/narration-utils/issues/794), the editing corpus and evaluation harness: no product code, a labeling format, a corpus plan, synthetic generators, and a Go harness that scores
 [DX Phase 9's cleanup detector](../../apps/desktop/internal/measure/cleanup.go) (`measure.CleanupFindings`'s own
 candidates: silence, click, breath) against labeled locations. Every number below is from the **committed synthetic
 corpus only** (D70): no permissioned narrator audio exists yet, so, per D12, no threshold here is a fact. A real run
-is a QA item on [#510](https://github.com/countrymanprime/narration-utils/issues/510), tracked until it happens.
+is a QA item on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217), tracked until it happens.
 
 ## The labeling format
 

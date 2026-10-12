@@ -1,16 +1,15 @@
 # Pronunciation provider spike (story bible and import UX briefs, Phase 9)
 
-**Status: decided, docs only.** This is the Phase 9 spike `docs/prds/story-bible-and-import-ux-briefs.prd.md` asks for
-(open questions P1-P2): what "provider" means for Story Bible pronunciation, whether the preview can speak a chosen
+**Status: decided, docs only.** This spike answers open questions P1-P2 of the Story Bible pronunciation work: what "provider" means for Story Bible pronunciation, whether the preview can speak a chosen
 phonetic form, and a GPL exposure check before any further engine. The storage/preview implementation itself (Phase 10)
-and its UI (Phase 11) are out of scope for this stack (S19d) and deferred.
+and its UI (Phase 11) are out of scope here and deferred.
 
 ## What exists today
 
 - `sidecars/manuscript-guide/core/manuscript_guide.py`'s `pronunciation(name, espeak_library)` tries `cmudict` first,
   then falls back to `phonemizer`'s `espeak` backend (`pronounce_source`, `PRONUNCIATION_SOURCES = {"cmu", "espeak"}`),
   storing an IPA string in `entity["pronunciation"]["ipa"]` with its `source`. A narrator-chosen source is available
-  through the `pronounce()` command and the `GuidePronounce` binding (stack S19a), marked `chosen` so `merge_locked`
+  through the `pronounce()` command and the `GuidePronounce` binding, marked `chosen` so `merge_locked`
   keeps it across a rebuild.
 - The preview path (`render_audio` in the same file, called by `apps/desktop/internal/guide/service.go`'s `Service.Preview`
   via `apps/desktop/bindings.go`'s `GuidePreview`) **ignores the stored pronunciation entirely**: it calls
@@ -54,14 +53,14 @@ ARPABET-to-IPA mapping step or should be excluded from the "speaks what you wrot
 ## P2: GPL exposure check
 
 The PRD asks to schedule a licence review before adding any further engine, because `phonemizer` and eSpeak NG are GPL
-upstream and run in-process in the frozen sidecar. This stack (P1 decided as b+d) **adds no new engine**: it reuses the
+upstream and run in-process in the frozen sidecar. This phase (P1 decided as b+d) **adds no new engine**: it reuses the
 `cmu`/`espeak` pronunciation sources and Piper, all already recorded in [model provenance](../architecture/model-provenance.md)
 as GPL-3.0-or-later, already compatible with this project's own AGPL-3.0-or-later licensing (owner decision D17). So this
 phase is, as the brief anticipated, mostly a documentation item: **no new licence review is triggered by P1's decision**,
-because no new licensed component is introduced. The open item is procedural, for whichever later stack adds a second
-local engine (the "Could" row in the PRD's MoSCoW table, explicitly deferred past this PRD): **that stack must re-read
+because no new licensed component is introduced. The open item is procedural, for whichever later change adds a second
+local engine (the "Could" row in the PRD's MoSCoW table, explicitly deferred past this PRD): **that change must re-read
 `docs/architecture/model-provenance.md` and this project's licence-class policy
-(`docs/research/local-dependency-evaluation.md#license-classes`) before adding it**, the same gate every other candidate
+(`docs/architecture/model-provenance.md`, "License classes") before adding it**, the same gate every other candidate
 in that document already goes through. This is recorded as a standing checklist item, not a new artifact evaluation,
 because there is no new artifact yet to evaluate.
 

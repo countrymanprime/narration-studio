@@ -1,6 +1,6 @@
 package deliveryprofile
 
-// The built-in ACX profile (docs/research/acx-delivery-requirements.md). Every rule cites ACX's
+// The built-in ACX profile (docs/reference/acx-delivery-requirements.md). Every rule cites ACX's
 // Audio Submission Requirements page. The help site cannot be reached from the sessions that wrote this, so a rule is
 // "verified" only where the repository recorded a reading of ACX's own page, and its requirement is a paraphrase
 // (Quoted false) unless that reading kept ACX's words; everything else is "to verify" with what is left to check.
@@ -16,7 +16,7 @@ const ACXVersion = "2026-09"
 const (
 	acxTitle = "ACX Audio Submission Requirements"
 	acxURL   = "https://help.acx.com/s/article/what-are-the-acx-audio-submission-requirements"
-	// acxReadOn is the repository's recorded reading of ACX's page (docs/research/acx-delivery-requirements.md).
+	// acxReadOn is the repository's recorded reading of ACX's page (docs/reference/acx-delivery-requirements.md).
 	acxReadOn = "2026-09-20"
 	// acxLevelsReadOn is when docs/research/reaper-automation-surface.md recorded ACX's level and format numbers from
 	// the same page.

@@ -1,6 +1,6 @@
 # Docs-site generator spike: VitePress or MkDocs Material
 
-**Date:** 2026-09-21. **Stack:** S16, release-readiness phase 10. **Answers:** owner decision Q8 of the release-readiness PRD (deleted): compare VitePress and MkDocs Material on the repository's real cross-folder links, then decide. The decision is [ADR 0083](../adr/0083-the-public-docs-site-is-built-by-mkdocs-with-the-material-theme-straight-from-docs-and-a-reviewed-include-list.md).
+**Date:** 2026-09-21. **Issue:** [#213](https://github.com/countrymanprime/narration-utils/issues/213). **Answers:** compare VitePress and MkDocs Material on the repository's real cross-folder links, then decide. The decision is [ADR 0083](../adr/0083-the-public-docs-site-is-built-by-mkdocs-with-the-material-theme-straight-from-docs-and-a-reviewed-include-list.md).
 
 **Verdict: MkDocs (1.6.1) with the Material theme (9.7.7).** It reads this tree as GitHub-flavoured Markdown without changes, treats `README.md` as the folder index, reports every one of the 26 links that need attention (no false negatives, no false positives), and has automatic navigation from the folders. VitePress needed a rewrite workaround for `README.md`, a slug override, a navigation generator, and it fails to compile 9 of the 187 files because it treats prose as a Vue template. Both tools built the tree in under 7 seconds. Neither tool can fail the build for a link to a page the include list leaves out (VitePress can, MkDocs only logs it), so the include list needs link rewriting whichever tool is used; that is phase 11's job.
 

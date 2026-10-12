@@ -1,8 +1,8 @@
 # Studio Next DAW spikes: the owner's run sheet for SND-1a to SND-1g
 
-**Status: written 2026-10-11. Nothing in this note was run.** The slice that wrote it had no REAPER and no Audacity. Every "Expected" line below is a hypothesis taken from [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) or from the API's documented behaviour, not an observation. Every Lua and Python block is untested until your run: a script error is itself a result, so send back the report file even when a spike fails.
+**Status: written 2026-10-11, not yet run.** It was written without REAPER or Audacity. Every "Expected" line below is a hypothesis taken from [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) or from the API's documented behaviour, not an observation. Every Lua and Python block is untested until your run: a script error is itself a result, so send back the report file even when a spike fails.
 
-Tracking: issue #1096, part of #1016. The run is one entry on #992, not one per spike. Phase 1 of the PRD stays pending until you return the table. Spikes 1a to 1e are recorded in [the REAPER results note](studio-next-daw-spike-results-reaper.md), which reads "results pending" until the table comes back.
+Tracking: issue #1096, part of #1016. The run is one entry on #992, not one per spike. Phase 1 of the PRD stays pending until you return the table. Spikes 1a to 1e are recorded in [the REAPER results note](../research/studio-next-daw-spike-results-reaper.md), which reads "results pending" until the table comes back.
 
 ## What you return
 
@@ -552,7 +552,7 @@ Expected: a label line for the mouse move (REAPER's own wording, for example a m
 
 **Question (PRD, verbatim):** Is `GetPlayPosition` or `GetPlayPosition2` accurate over the file bridge for the Booth's resume anchor (REAPER spike S4)?
 
-**Needs the audio interface** (this plays audio). Pending on #510, read as #992.
+**Needs the audio interface** (this plays audio). Pending on #992.
 
 **Expected (hypothesis):** `GetPlayPosition` tracks what is heard (output latency included) and `GetPlayPosition2` tracks what is being processed, so they differ by about the output latency, and polling at the bridge's 50-100 ms round trip (`narration_punch.lua`) stays within one poll interval of the truth.
 

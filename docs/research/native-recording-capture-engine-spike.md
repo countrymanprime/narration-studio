@@ -1,6 +1,6 @@
 # Native Recording Capture Engine Spike: WASAPI Through PortAudio in the Sidecar
 
-**Status:** spike report, 2026-09-28 (Native Recording Suite (deleted PRD `native-recording-suite`) Phase 1, stream N-B37, [#842](https://github.com/countrymanprime/narration-utils/issues/842)). The decision it informs is [ADR 0357](../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+**Status:** spike report, 2026-09-28. **Issue:** [#842](https://github.com/countrymanprime/narration-utils/issues/842). The decision it informs is [ADR 0357](../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
 
 **Question (PRD Q3 and Q7):** Can this stack capture a narrator's microphone to a correct WAV file with no dropouts, at an acceptable cost, and which engine should do it? What does that mean for monitoring?
 
@@ -93,7 +93,7 @@ This run deliberately overloads the recorder: the generator never waits. It chec
   - Software monitoring would add the round trip the PRD's latency metric worries about, and CI cannot measure that round trip. Phase 2 gets the numbers from the owner's check (PortAudio's reported input latency is saved with each take) before offering it.
 - **Latency.** Not measured: no endpoint on the runner. It is owner-pending.
 
-## The owner's check (pending on #510, D65)
+## The owner's check (pending on #992, D65)
 
 On the owner's Windows machine, with the microphone they narrate with, from a checkout of #846:
 
@@ -107,4 +107,4 @@ On the owner's Windows machine, with the microphone they narrate with, from a ch
    - `lagMs.max` is under 4,000.
    - Note `latencyMs` (PortAudio's reported input latency) and `sampleRate` for Phase 2.
 3. **Listen.** Play `device-0.wav` in any player, and scrub to a few points. Pass when there are no clicks or gaps and it sounds like the microphone.
-4. **Post the `device` entry on #510.** When the check passes, the `wasapi` row moves from Experimental to Supported in a follow-up (ADR 0357).
+4. **Post the `device` entry on #992.** When the check passes, the `wasapi` row moves from Experimental to Supported in a follow-up (ADR 0357).

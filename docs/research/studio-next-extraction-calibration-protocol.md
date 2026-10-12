@@ -1,6 +1,6 @@
 # Extraction confidence: calibration protocol
 
-**Date:** 2026-10-11. **Slice:** SN-X13 / SNX-1 ([#1143](https://github.com/countrymanprime/narration-utils/issues/1143)), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **For:** SN-X8, the evaluation harness, which implements this protocol and writes the calibration table. Nothing is measured here.
+**Date:** 2026-10-11. **Issue:** [#1143](https://github.com/countrymanprime/narration-utils/issues/1143), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **For:** the evaluation harness, which implements this protocol and writes the calibration table. Nothing is measured here.
 
 The rule being calibrated is [ADR 0803](../adr/0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md): a suggestion at or above `VerifyBelow` is applied and flagged Review; one below it, or with no confidence, needs verification. The value is `extraction.VerifyBelow = 0.75` in `apps/desktop/internal/extraction/rule.go`, the only place the number is written. The PRD's failure test is "confident wrong entries above a few percent". This protocol says how to find out, and what a result may change.
 
