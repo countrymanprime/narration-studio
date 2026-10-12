@@ -93,4 +93,4 @@ A file over a limit is refused with a sentence before any row is built.
 
 ## The bindings
 
-The page sends the text of the file the narrator chose; no binding takes a path, so the host opens and fetches nothing. The commit parses and plans the text again and never takes the preview's word. Each binding's behaviour is in the doc comments of `apps/desktop/bindings_extraction_import.go`.
+The page sends the text of the file the narrator chose; no binding takes a path, so the host opens and fetches nothing. The commit parses and plans the text again and never takes the preview's word. Undo of an import (`ExtractionImportUndo`, one journal step) takes back what its suggestions applied, an entry it made and nobody has reviewed included, and removes them without a tombstone, so the same file offers them again. Each binding's behaviour is in the doc comments of `apps/desktop/bindings_extraction_import.go`.
