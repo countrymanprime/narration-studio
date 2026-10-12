@@ -6,7 +6,7 @@ import { Badge, Dot, StatusBadge, badgeClass, type StatusTone } from './StatusBa
 
 afterEach(cleanup);
 
-// Every tone Q6 recommends, each with its own fill/text pair. Colour resolution (light,
+// Every tone the badge offers, each with its own fill/text pair. Colour resolution (light,
 // dark and booth) is the atlas's job (StatusBadge.stories.tsx) and paletteContrast.test.ts's; this test only pins which
 // token each tone reaches for, so a future edit that silently drops a tone or repoints one fails here first.
 const TONE_TOKENS: Record<StatusTone, { fill: string; text: string; line: string }> = {
