@@ -25,6 +25,17 @@ After implementation and before `feature-cleanup`, for any change to code, confi
 8. **If no doc is owed,** say so as `Docs: none — <reason>` in the PR description (CI), a commit message (`pnpm check`) and your final message (the hook). A reason names why no behaviour, contract, command or boundary changed (for example "internal rename, no documented name"). "Not needed" is not a reason.
 9. **Report** the paths changed, the docs updated or added, and any owed doc you did not update with the reason.
 
+## The gates around it
+
+[Documentation gates](../../../docs/operations/documentation-gates.md) lists the checks this skill sits beside. The order for a change that owes docs:
+
+1. Write with [docs-style](../docs-style/SKILL.md): state what code, a command or a test shows, link instead of copying, one page type per page.
+2. Run this skill before `feature-cleanup`.
+3. Run [doc-unslop](../doc-unslop/SKILL.md) on the Markdown you touched. It cuts and does not add facts.
+4. If no doc is owed, put the `Docs: none — <reason>` line in the pull request description.
+
+The docs-impact script also runs as a `Stop` and `SubagentStop` hook (`.claude/settings.json`). It asks once per stop. If it blocks, update the doc or repeat the `Docs: none` line in your final message.
+
 ## Guard against empty edits
 
 The script checks paths only. Touching a doc without changing what it says (a whitespace edit, a date bump) is not an update. The edit must change a statement that the code change made false, or add the missing one.

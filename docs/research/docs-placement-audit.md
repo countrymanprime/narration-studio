@@ -242,7 +242,7 @@ About 5 are close to pure architecture description: `codebase-map.md`, `wire-con
 ### 2.7 PRDs (`docs/prds/`, 15 plus README)
 
 - All 15 carry "Parallel-session compatibility" (files each phase touches and which agent sessions collide), "Slices", "Supersedes / depends on ADRs", and both "Decisions" and "Decisions Log". The template in `docs/prds/README.md` requires them: item 11, "a Parallel-session compatibility table of the files each phase touches and who else collides with them", and a `PRP Plan` column. These are delivery-plan and tracker content (section 1.3).
-- [Studio Next Agent Delivery](../prds/studio-next-agent-delivery.prd.md) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
+- [Studio Next Agent Delivery](../../.claude/skills/agent-train/references/studio-next-delivery.md) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
 - [Studio Next ADR Register](../prds/studio-next-adr-register.prd.md) is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
 - Several PRDs name agents as their users: "The owner, the coordinator and the last workers" (Cutover), "Page workers (consumers) ... the coordinator" (Domain state).
 - Product rules that PRDs cite live in the agent runbook: D69 (dark mode is one theme) and D98 (the mock is the only spec) are in `agent-train.md` "Owner standing rules".

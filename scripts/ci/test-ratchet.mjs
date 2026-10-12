@@ -5,7 +5,7 @@
 //
 // Exit 1 on a violation. The `Test ratchet` workflow lets a pull request through when the owner has put the
 // `ratchet-approved` label on it, so an unattended agent cannot weaken its own gate and still merge
-// (docs/operations/agent-train.md, "Safety net"). Reads the diff only, so the existing tree never fails.
+// (.claude/skills/agent-train/SKILL.md, "Safety net"). Reads the diff only, so the existing tree never fails.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';

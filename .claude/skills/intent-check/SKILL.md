@@ -20,7 +20,7 @@ Skip both for a typo, a doc-only change with no stated goal, or a mechanical cha
 
 Read these in order of authority, and name which one each criterion came from:
 
-1. The owner's words: the request, an answer on the tracking issue, [#510](https://github.com/countrymanprime/narration-utils/issues/510) answers, and the owner standing rules in [the agent train](../../../docs/operations/agent-train.md#owner-standing-rules) (D-numbers).
+1. The owner's words: the request, an answer on the tracking issue, [#510](https://github.com/countrymanprime/narration-utils/issues/510) answers, and the owner standing rules in [the agent train](../agent-train/SKILL.md#owner-standing-rules) (D-numbers).
 2. The PRD phase: its Description, Phase Details and the PRD's Problem, Success Metrics and **What We're NOT Building** ([PRD template](../../../docs/prds/README.md#prd-template)).
 3. For UI, the [Studio Next mock](../../../docs/research/mockups/studio-next/) page, in the same theme. It is the only spec: a control or state the mock lacks is unrequested, and an old equivalent the mock replaces should be deleted in the same change (D98).
 4. The Accepted ADRs for the topics touched (`decision-index`) and `design-principles`.

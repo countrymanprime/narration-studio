@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Watches the agent train from outside it (docs/operations/agent-train.md, "Safety net").
+// Watches the agent train from outside it (.claude/skills/agent-train/SKILL.md, "Safety net").
 //
 // node scripts/ci/train-health.mjs heartbeat       Warns on #510 when #509's `Last pass:` line is older than 2 hours.
 // node scripts/ci/train-health.mjs hold <reason>   Ticks HOLD on #509 and says why, so nothing launches until the owner clears it.
