@@ -15,6 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
 	"github.com/countrymanprime/narration-utils/shell/internal/retakelanes"
 	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
@@ -107,6 +108,9 @@ type Input struct {
 	Groups []findings.Finding
 	// Comparison finds the saved comparison of a passage; nil means none are kept.
 	Comparison func(passageID string) (findings.Finding, bool)
+	// Marks are the chapter's runs in the Booth's passage map (passagemap.Service.List): where each take the Booth recorded
+	// began and ended in the text, with the DAW's ids. A passage the Booth recorded is placed from them (TK-1 part 2).
+	Marks []passagemap.Resolved
 }
 
 // Resolved is Alternates plus what is needed to act on a candidate and to compare them.
@@ -138,19 +142,23 @@ func Resolve(in Input) (Resolved, error) {
 	resolved := Resolved{View: view, choices: map[string]Choice{}, input: in}
 
 	view.FirstParagraph, view.LastParagraph = paragraphSpan(in.View, in.FirstToken, in.LastToken)
-	itemIndex, heard := majorityItem(tokens[in.FirstToken : in.LastToken+1])
-	if !heard {
-		view.Message = "This passage wasn't heard in the recording, so there are no takes to set beside it. Run the check again if the chapter has changed."
-		resolved.View = view
-		return resolved, nil
+	itemGUID, found := firstMappedItem(in.Project, mappedSpans(in, view.FirstParagraph, view.LastParagraph))
+	if !found {
+		itemIndex, heard := majorityItem(tokens[in.FirstToken : in.LastToken+1])
+		if !heard {
+			view.Message = "This passage wasn't heard in the recording, so there are no takes to set beside it. Run the check again if the chapter has changed."
+			resolved.View = view
+			return resolved, nil
+		}
+		alignmentItem, ok := alignmentItemAt(in.View.Items, itemIndex)
+		if !ok || !alignmentItem.Live || alignmentItem.ItemGUID == "" {
+			view.Message = "The item this passage was heard on is no longer in the saved REAPER project. Save the project in REAPER and run the check again."
+			resolved.View = view
+			return resolved, nil
+		}
+		itemGUID = alignmentItem.ItemGUID
 	}
-	alignmentItem, ok := alignmentItemAt(in.View.Items, itemIndex)
-	if !ok || !alignmentItem.Live || alignmentItem.ItemGUID == "" {
-		view.Message = "The item this passage was heard on is no longer in the saved REAPER project. Save the project in REAPER and run the check again."
-		resolved.View = view
-		return resolved, nil
-	}
-	track, item, ok := in.Project.ItemByGUID(alignmentItem.ItemGUID)
+	track, item, ok := in.Project.ItemByGUID(itemGUID)
 	if !ok {
 		view.Message = "The item this passage was heard on is no longer in the saved REAPER project. Save the project in REAPER and run the check again."
 		resolved.View = view
@@ -420,4 +428,77 @@ func fileName(path string) string {
 		return path
 	}
 	return name
+}
+
+// mapSpan is one take of the Booth's passage map: it began at a mark and ended where the next mark of its run says the
+// reading had got to.
+type mapSpan struct {
+	from, to           passagemap.Place
+	itemGUID, takeGUID string
+}
+
+// mapSpans are the takes the marks record, runs in the order they were recorded and each run's takes in time order
+// (passagemap.Service.List keeps both orders). A take with a stale mark at either end is left out: where it sits in the
+// current text is not known.
+func mapSpans(marks []passagemap.Resolved) []mapSpan {
+	var spans []mapSpan
+	for i := 0; i+1 < len(marks); i++ {
+		begin, end := marks[i], marks[i+1]
+		if begin.Run != end.Run || begin.Stale || end.Stale || end.Prev == nil {
+			continue
+		}
+		spans = append(spans, mapSpan{from: passagemap.Place{PID: begin.PID, Word: begin.Word}, to: *end.Prev, itemGUID: begin.ItemGUID, takeGUID: begin.TakeGUID})
+	}
+	return spans
+}
+
+// mappedSpans are the map's takes that read at least one word of the paragraphs [first, last] of the chapter's order.
+// A take that began in one paragraph and ended in a later one read the end of the first, every paragraph between and the
+// start of the last; a roll back to an earlier place starts the next take there.
+func mappedSpans(in Input, first, last int) []mapSpan {
+	paragraphs := in.View.Paragraphs
+	if len(in.Marks) == 0 || last >= len(paragraphs) {
+		return nil
+	}
+	index := make(map[string]int, len(paragraphs))
+	for i, paragraph := range paragraphs {
+		index[paragraph.ID] = i
+	}
+	var out []mapSpan
+	for _, span := range mapSpans(in.Marks) {
+		from, fromOK := index[span.from.PID]
+		to, toOK := index[span.to.PID]
+		if !fromOK || !toOK {
+			continue
+		}
+		for p := max(from, first); p <= min(to, last); p++ {
+			words := len(strings.Fields(paragraphs[p].Text))
+			begin, end := 0, words
+			if p == from {
+				begin = span.from.Word
+			}
+			if p == to {
+				end = min(words, span.to.Word)
+			}
+			if end > begin {
+				out = append(out, span)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// firstMappedItem is the item of the earliest of spans still in the saved project: the passage's first read. A later
+// Booth recording of the same text keeps the passage there, so its id, and what Editing keyed by it, stay the same.
+func firstMappedItem(project tracks.Project, spans []mapSpan) (string, bool) {
+	for _, span := range spans {
+		if span.itemGUID == "" {
+			continue
+		}
+		if _, _, found := project.ItemByGUID(span.itemGUID); found {
+			return span.itemGUID, true
+		}
+	}
+	return "", false
 }

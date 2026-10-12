@@ -1,10 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useEffect, useRef, useState } from 'react';
 import { expect, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { TeleprompterFlagFinding, TeleprompterFlagSave } from '../../../api/contracts/teleprompter';
+import { OverlayProvider } from '../../../overlay/OverlayProvider';
+import { createOverlayService } from '../../../overlay/overlayService';
 import { SuspectedLines } from './SuspectedLines';
 import type { SuspectedFlag } from './suspectedLines';
+import { useSuspectedPickups } from './useSuspectedPickups';
 
 const skipped: SuspectedFlag = {
   chapterId: 'c8',
@@ -41,6 +45,7 @@ const hostWith = (closed: string[]) => ({
           review: { status: closed.includes(f.paragraphId) ? 'dismissed' : 'unreviewed' },
         }) as unknown as TeleprompterFlagFinding,
     ),
+  findingsReview: async (request: { id: string; status: string }) => ({ id: request.id, evidence_version: 'v2', review: { status: request.status } }) as never,
 });
 
 const meta = {
@@ -77,5 +82,35 @@ export const OneDismissed: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText('Dismissed')).toBeTruthy();
     await expect(canvas.getByText('Suspected · 1')).toBeTruthy();
+  },
+};
+
+// A take stopped after reading the paragraph of a suspected line: the line joins Pickups and the toast offers Undo.
+function TakeStopped({ flags }: { flags: SuspectedFlag[] }) {
+  const { takeStopped } = useSuspectedPickups({ chapterId: 'c8', flags });
+  const stopped = useRef(false);
+  useEffect(() => {
+    if (stopped.current) return;
+    stopped.current = true;
+    void takeStopped({ paragraphIds: new Set(['p9']) });
+  }, [takeStopped]);
+  return <SuspectedLines chapterId="c8" flags={flags} />;
+}
+
+function WithToasts({ flags }: { flags: SuspectedFlag[] }) {
+  const [service] = useState(createOverlayService);
+  return (
+    <OverlayProvider service={service}>
+      <TakeStopped flags={flags} />
+    </OverlayProvider>
+  );
+}
+
+export const AddedToPickups: Story = {
+  render: (args) => <WithToasts flags={[...args.flags]} />,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText('Take saved · 1 suspected line added to Pickups')).toBeTruthy();
+    await expect(body.getByRole('button', { name: 'Undo' })).toBeTruthy();
   },
 };

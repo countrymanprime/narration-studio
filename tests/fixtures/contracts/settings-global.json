@@ -623,6 +623,22 @@
         "unit": "s"
       },
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "10",
+      "isSet": false,
+      "key": "fx_cap_pct",
+      "kind": "number",
+      "label": "Most of a chapter effects may cover (%)",
+      "number": {
+        "max": 100,
+        "min": 1,
+        "step": 1,
+        "unit": "%"
+      },
+      "value": ""
     }
   ],
   "General": [

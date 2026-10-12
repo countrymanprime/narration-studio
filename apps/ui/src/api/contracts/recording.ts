@@ -28,7 +28,14 @@ export type RecorderTake = {
    * narrator-confirmed, and always undoable by marking it false again or by marking a different take of the same
    * line. A take with no line assigned yet can still be marked alone, with no group to clear. */
   keeper: boolean;
+  /** Hidden when another take of its line was kept and the others hid (the file stays; the recorder plays only the keeper). */
+  hidden: boolean;
+  /** The take's edit list, ordered and disjoint: the recorder plays and exports past each cut and the file holds the audio as recorded. */
+  cuts: RecorderTakeCut[];
 };
+
+/** One cut in a take's edit list, seconds into the take. A gap keeps the length (room tone); a close moves the audio after it up. */
+export type RecorderTakeCut = { start: number; end: number; mode: 'gap' | 'close' };
 
 /** How the most recent take ended. */
 export type RecorderLastTake = {

@@ -6,7 +6,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi, TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterResumeVerdict, TeleprompterSpan } from '../../../types';
 import { ResumeOffer } from './ResumeOffer';
-import { resumeOfferFor, paragraphAt } from './resumeOffer';
+import { resumeOfferFor, paragraphAt, saveNote } from './resumeOffer';
 
 afterEach(cleanup);
 
@@ -113,6 +113,20 @@ describe('ResumeOffer', () => {
     expect(await screen.findByText('from the saved project')).toBeTruthy();
   });
 
+  it('as-of-last-save-says-when-the-project-was-saved', async () => {
+    const saved = { savedAt: '2026-09-26T08:40', unsavedChanges: false, playState: 'stopped' as const, playPosition: 0 };
+    const fromSave = located({ dawSource: 'saved', verdict: verdict({ kind: 'daw_only', daw: place(15, { source: 'saved' }) }) });
+    show(fromSave, { project: saved, dawName: 'REAPER' });
+    expect(await screen.findByText('from the saved project · Project saved Sep 26, 08:40')).toBeTruthy();
+    cleanup();
+    show(fromSave, { project: { ...saved, unsavedChanges: true }, dawName: 'REAPER' });
+    expect(await screen.findByText('from the saved project · Project saved Sep 26, 08:40. Changes in REAPER since then are not included')).toBeTruthy();
+    cleanup();
+    // A place read from the live project or the last reading is not as of the save.
+    show(liveEstimate, { project: saved, dawName: 'REAPER' });
+    expect(await screen.findByText('from the live project · an estimate, not sure')).toBeTruthy();
+  });
+
   it('choosing-it-only-sets-where-start-begins', async () => {
     const { onChoose } = show(liveEstimate);
     await userEvent.click(await screen.findByRole('button', { name: 'Resume at ¶ 2' }));
@@ -148,5 +162,15 @@ describe('paragraphAt', () => {
     expect(paragraphAt(spans, 12)).toEqual({ paragraphId: 'p2', word: 0, paragraph: 2 });
     expect(paragraphAt(spans, 1)).toBeNull();
     expect(paragraphAt(spans, 99)).toBeNull();
+  });
+});
+
+describe('saveNote', () => {
+  it('says when the project was saved and whether the DAW has more since, and nothing without a saved project', () => {
+    const state = { savedAt: '2026-09-26T08:40', unsavedChanges: false };
+    expect(saveNote(state, 'REAPER')).toBe('Project saved Sep 26, 08:40');
+    expect(saveNote({ ...state, unsavedChanges: true }, 'REAPER')).toBe('Project saved Sep 26, 08:40. Changes in REAPER since then are not included');
+    expect(saveNote({ savedAt: null, unsavedChanges: false }, 'none')).toBe('');
+    expect(saveNote(null, 'REAPER')).toBe('');
   });
 });

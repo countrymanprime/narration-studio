@@ -27,6 +27,8 @@ const take = (number: number, seconds: number, unfinished = false): RecorderTake
     unfinished,
     lineId: null,
     keeper: false,
+    hidden: false,
+    cuts: [],
   };
 };
 

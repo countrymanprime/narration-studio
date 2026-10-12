@@ -36,6 +36,8 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"max_gap_seconds":  {min: bound(0), step: bound(0.1), unit: "s"},
 		"head_max_seconds": {min: bound(0), step: bound(0.1), unit: "s"},
 		"tail_max_seconds": {min: bound(0), step: bound(0.1), unit: "s"},
+		// The Effects tab's coverage cap: a whole percent of the chapter, 1 to 100 (settings.wholeNumbers reads one outside as 10).
+		"fx_cap_pct": {min: bound(1), max: bound(100), step: bound(1), unit: "%"},
 	},
 	// The proofing render length tolerance is seconds, at least 0, with no
 	// declared maximum and a 0.1 s step; blank (no default) keeps the length check not required.

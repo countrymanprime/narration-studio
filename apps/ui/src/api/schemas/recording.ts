@@ -3,6 +3,12 @@ import type { RecorderDevicesResult, RecorderLastTake, RecorderLevel, RecorderSt
 import { listFromNull } from './base';
 import { dawCapabilitySupportSchema } from './daw';
 
+const recorderTakeCutSchema = z.object({
+  start: z.number().min(0),
+  end: z.number().min(0),
+  mode: z.enum(['gap', 'close']),
+});
+
 const recorderTakeSchema = z.object({
   name: z.string(),
   path: z.string(),
@@ -14,6 +20,8 @@ const recorderTakeSchema = z.object({
   unfinished: z.boolean(),
   lineId: z.string().nullable(),
   keeper: z.boolean(),
+  hidden: z.boolean(),
+  cuts: listFromNull(recorderTakeCutSchema),
 }) satisfies z.ZodType<RecorderTake>;
 
 const recorderLastTakeSchema = z.object({

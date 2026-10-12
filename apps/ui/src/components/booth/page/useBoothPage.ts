@@ -60,7 +60,7 @@ export type BoothPageOptions = {
   exitTo: string;
   /**
    * A take stopped: the sentences it began and stopped on. `quiet` when it stopped because the narrator left. Answers how many
-   * pickups it marked recorded, when it says so itself (its toast then says the take is saved).
+   * pickups it marked recorded and suspected lines it added to Pickups, when it says so itself (its toast then says the take is saved).
    */
   onTakeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void | Promise<number>;
   /**
@@ -252,7 +252,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const said = endOfChapter.current;
     endOfChapter.current = false;
     void tellStopped(false).then((marked) => {
-      // A take that marked pickups says it was saved in that toast.
+      // A take that marked or added pickups says it was saved in that toast.
       if (said && marked === 0) notify(TAKE_SAVED);
     });
     setRecorded((total) => total + now.seconds);

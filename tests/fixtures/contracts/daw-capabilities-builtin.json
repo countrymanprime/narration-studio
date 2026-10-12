@@ -14,9 +14,10 @@
     },
     "cut_range": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Not available with the built-in recorder yet.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "app",
+      "reason": "experimental_off"
     },
     "file_preview": {
       "available": false,

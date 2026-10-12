@@ -15,6 +15,7 @@ import type {
   MultiPackageRequest,
   MultiPackageResult,
   PackageItem,
+  PackageFolderResult,
   PackageJob,
   PackageRequest,
   RenderEncodeMasterApi,
@@ -325,6 +326,11 @@ export function createRenderEncodeMasterMock(
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'cancelled', message: packageJob.message, durationMs: 500 });
       }
       return wireClone(packageJob);
+    },
+    // The host shows the folder its last successful build wrote, and refuses before one.
+    deliveryOpenPackageFolder: async (): Promise<PackageFolderResult> => {
+      if (packageJob.phase !== 'success' || !packageJob.outputDir) throw new Error('build a package first; there is no package folder to open yet');
+      return { folder: packageJob.outputDir };
     },
     packageStartMulti: async (req: MultiPackageRequest): Promise<MultiPackageJob> => {
       if (req.selections.length === 0) throw new Error('choose at least one platform to build for');

@@ -63,7 +63,18 @@ func DefinitionSources() []string {
 	return append([]string(nil), closedChoices["Script"]["definition_source"]...)
 }
 
+// wholeNumbers are the settings whose stored value must be a whole number in an inclusive range: one outside it, or not a
+// whole number, is skipped like an unknown choice, so the setting reads as the layer below. Editing.fx_cap_pct is the share of a
+// chapter, in percent, effects may cover before the Effects tab warns (effectsMath.ts's FX_CAP_PCT is its default).
+var wholeNumbers = map[string]map[string][2]int{
+	"Editing": {"fx_cap_pct": {1, 100}},
+}
+
 func known(tool, key, value string) bool {
+	if bounds, ranged := wholeNumbers[tool][key]; ranged {
+		number, err := strconv.Atoi(value)
+		return err == nil && number >= bounds[0] && number <= bounds[1]
+	}
 	choices, closed := closedChoices[tool][key]
 	if !closed {
 		return true
@@ -183,6 +194,9 @@ var builtinDefaults = map[string]Values{
 		"breath_below_speech_db": "12",
 		"click_above_silence_db": "30",
 	},
+	// Editing.fx_cap_pct defaults to 10: effects may cover a tenth of a chapter before the Effects tab warns. The tool's other three
+	// values stay unset by default (app.go's fieldSchemas says why).
+	"Editing": {"fx_cap_pct": "10"},
 }
 
 // Defaults returns the repo file's values for tool, with any key the file does

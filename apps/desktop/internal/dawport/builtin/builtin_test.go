@@ -3,6 +3,7 @@ package builtin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,14 +20,27 @@ type closedRecorder struct{}
 
 var errClosed = errors.New("the recorder is closed")
 
-func (closedRecorder) Start(string) error               { return errClosed }
-func (closedRecorder) Stop()                            {}
-func (closedRecorder) SetTakeKeeper(string, bool) error { return errClosed }
+func (closedRecorder) Start(string) error                                  { return errClosed }
+func (closedRecorder) Stop()                                               {}
+func (closedRecorder) SetTakeKeeper(string, bool) error                    { return errClosed }
+func (closedRecorder) HideOtherTakes(string) (int, error)                  { return 0, errClosed }
+func (closedRecorder) CutTakeRange(string, float64, float64, string) error { return errClosed }
 
 // fakeRecorder records what the adapter asked of it.
 type fakeRecorder struct {
 	started, stopped []string
 	keepers          []string
+	hidKeeping       []string
+	cuts             []string
+}
+
+func (f *fakeRecorder) HideOtherTakes(take string) (int, error) {
+	f.hidKeeping = append(f.hidKeeping, take)
+	return 2, nil
+}
+func (f *fakeRecorder) CutTakeRange(take string, start, end float64, mode string) error {
+	f.cuts = append(f.cuts, fmt.Sprintf("%s %.1f-%.1f %s", take, start, end, mode))
+	return nil
 }
 
 func (f *fakeRecorder) Start(device string) error { f.started = append(f.started, device); return nil }
@@ -60,7 +74,7 @@ func TestDeclaresOnlyWhatTheRecorderDoes(t *testing.T) {
 		dawport.CapProjectRead: dawport.Unsupported,
 		dawport.CapPunch:       dawport.NotYetAvailable,
 		dawport.CapStackTakes:  dawport.NotYetAvailable,
-		dawport.CapCutRange:    dawport.NotYetAvailable,
+		dawport.CapCutRange:    dawport.Experimental,
 		dawport.CapFXRange:     dawport.NotYetAvailable,
 	}
 	for _, spec := range dawport.Capabilities() {
@@ -103,8 +117,12 @@ func TestDeclarationMatchesTheAdapter(t *testing.T) {
 // row has a role; until then the depth is empty and the payload has no mode. Nothing is destructive.
 func TestDepthIsAppOnlyForACapabilityWithARole(t *testing.T) {
 	for _, spec := range dawport.Capabilities() {
-		if d := depthOf(declares, spec.Capability); d != (dawport.Depth{}) {
-			t.Errorf("%s: depth %+v while nothing app-made has a role yet, want none", spec.Capability, d)
+		want := dawport.Depth{}
+		if spec.Capability == dawport.CapCutRange {
+			want = dawport.Depth{Mode: dawport.ModeApp} // the one app-made row with a role so far
+		}
+		if d := depthOf(declares, spec.Capability); d != want {
+			t.Errorf("%s: depth %+v, want %+v", spec.Capability, d, want)
 		}
 	}
 	promoted := map[dawport.Capability]dawport.Level{dawport.CapStackTakes: dawport.Experimental, dawport.CapCutRange: dawport.Supported, dawport.CapRecord: dawport.Experimental}
@@ -181,8 +199,13 @@ func TestRolesDriveTheRecorder(t *testing.T) {
 		t.Errorf("SetActiveTake = %+v, keepers %v; want Take 003 kept", set, rec.keepers)
 	}
 	hidden, err := takes.HideTakes(ctx, "chapter-1", "Take 003")
-	if err != nil || !hidden.OK || hidden.Changed || hidden.UndoSteps != 0 || len(rec.keepers) != 1 {
-		t.Errorf("HideTakes = %+v, %v; want ok and nothing changed", hidden, err)
+	if err != nil || !hidden.OK || !hidden.Changed || len(rec.hidKeeping) != 1 || rec.hidKeeping[0] != "Take 003" {
+		t.Errorf("HideTakes = %+v, %v, kept %v; want ok, changed, keeping Take 003", hidden, err, rec.hidKeeping)
+	}
+	cut, err := adapter.Role(dawport.CapCutRange).(dawport.RangeCutter).DeleteRange(ctx, dawport.DeleteRangeRequest{
+		RangeRequest: dawport.RangeRequest{ItemGUID: "Take 003", Start: 1, End: 2}})
+	if err != nil || !cut.OK || !cut.Changed || len(rec.cuts) != 1 || rec.cuts[0] != "Take 003 1.0-2.0 gap" {
+		t.Errorf("DeleteRange = %+v, %v, cuts %v; want a gap cut on Take 003", cut, err, rec.cuts)
 	}
 }
 
