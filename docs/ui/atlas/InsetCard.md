@@ -16,9 +16,9 @@ Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/Inse
 ## Used by
 
 - `src/components/booth/ResumePrompt.tsx`
-- `src/components/editing/EditingCandidateRow.tsx`
 - `src/components/editing/EditingCheckPanel.tsx`
 - `src/components/editing/range/common/Strips.tsx`
+- `src/components/editing/range/fx/FxPieces.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/layout/StartupScreen.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
@@ -29,10 +29,7 @@ Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/Inse
 - `src/components/production/TakeReviewPickups.tsx`
 - `src/components/production/readiness/ReadinessPanel.tsx`
 - `src/components/proof/AuditionDialog.tsx`
-- `src/components/proof/InlineDiff.tsx`
 - `src/components/proof/PreviewPanel.tsx`
-- `src/components/proof/TakeComparisonView.tsx`
-- `src/components/proof/TakesPanel.tsx`
 - `src/components/script/page/chapters/ChapterCard.tsx`
 - `src/components/script/page/rail/words/DefinitionBlock.tsx`
 - `src/components/script/page/rail/words/WordCard.tsx`

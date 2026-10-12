@@ -16,4 +16,5 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 
 ## Used by
 
+- `src/components/editing/backups/BackupsInspector.tsx`
 - `src/components/editing/cleanup/CleanupInspector.tsx`

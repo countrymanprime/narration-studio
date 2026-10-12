@@ -19,4 +19,7 @@ Storybook title: `Primitives/Swatch`. Source: `src/components/primitives/Swatch.
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`
 - `src/components/script/page/tools/speaker/SpeakerPicker.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
+- `src/components/storybible/Guide.tsx`
 - `src/components/storybible/SpeakerColourField.tsx`
+- `src/components/storybible/entryList.ts`

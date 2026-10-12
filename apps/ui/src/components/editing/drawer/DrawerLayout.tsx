@@ -9,7 +9,7 @@ export function DrawerLayout({ open, drawer, children }: { open: boolean; drawer
   return (
     <div
       data-drawer-open={open || undefined}
-      className={`relative grid min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-3 ${open ? '@min-[1281px]:grid-cols-[minmax(0,1fr)_352px]' : ''}`}
+      className={`relative grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-3 ${open ? '@min-[1281px]:grid-cols-[minmax(0,1fr)_352px]' : ''}`}
     >
       <div className="min-h-0 min-w-0">{children}</div>
       {open ? (

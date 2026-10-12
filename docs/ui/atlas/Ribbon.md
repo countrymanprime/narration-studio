@@ -14,4 +14,5 @@ Storybook title: `Editing/Ribbon`. Source: `src/components/editing/ribbon/Ribbon
 
 ## Used by
 
+- `src/components/editing/page/EditingBody.tsx`
 - `src/components/editing/strip/TimelineStrip.tsx`

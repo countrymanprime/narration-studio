@@ -17,5 +17,6 @@ Storybook title: `Primitives/ChapterStepper`. Source: `src/components/primitives
 ## Used by
 
 - `src/components/booth/page/BoothNextPage.tsx`
+- `src/components/editing/EditingPage.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/proof/ProofPage.tsx`

@@ -33,6 +33,7 @@ Storybook title: `Primitives/TextField`. Source: `src/components/primitives/Text
 - `src/components/series/SeriesTab.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/ScopedSetting.tsx`
+- `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PropertiesSection.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
