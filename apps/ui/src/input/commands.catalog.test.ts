@@ -198,8 +198,54 @@ describe('the Editing rows', () => {
   });
 
   it('a new row repeats no default gesture of an existing page row', () => {
-    const existing = COMMAND_CATALOG.filter((row) => row.scope === 'page' && !(row.id in NEW));
+    // A row that names an Editing row in `shadows` (the Script's Escape) shares its key on purpose; `findConflicts` covers the rest.
+    const existing = COMMAND_CATALOG.filter((row) => row.scope === 'page' && !(row.id in NEW) && !(row.shadows ?? []).some((id) => id in NEW));
     const taken = new Set(existing.flatMap((row) => codes(row.id) ?? []));
     for (const [id, keys] of Object.entries(NEW)) for (const k of keys) expect(taken.has(k), `${id} ${k}`).toBe(false);
+  });
+});
+
+describe('the Script rows', () => {
+  const chord = (id: string) => findCommand(id)?.defaults.map((gesture) => [...gesture.modifiers, gesture.code].join('+'));
+
+  it('script-find-is-a-catalogue-row: script.find is a page row on Mod+F that shadows jump.open, so the catalogue has zero conflicts', () => {
+    const row = findCommand('script.find');
+    expect(row?.label).toBe('Find in the manuscript');
+    expect(row?.scope).toBe('page');
+    expect(chord('script.find')).toEqual(['Mod+KeyF']);
+    expect(row?.shadows).toEqual(['jump.open']);
+    expect(chord('jump.open')).toContain('Mod+KeyF');
+    for (const isMac of [false, true]) expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, isMac))).toEqual([]);
+  });
+
+  it('keys-follow-the-mock: Left and Right step prep and Escape closes Find or the drawer, each shadowing the row that holds its key', () => {
+    expect(['script.prep.prev', 'script.prep.next', 'script.escape'].map(chord)).toEqual([['ArrowLeft'], ['ArrowRight'], ['Escape']]);
+    expect(findCommand('script.prep.prev')?.shadows).toEqual(['workspace.word.prev']);
+    expect(findCommand('script.prep.next')?.shadows).toEqual(['workspace.word.next']);
+    expect(findCommand('script.escape')?.shadows).toEqual(['editing.escape']);
+  });
+
+  it('help-and-footer-list-the-keys: each Script row is a Script-group row on help and settings, not the jump menu', () => {
+    for (const id of ['script.find', 'script.prep.prev', 'script.prep.next', 'script.escape']) {
+      expect(findCommand(id)?.group, id).toBe('Script');
+      expect(findCommand(id)?.surfaces, id).toEqual(['help', 'settings']);
+    }
+  });
+
+  it('every shadows entry names a row on the same gesture, and only a page row shadows (so it wins on its page by scope priority)', () => {
+    const keymap = defaultKeymap(COMMAND_CATALOG, false);
+    const keys = (id: string) => new Set((keymap[id] ?? []).map((gesture) => [...gesture.modifiers, gesture.code].join('+')));
+    for (const row of COMMAND_CATALOG.filter((command) => command.shadows)) {
+      expect(row.scope, row.id).toBe('page');
+      for (const id of row.shadows!) {
+        const other = findCommand(id);
+        expect(other, `${row.id} shadows ${id}`).toBeDefined();
+        expect(['page', 'global'], `${row.id} shadows ${id}`).toContain(other!.scope);
+        expect(
+          [...keys(row.id)].some((k) => keys(id).has(k)),
+          `${row.id} shares a key with ${id}`,
+        ).toBe(true);
+      }
+    }
   });
 });
