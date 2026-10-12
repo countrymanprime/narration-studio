@@ -1,5 +1,7 @@
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
 import { IconButton } from '../../../primitives/IconButton';
+import { InsetCard } from '../../../primitives/InsetCard';
+import { SectionLabel } from '../../../primitives/SectionLabel';
 import { WPH } from '../../../schedule/estimates';
 import { useChapterFacts } from '../data/useScriptData';
 import { cardLabel, chapterHeading, endedName } from './chapterHeading';
@@ -35,11 +37,9 @@ export function ChapterCard({
           </span>
         </div>
       )}
-      <section aria-label={title} className="flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
+      <InsetCard as="section" fill aria-label={title} className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)]">
-            {cardLabel(chapter)}
-          </span>
+          <span className="font-['Barlow_Condensed',sans-serif] text-xs font-semibold tracking-[0.08em] text-[var(--text-muted)]">{cardLabel(chapter)}</span>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
         <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] font-semibold">{title}</h2>
@@ -47,9 +47,7 @@ export function ChapterCard({
           {words(chapter.wordCount)} words · about {Math.round((chapter.wordCount / WPH) * 60)} min finished audio · {facts(chapter.id)}
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase">
-            My prep
-          </span>
+          <SectionLabel>My prep</SectionLabel>
           <PrepSegment chapter={chapter} />
         </div>
         {review && (
@@ -58,7 +56,7 @@ export function ChapterCard({
             <IconButton action="markReviewed" onClick={review.onMarkReviewed} />
           </div>
         )}
-      </section>
+      </InsetCard>
     </div>
   );
 }

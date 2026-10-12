@@ -8,6 +8,7 @@ import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { PrepState } from '../../../../api/contracts/scriptPrep';
 import type { NarrationApi } from '../../../../types';
 
+const numbered = (n: number): string => `Chapter ${n}`;
 const chapter = (id: string, index: number, title: string, wordCount: number, extra: Partial<ManuscriptChapter> = {}): ManuscriptChapter => ({
   id,
   title,
@@ -20,9 +21,9 @@ const chapter = (id: string, index: number, title: string, wordCount: number, ex
 
 export const CREDITS = chapter('credits', 0, 'Opening Credits', 120, { contentKind: 'opening' });
 const PROLOGUE = chapter('prologue', 1, 'Prologue', 940);
-export const ONE = chapter('c1', 2, 'Chapter 1', 3182, { subtitle: 'Down the Rabbit-Hole' });
-export const TWO = chapter('c2', 3, 'Chapter 2', 2044, { subtitle: 'The Pool of Tears' });
-const THREE = chapter('c3', 4, 'Chapter 3', 1860, { subtitle: 'A Caucus-Race and a Long Tale' });
+export const ONE = chapter('c1', 2, numbered(1), 3182, { subtitle: 'The Lamp-Lit Road' });
+export const TWO = chapter('c2', 3, numbered(2), 2044, { subtitle: 'The Salt Marsh' });
+const THREE = chapter('c3', 4, numbered(3), 1860, { subtitle: 'A Night at the Mill' });
 export const CHAPTERS: ManuscriptChapter[] = [CREDITS, PROLOGUE, ONE, TWO, THREE];
 
 const TYPES: MarkType[] = [{ key: 'ask', name: 'Query for author', colour: 'warn', style: 'highlight', asks: true }];

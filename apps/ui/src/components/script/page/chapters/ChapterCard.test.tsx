@@ -29,7 +29,7 @@ describe('chapter card', () => {
     mount();
     expect(screen.getByText('End of Chapter 1 · 3,182 words')).toBeTruthy();
     expect(screen.getByText('Chapter 2')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'The Pool of Tears' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'The Salt Marsh' })).toBeTruthy();
     const minutes = Math.round((TWO.wordCount / WPH) * 60);
     await vi.waitFor(() =>
       expect(screen.getByText(new RegExp(`2,044 words · about ${minutes} min finished audio · 0 marks · 1 open query`)).textContent).toContain(
@@ -64,7 +64,7 @@ describe('chapter card', () => {
   it('changes the pressed button and says so when a prep state is pressed', async () => {
     const announce = vi.spyOn(overlay, 'announce');
     mount();
-    const group = await screen.findByRole('group', { name: 'Prep state for Chapter 2 — The Pool of Tears' });
+    const group = await screen.findByRole('group', { name: 'Prep state for Chapter 2 — The Salt Marsh' });
     await vi.waitFor(() => expect(within(group).getByRole('button', { name: 'Not started' }).getAttribute('aria-pressed')).toBe('true'));
     await userEvent.click(within(group).getByRole('button', { name: 'Prepped' }));
     await vi.waitFor(() => expect(within(group).getByRole('button', { name: 'Prepped' }).getAttribute('aria-pressed')).toBe('true'));

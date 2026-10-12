@@ -27,7 +27,7 @@ describe('chapter list', () => {
   it('draws the label and title of every chapter from the data', async () => {
     mount();
     const rows = await screen.findAllByRole('listitem', {}, { timeout: 2000 });
-    expect(within(await row(/Chapter 1/)).getByText('Down the Rabbit-Hole')).toBeTruthy();
+    expect(within(await row(/Chapter 1/)).getByText('The Lamp-Lit Road')).toBeTruthy();
     expect(within(await row(/Prologue/)).getByText('Prologue')).toBeTruthy();
     expect(within(await row(/Opening Credits/)).getByText('Opening Credits')).toBeTruthy();
     expect(rows.length).toBeGreaterThanOrEqual(CHAPTERS.length);

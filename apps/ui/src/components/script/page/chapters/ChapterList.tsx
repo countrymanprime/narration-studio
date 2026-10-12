@@ -1,6 +1,8 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
 import { IconButton } from '../../../primitives/IconButton';
+import { Panel } from '../../../primitives/Panel';
+import { StatusBadge } from '../../../primitives/StatusBadge';
 import { useMarks, useScriptPrep } from '../data/useScriptData';
 import { chapterHeading } from './chapterHeading';
 import { PrepDot } from './PrepDot';
@@ -50,11 +52,7 @@ export function ChapterList({
   };
 
   return (
-    <section aria-label="Chapters" className="flex min-h-0 flex-col rounded-lg border border-[var(--line)] bg-[var(--surface)]">
-      <div className="flex items-center justify-between gap-2 px-4 py-2">
-        <h2 className="font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase">Chapters</h2>
-        {onClose && <IconButton action="close" size="sm" onClick={onClose} />}
-      </div>
+    <Panel title="Chapters" titleStyle="caps" flush scroll actions={onClose && <IconButton action="close" size="sm" onClick={onClose} />} className="min-h-0">
       <ul aria-label="Chapters" onKeyDown={onKeyDown} className="m-0 flex min-h-0 list-none flex-col gap-0.5 overflow-auto p-2">
         {chapters.map((chapter) => {
           const current = chapter.id === currentId;
@@ -87,13 +85,8 @@ export function ChapterList({
                   <span>{title}</span>
                 </span>
                 {asking.has(chapter.id) && (
-                  <span
-                    role="img"
-                    aria-label="Open queries"
-                    title="Open queries"
-                    className="rounded-full bg-[var(--warn-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--warn-text)]"
-                  >
-                    ?
+                  <span role="img" aria-label="Open queries" title="Open queries">
+                    <StatusBadge tone="warning" label="?" />
                   </span>
                 )}
               </button>
@@ -102,6 +95,6 @@ export function ChapterList({
         })}
       </ul>
       <PrepLegend />
-    </section>
+    </Panel>
   );
 }
