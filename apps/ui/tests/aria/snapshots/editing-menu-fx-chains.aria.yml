@@ -1,8 +1,10 @@
-# Add FX on selected words: a menu of the DAW's own FX chains under a disabled heading row, and the item the app cannot open yet,
-# disabled with its reason read as part of its name.
+# Add FX on selected words: a menu of the DAW's own FX chains under a disabled heading row, the item the app cannot open yet,
+# disabled with its reason read as part of its name, then the shell's tail every context menu ends with (ADR 0780).
 - menu:
   - /children: equal
   - menuitem "Your REAPER FX chains" [disabled]
   - menuitem "Podcast Voice.RfxChain"
   - menuitem "Vocal Warmth.RfxChain"
   - menuitem /^Manage in REAPER…/ [disabled]
+  - menuitem "Jump menu…"
+  - menuitem "Find a page, chapter or command"
