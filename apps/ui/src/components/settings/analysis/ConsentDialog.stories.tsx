@@ -17,7 +17,7 @@ type Story = StoryObj<typeof meta>;
 // needs and takes, and its licence. Download has focus; nothing downloads before it is pressed.
 export const OneTool: Story = {
   play: async ({ args }) => {
-    const dialog = within(document.body).getByRole('dialog', { name: 'Download GLiNER' });
+    const dialog = await within(document.body).findByRole('dialog', { name: 'Download GLiNER' });
     await expect(within(dialog).getByText('Downloads from')).toBeTruthy();
     await expect(args.download).not.toHaveBeenCalled();
   },
