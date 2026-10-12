@@ -1,5 +1,6 @@
 // The mock host (mockApi.ts): REAPER actions.
 import type {
+  ManuscriptParagraph,
   ChapterTagsPreview,
   CleanupToolsState,
   LineIdentityState,
@@ -50,7 +51,7 @@ import type { MockApiSeed } from './state';
  * The REAPER actions the audio engine panel runs, each a run with its own state and live event: line identity, pickups,
  * the chapter render, the cleanup tools, the project-state check, retake lanes and chapter tags.
  */
-export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () => string) {
+export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () => string, manuscript?: PickupManuscript) {
   let lineIdentity: LineIdentityState = wireClone(
     initial.lineIdentity === 'success'
       ? WIRE_LINE_IDENTITY_READ_SUCCESS
@@ -479,14 +480,21 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       if (chapterTagsEmbedAlwaysErrors) throw new Error('could not write chapter tags to the new copy');
       return wireClone(WIRE_CHAPTER_TAGS_EMBED_SUCCESS);
     },
-    ...createPickupListMock(),
+    ...createPickupListMock(manuscript),
   } satisfies Partial<NarrationApi>;
   return { bindings };
 }
 
-/** The sample pickups of the Studio Next mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines. */
-function samplePickups(): PickupItem[] {
-  const lines = WIRE_PARAGRAPHS.filter((paragraph) => paragraph.chapterId === 'chapter-3');
+/** The manuscript the pickups are placed on: the mock's live one, once it has loaded (the browser loads the whole book). */
+type PickupManuscript = { ready: Promise<unknown>; paragraphs: () => ManuscriptParagraph[] };
+
+/**
+ * The sample pickups of the Studio Next mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines of the manuscript
+ * given, so the Booth finds each one's paragraph as it does the host's. The seed's lines stand in when that chapter has none.
+ */
+function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[] {
+  const own = paragraphs.filter((paragraph) => paragraph.chapterId === 'chapter-3');
+  const lines = own.length > 0 ? own : WIRE_PARAGRAPHS.filter((paragraph) => paragraph.chapterId === 'chapter-3');
   const at = (index: number) => lines[Math.min(index, lines.length - 1)];
   const sample = (
     index: number,
@@ -543,8 +551,15 @@ const PICKUP_LINE_MAX = 500;
 
 /** The host's pickup list (`bindings_pickuplist.go`, ADR 0840) with the same refusals: ids only, one plain line of text, a known
  * chapter, a time zero or more. With no DAW in the mock, a done state is kept, as the host keeps it while the DAW is away. */
-function createPickupListMock(): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd' | 'pickupsRemove' | 'pickupsSetIncluded' | 'pickupsSetDone'> {
-  let items = samplePickups();
+function createPickupListMock(
+  manuscript?: PickupManuscript,
+): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd' | 'pickupsRemove' | 'pickupsSetIncluded' | 'pickupsSetDone'> {
+  const lines = () => manuscript?.paragraphs() ?? WIRE_PARAGRAPHS;
+  let items = samplePickups(WIRE_PARAGRAPHS);
+  // Every call waits for the manuscript, so the list is placed on its lines before anything reads or changes it.
+  const placed = (manuscript?.ready ?? Promise.resolve()).then(() => {
+    items = samplePickups(lines());
+  });
   const removed = new Set<string>();
   const list = (): PickupList => ({
     pickups: wireClone(items.filter((item) => !removed.has(item.id))),
@@ -563,8 +578,12 @@ function createPickupListMock(): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd'
     items = items.map((item) => (item.id === id ? { ...item, ...change } : item));
   };
   return {
-    pickupsList: async () => list(),
+    pickupsList: async () => {
+      await placed;
+      return list();
+    },
     pickupsAdd: async (chapterId, time, line) => {
+      await placed;
       const text = line.trim();
       if (!text) throw new Error('type the line first');
       if ([...text].length > PICKUP_LINE_MAX) throw new Error(`a line can be at most ${PICKUP_LINE_MAX} characters`);
@@ -575,7 +594,7 @@ function createPickupListMock(): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd'
       removed.delete(id);
       if (!items.some((item) => item.id === id)) {
         const needle = [...text.toLowerCase()].slice(0, 24).join('');
-        const paragraph = WIRE_PARAGRAPHS.find((row) => row.chapterId === chapterId && row.text.trim().toLowerCase().startsWith(needle));
+        const paragraph = lines().find((row) => row.chapterId === chapterId && row.text.trim().toLowerCase().startsWith(needle));
         items = [
           ...items,
           {
@@ -600,17 +619,20 @@ function createPickupListMock(): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd'
       return list();
     },
     pickupsRemove: async (id) => {
+      await placed;
       known(id, true);
       removed.add(id);
       update(id, { included: true, done: false, waiting: false });
       return list();
     },
     pickupsSetIncluded: async (id, included) => {
+      await placed;
       known(id);
       update(id, { included });
       return list();
     },
     pickupsSetDone: async (id, done) => {
+      await placed;
       known(id);
       const item = items.find((row) => row.id === id);
       update(id, { done, waiting: item?.at !== null });

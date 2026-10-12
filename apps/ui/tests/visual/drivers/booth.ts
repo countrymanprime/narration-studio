@@ -74,6 +74,26 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Levels' }).click();
     await page.getByText('Chosen in REAPER').waitFor();
   },
+  // B on the word being read: the ribbon in the margin beside its line (the toast is dismissed so the shot shows the margin).
+  'bookmarks-ribbon': async (page) => {
+    await readyToRecord(page);
+    await page.keyboard.press('b');
+    await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
+    await page.getByText('Bookmark added.').waitFor();
+  },
+  // Pickups' "Open in Booth at this line": the Booth in a pickup session, the line listed in the side panel and marked in the text.
+  'pickup-session': async (page) => {
+    await page.goto(`/${RECORD_ON}`);
+    await settlePage(page);
+    await goToPage(page, 'Pickups');
+    await page.getByRole('region', { name: 'Pickups' }).getByRole('button', { name: 'Open in Booth at this line' }).first().click();
+    await page.getByRole('button', { name: /^Record$/ }).waitFor();
+    await page
+      .getByText(/^Pickups · \d+ open$/)
+      .first()
+      .waitFor();
+    await page.locator('[data-booth-text] [data-pickup]').first().waitFor();
+  },
   'credits-unresolved': async (page) => {
     await page.goto(`/booth${RECORD_ON}&credits=closing`);
     await settlePage(page);

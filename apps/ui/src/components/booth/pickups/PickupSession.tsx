@@ -64,14 +64,16 @@ export function PickupSession({
   );
 }
 
-const SessionContext = createContext<PickupSessionModel | null>(null);
+type SessionContextValue = { session: PickupSessionModel; chapterLabel?: (chapterId: string) => string };
 
-/** The page gives its session (`usePickupSession`) to the registered section through this. */
+const SessionContext = createContext<SessionContextValue | null>(null);
+
+/** The page gives its session (`usePickupSession`) and how it names a chapter to the registered section through this. */
 export const PickupSessionProvider = SessionContext.Provider;
 
 function PickupSessionSection() {
-  const session = useContext(SessionContext);
-  return session ? <PickupSession session={session} /> : null;
+  const value = useContext(SessionContext);
+  return value ? <PickupSession session={value.session} chapterLabel={value.chapterLabel} /> : null;
 }
 
 /** Adds the list to the Booth side panel, ahead of its other sections: in a session the lines come first. Called once by the page. */
