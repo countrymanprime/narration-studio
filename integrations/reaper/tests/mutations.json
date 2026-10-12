@@ -342,24 +342,6 @@
     "replace": "if false then"
   },
   {
-    "name": "apply_cleanup_trims opens an undo block even when nothing was applied",
-    "file": "narration_cleanup_preview.lua",
-    "find": "if #plan > 0 then\n    reaper.Undo_BeginBlock2(0)",
-    "replace": "if true then\n    reaper.Undo_BeginBlock2(0)"
-  },
-  {
-    "name": "the cleanup range tolerance widens, so a stale trim is applied anyway",
-    "file": "narration_cleanup_preview.lua",
-    "find": "local EDGE_TOLERANCE = 0.000001",
-    "replace": "local EDGE_TOLERANCE = 1"
-  },
-  {
-    "name": "apply_cleanup_trims stops sorting candidates by descending cut-start, so an earlier split silently drops a later one on the same item",
-    "file": "narration_cleanup_preview.lua",
-    "find": "table.sort(plan, function(a, b)\n    return a.cut_start > b.cut_start\n  end)",
-    "replace": "table.sort(plan, function(a, b)\n    return false\n  end)"
-  },
-  {
     "name": "apply_item_gain opens an undo block even when nothing was applied",
     "file": "narration_level_normalize.lua",
     "find": "if #plan > 0 then\n    reaper.Undo_BeginBlock2(0)",
@@ -612,76 +594,16 @@
     "replace": "    if true then\n      local path = chain_root()"
   },
   {
-    "name": "a plug-in is added to a take outside the undo block",
-    "file": "narration_workspace.lua",
-    "find": "  reaper.PreventUIRefresh(1)\n  reaper.Undo_BeginBlock2(0)\n  local middle, splits, failure = item, 0, nil",
-    "replace": "  reaper.PreventUIRefresh(1)\n  local middle, splits, failure = item, 0, nil"
-  },
-  {
     "name": "the chain listing is not refreshed",
     "file": "narration_workspace.lua",
     "find": "  enumerate(directory, -1)\n  local names, index = {}, 0",
     "replace": "  local names, index = {}, 0"
   },
   {
-    "name": "take FX are added to a passage outside the item",
-    "file": "narration_workspace.lua",
-    "find": "  if from < first - EDGE_EPSILON or to > last + EDGE_EPSILON then",
-    "replace": "  if false then"
-  },
-  {
-    "name": "take FX are added to a take that does not play",
-    "file": "narration_workspace.lua",
-    "find": "  if reaper.GetActiveTake(item) ~= take then\n    event(session_dir, 'ERROR', run_id, 'The passage is not on the take that plays.')",
-    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'The passage is not on the take that plays.')"
-  },
-  {
-    "name": "take FX are added while REAPER records",
-    "file": "narration_workspace.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')\n    return\n  end\n  local item, take, stale, reason = resolve(item_text, take_text)\n  if not item then\n    event(session_dir, 'ITEM_STALE', run_id, stale, reason)\n    return\n  end\n  if reaper.GetActiveTake(item) ~= take then",
-    "replace": "  local item, take, stale, reason = resolve(item_text, take_text)\n  if not item then\n    event(session_dir, 'ITEM_STALE', run_id, stale, reason)\n    return\n  end\n  if reaper.GetActiveTake(item) ~= take then"
-  },
-  {
     "name": "a chain REAPER did not load is reported as applied",
     "file": "narration_workspace.lua",
     "find": "  if index < 0 or added <= 0 then",
     "replace": "  if false then"
-  },
-  {
-    "name": "the whole item is split at its own edge",
-    "file": "narration_workspace.lua",
-    "find": "  if not failure and from > first + EDGE_EPSILON then",
-    "replace": "  if not failure and from >= first - 1 then"
-  },
-  {
-    "name": "the UI refresh hold is not released",
-    "file": "narration_workspace.lua",
-    "find": "  reaper.PreventUIRefresh(-1)\n",
-    "replace": "\n"
-  },
-  {
-    "name": "a plug-in REAPER does not list is added to a take",
-    "file": "narration_workspace.lua",
-    "find": "    if listed == name then\n      return true",
-    "replace": "    if true then\n      return true"
-  },
-  {
-    "name": "the FX container is listed as a plug-in",
-    "file": "narration_workspace.lua",
-    "find": "    if name ~= '' and not NOT_A_PLUGIN[ident] and not NOT_A_PLUGIN[name] then",
-    "replace": "    if name ~= '' then"
-  },
-  {
-    "name": "a take gets more than one FX from one request",
-    "file": "narration_workspace.lua",
-    "find": "    if index < 0 or reaper.TakeFX_GetCount(middle_take) - before ~= 1 then",
-    "replace": "    if index < 0 or reaper.TakeFX_GetCount(middle_take) - before < 1 then"
-  },
-  {
-    "name": "the plug-in list limit is lifted",
-    "file": "narration_workspace.lua",
-    "find": "local PLUGIN_LIMIT = 2000",
-    "replace": "local PLUGIN_LIMIT = 20000"
   },
   {
     "name": "a stale track gets a chain in place of another",

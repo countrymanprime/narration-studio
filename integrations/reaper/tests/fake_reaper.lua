@@ -78,9 +78,6 @@ function Fake.new(host)
   -- The master track (GetMasterTrack): not in self.tracks, as REAPER keeps it out of CountTracks/GetTrack. Its GUID is
   -- fixed so it never shifts the GUIDs the other tests' tracks and items get.
   self.master = { name = 'MASTER', items = {}, guid = '{0000FFFF-0000-4000-8000-00000000FFFE}', armed = false }
-  -- EnumInstalledFX's list, in REAPER's order: { name = ..., ident = ... }. REAPER lists its video processor and the
-  -- FX container among them (ident "Video processor", "Container"); a test sets what it needs.
-  self.installed_fx = {}
   -- The Main section of REAPER's action list, in enumeration order: { id = command ID, name = action-list text }.
   -- Starts with a few real native actions (IDs confirmed in REAPER 7.80 by the S5 spike) so a lookup has to skip
   -- past non-matching entries; a test adds more with Fake:add_action.
@@ -719,13 +716,6 @@ function Fake:add_item_api(api)
   function api.GetMasterTrack(_)
     return fake.master
   end
-  function api.EnumInstalledFX(index)
-    local fx = fake.installed_fx[index + 1]
-    if not fx then
-      return false, '', ''
-    end
-    return true, fx.name, fx.ident
-  end
   -- Track FX (apply_fx_chain): a chain adds fake.chain_fx_count FX (1 unless set); fake.fx_load_fails refuses it.
   function api.TrackFX_AddByName(track, name, rec_fx, instantiate)
     fake.calls[#fake.calls + 1] = { name = 'TrackFX_AddByName', fx = name, rec_fx = rec_fx, instantiate = instantiate }
@@ -824,7 +814,7 @@ function Fake:add_item_api(api)
     return false, ''
   end
   -- Forgets the item's reference to its take(s): the source file on disk is never touched, matching REAPER's own
-  -- documented behaviour (narration_cleanup_preview.lua's apply_cleanup_trims). Returns true when found, like REAPER.
+  -- documented behaviour (narration_range.lua's delete_range). Returns true when found, like REAPER.
   function api.DeleteTrackMediaItem(track, item)
     fake.calls[#fake.calls + 1] = { name = 'DeleteTrackMediaItem' }
     for index, candidate in ipairs(track.items) do
@@ -960,7 +950,7 @@ function Fake:add_take_api(api)
   function api.UpdateItemInProject(_)
     fake.item_updates = (fake.item_updates or 0) + 1
   end
-  -- Take FX (add_take_fx, apply_fx_range). A chain file adds one FX per `fake.chain_fx_count` (1 unless a test sets it),
+  -- Take FX (apply_fx_range). A chain file adds one FX per `fake.chain_fx_count` (1 unless a test sets it),
   -- each with its own GUID; a test sets fake.fx_load_fails to model REAPER refusing the file. Every call is recorded in
   -- fake.calls.
   function api.TakeFX_AddByName(take, name, instantiate)

@@ -34,8 +34,6 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
   local s = H.session()
   H.eq(s.bridge.new_registry().names(), {
     'add_finding_marker',
-    'add_take_fx',
-    'apply_cleanup_trims',
     'apply_fx_chain',
     'apply_fx_range',
     'apply_item_gain',
@@ -54,7 +52,6 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'inspect_compare_results',
     'jump_to_compare_marker',
     'launch_cleanup_tool',
-    'list_fx',
     'list_fx_chains',
     'list_pickup_markers',
     'loop_context',
@@ -65,7 +62,6 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'ping',
     'play_position',
     'prepare_compare',
-    'preview_cleanup_markers',
     'preview_file_range',
     'project_state',
     'punch_to',

@@ -3,7 +3,7 @@
 #   pwsh integrations/reaper/spikes/run-pass-part-a.ps1
 #
 # Runs two isolated REAPER sessions through run-reaper.ps1, each with its own scratch -cfgfile and its own scratch
-# project built from make_media.py's tones: spike_ep0_workspace.lua (rows A6-A8b), then pass_part_a.lua (every other
+# project built from make_media.py's tones: spike_ep0_workspace.lua (rows A6-A8), then pass_part_a.lua (every other
 # Part A row, merging the first session's report). It opens no project of the owner's and never records. The results
 # (paths removed) land in <work>\main\pass-part-a-results.md and are copied to integrations\reaper\spikes\results\.
 #
@@ -35,7 +35,7 @@ foreach ($dir in $ep0, $main) {
 }
 $runReaper = Join-Path $PSScriptRoot 'run-reaper.ps1'
 
-Write-Host 'Part A 1/2: rows A6-A8b (spike_ep0_workspace.lua)'
+Write-Host 'Part A 1/2: rows A6-A8 (spike_ep0_workspace.lua)'
 $ep0Report = Join-Path $ep0 'ep0-workspace-report.txt'
 & $runReaper -Cfg (Join-Path $Work 'cfg-ep0') -Out $ep0 -Script (Join-Path $PSScriptRoot 'spike_ep0_workspace.lua') -Done $ep0Report -TimeoutSec $TimeoutSec
 
