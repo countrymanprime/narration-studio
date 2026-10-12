@@ -93,12 +93,4 @@ A file over a limit is refused with a sentence before any row is built.
 
 ## The bindings
 
-The page reads the file the narrator chose, or takes what was pasted, and sends its text. It checks a chosen file against `maxBytes` before reading it. No binding takes a path, so the host opens and fetches nothing (`apps/desktop/bindings_extraction_import.go`).
-
-| Binding | Takes | Does |
-| --- | --- | --- |
-| `ExtractionImportPreview` | the text, a format hint (`csv`, `json`, or empty to work it out) | Parses and plans against the Story Bible, the manuscript and every stored suggestion. Returns the lines (row, where, kind, label, action, status, confidence, note), the row errors and the count of lines that add or merge. Writes nothing. A file refused for a limit comes back as one error with row 0 |
-| `ExtractionImportCommit` | the same text and hint | Parses and plans the text again, so it never takes the page's word for the preview. Stores the lines that add or merge as suggestions with source `imported`, in one write. When the write fails, none are stored. Applies the ones the rule accepts, flagged for Review. If applying fails after the write, the call returns the error; the stored suggestions stay listed and the next scan or decision applies them. Returns the stored suggestions, the ids of the entries it changed and the count skipped: one undo step. A refused file is refused with the importer's sentence |
-| `ExtractionImportPrompt` | `csv` or `json` | `Prompt`'s text (exactly what Copy puts on the clipboard), the example in it, and `maxBytes` (2 MiB) |
-
-The stored evidence is the manuscript's own text, found by the evidence check; the file's quote is only what is searched for.
+The page sends the text of the file the narrator chose; no binding takes a path, so the host opens and fetches nothing. The commit parses and plans the text again and never takes the preview's word. Each binding's behaviour is in the doc comments of `apps/desktop/bindings_extraction_import.go`.

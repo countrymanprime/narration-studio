@@ -164,7 +164,7 @@ import {
 } from './schemas/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsPunchResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
@@ -3069,6 +3069,43 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(productionPlanSchema.safeParse({ deadline: null, contractedAmount: null, milestones: [], rateBasis: 'fast' }).success).toBe(false);
   });
 
+  it('the pickup list (ADR 0840): the host goldens parse, and the mock answers the same shape with the same refusals', async () => {
+    for (const name of ['pickups-list-empty.json', 'pickups-list-merged.json']) expectMatches(pickupListSchema, readGolden(name), `host ${name}`);
+    const merged = readGolden('pickups-list-merged.json') as { pickups: Array<Record<string, unknown>>; leftOut: unknown[] };
+    expect(new Set(merged.pickups.map((pickup) => pickup.source))).toEqual(new Set(['speech', 'proof', 'audio', 'you']));
+    const api = createMockApi();
+    const listed = await api.pickupsList();
+    expectMatches(pickupListSchema, listed, 'mock pickups list');
+    expect(listed.pickups.map((pickup) => pickup.source)).toEqual(['speech', 'speech', 'audio']);
+    const added = await api.pickupsAdd('chapter-1', 12, '  A line read again  ');
+    expectMatches(pickupListSchema, added, 'mock pickups add');
+    const mine = added.pickups.find((pickup) => pickup.source === 'you');
+    expect(mine).toMatchObject({ script: 'A line read again', confidence: null, confReason: 'added_by_hand', time: 12 });
+    expect((await api.pickupsAdd('chapter-1', 12, 'a line read again')).pickups.filter((pickup) => pickup.source === 'you')).toHaveLength(1);
+    expectMatches(pickupListSchema, await api.pickupsSetIncluded(mine!.id, false), 'mock pickups set included');
+    const done = await api.pickupsSetDone(listed.pickups[0].id, true);
+    expectMatches(pickupListSchema, done, 'mock pickups set done');
+    expect(done.pickups[0]).toMatchObject({ done: true, waiting: true });
+    expect((await api.pickupsRemove(mine!.id)).pickups.some((pickup) => pickup.id === mine!.id)).toBe(false);
+    for (const bad of ['', '   ', 'two\nlines', 'x'.repeat(501)]) await expect(api.pickupsAdd('chapter-1', 1, bad)).rejects.toThrow();
+    await expect(api.pickupsAdd('chapter-404', 1, 'a line')).rejects.toThrow('not in the manuscript');
+    await expect(api.pickupsAdd('chapter-1', -1, 'a line')).rejects.toThrow('outside');
+    for (const id of ['/etc/passwd', '../x', 'finding:nope']) {
+      await expect(api.pickupsSetDone(id, true)).rejects.toThrow('not in the list');
+      await expect(api.pickupsSetIncluded(id, true)).rejects.toThrow('not in the list');
+    }
+  });
+
+  it('the pickup list schema refuses an unknown source, an unknown key, and a null confidence with no reason', () => {
+    const merged = readGolden('pickups-list-merged.json') as { pickups: Array<Record<string, unknown>>; leftOut: unknown[] };
+    const first = merged.pickups[0];
+    const oracle = pickupListSchema.safeParse({ ...merged, pickups: [{ ...first, source: 'oracle' }] });
+    expect(oracle.success ? [] : oracle.error.issues.map((issue) => issue.path.join('.'))).toEqual(['pickups.0.source']);
+    expect(pickupListSchema.safeParse({ ...merged, pickups: [{ ...first, extra: 1 }] }).success).toBe(false);
+    expect(pickupListSchema.safeParse({ ...merged, surprise: [] }).success).toBe(false);
+    expect(pickupListSchema.safeParse({ ...merged, pickups: [{ ...first, confidence: null, confReason: '' }] }).success).toBe(false);
+  });
+
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
@@ -3243,6 +3280,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pickupsListMarkers',
       'pickupsCount',
       'pickupsState',
+      'pickupsList',
+      'pickupsAdd',
+      'pickupsRemove',
+      'pickupsSetIncluded',
+      'pickupsSetDone',
       'renderConfigConfigure',
       'renderConfigSuggestFolder',
       'renderConfigState',

@@ -7,12 +7,20 @@ import { assetName, installerName, noticesName } from './assets.mjs';
 
 const candidate = process.argv[2] ?? process.env.RELEASE_TAG;
 if (!candidate) throw new Error('Provide a candidate tag as an argument or RELEASE_TAG.');
-const stableTags = execFileSync('git', ['tag', '--list', 'v[0-9]*', '--sort=-version:refname'], { encoding: 'utf8' })
-  .split(/\r?\n/)
-  .filter((tag) => tag && !tag.includes('-'));
+// The notes list what changed since the release before this one: a candidate since the previous tag of either kind (the last
+// candidate, or a promotion of it, which sits on the same commit), a stable release since the previous stable release, so a
+// narrator on the stable channel sees everything since the version they had. `git describe` on the tag's parent finds the
+// nearest earlier tag in the candidate's history, never the candidate itself or a tag on another branch.
+const stable = !candidate.includes('-');
+const describe = ['describe', '--tags', '--abbrev=0', '--match', 'v[0-9]*', ...(stable ? ['--exclude', 'v*-*'] : []), `${candidate}^`];
+let previous = '';
+try {
+  previous = execFileSync('git', describe, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+} catch {
+  // No earlier tag (the first release, or a first commit): the notes list the whole history.
+}
 // The asset names carry the bare version, the same for a candidate and its promotion (docs/adr/0197).
 const version = candidate.replace(/^v/, '').replace(/-rc$/, '');
-const previous = stableTags.find((tag) => tag !== candidate) ?? '';
 const range = previous ? `${previous}..${candidate}` : candidate;
 const rows = execFileSync('git', ['log', '--format=%h%x1f%s', range], { encoding: 'utf8' })
   .split(/\r?\n/)

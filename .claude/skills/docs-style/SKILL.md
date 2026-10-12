@@ -37,7 +37,7 @@ Comment the contract and the non-obvious why. Do not narrate what the code shows
 
 ## Where a change's docs go
 
-`doc-impact-check` maps changed paths to the docs they owe. Trust-boundary changes also owe `docs/architecture/threat-model.md` and `SECURITY.md` ([CLAUDE.md](../../../CLAUDE.md), step 6).
+`doc-impact-check` maps changed paths to the docs they owe. A change to a trust boundary (untrusted input crossing in, a new privilege or network egress) also owes `docs/architecture/threat-model.md`, and `SECURITY.md` when a reporter's scope changes. A file the app writes and reads back owes a row in `docs/reference/data-files.md` instead ([CLAUDE.md](../../../CLAUDE.md), step 6).
 
 ## What this skill is not
 

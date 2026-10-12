@@ -659,6 +659,44 @@ describe('wailsClient', () => {
     expect(list).toHaveBeenCalledWith();
   });
 
+  it('sends the pickup list bindings with ids and plain text, and decodes the list each answers', async () => {
+    const golden = {
+      pickups: [
+        {
+          id: 'you:1',
+          chapterId: 'c-0001',
+          paragraphId: null,
+          paragraph: null,
+          time: 3,
+          at: null,
+          type: 'misread',
+          script: 'a line',
+          context: 'a line',
+          source: 'you',
+          confidence: null,
+          confReason: 'added_by_hand',
+          included: true,
+          done: false,
+          waiting: false,
+        },
+      ],
+      leftOut: [{ chapterId: 'c-0002', state: 'never', reasons: ['not_checked'] }],
+    };
+    const answer = vi.fn().mockResolvedValue(JSON.stringify(golden));
+    standInHost({ PickupsList: answer, PickupsAdd: answer, PickupsRemove: answer, PickupsSetIncluded: answer, PickupsSetDone: answer });
+    await expect(wailsClient.pickupsList()).resolves.toEqual(golden);
+    await expect(wailsClient.pickupsAdd('c-0001', 3, 'a line')).resolves.toEqual(golden);
+    await expect(wailsClient.pickupsRemove('you:1')).resolves.toEqual(golden);
+    await expect(wailsClient.pickupsSetIncluded('you:1', false)).resolves.toEqual(golden);
+    await expect(wailsClient.pickupsSetDone('you:1', true)).resolves.toEqual(golden);
+    expect(answer.mock.calls).toEqual([[], ['c-0001', 3, 'a line'], ['you:1'], ['you:1', false], ['you:1', true]]);
+  });
+
+  it('rejects a pickup list the host never sends', async () => {
+    standInHost({ PickupsList: vi.fn().mockResolvedValue(JSON.stringify({ pickups: [{ id: 'x' }], leftOut: [] })) });
+    await expect(wailsClient.pickupsList()).rejects.toBeInstanceOf(WireError);
+  });
+
   it('rejects a pickups start answer the host never sends', async () => {
     standInHost({ PickupsReopen: vi.fn().mockResolvedValue(JSON.stringify({ status: 'reopened' })) });
     await expect(wailsClient.pickupsReopen(1)).rejects.toBeInstanceOf(WireError);
