@@ -21,7 +21,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'measured',
     description:
-      'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 2 — The Pool of Tears · Why it fails" (the file named by its chapter) with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
+      'Master & QC, three files checked against ACX - the per-file table with the failing 48 kHz render selected, "Chapter 1 — Down the Rabbit-Hole · Why it fails" (the file named by its chapter) with Pass and Fail rows, its every-rule list under it, the book consistency and the package aside',
   },
   {
     page: 'master',
