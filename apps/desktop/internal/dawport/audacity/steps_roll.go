@@ -29,14 +29,24 @@ func (s *steps) Roll(ctx context.Context, trackGUID string, at float64) (dawport
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// A track that is gone, or a roll point before its audio, is refused before the recording is stopped.
+	tracks, err := s.client.Tracks(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	if _, refusal, ok := oneTrack(tracks, trackGUID); !ok {
+		return refusal, nil
+	}
+	if found := tracksNamed(tracks, trackGUID)[0]; found.HasRange && at < found.Start-stepTolerance {
+		return dawport.Refused(messageRollOutside), nil
+	}
 	var e edits
-	// The recording stops first, so the audio it made is on the track when the track is read and backed up.
+	// The recording stops before the end is checked and the audio backed up, so the audio it made is on the track.
 	if err := s.client.Stop(ctx); err != nil {
 		return dawport.Result{}, err
 	}
 	e.did(stepStopRecording, 0)
-	tracks, err := s.client.Tracks(ctx)
-	if err != nil {
+	if tracks, err = s.client.Tracks(ctx); err != nil {
 		return dawport.Result{}, err
 	}
 	track, refusal, ok := oneTrack(tracks, trackGUID)

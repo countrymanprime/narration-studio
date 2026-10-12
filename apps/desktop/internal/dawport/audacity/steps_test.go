@@ -566,6 +566,13 @@ func TestStaleAndBounds(t *testing.T) {
 		"StackTakes":     func() (dawport.Result, error) { return stack.StackTakes(ctx, goneStack) },
 		"Roll":           func() (dawport.Result, error) { return roll.Roll(ctx, "Chapter 9", 30) },
 	}
+	fake.log = nil
+	if result, err := roll.Roll(ctx, "Chapter 9", 30); err != nil || result.Code != dawport.CodeStale {
+		t.Errorf("Roll on a track that is gone = %+v, %v", result, err)
+	}
+	if got := withoutReads(commandNames(fake.commands())); len(got) != 0 {
+		t.Errorf("a roll on a track that is gone sent %v; the recording must not be stopped", got)
+	}
 	for name, call := range stale {
 		result, err := call()
 		if err != nil || result.OK || result.Code != dawport.CodeStale || result.Refused != messageStepTrackGone {
@@ -641,7 +648,7 @@ func TestRollBacksUpFromTheRollPointThenRecordsAgain(t *testing.T) {
 	if row.Start != 20 || row.End != 60 || row.Label != "Roll again from 0:30" {
 		t.Errorf("row = %+v, want 20 to 60 s labelled for the roll", row)
 	}
-	names := commandNames(fake.commands())
+	names := withoutReads(commandNames(fake.commands()))
 	if names[0] != "Stop" || names[len(names)-1] != "PunchAndRoll" || !slices.Equal(fake.punched, []float64{30}) {
 		t.Errorf("the roll sent %v, punched at %v", names, fake.punched)
 	}
