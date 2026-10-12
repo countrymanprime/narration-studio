@@ -35,6 +35,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 1. Start with the [roadmap](roadmap.md).
 1. For a screenshot walkthrough of the app itself, see [Using the app](guides/using-the-app/README.md).
 1. Before changing anything in `apps/ui/src/components/primitives/`, `apps/ui/src/styles.css`, or a behavior an ADR names, read the [ADR index](adr/README.md) and the [design system reference](design/design-system.md).
+1. Before planning a feature or choosing between designs, read the [design principles](architecture/principles.md) the ADRs add up to.
 1. Read the [findings contract](architecture/findings-contract.md) before adding any analyzer or dashboard action, and the [stage recommendations signal contract](architecture/stage-recommendations.md) before building a signal that suggests a chapter's next stage.
 1. Use the workflow documents to understand how utilities combine: [manuscript/editorial](workflows/manuscript-and-editorial-review.md), [recording/comping](workflows/recording-and-comping.md), [character continuity](workflows/character-continuity.md), [technical QC/handoff](workflows/technical-qc-and-handoff.md), and [chapter stage progression](workflows/chapter-stage-progression.md).
 1. Before adding or changing anything that talks to a DAW, find the capability in the [DAW reference](reference/daw/README.md) and see which engines declare it, what it returns and where it was checked.
