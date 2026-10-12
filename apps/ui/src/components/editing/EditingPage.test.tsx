@@ -4,6 +4,7 @@ import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
 import { providedCommands } from '../../input/commandProviders';
+import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import type { NarrationApi } from '../../types';
@@ -11,7 +12,6 @@ import { clock } from './bar/clock';
 import { useSelectionActions } from './bar/selectionActions';
 import { drawSections } from './drawer/drawerSections';
 import { useFlagActions } from './flags/flagActions';
-import { buildWordMenu } from './menu/wordMenuRegistry';
 import { EditingPage, type EditingPageProps } from './EditingPage';
 import { useTakeControls } from './takes/takeControls';
 import { dawFor, EditingHost, FINDING, newJournal, pageApi } from './page/testPage';
@@ -145,6 +145,11 @@ describe('EditingPage', () => {
       await script();
       await waitFor(() => expect(document.querySelectorAll('[data-takes="p1"] [data-take]')).toHaveLength(2));
       expect(document.querySelector('#offbanner')).toBeNull();
+      // Keeping one of the app's own takes goes through without the DAW being asked to be running.
+      const keepT2 = await screen.findByRole('button', { name: 'Keep T-2' });
+      await waitFor(() => expect(keepT2.getAttribute('aria-disabled')).not.toBe('true'));
+      fireEvent.click(keepT2);
+      await waitFor(() => expect(overlay.getSnapshot().toasts.some((t) => /Kept T-2/.test(t.text))).toBe(true));
     });
   });
 
@@ -184,6 +189,8 @@ describe('EditingPage', () => {
       mount({ findingId: FINDING.id });
       await script();
       await waitFor(() => expect(cursorKey()).toBe('w-p1:3'));
+      expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
+      expect(document.querySelector('[data-flagcard]')).not.toBeNull();
     });
     it('opens a time with the playhead there', async () => {
       mount({ t: 1.1 });
@@ -195,32 +202,46 @@ describe('EditingPage', () => {
 
   it('chapter-step-keeps-the-page-state-clean', async () => {
     const onChapter = vi.fn();
-    mount({ onChapter });
+    mount({ onChapter, findingId: FINDING.id, t: 1.1 });
     await script();
-    fireEvent.mouseDown(word('p1:2'), { button: 0 });
-    expect(cursorKey()).toBe('w-p1:2');
+    const bar = () => screen.getByRole('toolbar', { name: 'Playback and selection' });
+    // A card open on the finding's word, and the playhead where the link put it.
+    await waitFor(() => expect(document.querySelector('[data-flagcard]')).not.toBeNull());
+    expect(bar().textContent).toContain(`${clock(1.1)} /`);
     press('ArrowDown', { altKey: true });
     expect(onChapter).toHaveBeenLastCalledWith('c2');
     expect(await screen.findByText('This chapter has no text yet.')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Chapter: Chapter Two/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
+    press('ArrowUp', { altKey: true });
     await script();
     expect(onChapter).toHaveBeenLastCalledWith('c1');
+    // Cursor, card and playhead are gone; the old chapter's keys did not come back with it.
+    expect(cursorKey()).toBeNull();
+    expect(document.querySelector('[data-flagcard]')).toBeNull();
+    expect(bar().textContent).toContain('Click a word to place the cursor');
+    expect(bar().textContent).toContain('0:00 /');
+    // A selection does not survive a step either.
+    fireEvent.mouseDown(word('p1:1'), { button: 0 });
+    fireEvent.mouseDown(word('p1:3'), { button: 0, shiftKey: true });
+    expect(await screen.findByRole('toolbar', { name: 'Selection' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await screen.findByText('This chapter has no text yet.');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous chapter' }));
+    await script();
+    expect(screen.queryByRole('toolbar', { name: 'Selection' })).toBeNull();
+    expect(document.querySelectorAll('[aria-selected="true"], [data-sel]')).toHaveLength(0);
     expect(cursorKey()).toBeNull();
   });
 
   it('unmount-stops-everything', async () => {
-    const view = mount({ passageId: 'ps-1' });
+    const host = { api: pageApi(), daw: dawFor('reaper'), journal: newJournal() };
+    const view = render(
+      <EditingHost {...host}>
+        <EditingPage hasManuscript passageId="ps-1" />
+      </EditingHost>,
+    );
     await script();
     await waitFor(() => expect(document.querySelectorAll('[data-takes="p1"] [data-take]')).toHaveLength(2));
-    fireEvent.mouseDown(word('p1:0'), { button: 0 });
-    fireEvent.click(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByRole('button', { name: /^Play/ }));
-    await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
-    const playing = audios.find((a) => a.play.mock.calls.length > 0)!;
-    expect(providedCommands().some((c) => c.group === 'Editing')).toBe(true);
-    view.unmount();
-    expect(playing.pause).toHaveBeenCalled();
-    expect(providedCommands().some((c) => c.group === 'Editing')).toBe(false);
     const doc = buildDoc({
       paragraphs: [],
       aligner: { engine: () => ({ id: '', name: '' }), snap: (s) => s, heard: () => null },
@@ -228,8 +249,6 @@ describe('EditingPage', () => {
       effects: [],
       accepted: [],
     });
-    for (const tab of ['cleanup', 'effects', 'backups'] as const) expect(drawSections(tab, { doc, chapterId: 'c1' })).toHaveLength(0);
-    expect(buildWordMenu({ doc, keys: [], summary: { items: [] } as never, play: () => {}, notify: () => {} }).groups).toHaveLength(0);
     const seen: Record<string, number> = {};
     function Probe() {
       seen.bar = useSelectionActions('bar').length;
@@ -238,8 +257,44 @@ describe('EditingPage', () => {
       seen.flags = Object.keys(useFlagActions()).length;
       return null;
     }
-    render(<Probe />);
-    expect(seen).toEqual({ bar: 0, toolbar: 0, takes: 0, flags: 0 });
+    const registries = () => {
+      const probe = render(<Probe />);
+      probe.unmount();
+      return {
+        ...seen,
+        drawer: (['cleanup', 'effects', 'backups'] as const).reduce((n, tab) => n + drawSections(tab, { doc, chapterId: 'c1' }).length, 0),
+        commands: providedCommands().filter((c) => c.group === 'Editing').length,
+      };
+    };
+    const detachedWord = () => {
+      const box = document.createElement('div');
+      box.dataset.script = '';
+      box.innerHTML = '<span data-k="p1:1">Garden</span>';
+      return box.firstElementChild!;
+    };
+
+    // While mounted, every registry holds the page's entries and the word menu answers.
+    const before = registries();
+    for (const [name, n] of Object.entries(before)) expect(n, name).toBeGreaterThan(0);
+    expect(contextItemsFor(word('p1:1'))).not.toBeNull();
+
+    fireEvent.mouseDown(word('p1:0'), { button: 0 });
+    fireEvent.click(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByRole('button', { name: /^Play/ }));
+    await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    const playing = audios.find((a) => a.play.mock.calls.length > 0)!;
+
+    // Unmount the page and keep the shell (router, overlay, context menu) mounted.
+    view.rerender(<EditingHost {...host}>{null}</EditingHost>);
+    expect(playing.pause).toHaveBeenCalled();
+    expect(registries()).toEqual({ bar: 0, toolbar: 0, takes: 0, flags: 0, drawer: 0, commands: 0 });
+    expect(contextItemsFor(detachedWord())).toBeNull();
+
+    // No key handler is left behind: Space plays nothing and Delete asks nothing.
+    const plays = audios.reduce((n, a) => n + a.play.mock.calls.length, 0);
+    press(' ', { code: 'Space' });
+    press('Delete');
+    expect(audios.reduce((n, a) => n + a.play.mock.calls.length, 0)).toBe(plays);
+    expect(overlay.getSnapshot().dialogs).toHaveLength(0);
   });
 
   describe('whole-page-composes-the-slices', () => {

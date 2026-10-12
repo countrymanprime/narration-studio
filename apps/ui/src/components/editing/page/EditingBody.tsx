@@ -3,6 +3,8 @@ import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { FindingsApi } from '../../../api/contracts/findings';
 import type { Keymap } from '../../../input/keymap';
+import { useCommand } from '../../../input/useCommand';
+import { overlay } from '../../../overlay/overlayService';
 import { useJournal } from '../../../studio/StudioProvider';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { KeyHints } from '../../primitives/KeyHints';
@@ -286,6 +288,11 @@ export function EditingBody(props: EditingBodyProps) {
     },
   });
 
+  // The keys hook binds nothing for a chapter with no text, so the page keeps the chapter step working there.
+  const empty = doc.items.length === 0;
+  useCommand('editing.chapter.next', () => chapterStep(1), empty);
+  useCommand('editing.chapter.prev', () => chapterStep(-1), empty);
+
   useOpenAt(link, doc, lines, dispatch, setLineOpen, findings);
 
   const stripProps: TimelineStripProps = {
@@ -433,18 +440,24 @@ function useOpenAt(
   }, [link.passageId, doc, lines, dispatch, setLineOpen]);
   useEffect(() => {
     if (!link.findingId || done.current.finding) return;
-    done.current.finding = true;
     let live = true;
+    // Marked done only once answered, so a document read again meanwhile does not lose the link.
     findings.findingsGet(link.findingId).then(
       (f) => {
+        if (!live) return;
+        done.current.finding = true;
         const span = f.manuscript?.span;
-        if (!live || !span?.paragraph_id || span.ordinal === undefined) return;
+        if (!span?.paragraph_id || span.ordinal === undefined) return;
         const key = `${span.paragraph_id}:${span.ordinal}`;
         if (!doc.index.has(key)) return;
-        dispatch({ type: 'place', key });
+        dispatch({ type: 'select', anchor: key, head: key });
         if (flagged(doc).some((x) => x.key === key)) dispatch({ type: 'openFlag', key });
       },
-      () => undefined,
+      (e: unknown) => {
+        if (!live) return;
+        done.current.finding = true;
+        overlay.toast(`The finding this link names could not be read: ${e instanceof Error ? e.message : String(e)}`, { tone: 'error' });
+      },
     );
     return () => {
       live = false;

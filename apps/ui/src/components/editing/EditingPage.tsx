@@ -104,6 +104,9 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, onChapter }:
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | undefined>(asked);
   useEffect(() => setChosen(asked), [asked]);
+  // Once the narrator moves to another chapter the link has been used: coming back does not open it again. A new link applies afresh.
+  const [moved, setMoved] = useState(false);
+  useEffect(() => setMoved(false), [passageId, findingId, t]);
 
   useEffect(() => {
     let live = true;
@@ -121,6 +124,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, onChapter }:
   const choose = useCallback(
     (id: string) => {
       setChosen(id);
+      setMoved(true);
       onChapter?.(id);
     },
     [onChapter],
@@ -135,9 +139,9 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, onChapter }:
   );
 
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
-  const banner = daw.off ? <DawOffBanner sentence={daw.off} onRetry={daw.retry} /> : null;
-  // A deep link applies to the chapter it was given for.
-  const link: DeepLink = chapter && chapter.id === (asked ?? list[0]?.id) ? { passageId, findingId, t } : {};
+  const banner = daw.off ? <DawOffBanner sentence={daw.off} dawName={daw.dawName} onRetry={daw.retry} /> : null;
+  // A deep link applies to the chapter it was given for, until the narrator moves on.
+  const link: DeepLink = !moved && chapter && chapter.id === (asked ?? list[0]?.id) ? { passageId, findingId, t } : {};
 
   return (
     <CommandScope kind="page">

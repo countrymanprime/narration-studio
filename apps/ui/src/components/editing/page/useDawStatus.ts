@@ -7,12 +7,14 @@ export interface DawStatus {
   caps: DawCapabilities | null;
   /** The sentence the banner shows when the DAW is not answering, else null. */
   off: string | null;
+  /** The DAW's own name for the banner, or "the DAW" when the launch names none. */
+  dawName: string;
   /** Asks the DAW again. */
   retry: () => void;
 }
 
 /** The DAW-neutral name the banner uses: the DAW's own, or "The DAW" when the launch names none. */
-const nameOf = (caps: DawCapabilities): string => (caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw);
+const nameOf = (caps: DawCapabilities | null): string => (!caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'the DAW' : caps.daw);
 
 /**
  * Whether the DAW answers, from `DawClient.capabilities`, asked again on Retry and on each capabilities event. When it does not, the sentence is
@@ -37,6 +39,9 @@ export function useDawStatus(): DawStatus {
   useEffect(() => events.subscribeDawCapabilities(() => setAsked((n) => n + 1)), [events]);
 
   const retry = useCallback(() => setAsked((n) => n + 1), []);
-  const off = caps && !caps.reachable ? (caps.capabilities['record']?.message ?? `${nameOf(caps)} is not running.`) : null;
-  return { caps, off, retry };
+  const off =
+    caps && !caps.reachable
+      ? (caps.capabilities['record']?.message ?? `${caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw} is not running.`)
+      : null;
+  return { caps, off, dawName: nameOf(caps), retry };
 }
