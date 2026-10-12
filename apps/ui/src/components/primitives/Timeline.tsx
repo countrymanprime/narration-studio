@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
-// The meanings a marker's tone may take, sharing the fills phase 1 landed for the meter zones and the badge tones (ADR
+// The meanings a marker's tone may take, sharing the fills the meter zones and the badge tones use (ADR
 // 0360): a marker earns a colour for what it is, not for which lane it happens to sit in.
 type TimelineMarkerTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'experimental';
 
@@ -35,8 +35,8 @@ function formatTime(seconds: number): string {
 
 // A time axis for a proof pass or a session recap (mock 04): a `duration`-second ruler, an
 // optional `playhead` line, and the caller's `TimelineLane`s stacked under it. `backdrop` is a decorative visual the
-// feature draws under the lanes (a waveform); the primitive itself draws no audio and marks the backdrop `aria-hidden`
-// (Q5). Every position is a percentage of the ruler's width, so a long recording never causes sideways overflow.
+// feature draws under the lanes (a waveform); the primitive itself draws no audio and marks the backdrop `aria-hidden`.
+// Every position is a percentage of the ruler's width, so a long recording never causes sideways overflow.
 export function Timeline({
   duration,
   playhead,
