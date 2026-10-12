@@ -18,7 +18,7 @@ lag numbers into this ADR's Consequences without a real run would misrecord a de
 exactly the failure `docs/adr/README.md`'s "concrete, not aspirational" rule exists to prevent. So this ADR records
 what was actually delivered without a live run, and defers the numeric gate to whoever next runs the protocol
 with real audio and real weights (see the companion protocol in
-[`manuscript-teleprompter.md`](../architecture/manuscript-teleprompter.md#engine-evaluation-protocol-and-lag-capture-aid)).
+[live engine evaluation](../research/teleprompter-engine-evaluation-protocol.md)).
 
 A second, independent finding from writing the protocol: a `--wav` replay session (`iter_wav_chunks`, `live_asr.py`)
 runs "as fast as the CPU allows," not paced to real time, so its `--timing` numbers are not lag figures at all — only

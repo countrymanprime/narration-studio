@@ -1,6 +1,6 @@
 # EBU loudness test set: expected values and how to run the check
 
-`expected.json` is the committed expected-value table for `TestEBULoudnessTestSet` in `../../ebu_test.go`: every test case of EBU Tech 3341 Table 1 (cases 1 to 23) and EBU Tech 3342 Table 1 (cases 1 to 6), with the published expected value and tolerance, or the reason `measure` does not measure that case. The values are from the November 2023 editions of both documents. The result of the last run is recorded in [delivery-measurement-validation.md](../../../../../../docs/architecture/delivery-measurement-validation.md).
+`expected.json` is the committed expected-value table for `TestEBULoudnessTestSet` in `../../ebu_test.go`: every test case of EBU Tech 3341 Table 1 (cases 1 to 23) and EBU Tech 3342 Table 1 (cases 1 to 6), with the published expected value and tolerance, or the reason `measure` does not measure that case. The values are from the November 2023 editions of both documents. The result of the last run is recorded in [delivery-measurement-validation.md](../../../../../../docs/research/delivery-measurement-validation.md).
 
 ## The audio files are never committed
 
@@ -40,4 +40,4 @@ A measured case with no file fails, so an incomplete set cannot pass.
 
 ## Record the result
 
-Paste the `-v` log lines into [delivery-measurement-validation.md](../../../../../../docs/architecture/delivery-measurement-validation.md), with the date, the commit and the zip version. If a case fails, record the measured value there and open an issue for it. Don't widen the tolerance in `expected.json`: the numbers must stay the ones the EBU published.
+Paste the `-v` log lines into [delivery-measurement-validation.md](../../../../../../docs/research/delivery-measurement-validation.md), with the date, the commit and the zip version. If a case fails, record the measured value there and open an issue for it. Don't widen the tolerance in `expected.json`: the numbers must stay the ones the EBU published.

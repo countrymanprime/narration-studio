@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook for Claude Code on the web (docs/operations/agent-train.md).
+# SessionStart hook for Claude Code on the web (.claude/skills/agent-train/SKILL.md).
 # Brings a fresh cloud container up to the pins in scripts/toolchain.json so an
 # unattended worker can run the repo's checks without spending turns on setup.
 # Local sessions skip it: the owner's machine is provisioned by `pnpm bootstrap`.

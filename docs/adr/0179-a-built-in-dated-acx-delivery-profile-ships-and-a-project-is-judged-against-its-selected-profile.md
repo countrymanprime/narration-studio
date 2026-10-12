@@ -23,7 +23,7 @@ The owner asked on 2026-09-24 that the Delivery page be judged against the platf
 ## Consequences
 
 - A narrator delivering to ACX measures and is judged with no Settings visit, and sees what the app did not check.
-- The profile's text is only as good as its reading of ACX's page: five rules are "to verify" and one "conflicting" until the owner reads the page and runs ACX Check (recorded in the research note and `docs/architecture/delivery-measurement-validation.md`). A new reading is a new `acx@YYYY-MM` version.
+- The profile's text is only as good as its reading of ACX's page: five rules are "to verify" and one "conflicting" until the owner reads the page and runs ACX Check (recorded in the research note and `docs/research/delivery-measurement-validation.md`). A new reading is a new `acx@YYYY-MM` version.
 - Settings > Delivery no longer has number boxes; a narrator who wants other numbers duplicates ACX (ADR 0180).
 - Proofing readiness and editing readiness should read `deliveryprofile` results rather than build their own checks.
 - To change any of this, write an ADR that supersedes this one.

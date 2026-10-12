@@ -83,10 +83,3 @@ The order in which the candidates of the [local dependency evaluation](research/
    explicitly approved reference clips ([acoustic trial](research/character-continuity-acoustic-trial.md)).
 6. Add FFmpeg/ffprobe post-render QC and libebur128 only when delivery-report
    requirements are independently specified.
-
-## Dependency rules
-
-- Every new analyzer emits the shared finding format before it gets a bespoke UI.
-- The dashboard consumes findings but does not reproduce analyzer algorithms.
-- Take creation requires narrator approval, explicit target item identity, and an undoable REAPER action.
-- Character reference analysis only uses clips explicitly approved by the narrator.

@@ -25,7 +25,7 @@ An open product question in a PRD is answered in the PRD's Decisions Log (the PR
 
 ## Creating a new ADR
 
-1. Read `docs/adr/README.md`'s index table to find the next available number (zero-padded, four digits, sequential — do not reuse or skip numbers). Check it again before your last push and take the next free number on a clash ([the agent train's serial points](../../../docs/operations/agent-train.md#serial-points)).
+1. Read `docs/adr/README.md`'s index table to find the next available number (zero-padded, four digits, sequential — do not reuse or skip numbers). Check it again before your last push and take the next free number on a clash ([the agent train's serial points](../agent-train/SKILL.md#serial-points)).
 2. Read `docs/adr/template.md` for the section structure.
 3. Write the new file at `docs/adr/NNNN-short-kebab-title.md` using that structure. The Significance line names what the decision changes and why reversing it is costly. The Context section states what was actually observed (a bug, a user request, a constraint hit during implementation) — link to it if there's a source — and ends with the Considered options line: each option weighed and why it lost. The Decision section names concrete files/components, not just the abstract principle. The Consequences section is honest about tradeoffs, not just upside.
 4. Add a row to the index table in `docs/adr/README.md`, in numeric order. Run `node scripts/ci/adr-index.mjs --write` and `node scripts/ci/adr-topics.mjs --write`; if the topics check says no topic claims the ADR, add a title pattern or a pin in `scripts/ci/adr-topics.json`.

@@ -24,49 +24,8 @@ What is delivered, and what is deliberately not:
   replaced only by the narrator's own Remove and Download, or Repair.
 - **Windows only.** The setup program and the in-app update are Windows features ([CI and releases](../operations/ci-and-releases.md#the-windows-setup-program)),
   and Windows is the only platform the app ships on ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
-  The setup program is built in CI and has not yet been run on a clean machine by the owner, and the first
-  stable release has not been rehearsed (pending with the owner).
-
-## Problem
-
-`pnpm run bootstrap` is a developer-checkout bootstrapper. It creates the local
-environment and installs locked Python/UI/build dependencies, but it downloads
-neither spaCy models nor Piper voices. That is unsuitable for a GitHub
-release consumer: a compiled application must launch without a source checkout,
-Node, Go, a Python bootstrap installer, or a developer bootstrap command.
-
-The application should also avoid consuming network bandwidth and disk space
-for an analyzer or voice that the narrator never elects to use.
-
-## Intended experience
-
-The GitHub release contains all executable code and runtime libraries required
-to start the application and its local backend. On its first application launch,
-the app creates only its settings and asset-cache directories, validates its
-bundled runtime, and shows which optional assets are installed. It does not
-download a model merely because the application opened.
-
-When a narrator first invokes a capability that needs an optional asset, the
-app checks the selected compatible asset:
-
-1. If it is installed and valid, the capability runs immediately.
-2. If it is absent, the app identifies the required model/voice, its publisher,
-   version, download size, local disk requirement, license/provenance link, and
-   destination. The narrator must choose **Download** before any transfer
-   starts.
-3. The app downloads, verifies, and installs the asset locally, then resumes
-   the requested operation. **Cancel** leaves the asset uninstalled and leaves
-   the rest of the app usable.
-
-Selecting a model in Settings must not itself download it. A user can choose a
-compatible model first and download it only when they use that feature (or
-explicitly choose the Download action of Settings > Local assets).
-
-For example, opening the app or working only with Transcript Compare must not
-install spaCy. Building a Story Bible with `en_core_web_sm` offers that
-model for download if it is absent (Download, build with rules-only this once, or Cancel). The same flow must permit every approved,
-compatible spaCy model—not just models already present on the machine—and must
-apply to Piper voices, Whisper models, and later optional tools/model packs.
+  The setup program is built in CI; its clean-machine run and the first stable release rehearsal are
+  [#231](https://github.com/countrymanprime/narration-utils/issues/231).
 
 ## Product and implementation rules
 
@@ -74,6 +33,14 @@ apply to Piper voices, Whisper models, and later optional tools/model packs.
   as assets, not as ordinary application-startup dependencies. The base release
   remains responsible only for code needed to start the app and display this
   flow.
+- Opening the app downloads nothing, and neither does selecting a model in
+  Settings. A capability whose selected asset is missing names it (publisher,
+  version, download and disk sizes, licence and provenance link, destination)
+  and transfers nothing until the narrator chooses **Download**; the asset is
+  then verified and installed and the requested operation resumes with the
+  selected asset unchanged. **Cancel** leaves the asset uninstalled and the rest
+  of the app usable. A Story Bible build also offers to build with rules only
+  this once.
 - Maintain a versioned asset catalog in the release. Each supported asset needs
   a stable identifier, capability compatibility, exact version, immutable URL,
   SHA-256 (or stronger) hash, expected size, publisher, license/notice, model
@@ -225,40 +192,3 @@ start its speech phonemizer (the data a freeze silently loses), loads the approv
 the REAPER package, prints a JSON report and exits non-zero on any failure, with no window and no download. CI runs it on the
 Windows build before the asset is packaged; details, the checks and the decision not to download the voice in CI are in
 [CI and releases](../operations/ci-and-releases.md#the-packaged-app-smoke-test).
-
-## Acceptance criteria
-
-- A clean machine can install a GitHub release and open the app without a
-  repository checkout, Node, Go, an external Python installer, or
-  `pnpm run bootstrap`.
-- First application launch performs no optional asset download and makes no
-  request other than the once-a-day update check, which asks GitHub for release
-  metadata only, downloads no asset and can be switched off (see the update rule
-  above and [ADR 0072](../adr/0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md)).
-  Selecting a model in Settings makes no request at all. Both are tests in
-  `apps/desktop/startup_offline_test.go`: a `http.DefaultTransport` that fails and
-  records every request, run over `NewHost`, `Startup`, the first `Bootstrap`,
-  the settings, catalogs and asset list, and over saving each approved
-  spaCy, Whisper and Piper choice.
-- A narrator who never builds a Story Bible does not download spaCy; a narrator
-  who never requests a Piper preview does not download a Piper voice.
-- Every catalog-approved compatible spaCy model is selectable before it is
-  installed and can be downloaded only after explicit confirmation.
-- Invoking a feature with a missing selected asset clearly identifies it,
-  supports download/cancel, verifies the completed asset, and then completes
-  the originally requested operation without changing the selected model.
-- Offline, cancelled, interrupted, hash-mismatched, and disk-full downloads
-  leave no usable partial asset and provide a retry/repair path without
-  blocking unrelated tools.
-- Reopening the app recognizes a verified installed asset without downloading
-  it again. Removing an asset makes only dependent capabilities unavailable.
-- Automated tests cover catalog compatibility, first-use gating, no-download
-  startup, verification failure, cancellation/resume behavior, and a packaged
-  release smoke test.
-
-## Out of scope
-
-This does not authorize new models or change the product's local-first,
-narrator-review boundaries. It does not require bundling optional model weights
-in the GitHub release, cloud processing, background downloads, or automatic
-model updates.

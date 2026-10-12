@@ -2,35 +2,21 @@
 
 **Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are [ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md) (correcting a subtitle), [ADR 0086](../adr/0086-the-import-review-is-grouped-by-what-each-section-will-be-and-reports-repairs-instead-of-a-log.md) (the grouping, the subtitle, the repairs), [ADR 0015](../adr/0015-real-progress-only.md) (real progress only), [ADR 0019](../adr/0019-detected-manuscript-is-offered-not-imported.md) (one review, offered never silent), [ADR 0001](../adr/0001-import-dialog-max-width-and-overflow.md) (width, no sideways scroll) and [ADR 0005](../adr/0005-reference-material-excluded-from-chapter-nav.md) (reference material is filtered at the listing layer only).
 
-## What the narrator sees
+## What the dialog shows
 
-Two lines in the dialog message say what was found, counted from the choices as they stand:
+What the narrator sees and does in the dialog (the summary lines, the groups, the subtitle choice, the import options) is in [the Production guide](../guides/using-the-app/production.md#importing-the-manuscript). The rules behind it are in `importReviewModel.ts` (below):
 
-> DOCX · 221 paragraphs · 5 narration chapters.
-> 1 front matter section · 2 reference sections · 3 of 3 character suggestions checked
+- The headline counts **narration chapters only**. Front matter, reference material, the character suggestions and the repairs are on the second line, and a line with nothing to say is left out. A PDF (the host rejects new ones, but an old preview shape exists) has no sections, so it keeps the host's title count as "proposed chapters". Replacing a manuscript adds what is cleared to the first line.
+- One `Disclosure` per kind, in this order: Narration chapters, Front matter (written as `opening`), Reference material (written as `reference`), Story Bible character suggestions, Repairs. A group with no rows is not drawn. Each note (the info icon on Front matter and Reference material) is one short string that is true for its group.
+- Which group starts open (`isGroupOpen`): Narration chapters while there are at most `MANY_NARRATION_CHAPTERS` (8), the character suggestions once one is unchecked, Repairs while there are at most 3, every other group always. A group the narrator opened or closed by hand keeps that.
+- A row is the section's title, its subtitle in a fainter colour, a **Subtitle** checkbox when it has one, and a select for its kind. A long line is cut short with an ellipsis and the whole line is in the row's `title` attribute; the select's accessible name is the heading as it will be written.
 
-The headline counts **narration chapters only**, the sections that are audiobook chapters. Front matter, reference material, the character suggestions and any repairs are on the second line, and a line that has nothing to say is left out. A PDF (the host rejects new ones, but an old preview shape exists) has no sections, so it keeps the host's title count as "proposed chapters". Replacing a manuscript adds what is cleared to the first line.
-
-Under them, one group per kind, each a `Disclosure` with a count:
-
-| Group | Holds | Starts | Note (info icon) |
-| --- | --- | --- | --- |
-| Narration chapters | sections that will be written as narration | open, closed when there are more than 8 (`MANY_NARRATION_CHAPTERS`) | none |
-| Front matter | sections written as `opening` | open | left out of the audiobook totals and Proofing; still listed and readable |
-| Reference material | sections written as `reference` | open | left out of the audiobook totals, Proofing and the chapter list; still readable |
-| Story Bible character suggestions | the checkboxes, with Select all and Select none | closed while every one is checked, open once one is unchecked | none |
-| Repairs | what the importer repaired in the source | open for 3 or fewer, else closed | none |
-
-Each note is one short string that is true for its group. A group with no rows is not drawn.
-
-Each row is the section's title, its subtitle in a fainter colour (`Chapter One — Down the Rabbit-Hole`), a **Subtitle** checkbox when it has one, and a select for its kind. A long line is cut short with an ellipsis and the whole line is in the row's `title` attribute; the select's accessible name is the heading as it will be written. The **Import options** group above the groups holds, for a Markdown file, the chapter heading level (reading the file again at another level drops the choices made for the old sections), then "Read a heading's second line as its subtitle" when any section has a subtitle, then "Build the Story Bible after import".
-
-### Correcting a subtitle
+## Correcting a subtitle
 
 The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written ([ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md)):
 
 - **The default**, "Read a heading's second line as its subtitle", is on (the importer's guess). Turned off, every row's subtitle is off, except a row the narrator set by hand, which keeps its own answer.
-- **Each row with a subtitle** has a checkbox, "Subtitle", named for its line ("Subtitle — Down the Rabbit-Hole"), starting from the default.
+- **Each row with a subtitle** has a checkbox named for its line ("Subtitle — Down the Rabbit-Hole"), starting from the default.
 - **Off means what the host says for that section** (`subtitleOff` in the preview). `title`: the line joins the title, and the row shows the joined title ("Chapter One Down the Rabbit-Hole"). `body`, a plain-text heading's second line: the line becomes the chapter's first paragraph and is narrated, and the row says so ("Chapter One · “Curiouser and curiouser!” cried Alice is read as text").
 - The commit sends `subtitleOverrides`, `false` for each section whose subtitle is off (`subtitleOverridesToCommit`), and the host applies it to the draft before the manuscript is canonicalized (`importer.ApplySubtitleOverrides`). A section id the preview does not have fails the commit before anything is cleared or written.
 

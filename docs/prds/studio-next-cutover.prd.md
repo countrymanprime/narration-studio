@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and the "Which mocks are the spec" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
 
-**Builds on:** [Which mocks are the spec](../operations/agent-train.md#which-mocks-are-the-spec), [ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) (planned work is deleted when built), [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
+**Builds on:** [Which mocks are the spec](studio-next-rebuild.prd.md#which-mocks-are-the-spec), [ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) (planned work is deleted when built), [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
 
 **Status (2026-10-11):** draft; every owner question is decided (see Decisions). Runs last; its first two slices (the ruling index and the owner QA list) start early so the index fills as pages land.
 

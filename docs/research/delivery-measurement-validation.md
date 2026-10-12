@@ -1,6 +1,6 @@
 # Delivery measurement validation against the EBU loudness test set
 
-This note records how the Go `measure` package (`apps/desktop/internal/measure`) is checked against the EBU's official loudness test signals, and the result of each run. [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
+**Started 2026-09-23.** **Question:** do the Go `measure` package's (`apps/desktop/internal/measure`) loudness and true-peak readings agree with the EBU's official loudness test signals, and do its RMS, peak and noise-floor readings agree with Audacity's ACX Check? This note records the method and the result of each run. [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
 
 ## What is checked
 
@@ -40,4 +40,4 @@ The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](..
 
 | Date | Commit | Files | RMS (app / ACX Check) | Peak (app / ACX Check) | Noise floor (app / ACX Check) | Verdicts agree |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-09-24 | This change | `internal/measure` fixtures and two real chapters | - | - | - | **Pending owner.** ACX Check runs in Audacity by hand; no agent session can run it. Until a row is recorded, the profile marks RMS, peak and noise floor "to verify". |
+| 2026-09-24 | This change | `internal/measure` fixtures and two real chapters | - | - | - | **Pending owner.** ACX Check runs in Audacity by hand and cannot be scripted. Until a row is recorded, the profile marks RMS, peak and noise floor "to verify". |

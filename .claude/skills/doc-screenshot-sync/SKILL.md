@@ -21,7 +21,7 @@ After `apps/ui` changed and the Playwright visual suite has been (re)run — ide
 
 ## In an agent-train worker stream
 
-A worker never regenerates `docs/images/ui/` ([worker template](../../../docs/operations/agent-train.md#worker-template)); the final sweep regenerates the screenshots once. Do steps 1, 3, 4 and 5 for the manifest and the guide's prose, skip the sync script in step 2, and list in the PR body the manifest entries whose screenshots changed so the sweep refreshes them.
+A worker never regenerates `docs/images/ui/` ([worker template](../agent-train/references/templates.md#worker-template)); the final sweep regenerates the screenshots once. Do steps 1, 3, 4 and 5 for the manifest and the guide's prose, skip the sync script in step 2, and list in the PR body the manifest entries whose screenshots changed so the sweep refreshes them.
 
 ## What to do
 

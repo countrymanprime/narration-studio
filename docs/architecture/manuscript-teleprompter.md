@@ -1,39 +1,6 @@
 # Manuscript Teleprompter
 
-**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record. Work still open is named where it applies: the default engine ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)), how a flag is confirmed later, punch-and-roll from a word, and per-character reference clips.
-
-## Problem
-
-The roadmap's deferred-work line names the feature in one sentence: local live
-microphone listening with karaoke-style manuscript highlighting and
-reviewable suspected word-level substitutions, skips, or misreads; it never
-edits text or audio automatically. Everything else — how position tracking
-behaves, which ASR approach is realistic in real time, how flags surface for
-review, and how the UI renders — was undefined. This document records how
-those questions were resolved for the shipped feature; the flag and review
-behavior is under [Flags](#flags).
-
-## Intended experience
-
-A narrator opens the teleprompter view for a chapter already recording in
-REAPER. The current paragraph's background is tinted; within it, the current
-word is highlighted karaoke-style as the narrator reads. The view listens
-continuously and needs no manual scrolling:
-
-- While speech matches the upcoming script, the highlight advances
-  word-by-word.
-- If the narrator pauses, ad-libs, or drops off-script, the highlight stops
-  advancing and a status indicator switches from "Listening" to "Waiting for
-  you to return to the script." Nothing is blocked and nothing rewinds.
-- The moment recognized speech matches the script again — whether that's the
-  next word, a restart a sentence back, or a skip ahead — the highlight jumps
-  to that point and resumes. The skipped or repeated span is not silently
-  discarded; it becomes a flagged item.
-Flags are listed in the Booth's Flags tab (`apps/ui/src/components/booth/ReaderFlagsPanel.tsx`); see "Flags" below.
-
-Nothing about this view edits the manuscript or the audio. It only tracks
-position and produces reviewable flags, same as every other analyzer in this
-product.
+**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record; what the narrator sees is in the [Booth guide](../guides/using-the-app/booth.md). The sidecar follows the narrator's reading in a known script and reports suspected reading errors as flags. It never edits the manuscript or the audio. Open work, including the default engine ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)), is tracked in [#1476](https://github.com/countrymanprime/narration-utils/issues/1476).
 
 ## Position-tracking behavior
 
@@ -223,91 +190,11 @@ fuzzy matching against the script is the ordinary open-source pattern.
    before comparing engines. Whisper with speculative partials is expected to
    land in the same range; Moonshine's expected edge is flat cost as a
    segment grows, cheaper short update intervals, and `set_context()`.
-4. **Default engine.** Evaluating both engines in the real UI and recording
-   the default and its rationale in an ADR is still open
-   ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)).
+4. **Default engine.** The default stays Whisper `tiny` until a real-time
+   A/B evaluation runs
+   ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md));
+   the protocol is in [live engine evaluation](../research/teleprompter-engine-evaluation-protocol.md).
    `faster-whisper` stays for offline Transcript Compare either way.
-
-## Engine evaluation protocol and lag-capture aid
-
-**Goal.** Decide the default engine (whisper vs. moonshine) with evidence, per
-the numeric gate in ADR 0414 (median cursor lag at least 25% lower than
-Whisper tiny, no more false jumps or backward moves, on at least 3 readings
-across at least 2 microphones) plus the owner's judgment. This section is the
-protocol and the launch aid; a results table lands once runs exist (see
-[ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md),
-Proposed).
-
-**Lag-capture aid.** `NARRATION_TELEPROMPTER_EVAL=1` (same opt-in pattern as
-`NARRATION_DEBUG`, `internal/runlog`) makes every teleprompter session the
-host launches add `--timing` and `--log <session dir>/teleprompter_<id>.log`
-to the sidecar's arguments (`internal/teleprompter/service.go`'s
-`planSession`), whichever engine or model it names and whether the session
-reads a live `--mic` or replays a `--wav` file. It is developer/evaluation
-only: nothing in Settings or the UI can turn it on, and it changes no
-contract the UI reads. This closes a gap: `--timing`/`--log` existed in `live_asr.py` already, but the host
-passed neither.
-
-**Two passes, not one — read this before running anything.** `iter_wav_chunks`
-(`live_asr.py`) explicitly feeds a `--wav` file "as fast as the CPU allows, so
-it checks accuracy but not real-time lag" — a `--wav` replay session is
-useful and fast, but its `--timing` lag numbers are meaningless (the sidecar
-races through the file, unpaced). The "cursor lag" gate is a
-*wall-clock* number and needs the sidecar's `--mic` path, timed against a real
-input device, whether that device is a live microphone or an audio-loopback
-device fed by a real-time playback of a recording:
-
-1. **Accuracy pass (`--wav`, no lag claim).** Fast, hardware-free, safe to run
-   anywhere. Replays a recording through `--wav` (or through
-   `sidecars/manuscript-teleprompter/core/replay.py` against a printed
-   session's NDJSON, `--stream`) and reports `coverage`, `backward_moves`,
-   `jumps`, `waiting_events` and flag counts — never `speculation_lead_seconds`
-   as a lag figure, and never the Moonshine spike's old position-matched lag
-   metric (rejected: it matched words by position). Use this to confirm the tracker behaves
-   (reaches the end, no false restarts) before spending a real-time pass on a
-   combination.
-2. **Real-time pass (`--mic`, the actual gate).** The same recording played
-   back in real time into a real or loopback capture device named by
-   `--mic`, exactly the code path a live narrator uses, with
-   `NARRATION_TELEPROMPTER_EVAL=1` set so `--timing`'s "how far behind the
-   speaker" lines land in the session's log file. This is the only pass whose
-   numbers may go in the ADR's results table as cursor lag.
-
-**Protocol.**
-
-- One script (plain text, exact words of the recording — the script tracker
-  matches tokens, not audio) and one recording per reader/microphone
-  combination. Development readings use public-domain audio (D70/D71):
-  LibriVox by default, synthetic (e.g. Piper) as the fallback when a suitable
-  LibriVox reading isn't available in the working environment; either way,
-  results are provisional until re-run on the owner's own material, tracked as
-  a QA item on [#510](https://github.com/countrymanprime/narration-utils/issues/510)
-  (ENG-8). Record, next to the recording (never in the recording's own
-  metadata, and never the audio file itself — see below): the source URL, the
-  reader's name, the book/chapter title, and the public-domain statement (or,
-  for synthetic audio, the TTS voice and the source text's public-domain
-  statement).
-- Runs: both engines (`whisper`, `moonshine`) × both models (`tiny`, `small`)
-  × at least 3 real-time runs each, same chapter, same reader (or the same
-  synthetic voice), same microphone (or loopback device) per batch, at least
-  2 microphones/devices total before the gate is evaluated. Moonshine only
-  where the platform ships it (Windows, ADR 0107).
-- Per run, from the session's `--log` file and its emitted `position` events:
-  median and p90 cursor lag (the `--timing` "behind the speaker" lines),
-  `backward_moves`, `jumps`, and flag counts. Aggregate medians across the 3+
-  runs per engine/model.
-- **Do not store the recordings in git.** Keep them under a working directory
-  the repo already ignores (for example `.test-tmp/` — see `.gitignore`) or
-  another local, untracked path, and note that path (not the audio itself) in
-  the write-up.
-
-**Results table.** Not yet populated — no real-time pass has been run in any
-environment this protocol's author has had access to (network policy denied
-both the audio source and the model-weight hosts in the cloud session that
-wrote this protocol and the lag-capture aid). A results table goes here, and
-in ADR 0414's Consequences, once a real-time pass exists; until then the
-default stays `whisper`/`tiny` (`config/defaults.json`, unchanged) and ADR
-0414 stays Proposed.
 
 ## Flags
 
@@ -342,8 +229,8 @@ The Go host relays flags like any other event and keeps none in its snapshot:
 or `pickup` for a restart) when the session ends ([ADR 0117](../adr/0117-live-flags-are-kept-as-suspected-findings-merged-per-chapter-when-a-session-ends.md)), and that store, not the snapshot, is what a view
 opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
 printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
-words by kind, which on a clean read is the false-flag rate. How a flag is
-confirmed later (recheck on click, a trailing confirmation pass) is not built yet.
+words by kind, which on a clean read is the false-flag rate. Nothing confirms a
+flag after the session.
 
 ## Streaming subprocess support
 
@@ -388,6 +275,12 @@ fires, the service stops the session through the same stop file and grace kill
 as Stop, and the final message is "Stopped at the end of the chapter." A
 sidecar that exits non-zero is still an error. The session's script and last
 position stay in the snapshot after the stop.
+
+**Evaluation timing.** `NARRATION_TELEPROMPTER_EVAL=1` (the same opt-in pattern as `NARRATION_DEBUG`) makes every
+session the host launches add `--timing` and `--log <session dir>/teleprompter_<id>.log` to the sidecar's arguments
+(`planSession`), whatever the engine, model or source. It is for developer evaluation only: nothing in Settings or the
+UI turns it on, and it changes no contract the UI reads. [Live engine evaluation](../research/teleprompter-engine-evaluation-protocol.md)
+says how its numbers are read.
 
 **One session, step by step.**
 
@@ -516,30 +409,28 @@ is reported for the pause. The host's state stays `running` with `paused: true`
 and no auto-stop is armed; flags are kept only when the session ends
 ([ADR 0248](../adr/0248-pause-is-a-pause-and-resume-pair-on-the-control-file-and-a-paused-session-stays-running.md)).
 
-## UI: what shipped and what is still open
+## The Booth page
 
-**Shipped (the Booth page, `/booth`, `apps/ui/src/components/booth/`).** One page is the read-along
-([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md):
+The Booth (`/booth`, `apps/ui/src/components/booth/`) is the one read-along page
+([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)):
 it replaced the Teleprompter page, the Manuscript's Read aloud dialog and its booth dialog, and `/teleprompter`
-redirects here keeping its query and hash). `BoothPage` owns what the Booth reads (`?chapter=<id>` or
-`?credits=opening|closing`, else REAPER's confident suggestion, ADR 0113, else the last chapter read) and loads the
-Story Bible entries and notes for the marks; it mounts one `BoothSession`, keyed by what it reads, which holds the one
-`useTeleprompterSession` subscription, the flags kept as findings, the resume prompt and Record in REAPER. `BoothView`
-lays it out on `FocusShell`: a status line, the chapter picker above the text while idle, the rail and the
-`ReadingControlBar` as its command bar (microphone, engine and model, Record in REAPER). Companion mode (`CompanionShell`,
-ADR 0401) is entered from the Booth's header. It takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was on is gone (`bindings_companion_test.go`). The text highlights the current word as you read: read words dim, the
-current word is a solid accent fill (the `Cursor` kind of `Highlight`), words the tracker says you skipped get a dotted
-underline, and the text scrolls to keep the current word near the middle; scrolling by hand pauses following until
-Follow. It does not reuse `ParagraphView` (that renders character-offset annotations, not words). The design choices are
-recorded in [ADR 0024](../adr/0024-teleprompter-highlight-follows-the-sidecars-spans.md). Leaving the page and coming
-back mid-session picks up where it was; Exit booth (or Escape) asks before stopping a live session. A missing model
-triggers the same first-use download prompt as Transcript Compare. In browser mock mode Start replays a position stream
-recorded from the real tracker (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged`
-boots part-way through a chapter for the visual suite (`ended` boots a session that already stopped itself at the end
-of the chapter).
+redirects here keeping its query and hash. What the narrator sees and does on it is in the
+[Booth guide](../guides/using-the-app/booth.md).
 
-**Still open:** punch-and-roll from a word beyond the flag's "Punch from here", and the per-character reference clips
-the rail reserves a place for, are not built yet.
+- **What owns what.** `BoothPage` owns what the Booth reads (`?chapter=<id>` or `?credits=opening|closing`, else the
+  DAW's confident suggestion, ADR 0113, else the last chapter read) and loads the Story Bible entries and notes for the
+  marks. It mounts one `BoothSession`, keyed by what it reads, which holds the one `useTeleprompterSession`
+  subscription, the flags kept as findings, the resume prompt and recording in the DAW. `BoothView` lays it out on
+  `FocusShell`, with the `ReadingControlBar` as its command bar. Companion mode is `CompanionShell` (ADR 0401). It
+  takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved
+  bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was
+  on is gone (`bindings_companion_test.go`).
+- **The highlight.** The current word is the `Cursor` kind of `Highlight`. The text does not reuse `ParagraphView`,
+  which renders character-offset annotations, not words
+  ([ADR 0024](../adr/0024-teleprompter-highlight-follows-the-sidecars-spans.md)).
+- **Mock mode.** In the browser mock, Start replays a position stream recorded from the real tracker
+  (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
+  a chapter for the visual suite (`ended` is a session that already stopped itself at the end of the chapter).
 
 ## Resume: where REAPER is and where the prompter was
 
@@ -604,9 +495,8 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 - **`estimate`**: the anchors' pace, only when the recording cannot answer.
 
 A punch after its preview reuses the preview's alignment; a successful punch drops the anchors at or after the word.
-REAPER's own behaviour of the live read (an unsaved take's file, a
-`SECTION` source's file name, a take still recording) is checked by the owner in
-REAPER (#510).
+How REAPER answers the live read for an unsaved take's file, a `SECTION` source's file name and a take still recording
+has not been checked in REAPER yet ([#1476](https://github.com/countrymanprime/narration-utils/issues/1476)).
 
 ## The passage map
 
@@ -663,9 +553,6 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 
 ## Tracker placement and limits
 
-The default engine is still open ([ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md)).
-Moonshine provisioning and packaging and microphone selection have shipped (see above).
-
 - Script tracker placement and source: decided. The sidecar hosts it and reads
   the script from a chapter of the project's canonical `manuscript.json`
   (`--manuscript FILE --chapter ID_OR_TITLE`, narration chapters only): the
@@ -683,7 +570,7 @@ Moonshine provisioning and packaging and microphone selection have shipped (see 
   `script` event's spans (a paragraph that disagrees is shown untracked), and
   the chapter is chosen from a picker that starts on the reader's active chapter
   ([ADR 0024](../adr/0024-teleprompter-highlight-follows-the-sidecars-spans.md)).
-- Tracker limits to revisit with real use: word matching is normalization plus
+- Tracker limits: word matching is normalization plus
   a close-spelling check, without Transcript Compare's homophone, number-word
   and hyphenation handling; invented names and spoken numbers are the likely
   misses. Flags forgive those forms (`narration_common.spoken_forms`, see

@@ -35,8 +35,8 @@ A Story Bible suggestion records the source it came from. The host's rows and Py
 
 | Source | Label | Icon | Runs | Assets | Available today |
 | --- | --- | --- | --- | --- | --- |
-| `rules` | Rules | `auto` | yes | none | not yet: its adapter is a later slice |
-| `imported` | Imported file | `import` | no | none | not yet: its adapter is a later slice |
+| `rules` | Rules | `auto` | yes | none | not yet: it has no adapter |
+| `imported` | Imported file | `import` | no | none | not yet: it has no adapter |
 | `local-model` | Local model | `globe` | yes | none | never on this build: "No local model is installed." |
 | `gliner` | GLiNER | `locate` | yes | `gliner` | not yet; "GLiNER is not downloaded." until its asset is installed |
 | `booknlp` | BookNLP | `dictionary` | yes | `booknlp-small`, `booknlp-big` | not yet; "BookNLP is not downloaded." until either asset is installed |

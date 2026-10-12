@@ -219,7 +219,7 @@ Boundary: the Go host builds one of four fixed URL templates (Forvo, YouGlish, M
 
 Boundary: the UI asks the Go host to resize and pin the app's own window (`CompanionModeEnter`/`CompanionModeExit`, `apps/desktop/bindings_companion.go`, [ADR 0401](../adr/0401-companion-mode-resizes-and-pins-the-one-existing-window-and-never-opens-a-second-one.md)). Both bindings take no argument and return only success or an error; no manuscript, audio, project or narrator data crosses this boundary in either direction, and no second window, process or file is created (the "no second window" decision of ADR 0401).
 
-No threat rows: the bindings carry no attacker- or narrator-controlled input. How enter and exit keep the window and its restore point is in ADR 0401 and [the Booth](manuscript-teleprompter.md#ui-what-shipped-and-what-is-still-open).
+No threat rows: the bindings carry no attacker- or narrator-controlled input. How enter and exit keep the window and its restore point is in ADR 0401 and [the Booth](manuscript-teleprompter.md#the-booth-page).
 
 ### 14. The Audacity scripting pipe (`SECURITY.md` bullet on the Audacity pipe; new boundary)
 
@@ -261,7 +261,7 @@ These rows left the model because they are not a threat at a trust boundary. The
 | 10d | An open check: [#1470](https://github.com/countrymanprime/narration-utils/issues/1470) |
 | 11d | An open check: [#1471](https://github.com/countrymanprime/narration-utils/issues/1471) |
 | 12e | A broken-link case, refused today: [#1472](https://github.com/countrymanprime/narration-utils/issues/1472) |
-| 13a, 13b | Consent and window behaviour: ADR 0401 and [the Booth](manuscript-teleprompter.md#ui-what-shipped-and-what-is-still-open) |
+| 13a, 13b | Consent and window behaviour: ADR 0401 and [the Booth](manuscript-teleprompter.md#the-booth-page) |
 | 14d | Consent: [Audacity boundary](daw-integration.md#audacity-boundary). Every command is still built by row 14a's guarded setters |
 
 ## Residual risks the owner has accepted or must decide

@@ -43,4 +43,4 @@ ADR 0179, decision 2: a conflicting rule is judged against the looser reading wi
 
 ## Comparison with Audacity's ACX Check (pending owner)
 
-Not run: it needs Audacity with ACX Check, run by hand on the `internal/measure` test fixtures and two real chapters. Record per rule (RMS, peak, noise floor) the app's value, ACX Check's value and both verdicts in [delivery-measurement-validation.md](../architecture/delivery-measurement-validation.md). The target is the same verdict per rule and values within 0.5 dB.
+Not run: it needs Audacity with ACX Check, run by hand on the `internal/measure` test fixtures and two real chapters. Record per rule (RMS, peak, noise floor) the app's value, ACX Check's value and both verdicts in [delivery-measurement-validation.md](../research/delivery-measurement-validation.md). The target is the same verdict per rule and values within 0.5 dB.
