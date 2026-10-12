@@ -19,6 +19,7 @@ import { singleTakePassage } from '../takeFixtures';
 import { SplitConfirmBody } from './SplitConfirm';
 import { NO_SPLIT_COMMAND, planSplit } from './splitPlan';
 import { fakeSplitter, target } from './splitFixtures';
+import { dawSplitter } from './splitCommand';
 import { splitTargetOf } from './splitTarget';
 import { useSplitDuplicate } from './useSplitDuplicate';
 import type { TakeSplitter } from './splitPlan';
@@ -60,8 +61,7 @@ function Harness() {
 }
 const onClose = vi.fn();
 
-function mount(setup: DawSetupId = 'reaper') {
-  const base = createMockDawClient(DAW_SETUPS[setup]);
+function mount(setup: DawSetupId = 'reaper', base: DawClient = createMockDawClient(DAW_SETUPS[setup])) {
   // Every method the app asks of the DAW is recorded: the built-in recorder must not appear here.
   const daw = new Proxy(base, {
     get: (t, k: keyof DawClient) =>
@@ -165,6 +165,70 @@ describe('a-daw-that-cannot-refuses-with-its-reason', () => {
     await flush();
     expect(toast).toHaveBeenCalledWith(NO_SPLIT_COMMAND, { tone: 'error' });
     expect(confirm).not.toHaveBeenCalled();
+  });
+});
+
+describe('the-page-passes-the-ports-splitter', () => {
+  const project = { chapterIds: ['5'], candidateIds: [], findingIds: [], splitTakes: { 't-12': { start: 600, length: 60 } } };
+  const dawWith = (setup: DawSetupId) => createMockDawClient(DAW_SETUPS[setup], project);
+
+  it('a split is one DAW change and one undo, and a DAW without it says why', async () => {
+    // REAPER: one splitTake call with the chapter, the take and the time; one journal entry, undone in REAPER's own history.
+    const reaper = dawWith('reaper');
+    const splitTake = vi.spyOn(reaper, 'splitTake');
+    splitter = dawSplitter(reaper, '5');
+    mount('reaper', reaper);
+    await flush();
+    fireEvent.click(stack());
+    await waitFor(() => expect(splitTake).toHaveBeenCalledTimes(1));
+    expect(splitTake).toHaveBeenCalledWith('5', 't-12', 621.2);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Split T-12 at 10:21\./)));
+    const entries = await journal.entries();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ label: 'Split T-12 at the second read', daw: true, undoable: false, refusal: 'Undo the split in REAPER.' });
+    expect((await splitTake.mock.results[0].value).undoSteps).toBe(1);
+
+    // The recorder: the host's own sentence, the take stays whole and nothing is journaled.
+    cleanup();
+    const recorder = dawWith('builtin');
+    vi.spyOn(recorder, 'splitTake').mockResolvedValue({
+      ok: false,
+      changed: false,
+      message: 'No.',
+      refused: 'The built-in recorder cannot split a take into two yet.',
+      undoSteps: 0,
+    });
+    journal.clear();
+    splitter = dawSplitter(recorder, '5');
+    mount('builtin', recorder);
+    await flush();
+    fireEvent.click(stack());
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The built-in recorder cannot split a take into two yet.', { tone: 'error' }));
+    expect(await journal.entries()).toHaveLength(0);
+
+    // A take the DAW no longer has: refused as stale, with the DAW's sentence, and nothing is journaled.
+    cleanup();
+    const gone = createMockDawClient(DAW_SETUPS.reaper, { ...project, splitTakes: {} });
+    splitter = dawSplitter(gone, '5');
+    mount('reaper', gone);
+    await flush();
+    fireEvent.click(stack());
+    await waitFor(() =>
+      expect(toast).toHaveBeenLastCalledWith(expect.stringMatching(/no longer on this chapter's track in the REAPER project/), { tone: 'error' }),
+    );
+    expect(await journal.entries()).toHaveLength(0);
+  });
+
+  it('with Audacity backups on, the page has no backup around a time to make, so it refuses before the DAW is asked', async () => {
+    const audacity = dawWith('audacity-backups');
+    const splitTake = vi.spyOn(audacity, 'splitTake');
+    splitter = dawSplitter(audacity, '5');
+    mount('audacity-backups', audacity);
+    await flush();
+    fireEvent.click(stack());
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(NO_SPLIT_COMMAND, { tone: 'error' }));
+    expect(splitTake).not.toHaveBeenCalled();
+    expect(await journal.entries()).toHaveLength(0);
   });
 });
 
