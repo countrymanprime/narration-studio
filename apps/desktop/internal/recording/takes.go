@@ -42,6 +42,11 @@ type Take struct {
 	// Keeper marks this take the narrator's chosen read for its line (keeper.go): narrator-confirmed
 	// and always undoable, and never a REAPER active-take equivalent since a native take has no REAPER item.
 	Keeper bool `json:"keeper"`
+	// Hidden marks a take the narrator hid when keeping another of its line (keeper.go): the file stays, and the recorder plays
+	// and exports only the keeper.
+	Hidden bool `json:"hidden"`
+	// Cuts is the take's edit list, ordered and disjoint (keeper.go); empty when it has none. The file holds the audio as recorded.
+	Cuts   []TakeCut `json:"cuts"`
 	number int
 }
 
@@ -71,6 +76,8 @@ func listTakes(folder, except string) ([]Take, int, error) {
 	highest := 0
 	identities := readIdentities(folder)
 	keepers := readKeepers(folder)
+	hidden := readHidden(folder)
+	edits := readEdits(folder)
 	for _, entry := range entries {
 		match := takeFile.FindStringSubmatch(entry.Name())
 		if match == nil || entry.IsDir() {
@@ -96,6 +103,8 @@ func listTakes(folder, except string) ([]Take, int, error) {
 			take.LineID = &lineID
 		}
 		take.Keeper = keepers[take.Name]
+		take.Hidden = hidden[take.Name]
+		take.Cuts = append([]TakeCut{}, edits[take.Name]...)
 		takes = append(takes, take)
 	}
 	sort.SliceStable(takes, func(i, j int) bool {

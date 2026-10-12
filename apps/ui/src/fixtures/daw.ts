@@ -129,14 +129,14 @@ const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities']
 const builtinExperimental: DawCapabilitySupport = { level: 'experimental', available: true };
 
 /** The built-in recorder as the host declares it (dawport/builtin, tests/fixtures/contracts/daw-capabilities-builtin.json): it
- * records and keeps takes (Experimental, switched on here as the Audacity setups are), keeps no saved project, and will make
- * punch and the edits itself later. `daw` stays `none` until the Booth's setup chip names the 'Built-in' kind (the Booth slice). */
+ * records, keeps takes and cuts a range by an edit list (Experimental, switched on here as the Audacity setups are), keeps no
+ * saved project, and will make punch and the other edits itself later. `daw` stays `none` until the Booth's setup chip names the 'Built-in' kind (the Booth slice). */
 const BUILTIN_CAPABILITIES = everyCapability(() => ({ level: 'unsupported', available: false, reason: 'unsupported', message: BUILTIN_UNSUPPORTED }), {
   record: builtinExperimental,
   takes: builtinExperimental,
   project_read: { level: 'unsupported', available: false, reason: 'unsupported', message: BUILTIN_NO_SAVED_PROJECT },
   punch: notYet(BUILTIN_NOT_YET),
-  cut_range: notYet(BUILTIN_NOT_YET),
+  cut_range: { ...builtinExperimental, mode: 'app' },
   fx_range: notYet(BUILTIN_NOT_YET),
   stack_takes: notYet(BUILTIN_NOT_YET),
 });

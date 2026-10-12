@@ -24,6 +24,8 @@
     {
       "bits": 24,
       "channels": 1,
+      "cuts": [],
+      "hidden": false,
       "keeper": false,
       "lineId": null,
       "name": "Take 001",
@@ -36,6 +38,8 @@
     {
       "bits": 24,
       "channels": 1,
+      "cuts": [],
+      "hidden": false,
       "keeper": false,
       "lineId": null,
       "name": "Take 002",

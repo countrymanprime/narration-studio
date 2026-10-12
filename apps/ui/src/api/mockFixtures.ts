@@ -685,6 +685,20 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveSource: 'repo_default',
     },
   ],
+  // Editing.fx_cap_pct unset, so it reads as the default, 10 (tests/fixtures/contracts/settings-fx-cap.json); the Effects tab's cap.
+  Editing: [
+    {
+      key: 'fx_cap_pct',
+      label: 'Most of a chapter effects may cover (%)',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '10',
+      effectiveSource: 'repo_default',
+      number: { min: 1, max: 100, step: 1, unit: '%' },
+    },
+  ],
   TranscriptCompare: [
     choice('model_size', 'Default Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'small'),
     choice('chunk_seconds', 'Default chunk length', ['30', '60', '300', '600'], '60'),
