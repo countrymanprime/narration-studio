@@ -36,9 +36,12 @@ export function MasterPage({
   onOpenDelivery,
   openSettings,
   fileActions,
+  focusFile,
 }: {
   onOpenDelivery: () => void;
   openSettings: () => void;
+  /** The file a `#file=` link names (`masterLink.ts`): the table opens on it instead of the first failing file. */
+  focusFile?: string;
   fileActions?: Pick<FileActions, 'onPlayQuietest' | 'onOpenInDaw'>;
 }) {
   const profilesPort = usePort('deliveryProfiles');
@@ -48,7 +51,7 @@ export function MasterPage({
   const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
   const [profileProblem, setProfileProblem] = useState<string>();
-  const [selected, setSelected] = useState<string>();
+  const [selected, setSelected] = useState<string | undefined>(focusFile);
   // The file whose every-rule list the narrator closed; selecting another file shows its list again.
   const [rulesClosed, setRulesClosed] = useState<string>();
 

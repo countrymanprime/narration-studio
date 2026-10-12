@@ -671,11 +671,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByRole('group', { name: /platform/i })).toBeNull();
     cleanup();
 
-    window.history.replaceState(null, '', '/delivery?from=report#file=C%3A%2Fa.wav');
+    window.history.replaceState(null, '', '/delivery?from=report');
     renderApp();
     expect(await screen.findByRole('heading', { level: 1, name: 'Delivery' })).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Before you build' })).toBeTruthy();
-    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe('/delivery?from=report#file=C%3A%2Fa.wav');
+    expect(`${window.location.pathname}${window.location.search}`).toBe('/delivery?from=report');
   });
 
   it('the-three-routes-mount-the-new-pages: the Master profile pill opens Delivery and Delivery asks for a manuscript without one', async () => {
@@ -691,6 +691,14 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', '/delivery');
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     expect(await screen.findByText(/Add the manuscript first/)).toBeTruthy();
+  });
+
+  // An older finding link names a file: /delivery#file=… still lands on Master & QC with the anchor kept (masterLink.ts).
+  it('the-three-routes-mount-the-new-pages: a /delivery#file= link lands on Master & QC with its anchor', async () => {
+    window.history.replaceState(null, '', '/delivery?from=report#file=C%3A%2Fa.wav&rule=acx.rms');
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Master & QC' });
+    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe('/master?from=report#file=C%3A%2Fa.wav&rule=acx.rms');
   });
 
   it('opens Settings on Silence cleanup from #cleanup and on the kept Delivery category from #delivery', async () => {

@@ -47,6 +47,7 @@ import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLoca
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
 import { MasterPage } from './components/masterqc/page/MasterPage';
 import { DeliveryPage } from './components/delivery/page/DeliveryPage';
+import { parseMasterHash } from './components/master/masterLink';
 import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
@@ -739,9 +740,25 @@ function AppRoutes() {
                 {/* Master & QC and Delivery are two pages (ADR 0802); without a manuscript Delivery asks for one itself. */}
                 <Route
                   path="/master"
-                  element={<MasterPage onOpenDelivery={() => guardedNavigate('/delivery')} openSettings={() => guardedNavigate('/settings#cleanup')} />}
+                  element={
+                    <MasterPage
+                      onOpenDelivery={() => guardedNavigate('/delivery')}
+                      openSettings={() => guardedNavigate('/settings#cleanup')}
+                      focusFile={parseMasterHash(location.hash)?.file}
+                    />
+                  }
                 />
-                <Route path="/delivery" element={<DeliveryPage hasManuscript={Boolean(data.manuscript)} onOpenInMaster={() => guardedNavigate('/master')} />} />
+                {/* An older finding link (`/delivery#file=…`, masterLink.ts) still lands on Master & QC, anchor kept. */}
+                <Route
+                  path="/delivery"
+                  element={
+                    parseMasterHash(location.hash) ? (
+                      <RedirectKeepingLocation to="/master" />
+                    ) : (
+                      <DeliveryPage hasManuscript={Boolean(data.manuscript)} onOpenInMaster={() => guardedNavigate('/master')} />
+                    )
+                  }
+                />
                 <Route
                   path="/settings"
                   element={
