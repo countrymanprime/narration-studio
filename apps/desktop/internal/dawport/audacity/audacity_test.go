@@ -24,7 +24,7 @@ func TestConformance(t *testing.T) {
 	dawporttest.Run(t, func(tb testing.TB) dawport.Adapter { return closedAdapter(tb) })
 }
 
-// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render, backups (ADR 0863) and the six rows that need
+// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render, backups (ADR 0863) and the seven rows that need
 // backups (their role is the steps, steps.go). Everything else is NotYetAvailable with no role, until
 // the owner's pass promotes a capability or a later phase builds one.
 func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
@@ -64,9 +64,9 @@ func built(c dawport.Capability) bool {
 // backupRows is the capabilities that exist in Audacity only while its backups are on (SN-D83): the Studio Next mock's
 // AUDACITY_BACKUP_CAPS less backups itself.
 var backupRows = []dawport.Capability{dawport.CapTakes, dawport.CapPunch, dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange,
-	dawport.CapRangeGain}
+	dawport.CapRangeGain, dawport.CapClickRepair}
 
-// requires-is-a-catalogue-field (the adapter's half): Audacity declares the six rows Experimental and each requires backups; a
+// requires-is-a-catalogue-field (the adapter's half): Audacity declares the seven rows Experimental and each requires backups; a
 // roll is destructive (the requirement makes it safe) and the edits are made in steps.
 func TestTheCapabilitiesThatNeedBackupsSaySo(t *testing.T) {
 	for _, adapter := range []dawport.Adapter{closedAdapter(t), Declaration()} {
@@ -88,7 +88,7 @@ func TestTheCapabilitiesThatNeedBackupsSaySo(t *testing.T) {
 			switch c {
 			case dawport.CapPunch:
 				depth = dawport.Depth{Destructive: true}
-			case dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange, dawport.CapRangeGain:
+			case dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange, dawport.CapRangeGain, dawport.CapClickRepair:
 				depth = dawport.Depth{Mode: dawport.ModeSteps}
 			}
 			if got := describer.Depth(c); got != depth {
@@ -126,6 +126,8 @@ func TestBackupsDecideWhatAudacityCanDo(t *testing.T) {
 			Message: "Adding an effect to words needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
 		dawport.CapRangeGain: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
 			Message: "Lowering stretches of a take needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
+		dawport.CapClickRepair: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
+			Message: "Repairing clicks in a take needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
 		dawport.CapPunch: {Level: dawport.Experimental, Available: true, Destructive: true},
 	}
 	for c, w := range want {
@@ -160,8 +162,8 @@ func TestBackupsDecideWhatAudacityCanDo(t *testing.T) {
 	}
 }
 
-// The six capabilities that need backups share the steps role. Over an adapter with no project folder, so no backup can be made,
-// a cut, an effect, a stack, an un-stack and lowered stretches refuse with the capability's sentence; a roll still reaches for the pipe (here closed),
+// The seven capabilities that need backups share the steps role. Over an adapter with no project folder, so no backup can be made,
+// a cut, an effect, a stack, an un-stack, lowered stretches and repaired clicks refuse with the capability's sentence; a roll still reaches for the pipe (here closed),
 // since a roll without backups is the destructive one the page confirmed; and what is not built for Audacity keeps ADR 0144's
 // sentence.
 func TestTheRolesThatNeedBackupsAreTheSteps(t *testing.T) {
@@ -213,6 +215,8 @@ func TestTheRolesThatNeedBackupsAreTheSteps(t *testing.T) {
 	refused("RemoveFXFromRange", messageRemoveFX, r, err)
 	r, err = adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer).ReduceRangeGain(ctx, dawport.RangeGainRequest{})
 	refused("ReduceRangeGain", backupsSentence(dawport.CapRangeGain), r, err)
+	r, err = adapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer).RepairClick(ctx, dawport.ClickRepairRequest{})
+	refused("RepairClick", backupsSentence(dawport.CapClickRepair), r, err)
 }
 
 func resolverFor(adapter dawport.Adapter, rt dawport.Runtime, toggle dawport.Toggle) *dawport.Resolver {

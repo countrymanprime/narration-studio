@@ -12,6 +12,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "click_repair": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "cut_range": {
       "available": false,
       "level": "experimental",

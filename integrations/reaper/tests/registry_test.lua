@@ -72,6 +72,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'remove_fx_range',
     'render_with_fx',
     'reopen_pickup',
+    'repair_click',
     'resolve_pickup',
     'reveal_file',
     'roll',

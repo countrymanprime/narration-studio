@@ -46,7 +46,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
 	// delete_range; apply_fx_range, remove_fx_range; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
-	// reduce_range_gain (declared with the edit rows below).
+	// reduce_range_gain; repair_click (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -77,6 +77,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// range_gain is reduce_range_gain's (SN-E100, narration_range.lua): Experimental until the QA pass (#1495) hears the stretches
 	// lowered with no click at the edges.
 	dawport.CapRangeGain: dawport.Experimental,
+	// click_repair is repair_click's (SN-E101, narration_range.lua): Experimental until the QA pass (#1495) hears a click gone and
+	// no dip in its place.
+	dawport.CapClickRepair: dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -107,6 +110,7 @@ var commandCapability = map[string]dawport.Capability{
 	"stop_file_preview":   dawport.CapFilePreview,
 	"reveal_file":         dawport.CapFileReveal,
 	"reduce_range_gain":   dawport.CapRangeGain,
+	"repair_click":        dawport.CapClickRepair,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -217,6 +221,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapFilePreview:     actions,
 			dawport.CapFileReveal:      actions,
 			dawport.CapRangeGain:       rangeGainReducer{actions, allowed},
+			dawport.CapClickRepair:     clickRepairer{actions, allowed},
 		},
 	}, nil
 }
@@ -244,9 +249,10 @@ func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) 
 // was recorded and comes off again (point 3), so neither is fx_range. A stack makes later reads takes of the first read's item
 // in one undo block and moves their items to the Cuts track, deleting nothing (point 4), so stack_takes is native and not
 // destructive. Lowering stretches puts points on the take's volume envelope in one undo block and leaves the recorded audio as it
-// was, so range_gain is native and not destructive.
+// was, so range_gain is native and not destructive; so is click_repair, a short dip on the same envelope.
 func depthOf(c dawport.Capability) dawport.Depth {
-	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange || c == dawport.CapStackTakes || c == dawport.CapRangeGain {
+	if c == dawport.CapPunch || c == dawport.CapCutRange || c == dawport.CapFXRange || c == dawport.CapStackTakes || c == dawport.CapRangeGain ||
+		c == dawport.CapClickRepair {
 		return dawport.Depth{Mode: dawport.ModeNative}
 	}
 	return dawport.Depth{}
@@ -506,6 +512,62 @@ func gainMessage(stretches int, db float64) string {
 		what = fmt.Sprintf("%d stretches", stretches)
 	}
 	return fmt.Sprintf("Lowered %s by %s dB in REAPER. Undo it there in one step.", what, strconv.FormatFloat(db, 'f', -1, 64))
+}
+
+// clickRepairer is the click_repair role over bridge's repair_click, answering a dawport.Result (ADR 0810).
+type clickRepairer struct {
+	actions *bridge.Actions
+	allowed func(dawport.Capability) error
+}
+
+var _ dawport.ClickRepairer = clickRepairer{}
+
+// RepairClick smooths the request's clicks in its take with a short dip on the take's volume envelope, in one undo step (bridge's
+// repair_click). It asks allowed itself first, so a refusal is the capability's own sentence rather than bridge's
+// ErrExperimentalOff, and refuses a request out of shape before anything is sent.
+func (r clickRepairer) RepairClick(ctx context.Context, request dawport.ClickRepairRequest) (dawport.Result, error) {
+	if r.allowed != nil {
+		if refused, ok := dawport.RefusedFrom(r.allowed(dawport.CapClickRepair)); ok {
+			return refused, nil
+		}
+	}
+	if !request.Valid() {
+		return dawport.Refused(messageClickBad), nil
+	}
+	got, err := r.actions.RepairClick(ctx, request.ItemGUID, request.TakeGUID, request.Clicks)
+	var stale *bridge.StaleError
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.As(err, &stale) && stale.Reason == "take":
+		return dawport.RefusedStale("That item no longer has the take to repair. Read the project again."), nil
+	case errors.As(err, &stale):
+		return dawport.RefusedStale("That take's item moved or changed in the REAPER project. Read the project again."), nil
+	case errors.Is(err, bridge.ErrRecording):
+		return dawport.Refused("REAPER is recording. Stop recording first."), nil
+	case errors.Is(err, bridge.ErrScriptOutdated):
+		return dawport.Refused(messageClickScriptOutdated), nil
+	case errors.As(err, &refusal):
+		return dawport.Refused(refusal.Sentence), nil
+	case errors.Is(err, bridge.ErrExperimentalOff):
+		return dawport.Refused(err.Error()), nil
+	case err != nil:
+		return dawport.Result{}, err
+	}
+	return dawport.OK(clickMessage(got.Clicks), true).WithUndoSteps(got.UndoPoints), nil
+}
+
+const (
+	messageClickBad            = "The clicks to repair are not usable, so nothing was changed."
+	messageClickScriptOutdated = "The Narration Utils script in REAPER is older than this app and cannot repair a click, so nothing was changed. Import the script again from this app's REAPER folder."
+)
+
+// clickMessage words clicks repaired.
+func clickMessage(clicks int) string {
+	what := "1 click"
+	if clicks != 1 {
+		what = fmt.Sprintf("%d clicks", clicks)
+	}
+	return fmt.Sprintf("Repaired %s in REAPER. Undo it there in one step.", what)
 }
 
 // rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result (ADR 0810).

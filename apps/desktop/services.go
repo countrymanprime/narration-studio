@@ -84,6 +84,9 @@ type hostServices struct {
 	// rangeGain is the DAW port's range_gain role over the same bridge client; nil (a true nil interface) with no bridge client or
 	// no such role.
 	rangeGain dawport.RangeGainReducer
+	// clickRepairer is the DAW port's click_repair role over the same bridge client; nil (a true nil interface) with no bridge
+	// client or no such role.
+	clickRepairer dawport.ClickRepairer
 	// backupKeeper is the DAW port's backups role; nil (a true nil interface) with no Audacity launch or no project.
 	backupKeeper dawport.BackupKeeper
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
@@ -159,6 +162,7 @@ func (h *Host) services() hostServices {
 		filePreviewer:   h.filePreviewer,
 		fileRevealer:    h.fileRevealer,
 		rangeGain:       h.rangeGain,
+		clickRepairer:   h.clickRepairer,
 		backupKeeper:    h.backupKeeper,
 		dawPortResolver: h.dawPortResolver,
 	}

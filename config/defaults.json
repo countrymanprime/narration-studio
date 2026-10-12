@@ -70,6 +70,7 @@
     "capability.file_preview": "auto",
     "capability.file_reveal": "auto",
     "capability.range_gain": "auto",
+    "capability.click_repair": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
   },

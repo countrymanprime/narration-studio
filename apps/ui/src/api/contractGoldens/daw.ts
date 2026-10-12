@@ -55,6 +55,11 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-reduce-range-gain-done.json': dawResultSchema,
   'daw-reduce-range-gain-refused-stale.json': dawResultSchema,
   'daw-reduce-range-gain-refused-capability.json': dawResultSchema,
+  // DawRepairClick (bindings_daw_repair_click_test.go): two clicks repaired in REAPER (one undo step), REAPER's stale refusal and the
+  // click_repair capability's refusal.
+  'daw-repair-click-done.json': dawResultSchema,
+  'daw-repair-click-refused-stale.json': dawResultSchema,
+  'daw-repair-click-refused-capability.json': dawResultSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,

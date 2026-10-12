@@ -129,6 +129,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"stop_file_preview":   dawport.CapFilePreview,
 	"reveal_file":         dawport.CapFileReveal,
 	"reduce_range_gain":   dawport.CapRangeGain,
+	"repair_click":        dawport.CapClickRepair,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -662,6 +663,81 @@ func TestReduceRangeGainIsExperimentalAndAnswersADawResult(t *testing.T) {
 	}
 }
 
+// repair_click is the click_repair capability's role (dawport.ClickRepairer): Experimental, gated by click_repair, one undo step
+// when it repaired, a request out of shape refused before anything is sent, and every refusal a DawResult in a whole sentence
+// (ADR 0810).
+func TestRepairClickIsExperimentalAndAnswersADawResult(t *testing.T) {
+	if declares[dawport.CapClickRepair] != dawport.Experimental || !bridge.Experimental("repair_click") ||
+		commandCapability["repair_click"] != dawport.CapClickRepair || depthOf(dawport.CapClickRepair).Destructive {
+		t.Fatalf("repair_click must be an Experimental, non-destructive command of the click_repair capability")
+	}
+	request := dawport.ClickRepairRequest{ChapterID: "chapter-1", ItemGUID: hideItem, TakeGUID: hideTake,
+		Clicks: []dawport.Click{{Start: 4, End: 4.003}, {Start: 8.5, End: 8.502}}}
+	repairerAnswering := func(answer func(command []string) [][]string) dawport.ClickRepairer {
+		client, dir := newClient(t)
+		adapter, err := New(client, func(dawport.Capability) error { return nil })
+		if err != nil {
+			t.Fatal(err)
+		}
+		answerCommands(t, client, dir, answer)
+		return adapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer)
+	}
+	repairer := repairerAnswering(func(command []string) [][]string {
+		if command[0] != "repair_click" || command[2] != hideItem || command[3] != hideTake || command[4] != "4.000000:4.003000,8.500000:8.502000" {
+			t.Errorf("command = %v", command)
+		}
+		return [][]string{{"CLICKS_REPAIRED", command[1], hideItem, hideTake, "2", "1"}}
+	})
+	got, err := repairer.RepairClick(t.Context(), request)
+	want := dawport.OK("Repaired 2 clicks in REAPER. Undo it there in one step.", true).WithUndoSteps(1)
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("RepairClick = %+v, %v; want %+v", got, err, want)
+	}
+
+	sentence := "That take already has volume changes where a click would be repaired, so no click was repaired."
+	for _, tc := range []struct {
+		answer []string
+		want   dawport.Result
+	}{
+		{[]string{"ITEM_STALE", "", hideItem, "item"}, dawport.RefusedStale("That take's item moved or changed in the REAPER project. Read the project again.")},
+		{[]string{"ITEM_STALE", "", hideTake, "take"}, dawport.RefusedStale("That item no longer has the take to repair. Read the project again.")},
+		{[]string{"ERROR", "", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
+		{[]string{"ERROR", "", "Unsupported workspace command"}, dawport.Refused(messageClickScriptOutdated)},
+		{[]string{"ERROR", "", sentence}, dawport.Refused(sentence)},
+	} {
+		repairer := repairerAnswering(func(command []string) [][]string {
+			answer := append([]string(nil), tc.answer...)
+			answer[1] = command[1]
+			return [][]string{answer}
+		})
+		got, err := repairer.RepairClick(t.Context(), request)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("answer %v: RepairClick = %+v, %v; want %+v", tc.answer, got, err, tc.want)
+		}
+	}
+
+	refusedSentence := "Experimental REAPER actions are off. Turn them on in Settings to repair clicks."
+	var asked []dawport.Capability
+	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
+		asked = append(asked, c)
+		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refusedSentence}}
+	})
+	got, err = adapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer).RepairClick(t.Context(), request)
+	if err != nil || !reflect.DeepEqual(got, dawport.Refused(refusedSentence)) || len(asked) == 0 || asked[0] != dawport.CapClickRepair {
+		t.Errorf("RepairClick with click_repair refused = %+v, %v (asked %v); want Refused(%q)", got, err, asked, refusedSentence)
+	}
+	bad := request
+	bad.Clicks = []dawport.Click{{Start: 4, End: 4.2}}
+	allowedAdapter, allowedDir := newAdapter(t, func(dawport.Capability) error { return nil })
+	if got, err := allowedAdapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer).RepairClick(t.Context(), bad); err != nil ||
+		!reflect.DeepEqual(got, dawport.Refused(messageClickBad)) {
+		t.Errorf("a 200 ms click = %+v, %v; want Refused(%q)", got, err, messageClickBad)
+	}
+	if n := len(sentCommands(t, dir)) + len(sentCommands(t, allowedDir)); n != 0 {
+		t.Errorf("a refused request wrote %d commands", n)
+	}
+}
+
 const rollTrack = "{00000001-0000-4000-8000-000000000001}"
 
 func puncherAnswering(t *testing.T, answer func(command []string) [][]string) dawport.Puncher {
@@ -739,12 +815,13 @@ func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
 }
 
 // REAPER keeps the earlier audio as a take, a cut moves the audio to the Cuts track, a chain on a range is take FX that come
-// off again, a stack makes later reads takes and moves their items to the Cuts track, and lowering stretches is points on the take's
-// volume envelope, so punch, cut_range, fx_range, stack_takes and range_gain are native and not destructive, with REAPER up or down.
+// off again, a stack makes later reads takes and moves their items to the Cuts track, and lowering stretches and repairing clicks are
+// points on the take's volume envelope, so punch, cut_range, fx_range, stack_takes, range_gain and click_repair are native and not
+// destructive, with REAPER up or down.
 func TestPunchCutRangeFXRangeAndStackTakesAreNativeAndNotDestructive(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
 	native := map[dawport.Capability]bool{dawport.CapPunch: true, dawport.CapCutRange: true, dawport.CapFXRange: true, dawport.CapStackTakes: true,
-		dawport.CapRangeGain: true}
+		dawport.CapRangeGain: true, dawport.CapClickRepair: true}
 	for name, d := range map[string]dawport.Describer{"adapter": adapter, "declaration": Declaration().(dawport.Describer)} {
 		for c := range native {
 			if got := d.Depth(c); got != (dawport.Depth{Mode: dawport.ModeNative}) {

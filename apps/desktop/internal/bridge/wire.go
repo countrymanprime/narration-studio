@@ -177,6 +177,9 @@ var eventSpecs = map[string]eventSpec{
 	// reduce_range_gain (narration_range.lua): the item and take whose stretches were lowered, how many stretches (those whose
 	// ramps met counted as one), the dB they were lowered by and the undo points it added.
 	"RANGE_GAIN_REDUCED": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("stretches"), number("reduceDb"), count("undoPoints")}},
+	// repair_click (narration_range.lua): the item and take whose clicks were repaired, how many clicks (those whose ramps met
+	// counted as one) and the undo points it added.
+	"CLICKS_REPAIRED": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("clicks"), count("undoPoints")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

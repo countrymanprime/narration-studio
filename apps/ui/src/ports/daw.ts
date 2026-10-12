@@ -1,4 +1,4 @@
-import type { DawBackup, DawCapabilities, DawCutMode, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
+import type { DawBackup, DawCapabilities, DawClick, DawCutMode, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
   backupLabelOk,
@@ -24,6 +24,7 @@ import {
   splitStaleOf,
   takeSplitOf,
   rangeGainAnswerOf,
+  repairClickAnswerOf,
 } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
@@ -94,6 +95,9 @@ export type StackRequest = { chapterId: string; groups: StackGroup[]; shift: num
  * Breaths, Plosives and Noise. */
 export type RangeGainRequest = { chapterId: string; takeId: string; stretches: DawGainStretch[]; reduceDb: number };
 
+/** Smooth `clicks` (seconds into the take's own audio file, each at most 50 ms) in `takeId`, a take of the chapter: Clean up's Clicks. */
+export type ClickRepairRequest = { chapterId: string; takeId: string; clicks: DawClick[] };
+
 export type BackupRequest = { chapterId: string; firstToken: number; lastToken: number; label: string };
 
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
@@ -136,6 +140,9 @@ export interface DawClient {
   /** Lower the request's stretches of a take by its dB, in one undo step of the DAW's own where it can; the recorded audio is left as it
    * was where the DAW can (a volume envelope). The DAW refuses a take that is gone or a stretch outside it (code `stale`). */
   reduceRangeGain(request: RangeGainRequest): Promise<DawResult>;
+  /** Smooth the request's clicks in a take, in one undo step of the DAW's own where it can; the recorded audio is left as it was where the
+   * DAW can (a volume envelope). The DAW refuses a take that is gone or a click outside it (code `stale`). */
+  repairClick(request: ClickRepairRequest): Promise<DawResult>;
   /** Clone the audio around the request's words before an edit, so it can be put back. It changes no audio (`changed: false`). */
   backupAround(request: BackupRequest): Promise<DawResult>;
   /** Put a backup's audio back over the window it came from. Refused when the DAW has no backup with that id. */
@@ -176,6 +183,7 @@ export type DawHostApi = Pick<
   | 'dawUnstackTakes'
   | 'dawSplitTake'
   | 'dawReduceRangeGain'
+  | 'dawRepairClick'
   | 'dawBackupAround'
   | 'dawRestoreBackup'
   | 'dawBackups'
@@ -350,6 +358,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     splitTake: (chapterId, takeId, at) => api.dawSplitTake(chapterId, takeId, at),
     /** The binding answers a DawResult already: it looks the take up on the chapter's track and checks each stretch is inside it. */
     reduceRangeGain: ({ chapterId, takeId, stretches, reduceDb }) => api.dawReduceRangeGain(chapterId, takeId, stretches, reduceDb),
+    /** The binding answers a DawResult already: it looks the take up on the chapter's track and checks each click is inside it. */
+    repairClick: ({ chapterId, takeId, clicks }) => api.dawRepairClick(chapterId, takeId, clicks),
     /** The bindings answer a DawResult already and take ids only: the host resolves the window and the track itself. */
     backupAround: ({ chapterId, firstToken, lastToken, label }) => api.dawBackupAround(chapterId, firstToken, lastToken, label),
     restoreBackup: (backupId) => api.dawRestoreBackup(backupId),
@@ -487,6 +497,12 @@ export function createMockDawClient(
       if (sentence) return refused(sentence, 'reduceRangeGain');
       const answer = rangeGainAnswerOf(setup, project, chapterId, takeId, stretches, reduceDb);
       return 'refused' in answer ? refused(answer.refused, 'reduceRangeGain', answer.stale) : answer.result;
+    },
+    async repairClick({ chapterId, takeId, clicks }) {
+      const sentence = unavailable(setup, 'click_repair', 'repairClick');
+      if (sentence) return refused(sentence, 'repairClick');
+      const answer = repairClickAnswerOf(setup, project, chapterId, takeId, clicks);
+      return 'refused' in answer ? refused(answer.refused, 'repairClick', answer.stale) : answer.result;
     },
     ...mockBackups(setup, project),
     ...mockMasterFiles(setup, project),

@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 127
+const hostAPIVersion = 128
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -233,6 +233,9 @@ type Host struct {
 	// rangeGain is the DAW port's range_gain role over the same adapter as takeCreator (ADR 0300): DawReduceRangeGain
 	// (bindings_daw_reduce_range_gain.go) asks it to lower stretches of a take. Nil with no bridge client or no such role.
 	rangeGain dawport.RangeGainReducer
+	// clickRepairer is the DAW port's click_repair role over the same adapter as takeCreator (ADR 0300): DawRepairClick
+	// (bindings_daw_repair_click.go) asks it to smooth clicks in a take. Nil with no bridge client or no such role.
+	clickRepairer dawport.ClickRepairer
 	// backupKeeper is the DAW port's backups role (ADR 0863): on an Audacity launch with a project open, the Audacity adapter's,
 	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
@@ -697,9 +700,10 @@ func (h *Host) configureLocked(next config) {
 		h.filePreviewer, _ = dawAdapter.Role(dawport.CapFilePreview).(dawport.FilePreviewer)
 		h.fileRevealer, _ = dawAdapter.Role(dawport.CapFileReveal).(dawport.FileRevealer)
 		h.rangeGain, _ = dawAdapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer)
+		h.clickRepairer, _ = dawAdapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer)
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
-		h.filePreviewer, h.fileRevealer, h.rangeGain = nil, nil, nil
+		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer = nil, nil, nil, nil
 	}
 	if previous, ok := h.backupKeeper.(audacityBackups); ok {
 		previous.closePipe()
