@@ -4,6 +4,8 @@ import type {
   DawCapabilityKey,
   DawCapabilitySupport,
   DawClick,
+  DawFxRangeSettings,
+  DawFxSetting,
   DawGainStretch,
   DawProjectState,
   DawResult,
@@ -308,6 +310,13 @@ export const DAW_ANSWERS = {
   /** bindings_daw_fx_range.go (SN-D66): a chain REAPER does not list (apply_fx_range's own sentence), and words not heard, in an effect's words. */
   fxBadChain: 'That FX chain is not in the FXChains folder REAPER lists.',
   fxNotHeard: "These words weren't heard in the recording, so there's no audio to put an effect on. Run the check again if the chapter has changed.",
+  /** bindings_daw_fx_range.go and narration_range.lua (SN-E104): a setting the effect does not have, a value that is not a number, and a
+   * value outside the setting's range; and dawport/audacity's answer to every edit of an effect on words. */
+  fxNoSetting: 'That effect has no such setting.',
+  fxBadValue: 'The value for that setting is not a number.',
+  fxValueOutside: 'That value is outside what the setting takes.',
+  fxBakedIn:
+    'Audacity puts an effect into the audio itself after its backup, so its settings cannot be read or changed and it cannot be bypassed. Put the backup back and add the effect again instead.',
   /** bindings_daw_stack.go (SN-D72): a passage id the chapter's passage map does not list (code stale), and a kept take. */
   stackNotAPassage: "That passage is not one of this chapter's passages any more, so nothing was changed. Read the chapter again.",
   stackKept: 'A take of this passage has been kept, so its reads cannot be stacked or moved back.',
@@ -612,6 +621,70 @@ export function repairClickAnswerOf(
   if (clicks.some(({ start, end }) => start < take.from || end > take.to)) return { refused: clickOutsideAnswer(setup.daw), stale: true };
   const repair = repairClickOf(setup, clicks.length);
   return { result: { ok: true, changed: true, message: repair.message, undoSteps: repair.undoSteps, ...(repair.steps ? { steps: repair.steps } : {}) } };
+}
+
+/** The settings the mocks read for a chain on words (SN-E104): one effect with a continuous gain and a stepped mode, in the order
+ * REAPER's fx_range_params lists them. */
+export const FX_RANGE_SETTINGS: readonly DawFxSetting[] = [
+  { fx: 0, fxName: 'VST: ReaEQ (Cockos)', index: 0, name: 'Gain', value: 0, min: -24, max: 24, step: 0, formatted: '0 dB' },
+  { fx: 0, fxName: 'VST: ReaEQ (Cockos)', index: 1, name: 'Mode', value: 0, min: 0, max: 3, step: 1, formatted: '0' },
+];
+
+/** dawport/reaper's fx_range editor: the settings read, a setting set (with the value as the effect shows it), and a bypass. */
+export function fxSettingsReadAnswer(chain: string, count: number, daw: string): string {
+  return `Read ${count} setting${plural(count)} of ${chain} in ${daw}.`;
+}
+export function fxSettingSetAnswer(chain: string, formatted: string, daw: string): string {
+  return `Set ${chain} to ${formatted} in ${daw}. Undo it there in one step.`;
+}
+export function fxBypassAnswer(chain: string, bypass: boolean, daw: string): string {
+  return bypass ? `${chain} bypassed in ${daw}. Undo it there in one step.` : `${chain} turned back on in ${daw}. Undo it there in one step.`;
+}
+
+/** DawFxRangeParams' answer after the capability, the range and the chain name (bindings_daw_fx_range.go): an engine that bakes the
+ * effect in (fx_range in steps, Audacity) refuses; otherwise FX_RANGE_SETTINGS, read with no undo step. */
+export function fxRangeParamsAnswerOf(setup: DawCapabilities, chain: string): { refused: string } | { settings: DawFxRangeSettings } {
+  if (setup.capabilities.fx_range?.mode === 'steps') return { refused: DAW_ANSWERS.fxBakedIn };
+  const settings = FX_RANGE_SETTINGS.map((setting) => ({ ...setting }));
+  return {
+    settings: {
+      result: { ok: true, changed: false, message: fxSettingsReadAnswer(chain, settings.length, setup.daw), undoSteps: 0 },
+      settings,
+      truncated: false,
+      bypassed: false,
+    },
+  };
+}
+
+/** DawSetFxRangeParam's answer after the capability, the range and the chain name, in the host's order: a setting the effect does not
+ * have, a value that is not a number, an engine that bakes the effect in, a value outside the setting's range (narration_range.lua); then
+ * one undo step, or none when the setting already has the value. */
+export function fxRangeSetAnswerOf(
+  setup: DawCapabilities,
+  chain: string,
+  fx: number,
+  index: number,
+  value: number,
+): { refused: string } | { result: DawResult } {
+  if (!Number.isInteger(fx) || !Number.isInteger(index) || fx < 0 || index < 0) return { refused: DAW_ANSWERS.fxNoSetting };
+  if (!Number.isFinite(value)) return { refused: DAW_ANSWERS.fxBadValue };
+  if (setup.capabilities.fx_range?.mode === 'steps') return { refused: DAW_ANSWERS.fxBakedIn };
+  const setting = FX_RANGE_SETTINGS.find((candidate) => candidate.fx === fx && candidate.index === index);
+  if (!setting) return { refused: DAW_ANSWERS.fxNoSetting };
+  if (value < setting.min || value > setting.max) return { refused: DAW_ANSWERS.fxValueOutside };
+  const formatted = setting.name === 'Gain' ? `${value} dB` : String(value);
+  if (value === setting.value)
+    return {
+      result: { ok: true, changed: false, message: `That setting of ${chain} is already ${formatted} in ${setup.daw}, so nothing changed.`, undoSteps: 0 },
+    };
+  return { result: { ok: true, changed: true, message: fxSettingSetAnswer(chain, formatted, setup.daw), undoSteps: 1 } };
+}
+
+/** DawBypassFxRange's answer after the capability, the range and the chain name: an engine that bakes the effect in refuses; otherwise one
+ * undo step (the mock keeps no state, so a chain is never already as asked). */
+export function fxRangeBypassAnswerOf(setup: DawCapabilities, chain: string, bypass: boolean): { refused: string } | { result: DawResult } {
+  if (setup.capabilities.fx_range?.mode === 'steps') return { refused: DAW_ANSWERS.fxBakedIn };
+  return { result: { ok: true, changed: true, message: fxBypassAnswer(chain, bypass, setup.daw), undoSteps: 1 } };
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */

@@ -85,6 +85,9 @@ import {
   quietestOf,
   fxRangeOf,
   fxRangeRemovedOf,
+  fxRangeBypassAnswerOf,
+  fxRangeParamsAnswerOf,
+  fxRangeSetAnswerOf,
   nothingToStackAnswer,
   plainChainName,
   rangeCutOf,
@@ -598,7 +601,41 @@ function createFxRangeMock(
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ok: true, changed: true, message: fx.message, undoSteps: fx.undoSteps, ...(fx.steps ? { steps: fx.steps } : {}) };
     },
+    dawFxRangeParams: async (chapterId, firstToken, lastToken, chainName) => {
+      const none = (result: DawResult) => ({ result, settings: [], truncated: false, bypassed: false });
+      const checked = await checkTarget(chapterId, firstToken, lastToken, chainName);
+      if ('refused' in checked) return none(checked.refused);
+      const answer = fxRangeParamsAnswerOf(checked.setup, chainName);
+      return 'refused' in answer ? none(refusedResult(answer.refused)) : answer.settings;
+    },
+    dawSetFxRangeParam: async (chapterId, firstToken, lastToken, chainName, fx, index, value) => {
+      const checked = await checkTarget(chapterId, firstToken, lastToken, chainName);
+      if ('refused' in checked) return checked.refused;
+      const answer = fxRangeSetAnswerOf(checked.setup, chainName, fx, index, value);
+      return 'refused' in answer ? refusedResult(answer.refused) : answer.result;
+    },
+    dawBypassFxRange: async (chapterId, firstToken, lastToken, chainName, bypass) => {
+      const checked = await checkTarget(chapterId, firstToken, lastToken, chainName);
+      if ('refused' in checked) return checked.refused;
+      const answer = fxRangeBypassAnswerOf(checked.setup, chainName, bypass);
+      return 'refused' in answer ? refusedResult(answer.refused) : answer.result;
+    },
   };
+
+  /** The checks DawFxRangeParams, DawSetFxRangeParam and DawBypassFxRange share with a removal, in the host's order. */
+  async function checkTarget(
+    chapterId: string,
+    firstToken: number,
+    lastToken: number,
+    chainName: string,
+  ): Promise<{ refused: DawResult } | { setup: Awaited<ReturnType<DawCapabilitiesApi['dawCapabilities']>> }> {
+    const setup = await daw.dawCapabilities();
+    const support = setup.capabilities.fx_range;
+    if (!support?.available) return { refused: refusedResult(support?.message ?? '') };
+    if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { refused: stale };
+    if (!plainChainName(chainName)) return { refused: refusedResult(DAW_ANSWERS.fxBadChain) };
+    return { setup };
+  }
 }
 
 /** DawSplitTake as bindings_daw_split.go answers it: the takes capability's sentence first, then a time that is not one, then a chapter the

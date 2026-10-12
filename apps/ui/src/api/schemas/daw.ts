@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DAW_BACKUPS_MAX, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
+import { DAW_BACKUPS_MAX, DAW_FX_RANGE_MAX_SETTINGS, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
 import type {
   DawBackup,
   DawBackupsFile,
@@ -8,6 +8,8 @@ import type {
   DawCapabilityMode,
   DawCapabilityReason,
   DawCapabilitySupport,
+  DawFxRangeSettings,
+  DawFxSetting,
   DawKind,
   DawPlayState,
   DawProjectState,
@@ -74,6 +76,36 @@ export const dawResultSchema = z.object({
   code: optionalFromNull(z.enum(DAW_REFUSAL_CODES)),
   steps: optionalFromNull(z.array(z.string())),
 }) satisfies z.ZodType<DawResult>;
+
+/** dawport.FXSetting: a setting whose value lies in its range, with a step of 0 or more. */
+export const dawFxSettingSchema = z
+  .object({
+    fx: z.number().int().nonnegative(),
+    fxName: z.string(),
+    index: z.number().int().nonnegative(),
+    name: z.string(),
+    value: z.number(),
+    min: z.number(),
+    max: z.number(),
+    step: z.number().nonnegative(),
+    formatted: z.string(),
+  })
+  .refine((setting) => setting.min <= setting.max && setting.value >= setting.min && setting.value <= setting.max, {
+    message: 'a setting value lies in its range',
+  }) satisfies z.ZodType<DawFxSetting>;
+
+/** dawport.FXRangeSettings: at most DAW_FX_RANGE_MAX_SETTINGS settings, and none on a refusal. */
+export const dawFxRangeSettingsSchema = z
+  .object({
+    result: dawResultSchema,
+    settings: z.array(dawFxSettingSchema).max(DAW_FX_RANGE_MAX_SETTINGS),
+    truncated: z.boolean(),
+    bypassed: z.boolean(),
+  })
+  .refine((answer) => answer.result.ok || answer.settings.length === 0, {
+    message: 'a refused read has no settings',
+    path: ['settings'],
+  }) satisfies z.ZodType<DawFxRangeSettings>;
 
 /** A backup table row's text (the source track's name, the chapter id, the label): non-empty, at most 256 bytes as the host counts them, no
  * control characters (audacity.backupText). */

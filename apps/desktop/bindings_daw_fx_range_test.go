@@ -397,11 +397,15 @@ func (f *fakeRangeFXEditor) BypassFXRange(_ context.Context, target dawport.FXRa
 	return f.answer, f.err
 }
 
-// gainSetting is what REAPER's fx_range role reads for a chain with one gain setting.
+// gainSetting is what REAPER's fx_range role reads for a chain of one effect with a continuous gain and a stepped mode: the settings
+// apps/ui's mocks read (fixtures/daw.ts FX_RANGE_SETTINGS), so the goldens and the mock answer alike.
 func gainSetting() dawport.FXRangeSettings {
 	return dawport.FXRangeSettings{
-		Result:   dawport.OK("Read 1 setting of Podcast Voice.RfxChain in REAPER.", false),
-		Settings: []dawport.FXSetting{{FX: 0, FXName: "VST: ReaEQ (Cockos)", Index: 0, Name: "Gain", Value: -6, Min: -24, Max: 24, Formatted: "-6.0 dB"}},
+		Result: dawport.OK("Read 2 settings of Podcast Voice.RfxChain in REAPER.", false),
+		Settings: []dawport.FXSetting{
+			{FX: 0, FXName: "VST: ReaEQ (Cockos)", Index: 0, Name: "Gain", Value: 0, Min: -24, Max: 24, Formatted: "0 dB"},
+			{FX: 0, FXName: "VST: ReaEQ (Cockos)", Index: 1, Name: "Mode", Value: 0, Min: 0, Max: 3, Step: 1, Formatted: "0"},
+		},
 	}
 }
 
@@ -437,7 +441,7 @@ func TestDawFxRangeEditsSendTheResolvedRangeAndChainAndAnswer(t *testing.T) {
 	if !reflect.DeepEqual(got, gainSetting()) {
 		t.Fatalf("DawFxRangeParams = %+v, want %+v", got, gainSetting())
 	}
-	editor.answer = dawport.OK("Set Podcast Voice.RfxChain to -3.0 dB in REAPER. Undo it there in one step.", true)
+	editor.answer = dawport.OK("Set Podcast Voice.RfxChain to -3 dB in REAPER. Undo it there in one step.", true)
 	if got := decodeDawResult(t)(host.DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, -3)); !reflect.DeepEqual(got, editor.answer) || got.UndoSteps != 1 {
 		t.Fatalf("DawSetFxRangeParam = %+v", got)
 	}
@@ -544,15 +548,13 @@ func TestDawFxRangeEditsContractGoldenIsCurrent(t *testing.T) {
 	gone := dawport.RefusedStale("That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is.")
 	cases := map[string]func(t *testing.T) any{
 		"daw-fx-range-params-done": func(t *testing.T) any {
-			settings := gainSetting()
-			settings.Bypassed = true
-			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: settings}, "on").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
+			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}, "on").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
 		},
 		"daw-fx-range-params-refused": func(t *testing.T) any {
 			return decodeFxSettings(t)(fxEditHost(t, &fakeRangeFXEditor{settings: gainSetting()}, "").DawFxRangeParams("c-0001", 0, 0, fxRangeChain))
 		},
 		"daw-fx-range-params-set-done": func(t *testing.T) any {
-			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: dawport.OK("Set Podcast Voice.RfxChain to -3.0 dB in REAPER. Undo it there in one step.", true)}}
+			editor := &fakeRangeFXEditor{fakeRangeFX: fakeRangeFX{answer: dawport.OK("Set Podcast Voice.RfxChain to -3 dB in REAPER. Undo it there in one step.", true)}}
 			return decodeDawResult(t)(fxEditHost(t, editor, "on").DawSetFxRangeParam("c-0001", 0, 0, fxRangeChain, 0, 0, -3))
 		},
 		"daw-fx-range-bypass-done": func(t *testing.T) any {

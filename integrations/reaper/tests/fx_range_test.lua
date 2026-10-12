@@ -878,3 +878,25 @@ H.test('a REAPER without the calls refuses the edits before any change', functio
     untouched(s, take)
   end
 end)
+
+H.test('a chain missing one of its FX is stale, though the other is still there', function()
+  local s, p = project()
+  s.fake.chain_fx_count = 2
+  local middle, take = applied_clean(s, p)
+  table.remove(take.fx, 2)
+  s:send('fx_range_params', 'p1', middle.guid, take.guid, CHAIN)
+  s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
+  H.eq(s:events(), { { 'ITEM_STALE', 'p1', middle.guid, 'fx' }, { 'ITEM_STALE', 'b1', middle.guid, 'fx' } })
+  H.eq(calls_named(s, 'TakeFX_SetEnabled'), 0)
+end)
+
+H.test("a setting is changed on the chain's FX, not on an FX the narrator put ahead of it", function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  local own = { name = 'ReaComp', guid = s.fake:new_guid(), enabled = true, params = { { name = 'Ratio', value = 4, min = -24, max = 24 } } }
+  table.insert(take.fx, 1, own)
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '0', '0', '2')
+  H.eq(s:events(), { { 'RANGE_FX_PARAM_SET', 's1', middle.guid, take.guid, '0', '0', '2', '2 dB', '1' } })
+  H.eq(own.params[1].value, 4, 'the narrator FX is as it was')
+  H.eq(take.fx[2].params[1].value, 2, 'the chain FX has the value')
+end)

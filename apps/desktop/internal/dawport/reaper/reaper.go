@@ -593,7 +593,8 @@ var (
 // item (the piece) that the alignment names only after that check. It is held in memory only; with no entry the edits name the
 // item the words resolve to, which after a check is the piece itself, and let REAPER find the take that carries the chain.
 type appliedPieces struct {
-	mu     sync.Mutex
+	mu sync.Mutex
+	// +checklocks:mu
 	pieces map[appliedKey]appliedPiece
 }
 

@@ -92,6 +92,21 @@
 --
 -- Not run in REAPER (pending the QA pass, #1495): as reduce_range_gain, and that a click dipped by CLICK_DIP_DB is no longer
 -- heard and the dip itself is not.
+--
+-- fx_range_params(run, item_guid, take_guid, chain), fx_range_set_param(run, item_guid, take_guid, chain, fx, param|value) and
+-- fx_range_bypass(run, item_guid, take_guid, chain, on) read and change the chain apply_fx_range put on a piece (SN-E104).
+-- item_guid and take_guid are as apply_fx_range answered them; an empty take_guid is the piece's take that carries the chain.
+-- The take must carry that chain in its P_EXT and still hold every FX the record names, else ITEM_STALE|run|guid|item, take
+-- or fx and nothing changes. The chain's FX are numbered in the order the record names them, so an FX the narrator added is
+-- never read or changed. fx_range_params answers RANGE_FX_PARAM|run|fx|fxName|param|name|value|min|max|step|formatted per
+-- setting (at most MAX_FX_PARAMS; step 0 when continuous), then RANGE_FX_PARAMS|run|itemGuid|takeGuid|chain|count|truncated|
+-- bypassed. fx_range_set_param sets one setting to a value inside its range in one undo block and answers RANGE_FX_PARAM_SET|
+-- run|itemGuid|takeGuid|fx|param|value|formatted|undoPoints with the value REAPER holds; fx_range_bypass ('1' bypass, '0' on)
+-- switches every FX of the chain in one undo block and answers RANGE_FX_BYPASSED|run|itemGuid|takeGuid|chain|bypassed|
+-- undoPoints. Neither opens a block when nothing needs changing (undoPoints 0); both refuse while recording.
+--
+-- Not run in REAPER (pending the QA pass, #1495): whether TakeFX_GetParam's bounds are the plug-in's units, whether a
+-- parameter change and a bypass are each one undo step that Undo reverses, and that both are heard.
 
 local core = ...
 local event = core.event
