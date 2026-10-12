@@ -16,6 +16,15 @@ describe('SpeakerColourField', () => {
     expect(screen.getByRole('combobox', { name: 'Speaker colour' })).toBeTruthy();
   });
 
+  it('shows only for a speaking category', () => {
+    // A colour chosen while the type could speak stays stored, but is not offered once the type cannot.
+    const { container } = render(<SpeakerColourField entity={entry(4)} speaks={false} onChange={vi.fn()} />);
+    expect(container.innerHTML).toBe('');
+    cleanup();
+    render(<SpeakerColourField entity={entry(4)} speaks onChange={vi.fn()} />);
+    expect((screen.getByRole('combobox', { name: 'Speaker colour' }) as HTMLSelectElement).value).toBe('4');
+  });
+
   it('offers Automatic and seven named hues', () => {
     render(<SpeakerColourField entity={entry()} speaks onChange={vi.fn()} />);
     const options = screen.getAllByRole('option').map((option) => option.textContent ?? '');
