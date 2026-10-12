@@ -112,6 +112,24 @@ export const Preview: Story = {
   },
 };
 
+export const PreviewPlaying: Story = {
+  render: () => {
+    const rows = proposals(FINDINGS, 'gaps', params.gaps);
+    const note = { text: 'Playing the first 2 of 2 selected, with 2 s before and after.', playing: true };
+    return shell(
+      <CleanupInspector {...inspector('gaps', { preview: previewOf('gaps', rows, params.gaps, 'REAPER'), previewNote: note, onStopPreview: fn() })} />,
+    );
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Stop preview' })).toBeTruthy();
+  },
+};
+
+export const PreviewNoPlayback: Story = {
+  render: () =>
+    shell(<CleanupInspector {...inspector('gaps', { previewNote: { text: 'Nothing can play here: this page has no playback.', playing: false } })} />),
+};
+
 export const Tab: Story = {
   render: () => (
     <ApiProvider api={api as ReturnType<typeof createMockApi>}>
