@@ -55,7 +55,7 @@ import { MOCK_MEASURE_PATHS } from './measureMock';
 import { judgeMock } from './coverageMock';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './teleprompterMock';
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
-import { exportJobSchema, multiPackageJobSchema, packageJobSchema } from './schemas/renderEncodeMaster';
+import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
@@ -2128,6 +2128,23 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(built.checklist.every((entry) => entry.status !== 'missing')).toBe(true);
   });
 
+  it('deliveryOpenPackageFolder answers the folder of the last built package in the shape the host pins, and refuses before a build', async () => {
+    const api = createMockApi();
+    await expect(api.deliveryOpenPackageFolder()).rejects.toThrow(/build a package first/);
+    const profile = await api.deliveryProfiles();
+    const acx = profile.profiles.find((candidate) => candidate.id === 'acx')!;
+    await api.exportPickFiles();
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    while (job.phase === 'running') job = await api.exportState();
+    const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
+    const built = await api.packageStart({ profileId: acx.id, profileVersion: acx.version, items });
+    const opened = await api.deliveryOpenPackageFolder();
+    expectMatches(packageFolderResultSchema, opened, 'mock delivery open folder');
+    expect(opened.folder).toBe(built.outputDir);
+    expect(packageFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(packageFolderResultSchema.safeParse({ folder: 'C:/x', path: 'C:/x' }).success).toBe(false);
+  });
+
   it(
     "packageStartMulti reuses one profile's encoded files for a matching format and re-encodes once for a " + 'differing one, in the shape the host pins',
     async () => {
@@ -3350,6 +3367,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'packageStart',
       'packageState',
       'packageCancel',
+      'deliveryOpenPackageFolder',
       'packageStartMulti',
       'packageMultiState',
       'packageMultiCancel',

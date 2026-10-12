@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/packager"
 )
 
@@ -208,4 +211,47 @@ func waitPackage(t *testing.T, host *Host) PackageJob {
 	}
 	t.Fatal("package build did not finish in time")
 	return PackageJob{}
+}
+
+func TestDeliveryOpenPackageFolderOpensTheLastBuiltFolderAndRefusesWithoutOne(t *testing.T) {
+	host := NewHost()
+	var opened []string
+	host.openFolder = func(dir string) error { opened = append(opened, dir); return nil }
+
+	// Nothing built yet: refused, and nothing is opened.
+	if _, err := host.DeliveryOpenPackageFolder(); err == nil || !strings.Contains(err.Error(), "build a package first") {
+		t.Fatalf("expected a build-first refusal, got %v", err)
+	}
+	// A build that failed has no folder to show either.
+	host.packageJob = &packageJobState{id: "package-1", phase: "error", outputDir: t.TempDir(), cancel: func() {}}
+	if _, err := host.DeliveryOpenPackageFolder(); err == nil || !strings.Contains(err.Error(), "build a package first") {
+		t.Fatalf("expected a build-first refusal after a failed build, got %v", err)
+	}
+
+	built := t.TempDir()
+	host.packageJob = &packageJobState{id: "package-2", phase: "success", outputDir: built, cancel: func() {}}
+	raw, err := host.DeliveryOpenPackageFolder()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result PackageFolderResult
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Folder != built || len(opened) != 1 || opened[0] != built {
+		t.Fatalf("answered %+v and opened %v, want the built folder %q once", result, opened, built)
+	}
+
+	// The folder was deleted since the build: refused with a sentence naming it, and nothing is opened.
+	if err := os.RemoveAll(built); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.DeliveryOpenPackageFolder(); err == nil || !strings.Contains(err.Error(), "no longer there") {
+		t.Fatalf("expected a folder-gone refusal, got %v", err)
+	}
+	if len(opened) != 1 {
+		t.Fatalf("opened %v after the folder went away", opened)
+	}
+
+	contractfile.Check(t, "delivery-open-folder", PackageFolderResult{Folder: `C:\Users\Narrator\Desktop\Wonderland ACX`})
 }

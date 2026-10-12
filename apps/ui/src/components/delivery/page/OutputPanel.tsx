@@ -1,5 +1,6 @@
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
 import { SectionLabel } from '../../primitives/SectionLabel';
@@ -11,7 +12,7 @@ const DANGER = { color: 'var(--danger-text)' };
 
 /**
  * The mock's second panel: the folder the package goes to, "Build <profile> package" (disabled until every chapter passes, saying how many
- * do not), and once built "<n> files in <folder>" with a Written pill per file. The host asks for the folder when the build starts, so the
+ * do not), and once built "<n> files in <folder>", the button that opens that folder, and a Written pill per file. The host asks for the folder when the build starts, so the
  * folder shown is the one its job reports.
  */
 export function OutputPanel({
@@ -64,7 +65,14 @@ export function OutputPanel({
               <StatusBadge tone="success" label="Built" />
               <b>{built.files.length} files</b>
               <span style={MUTED}>in {built.outputDir}</span>
+              <span className="flex-1" />
+              <IconButton action="openFolder" onClick={build.openFolder} pending={build.opening} />
             </div>
+            {build.openProblem && (
+              <p role="alert" className="text-sm" style={DANGER}>
+                {build.openProblem}
+              </p>
+            )}
             <ul className="flex flex-col gap-1">
               {built.files.map((file) => (
                 <li key={file.destPath} className="flex items-center justify-between gap-2 text-sm">

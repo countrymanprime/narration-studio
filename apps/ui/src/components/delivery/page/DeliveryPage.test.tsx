@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
+import { chapterName } from '../../../chapterName';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
+import { styledChapters, type HeadingStyle } from '../../script/page/chapters/chapterFixtures';
 import { DeliveryPage } from './DeliveryPage';
 
 afterEach(cleanup);
@@ -71,6 +73,45 @@ describe('DeliveryPage', () => {
     expect(await screen.findByText('4 files')).toBeTruthy();
     expect(screen.getByText('in C:/Deliver/ACX')).toBeTruthy();
     expect(screen.getAllByText('Written')).toHaveLength(4);
+  });
+
+  it('opens the folder after a build', async () => {
+    const deliveryOpenPackageFolder = vi.fn(async () => ({ folder: 'C:/Deliver/ACX' }));
+    mount(PASSING, { packageStart: async () => PACKAGE_DONE, deliveryOpenPackageFolder });
+    await screen.findByText('Every chapter passes.');
+    // Before a build there is no button.
+    expect(screen.queryByRole('button', { name: 'Open the folder' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Build .* package/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Open the folder' }));
+    expect(deliveryOpenPackageFolder).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('says why the folder could not be opened', async () => {
+    mount(PASSING, {
+      packageState: async () => PACKAGE_DONE,
+      deliveryOpenPackageFolder: async () => {
+        throw new Error('the package folder C:/Deliver/ACX is no longer there; build the package again');
+      },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Open the folder' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('no longer there');
+  });
+
+  it('names every chapter from its data in each heading style', async () => {
+    for (const style of ['gutenberg', 'numbered', 'colon'] as HeadingStyle[]) {
+      cleanup();
+      const chapters = styledChapters(style, 40);
+      mount([], { manuscriptChapters: async () => chapters });
+      await screen.findByText('0 of 40');
+      const rows = screen.getAllByRole('button', { name: /Open in Master & QC/ });
+      expect(rows, style).toHaveLength(40);
+      chapters.forEach((chapter, i) => {
+        const name = chapterName(chapter);
+        expect(rows[i]!.textContent, `${style} ${i + 1}`).toContain(name);
+        expect(rows[i]!.getAttribute('aria-label'), `${style} ${i + 1}`).toBe(`${name}: Not mastered. Open in Master & QC`);
+      });
+    }
   });
 
   it('shows a failed package build', async () => {
