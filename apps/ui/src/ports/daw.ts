@@ -1,4 +1,4 @@
-import type { DawCapabilities, DawProjectState, DawResult } from '../api/contracts/daw';
+import type { DawCapabilities, DawCutMode, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
   DAW_ANSWERS,
@@ -7,6 +7,7 @@ import {
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
   projectStateOf,
+  rangeCutOf,
   rolledOf,
   takesHiddenOf,
 } from '../fixtures/daw';
@@ -30,6 +31,13 @@ export type DawPickupMarker = PickupMarker & { ref?: string };
 /** `readPickupMarkers`' answer: the result, and every pickup marker in time order (none when refused). */
 export type DawPickupMarkersRead = DawResult & { markers: DawPickupMarker[] };
 
+/** A cut of the words between two tokens of a chapter's stored alignment (the Studio Next mock's `DeleteRangeRequest`, narrowed to what
+ * the page may send: the host resolves the item, its times and the word count itself). `fadeMs` is the fade at each seam, 0 to 500. */
+export type DeleteRangeRequest = { chapterId: string; firstToken: number; lastToken: number; mode: DawCutMode; fadeMs: number };
+
+/** The longest fade at a cut's seam (bridge.MaxCutFadeMs). */
+const MAX_CUT_FADE_MS = 500;
+
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
 export const NOTHING_TO_CHANGE = 'Nothing to change.';
 
@@ -49,6 +57,9 @@ export interface DawClient {
   /** Roll again while recording: stop the recording this app started on the chapter's track and record again from `at` (project
    * seconds), keeping the earlier audio as a take. Where `punch` is destructive it is refused until `confirmed`. */
   roll(chapterId: string, at: number, opts?: { confirmed?: boolean }): Promise<DawResult>;
+  /** Cut the request's words and their audio: the DAW moves the cut audio aside rather than deleting it. `close` moves the later audio
+   * up, `gap` keeps the length. Words already cut answer `changed: false`. */
+  deleteRange(request: DeleteRangeRequest): Promise<DawResult>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
   /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
@@ -69,6 +80,7 @@ export type DawHostApi = Pick<
   | 'workspaceUseTake'
   | 'workspaceHideTakes'
   | 'dawRoll'
+  | 'dawDeleteRange'
   | 'findingsAddMarker'
   | 'pickupsImport'
   | 'pickupsResolve'
@@ -217,6 +229,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     hideTakes: (chapterId, firstToken, lastToken, keepCandidateId) => api.workspaceHideTakes(chapterId, firstToken, lastToken, keepCandidateId),
     /** The binding answers a DawResult already: it looks up the track, checks `at` and holds the confirmation rule itself. */
     roll: (chapterId, at, opts) => api.dawRoll(chapterId, at, opts?.confirmed ?? false),
+    /** The binding answers a DawResult already: it resolves the range to an item and its times on the host. */
+    deleteRange: ({ chapterId, firstToken, lastToken, mode, fadeMs }) => api.dawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs),
     async addMarker(findingId) {
       const result = await api.findingsAddMarker(findingId);
       if (result.outcome === 'refused') return refused(result.message, 'addMarker', result.reason === 'stale');
@@ -275,6 +289,15 @@ export function createMockDawClient(
       if (setup.capabilities.punch?.destructive && !opts.confirmed) return refused(DAW_ANSWERS.rollConfirm, 'roll');
       const rolled = rolledOf(setup, at);
       return done(true, rolled.undoSteps, rolled.message);
+    },
+    async deleteRange({ chapterId, firstToken, lastToken, mode, fadeMs }) {
+      const sentence = unavailable(setup, 'cut_range', 'deleteRange');
+      if (sentence) return refused(sentence, 'deleteRange');
+      if (mode !== 'close' && mode !== 'gap') return refused(DAW_ANSWERS.cutBadMode, 'deleteRange');
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > MAX_CUT_FADE_MS) return refused(DAW_ANSWERS.cutBadFade, 'deleteRange');
+      if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'deleteRange', true);
+      const cut = rangeCutOf(setup, lastToken - firstToken + 1);
+      return { ...done(true, cut.undoSteps, cut.message), ...(cut.steps ? { steps: cut.steps } : {}) };
     },
     async addMarker(findingId) {
       const sentence = unavailable(setup, 'markers', 'addMarker');

@@ -175,6 +175,18 @@ export interface DawRollApi {
   dawRoll(chapterId: string, at: number, confirmed: boolean): Promise<DawResult>;
 }
 
+/** A cut's mode as delete_range takes it: `close` moves the later audio up, `gap` keeps the length. */
+export type DawCutMode = 'close' | 'gap';
+
+/** DawDeleteRange (SND-6b; apps/desktop/bindings_daw_range.go): cut the words between the two tokens of the chapter's stored alignment
+ * together with their audio (ADR 0860 point 2), with `fadeMs` (0 to 500) at each seam. The host resolves the item and its project
+ * seconds itself, one item per request. A capability refusal carries the capability's sentence; a mode or fade it does not take, words
+ * not heard and words across two items are refused with a sentence; a range outside the alignment (a chapter with none included) or a
+ * gone item is code `stale`; words already cut answer `changed: false`. */
+export interface DawDeleteRangeApi {
+  dawDeleteRange(chapterId: string, firstToken: number, lastToken: number, mode: DawCutMode, fadeMs: number): Promise<DawResult>;
+}
+
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
   /** The host pushes the current project state on its first tick after launch and then only on a change. */
