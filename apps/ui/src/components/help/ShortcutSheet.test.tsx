@@ -91,6 +91,17 @@ describe('ShortcutSheet', () => {
     expect(readingRow.querySelector('kbd[data-key="Space"]')).not.toBeNull();
   });
 
+  it('draws the right-click and Enter caps', () => {
+    renderSheet();
+    const keepRow = screen.getByText(/^Keep the take the keys are on/).closest('li')!;
+    expect(keepRow.querySelector('kbd[data-key="Enter"]')).not.toBeNull();
+    const rollRow = screen.getByText('Punch and roll from here').closest('li')!;
+    const click = rollRow.querySelector('kbd[data-key="RightClick"]');
+    expect(click).not.toBeNull();
+    expect(within(click as HTMLElement).getByText('Right-click')).toBeTruthy();
+    expect(within(rollRow).getByText('Start from here')).toBeTruthy();
+  });
+
   it('groups commands under a heading per scope, skipping a scope with no commands', () => {
     renderSheet();
     const dialog = screen.getByRole('dialog', { name: 'Keyboard shortcuts' });
