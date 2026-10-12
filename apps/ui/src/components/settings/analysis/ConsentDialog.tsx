@@ -51,6 +51,8 @@ export function ConsentDialog({ tools, cancel, download }: { tools: AssetItem[];
     <Dialog
       title={title}
       onClose={cancel}
+      // Cancel and Download sit together on the right, as the mock draws them.
+      actionsAlign="end"
       actions={
         <>
           <Button variant="secondary" onClick={cancel}>
