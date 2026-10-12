@@ -252,12 +252,12 @@ export function takesHiddenAnswer(muted: number, daw: string): string {
   return muted === 1 ? `Muted 1 other take in ${daw}. It is still in the project.` : `Muted ${muted} other takes in ${daw}. They are still in the project.`;
 }
 
-/** dawport/reaper's puncher: a roll from `at` seconds that kept the earlier audio as a take (ADR 0860; no undo point of its own). */
 /** bindings_readaloud_record.go's readAloudRecordingFrom (SN-D14): a record start at a punch, so the narrator sees where the take begins. */
 export function recordingFromAnswer(at: number): string {
   return `Recording from ${at.toFixed(1)} seconds.`;
 }
 
+/** dawport/reaper's puncher: a roll from `at` seconds that kept the earlier audio as a take (ADR 0860; no undo point of its own). */
 export function rolledAnswer(at: number): string {
   return `Rolled again from ${at.toFixed(1)} seconds. The earlier audio is kept as a take.`;
 }
