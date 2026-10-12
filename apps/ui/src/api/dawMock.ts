@@ -97,8 +97,9 @@ const MESSAGE_AUDACITY_NOT_YET =
 /** An Audacity launch's built but Experimental capabilities while no page opens the pipe (ADR 0355,
  * apps/desktop/internal/dawport/audacity/audacity.go's Declaration). */
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested.";
-/** What the Audacity adapter builds, Experimental until the owner's verification pass (ADR 0355); the rest is not_yet_available. */
-const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['navigate', 'markers', 'macro_render']);
+/** What the Audacity adapter builds, Experimental until the owner's verification pass (ADR 0355, ADR 0863 for backups); the rest is
+ * not_yet_available. */
+const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['navigate', 'markers', 'macro_render', 'backups']);
 /** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
 const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';

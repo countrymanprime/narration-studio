@@ -217,6 +217,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
 
     fireEvent.click((await screen.findAllByText('Alice'))[0]);
+    // An entry opens read-only (SN-B91); Edit this entry turns the fields on.
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     const nameInput = await screen.findByDisplayValue('Alice');
     fireEvent.change(nameInput, { target: { value: 'Alice (editing)' } });
 

@@ -215,3 +215,25 @@ export interface DawProjectStateApi {
   /** The host pushes the current project state on its first tick after launch and then only on a change. */
   subscribeDawProjectState(onUpdate: (state: DawProjectState) => void): () => void;
 }
+
+/** The most rows `narration-utils/backups.json` holds (`audacity.MaxBackups`). */
+export const DAW_BACKUPS_MAX = 500;
+
+/** One row of the Audacity backups table (SN-D81, ADR 0863; apps/desktop/internal/dawport/audacity/backups_store.go): a window of a
+ * track's audio the adapter cloned to its own muted track, named for `id`, before an edit. `id` is a GUID in braces; `guid` is the
+ * source track as the request named it (Audacity reports no track ids, so its name); `start` and `end` are the window in project
+ * seconds; `createdAt` is when it was made, in UTC. No page reads the file yet: the host reads it back. */
+export type DawBackup = {
+  id: string;
+  guid: string;
+  chapterId: string;
+  start: number;
+  end: number;
+  createdAt: string;
+};
+
+/** `narration-utils/backups.json` in the app's project folder (ADR 0863). */
+export type DawBackupsFile = {
+  schemaVersion: number;
+  backups: DawBackup[];
+};

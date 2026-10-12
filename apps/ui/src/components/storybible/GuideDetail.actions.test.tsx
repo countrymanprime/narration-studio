@@ -144,6 +144,58 @@ describe('save-keeps-it-and-leaving-an-unsaved-draft-for-another-entry-drops-it'
   });
 });
 
+describe('deleting an entry', () => {
+  it('deleting an entry removes its relationships, clears the selection and says so', async () => {
+    const notify = vi.fn();
+    window.localStorage.clear();
+    const api = createMockApi();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <StudioProvider>
+            <Guide notify={notify} goToManuscript={vi.fn()} />
+          </StudioProvider>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: 'Alice' });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete entity' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog', { name: 'Delete entry' })).getByRole('button', { name: 'Delete entry' }));
+    await waitFor(() => expect(rowNames()).not.toContain('Alice'));
+    expect(notify).toHaveBeenCalledWith('Deleted “Alice”.');
+    // The deleted entry is no longer open, in edit mode or otherwise, and no entry still relates to it.
+    expect(screen.queryByRole('heading', { name: 'Alice' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
+    const rest = await api.guideEntities();
+    expect(rest.some((row) => row.relationships.some((rel) => rel.id === 'alice'))).toBe(false);
+    expect(rest.some((row) => row.id === 'alice')).toBe(false);
+  });
+});
+
+describe('a new entry', () => {
+  it('a new entry takes the filtered kind and focuses its name', async () => {
+    renderGuide();
+    await screen.findAllByText('Alice');
+    await addEntity();
+    // It opens named, selected and ready to rename; nothing is written until a category is chosen.
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Name' }));
+    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('New entity');
+  });
+
+  it('starting another new entry drops the unsaved one', async () => {
+    const { create } = renderGuide();
+    await screen.findAllByText('Alice');
+    await addEntity();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Tweedledum' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add entity' }));
+    await waitFor(() => expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('New entity'));
+    expect(screen.queryByDisplayValue('Tweedledum')).toBeNull();
+    expect(create).not.toHaveBeenCalled();
+    expect(rowNames()).not.toContain('Tweedledum');
+  });
+});
+
 describe('cancel-after-a-merge-does-not-bring-the-merged-entry-back', () => {
   it('after Merge, editing the target and cancelling leaves the merged source out of the list', async () => {
     renderGuide();
@@ -152,8 +204,7 @@ describe('cancel-after-a-merge-does-not-bring-the-merged-entry-back', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' }), { target: { value: 'White Rabbit' } });
     fireEvent.click(within(await screen.findByRole('listbox', { name: 'Matching Story Bible entries' })).getByRole('option', { name: /White Rabbit/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Merge into current entry/ }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Merge & delete source' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Merge into this entry' }));
     await waitFor(() => expect(rowNames()).not.toContain('White Rabbit'));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
     expect(rowNames()).not.toContain('White Rabbit');
