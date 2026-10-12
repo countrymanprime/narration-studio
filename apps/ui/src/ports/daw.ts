@@ -27,6 +27,7 @@ import {
   splitStaleOf,
   takeSplitOf,
   rangeGainAnswerOf,
+  trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
@@ -61,6 +62,16 @@ export type DeleteRangeRequest = {
   fadeMs: number;
   padMs?: number;
   roomTone?: boolean;
+};
+
+/** A gap between words to shorten (Clean up's Gaps): `start`..`end` project seconds of `itemId`, an item of the chapter as a finding
+ * recorded it, hidden on the muted Cuts track with `fadeMs` (0 to 500) at the seam, and the audio after it moved up. */
+export type RangeTrimRequest = {
+  chapterId: string;
+  itemId: string;
+  start: number;
+  end: number;
+  fadeMs: number;
 };
 
 /** The longest fade at a cut's seam (bridge.MaxCutFadeMs), and the most a cut leaves at each end (dawport.MaxCutPadMs). */
@@ -132,6 +143,10 @@ export interface DawClient {
   /** Cut the request's words and their audio: the DAW moves the cut audio aside rather than deleting it. `close` moves the later audio
    * up, `gap` keeps the length. Words already cut answer `changed: false`. */
   deleteRange(request: DeleteRangeRequest): Promise<DawResult>;
+  /** Shorten the request's gap: the DAW moves that stretch of the item to the muted Cuts track and the later audio up, as a cut of no
+   * words. A trim splits its item, so a caller trims a chapter's gaps latest first. The DAW refuses an item that is gone or a gap outside
+   * it (code `stale`). */
+  trimRange(request: RangeTrimRequest): Promise<DawResult>;
   /** Put one of the narrator's saved chains on the request's words: the DAW splits the item at both ends and the chain goes on the middle
    * piece. The chain must be one `fxChains()` listed. */
   applyFxToRange(request: FxRangeRequest): Promise<DawResult>;
@@ -192,6 +207,7 @@ export type DawHostApi = Pick<
   | 'workspaceHideTakes'
   | 'dawRoll'
   | 'dawDeleteRange'
+  | 'dawTrimRange'
   | 'dawApplyFxToRange'
   | 'dawRemoveFxFromRange'
   | 'dawFxRangeParams'
@@ -370,6 +386,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     /** The binding answers a DawResult already: it resolves the range to an item and its times on the host. */
     deleteRange: ({ chapterId, firstToken, lastToken, mode, fadeMs, padMs = 0, roomTone = false }) =>
       api.dawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone),
+    /** The binding answers a DawResult already: it looks the item up on the chapter's track and checks the gap is inside it. */
+    trimRange: ({ chapterId, itemId, start, end, fadeMs }) => api.dawTrimRange(chapterId, itemId, start, end, fadeMs),
     /** The bindings answer a DawResult already: they resolve the range on the host and check the chain against the DAW's list. */
     applyFxToRange: ({ chapterId, firstToken, lastToken, chainName, fadeMs }) => api.dawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs),
     removeFxFromRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName),
@@ -496,6 +514,12 @@ export function createMockDawClient(
       if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'deleteRange', true);
       const cut = rangeCutOf(setup, lastToken - firstToken + 1);
       return { ...done(true, cut.undoSteps, cut.message), ...(cut.steps ? { steps: cut.steps } : {}) };
+    },
+    async trimRange({ chapterId, itemId, start, end, fadeMs }) {
+      const sentence = unavailable(setup, 'cut_range', 'trimRange');
+      if (sentence) return refused(sentence, 'trimRange');
+      const answer = trimRangeAnswerOf(setup, project, chapterId, itemId, start, end, fadeMs);
+      return 'refused' in answer ? refused(answer.refused, 'trimRange', answer.stale) : answer.result;
     },
     async applyFxToRange({ chapterId, firstToken, lastToken, chainName, fadeMs }) {
       const sentence = unavailable(setup, 'fx_range', 'applyFxToRange');

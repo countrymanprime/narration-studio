@@ -27,6 +27,9 @@ export const dawFeedback = {
   'src/ports/daw.ts::workspaceHideTakes#1': adapter('Forwards Hide other takes; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawRoll#1': adapter('Forwards Roll; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawDeleteRange#1': adapter('Forwards Delete words and audio; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawTrimRange#1': adapter(
+    "Forwards Clean up's Shorten a gap with the chapter, item id, times and fade only; the binding already answers a DawResult.",
+  ),
   'src/ports/daw.ts::dawApplyFxToRange#1': adapter('Forwards Add effect to words; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawRemoveFxFromRange#1': adapter('Forwards Remove effect from words; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawFxRangeParams#1': adapter("Reads an effect's settings on words for the inspector; the binding already answers a DawResult with them."),

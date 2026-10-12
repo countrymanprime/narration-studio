@@ -637,6 +637,7 @@ export const wailsClient: NarrationApi = {
   dawRoll: (chapterId, at, confirmed) => decode(dawResultSchema, 'DawRoll', host.DawRoll(chapterId, at, confirmed)),
   dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone) =>
     decode(dawResultSchema, 'DawDeleteRange', host.DawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs, padMs, roomTone)),
+  dawTrimRange: (chapterId, itemId, start, end, fadeMs) => decode(dawResultSchema, 'DawTrimRange', host.DawTrimRange(chapterId, itemId, start, end, fadeMs)),
   dawApplyFxToRange: (chapterId, firstToken, lastToken, chainName, fadeMs) =>
     decode(dawResultSchema, 'DawApplyFxToRange', host.DawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs)),
   dawRemoveFxFromRange: (chapterId, firstToken, lastToken, chainName) =>

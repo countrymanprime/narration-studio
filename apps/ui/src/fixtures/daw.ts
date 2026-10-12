@@ -205,6 +205,8 @@ export type DawProject = {
   measuredFiles?: readonly RunFile[];
   /** The takes on a chapter's track the DAW could split, by id, with where each starts and how long it is in project seconds. */
   splitTakes?: Readonly<Record<string, { start: number; length: number }>>;
+  /** The items on a chapter's track a gap could be trimmed from, by id, with where each starts and how long it is in project seconds. */
+  trimItems?: Readonly<Record<string, { start: number; length: number }>>;
   /** The takes on a chapter's track whose stretches the DAW could lower, by id, with the part of the take's file each plays (seconds
    * into the file). */
   gainTakes?: Readonly<Record<string, { from: number; to: number }>>;
@@ -247,6 +249,7 @@ export const DAW_PROJECT: DawProject = {
     { path: 'C:/Renders/Silent/Chapter 01.wav', report: { duration_seconds: 600, noise_floor_start_seconds: null } },
   ],
   splitTakes: { 'take-twice': { start: 10, length: 10 } },
+  trimItems: { 'item-twice': { start: 10, length: 10 } },
   gainTakes: { 'take-twice': { from: 2, to: 12 } },
   clickTakes: { 'take-twice': { from: 2, to: 12 } },
 };
@@ -322,6 +325,8 @@ export const DAW_ANSWERS = {
   stackKept: 'A take of this passage has been kept, so its reads cannot be stacked or moved back.',
   /** bindings_daw_split.go (SN-E94): a cut at a time that is not one. */
   splitBadTime: 'A take can only be split at a time in the chapter.',
+  /** bindings_daw_range.go (SN-E112): a gap to trim whose times are not a usable pair. */
+  trimBadRange: 'The gap to shorten is not a usable pair of times, so nothing was changed.',
   /** bindings_daw_reduce_range_gain.go (SN-E100): a reduction outside 1 to 24 dB, and stretches out of shape or more than 500. */
   gainBadDb: 'A stretch can only be lowered by 1 to 24 dB.',
   gainBadStretches: 'The stretches to lower must be 1 to 500 stretches of the take, each ending after it starts.',
@@ -517,6 +522,40 @@ export const BUILTIN_NO_SPLIT = 'The built-in recorder cannot split a take into 
 export function takeSplitOf(setup: DawCapabilities): { refused: string } | { message: string } {
   if (setup === DAW_SETUPS.builtin || setup.daw === 'none' || setup.daw === 'Built-in') return { refused: BUILTIN_NO_SPLIT };
   return { message: takeSplitAnswer(setup.daw) };
+}
+
+/** bindings_daw_range.go (SN-E112): an item the chapter's track no longer holds, and a gap outside it, both answered with code stale. */
+export function trimStaleOf(setup: DawCapabilities): { gone: string; outside: string } {
+  return {
+    gone: `That gap's item is no longer on this chapter's track in the ${setup.daw} project, so nothing was shortened. Read the project again.`,
+    outside: `That gap is no longer inside its item in the ${setup.daw} project, so nothing was shortened. Read the project again.`,
+  };
+}
+
+/** DawTrimRange's sentence for a gap shortened in `daw`. */
+export function trimmedAnswer(daw: string): string {
+  return `Shortened the gap in ${daw}.`;
+}
+
+/** DawTrimRange's checks after the capability's, in the host's order (bindings_daw_range.go): the times, the fade, an item the project's
+ * track does not hold and a gap outside it (code stale); then the host's sentence over what the setup's DAW does for a cut (its undo
+ * steps and, for a `steps` DAW, its edits). */
+export function trimRangeAnswerOf(
+  setup: DawCapabilities,
+  project: DawProject,
+  chapterId: string,
+  itemId: string,
+  start: number,
+  end: number,
+  fadeMs: number,
+): { refused: string; stale: boolean } | { result: DawResult } {
+  if (!(start >= 0) || !Number.isFinite(end) || !(end > start)) return { refused: DAW_ANSWERS.trimBadRange, stale: false };
+  if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return { refused: DAW_ANSWERS.cutBadFade, stale: false };
+  const item = project.chapterIds.includes(chapterId) ? project.trimItems?.[itemId] : undefined;
+  if (!item) return { refused: trimStaleOf(setup).gone, stale: true };
+  if (start < item.start || end > item.start + item.length) return { refused: trimStaleOf(setup).outside, stale: true };
+  const cut = rangeCutOf(setup, 0);
+  return { result: { ok: true, changed: true, message: trimmedAnswer(setup.daw), undoSteps: cut.undoSteps, ...(cut.steps ? { steps: cut.steps } : {}) } };
 }
 
 /** bindings_daw_reduce_range_gain.go: a take the chapter's track no longer holds, and a stretch outside it, both answered with code

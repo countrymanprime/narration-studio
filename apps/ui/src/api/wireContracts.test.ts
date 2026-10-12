@@ -24,6 +24,7 @@ import {
   takeSplitAnswer,
   rangeGainAnswer,
   repairClickAnswer,
+  trimmedAnswer,
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
@@ -3140,6 +3141,38 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.range_gain.message);
   });
 
+  it('dawTrimRange answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-trim-range-done.json', 'daw-trim-range-refused-stale.json', 'daw-trim-range-refused-capability.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-trim-range-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: trimmedAnswer('REAPER') });
+    expect(readGolden('daw-trim-range-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+    expect(readGolden('daw-trim-range-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+    expect(readGolden('daw-trim-range-refused-capability.json')).not.toHaveProperty('code');
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
+    const trimmed = await api.dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 6);
+    expectMatches(dawResultSchema, trimmed, 'mock trim range');
+    expect(trimmed).toEqual(readGolden('daw-trim-range-done.json'));
+    for (const [chapterId, itemId, start, end] of [
+      [chapter.id, '{11111111-1111-4111-8111-111111111111}', 12.5, 14],
+      ['no-such-chapter', 'item-twice', 12.5, 14],
+      [chapter.id, 'item-twice', 21, 22.5],
+    ] as const) {
+      const stale = await api.dawTrimRange(chapterId, itemId, start, end, 6);
+      expectMatches(dawResultSchema, stale, 'mock trim range, stale');
+      expect(stale).toMatchObject({ ok: false, code: 'stale' });
+    }
+    expect(await api.dawTrimRange(chapter.id, 'item-twice', 21, 22.5, 6)).toEqual(readGolden('daw-trim-range-refused-stale.json'));
+    expect((await api.dawTrimRange(chapter.id, 'item-twice', 14, 12.5, 6)).refused).toBe(DAW_ANSWERS.trimBadRange);
+    expect((await api.dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 501)).refused).toBe(DAW_ANSWERS.cutBadFade);
+
+    const off = await createMockApi().dawTrimRange(chapter.id, 'item-twice', 12.5, 14, 6);
+    expectMatches(dawResultSchema, off, 'mock trim range, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.cut_range.message);
+  });
+
   it('dawRepairClick answers a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
     for (const file of ['daw-repair-click-done.json', 'daw-repair-click-refused-stale.json', 'daw-repair-click-refused-capability.json']) {
       expectMatches(dawResultSchema, readGolden(file), file);
@@ -3877,6 +3910,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawStackTakes',
       'dawUnstackTakes',
       'dawSplitTake',
+      'dawTrimRange',
       'dawReduceRangeGain',
       'dawRepairClick',
       'dawBackupAround',
@@ -4608,6 +4642,37 @@ describe('the cuts bindings', () => {
     expect(editCutSchema.safeParse({ ...cut, path: '/etc/passwd' }).success).toBe(false);
     expect(editCutSchema.safeParse({ ...cut, words: ['one'] }).success).toBe(false);
     expect(editCutsChangeSchema.safeParse({ ...change, extra: true }).success).toBe(false);
+  });
+
+  it('a wordless cut (a gap Clean up shortened) has no paragraph or words: the golden parses, and the mock records it as the host does', async () => {
+    const wordless = parseWire(editCutsChangeSchema, readGolden('edit-cuts-record-wordless.json'), ctx('wordless cut record'));
+    expect(wordless.changed).toEqual(['cut2']);
+    const gap = wordless.cuts[1];
+    expect(gap).toMatchObject({ pid: '', keys: [], words: [], paragraph: null, stale: false, mode: 'close', fadeMs: 6 });
+    expect(editCutSchema.safeParse({ ...gap, pid: 'p-000001' }).success).toBe(false);
+    expect(editCutSchema.safeParse({ ...gap, keys: ['p-000001:0'], words: ['One'] }).success).toBe(false);
+
+    const { api, chapterId, line } = await firstLine();
+    const request = {
+      pid: '',
+      keys: [],
+      text: 'A gap of 1.5 s',
+      a: 30,
+      b: 31.5,
+      off0: 30,
+      off1: 31.5,
+      mode: 'close' as const,
+      fadeMs: 6,
+      daw: 'REAPER',
+      guid: 'g',
+      undoSteps: 1,
+    };
+    const recorded = await api.editingCutRecord(chapterId, request);
+    expectMatches(editCutsChangeSchema, recorded, 'mock wordless record');
+    expect(recorded.cuts[0]).toMatchObject({ pid: '', keys: [], words: [], paragraph: null, stale: false });
+    await expect(api.editingCutRecord(chapterId, { ...request, a: 31, b: 32 })).rejects.toThrow('cut1');
+    await expect(api.editingCutRecord(chapterId, { ...request, a: 40, b: 41, pid: line.id })).rejects.toThrow('choose a word first');
+    await expect(api.editingCutRecord(chapterId, { ...request, a: 40, b: 41, keys: [`${line.id}:0`] })).rejects.toThrow('not in this chapter');
   });
 });
 

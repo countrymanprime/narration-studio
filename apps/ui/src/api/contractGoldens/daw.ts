@@ -42,6 +42,11 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-delete-range-pad-room-tone.json': dawResultSchema,
   'daw-delete-range-pad-refused-close.json': dawResultSchema,
   'daw-delete-range-pad-refused-no-room-tone.json': dawResultSchema,
+  // DawTrimRange (bindings_daw_range_test.go, SN-E112): a gap shortened in REAPER (one undo step), a gap no longer inside its item, the
+  // capability's refusal.
+  'daw-trim-range-done.json': dawResultSchema,
+  'daw-trim-range-refused-stale.json': dawResultSchema,
+  'daw-trim-range-refused-capability.json': dawResultSchema,
   // DawApplyFxToRange and DawRemoveFxFromRange (bindings_daw_fx_range_test.go): a chain put on one word and taken off (one undo step each),
   // and the capability's refusal.
   'daw-apply-fx-range-done.json': dawResultSchema,

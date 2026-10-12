@@ -201,6 +201,11 @@ export interface DawDeleteRangeApi {
     padMs: number,
     roomTone: boolean,
   ): Promise<DawResult>;
+  /** DawTrimRange (SN-E112; same file): shorten a gap between words by hiding `start`..`end` project seconds of `itemId`, an item of the
+   * chapter, with `fadeMs` (0 to 500) at the seam, as a cut of no words in mode `close` (Clean up's Gaps). The host looks the item up on the
+   * chapter's track as the DAW reports it now and sends the item it read. A capability refusal carries the capability's sentence; times or
+   * a fade out of bounds are refused with a sentence; an item the track no longer holds or a gap outside it is code `stale`. */
+  dawTrimRange(chapterId: string, itemId: string, start: number, end: number, fadeMs: number): Promise<DawResult>;
 }
 
 /** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; apps/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains
