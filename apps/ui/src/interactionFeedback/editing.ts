@@ -92,4 +92,7 @@ export const editingFeedback: Record<string, FeedbackRow> = {
   // The Editing drawer's Backups tab (SN-E87): the DAW settings it edits, at project scope
   'src/components/editing/backups/useBackupSettings.ts::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the project layer when the tab opens and again after each save; a failure is written in the tab.'),
   'src/components/editing/backups/useBackupSettings.ts::saveSettings#1': row('input', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A one-field write per change, the same tier-1 cost as Settings.tsx\'s own saveSettings rows, then read back; a refusal is written in the tab.'),
+  // The Effects tab's coverage cap (SN-E106): Editing.fx_cap_pct, at project scope
+  'src/components/editing/effects/useFxCap.ts::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the cap when the tab opens, and again after a refused save; the field stays off on the default until it answers, and a failure is written under the strip.'),
+  'src/components/editing/effects/useFxCap.ts::saveSettings#1': row('input', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A change shows at once in the field, the state and the warning, and saves the one field, the same tier-1 cost as Settings.tsx\'s own saveSettings rows; a refusal puts the stored cap back and writes the host\'s sentence under the strip.'),
 };

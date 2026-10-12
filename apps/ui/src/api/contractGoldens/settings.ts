@@ -7,4 +7,6 @@ export const settingsGoldens: Record<string, z.ZodType> = {
   'settings-project.json': settingsForScopeSchema,
   'settings-definition-source.json': settingsForScopeSchema,
   'settings-definition-source-local.json': settingsForScopeSchema,
+  'settings-fx-cap.json': settingsForScopeSchema,
+  'settings-fx-cap-set.json': settingsForScopeSchema,
 };
