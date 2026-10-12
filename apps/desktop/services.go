@@ -68,6 +68,9 @@ type hostServices struct {
 	// puncher is the DAW port's punch role over the same bridge client; nil (a true nil interface) with no bridge client or
 	// no such role.
 	puncher dawport.Puncher
+	// rangeCutter is the DAW port's cut_range role over the same bridge client; nil (a true nil interface) with no bridge
+	// client or no such role.
+	rangeCutter dawport.RangeCutter
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
 	// teleprompterinput.go and chapterregions.go ask for (ADR 0300); nil with no bridge client.
 	dawPortResolver *dawport.Resolver
@@ -135,6 +138,7 @@ func (h *Host) services() hostServices {
 		takeCreator:     h.takeCreator,
 		takeSelector:    h.takeSelector,
 		puncher:         h.puncher,
+		rangeCutter:     h.rangeCutter,
 		dawPortResolver: h.dawPortResolver,
 	}
 }

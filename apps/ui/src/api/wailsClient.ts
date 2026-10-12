@@ -655,6 +655,8 @@ export const wailsClient: NarrationApi = {
   workspaceHideTakes: (chapterId, firstToken, lastToken, keepCandidateId) =>
     decode(dawResultSchema, 'WorkspaceHideTakes', host.WorkspaceHideTakes(chapterId, firstToken, lastToken, keepCandidateId)),
   dawRoll: (chapterId, at, confirmed) => decode(dawResultSchema, 'DawRoll', host.DawRoll(chapterId, at, confirmed)),
+  dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs) =>
+    decode(dawResultSchema, 'DawDeleteRange', host.DawDeleteRange(chapterId, firstToken, lastToken, mode, fadeMs)),
   subscribeDawProjectState: (onUpdate) => subscribeChecked('daw_project_state_changed', dawProjectStateSchema, onUpdate),
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),

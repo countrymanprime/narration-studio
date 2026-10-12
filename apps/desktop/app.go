@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 109
+const hostAPIVersion = 110
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -214,6 +214,9 @@ type Host struct {
 	// puncher is the DAW port's punch role over the same adapter as takeCreator (ADR 0300): DawRoll (bindings_daw_roll.go)
 	// asks it to roll. Nil with no bridge client or no such role.
 	puncher dawport.Puncher
+	// rangeCutter is the DAW port's cut_range role over the same adapter as takeCreator (ADR 0300): DawDeleteRange
+	// (bindings_daw_range.go) asks it to cut words and their audio. Nil with no bridge client or no such role.
+	rangeCutter dawport.RangeCutter
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
@@ -667,8 +670,9 @@ func (h *Host) configureLocked(next config) {
 		h.takeCreator, _ = dawAdapter.Role(dawport.CapTakeCreate).(dawport.TakeCreator)
 		h.takeSelector, _ = dawAdapter.Role(dawport.CapTakes).(dawport.TakeSelector)
 		h.puncher, _ = dawAdapter.Role(dawport.CapPunch).(dawport.Puncher)
+		h.rangeCutter, _ = dawAdapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
 	} else {
-		h.takeCreator, h.takeSelector, h.puncher = nil, nil, nil
+		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter = nil, nil, nil, nil
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,

@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "That selection is not in this chapter's alignment any more, so nothing was changed. Reload the chapter and select the words again.",
+  "undoSteps": 0,
+  "refused": "That selection is not in this chapter's alignment any more, so nothing was changed. Reload the chapter and select the words again.",
+  "code": "stale"
+}

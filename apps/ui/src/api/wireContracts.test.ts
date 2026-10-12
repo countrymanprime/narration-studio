@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
-import { DAW_ANSWERS, rolledAnswer } from '../fixtures/daw';
+import { DAW_ANSWERS, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -2843,6 +2843,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.punch.message);
   });
 
+  it('dawDeleteRange answers a dawResult: the host goldens parse, and the mock cuts, checks the mode and fade and refuses as the host does', async () => {
+    const goldens = [
+      'daw-delete-range-done.json',
+      'daw-delete-range-gap.json',
+      'daw-delete-range-refused-stale.json',
+      'daw-delete-range-refused-capability.json',
+    ];
+    for (const file of goldens) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    for (const file of ['daw-delete-range-done.json', 'daw-delete-range-gap.json']) {
+      expect(readGolden(file)).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: rangeCutAnswer(1, 'REAPER') });
+    }
+    expect(readGolden('daw-delete-range-refused-stale.json')).toMatchObject({ ok: false, changed: false, code: 'stale', refused: DAW_ANSWERS.rangeStale });
+    expect(readGolden('daw-delete-range-refused-capability.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on' } } });
+    for (const mode of ['close', 'gap'] as const) {
+      const cut = await api.dawDeleteRange(chapter.id, 0, 0, mode, 12);
+      expectMatches(dawResultSchema, cut, `mock cut, ${mode}`);
+      expect(cut).toEqual(readGolden(mode === 'close' ? 'daw-delete-range-done.json' : 'daw-delete-range-gap.json'));
+    }
+    expect((await api.dawDeleteRange(chapter.id, 0, 0, 'cut' as 'close', 0)).refused).toBe(DAW_ANSWERS.cutBadMode);
+    for (const fadeMs of [-1, 501, 2.5]) {
+      expect((await api.dawDeleteRange(chapter.id, 0, 0, 'close', fadeMs)).refused).toBe(DAW_ANSWERS.cutBadFade);
+    }
+    const stale = await api.dawDeleteRange('{11111111-1111-4111-8111-111111111111}', 0, 0, 'close', 0);
+    expectMatches(dawResultSchema, stale, 'mock cut, unknown chapter');
+    expect(stale).toEqual(readGolden('daw-delete-range-refused-stale.json'));
+
+    const off = await createMockApi().dawDeleteRange(chapter.id, 0, 0, 'close', 0);
+    expectMatches(dawResultSchema, off, 'mock cut, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.cut_range.message);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3414,6 +3450,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceUseTake',
       'workspaceHideTakes',
       'dawRoll',
+      'dawDeleteRange',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',

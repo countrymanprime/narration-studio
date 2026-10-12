@@ -19,6 +19,8 @@ import {
   DAW_SETUPS,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
+  RANGE_CUT_STEPS,
+  rangeCutAnswer,
   rolledAnswer,
   rolledReplacingAnswer,
   takesHiddenAnswer,
@@ -42,6 +44,10 @@ const GOLDEN_FILES = [
   'daw-roll-done.json',
   'daw-roll-refused-confirm.json',
   'daw-roll-refused-stale.json',
+  'daw-delete-range-done.json',
+  'daw-delete-range-gap.json',
+  'daw-delete-range-refused-stale.json',
+  'daw-delete-range-refused-capability.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
   'workspace-use-take-done.json',
@@ -155,6 +161,17 @@ function hostApi(): DawHostApi {
       if (at !== 40) return Promise.reject(new Error(`no golden for a roll from ${at} s`));
       return Promise.resolve(read('daw-roll-done.json', dawResultSchema));
     },
+    // DawDeleteRange on REAPER: the mode and fade are checked first, an unknown chapter or a range read backwards is the stale golden,
+    // and a one-word cut with a 12 ms fade is the done (close) or gap golden. Anything else has no golden.
+    dawDeleteRange: (chapterId, firstToken, lastToken, mode, fadeMs) => {
+      if (mode !== 'close' && mode !== 'gap') return Promise.resolve(refusal(DAW_ANSWERS.cutBadMode));
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return Promise.resolve(refusal(DAW_ANSWERS.cutBadFade));
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) {
+        return Promise.resolve(read('daw-delete-range-refused-stale.json', dawResultSchema));
+      }
+      if (firstToken !== lastToken || fadeMs !== 12) return Promise.reject(new Error(`no golden for a cut of ${firstToken}..${lastToken} with ${fadeMs} ms`));
+      return Promise.resolve(read(mode === 'close' ? 'daw-delete-range-done.json' : 'daw-delete-range-gap.json', dawResultSchema));
+    },
   };
 }
 
@@ -189,6 +206,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.useTake('chapter-1', 0, 4, 'take-1'),
         await daw.hideTakes('chapter-1', 0, 4, 'take-1'),
         await daw.roll('chapter-1', 40),
+        await daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 }),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -244,6 +262,26 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   { name: 'dawclient-roll: a chapter with no track is refused stale alike', observe: (daw) => daw.roll('chapter-9', 40) },
   { name: 'dawclient-roll: a negative time is refused alike', observe: (daw) => daw.roll('chapter-1', -1) },
   { name: 'dawclient-roll: a time that is not a number is refused alike', observe: (daw) => daw.roll('chapter-1', Number.NaN) },
+  {
+    name: 'dawclient-delete-range: a close cut is answered alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 }),
+  },
+  {
+    name: 'dawclient-delete-range: a gap cut is answered alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'gap', fadeMs: 12 }),
+  },
+  {
+    name: 'dawclient-delete-range: an unknown chapter is refused stale alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-9', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 }),
+  },
+  {
+    name: 'dawclient-delete-range: a range read backwards is refused stale alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 4, lastToken: 3, mode: 'close', fadeMs: 12 }),
+  },
+  {
+    name: 'dawclient-delete-range: a fade over 500 ms is refused alike',
+    observe: (daw) => daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'gap', fadeMs: 501 }),
+  },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
@@ -383,6 +421,24 @@ describe('the host adapter maps each existing golden', () => {
     ]);
   });
 
+  it('dawclient-delete-range: the host adapter sends the request as the binding takes it and answers its DawResult as it is', async () => {
+    expect(await daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 })).toEqual(
+      read('daw-delete-range-done.json', dawResultSchema),
+    );
+    const capability = read('daw-delete-range-refused-capability.json', dawResultSchema);
+    expectWellFormed(capability);
+    const calls: unknown[][] = [];
+    const off = createHostDawClient({
+      ...hostApi(),
+      dawDeleteRange: (...args) => {
+        calls.push(args);
+        return Promise.resolve(capability);
+      },
+    });
+    expect(await off.deleteRange({ chapterId: 'chapter-1', firstToken: 2, lastToken: 7, mode: 'gap', fadeMs: 25 })).toEqual(capability);
+    expect(calls).toEqual([['chapter-1', 2, 7, 'gap', 25]]);
+  });
+
   it('host-adapter-maps-the-existing-results: a refusal without a sentence is an error, not a sentence the client words', async () => {
     const silent = createHostDawClient({ ...hostApi(), readAloudRecordStart: () => Promise.resolve({ outcome: 'refused', reason: 'timeout' }) });
     await expect(silent.recordStart('chapter-1')).rejects.toThrow('no sentence');
@@ -453,6 +509,34 @@ describe('the mock setups', () => {
     expect(await mock.roll('chapter-1', 40)).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: false })).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: true })).toEqual({ ok: true, changed: true, message: rolledReplacingAnswer(40), undoSteps: 1 });
+  });
+
+  it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {
+    const request = { chapterId: 'chapter-1', firstToken: 2, lastToken: 4, mode: 'close', fadeMs: 0 } as const;
+    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.cut_range.message;
+      expect(sentence, id).toBeTruthy();
+      expect(await createMockDawClient(DAW_SETUPS[id]).deleteRange(request), id).toEqual(refusal(sentence ?? ''));
+    }
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await reaper.deleteRange(request)).toEqual({ ok: true, changed: true, message: rangeCutAnswer(3, 'REAPER'), undoSteps: 1 });
+    expect(rangeCutAnswer(1, 'REAPER')).toBe(read('daw-delete-range-done.json', dawResultSchema).message);
+    expect(await reaper.deleteRange({ ...request, chapterId: 'chapter-9' })).toEqual(staleRefusal(DAW_ANSWERS.rangeStale));
+    expect(await reaper.deleteRange({ ...request, fadeMs: 2.5 })).toEqual(refusal(DAW_ANSWERS.cutBadFade));
+
+    // A DAW that makes the cut in several edits lists them, one undo step each; one where the app keeps the edit adds none.
+    const withMode = (mode: 'steps' | 'app'): DawCapabilities => ({
+      ...DAW_SETUPS.reaper,
+      capabilities: { ...DAW_SETUPS.reaper.capabilities, cut_range: { level: 'experimental', available: true, mode } },
+    });
+    expect(await createMockDawClient(withMode('steps')).deleteRange(request)).toEqual({
+      ok: true,
+      changed: true,
+      message: rangeCutAnswer(3, 'REAPER'),
+      undoSteps: RANGE_CUT_STEPS.length,
+      steps: [...RANGE_CUT_STEPS],
+    });
+    expect((await createMockDawClient(withMode('app')).deleteRange(request)).undoSteps).toBe(0);
   });
 
   it('refusal-carries-the-capabilitys-sentence: take and marker calls use their own capability sentence', async () => {
