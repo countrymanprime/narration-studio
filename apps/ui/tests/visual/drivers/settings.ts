@@ -11,6 +11,16 @@ export const settingsDrivers: Record<string, Driver> = {
     await goToPage(page, 'Settings');
     await page.getByRole('button', { name: 'Replace manuscript' }).waitFor();
     await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
+    await page.getByRole('radio', { name: /^Built-in recorder/ }).waitFor();
+  },
+  'recording-builtin': async (page) => {
+    await goToPage(page, 'Settings');
+    const builtin = page.getByRole('radio', { name: /^Built-in recorder/ });
+    await builtin.click();
+    await page
+      .getByRole('radio', { name: /^Built-in recorder/ })
+      .and(page.locator('[aria-checked="true"]'))
+      .waitFor();
   },
   'global-general': async (page) => {
     await goToPage(page, 'Settings');
