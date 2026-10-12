@@ -59,8 +59,9 @@ local function number_from(text)
   return value
 end
 
--- An absolute local path (a drive letter, or `/` for the harness) to a file with an audio extension, with no network
--- share and no `..` segment.
+-- An absolute local path to a file with an audio extension, with no network share and no `..` segment. On Windows that is
+-- a drive letter; a path that starts with `/` is absolute only where `/` is the separator (the harness), and on Windows is
+-- relative to the current drive, so it is refused there.
 local function usable_path(path)
   if type(path) ~= 'string' or path == '' then
     return false
@@ -68,7 +69,7 @@ local function usable_path(path)
   if path:match('^[\\/][\\/]') then
     return false
   end
-  if not (path:match('^%a:[\\/]') or path:match('^/')) then
+  if not (path:match('^%a:[\\/]') or (core.SEP == '/' and path:match('^/'))) then
     return false
   end
   for segment in path:gmatch('[^\\/]+') do

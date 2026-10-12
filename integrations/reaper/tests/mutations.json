@@ -1684,5 +1684,11 @@
     "file": "narration_media_file.lua",
     "find": " or length > MAX_SECONDS then",
     "replace": " then"
+  },
+  {
+    "name": "a path starting with a slash is used on Windows",
+    "file": "narration_media_file.lua",
+    "find": "(core.SEP == '/' and path:match('^/'))",
+    "replace": "path:match('^/')"
   }
 ]

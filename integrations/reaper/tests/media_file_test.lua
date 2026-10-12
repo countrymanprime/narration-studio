@@ -256,3 +256,27 @@ H.test('reveal_file on a REAPER without OpenMediaExplorer refuses', function()
   s:send('reveal_file', 'r1', path)
   H.eq(s:events(), { { 'ERROR', 'r1', 'This REAPER version cannot show a file in its Media Explorer.' } })
 end)
+
+H.test('a path that starts with a slash is refused where the separator is a backslash: on Windows it is relative to the drive', function()
+  local s, path = new_session()
+  local events = {}
+  -- The feature file on its own, with Windows' separator and a core that records events and finds every file.
+  local core = {
+    SEP = '\\',
+    file_exists = function()
+      return true
+    end,
+    event = function(_, tag, run, ...)
+      events[#events + 1] = { tag, run, ... }
+    end,
+  }
+  local commands = {}
+  assert(loadfile(H.join(host.reaper_dir, 'narration_media_file.lua')))(core)({
+    register = function(name, handler)
+      commands[name] = handler
+    end,
+  })
+  commands.reveal_file({ session_dir = s.dir }, { 'r1', path })
+  commands.reveal_file({ session_dir = s.dir }, { 'r2', 'C:\\Renders\\Chapter 01.wav' })
+  H.eq(events, { { 'ERROR', 'r1', 'That is not an audio file this app can play or show.' }, { 'FILE_REVEALED', 'r2', 'C:\\Renders\\Chapter 01.wav' } })
+end)
