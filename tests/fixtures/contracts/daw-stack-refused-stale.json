@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "That item changed in REAPER since the app read it. Nothing was changed.",
+  "undoSteps": 0,
+  "refused": "That item changed in REAPER since the app read it. Nothing was changed.",
+  "code": "stale"
+}

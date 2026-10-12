@@ -654,6 +654,33 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
 }
 
 /**
+ * DawStackTakes puts the later reads of the passages passageIDs of chapterID on the first read's spot as takes of its item,
+ * and moves the audio after them up (SND-7b, ADR 0860 point 4; the Studio Next mock's stackTakes). The page sends a chapter
+ * id and passage ids, never a GUID, a time or a path: the host rebuilds the plan itself (passagetakes.StackPlan) from the
+ * Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
+ * reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is
+ * never an input (threat model row 5f). The answer is a DawResult (ADR 0810): the stack_takes capability's own sentence
+ * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off, an
+ * engine that cannot stack), checked first; then too many passages; then a passage id the chapter does not list or a track
+ * that is gone (code stale); then a kept take, reads two passages share and nothing to move. Nothing is sent to the DAW on
+ * any of them. An item that changed between the read and REAPER's own check is REAPER's stale refusal, and nothing changes.
+ */
+export function DawStackTakes(chapterID: string, passageIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(2899813770, chapterID, passageIDs);
+}
+
+/**
+ * DawUnstackTakes moves the stacked takes of the passages passageIDs of chapterID back to where their reads were recorded
+ * and the audio after them out again (the mock's unstackTakes). The plan is rebuilt as DawStackTakes rebuilds it
+ * (passagetakes.UnstackPlan), with the offset each stacked take recorded read from the saved project, so a stack the
+ * narrator has not saved since answers that there is nothing to move back and says to save. The same refusals as
+ * DawStackTakes.
+ */
+export function DawUnstackTakes(chapterID: string, passageIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(368811149, chapterID, passageIDs);
+}
+
+/**
  * DeliveryDeleteProfile deletes a custom profile and answers the profiles again; a project that chose it is judged
  * against the Global default from then on, with a notice.
  */
@@ -1246,6 +1273,13 @@ export function GuideTypeSetSpeaks(name: string, speaks: boolean): $CancellableP
  */
 export function GuideTypes(): $CancellablePromise<string> {
     return $Call.ByID(975543863);
+}
+
+/**
+ * GuideUnmerge takes back one GuideMerge by the undo id it answered, or rejects with the reason it cannot (an entry changed since).
+ */
+export function GuideUnmerge(undoID: string): $CancellablePromise<string> {
+    return $Call.ByID(3062238351, undoID);
 }
 
 export function GuideUnrelate(id: string, otherID: string, label: string): $CancellablePromise<string> {

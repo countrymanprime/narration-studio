@@ -4,7 +4,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -61,34 +60,11 @@ func TestNoPathOrCodeIsFollowed(t *testing.T) {
 	}
 }
 
-func TestFileIsUnderTheDirectoryReplaceRemoves(t *testing.T) {
+// That a replaced manuscript or Clear project removes this file is the manuscript service's
+// TestReplaceAndClearRemoveTheSuggestionsFile; this only pins where the file lives.
+func TestFileIsUnderTheManuscriptGuideDirectory(t *testing.T) {
 	project := filepath.Join("some", "project")
 	if got, want := File(project), filepath.Join(project, "ManuscriptGuide", "suggestions.json"); got != want {
 		t.Fatalf("File = %s, want %s", got, want)
-	}
-	// Read-only: the manuscript service's reset removes the whole ManuscriptGuide folder, so nothing is added to it here.
-	source, err := os.ReadFile(filepath.Join("..", "..", "manuscript", "service.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	file, err := parser.ParseFile(token.NewFileSet(), "service.go", source, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := false
-	for _, decl := range file.Decls {
-		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Name.Name != "resetDerived" {
-			continue
-		}
-		ast.Inspect(fn, func(n ast.Node) bool {
-			if lit, ok := n.(*ast.BasicLit); ok && lit.Value == `"ManuscriptGuide"` {
-				found = true
-			}
-			return true
-		})
-	}
-	if !found {
-		t.Fatal("resetDerived no longer removes ManuscriptGuide, so a replace would keep the suggestions")
 	}
 }

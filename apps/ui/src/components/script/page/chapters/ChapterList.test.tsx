@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import { StudioProvider } from '../../../../studio/StudioProvider';
-import { CHAPTERS, chapterHost } from './chapterFixtures';
+import { CHAPTERS, HEADING_LABELS, chapterHost, styledChapters, type HeadingStyle } from './chapterFixtures';
 import { ChapterList } from './ChapterList';
 
 afterEach(cleanup);
@@ -31,6 +31,44 @@ describe('chapter list', () => {
     expect(within(await row(/Prologue/)).getByText('Prologue')).toBeTruthy();
     expect(within(await row(/Opening Credits/)).getByText('Opening Credits')).toBeTruthy();
     expect(rows.length).toBeGreaterThanOrEqual(CHAPTERS.length);
+  });
+
+  it('names chapters in every heading style at 40 chapters', async () => {
+    for (const style of ['gutenberg', 'numbered', 'colon'] as HeadingStyle[]) {
+      for (const count of [12, 40]) {
+        cleanup();
+        mount({ chapters: styledChapters(style, count), currentId: 's1' });
+        const rows = await screen.findAllByRole('button', { name: /Title of/ });
+        expect(rows).toHaveLength(count);
+        // The label and the title are the manuscript's own heading, drawn on two lines.
+        for (const n of [1, 2, count]) {
+          expect(within(rows[n - 1]!).getByText(HEADING_LABELS[style](n)), `${style} ${count}: label ${n}`).toBeTruthy();
+          expect(within(rows[n - 1]!).getByText(`Title of ${n}`), `${style} ${count}: title ${n}`).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it('lists the opening credits with its prep dot', async () => {
+    const onJump = vi.fn();
+    const chapters = CHAPTERS.filter((chapter) => chapter.contentKind !== 'opening');
+    mount({ chapters, openingCredits: { state: 'prepped', onJump } });
+    const credits = await row(/Opening credits/);
+    expect(within(credits).getByRole('img', { name: 'Prepped' }).getAttribute('data-prep')).toBe('prepped');
+    // Above chapter 1 (and the prologue before it), and in the list's one tab stop and arrow order.
+    const names = screen.getAllByRole('button').map((button) => button.textContent);
+    expect(names[0]).toContain('Opening credits');
+    await userEvent.click(credits);
+    expect(onJump).toHaveBeenCalledTimes(1);
+    credits.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(await row(/Prologue/));
+  });
+
+  it('draws no second row when the manuscript has its own opening credits chapter', async () => {
+    mount({ openingCredits: undefined });
+    await row(/Opening Credits/);
+    expect(screen.getAllByRole('button', { name: /Opening credits/i })).toHaveLength(1);
   });
 
   it('shows a prep dot per chapter that follows the hook, as a shape with a label', async () => {

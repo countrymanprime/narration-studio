@@ -4,7 +4,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
-import { DAW_ANSWERS, fxChainAddedAnswer, fxChainRemovedAnswer, rangeCutAnswer, rolledAnswer } from '../fixtures/daw';
+import {
+  DAW_ANSWERS,
+  fxChainAddedAnswer,
+  fxChainRemovedAnswer,
+  nothingToStackAnswer,
+  rangeCutAnswer,
+  rolledAnswer,
+  takesStackedAnswer,
+  takesUnstackedAnswer,
+} from '../fixtures/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -136,6 +145,7 @@ import {
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
+  guideMergeResultSchema,
   guidePreviewSchema,
   guideTypesSchema,
   guidePronunciationSchema,
@@ -813,6 +823,29 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(guidePreviewSchema, await api.guidePreview(entity?.id ?? ''), 'mock preview');
   });
 
+  it('the Story Bible merge answers its undo id, and the undo gives both entries back or refuses with the reason', async () => {
+    const golden = parseWire(guideMergeResultSchema, readGolden('guide-merge.json'), ctx('guide merge'));
+    expect(golden.undoId).toMatch(/^[0-9a-f]{16}$/);
+    expect(guideMergeResultSchema.safeParse({ undoId: 'NOT-AN-ID' }).success).toBe(false);
+    expect(guideMergeResultSchema.safeParse({ ...golden, targetId: 'alice' }).success).toBe(false);
+
+    const api = createMockApi();
+    const before = await api.guideEntities();
+    const merged = await api.guideMerge('march-hare', 'mad-hatter');
+    expectMatches(guideMergeResultSchema, merged, 'mock guide merge');
+    const after = await api.guideEntities();
+    expect(after.map((entity) => entity.id)).not.toContain('march-hare');
+    expect(after.find((entity) => entity.id === 'mad-hatter')?.aliases.map((alias) => alias.text)).toContain('March Hare');
+    await api.guideUnmerge(merged.undoId);
+    expect(await api.guideEntities()).toEqual(before);
+    await expect(api.guideUnmerge(merged.undoId)).rejects.toThrow('That merge can no longer be undone.');
+
+    const again = await api.guideMerge('march-hare', 'mad-hatter');
+    await api.guideEdit('mad-hatter', { description: 'Edited.' });
+    await expect(api.guideUnmerge(again.undoId)).rejects.toThrow('Hatter changed after the merge, so it cannot be undone.');
+    await expect(api.guideMerge('alice', 'alice')).rejects.toThrow('Cannot merge an entity into itself.');
+  });
+
   it('the Story Bible dialogue cues and their correction', async () => {
     const api = createMockApi();
     const cues = await api.guideDialogueCues();
@@ -831,7 +864,9 @@ describe('answers of the mock client for the manuscript, Story Bible and project
 
   it('the Story Bible review flags and speaker colour', async () => {
     const api = createMockApi();
-    const entity = (await api.guideEntities()).find((row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked);
+    const entity = (await api.guideEntities()).find(
+      (row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked && row.id !== 'white-rabbit',
+    );
     if (!entity) throw new Error('the mock has no unlocked character with an alias');
     const read = async () => (await api.guideEntities()).find((row) => row.id === entity.id);
     await api.guideFlagReview(entity.id);
@@ -2857,6 +2892,37 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off).toEqual(readGolden('daw-apply-fx-range-refused.json'));
   });
 
+  it('dawStackTakes and dawUnstackTakes answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
+    for (const file of ['daw-stack-done.json', 'daw-stack-steps.json', 'daw-unstack-done.json', 'daw-stack-refused-stale.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-stack-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: takesStackedAnswer(1, 'REAPER') });
+    expect(readGolden('daw-unstack-done.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: takesUnstackedAnswer(1, 'REAPER') });
+    expect(readGolden('daw-stack-steps.json')).toMatchObject({ ok: true, undoSteps: 5, steps: expect.any(Array) });
+    expect(readGolden('daw-stack-refused-stale.json')).toMatchObject({ ok: false, changed: false, undoSteps: 0, code: 'stale' });
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const passage = `pm-${chapter.id}-p-1`;
+    const api = createMockApi({}, { daw: { toggles: { stack_takes: 'on' } } });
+    const stacked = await api.dawStackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, stacked, 'mock stack');
+    expect(stacked).toEqual(readGolden('daw-stack-done.json'));
+    const unstacked = await api.dawUnstackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, unstacked, 'mock un-stack');
+    expect(unstacked).toEqual(readGolden('daw-unstack-done.json'));
+    for (const ids of [['{11111111-1111-4111-8111-111111111111}'], [passage, '16.0']]) {
+      const stale = await api.dawStackTakes(chapter.id, ids);
+      expectMatches(dawResultSchema, stale, 'mock stack, unknown passage');
+      expect(stale).toMatchObject({ ok: false, code: 'stale', refused: DAW_ANSWERS.stackNotAPassage });
+    }
+    expect(await api.dawUnstackTakes('no-such-chapter', [passage])).toMatchObject({ ok: false, code: 'stale' });
+    expect((await api.dawStackTakes(chapter.id, [])).refused).toBe(nothingToStackAnswer('REAPER'));
+
+    const off = await createMockApi().dawStackTakes(chapter.id, [passage]);
+    expectMatches(dawResultSchema, off, 'mock stack, experimental off');
+    expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.stack_takes.message);
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3303,6 +3369,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideBuildState',
       'guideEntities',
       'guideCreate',
+      'guideMerge',
       'guidePreview',
       'guideDialogueCues',
       'guideTypes',
@@ -3423,6 +3490,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawDeleteRange',
       'dawApplyFxToRange',
       'dawRemoveFxFromRange',
+      'dawStackTakes',
+      'dawUnstackTakes',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',
@@ -3532,7 +3601,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guidePronounce',
       'guidePronounceUser',
       'guidePronunciationUseAlternate',
-      'guideMerge',
+      'guideUnmerge',
       'guideDelete',
       'guideRelate',
       'guideUnrelate',

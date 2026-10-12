@@ -1,5 +1,5 @@
 // The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
-// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
+// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go), the stack (bindings_daw_stack_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
@@ -37,4 +37,10 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-apply-fx-range-done.json': dawResultSchema,
   'daw-apply-fx-range-refused.json': dawResultSchema,
   'daw-remove-fx-range-done.json': dawResultSchema,
+  // DawStackTakes and DawUnstackTakes (bindings_daw_stack_test.go): a stack and an un-stack in REAPER (one undo step each), a stack in a
+  // DAW that makes it in steps, and REAPER's stale refusal.
+  'daw-stack-done.json': dawResultSchema,
+  'daw-stack-steps.json': dawResultSchema,
+  'daw-unstack-done.json': dawResultSchema,
+  'daw-stack-refused-stale.json': dawResultSchema,
 };

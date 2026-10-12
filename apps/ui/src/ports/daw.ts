@@ -6,6 +6,8 @@ import {
   type DawProject,
   fxListOf,
   fxRangeOf,
+  nothingToStackOf,
+  stackOf,
   fxRangeRemovedOf,
   plainChainName,
   pickupMarkersReadAnswer,
@@ -56,6 +58,16 @@ export type FxChoice = { id: string; name: string };
 /** What the DAW offers for Add FX (the mock's `FxList`): where the list comes from, and the entries. */
 export type FxList = { source: string; choices: FxChoice[] };
 
+/** One take a stack (or un-stack) would move, as the plan the page shows has it (the Studio Next mock's `StackMove`). */
+export type StackMove = { takeId: string; from: number; to: number; len: number };
+
+/** The takes of one passage a stack would move onto the first read's spot (the mock's `StackGroup`). */
+export type StackGroup = { passageId: string; itemGuid: string; base: string; moves: StackMove[] };
+
+/** A stack or un-stack of a chapter's passages (the mock's `StackRequest`). Only `chapterId` and each group's `passageId` reach the host:
+ * it rebuilds the items, moves and shift itself (bindings_daw_stack.go), so the rest is the plan the page showed, for display. */
+export type StackRequest = { chapterId: string; groups: StackGroup[]; shift: number };
+
 /** The answer for a pickup id this session never marked or read, or one whose marker is already in the asked state. */
 export const NOTHING_TO_CHANGE = 'Nothing to change.';
 
@@ -85,6 +97,10 @@ export interface DawClient {
   removeFxFromRange(request: FxRangeRemoval): Promise<DawResult>;
   /** The DAW's own saved chains, for Add FX. Rejects when the DAW cannot list them now. */
   fxChains(): Promise<FxList>;
+  /** Put the later reads of the request's passages on the first read's spot as takes, and move the audio after them up. */
+  stackTakes(request: StackRequest): Promise<DawResult>;
+  /** Move the stacked takes of the request's passages back to where they were recorded. */
+  unstackTakes(request: StackRequest): Promise<DawResult>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
   /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
@@ -109,6 +125,8 @@ export type DawHostApi = Pick<
   | 'dawApplyFxToRange'
   | 'dawRemoveFxFromRange'
   | 'workspaceListFXChains'
+  | 'dawStackTakes'
+  | 'dawUnstackTakes'
   | 'findingsAddMarker'
   | 'pickupsImport'
   | 'pickupsResolve'
@@ -262,6 +280,17 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     /** The bindings answer a DawResult already: they resolve the range on the host and check the chain against the DAW's list. */
     applyFxToRange: ({ chapterId, firstToken, lastToken, chainName, fadeMs }) => api.dawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs),
     removeFxFromRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName),
+    /** The bindings answer a DawResult already and take passage ids only: the host rebuilds the plan from what the DAW reports now. */
+    stackTakes: ({ chapterId, groups }) =>
+      api.dawStackTakes(
+        chapterId,
+        groups.map((group) => group.passageId),
+      ),
+    unstackTakes: ({ chapterId, groups }) =>
+      api.dawUnstackTakes(
+        chapterId,
+        groups.map((group) => group.passageId),
+      ),
     /** WorkspaceListFXChains, the list the Add FX menu shows, named for the launch's DAW. */
     async fxChains() {
       const [capabilities, listing] = await Promise.all([api.dawCapabilities(), api.workspaceListFXChains()]);
@@ -274,6 +303,22 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     ...hostPickupMarkers(api),
   };
+}
+
+/** A stack or un-stack as the host answers it on `setup`: the stack_takes sentence first, then a passage `project` does not list (code
+ * stale), then nothing to move; then the takes the request's plan moves, by the capability's mode. */
+function restack(setup: DawCapabilities, project: DawProject, { chapterId, groups }: StackRequest, unstack: boolean): DawResult {
+  const call = unstack ? 'unstackTakes' : 'stackTakes';
+  const sentence = unavailable(setup, 'stack_takes', call);
+  if (sentence) return refused(sentence, call);
+  const known = project.passageIds ?? [];
+  if (!project.chapterIds.includes(chapterId) || groups.some((group) => !known.includes(group.passageId))) {
+    return refused(DAW_ANSWERS.stackNotAPassage, call, true);
+  }
+  const takes = groups.reduce((sum, group) => sum + group.moves.length, 0);
+  if (takes === 0) return refused(nothingToStackOf(setup), call);
+  const stack = stackOf(setup, takes, unstack);
+  return { ...done(true, stack.undoSteps, stack.message), ...(stack.steps ? { steps: stack.steps } : {}) };
 }
 
 /** The capability's own sentence when it is not available, else null. */
@@ -353,6 +398,8 @@ export function createMockDawClient(
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ...done(true, fx.undoSteps, fx.message), ...(fx.steps ? { steps: fx.steps } : {}) };
     },
+    stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
+    unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),
     async fxChains() {
       const sentence = unavailable(setup, 'fx_chains', 'fxChains');
       if (sentence) throw new Error(sentence);

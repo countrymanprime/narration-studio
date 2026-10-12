@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../../../api/ApiContext';
 import { StudioProvider } from '../../../../studio/StudioProvider';
-import { CHAPTERS, chapterHost } from './chapterFixtures';
+import { CHAPTERS, chapterHost, styledChapters } from './chapterFixtures';
 import { ChapterList } from './ChapterList';
 
 // The mock's chapter list (`ChapterList.tsx`): a prep dot per chapter, the "?" pill where a query is open, the chapter in view
@@ -36,6 +36,18 @@ export const AllStates: Story = {
     await expect(canvas.getAllByRole('img', { name: 'Prepped' }).length).toBeGreaterThan(0);
   },
 };
+
+// The mock's Opening credits row above chapter 1, with the prep dot the cards use.
+export const OpeningCredits: Story = {
+  args: { chapters: CHAPTERS.filter((chapter) => chapter.contentKind !== 'opening'), openingCredits: { state: 'prepped', onJump: fn() } },
+  play: async ({ canvasElement, args }) => {
+    await userEvent.click(await within(canvasElement).findByRole('button', { name: /Opening credits/ }));
+    await expect(args.openingCredits?.onJump).toHaveBeenCalled();
+  },
+};
+
+// The manuscript's own heading style at 40 chapters: the list scrolls and the label and title stay on their two lines.
+export const FortyChapters: Story = { args: { chapters: styledChapters('gutenberg', 40), currentId: 's1' } };
 
 export const NothingStarted: Story = { parameters: { api: chapterHost({}, []) } };
 

@@ -96,6 +96,8 @@ export function createStoryBibleMock(
         : { ...row, aliases: row.aliases.map((alias, index) => (index === aliasIndex ? { ...alias, pronunciation: value } : alias)) },
     );
   };
+  let mergeCount = 0;
+  let mergeUndo: Array<{ undoId: string; sourceId: string; targetId: string; before: GuideEntity[]; after: GuideEntity[] }> = [];
   const updateEntity = (id: string, change: (entity: GuideEntity) => GuideEntity) => {
     s.entities = s.entities.map((entity) => (entity.id === id ? change(entity) : entity));
   };
@@ -241,9 +243,12 @@ export function createStoryBibleMock(
       return id;
     },
     guideMerge: async (sourceId, targetId) => {
+      if (sourceId === targetId) throw new Error('Cannot merge an entity into itself.');
       const source = s.entities.find((entity) => entity.id === sourceId);
       const target = s.entities.find((entity) => entity.id === targetId);
-      if (!source || !target || source.locked) return;
+      if (!source || !target) throw new Error('Entity not found.');
+      if (source.locked) throw new Error('Cannot merge a locked entity. Unlock it first.');
+      const before = wireClone(s.entities);
       const names = [{ text: source.canonical_name, pronunciation: source.pronunciation, occurrences: source.occurrences }, ...source.aliases];
       const aliases = [...target.aliases];
       names.forEach((candidate) => {
@@ -267,6 +272,37 @@ export function createStoryBibleMock(
             .map((relationship) => (relationship.id === sourceId ? { ...relationship, id: targetId, name: target.canonical_name } : relationship))
             .filter((relationship, index, rows) => rows.findIndex((item) => item.id === relationship.id && item.label === relationship.label) === index),
         }));
+      // As the sidecar: the undo keeps the entries as they were and as the merge left them (the newest ten merges).
+      const undoId = (++mergeCount).toString(16).padStart(16, '0');
+      mergeUndo = [...mergeUndo, { undoId, sourceId, targetId, before, after: wireClone(s.entities) }].slice(-10);
+      return { undoId };
+    },
+    guideUnmerge: async (undoId) => {
+      const record = mergeUndo.find((row) => row.undoId === undoId);
+      if (!record) throw new Error('That merge can no longer be undone.');
+      const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+      const byId = (rows: GuideEntity[], id: string) => rows.find((entity) => entity.id === id);
+      const target = byId(record.before, record.targetId)!;
+      const source = byId(record.before, record.sourceId)!;
+      const current = byId(s.entities, record.targetId);
+      if (!current) throw new Error(`${target.canonical_name} is no longer in the Story Bible, so the merge cannot be undone.`);
+      if (!same(current, byId(record.after, record.targetId))) throw new Error(`${target.canonical_name} changed after the merge, so it cannot be undone.`);
+      if (byId(s.entities, record.sourceId))
+        throw new Error(`An entry named ${source.canonical_name} is in the Story Bible again, so the merge cannot be undone.`);
+      const repointed = record.before.filter((entity) => !same(entity.relationships, byId(record.after, entity.id)?.relationships ?? entity.relationships));
+      for (const entity of repointed) {
+        if (entity.id === record.targetId) continue;
+        if (!same(byId(s.entities, entity.id)?.relationships, byId(record.after, entity.id)?.relationships))
+          throw new Error(`${entity.canonical_name}'s relationships changed after the merge, so it cannot be undone.`);
+      }
+      const restored = s.entities.map((entity) => {
+        if (entity.id === record.targetId) return target;
+        const old = repointed.find((row) => row.id === entity.id);
+        return old ? { ...entity, relationships: old.relationships } : entity;
+      });
+      restored.splice(Math.min(record.before.indexOf(source), restored.length), 0, source);
+      s.entities = restored;
+      mergeUndo = mergeUndo.filter((row) => row !== record);
     },
     guideDelete: async (id) => {
       s.entities = s.entities

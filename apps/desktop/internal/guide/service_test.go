@@ -2,6 +2,7 @@ package guide
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
@@ -346,6 +348,92 @@ func TestSetSpeakerColorRefusesAnIndexOutsideOneToSevenBeforeTheSidecar(t *testi
 	for _, bad := range []int{-1, 8} {
 		if err := s.SetSpeakerColor("a", &bad); err == nil || !strings.Contains(err.Error(), "1 to 7") {
 			t.Fatalf("SetSpeakerColor(%d) = %v", bad, err)
+		}
+	}
+}
+
+// fakeMergeEnv turns this test binary into a Story Bible sidecar that answers merge and unmerge the way manuscript_guide.py does,
+// recording each call's arguments in the file the variable names. It runs from init, before TestMain hands the binary to the tests.
+const fakeMergeEnv = "GUIDE_FAKE_MERGE_LOG"
+
+const fakeUndoID = "0123456789abcdef"
+
+func init() {
+	if path := os.Getenv(fakeMergeEnv); path != "" {
+		os.Exit(runFakeMerge(path, os.Args[1:]))
+	}
+}
+
+func runFakeMerge(path string, args []string) int {
+	if file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
+		_, _ = fmt.Fprintln(file, strings.Join(args, " "))
+		_ = file.Close()
+	}
+	switch {
+	case len(args) > 0 && args[0] == "merge":
+		fmt.Printf("MERGED|%s|%s\n", flagValue(args, "--target-id"), fakeUndoID)
+	case len(args) > 0 && args[0] == "unmerge" && flagValue(args, "--undo-id") == fakeUndoID:
+		fmt.Println("UNMERGED|nico|nicholas")
+	default:
+		fmt.Fprintln(os.Stderr, "Nicholas changed after the merge, so it cannot be undone.")
+		return 1
+	}
+	return 0
+}
+
+func TestUnmergeRoundTripsThroughTheSidecar(t *testing.T) {
+	project := t.TempDir()
+	log := filepath.Join(t.TempDir(), "calls.log")
+	t.Setenv(fakeMergeEnv, log)
+	sidecars := process.NewSupervisor()
+	t.Cleanup(func() { _ = sidecars.Close() })
+	s := New(project, os.Args[0], "", settings.New(project, project), sidecars)
+
+	merged, err := s.Merge("nico", "nicholas")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if merged.UndoID != fakeUndoID {
+		t.Fatalf("undo id = %q, want %q", merged.UndoID, fakeUndoID)
+	}
+	contractfile.Check(t, "guide-merge", merged)
+	if err := s.Unmerge(merged.UndoID); err != nil {
+		t.Fatal(err)
+	}
+	// The sidecar's reason reaches the caller as the error.
+	if err := s.Unmerge("fedcba9876543210"); err == nil || err.Error() != "Nicholas changed after the merge, so it cannot be undone." {
+		t.Fatalf("a refused undo = %v", err)
+	}
+	calls, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	guidePath := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	want := strings.Join([]string{
+		"merge --guide " + guidePath + " --source-id nico --target-id nicholas",
+		"unmerge --guide " + guidePath + " --undo-id " + fakeUndoID,
+		"unmerge --guide " + guidePath + " --undo-id fedcba9876543210",
+	}, "\n") + "\n"
+	if string(calls) != want {
+		t.Fatalf("calls =\n%s\nwant\n%s", calls, want)
+	}
+}
+
+func TestMergeRefusesAnAnswerWithoutAnUndoID(t *testing.T) {
+	for _, out := range []string{"MERGED|nicholas", "MERGED|nicholas|", "DELETED|nicholas|0123456789abcdef", "MERGED|nicholas|0123456789ABCDEF"} {
+		if _, err := mergeResult(out); err == nil {
+			t.Fatalf("%q was taken as a merge", out)
+		}
+	}
+}
+
+func TestUnmergeRefusesAMalformedIDBeforeTheSidecar(t *testing.T) {
+	root := t.TempDir()
+	// No sidecar is configured: an id that reached it would fail with the configuration sentence instead.
+	s := New(root, filepath.Join(root, "missing"), "", settings.New(root, root), process.NewSupervisor())
+	for _, id := range []string{"", "--guide", "0123456789abcde", "0123456789abcdefa", "0123456789abcdeG"} {
+		if err := s.Unmerge(id); err == nil || err.Error() != "that is not an undo id" {
+			t.Fatalf("Unmerge(%q) = %v", id, err)
 		}
 	}
 }

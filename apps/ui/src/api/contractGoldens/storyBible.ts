@@ -5,6 +5,7 @@ import {
   guideBuildResultSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
+  guideMergeResultSchema,
   guidePreviewSchema,
   guideTypesFileSchema,
   guideTypesSchema,
@@ -32,4 +33,5 @@ export const storyBibleGoldens: Record<string, z.ZodType> = {
   'guide-types-default-sidecar.json': guideTypesSchema,
   'guide-types.json': guideTypesSchema,
   'guide-types-sidecar.json': guideTypesFileSchema,
+  'guide-merge.json': guideMergeResultSchema,
 };

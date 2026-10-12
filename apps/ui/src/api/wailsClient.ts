@@ -41,6 +41,7 @@ import {
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
+  guideMergeResultSchema,
   guidePreviewSchema,
   guideTypesSchema,
 } from './schemas/storyBible';
@@ -302,7 +303,8 @@ export const wailsClient: NarrationApi = {
   guideSetLocked: (id, locked) => decode(voidResult, 'GuideSetLocked', host.GuideSetLocked(id, locked)),
   guideRescan: (id) => decode(voidResult, 'GuideRescan', host.GuideRescan(id)),
   guideCreate: (name, category, aliases) => decode(guideCreatedSchema, 'GuideCreate', host.GuideCreate(name, category, aliases)).then((value) => value.id),
-  guideMerge: (sourceId, targetId) => decode(voidResult, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
+  guideMerge: (sourceId, targetId) => decode(guideMergeResultSchema, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
+  guideUnmerge: (undoId) => decode(voidResult, 'GuideUnmerge', host.GuideUnmerge(undoId)),
   guideDelete: (id) => decode(voidResult, 'GuideDelete', host.GuideDelete(id)),
   guideRelate: (id, otherId, label) => decode(voidResult, 'GuideRelate', host.GuideRelate(id, otherId, label)),
   guideUnrelate: (id, otherId, label) => decode(voidResult, 'GuideUnrelate', host.GuideUnrelate(id, otherId, label)),
@@ -632,6 +634,8 @@ export const wailsClient: NarrationApi = {
     decode(dawResultSchema, 'DawApplyFxToRange', host.DawApplyFxToRange(chapterId, firstToken, lastToken, chainName, fadeMs)),
   dawRemoveFxFromRange: (chapterId, firstToken, lastToken, chainName) =>
     decode(dawResultSchema, 'DawRemoveFxFromRange', host.DawRemoveFxFromRange(chapterId, firstToken, lastToken, chainName)),
+  dawStackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawStackTakes', host.DawStackTakes(chapterId, passageIds)),
+  dawUnstackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawUnstackTakes', host.DawUnstackTakes(chapterId, passageIds)),
   subscribeDawProjectState: (onUpdate) => subscribeChecked('daw_project_state_changed', dawProjectStateSchema, onUpdate),
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),

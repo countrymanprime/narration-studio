@@ -2,6 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { chapterHeading } from '../../chapterHeading';
+import { chapterName } from '../../chapterName';
+import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
 import { AppearsIn } from './AppearsIn';
 
 afterEach(cleanup);
@@ -24,6 +27,28 @@ describe('lists-chapters-with-a-go-to-button', () => {
   it('says "1 chapter" for one', () => {
     render(<AppearsIn entity={at('c1')} manuscript={manuscript} onGo={vi.fn()} />);
     expect(screen.getByText('Appears in · 1 chapter')).toBeTruthy();
+  });
+});
+
+describe("chapter names follow the manuscript's heading style", () => {
+  it("names chapters in the manuscript's heading style at 40 chapters", () => {
+    for (const style of ['gutenberg', 'numbered', 'colon'] as HeadingStyle[]) {
+      for (const count of [12, 40]) {
+        cleanup();
+        const book = styledChapters(style, count);
+        render(<AppearsIn entity={at(...book.map((chapter) => chapter.id))} manuscript={book} onGo={vi.fn()} />);
+        expect(screen.getByText(`Appears in · ${count} chapters`)).toBeTruthy();
+        const rows = screen.getAllByRole('listitem');
+        expect(rows).toHaveLength(count);
+        for (const n of [1, 2, count]) {
+          const chapter = book[n - 1]!;
+          // The manuscript's own label and title, joined as every chapter name is (ADR 0191), never a number counted here.
+          expect(chapterHeading(chapter).label).toBe(HEADING_LABELS[style](n));
+          expect(rows[n - 1]!.textContent).toContain(chapterName(chapter));
+          expect(screen.getByRole('button', { name: `Go to ${chapterName(chapter)}` })).toBeTruthy();
+        }
+      }
+    }
   });
 });
 

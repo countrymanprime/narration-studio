@@ -32,6 +32,12 @@ The file may carry `types`, the narrator's ordered list of `{name, colour, speak
 - **`type-add --name`**, **`type-rename --name --to`**, **`type-colour --name --colour`** (green, blue, violet, amber, teal or rose), **`type-speaks --name --speaks 0|1`** and **`type-remove --name`** each write the whole list. A rename moves every entry of the type; a type in use and the last type cannot be removed.
 - Only an entry whose type speaks takes a speaker colour, and a build's dialogue cues resolve only to such entries. A rebuild keeps the list and files a new entry under the type its built-in category was renamed to (`builtin`), or under Needs Review when that type was removed.
 
+## Merge and its undo
+
+- **`merge --source-id --target-id`** folds the source into the target: the source's name and aliases become aliases of the target, each with its own pronunciation and occurrences; relationships move to the target and every other entry's relationship to the source points at the target's id; Appears in is the union of both. The source is deleted and its names are recorded in `absorbed_names`, so a rebuild folds them back into the target. It prints `MERGED|<target id>|<undo id>`.
+- The file keeps an undo record for each of the last ten merges (`merge_undo`): both entries as they were, every other entry's relationships the merge changed, and the absorbed names it set. A rebuild writes a file without them.
+- **`unmerge --undo-id`** puts both entries, those relationships and those absorbed names back as they were, and prints `UNMERGED|<source id>|<target id>`. It refuses, writing nothing, when the target or one of those entries changed after the merge, when an entry has the source's id again, or when the file no longer holds the record. Two merges into one target are undone newest first. The host checks the id is 16 lowercase hexadecimal characters before it starts the sidecar (`guide.Service.Unmerge`, the `GuideUnmerge` binding).
+
 ## Pronunciation: generate and replace
 
 Alongside the automatic CMU-then-eSpeak fallback used at build time (`pronunciation()`), a narrator can set a pronunciation

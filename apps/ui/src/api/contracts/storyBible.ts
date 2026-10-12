@@ -91,6 +91,9 @@ export type GuideBuildResult =
   | { status: 'started'; job: WorkJob }
   | { status: 'asset_required'; model: LanguageModel; installState: AssetInstallState; downloadSize: number; diskSize: number; installPath: string };
 
+/** What a merge answers: the id `guideUnmerge` takes it back by (16 lowercase hexadecimal characters). */
+export type GuideMergeResult = { undoId: string };
+
 /** One entry of the Story Bible's dialogue_cues: a quoted span with
  * its resolved (or unknown) speaker. A document-level list, a sibling of the entity list, not per-entity data. */
 export type GuideDialogueCueEvidence = { chapterId: string; paragraphId: string; excerpt: string; tag: string };
@@ -120,7 +123,12 @@ export interface StoryBibleApi {
   guideSetLocked(id: string, locked: boolean): Promise<void>;
   guideRescan(id: string): Promise<void>;
   guideCreate(name: string, category: string, aliases: string[]): Promise<string>;
-  guideMerge(sourceId: string, targetId: string): Promise<void>;
+  /** Folds the source entry into the target (names with their say-values, relationships re-pointed, Appears in unioned) and deletes the
+   * source; one undo step, taken back by `guideUnmerge` with the answer's id. */
+  guideMerge(sourceId: string, targetId: string): Promise<GuideMergeResult>;
+  /** Takes back one merge: both entries, every re-pointed relationship and the names the merge absorbed, as they were. Rejects with the
+   * reason, changing nothing, when the target or a re-pointed entry changed since, or the merge is gone (undone, a rebuild, ten newer). */
+  guideUnmerge(undoId: string): Promise<void>;
   guideDelete(id: string): Promise<void>;
   guideRelate(id: string, otherId: string, label: string): Promise<void>;
   guideUnrelate(id: string, otherId: string, label: string): Promise<void>;

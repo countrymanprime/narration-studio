@@ -8,6 +8,7 @@ ManuscriptGuide directory.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -1748,6 +1749,7 @@ def merge(args: argparse.Namespace) -> None:
     target = find_entity(guide, args.target_id)
     if source.get("locked"):
         raise ValueError("Cannot merge a locked entity. Unlock it first.")
+    before = _merge_snapshot(guide, source, target)
 
     def dedupe_evidence(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen: set[tuple[str, int, str]] = set()
@@ -1831,9 +1833,112 @@ def merge(args: argparse.Namespace) -> None:
     # merge_locked's redirect step, which reads this back.
     absorbed_names = guide.setdefault("absorbed_names", {})
     for absorbed_name in [source["canonical_name"], *(alias["text"] for alias in source.get("aliases", []))]:
-        absorbed_names[normalize_name(absorbed_name)] = args.target_id
+        key = normalize_name(absorbed_name)
+        before["absorbed_names"].setdefault(key, absorbed_names.get(key))
+        absorbed_names[key] = args.target_id
+    undo_id = _record_merge_undo(guide, before, target)
     write_json(args.guide, guide)
-    print(f"MERGED|{args.target_id}")
+    print(f"MERGED|{args.target_id}|{undo_id}")
+
+
+# How many merges the file can take back, newest kept. A rebuild writes a new file without them.
+MAX_MERGE_UNDO = 10
+UNDO_ID = re.compile(r"^[0-9a-f]{16}$")
+
+
+def _fingerprint(value: Any) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def _merge_snapshot(guide: dict[str, Any], source: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    """What `merge` is about to change, taken before it changes anything: both entries whole, where the source sat, every other entry's
+    relationships, and whether the file had absorbed names at all. `_record_merge_undo` keeps only what the merge did change."""
+    return {
+        "source_index": guide["entities"].index(source),
+        "source": copy.deepcopy(source),
+        "target": copy.deepcopy(target),
+        "relationships": {
+            other["id"]: {"name": other.get("canonical_name", other["id"]), "before": copy.deepcopy(other.get("relationships", []))}
+            for other in guide["entities"]
+            if other is not source and other is not target
+        },
+        "had_absorbed_names": "absorbed_names" in guide,
+        # Each key the merge sets, with the value it had before (None: the key was not there).
+        "absorbed_names": {},
+    }
+
+
+def _record_merge_undo(guide: dict[str, Any], before: dict[str, Any], target: dict[str, Any]) -> str:
+    """Stores the undo of the merge just made in the file, newest last, and returns its id. Each entry the undo would overwrite is
+    stored with a fingerprint of how the merge left it, so `unmerge` can refuse once something else changed it."""
+    others = {other["id"]: other for other in guide["entities"]}
+    relationships = []
+    for other_id, saved in before["relationships"].items():
+        after = others[other_id].get("relationships", [])
+        if after != saved["before"]:
+            relationships.append({"id": other_id, "name": saved["name"], "before": saved["before"], "after": _fingerprint(after)})
+    undo_id = os.urandom(8).hex()
+    records = guide.get("merge_undo", [])
+    records.append(
+        {
+            "id": undo_id,
+            "source_index": before["source_index"],
+            "source": before["source"],
+            "target": before["target"],
+            "target_after": _fingerprint(target),
+            "relationships": relationships,
+            "had_absorbed_names": before["had_absorbed_names"],
+            "absorbed_names": before["absorbed_names"],
+        }
+    )
+    guide["merge_undo"] = records[-MAX_MERGE_UNDO:]
+    return undo_id
+
+
+def unmerge(args: argparse.Namespace) -> None:
+    """The undo of one `merge`, by the id it printed: both entries as they were, the source back in its place, every relationship the
+    merge re-pointed and every absorbed name it set. Refused, with nothing written, when the target or a re-pointed entry changed after
+    the merge, when an entry has the source's id again, or when the file no longer holds the merge (taken back already, a rebuild since,
+    or more than MAX_MERGE_UNDO newer merges)."""
+    if not UNDO_ID.match(args.undo_id):
+        raise ValueError("That is not an undo id.")
+    guide = _load_guide_for_edit(args.guide)
+    records = guide.get("merge_undo", [])
+    record = next((value for value in records if value.get("id") == args.undo_id), None)
+    if record is None:
+        raise ValueError("That merge can no longer be undone.")
+    source, saved_target = record["source"], record["target"]
+    entities = guide["entities"]
+    target_index = next((index for index, value in enumerate(entities) if value["id"] == saved_target["id"]), None)
+    if target_index is None:
+        raise ValueError(f"{saved_target['canonical_name']} is no longer in the Story Bible, so the merge cannot be undone.")
+    if _fingerprint(entities[target_index]) != record["target_after"]:
+        raise ValueError(f"{saved_target['canonical_name']} changed after the merge, so it cannot be undone.")
+    if any(value["id"] == source["id"] for value in entities):
+        raise ValueError(f"An entry named {source['canonical_name']} is in the Story Bible again, so the merge cannot be undone.")
+    by_id = {value["id"]: value for value in entities}
+    for saved in record["relationships"]:
+        other = by_id.get(saved["id"])
+        if other is None or _fingerprint(other.get("relationships", [])) != saved["after"]:
+            raise ValueError(f"{saved['name']}'s relationships changed after the merge, so it cannot be undone.")
+
+    entities[target_index] = saved_target
+    entities.insert(min(record["source_index"], len(entities)), source)
+    for saved in record["relationships"]:
+        by_id[saved["id"]]["relationships"] = saved["before"]
+    absorbed_names = guide.setdefault("absorbed_names", {})
+    for key, value in record["absorbed_names"].items():
+        if value is None:
+            absorbed_names.pop(key, None)
+        else:
+            absorbed_names[key] = value
+    if not absorbed_names and not record["had_absorbed_names"]:
+        guide.pop("absorbed_names")
+    records.remove(record)
+    if not records:
+        guide.pop("merge_undo", None)
+    write_json(args.guide, guide)
+    print(f"UNMERGED|{source['id']}|{saved_target['id']}")
 
 
 def delete(args: argparse.Namespace) -> None:
@@ -2148,6 +2253,9 @@ def main() -> None:
     merge_parser.add_argument("--guide", required=True)
     merge_parser.add_argument("--source-id", required=True)
     merge_parser.add_argument("--target-id", required=True)
+    unmerge_parser = command.add_parser("unmerge", help="take back one merge by the undo id it printed, or refuse with the reason")
+    unmerge_parser.add_argument("--guide", required=True)
+    unmerge_parser.add_argument("--undo-id", required=True)
     split_parser = command.add_parser("split", help="give one of an entity's aliases its own standalone identity back (the inverse of merge)")
     split_parser.add_argument("--guide", required=True)
     split_parser.add_argument("--entity-id", required=True)
@@ -2246,6 +2354,7 @@ def main() -> None:
             "pronunciation-use-alternate": pronunciation_use_alternate,
             "create": create,
             "merge": merge,
+            "unmerge": unmerge,
             "split": split,
             "correct-cue": correct_cue,
             "mark-reviewed": mark_reviewed,

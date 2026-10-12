@@ -248,3 +248,45 @@ describe('phrases-come-from-the-dialogue-cues', () => {
     expect(speakerCandidates(entries)).toContain(speaker);
   });
 });
+
+describe('a renamed or removed alias keeps or drops its confirmed lines', () => {
+  const speaker = WIRE_ENTITIES.find((e) => e.category === 'Character')!;
+  const withAliases = (...texts: string[]): GuideEntity => ({ ...speaker, aliases: texts.map((text) => ({ ...speaker.aliases[0]!, text })) });
+  const confirmed: GuideDialogueCue = {
+    ...WIRE_DIALOGUE_CUES[0]!,
+    id: 'k1',
+    chapterId: 'c1',
+    paragraphId: 'p1',
+    quote_start: 0,
+    quote_end: 5,
+    speaker_entity_id: speaker.id,
+    speaker_source: 'correction',
+  };
+  const paragraph = { id: 'p1', chapterId: 'c1' };
+  const state = (entries: readonly GuideEntity[]) => phrasesOf([confirmed], entries, paragraph).map((p) => [p.state, p.speaker?.id ?? null]);
+
+  it('renaming an entry or an alias keeps the lines confirmed to it, as the line holds the entry and not a name', () => {
+    expect(state([withAliases('Allie')])).toEqual([['confirmed', speaker.id]]);
+    expect(state([{ ...withAliases('Ally'), canonical_name: 'Alicia' }])).toEqual([['confirmed', speaker.id]]);
+    expect(unattributed([confirmed], [withAliases('Ally')], 'c1')).toBe(0);
+  });
+
+  it('a new alias is found in the text, and the name it replaced no longer is', () => {
+    const names = (entries: readonly GuideEntity[]) => mentionsIn(entries, 'Allie said Ally was late.').map((m) => m.text);
+    expect(names([{ ...withAliases('Ally'), canonical_name: 'Zed' }])).toEqual(['Ally']);
+    expect(names([{ ...withAliases('Allie'), canonical_name: 'Zed' }])).toEqual(['Allie']);
+    expect(names([{ ...withAliases('Allie', 'Ally'), canonical_name: 'Zed' }])).toEqual(['Allie', 'Ally']);
+  });
+
+  it("removing an alias leaves the entry's lines confirmed, and removing the entry drops them back to no speaker", () => {
+    expect(state([withAliases()])).toEqual([['confirmed', speaker.id]]);
+    expect(state(WIRE_ENTITIES.filter((entry) => entry.id !== speaker.id))).toEqual([['unknown', null]]);
+    expect(
+      unattributed(
+        [confirmed],
+        WIRE_ENTITIES.filter((entry) => entry.id !== speaker.id),
+        'c1',
+      ),
+    ).toBe(1);
+  });
+});
