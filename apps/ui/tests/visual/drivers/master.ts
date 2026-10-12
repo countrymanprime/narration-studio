@@ -11,6 +11,7 @@ import {
   panelTitled,
   scrollToTop,
 } from './shared';
+import { settlePage } from '../helpers/settle';
 
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
 
@@ -167,5 +168,10 @@ export const masterDrivers: Record<string, Driver> = {
     await panel.getByRole('list', { name: 'Multi-platform export results' }).waitFor();
     while ((await dismiss.count()) > 0) await dismiss.first().click();
     await scrollToTop(page, panel);
+  },
+  'no-manuscript': async (page) => {
+    await page.goto('/master?mockNoManuscript');
+    await settlePage(page);
+    await page.getByRole('button', { name: 'Import manuscript' }).waitFor();
   },
 };

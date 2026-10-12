@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { contextItemsFor } from '../../../registries/context';
-import { FilesDemo, Host, TWO_FAIL, ALL_PASS, failingTwo, passing, profile, rowsOf, waiting } from './testFiles';
+import { CHAPTERS, FilesDemo, Host, TWO_FAIL, ALL_PASS, failingTwo, passing, profile, rowsOf, waiting } from './testFiles';
 import { buildRows, openingId } from './rows';
 
 afterEach(cleanup);
@@ -17,6 +17,18 @@ const mount = (props: Partial<React.ComponentProps<typeof FilesDemo>> = {}, daw?
 const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 
 describe('Master & QC files', () => {
+  it('labels each file with the chapter heading in the manuscript style, and the retail sample row', () => {
+    const files = [...TWO_FAIL, passing('Retail Sample.wav'), passing('Interlude.wav')];
+    mount({ files, chapters: CHAPTERS });
+    expect(row('Chapter 1 — Down the Rabbit-Hole')).toBeTruthy();
+    expect(row('Chapter 3')).toBeTruthy();
+    expect(row('Chapter 4 — The Rabbit Sends in a Little Bill')).toBeTruthy();
+    expect(row('Retail sample')).toBeTruthy();
+    // A file that matches no chapter keeps its file name.
+    expect(row('Interlude.wav')).toBeTruthy();
+    expect(screen.queryByText('Chapter 01.wav')).toBeNull();
+  });
+
   it('opens-on-the-first-file-that-fails: and tells the page so it can move the chapter bar', async () => {
     const onSelected = vi.fn();
     mount({ onSelected });

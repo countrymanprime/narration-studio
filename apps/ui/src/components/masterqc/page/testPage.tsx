@@ -9,9 +9,9 @@ import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
-import { ALL_PASS, TWO_FAIL, failingTwo, passing } from '../files/testFiles';
+import { ALL_PASS, CHAPTERS, TWO_FAIL, failingTwo, passing } from '../files/testFiles';
 
-export { ALL_PASS, TWO_FAIL, failingTwo, passing };
+export { ALL_PASS, CHAPTERS, TWO_FAIL, failingTwo, passing };
 
 // Imported, not read from disk: the stories run in the browser, where there is no `fs`.
 const success = measureJobSchema.parse(measureSuccess);
@@ -38,7 +38,7 @@ const profilesOf = (profile: DeliveryProfile): DeliveryProfilesState => ({
 
 /** An api that answers the given job and profile; `overrides` replaces any call. */
 export function apiOf(job: MeasureJob, profile: DeliveryProfile = acx, overrides: Partial<NarrationApi> = {}) {
-  return createMockApi({ measureState: async () => job, deliveryProfiles: async () => profilesOf(profile), ...overrides });
+  return createMockApi({ measureState: async () => job, manuscriptChapters: async () => [], deliveryProfiles: async () => profilesOf(profile), ...overrides });
 }
 
 export function PageHost({ api, children }: { api: NarrationApi; children: ReactNode }) {

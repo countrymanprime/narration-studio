@@ -145,4 +145,9 @@ export const masterStates: StateEntry[] = [
       'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - a per-profile result row for each: its name, Built, the output folder and how many files it wrote',
     ...KEEPS_DESKTOP_SCROLL,
   },
+  {
+    page: 'master',
+    state: 'no-manuscript',
+    description: 'Master & QC opened by its address with no manuscript imported (?mockNoManuscript) - the page asks for the manuscript first',
+  },
 ];

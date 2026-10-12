@@ -7,11 +7,11 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
-import type { DeliveryRuleResult, MeasureFileResult } from '../../../types';
+import type { DeliveryRuleResult, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { FileChecks } from './FileChecks';
 import type { FileActions } from './FileActions';
 import { FilesTable } from './FilesTable';
-import { buildRows } from './rows';
+import { buildRows, labelFiles } from './rows';
 
 // Imported, not read from disk: the stories run in the browser, where there is no `fs`.
 const job = measureJobSchema.parse(measureSuccess);
@@ -49,6 +49,16 @@ export const waiting = (name = 'Chapter 03.wav'): MeasureFileResult => ({
 
 export const ALL_PASS = [passing('Chapter 01.wav'), passing('Chapter 02.wav')];
 export const TWO_FAIL = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), waiting('Chapter 03.wav'), failingTwo('Chapter 04.wav')];
+/** A chapter as the manuscript lists it. */
+const chapterOf = (index: number, title: string, subtitle?: string): ManuscriptChapter =>
+  ({ id: `chapter-${index}`, title, subtitle, index, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter;
+/** The four chapters of TWO_FAIL, named the way the manuscript names them. */
+export const CHAPTERS = [
+  chapterOf(1, 'Chapter 1', 'Down the Rabbit-Hole'),
+  chapterOf(2, 'Chapter 2', 'The Pool of Tears'),
+  chapterOf(3, 'Chapter 3'),
+  chapterOf(4, 'Chapter 4', 'The Rabbit Sends in a Little Bill'),
+];
 export const rowsOf = (files: readonly MeasureFileResult[]) => buildRows(files, profile);
 
 const noActions = (): FileActions => ({ onPlayQuietest: () => undefined, onOpenInDaw: () => undefined, onRecheck: () => undefined });
@@ -67,22 +77,26 @@ export function FilesDemo({
   actions = noActions(),
   initial,
   onSelected,
+  chapters = [],
 }: {
   files: readonly MeasureFileResult[];
   actions?: FileActions;
   initial?: string;
   onSelected?: (id: string) => void;
+  /** The manuscript's chapters: the files are named by them, as the page does. */
+  chapters?: readonly ManuscriptChapter[];
 }) {
   const [selected, setSelected] = useState<string | undefined>(initial);
   const pick = (id: string) => {
     setSelected(id);
     onSelected?.(id);
   };
-  const rows = rowsOf(files);
+  const labelled = labelFiles(files, chapters);
+  const rows = rowsOf(labelled);
   const current = selected === undefined ? undefined : rows.find((row) => row.id === selected);
   return (
     <div className="flex flex-col gap-4">
-      <FilesTable files={files} profile={profile} selected={selected} onSelect={pick} actions={actions} />
+      <FilesTable files={labelled} profile={profile} selected={selected} onSelect={pick} actions={actions} />
       <FileChecks
         row={current ?? (selected === undefined ? undefined : undefined)}
         chapterLabel={selected !== undefined && !current ? 'Chapter 09' : undefined}

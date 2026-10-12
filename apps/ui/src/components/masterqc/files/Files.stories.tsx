@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import { ALL_PASS, FilesDemo, Host, TWO_FAIL, failingTwo, passing } from './testFiles';
+import { ALL_PASS, CHAPTERS, FilesDemo, Host, TWO_FAIL, failingTwo, passing } from './testFiles';
 
 // Master & QC's per-file checks (docs/research/mockups/studio-next/src/pages/Master.tsx): the table and the detail under it. The Master
 // page composes them at `/master`.
@@ -53,5 +53,14 @@ export const NoFileForTheChapter: Story = {
   args: { files: ALL_PASS, initial: 'C:/Renders/none.wav' },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText('Not mastered yet.')).toBeTruthy();
+  },
+};
+
+export const ChapterLabels: Story = {
+  args: { files: [...TWO_FAIL, passing('Retail Sample.wav')], chapters: CHAPTERS },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('row', { name: /Chapter 4 — The Rabbit Sends in a Little Bill/ })).toBeTruthy();
+    await expect(canvas.getByRole('row', { name: /Retail sample/ })).toBeTruthy();
   },
 };
