@@ -2,7 +2,6 @@ package pronunciationonline
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"strings"
 	"sync"
@@ -10,9 +9,6 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/credentialstore"
 )
-
-// MaxBatchWords bounds one batch lookup (Q11).
-const MaxBatchWords = 200
 
 // key is a pasted key's shape: Merriam-Webster's keys are UUIDs; this accepts any run of letters, digits and hyphens
 // of a plausible length, so a pasted sentence, URL or stray space is refused before it is stored.
@@ -37,20 +33,8 @@ type Result struct {
 	FetchedAt string `json:"fetchedAt"`
 }
 
-// BatchResult counts what a confirmed batch did.
-type BatchResult struct {
-	Words     int  `json:"words"`
-	Fetched   int  `json:"fetched"`
-	FromCache int  `json:"fromCache"`
-	NotFound  int  `json:"notFound"`
-	Failed    int  `json:"failed"`
-	Stopped   bool `json:"stopped"`
-	// StopReason is why a batch stopped early (the key refused, the rate limit, no connection); empty when it ran out.
-	StopReason string `json:"stopReason"`
-}
-
 // Service is the online lookup: the port's one Dictionary, the narrator's key in the credential store, and the cache.
-// Lookups run one at a time, so a batch and a single press never race to send the same word twice.
+// Lookups run one at a time, so two presses never race to send the same word twice.
 type Service struct {
 	dict Dictionary
 	keys *credentialstore.Store
@@ -169,82 +153,4 @@ func tidy(answer Answer) Answer {
 		answer.Suggestions = []string{}
 	}
 	return answer
-}
-
-// LookupBatch looks up every word in raw, once each (Q11: opt-in with a notice). confirmedCount is the word count the
-// narrator confirmed in the notice; a batch whose distinct word count is not exactly that is refused before anything is
-// sent, so a batch can never send more words than the narrator agreed to. Words already cached cost no request. A
-// refused key, the rate limit or a lost connection stops the batch rather than trying every remaining word.
-func (s *Service) LookupBatch(ctx context.Context, raw []string, confirmedCount int) (BatchResult, error) {
-	words, err := BatchWords(raw)
-	if err != nil {
-		return BatchResult{}, err
-	}
-	if confirmedCount != len(words) {
-		return BatchResult{}, ErrBatchNotConfirmed
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	result := BatchResult{Words: len(words)}
-	var secret credentialstore.Secret
-	for _, word := range words {
-		if _, ok := s.cache.Get(word); !ok && secret.Empty() {
-			if secret, err = s.secretIfNeeded(word); err != nil {
-				return BatchResult{}, err
-			}
-		}
-		answer, fetched, err := s.lookup(ctx, word, secret)
-		switch {
-		case err == nil && fetched:
-			result.Fetched++
-		case err == nil:
-			result.FromCache++
-		case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
-			result.Stopped, result.StopReason = true, "The lookup was cancelled."
-			return result, nil
-		case errors.Is(err, ErrKeyRefused), errors.Is(err, ErrRateLimited), errors.Is(err, ErrUnreachable):
-			result.Failed++
-			result.Stopped, result.StopReason = true, capitalize(err.Error())
-			return result, nil
-		default:
-			result.Failed++
-			continue
-		}
-		if !answer.Found {
-			result.NotFound++
-		}
-	}
-	return result, nil
-}
-
-// BatchWords is the distinct words a batch of raw would send, in first-seen order: every entry must pass CheckWord, and
-// "Wren" and "wren" are one word. The UI's notice counts the same list.
-func BatchWords(raw []string) ([]string, error) {
-	seen := map[string]bool{}
-	words := []string{}
-	for _, entry := range raw {
-		word, err := CheckWord(entry)
-		if err != nil {
-			return nil, err
-		}
-		if seen[cacheKey(word)] {
-			continue
-		}
-		seen[cacheKey(word)] = true
-		words = append(words, word)
-	}
-	if len(words) == 0 {
-		return nil, ErrNotAWord
-	}
-	if len(words) > MaxBatchWords {
-		return nil, ErrBatchTooLarge
-	}
-	return words, nil
-}
-
-func capitalize(text string) string {
-	if text == "" {
-		return text
-	}
-	return strings.ToUpper(text[:1]) + text[1:]
 }
