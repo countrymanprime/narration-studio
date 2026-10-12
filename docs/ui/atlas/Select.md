@@ -15,12 +15,11 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 
 ## Used by
 
-- `src/components/booth/BoothPage.tsx`
-- `src/components/booth/MicrophoneField.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/delivery/profile/ProfileMenu.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
+- `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
@@ -30,11 +29,7 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/production/ImportReview.tsx`
 - `src/components/proof/ApplyFxDialog.tsx`
 - `src/components/proof/AuditionDialog.tsx`
-- `src/components/proof/ChapterWaveformCard.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
-- `src/components/proof/ReviewFilters.tsx`
-- `src/components/proof/TakeReviewReads.tsx`
-- `src/components/proof/TakeReviewScanDialog.tsx`
 - `src/components/proof/TransportBar.tsx`
 - `src/components/proof/inspector/TypeSelect.tsx`
 - `src/components/proof/notes/NotesPanel.tsx`

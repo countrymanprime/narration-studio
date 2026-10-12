@@ -13,25 +13,30 @@ makes a take active, moves or deletes audio, or ranks the reads.
 
 ## Workflow
 
-Everything happens on [Proof](../guides/using-the-app/proof.md#pickups-and-duplicates):
+Since the Proof swap (SN-Q9, 2026-10-12) no page starts a scan, lists a group's reads or offers Add as take: the scan
+dialog and the reads list were deleted with the old Proof notes page, and the take suggestion belongs to Editing (DQ-15 in
+the [Studio Next Proof and Pickups PRD](../prds/studio-next-proof-and-pickups.prd.md#decisions)). The host side below is
+unchanged. A pickup read an earlier scan set beside a paragraph is a card in the chapter view's
+[Takes panel](../guides/using-the-app/proof.md#choosing-between-takes), where Compare and Use this take work. The steps the
+host supports:
 
-1. **Find pickups and duplicates…**: the narrator picks the chapter track and at most one pickup addition, a pickup track
-   or a stretch of the timeline. The scan is a cancellable job with the sidecar's own progress. A track named as the
+1. The scan (`TakeReviewScanStart`) takes the chapter track and at most one pickup addition, a pickup track or a stretch
+   of the timeline. The scan is a cancellable job with the sidecar's own progress. A track named as the
    chapter's pickup track ("Chapter 6 (pickups)") is recognised by chapter sync and carried on that chapter's row of
-   `chaptersync:state` (`pickupTrackName`), so the dialog can start with it. A finished scan that included
+   `chaptersync:state` (`pickupTrackName`), so a scan can start with it. A finished scan that included
    the pickup track records it as scanned, and the row's `pickupsChanged` says when the track has changed since, so the
    scan can be offered again. A pickup track is never the chapter's link: the recording check still reads the chapter
    track only.
 2. Each group of repeated reads is a finding (category `pickup` or `duplicate_read`) with its reads: range in its own file,
    whole or partial coverage of the span, match quality, exact-copy flag. Go to and Loop per read in REAPER; Audition two
    reads from their raw source over `/media`.
-3. **Add as take…** on an accepted group: the narrator chooses the target item and the read that becomes the take; REAPER
+3. Add as take (`TakeReviewCreateTake`) on an accepted group: the target item and the read that becomes the take; REAPER
    adds it in one undo step, with provenance in the take's extension data.
-4. **Compare takes…**: a `take_comparison` finding that sets the group's reads side by side over the same words, how each
+4. Take comparison (`TakeComparisonStart`): a `take_comparison` finding that sets the group's reads side by side over the same words, how each
    read the script and its audio evidence per category.
 5. The narrator makes the chosen take active in REAPER.
 
-The narrator's flow is also in the [recording and comping workflow](../workflows/recording-and-comping.md).
+The narrator's flow before SN-Q9 is in the [recording and comping workflow](../workflows/recording-and-comping.md).
 
 ## How it works
 
@@ -41,7 +46,7 @@ The narrator's flow is also in the [recording and comping workflow](../workflows
 | Scan scope (chapter track plus one pickup track or range), manifest, thresholds from project settings | `apps/desktop/internal/takereview` (`buildManifest`, `ValidateScope`, `ResolveThresholds`, `ResolvePickupScope`) | [ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md) |
 | Repeated-span detection: transcribe each read, align to the manuscript with the markers' diff, group reads whose spans overlap, flag exact copies by source identity | `compare.py --find-repeats` (`sidecars/transcript-compare/core/compare.py`) | |
 | Groups to findings: `pickup` (`evidence.kind` `restart`, `pickup`, `exact_copy`) or `duplicate_read` (`near_duplicate`), stable ids and evidence versions | `apps/desktop/internal/repeats` | |
-| The scan job, review surface, per-read navigation | `apps/desktop/takereview_job.go`, `bindings_navigation.go`; `apps/ui/src/components/proof/TakeReviewReads.tsx`, `TakeReviewScanDialog.tsx` | [ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md), [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md) |
+| The scan job and per-read navigation (no page calls them since SN-Q9) | `apps/desktop/takereview_job.go`, `bindings_navigation.go` | [ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md), [ADR 0121](../adr/0121-going-to-and-looping-a-finding-is-by-guid-and-source-time-makes-no-undo-point-and-stop-restores-what-the-loop-changed.md) |
 | Add as take: `create_take` in REAPER, re-resolving GUIDs, active take and item length untouched, one undo step | `integrations/reaper/narration_take_review.lua`, `apps/desktop/internal/takereview/createtake.go` | [ADR 0098](../adr/0098-take-provenance-in-take-extension-data-extends-adr-0026.md) |
 | Audition: two raw-source ranges with pre and post roll, one playing at a time | `apps/ui/src/components/proof/AuditionDialog.tsx`, `apps/ui/src/components/engine/useRangePlayer.ts` | |
 | Take metrics: clipping, noise, level against neighbours, duration, pause profile, each measured or unavailable with a reason | `apps/desktop/internal/measure` (`MeasureTake`, `TakeSourceRange`) | [ADR 0140](../adr/0140-take-metrics-are-per-category-evidence-over-a-takes-source-range.md) |
@@ -63,8 +68,8 @@ falls back to the default rather than failing a scan):
 | --- | --- | --- |
 | `full_coverage_threshold` | `0.9` | A read covering at least this much of its group's span is a full re-read; less is a partial pickup. |
 | `near_duplicate_quality_threshold` | `0.97` | A group whose reads are all full and all match the script at least this well is a near duplicate (`duplicate_read`), not a restart. |
-| `pickup_track_name` | empty | The pickup track the scan dialog starts with. |
-| `pickup_range_start_seconds`, `pickup_range_end_seconds` | empty | The stretch of the timeline the scan dialog starts with (never both a track and a range). |
+| `pickup_track_name` | empty | The pickup track a scan starts with. |
+| `pickup_range_start_seconds`, `pickup_range_end_seconds` | empty | The stretch of the timeline a scan starts with (never both a track and a range). |
 
 ## Decisions
 

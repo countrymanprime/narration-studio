@@ -14,4 +14,5 @@ Storybook title: `Script/BookmarkRibbon`. Source: `src/components/script/bookmar
 
 ## Used by
 
+- `src/components/booth/bookmarks/BookmarkRibbons.tsx`
 - `src/components/script/page/layout/BookmarkGutter.tsx`

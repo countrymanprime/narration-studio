@@ -201,3 +201,26 @@ describe('takes-badge-slot', () => {
     expect(screen.queryAllByTestId('badge')).toHaveLength(0);
   });
 });
+
+describe('the page actions slot', () => {
+  it('draws the page icons in the queue head, after find in notes', () => {
+    render(
+      <TooltipProvider>
+        <NotesPanel
+          findings={notesFixture()}
+          allChapters
+          sort="time"
+          onSortChange={() => {}}
+          selectedId={null}
+          onSelect={() => {}}
+          actions={<button type="button">Check recordings…</button>}
+        />
+      </TooltipProvider>,
+    );
+    const head = screen.getByRole('region', { name: 'Notes' });
+    const names = within(head)
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label') ?? button.textContent);
+    expect(names.indexOf('Check recordings…')).toBe(names.indexOf('Find in notes') + 1);
+  });
+});

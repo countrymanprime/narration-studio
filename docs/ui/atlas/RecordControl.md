@@ -14,4 +14,4 @@ Storybook title: `Booth/RecordControl`. Source: `src/components/booth/record/Rec
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`

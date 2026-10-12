@@ -16,4 +16,4 @@ Storybook title: `Proof/CheckCard`. Source: `src/components/proof/checkcard/Chec
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/proof/ProofPage.tsx`

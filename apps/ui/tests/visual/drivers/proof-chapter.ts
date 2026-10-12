@@ -20,13 +20,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
     await openLinkedProofChapter(page, 'Chapter 1');
     await page.getByText('Check current').waitFor();
   },
-  'note-selected': async (page) => {
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await page.getByRole('region', { name: 'Notes in the recording' }).getByRole('button').first().click();
-    const play = page.getByRole('button', { name: 'Play ±3 s' });
-    await play.waitFor();
-    await play.scrollIntoViewIfNeeded();
-  },
+
   playing: async (page) => {
     await openLinkedProofChapter(page, 'Chapter 1');
     await clickVisible(page, 'button', 'Play');

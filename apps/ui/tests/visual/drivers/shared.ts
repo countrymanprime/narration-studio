@@ -125,82 +125,23 @@ export async function goToPage(page: Page, name: AppPage): Promise<void> {
   await PAGE_CONTENT[name]?.(page).first().waitFor();
 }
 
-// Proof's book level has arrived once its notes table has rows: the heading renders before the notes do.
-export async function openProof(page: Page): Promise<void> {
-  await goToPage(page, 'Proof');
-  await waitForFindingRows(page, 4);
-}
-
-// Opens a chapter's Proof view the way a narrator does with no track linked: Proof's chapter picker, then Open chapter.
-// The picker lists chapters by their full name, so the option is
-// the one whose name starts with `chapterTitle` followed by the " — " subtitle separator or nothing.
+// Opens a chapter's workspace (`/proof/:chapterId`) with no track linked. Since the Studio Next Proof page (SNQ-9) nothing on Proof
+// links to it, and Production's Proof cell exists only for some chapters, so the address is opened in place, the way the Back
+// and Forward history does. The mock's chapter ids are `chapter-<n>` for "Chapter <n>".
 export async function openProofChapter(page: Page, chapterTitle = 'Chapter 1'): Promise<void> {
+  const number = /^Chapter (\d+)$/.exec(chapterTitle)?.[1];
+  if (!number) throw new Error(`no chapter number in ${chapterTitle}`);
   await goToPage(page, 'Proof');
-  const picker = page.getByRole('combobox', { name: 'Chapter to open' });
-  const label = (await picker.locator('option').allTextContents()).find((text) => text === chapterTitle || text.startsWith(`${chapterTitle} — `));
-  if (!label) throw new Error(`no chapter named ${chapterTitle} in Proof's picker`);
-  await picker.selectOption({ label });
-  await page.getByRole('button', { name: 'Open chapter', exact: true }).click();
-  await page.getByRole('heading', { level: 1, name: `Proof · ${label}`, exact: true }).waitFor();
+  await page.evaluate((path) => {
+    window.history.pushState(null, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, `/proof/chapter-${number}`);
+  await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
 }
 
 // The chapter view's compare run (the retired Proofing page's setup, run and results), scrolled into view for the picture.
 export function compareRun(page: Page): Locator {
   return page.getByRole('region', { name: 'Compare the recording with the script' });
-}
-
-export async function waitForFindingRows(page: Page, count: number): Promise<void> {
-  const rows = page.getByRole('table', { name: 'Notes' }).locator('tbody tr[data-row]');
-  await page.waitForFunction(([expected]) => document.querySelectorAll('table[aria-label="Notes"] tbody tr[data-row]').length === expected, [count]);
-  await rows.first().waitFor();
-}
-
-// The first transcript difference's detail title (WIRE_FINDINGS[0], a misread at 0:12.4).
-export const MISREAD_DETAIL = '0:12.4 · Misread';
-
-// Selects a finding by its row text and waits for its detail, a region named by its title: benchmark mock 04's "0:12.4 · Misread" for a
-// note with a time, its category for one without. On the stacked layout (below `xl`) the detail sits under the list, so its
-// title is scrolled into view for the picture.
-export async function openFindingRow(page: Page, text: RegExp, kind: string | RegExp): Promise<void> {
-  await page.getByRole('table', { name: 'Notes' }).locator('tbody tr[data-row]').filter({ hasText: text }).click();
-  await page.getByRole('region', { name: kind }).waitFor();
-  await page.getByRole('heading', { level: 2, name: kind }).scrollIntoViewIfNeeded();
-}
-
-// Opens the first transcript difference with the mock's REAPER in `reaper` mode (`?mockReaper=`, main.tsx; connected when absent) and
-// waits for the page's first REAPER status, which is when Go to and Loop stop saying "Checking whether REAPER is connected".
-export async function openReaperControls(page: Page, reaper?: 'stale' | 'not-running' | 'standalone'): Promise<void> {
-  if (reaper) {
-    await page.goto(`/?mockReaper=${reaper}`);
-    await settlePage(page);
-  }
-  await openProof(page);
-  await openFindingRow(page, /pink eyes/, MISREAD_DETAIL);
-  await page.getByText('Checking whether REAPER is connected…').waitFor({ state: 'detached' });
-}
-
-// ReaperControls is a plain <div> (not a landmark, so two open at once - the editing check panel - stay unique to
-// axe), named only by its visible "In REAPER" heading; its parent is the control group these drivers act within.
-function reaperControlsGroup(page: Page): Locator {
-  return page.getByRole('heading', { name: 'In REAPER' }).locator('..');
-}
-
-// Presses a REAPER button and waits for what it answers, then scrolls the REAPER controls into view for the picture.
-export async function pressInReaper(page: Page, name: string, answer: Locator): Promise<void> {
-  await reaperControlsGroup(page).getByRole('button', { name }).click();
-  await showReaperControls(page, answer);
-}
-
-// Marks the open finding for a pickup (only an accepted finding gets an approved marker) and opens the
-// Add a marker in REAPER confirm.
-export async function confirmApprovedMarker(page: Page): Promise<Locator> {
-  await openReaperControls(page);
-  await page.getByRole('button', { name: 'Pickup', exact: true }).click();
-  await page.getByText('Saved: needs a pickup.').waitFor();
-  await reaperControlsGroup(page).getByRole('button', { name: 'Add marker in REAPER' }).click();
-  const dialog = page.getByRole('alertdialog', { name: 'Add a marker in REAPER' });
-  await dialog.waitFor();
-  return dialog;
 }
 
 // Opens Master & QC (after a reload with mock seams, when given) and waits for the delivery profile and the mastering chain to
@@ -277,64 +218,6 @@ export async function measurementEnded(page: Page, message: string | RegExp): Pr
   const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
   await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
   await dismissToast.waitFor({ state: 'detached' });
-}
-
-// Opens Find pickups and duplicates once the tracks have filled the form.
-export async function openScanDialog(page: Page): Promise<Locator> {
-  await openProof(page);
-  await page.getByRole('button', { name: 'Find pickups and duplicates…' }).click();
-  const form = page.getByRole('dialog', { name: 'Find pickups and duplicates' });
-  await form.getByRole('option', { name: 'Chapter 1' }).waitFor({ state: 'attached' });
-  return form;
-}
-
-// Scans Chapter 1 through the dialog to its end and closes it: the mock scan saves its two groups, and the list is narrowed to
-// take review.
-export async function scanChapterOne(page: Page): Promise<void> {
-  const form = await openScanDialog(page);
-  await form.getByRole('button', { name: 'Start scan' }).click();
-  const progress = page.getByRole('dialog', { name: 'Finding pickups and duplicates' });
-  await progress.getByRole('status').filter({ hasText: 'Found 2 groups of repeated reads in Chapter 1.' }).waitFor();
-  await progress.getByRole('button', { name: 'Close' }).click();
-  await waitForFindingRows(page, 2);
-  // The scan's end is also a toast (job:ended, ADR 0076) that removes itself on a real timer, which would race the screenshot:
-  // dismiss it, unless a slow run already let it expire, and wait until it is gone either way.
-  const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
-  await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
-  await dismissToast.waitFor({ state: 'detached' });
-}
-
-// Scans, opens the partial pickup group and waits for its reads' REAPER controls to know REAPER is connected.
-export async function openPickupGroup(page: Page): Promise<Locator> {
-  await scanChapterOne(page);
-  await openFindingRow(page, /Partial pickup/, /pickup$/i);
-  await page.getByText('Checking whether REAPER is connected…').waitFor({ state: 'detached' });
-  return page.getByRole('region', { name: 'Reads' });
-}
-
-// Compares the partial pickup group's takes through the dialog to its end and closes it: the mock saves the comparison and the
-// page opens it, narrowed to take comparisons. The end's job:ended toast is dismissed, as the scan's is.
-export async function compareTakes(page: Page): Promise<Locator> {
-  const reads = await openPickupGroup(page);
-  await reads.getByRole('button', { name: 'Compare takes…' }).click();
-  const progress = page.getByRole('dialog', { name: 'Comparing takes' });
-  await progress
-    .getByRole('status')
-    .filter({ hasText: /^Compared the takes/ })
-    .waitFor();
-  await progress.getByRole('button', { name: 'Close' }).click();
-  const comparison = page.getByRole('region', { name: 'Takes side by side' });
-  await comparison.waitFor();
-  const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
-  await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
-  await dismissToast.waitFor({ state: 'detached' });
-  await page.getByText('Checking whether REAPER is connected…').waitFor({ state: 'detached' });
-  return comparison;
-}
-
-export async function showReaperControls(page: Page, shown: Locator): Promise<void> {
-  await shown.waitFor();
-  await reaperControlsGroup(page).scrollIntoViewIfNeeded();
 }
 
 // The Production home's board exists only once its overview has been read, so it is the proof that the whole page (not just its
@@ -561,12 +444,3 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
 // Some states have no known/safe driver yet (e.g. alias-typeahead, forcing
 // the manuscript-not-found banner without a mock-data override seam). Those
 // are left out here on purpose - the catalog entry is simply skipped.
-
-// Measures the mock's three files on Master & QC, then opens the 48 kHz render's sample-rate finding on Proof's notes, where the
-// measurement saved it.
-export async function openDeliveryFindingOnProof(page: Page): Promise<void> {
-  await measureOnMaster(page);
-  await measurementEnded(page, /^Measured 2 of 3 files; 1 could not be measured\./);
-  await goToPage(page, 'Proof');
-  await openFindingRow(page, /Sample rate 48 kHz, not 44\.1 kHz/, 'Delivery check');
-}

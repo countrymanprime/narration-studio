@@ -14,4 +14,5 @@ Storybook title: `Primitives/KeyHints`. Source: `src/components/primitives/KeyHi
 
 - `src/components/booth/frame/BoothFooter.tsx`
 - `src/components/editing/keys/editingKeyHints.ts`
+- `src/components/proof/ProofPage.tsx`
 - `src/input/hints.ts`

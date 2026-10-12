@@ -55,11 +55,10 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     'src/components/booth/ResumePrompt.tsx': 1,
   },
   select: {},
-  // The Pickups page's CSV picker is a hidden native `<input type="file">`
-  // triggered by a `Button` (ADR 0053's own escape hatch for file-choosing, since a file picker's OS chrome cannot be
-  // restyled the way a text input or select can - the same reason `ManuscriptSelectFile` uses a native OS dialog).
-  // Proof's notes header opens the proofer's sheet with the same hidden file picker as the Pickups page (ADR 0470).
-  input: { 'src/components/pickups/PickupsPage.tsx': 1, 'src/components/proof/NotesHeader.tsx': 1 },
+  // Proof's "Import proofer sheet" (`ProoferSheet.tsx`) is a hidden native `<input type="file">` triggered by an `IconButton`
+  // (ADR 0053's own escape hatch for file-choosing, since a file picker's OS chrome cannot be restyled the way a text input or
+  // select can - the same reason `ManuscriptSelectFile` uses a native OS dialog).
+  input: { 'src/components/proof/ProoferSheet.tsx': 1 },
   textarea: {},
   table: {},
   thead: {},

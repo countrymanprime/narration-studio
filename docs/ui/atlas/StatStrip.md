@@ -12,4 +12,3 @@ Storybook title: `Primitives/StatStrip`. Source: `src/components/primitives/Stat
 ## Used by
 
 - `src/components/production/ProductionPage.tsx`
-- `src/components/proof/RecordingCheckCard.tsx`

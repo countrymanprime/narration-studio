@@ -10,7 +10,6 @@ import {
   type PickupsImportReport,
   type PickupsImportResult,
   type PickupsMoment,
-  type PickupsPunchResult,
   type PickupsStartResult,
   type PickupsState,
 } from '../contracts/pickups';
@@ -57,18 +56,6 @@ export const pickupsImportResultSchema = z.object({
     .nullish()
     .transform((value) => value ?? []),
 }) satisfies z.ZodType<PickupsImportResult>;
-
-/** `PickupsPunch` (`apps/desktop/pickupspunch.go`). */
-export const pickupsPunchResultSchema = z
-  .object({
-    outcome: z.enum(['punched', 'refused']),
-    cursor: z.number().optional(),
-    message: z.string().optional(),
-  })
-  .refine((result) => (result.outcome === 'punched') === (result.cursor !== undefined), {
-    message: 'a punch cursor comes with outcome "punched", and only with it',
-    path: ['cursor'],
-  }) satisfies z.ZodType<PickupsPunchResult>;
 
 const pickupItemSchema = z
   .object({

@@ -1,216 +1,110 @@
-// How to reach each `proof` state (Proof's book level) in STATE_CATALOG (see app.drivers.ts).
-import type { Page } from '@playwright/test';
+// How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
+import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import {
-  type Driver,
-  compareTakes,
-  confirmApprovedMarker,
-  goToPage,
-  openDeliveryFindingOnProof,
-  MISREAD_DETAIL,
-  openFindingRow,
-  openPickupGroup,
-  openReaperControls,
-  openLinkedProofChapter,
-  openProof,
-  openScanDialog,
-  pressInReaper,
-  scanChapterOne,
-  showReaperControls,
-  waitForFindingRows,
-} from './shared';
+import { type Driver, goToPage } from './shared';
 
-// Picks a chapter in the waveform card's selector by its name (the option starts with it, then " — " and a subtitle), which also
-// narrows the notes table to that chapter, and waits for the table to settle on it.
-async function pickWaveformChapter(page: Page, chapterTitle: string): Promise<void> {
-  const picker = page.getByRole('combobox', { name: 'Chapter to open' });
-  const label = (await picker.locator('option').allTextContents()).find((text) => text === chapterTitle || text.startsWith(`${chapterTitle} — `));
-  if (!label) throw new Error(`no chapter named ${chapterTitle} in Proof's picker`);
-  await picker.selectOption({ label });
-  await page.waitForFunction(
-    ([title]) => [...document.querySelectorAll('table[aria-label="Notes"] tbody tr[data-row]')].every((row) => row.textContent?.includes(title)),
-    [chapterTitle],
-  );
+const notes = (page: Page): Locator => page.getByRole('region', { name: 'Notes' });
+const inspector = (page: Page): Locator => page.getByRole('complementary', { name: 'Note' });
+
+// Opens Proof (booted with a main.tsx mock seed first when one is given) and waits for its notes and the Inspector on the first one.
+async function openProof(page: Page, seed?: string, rows = true): Promise<void> {
+  if (seed) {
+    await page.goto(`/?${seed}`);
+    await settlePage(page);
+  }
+  await goToPage(page, 'Proof');
+  await page.getByText('Open notes, by chapter').waitFor();
+  if (rows) {
+    await notes(page).locator('tr[data-row]').first().waitFor();
+    await inspector(page).waitFor();
+  }
+}
+
+// Picks one chapter in the head's chapter stepper and waits for its recording check card to have read the chapter.
+async function openChapter(page: Page, chapterTitle: string): Promise<void> {
+  await page.getByRole('button', { name: /^Chapter: .*\. Change chapter$/ }).click();
+  await page.getByRole('menuitemradio', { name: new RegExp(`^${chapterTitle}( — |$)`) }).click();
+  await page.getByText('Open notes, by chapter').waitFor({ state: 'detached' });
+  await page.getByText('Recording check', { exact: true }).waitFor();
 }
 
 export const proofDrivers: Record<string, Driver> = {
   default: async (page) => {
-    // Chapter 1 is linked to its track first, so the book-level waveform card draws its real stored peaks (ADR 0715)
-    // rather than its empty state; no chapter starts linked in the mock. Linking also seeds the workspace's own misread
-    // as a fifth note (the mock's lazy overlay finding).
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await goToPage(page, 'Proof');
-    await waitForFindingRows(page, 5);
-  },
-  'no-recording': async (page) => {
     await openProof(page);
-    await page.getByRole('img', { name: /placeholder waveform/i }).waitFor();
   },
-  'chapter-selected': async (page) => {
-    await openLinkedProofChapter(page, 'Chapter 1');
-    await goToPage(page, 'Proof');
-    await waitForFindingRows(page, 5);
-    // Chapter 1 is what the card opens on; picking Chapter 2 and back is what narrows the table to Chapter 1.
-    await pickWaveformChapter(page, 'Chapter 2');
-    await pickWaveformChapter(page, 'Chapter 1');
-    await page.getByRole('button', { name: 'Show all chapters' }).waitFor();
-    await page.getByRole('region', { name: "The chapter's waveform" }).waitFor();
+  chapter: async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.locator('[data-pin]').first().waitFor();
+    await page
+      .getByLabel(/takes at this spot/)
+      .first()
+      .waitFor();
   },
-  'chapter-filtered': async (page) => {
+  'chapter-no-recording': async (page) => {
     await openProof(page);
-    await pickWaveformChapter(page, 'Chapter 2');
-    await page.getByRole('img', { name: /placeholder waveform/i }).waitFor();
-    await page.getByRole('button', { name: 'Show all chapters' }).waitFor();
+    await openChapter(page, 'Chapter 2');
+    await page.getByText('No recording for this chapter yet.').waitFor();
   },
-  empty: async (page) => {
-    await page.goto('/?mockFindings=empty');
-    await settlePage(page);
-    await goToPage(page, 'Proof');
-    await page.getByRole('heading', { name: 'No notes yet' }).waitFor();
+  'takes-lanes': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await notes(page)
+      .locator('tr[data-row]')
+      .filter({ hasText: /pink eyes/ })
+      .click();
+    await page.locator('[data-band]').first().waitFor();
+    await inspector(page).getByRole('region', { name: 'Takes at this spot' }).waitFor();
   },
-  filtered: async (page) => {
+  'check-stale': async (page) => {
+    await openProof(page, 'mockCoverage=stale');
+    await openChapter(page, 'Chapter 4');
+    await page.getByText('Out of date').waitFor();
+  },
+  'check-never': async (page) => {
     await openProof(page);
-    // Mock 04 draws no filter row: open the popover, so
-    // the capture shows which filters are narrowing the list rather than just the narrowed list on its own.
-    await page.getByRole('button', { name: /^Filters/ }).click();
-    await page.getByRole('combobox', { name: 'Check' }).selectOption({ label: 'Local AI compare' });
-    await page.getByRole('switch', { name: 'Only findings scored 50% or more' }).click();
-    await waitForFindingRows(page, 1);
+    await openChapter(page, 'Chapter 7');
+    await page.getByText('Not checked yet').waitFor();
   },
-  'filtered-empty': async (page) => {
-    await openProof(page);
-    await page.getByRole('button', { name: /^Filters/ }).click();
-    await page.getByRole('combobox', { name: 'Status' }).selectOption({ label: 'Deferred' });
-    await page.getByText('No findings match these filters.').waitFor();
+  'check-checking': async (page) => {
+    await openProof(page, 'mockCoverage=hold');
+    await openChapter(page, 'Chapter 4');
+    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog
+      .getByRole('button', { name: /^Check / })
+      .last()
+      .click();
+    // The run holds at its last step (?mockCoverage=hold), so the dialog reads the same at every viewport; it stays open while it runs.
+    await dialog.getByText(/^Checking with /).waitFor();
+    await page.getByText('Checking the recording against the script…').waitFor({ state: 'attached' });
   },
-  'detail-open': async (page) => {
+  'notes-filtered': async (page) => {
     await openProof(page);
-    await openFindingRow(page, /pink eyes/, MISREAD_DETAIL);
+    await notes(page)
+      .getByRole('button', { name: /^To review/ })
+      .click();
+    await notes(page).getByRole('heading', { name: /of 4$/ }).waitFor();
   },
-  'decision-saved': async (page) => {
+  'find-open': async (page) => {
     await openProof(page);
-    await openFindingRow(page, /pink eyes/, MISREAD_DETAIL);
-    await page.getByRole('textbox', { name: 'Note (optional)' }).fill('Re-record this line in the pickup session.');
-    await page.getByRole('button', { name: 'Pickup', exact: true }).click();
-    const saved = page.getByText('Saved: needs a pickup.');
-    await saved.waitFor();
-    await saved.scrollIntoViewIfNeeded();
+    await notes(page).getByRole('button', { name: 'Find in notes' }).click();
+    await notes(page).getByPlaceholder('Find in notes').fill('rabbit');
+    await notes(page).getByRole('heading', { name: /of 4$/ }).waitFor();
   },
   'evidence-changed': async (page) => {
-    await page.goto('/?mockFindings=changed');
-    await settlePage(page);
-    await openProof(page);
-    await openFindingRow(page, /pink eyes/, MISREAD_DETAIL);
-    await page.getByRole('textbox', { name: 'Note (optional)' }).fill('Pale is close enough.');
-    await page.getByRole('button', { name: 'Waive', exact: true }).click();
-    const refused = page.getByRole('alert').filter({ hasText: 'this finding changed since you opened it' });
-    await refused.waitFor();
-    await refused.scrollIntoViewIfNeeded();
+    // The seed's analyzer runs again once the page has read the notes, so opening the note's chapter reads it with new evidence: the
+    // Inspector keeps the evidence it showed, puts up the banner and holds every decision until the new evidence is taken.
+    await openProof(page, 'mockFindings=changed');
+    await notes(page)
+      .locator('tr[data-row]')
+      .filter({ hasText: /pink eyes/ })
+      .click();
+    await inspector(page).getByText('The evidence changed', { exact: true }).waitFor();
+    await inspector(page).getByRole('textbox').fill('Heard it twice; the second read is right.');
   },
-  'not-in-latest-run': async (page) => {
-    await openProof(page);
-    await page.getByRole('button', { name: /^Filters/ }).click();
-    await page.getByRole('switch', { name: 'Include findings the latest run did not repeat' }).click();
-    // The state's capture is the opened finding, not the filters popover: close it (Escape, as Popover's own docs say).
-    await page.keyboard.press('Escape');
-    await waitForFindingRows(page, 5);
-    await openFindingRow(page, /Antipathies/, 'Pronunciation');
-  },
-  'reaper-go-to': async (page) => {
-    await openReaperControls(page);
-    await pressInReaper(page, 'Go to in REAPER', page.getByText('REAPER selected the item and moved the cursor to 0:12.4.'));
-  },
-  'reaper-looping': async (page) => {
-    await openReaperControls(page);
-    await pressInReaper(page, 'Loop in REAPER', page.getByRole('button', { name: 'Stop loop' }));
-  },
-  'reaper-stale': async (page) => {
-    await openReaperControls(page, 'stale');
-    await pressInReaper(page, 'Go to in REAPER', page.getByRole('alert').filter({ hasText: 'no longer in the REAPER project' }));
-  },
-  'reaper-not-running': async (page) => {
-    await openReaperControls(page, 'not-running');
-    await showReaperControls(page, page.getByText(/REAPER is not answering/));
-  },
-  'reaper-standalone': async (page) => {
-    await openReaperControls(page, 'standalone');
-    await showReaperControls(page, page.getByText(/open this app from the Narration Utils action in REAPER/));
-  },
-  'audacity-detail': async (page) => {
-    await page.goto('/?mockDaw=Audacity');
-    await settlePage(page);
-    await openProof(page);
-    await openFindingRow(page, /pink eyes/, MISREAD_DETAIL);
-    await page.getByRole('heading', { name: 'In REAPER' }).waitFor({ state: 'detached' });
-    // Without the REAPER section, Decision sits right under the evidence at every viewport - scrolled into view so the
-    // capture actually shows that, not just the title area detail-open's own driver leaves in frame (identical there
-    // at the shorter small-desktop/tablet heights, since neither reaches this far without it).
-    await page.getByRole('heading', { level: 3, name: 'Decision' }).scrollIntoViewIfNeeded();
-  },
-  'reaper-marker-confirm': async (page) => {
-    await confirmApprovedMarker(page);
-  },
-  'take-review-scan-form': async (page) => {
-    await openScanDialog(page);
-  },
-  'take-review-scan-progress': async (page) => {
-    await page.goto('/?mockTakeReviewScan=running');
-    await settlePage(page);
-    const form = await openScanDialog(page);
-    await form.getByRole('button', { name: 'Start scan' }).click();
-    const progress = page.getByRole('dialog', { name: 'Finding pickups and duplicates' });
-    await progress.getByRole('status').filter({ hasText: 'Transcribing read 2/4' }).waitFor();
-  },
-  'take-review-results': async (page) => {
-    await scanChapterOne(page);
-  },
-  'take-review-group': async (page) => {
-    await openPickupGroup(page);
-    await page.getByRole('region', { name: 'Reads' }).scrollIntoViewIfNeeded();
-  },
-  'take-review-read-looping': async (page) => {
-    const reads = await openPickupGroup(page);
-    await reads.getByRole('button', { name: 'Loop read 2 in REAPER' }).click();
-    await reads.getByRole('button', { name: 'Stop loop' }).waitFor();
-    await reads.scrollIntoViewIfNeeded();
-  },
-  'take-review-audition': async (page) => {
-    const reads = await openPickupGroup(page);
-    await reads.getByRole('button', { name: 'Audition reads' }).click();
-    await page.getByRole('dialog', { name: 'Audition candidate reads' }).waitFor();
-  },
-  'take-review-add-take': async (page) => {
-    await openPickupGroup(page);
-    await page.getByRole('button', { name: 'Pickup', exact: true }).click();
-    await page.getByText('Saved: needs a pickup.').waitFor();
-    await page.getByRole('region', { name: 'Reads' }).getByRole('button', { name: 'Add as take…' }).click();
-    const dialog = page.getByRole('alertdialog', { name: 'Add candidate as a new take' });
-    await dialog.getByRole('combobox', { name: 'Target item' }).selectOption({ index: 1 });
-    await dialog.getByRole('combobox', { name: 'Candidate read' }).selectOption({ index: 1 });
-  },
-  'take-comparison-progress': async (page) => {
-    await page.goto('/?mockTakeComparison=running');
-    await settlePage(page);
-    const reads = await openPickupGroup(page);
-    await reads.getByRole('button', { name: 'Compare takes…' }).click();
-    const progress = page.getByRole('dialog', { name: 'Comparing takes' });
-    await progress.getByRole('status').filter({ hasText: 'Transcribing take 2/2' }).waitFor();
-  },
-  'take-comparison': async (page) => {
-    const comparison = await compareTakes(page);
-    await comparison.scrollIntoViewIfNeeded();
-  },
-  'take-comparison-measurements': async (page) => {
-    const comparison = await compareTakes(page);
-    await comparison.getByRole('table', { name: 'The audio of each read' }).scrollIntoViewIfNeeded();
-  },
-  'reaper-marker-added': async (page) => {
-    const dialog = await confirmApprovedMarker(page);
-    await dialog.getByRole('button', { name: 'Add marker', exact: true }).click();
-    await dialog.waitFor({ state: 'detached' });
-    await showReaperControls(page, page.getByText(/^Marker added in REAPER: MISREAD:/));
-  },
-  'delivery-finding': async (page) => {
-    await openDeliveryFindingOnProof(page);
+  empty: async (page) => {
+    await openProof(page, 'mockFindings=empty', false);
+    await page.getByText('No notes yet.').waitFor();
   },
 };

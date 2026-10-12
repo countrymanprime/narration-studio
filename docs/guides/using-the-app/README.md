@@ -16,8 +16,8 @@ Read them in order the first time, or jump straight to the page you need.
 | [Script](script.md) | Prep: the chapter list with each chapter's prep state, the continuous reader with your marks, speakers and bookmarks, and the rail of words, Story Bible entries, notes, queries and bookmarks. |
 | [Story Bible](story-bible.md) | Characters, places, and organizations with how you say each name, notes, and the suggestions a scan or an import offers. |
 | [Booth](booth.md) | Where you record: a live read-along that follows you as you narrate a chapter, with companion mode beside your DAW. |
-| [Proof](proof.md) | Every check's findings in one list, with the evidence and your accept, dismiss or defer decision on each; and, per chapter, listening to the recording against its script, comparing it to the manuscript, and seeing the recording check's flags in place. |
-| [Pickups](pickups.md) | A proofer's pickup list: importing and exporting it as CSV, jumping through what is left, opening a pickup's chapter in Proof, and marking each one done. |
+| [Proof](proof.md) | Every check's notes in one list, all chapters or one, with the chapter's recording check and waveform, the evidence and your pickup, edit, waive or defer decision on each; and the chapter view, for listening to the recording against its script, comparing it to the manuscript, and choosing between takes. |
+| [Pickups](pickups.md) | Every line to record again, from the recording check, your Proof notes and lines you add, grouped by chapter, with the pickup session that opens them in the Booth. |
 | [Master & QC](master-and-qc.md) | Finish: checking rendered files against a platform's delivery profile, why a file fails and how to fix it, the mastering chain, mastering and encoding to spec, and building the platform's delivery package. |
 | [Settings](settings.md) | Global and per-project settings, appearance, and clearing project data. |
 

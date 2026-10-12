@@ -15,6 +15,7 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 
 ## Used by
 
+- `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/EnginePanel.tsx`
@@ -28,7 +29,6 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/production/RecordingCheckReport.tsx`
 - `src/components/production/pipeline/PipelineTable.tsx`
-- `src/components/proof/FindingsList.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/TakeComparisonView.tsx`
 - `src/components/proof/notes/NotesTable.tsx`

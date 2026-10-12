@@ -1,266 +1,161 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { EnginePanelLink } from '../engine/EnginePanelContext';
-import { useApi } from '../../api/ApiContext';
-import type { TrackMapping } from '../../api/contracts/chapterTrackMap';
-import type { TracksProject } from '../../api/contracts/tracks';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { PickupItem, PickupList } from '../../api/contracts/pickups';
+import type { Measured } from '../../api/schemas/base';
+import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
-import { Button } from '../primitives/Button';
-import { CapabilityGate } from '../primitives/CapabilityGate';
-import { Heading } from '../primitives/Heading';
-import { Panel } from '../primitives/Panel';
-import { SectionLabel } from '../primitives/SectionLabel';
-import { StatusBadge } from '../primitives/StatusBadge';
-import { formatTime } from '../proof/findingFormat';
+import { useOverlay } from '../../overlay/OverlayProvider';
+import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
-import type { PickupsMoment } from '../../types';
-import { chaptersAtPosition, type PickupChapter } from './pickupChapters';
-import { usePickupsState } from './usePickupsState';
+import { useDawKind } from '../../useDawKind';
+import type { ManuscriptChapter } from '../../types';
+import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
+import { NeedManuscript } from '../script/page/layout/NeedManuscript';
+import { ALL_SCOPE, inScope, plainLine, type ChapterRef } from './list/pickupRows';
+import { PickupsTable, type RemoveUndo } from './list/PickupsTable';
+import { SessionPanel } from './list/SessionPanel';
 
-// Triggers a browser "Save As" for csv, under name, without a native file-dialog binding: the WebView2 host
-// handles a download the same way a real browser does.
-function downloadCSV(csv: string, name: string): void {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
+const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
+const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 
-function ImportRowErrors({ rowErrors }: { rowErrors: string[] }) {
-  if (rowErrors.length === 0) return null;
-  return (
-    <div className="mt-2 text-sm" style={{ color: 'var(--warn-text)' }}>
-      <p>
-        {rowErrors.length} row{rowErrors.length === 1 ? '' : 's'} could not be used:
-      </p>
-      <ul className="list-inside list-disc">
-        {rowErrors.map((row) => (
-          <li key={row}>{row}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** Where a pickup sits in the book: every linked chapter whose track holds it, each a link to that chapter's Proof view at
- * the pickup's own place (`?t=`), or a plain line when no linked chapter track does. */
-function PickupChapterLinks({ matches }: { matches: PickupChapter[] | undefined }) {
-  if (matches === undefined) return null;
-  if (matches.length === 0) {
-    return (
-      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        Not on a linked chapter track, so there is no chapter to open in Proof. Link chapters to their tracks in the audio engine panel. <EnginePanelLink />
-      </p>
-    );
-  }
-  return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-      {matches.map((match) => (
-        <li key={match.chapterId}>
-          <Link to={`/proof/${encodeURIComponent(match.chapterId)}?t=${Math.round(match.elapsed * 100) / 100}`} className="font-semibold underline">
-            Open {match.title} in Proof
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
+/** The Booth's address for a pickup session: the first line's chapter, and the pickups in the order they were chosen. */
+export function boothSessionPath(pickups: readonly PickupItem[]): string {
+  const chapter = pickups[0]?.chapterId;
+  const query = new URLSearchParams();
+  if (chapter) query.set('chapter', chapter);
+  query.set('pickups', pickups.map((pickup) => pickup.id).join(','));
+  return `/booth?${query.toString()}`;
 }
 
 /**
- * Pickups (benchmark mock 04's Review › Pickups): the book's pickup list
- * from the proofer's REAPER markers - import a proofer's CSV, jump
- * through the remaining pickups, open one's chapter in Proof, punch or mark it done, export what is left - and the
- * pickup session slot closed-loop proofing fills. It replaces the Tracks page's Pickups dialog (ADR 0407).
+ * Pickups (Studio Next mock `pages/Pickups.tsx`): the host's merged pickup list (ADR 0840) grouped by chapter, with the pickup session
+ * beside it. The page points at the Booth and records nothing itself: there is no Punch and no Next pickup here (DQ-6). Reading the
+ * list on open is what reconciles it with the DAW's markers; every change answers the whole list.
  */
-export function PickupsPage() {
-  const api = useApi();
-  const punchCapability = useCapability('punch');
-  const state = usePickupsState();
-  const [rowErrors, setRowErrors] = useState<string[]>([]);
-  const [requestError, setRequestError] = useState('');
-  // "Punch from here": the pickup's own position is already a project time, so
-  // there is nothing to preview - the button moves REAPER's edit cursor straight away, like Next pickup and Mark done.
-  const [punching, setPunching] = useState(false);
-  // A run that starts (Go's begin(), mirrored by the mock) clears `next`/`resolved` from state, so this survives
-  // across the Resolve run that follows a Next: without it, "Mark this pickup done" and its pending state would
-  // disappear the instant Resolve starts, before it has anything to show for itself.
-  const [activeNext, setActiveNext] = useState<PickupsMoment>();
-  // What a pickup's project time is matched against to find its chapter; undefined until read, or when it cannot be.
-  const [book, setBook] = useState<{ project: TracksProject; mappings: TrackMapping[]; chapters: { id: string; title: string }[] }>();
-  const fileInput = useRef<HTMLInputElement>(null);
+export function PickupsPage({
+  hasManuscript,
+  goTo,
+  goToScript,
+}: {
+  hasManuscript: boolean;
+  goTo: (path: string) => void;
+  goToScript: (chapterId: string) => void;
+}) {
+  const pickupsApi = usePort('pickups');
+  const manuscriptApi = usePort('manuscript');
+  const measurements = usePort('measurements');
+  const daw = usePort('daw');
+  const overlay = useOverlay();
+  const review = useCapability('review');
+  const markers = useCapability('markers');
+  const dawKind = useDawKind();
+  const [chapters, setChapters] = useState<ChapterRef[]>([]);
+  const [list, setList] = useState<PickupList>({ pickups: [], leftOut: [] });
+  const [scope, setScope] = useState(ALL_SCOPE);
+  const [current, setCurrent] = useState('');
+  const [seconds, setSeconds] = useState<Measured<number>>(LOADING);
 
   useEffect(() => {
-    let active = true;
-    // The chapter links, the project's tracks and the chapters, read once: with any missing (no manuscript, no linked
-    // project file) a pickup just has no chapter to open, and the rest of the page works the same.
-    Promise.all([api.manuscriptChapters(), api.chapterTrackMapList(), api.tracksList()])
-      .then(([chapters, mapping, project]) => {
-        if (active) setBook({ project, mappings: mapping.mappings, chapters: chapters.map((chapter) => ({ id: chapter.id, title: chapterName(chapter) })) });
+    if (!hasManuscript) return;
+    let live = true;
+    Promise.all([manuscriptApi.manuscriptChapters(), pickupsApi.pickupsList()])
+      .then(([all, answer]) => {
+        if (!live) return;
+        setChapters(all.filter(isNarration).map((chapter) => ({ id: chapter.id, name: chapterName(chapter) })));
+        setList(answer);
       })
-      .catch(() => {});
+      .catch((error: unknown) => live && overlay.toast(describeApiError(error), { tone: 'error' }));
     return () => {
-      active = false;
+      live = false;
     };
-  }, [api]);
+  }, [manuscriptApi, pickupsApi, hasManuscript, overlay]);
 
+  const inView = useMemo(() => inScope(list.pickups, scope), [list.pickups, scope]);
+  const sessionIds = useMemo(() => inView.filter((p) => !p.done && p.included).map((p) => p.id), [inView]);
+  const sessionKey = sessionIds.join('\n');
   useEffect(() => {
-    if (state.phase === 'success' && state.csv) downloadCSV(state.csv, 'pickups.csv');
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once per completed export (a fresh runId), not on every render
-  }, [state.runId, state.csv]);
+    let live = true;
+    measurements.pickupSessionSeconds(sessionKey ? sessionKey.split('\n') : []).then(
+      (answer) => live && setSeconds(answer),
+      (error: unknown) => live && setSeconds({ ok: false, reason: describeApiError(error) }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [measurements, sessionKey]);
 
-  useEffect(() => {
-    if (state.phase === 'success' && state.next) setActiveNext(state.next);
-    else if (state.phase === 'success' && state.resolved) setActiveNext(undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once per completed run (Next and Resolve on the same runId both flip phase to 'success')
-  }, [state.runId, state.phase]);
-
-  const nextChapters = useMemo(
-    () => (activeNext ? (book ? chaptersAtPosition(activeNext.position, book.project, book.mappings, book.chapters) : []) : undefined),
-    [activeNext, book],
-  );
-
-  const pickFile = () => fileInput.current?.click();
-  const importFile = async (file: File) => {
-    setRequestError('');
-    setRowErrors([]);
-    const text = await file.text();
-    try {
-      const result = await api.pickupsImport(text);
-      setRowErrors(result.rowErrors);
-    } catch (reason: unknown) {
-      setRequestError(String(reason));
+  const changing = useCallback(async (run: Promise<PickupList>) => setList(await run), []);
+  const choose = (next: string) => {
+    setScope(next);
+    if (next !== ALL_SCOPE) setCurrent(next);
+  };
+  const step = (direction: -1 | 1) => {
+    if (scope === ALL_SCOPE) {
+      const back = chapters.find((c) => c.id === current) ?? chapters[0];
+      if (back) choose(back.id);
+      return;
     }
+    const next = chapters[chapters.findIndex((c) => c.id === scope) + direction];
+    if (next) choose(next.id);
   };
-  const next = () => {
-    setRequestError('');
-    api.pickupsNext().catch((reason: unknown) => setRequestError(String(reason)));
+
+  // A line added by hand can be put back; the host keeps an automatic line off once removed, so it has no Undo.
+  const remove = async (id: string): Promise<RemoveUndo | undefined> => {
+    const pickup = list.pickups.find((p) => p.id === id);
+    await changing(pickupsApi.pickupsRemove(id));
+    if (!pickup || pickup.source !== 'you' || pickup.time === null) return undefined;
+    const { chapterId, time, script } = pickup;
+    return async () => {
+      try {
+        await changing(pickupsApi.pickupsAdd(chapterId, time, plainLine(script)));
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, refusal: { reason: describeApiError(error) } };
+      }
+    };
   };
-  const resolveCurrent = () => {
-    if (!activeNext) return;
-    setRequestError('');
-    api.pickupsResolve(activeNext.position).catch((reason: unknown) => setRequestError(String(reason)));
+
+  const addMarkers = async (picked: PickupItem[]) => {
+    const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
+    const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: plainLine(p.script) })));
+    if (!result.ok) throw new Error(result.message);
+    overlay.toast(result.message);
+    setList(await pickupsApi.pickupsList());
   };
-  const punchCurrent = async () => {
-    if (!activeNext) return;
-    setRequestError('');
-    setPunching(true);
-    try {
-      const result = await api.pickupsPunch(activeNext.position);
-      if (result.outcome === 'refused') setRequestError(result.message ?? 'Punch from here failed.');
-    } catch (reason: unknown) {
-      setRequestError(String(reason));
-    } finally {
-      setPunching(false);
-    }
-  };
-  const exportList = () => {
-    setRequestError('');
-    api.pickupsExport().catch((reason: unknown) => setRequestError(String(reason)));
-  };
+
+  if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
+
+  const openInBooth = (picked: PickupItem[]) => goTo(boothSessionPath(picked));
+  const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div className="min-w-0">
-        <Heading title="Pickups">Import a proofer&apos;s pickup list, jump through what&apos;s left, and mark each one done as you re-record it.</Heading>
-      </div>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <Panel
-          title="Pickup list"
-          actions={
-            <>
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  if (file) void importFile(file);
-                }}
-              />
-              <Button variant="secondary" onClick={pickFile} pending={state.phase === 'importing'}>
-                Import proofer CSV…
-              </Button>
-              <Button variant="secondary" onClick={exportList} disabled={state.total === 0} pending={state.phase === 'exporting'}>
-                Export CSV
-              </Button>
-            </>
-          }
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-lg font-semibold">
-              {state.total > 0 ? `${state.remaining} pickup${state.remaining === 1 ? '' : 's'} remaining of ${state.total}` : 'No pickups yet'}
-            </p>
-            {state.total > 0 && state.total > state.remaining && <StatusBadge tone="success" label={`${state.total - state.remaining} done`} />}
-          </div>
-
-          <ImportRowErrors rowErrors={rowErrors} />
-          {state.phase === 'success' && state.importReport && (
-            <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-              {state.message}
-            </p>
-          )}
-
-          <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold">Next pickup</h3>
-              <Button onClick={next} disabled={state.remaining === 0} pending={state.phase === 'jumping'}>
-                Next pickup
-              </Button>
-            </div>
-            {activeNext && (
-              <div className="mt-2 flex flex-col gap-2 text-sm">
-                <p>
-                  <span className="mr-1.5 font-mono">{formatTime(activeNext.position)}</span>
-                  {activeNext.tag && <SectionLabel className="mr-1.5">{activeNext.tag}</SectionLabel>}
-                  {activeNext.note}
-                </p>
-                <PickupChapterLinks matches={nextChapters} />
-                <div className="flex flex-wrap gap-2">
-                  <CapabilityGate capability={punchCapability}>
-                    <Button variant="secondary" onClick={punchCurrent} pending={punching}>
-                      Punch from here
-                    </Button>
-                  </CapabilityGate>
-                  <Button variant="secondary" onClick={resolveCurrent} pending={state.phase === 'resolving'}>
-                    Mark this pickup done
-                  </Button>
-                </div>
-              </div>
-            )}
-            {state.phase === 'success' && state.resolved && (
-              <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                Marked done: {state.resolved.note}
-              </p>
-            )}
-          </div>
-
-          {requestError && (
-            <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-              {requestError}
-            </p>
-          )}
-          {state.phase === 'error' && (
-            <p role="alert" className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>
-              {state.message}
-            </p>
-          )}
-        </Panel>
-        {/* Mock 04's right panel: closed-loop proofing plans a chapter's session. Until then
-            the slot says so rather than drawing an empty plan. */}
-        <Panel title="Pickup session" actions={<StatusBadge tone="neutral" label="Coming soon" />}>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Planning a pickup session is not available yet. It will gather a chapter&apos;s pickups in script order, each with its line in context, ready to
-            record in one sitting. For now, work through the list with Next pickup.
-          </p>
-        </Panel>
-      </div>
+    <div className="grid items-start gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_360px]">
+      <PickupsTable
+        pickups={list.pickups}
+        chapters={chapters}
+        scope={scope}
+        currentChapterId={current || chapters[0]?.id || ''}
+        chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
+        daw={{ available: review.available, message: review.message }}
+        onScope={choose}
+        onStep={step}
+        onCheck={(ids) => openCheckRecordings(ids)}
+        onAdd={(chapterId, time, line) => changing(pickupsApi.pickupsAdd(chapterId, time, line))}
+        onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
+        onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
+        onRemove={remove}
+        onOpenInBooth={openInBooth}
+        onOpenInScript={goToScript}
+        onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
+      />
+      <SessionPanel
+        pickups={inView}
+        chapters={chapters}
+        seconds={seconds}
+        dawName={dawName}
+        markers={{ available: markers.available, message: markers.message }}
+        onOpenInBooth={openInBooth}
+        onAddMarkers={addMarkers}
+      />
     </div>
   );
 }

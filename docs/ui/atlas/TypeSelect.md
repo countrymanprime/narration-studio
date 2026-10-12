@@ -22,4 +22,4 @@ Storybook title: `Proof/TypeSelect`. Source: `src/components/proof/inspector/Typ
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/proof/ProofPage.tsx`

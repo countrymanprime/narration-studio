@@ -14,4 +14,5 @@ Storybook title: `Proof/NotesPanel`. Source: `src/components/proof/notes/NotesPa
 
 ## Used by
 
+- `src/components/proof/ProofPage.tsx`
 - `src/components/proof/notes/NotesList.tsx`

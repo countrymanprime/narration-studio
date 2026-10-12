@@ -5,7 +5,6 @@ import {
   diagnosticsEnded,
   measurementEnded,
   measureOnMaster,
-  openDeliveryFindingOnProof,
   openDiagnostics,
   openMaster,
   pickFilesToMaster,
@@ -197,14 +196,5 @@ export const masterDrivers: Record<string, Driver> = {
     await panel.getByRole('list', { name: 'Multi-platform export results' }).waitFor();
     while ((await dismiss.count()) > 0) await dismiss.first().click();
     await scrollToTop(page, panel);
-  },
-  'from-proof': async (page) => {
-    await openDeliveryFindingOnProof(page);
-    await page.getByRole('button', { name: 'Open in Master & QC' }).click();
-    await page.getByRole('table', { name: 'Chapter 01.wav, rule by rule' }).waitFor();
-    // The page scrolls the note and the file's rules into view itself; wait for it to settle there.
-    const note = page.getByText('Opened from a note on Proof: sample rate in Chapter 01.wav.');
-    await note.waitFor();
-    await note.scrollIntoViewIfNeeded();
   },
 };

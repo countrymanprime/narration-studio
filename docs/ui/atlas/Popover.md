@@ -13,13 +13,11 @@ Storybook title: `Primitives/Popover`. Source: `src/components/primitives/Popove
 
 ## Used by
 
-- `src/components/booth/ReadingControlBar.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/booth/reading/SpeakerChip.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/primitives/Dialog.tsx`
 - `src/components/production/target/TargetInfoButton.tsx`
-- `src/components/proof/ProofPage.tsx`
 - `src/components/script/bookmarks/ui/BookmarkEditor.tsx`
 - `src/components/script/page/rail/words/DefinitionSourceMenu.tsx`
 - `src/components/script/page/registry/useScriptRegistry.ts`

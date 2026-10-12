@@ -30,17 +30,9 @@ import { CompareRun } from './CompareRun';
 import { overlayDiscrepancies } from './compareFlags';
 import { PreviewPanel } from './PreviewPanel';
 import { ProofingStagePanel } from './ProofingStagePanel';
-import { usePickupsState } from '../pickups/usePickupsState';
-import { FindingDetail } from './FindingDetail';
-import { FindingsList } from './FindingsList';
 import { NativeTakesPanel } from './NativeTakesPanel';
 import { TakesPanel } from './TakesPanel';
-import { NotesHeader, SourcesLine } from './NotesHeader';
-import { NotesStrip } from './NotesStrip';
-import { RecordingCheckCard } from './RecordingCheckCard';
-import { resolutionCounts } from './resolution';
 import { useReaperStatus } from './useReaperStatus';
-import { useDawKind } from '../../useDawKind';
 
 /** How long before a clicked word's start the app player starts, so the narrator hears it in context. */
 const PRE_ROLL_SECONDS = 1;
@@ -58,17 +50,13 @@ type ChapterViewProps = {
   /** The compare run and its REAPER actions need a linked project file. */
   dawFileLinked: boolean;
   goToManuscript: (chapter: string, paragraph?: number) => void;
-  /** Opens a Story Bible entry, for a note about one (a note's detail, as on the book level). */
-  goToStoryBible: (entityId: string) => void;
   /** Changes after a manuscript import or replacement, so the stage panel reads again. */
   refreshKey: string;
 };
 
 /**
- * Proof's chapter view, `/proof/:chapterId`, led by the notes (ADR 0470): the Sources line, a strip of the
- * chapter's notes over its recording (NotesStrip), the chapter's notes table and a note's detail with Play ±3 s, and the
- * recording-check card. Under it: the chapter
- * workspace, with the compare run folded in. It plays
+ * The chapter workspace, `/proof/:chapterId`, until the Editing swap replaces it (its notes moved to the Studio Next Proof page,
+ * SNQ-9), with the compare run folded in. It plays
  * the chapter's recorded audio in the app, honouring each item's played range, follows the script with a karaoke
  * highlight and auto-scroll, shows the check's flags inline, and seeks on a click, with Go to/Loop in REAPER
  * for the word at the playhead (`useWorkspaceReaper`). The chapter's stored findings are overlaid on the same
@@ -82,13 +70,9 @@ export function ProofChapterPage(props: ChapterViewProps) {
   return <ChapterView key={chapterId} chapterId={chapterId} {...props} />;
 }
 
-function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, goToStoryBible, refreshKey }: ChapterViewProps & { chapterId: string }) {
+function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, refreshKey }: ChapterViewProps & { chapterId: string }) {
   const api = useApi();
-  const pickups = usePickupsState();
   const reaperStatus = useReaperStatus();
-  const dawKind = useDawKind();
-  // The note open in the notes detail, by id, so a re-read of the chapter's findings shows its latest version.
-  const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [searchParams] = useSearchParams();
 
   const [chapter, setChapter] = useState<ManuscriptChapter>();
@@ -244,11 +228,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     const index = flags.findIndex((flag) => flag.findingId === findingId);
     if (index === -1) return;
     appliedFindingLinkRef.current = true;
-    setSelectedFindingId(findingId);
     selectFlag(index);
   }, [flags, searchParams, selectFlag]);
-
-  const selectedFinding = findings.find((finding) => finding.id === selectedFindingId);
 
   const stepWord = useCallback(
     (direction: -1 | 1) => {
@@ -327,7 +308,6 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
             <Heading title={`Proof · ${chapterName(chapter)}`} />
-            <SourcesLine analyzers={[...new Set(findings.map((finding) => finding.analyzer))]} proofer={pickups.total > 0} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}
@@ -357,47 +337,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
             </p>
           </Panel>
         )}
-        <NotesStrip findings={findings} items={trackItems ?? []} selectedId={selectedFindingId} onSelect={(finding) => setSelectedFindingId(finding.id)} />
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-          <FindingsList
-            page={{ findings, total: findings.length }}
-            selectedId={selectedFindingId}
-            onSelect={(finding) => setSelectedFindingId(finding.id)}
-            filtered={false}
-            onClearFilters={() => undefined}
-            showChapter={false}
-            header={<NotesHeader total={findings.length} counts={resolutionCounts(findings)} pickups={pickups} />}
-          />
-          <div className="flex min-w-0 flex-col gap-4">
-            {selectedFinding ? (
-              <FindingDetail
-                // One detail per note, so a note typed on one never shows on the next; a refreshed note keeps it.
-                key={selectedFinding.id}
-                finding={selectedFinding}
-                hasManuscript
-                onChanged={(_finding, decided) => decided && loadFindings()}
-                goToManuscript={goToManuscript}
-                goToStoryBible={goToStoryBible}
-                // A chapter's notes are about its recording; a delivery check is about a rendered file and is never one of them.
-                goToMaster={() => undefined}
-                reaperStatus={reaperStatus.status}
-                onReaperStatusChange={reaperStatus.refresh}
-                onCompared={loadFindings}
-                dawKind={dawKind}
-              />
-            ) : (
-              findings.length > 0 && (
-                <Panel>
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Select a note, or a pin on the strip, to see it and play it with 3 s either side.
-                  </p>
-                </Panel>
-              )
-            )}
-            <RecordingCheckCard chapter={chapter} alignment={alignment} flags={checkFlags} />
-            <NativeTakesPanel chapter={chapter} />
-          </div>
-        </div>
+        <NativeTakesPanel chapter={chapter} />
         {alignment && alignment.state !== 'never' && (
           <WaveformStrip
             playlist={playlist}

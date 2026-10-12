@@ -20,7 +20,6 @@ Storybook title: `Primitives/Kbd`. Source: `src/components/primitives/Kbd.tsx`.
 
 ## Used by
 
-- `src/components/booth/BoothView.tsx`
 - `src/components/booth/CompanionShell.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
 - `src/components/primitives/KeyCap.tsx`

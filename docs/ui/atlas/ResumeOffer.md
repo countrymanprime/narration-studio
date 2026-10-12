@@ -14,4 +14,4 @@ Storybook title: `Booth/ResumeOffer`. Source: `src/components/booth/resume/Resum
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`
