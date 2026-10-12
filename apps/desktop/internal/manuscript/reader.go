@@ -206,7 +206,12 @@ func (s *Service) Notes(chapterID string) []map[string]any {
 	return result
 }
 
-func (s *Service) ReaderState() map[string]any { return object(s.loadNotes()["readerState"]) }
+// ReaderState sends the reader's place: the active chapter and source line and the expanded chapters. A file the old reader
+// wrote may also hold chapter and line bookmarks; they stay in the file and are not sent (SN-C383, ADR 0820 replaced them).
+func (s *Service) ReaderState() map[string]any {
+	stored := object(s.loadNotes()["readerState"])
+	return map[string]any{"activeChapter": stored["activeChapter"], "activeSourceLine": stored["activeSourceLine"], "expandedChapters": stored["expandedChapters"]}
+}
 
 func (s *Service) loadNotes() map[string]any {
 	s.mu.Lock()
@@ -264,7 +269,7 @@ func (s *Service) saveNotes(notes map[string]any) error {
 }
 
 func emptyNotes() map[string]any {
-	return map[string]any{"notes": []map[string]any{}, "chapterStatus": map[string]any{}, "readerState": map[string]any{"activeChapter": nil, "activeSourceLine": nil, "bookmarks": []map[string]any{}, "expandedChapters": nil}}
+	return map[string]any{"notes": []map[string]any{}, "chapterStatus": map[string]any{}, "readerState": map[string]any{"activeChapter": nil, "activeSourceLine": nil, "expandedChapters": nil}}
 }
 func normalizeNotes(raw map[string]any) map[string]any {
 	lower := map[string]any{}

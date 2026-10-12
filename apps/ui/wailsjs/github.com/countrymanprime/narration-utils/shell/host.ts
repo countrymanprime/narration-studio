@@ -1158,7 +1158,8 @@ export function GuideFlagReview(id: string, aliasIndex: number | null): $Cancell
 
 /**
  * GuideMarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when
- * nothing is left to look at.
+ * nothing is left to look at. The whole entry is refused while a suggestion about it still needs verification, and nothing is cleared;
+ * one name is not.
  */
 export function GuideMarkReviewed(id: string, aliasIndex: number | null): $CancellablePromise<string> {
     return $Call.ByID(4040741622, id, aliasIndex);

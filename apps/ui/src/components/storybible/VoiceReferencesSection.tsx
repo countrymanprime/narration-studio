@@ -27,7 +27,7 @@ export function formatRegionTime(seconds: number): string {
  * One character's (or Narration's) approved voice references: the region list to approve one from, and the
  * approved list with revoke (non-acoustic only: every acoustic-drift binding is benched, so there is no drift
  * comparison or audition here, only approval).
- * Self-fetching (PronunciationQueries.tsx's pattern): its own data source, independent of the entity edit form.
+ * Self-fetching (the pattern of the Story Bible's other sections): its own data source, independent of the entity edit form.
  */
 export function VoiceReferencesSection({ characterId, characterLabel, notify }: { characterId: string; characterLabel: string; notify: Notify }) {
   const api = useApi();

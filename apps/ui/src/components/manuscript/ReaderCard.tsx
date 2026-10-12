@@ -1,6 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBookmark as faBookmarkSolid, faChevronDown, faChevronUp, faMicrophone, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
-import { faBookmark as faBookmarkRegular } from '@fortawesome/free-regular-svg-icons';
+import { faChevronDown, faChevronUp, faMicrophone, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
 import { useId, type ReactNode } from 'react';
 import { readTimeLabel } from '../../state';
 import { Button } from '../primitives/Button';
@@ -26,8 +25,8 @@ const ACTION_SLOT_CLASS = 'flex w-52 flex-none justify-end gap-1';
 // Whole-header toggle without nesting controls (ADR: a control inside a button is not valid HTML, see
 // primitives/Disclosure.tsx): the title button's `::after` pseudo-element is stretched over the whole header
 // (`after:absolute after:inset-0`), so a press anywhere in the header - the padding, the stat block, the chevron -
-// toggles the card, while the header's own `sticky` positioning gives that overlay its containing block. The
-// bookmark and Record in Booth sit `relative z-[1]` above the overlay so they keep their own presses and focus. The
+// toggles the card, while the header's own `sticky` positioning gives that overlay its containing block. Record in Booth and
+// Open workspace sit `relative z-[1]` above the overlay so they keep their own presses and focus. The
 // header keeps one tab stop for the toggle, and its accessible name stays the title (eyebrow is aria-hidden), so an
 // exact-name lookup ("Opening credits", "Chapter 2 — The Pool of Tears") keeps working.
 export function ReaderCard({
@@ -38,8 +37,6 @@ export function ReaderCard({
   subtitle,
   expanded,
   onToggleExpand,
-  bookmarked,
-  onToggleBookmark,
   showRetailSample = false,
   onRecordInBooth,
   showWorkspace = false,
@@ -57,9 +54,6 @@ export function ReaderCard({
   subtitle?: string;
   expanded: boolean;
   onToggleExpand: () => void;
-  /** Omitted for credits (MC1): the leading column renders empty rather than a bookmark, so titles still line up. */
-  bookmarked?: boolean;
-  onToggleBookmark?: () => void;
   showRetailSample?: boolean;
   /** "Record in Booth": the Booth page on this chapter or
    * credits. Omitted where there is nothing to read aloud (a reference chapter, empty credits); the slot stays either way. */
@@ -100,30 +94,10 @@ export function ReaderCard({
       <header
         className={`sticky top-[var(--band-h,4rem)] z-10 grid grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-3 border-[var(--border)] bg-[var(--surface)] p-3 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-[var(--accent)] @min-[40rem]:grid-cols-[1.4rem_minmax(0,1fr)_auto] @min-[40rem]:px-5 @min-[40rem]:py-[0.8rem] ${expanded ? 'rounded-t-lg border-b shadow-[0_2px_6px_color-mix(in_srgb,var(--text)_8%,transparent)]' : 'rounded-lg border-b-0'}`}
       >
-        {onToggleBookmark ? (
-          <TooltipTarget className="relative z-[1] -ml-1 flex size-[1.4rem]" text={bookmarked ? 'Remove chapter bookmark' : 'Bookmark this chapter'}>
-            <button
-              className={`group relative flex size-[1.4rem] items-center justify-center ${bookmarked ? 'text-[var(--bookmark)]' : 'text-[var(--non-text)]'}`}
-              aria-label={bookmarked ? 'Remove chapter bookmark' : 'Bookmark this chapter'}
-              onClick={onToggleBookmark}
-            >
-              <FontAwesomeIcon
-                className={`absolute inset-0 m-auto size-[1.4rem] transition-opacity ${bookmarked ? 'opacity-0' : 'group-hover:opacity-0 group-focus-visible:opacity-0'}`}
-                icon={faBookmarkRegular}
-              />
-              <FontAwesomeIcon
-                className={`absolute inset-0 m-auto size-[1.4rem] transition-opacity ${bookmarked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'}`}
-                icon={faBookmarkSolid}
-              />
-            </button>
-          </TooltipTarget>
-        ) : (
-          // MC1: credits have no bookmark, but the leading grid cell still has to exist - an *absent* React child
-          // (rather than an empty one) is not a grid item at all, so CSS grid auto-placement shifts the toggle button
-          // and the stat cluster left by one column and the stat block's own column collapses to 0, breaking the
-          // very alignment this component exists to give every card.
-          <div aria-hidden="true" />
-        )}
+        {/* The leading grid cell is kept empty: an *absent* React child is not a grid item at all, so CSS grid
+            auto-placement would shift the toggle button and the stat cluster left by one column and collapse the stat
+            block's own column to 0, breaking the alignment this component exists to give every card. */}
+        <div aria-hidden="true" />
         <button
           type="button"
           // No `relative` here on purpose: this button stays position:static so its `::after` escapes to the

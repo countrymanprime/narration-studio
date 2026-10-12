@@ -25,7 +25,7 @@ type Props = {
   chapterTitle?: string;
   /** The chapter being read, for "This chapter"; absent in credits mode. */
   chapterId?: string;
-  /** The Record-in-REAPER orchestration `BoothSession` owns, so Play and Stop here arm and stop exactly as the Booth's do. */
+  /** The Record-in-REAPER orchestration `CompanionHost` owns, so Play and Stop here arm and stop exactly as the Booth's do. */
   recording: RecordInReaperState;
   marks?: Map<string, ReaderMark[]>;
   onOpenMark?: (mark: ReaderMark) => void;
@@ -128,10 +128,10 @@ function Section({ title, badge, children, first = false }: { title: string; bad
 /**
  * Companion mode's layout: `CompactShell` in the app's own window, narrowed
  * and pinned beside the DAW (ADR 0401). It is the same teleprompter session the Booth
- * shows (`BoothSession` renders this in place of `BoothView`), re-laid out for a 380 px column: REAPER's playhead in the
+ * shows (`CompanionHost` renders this beside the DAW, apart from the Booth page), re-laid out for a 380 px column: REAPER's playhead in the
  * header, then the script, the note at the playhead (not built yet, so an honest "Coming soon"), the Pickups page's list, and the gestures that work here.
  *
- * Play/Pause and Stop repeat `BoothView`'s few lines on the same handlers rather than share a hook with it: each surface
+ * Play/Pause and Stop repeat the Booth page's few lines on the same handlers rather than share a hook with it: each surface
  * is mounted alone (one `reading.toggle` registration at a time).
  */
 export function CompanionShell({ session: t, follow, chapterTitle, chapterId, recording, marks, onFullApp, onOpenMark, header }: Props) {

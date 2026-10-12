@@ -7,8 +7,7 @@
 // The privacy rule (ADR 0405) is enforced here, not left to the callers:
 //   - a lookup sends one word, checked by CheckWord (never a passage, a file name or a project id), and the request
 //     is built by the adapter from that word and the key alone;
-//   - a lookup is the narrator's own press (Lookup), or a batch they confirmed after being told its word count
-//     (LookupBatch refuses a batch whose confirmed count is not the number of words it would send);
+//   - a lookup is the narrator's own press (Lookup), one word at a time;
 //   - every answer is cached locally (Cache), so a word already looked up is never sent again;
 //   - the key is the narrator's own, kept by credentialstore, and neither it nor the word ever appears in an error.
 //
@@ -67,11 +66,9 @@ var (
 
 // The errors the service answers with before any request is made.
 var (
-	ErrNoKey             = errors.New("add your own free Merriam-Webster key in Settings > Story Bible first") // +checklocksignore: an error value, returned under the lock by chance
-	ErrBadKey            = errors.New("that does not look like a Merriam-Webster key: paste the key shown on your dictionaryapi.com account page")
-	ErrNotAWord          = errors.New("an online lookup sends one word or name only: letters, digits, spaces, apostrophes, hyphens and periods, at most 3 words and 64 characters")
-	ErrBatchNotConfirmed = errors.New("a batch lookup needs your confirmation of how many words it sends")
-	ErrBatchTooLarge     = errors.New("a batch lookup sends at most 200 words at a time")
+	ErrNoKey    = errors.New("add your own free Merriam-Webster key in Settings > Story Bible first") // +checklocksignore: an error value, returned under the lock by chance
+	ErrBadKey   = errors.New("that does not look like a Merriam-Webster key: paste the key shown on your dictionaryapi.com account page")
+	ErrNotAWord = errors.New("an online lookup sends one word or name only: letters, digits, spaces, apostrophes, hyphens and periods, at most 3 words and 64 characters")
 )
 
 // The limits CheckWord holds a word to: a name or alias, never a sentence.

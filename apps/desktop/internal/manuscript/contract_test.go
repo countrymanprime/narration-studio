@@ -66,7 +66,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 	pin(t, "manuscript-search", hits)
 
 	// The notes and the reader state are read only now (the Booth's notes, the migration into marks, SN-B721): the file is written as
-	// the old reader left it, a note with its anchor and a line bookmark.
+	// the old reader left it, a note with its anchor and a line bookmark the reader state no longer sends.
 	paragraphID := paragraphs[0]["id"].(string)
 	notesFile := `{"notes":[{"id":"0123456789abcdef0123456789abcdef","chapter":"Chapter One","chapterId":"` + first + `","paragraph":0,"paragraphId":"` + paragraphID +
 		`","text":"Check the rhyme","anchorStart":1,"anchorEnd":6,"anchorText":"oses a","createdAt":"2026-09-21T10:00:00Z"}],` +
@@ -76,7 +76,12 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-notes", service.Notes(first))
-	pin(t, "manuscript-reader-state", service.ReaderState())
+	// The old chapter and line bookmarks in the file are ignored (SN-C383): the narrator's bookmarks are a project sidecar now (ADR 0820).
+	readerState := service.ReaderState()
+	if _, ok := readerState["bookmarks"]; ok {
+		t.Fatalf("the reader state still carries the old bookmarks: %#v", readerState)
+	}
+	pin(t, "manuscript-reader-state", readerState)
 	status, err := service.SetChapterStatus(first, "recording")
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +134,11 @@ func TestContractReaderStateOfAManuscriptNobodyHasReadYet(t *testing.T) {
 	if _, err := service.Commit(job.ID, false, Choices{}); err != nil {
 		t.Fatal(err)
 	}
-	pin(t, "manuscript-reader-state-empty", service.ReaderState())
+	empty := service.ReaderState()
+	if _, ok := empty["bookmarks"]; ok {
+		t.Fatalf("an unread reader state carries a bookmarks key: %#v", empty)
+	}
+	pin(t, "manuscript-reader-state-empty", empty)
 	pin(t, "manuscript-notes-empty", service.Notes(""))
 }
 

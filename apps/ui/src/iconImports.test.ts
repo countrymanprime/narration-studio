@@ -22,7 +22,7 @@ const CEILING: Record<string, number> = {
   'src/components/layout/StartupScreen.tsx': 5,
   'src/components/layout/TimerChip.tsx': 2,
   'src/components/manuscript/EntitySummary.tsx': 3,
-  'src/components/manuscript/ReaderCard.tsx': 7,
+  'src/components/manuscript/ReaderCard.tsx': 5,
   'src/components/master/BookChecklist.tsx': 1,
   'src/components/master/DeliveryProfilePanel.tsx': 1,
   'src/components/master/RuleBadges.tsx': 7,
