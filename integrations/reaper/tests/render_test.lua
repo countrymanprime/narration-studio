@@ -1,9 +1,8 @@
 -- Per-chapter render configuration: configure_chapter_render (see docs/architecture/reaper-bridge.md and
--- docs/research/reaper-spike-s5-render-details.md). Configuration only (Phase 11 / Open Question 7, answered
--- (a)): sets RENDER_FILE, RENDER_PATTERN ("$region") and RENDER_BOUNDSFLAG (3, "all regions"), reads RENDER_TARGETS
--- back, and never touches a render action. The last test in this file is the load-bearing one: it proves nothing
--- in configure_chapter_render ever calls Main_OnCommand or reads RENDER_STATS/RENDER_STATS_SUMMARY, the two things
--- the S5 spike found can actually trigger a real render.
+-- docs/research/reaper-spike-s5-render-details.md). Configuration only: sets RENDER_FILE, RENDER_PATTERN ("$region")
+-- and RENDER_BOUNDSFLAG (3, "all regions"), reads RENDER_TARGETS back, and never touches a render action. The last
+-- test in this file is the load-bearing one: it proves nothing in configure_chapter_render ever calls Main_OnCommand
+-- or reads RENDER_STATS/RENDER_STATS_SUMMARY, the two things the S5 spike found can actually trigger a real render.
 
 local H = require('harness')
 

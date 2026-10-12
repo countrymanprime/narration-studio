@@ -1,4 +1,4 @@
-"""The pronunciation port (provider-ports P7): its descriptor, its two roles, the fallback order and its conformance suite."""
+"""The pronunciation port (ADR 0301): its descriptor, its two roles, the fallback order and its conformance suite."""
 
 import ast
 from pathlib import Path
@@ -69,7 +69,7 @@ def _fails(source, complaint: str, **cases) -> None:
 
 
 def test_the_port_imports_no_engine_and_nothing_that_fetches():
-    """A browser lookup only builds a URL for the host to open; nothing in the port may fetch it (Q5)."""
+    """A browser lookup only builds a URL for the host to open; nothing in the port may fetch it."""
     sources = (Path(pronunciation.__file__).read_text(encoding="utf-8"), Path(pronunciation_conformance.__file__).read_text(encoding="utf-8"))
     modules = {
         (node.module or "") if isinstance(node, ast.ImportFrom) else alias.name
@@ -84,7 +84,7 @@ def test_the_port_imports_no_engine_and_nothing_that_fetches():
 
 
 def test_the_sources_registry_speaks_of_pronunciation_sources_and_starts_empty():
-    """The CMU and eSpeak adapters (P8) fill it at import; the port itself registers nothing."""
+    """The CMU and eSpeak adapters fill it at import; the port itself registers nothing."""
     assert isinstance(SOURCES, SourceRegistry) and isinstance(SOURCES, Registry)
     assert SOURCES.kind == "pronunciation source" and len(SOURCES) == 0
 
@@ -144,7 +144,7 @@ def test_a_dictionary_source_passes_by_refusing_the_browser_role():
 
 
 def test_a_browser_only_source_passes_by_refusing_to_pronounce():
-    """The Q5 role: a web lookup opens in the browser and gives no pronunciation of its own."""
+    """The browser-lookup role: a web lookup opens in the browser and gives no pronunciation of its own."""
     _run(FakeSource(WEB))
 
 

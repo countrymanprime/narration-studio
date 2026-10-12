@@ -1,4 +1,4 @@
-"""Generates short and long synthetic tones for the take-mechanics spike (Q4): a candidate shorter than the target
+"""Generates short and long synthetic tones for the take-mechanics spike: a candidate shorter than the target
 item, one longer, and a mid-length one used for the source-offset alignment test. Same format as make_media.py
 (8 kHz, mono, 16-bit) so the fixtures stay consistent."""
 

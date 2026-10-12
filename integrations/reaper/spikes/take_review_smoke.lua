@@ -1,6 +1,6 @@
--- Take-review phase 6 smoke test: proves the real create_take bridge command (narration_take_review.lua, loaded the
+-- Take-review smoke test: proves the real create_take bridge command (narration_take_review.lua, loaded the
 -- same way narration_ui_bridge.lua loads it in production) against a real REAPER 7.80, on a COPY of
--- Challenges_001.rpp (task instruction), directly testing the phase 1 spike's specific warning that undo/redo
+-- Challenges_001.rpp (task instruction), directly testing the earlier take-mechanics spike's specific warning that undo/redo
 -- replace REAPER's item/take Lua objects project-wide. Answers, for the real command (not the fake-reaper harness):
 --   (a) the previously active take stays active after create_take
 --   (b) the target item's D_LENGTH is unchanged
@@ -168,7 +168,7 @@ local ok, err = xpcall(function()
   log('after undo (re-resolved by GUID): takes', takes_after_undo, '(back to before-add count)', takes_after_undo == takes_before)
 
   reaper.Main_OnCommand(40030, 0) -- Edit: Redo
-  -- The phase 1 spike's warning, tested directly: the pre-undo item_after_add/new_take_before_undo pointers must
+  -- The take-mechanics spike's warning, tested directly: the pre-undo item_after_add/new_take_before_undo pointers must
   -- never be trusted past this point. Everything below re-resolves by GUID.
   local item_after_redo = assert(find_item_by_guid(TARGET_ITEM_GUID), 're-resolving the target item by GUID after redo failed')
   local take_after_redo = find_take_by_guid(item_after_redo, new_take_guid)

@@ -1,4 +1,4 @@
-"""The speech recognition port (provider-ports P3): its types, its descriptor and its conformance suite."""
+"""The speech recognition port (ADR 0301): its types, its descriptor and its conformance suite."""
 
 import ast
 from collections.abc import Iterable, Iterator
@@ -93,7 +93,7 @@ def test_hypothesis_is_a_frozen_engine_neutral_reading_of_one_segment():
 
 
 def test_the_teleprompter_keeps_importing_word_and_hypothesis_from_live_asr():
-    """Q3: the types moved here, and ``live_asr.py`` re-exports them, so ``live_asr.Hypothesis`` is this very class. Checked by
+    """The types moved here, and ``live_asr.py`` re-exports them, so ``live_asr.Hypothesis`` is this very class. Checked by
     reading the source, since importing ``live_asr`` needs numpy and the sidecar's folder on the path."""
     live_asr = Path(__file__).resolve().parents[3] / "sidecars" / "manuscript-teleprompter" / "core" / "live_asr.py"
     tree = ast.parse(live_asr.read_text(encoding="utf-8"))
@@ -193,7 +193,7 @@ def test_refuse_names_the_engine_and_the_role_in_a_sentence():
 
 
 def test_the_engines_registry_speaks_of_speech_engines_and_starts_empty():
-    """The adapters (P5 and P6) fill it at import; the port itself registers nothing."""
+    """The adapters fill it at import; the port itself registers nothing."""
     assert isinstance(ENGINES, Registry) and ENGINES.kind == "speech engine" and len(ENGINES) == 0
 
 
