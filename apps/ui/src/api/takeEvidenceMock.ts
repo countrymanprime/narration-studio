@@ -1,7 +1,7 @@
 // The browser mock's take evidence, answering the way apps/desktop/internal/passagetakes/evidence.go does: one entry per
 // take the mock's workspaceTakes offers, in its order and with its ids, and the same refusals (it asks workspaceTakes).
 // Only the take that was aligned (the mock's first item take, what played when the chapter was checked) has a matched share; a take that cannot be heard has
-// reasons; clarity is never measured; placement is always "aligned". The figures are stable per take id.
+// reasons; clarity is never measured; placement is "aligned" here, and mockApi.ts places a take the passage map stamped as "map". The figures are stable per take id.
 import type { TakeEvidence, TakeEvidenceApi, TakeEvidenceMeasure, TakeFigure } from './contracts/takeEvidence';
 import type { WorkspaceApi } from './contracts/workspace';
 

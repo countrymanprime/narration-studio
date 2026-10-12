@@ -16,8 +16,8 @@ import (
 // read as written, what its own source range measures, and where the passage's place in time came from. Every figure
 // is a value or a sentence saying why there is none; nothing is defaulted, and nothing combines the figures.
 
-// Where a take's place in the passage came from. Only ViaAligned is answered until the Booth's passage map exists:
-// nothing here reads a map, so nothing may claim one.
+// Where a take's place in the passage came from: ViaMap for a take the Booth's passage map stamped over the passage
+// (TK-1 part 2), ViaAligned for one recorded elsewhere, matched to the text afterwards.
 const (
 	ViaAligned = "aligned"
 	ViaMap     = "map"
@@ -104,8 +104,8 @@ type Range struct {
 // Measure reads one range's figures; it is how the audio is decoded.
 type Measure func(Range) TakeMeasure
 
-// Evidence answers the evidence of every candidate resolved offers, from the alignment and project it was resolved
-// from. It reads only. measures may be nil (nothing is measured on this host): every figure then says so.
+// Evidence answers the evidence of every candidate resolved offers, from the alignment, project and passage map it was
+// resolved from. It reads only. measures may be nil (nothing is measured on this host): every figure then says so.
 func Evidence(resolved Resolved, measures *MeasureCache) EvidenceView {
 	in, alternates := resolved.input, resolved.View
 	view := EvidenceView{
@@ -114,8 +114,9 @@ func Evidence(resolved Resolved, measures *MeasureCache) EvidenceView {
 		Takes: make([]TakeEvidence, 0, len(alternates.Candidates)),
 	}
 	tokens := passageTokens(in.View, alternates)
+	mapped := mappedSpans(in, alternates.FirstParagraph, alternates.LastParagraph)
 	for _, candidate := range alternates.Candidates {
-		evidence := TakeEvidence{ID: candidate.ID, Via: ViaAligned, Matched: matchedShare(in.View, tokens, candidate)}
+		evidence := TakeEvidence{ID: candidate.ID, Via: placement(mapped, candidate), Matched: matchedShare(in.View, tokens, candidate)}
 		switch {
 		case !candidate.Usable:
 			evidence.Measure = unmeasured(candidate.Reason)
@@ -129,6 +130,16 @@ func Evidence(resolved Resolved, measures *MeasureCache) EvidenceView {
 		view.Takes = append(view.Takes, evidence)
 	}
 	return view
+}
+
+// placement is ViaMap when one of the map's takes over the passage carries the candidate's item and take ids, else ViaAligned.
+func placement(mapped []mapSpan, candidate Candidate) string {
+	for _, span := range mapped {
+		if span.itemGUID != "" && span.takeGUID != "" && span.itemGUID == candidate.ItemGUID && span.takeGUID == candidate.TakeGUID {
+			return ViaMap
+		}
+	}
+	return ViaAligned
 }
 
 // passageTokens are the chapter tokens of the passage's whole paragraphs, the span every take is set against; the asked

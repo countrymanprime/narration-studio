@@ -18,8 +18,8 @@ import (
 // The workspace's Takes panel (ADR 0700): the alternate takes of a chapter passage, a passage-based comparison of them,
 // and "Use this take". The page sends a chapter id and a range of token indices (and, to choose, the id of a candidate
 // this host offered), never a GUID, a file or a time: every one of those is read here from the chapter's stored
-// alignment, the saved REAPER project and the findings store (internal/passagetakes), exactly as WorkspaceGoTo does for
-// a word (threat model rows 5l and 4f).
+// alignment, the Booth's passage map, the saved REAPER project and the findings store (internal/passagetakes), exactly as
+// WorkspaceGoTo does for a word (threat model rows 5l and 4f).
 
 // workspaceTakesResolved reads the alternates of the passage [firstToken, lastToken] of chapterID, with the saved
 // project they were resolved against (a choice acts on that project's GUIDs).
@@ -51,8 +51,14 @@ func (h *Host) workspaceTakesResolved(svc hostServices, chapterID string, firstT
 			chapterGroups = append(chapterGroups, group)
 		}
 	}
+	// The Booth's passage map places the passages it recorded (TK-1 part 2). A map that cannot be read places nothing:
+	// every take is then placed by the alignment, as for a chapter recorded elsewhere.
+	marks, err := h.passageMapIn(svc, nil).List(chapterID)
+	if err != nil {
+		marks = nil
+	}
 	resolved, err := passagetakes.Resolve(passagetakes.Input{
-		ChapterID: chapterID, View: view, FirstToken: firstToken, LastToken: lastToken, Project: project, Groups: chapterGroups,
+		ChapterID: chapterID, View: view, FirstToken: firstToken, LastToken: lastToken, Project: project, Groups: chapterGroups, Marks: marks,
 		Comparison: func(passageID string) (findings.Finding, bool) {
 			saved, found, err := svc.findings.Get(takecompare.PassageFindingID(svc.config.projectFolder, passageID))
 			return saved, err == nil && found
@@ -92,7 +98,8 @@ var takeEvidenceMeasures = passagetakes.NewMeasureCache(passagetakes.MeasureRang
 // WorkspaceTakeEvidence answers, for each take WorkspaceTakes offers for the same passage and in the same order, the
 // share of the passage's script words it read as written (from the stored alignment of its range), what its own
 // source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
-// measured) and where its place came from ("aligned"; ADR 0140). It reads only and starts no job; a take whose file
+// measured) and where its place came from ("map" for a take the Booth's passage map stamped over the passage, "aligned"
+// for one recorded elsewhere; ADR 0140). It reads only and starts no job; a take whose file
 // cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
 func (h *Host) WorkspaceTakeEvidence(chapterID string, firstToken int, lastToken int) (string, error) {
 	resolved, _, err := h.workspaceTakesResolved(h.services(), chapterID, firstToken, lastToken)

@@ -539,6 +539,15 @@ the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_pa
   paragraph's word count, `word_out_of_range`. Its stored place is never changed.
 - **Cleared on replace.** A confirmed manuscript replace and Clear project data remove the file (`resetDerived`); a
   re-import without a reset keeps it, and the stale rule covers what it changed.
+- **Editing reads it** (TK-1 part 2). A take begins at a mark and ends where the next mark of its run says the reading had
+  got to; a take with a stale mark at either end is left out. `WorkspaceTakes` places a passage the map's takes read on
+  the item of the earliest of them still in the saved project, so a later recording of the same text keeps the passage,
+  and what Editing keyed by its id (a stack, a retry mode), where it was; only a passage the map does not cover is placed
+  by the alignment. `WorkspaceTakeEvidence` answers `via: "map"` for a take whose item and take GUIDs a map take over the
+  passage carries, and `"aligned"` otherwise (`apps/desktop/internal/passagetakes`). Editing's `useLines` asks for the takes
+  of the paragraphs the alignment heard and of those two or more map takes read, a roll back included
+  (`apps/ui/src/api/passageMapSpans.ts`). Because every mark of a run shares one take GUID today, only the take active when
+  the run stopped is placed `map` on a DAW-recorded chapter.
 
 ## Third-party license note
 

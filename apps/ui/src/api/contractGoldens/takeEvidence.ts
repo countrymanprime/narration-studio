@@ -7,4 +7,5 @@ export const takeEvidenceGoldens: Record<string, z.ZodType> = {
   'workspace-take-evidence-full.json': takeEvidenceResultSchema,
   'workspace-take-evidence-partial.json': takeEvidenceResultSchema,
   'workspace-take-evidence-none.json': takeEvidenceResultSchema,
+  'workspace-take-evidence-map.json': takeEvidenceResultSchema,
 };
