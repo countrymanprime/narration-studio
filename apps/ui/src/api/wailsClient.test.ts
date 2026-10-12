@@ -1413,6 +1413,30 @@ describe('the FX range bindings', () => {
   });
 });
 
+describe('the stack bindings', () => {
+  const stacked = { ok: true, changed: true, message: 'Stacked 1 take in REAPER.', undoSteps: 1 };
+  const unstacked = { ok: true, changed: true, message: 'Moved back 1 take in REAPER.', undoSteps: 1 };
+
+  it('sends the chapter and the passage ids, and decodes the DawResult', async () => {
+    const stack = vi.fn(() => Promise.resolve(JSON.stringify(stacked)));
+    const unstack = vi.fn(() => Promise.resolve(JSON.stringify(unstacked)));
+    standInHost({ DawStackTakes: stack, DawUnstackTakes: unstack });
+    await expect(wailsClient.dawStackTakes('c-0001', ['pm-c-0001-p-1'])).resolves.toEqual(stacked);
+    expect(stack).toHaveBeenCalledWith('c-0001', ['pm-c-0001-p-1']);
+    await expect(wailsClient.dawUnstackTakes('c-0001', ['pm-c-0001-p-1'])).resolves.toEqual(unstacked);
+    expect(unstack).toHaveBeenCalledWith('c-0001', ['pm-c-0001-p-1']);
+  });
+
+  it('refuses an answer the dawResult schema does not accept', async () => {
+    standInHost({
+      DawStackTakes: () => Promise.resolve(JSON.stringify({ ...stacked, undoSteps: 13 })),
+      DawUnstackTakes: () => Promise.resolve(JSON.stringify({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'x', code: 'gone' })),
+    });
+    await expect(wailsClient.dawStackTakes('c-0001', ['pm-c-0001-p-1'])).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.dawUnstackTakes('c-0001', ['pm-c-0001-p-1'])).rejects.toBeInstanceOf(WireError);
+  });
+});
+
 describe('the hide takes binding', () => {
   const muted = { ok: true, changed: true, message: 'Muted 1 other take in REAPER. It is still in the project.', undoSteps: 1 };
 

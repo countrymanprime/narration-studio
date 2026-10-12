@@ -47,7 +47,7 @@ import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
 import type { DawCapabilitiesApi } from '../api/contracts/daw';
-import type { DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawProjectStateApi, DawRollApi } from '../api/contracts/daw';
+import type { DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawProjectStateApi, DawRollApi, DawStackTakesApi } from '../api/contracts/daw';
 import type { ProviderCapabilitiesApi } from '../api/contracts/providers';
 import type { MasteringApi } from '../api/contracts/mastering';
 import type { RecordingApi } from '../api/contracts/recording';
@@ -118,6 +118,7 @@ export type {
   DawRollApi,
   DawDeleteRangeApi,
   DawFxRangeApi,
+  DawStackTakesApi,
   DawProjectStateApi,
   ProviderCapabilitiesApi,
   MasteringApi,
@@ -184,6 +185,7 @@ export interface PortMap {
   dawRoll: DawRollApi;
   dawDeleteRange: DawDeleteRangeApi;
   dawFxRange: DawFxRangeApi;
+  dawStackTakes: DawStackTakesApi;
   dawProjectState: DawProjectStateApi;
   providerCapabilities: ProviderCapabilitiesApi;
   mastering: MasteringApi;
