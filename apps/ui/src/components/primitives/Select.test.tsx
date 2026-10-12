@@ -81,4 +81,45 @@ describe('Select', () => {
     expect(select.className).toContain('h-[var(--control-height)]');
     expect(select.className).not.toContain('min-h-[var(--control-height)]');
   });
+
+  it('shows the placeholder when the value is not among the options', () => {
+    render(<Select label="Pick" value="" placeholder="Choose one" options={OPTIONS} onChange={() => undefined} />);
+    const select = screen.getByRole('combobox', { name: 'Pick' }) as HTMLSelectElement;
+    expect(select.selectedOptions[0]?.textContent).toBe('Choose one');
+    expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Choose one', 'Alpha', 'Beta']);
+  });
+
+  it('drops the placeholder once a real option is picked, and onChange never reports it', async () => {
+    const onChange = vi.fn();
+    function Picker() {
+      const [value, setValue] = useState('');
+      return (
+        <Select
+          label="Pick"
+          value={value}
+          placeholder="Choose one"
+          options={OPTIONS}
+          onChange={(next) => {
+            onChange(next);
+            setValue(next);
+          }}
+        />
+      );
+    }
+    render(<Picker />);
+    const select = screen.getByRole('combobox', { name: 'Pick' }) as HTMLSelectElement;
+    expect(select.options[0]?.disabled).toBe(true);
+    await userEvent.setup().selectOptions(select, 'Beta');
+    expect(onChange.mock.calls).toEqual([['b']]);
+    expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Alpha', 'Beta']);
+    expect(select.value).toBe('b');
+  });
+
+  it('renders as before with no placeholder, and ignores one while the value is an option', () => {
+    render(<Select label="x" value="zzz" options={OPTIONS} onChange={() => undefined} />);
+    expect(Array.from((screen.getByLabelText('x') as HTMLSelectElement).options)).toHaveLength(2);
+    cleanup();
+    render(<Select label="x" value="a" placeholder="Choose" options={OPTIONS} onChange={() => undefined} />);
+    expect(Array.from((screen.getByLabelText('x') as HTMLSelectElement).options)).toHaveLength(2);
+  });
 });
