@@ -12,7 +12,7 @@ import (
 )
 
 // Each asynchronous role method writes exactly the line its service's `Send` writes today (internal/pickups, lineidentity,
-// renderconfig, cleanuptools, retakelanes, projectstate, takereview/createtake.go), so a P5 migration that swaps the Send for the
+// renderconfig, cleanuptools, retakelanes, projectstate, takereview/createtake.go), so moving a service from its own Send to the
 // method changes nothing REAPER sees.
 func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 	trace := dawport.Trace{RunID: "log-run", Level: "debug"}
