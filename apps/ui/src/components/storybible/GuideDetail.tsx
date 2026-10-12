@@ -43,7 +43,19 @@ import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
-import { draftFrom, propertiesFrom, propertyProblem, sameProperties, type DraftProperty } from './propertyDraft';
+import { EntryText } from './EntryText';
+import {
+  draftFrom,
+  NO_TALK,
+  propertiesFrom,
+  propertyProblem,
+  sameProperties,
+  splitTalk,
+  TALK_FIELDS,
+  withTalk,
+  type DraftProperty,
+  type TalkDraft,
+} from './propertyDraft';
 import { IconButton } from '../primitives/IconButton';
 import { Listbox, listboxOptionId } from '../primitives/Listbox';
 import { Select } from '../primitives/Select';
@@ -55,13 +67,17 @@ import type { Notify } from '../primitives/Toast';
 const ALIAS_MATCHES_ID = 'story-bible-alias-matches';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
-type Draft = { name: string; description: string; personality: string; context: string; properties: DraftProperty[] };
+// A character's says, does and knows properties are fields of their own (`talk`), so `properties` holds the rest.
+type Draft = { name: string; description: string; personality: string; context: string; properties: DraftProperty[]; talk: TalkDraft };
+const speaks = (entity: GuideEntity) => entity.category === 'Character';
+const propertiesOf = (entity: GuideEntity) => (speaks(entity) ? splitTalk(entity.properties) : { rest: entity.properties, talk: NO_TALK });
 const draftOf = (entity: GuideEntity): Draft => ({
   name: entity.canonical_name,
   description: entity.description.text,
   personality: entity.personality_notes.map((note) => note.text).join(' '),
   context: entity.context || '',
-  properties: draftFrom(entity.properties),
+  properties: draftFrom(propertiesOf(entity).rest),
+  talk: propertiesOf(entity).talk,
 });
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
@@ -102,7 +118,7 @@ export function GuideDetail({
   suggested?: ReactNode;
 }) {
   const api = useApi();
-  const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [] });
+  const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [], talk: NO_TALK });
   const [propertyError, setPropertyError] = useState<string>();
   const [editing, setEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
@@ -180,19 +196,21 @@ export function GuideDetail({
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
   const saveEntry = () => {
-    const problem = propertyProblem(draft.properties);
+    const problem = propertyProblem(draft.properties, speaks(entity));
     if (problem) {
       setPropertyError(problem);
       return;
     }
-    const properties = propertiesFrom(draft.properties);
+    const saved = propertiesOf(entity);
+    const properties = speaks(entity) ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
+    const before = speaks(entity) ? withTalk(saved.rest, saved.talk) : entity.properties;
     const values: Record<string, string> = {
       canonical_name: draft.name.trim() || entity.canonical_name,
       description: draft.description,
       personality: draft.personality,
       context: draft.context,
     };
-    if (!sameProperties(properties, entity.properties)) values.properties = JSON.stringify(properties);
+    if (!sameProperties(properties, before)) values.properties = JSON.stringify(properties);
     void save('save', values, 'Entry saved.').then((saved) => saved && setEditing(false));
   };
   const otherEntities = entities.filter((row) => row.id !== entity.id && row.category !== 'Draft');
@@ -478,10 +496,13 @@ export function GuideDetail({
             Choose a category above to finish setting up this entry.
           </p>
         )}
-        <div>
-          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Name</div>
-          <TextField label="Name" disabled={editingDisabled} value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-        </div>
+        {/* The name is the panel's heading until Edit; only then is it a field (the mock's EntryEditor). A new draft has no heading worth reading yet, so it keeps the field. */}
+        {(!editingDisabled || isNewDraft) && (
+          <div>
+            <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Name</div>
+            <TextField label="Name" disabled={editingDisabled} value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
+          </div>
+        )}
 
         <div>
           <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Names the app links in the text, and how I say each</div>
@@ -675,16 +696,21 @@ export function GuideDetail({
           </div>
         </div>
 
-        <Field
-          label="Description"
-          textarea
-          disabled={editingDisabled}
-          value={draft.description}
-          onChange={(value) => setDraft({ ...draft, description: value })}
-        />
+        <EntryText label="Description" value={draft.description} editing={!editingDisabled} onChange={(description) => setDraft({ ...draft, description })} />
+
+        {speaks(entity) &&
+          TALK_FIELDS.map(({ key, label }) => (
+            <EntryText
+              key={key}
+              label={label}
+              value={draft.talk[key]}
+              editing={!editingDisabled}
+              onChange={(value) => setDraft({ ...draft, talk: { ...draft.talk, [key]: value } })}
+            />
+          ))}
 
         <PropertiesSection
-          saved={entity.properties}
+          saved={propertiesOf(entity).rest}
           rows={draft.properties}
           editing={editing && canEdit}
           error={propertyError}

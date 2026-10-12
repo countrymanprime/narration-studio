@@ -65,7 +65,8 @@ describe('Story Bible locked entries', () => {
     const entity = WIRE_ENTITIES.find((row) => row.locked);
     if (!entity) throw new Error('fixture must include a locked entity');
     renderDetail(entity);
-    expect((screen.getByDisplayValue(entity.canonical_name) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Edit this entry' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Delete entity' })).toBeNull();
@@ -82,21 +83,43 @@ describe('Story Bible read-only entries (ADR-0018)', () => {
   it('opens read-only with no Save button until Edit is clicked', () => {
     const entity = unlocked();
     renderDetail(entity);
-    expect((screen.getByDisplayValue(entity.canonical_name) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Edit this entry' })).toBeTruthy();
   });
 
-  it('Edit enables the fields and shows Save and Cancel; Cancel restores read-only', () => {
+  it('opens read-only under the name as a heading; Edit, then Save keeps and Cancel puts everything back', async () => {
     const entity = unlocked();
-    renderDetail(entity);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    expect((screen.getByDisplayValue(entity.canonical_name) as HTMLInputElement).disabled).toBe(false);
-    expect(screen.getByRole('button', { name: 'Save changes to this entry' })).toBeTruthy();
+    const api = createMockApi();
+    const guideEdit = vi.spyOn(api, 'guideEdit');
+    render(
+      <ApiProvider api={api}>
+        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+      </ApiProvider>,
+    );
+    // Read-only: the name is the heading, the description is text, nothing takes input.
+    expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
+    expect(screen.getByText(entity.description.text)).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Description' })).toBeNull();
 
+    // Edit turns the name and the description into fields, with Save and Cancel; Cancel puts everything back.
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Rewritten' } });
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
-    expect((screen.getByDisplayValue(entity.canonical_name) as HTMLInputElement).disabled).toBe(true);
-    expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
+    expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
+    expect(screen.getByText(entity.description.text)).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(guideEdit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty('value', entity.canonical_name);
+
+    // Save keeps the changes.
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
+    await waitFor(() => expect(guideEdit).toHaveBeenCalledTimes(1));
+    expect(guideEdit.mock.calls[0][1]).toMatchObject({ canonical_name: 'Renamed' });
   });
 });
 
@@ -335,6 +358,26 @@ describe('Story Bible Appears in', () => {
     expect(relationships.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await userEvent.click(within(section).getAllByRole('button')[0]);
     expect(goToManuscript).toHaveBeenCalledWith('chapter-1');
+  });
+
+  it('Appears in sits after the editable parts', () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <GuideDetail
+          entity={{ ...entity, category: 'Character' }}
+          entities={WIRE_ENTITIES}
+          chapters={chapters}
+          reload={vi.fn()}
+          notify={vi.fn()}
+          goToManuscript={vi.fn()}
+        />
+      </ApiProvider>,
+    );
+    const appears = screen.getByTestId('appears-in');
+    for (const label of ['Description', 'How they talk', 'How they act', 'What they know', 'Properties', 'Relationships']) {
+      const part = screen.getAllByText(label)[0];
+      expect(part.compareDocumentPosition(appears) & Node.DOCUMENT_POSITION_FOLLOWING, label).toBeTruthy();
+    }
   });
 
   it('shows no line or mention counts', async () => {
