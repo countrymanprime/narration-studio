@@ -1,6 +1,7 @@
 import type { DawResult } from '../../../../api/contracts/daw';
+import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
-import type { SplitPlan, TakeSplitter } from './splitPlan';
+import { NO_SPLIT_COMMAND, type SplitPlan, type TakeSplitter } from './splitPlan';
 
 /** The take to cut and where, in seconds of the chapter. */
 export interface SplitTarget {
@@ -42,5 +43,22 @@ export function splitCommand(splitter: TakeSplitter, plan: Cutting, target: Spli
           },
         }
       : { notUndoableReason: `Undo the split in ${plan.dawName}.` }),
+  };
+}
+
+const unavailable = (): Promise<DawResult> =>
+  Promise.resolve({ ok: false, changed: false, message: NO_SPLIT_COMMAND, refused: NO_SPLIT_COMMAND, undoSteps: 0 });
+
+/**
+ * The cut the page passes: `splitTake` goes to the DAW port for `chapterId`, which refuses a take that is gone or a cut outside it. The port has no
+ * backup around a time, and the recorder keeps no cut take of its own to cut or join, so those answer `NO_SPLIT_COMMAND` and change nothing. The
+ * recorder's `splitTake` is the host's own refusal sentence.
+ */
+export function dawSplitter(daw: Pick<DawClient, 'splitTake'>, chapterId: string): TakeSplitter {
+  return {
+    splitTake: (takeId, at) => daw.splitTake(chapterId, takeId, at),
+    backupAround: unavailable,
+    cutOwnTake: (takeId, at) => daw.splitTake(chapterId, takeId, at),
+    joinOwnTakes: unavailable,
   };
 }
