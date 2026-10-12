@@ -1790,8 +1790,12 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 			return err
 		}
 	}
+	retentionBefore := backupRetention(h.services().settings)
 	if err := h.services().settings.Save(tool, scope, values); err != nil {
 		return err
+	}
+	if _, ok := values[backupRetentionKey]; ok && tool == "DAW" {
+		h.pruneBackupsOnRetentionChange(h.services(), retentionBefore)
 	}
 	if tool == "General" {
 		if value, ok := values["debug_logging"]; ok && value != nil {

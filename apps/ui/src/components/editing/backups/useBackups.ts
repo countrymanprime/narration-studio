@@ -43,11 +43,13 @@ export interface BackupsState {
   /** Backups the DAW refused to put back because it no longer holds them. */
   missing: ReadonlySet<string>;
   restore: (id: string) => Promise<void>;
+  /** Reads the table again, for after the host pruned it. */
+  reload: () => void;
 }
 
 /**
  * The chapter's backups from the DAW's table, and Restore. Reading the table never prunes it: the host drops the backups older than the
- * retention setting, with their clones, when the project opens.
+ * retention setting, with their clones, when the project opens and when a shorter retention is saved (reload reads the table again then).
  */
 export function useBackups(journal: Pick<Journal, 'act'>, chapterId: string): BackupsState {
   const daw = usePort('daw');
@@ -90,5 +92,7 @@ export function useBackups(journal: Pick<Journal, 'act'>, chapterId: string): Ba
     [daw, journal, rows, dawName, gate.ok],
   );
 
-  return { list: rows, gate, missing, restore };
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
+
+  return { list: rows, gate, missing, restore, reload };
 }
