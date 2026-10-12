@@ -102,7 +102,7 @@ func (h *Host) PreviewPinClear() (string, error) {
 }
 
 // previewPinStore builds the pin store over one services() snapshot: it keeps no state of its own, so a project
-// switch in the middle of a call never mixes two projects (bindings_prepmarkup.go's own prepMarkup convention).
+// switch in the middle of a call never mixes two projects (the same per-call snapshot convention as bindings_scriptprep.go).
 func (h *Host) previewPinStore(svc hostServices) *preview.PinStore {
 	store := preview.NewPinStore(svc.config.projectFolder)
 	store.Reporter = h.persist
