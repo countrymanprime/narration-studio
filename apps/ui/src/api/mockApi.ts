@@ -30,7 +30,6 @@ import { createDeliveryProfilesMock } from './deliveryProfilesMock';
 import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
-import { createPrepMarkupMock } from './prepMarkupMock';
 import { createBookmarksMock } from './bookmarksMock';
 import { createPassageMapMock } from './passageMapMock';
 import { createEditLogMock } from './editLogMock';
@@ -39,7 +38,6 @@ import { createScriptPrepMock } from './scriptPrepMock';
 import { createExtractionMock } from './extractionMock';
 import { createEditCutsMock } from './editCutsMock';
 import { createWordFxMock } from './wordFxMock';
-import { buildPrepCompletenessSummaryMock } from './prepCompletenessMock';
 import { createMockState, type MockApiSeed } from './mockHost/state';
 import { createUpdateMock } from './mockHost/update';
 import { createProjectMock } from './mockHost/project';
@@ -231,12 +229,6 @@ export function createMockApi(
     async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     initial.cleanupAction,
   );
-  const prepMarkup = createPrepMarkupMock(
-    manuscriptReady,
-    () => s.chapters,
-    () => s.paragraphs,
-    initial.prepMarkup,
-  );
   const { resaveReview, ...measurement } = createMeasureMock(endJob, initial.measure, measurePicked, deliveryProfile, peekDiagnostics, (job) => {
     const review = mockDeliveryReviewFindings(job);
     saveFileFindings(DELIVERY_REVIEW_ANALYZER, review.files, review.findings);
@@ -274,7 +266,6 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
-    ...prepMarkup,
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,
@@ -311,17 +302,6 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    // Read the same two calls the real host reads (the pronunciation queries and each chapter's markup), never a third
-    // mock store.
-    prepCompletenessSummary: async () => {
-      const queries = await storyBible.bindings.guidePronunciationQueries();
-      const staleSpansByChapterId = new Map<string, number>();
-      for (const chapter of s.chapters) {
-        const { spans } = await prepMarkup.prepMarkupList(chapter.id);
-        staleSpansByChapterId.set(chapter.id, spans.filter((span) => span.stale).length);
-      }
-      return buildPrepCompletenessSummaryMock(s.chapters, queries, staleSpansByChapterId);
-    },
     takeReviewCreateTake: async (request) => ({
       targetItemGuid: request.targetItemGuid,
       newTakeGuid: '{99999999-0000-4000-8000-000000000099}',

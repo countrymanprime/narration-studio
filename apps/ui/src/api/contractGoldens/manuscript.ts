@@ -1,11 +1,9 @@
 // The golden payloads for the manuscript, its reader and notes: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import {
-  bookmarkSchema,
   chapterKindResultSchema,
   chapterSchema,
   chaptersSchema,
-  noteSchema,
   notesSchema,
   paragraphsSchema,
   readerSchema,
@@ -25,10 +23,8 @@ export const manuscriptGoldens: Record<string, z.ZodType> = {
   'manuscript-chapter-kind-removed.json': chapterKindResultSchema,
   'manuscript-paragraphs.json': paragraphsSchema,
   'manuscript-search.json': searchHitsSchema,
-  'manuscript-note.json': noteSchema,
   'manuscript-notes.json': notesSchema,
   'manuscript-notes-empty.json': notesSchema,
-  'manuscript-bookmark.json': bookmarkSchema,
   'manuscript-reader-state.json': readerStateSchema,
   'manuscript-reader-state-empty.json': readerStateSchema,
   'manuscript-reader.json': readerSchema,

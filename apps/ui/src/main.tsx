@@ -12,7 +12,6 @@ import { COVERAGE_REFUSAL_REASONS } from './api/schemas/coverage';
 import { EDITING_REFUSAL_REASONS } from './api/schemas/editing';
 import type { StageUnknownCause } from './api/contracts/stages';
 import type { PreviewCandidate } from './api/contracts/preview';
-import type { PrepMarkupSeed } from './api/prepMarkupMock';
 import { MOCK_RESUME_SEEDS } from './api/resumeMockSeed';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS } from './api/teleprompterMock';
 import { scenarioFromParams } from './components/devtools/mockStates';
@@ -68,10 +67,6 @@ const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
 // leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
 const mockDawAudacity = mockParams.get('mockDaw') === 'Audacity';
-// `?mockMarkup=1` seeds script markup on Chapter 3's dialogue: stresses, a breath, a pause and
-// speaker tags drawn on their lines, a mark whose words changed (said beside its line) and one whose line is gone
-// (listed above the chapter), so every way a mark shows can be seen without a host.
-const mockMarkup = mockParams.has('mockMarkup');
 // `?mockCreditsMissing=1` drops the closing credit templates: Home's chapter table shows the
 // Closing credits row as "Not set up" with a link to Settings > Credits.
 const mockCreditsMissing = mockParams.has('mockCreditsMissing');
@@ -362,19 +357,6 @@ const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed ===
 // `?mockFidelity=01` draws the mock backend as benchmark mock 01 draws Production, for the pixel-match tool (mockHost/mockFidelity.ts).
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 
-const MOCK_MARKUP_SEED: PrepMarkupSeed = [
-  { chapter: 2, line: 1, words: 'how to get dry again', kind: 'stress', stale: { reason: 'text_changed', was: 'how to get warm again' } },
-  { chapter: 2, line: 2, words: 'Sit down, all of you, and listen to me!', kind: 'character_tag', value: 'Mouse' },
-  { chapter: 2, line: 2, words: 'Sit down, all of you, and listen to me!', kind: 'pause', value: 'short' },
-  { chapter: 2, line: 3, words: 'Ahem!', kind: 'character_tag', value: 'Mouse' },
-  { chapter: 2, line: 3, words: 'driest thing', kind: 'stress' },
-  { chapter: 2, line: 3, words: 'if you please!', kind: 'pause', value: 'long' },
-  { chapter: 2, line: 4, words: 'Ugh!', kind: 'character_tag', value: 'Lory' },
-  { chapter: 2, line: 4, words: 'Ugh!', kind: 'pause', value: 'short' },
-  { chapter: 2, line: 5, words: 'very politely', kind: 'stress' },
-  { chapter: 2, line: 6, words: 'Not I!', kind: 'character_tag', value: 'Lory' },
-  { chapter: 2, line: 7, words: 'I thought you did', kind: 'character_tag', value: 'Mouse', stale: { reason: 'paragraph_missing' } },
-];
 // `?mockRecorder=recording|failed|empty|no-devices|start-fails|unavailable` seeds the Booth's built-in recorder
 // (ADR 0455), with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
 // its own; no takes yet; no input device listed; a device that will not open on Record; the wasapi row unavailable here.
@@ -395,7 +377,6 @@ const mockInitial = {
   ...(mockScenario ? mockScenario.seed : {}),
   ...(mockFidelity ? MOCK_FIDELITY[mockFidelity] : {}),
   ...(mockRecorder ? { recording: mockRecorder } : {}),
-  ...(mockMarkup ? { prepMarkup: MOCK_MARKUP_SEED } : {}),
   ...(mockMeasure ? { measure: mockMeasure === 'running' ? ('hold' as const) : mockMeasure === 'spread' ? ('spread' as const) : ('fails' as const) } : {}),
   ...(mockDiagnostics ? { diagnostics: mockDiagnostics === 'running' ? ('hold' as const) : ('fails' as const) } : {}),
   ...(mockRenderExportHold ? { renderExport: 'hold' as const } : {}),

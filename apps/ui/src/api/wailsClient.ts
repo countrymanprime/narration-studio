@@ -4,10 +4,8 @@ import { createLiveHealth } from './wire/liveHealth';
 import type { InferOutput, StandardSchemaV1 } from './wire/standardSchema';
 import { voidResult } from './schemas/base';
 import {
-  bookmarkSchema,
   chaptersSchema,
   fileSelectionSchema,
-  noteSchema,
   notesSchema,
   chapterKindResultSchema,
   chapterSchema,
@@ -34,20 +32,11 @@ import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTrans
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
-import { pronunciationOnlineBatchResultSchema, pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
+import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
-import {
-  guideBuildResultSchema,
-  guideCreatedSchema,
-  guideDialogueCuesSchema,
-  guideEntitiesSchema,
-  guidePreviewSchema,
-  pronunciationQueriesCsvSchema,
-  pronunciationQueriesSchema,
-  queryImportResultSchema,
-} from './schemas/storyBible';
+import { guideBuildResultSchema, guideCreatedSchema, guideDialogueCuesSchema, guideEntitiesSchema, guidePreviewSchema } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
 import { settingsForScopeSchema } from './schemas/settings';
@@ -91,7 +80,6 @@ import {
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
-import { prepCompletenessSummarySchema } from './schemas/prepCompleteness';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema, reaperStatusSchema } from './schemas/findings';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
@@ -129,8 +117,6 @@ import { pickupListSchema, pickupsImportResultSchema, pickupsPunchResultSchema, 
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
-import { prepMarkupChapterSchema, prepMarkupSpanSchema } from './schemas/prepMarkup';
-// The reader's bookmarkSchema (schemas/manuscript.ts) stays until the reader bookmarks are removed.
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
@@ -318,12 +304,6 @@ export const wailsClient: NarrationApi = {
   guidePronounceUser: (id, ipa, aliasIndex) => decode(voidResult, 'GuidePronounceUser', host.GuidePronounceUser(id, aliasIndex ?? null, ipa)),
   guidePronunciationUseAlternate: (id, aliasIndex) =>
     decode(voidResult, 'GuidePronunciationUseAlternate', host.GuidePronunciationUseAlternate(id, aliasIndex ?? null)),
-  guidePronunciationQueries: () => decode(pronunciationQueriesSchema, 'GuidePronunciationQueries', host.GuidePronunciationQueries()),
-  guidePronunciationQueriesCsv: () => decode(pronunciationQueriesCsvSchema, 'GuidePronunciationQueriesCSV', host.GuidePronunciationQueriesCSV()),
-  guidePronunciationImportQueriesCsv: (csvText) =>
-    decode(queryImportResultSchema, 'GuidePronunciationImportQueriesCSV', host.GuidePronunciationImportQueriesCSV(csvText)),
-  guidePronunciationSetStatus: (id, status, note, aliasIndex) =>
-    decode(voidResult, 'GuidePronunciationSetStatus', host.GuidePronunciationSetStatus(id, aliasIndex ?? null, status, note ?? null)),
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
   guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
@@ -397,30 +377,11 @@ export const wailsClient: NarrationApi = {
   manuscriptChapters: () => decode(chaptersSchema, 'ManuscriptChapters', host.ManuscriptChapters()),
   manuscriptReader: () => decode(readerSchema, 'ManuscriptReader', host.ManuscriptReader()),
   readerState: () => decode(readerStateSchema, 'ManuscriptReaderState', host.ManuscriptReaderState()),
-  readerStateSave: (values) =>
-    decode(
-      readerStateSchema,
-      'ManuscriptSaveReaderState',
-      host.ManuscriptSaveReaderState(values.activeChapter ?? '', values.activeSourceLine ?? null, values.expandedChapters ?? []),
-    ),
-  readerBookmarkCreate: (bookmark) => decode(bookmarkSchema, 'ManuscriptCreateBookmark', host.ManuscriptCreateBookmark(bookmark)),
-  readerBookmarkDelete: (id) => decode(voidResult, 'ManuscriptDeleteBookmark', host.ManuscriptDeleteBookmark(id)),
   manuscriptParagraphs: (chapter) => decode(paragraphsSchema, 'ManuscriptParagraphs', host.ManuscriptParagraphs(chapter)),
   manuscriptSearch: (query) => decode(searchHitsSchema, 'ManuscriptSearch', host.ManuscriptSearch(query)),
   manuscriptSetChapterStatus: (chapter, status) => decode(chapterSchema, 'ManuscriptSetChapterStatus', host.ManuscriptSetChapterStatus(chapter, status)),
   manuscriptSetChapterKind: (chapterId, kind) => decode(chapterKindResultSchema, 'ManuscriptSetChapterKind', host.ManuscriptSetChapterKind(chapterId, kind)),
   noteList: (chapter) => decode(notesSchema, 'ManuscriptNotes', host.ManuscriptNotes(chapter ?? '')),
-  noteCreate: (chapterId, paragraphId, text, anchorStart, anchorEnd, anchorText) =>
-    decode(
-      noteSchema,
-      'ManuscriptCreateNote',
-      host.ManuscriptCreateNote(chapterId, paragraphId, text, anchorText ?? '', anchorStart ?? null, anchorEnd ?? null),
-    ),
-  noteDelete: (id) => decode(voidResult, 'ManuscriptDeleteNote', host.ManuscriptDeleteNote(id)),
-  prepMarkupList: (chapterId) => decode(prepMarkupChapterSchema, 'PrepMarkupList', host.PrepMarkupList(chapterId)),
-  prepMarkupSave: (chapterId, paragraphId, start, end, kind, value) =>
-    decode(prepMarkupSpanSchema, 'PrepMarkupSave', host.PrepMarkupSave(chapterId, paragraphId, start, end, kind, value)),
-  prepMarkupDelete: (chapterId, id) => decode(voidResult, 'PrepMarkupDelete', host.PrepMarkupDelete(chapterId, id)),
   bookmarksList: () => decode(bookmarksSchema, 'BookmarksList', host.BookmarksList()),
   bookmarksAdd: (chapterId, paragraphId, offset) => decode(spotBookmarkSchema, 'BookmarksAdd', host.BookmarksAdd(chapterId, paragraphId, offset)),
   bookmarksUpdate: (id, label, note) => decode(spotBookmarkSchema, 'BookmarksUpdate', host.BookmarksUpdate(id, label, note)),
@@ -485,7 +446,6 @@ export const wailsClient: NarrationApi = {
   proofingChooseRender: (chapterId) => decode(proofingChooseRenderResultSchema, 'ProofingChooseRender', host.ProofingChooseRender(chapterId)),
   proofingClearRender: (chapterId) => decode(proofingRenderSchema, 'ProofingClearRender', host.ProofingClearRender(chapterId)),
   productionOverview: () => decode(productionOverviewSchema, 'ProductionOverview', host.ProductionOverview()),
-  prepCompletenessSummary: () => decode(prepCompletenessSummarySchema, 'PrepCompletenessSummary', host.PrepCompletenessSummary()),
   productionStartTimer: (chapterId, stage) => decode(productionStartResultSchema, 'ProductionStartTimer', host.ProductionStartTimer(chapterId, stage)),
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
   productionStatusReport: (includeContractedAmount) =>
@@ -632,8 +592,7 @@ export const wailsClient: NarrationApi = {
   pronunciationOnlineLookup: (word) => decode(pronunciationOnlineResultSchema, 'PronunciationOnlineLookup', host.PronunciationOnlineLookup(word)),
   pronunciationSources: () => decode(pronunciationSourcesSchema, 'PronunciationSources', host.PronunciationSources()),
   pronunciationCandidate: (word, source) => decode(pronunciationCandidateSchema, 'PronunciationCandidate', host.PronunciationCandidate(word, source)),
-  pronunciationOnlineLookupBatch: (words, confirmedCount) =>
-    decode(pronunciationOnlineBatchResultSchema, 'PronunciationOnlineLookupBatch', host.PronunciationOnlineLookupBatch(words, confirmedCount)),
+
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),
   subscribeDawCapabilities: (onUpdate) => subscribeChecked('daw_capabilities_changed', dawCapabilitiesSchema, onUpdate),
   providerCapabilities: () => decode(providerCapabilitiesSchema, 'ProviderCapabilities', host.ProviderCapabilities()),

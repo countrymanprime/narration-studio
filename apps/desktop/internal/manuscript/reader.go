@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
@@ -207,125 +206,7 @@ func (s *Service) Notes(chapterID string) []map[string]any {
 	return result
 }
 
-func (s *Service) CreateNote(chapterID, paragraphID, body string, start, end *int, anchorText string) (map[string]any, error) {
-	if start != nil && *start < 0 || end != nil && (start == nil || *end < *start) {
-		return nil, fmt.Errorf("invalid note anchor")
-	}
-	s.notesMu.Lock()
-	defer s.notesMu.Unlock()
-	data, err := s.Load()
-	if err != nil {
-		return nil, err
-	}
-	var source map[string]any
-	for _, paragraph := range objects(data["paragraphs"]) {
-		if text(paragraph, "id") == paragraphID && text(paragraph, "chapterId") == chapterID {
-			source = paragraph
-			break
-		}
-	}
-	if source == nil {
-		return nil, fmt.Errorf("unknown manuscript paragraph")
-	}
-	note := map[string]any{"id": newID(), "chapter": text(source, "chapterTitle"), "chapterId": chapterID, "paragraph": source["index"], "paragraphId": paragraphID, "text": body, "createdAt": time.Now().UTC().Format(time.RFC3339Nano)}
-	if start != nil {
-		note["anchorStart"] = *start
-	}
-	if end != nil {
-		note["anchorEnd"] = *end
-	}
-	if anchorText != "" {
-		note["anchorText"] = anchorText
-	}
-	notes := s.loadNotes()
-	list := objects(notes["notes"])
-	list = append(list, note)
-	notes["notes"] = list
-	if err := s.saveNotes(notes); err != nil {
-		return nil, err
-	}
-	return note, nil
-}
-
-func (s *Service) DeleteNote(id string) error {
-	s.notesMu.Lock()
-	defer s.notesMu.Unlock()
-	notes := s.loadNotes()
-	remaining := []map[string]any{}
-	for _, note := range objects(notes["notes"]) {
-		if text(note, "id") != id {
-			remaining = append(remaining, note)
-		}
-	}
-	notes["notes"] = remaining
-	return s.saveNotes(notes)
-}
-
 func (s *Service) ReaderState() map[string]any { return object(s.loadNotes()["readerState"]) }
-
-func (s *Service) SaveReaderState(activeChapter string, activeSourceLine *int, expanded []string, hasExpanded bool) (map[string]any, error) {
-	s.notesMu.Lock()
-	defer s.notesMu.Unlock()
-	notes := s.loadNotes()
-	current := object(notes["readerState"])
-	next := map[string]any{"activeChapter": nil, "activeSourceLine": nil, "bookmarks": current["bookmarks"], "expandedChapters": current["expandedChapters"]}
-	if activeChapter != "" {
-		next["activeChapter"] = activeChapter
-	}
-	if activeSourceLine != nil {
-		next["activeSourceLine"] = *activeSourceLine
-	}
-	if hasExpanded {
-		next["expandedChapters"] = expanded
-	}
-	notes["readerState"] = next
-	if err := s.saveNotes(notes); err != nil {
-		return nil, err
-	}
-	return next, nil
-}
-
-func (s *Service) CreateBookmark(bookmark map[string]any) (map[string]any, error) {
-	kind := text(bookmark, "kind")
-	if kind != "chapter" && kind != "line" && kind != "note" {
-		return nil, fmt.Errorf("unknown bookmark kind")
-	}
-	s.notesMu.Lock()
-	defer s.notesMu.Unlock()
-	notes := s.loadNotes()
-	state := object(notes["readerState"])
-	bookmarks := objects(state["bookmarks"])
-	for _, existing := range bookmarks {
-		if text(existing, "kind") == kind && text(existing, "chapterId") == text(bookmark, "chapterId") && text(existing, "paragraphId") == text(bookmark, "paragraphId") && text(existing, "noteId") == text(bookmark, "noteId") {
-			return existing, nil
-		}
-	}
-	bookmark["id"] = newID()
-	bookmark["createdAt"] = time.Now().UTC().Format(time.RFC3339Nano)
-	bookmarks = append(bookmarks, bookmark)
-	state["bookmarks"] = bookmarks
-	notes["readerState"] = state
-	if err := s.saveNotes(notes); err != nil {
-		return nil, err
-	}
-	return bookmark, nil
-}
-
-func (s *Service) DeleteBookmark(id string) error {
-	s.notesMu.Lock()
-	defer s.notesMu.Unlock()
-	notes := s.loadNotes()
-	state := object(notes["readerState"])
-	remaining := []map[string]any{}
-	for _, bookmark := range objects(state["bookmarks"]) {
-		if text(bookmark, "id") != id {
-			remaining = append(remaining, bookmark)
-		}
-	}
-	state["bookmarks"] = remaining
-	notes["readerState"] = state
-	return s.saveNotes(notes)
-}
 
 func (s *Service) loadNotes() map[string]any {
 	s.mu.Lock()

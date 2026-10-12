@@ -179,51 +179,7 @@ func (h *Host) GuidePronunciationUseAlternate(id string, aliasIndex *int) (strin
 	}
 	return encodeBinding(nil, service.UsePronunciationAlternate(id, aliasIndex))
 }
-func (h *Host) GuidePronunciationSetStatus(id string, aliasIndex *int, status string, note *string) (string, error) {
-	service := h.services().guide
-	if service == nil {
-		return "", fmt.Errorf("the Story Bible is unavailable")
-	}
-	return encodeBinding(nil, service.SetPronunciationStatus(id, aliasIndex, status, note))
-}
 
-// GuidePronunciationQueries lists every name whose pronunciation the author has not confirmed, in reading order.
-func (h *Host) GuidePronunciationQueries() (string, error) {
-	service := h.services().guide
-	if service == nil {
-		return "", fmt.Errorf("the Story Bible is unavailable")
-	}
-	queries, err := service.PronunciationQueries()
-	return encodeBinding(queries, err)
-}
-
-// GuidePronunciationQueriesCSV is the same list as CSV text for the narrator to send to the author; the UI saves it as a file.
-func (h *Host) GuidePronunciationQueriesCSV() (string, error) {
-	service := h.services().guide
-	if service == nil {
-		return "", fmt.Errorf("the Story Bible is unavailable")
-	}
-	queries, err := service.PronunciationQueries()
-	if err != nil {
-		return encodeBinding(nil, err)
-	}
-	return encodeBinding(map[string]any{"csv": guide.QueriesCSV(queries), "count": len(queries)}, nil)
-}
-
-// GuidePronunciationImportQueriesCSV applies an author's answered file back onto the Story Bible: the UI
-// reads whatever file the narrator picks in their own file input and sends its text; the host never opens a file of its
-// own. Every row it could not read, match to a still-existing entry or apply is reported with its line, never dropped.
-func (h *Host) GuidePronunciationImportQueriesCSV(csvText string) (string, error) {
-	service := h.services().guide
-	if service == nil {
-		return "", fmt.Errorf("the Story Bible is unavailable")
-	}
-	applied, issues, err := service.ImportQueriesCSV(csvText)
-	if err != nil {
-		return encodeBinding(nil, err)
-	}
-	return encodeBinding(map[string]any{"applied": applied, "issues": issues}, nil)
-}
 func (h *Host) GuideCreate(name, category string, aliases []string) (string, error) {
 	service := h.services().guide
 	if service == nil {
@@ -547,23 +503,8 @@ func (h *Host) ManuscriptSetChapterStatus(chapter, status string) (string, error
 func (h *Host) ManuscriptNotes(chapter string) (string, error) {
 	return encodeBinding(h.services().manuscript.Notes(chapter), nil)
 }
-func (h *Host) ManuscriptCreateNote(chapterID, paragraphID, text, anchorText string, anchorStart, anchorEnd *int) (string, error) {
-	return encodeBinding(h.services().manuscript.CreateNote(chapterID, paragraphID, text, anchorStart, anchorEnd, anchorText))
-}
-func (h *Host) ManuscriptDeleteNote(id string) (string, error) {
-	return encodeBinding(nil, h.services().manuscript.DeleteNote(id))
-}
 func (h *Host) ManuscriptReaderState() (string, error) {
 	return encodeBinding(h.services().manuscript.ReaderState(), nil)
-}
-func (h *Host) ManuscriptSaveReaderState(activeChapter string, activeSourceLine *int, expandedChapters []string) (string, error) {
-	return encodeBinding(h.services().manuscript.SaveReaderState(activeChapter, activeSourceLine, expandedChapters, expandedChapters != nil))
-}
-func (h *Host) ManuscriptCreateBookmark(values map[string]any) (string, error) {
-	return encodeBinding(h.services().manuscript.CreateBookmark(values))
-}
-func (h *Host) ManuscriptDeleteBookmark(id string) (string, error) {
-	return encodeBinding(nil, h.services().manuscript.DeleteBookmark(id))
 }
 
 func (h *Host) TranscriptStart(options map[string]string) (string, error) {

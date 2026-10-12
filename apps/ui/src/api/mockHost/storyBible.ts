@@ -1,7 +1,7 @@
 // The mock host (mockApi.ts): the Story Bible.
 import { parseWireJson } from '../wire/parseWire';
 import { guidePropertiesSchema } from '../schemas/storyBible';
-import type { GuideEntity, GuidePronunciation, GuideProperty, NarrationApi, PronunciationQuery, QueryImportResult, WorkJob } from '../../types';
+import type { GuideEntity, GuidePronunciation, GuideProperty, NarrationApi, WorkJob } from '../../types';
 import { wireClone } from '../mockFixtures';
 import { type MockApiSeed, type MockState, wireContext } from './state';
 import { type AssetsMock, MOCK_ASSET_ROOT } from './assets';
@@ -37,156 +37,6 @@ function setPronunciation(prior: GuidePronunciation, next: GuidePronunciation): 
   return value;
 }
 
-// The host's query list (guide/queries.go): every name not author confirmed, once each, by the first paragraph that uses it, a
-// name never used last.
-function pronunciationQueriesOf(entities: GuideEntity[]): PronunciationQuery[] {
-  const rows: (PronunciationQuery & { position: number })[] = [];
-  for (const entity of entities) {
-    const names = [
-      { name: entity.canonical_name, aliasIndex: null, pronunciation: entity.pronunciation, occurrences: entity.occurrences },
-      ...entity.aliases.map((alias, index) => ({ name: alias.text, aliasIndex: index, pronunciation: alias.pronunciation, occurrences: alias.occurrences })),
-    ];
-    for (const { name, aliasIndex, pronunciation, occurrences } of names) {
-      const status = pronunciation.status ?? 'researched';
-      if (status === 'author_confirmed') continue;
-      const first = [...occurrences].sort((a, b) => a.paragraph - b.paragraph)[0];
-      rows.push({
-        entityId: entity.id,
-        aliasIndex,
-        name,
-        entry: entity.canonical_name,
-        category: entity.category,
-        ipa: pronunciation.ipa,
-        source: pronunciation.source,
-        status,
-        note: pronunciation.note ?? '',
-        chapter: first?.chapter ?? '',
-        excerpt: first?.excerpt ?? '',
-        position: first ? first.paragraph : Number.POSITIVE_INFINITY,
-      });
-    }
-  }
-  rows.sort((a, b) => a.position - b.position || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-  return rows.map(({ position: _position, ...row }) => row);
-}
-
-const csvCell = (text: string) => {
-  const guarded = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return /[",\r\n]/.test(guarded) ? `"${guarded.replaceAll('"', '""')}"` : guarded;
-};
-
-// The mock's own reader for a re-imported query file, matching the host's ParseQueriesCSV/MatchQueryAnswers
-// (queries.go) closely enough for a component test: any column order or case, a status as its key or a spaced/underscored
-// label, a formula guard stripped, and a row that cannot be read or matched reported by its 1-based line, never dropped.
-type MockQueryAnswer = { line: number; entityId: string; aliasIndex: number | null; name: string; status: PronunciationQuery['status']; note: string };
-
-const QUERY_STATUSES: PronunciationQuery['status'][] = ['researched', 'query_sent', 'author_confirmed'];
-
-function splitCsvLine(line: string): string[] {
-  const cells: string[] = [];
-  let cell = '';
-  let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (quoted) {
-      if (char === '"' && line[index + 1] === '"') {
-        cell += '"';
-        index += 1;
-      } else if (char === '"') {
-        quoted = false;
-      } else {
-        cell += char;
-      }
-    } else if (char === '"' && cell === '') {
-      quoted = true;
-    } else if (char === ',') {
-      cells.push(cell);
-      cell = '';
-    } else {
-      cell += char;
-    }
-  }
-  cells.push(cell);
-  return cells;
-}
-
-const unguardFormulaCell = (text: string) => (/^'[=+\-@\t\r]/.test(text) ? text.slice(1) : text);
-
-function parseQueryStatusCell(text: string): PronunciationQuery['status'] | undefined {
-  const key = text.trim().toLowerCase().replaceAll(' ', '_');
-  if (key === '') return 'researched';
-  return QUERY_STATUSES.find((status) => status === key);
-}
-
-function parseQueriesCsvMock(text: string): { answers: MockQueryAnswer[]; issues: string[] } {
-  const rawLines = text.split(/\r\n|\n/);
-  const lines = rawLines.length > 0 && rawLines[rawLines.length - 1] === '' ? rawLines.slice(0, -1) : rawLines;
-  const issues: string[] = [];
-  if (lines.length === 0) return { answers: [], issues: ['line 1: the file is empty'] };
-  const header = splitCsvLine(lines[0]).map((name) => name.trim().toLowerCase());
-  const column = (name: string) => header.indexOf(name);
-  const wordIndex = column('word');
-  const entryIdIndex = column('entry_id');
-  if (wordIndex === -1 || entryIdIndex === -1)
-    return { answers: [], issues: ['line 1: the first row must name the columns, with word and entry_id among them'] };
-  const aliasIndexIndex = column('alias_index');
-  const statusIndex = column('status');
-  const noteIndex = column('note');
-  const cell = (row: string[], index: number) => (index === -1 || index >= row.length ? '' : unguardFormulaCell(row[index].trim()));
-  const answers: MockQueryAnswer[] = [];
-  lines.slice(1).forEach((line, offset) => {
-    const rowLine = offset + 2;
-    if (line.trim() === '') return;
-    const row = splitCsvLine(line);
-    const entityId = cell(row, entryIdIndex);
-    const name = cell(row, wordIndex);
-    if (entityId === '' || name === '') {
-      issues.push(`line ${rowLine}: this row has no word or no entry_id, so it cannot be matched to an entry`);
-      return;
-    }
-    const status = parseQueryStatusCell(cell(row, statusIndex));
-    if (status === undefined) {
-      issues.push(`line ${rowLine}: ${JSON.stringify(cell(row, statusIndex))} is not a status (researched, query sent or author confirmed)`);
-      return;
-    }
-    let aliasIndex: number | null = null;
-    const aliasText = cell(row, aliasIndexIndex);
-    if (aliasText !== '') {
-      const parsed = Number.parseInt(aliasText, 10);
-      if (!Number.isInteger(parsed) || parsed < 0 || String(parsed) !== aliasText) {
-        issues.push(`line ${rowLine}: ${JSON.stringify(aliasText)} is not an alias number`);
-        return;
-      }
-      aliasIndex = parsed;
-    }
-    answers.push({ line: rowLine, entityId, aliasIndex, name, status, note: cell(row, noteIndex) });
-  });
-  return { answers, issues };
-}
-
-function pronunciationQueriesCsv(queries: PronunciationQuery[]): string {
-  const header = ['word', 'entry', 'category', 'chapter', 'excerpt', 'pronunciation', 'source', 'status', 'note', 'entry_id', 'alias_index'];
-  const lines = queries.map((row) =>
-    [
-      row.name,
-      row.entry,
-      row.category,
-      row.chapter,
-      row.excerpt,
-      row.ipa,
-      isUser(row) ? 'Yours' : row.source,
-      row.status,
-      row.note,
-      row.entityId,
-      row.aliasIndex === null ? '' : String(row.aliasIndex),
-    ]
-      .map(csvCell)
-      .join(','),
-  );
-  return [header.join(','), ...lines].join('\n') + '\n';
-}
-
-/** The Story Bible bindings: the build, the entities and their edits, and the pronunciation preview. */
 export function createStoryBibleMock(
   s: MockState,
   initial: MockApiSeed,
@@ -432,11 +282,6 @@ export function createStoryBibleMock(
             : { ipa: '/mɒk iː spiːk/', source: 'eSpeak NG', confidence: 'low', chosen: true };
       changePronunciation(id, aliasIndex, (prior) => setPronunciation(prior, value));
     },
-    guidePronunciationQueries: async () => pronunciationQueriesOf(s.entities),
-    guidePronunciationQueriesCsv: async () => {
-      const queries = pronunciationQueriesOf(s.entities);
-      return { csv: pronunciationQueriesCsv(queries), count: queries.length };
-    },
     guidePronounceUser: async (id, ipa, aliasIndex) => {
       const text = ipa.trim();
       if (!text) throw new Error('type a pronunciation first');
@@ -447,51 +292,6 @@ export function createStoryBibleMock(
         if (!prior.alternate) throw new Error('There is no other pronunciation to switch to.');
         return setPronunciation(prior, { ...prior.alternate, chosen: true });
       });
-    },
-    guidePronunciationSetStatus: async (id, status, note, aliasIndex) => {
-      changePronunciation(id, aliasIndex, (prior) => {
-        const next: GuidePronunciation = { ...prior, status };
-        if (note !== undefined) {
-          const text = note.trim();
-          if (text) next.note = text;
-          else delete next.note;
-        }
-        return next;
-      });
-    },
-    guidePronunciationImportQueriesCsv: async (csvText): Promise<QueryImportResult> => {
-      const { answers, issues: parseIssues } = parseQueriesCsvMock(csvText);
-      const rowIssues: { line: number; message: string }[] = parseIssues.map((issue) => {
-        const match = /^line (\d+): (.*)$/.exec(issue);
-        return match ? { line: Number(match[1]), message: match[2] } : { line: 0, message: issue };
-      });
-      let applied = 0;
-      for (const answer of answers) {
-        const entity = s.entities.find((row) => row.id === answer.entityId);
-        if (!entity) {
-          rowIssues.push({
-            line: answer.line,
-            message: `${JSON.stringify(answer.name)} is no longer in the Story Bible; the file may be from another project or the entry was deleted`,
-          });
-          continue;
-        }
-        if (answer.aliasIndex !== null && !entity.aliases[answer.aliasIndex]) {
-          rowIssues.push({ line: answer.line, message: `${JSON.stringify(answer.name)} no longer has that alias` });
-          continue;
-        }
-        try {
-          changePronunciation(answer.entityId, answer.aliasIndex ?? undefined, (prior) => {
-            const next: GuidePronunciation = { ...prior, status: answer.status };
-            if (answer.note) next.note = answer.note;
-            return next;
-          });
-          applied += 1;
-        } catch (error) {
-          rowIssues.push({ line: answer.line, message: error instanceof Error ? error.message : String(error) });
-        }
-      }
-      rowIssues.sort((a, b) => a.line - b.line);
-      return { applied, issues: rowIssues.map((issue) => `line ${issue.line}: ${issue.message}`) };
     },
     guideDialogueCues: async () => wireClone(s.dialogueCues),
     guideMarkReviewed: async (id, aliasIndex) => {

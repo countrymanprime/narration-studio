@@ -130,3 +130,9 @@ export const claimsOf = (list: readonly ExtractionSuggestion[], entryId: string,
 /** The entry's accepted details. */
 export const propertiesOf = (list: readonly ExtractionSuggestion[], entryId: string): ExtractionSuggestion[] =>
   list.filter((s) => s.entryId === entryId && s.payload.kind === 'property' && accepted(s));
+
+/** The entry's suggestions shown under "Suggested": the ones to verify first, then the ones accepted automatically (the mock's `reviewable`). */
+export function reviewable(list: readonly ExtractionSuggestion[], entryId: string): ExtractionSuggestion[] {
+  const rank = (s: ExtractionSuggestion): number => (needsVerifying(s) ? 0 : 1);
+  return list.filter((s) => s.entryId === entryId && (needsVerifying(s) || s.status === 'accepted-auto')).sort((x, y) => rank(x) - rank(y));
+}

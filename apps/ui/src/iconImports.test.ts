@@ -42,7 +42,7 @@ const CEILING: Record<string, number> = {
   'src/components/proof/ProofPage.tsx': 2,
   'src/components/proof/TakesPanel.tsx': 4,
   'src/components/proof/TransportBar.tsx': 5,
-  'src/components/storybible/Guide.tsx': 6,
+  'src/components/storybible/Guide.tsx': 5,
   'src/components/storybible/GuideDetail.tsx': 13,
   'src/components/storybible/PropertiesSection.tsx': 5,
   'src/components/storybible/VoiceReferencesSection.tsx': 2,
