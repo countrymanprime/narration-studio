@@ -1558,5 +1558,83 @@
     "file": "narration_takes.lua",
     "find": "      if segment_guid and remove[segment_guid] then",
     "replace": "      if true then"
+  },
+  {
+    "name": "stack_takes: a read whose audio file is missing is stacked as a dead take",
+    "file": "narration_takes.lua",
+    "find": "      if not core.file_exists(file) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: a first read that already carries stacked takes is stacked again",
+    "file": "narration_takes.lua",
+    "find": "      if take and stack_record(take) then\n        return refuse('ERROR', 'That first read already has stacked takes. Move them back first, so nothing was stacked.')",
+    "replace": "      if false then\n        return refuse('ERROR', 'That first read already has stacked takes. Move them back first, so nothing was stacked.')"
+  },
+  {
+    "name": "stack_takes: reads are stacked while REAPER records",
+    "file": "narration_takes.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return false\n  end\n  for _, name in ipairs(needed) do",
+    "replace": "  for _, name in ipairs(needed) do"
+  },
+  {
+    "name": "stack_takes: a REAPER without the calls it needs is asked to stack anyway",
+    "file": "narration_takes.lua",
+    "find": "    if not reaper.APIExists(name) then\n      event(session_dir, 'ERROR', run_id, sentence)",
+    "replace": "    if false then\n      event(session_dir, 'ERROR', run_id, sentence)"
+  },
+  {
+    "name": "stack_takes: a read on another track is stacked",
+    "file": "narration_takes.lua",
+    "find": "      if reaper.GetMediaItem_Track(read) ~= track then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: a destination other than the first read's spot is accepted",
+    "file": "narration_takes.lua",
+    "find": "      if not near(move.to, first) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: a MIDI read is stacked",
+    "file": "narration_takes.lua",
+    "find": "      if reaper.TakeIsMIDI(take) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: a read with a changed playback rate is stacked",
+    "file": "narration_takes.lua",
+    "find": "      if reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE') ~= 1 then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes: another take of the first item is moved to the Cuts track as a read",
+    "file": "narration_takes.lua",
+    "find": "      if read == item or moving[read] then",
+    "replace": "      if moving[read] then"
+  },
+  {
+    "name": "stack_takes: a first read on the Cuts track is stacked",
+    "file": "narration_takes.lua",
+    "find": "    if cuts and track == cuts then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "unstack_takes: one take of a stack goes back without the others",
+    "file": "narration_takes.lua",
+    "find": "      if not group.remove[record.stacked] then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "unstack_takes: a first read on another track than the stack's gets its reads back there",
+    "file": "narration_takes.lua",
+    "find": "      if record.track ~= track_guid(track) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "unstack_takes: a state chunk without the stacked takes is written back",
+    "file": "narration_takes.lua",
+    "find": "    if removed ~= #group.moves then",
+    "replace": "    if false then"
   }
 ]
