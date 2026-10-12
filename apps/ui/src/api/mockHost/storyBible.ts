@@ -1,7 +1,8 @@
 // The mock host (mockApi.ts): the Story Bible.
 import { parseWireJson } from '../wire/parseWire';
 import { guidePropertiesSchema } from '../schemas/storyBible';
-import type { GuideEntity, GuidePronunciation, GuideProperty, NarrationApi, WorkJob } from '../../types';
+import type { GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi, WorkJob } from '../../types';
+import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { wireClone } from '../mockFixtures';
 import { type MockApiSeed, type MockState, wireContext } from './state';
 import { type AssetsMock, MOCK_ASSET_ROOT } from './assets';
@@ -35,6 +36,26 @@ function setPronunciation(prior: GuidePronunciation, next: GuidePronunciation): 
   if (prior.ipa && isUser(prior) !== isUser(next)) value.alternate = { ipa: prior.ipa, source: prior.source, confidence: prior.confidence };
   else if (prior.alternate) value.alternate = prior.alternate;
   return value;
+}
+
+/** The types of a Story Bible without a list of its own (manuscript_guide.py DEFAULT_TYPES). */
+const MOCK_DEFAULT_TYPES: GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+  { name: 'Organization', colour: 'violet', speaks: false },
+  { name: 'Lore', colour: 'amber', speaks: false },
+  { name: 'Item', colour: 'teal', speaks: false },
+  { name: 'Event', colour: 'rose', speaks: false },
+];
+
+/** The sidecar's check of a type's name (manuscript_guide.py _type_name and _refuse_taken). */
+function mockTypeName(types: GuideType[], value: string, keep?: GuideType): string {
+  const name = value.trim();
+  if (!name || name.length > 40 || /[\r\n\0]/.test(name)) throw new Error("A type's name is one line of 1 to 40 characters.");
+  if (name === 'Needs Review' || name === 'Draft') throw new Error(`${name} is kept for the Story Bible's own use; give the type another name.`);
+  if (types.some((row) => row !== keep && row.name.toLowerCase() === name.toLowerCase()))
+    throw new Error(`There is a type named '${name}' already; give the type a new name.`);
+  return name;
 }
 
 export function createStoryBibleMock(
@@ -86,6 +107,16 @@ export function createStoryBibleMock(
     if (!entity) throw new Error('Entity not found.');
     if (entity.locked) throw new Error('This entity is locked. Unlock it before editing.');
     return entity;
+  };
+  let types: GuideType[] = MOCK_DEFAULT_TYPES.map((row) => ({ ...row }));
+  const typeNamed = (name: string): GuideType => {
+    const row = types.find((value) => value.name === name);
+    if (!row) throw new Error(`There is no type named '${name}'.`);
+    return row;
+  };
+  const changeType = (name: string, change: Partial<GuideType>) => {
+    const row = typeNamed(name);
+    types = types.map((value) => (value === row ? { ...value, ...change } : value));
   };
   const reviewOf = (entity: GuideEntity) => entity.review ?? { entry: entity.review_state === 'needs review', aliases: [] };
   const aliasTextAt = (entity: GuideEntity, aliasIndex: number | undefined): string | undefined => {
@@ -353,7 +384,7 @@ export function createStoryBibleMock(
       const value = index ?? 0;
       if (!Number.isInteger(value) || value < 0 || value > 7) throw new Error('A speaker colour is 1 to 7, or 0 for automatic.');
       const entity = editableEntity(id);
-      if (entity.category !== 'Character') throw new Error('Only a character speaks, so only a character has a speaker colour.');
+      if (!types.some((row) => row.speaks && row.name === entity.category)) throw new Error('Only an entry whose type can speak has a speaker colour.');
       updateEntity(id, (row) => {
         const next: GuideEntity = { ...row, speaker_color: value };
         if (!value) delete next.speaker_color;
@@ -368,6 +399,28 @@ export function createStoryBibleMock(
       s.dialogueCues = s.dialogueCues.map((row) =>
         row.id === cueId ? { ...row, speaker_entity_id: speaker, speaker_source: 'correction', corrected: true } : row,
       );
+    },
+    guideTypes: async () => wireClone(types),
+    guideTypeAdd: async (name) => {
+      const value = mockTypeName(types, name);
+      types = [...types, { name: value, colour: GUIDE_TYPE_COLOURS[types.length % GUIDE_TYPE_COLOURS.length], speaks: false }];
+    },
+    guideTypeRename: async (name, to) => {
+      const row = typeNamed(name);
+      const value = mockTypeName(types, to, row);
+      s.entities = s.entities.map((entity) => (entity.category === row.name ? { ...entity, category: value } : entity));
+      changeType(name, { name: value });
+    },
+    guideTypeSetColour: async (name, colour) => {
+      if (!GUIDE_TYPE_COLOURS.includes(colour)) throw new Error(`A type's colour is one of ${GUIDE_TYPE_COLOURS.join(', ')}.`);
+      changeType(name, { colour });
+    },
+    guideTypeSetSpeaks: async (name, speaks) => changeType(name, { speaks }),
+    guideTypeRemove: async (name) => {
+      const row = typeNamed(name);
+      if (s.entities.some((entity) => entity.category === row.name)) throw new Error(`${row.name} is in use; give its entries another type first.`);
+      if (types.length < 2) throw new Error('The last type cannot be removed.');
+      types = types.filter((value) => value !== row);
     },
   } satisfies Partial<NarrationApi>;
   return { bindings };

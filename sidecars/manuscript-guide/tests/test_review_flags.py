@@ -208,7 +208,7 @@ class ReviewFlagTests(unittest.TestCase):
     def test_the_colour_is_refused_for_a_category_that_cannot_speak(self):
         for category in ("Place", "Item", "Needs Review"):
             self.write(entity("entity-wren", "Wren", [], category=category))
-            with self.assertRaisesRegex(ValueError, "Only a character speaks, so only a character has a speaker colour."):
+            with self.assertRaisesRegex(ValueError, "Only an entry whose type can speak has a speaker colour."):
                 self.colour(3)
 
 

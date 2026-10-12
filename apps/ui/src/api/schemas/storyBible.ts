@@ -15,7 +15,9 @@ import type {
   GuidePronunciationValue,
   GuideProperty,
   GuideRelationship,
+  GuideType,
 } from '../contracts/storyBible';
+import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { listFromNull, optionalFromNull } from './base';
 import { assetInstallStateSchema } from './assets';
 import { workJobSchema } from './manuscript';
@@ -106,6 +108,15 @@ const guideEntitySchema = z.object({
   /** 1..7 when the narrator chose one; absent means automatic. */
   speaker_color: optionalFromNull(z.number().int().min(1).max(7)),
 }) satisfies z.ZodType<GuideEntity>;
+
+const guideTypeSchema = z.object({ name: z.string().min(1), colour: z.enum(GUIDE_TYPE_COLOURS), speaks: z.boolean() }) satisfies z.ZodType<GuideType>;
+
+/** The Story Bible types: never empty, since the host sends the defaults for a Story Bible without a list. */
+export const guideTypesSchema = z.array(guideTypeSchema).min(1);
+
+/** The list as the Story Bible file keeps it: each default row also names the extracted category it stands for (`builtin`), so a
+ * rebuild files a new entry under the type it was renamed to. The host does not send it. */
+export const guideTypesFileSchema = z.array(guideTypeSchema.extend({ builtin: z.string().optional() })).min(1);
 
 /** The entity list: the host sends an empty list for no Story Bible yet, and an older host null. */
 export const guideEntitiesSchema = listFromNull(guideEntitySchema);

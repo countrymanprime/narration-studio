@@ -968,10 +968,12 @@ def build(args: argparse.Namespace) -> None:
     if args.spacy_model != RULES_ONLY:
         log(f"Extracting candidates with spaCy model {args.spacy_model}")
     entities = build_entities(paragraphs, args.spacy_model, args.espeak_library or None, getattr(args, "default_source", "") or None)
+    types = guide_types(previous or {})
+    file_under_types(entities, types)
     write_progress(args.progress, "MERGE", 85, "Preserving locked edits...")
     log("Merging generated entries with locked and manual edits")
     entities = merge_locked(entities, previous)
-    fresh_cues = extract_dialogue_cues(paragraphs, character_name_index(entities))
+    fresh_cues = extract_dialogue_cues(paragraphs, character_name_index(entities, speaking_types(previous or {})))
     dialogue_cues = merge_dialogue_cues(fresh_cues, (previous or {}).get("dialogue_cues", []))
     guide = {
         "schema_version": SCHEMA_VERSION,
@@ -982,6 +984,8 @@ def build(args: argparse.Namespace) -> None:
         "vocabulary_candidates": vocabulary_candidates(entities),
         "absorbed_names": (previous or {}).get("absorbed_names", {}),
     }
+    if "types" in (previous or {}):
+        guide["types"] = types
     write_json(args.out, guide)
     write_progress(args.progress, "DONE", 100, f"Built guide with {len(entities)} entities")
     log(f"Built Story Bible with {len(entities)} entities")
@@ -1018,6 +1022,161 @@ def find_entity(guide: dict[str, Any], entity_id_value: str) -> dict[str, Any]:
 # manual entity that hasn't been classified yet.
 VALID_CATEGORIES = {"Character", "Place", "Organization", "Lore", "Item", "Event"}
 SYSTEM_CATEGORIES = {"Needs Review", "Draft"}
+
+# The Story Bible types (SN-B95): the narrator's own list of ``{name, colour, speaks}``, stored as ``types`` in the file. A file without
+# one reads as DEFAULT_TYPES, the fixed categories above with the hues the app has always drawn them in and only Character speaking, so
+# an old file reads as before and nothing is migrated; the first type edit writes the whole list. A colour names one of the six kind hues
+# of styles.css (green --character, blue --place, violet --org, amber --lore, teal --item, rose --event). ``builtin`` is kept in the
+# file only: the extracted category a row stands for, so a rebuild files a new Character under the type it was renamed to.
+TYPE_COLOURS = ("green", "blue", "violet", "amber", "teal", "rose")
+MAX_TYPE_NAME = 40
+DEFAULT_TYPES: tuple[dict[str, Any], ...] = tuple(
+    {"name": name, "colour": colour, "speaks": name == "Character", "builtin": name}
+    for name, colour in zip(("Character", "Place", "Organization", "Lore", "Item", "Event"), TYPE_COLOURS, strict=True)
+)
+
+
+def guide_types(guide: dict[str, Any]) -> list[dict[str, Any]]:
+    """The Story Bible's types, in order: the stored list, or a copy of DEFAULT_TYPES for a file without one. A stored list that is
+    not a non-empty list of rows with a name, a palette colour and a speaks flag is refused, never guessed at."""
+    stored = guide.get("types")
+    if stored is None:
+        return [dict(row) for row in DEFAULT_TYPES]
+    if not isinstance(stored, list) or not stored:
+        raise ValueError("The Story Bible types are invalid.")
+    seen: set[str] = set()
+    types = []
+    for row in stored:
+        if (
+            not isinstance(row, dict)
+            or not isinstance(row.get("name"), str)
+            or not row["name"].strip()
+            or row["name"].casefold() in seen
+            or row.get("colour") not in TYPE_COLOURS
+            or not isinstance(row.get("speaks"), bool)
+        ):
+            raise ValueError("The Story Bible types are invalid.")
+        seen.add(row["name"].casefold())
+        types.append({key: row[key] for key in ("name", "colour", "speaks", "builtin") if key in row})
+    return types
+
+
+def type_names(guide: dict[str, Any]) -> set[str]:
+    """The categories an entry can be given: the names of the types."""
+    return {row["name"] for row in guide_types(guide)}
+
+
+def speaking_types(guide: dict[str, Any]) -> set[str]:
+    """The types whose entries speak: their names are the speakers dialogue cues resolve to, and only they have a speaker colour."""
+    return {row["name"] for row in guide_types(guide) if row["speaks"]}
+
+
+def file_under_types(entities: list[dict[str, Any]], types: list[dict[str, Any]]) -> None:
+    """Files freshly extracted entries under the narrator's types: a category whose type was renamed takes the new name, and one whose
+    type was removed becomes Needs Review for the narrator to classify, so a rebuild never brings back a type they took away."""
+    names = {row["name"] for row in types}
+    renamed = {row["builtin"]: row["name"] for row in types if row.get("builtin")}
+    for entity in entities:
+        category = entity.get("category")
+        if category in SYSTEM_CATEGORIES:
+            continue
+        target = renamed.get(category) or (category if category in names else None)
+        if target is not None:
+            entity["category"] = target
+            continue
+        entity["category"] = "Needs Review"
+        entity["review_state"] = "needs review"
+        entity["review"] = {**(entity.get("review") or {"aliases": []}), "entry": True}
+
+
+def _type_name(value: str) -> str:
+    name = (value or "").strip()
+    if not name or len(name) > MAX_TYPE_NAME or any(char in name for char in "\r\n\0"):
+        raise ValueError(f"A type's name is one line of 1 to {MAX_TYPE_NAME} characters.")
+    if name in SYSTEM_CATEGORIES:
+        raise ValueError(f"{name} is kept for the Story Bible's own use; give the type another name.")
+    return name
+
+
+def _type_row(types: list[dict[str, Any]], name: str) -> dict[str, Any]:
+    row = next((row for row in types if row["name"] == name), None)
+    if row is None:
+        raise ValueError(f"There is no type named {name!r}.")
+    return row
+
+
+def _refuse_taken(types: list[dict[str, Any]], name: str, keep: dict[str, Any] | None = None) -> None:
+    if any(row is not keep and row["name"].casefold() == name.casefold() for row in types):
+        raise ValueError(f"There is a type named {name!r} already; give the type a new name.")
+
+
+def _edit_types(path: str, change) -> None:
+    """Applies one change to the types and writes the whole list. A Story Bible that does not exist yet is started, as ``create`` does,
+    so Settings can shape the types before the first build. A refused change writes nothing."""
+    guide = load_json(path) or empty_guide()
+    types = guide_types(guide)
+    change(guide, types)
+    guide["types"] = types
+    write_json(path, guide)
+
+
+def type_add(args: argparse.Namespace) -> None:
+    """Adds a type at the end, with the next palette colour by position, that does not speak."""
+    name = _type_name(args.name)
+
+    def change(_guide: dict[str, Any], types: list[dict[str, Any]]) -> None:
+        _refuse_taken(types, name)
+        types.append({"name": name, "colour": TYPE_COLOURS[len(types) % len(TYPE_COLOURS)], "speaks": False})
+
+    _edit_types(args.guide, change)
+    print(f"TYPE_ADDED|{name}")
+
+
+def type_rename(args: argparse.Namespace) -> None:
+    """Renames a type and moves every entry of it, a locked one too: the lock keeps the narrator's entry as they wrote it, and the
+    entry's type is the same type under its new name."""
+    to = _type_name(args.to)
+
+    def change(guide: dict[str, Any], types: list[dict[str, Any]]) -> None:
+        row = _type_row(types, args.name)
+        _refuse_taken(types, to, keep=row)
+        for entity in guide.get("entities", []):
+            if entity.get("category") == row["name"]:
+                entity["category"] = to
+        row["name"] = to
+
+    _edit_types(args.guide, change)
+    print(f"TYPE_RENAMED|{args.name}|{to}")
+
+
+def type_colour(args: argparse.Namespace) -> None:
+    """Sets a type's colour, one of TYPE_COLOURS."""
+    if args.colour not in TYPE_COLOURS:
+        raise ValueError(f"A type's colour is one of {', '.join(TYPE_COLOURS)}.")
+    _edit_types(args.guide, lambda _guide, types: _type_row(types, args.name).update(colour=args.colour))
+    print(f"TYPE_COLOUR|{args.name}|{args.colour}")
+
+
+def type_speaks(args: argparse.Namespace) -> None:
+    """Sets whether a type's entries speak (``--speaks`` 1 or 0). A speaker colour already stored on an entry is kept, unused while
+    its type is silent; the dialogue cues follow on the next build."""
+    _edit_types(args.guide, lambda _guide, types: _type_row(types, args.name).update(speaks=bool(args.speaks)))
+    print(f"TYPE_SPEAKS|{args.name}|{int(bool(args.speaks))}")
+
+
+def type_remove(args: argparse.Namespace) -> None:
+    """Removes a type no entry uses. The last type stays, so an entry always has one to be given."""
+
+    def change(guide: dict[str, Any], types: list[dict[str, Any]]) -> None:
+        row = _type_row(types, args.name)
+        if any(entity.get("category") == row["name"] for entity in guide.get("entities", [])):
+            raise ValueError(f"{row['name']} is in use; give its entries another type first.")
+        if len(types) < 2:
+            raise ValueError("The last type cannot be removed.")
+        types.remove(row)
+
+    _edit_types(args.guide, change)
+    print(f"TYPE_REMOVED|{args.name}")
 
 
 def entity_occurrence_count(entity: dict[str, Any]) -> int:
@@ -1072,8 +1231,10 @@ def apply_edit(
     paragraphs: list[dict[str, str]] | None,
     espeak_library: str | None,
     default_source: str | None = None,
+    categories: set[str] | None = None,
 ) -> None:
-    """Applies one field edit to ``entity`` in memory. Nothing is written here."""
+    """Applies one field edit to ``entity`` in memory. Nothing is written here. ``categories`` are the types an entry can be given
+    (``type_names``), the default types when not given."""
     if entity.get("locked") and field != "locked":
         raise ValueError("This entity is locked. Unlock it before editing.")
     if field == "locked":
@@ -1087,7 +1248,7 @@ def apply_edit(
     elif field == "properties":
         entity["properties"] = parse_properties(value)
     elif field == "category":
-        if value in SYSTEM_CATEGORIES or value not in VALID_CATEGORIES:
+        if value in SYSTEM_CATEGORIES or value not in (VALID_CATEGORIES if categories is None else categories):
             raise ValueError(f"Unknown or reserved category: {value}")
         entity["category"] = value
     elif field == "canonical_name":
@@ -1133,7 +1294,7 @@ def edit(args: argparse.Namespace) -> None:
     # The manuscript is read only when an alias is edited, to find where the new alias occurs.
     paragraphs = load_manuscript(args.manuscript) if "aliases" in fields and args.manuscript else None
     for field, value in zip(fields, values, strict=True):
-        apply_edit(entity, field, value, paragraphs, args.espeak_library or None, getattr(args, "default_source", "") or None)
+        apply_edit(entity, field, value, paragraphs, args.espeak_library or None, getattr(args, "default_source", "") or None, type_names(guide))
     entity["review_state"] = "reviewed"
     write_json(args.guide, guide)
     print("EDITED|" + args.entity_id)
@@ -1238,19 +1399,19 @@ def review_flag(args: argparse.Namespace) -> None:
 
 
 SPEAKER_COLORS = 7
-# Only a character speaks (the dialogue cues resolve to characters only), so only a character has a speaker colour.
-SPEAKING_CATEGORIES = {"Character"}
+# The types that speak in a file without a types list: only Character. A file with one speaks as its rows say (speaking_types).
+SPEAKING_CATEGORIES = {row["name"] for row in DEFAULT_TYPES if row["speaks"]}
 
 
 def speaker_color(args: argparse.Namespace) -> None:
     """Sets the entry's speaker colour, 1..7 (the ``--speaker-N`` hue of ADR 0367), which wins over the stable pick; 0 puts it back to
-    automatic. Refused on a locked entry and for a category that cannot speak."""
+    automatic. Refused on a locked entry and for an entry whose type cannot speak."""
     if not 0 <= args.index <= SPEAKER_COLORS:
         raise ValueError(f"A speaker colour is 1 to {SPEAKER_COLORS}, or 0 for automatic.")
     guide = _load_guide_for_edit(args.guide)
     entity, _ = _review_target(guide, args.entity_id, None)
-    if entity.get("category") not in SPEAKING_CATEGORIES:
-        raise ValueError("Only a character speaks, so only a character has a speaker colour.")
+    if entity.get("category") not in speaking_types(guide):
+        raise ValueError("Only an entry whose type can speak has a speaker colour.")
     if args.index:
         entity["speaker_color"] = args.index
     else:
@@ -1329,12 +1490,9 @@ def pronunciation_use_alternate(args: argparse.Namespace) -> None:
     print(f"PRONOUNCED|{args.entity_id}|{value.get('source', '')}")
 
 
-def create(args: argparse.Namespace) -> None:
-    # A manuscript import can seed manual character candidates before the
-    # Story Bible has ever been Built, so there may be no guide file yet -
-    # start an empty one instead of requiring a prior build. status() then
-    # correctly reports it as stale until a real build populates `source`.
-    guide = load_json(args.guide) or {
+def empty_guide() -> dict[str, Any]:
+    """A Story Bible with nothing in it yet, which status() reports as stale until a real build fills ``source``."""
+    return {
         "schema_version": SCHEMA_VERSION,
         "source": {},
         "generated_at": None,
@@ -1342,8 +1500,18 @@ def create(args: argparse.Namespace) -> None:
         "vocabulary_candidates": [],
         "absorbed_names": {},
     }
+
+
+def create(args: argparse.Namespace) -> None:
+    """Adds an entry by hand, under one of the Story Bible's types or as a Draft.
+
+    A manuscript import can seed manual character candidates before the Story Bible has ever been built, so there may be no guide
+    file yet: an empty one is started instead of requiring a prior build, and status() reports it as stale until a real build
+    fills ``source``.
+    """
+    guide = load_json(args.guide) or empty_guide()
     category = args.category.strip() or "Draft"
-    if category != "Draft" and category not in VALID_CATEGORIES:
+    if category != "Draft" and category not in type_names(guide):
         raise ValueError(f"Unknown category: {category}")
     name = args.name.strip()
     if not name:
@@ -1447,12 +1615,13 @@ def cue_id(paragraph_id: str, start: int, quote_text: str) -> str:
     return "cue-" + digest
 
 
-def character_name_index(entities: list[dict[str, Any]]) -> dict[str, str]:
-    """Maps every normalized Character name and alias to its entity id - only Character (never Place,
-    Organization, or an unresolved Needs Review candidate), since only a character speaks."""
+def character_name_index(entities: list[dict[str, Any]], speaking: set[str] | None = None) -> dict[str, str]:
+    """Maps every normalized name and alias of an entry that speaks to its entity id: an entry whose type is in ``speaking``
+    (``speaking_types``; Character when not given), never an unresolved Needs Review candidate."""
+    speaking = SPEAKING_CATEGORIES if speaking is None else speaking
     index: dict[str, str] = {}
     for entity in entities:
-        if entity.get("category") != "Character":
+        if entity.get("category") not in speaking:
             continue
         for key in entity_name_keys(entity):
             index.setdefault(key, entity["id"])
@@ -2127,6 +2296,24 @@ def main() -> None:
     color_parser.add_argument("--guide", required=True)
     color_parser.add_argument("--entity-id", required=True)
     color_parser.add_argument("--index", type=int, required=True)
+    type_add_parser = command.add_parser("type-add", help="add a Story Bible type that does not speak")
+    type_add_parser.add_argument("--guide", required=True)
+    type_add_parser.add_argument("--name", required=True)
+    type_rename_parser = command.add_parser("type-rename", help="rename a Story Bible type and move its entries")
+    type_rename_parser.add_argument("--guide", required=True)
+    type_rename_parser.add_argument("--name", required=True)
+    type_rename_parser.add_argument("--to", required=True)
+    type_colour_parser = command.add_parser("type-colour", help="set a Story Bible type's colour")
+    type_colour_parser.add_argument("--guide", required=True)
+    type_colour_parser.add_argument("--name", required=True)
+    type_colour_parser.add_argument("--colour", required=True, choices=TYPE_COLOURS)
+    type_speaks_parser = command.add_parser("type-speaks", help="set whether a Story Bible type's entries speak")
+    type_speaks_parser.add_argument("--guide", required=True)
+    type_speaks_parser.add_argument("--name", required=True)
+    type_speaks_parser.add_argument("--speaks", type=int, required=True, choices=(0, 1))
+    type_remove_parser = command.add_parser("type-remove", help="remove a Story Bible type no entry uses")
+    type_remove_parser.add_argument("--guide", required=True)
+    type_remove_parser.add_argument("--name", required=True)
     check_parser = command.add_parser("self-check", help="prove the dictionary and the espeak-ng data this program carries load (the packaged smoke test)")
     check_parser.add_argument("--piper-model", default="", help="also load this voice and speak one word")
     check_parser.add_argument("--gliner-install", default="", help="the GLiNER download's install folder, to report its version")
@@ -2173,6 +2360,11 @@ def main() -> None:
             "mark-reviewed": mark_reviewed,
             "review-flag": review_flag,
             "speaker-color": speaker_color,
+            "type-add": type_add,
+            "type-rename": type_rename,
+            "type-colour": type_colour,
+            "type-speaks": type_speaks,
+            "type-remove": type_remove,
             "delete": delete,
             "relate": relate,
             "unrelate": unrelate,
