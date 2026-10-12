@@ -1,5 +1,6 @@
 import type { DawBackup, DawCapabilities, DawCapabilityKey, DawCapabilitySupport, DawProjectState, DawResult } from '../api/contracts/daw';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
+import type { MeasureReport } from '../api/contracts/measure';
 
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
@@ -181,7 +182,29 @@ export type DawProject = {
   fxChains?: readonly string[];
   /** The passages the DAW could stack (bindings_daw_stack.go names them `pm-<chapter>-<paragraph>`). */
   passageIds?: readonly string[];
+  /** The files of the host's last measurement, for Play the quietest 5 s and Open in the DAW (bindings_master_files.go). */
+  measuredFiles?: readonly RunFile[];
 };
+
+/** A file of the last measurement as bindings_master_files.go reads it: its path (the page's file id), and its report's length and
+ * quietest window, or no report when it was not measured. */
+export type RunFile = { path: string; report: Pick<MeasureReport, 'duration_seconds' | 'noise_floor_start_seconds'> | null };
+
+/** How much Play the quietest plays (quietestPlaySeconds), and the noise-floor window it is centred on (measure.NoiseWindowSeconds). */
+const QUIETEST_PLAY_SECONDS = 5;
+const NOISE_WINDOW_SECONDS = 0.5;
+
+/** The stretch MasterPlayQuietest plays of `file` and its answer, or the sentence it refuses with: 5 s centred on the quietest window,
+ * moved inside the file, or all of a shorter file; never a time the measurement did not find (ADR 0015). */
+export function quietestOf(file: RunFile): { start: number; length: number; message: string } | { refused: string } {
+  const name = fileName(file.path);
+  if (!file.report) return { refused: `${name} was not measured, so there is no quiet stretch to play.` };
+  const { duration_seconds: duration, noise_floor_start_seconds: quietest } = file.report;
+  if (quietest === null || !(duration > 0)) return { refused: `${name} has no quiet stretch to play: the measurement found no room tone in it.` };
+  const length = Math.min(QUIETEST_PLAY_SECONDS, duration);
+  const start = Math.max(0, Math.min(quietest + NOISE_WINDOW_SECONDS / 2 - length / 2, duration - length));
+  return { start, length, message: `Playing the quietest ${length} s of ${name}, from ${start.toFixed(1)} s.` };
+}
 
 export const DAW_PROJECT: DawProject = {
   chapterIds: ['chapter-1', 'chapter-2'],
@@ -191,6 +214,11 @@ export const DAW_PROJECT: DawProject = {
   // The chains of tests/fixtures/contracts/workspace-fx-chains.json, so the mock lists what the host stand-in does.
   fxChains: ['Podcast Voice.RfxChain', 'Vocal Chain/Warmth.RfxChain'],
   passageIds: ['pm-chapter-1-p-1'],
+  // The paths of tests/fixtures/contracts/master-file-*.json's stand-in host.
+  measuredFiles: [
+    { path: 'C:/Renders/Chapter 01.wav', report: { duration_seconds: 600, noise_floor_start_seconds: 12 } },
+    { path: 'C:/Renders/Silent/Chapter 01.wav', report: { duration_seconds: 600, noise_floor_start_seconds: null } },
+  ],
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
@@ -202,6 +230,9 @@ export const filePreviewAnswer = (path: string, start: number, length: number): 
 /** The answer DawRevealFile gives when the file at `path` is shown in `daw`. */
 export const fileRevealAnswer = (path: string, daw: string): string => `Showing ${fileName(path)} in ${daw}.`;
 
+/** fileRevealAnswer for the DAW `setup` reports, so a port names no DAW itself. */
+export const fileRevealOf = (setup: DawCapabilities, path: string): string => fileRevealAnswer(path, setup.daw);
+
 const fileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
 
 export const DAW_ANSWERS = {
@@ -210,6 +241,8 @@ export const DAW_ANSWERS = {
   fileNothingPlaying: 'Nothing was playing.',
   fileNotPicked: 'Pick the file to measure again: only a file picked in this session can be played or shown.',
   fileBadStretch: 'The stretch to play is not a usable number of seconds (up to 60).',
+  /** apps/desktop/bindings_master_files.go (SN-M97): a file id that is not a file of the last measurement (code stale). */
+  masterNotInRun: 'That file is not in the last measurement. Check the files again, then try again.',
   noTrack: 'The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel.',
   staleTake: "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now.",
   takeUsed:

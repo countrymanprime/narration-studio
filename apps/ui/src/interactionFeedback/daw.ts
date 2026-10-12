@@ -39,6 +39,10 @@ export const dawFeedback = {
   'src/ports/daw.ts::workspaceListFXChains#1': adapter("Reads the DAW's saved FX chains for the Add FX list; a refusal rejects for the page to show."),
   'src/ports/daw.ts::dawCapabilities#3': adapter("Reads the capability report beside the chain list, for the list's source label."),
   'src/ports/daw.ts::findingsAddMarker#1': adapter('Forwards Add marker.'),
+  'src/ports/daw.ts::masterPlayQuietest#1': adapter(
+    "Forwards Master & QC's Play the quietest 5 s with the file id only; the binding already answers a DawResult.",
+  ),
+  'src/ports/daw.ts::masterOpenInDaw#1': adapter("Forwards Master & QC's Open in the DAW with the file id only; the binding already answers a DawResult."),
   // The pickup marker methods (SN-D44): each reads the pickups capability first, refusing with its sentence, then starts one pickups run and
   // waits for that run's finished pickups:state.
   'src/ports/daw.ts::dawCapabilities#2': adapter(

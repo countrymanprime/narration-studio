@@ -207,7 +207,7 @@ export function createMeasureMock(
   profile: () => DeliveryProfile = () => MOCK_ACX,
   checked: () => DiagnosticsJob | undefined = () => undefined,
   onJudged: (job: MeasureJob) => void = () => {},
-): MeasureApi & { resaveReview: () => void } {
+): MeasureApi & { resaveReview: () => void; lastRunFiles: () => readonly MeasureFileResult[] } {
   const hold = seed === 'hold';
   if (seed === 'spread') spreadPaths().forEach((path) => picked.add(path));
   let job: MeasureJob =
@@ -288,6 +288,8 @@ export function createMeasureMock(
   };
 
   return {
+    // The files of the last measurement, measured or not, for Play the quietest 5 s and Open in the DAW (bindings_master_files.go).
+    lastRunFiles: () => job.files,
     // A change of profile re-judges what was last measured for the Review page (delivery_findings.go).
     resaveReview: () => {
       if (job.phase !== 'idle' && job.phase !== 'running') onJudged(judged());

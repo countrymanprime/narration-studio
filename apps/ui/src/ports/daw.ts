@@ -11,12 +11,14 @@ import {
   nothingToStackOf,
   stackOf,
   fxRangeRemovedOf,
+  fileRevealOf,
   plainChainName,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
   projectStateOf,
   rangeCutOf,
   recordingFromAnswer,
+  quietestOf,
   rolledOf,
   takesHiddenOf,
 } from '../fixtures/daw';
@@ -124,6 +126,11 @@ export interface DawClient {
   setPickupMarkerDone(ref: string, done: boolean): Promise<DawResult>;
   /** Every pickup marker the DAW holds, open and done; the DAW's names win over what the app thought. */
   readPickupMarkers(): Promise<DawPickupMarkersRead>;
+  /** Play the 5 s of a measured file around its quietest stretch, outside the project. `fileId` is a file of the last measurement;
+   * any other is refused stale, and a file with no quiet stretch says so. */
+  playQuietest(fileId: string): Promise<DawResult>;
+  /** Show a measured file in the DAW's own file browser, without adding it to the project. `fileId` is as for `playQuietest`. */
+  openFile(fileId: string): Promise<DawResult>;
 }
 
 /** The `NarrationApi` methods the host adapter calls. */
@@ -153,6 +160,8 @@ export type DawHostApi = Pick<
   | 'pickupsListMarkers'
   | 'pickupsState'
   | 'subscribePickups'
+  | 'masterPlayQuietest'
+  | 'masterOpenInDaw'
 >;
 
 /** How far apart a pickup's time and its marker's may be and still be the same pickup (narration_pickups.lua's tolerance). */
@@ -325,6 +334,9 @@ export function createHostDawClient(api: DawHostApi): DawClient {
       return result.outcome === 'added' ? done(true, 1) : done(false, 0);
     },
     ...hostPickupMarkers(api),
+    /** The bindings answer a DawResult already and take the file id only: the host finds the file and its stretch in its last run. */
+    playQuietest: (fileId) => api.masterPlayQuietest(fileId),
+    openFile: (fileId) => api.masterOpenInDaw(fileId),
   };
 }
 
@@ -428,6 +440,7 @@ export function createMockDawClient(
     stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
     unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),
     ...mockBackups(setup, project),
+    ...mockMasterFiles(setup, project),
     async fxChains() {
       const sentence = unavailable(setup, 'fx_chains', 'fxChains');
       if (sentence) throw new Error(sentence);
@@ -461,6 +474,27 @@ function mockBackups(setup: DawCapabilities, project: DawProject): Pick<DawClien
       return table.restore(setup, backupId);
     },
     backups: () => Promise.resolve(table.list()),
+  };
+}
+
+/** Play the quietest 5 s and Open in the DAW over `project`'s last measurement as bindings_master_files.go answers them: the capability's
+ * sentence first, then a file not in that run (code stale), then a file with no quietest window. */
+function mockMasterFiles(setup: DawCapabilities, project: DawProject): Pick<DawClient, 'playQuietest' | 'openFile'> {
+  return {
+    async playQuietest(fileId) {
+      const sentence = unavailable(setup, 'file_preview', 'playQuietest');
+      if (sentence) return refused(sentence, 'playQuietest');
+      const file = project.measuredFiles?.find((candidate) => candidate.path === fileId);
+      if (!file) return refused(DAW_ANSWERS.masterNotInRun, 'playQuietest', true);
+      const stretch = quietestOf(file);
+      return 'refused' in stretch ? refused(stretch.refused, 'playQuietest') : done(false, 0, stretch.message);
+    },
+    async openFile(fileId) {
+      const sentence = unavailable(setup, 'file_reveal', 'openFile');
+      if (sentence) return refused(sentence, 'openFile');
+      if (!project.measuredFiles?.some((candidate) => candidate.path === fileId)) return refused(DAW_ANSWERS.masterNotInRun, 'openFile', true);
+      return done(false, 0, fileRevealOf(setup, fileId));
+    },
   };
 }
 
