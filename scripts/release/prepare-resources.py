@@ -30,6 +30,8 @@ RESOURCES_DIR = Path("apps/desktop/cmd/narration-utils/resources")
 
 RESOURCES = ROOT / RESOURCES_DIR
 RUNTIME = RESOURCES / "runtime"
+# The packages of the optional analysis tools, which a sidecar loads from the asset registry's install folder (ADR 0848).
+OPTIONAL_TOOL_MODULES = ("gliner", "transformers", "torch")
 REAPER = RESOURCES / "reaper"
 
 # The freezes run at the same time, so their output is written one whole line at a time.
@@ -159,12 +161,17 @@ def main() -> None:
         # pronunciation unavailable (No package metadata was found for cmudict)". `narration-utils --smoke` runs `manuscript-guide
         # self-check` to prove both load. (The other log line, "eSpeak phonetic fallback unavailable", is the phonemizer package
         # wanting a system libespeak-ng that no build has, on a dev machine too; data files do not fix it.)
+        # The optional GLiNER download (extraction_gliner.py) is imported at run time from the folder the asset registry
+        # installed it in, never from the freeze (ADR 0848). Its `from gliner import GLiNER` is a plain import PyInstaller
+        # would follow on a build machine that has the packages, pulling in about 5 GB of torch and transformers, so the
+        # three are excluded; verify-installable.mjs checks none of them is in the tree.
         Sidecar(
             "manuscript-guide",
             sidecars_root / "manuscript-guide" / "core" / "manuscript_guide.py",
             [shared_python, sidecars_root / "manuscript-guide" / "core"],
             ("piper", "cmudict"),
             ("cmudict",),
+            exclude_modules=OPTIONAL_TOOL_MODULES,
         ),
         # faster-whisper ships its Silero VAD model (assets/silero_vad_v6.onnx) as
         # package data and PyInstaller has no hook for it. Without collecting it, a
