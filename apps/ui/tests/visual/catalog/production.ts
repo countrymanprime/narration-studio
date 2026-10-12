@@ -256,7 +256,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'editing-check-running',
     description:
-      'Production, editing check panel: Check editing pressed, real progress and Cancel over the previous candidates still listed below (?mockEditing=hold&mockEditingSignal=not-met&mockEditingCandidates=1)',
+      'Production, editing check panel: Check editing pressed, real progress and Cancel over the last scan’s counts (?mockEditing=hold&mockEditingSignal=not-met&mockEditingCandidates=1)',
     ...LIVE_PROGRESS_MOVES_ON,
   },
   {
@@ -269,18 +269,12 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'editing-check-complete-candidates',
     description:
-      'Production, editing check panel: empty space "Not met" with two open candidates, each with time range, confidence, reason, Hear, Accept/Dismiss/Defer and Go to/Loop in REAPER (?mockEditingCandidates=1&mockEditingSignal=not-met)',
+      'Production, editing check panel: empty space "Not met" with its open candidates, which Clean up in Editing opens on the Editing page’s Clean up tab, and Match levels (?mockEditingCandidates=1&mockEditingSignal=not-met)',
   },
   {
     page: 'production',
     state: 'editing-check-complete-clean',
     description: 'Production, editing check panel: empty space "Met. Checked; no open empty-space candidate remains." (?mockEditingSignal=met)',
-  },
-  {
-    page: 'production',
-    state: 'editing-check-cleanup-confirm',
-    description:
-      'Production, editing check panel: "Trim silence…" (CapabilityGate(\'silence_trim\')) opened over the same two candidates, its ConfirmDialog previewing the trim (?mockEditingCandidates=1&mockEditingSignal=not-met&mockDawExperimentalOn=1)',
   },
   {
     page: 'production',
