@@ -25,7 +25,7 @@ func TestConformance(t *testing.T) {
 }
 
 // Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render, backups (ADR 0863) and the five rows that need
-// backups (their roles refuse until SN-D84 builds the steps). Everything else is NotYetAvailable with no role, until
+// backups (their role is the steps, steps.go). Everything else is NotYetAvailable with no role, until
 // the owner's pass promotes a capability or a later phase builds one.
 func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	adapter := closedAdapter(t)
@@ -157,48 +157,57 @@ func TestBackupsDecideWhatAudacityCanDo(t *testing.T) {
 	}
 }
 
-// roles-stay-honest-until-the-steps-land: every method of the five roles answers ADR 0144's sentence, as a Refused result or as
-// ErrNotAvailable, and never touches the pipe.
-func TestTheRolesThatNeedBackupsRefuseUntilTheirStepsLand(t *testing.T) {
+// The five capabilities that need backups share the steps role. Over an adapter with no project folder, so no backup can be made,
+// a cut, an effect, a stack and an un-stack refuse with the capability's sentence; a roll still reaches for the pipe (here closed),
+// since a roll without backups is the destructive one the page confirmed; and what is not built for Audacity keeps ADR 0144's
+// sentence.
+func TestTheRolesThatNeedBackupsAreTheSteps(t *testing.T) {
 	adapter := closedAdapter(t)
 	ctx := t.Context()
-	refused := func(name string, r dawport.Result, err error) {
-		if err != nil || r.OK || r.Message != string(ErrNotAvailable) {
-			t.Errorf("%s = %+v, %v; want Refused with ADR 0144's sentence", name, r, err)
+	for _, c := range backupRows {
+		if _, ok := adapter.Role(c).(*steps); !ok {
+			t.Errorf("%s role = %T, want the steps", c, adapter.Role(c))
 		}
 	}
-	failed := func(name string, err error) {
+	refused := func(name, want string, r dawport.Result, err error) {
+		t.Helper()
+		if err != nil || r.OK || r.Refused != want {
+			t.Errorf("%s = %+v, %v; want Refused %q", name, r, err, want)
+		}
+	}
+	notBuilt := func(name string, err error) {
+		t.Helper()
 		if !errors.Is(err, ErrNotAvailable) {
 			t.Errorf("%s error = %v, want ErrNotAvailable", name, err)
 		}
 	}
 	punch := adapter.Role(dawport.CapPunch).(dawport.Puncher)
 	_, err := punch.PunchTo(ctx, 1, 1)
-	failed("PunchTo", err)
+	notBuilt("PunchTo", err)
 	_, err = punch.PlayPosition(ctx)
-	failed("PlayPosition", err)
-	r, err := punch.Roll(ctx, "{track}", 1)
-	refused("Roll", r, err)
+	notBuilt("PlayPosition", err)
+	if _, err := punch.Roll(ctx, "Chapter 1", 1); !errors.Is(err, audacitybridge.ErrNotReachable) {
+		t.Errorf("Roll over a closed pipe error = %v, want ErrNotReachable", err)
+	}
 
 	takes := adapter.Role(dawport.CapTakes).(dawport.TakeSelector)
 	_, err = takes.SetActiveTake(ctx, "{item}", "{take}")
-	failed("SetActiveTake", err)
-	r, err = takes.HideTakes(ctx, "{item}", "{take}")
-	refused("HideTakes", r, err)
+	notBuilt("SetActiveTake", err)
+	r, err := takes.HideTakes(ctx, "{item}", "{take}")
+	refused("HideTakes", string(ErrNotAvailable), r, err)
 
 	stack := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
 	r, err = stack.StackTakes(ctx, dawport.StackRequest{})
-	refused("StackTakes", r, err)
+	refused("StackTakes", backupsSentence(dawport.CapStackTakes), r, err)
 	r, err = stack.UnstackTakes(ctx, dawport.StackRequest{})
-	refused("UnstackTakes", r, err)
-
+	refused("UnstackTakes", backupsSentence(dawport.CapStackTakes), r, err)
 	r, err = adapter.Role(dawport.CapCutRange).(dawport.RangeCutter).DeleteRange(ctx, dawport.DeleteRangeRequest{})
-	refused("DeleteRange", r, err)
+	refused("DeleteRange", backupsSentence(dawport.CapCutRange), r, err)
 	fx := adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
 	r, err = fx.ApplyFXToRange(ctx, dawport.FXRangeRequest{})
-	refused("ApplyFXToRange", r, err)
+	refused("ApplyFXToRange", backupsSentence(dawport.CapFXRange), r, err)
 	r, err = fx.RemoveFXFromRange(ctx, "{item}", "chain")
-	refused("RemoveFXFromRange", r, err)
+	refused("RemoveFXFromRange", messageRemoveFX, r, err)
 }
 
 func resolverFor(adapter dawport.Adapter, rt dawport.Runtime, toggle dawport.Toggle) *dawport.Resolver {

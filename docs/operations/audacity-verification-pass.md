@@ -4,8 +4,9 @@ The Audacity adapter was built from Audacity's published scripting spec and test
 
 - **Part A** runs unattended in about a minute and writes a results file.
 - **Part B** is five short checks by eye and ear.
+- **Part C** runs unattended right after Part A, in the same results file: each edit Audacity makes in steps after a backup.
 
-Paste both into #510.
+Paste all three into #510.
 
 ## Before you start
 
@@ -65,6 +66,22 @@ Leave the scratch project open after Part A. Each run overwrites `audacity-pass-
 
 During B4's second run, watch the screen as it runs A8 to A10. You should see the selection jump to 8.25 to 9 s, the cursor move to 3 s, and a loop play between 3 and 7.5 s at normal pitch. Note anything else, such as Audacity asking to save or the tone playing sped up.
 
+## Part C (unattended, after Part A)
+
+Part A's run goes on to Part C on the same scratch project and the same 12 s tone, with the backups table in the scratch folder and a 2 s backup window. To include C3, set `$env:NU_AUDACITY_PASS_MACRO` to the name of one of your own macros (Tools > Macro Manager) before running; without it C3 is `SKIP`. C6 records 2 s from the default input device.
+
+| Step | What it does in Audacity | Expected |
+| --- | --- | --- |
+| C1 | Cut 2 to 3 s, closing up: backup, `SplitDelete`, `Delete` | PASS: the tone ends at 11 s; a muted backup track |
+| C2 | Cut 4 to 4.5 s, leaving a gap: backup, `SplitDelete` | PASS: the tone still ends at 11 s, silent from 4 to 4.5 s |
+| C3 | Your macro on 5 to 6 s: backup, `Split`, `ApplyMacro` | PASS, or SKIP with no macro named |
+| C4 | Stack the read at 8 to 9 s on 6 s: backup, a take track, `Paste`, `Split`, `Delete`, mute | PASS: the tone ends at 9 s; a muted track `Narration Utils take pass-take-2 from 8.000 s, backup {ID}` holds 6 to 7 s |
+| C5 | Un-stack it: backup, `Paste` from the stack's backup track, `RemoveTracks` | PASS: the tone ends at 11 s again; the take track is gone |
+| C6 | Roll at 10 s: `Stop`, backup, `PunchAndRoll`, then `Stop` after 2 s | PASS: Audacity records from 10 s |
+| C7 | A cut on a track that is not there | PASS: refused as stale, nothing sent |
+
+By ear, after the run: the tone is silent from 4 to 4.5 s (C2's gap), and the audio after 10 s is C6's recording. Record in #510 how many entries each step added to Edit > Undo History: the app reports C1 2, C2 1, C3 2, C4 5, C5 2 and C6 0, and a different count is fixed in `steps*.go`.
+
 ## Backups (pending: not in Part A yet)
 
 The `backups` role ([ADR 0863](../adr/0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` yet (`pass_live_test.go`); a step is added there with the binding (SN-D82). Until then each check is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)).
@@ -81,8 +98,9 @@ The `backups` role ([ADR 0863](../adr/0863-an-audacity-backup-is-a-muted-track-i
 
 Comment on #510, headed "Audacity 4 pass results", with:
 
-- the results table from `audacity-pass-results.md`;
+- the results table from `audacity-pass-results.md` (Parts A and C);
 - one line per B step: as expected, or what happened instead;
+- the undo counts from Part C;
 - the Audacity version, and whether mod-script-pipe was enabled.
 
 ## What happens with the results

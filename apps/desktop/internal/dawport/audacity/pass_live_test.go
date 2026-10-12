@@ -1,6 +1,6 @@
 //go:build audacitylive && windows
 
-// The owner's verification pass, Part A (docs/operations/audacity-verification-pass.md, ADR 0355): it drives a real Audacity over
+// The owner's verification pass, Parts A and C (docs/operations/audacity-verification-pass.md, ADR 0355): it drives a real Audacity over
 // its scripting pipe, unattended, against a scratch project, and writes a results file to paste into #510. It is behind the
 // audacitylive build tag and NU_AUDACITY_PASS=1, so no ordinary test run, and no CI job, ever touches an Audacity.
 //
@@ -247,6 +247,88 @@ func TestAudacityVerificationPass(t *testing.T) {
 		err = fmt.Errorf("the .CL export was sent")
 	}
 	run.record("A15", "The external-program exporter (.CL) is refused before sending", err, "")
+
+	stepsPass(ctx, run, client, folder)
+}
+
+// stepsPass is Part C: each edit made in steps after a backup (steps*.go), on A4's 12 s tone, with the backups table in the scratch
+// folder. Each step checks the answer and how long the tone track is afterwards; Part B listens to the result.
+func stepsPass(ctx context.Context, run *passRun, client *audacitybridge.Client, folder string) {
+	adapter := NewWithBackups(client, BackupsConfig{Project: func() string { return folder }, Window: 2})
+	const tone = "pass-tone"
+	toneEnd := func() float64 {
+		tracks, err := client.Tracks(ctx)
+		if err != nil {
+			return -1
+		}
+		if found := tracksNamed(tracks, tone); len(found) == 1 {
+			return found[0].End
+		}
+		return -1
+	}
+	check := func(id, name string, result dawport.Result, err error, wantEnd float64) {
+		if err == nil && !result.OK {
+			err = fmt.Errorf("refused: %s", result.Message)
+		}
+		end := toneEnd()
+		if err == nil && math.Abs(end-wantEnd) > 0.05 {
+			err = fmt.Errorf("the tone ends at %.3f s, want %.3f s", end, wantEnd)
+		}
+		run.record(id, name, err, fmt.Sprintf("steps %q, undoSteps %d", result.Steps, result.UndoSteps))
+	}
+	cut := adapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
+	fx := adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+	stack := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+	roll := adapter.Role(dawport.CapPunch).(dawport.Puncher)
+	rangeOf := func(start, end float64) dawport.RangeRequest {
+		return dawport.RangeRequest{ChapterID: "pass", ItemGUID: tone, Start: start, End: end, Words: 2}
+	}
+
+	// C1, C2: a cut that closes up, then one that leaves a gap.
+	result, err := cut.DeleteRange(ctx, dawport.DeleteRangeRequest{RangeRequest: rangeOf(2, 3), Mode: dawport.CutClose})
+	check("C1", "Cut 2 to 3 s, closing up (SplitDelete, Delete), after a backup", result, err, 11)
+	result, err = cut.DeleteRange(ctx, dawport.DeleteRangeRequest{RangeRequest: rangeOf(4, 4.5), Mode: dawport.CutGap})
+	check("C2", "Cut 4 to 4.5 s, leaving a gap (SplitDelete), after a backup", result, err, 11)
+
+	// C3: the narrator's macro on a range, when they named one.
+	if macro := os.Getenv("NU_AUDACITY_PASS_MACRO"); macro != "" {
+		result, err = fx.ApplyFXToRange(ctx, dawport.FXRangeRequest{RangeRequest: rangeOf(5, 6), ChainID: macro, ChainName: macro})
+		check("C3", "Apply the macro to 5 to 6 s (Split, ApplyMacro), after a backup", result, err, 11)
+	} else {
+		run.steps = append(run.steps, passStep{"C3", "Apply a macro to a range", "SKIP", "set NU_AUDACITY_PASS_MACRO to one of your macros"})
+	}
+
+	// C4, C5: a read at 8 to 9 s stacked on a first read at 6 to 7 s (the audio from 9 s moves up by 2), then moved back.
+	stacked := dawport.StackRequest{ChapterID: "pass", Shift: -2, Groups: []dawport.StackGroup{{
+		PassageID: "pass", ItemGUID: tone, Base: "pass-take-1", Moves: []dawport.StackMove{{TakeID: "pass-take-2", From: 8, To: 6, Len: 1}},
+	}}}
+	result, err = stack.StackTakes(ctx, stacked)
+	check("C4", "Stack 8 to 9 s on 6 s: a muted take track, the chapter 2 s shorter", result, err, 9)
+	unstacked := dawport.StackRequest{ChapterID: "pass", Shift: 2, Groups: []dawport.StackGroup{{
+		PassageID: "pass", ItemGUID: tone, Base: "pass-take-1", Moves: []dawport.StackMove{{TakeID: "pass-take-2", From: 6, To: 8, Len: 1}},
+	}}}
+	result, err = stack.UnstackTakes(ctx, unstacked)
+	check("C5", "Un-stack it: the stretch pasted back from the backup, the take track removed", result, err, 11)
+
+	// C6: a roll at 10 s records for two seconds from the default input, then stops.
+	result, err = roll.Roll(ctx, tone, 10)
+	if err == nil {
+		time.Sleep(2 * time.Second)
+		err = client.Stop(ctx)
+	}
+	if err == nil && !result.OK {
+		err = fmt.Errorf("refused: %s", result.Message)
+	}
+	run.record("C6", "Roll at 10 s (PunchAndRoll) for 2 s, after a backup", err, fmt.Sprintf("steps %q; Part B: the audio after 10 s is the recording", result.Steps))
+
+	// C7: a track that is gone is refused before anything is sent.
+	result, err = cut.DeleteRange(ctx, dawport.DeleteRangeRequest{RangeRequest: dawport.RangeRequest{
+		ChapterID: "pass", ItemGUID: "no such track", Start: 1, End: 2,
+	}, Mode: dawport.CutClose})
+	if err == nil && result.Code != dawport.CodeStale {
+		err = fmt.Errorf("answered %+v, want a stale refusal", result)
+	}
+	run.record("C7", "A cut on a track that is gone is refused (stale)", err, "")
 }
 
 func ptr(v float64) *float64 { return &v }

@@ -40,7 +40,22 @@ Audacity keeps no takes and its edits change the audio itself, so `takes`, `punc
 - A roll stays usable without backups and is destructive, so the page asks first; with backups available it is not destructive.
 - `stack_takes`, `cut_range` and `fx_range` are made in `steps`.
 
-Until the steps are built, each of the five roles refuses every call with the "not available yet" sentence, so the five stay Experimental and behind the narrator's switch ([capabilities](capabilities.md#rules-every-capability-follows)).
+## Edits made in steps
+
+Each edit is a series of scripting commands sent after `BackupAround` has cloned the audio around it (`apps/desktop/internal/dawport/audacity/steps*.go`). Every check comes before the backup and the backup before the first edit: a request out of shape is refused, a track name Audacity no longer lists is `stale`, and a backup that is refused or fails stops the edit. The `Result` lists the edits in `Steps`, in the order sent, and counts in `undoSteps` the ones that add an undo point; selecting and copying add none. The roles treat backups as unavailable when the adapter has no project folder for them: then the cut, the effect and the stack refuse with the capability's sentence and send nothing, and a roll records over the audio.
+
+| Edit | Commands after the backup | Undo points |
+| --- | --- | --- |
+| Roll | `Stop` (before the backup), `SelectTracks`, `SelectTime` at the roll point, `PunchAndRoll` | 0; the recording's is Audacity's |
+| Cut, close | `SelectTracks`, `SelectTime`, `SplitDelete`, then `Delete` on the emptied stretch to close it up | 2 |
+| Cut, gap | `SelectTracks`, `SelectTime`, `SplitDelete`; the gap stays silent | 1 |
+| Effect on a range | `SelectTracks`, `SelectTime`, `Split`, `ApplyMacro` with the narrator's macro | 2 |
+| Stack | per later read: `NewMonoTrack` or `NewStereoTrack`, `SetTrackStatus` (name), `Copy` the read, `Paste` it at the first read's spot; then `Split` and `Delete` from where the first read ends to where the reads end; `SetTrackAudio` mute on each take track | 3 per read, plus 2 |
+| Un-stack | `Copy` the stretch the stack took out from the stack's own backup track, `Paste` it where the first read ends; `RemoveTracks` for each take track | 1, plus 1 per take |
+
+A stack's take track is named `Narration Utils take {take} from {seconds} s, backup {ID}`: the read's take id, where it was recorded and the backup the stack made, which holds what the stack took out of the chapter track. An un-stack refuses (`stale`) when a take track is gone or has moved, and when the stack's backup track is gone. A stack moves one passage per call, at most three later reads, because the request's `Shift` is summed over passages and Audacity has no item to read each first read's length from. Taking an effect off, setting the active take and hiding takes are not made in Audacity: the way back is the backup, on the Editing page's Backups tab.
+
+Paste, Delete and Punch and Roll move audio by Audacity's own rules (whether a paste into a gap moves the clips after it, how many undo points a macro adds), so each edit is checked on [the verification pass](../../operations/audacity-verification-pass.md), Part C.
 
 ## Backups
 
