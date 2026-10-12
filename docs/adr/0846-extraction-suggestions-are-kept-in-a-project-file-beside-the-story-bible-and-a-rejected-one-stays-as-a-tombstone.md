@@ -22,6 +22,6 @@ The Studio Next mock keeps extraction suggestions with the book data: each has a
 ## Consequences
 
 - The apply step, the wire and the UI read and write one store, and the Go type is what the wire's golden is written from.
-- A hand-edited file can change what the narrator is asked to verify; a suggestion never edits a locked entry (the apply step's rule). The threat model records this as row 6v.
+- A hand-edited file can change what the narrator is asked to verify; a suggestion never edits a locked entry (the apply step's rule). The file is listed in [data files](../reference/data-files.md).
 - The whole file is read on every call; at the cap that is tens of megabytes, which a narrator's project is not expected to reach.
 - Clearing on replace loses every suggestion and tombstone of the old manuscript, so the same suggestions can be offered again for a new one.

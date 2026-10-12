@@ -42,7 +42,7 @@ bridge command is sent without an explicit narrator action. Four things had to b
 
 - The buttons turn off within about 3 s of REAPER closing and back on when it returns, with no command sent to find out.
 - A command can still be written in the instant between the last heartbeat and REAPER closing; the next launch opens a
-  new session folder, so nothing acts on it later ([threat model](../architecture/threat-model.md) row 5f).
+  new session folder, so nothing acts on it later ([going to and looping a finding](../architecture/reaper-navigation.md)).
 - The refusal messages exist once in Go; the browser mock repeats them, and `findingsMock.test.ts` compares them with the
   golden payloads so the two cannot drift.
 - A project switch builds a new navigator and forgets the looped finding; REAPER's script still holds that loop until its
