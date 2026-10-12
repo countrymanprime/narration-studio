@@ -32,6 +32,11 @@ The bar at the foot plays the chapter in the app, from its recorded audio with e
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
 
+The word playing is lit, and the text scrolls to keep it in sight until you scroll by hand; the next play scrolls it
+again. When you play the project in the DAW instead, the lit word follows the DAW's play position, as long as the DAW
+reports one and the app is not playing its own audio. When the DAW stops, its last word stays lit until you move the
+cursor.
+
 A chapter has to be linked to a track (see [Linking chapters to tracks](navigation.md#linking-chapters-to-tracks)) for
 its words to carry the times they were heard at. A chapter that was never checked has no heard words; run the check on
 Production first.
