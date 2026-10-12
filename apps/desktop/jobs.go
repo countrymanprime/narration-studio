@@ -13,6 +13,10 @@ import (
 const jobEndedEvent = "job:ended"
 
 // The kinds of job that end with a jobEndedEvent. They are the words the UI matches on (apps/ui/src/api/contracts/system.ts).
+//
+// Adding a kind of background job: emit job:ended from the goroutine that ends it (endedJob builds the event from values read under the job's
+// lock; publish after releasing it), add its kind here, decide who announces it in apps/ui/src/jobEnded.ts, and add a Go test with the
+// jobEvents sink.
 const (
 	jobKindStoryBible         = "story_bible"
 	jobKindManuscriptImport   = "manuscript_import"

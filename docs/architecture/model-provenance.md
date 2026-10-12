@@ -93,4 +93,4 @@ Every model, voice and data pack the app can download, where it comes from, unde
 
 ## Changing this document
 
-Add or change a catalog entry, then run `node scripts/licenses/models.mjs` to rewrite the tables (`--check` fails when they are stale). For a new artifact add its row to `scripts/licenses/model-review.json` first, after reading its model card and licence at the pinned revision: state the commercial-use finding in plain words and say `unclear` when the card does not. An `unclear` artifact stays out of the catalog and appears under "Not in the catalogs". The allow-list for dependencies is separate ([dependency review](../operations/github-workflow.md)); it covers packages, not models.
+The steps for adding or changing an artifact are in the header of `scripts/licenses/models.mjs`.
