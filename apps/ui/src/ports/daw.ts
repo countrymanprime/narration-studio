@@ -16,6 +16,7 @@ import {
   pickupsImportedAnswer,
   projectStateOf,
   rangeCutOf,
+  recordingFromAnswer,
   rolledOf,
   takesHiddenOf,
 } from '../fixtures/daw';
@@ -83,8 +84,9 @@ export interface DawClient {
   capabilities(): Promise<DawCapabilities>;
   /** The project as last saved, whether the DAW has unsaved changes, and the transport. `playPosition` is for display only. */
   projectState(): Promise<DawProjectState>;
-  /** Start recording on the chapter's track. */
-  recordStart(chapterId: string): Promise<DawResult>;
+  /** Start recording on the chapter's track: from the end of its last item (ADR 0791), or from `at` (project seconds) when the
+   * narrator chose a punch. A time that is not a finite, non-negative number of seconds is refused before anything changes. */
+  recordStart(chapterId: string, at?: number): Promise<DawResult>;
   /** Stop a recording this app started. */
   recordStop(): Promise<DawResult>;
   /** Make `candidateId` the active take of the passage between the two tokens. */
@@ -130,6 +132,7 @@ export type DawHostApi = Pick<
   | 'dawCapabilities'
   | 'dawProjectState'
   | 'readAloudRecordStart'
+  | 'readAloudRecordStartAt'
   | 'readAloudRecordStop'
   | 'workspaceUseTake'
   | 'workspaceHideTakes'
@@ -274,8 +277,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
   return {
     capabilities: () => api.dawCapabilities(),
     projectState: () => api.dawProjectState(),
-    async recordStart(chapterId) {
-      const result = await api.readAloudRecordStart(chapterId);
+    async recordStart(chapterId, at) {
+      const result = await (at === undefined ? api.readAloudRecordStart(chapterId) : api.readAloudRecordStartAt(chapterId, at));
       return result.outcome === 'refused' ? refused(result.message, 'recordStart', result.reason === 'track_missing') : done(true, 0, result.message);
     },
     async recordStop() {
@@ -359,11 +362,15 @@ export function createMockDawClient(
   return {
     capabilities: () => Promise.resolve(setup),
     projectState: () => Promise.resolve(projectState),
-    async recordStart(chapterId) {
+    async recordStart(chapterId, at) {
+      if (at !== undefined && (!Number.isFinite(at) || at < 0)) return refused(DAW_ANSWERS.recordBadTime, 'recordStart');
       const sentence = unavailable(setup, 'record', 'recordStart');
       if (sentence) return refused(sentence, 'recordStart');
+      // The host places the cursor at a punch with the punch role, so a start at a time needs that capability too.
+      const punch = at === undefined ? null : unavailable(setup, 'punch', 'recordStart');
+      if (punch) return refused(punch, 'recordStart');
       if (!project.chapterIds.includes(chapterId)) return refused(DAW_ANSWERS.noTrack, 'recordStart', true);
-      return done(true, 0);
+      return at === undefined ? done(true, 0) : done(true, 0, recordingFromAnswer(at));
     },
     async recordStop() {
       const sentence = unavailable(setup, 'record', 'recordStop');

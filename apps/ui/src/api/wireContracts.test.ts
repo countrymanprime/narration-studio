@@ -430,6 +430,22 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     }
   });
 
+  it("the host's record starts at a punch all pass the schema, and the mock answers a start, a bad time and no link alike", async () => {
+    const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('readaloud-record-start-at.json'));
+    Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host record start at ${name}`));
+
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const started = await api.readAloudRecordStartAt(chapter.id, 30);
+    expectMatches(readAloudRecordingSchema, started, 'mock record start at');
+    expect([started.outcome, started.message, started.position]).toEqual([golden.started.outcome, golden.started.message, golden.started.position]);
+    for (const at of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(await api.readAloudRecordStartAt(chapter.id, at)).toEqual(golden.bad_time);
+    }
+    const unlinked = await createMockApi({}, { reaperState: 'no_link' }).readAloudRecordStartAt(chapter.id, 30);
+    expect([unlinked.outcome, unlinked.reason]).toEqual([golden.no_link.outcome, golden.no_link.reason]);
+  });
+
   it("every mock REAPER input answer passes the schema, preselects only a listed microphone, and matches the host's golden", async () => {
     const golden = z.record(z.string(), teleprompterReaperInputSchema).parse(readGolden('teleprompter-reaper-inputs.json'));
     for (const seed of MOCK_REAPER_INPUT_SEEDS) {
@@ -3626,6 +3642,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'readAloudReaperState',
       'readAloudArmOnly',
       'readAloudRecordStart',
+      'readAloudRecordStartAt',
       'readAloudRecordStop',
       'teleprompterReaperInput',
       'updateStatus',

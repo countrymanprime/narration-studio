@@ -2076,6 +2076,14 @@ export function ReadAloudRecordStart(chapterID: string): $CancellablePromise<str
     return $Call.ByID(1614763488, chapterID);
 }
 
+/**
+ * ReadAloudRecordStartAt is Record from a punch the narrator chose: chapterID and a time in project seconds, never a
+ * track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, keeps starting at the end of the last item.
+ */
+export function ReadAloudRecordStartAt(chapterID: string, at: number): $CancellablePromise<string> {
+    return $Call.ByID(3456773893, chapterID, at);
+}
+
 export function ReadAloudRecordStop(): $CancellablePromise<string> {
     return $Call.ByID(3415830820);
 }
