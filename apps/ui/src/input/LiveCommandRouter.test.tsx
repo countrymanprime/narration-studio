@@ -36,7 +36,7 @@ function Registrar({ id, onFire }: { id: string; onFire: () => void }) {
 }
 
 describe('LiveCommandRouter', () => {
-  it('fires a noisy command while stopped, and suppresses it once daw_transport_changed reports recording (Phase 10)', () => {
+  it('fires a noisy command while stopped, and suppresses it once daw_transport_changed reports recording', () => {
     let onUpdate: ((state: DawTransport) => void) | undefined;
     const base = createDawMock({ daw: 'REAPER', transport: { playing: false, recording: false } });
     const api: Pick<NarrationApi, 'subscribeDawTransport'> = {

@@ -5,7 +5,7 @@ import { findConflicts } from './findConflicts';
 import { gesture } from './gestures';
 
 describe('findConflicts', () => {
-  it('has zero conflicts in the default keymap (Phase 1 done-when bar)', () => {
+  it('has zero conflicts in the default keymap', () => {
     expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
     expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, true))).toEqual([]);
   });

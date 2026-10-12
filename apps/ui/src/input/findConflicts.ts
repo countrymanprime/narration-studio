@@ -13,7 +13,7 @@ export type Conflict = {
 /**
  * A pure function over `scopesOverlap`: for every gesture two or more commands are bound to, reports every pair
  * whose scopes overlap. It has no notion of which page is actually mounted - a remap the narrator makes is checked
- * against the whole catalog, not just what happens to be on screen (Phase 6's recorder). A pair where one row names
+ * against the whole catalog, not just what happens to be on screen (the gesture recorder). A pair where one row names
  * the other in `shadows` is not a conflict: the shadowing page row wins on its own page and the router falls through elsewhere.
  */
 export function findConflicts(catalog: readonly CommandDescriptor[], keymap: Keymap): Conflict[] {
