@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -385,4 +386,97 @@ func TestAReplacedAudacityBackupsRoleIsNotPruned(t *testing.T) {
 	}
 	host := backupHost(t, "Audacity", true, role, "on")
 	host.pruneBackupsOnOpen(host.services(), role)
+}
+
+// SN-E99: saving a shorter retention prunes at once with the new rule; a longer one, an unchanged one, or a refused value prunes nothing.
+func TestShorterRetentionPrunesAtOnceAndALongerOneKeepsEverything(t *testing.T) {
+	role := &fakeBackupKeeper{}
+	host := backupHost(t, "Audacity", true, role, "on")
+	save := func(days string) {
+		t.Helper()
+		if err := host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	day := 24 * time.Hour
+	save("3")  // default 7 -> 3
+	save("3")  // unchanged
+	save("10") // longer
+	save("1")  // 10 -> 1
+	if want := []time.Duration{3 * day, 1 * day}; !reflect.DeepEqual(role.pruned, want) {
+		t.Fatalf("pruned %v, want %v", role.pruned, want)
+	}
+	bad := "0"
+	if err := host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &bad}); err == nil {
+		t.Fatalf("a retention of 0 days was saved")
+	}
+	window := "30"
+	if err := host.saveSettings("DAW", "global", map[string]*string{backupWindowKey: &window}); err != nil {
+		t.Fatal(err)
+	}
+	if len(role.pruned) != 2 {
+		t.Fatalf("pruned %v after a refused value and another setting", role.pruned)
+	}
+	off := &fakeBackupKeeper{}
+	notConnected := backupHost(t, "Audacity", false, off, "on")
+	days := "1"
+	if err := notConnected.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days}); err != nil {
+		t.Fatal(err)
+	}
+	if len(off.pruned) != 0 {
+		t.Fatalf("pruned while Audacity is not connected")
+	}
+}
+
+// lockedKeeper is a role whose restore and prune share one lock, as audacity.Backups does.
+type lockedKeeper struct {
+	fakeBackupKeeper
+	mu      sync.Mutex
+	started chan struct{}
+	release chan struct{}
+	order   []string
+}
+
+func (l *lockedKeeper) RestoreBackup(context.Context, string) (dawport.Result, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	close(l.started)
+	<-l.release
+	l.order = append(l.order, "restore")
+	return dawport.OK("restored", true), nil
+}
+
+func (l *lockedKeeper) Prune(context.Context, time.Duration) ([]string, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.order = append(l.order, "prune")
+	return nil, nil
+}
+
+func TestRetentionPruneWaitsForARestoreInFlight(t *testing.T) {
+	role := &lockedKeeper{started: make(chan struct{}), release: make(chan struct{})}
+	host := backupHost(t, "Audacity", true, role, "on")
+	restored := make(chan struct{})
+	go func() {
+		defer close(restored)
+		_, _ = role.RestoreBackup(t.Context(), "{id}")
+	}()
+	<-role.started
+	saved := make(chan struct{})
+	go func() {
+		defer close(saved)
+		days := "2"
+		_ = host.saveSettings("DAW", "global", map[string]*string{backupRetentionKey: &days})
+	}()
+	select {
+	case <-saved:
+		t.Fatalf("the retention prune ran during a restore")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(role.release)
+	<-restored
+	<-saved
+	if !reflect.DeepEqual(role.order, []string{"restore", "prune"}) {
+		t.Fatalf("order %v, want the restore then the prune", role.order)
+	}
 }

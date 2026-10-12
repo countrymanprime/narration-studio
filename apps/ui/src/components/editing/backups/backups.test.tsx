@@ -168,6 +168,26 @@ describe('the Backups tab', () => {
     expect(save).toHaveBeenLastCalledWith('DAW', 'project', { 'capability.backups': 'off' });
   });
 
+  it('shortening the retention prunes at once: after the retention is saved the list reads the table again, so a pruned backup leaves it', async () => {
+    const daw = spyDaw(DAW_SETUPS['audacity-backups']);
+    await backUp(daw, 'Delete words', 130, 131);
+    await backUp(daw, 'Roll at ¶ 3', 200, 210);
+    const all = await daw.backups();
+    let pruned = false;
+    const api = withBackupSettings(createMockApi());
+    const save = api.saveSettings;
+    api.saveSettings = async (...args) => {
+      if (args[2][RETENTION_KEY] === '1') pruned = true; // the host prunes before it answers the save
+      return save(...args);
+    };
+    mount(spyDaw(DAW_SETUPS['audacity-backups'], { backups: async () => (pruned ? all.slice(0, 1) : all) }), api);
+    await flush();
+    expect(rows()).toHaveLength(2);
+    await act(async () => void fireEvent.change(document.querySelector('[data-bkkeep]') as HTMLInputElement, { target: { value: '1' } }));
+    await flush();
+    expect(rows()).toHaveLength(1);
+  });
+
   it('opening-the-tab-only-reads: the tab reads the table and asks the DAW to change nothing; the host prunes on project open', async () => {
     mount(spyDaw(DAW_SETUPS['audacity-backups']));
     await flush();
