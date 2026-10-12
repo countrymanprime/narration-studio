@@ -86,7 +86,7 @@ const backupText = z
 
 /** One row of backups.json, as the host validates it on read (audacity.validBackup): a GUID-shaped id, a finite window that starts
  * at or after 0 and before its end, and no other key. */
-export const dawBackupSchema = z
+const dawBackupSchema = z
   .strictObject({
     id: z.string().regex(/^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$/),
     guid: backupText,
