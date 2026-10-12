@@ -785,3 +785,14 @@ func TestDefaultNoteTypeMapsEveryCategoryToOneOfTheTen(t *testing.T) {
 		t.Errorf("plosive maps to %q", got)
 	}
 }
+
+func TestDefaultNoteTypeRefinesAudioQualityByEvidenceKind(t *testing.T) {
+	for kind, want := range map[string]NoteType{
+		"mouth_click": NoteMouth, "MOUTH": NoteMouth, "plosive": NotePlosive, "breath": NoteBreath, "hiss": NoteNoise, "": NoteNoise,
+	} {
+		f := Finding{Category: CategoryAudioQuality, Evidence: map[string]any{"kind": kind}}
+		if got := DefaultNoteType(f); got != want {
+			t.Errorf("audio_quality kind %q = %q, want %q", kind, got, want)
+		}
+	}
+}
