@@ -1,0 +1,97 @@
+[
+  {
+    "chapterId": "c-0001",
+    "confidence": 0.93,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Arelian",
+      "type": "Character"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "source": "gliner"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": 0.81,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Council of Ash",
+      "type": "Organization"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "source": "gliner"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": 0.88,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Dawnspire",
+      "type": "Place"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "source": "gliner"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": 0.62,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "grey mare",
+      "type": "Item"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000002",
+        "text": "Arelian rode the grey mare alone."
+      }
+    ],
+    "source": "gliner"
+  },
+  {
+    "chapterId": "c-0001",
+    "confidence": null,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Arelian",
+      "type": "Character"
+    },
+    "quotes": [
+      {
+        "paragraphId": "p-000001",
+        "text": "Captain Arelian said the Council of Ash would meet in Dawnspire."
+      }
+    ],
+    "source": "gliner"
+  }
+]

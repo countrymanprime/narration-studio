@@ -17,6 +17,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
 	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
 	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
+	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
 	"github.com/countrymanprime/narration-utils/shell/internal/ffmpeg"
 	"github.com/countrymanprime/narration-utils/shell/internal/moonshine"
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
@@ -37,7 +38,8 @@ import (
 //   - the bundled resources unpack (the same code the app runs at launch);
 //   - every bundled sidecar exists and starts (`--help` exits 0);
 //   - the frozen Story Bible sidecar can start its espeak-ng phonemizer and read the CMU dictionary (`self-check`), which is what a freeze
-//     silently loses; with --piper-model it also speaks one word;
+//     silently loses; with --piper-model it also speaks one word; it also reports the optional GLiNER download's version from its install
+//     folder, or "not installed", which passes;
 //   - on Windows, the frozen Teleprompter sidecar can load Moonshine's native library (`--capabilities --verify`), which PyInstaller cannot
 //     see it needs; no model is loaded and nothing is downloaded;
 //   - the frozen Teleprompter sidecar's own `--capabilities` report names every ASR and capture row Go's own registries declare for
@@ -174,6 +176,7 @@ func smoke(ctx context.Context, options smokeOptions) smokeReport {
 		detail, err := checkSidecarStarts(ctx, options, root, name)
 		add("sidecar:"+name, started, err, detail)
 	}
+	options.UserCache = userCache
 	report.Checks = append(report.Checks, checkFrozenGuide(ctx, options, root)...)
 	started = time.Now()
 	capsDetail, capsErr := checkCapabilities(ctx, options, root)
@@ -292,6 +295,9 @@ func checkFrozenGuide(ctx context.Context, options smokeOptions, root string) []
 	args := []string{"self-check"}
 	if options.PiperModel != "" {
 		args = append(args, "--piper-model", options.PiperModel)
+	}
+	if dir := analysisToolInstallDir(filepath.Join(root, "config", "analysis-assets.json"), assets.CacheBaseIn(options.UserCache), extractionport.Gliner); dir != "" {
+		args = append(args, "--gliner-install", dir)
 	}
 	code, stdout, stderr, err := runBounded(ctx, options, executable, args...)
 	if err != nil {

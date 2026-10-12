@@ -71,6 +71,20 @@ test('a frozen guide without the CMU dictionary data fails and names it', () =>
 test('a frozen guide without the cmudict package metadata fails and names it', () =>
   withTree(['runtime', 'manuscript-guide', '_internal', 'cmudict-1.1.3.dist-info'], /cmudict-<version>\.dist-info/));
 
+for (const name of ['gliner', 'transformers', 'torch']) {
+  test(`a frozen guide that carries the optional ${name} package fails and names it`, () => {
+    const tree = healthyTree();
+    try {
+      mkdirSync(join(tree.runtime, 'manuscript-guide', '_internal', name), { recursive: true });
+      const { status, output } = verify(tree.runtime);
+      assert.notEqual(status, 0, `a guide freeze carrying ${name} passed`);
+      assert.match(output, new RegExp(`optional download: ${name}`));
+    } finally {
+      tree.cleanup();
+    }
+  });
+}
+
 test('a release without an approved asset catalog fails and names it', () => withTree(['config', 'spacy-assets.json'], /spacy-assets\.json/));
 
 test('a release without the Moonshine catalog fails and names it', () => withTree(['config', 'moonshine-assets.json'], /moonshine-assets\.json/));

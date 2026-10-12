@@ -14,7 +14,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
 | [Documentation and process](#docs-and-process) | 8 |
-| [Ports and providers](#ports-and-providers) | 14 |
+| [Ports and providers](#ports-and-providers) | 15 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 33 |
 | [Assets, models and downloads](#assets-and-downloads) | 10 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
@@ -196,6 +196,7 @@ Small interfaces with registries and capability descriptors for engines and prov
 | [0403](0403-the-capabilities-flag-reports-what-registered-not-what-loads.md) | The `--capabilities` flag reports what registered, not what loads, by default | Accepted |
 | [0780](0780-the-jump-menu-context-menus-and-help-are-derived-from-the-static-command-catalogue-and-dynamic-commands-come-from-providers.md) | The jump menu, context menus and help are derived from the static command catalogue, and dynamic commands come from providers | Accepted |
 | [0791](0791-record-arms-only-the-chapters-track-and-starts-at-the-end-of-its-last-item-and-a-failed-precondition-shows-the-capabilitys-refusal-reason.md) | Record arms only the chapter's track and starts at the end of its last item, and a failed precondition shows the capability's refusal reason | Accepted |
+| [0848](0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md) | Optional analysis tools load their code and weights from the registry's install folder, never from the freeze or the network | Proposed |
 
 <a id="daw-integration"></a>
 
