@@ -130,7 +130,8 @@ since stamping, Chapter no longer in the manuscript, and so on). This is not the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 
-A proofer's pickup list has its own page, [Pickups](pickups.md).
+The lines to record again have their own page, [Pickups](pickups.md); a proofer's CSV sheet is imported on
+[Proof](proof.md#the-notes).
 
 **Prepare chapter render…** sets REAPER's render to every chapter region, names each file after its
 region, and saves into the **Output folder** (a `renders` folder in the project to start with). Press
@@ -186,7 +187,7 @@ change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
 
-A linked chapter's row also has **Open workspace**, into the chapter's [Proof view](proof.md#the-chapter-view): one
+A linked chapter's row also has **Open in Proof**, into the chapter's [Proof view](proof.md#the-chapter-view): one
 screen to listen to the chapter against its script and see where the recording check found a problem.
 
 When one or more chapters have a [Production](production.md#stage-readiness) stage suggestion that can't be

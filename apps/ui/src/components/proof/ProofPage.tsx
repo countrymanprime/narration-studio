@@ -109,6 +109,9 @@ export function ProofPage({
   // The latest selection, set as it happens: the right-click menu reads it in the same event that selected the row.
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
+  // Set while a row is pressed (it opens the row's chapter) or selected for the right-click menu (it does not).
+  const opening = useRef(false);
+  const selectingForMenu = useRef(false);
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
   const all = scope === ALL_CHAPTERS;
@@ -171,6 +174,10 @@ export function ProofPage({
     selectedRef.current = id;
     setSelectedId(id);
   }, []);
+  // The first note is selected while none is (the mock opens on one), so the Inspector is never empty while there are notes.
+  useEffect(() => {
+    if (findings.length > 0 && !findings.some((f) => f.id === selectedId)) select(findings[0].id);
+  }, [findings, selectedId, select]);
   const selected = findings.find((f) => f.id === selectedId) ?? null;
   const order = useMemo(() => findings.map((f) => f.id), [findings]);
 
@@ -280,30 +287,21 @@ export function ProofPage({
     <CommandScope kind="page">
       <div className="flex min-h-full flex-col">
         <div
-          className="grid flex-1 gap-4 p-4 min-[1100px]:grid-cols-[minmax(0,1fr)_380px] min-[1100px]:grid-rows-[auto_minmax(0,1fr)]"
+          className="grid flex-1 gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_380px] min-[1100px]:grid-rows-[auto_minmax(0,1fr)]"
           // A right click on a row selects it first, so the menu acts on the row under the pointer.
           onContextMenuCapture={(event) => {
             const row = (event.target as Element).closest<HTMLElement>('section[aria-label="Notes"] tr[data-row]');
-            row?.click();
+            if (!row) return;
+            selectingForMenu.current = true;
+            row.click();
+            selectingForMenu.current = false;
           }}
         >
           <section
             aria-label="Proof"
             className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <ProofHeader progress={progress} chapterBar={stepper} />
-              </div>
-              <IconButton
-                action="checkRecordings"
-                label="Check recordings…"
-                aria-haspopup="dialog"
-                disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
-                onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
-              />
-              <ProoferSheet />
-            </div>
+            <ProofHeader progress={progress} chapterBar={stepper} />
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-[var(--text-muted)]">Open notes, by chapter</span>
@@ -311,6 +309,8 @@ export function ProofPage({
               </div>
             ) : (
               <>
+                {/* The check card and the waveform sit under the page's h1 and before the notes' h2: a heading of their own keeps the outline in order. */}
+                <h2 className="sr-only">{`Recording of ${chapterName(chapter)}`}</h2>
                 <CheckCard chapter={chapter} onCheck={(id) => openCheckRecordings([id])} />
                 {timeline && total > 0 ? (
                   <>
@@ -333,15 +333,42 @@ export function ProofPage({
               </>
             )}
           </section>
-          <div className="min-h-0 min-w-0 min-[1100px]:row-start-2">
+          <div
+            className="min-h-0 min-w-0 min-[1100px]:row-start-2"
+            // A row pressed (a click or Enter), not stepped to with the keys, opens its chapter from All chapters, as in the mock.
+            onClickCapture={(event) => {
+              if (!selectingForMenu.current && (event.target as Element).closest('tr[data-row]')) opening.current = true;
+            }}
+            onKeyDownCapture={(event) => {
+              if (event.key === 'Enter' && (event.target as Element).closest('tr[data-row]')) opening.current = true;
+            }}
+          >
             <NotesPanel
               findings={findings}
               allChapters={all}
               sort={sort}
               onSortChange={setSort}
               selectedId={selectedId}
-              onSelect={select}
+              onSelect={(id) => {
+                const open = opening.current;
+                opening.current = false;
+                select(id);
+                const note = findings.find((f) => f.id === id);
+                if (open && all && note && chapterOf(note)) choose(chapterOf(note));
+              }}
               window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
+              actions={
+                <>
+                  <IconButton
+                    action="checkRecordings"
+                    label="Check recordings…"
+                    aria-haspopup="dialog"
+                    disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
+                    onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
+                  />
+                  <ProoferSheet />
+                </>
+              }
               badge={(row) => {
                 const count = spots.counts.get(row.id);
                 return count ? <TakesBadge count={count} /> : null;
@@ -377,7 +404,7 @@ export function ProofPage({
             )}
           </div>
         </div>
-        <div className="sticky bottom-0 z-[5]">
+        <div className="sticky -bottom-4 z-[5] -mx-4 mt-4 -mb-4 md:-bottom-6 md:-mx-6 md:-mb-6">
           <KeyHints hints={hints} />
         </div>
       </div>

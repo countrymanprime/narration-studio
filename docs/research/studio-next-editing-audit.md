@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-11. **Code audited:** `main` at `c922a81`. **Mock audited:** `docs/research/mockups/studio-next/` (`src/pages/Editing.tsx`, `src/pages/editing/`, `src/selectors/{scriptedit,cuts,stacking,takes,passagemap}.ts`, `src/providers/{alignment,takes,fxchains}.ts`). **Slice:** SN-E1 (#1038), SNE-1 of the [Script-Based Editing PRD](../prds/studio-next-script-based-editing.prd.md). SNE-9, the Editing swap, deletes this note once its tables have been acted on.
 
-Method: files read; a relative-import graph over `apps/ui/src` (a throwaway script, not committed) cross-checked with the grep commands in [Commands](#commands); `grep` over `apps/desktop`, `integrations/reaper`, `tests/fixtures`, `docs`. The app and REAPER were not run and nothing was measured. A claim not read line by line is marked **unverified**. Policy: the Studio Next mock is the only spec (owner ruling D98, [which mocks are the spec](../operations/agent-train.md#which-mocks-are-the-spec)): an old thing with a mock equivalent is removed in the swap, one without is left. The earlier [Proof and Pickups audit](studio-next-proof-audit.md) (SN-Q1) lists the same folder from the Proof side; [Proof overlap](#proof-overlap) compares the two.
+Method: files read; a relative-import graph over `apps/ui/src` (a throwaway script, not committed) cross-checked with the grep commands in [Commands](#commands); `grep` over `apps/desktop`, `integrations/reaper`, `tests/fixtures`, `docs`. The app and REAPER were not run and nothing was measured. A claim not read line by line is marked **unverified**. Policy: the Studio Next mock is the only spec (owner ruling D98, [which mocks are the spec](../operations/agent-train.md#which-mocks-are-the-spec)): an old thing with a mock equivalent is removed in the swap, one without is left. The earlier Proof and Pickups audit (`docs/research/studio-next-proof-audit.md`, deleted by SN-Q9; `git log` recovers it) (SN-Q1) lists the same folder from the Proof side; [Proof overlap](#proof-overlap) compares the two.
 
 ## Findings that change a slice
 
@@ -186,7 +186,7 @@ Present, partial or absent is the app on `main`. The last column is the Editing 
 
 ## Proof overlap
 
-SN-Q1's [Workspace parts](studio-next-proof-audit.md#workspace-parts) table and this note agree on every file in the PRD's list: each is deleted by SNE-9 and none is needed by Proof's notes. The disagreements and conditions:
+SN-Q1's Workspace parts (in the deleted Proof audit) table and this note agree on every file in the PRD's list: each is deleted by SNE-9 and none is needed by Proof's notes. The disagreements and conditions:
 
 1. **`TakesPanel.tsx` in the Proof PRD.** The [Proof and Pickups PRD](../prds/studio-next-proof-and-pickups.prd.md) (line 16) lists `TakesPanel` among Proof's repo files; this note and SN-Q1 mark it the Editing swap's. The PRD line is the odd one; Proof's lanes are new (SNQ-7).
 2. **`takesPassage.ts`.** SN-Q1 calls it a "candidate" for Proof's takes lanes; its only importer is `TakesPanel.tsx`. If SNQ-7 imports it first it becomes shared and SNE-9 must not delete it.

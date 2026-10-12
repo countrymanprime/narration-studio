@@ -128,7 +128,7 @@ export function PickupsPage({
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
 
   return (
-    <div className="grid items-start gap-4 p-4 min-[1100px]:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid items-start gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_360px]">
       <PickupsTable
         pickups={list.pickups}
         chapters={chapters}

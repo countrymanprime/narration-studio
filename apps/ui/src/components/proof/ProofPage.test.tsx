@@ -93,22 +93,36 @@ describe('proof-route-draws-the-mock-page', () => {
     expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-1');
   });
 
-  it('moves through the notes with J and K and with Down and Up, and does not claim Space', async () => {
+  it('opens on the first note, moves through the notes with J and K and with Down and Up, and does not claim Space', async () => {
     renderPage();
-    const rows = await noteRows();
+    await noteRows();
+    const selectedAt = (index: number) =>
+      (screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row]')[index] as HTMLElement).getAttribute('aria-selected');
+    await waitFor(() => expect(selectedAt(0)).toBe('true'));
     press('j', 'KeyJ');
-    await waitFor(() => expect(rows[0].getAttribute('aria-selected')).toBe('true'));
-    press('ArrowDown', 'ArrowDown');
-    await waitFor(() =>
-      expect((screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row]')[1] as HTMLElement).getAttribute('aria-selected')).toBe('true'),
-    );
+    await waitFor(() => expect(selectedAt(1)).toBe('true'));
     press('k', 'KeyK');
-    await waitFor(() =>
-      expect((screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row]')[0] as HTMLElement).getAttribute('aria-selected')).toBe('true'),
-    );
+    await waitFor(() => expect(selectedAt(0)).toBe('true'));
+    press('ArrowDown', 'ArrowDown');
+    await waitFor(() => expect(selectedAt(1)).toBe('true'));
+    press('ArrowUp', 'ArrowUp');
+    await waitFor(() => expect(selectedAt(0)).toBe('true'));
     const space = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
     document.body.dispatchEvent(space);
     expect(space.defaultPrevented).toBe(false);
+  });
+
+  it('a click on a note in All chapters opens its chapter; a key move does not', async () => {
+    renderPage();
+    await noteRows();
+    const fresh = () => [...screen.getByRole('region', { name: 'Notes' }).querySelectorAll<HTMLElement>('tr[data-row]')];
+    await waitFor(() => expect(fresh()[0].getAttribute('aria-selected')).toBe('true'));
+    press('j', 'KeyJ');
+    await waitFor(() => expect(fresh()[1].getAttribute('aria-selected')).toBe('true'));
+    expect(where()).toBe('/proof');
+    const row = fresh().find((candidate) => /pink eyes/.test(candidate.textContent ?? ''))!;
+    fireEvent.click(row);
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
   });
 
   it('shows the Inspector for the selected note', async () => {
@@ -157,7 +171,7 @@ describe('proof-decisions-and-undo', () => {
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');
-    renderPage({ api });
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
     const user = userEvent.setup();
     const rows = await noteRows();
     const at = rows.findIndex((row) => row.textContent?.includes('To review'));
