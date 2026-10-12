@@ -31,7 +31,7 @@ func measuredReport(path string, lufs, truePeak *float64) *measure.Report {
 	return &measure.Report{
 		File: path, SampleRate: 48000, Channels: 2, DurationSeconds: 1843.5,
 		IntegratedLUFS: lufs, RMSdBFS: number(-21.2), SamplePeakdBFS: number(-3.6), TruePeakdBTP: truePeak,
-		NoiseFloordBFS: number(-66.8), ClipRuns: []measure.ClipRun{},
+		NoiseFloordBFS: number(-66.8), NoiseFloorStartSeconds: number(412.5), ClipRuns: []measure.ClipRun{},
 		HeadRoomToneSeconds: number(0.8), TailRoomToneSeconds: number(2.5), HeadDigitalSilenceSeconds: number(0), TailDigitalSilenceSeconds: number(0),
 	}
 }

@@ -4,7 +4,7 @@
 //
 // Each feature area's bindings live in their own file under mockHost/ (the state they share is mockHost/state.ts);
 // this file only puts them together, with the per-feature mocks beside it (teleprompterMock.ts, coverageMock.ts, ...).
-import type { Finding, NarrationApi } from '../types';
+import type { Finding, MeasureFileResult, NarrationApi } from '../types';
 import { WIRE_FINDINGS, WIRE_TELEPROMPTER_DEVICES, WIRE_TRACKS_PROJECT } from './mockFixtures';
 import { mockChapterTrackMatch } from './chapterTrackMatchMock';
 import { createTeleprompterMock } from './teleprompterMock';
@@ -69,6 +69,7 @@ import type {
   DawRollApi,
   DawFilesApi,
   DawStackTakesApi,
+  MasterFilesApi,
   DawSplitTakeApi,
 } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
@@ -79,6 +80,7 @@ import {
   DAW_ANSWERS,
   filePreviewAnswer,
   fileRevealAnswer,
+  quietestOf,
   fxRangeOf,
   fxRangeRemovedOf,
   nothingToStackAnswer,
@@ -255,7 +257,7 @@ export function createMockApi(
   const { peekDiagnostics, ...diagnostics } = createDiagnosticsMock(endJob, measurePicked, initial.diagnostics);
   const editing = createEditingMock(initial.editing, editingChoices);
   const cleanupAction = createCleanupActionMock(initial.cleanupAction);
-  const { resaveReview, ...measurement } = createMeasureMock(endJob, initial.measure, measurePicked, deliveryProfile, peekDiagnostics, (job) => {
+  const { resaveReview, lastRunFiles, ...measurement } = createMeasureMock(endJob, initial.measure, measurePicked, deliveryProfile, peekDiagnostics, (job) => {
     const review = mockDeliveryReviewFindings(job);
     saveFileFindings(DELIVERY_REVIEW_ANALYZER, review.files, review.findings);
     recordRenderMeasurement(job.files);
@@ -380,6 +382,7 @@ export function createMockApi(
     ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createSplitTakeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFilesMock(daw, measurePicked),
+    ...createMasterFilesMock(daw, lastRunFiles),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
@@ -506,6 +509,30 @@ function createFilesMock(daw: DawCapabilitiesApi, picked: ReadonlySet<string>): 
       if (!reveal?.available) return refusedResult(reveal?.message ?? '');
       if (!picked.has(path)) return refusedResult(DAW_ANSWERS.fileNotPicked);
       return ok(fileRevealAnswer(path, setup.daw));
+    },
+  };
+}
+
+/** MasterPlayQuietest and MasterOpenInDaw as bindings_master_files.go answers them: the capability's sentence first, then a file that
+ * is not in the mock's last measurement (code stale), then a file with no quietest window; the mock's files are always there. */
+function createMasterFilesMock(daw: DawCapabilitiesApi, lastRun: () => readonly MeasureFileResult[]): MasterFilesApi {
+  const ok = (message: string): DawResult => ({ ok: true, changed: false, message, undoSteps: 0 });
+  const stale = (): DawResult => ({ ...refusedResult(DAW_ANSWERS.masterNotInRun), code: 'stale' });
+  return {
+    masterPlayQuietest: async (fileId) => {
+      const preview = (await daw.dawCapabilities()).capabilities.file_preview;
+      if (!preview?.available) return refusedResult(preview?.message ?? '');
+      const file = lastRun().find((candidate) => candidate.path === fileId);
+      if (!file) return stale();
+      const stretch = quietestOf(file);
+      return 'refused' in stretch ? refusedResult(stretch.refused) : ok(stretch.message);
+    },
+    masterOpenInDaw: async (fileId) => {
+      const setup = await daw.dawCapabilities();
+      const reveal = setup.capabilities.file_reveal;
+      if (!reveal?.available) return refusedResult(reveal?.message ?? '');
+      if (!lastRun().some((candidate) => candidate.path === fileId)) return stale();
+      return ok(fileRevealAnswer(fileId, setup.daw));
     },
   };
 }

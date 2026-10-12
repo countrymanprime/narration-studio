@@ -47,7 +47,11 @@ Below the table, the selected file shows **Why it fails** (or **Checks** when it
 when it has no measurements): every rule the app measured for it with **Pass** or **Fail**, the value
 measured and the profile's limit. A rule the app could not measure has no row here. Of the buttons
 beside the heading, **Check the files again** (the circular arrow) measures the same files again;
-**Play the quietest 5 s** and **Open in** your DAW are not connected yet and do nothing.
+**Play the quietest 5 s** plays the 5 seconds around the quietest stretch the measurement found, through your DAW
+without adding anything to the project, and **Open in** your DAW shows the file in the DAW's own file browser without
+importing it. Both are Experimental: they stay off, with the reason on hover, until you turn on **Play part of a file**
+and **Show a file in the audio engine** in Settings. A file with no quiet stretch says so, and a file from an earlier
+check asks you to check the files again.
 
 Under it, the same file against the profile rule by rule: the result (**Met**, **Not met**, or why it was
 not judged), this file's value, what the platform requires, and the source: whether that requirement was

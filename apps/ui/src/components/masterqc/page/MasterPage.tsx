@@ -26,6 +26,7 @@ import { MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
+import { useFileActions } from './useFileActions';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -36,7 +37,7 @@ const DANGER = { color: 'var(--danger-text)' };
  * against the profile, and the delivery package beside them. The profile pill and "Open Delivery" call `onOpenDelivery`; this page
  * navigates nowhere itself. The run controls, a file's every-rule list, mastering to spec, the mastering chain, the diagnostics, the
  * multi-platform export and the report export have no equivalent in the mock (D98) and stay as built, beside its sections. Playing a stretch of a file
- * and opening it in the DAW are the caller's (`fileActions`): the DAW port has no such call yet, so they do nothing until one is given.
+ * and opening it in the DAW go to the DAW port (`useFileActions`) unless the caller gives its own (`fileActions`).
  */
 export function MasterPage({
   hasManuscript = true,
@@ -146,8 +147,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const currentFile = run.files.find((file) => file.path === selected && file.status === 'measured');
   const chain = mastering.providers?.providers.find((row) => row.name === mastering.providers?.effective);
   const actions: FileActions = {
-    onPlayQuietest: fileActions?.onPlayQuietest ?? (() => undefined),
-    onOpenInDaw: fileActions?.onOpenInDaw ?? (() => undefined),
+    ...useFileActions(),
+    ...fileActions,
     onRecheck: () => void run.check(),
   };
 

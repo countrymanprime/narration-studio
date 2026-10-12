@@ -10,6 +10,7 @@ import {
   noBackupAnswer,
   DAW_ANSWERS,
   filePreviewAnswer,
+  quietestOf,
   fileRevealAnswer,
   fxChainAddedAnswer,
   fxChainRemovedAnswer,
@@ -3114,6 +3115,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawRevealFile('C:/elsewhere/Other.wav')).refused).toBe(DAW_ANSWERS.fileNotPicked);
   });
 
+  it('masterPlayQuietest and masterOpenInDaw: the host goldens parse, and the mock answers as the host does', async () => {
+    const files = [
+      'master-file-play-quietest.json',
+      'master-file-opened.json',
+      'master-file-refused-not-in-run.json',
+      'master-file-refused-no-quiet-stretch.json',
+    ];
+    for (const file of files) expectMatches(dawResultSchema, readGolden(file), file);
+    // The Go test's file is 600 s long with its quietest window at 12 s, and one with no window.
+    const quietest = quietestOf({ path: 'C:/Renders/Chapter 01.wav', report: { duration_seconds: 600, noise_floor_start_seconds: 12 } });
+    if ('refused' in quietest) throw new Error(quietest.refused);
+    expect(readGolden('master-file-play-quietest.json')).toEqual({ ok: true, changed: false, undoSteps: 0, message: quietest.message });
+    expect(readGolden('master-file-opened.json')).toEqual({ ok: true, changed: false, undoSteps: 0, message: fileRevealAnswer('Chapter 01.wav', 'REAPER') });
+    expect(readGolden('master-file-refused-not-in-run.json')).toMatchObject({ ok: false, refused: DAW_ANSWERS.masterNotInRun, code: 'stale' });
+    const none = quietestOf({ path: 'C:/Renders/Chapter 01.wav', report: { duration_seconds: 600, noise_floor_start_seconds: null } });
+    expect(readGolden('master-file-refused-no-quiet-stretch.json')).toMatchObject({ ok: false, refused: 'refused' in none ? none.refused : '' });
+
+    // Off by default (Experimental): the capability's sentence, as the host answers it, before the file id.
+    const off = createMockApi({}, { measure: 'spread' });
+    const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
+    expect((await off.masterPlayQuietest('C:/elsewhere/Other.wav')).refused).toBe(offSupport.message);
+
+    const api = createMockApi({}, { measure: 'spread', daw: { toggles: { file_preview: 'on', file_reveal: 'on' } } });
+    const [file] = (await api.measureState()).files;
+    const playing = await api.masterPlayQuietest(file.path);
+    expectMatches(dawResultSchema, playing, 'mock play quietest');
+    const stretch = quietestOf(file);
+    expect(playing).toEqual({ ok: true, changed: false, undoSteps: 0, message: 'message' in stretch ? stretch.message : '' });
+    const shown = await api.masterOpenInDaw(file.path);
+    expectMatches(dawResultSchema, shown, 'mock open in the DAW');
+    expect(shown.message).toBe(fileRevealAnswer(file.path, 'REAPER'));
+    for (const call of [api.masterPlayQuietest, api.masterOpenInDaw]) {
+      expect(await call('C:/elsewhere/Other.wav')).toEqual(readGolden('master-file-refused-not-in-run.json'));
+    }
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3680,6 +3717,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawPreviewFileRange',
       'dawStopFilePreview',
       'dawRevealFile',
+      'masterPlayQuietest',
+      'masterOpenInDaw',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',
