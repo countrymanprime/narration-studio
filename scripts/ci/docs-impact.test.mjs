@@ -130,3 +130,49 @@ test('the shipped map: rule ids are unique', () => {
 
   assert.equal(new Set(ids).size, ids.length);
 });
+
+const DATA_FILES = 'docs/reference/data-files.md';
+const THREAT_MODEL = 'docs/architecture/threat-model.md';
+const SECURITY = 'SECURITY.md';
+
+function owedDocs(changed) {
+  return evaluate({ changed, rules: loadRules() }).violations.flatMap((violation) => violation.docs);
+}
+
+test('the shipped map: a persisted project or per-user file owes the data-files reference, not the threat model', () => {
+  for (const file of ['apps/desktop/internal/persist/persist.go', 'apps/desktop/internal/marks/marks.go', 'apps/desktop/internal/settings/store.go']) {
+    const owed = owedDocs([file]);
+
+    assert.ok(owed.includes(DATA_FILES), `${file}: owes ${DATA_FILES}`);
+    assert.ok(!owed.includes(THREAT_MODEL) && !owed.includes(SECURITY), `${file}: owes no threat-model or SECURITY.md change`);
+    assert.deepEqual(owedDocs([file, DATA_FILES]), [], `${file}: the data-files reference satisfies it`);
+  }
+});
+
+test('the shipped map: a persisted file test is not a change to the file', () => {
+  assert.deepEqual(owedDocs(['apps/desktop/internal/marks/marks_test.go']), []);
+});
+
+test('the shipped map: a trust-boundary path still owes the threat model or SECURITY.md', () => {
+  for (const file of [
+    'apps/desktop/internal/process/supervisor.go',
+    'apps/desktop/internal/bridge/transport.go',
+    'integrations/reaper/narration_bridge_core.lua',
+    'apps/desktop/internal/audacitybridge/transport.go',
+    'apps/desktop/internal/assets/download.go',
+    'apps/desktop/internal/update/install.go',
+    '.github/workflows/prerelease.yml',
+    'apps/desktop/internal/importer/docx.go',
+  ]) {
+    const { violations } = evaluate({ changed: [file], rules: loadRules() });
+    const boundary = violations.find((violation) => violation.docs.includes(THREAT_MODEL));
+
+    assert.ok(boundary, `${file}: owes ${THREAT_MODEL}`);
+    assert.ok(boundary.docs.includes(SECURITY), `${file}: SECURITY.md also satisfies it`);
+    assert.ok(!owedDocs([file]).includes(DATA_FILES), `${file}: owes no data-files change`);
+    assert.ok(
+      !evaluate({ changed: [file, THREAT_MODEL], rules: loadRules() }).violations.some((violation) => violation.id === boundary.id),
+      `${file}: the threat model satisfies it`,
+    );
+  }
+});

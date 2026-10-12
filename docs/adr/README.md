@@ -1,23 +1,39 @@
-# Architecture & Design Decision Records (ADRs)
+# Architecture decision records (ADRs)
 
 **Status: implemented.**
 
-This folder is the fix for a recurring problem: agentic refactoring sessions have silently reverted deliberate decisions (styling, naming, behavior) because too much code and too many commits pile up between when a decision was made and when a later agent "cleans up" without knowing it was deliberate. An ADR is the durable record that a future agent — or person — checks *before* changing something, not after.
+An ADR records an architecturally significant decision: one that changes the structure, a dependency, an interface between parts, a platform, a persistence strategy, a quality attribute or a construction technique (a CI gate, a test strategy, the release pipeline), and is costly to reverse. It says why the choice was made, so a later change, by a person or an agent, can see the reason before reversing it. Two examples of the bar: choosing Go over Rust for the host because Rust toolchain downloads made builds slow, and pinning the Wails v3 beta because v3 has features v2 lacks ([ADR 0200](0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)).
+
+## When to write an ADR
+
+Write one when reversing the decision would restructure code across modules, or change a dependency, an interface between parts, a platform, a persistence strategy, a quality attribute or a construction technique that every contributor follows. If you cannot say which of these it changes, it is not an ADR: record it where the table below sends it.
+
+Do not write an ADR for these. [Which document](../README.md#which-document) has the full table.
+
+| The decision is about ... | Record it in | And pin it with |
+| --- | --- | --- |
+| What a page, dialog or control does, its copy, its shortcut | the PRD while it is being built; the [user guide](../guides/using-the-app/README.md) page once built | a test |
+| A token value, size, colour or component look | [the design system](../design/design-system.md) | the visual and atlas tests |
+| A file the app writes and reads back: path, contents, version, limits, when it is cleared | [data files](../reference/data-files.md) | a test that writes and reads it back |
+| A threshold, default, field, error code or one function's rule | a doc comment beside the code | a test beside the code |
+| The docs workflow, the agent train, repo housekeeping | `CONTRIBUTING.md`, [operations/](../operations/), or `.claude/` for what only agents follow | a CI check where one fits |
+| An open product question in a PRD | the PRD's decisions | |
 
 ## Format: lightweight Nygard-style ADRs
 
-We use a lightweight, Nygard-style format: Status, Date, Context, Decision, Consequences. It is deliberately not [MADR](https://adr.github.io/madr/) (no YAML front matter, no Decision Drivers or Considered Options sections): for one maintainer the extra sections are overhead, so the alternatives that mattered are named in Context. Each ADR is one file: `NNNN-short-title.md`, numbered sequentially starting at `0001`. Use [`template.md`](template.md) for the section structure.
+We use a lightweight, Nygard-style format: Status, Significance, Date, Context (with the considered options), Decision, Consequences. It is not full [MADR](https://adr.github.io/madr/): no YAML front matter and no Decision Drivers section. The options that were weighed go on one Considered options line in Context rather than in sections of their own. **Significance** names which of the things in [When to write an ADR](#when-to-write-an-adr) the decision changes; an ADR that cannot fill it is not written. Each ADR is one file: `NNNN-short-title.md`, numbered sequentially starting at `0001`. Use [`template.md`](template.md) for the section structure.
 
 ## Rules
 
 1. **Immutable once Accepted.** Never edit an accepted ADR's Decision or Consequences to reflect a change of mind. If a decision changes, write a **new** ADR that supersedes the old one.
 2. **Superseding, not deleting.** The old ADR's `Status` line becomes `Superseded by ADR-NNNN`, and the new ADR's front matter links back (`Supersedes ADR-NNNN`). The old file stays — it's still useful history.
 3. **One decision per ADR.** Don't bundle unrelated decisions; a future agent needs to be able to supersede one without touching the others.
-4. **Concrete, not aspirational.** An ADR records a decision that was actually made and applied to the code, with a pointer to where. It is not a proposal — proposals for future work belong in `docs/prds/` (see its [README](../prds/README.md) for the format).
+4. **Concrete, not aspirational.** An ADR records a decision that was actually made and applied to the code, with a pointer to where. It is not a proposal — proposals for future work belong in `docs/prds/` (see its [README](../prds/README.md) for the format). A behaviour, a value or a look that a test, the design system or the user guide records is not an ADR.
+5. **Moved, not deleted.** When an ADR's content is recorded in its proper home (the design system, the user guide, data files, a doc comment), its `Status` line becomes `Moved to <path>`, for example `Moved to docs/design/design-system.md#primitive-components`, and the file stays so links to it keep working. A moved ADR is history: read the path it names for the current rule. Only the owner's ADR audit moves an ADR.
 
 ## How this is enforced
 
-The `design-spec-guard` skill (`.claude/skills/design-spec-guard/`) reads this folder plus [`docs/design/design-system.md`](../design/design-system.md) before/during a refactor and flags any change that contradicts a recorded decision, unless that exact change is listed in an approved plan. The `adr-author` skill (`.claude/skills/adr-author/`) scaffolds new ADRs and handles the supersede bookkeeping so numbering and cross-links stay consistent.
+A deliberate behaviour, value or look is guarded by a test, lint rule or visual check, with its reason in the design system, the user guide or a doc comment; an ADR is the reason behind an architecture choice ([ADR 0046](0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md) turns the ones a tool can check into lint and test rules). The `design-spec-guard` skill (`.claude/skills/design-spec-guard/`) checks a UI refactor against [`docs/design/design-system.md`](../design/design-system.md), its tests and the architecture ADRs, and flags any change that contradicts them unless that exact change is listed in an approved plan. The `adr-author` skill (`.claude/skills/adr-author/`) scaffolds new ADRs and handles the supersede bookkeeping so numbering and cross-links stay consistent.
 
 ## Index
 
