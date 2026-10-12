@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
 // stackOf is passage ps-1's two later reads stacked on its first read t-1, as the app sends it after REAPER accepted stackTakes:
@@ -301,6 +304,59 @@ func TestStacksAndRetryModesShareTheFile(t *testing.T) {
 	}
 	if answer, _ := service.RetryModeGet(RetryLevelChapter, "c-0001", ""); answer.Set != RetryStack {
 		t.Fatalf("chapter mode = %+v", answer)
+	}
+}
+
+// G6: a Booth recording that merges passages again (a new run over a paragraph Editing already stacked) is written to the
+// passage map, a file of its own. The stacked passage keeps its first read, the offsets its moved audio was given, and its
+// retry mode, byte for byte, because the passage list is re-read from the map and stacks.json is never rewritten by it.
+func TestAStackAndItsRetryModeSurviveABoothMerge(t *testing.T) {
+	project := t.TempDir()
+	book := aliceBook()
+	service := newService(t, project, &book)
+	if _, err := service.StackRecord("c-0001", stackOf()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RetryModeSet(RetryLevelPassage, "c-0001", "passage-ps1", RetryStack); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(StacksFile(project))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	words := func(text string) int { return len(strings.Fields(text)) }
+	booth := passagemap.New(passagemap.Config{Project: project, Reporter: &persist.Reporter{}, Manuscript: func() (passagemap.Book, error) {
+		mapBook := passagemap.Book{Chapters: book.Chapters}
+		for _, line := range book.Lines {
+			mapBook.Lines = append(mapBook.Lines, passagemap.Line{ChapterID: line.ChapterID, ID: line.ID, Words: words(line.Text)})
+		}
+		return mapBook, nil
+	}})
+	// Two recordings of the chapter: the second rolls back into the first paragraph, so the two runs' takes merge over it.
+	for _, run := range [][]passagemap.MarkInput{
+		{{PID: "p-000001", Word: 0, Sec: 0, Kind: passagemap.KindStart}, {PID: "p-000002", Word: 4, Sec: 9, Kind: passagemap.KindStop, Prev: &passagemap.Place{PID: "p-000002", Word: 4}}},
+		{{PID: "p-000001", Word: 0, Sec: 0, Kind: passagemap.KindStart}, {PID: "p-000001", Word: 3, Sec: 4, Kind: passagemap.KindRoll, Prev: &passagemap.Place{PID: "p-000001", Word: 5}},
+			{PID: "p-000001", Word: 7, Sec: 8, Kind: passagemap.KindStop, Prev: &passagemap.Place{PID: "p-000001", Word: 7}}},
+	} {
+		if _, err := booth.RecordRun("c-0001", run); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if after, err := os.ReadFile(StacksFile(project)); err != nil || string(after) != string(before) {
+		t.Fatalf("stacks.json after the Booth merge:\n%s\nbefore:\n%s (%v)", after, before, err)
+	}
+	reread := newService(t, project, &book)
+	list, err := reread.StacksList("c-0001")
+	if err != nil || len(list.Stacks) != 1 {
+		t.Fatalf("stacks after the merge = %+v, %v", list, err)
+	}
+	if stack := list.Stacks[0]; stack.Base != "take:{A}:{T1}" || stack.Offsets["take:{A}:{T2}"] != 6.7 || stack.Offsets["take:{A}:{T3}"] != 14.2 {
+		t.Fatalf("the stacked passage after the merge = %+v", stack)
+	}
+	if answer, err := reread.RetryModeGet(RetryLevelPassage, "c-0001", "passage-ps1"); err != nil || answer.Mode != RetryStack || answer.Set != RetryStack {
+		t.Fatalf("retry mode after the merge = %+v, %v", answer, err)
 	}
 }
 

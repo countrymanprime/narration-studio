@@ -673,7 +673,7 @@ function AppRoutes() {
                       <ScriptPage
                         notify={setNotice}
                         focusStoryBibleEntity={goToStoryBible}
-                        goToWorkspace={goToEditing}
+                        goToEditing={goToEditing}
                         projectFolder={data.projectFolder}
                         goToBooth={goToBooth}
                       />

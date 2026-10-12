@@ -6,7 +6,8 @@ import type { FxChainsPort } from '../../../../ports/fxchains';
 import type { FxList } from '../../../../ports/daw';
 import { usePort } from '../../../../ports/usePort';
 import type { Journal } from '../../../../studio/journal/createJournal';
-import { ContextMenu, type ContextMenuItem } from '../../../primitives/ContextMenu';
+import { useContextProvider, type ContextProvider } from '../../../../registries/context';
+import type { ContextMenuItem } from '../../../primitives/ContextMenu';
 import { registerSelectionAction } from '../../bar/selectionActions';
 import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { summarize, type Range, type SelSummary } from '../../model';
@@ -50,7 +51,7 @@ export interface FxWords {
   remove: (fx: WordFx) => Promise<void>;
   /** The F key handler for `useEditingKeys`. */
   fx: () => void;
-  /** The menu anchor; the page renders it once, beside the script. */
+  /** The menu anchor; the page renders it once, beside the script, inside the context-menu host that opens the menu from it. */
   menu: ReactNode;
   /** Why the Add FX control is off for a selection, or ''. */
   refusalOf: (summary: SelSummary) => string;
@@ -78,7 +79,6 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   const [list, setList] = useState<FxList | null>(null);
   const [listWhy, setListWhy] = useState('');
   const anchor = useRef<HTMLSpanElement>(null);
-  const [menuAt, setMenuAt] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -191,7 +191,6 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
 
   const openMenu = useCallback((el: HTMLElement) => {
     const box = el.getBoundingClientRect();
-    setMenuAt((n) => n + 1);
     (anchor.current ?? el).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: box.left, clientY: box.bottom }));
   }, []);
 
@@ -205,9 +204,9 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     if (at) openMenu(at);
   }, [selected, doc, docCuts, refusalOf, openMenu]);
 
-  const latest = useRef({ openMenu, refusalOf, itemsOf });
+  const latest = useRef({ openMenu, refusalOf, itemsOf, selected });
   useEffect(() => {
-    latest.current = { openMenu, refusalOf, itemsOf };
+    latest.current = { openMenu, refusalOf, itemsOf, selected };
   });
   useEffect(() => {
     const removers = [
@@ -226,15 +225,15 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     return () => removers.forEach((off) => off());
   }, [plan, list]);
 
-  // The menu is chosen for the selection each time it opens; the anchor stays put.
-  const menuItems = useMemo(() => {
-    void menuAt;
-    return itemsOf(selected, null);
-  }, [itemsOf, selected, menuAt]);
-  const menu = (
-    <ContextMenu items={menuItems} className="contents">
-      <span ref={anchor} aria-hidden="true" data-fx-anchor />
-    </ContextMenu>
+  // The context-menu host asks this provider when the menu opens on the anchor, so the list is chosen for the selection each time.
+  const provider = useMemo<ContextProvider>(
+    () => ({
+      match: (target) => target.closest('[data-fx-anchor]') !== null,
+      items: () => latest.current.itemsOf(latest.current.selected, null),
+    }),
+    [],
   );
+  useContextProvider(provider);
+  const menu = <span ref={anchor} aria-hidden="true" data-fx-anchor className="contents" />;
   return { plan, list, openMenu, ask, remove, fx, menu, refusalOf };
 }

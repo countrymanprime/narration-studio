@@ -119,6 +119,19 @@ describe('the chapter document', () => {
     expect(cutDoc.items.find((i) => i.key === 'p1:x0')?.cut).toBe('c1');
     expect(buildDoc(input({ accepted: ['p1:x0', 'p1:x1', 'p1:8'] })).counts).toEqual({ extra: 0, miss: 1, mis: 0, low: 1 });
   });
+  it('a paragraph with no take has no times, and the recorded ones keep theirs', () => {
+    const tokens = (t: string) => t.split(/\s+/).filter(Boolean).length;
+    const percent = (tokens(TEXT1) / (tokens(TEXT1) + tokens(para2.text))) * 100;
+    const whole = buildDoc(input());
+    const partly = buildDoc(input({ recordedPercent: percent }));
+    const timed = (d: ReturnType<typeof buildDoc>, pid: string) => d.items.filter((i) => i.pid === pid).map((i) => i.t0 != null && i.t1 != null);
+    // The line with a take is heard the same either way; the line after the recording stopped has no times.
+    expect(timed(partly, 'p1').some(Boolean)).toBe(true);
+    expect(partly.items.filter((i) => i.pid === 'p1').map((i) => [i.t0, i.t1])).toEqual(whole.items.filter((i) => i.pid === 'p1').map((i) => [i.t0, i.t1]));
+    expect(timed(partly, 'p2').some(Boolean)).toBe(false);
+    expect(partly.paras[1]!.recorded).toBe(false);
+    expect(partly.paras[0]!.recorded).toBe(true);
+  });
   it('a second read of a line is a run of extra items', () => {
     const t2 = 'Then all was still. Then all was still.';
     const p: ScriptParagraph = { ...para2, take: { id: 'T2', text: t2, start: 40, len: 9, s: 0, e: para2.text.length } };

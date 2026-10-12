@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { chapterName } from '../../chapterName';
+import { chapterHeading } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { usePort } from '../../ports/usePort';
@@ -20,6 +20,12 @@ import { useDawStatus } from './page/useDawStatus';
 
 /** At or below this width of the page root the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
+
+/** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
+function headingName(chapter: Parameters<typeof chapterHeading>[0]): string {
+  const { label, title } = chapterHeading(chapter);
+  return label ? `${label} ${title}` : title;
+}
 
 export interface EditingPageProps {
   /** False until a manuscript is imported: the page asks for one and draws nothing else. */
@@ -123,7 +129,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
     };
   }, [manuscript]);
 
-  const list = useMemo(() => (chapters ?? []).map((c) => ({ id: c.id, name: chapterName(c, 'full') })), [chapters]);
+  const list = useMemo(() => (chapters ?? []).map((c) => ({ id: c.id, name: headingName(c) })), [chapters]);
   const chapter = list.find((c) => c.id === chosen) ?? list[0];
   const choose = useCallback(
     (id: string) => {

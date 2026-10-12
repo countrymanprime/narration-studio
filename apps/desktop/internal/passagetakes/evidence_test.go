@@ -192,19 +192,31 @@ func TestLevelIsComparableBetweenTakes(t *testing.T) {
 	}
 }
 
-func TestPlacementIsAlignedUntilTheMapExists(t *testing.T) {
-	for _, take := range evidenceOf(t, nil).Takes {
+// TK-1 part 2: a take the Booth's passage map stamped is placed from the map; a take recorded elsewhere stays aligned.
+func TestATakeTheBoothMappedIsPlacedExactly(t *testing.T) {
+	got := evidenceOf(t, nil, boothRecorded(take1))
+	if got.Takes[0].Via != ViaMap {
+		t.Errorf("take 1, which the Booth recorded over the passage, is placed %q", got.Takes[0].Via)
+	}
+	for _, take := range got.Takes[1:] {
 		if take.Via != ViaAligned {
-			t.Errorf("%s via %q", take.ID, take.Via)
+			t.Errorf("%s, recorded elsewhere, is placed %q", take.ID, take.Via)
 		}
 	}
-	// Nothing reads the Booth's passage map yet, so the one place ViaMap may appear is its declaration.
-	source, err := os.ReadFile("evidence.go")
-	if err != nil {
-		t.Fatal(err)
+	// The map's figures change nothing else: the matched share is still the alignment's.
+	if aligned := evidenceOf(t, nil); got.Takes[0].Matched.OK != aligned.Takes[0].Matched.OK {
+		t.Errorf("matched = %+v, without the map %+v", got.Takes[0].Matched, aligned.Takes[0].Matched)
 	}
-	if n := strings.Count(string(source), "ViaMap"); n != 1 {
-		t.Fatalf("ViaMap appears %d times in evidence.go; only its declaration may name it until a map is read", n)
+	for name, mutate := range map[string]func(*Input){
+		"no map":             func(*Input) {},
+		"a stale mark":       func(in *Input) { boothRecorded(take1)(in); in.Marks[1].Stale = true },
+		"another paragraph":  func(in *Input) { boothRecorded(take1)(in); in.Marks[0].PID, in.Marks[1].Prev.PID = "p-2", "p-2" },
+		"an unstamped run":   func(in *Input) { boothRecorded("")(in) },
+		"another take's ids": boothRecorded(take2),
+	} {
+		if via := evidenceOf(t, nil, mutate).Takes[0].Via; via != ViaAligned {
+			t.Errorf("%s: take 1 is placed %q", name, via)
+		}
 	}
 }
 

@@ -276,7 +276,13 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Keys.
   const toggleStrip = panels.strip.toggle;
-  const showTimeline = useCallback(() => (stripFits ? toggleStrip() : panels.drawer.openTab('timeline')), [stripFits, toggleStrip, panels.drawer]);
+  // Below 1360 the timeline is a drawer tab, and S shows and hides it as it does the strip (the mock's `toggleStrip`).
+  const { open: drawerIsOpen, want: drawerWant, openTab, close: closeDrawer } = panels.drawer;
+  const showTimeline = useCallback(() => {
+    if (stripFits) toggleStrip();
+    else if (drawerIsOpen && drawerWant === 'timeline') closeDrawer();
+    else openTab('timeline');
+  }, [stripFits, toggleStrip, drawerIsOpen, drawerWant, openTab, closeDrawer]);
   useEditingKeys({
     keymap,
     handlers: {

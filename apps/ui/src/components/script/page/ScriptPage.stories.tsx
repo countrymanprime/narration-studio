@@ -60,7 +60,7 @@ function Host({ children, patch }: { children: ReactNode; patch?: Partial<Script
 const meta = {
   title: 'Script/Page',
   component: ScriptPage,
-  args: { notify: fn(), focusStoryBibleEntity: fn(), goToBooth: fn(), goToWorkspace: fn(), projectFolder: '/projects/alice' },
+  args: { notify: fn(), focusStoryBibleEntity: fn(), goToBooth: fn(), goToEditing: fn(), projectFolder: '/projects/alice' },
   parameters: { layout: 'fullscreen' },
   // The host is made and seeded before the first render, not in an effect, so the browser's first frame already has it.
   beforeEach: async () => {
