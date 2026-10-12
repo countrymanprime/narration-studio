@@ -4,7 +4,7 @@ import { InsetCard } from '../../../primitives/InsetCard';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { WPH } from '../../../schedule/estimates';
 import { useChapterFacts } from '../data/useScriptData';
-import { cardLabel, chapterHeading, endedName } from './chapterHeading';
+import { cardLabel, chapterHeading, endedName } from '../../../../chapterHeading';
 import { PrepSegment } from './PrepSegment';
 
 const words = (n: number): string => n.toLocaleString('en-US');
