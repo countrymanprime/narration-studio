@@ -71,7 +71,7 @@ test('a frozen guide without the CMU dictionary data fails and names it', () =>
 test('a frozen guide without the cmudict package metadata fails and names it', () =>
   withTree(['runtime', 'manuscript-guide', '_internal', 'cmudict-1.1.3.dist-info'], /cmudict-<version>\.dist-info/));
 
-for (const name of ['gliner', 'transformers', 'torch']) {
+for (const name of ['gliner', 'booknlp', 'transformers', 'torch']) {
   test(`a frozen guide that carries the optional ${name} package fails and names it`, () => {
     const tree = healthyTree();
     try {

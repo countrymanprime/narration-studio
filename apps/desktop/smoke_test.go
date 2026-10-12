@@ -246,6 +246,28 @@ func TestSmokePassesAVoiceToTheGuideSoARealWordIsSpoken(t *testing.T) {
 	}
 }
 
+func TestSmokeGivesTheGuideBothBookNLPFoldersLargeFirst(t *testing.T) {
+	run := &fakeRun{}
+	tree := healthyTree(t)
+	body, err := os.ReadFile(layout.RepoFile("config/analysis-assets.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree[resourcesRoot+"/config/analysis-assets.json"] = &fstest.MapFile{Data: body}
+	smoke(context.Background(), smokeOptionsFor(t, tree, run))
+	var folders []string
+	for _, call := range run.calls {
+		for i, arg := range call {
+			if slices.Contains(call, "self-check") && arg == "--booknlp-install" && i+1 < len(call) {
+				folders = append(folders, call[i+1])
+			}
+		}
+	}
+	if len(folders) != 2 || !strings.Contains(folders[0], "booknlp-big") || !strings.Contains(folders[1], "booknlp-small") {
+		t.Fatalf("the guide self-check was given the BookNLP folders %q, want the large one, then the small one", folders)
+	}
+}
+
 func TestSmokeWithoutAVoiceNeverNeedsOne(t *testing.T) {
 	run := &fakeRun{}
 	smoke(context.Background(), smokeOptionsFor(t, healthyTree(t), run))

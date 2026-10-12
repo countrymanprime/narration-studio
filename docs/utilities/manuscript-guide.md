@@ -98,6 +98,20 @@ through `apps/desktop/internal/extractionport/gliner` with the same caps and che
 no-alias line format, pinned by `gliner/testdata/suggest-lines.json`. `self-check --gliner-install DIR` adds a `gliner`
 line: the installed version, or "not installed", which passes.
 
+## BookNLP suggestions
+
+`suggest --source booknlp --manuscript M --guide G --install DIR [--spacy-model S]` runs the optional BookNLP download
+(`core/extraction_booknlp.py`) on the weights in `DIR`, the large ones when the folder has them, with the Hugging Face hub
+turned off and only the entity, quote and coreference pipelines ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md)).
+It prints an `entry` per character with a name (its other proper names as aliases, no score), an `alias` flagged
+`duplicate` with a note when two of BookNLP's groups share a name, a `speaker` per attributed quote with the confidence
+`SPEAKER_CONFIDENCE` gives a tagged or an implicit attribution on those weights (an implicit one is always under 0.75),
+and a `Gender` property (Female or Male) with BookNLP's own probability, or `null` when it gives none. Each quote is cut
+from its paragraph by the model's offsets. The host runs it through `apps/desktop/internal/extractionport/booknlp`,
+which picks the large install over the small one and checks the line format pinned by
+`booknlp/testdata/suggest-lines.json`. `self-check --booknlp-install DIR` (repeatable, best first) adds a `booknlp`
+line: the version and weights of the first folder that is there, or "not installed", which passes.
+
 ## Workflow
 
 Run the guide after manuscript selection; review uncertain candidates; lock narrator-authored pronunciation and notes; consult the entries during recording.

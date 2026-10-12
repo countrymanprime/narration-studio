@@ -1,0 +1,178 @@
+[
+  {
+    "chapterId": "5",
+    "confidence": null,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "Alice",
+      "type": "Character"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-15",
+        "text": "Alice looked up; she was not a serpent."
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "5",
+    "confidence": null,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "the Pigeon",
+      "type": "Character"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-15",
+        "text": "cried the Pigeon."
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "5",
+    "confidence": null,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "the Caterpillar",
+      "type": "Character"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-2",
+        "text": "said the Caterpillar."
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "8",
+    "confidence": null,
+    "payload": {
+      "aliases": [],
+      "appearsIn": [],
+      "description": "",
+      "kind": "entry",
+      "name": "The Queen",
+      "type": "Character"
+    },
+    "quotes": [
+      {
+        "paragraphId": "8-15",
+        "text": "The Queen was looking at Alice, and Pigeon flew off."
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "8",
+    "confidence": null,
+    "flag": "duplicate",
+    "note": "Possible duplicate of the Pigeon: “Pigeon” was found in a separate group of mentions.",
+    "payload": {
+      "alias": "Pigeon",
+      "entry": "the Pigeon",
+      "kind": "alias"
+    },
+    "quotes": [
+      {
+        "paragraphId": "8-15",
+        "text": "The Queen was looking at Alice, and Pigeon flew off."
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "5",
+    "confidence": 0.95,
+    "payload": {
+      "kind": "speaker",
+      "quote": "“Who are you?”",
+      "speaker": "the Caterpillar"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-2",
+        "text": "“Who are you?”"
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "5",
+    "confidence": 0.95,
+    "payload": {
+      "kind": "speaker",
+      "quote": "“Serpent!”",
+      "speaker": "the Pigeon"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-15",
+        "text": "“Serpent!”"
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "8",
+    "confidence": 0.55,
+    "payload": {
+      "kind": "speaker",
+      "quote": "“Can you play croquet?”",
+      "speaker": "The Queen"
+    },
+    "quotes": [
+      {
+        "paragraphId": "8-15",
+        "text": "“Can you play croquet?”"
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "5",
+    "confidence": 0.93,
+    "payload": {
+      "entry": "Alice",
+      "key": "Gender",
+      "kind": "property",
+      "value": "Female"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-15",
+        "text": "Alice looked up; she was not a serpent."
+      }
+    ],
+    "source": "booknlp"
+  },
+  {
+    "chapterId": "5",
+    "confidence": 0.55,
+    "payload": {
+      "entry": "the Caterpillar",
+      "key": "Gender",
+      "kind": "property",
+      "value": "Male"
+    },
+    "quotes": [
+      {
+        "paragraphId": "5-2",
+        "text": "said the Caterpillar."
+      }
+    ],
+    "source": "booknlp"
+  }
+]

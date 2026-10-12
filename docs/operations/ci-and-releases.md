@@ -344,8 +344,8 @@ the four asset catalogs, and the REAPER files. Each has a test in
 `scripts/release/verify-installable.test.mjs`. `prepare-resources.py` gives the guide `--collect-data piper --collect-data cmudict`
 and `--copy-metadata cmudict`; PyInstaller has no hook for them (the guide grows by about 48 MB; `piper/hebrew` and `piper/tashkeel`
 come with the package data and English does not need them, a saving left for a later change). The guide is also frozen with
-`--exclude-module` for `gliner`, `transformers` and `torch`, and verify-installable fails a guide tree that holds any of them: the
-optional GLiNER download loads them from its own install folder ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md)).
+`--exclude-module` for `gliner`, `booknlp`, `transformers` and `torch`, and verify-installable fails a guide tree that holds any of them: the
+optional GLiNER and BookNLP downloads load them from its own install folder ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md)).
 
 **Known gap, not fixed here:** the IPA shown for a name the CMU dictionary lacks comes from the `phonemizer` package, which needs a
 system `libespeak-ng` that no build ships (it fails with "espeak not installed on your system" on a developer machine too), so
