@@ -307,7 +307,7 @@ export const readAloudReaperStateSchema = z.object({
 }) satisfies z.ZodType<ReadAloudReaperState>;
 
 /**
- * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStop` (`apps/desktop/bindings_readaloud_record.go`): what arming, starting or stopping a REAPER recording did.
+ * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop` (`apps/desktop/bindings_readaloud_record.go`): what arming, starting or stopping a REAPER recording did.
  */
 export const readAloudRecordingSchema = z.object({
   outcome: z.enum(['armed', 'started', 'stopped', 'refused']),
@@ -328,6 +328,7 @@ export const readAloudRecordingSchema = z.object({
       'did_not_start',
       'not_our_recording',
       'timeout',
+      'bad_time',
     ])
     .optional(),
   message: z.string().optional(),

@@ -5,16 +5,12 @@ import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { Button } from '../primitives/Button';
 import { Dot } from '../primitives/StatusBadge';
-import { Heading } from '../primitives/Heading';
 import { PanelHeader } from '../primitives/Panel';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
-import { ToggleGroup } from '../primitives/ToggleGroup';
 import { LocalAssets } from '../assets/LocalAssets';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import { useTheme } from '../../theme/ThemeContext';
-import type { ThemePreference } from '../../theme/theme';
 import { AboutPanel } from './AboutPanel';
 import { AnalysisToolsSection } from './analysis/AnalysisToolsSection';
 import { CreditsPanel } from './CreditsPanel';
@@ -22,7 +18,6 @@ import { CapabilitySection } from './CapabilitySection';
 import { DawCatalogPanel } from './DawCatalogPanel';
 import { DeliveryProfilesPanel } from './DeliveryProfilesPanel';
 import { KeyboardPanel } from './KeyboardPanel';
-import { ManuscriptSection } from './ManuscriptSection';
 import { OnlineDictionaryPanel } from './OnlineDictionaryPanel';
 import { RecordingCheckSummary } from './RecordingCheckSummary';
 import { ScopedSetting } from './ScopedSetting';
@@ -36,7 +31,6 @@ registerSettingsSection('ManuscriptGuide', 'analysis-tools', AnalysisToolsSectio
 type SettingsCategory = { key: string; label: string; tool?: string; scopes: Scope[]; filter?: (field: ScopedSettingField) => boolean };
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { key: 'General', label: 'General', tool: 'General', scopes: ['global'] },
-  { key: 'Appearance', label: 'Appearance', scopes: ['global'] },
   // The Keyboard & pedals category: its own panel, not the generic
   // fields form, since `Keymap.overrides` is one JSON document KeyboardPanel reads and writes itself (giving the
   // category no `tool` keeps it out of the generic rows).
@@ -54,8 +48,8 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   // one choice field per signal id a provider declares, plus the master switch.
   { key: 'StageRecommendations', label: 'Stage suggestions', tool: 'StageRecommendations', scopes: ['global', 'project'] },
   { key: 'ManuscriptGuide', label: 'Story Bible', tool: 'ManuscriptGuide', scopes: ['global', 'project'] },
-  // The delivery profile a project is judged against, and the custom profiles (ADR 0179).
-  { key: 'Delivery', label: 'Delivery', scopes: ['project', 'global'] },
+  // The Global default profile and the custom profiles (ADR 0179); the project's own choice is the page's Delivery profile panel.
+  { key: 'Delivery', label: 'Delivery', scopes: ['global'] },
   { key: 'Daw', label: 'DAW Integration', tool: 'DAW', scopes: ['global', 'project'] },
   { key: 'Piper', label: 'TTS', tool: 'Piper', scopes: ['global', 'project'] },
   // The Booth's microphone, engine and model: named for the page that
@@ -66,11 +60,6 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   // Credit values are per-project; the global narrator default lives in the General category.
   { key: 'Credits', label: 'Credits', scopes: ['project'] },
   { key: 'About', label: 'About & updates', tool: 'Updates', scopes: ['global'] },
-];
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
 ];
 
 // What the narrator edited. The form holds every field of the category, and a field with no value in this scope holds an
@@ -94,8 +83,6 @@ export function Settings({
   registerActions,
   onProjectDataCleared,
   onLinkDawFile,
-  go,
-  refreshBootstrap,
   initialCategory,
 }: {
   data: Bootstrap;
@@ -105,9 +92,9 @@ export function Settings({
   onProjectDataCleared: () => Promise<void>;
   /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;
-  /** Navigates the app (the import flow's credits prompt links to Settings > Credits). */
+  /** Navigates the app (the page's Manuscript panel: the import flow's credits prompt links to Settings > Credits). */
   go: (page: string) => void;
-  /** Re-reads the shared application state after an import commits. */
+  /** Re-reads the shared application state after an import commits (the page's Manuscript panel). */
   refreshBootstrap: () => Promise<void>;
   /**
    * The category to open on (a deep link such as the teleprompter's "Fill them in Settings" for the credits),
@@ -116,7 +103,6 @@ export function Settings({
   initialCategory?: string;
 }) {
   const api = useApi();
-  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const opening = SETTINGS_CATEGORIES.find((entry) => entry.key === initialCategory);
   const [scope, setScope] = useState<Scope>(opening?.scopes[0] ?? 'global');
   // Tailwind's `md` (48rem): from there the category list stands beside the panel, below it the list is a row.
@@ -242,9 +228,8 @@ export function Settings({
     <Tabs
       value={scope}
       onChange={(next) => requestChange(() => setScope(next as Scope))}
-      className="mx-auto grid max-w-6xl grid-rows-[auto_auto_minmax(0,1fr)] gap-4 md:h-[calc(100dvh-6.5rem)]"
+      className="mx-auto grid max-w-6xl grid-rows-[auto_minmax(0,1fr)] gap-4 md:h-[calc(100dvh-6.5rem)]"
     >
-      <Heading title="Settings" />
       <TabList label="Settings scope">
         <Tab value="global">Global</Tab>
         <Tab value="project">This Project</Tab>
@@ -386,18 +371,6 @@ export function Settings({
                     </div>
                   )}
                 </form>
-              ) : category === 'Appearance' ? (
-                <div className="space-y-3 text-sm">
-                  <div className="font-medium">Theme</div>
-                  <div style={{ color: 'var(--text-muted)' }}>Choose Light or Dark, or follow your system setting.</div>
-                  <ToggleGroup
-                    label="Theme"
-                    className="gap-2"
-                    value={themePreference}
-                    onChange={(next) => setThemePreference(next as ThemePreference)}
-                    options={THEME_OPTIONS}
-                  />
-                </div>
               ) : category === 'Keyboard' ? (
                 <KeyboardPanel overridesField={settings.Keymap?.find((field) => field.key === 'overrides')} notify={notify} reload={load} />
               ) : category === 'LocalAssets' ? (
@@ -405,7 +378,7 @@ export function Settings({
               ) : category === 'Credits' ? (
                 <CreditsPanel notify={notify} />
               ) : category === 'Delivery' ? (
-                <DeliveryProfilesPanel scope={scope} notify={notify} />
+                <DeliveryProfilesPanel notify={notify} />
               ) : category === 'ProjectData' ? (
                 <div className="space-y-4 text-sm">
                   <div className="rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
@@ -427,9 +400,6 @@ export function Settings({
                   }}
                 >
                   {/* The narrator's own Merriam-Webster key is theirs, not a project's, so it is set in Global only. */}
-                  {category === 'Manuscript' && scope === 'global' && (
-                    <ManuscriptSection data={data} go={go} notify={notify} refreshBootstrap={refreshBootstrap} />
-                  )}
                   {category === 'ManuscriptGuide' && scope === 'global' && <OnlineDictionaryPanel notify={notify} />}
                   {category === 'About' && (
                     <>

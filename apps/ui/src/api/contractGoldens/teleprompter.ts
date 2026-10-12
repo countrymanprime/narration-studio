@@ -48,6 +48,7 @@ export const teleprompterGoldens: Record<string, z.ZodType> = {
   'teleprompter-meter-stopped.json': teleprompterEventSchema.array(),
   'read-aloud-reaper-states.json': z.record(z.string(), readAloudReaperStateSchema),
   'read-aloud-recordings.json': z.record(z.string(), readAloudRecordingSchema),
+  'readaloud-record-start-at.json': z.record(z.string(), readAloudRecordingSchema),
   'teleprompter-reaper-inputs.json': z.record(z.string(), teleprompterReaperInputSchema),
   'teleprompter-punch-results.json': z.record(z.string(), teleprompterPunchResultSchema),
   // The sidecar's own `word_time` lines (align_word.py, ADR 0560): the host reads them (teleprompter.AlignWord) and hands

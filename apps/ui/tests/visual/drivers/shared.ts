@@ -43,7 +43,7 @@ export async function clickVisible(page: Page, role: Parameters<Page['getByRole'
     .click();
 }
 
-type AppPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Booth' | 'Editing' | 'Proof' | 'Pickups' | 'Master & QC' | 'Settings';
+type AppPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Booth' | 'Editing' | 'Proof' | 'Pickups' | 'Master & QC' | 'Delivery' | 'Settings';
 
 // Every page opens with the shared `Heading` primitive, an <h1>: it is what proves the page has arrived.
 export const PAGE_HEADING: Record<AppPage, string> = {
@@ -57,6 +57,7 @@ export const PAGE_HEADING: Record<AppPage, string> = {
   Proof: 'Proof',
   Pickups: 'Pickups',
   'Master & QC': 'Master & QC',
+  Delivery: 'Delivery',
   Settings: 'Settings',
 };
 
@@ -152,7 +153,7 @@ export async function openMaster(page: Page, query = ''): Promise<void> {
     await settlePage(page);
   }
   await goToPage(page, 'Master & QC');
-  await page.getByRole('button', { name: /^Rules and their sources/ }).waitFor();
+  await page.getByTitle('Open Delivery').waitFor();
   await page.getByRole('list', { name: 'Mastering steps' }).waitFor();
 }
 
@@ -169,7 +170,7 @@ export async function openProduction(page: Page, query = ''): Promise<void> {
 export async function measureOnMaster(page: Page, query = ''): Promise<void> {
   await openMaster(page, query);
   await page.getByRole('button', { name: 'Check files…' }).click();
-  await page.getByRole('table', { name: 'Per-file checks' }).waitFor();
+  await page.getByRole('grid', { name: 'Per-file checks' }).waitFor();
 }
 
 // Opens Master & QC's Diagnostics section, after a reload with mock seams when given, once its
@@ -178,6 +179,11 @@ export async function openDiagnostics(page: Page, query = ''): Promise<void> {
   await openMaster(page, query);
   await page.getByRole('region', { name: 'Thresholds' }).getByText('Room-tone change').waitFor();
   await scrollToTop(page, page.getByRole('region', { name: 'Diagnostics' }));
+}
+
+// A panel by its heading: the Studio Next pages' panels are regions named by no label of their own.
+export function panelTitled(page: Page, title: string | RegExp): Locator {
+  return page.getByRole('region').filter({ has: page.getByRole('heading', { name: title, exact: typeof title === 'string' }) });
 }
 
 // Scrolls a region to the top of the page's scroller, so a capture of the window shows it (a section below the fold).
@@ -214,7 +220,7 @@ export async function diagnosticsEnded(page: Page, message: string | RegExp): Pr
 // Waits for the measurement to end with `message` on the page (the unheld mock reads three files in twelve polls, about six
 // seconds), then dismisses the toast the same end raises (job:ended, ADR 0076), which would otherwise race the screenshot.
 export async function measurementEnded(page: Page, message: string | RegExp): Promise<void> {
-  await page.getByRole('region', { name: 'Per-file checks' }).getByText(message).waitFor({ timeout: 15_000 });
+  await page.getByText(message).first().waitFor({ timeout: 15_000 });
   const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
   await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
   await dismissToast.waitFor({ state: 'detached' });
@@ -369,6 +375,14 @@ export async function openEditingCheckFromEngine(page: Page, query: string) {
 // clicks to .settings-nav specifically.
 export async function clickSettingsCategory(page: Page, name: string): Promise<void> {
   await page.locator('.settings-nav').getByRole('tab', { name, exact: true }).click();
+  // The categories sit below the page's own panels (the Studio Next mock's): bring them to the top so the category is what is photographed.
+  await scrollToTop(page, page.getByRole('region', { name: 'More settings' }));
+}
+
+// Chooses the theme the way a narrator does, with Settings' Appearance panel (the Studio Next mock's radios).
+export async function chooseTheme(page: Page, theme: 'Light' | 'Dark'): Promise<void> {
+  await goToPage(page, 'Settings');
+  await page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: theme, exact: true }).check();
 }
 
 // Settings > Story Bible with the narrator's own Merriam-Webster key saved in the mock: the panel then says Key saved.

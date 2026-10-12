@@ -42,4 +42,5 @@
       - /children: equal
       - text: Finish
       - button "Master & QC"
+      - button "Delivery"
   - button "Settings"

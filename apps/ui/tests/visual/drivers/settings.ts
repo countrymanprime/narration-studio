@@ -3,7 +3,15 @@ import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, clickNav, clickSettingsCategory, clickVisible, confirmDialog, goToPage, openLocalAssets, saveOnlineDictionaryKey } from './shared';
 
+// The categories the mock does not draw, below the page's own panels.
+const keptSettings = (page: Page) => page.getByRole('region', { name: 'More settings' });
+
 export const settingsDrivers: Record<string, Driver> = {
+  'page-top': async (page) => {
+    await goToPage(page, 'Settings');
+    await page.getByRole('button', { name: 'Replace manuscript' }).waitFor();
+    await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
+  },
   'global-general': async (page) => {
     await goToPage(page, 'Settings');
     await clickVisible(page, 'tab', 'Global');
@@ -237,11 +245,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'About & updates');
     await page.getByText('Could not reach GitHub to check for updates.').waitFor();
   },
-  'global-appearance': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Appearance');
-  },
   'global-keyboard': async (page) => {
     await goToPage(page, 'Settings');
     await clickVisible(page, 'tab', 'Global');
@@ -281,14 +284,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickVisible(page, 'tab', 'This Project');
     await clickSettingsCategory(page, 'Story Bible');
   },
-  'project-delivery': async (page) => {
+  'delivery-profile-custom': async (page) => {
     await page.goto('/?mockDeliveryProfile=custom');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Delivery');
-    await page.getByRole('combobox', { name: 'Delivery profile for this project' }).waitFor();
-    await page.getByText('My ACX, tighter peak', { exact: true }).waitFor();
+    const select = page.getByRole('combobox', { name: 'Delivery profile', exact: true });
+    await select.getByRole('option', { name: 'My ACX, tighter peak', selected: true }).waitFor({ state: 'attached' });
   },
   'project-daw': async (page) => {
     await goToPage(page, 'Settings');
@@ -369,15 +370,15 @@ export const settingsDrivers: Record<string, Driver> = {
     await clickSettingsCategory(page, 'Proof');
     // Proof settings fields are <select> comboboxes, not pill buttons
     // (that's a Setup-page-only control) - pick a different model to dirty it.
-    await page.getByRole('combobox').first().selectOption('large-v3');
+    await keptSettings(page).getByRole('combobox').first().selectOption('large-v3');
     // The unsaved-changes footer sits at the end of the page; bring it on screen.
-    await page.getByRole('button', { name: /save/i }).scrollIntoViewIfNeeded();
+    await keptSettings(page).getByRole('button', { name: /save/i }).first().scrollIntoViewIfNeeded();
   },
   'navigate-away-confirm': async (page) => {
     await goToPage(page, 'Settings');
     await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Proof');
-    await page.getByRole('combobox').first().selectOption('large-v3');
+    await keptSettings(page).getByRole('combobox').first().selectOption('large-v3');
     // Leaving with unsaved changes asks first, so this click does not arrive at Production: it opens the confirm dialog.
     await clickNav(page, 'Production');
     await confirmDialog(page, 'Unsaved settings').waitFor();

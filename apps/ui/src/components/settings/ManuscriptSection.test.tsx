@@ -8,7 +8,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
 import { ThemeProvider } from '../../theme/ThemeContext';
-import { Settings } from './Settings';
+import { SettingsPage } from './page/SettingsPage';
 
 afterEach(cleanup);
 
@@ -25,7 +25,7 @@ async function renderManuscript(options: { noManuscript?: boolean; replace?: boo
     <MemoryRouter>
       <ThemeProvider>
         <ApiProvider api={api}>
-          <Settings
+          <SettingsPage
             data={data}
             notify={vi.fn()}
             onDirtyChange={vi.fn()}

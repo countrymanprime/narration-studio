@@ -11,6 +11,7 @@ import { proofDrivers } from './drivers/proof';
 import { proofChapterDrivers } from './drivers/proof-chapter';
 import { pickupsDrivers } from './drivers/pickups';
 import { masterDrivers } from './drivers/master';
+import { deliveryDrivers } from './drivers/delivery';
 import { productionDrivers } from './drivers/production';
 import { scheduleDrivers } from './drivers/schedule';
 import { boothDrivers } from './drivers/booth';
@@ -84,6 +85,7 @@ export const APP_DRIVERS: Record<string, Record<string, Driver>> = {
   'proof-chapter': proofChapterDrivers,
   pickups: pickupsDrivers,
   master: masterDrivers,
+  delivery: deliveryDrivers,
   production: productionDrivers,
   schedule: scheduleDrivers,
   booth: boothDrivers,

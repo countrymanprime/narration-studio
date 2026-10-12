@@ -32,7 +32,7 @@ import { ShortcutSheet } from './components/help/ShortcutSheet';
 import { ScriptPage } from './components/script/page/ScriptPage';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
-import { Settings } from './components/settings/Settings';
+import { SettingsPage } from './components/settings/page/SettingsPage';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
 import { boothQuery } from './components/booth/page/boothQuery';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
@@ -47,12 +47,13 @@ import type { DrawerTab } from './components/editing/drawer/drawerTabs';
 import { PickupsPage } from './components/pickups/PickupsPage';
 import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLocation';
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
-import { MasterQcPage } from './components/master/MasterQcPage';
+import { MasterPage } from './components/masterqc/page/MasterPage';
+import { DeliveryPage } from './components/delivery/page/DeliveryPage';
+import { parseMasterHash } from './components/master/masterLink';
 import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
 import type { ProductionOverview } from './api/contracts/production';
-import { parseMasterHash } from './components/master/masterLink';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -61,10 +62,16 @@ import { describeApiError } from './api/errorMessage';
 import { useCommand } from './input/useCommand';
 import { useRecordingEngine } from './components/booth/useRecorder';
 
-// The Settings categories another page can open Settings at, by URL anchor.
+// The kept Settings categories another page can open Settings at, by URL anchor (`#cleanup` is Master's Silence cleanup link).
 // `#teleprompter` is kept as an alias of `#booth` so links from before the Booth replaced the Teleprompter page still land;
 // the category's key stays its settings tool's name.
-const SETTINGS_ANCHORS: Record<string, string> = { '#credits': 'Credits', '#delivery': 'Delivery', '#booth': 'Teleprompter', '#teleprompter': 'Teleprompter' };
+const SETTINGS_ANCHORS: Record<string, string> = {
+  '#credits': 'Credits',
+  '#delivery': 'Delivery',
+  '#cleanup': 'Cleanup',
+  '#booth': 'Teleprompter',
+  '#teleprompter': 'Teleprompter',
+};
 
 const NO_CHAPTERS: ManuscriptChapter[] = [];
 
@@ -740,16 +747,32 @@ function AppRoutes() {
                 />
                 {/* The Production page moved to `/`. */}
                 <Route path="/production" element={<RedirectKeepingLocation to="/" />} />
-                {/* Master & QC replaces Delivery; old links land, hash kept. */}
+                {/* Master & QC and Delivery are two pages (ADR 0802); without a manuscript Delivery asks for one itself. */}
                 <Route
                   path="/master"
-                  element={<MasterQcPage openSettings={() => guardedNavigate('/settings#delivery')} focus={parseMasterHash(location.hash)} />}
+                  element={
+                    <MasterPage
+                      onOpenDelivery={() => guardedNavigate('/delivery')}
+                      openSettings={() => guardedNavigate('/settings#cleanup')}
+                      focusFile={parseMasterHash(location.hash)?.file}
+                    />
+                  }
                 />
-                <Route path="/delivery" element={<RedirectKeepingLocation to="/master" />} />
+                {/* An older finding link (`/delivery#file=…`, masterLink.ts) still lands on Master & QC, anchor kept. */}
+                <Route
+                  path="/delivery"
+                  element={
+                    parseMasterHash(location.hash) ? (
+                      <RedirectKeepingLocation to="/master" />
+                    ) : (
+                      <DeliveryPage hasManuscript={Boolean(data.manuscript)} onOpenInMaster={() => guardedNavigate('/master')} />
+                    )
+                  }
+                />
                 <Route
                   path="/settings"
                   element={
-                    <Settings
+                    <SettingsPage
                       data={data}
                       notify={setNotice}
                       onDirtyChange={setSettingsDirty}

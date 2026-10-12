@@ -249,21 +249,21 @@
     "state": "global-general",
     "viewport": "desktop",
     "docName": "settings-general",
-    "caption": "Settings - Global scope, General category"
+    "caption": "Settings - the kept categories, Global scope, General category"
   },
   {
     "page": "settings",
-    "state": "global-appearance",
+    "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - Global scope, Appearance category (theme switcher)"
+    "caption": "Settings - the top of the page: the Delivery profile select, the Story Bible types, the Appearance theme radios, the keyboard shortcuts and the Manuscript panel"
   },
   {
     "page": "settings",
     "state": "global-manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",
-    "caption": "Settings - Global scope, Manuscript category (note color picker)"
+    "caption": "Settings - Global scope, Manuscript category (reader-note colour picker)"
   },
   {
     "page": "settings",
@@ -382,14 +382,14 @@
     "state": "empty",
     "viewport": "desktop",
     "docName": "master-empty",
-    "caption": "Master & QC - nothing checked yet: the ACX platform tab, the built-in mastering chain as its three steps, and the delivery package's book checklist"
+    "caption": "Master & QC - nothing checked yet: the ACX profile pill, Check files…, the built-in mastering chain as its three steps, and the delivery package aside"
   },
   {
-    "page": "master",
+    "page": "delivery",
     "state": "profile-rules",
     "viewport": "desktop",
     "docName": "master-profile-rules",
-    "caption": "Master & QC - the ACX profile's rules and their sources: what ACX requires, how the app checks it, and whether it is verified"
+    "caption": "Delivery - the ACX profile's rules and their sources: what ACX requires, how the app checks it, and whether it is verified"
   },
   {
     "page": "master",
@@ -403,21 +403,21 @@
     "state": "measured",
     "viewport": "desktop",
     "docName": "master-measured",
-    "caption": "Master & QC - three files checked against ACX: length, RMS, true peak, noise floor and head / tail per file, a 48 kHz render that fails, and why it fails with a suggested fix beside the book's consistency"
+    "caption": "Master & QC - three files checked against ACX: length, RMS, peak, noise floor and head / tail per file, a 48 kHz render selected with why it fails, and the book's consistency"
   },
   {
     "page": "master",
     "state": "file-rules",
     "viewport": "desktop",
     "docName": "master-file-rules",
-    "caption": "Master & QC - one file against ACX, rule by rule, with what ACX requires and how it was verified"
+    "caption": "Master & QC - the selected file against ACX, rule by rule, with what ACX requires and how it was verified"
   },
   {
     "page": "master",
     "state": "custom-profile",
     "viewport": "desktop",
     "docName": "master-custom-profile",
-    "caption": "Master & QC - judged by a custom profile based on ACX, chosen as its own platform tab"
+    "caption": "Master & QC - judged by a custom profile based on ACX, named on the profile pill"
   },
   {
     "page": "master",
@@ -441,10 +441,10 @@
     "caption": "Master & QC - Master all to spec with five files picked and given a role, mastered by the built-in chain before encoding"
   },
   {
-    "page": "master",
-    "state": "package-built",
+    "page": "delivery",
+    "state": "measured",
     "viewport": "desktop",
     "docName": "master-package-built",
-    "caption": "Master & QC - the ACX package built from the mastered and encoded files: the packager's checklist, and the output folder with every file it wrote"
+    "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
   }
 ]

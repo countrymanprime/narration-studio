@@ -23,6 +23,16 @@ const package_ = () => screen.getByRole('complementary', { name: /Delivery packa
 const chart = () => screen.getByRole('img', { name: /RMS by file/ });
 
 describe('Master & QC page body', () => {
+  it('opens on the file a #file= link names (masterLink.ts), not on the first failing file', async () => {
+    const api = apiOf(jobOf(TWO_FAIL, acx), acx);
+    render(
+      <PageHost api={api}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
+      </PageHost>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
+  });
+
   it('shows-book-consistency-and-the-package-checks-drawn-from-the-profile', async () => {
     mount(ALL_PASS);
     expect(await screen.findByText(/Spread \d+\.\d dB across 2 files/)).toBeTruthy();

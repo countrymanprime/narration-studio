@@ -10,6 +10,7 @@ import { proofStates } from './catalog/proof';
 import { proofChapterStates } from './catalog/proof-chapter';
 import { pickupsStates } from './catalog/pickups';
 import { masterStates } from './catalog/master';
+import { deliveryStates } from './catalog/delivery';
 import { productionStates } from './catalog/production';
 import { scheduleStates } from './catalog/schedule';
 import { settingsStates } from './catalog/settings';
@@ -37,6 +38,7 @@ export const STATE_CATALOG: StateEntry[] = [
   ...proofChapterStates,
   ...pickupsStates,
   ...masterStates,
+  ...deliveryStates,
   ...productionStates,
   ...scheduleStates,
   ...settingsStates,

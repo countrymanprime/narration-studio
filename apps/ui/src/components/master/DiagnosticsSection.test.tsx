@@ -4,11 +4,11 @@ import { join } from 'node:path';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
 import type { DiagnosticsJob, NarrationApi } from '../../types';
-import { MasterQcPage } from './MasterQcPage';
+import { MasterPage } from '../masterqc/page/MasterPage';
+import { PageHost } from '../masterqc/page/testPage';
 
 afterEach(cleanup);
 
@@ -22,9 +22,9 @@ async function openDiagnostics({ overrides = {}, initial = {} }: { overrides?: P
   const user = userEvent.setup();
   const api = createMockApi(overrides, initial);
   render(
-    <ApiProvider api={api}>
-      <MasterQcPage openSettings={vi.fn()} />
-    </ApiProvider>,
+    <PageHost api={api}>
+      <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+    </PageHost>,
   );
   await screen.findByRole('region', { name: 'Thresholds' });
   return { api, user };
@@ -67,9 +67,9 @@ describe('Master & QC, Diagnostics', () => {
   it('opens Settings > Silence cleanup from the candidates panel', async () => {
     const openSettings = vi.fn();
     render(
-      <ApiProvider api={createMockApi({}, {})}>
-        <MasterQcPage openSettings={openSettings} />
-      </ApiProvider>,
+      <PageHost api={createMockApi({}, {})}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={openSettings} />
+      </PageHost>,
     );
     const cleanup = await screen.findByRole('region', { name: 'Silence cleanup candidates' });
     await userEvent.setup().click(within(cleanup).getByRole('button', { name: 'Open Settings' }));
