@@ -48,6 +48,19 @@ Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated r
 | The ReaScript calls behind each planned command, from the documentation and cross-checked against five third-party REAPER MCP servers read for approach only | [ReaScript calls](../../research/reaper-api-for-planned-commands.md) |
 | A survey of the wider automation surface | [Automation surface](../../research/reaper-automation-surface.md) |
 
+## Media sources and recording
+
+From REAPER's API documentation, changelog and Cockos developers' forum answers, read on 2026-10-12; not run in REAPER. The one-step checks that would confirm each are in [#1476](https://github.com/countrymanprime/narration-utils/issues/1476).
+
+| Subject | What REAPER does | Source |
+| --- | --- | --- |
+| A take being recorded | Newly recorded items are added to the project only when recording stops; while recording they do not exist to the API. A track-state read lists the track's earlier items only. | [Cockos forum, developer answer, 2015](https://forum.cockos.com/showthread.php?t=169173) |
+| Recording path | A recording is written to the project's primary (and optionally secondary) recording path, relative or absolute. An unsaved project uses the default path from Preferences > Paths. | [Recording paths guide](https://www.reaper.fm/guides/reaper_recpath_guide.pdf) |
+| Section and reverse sources | `PCM_Source_GetSectionInfo(src)` returns `ok, offset, length, reverse` for a section or reverse source (REAPER 4.40 and later). | [ReaScript API](https://www.reaper.fm/sdk/reascript/reascripthelp.html) |
+| Their file name | `GetMediaSourceFileName` returns an empty string for a section or reversed source up to REAPER 7.55; 7.56 fixed it. What it returns from 7.56 on has not been run. | [bug report](https://forum.cockos.com/showthread.php?t=305264), [7.56 changelog](https://forum.cockos.com/showthread.php?t=305390) |
+
+What the bridge does with these: `narration_track_state.lua` reads `GetMediaSourceFileName` on the take's source and reports no section, reverse or stretch-marker data, so Go takes them from the saved `.rpp` (`liveEndAt` in `apps/desktop/resumelive.go`). A take recorded or sectioned since the last save is therefore read as a plain source, and neither path handles a reversed take; tracked in [#1476](https://github.com/countrymanprime/narration-utils/issues/1476).
+
 ## Takes
 
 - **Hide is a volume of 0, not a mute.** ReaScript has no per-take mute, so `hide_takes` saves a take's `D_VOL` in its `P_EXT` (`narration_utils_take_hidden_volume`) and sets `D_VOL` to 0; keeping that take later gives the volume back. Nothing is deleted ([the bridge](../../architecture/reaper-bridge.md#commands)).
