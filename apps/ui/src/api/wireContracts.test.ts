@@ -171,7 +171,7 @@ import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schema
 import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
-import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
+import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
@@ -2894,6 +2894,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const off = await createMockApi().dawStackTakes(chapter.id, [passage]);
     expectMatches(dawResultSchema, off, 'mock stack, experimental off');
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.stack_takes.message);
+  });
+
+  it('backups.json (the Audacity backups table the host reads back) parses from the Go goldens, and the schema refuses what the host refuses', () => {
+    expectMatches(dawBackupsFileSchema, readGolden('daw-backups-empty.json'), 'daw-backups-empty.json');
+    expectMatches(dawBackupsFileSchema, readGolden('daw-backups-two.json'), 'daw-backups-two.json');
+    const two = dawBackupsFileSchema.parse(readGolden('daw-backups-two.json'));
+    const [row] = two.backups;
+    const withRow = (change: Record<string, unknown>) => ({ ...two, backups: [{ ...row, ...change }] });
+    expect(dawBackupsFileSchema.safeParse(withRow({ start: -1 })).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse(withRow({ start: 300, end: 20 })).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse(withRow({ path: 'C:/x.wav' })).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse({ ...two, extra: true }).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse(withRow({ id: '../../x' })).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse(withRow({ guid: 'Chapter\u00071' })).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse({ ...two, backups: [row, row] }).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse({ ...two, schemaVersion: 2 }).success).toBe(false);
   });
 
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {

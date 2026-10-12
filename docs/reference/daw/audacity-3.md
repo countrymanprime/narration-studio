@@ -30,7 +30,11 @@ Audacity has no items, takes or extension data. Take creation, pickups, line ide
 
 ## Not yet available
 
-`cut_range`, `fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with Audacity: the adapter has no role for them. Every other capability except navigate, markers and `macro_render` is not yet available too ([matrix](matrix.md)).
+`cut_range`, `fx_range` and `stack_takes` are in the catalogue but not yet available with Audacity: the adapter has no role for them. Every other capability except navigate, markers, `macro_render` and `backups` is not yet available too ([matrix](matrix.md)).
+
+## Backups
+
+`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Utils backup {ID}`, and a row in `narration-utils/backups.json` in the app's project folder ([ADR 0862](../../adr/0862-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md), [capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
 
 ## Checking a capability in Audacity
 

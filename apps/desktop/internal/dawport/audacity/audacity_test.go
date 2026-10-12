@@ -2,6 +2,7 @@ package audacity
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ func TestConformance(t *testing.T) {
 	dawporttest.Run(t, func(tb testing.TB) dawport.Adapter { return closedAdapter(tb) })
 }
 
-// Exactly what is built is Experimental (ADR 0355): navigate and markers. Everything else is NotYetAvailable with no role, until
+// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render and backups (ADR 0862). Everything else is NotYetAvailable with no role, until
 // the owner's pass promotes a capability or a later phase builds one.
 func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	adapter := closedAdapter(t)
@@ -33,7 +34,7 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	for _, spec := range dawport.Capabilities() {
 		c := spec.Capability
 		want := dawport.NotYetAvailable
-		if c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender {
+		if built(c) {
 			want = dawport.Experimental
 		}
 		if got := declared[c]; got != want {
@@ -52,10 +53,15 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	}
 }
 
-// The edit rows (SND-3) are NotYetAvailable with no role until their command slices build them.
+// built is what the adapter builds, Experimental until the owner's pass.
+func built(c dawport.Capability) bool {
+	return c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender || c == dawport.CapBackups
+}
+
+// The edit rows (SND-3) other than backups are NotYetAvailable with no role until their command slices build them.
 func TestTheEditCapabilitiesAreNotYetAvailable(t *testing.T) {
 	adapter := closedAdapter(t)
-	for _, c := range []dawport.Capability{dawport.CapCutRange, dawport.CapFXRange, dawport.CapStackTakes, dawport.CapBackups} {
+	for _, c := range []dawport.Capability{dawport.CapCutRange, dawport.CapFXRange, dawport.CapStackTakes} {
 		if got := adapter.Declares()[c]; got != dawport.NotYetAvailable {
 			t.Errorf("%s is declared %v, want NotYetAvailable", c, got)
 		}
@@ -79,7 +85,7 @@ func TestWhatIsNotBuiltKeepsADR0144sSentence(t *testing.T) {
 		for _, rt := range []dawport.Runtime{{}, {Bridge: true}, {Bridge: true, Reachable: true}} {
 			resolver := resolverFor(adapter, rt, dawport.ToggleOn)
 			for c, s := range resolver.All() {
-				if c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender {
+				if built(c) {
 					continue
 				}
 				if s.Available || s.Reason != dawport.ReasonNotYet || s.Message != string(ErrNotAvailable) {
@@ -176,5 +182,34 @@ func TestUnavailableReviewRefusesEveryRequest(t *testing.T) {
 	unsubscribe()
 	if err := review.Dispatch(); err != nil {
 		t.Fatalf("Dispatch() = %v, want nil", err)
+	}
+}
+
+// declaration-and-conformance: backups is Experimental with the real role, Audacity 4 (no pipe) answers the not-reachable
+// sentence for it, a launch with no pipe opened the not-connected one, and none of the role's sentences names another DAW.
+func TestBackupsIsExperimentalWithTheRealRole(t *testing.T) {
+	adapter := closedAdapter(t)
+	if got := adapter.Declares()[dawport.CapBackups]; got != dawport.Experimental {
+		t.Fatalf("backups is declared %v, want Experimental", got)
+	}
+	if _, ok := adapter.Role(dawport.CapBackups).(*Backups); !ok {
+		t.Fatalf("backups role is %T, want *Backups", adapter.Role(dawport.CapBackups))
+	}
+	if s := resolverFor(adapter, adapter.Runtime(), dawport.ToggleOn).Support(dawport.CapBackups); s.Available ||
+		s.Reason != dawport.ReasonNotRunning || s.Message != messageNotReachable {
+		t.Errorf("backups with no pipe (Audacity 4.0) = %+v, want not_running with %q", s, messageNotReachable)
+	}
+	if s := resolverFor(Declaration(), dawport.Runtime{}, dawport.ToggleOn).Support(dawport.CapBackups); s.Reason != dawport.ReasonStandalone ||
+		s.Message != messageNotConnected {
+		t.Errorf("backups on a launch that opened no pipe = %+v", s)
+	}
+	for _, sentence := range []string{
+		messageBackupNoProject, messageBackupBadRequest, messageBackupNoTrack, messageBackupTwoTracks, messageBackupNoAudio,
+		messageBackupTableFull, messageNoBackup, messageBackupTrackGone, messageBackupSourceGone, messageBackupTwoBackups,
+		messageBackupsNewer, messageBackupsUnreadable, string(ErrBackupLost),
+	} {
+		if strings.Contains(sentence, "REAPER") || !strings.HasSuffix(sentence, ".") && sentence != string(ErrBackupLost) {
+			t.Errorf("%q is not a sentence for an Audacity narrator", sentence)
+		}
 	}
 }

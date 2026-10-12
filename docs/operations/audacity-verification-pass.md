@@ -65,6 +65,18 @@ Leave the scratch project open after Part A. Each run overwrites `audacity-pass-
 
 During B4's second run, watch the screen as it runs A8 to A10. You should see the selection jump to 8.25 to 9 s, the cursor move to 3 s, and a loop play between 3 and 7.5 s at normal pitch. Note anything else, such as Audacity asking to save or the tone playing sped up.
 
+## Backups (pending: not in Part A yet)
+
+The `backups` role ([ADR 0862](../adr/0862-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` yet (`pass_live_test.go`); a step is added there with the binding (SN-D82). Until then each check is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)).
+
+| Check | Expected |
+| --- | --- |
+| Clone a two-minute window either side of 150 s of a 300 s tone, damage the original, restore, compare | The restored export hashes equal to the original; a track named `Narration Utils backup {ID}`, muted, holds 30 to 270 s |
+| `Paste` into the new empty track with the cursor at the window's start | The pasted audio starts at that time, not at 0 |
+| The undo history after a backup and after a restore | Recorded as found; the role reports `undoSteps` 0 and 1 |
+| A stereo track | The backup track is stereo and the restore matches |
+| Delete the backup track, then restore | Refused: "The backup's track is no longer in the Audacity project, so nothing was restored." Nothing changes |
+
 ## What to paste into #510
 
 Comment on #510, headed "Audacity 4 pass results", with:
