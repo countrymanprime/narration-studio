@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useEffect } from 'react';
 import { expect, fn, within } from 'storybook/test';
 import { ConfirmDialog } from '../../../primitives/ConfirmDialog';
 import { screen } from '../../../primitives/portalScreen';
@@ -25,12 +24,8 @@ doc.paras[1].items.slice(0, 2).forEach((i) => {
   i.dup = true;
 });
 
-/** The Read twice card with the split registered, as the page has it: all three answers are live. */
+/** The Read twice card; the story registers the split before it renders, as the page has it: all three answers are live. */
 function ReadTwiceCard() {
-  useEffect(() => {
-    const offs = [registerFlagAction('stackAsTakes', fn()), registerFlagAction('deleteWords', fn())];
-    return () => offs.forEach((off) => off());
-  }, []);
   return (
     <div className="bg-[var(--surface)] p-3 text-[var(--text)]">
       <FlagCard doc={doc} dp={doc.paras[1]} flag="dup:p-2" hear={null} accept={fn()} onClose={fn()} />
@@ -68,6 +63,12 @@ export const ConfirmRecorder: Story = {
 };
 
 export const CardWithSplit: Story = {
+  // Registered before the first render, not in an effect: the browser runs play() before a passive effect's re-render
+  // commits, so the buttons were still “Not available yet” there (the atlas), though jsdom's act() hid it.
+  beforeEach: () => {
+    const offs = [registerFlagAction('stackAsTakes', fn()), registerFlagAction('deleteWords', fn())];
+    return () => offs.forEach((off) => off());
+  },
   render: () => <ReadTwiceCard />,
   play: async ({ canvasElement }) => {
     const note = within(canvasElement).getByRole('note');
