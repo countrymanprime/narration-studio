@@ -651,7 +651,7 @@ describe('the mock setups', () => {
   });
 
   it("dawclient-roll: the mock refuses with the setup's punch sentence, asks first where punch is destructive, and keeps the earlier audio on REAPER", async () => {
-    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+    for (const id of ['reaper-off', 'builtin'] as const) {
       const sentence = DAW_SETUPS[id].capabilities.punch.message;
       expect(sentence, id).toBeTruthy();
       expect(await createMockDawClient(DAW_SETUPS[id]).roll('chapter-1', 40, { confirmed: true }), id).toEqual(refusal(sentence ?? ''));
@@ -662,13 +662,8 @@ describe('the mock setups', () => {
     expect(await reaper.roll('chapter-9', 40)).toEqual(staleRefusal(DAW_ANSWERS.rollStale));
     expect(await reaper.roll('chapter-1', Number.POSITIVE_INFINITY)).toEqual(refusal(DAW_ANSWERS.rollBadTime));
 
-    // Audacity without backups, once punch is built: available, and a roll there replaces the audio.
-    const audacity = DAW_SETUPS.audacity;
-    const destructive: DawCapabilities = {
-      ...audacity,
-      capabilities: { ...audacity.capabilities, punch: { level: 'experimental', available: true, destructive: true } },
-    };
-    const mock = createMockDawClient(destructive);
+    // Audacity without backups (SN-D83): punch is available, and a roll there replaces the audio.
+    const mock = createMockDawClient(DAW_SETUPS.audacity);
     expect(await mock.roll('chapter-1', 40)).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: false })).toEqual(refusal(DAW_ANSWERS.rollConfirm));
     expect(await mock.roll('chapter-1', 40, { confirmed: true })).toEqual({ ok: true, changed: true, message: rolledReplacingAnswer(40), undoSteps: 1 });
