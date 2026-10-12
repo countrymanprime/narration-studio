@@ -413,4 +413,5 @@ The table is generated from each ADR's heading and Status line ([ADR 0410](0410-
 | [0858](0858-the-app-may-stack-later-reads-on-the-first-read-and-keeps-each-stacked-takes-offset-and-the-retry-choice-in-an-editing-record.md) | The app may stack later reads on the first read, and keeps each stacked take's offset and the retry choice in an Editing record | Proposed |
 | [0860](0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md) | A roll keeps the earlier audio as a take, and a range cut, a chain on a range and stacking move audio and never delete it | Proposed |
 | [0861](0861-a-refused-daw-call-carries-one-code-stale-beside-its-sentence.md) | A refused DAW call carries one code, `stale`, beside its sentence | Proposed |
+| [0862](0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md) | Story Bible types are a stored, editable list with a colour and a Can speak flag, and the fixed categories are its defaults | Proposed |
 <!-- adr-index:end -->

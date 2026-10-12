@@ -22,8 +22,21 @@ Every entry carries `review: {"entry", "aliases"}`: whether the entry itself sti
 
 - **`mark-reviewed --entity-id [--alias-index]`** clears the entry and every name, or one name. When the entry flag is off and no name is left, `review_state` becomes `reviewed`.
 - **`review-flag --entity-id [--alias-index]`** sets the flag: the undo of `mark-reviewed`, and what an accepted automatic suggestion sets. Flagging the entry sets `review_state` to `needs review`; a flag already set changes nothing.
-- **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only a Character takes one, since only a character speaks.
+- **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only an entry whose type speaks takes one (see Story Bible types).
 - All three refuse a locked entry (ADR 0007). `merge` keeps the target flagged if either was, with both entries' name flags that the target now has, and keeps the target's colour, else the source's; `split` gives a flagged name's flag to the new entry; removing an alias drops its flag; a rebuild keeps both fields.
+
+## Story Bible types
+
+The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([ADR 0862](../adr/0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
+
+- **`type-add --name`**, **`type-rename --name --to`**, **`type-colour --name --colour`** (green, blue, violet, amber, teal or rose), **`type-speaks --name --speaks 0|1`** and **`type-remove --name`** each write the whole list. A rename moves every entry of the type; a type in use and the last type cannot be removed.
+- Only an entry whose type speaks takes a speaker colour, and a build's dialogue cues resolve only to such entries. A rebuild keeps the list and files a new entry under the type its built-in category was renamed to (`builtin`), or under Needs Review when that type was removed.
+
+## Merge and its undo
+
+- **`merge --source-id --target-id`** folds the source into the target: the source's name and aliases become aliases of the target, each with its own pronunciation and occurrences; relationships move to the target and every other entry's relationship to the source points at the target's id; Appears in is the union of both. The source is deleted and its names are recorded in `absorbed_names`, so a rebuild folds them back into the target. It prints `MERGED|<target id>|<undo id>`.
+- The file keeps an undo record for each of the last ten merges (`merge_undo`): both entries as they were, every other entry's relationships the merge changed, and the absorbed names it set. A rebuild writes a file without them.
+- **`unmerge --undo-id`** puts both entries, those relationships and those absorbed names back as they were, and prints `UNMERGED|<source id>|<target id>`. It refuses, writing nothing, when the target or one of those entries changed after the merge, when an entry has the source's id again, or when the file no longer holds the record. Two merges into one target are undone newest first. The host checks the id is 16 lowercase hexadecimal characters before it starts the sidecar (`guide.Service.Unmerge`, the `GuideUnmerge` binding).
 
 ## Pronunciation: generate and replace
 

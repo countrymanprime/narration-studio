@@ -1,7 +1,8 @@
 // The mock host (mockApi.ts): the Story Bible.
 import { parseWireJson } from '../wire/parseWire';
 import { guidePropertiesSchema } from '../schemas/storyBible';
-import type { GuideEntity, GuidePronunciation, GuideProperty, NarrationApi, WorkJob } from '../../types';
+import type { GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi, WorkJob } from '../../types';
+import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { wireClone } from '../mockFixtures';
 import { type MockApiSeed, type MockState, wireContext } from './state';
 import { type AssetsMock, MOCK_ASSET_ROOT } from './assets';
@@ -35,6 +36,26 @@ function setPronunciation(prior: GuidePronunciation, next: GuidePronunciation): 
   if (prior.ipa && isUser(prior) !== isUser(next)) value.alternate = { ipa: prior.ipa, source: prior.source, confidence: prior.confidence };
   else if (prior.alternate) value.alternate = prior.alternate;
   return value;
+}
+
+/** The types of a Story Bible without a list of its own (manuscript_guide.py DEFAULT_TYPES). */
+const MOCK_DEFAULT_TYPES: GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+  { name: 'Organization', colour: 'violet', speaks: false },
+  { name: 'Lore', colour: 'amber', speaks: false },
+  { name: 'Item', colour: 'teal', speaks: false },
+  { name: 'Event', colour: 'rose', speaks: false },
+];
+
+/** The sidecar's check of a type's name (manuscript_guide.py _type_name and _refuse_taken). */
+function mockTypeName(types: GuideType[], value: string, keep?: GuideType): string {
+  const name = value.trim();
+  if (!name || name.length > 40 || /[\r\n\0]/.test(name)) throw new Error("A type's name is one line of 1 to 40 characters.");
+  if (name === 'Needs Review' || name === 'Draft') throw new Error(`${name} is kept for the Story Bible's own use; give the type another name.`);
+  if (types.some((row) => row !== keep && row.name.toLowerCase() === name.toLowerCase()))
+    throw new Error(`There is a type named '${name}' already; give the type a new name.`);
+  return name;
 }
 
 export function createStoryBibleMock(
@@ -75,6 +96,8 @@ export function createStoryBibleMock(
         : { ...row, aliases: row.aliases.map((alias, index) => (index === aliasIndex ? { ...alias, pronunciation: value } : alias)) },
     );
   };
+  let mergeCount = 0;
+  let mergeUndo: Array<{ undoId: string; sourceId: string; targetId: string; before: GuideEntity[]; after: GuideEntity[] }> = [];
   const updateEntity = (id: string, change: (entity: GuideEntity) => GuideEntity) => {
     s.entities = s.entities.map((entity) => (entity.id === id ? change(entity) : entity));
   };
@@ -84,6 +107,16 @@ export function createStoryBibleMock(
     if (!entity) throw new Error('Entity not found.');
     if (entity.locked) throw new Error('This entity is locked. Unlock it before editing.');
     return entity;
+  };
+  let types: GuideType[] = MOCK_DEFAULT_TYPES.map((row) => ({ ...row }));
+  const typeNamed = (name: string): GuideType => {
+    const row = types.find((value) => value.name === name);
+    if (!row) throw new Error(`There is no type named '${name}'.`);
+    return row;
+  };
+  const changeType = (name: string, change: Partial<GuideType>) => {
+    const row = typeNamed(name);
+    types = types.map((value) => (value === row ? { ...value, ...change } : value));
   };
   const reviewOf = (entity: GuideEntity) => entity.review ?? { entry: entity.review_state === 'needs review', aliases: [] };
   const aliasTextAt = (entity: GuideEntity, aliasIndex: number | undefined): string | undefined => {
@@ -210,9 +243,12 @@ export function createStoryBibleMock(
       return id;
     },
     guideMerge: async (sourceId, targetId) => {
+      if (sourceId === targetId) throw new Error('Cannot merge an entity into itself.');
       const source = s.entities.find((entity) => entity.id === sourceId);
       const target = s.entities.find((entity) => entity.id === targetId);
-      if (!source || !target || source.locked) return;
+      if (!source || !target) throw new Error('Entity not found.');
+      if (source.locked) throw new Error('Cannot merge a locked entity. Unlock it first.');
+      const before = wireClone(s.entities);
       const names = [{ text: source.canonical_name, pronunciation: source.pronunciation, occurrences: source.occurrences }, ...source.aliases];
       const aliases = [...target.aliases];
       names.forEach((candidate) => {
@@ -236,6 +272,37 @@ export function createStoryBibleMock(
             .map((relationship) => (relationship.id === sourceId ? { ...relationship, id: targetId, name: target.canonical_name } : relationship))
             .filter((relationship, index, rows) => rows.findIndex((item) => item.id === relationship.id && item.label === relationship.label) === index),
         }));
+      // As the sidecar: the undo keeps the entries as they were and as the merge left them (the newest ten merges).
+      const undoId = (++mergeCount).toString(16).padStart(16, '0');
+      mergeUndo = [...mergeUndo, { undoId, sourceId, targetId, before, after: wireClone(s.entities) }].slice(-10);
+      return { undoId };
+    },
+    guideUnmerge: async (undoId) => {
+      const record = mergeUndo.find((row) => row.undoId === undoId);
+      if (!record) throw new Error('That merge can no longer be undone.');
+      const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+      const byId = (rows: GuideEntity[], id: string) => rows.find((entity) => entity.id === id);
+      const target = byId(record.before, record.targetId)!;
+      const source = byId(record.before, record.sourceId)!;
+      const current = byId(s.entities, record.targetId);
+      if (!current) throw new Error(`${target.canonical_name} is no longer in the Story Bible, so the merge cannot be undone.`);
+      if (!same(current, byId(record.after, record.targetId))) throw new Error(`${target.canonical_name} changed after the merge, so it cannot be undone.`);
+      if (byId(s.entities, record.sourceId))
+        throw new Error(`An entry named ${source.canonical_name} is in the Story Bible again, so the merge cannot be undone.`);
+      const repointed = record.before.filter((entity) => !same(entity.relationships, byId(record.after, entity.id)?.relationships ?? entity.relationships));
+      for (const entity of repointed) {
+        if (entity.id === record.targetId) continue;
+        if (!same(byId(s.entities, entity.id)?.relationships, byId(record.after, entity.id)?.relationships))
+          throw new Error(`${entity.canonical_name}'s relationships changed after the merge, so it cannot be undone.`);
+      }
+      const restored = s.entities.map((entity) => {
+        if (entity.id === record.targetId) return target;
+        const old = repointed.find((row) => row.id === entity.id);
+        return old ? { ...entity, relationships: old.relationships } : entity;
+      });
+      restored.splice(Math.min(record.before.indexOf(source), restored.length), 0, source);
+      s.entities = restored;
+      mergeUndo = mergeUndo.filter((row) => row !== record);
     },
     guideDelete: async (id) => {
       s.entities = s.entities
@@ -317,7 +384,7 @@ export function createStoryBibleMock(
       const value = index ?? 0;
       if (!Number.isInteger(value) || value < 0 || value > 7) throw new Error('A speaker colour is 1 to 7, or 0 for automatic.');
       const entity = editableEntity(id);
-      if (entity.category !== 'Character') throw new Error('Only a character speaks, so only a character has a speaker colour.');
+      if (!types.some((row) => row.speaks && row.name === entity.category)) throw new Error('Only an entry whose type can speak has a speaker colour.');
       updateEntity(id, (row) => {
         const next: GuideEntity = { ...row, speaker_color: value };
         if (!value) delete next.speaker_color;
@@ -332,6 +399,28 @@ export function createStoryBibleMock(
       s.dialogueCues = s.dialogueCues.map((row) =>
         row.id === cueId ? { ...row, speaker_entity_id: speaker, speaker_source: 'correction', corrected: true } : row,
       );
+    },
+    guideTypes: async () => wireClone(types),
+    guideTypeAdd: async (name) => {
+      const value = mockTypeName(types, name);
+      types = [...types, { name: value, colour: GUIDE_TYPE_COLOURS[types.length % GUIDE_TYPE_COLOURS.length], speaks: false }];
+    },
+    guideTypeRename: async (name, to) => {
+      const row = typeNamed(name);
+      const value = mockTypeName(types, to, row);
+      s.entities = s.entities.map((entity) => (entity.category === row.name ? { ...entity, category: value } : entity));
+      changeType(name, { name: value });
+    },
+    guideTypeSetColour: async (name, colour) => {
+      if (!GUIDE_TYPE_COLOURS.includes(colour)) throw new Error(`A type's colour is one of ${GUIDE_TYPE_COLOURS.join(', ')}.`);
+      changeType(name, { colour });
+    },
+    guideTypeSetSpeaks: async (name, speaks) => changeType(name, { speaks }),
+    guideTypeRemove: async (name) => {
+      const row = typeNamed(name);
+      if (s.entities.some((entity) => entity.category === row.name)) throw new Error(`${row.name} is in use; give its entries another type first.`);
+      if (types.length < 2) throw new Error('The last type cannot be removed.');
+      types = types.filter((value) => value !== row);
     },
   } satisfies Partial<NarrationApi>;
   return { bindings };

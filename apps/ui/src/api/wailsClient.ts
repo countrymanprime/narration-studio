@@ -36,7 +36,15 @@ import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } f
 import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
-import { guideBuildResultSchema, guideCreatedSchema, guideDialogueCuesSchema, guideEntitiesSchema, guidePreviewSchema } from './schemas/storyBible';
+import {
+  guideBuildResultSchema,
+  guideCreatedSchema,
+  guideDialogueCuesSchema,
+  guideEntitiesSchema,
+  guideMergeResultSchema,
+  guidePreviewSchema,
+  guideTypesSchema,
+} from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
 import { settingsForScopeSchema } from './schemas/settings';
@@ -296,7 +304,8 @@ export const wailsClient: NarrationApi = {
   guideSetLocked: (id, locked) => decode(voidResult, 'GuideSetLocked', host.GuideSetLocked(id, locked)),
   guideRescan: (id) => decode(voidResult, 'GuideRescan', host.GuideRescan(id)),
   guideCreate: (name, category, aliases) => decode(guideCreatedSchema, 'GuideCreate', host.GuideCreate(name, category, aliases)).then((value) => value.id),
-  guideMerge: (sourceId, targetId) => decode(voidResult, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
+  guideMerge: (sourceId, targetId) => decode(guideMergeResultSchema, 'GuideMerge', host.GuideMerge(sourceId, targetId)),
+  guideUnmerge: (undoId) => decode(voidResult, 'GuideUnmerge', host.GuideUnmerge(undoId)),
   guideDelete: (id) => decode(voidResult, 'GuideDelete', host.GuideDelete(id)),
   guideRelate: (id, otherId, label) => decode(voidResult, 'GuideRelate', host.GuideRelate(id, otherId, label)),
   guideUnrelate: (id, otherId, label) => decode(voidResult, 'GuideUnrelate', host.GuideUnrelate(id, otherId, label)),
@@ -310,6 +319,12 @@ export const wailsClient: NarrationApi = {
   guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
   guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),
   guideSetSpeakerColor: (id, index) => decode(voidResult, 'GuideSetSpeakerColor', host.GuideSetSpeakerColor(id, index)),
+  guideTypes: () => decode(guideTypesSchema, 'GuideTypes', host.GuideTypes()),
+  guideTypeAdd: (name) => decode(voidResult, 'GuideTypeAdd', host.GuideTypeAdd(name)),
+  guideTypeRename: (name, to) => decode(voidResult, 'GuideTypeRename', host.GuideTypeRename(name, to)),
+  guideTypeSetColour: (name, colour) => decode(voidResult, 'GuideTypeSetColour', host.GuideTypeSetColour(name, colour)),
+  guideTypeSetSpeaks: (name, speaks) => decode(voidResult, 'GuideTypeSetSpeaks', host.GuideTypeSetSpeaks(name, speaks)),
+  guideTypeRemove: (name) => decode(voidResult, 'GuideTypeRemove', host.GuideTypeRemove(name)),
   characterListRegions: () => decode(characterRegionsSchema, 'CharacterListRegions', host.CharacterListRegions()),
   characterApprove: (characterId, regionGuid, note) =>
     decode(characterReferenceSchema, 'CharacterApprove', host.CharacterApprove(characterId, regionGuid, note ?? '')),

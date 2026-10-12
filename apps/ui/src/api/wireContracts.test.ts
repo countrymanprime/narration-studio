@@ -147,7 +147,9 @@ import {
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
+  guideMergeResultSchema,
   guidePreviewSchema,
+  guideTypesSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
@@ -823,6 +825,29 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(guidePreviewSchema, await api.guidePreview(entity?.id ?? ''), 'mock preview');
   });
 
+  it('the Story Bible merge answers its undo id, and the undo gives both entries back or refuses with the reason', async () => {
+    const golden = parseWire(guideMergeResultSchema, readGolden('guide-merge.json'), ctx('guide merge'));
+    expect(golden.undoId).toMatch(/^[0-9a-f]{16}$/);
+    expect(guideMergeResultSchema.safeParse({ undoId: 'NOT-AN-ID' }).success).toBe(false);
+    expect(guideMergeResultSchema.safeParse({ ...golden, targetId: 'alice' }).success).toBe(false);
+
+    const api = createMockApi();
+    const before = await api.guideEntities();
+    const merged = await api.guideMerge('march-hare', 'mad-hatter');
+    expectMatches(guideMergeResultSchema, merged, 'mock guide merge');
+    const after = await api.guideEntities();
+    expect(after.map((entity) => entity.id)).not.toContain('march-hare');
+    expect(after.find((entity) => entity.id === 'mad-hatter')?.aliases.map((alias) => alias.text)).toContain('March Hare');
+    await api.guideUnmerge(merged.undoId);
+    expect(await api.guideEntities()).toEqual(before);
+    await expect(api.guideUnmerge(merged.undoId)).rejects.toThrow('That merge can no longer be undone.');
+
+    const again = await api.guideMerge('march-hare', 'mad-hatter');
+    await api.guideEdit('mad-hatter', { description: 'Edited.' });
+    await expect(api.guideUnmerge(again.undoId)).rejects.toThrow('Hatter changed after the merge, so it cannot be undone.');
+    await expect(api.guideMerge('alice', 'alice')).rejects.toThrow('Cannot merge an entity into itself.');
+  });
+
   it('the Story Bible dialogue cues and their correction', async () => {
     const api = createMockApi();
     const cues = await api.guideDialogueCues();
@@ -841,7 +866,9 @@ describe('answers of the mock client for the manuscript, Story Bible and project
 
   it('the Story Bible review flags and speaker colour', async () => {
     const api = createMockApi();
-    const entity = (await api.guideEntities()).find((row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked);
+    const entity = (await api.guideEntities()).find(
+      (row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked && row.id !== 'white-rabbit',
+    );
     if (!entity) throw new Error('the mock has no unlocked character with an alias');
     const read = async () => (await api.guideEntities()).find((row) => row.id === entity.id);
     await api.guideFlagReview(entity.id);
@@ -857,8 +884,34 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect((await read())?.speaker_color).toBeUndefined();
     await expect(api.guideSetSpeakerColor(entity.id, 8)).rejects.toThrow('1 to 7');
     const place = (await api.guideEntities()).find((row) => row.category !== 'Character' && !row.locked);
-    if (place) await expect(api.guideSetSpeakerColor(place.id, 2)).rejects.toThrow('Only a character speaks');
+    if (place) await expect(api.guideSetSpeakerColor(place.id, 2)).rejects.toThrow('type can speak');
     expectMatches(guideEntitiesSchema, await api.guideEntities(), 'mock entities after review and colour');
+  });
+
+  it('the Story Bible types: the defaults, then an add, a colour, Can speak, a rename that moves entries and the refused removes', async () => {
+    const api = createMockApi();
+    const defaults = await api.guideTypes();
+    expectMatches(guideTypesSchema, defaults, 'mock Story Bible types');
+    expect(defaults.filter((row) => row.speaks).map((row) => row.name)).toEqual(['Character']);
+    await api.guideTypeAdd(' Creature ');
+    await expect(api.guideTypeAdd('creature')).rejects.toThrow('already');
+    await expect(api.guideTypeAdd('Needs Review')).rejects.toThrow('own use');
+    await api.guideTypeSetColour('Creature', 'rose');
+    await api.guideTypeSetSpeaks('Creature', true);
+    expect((await api.guideTypes()).at(-1)).toEqual({ name: 'Creature', colour: 'rose', speaks: true });
+    const character = (await api.guideEntities()).find((row) => row.category === 'Character');
+    await api.guideTypeRename('Character', 'Person');
+    if (character) expect((await api.guideEntities()).find((row) => row.id === character.id)?.category).toBe('Person');
+    await expect(api.guideTypeRename('Person', '')).rejects.toThrow('one line');
+    if (character) await expect(api.guideTypeRemove('Person')).rejects.toThrow('in use');
+    await api.guideTypeRemove('Creature');
+    await expect(api.guideTypeRemove('Creature')).rejects.toThrow('no type');
+    expectMatches(guideTypesSchema, await api.guideTypes(), 'mock Story Bible types after edits');
+  });
+
+  it('the Story Bible types schema refuses an empty list and a colour outside the palette', () => {
+    expect(guideTypesSchema.safeParse([]).success).toBe(false);
+    expect(guideTypesSchema.safeParse([{ name: 'Character', colour: 'pink', speaks: true }]).success).toBe(false);
   });
 
   it('the character bible: regions, approving a reference, revoking it and removing every reference', async () => {
@@ -3323,8 +3376,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideBuildState',
       'guideEntities',
       'guideCreate',
+      'guideMerge',
       'guidePreview',
       'guideDialogueCues',
+      'guideTypes',
       'characterListRegions',
       'characterApprove',
       'characterReferences',
@@ -3553,7 +3608,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guidePronounce',
       'guidePronounceUser',
       'guidePronunciationUseAlternate',
-      'guideMerge',
+      'guideUnmerge',
       'guideDelete',
       'guideRelate',
       'guideUnrelate',
@@ -3561,6 +3616,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideMarkReviewed',
       'guideFlagReview',
       'guideSetSpeakerColor',
+      'guideTypeAdd',
+      'guideTypeRename',
+      'guideTypeSetColour',
+      'guideTypeSetSpeaks',
+      'guideTypeRemove',
       'characterRevoke',
       'characterRemoveVoiceData',
       'seriesDelete',

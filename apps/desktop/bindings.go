@@ -193,7 +193,17 @@ func (h *Host) GuideMerge(sourceID, targetID string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	return encodeBinding(nil, service.Merge(sourceID, targetID))
+	result, err := service.Merge(sourceID, targetID)
+	return encodeBinding(result, err)
+}
+
+// GuideUnmerge takes back one GuideMerge by the undo id it answered, or rejects with the reason it cannot (an entry changed since).
+func (h *Host) GuideUnmerge(undoID string) (string, error) {
+	service := h.services().guide
+	if service == nil {
+		return "", fmt.Errorf("the Story Bible is unavailable")
+	}
+	return encodeBinding(nil, service.Unmerge(undoID))
 }
 func (h *Host) GuideDelete(id string) (string, error) {
 	service := h.services().guide

@@ -186,3 +186,20 @@ describe('mockApi asset install edge cases (createInstallMock)', () => {
     expect(polledAgain.phase).toBe('success');
   });
 });
+
+describe('mockApi guideMarkReviewed (the host refuses an entry with suggestions to verify)', () => {
+  it('refuses the whole entry while a suggestion about it needs verification, and clears nothing', async () => {
+    const api = createMockApi();
+    const before = (await api.guideEntities()).find((entity) => entity.id === 'white-rabbit');
+
+    await expect(api.guideMarkReviewed('white-rabbit')).rejects.toThrow('Verify or reject its suggestions first.');
+
+    expect((await api.guideEntities()).find((entity) => entity.id === 'white-rabbit')).toEqual(before);
+  });
+
+  it('marks an entry with nothing to verify reviewed', async () => {
+    const api = createMockApi();
+
+    await expect(api.guideMarkReviewed('mad-hatter')).resolves.toBeUndefined();
+  });
+});

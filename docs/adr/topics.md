@@ -20,7 +20,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 57 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
-| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 50 |
+| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 51 |
 | [Persistence and project files](#persistence-and-project-files) | 9 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
@@ -456,6 +456,7 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0820](0820-a-bookmark-is-a-spot-kept-in-a-project-sidecar-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | A bookmark is a spot kept in a project sidecar, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0846](0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md) | Extraction suggestions are kept in a project file beside the Story Bible, and a rejected one stays as a tombstone | Proposed |
 | [0849](0849-script-prep-states-and-flagged-words-are-kept-in-a-project-sidecar-keyed-by-word-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | Script prep states and flagged words are kept in a project sidecar keyed by word, checked on read and cleared when the manuscript is replaced | Proposed |
+| [0862](0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md) | Story Bible types are a stored, editable list with a colour and a Can speak flag, and the fixed categories are its defaults | Proposed |
 
 <a id="persistence-and-project-files"></a>
 
