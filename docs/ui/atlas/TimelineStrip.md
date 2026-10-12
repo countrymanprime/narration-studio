@@ -1,0 +1,19 @@
+# TimelineStrip
+
+Storybook title: `Editing/TimelineStrip`. Source: `src/components/editing/strip/TimelineStrip.tsx`.
+
+![TimelineStrip, One Take, light theme](../images/timelinestrip.webp)
+
+## Stories
+
+- One Take
+- Three Takes
+- Stacked
+- Selection
+- Playing
+- No Audio
+- Narrow
+
+## Used by
+
+- `src/components/editing/drawer/Drawer.tsx`

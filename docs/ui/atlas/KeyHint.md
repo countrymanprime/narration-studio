@@ -12,6 +12,7 @@ Storybook title: `Primitives/KeyHint`. Source: `src/components/primitives/KeyHin
 - Command Bar Row
 - Is Named By Its Keys And Shows The Action
 - Spoken Label Overrides The Caps Name
+- Glyph Keys
 
 ## Used by
 

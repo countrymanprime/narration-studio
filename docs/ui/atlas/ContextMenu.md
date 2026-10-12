@@ -14,4 +14,16 @@ Storybook title: `Primitives/ContextMenu`. Source: `src/components/primitives/Co
 
 ## Used by
 
+- `src/App.tsx`
+- `src/components/editing/menu/marks/markMenuSections.ts`
+- `src/components/editing/menu/playAndCopySections.ts`
+- `src/components/editing/menu/useEditingWordMenu.ts`
+- `src/components/editing/menu/wordMenuRegistry.ts`
+- `src/components/editing/takes/takesMenuSection.ts`
+- `src/components/layout/AppShell.tsx`
+- `src/components/layout/ContextMenuHost.tsx`
+- `src/components/pickups/list/usePickupsContextMenu.ts`
+- `src/components/production/useChapterTools.tsx`
 - `src/components/proof/ScriptView.tsx`
+- `src/components/script/page/registry/contextProvider.ts`
+- `src/registries/context.ts`
