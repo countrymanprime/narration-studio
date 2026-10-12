@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import { useCommandProvider } from '../../input/commandProviders';
 import { useCommand } from '../../input/useCommand';
 
 /** The Inspector's decision buttons by name: a key presses the button, so the stale-evidence guard and the toast are the button's own. */
@@ -61,4 +63,14 @@ export function useProofKeys({
   );
   // The notes panel opens find in notes on Ctrl+F itself; this row only keeps the key from opening the jump menu on Proof.
   useCommand('proof.find', () => {});
+  // The jump menu offers the chapter steps with their keys while Proof is showing (mock `registerCommands`).
+  useCommandProvider(
+    useCallback(
+      () => [
+        { id: 'proof.jump.chapter.next', group: 'Proof', label: 'Next chapter', hint: '→', run: () => step(1) },
+        { id: 'proof.jump.chapter.prev', group: 'Proof', label: 'Previous chapter', hint: '←', run: () => step(-1) },
+      ],
+      [step],
+    ),
+  );
 }

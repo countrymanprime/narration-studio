@@ -9,6 +9,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
+import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import type { Finding, NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
@@ -233,5 +234,14 @@ describe('check-recordings-opens-from-proof', () => {
     await noteRows();
     fireEvent.click(screen.getByRole('button', { name: 'Check recordings…' }));
     expect(open).toHaveBeenCalledWith(['chapter-1']);
+  });
+});
+
+describe('the jump menu on Proof', () => {
+  it('offers the chapter steps while Proof is showing', async () => {
+    renderPage();
+    await noteRows();
+    const steps = providedCommands().filter((command) => command.group === 'Proof');
+    expect(steps.map((command) => command.label)).toEqual(['Next chapter', 'Previous chapter']);
   });
 });
