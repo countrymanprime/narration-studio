@@ -16,9 +16,8 @@ export type FocusShellProps = {
   // The script / main content.
   children: ReactNode;
   className?: string;
-  // The main region's own background and padding (the Booth's darker reading surface, mock-fidelity-primitives-and-
-  // mock 03 Q6): a composed style, not a second look this primitive owns, since every other
-  // host draws the shell's own `--bg`.
+  // The main region's own background and padding (the Booth's darker reading surface in mock 03): a composed style,
+  // not a second look this primitive owns, since every other host draws the shell's own `--bg`.
   contentClassName?: string;
   // False when the host page already has its own `<main>` that stays in the accessibility tree while this shell is
   // showing (a full-size `Dialog`'s content: Base UI keeps the page's own `<main>` un-hidden rather than aria-hidden it
@@ -31,7 +30,7 @@ export type FocusShellProps = {
 // The full-screen booth layout: a status bar, an optional side rail, the main
 // region and a command bar, each a named landmark so a screen reader can jump straight to any of them. It draws with the
 // active app theme, light or dark, like every other surface: the theme is one global setting and no surface forces it
-// (ADR 0365, superseding ADR 0360 Q1's forced-dark booth block).
+// (ADR 0365, superseding ADR 0360's forced-dark booth block).
 // A slots-only API: it composes whatever `ReactNode`s it is given and imports no other primitive, so it needs no change
 // as `Kbd`, `StatusBadge`, `LevelMeter` and `Toolbar` land inside it. It is a route or sits in `Dialog size="full"` at
 // the feature's choice (ADR 0094) - this shell has no opinion on that, and no Escape handling of its own.
