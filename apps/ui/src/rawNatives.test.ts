@@ -29,9 +29,9 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // The header's "Jump to or run…" field (the mock's top bar): a search-shaped trigger with a label and a key chord, which Button's
     // padded, uppercase chrome and IconButton's square do not draw. One JSX `<button>`.
     'src/components/layout/AppShell.tsx': 1,
-    // The card's bookmark toggle and its whole-header toggle. `CreditsEntry.tsx`
+    // The card's whole-header toggle (the bookmark toggle went with SN-C382). `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).
-    'src/components/manuscript/ReaderCard.tsx': 2,
+    'src/components/manuscript/ReaderCard.tsx': 1,
     // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button (ADR 0595).
     'src/components/project/ProjectPicker.tsx': 1,
     // The click-to-seek word ("Start here" / "Go back to here"):

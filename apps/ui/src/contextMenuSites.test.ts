@@ -16,6 +16,9 @@ const MENU_CEILING: Record<string, number> = {
   // The old Proof chapter workspace (effects on a passage, ADR 0705). The Editing swap (SNE-9) deletes it and builds its
   // right-click menu as a context provider (SNE-3).
   'src/components/proof/ScriptView.tsx': 1,
+  // The Add FX button and the FX key open the DAW's effect list at the selection through this menu (SN-E64). It is fed the list for
+  // the current selection each time it opens; moving it onto a context provider belongs to the Editing swap (SNE-9).
+  'src/components/editing/range/fx/useFxWords.tsx': 1,
 };
 
 // Private `contextmenu` handlers per file. None today.
