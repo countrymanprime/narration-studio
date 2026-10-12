@@ -1,6 +1,8 @@
 import { z } from 'zod';
-import { DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
+import { DAW_BACKUPS_MAX, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
 import type {
+  DawBackup,
+  DawBackupsFile,
   DawCapabilities,
   DawCapabilityLevel,
   DawCapabilityMode,
@@ -72,3 +74,36 @@ export const dawResultSchema = z.object({
   code: optionalFromNull(z.enum(DAW_REFUSAL_CODES)),
   steps: optionalFromNull(z.array(z.string())),
 }) satisfies z.ZodType<DawResult>;
+
+/** A backup table row's text (the source track's name, the chapter id): non-empty, at most 256 bytes as the host counts them, no
+ * control characters (audacity.backupText). */
+const backupText = z
+  .string()
+  .min(1)
+  .refine((text) => new TextEncoder().encode(text).length <= 256, 'longer than 256 bytes')
+  // eslint-disable-next-line no-control-regex
+  .refine((text) => !/[\u0000-\u001f\u007f-\u009f]/.test(text), 'holds a control character');
+
+/** One row of backups.json, as the host validates it on read (audacity.validBackup): a GUID-shaped id, a finite window that starts
+ * at or after 0 and before its end, and no other key. */
+export const dawBackupSchema = z
+  .strictObject({
+    id: z.string().regex(/^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$/),
+    guid: backupText,
+    chapterId: backupText,
+    start: z.number().nonnegative(),
+    end: z.number(),
+    createdAt: z.iso.datetime({ offset: true }),
+  })
+  .refine((row) => row.start < row.end, { message: 'the window ends before it starts', path: ['end'] }) satisfies z.ZodType<DawBackup>;
+
+/** narration-utils/backups.json (ADR 0863): at most DAW_BACKUPS_MAX rows with distinct ids. */
+export const dawBackupsFileSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    backups: z.array(dawBackupSchema).max(DAW_BACKUPS_MAX),
+  })
+  .refine((file) => new Set(file.backups.map((row) => row.id)).size === file.backups.length, {
+    message: 'two rows share an id',
+    path: ['backups'],
+  }) satisfies z.ZodType<DawBackupsFile>;
