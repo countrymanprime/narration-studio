@@ -2,6 +2,7 @@ package audacity
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +24,8 @@ func TestConformance(t *testing.T) {
 	dawporttest.Run(t, func(tb testing.TB) dawport.Adapter { return closedAdapter(tb) })
 }
 
-// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render and backups (ADR 0863). Everything else is NotYetAvailable with no role, until
+// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render, backups (ADR 0863) and the five rows that need
+// backups (their roles refuse until SN-D84 builds the steps). Everything else is NotYetAvailable with no role, until
 // the owner's pass promotes a capability or a later phase builds one.
 func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 	adapter := closedAdapter(t)
@@ -55,20 +57,148 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 
 // built is what the adapter builds, Experimental until the owner's pass.
 func built(c dawport.Capability) bool {
-	return c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender || c == dawport.CapBackups
+	return c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender || c == dawport.CapBackups ||
+		slices.Contains(backupRows, c)
 }
 
-// The edit rows (SND-3) other than backups are NotYetAvailable with no role until their command slices build them.
-func TestTheEditCapabilitiesAreNotYetAvailable(t *testing.T) {
-	adapter := closedAdapter(t)
-	for _, c := range []dawport.Capability{dawport.CapCutRange, dawport.CapFXRange, dawport.CapStackTakes} {
-		if got := adapter.Declares()[c]; got != dawport.NotYetAvailable {
-			t.Errorf("%s is declared %v, want NotYetAvailable", c, got)
+// backupRows is the capabilities that exist in Audacity only while its backups are on (SN-D83): the Studio Next mock's
+// AUDACITY_BACKUP_CAPS less backups itself.
+var backupRows = []dawport.Capability{dawport.CapTakes, dawport.CapPunch, dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange}
+
+// requires-is-a-catalogue-field (the adapter's half): Audacity declares the five rows Experimental and each requires backups; a
+// roll is destructive (the requirement makes it safe) and the edits are made in steps.
+func TestTheCapabilitiesThatNeedBackupsSaySo(t *testing.T) {
+	for _, adapter := range []dawport.Adapter{closedAdapter(t), Declaration()} {
+		requirer, ok := adapter.(dawport.Requirer)
+		describer, okDepth := adapter.(dawport.Describer)
+		if !ok || !okDepth {
+			t.Fatalf("%T is not a Requirer and a Describer", adapter)
 		}
-		if role := adapter.Role(c); role != nil {
-			t.Errorf("%s has role %T before its command is built", c, role)
+		for _, spec := range dawport.Capabilities() {
+			c := spec.Capability
+			want := []dawport.Capability(nil)
+			if slices.Contains(backupRows, c) {
+				want = []dawport.Capability{dawport.CapBackups}
+			}
+			if got := requirer.Requires(c); !slices.Equal(got, want) {
+				t.Errorf("%T: %s requires %v, want %v", adapter, c, got, want)
+			}
+			depth := dawport.Depth{}
+			switch c {
+			case dawport.CapPunch:
+				depth = dawport.Depth{Destructive: true}
+			case dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange:
+				depth = dawport.Depth{Mode: dawport.ModeSteps}
+			}
+			if got := describer.Depth(c); got != depth {
+				t.Errorf("%T: %s depth %+v, want %+v", adapter, c, got, depth)
+			}
 		}
 	}
+}
+
+// audacityWith is the resolver of a connected, answering Audacity with every capability switched on and backups as given.
+func audacityWith(adapter dawport.Adapter, backups dawport.Toggle) *dawport.Resolver {
+	return dawport.NewResolver(dawport.ResolverConfig{
+		Adapter: adapter,
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
+		Toggle: func(c dawport.Capability) dawport.Toggle {
+			if c == dawport.CapBackups {
+				return backups
+			}
+			return dawport.ToggleOn
+		},
+	})
+}
+
+// resolver-refuses-with-the-required-capabilitys-reason and destructive-and-mode-follow-the-requirement, over the real adapter.
+func TestBackupsDecideWhatAudacityCanDo(t *testing.T) {
+	off := audacityWith(closedAdapter(t), dawport.ToggleOff)
+	want := map[dawport.Capability]dawport.Support{
+		dawport.CapTakes: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
+			Message: "Keeping takes needs Audacity backups. Turn on Audio backups in Settings."},
+		dawport.CapStackTakes: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
+			Message: "Stacking takes needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
+		dawport.CapCutRange: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
+			Message: "Cutting words and their audio needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
+		dawport.CapFXRange: {Level: dawport.Experimental, Reason: dawport.ReasonTurnedOff,
+			Message: "Adding an effect to words needs Audacity backups. Turn on Audio backups in Settings.", Mode: dawport.ModeSteps},
+		dawport.CapPunch: {Level: dawport.Experimental, Available: true, Destructive: true},
+	}
+	for c, w := range want {
+		if got := off.Support(c); got != w {
+			t.Errorf("backups off: %s = %+v, want %+v", c, got, w)
+		}
+	}
+
+	on := audacityWith(closedAdapter(t), dawport.ToggleOn)
+	for _, c := range backupRows {
+		got := on.Support(c)
+		w := dawport.Support{Level: dawport.Experimental, Available: true, Mode: want[c].Mode}
+		if got != w {
+			t.Errorf("backups on: %s = %+v, want %+v", c, got, w)
+		}
+	}
+
+	// Backups that are themselves Experimental and switched off by the old switch give the same sentence: turning them on is
+	// what the narrator can change.
+	experimental := dawport.NewResolver(dawport.ResolverConfig{
+		Adapter: closedAdapter(t),
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
+		Toggle: func(c dawport.Capability) dawport.Toggle {
+			if c == dawport.CapBackups {
+				return dawport.ToggleAuto
+			}
+			return dawport.ToggleOn
+		},
+	})
+	if s := experimental.Support(dawport.CapStackTakes); s.Reason != dawport.ReasonExperimentalOff || s.Message != want[dawport.CapStackTakes].Message {
+		t.Errorf("backups experimental_off: stack_takes = %+v", s)
+	}
+}
+
+// roles-stay-honest-until-the-steps-land: every method of the five roles answers ADR 0144's sentence, as a Refused result or as
+// ErrNotAvailable, and never touches the pipe.
+func TestTheRolesThatNeedBackupsRefuseUntilTheirStepsLand(t *testing.T) {
+	adapter := closedAdapter(t)
+	ctx := t.Context()
+	refused := func(name string, r dawport.Result, err error) {
+		if err != nil || r.OK || r.Message != string(ErrNotAvailable) {
+			t.Errorf("%s = %+v, %v; want Refused with ADR 0144's sentence", name, r, err)
+		}
+	}
+	failed := func(name string, err error) {
+		if !errors.Is(err, ErrNotAvailable) {
+			t.Errorf("%s error = %v, want ErrNotAvailable", name, err)
+		}
+	}
+	punch := adapter.Role(dawport.CapPunch).(dawport.Puncher)
+	_, err := punch.PunchTo(ctx, 1, 1)
+	failed("PunchTo", err)
+	_, err = punch.PlayPosition(ctx)
+	failed("PlayPosition", err)
+	r, err := punch.Roll(ctx, "{track}", 1)
+	refused("Roll", r, err)
+
+	takes := adapter.Role(dawport.CapTakes).(dawport.TakeSelector)
+	_, err = takes.SetActiveTake(ctx, "{item}", "{take}")
+	failed("SetActiveTake", err)
+	r, err = takes.HideTakes(ctx, "{item}", "{take}")
+	refused("HideTakes", r, err)
+
+	stack := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+	r, err = stack.StackTakes(ctx, dawport.StackRequest{})
+	refused("StackTakes", r, err)
+	r, err = stack.UnstackTakes(ctx, dawport.StackRequest{})
+	refused("UnstackTakes", r, err)
+
+	r, err = adapter.Role(dawport.CapCutRange).(dawport.RangeCutter).DeleteRange(ctx, dawport.DeleteRangeRequest{})
+	refused("DeleteRange", r, err)
+	fx := adapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+	r, err = fx.ApplyFXToRange(ctx, dawport.FXRangeRequest{})
+	refused("ApplyFXToRange", r, err)
+	r, err = fx.RemoveFXFromRange(ctx, "{item}", "chain")
+	refused("RemoveFXFromRange", r, err)
 }
 
 func resolverFor(adapter dawport.Adapter, rt dawport.Runtime, toggle dawport.Toggle) *dawport.Resolver {

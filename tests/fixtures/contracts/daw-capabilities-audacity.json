@@ -14,9 +14,10 @@
     },
     "cut_range": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "steps",
+      "reason": "experimental_off"
     },
     "fx_chains": {
       "available": false,
@@ -26,9 +27,10 @@
     },
     "fx_range": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "steps",
+      "reason": "experimental_off"
     },
     "heartbeat": {
       "available": false,
@@ -92,9 +94,10 @@
     },
     "punch": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
+      "destructive": true,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
     },
     "record": {
       "available": false,
@@ -140,9 +143,10 @@
     },
     "stack_takes": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "mode": "steps",
+      "reason": "experimental_off"
     },
     "take_create": {
       "available": false,
@@ -152,9 +156,9 @@
     },
     "takes": {
       "available": false,
-      "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
-      "reason": "not_yet"
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
     },
     "track_select": {
       "available": false,

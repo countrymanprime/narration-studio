@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -40,7 +41,9 @@ func Run(t *testing.T, factory Factory) {
 //   - every capability declared Experimental or Supported has a non-nil role of its documented type, and every other has none;
 //   - through a Resolver, a usable capability's role comes back from dawport.Role, and every other is refused with a
 //     *dawport.NotSupportedError whose reason is on the wire enum and whose message is a sentence for the narrator;
-//   - no role method panics, or hangs past callTimeout, against the closed transport.
+//   - no role method panics, or hangs past callTimeout, against the closed transport;
+//   - what each capability requires (the catalogue's Spec.Requires and, for a dawport.Requirer, the adapter's) is a capability
+//     the port knows, the answer is static, and no capability needs itself through any chain of requirements.
 func Problems(tb testing.TB, factory Factory) []string {
 	tb.Helper()
 	adapter := factory(tb)
@@ -85,11 +88,63 @@ func Problems(tb testing.TB, factory Factory) []string {
 		}
 	}
 
+	problems = append(problems, requiresProblems(adapter)...)
 	problems = append(problems, resolverProblems(adapter, declared)...)
 
 	for _, spec := range dawport.Capabilities() {
 		if role, ok := usable[spec.Capability]; ok {
 			problems = append(problems, closedTransportProblems(spec, role)...)
+		}
+	}
+	return problems
+}
+
+// requiresProblems checks the requirement graph: real names, a static answer, and no cycle (the resolver skips one rather than
+// recurse, which would hide a requirement from the narrator).
+func requiresProblems(adapter dawport.Adapter) []string {
+	var problems []string
+	report := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
+	requirer, _ := adapter.(dawport.Requirer)
+	graph := map[dawport.Capability][]dawport.Capability{}
+	for _, spec := range dawport.Capabilities() {
+		needs := append([]dawport.Capability(nil), spec.Requires...)
+		if requirer != nil {
+			first := requirer.Requires(spec.Capability)
+			if !slices.Equal(first, requirer.Requires(spec.Capability)) {
+				report("%s: Requires is not static: two calls answered differently", spec.Capability)
+			}
+			needs = append(needs, first...)
+		}
+		for _, need := range needs {
+			if _, ok := dawport.SpecOf(need); !ok {
+				report("%s: requires %q, which is not a capability", spec.Capability, need)
+			}
+		}
+		graph[spec.Capability] = needs
+	}
+	// A depth-first walk: a capability met again while it is still on the path closes a cycle.
+	const (
+		unseen = iota
+		onPath
+		done
+	)
+	state := map[dawport.Capability]int{}
+	var visit func(c dawport.Capability, path []dawport.Capability)
+	visit = func(c dawport.Capability, path []dawport.Capability) {
+		state[c] = onPath
+		for _, need := range graph[c] {
+			switch state[need] {
+			case onPath:
+				report("%s: requirement cycle %v", need, append(slices.Clip(path), c, need))
+			case unseen:
+				visit(need, append(slices.Clip(path), c))
+			}
+		}
+		state[c] = done
+	}
+	for _, spec := range dawport.Capabilities() {
+		if state[spec.Capability] == unseen {
+			visit(spec.Capability, nil)
 		}
 	}
 	return problems

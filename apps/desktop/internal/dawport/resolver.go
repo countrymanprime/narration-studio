@@ -3,6 +3,7 @@ package dawport
 import (
 	"fmt"
 	"reflect"
+	"slices"
 )
 
 // Runtime is the engine's live state, read by the Resolver on every call.
@@ -53,9 +54,13 @@ func (r *Resolver) All() map[Capability]Support {
 
 // Support is whether c can be used now and, when not, why. The checks run in a fixed order, so the narrator is told the first thing
 // to change: what the engine declares, then the settings (as bridge.Actions refuses an experimental command before checking the
-// connection), then the runtime.
-func (r *Resolver) Support(c Capability) Support {
-	spec, level, refusal, ok := r.permitted(c)
+// connection), then the declaration and settings of each capability c requires (Requirer), then the runtime.
+func (r *Resolver) Support(c Capability) Support { return r.support(c, nil) }
+
+// support is Support with trail, the capabilities whose requirements led here: a requirement already on it is skipped, so a cycle
+// an adapter should never declare (the conformance suite refuses one) cannot recurse for ever.
+func (r *Resolver) support(c Capability, trail []Capability) Support {
+	spec, level, refusal, ok := r.permitted(c, trail)
 	if !ok {
 		return refusal
 	}
@@ -64,12 +69,19 @@ func (r *Resolver) Support(c Capability) Support {
 		rt = r.cfg.Runtime()
 	}
 	if spec.Needs != NeedsNothing && !rt.Bridge {
-		return r.refuse(c, level, ReasonStandalone)
+		return r.refuse(c, level, ReasonStandalone, trail)
 	}
 	if spec.Needs == NeedsRunning && !rt.Reachable {
-		return r.refuse(c, level, ReasonNotRunning)
+		return r.refuse(c, level, ReasonNotRunning, trail)
 	}
-	return r.withDepth(c, Support{Level: level, Available: true})
+	if !r.depth(c).Destructive {
+		for _, req := range r.requires(c, trail) {
+			if s := r.support(req, with(trail, c)); !s.Available {
+				return r.refuseFor(c, level, req, s, trail)
+			}
+		}
+	}
+	return r.withDepth(c, Support{Level: level, Available: true}, trail)
 }
 
 // Allowed is nil when the engine's declaration and the narrator's settings permit c, whatever the runtime state, and otherwise the
@@ -77,17 +89,18 @@ func (r *Resolver) Support(c Capability) Support {
 // settings are decided here and nowhere else, and a command that is permitted still goes out and fails on its own terms while the
 // engine is not answering, as it did before the port.
 func (r *Resolver) Allowed(c Capability) error {
-	if _, _, refusal, ok := r.permitted(c); !ok {
+	if _, _, refusal, ok := r.permitted(c, nil); !ok {
 		return &NotSupportedError{Capability: c, Support: refusal}
 	}
 	return nil
 }
 
-// permitted is the first two of Support's checks: the declaration, then the settings. ok is false with the refusal when either
-// refuses c.
-func (r *Resolver) permitted(c Capability) (spec Spec, level Level, refusal Support, ok bool) {
+// permitted is the first three of Support's checks: the declaration, the settings, then the declaration and settings of each
+// requirement. ok is false with the refusal when any refuses c. A capability declared destructive is not refused for a
+// requirement: the requirement only makes it safe (withDepth).
+func (r *Resolver) permitted(c Capability, trail []Capability) (spec Spec, level Level, refusal Support, ok bool) {
 	if r.cfg.Adapter == nil {
-		return spec, Unsupported, r.refuse(c, Unsupported, ReasonStandalone), false
+		return spec, Unsupported, r.refuse(c, Unsupported, ReasonStandalone, trail), false
 	}
 	spec, known := SpecOf(c)
 	level = Unsupported
@@ -97,18 +110,26 @@ func (r *Resolver) permitted(c Capability) (spec Spec, level Level, refusal Supp
 	switch level {
 	case Supported, Experimental:
 	case NotYetAvailable:
-		return spec, level, r.refuse(c, level, ReasonNotYet), false
+		return spec, level, r.refuse(c, level, ReasonNotYet, trail), false
 	default:
-		return spec, Unsupported, r.refuse(c, Unsupported, ReasonUnsupported), false
+		return spec, Unsupported, r.refuse(c, Unsupported, ReasonUnsupported, trail), false
 	}
 
 	switch r.toggle(c) {
 	case ToggleOff:
-		return spec, level, r.refuse(c, level, ReasonTurnedOff), false
+		return spec, level, r.refuse(c, level, ReasonTurnedOff, trail), false
 	case ToggleOn:
 	default:
 		if level == Experimental && (r.cfg.Experimental == nil || !r.cfg.Experimental()) {
-			return spec, level, r.refuse(c, level, ReasonExperimentalOff), false
+			return spec, level, r.refuse(c, level, ReasonExperimentalOff, trail), false
+		}
+	}
+
+	if !r.depth(c).Destructive {
+		for _, req := range r.requires(c, trail) {
+			if _, _, refused, ok := r.permitted(req, with(trail, c)); !ok {
+				return spec, level, r.refuseFor(c, level, req, refused, trail), false
+			}
 		}
 	}
 	return spec, level, Support{}, true
@@ -121,17 +142,72 @@ func (r *Resolver) toggle(c Capability) Toggle {
 	return r.cfg.Toggle(c)
 }
 
-func (r *Resolver) refuse(c Capability, level Level, reason Reason) Support {
-	return r.withDepth(c, Support{Level: level, Reason: reason, Message: r.message(c, reason)})
+// requires is what c needs, from the catalogue and from the adapter, less c itself and the capabilities already on trail.
+func (r *Resolver) requires(c Capability, trail []Capability) []Capability {
+	spec, _ := SpecOf(c)
+	all := spec.Requires
+	if req, ok := r.cfg.Adapter.(Requirer); ok {
+		all = append(append([]Capability(nil), all...), req.Requires(c)...)
+	}
+	var out []Capability
+	for _, need := range all {
+		if need != c && !slices.Contains(trail, need) && !slices.Contains(out, need) {
+			out = append(out, need)
+		}
+	}
+	return out
 }
 
-// withDepth copies the adapter's declared Depth for c into s, so a refusal still says what the capability would do.
-func (r *Resolver) withDepth(c Capability, s Support) Support {
+// with is trail and c, in a slice of its own.
+func with(trail []Capability, c Capability) []Capability {
+	return append(slices.Clip(trail), c)
+}
+
+func (r *Resolver) depth(c Capability) Depth {
 	if d, ok := r.cfg.Adapter.(Describer); ok {
-		depth := d.Depth(c)
-		s.Destructive, s.Mode = depth.Destructive, depth.Mode
+		return d.Depth(c)
 	}
+	return Depth{}
+}
+
+func (r *Resolver) refuse(c Capability, level Level, reason Reason, trail []Capability) Support {
+	return r.withDepth(c, Support{Level: level, Reason: reason, Message: r.message(c, reason)}, trail)
+}
+
+// refuseFor refuses c because its requirement required is refused: the same reason, in the adapter's sentence for the pair or, without
+// one, a sentence naming both followed by the requirement's own.
+func (r *Resolver) refuseFor(c Capability, level Level, required Capability, refused Support, trail []Capability) Support {
+	message := ""
+	if e, ok := r.cfg.Adapter.(RequirementExplainer); ok {
+		message = e.ExplainRequirement(c, required, refused.Reason)
+	}
+	if message == "" {
+		message = fmt.Sprintf("%s needs %s. %s", labelOf(c), labelOf(required), refused.Message)
+	}
+	return r.withDepth(c, Support{Level: level, Reason: refused.Reason, Message: message}, trail)
+}
+
+// withDepth copies the adapter's declared Depth for c into s, so a refusal still says what the capability would do. A destructive
+// capability with requirements is not destructive while every requirement is available.
+func (r *Resolver) withDepth(c Capability, s Support, trail []Capability) Support {
+	depth := r.depth(c)
+	if depth.Destructive {
+		reqs := r.requires(c, trail)
+		safe := len(reqs) > 0
+		for _, req := range reqs {
+			safe = safe && r.support(req, with(trail, c)).Available
+		}
+		depth.Destructive = !safe
+	}
+	s.Destructive, s.Mode = depth.Destructive, depth.Mode
 	return s
+}
+
+func labelOf(c Capability) string {
+	if spec, ok := SpecOf(c); ok {
+		return spec.Label
+	}
+	return string(c)
 }
 
 // The resolver's own wording, used when the adapter has none. Each is a whole sentence for the narrator.
@@ -147,10 +223,7 @@ func (r *Resolver) message(c Capability, reason Reason) string {
 			return m
 		}
 	}
-	label := string(c)
-	if spec, ok := SpecOf(c); ok {
-		label = spec.Label
-	}
+	label := labelOf(c)
 	daw := r.Kind().String()
 	switch reason {
 	case ReasonTurnedOff:

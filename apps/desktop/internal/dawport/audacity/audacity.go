@@ -7,7 +7,10 @@
 // macro_render role (the mastering port's Audacity row, ADR 0306, ADR 0460: import a rendered WAV as its own track, apply the
 // narrator's chosen macro to it, export the result; macrorender.go), and backups role (ADR 0863: clone a window of audio to a
 // muted track of its own before an edit and put it back on request, with a table in the project folder; backups.go; the host prunes
-// the table when the project opens, through Backups). Session
+// the table when the project opens, through Backups). Takes, punch, stack_takes, cut_range and fx_range exist in Audacity only
+// with backups on (the Studio Next mock's capabilitiesFor, PRD DQ-18): the adapter declares them Experimental and requires backups
+// for each (a dawport.Requirer), a roll destructive until backups make it safe and the three edits made in steps (a
+// dawport.Describer). Their roles refuse with ADR 0144's sentence until the steps are built (notYetSteps). Session
 // carries the Audacity-only operations the port has no capability for yet (import findings as labels, read them back, mark one
 // reviewed, export a chapter, write a hand-off label file). Every other capability stays NotYetAvailable with ADR 0144's
 // sentence; the review workflow's session on an Audacity launch still refuses every request with it (UnavailableReview).
@@ -16,6 +19,7 @@
 package audacity
 
 import (
+	"context"
 	"maps"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
@@ -62,8 +66,55 @@ var declares = func() map[dawport.Capability]dawport.Level {
 	d[dawport.CapMarkers] = dawport.Experimental
 	d[dawport.CapMacroRender] = dawport.Experimental
 	d[dawport.CapBackups] = dawport.Experimental
+	for c := range needBackups {
+		d[c] = dawport.Experimental
+	}
 	return d
 }()
+
+// needBackups is each capability that Audacity has only with its backups on, and the words a refusal for them starts with. Audacity
+// keeps no takes and changes the audio itself, so keeping, stacking or cutting takes, and an effect on words, need a backup first.
+var needBackups = map[dawport.Capability]string{
+	dawport.CapTakes:      "Keeping takes",
+	dawport.CapPunch:      "Rolling without losing the earlier audio",
+	dawport.CapStackTakes: "Stacking takes",
+	dawport.CapCutRange:   "Cutting words and their audio",
+	dawport.CapFXRange:    "Adding an effect to words",
+}
+
+// requires is the declaration's requirement: backups, for each capability in needBackups.
+func requires(c dawport.Capability) []dawport.Capability {
+	if _, ok := needBackups[c]; ok {
+		return []dawport.Capability{dawport.CapBackups}
+	}
+	return nil
+}
+
+// depth is how the capabilities that need backups act: a roll replaces the audio it records over, so it is destructive until the
+// backups keep it (the resolver clears the flag while backups are available), and a stack, a cut or an effect on words is a
+// series of Audacity commands with one undo step each.
+func depth(c dawport.Capability) dawport.Depth {
+	switch c {
+	case dawport.CapPunch:
+		return dawport.Depth{Destructive: true}
+	case dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange:
+		return dawport.Depth{Mode: dawport.ModeSteps}
+	default:
+		return dawport.Depth{}
+	}
+}
+
+// explainRequirement is the one sentence for a capability refused because backups are turned off, by the narrator's toggle or by
+// the Experimental switch. Any other refusal of backups is worded by the resolver from backups' own sentence.
+func explainRequirement(c, required dawport.Capability, r dawport.Reason) string {
+	if required != dawport.CapBackups || (r != dawport.ReasonTurnedOff && r != dawport.ReasonExperimentalOff) {
+		return ""
+	}
+	if what, ok := needBackups[c]; ok {
+		return what + " needs Audacity backups. Turn on Audio backups in Settings."
+	}
+	return ""
+}
 
 // The sentences a refusal shows the narrator.
 const (
@@ -82,8 +133,11 @@ type Adapter struct {
 }
 
 var (
-	_ dawport.Adapter   = (*Adapter)(nil)
-	_ dawport.Explainer = (*Adapter)(nil)
+	_ dawport.Adapter              = (*Adapter)(nil)
+	_ dawport.Explainer            = (*Adapter)(nil)
+	_ dawport.Requirer             = (*Adapter)(nil)
+	_ dawport.Describer            = (*Adapter)(nil)
+	_ dawport.RequirementExplainer = (*Adapter)(nil)
 )
 
 // Factory is the registry's Audacity factory: the Windows scripting pipe, opened on the first request. It never touches REAPER's
@@ -106,9 +160,12 @@ func (a *Adapter) Kind() dawport.Kind { return dawport.KindAudacity }
 // Declares returns a copy of the declaration, the same on every call.
 func (a *Adapter) Declares() map[dawport.Capability]dawport.Level { return maps.Clone(declares) }
 
-// Role is the session for navigate and markers, the macro renderer for macro_render, the backups for backups, and nil for
-// everything else.
+// Role is the session for navigate and markers, the macro renderer for macro_render, the backups for backups, the refusing
+// stand-in for each capability that needs backups, and nil for everything else.
 func (a *Adapter) Role(c dawport.Capability) any {
+	if _, ok := needBackups[c]; ok {
+		return notYetSteps{}
+	}
 	switch c {
 	case dawport.CapNavigate, dawport.CapMarkers:
 		return a.session
@@ -119,6 +176,17 @@ func (a *Adapter) Role(c dawport.Capability) any {
 	default:
 		return nil
 	}
+}
+
+// Requires is backups, for each capability Audacity has only with backups on.
+func (a *Adapter) Requires(c dawport.Capability) []dawport.Capability { return requires(c) }
+
+// Depth is a destructive roll and the edits made in steps.
+func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depth(c) }
+
+// ExplainRequirement words a capability refused because backups are off.
+func (a *Adapter) ExplainRequirement(c, required dawport.Capability, r dawport.Reason) string {
+	return explainRequirement(c, required, r)
 }
 
 // Session is the Audacity-only operations over the same client (ADR 0355 point 4).
@@ -152,9 +220,14 @@ func Declaration() dawport.Adapter { return declaration{} }
 
 type declaration struct{}
 
-func (declaration) Kind() dawport.Kind                             { return dawport.KindAudacity }
-func (declaration) Declares() map[dawport.Capability]dawport.Level { return maps.Clone(declares) }
-func (declaration) Role(dawport.Capability) any                    { return nil }
+func (declaration) Kind() dawport.Kind                                 { return dawport.KindAudacity }
+func (declaration) Declares() map[dawport.Capability]dawport.Level     { return maps.Clone(declares) }
+func (declaration) Role(dawport.Capability) any                        { return nil }
+func (declaration) Requires(c dawport.Capability) []dawport.Capability { return requires(c) }
+func (declaration) Depth(c dawport.Capability) dawport.Depth           { return depth(c) }
+func (declaration) ExplainRequirement(c, required dawport.Capability, r dawport.Reason) string {
+	return explainRequirement(c, required, r)
+}
 func (declaration) Explain(_ dawport.Capability, r dawport.Reason) string {
 	switch r {
 	case dawport.ReasonNotYet:
@@ -164,4 +237,50 @@ func (declaration) Explain(_ dawport.Capability, r dawport.Reason) string {
 	default:
 		return ""
 	}
+}
+
+// notYetSteps is the role of every capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range)
+// until SN-D84 builds their steps: each method answers ADR 0144's sentence, a Result as Refused and anything else as
+// ErrNotAvailable, and none touches the pipe. The capabilities stay Experimental, behind the narrator's switch, meanwhile.
+type notYetSteps struct{}
+
+var (
+	_ dawport.Puncher        = notYetSteps{}
+	_ dawport.TakeSelector   = notYetSteps{}
+	_ dawport.TakeStacker    = notYetSteps{}
+	_ dawport.RangeCutter    = notYetSteps{}
+	_ dawport.RangeFXApplier = notYetSteps{}
+)
+
+var notYetResult = dawport.Refused(string(ErrNotAvailable))
+
+func (notYetSteps) PunchTo(context.Context, float64, float64) (float64, error) {
+	return 0, ErrNotAvailable
+}
+func (notYetSteps) PlayPosition(context.Context) (dawport.PlayPosition, error) {
+	return dawport.PlayPosition{}, ErrNotAvailable
+}
+func (notYetSteps) Roll(context.Context, string, float64) (dawport.Result, error) {
+	return notYetResult, nil
+}
+func (notYetSteps) SetActiveTake(context.Context, string, string) (dawport.ActiveTakeSet, error) {
+	return dawport.ActiveTakeSet{}, ErrNotAvailable
+}
+func (notYetSteps) HideTakes(context.Context, string, string) (dawport.Result, error) {
+	return notYetResult, nil
+}
+func (notYetSteps) StackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
+	return notYetResult, nil
+}
+func (notYetSteps) UnstackTakes(context.Context, dawport.StackRequest) (dawport.Result, error) {
+	return notYetResult, nil
+}
+func (notYetSteps) DeleteRange(context.Context, dawport.DeleteRangeRequest) (dawport.Result, error) {
+	return notYetResult, nil
+}
+func (notYetSteps) ApplyFXToRange(context.Context, dawport.FXRangeRequest) (dawport.Result, error) {
+	return notYetResult, nil
+}
+func (notYetSteps) RemoveFXFromRange(context.Context, string, string) (dawport.Result, error) {
+	return notYetResult, nil
 }
