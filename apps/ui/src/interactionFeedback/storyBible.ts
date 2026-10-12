@@ -40,6 +40,11 @@ export const storyBibleFeedback: Record<string, FeedbackRow> = {
   'src/components/storybible/GuideDetail.tsx::guideDelete#1': row('click', 'python', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'The confirm dialog stays open and busy until the delete ends and cannot be cancelled away (phase 3).'),
   'src/components/storybible/GuideDetail.tsx::guideMerge#1': row('click', 'python', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'The confirm dialog stays open and busy until the merge ends and cannot be cancelled away (phase 3).'),
 
+  // The first-scan prompt (SN-X63; unmounted until SN-B8 wires the scan button to useStartScan)
+  'src/components/storybible/suggested/scan/analysisPromptSetting.ts::settingsForScope#1': row('click', 'file-io', 'none', 'pending', 'ui', 'toast', 'na', 'ok', 'Read when Scan is pressed, to see whether the narrator asked not to be offered better analysis; a second press while it reads is ignored, and a failure is a toast and the scan starts.'),
+  'src/components/storybible/suggested/scan/analysisPromptSetting.ts::saveSettings#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Don\'t ask again is saved before the chosen action runs, a one-field write as in Settings; a failure is a toast and the chosen action still runs.'),
+  'src/components/storybible/suggested/scan/useStartScan.tsx::assetsList#1': row('click', 'file-io', 'none', 'pending', 'ui', 'toast', 'na', 'ok', 'Read with the setting when Scan is pressed, for the tools installed or downloading; it only reads the manifests, and a failure is a toast and the scan starts.'),
+
   // Pronunciation source tag, menu and name row (SN-B22; unmounted until SN-B8)
   'src/components/storybible/source/usePronunciationSources.ts::pronunciationSources#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loaded when a tag or name row mounts; a failure is an alert under the name row and the tag reads "Source".'),
   'src/components/storybible/source/NamePronunciation.tsx::pronunciationCandidate#1': row('click', 'python', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'Choosing a source asks it for the name alone: the tag is busy and every control of the row is off until it answers; a source with nothing for the name says why in a toast and the value stays.'),
