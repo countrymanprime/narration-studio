@@ -1,6 +1,6 @@
 import type { DawCapabilities, DawProjectState, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
-import { DAW_ANSWERS, DAW_PROJECT, type DawProject, pickupMarkersReadAnswer, pickupsImportedAnswer, projectStateOf } from '../fixtures/daw';
+import { DAW_ANSWERS, DAW_PROJECT, type DawProject, pickupMarkersReadAnswer, pickupsImportedAnswer, projectStateOf, takesHiddenOf } from '../fixtures/daw';
 import type { NarrationApi } from '../types';
 
 // The DAW port (ADR 0770, ADR 0810): what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
@@ -35,6 +35,8 @@ export interface DawClient {
   recordStop(): Promise<DawResult>;
   /** Make `candidateId` the active take of the passage between the two tokens. */
   useTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<DawResult>;
+  /** Mute the other takes of the passage between the two tokens, keeping `keepCandidateId`, in one undo step. Nothing is deleted. */
+  hideTakes(chapterId: string, firstToken: number, lastToken: number, keepCandidateId: string): Promise<DawResult>;
   /** Add the approved marker for a finding. */
   addMarker(findingId: string): Promise<DawResult>;
   /** Mark pickups as open pickup markers in one undo step. One already marked near its time is left alone, so adding twice adds nothing. */
@@ -53,6 +55,7 @@ export type DawHostApi = Pick<
   | 'readAloudRecordStart'
   | 'readAloudRecordStop'
   | 'workspaceUseTake'
+  | 'workspaceHideTakes'
   | 'findingsAddMarker'
   | 'pickupsImport'
   | 'pickupsResolve'
@@ -197,6 +200,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
       if (result.outcome === 'refused') return refused(result.message, 'useTake', result.reason === 'stale');
       return done(result.changed, result.changed ? 1 : 0, result.message);
     },
+    /** The binding answers a DawResult already, with code `stale` for a kept take it no longer offers (the #1164 mapping). */
+    hideTakes: (chapterId, firstToken, lastToken, keepCandidateId) => api.workspaceHideTakes(chapterId, firstToken, lastToken, keepCandidateId),
     async addMarker(findingId) {
       const result = await api.findingsAddMarker(findingId);
       if (result.outcome === 'refused') return refused(result.message, 'addMarker', result.reason === 'stale');
@@ -239,6 +244,13 @@ export function createMockDawClient(
       if (sentence) return refused(sentence, 'useTake');
       if (!project.chapterIds.includes(chapterId) || !project.candidateIds.includes(candidateId)) return refused(DAW_ANSWERS.staleTake, 'useTake', true);
       return done(true, 1, DAW_ANSWERS.takeUsed);
+    },
+    async hideTakes(chapterId, _firstToken, _lastToken, keepCandidateId) {
+      const sentence = unavailable(setup, 'takes', 'hideTakes');
+      if (sentence) return refused(sentence, 'hideTakes');
+      if (!project.chapterIds.includes(chapterId) || !project.candidateIds.includes(keepCandidateId)) return refused(DAW_ANSWERS.staleHide, 'hideTakes', true);
+      const hidden = takesHiddenOf(setup, project.otherTakes?.[keepCandidateId] ?? 1);
+      return done(hidden.changed, hidden.changed ? 1 : 0, hidden.message);
     },
     async addMarker(findingId) {
       const sentence = unavailable(setup, 'markers', 'addMarker');
