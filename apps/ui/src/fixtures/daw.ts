@@ -132,17 +132,20 @@ export function projectStateOf(setup: DawCapabilities): DawProjectState {
   return id ? DAW_PROJECT_STATES[id] : IDLE_PROJECT_STATE;
 }
 
-/** The part of the sample project a call can name: which chapters have a track, which takes are still where the app read them, which findings exist. */
+/** The part of the sample project a call can name: which chapters have a track, which takes are still where the app read them, which findings exist.
+ * `otherTakes` is how many other takes each candidate's item holds, for hiding them (1 when not given). */
 export type DawProject = {
   chapterIds: readonly string[];
   candidateIds: readonly string[];
   findingIds: readonly string[];
+  otherTakes?: Readonly<Record<string, number>>;
 };
 
 export const DAW_PROJECT: DawProject = {
   chapterIds: ['chapter-1', 'chapter-2'],
-  candidateIds: ['take-1', 'take-2'],
+  candidateIds: ['take-1', 'take-2', 'take-solo'],
   findingIds: ['finding-1'],
+  otherTakes: { 'take-1': 1, 'take-2': 1, 'take-solo': 0 },
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
@@ -157,6 +160,10 @@ export const DAW_ANSWERS = {
   pickupReopened: 'Marked this pickup open again.',
   noOpenPickup: 'No open pickup was found at that position.',
   noResolvedPickup: 'No resolved pickup was found at that position.',
+  /** internal/passagetakes' hide.go (SN-D52): a kept take the host no longer offers, answered with code stale. */
+  staleHide: "That take isn't one of this passage's takes any more, so nothing was changed. The list has been read again.",
+  /** internal/passagetakes' hide.go: a kept candidate from another item or lane, which hide_takes cannot keep. */
+  hideNotOnItem: "Only a take of this passage's own item can be kept while the others are muted. Use this take first, then hide the others.",
 } as const;
 
 const plural = (count: number): string => (count === 1 ? '' : 's');
@@ -170,4 +177,20 @@ export function pickupsImportedAnswer(added: number, existing: number): string {
 export function pickupMarkersReadAnswer(open: number, done: number): string {
   const total = open + done;
   return `Read ${total} pickup marker${plural(total)}: ${open} open, ${done} done.`;
+}
+
+/** dawport/reaper's hiddenMessage: what hiding an item's other takes muted, naming the DAW. */
+export function takesHiddenAnswer(muted: number, daw: string): string {
+  if (muted === 0) return `No other take to mute in ${daw}.`;
+  return muted === 1 ? `Muted 1 other take in ${daw}. It is still in the project.` : `Muted ${muted} other takes in ${daw}. They are still in the project.`;
+}
+
+/** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */
+export const BUILTIN_NOTHING_TO_MUTE = 'The built-in recorder plays only the kept take, so there is nothing to mute.';
+
+/** What hiding `muted` other takes answers on one of DAW_SETUPS, as its adapter words it: the built-in recorder (`daw: 'none'`
+ * until the Booth names it) changes nothing, and any other DAW names itself. */
+export function takesHiddenOf(setup: DawCapabilities, muted: number): { changed: boolean; message: string } {
+  if (setup === DAW_SETUPS.builtin || setup.daw === 'none' || setup.daw === 'Built-in') return { changed: false, message: BUILTIN_NOTHING_TO_MUTE };
+  return { changed: muted > 0, message: takesHiddenAnswer(muted, setup.daw) };
 }

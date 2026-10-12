@@ -11,7 +11,16 @@ import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
 import { workspaceUseTakeResultSchema } from '../api/schemas/workspace';
 import { parseWire } from '../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../api/wire/standardSchema';
-import { DAW_ANSWERS, DAW_PROJECT, DAW_PROJECT_STATES, DAW_SETUPS, pickupMarkersReadAnswer, pickupsImportedAnswer } from '../fixtures/daw';
+import {
+  BUILTIN_NOTHING_TO_MUTE,
+  DAW_ANSWERS,
+  DAW_PROJECT,
+  DAW_PROJECT_STATES,
+  DAW_SETUPS,
+  pickupMarkersReadAnswer,
+  pickupsImportedAnswer,
+  takesHiddenAnswer,
+} from '../fixtures/daw';
 import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi, type DawPickupItem, NOTHING_TO_CHANGE } from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
@@ -25,6 +34,9 @@ const GOLDEN_FILES = [
   'daw-result-ok.json',
   'daw-result-refused-stale.json',
   'daw-result-multi-step.json',
+  'daw-hide-takes-done.json',
+  'daw-hide-takes-nothing.json',
+  'daw-hide-takes-refused.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
   'workspace-use-take-done.json',
@@ -125,6 +137,11 @@ function hostApi(): DawHostApi {
       ),
     findingsAddMarker: (id) =>
       known.findingIds.includes(id) ? Promise.resolve(read('findings-add-marker.json', findingMarkerSchema)) : Promise.reject(new Error(`no finding ${id}`)),
+    // WorkspaceHideTakes: a kept take the host offers mutes its item's others (or finds none), and any other id is the stale refusal.
+    workspaceHideTakes: (chapterId, _first, _last, keepCandidateId) => {
+      if (!known.chapterIds.includes(chapterId) || !known.candidateIds.includes(keepCandidateId)) return Promise.resolve(staleRefusal(DAW_ANSWERS.staleHide));
+      return Promise.resolve(read(known.otherTakes?.[keepCandidateId] === 0 ? 'daw-hide-takes-nothing.json' : 'daw-hide-takes-done.json', dawResultSchema));
+    },
   };
 }
 
@@ -154,6 +171,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.recordStart('chapter-1'),
         await daw.recordStop(),
         await daw.useTake('chapter-1', 0, 4, 'take-1'),
+        await daw.hideTakes('chapter-1', 0, 4, 'take-1'),
         await daw.addMarker('finding-1'),
       ]) {
         expectWellFormed(result);
@@ -200,6 +218,10 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     },
   },
   { name: 'current-take-is-accepted-alike', observe: (daw) => daw.useTake('chapter-1', 0, 4, 'take-1') },
+  { name: 'dawclient-hide-takes: hiding the others of a kept take is answered alike', observe: (daw) => daw.hideTakes('chapter-1', 0, 4, 'take-1') },
+  { name: 'dawclient-hide-takes: a take with no others to hide is answered alike', observe: (daw) => daw.hideTakes('chapter-1', 0, 4, 'take-solo') },
+  { name: 'dawclient-hide-takes: a stale kept take is refused alike', observe: (daw) => daw.hideTakes('chapter-1', 0, 4, 'stale-take') },
+  { name: 'dawclient-hide-takes: an unknown chapter is refused alike', observe: (daw) => daw.hideTakes('chapter-9', 0, 4, 'take-1') },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
@@ -297,6 +319,25 @@ describe('the host adapter maps each existing golden', () => {
     expect(await daw.recordStart('chapter-1')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
   });
 
+  it("dawclient-hide-takes: the host adapter answers the binding's DawResult as it is, the stale code and the capability refusal included", async () => {
+    expect(await daw.hideTakes('chapter-1', 0, 4, 'take-1')).toEqual(read('daw-hide-takes-done.json', dawResultSchema));
+    expect(await daw.hideTakes('chapter-1', 0, 4, 'take-solo')).toEqual(read('daw-hide-takes-nothing.json', dawResultSchema));
+    expect(await daw.hideTakes('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.staleHide));
+    const refusedGolden = read('daw-hide-takes-refused.json', dawResultSchema);
+    const calls: string[][] = [];
+    const off = createHostDawClient({
+      ...hostApi(),
+      workspaceHideTakes: (...args) => {
+        calls.push(args.map(String));
+        return Promise.resolve(refusedGolden);
+      },
+    });
+    const answer = await off.hideTakes('chapter-1', 2, 7, 'take-2');
+    expectWellFormed(answer);
+    expect(answer).toEqual(refusedGolden);
+    expect(calls).toEqual([['chapter-1', '2', '7', 'take-2']]);
+  });
+
   it('host-adapter-maps-the-existing-results: a refusal without a sentence is an error, not a sentence the client words', async () => {
     const silent = createHostDawClient({ ...hostApi(), readAloudRecordStart: () => Promise.resolve({ outcome: 'refused', reason: 'timeout' }) });
     await expect(silent.recordStart('chapter-1')).rejects.toThrow('no sentence');
@@ -317,6 +358,32 @@ describe('the mock setups', () => {
   it('mock-refuses-stale-the-same-way: the stale take answer is DAW_ANSWERS.staleTake with code stale', async () => {
     expect(await createMockDawClient(DAW_SETUPS.reaper).useTake('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.staleTake));
     expect(await createMockDawClient(DAW_SETUPS.reaper).recordStart('no-such-chapter')).toEqual(staleRefusal(DAW_ANSWERS.noTrack));
+  });
+
+  it("dawclient-hide-takes: the mock refuses with the setup's takes sentence, finds nothing to hide, or mutes in one undo step naming the DAW", async () => {
+    for (const id of ['reaper-off', 'audacity'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.takes.message;
+      expect(sentence, id).toBeTruthy();
+      expect(await createMockDawClient(DAW_SETUPS[id]).hideTakes('chapter-1', 0, 4, 'take-1'), id).toEqual({
+        ok: false,
+        changed: false,
+        message: sentence,
+        undoSteps: 0,
+        refused: sentence,
+      });
+    }
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await reaper.hideTakes('chapter-1', 0, 4, 'take-1')).toEqual({ ok: true, changed: true, message: takesHiddenAnswer(1, 'REAPER'), undoSteps: 1 });
+    expect(await reaper.hideTakes('chapter-1', 0, 4, 'take-solo')).toEqual({ ok: true, changed: false, message: takesHiddenAnswer(0, 'REAPER'), undoSteps: 0 });
+    expect(await reaper.hideTakes('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.staleHide));
+    const backups = createMockDawClient(DAW_SETUPS['audacity-backups'], { ...DAW_PROJECT, otherTakes: { 'take-1': 2 } });
+    expect((await backups.hideTakes('chapter-1', 0, 4, 'take-1')).message).toBe('Muted 2 other takes in Audacity. They are still in the project.');
+    expect(await createMockDawClient(DAW_SETUPS.builtin).hideTakes('chapter-1', 0, 4, 'take-1')).toEqual({
+      ok: true,
+      changed: false,
+      message: BUILTIN_NOTHING_TO_MUTE,
+      undoSteps: 0,
+    });
   });
 
   it('refusal-carries-the-capabilitys-sentence: take and marker calls use their own capability sentence', async () => {

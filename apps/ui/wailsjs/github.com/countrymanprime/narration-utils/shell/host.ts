@@ -846,7 +846,8 @@ export function ExtractionAccept(id: string, text: string | null): $CancellableP
 /**
  * ExtractionImportCommit parses and plans text again and stores the rows that add or merge as suggestions from an imported file, in one
  * write: all of them or, when the write fails, none. The ones the 75% rule accepts are applied through the Story Bible's own commands
- * and flagged for Review. A file refused before parsing is refused with the importer's sentence.
+ * and flagged for Review; if that fails, the error is returned and the stored suggestions wait for the next settle (a scan or a
+ * decision), as a scan's do. A file refused before parsing is refused with the importer's sentence.
  */
 export function ExtractionImportCommit(text: string, hint: string): $CancellablePromise<string> {
     return $Call.ByID(4139892219, text, hint);
@@ -2664,6 +2665,20 @@ export function WorkspaceApplyFXChain(chapterID: string, chain: string): $Cancel
  */
 export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $CancellablePromise<string> {
     return $Call.ByID(3177963740, chapterID, tokenIndex);
+}
+
+/**
+ * WorkspaceHideTakes mutes the other takes of the passage between firstToken and lastToken of chapterID's stored alignment,
+ * keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the Studio Next mock's hideTakes). Nothing is
+ * deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
+ * indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
+ * refused as stale (threat model row 5f). The answer is a DawResult (ADR 0810): the takes capability's own sentence when
+ * the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked
+ * before the passage is read, and nothing is sent to REAPER on any refusal. A token range outside the alignment is an
+ * error, as for WorkspaceTakes.
+ */
+export function WorkspaceHideTakes(chapterID: string, firstToken: number, lastToken: number, keepCandidateID: string): $CancellablePromise<string> {
+    return $Call.ByID(1030914773, chapterID, firstToken, lastToken, keepCandidateID);
 }
 
 /**
