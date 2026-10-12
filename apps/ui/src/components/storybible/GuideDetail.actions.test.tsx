@@ -153,7 +153,9 @@ describe('deleting an entry', () => {
       <MemoryRouter>
         <ApiProvider api={api}>
           <StudioProvider>
-            <Guide notify={notify} goToManuscript={vi.fn()} />
+            <CommandRouter>
+              <Guide notify={notify} goToManuscript={vi.fn()} />
+            </CommandRouter>
           </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,

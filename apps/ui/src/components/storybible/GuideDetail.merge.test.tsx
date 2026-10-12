@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { CommandRouter } from '../../input/router';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import { overlay } from '../../overlay/overlayService';
@@ -28,7 +29,9 @@ async function renderGuide() {
     <MemoryRouter>
       <ApiProvider api={api}>
         <StudioProvider>
-          <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          <CommandRouter>
+            <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+          </CommandRouter>
         </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
@@ -37,10 +40,7 @@ async function renderGuide() {
   return { api, merge, unmerge, edit, toast };
 }
 const box = () => screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
-const rows = () =>
-  within(screen.getByRole('table', { name: 'Story Bible entries' }))
-    .getAllByRole('row')
-    .slice(1);
+const rows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
 const rowNames = () => rows().map((row) => row.querySelector('.truncate')?.textContent);
 const open = async (name: string) => {
   fireEvent.click(rows().find((row) => row.querySelector('.truncate')?.textContent === name)!);
