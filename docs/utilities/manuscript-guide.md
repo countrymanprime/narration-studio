@@ -1,6 +1,6 @@
 # Manuscript Guide
 
-**Status: Implemented; enhancement plan documented.**
+**Status: Implemented.** Planned work is [#1453](https://github.com/countrymanprime/narration-utils/issues/1453).
 
 ## Current capability and problem
 
@@ -86,37 +86,16 @@ and each field (8 KB), refuses an unknown field or a kind other than entry, alia
 quote `extraction.VerifyEvidence` does not find in its paragraph, and kills the sidecar when the run is cancelled. The
 line format is pinned by `rules/testdata/suggest-lines.json`, which the sidecar's contract test writes.
 
-## Target workflow
+## Workflow
 
-Run the guide after manuscript selection; review uncertain candidates; lock narrator-authored pronunciation and notes; export approved vocabulary for transcription; consult chapter/scene and dialogue information during recording.
+Run the guide after manuscript selection; review uncertain candidates; lock narrator-authored pronunciation and notes; consult the entries during recording.
 
 ## Inputs and outputs
 
 - Inputs: Word manuscript, the selected catalog-managed spaCy language model (downloaded after a confirmation; without one the build offers a rules-only run), optional eSpeak, the selected catalog-managed Piper voice, and existing guide JSON.
 - Outputs: `<project>/ManuscriptGuide/manuscript_guide.json`, optional audio previews, and shared `entity` and `pronunciation` findings for entries that need review or a pronunciation with low or unknown confidence (`apps/desktop/internal/guide/findings_adapter.go`), which [Proof](../guides/using-the-app/proof.md) lists and decides.
-- Narrator actions: edit, lock, merge/reject candidates, approve pronunciations, and choose exports.
-
-## Planned features
-
-### MVP enhancements
-
-- Alias merge/split review with stable entity IDs and auditable user decisions.
-- Chapter and scene appearance maps for each entity.
-- Narrator-approved pronunciation export with aliases and "say it as" forms suited to Transcript Compare hotwords.
-- Dialogue-cue extraction that identifies likely speaker cues and preserves manuscript evidence.
-
-### Later work
-
-- Entity relationship review and character-bible export.
-- Better support for intentionally ambiguous names and titles.
+- Narrator actions: edit, lock, merge/reject candidates, and approve pronunciations.
 
 ## Non-goals and review boundary
 
 The tool does not invent character psychology, choose a voice, scrape external sources, or alter the manuscript. All inferred entities and traits remain review candidates.
-
-## Acceptance and risks
-
-- Locked narrator edits survive a rebuild; accepted alias choices do not reappear as duplicates.
-- Every appearance map links to a reproducible manuscript excerpt.
-- Exported terms can be consumed by Transcript Compare without undocumented file coupling.
-- Main risks: false entity merges, alias ambiguity, and inconsistent Word styles; each requires a visible review path.
