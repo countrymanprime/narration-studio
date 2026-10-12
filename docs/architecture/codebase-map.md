@@ -25,6 +25,7 @@ tools/
   docs-site/      the public docs site: MkDocs config, include list and link hooks; reads docs/ in place
 scripts/          repo automation, release and CI tooling
 docs/             documentation, ADRs and the roadmap
+pr-screenshots/   before/after images of a UI pull request, on its branch only; the last commit before merge deletes it
 ```
 
 Only these entries may exist at the repository root. `scripts/ci/layout.test.mjs` runs in `pnpm check` and fails
