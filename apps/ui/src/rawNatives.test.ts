@@ -39,13 +39,6 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // padded, uppercase button chrome, which would break the text flow and read as a real action button rather than a
     // word. One JSX `<button>` in the source (it is written once, inside the words `.map()`, not once per word).
     'src/components/booth/ReaderText.tsx': 1,
-    // The read-aloud rail's Story bible entries: a list row with a
-    // category dot and a current state, which Button's padded, uppercase chrome does not fit. One JSX `<button>`, written once inside the entries `.map()`.
-    'src/components/booth/ReaderRail.tsx': 1,
-    // The read-aloud rail's Flags list: the same list row as the Story
-    // bible entries above (two lines of text and a current state), which Button's padded, uppercase chrome does not fit. One
-    // JSX `<button>`, written once inside the flags `.map()`.
-    'src/components/booth/ReaderFlagsPanel.tsx': 1,
     // The engine panel took the Tracks page's two: its .rpp picker's
     // full-width path rows (a mono file path, which Button's uppercase chrome would mangle) stay one JSX `<button>` inside the
     // candidates `.map()`; the track rows' selection buttons went with the player.

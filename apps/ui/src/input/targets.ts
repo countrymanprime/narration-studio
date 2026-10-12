@@ -30,7 +30,7 @@ export const KEY_WIDGET_ROLES = new Set([
  * Whether a gesture's target already owns the key: a field, a widget Space activates, or a `KEY_WIDGET_ROLES` role.
  * The router (`router.tsx`) applies this only to a gesture with no modifier held (Solution Detail, "Router"); a
  * modified gesture like Alt+ArrowLeft reaches its command regardless of target, matching `App.tsx`'s nav shortcuts
- * today. This is the same check `ReadingControlBar`'s old `isWidgetTarget` and `useFollowCursor`'s `isScrollKey`
+ * today. This is the same check the old Booth control bar's `isWidgetTarget` and `useFollowCursor`'s `isScrollKey`
  * made by hand.
  */
 export function isGuardedTarget(target: EventTarget | null): boolean {

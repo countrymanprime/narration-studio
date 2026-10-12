@@ -3,14 +3,14 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BoothSession } from './BoothSession';
+import { CompanionHost } from './companion/CompanionHost';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { WIRE_TELEPROMPTER_DEVICES } from '../../api/mockFixtures';
 import type { DawTransport, NarrationApi, TeleprompterLocateResult, TeleprompterResumeFollowEvent, TeleprompterState } from '../../types';
 
-// The read-aloud dialog's resume prompt: a compact notice or choice for where
+// The resume prompt, as the Companion's header shows it: a compact notice or choice for where
 // the chapter's recording ends (TeleprompterLocate, ADR 0111). It never starts anything by itself, and it settles - and
 // stays gone - the moment the narrator makes a choice or a session starts, for the rest of this dialog's open.
 
@@ -30,6 +30,13 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
   const teleprompterStart = vi.fn(overrides.teleprompterStart ?? (async () => ({ status: 'started' as const })));
   const api = createMockApi(
     {
+      // The Companion has no microphone field: the session starts with the device saved in Settings.
+      settingsForScope: async (scope) => {
+        const settings = await base.settingsForScope(scope);
+        if (scope !== 'global') return settings;
+        const fields = (settings.Teleprompter ?? []).filter((field) => field.key !== 'input_device');
+        return { ...settings, Teleprompter: [...fields, { ...(settings.Teleprompter?.[0] ?? {}), key: 'input_device', value: DEVICE_NAME, isSet: true }] };
+      },
       subscribeTeleprompterState: (listener) => {
         stateListeners.add(listener);
         return () => stateListeners.delete(listener);
@@ -44,7 +51,7 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
     <MemoryRouter>
       <ApiProvider api={api}>
         <CommandRouter>
-          <BoothSession source={{ kind: 'chapter', chapter: CHAPTER }} onExit={vi.fn()} />
+          <CompanionHost source={{ kind: 'chapter', chapter: CHAPTER }} onFullApp={vi.fn()} />
         </CommandRouter>
       </ApiProvider>
     </MemoryRouter>,
@@ -62,14 +69,10 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
 
 const prompt = () => screen.findByRole('region', { name: 'Where you stopped' });
 
-async function openMicPopover(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole('button', { name: /^Microphone:/ }));
-}
-
 async function startReading(user: ReturnType<typeof userEvent.setup>) {
-  await openMicPopover(user);
-  await user.selectOptions(await screen.findByRole('combobox', { name: 'Microphone' }), DEVICE_NAME);
-  await user.click(screen.getByRole('button', { name: 'Play' }));
+  const play = await screen.findByRole('button', { name: 'Play' });
+  await waitFor(() => expect(play.hasAttribute('disabled')).toBe(false));
+  await user.click(play);
 }
 
 describe('ResumePrompt', () => {

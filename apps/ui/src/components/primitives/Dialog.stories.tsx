@@ -231,7 +231,7 @@ export const FullSize: Story = {
 };
 
 // Amending ADR 0094: a `footer` region between the body and `actions` that never
-// scrolls with the body - the read-aloud dialog's control bar (`ReadingControlBar`) renders here so Play/Stop and the
+// scrolls with the body - the read-aloud dialog's control bar (the old Booth's control bar) renders here so Play/Stop and the
 // microphone stay visible while the chapter text scrolls.
 export const WithFooter: Story = {
   args: {

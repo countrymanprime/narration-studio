@@ -115,7 +115,7 @@ export function CleanupTab({ chapterId, journal, deps }: CleanupTabProps) {
         <CleanupHeader counts={counts} op={op} onOp={choose} />
       </div>
       {readError ? (
-        <p role="alert" className="m-0 p-3 text-[var(--danger)]">
+        <p role="alert" className="m-0 p-3 text-[var(--danger-text)]">
           {readError}
         </p>
       ) : null}

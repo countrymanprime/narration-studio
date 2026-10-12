@@ -93,9 +93,7 @@
   --meter-over: var(--danger);
   /* The 14% badge tints of ADR 0362: a 14% tint of the tone colour, the one percentage that holds 4.5:1 against
      every tone's own -text colour in both themes. StatusBadge fills with the opaque --<tone>-soft family below (ADR 0590,
-     0600); these two stay for their last users, ReadingControlBar's danger chip and the experimental tone, which
-     has no soft token. */
-  --badge-danger-fill: color-mix(in srgb, var(--danger) 14%, transparent);
+     0600); this one stays for the experimental tone, which has no soft token. */
   --badge-experimental-fill: color-mix(in srgb, var(--experimental) 14%, transparent);
   /* The status soft fills are the mock's own opaque values (Studio Next, ADR 0760), no longer aliases of the entity fills or a
      mix of the warn colour, so the entity and status fills no longer move together. */

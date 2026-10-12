@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
 import type { CreditsRenderResult, GuideEntity, ManuscriptChapter, ManuscriptNote } from '../../../types';
-import { boothQuery } from '../BoothPage';
-import type { BoothSource } from '../BoothSession';
+import { boothQuery } from '../page/boothQuery';
+import type { BoothSource } from '../page/useBoothData';
 import type { CreditsKind } from '../readerModel';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionHost } from './CompanionHost';
@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * The Companion's route (`/companion?chapter=<id>` or `?credits=opening`): the chapter rule of `BoothPage` without its
+ * The Companion's route (`/companion?chapter=<id>` or `?credits=opening`): the chapter rule of the old Booth page without its
  * picker. With neither in the address it reads the chapter a running session is on, else the last chapter read; an unknown
  * chapter sends the narrator to `/booth`.
  */
