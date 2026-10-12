@@ -129,7 +129,7 @@ Each Lua command has a harness test (`tests/workspace_test.lua`, `tests/cleanup_
 | `cleanup*`, `levelMatch*` | `cleanup-{apply,preview}.json`, `cleanup-tools-{idle,launched}.json`, `level-match-{apply,preview}.json` | `contracts/cleanup.ts`, `schemas/cleanup.ts`, `schemas/cleanuptools.ts` |
 | `editing*` | `editing-{candidates-empty,source-choice-items,start-refused-unmapped,state-idle}.json` | `contracts/editing.ts`, `schemas/editing.ts` |
 
-Removing a binding in the swap is a `hostAPIVersion` bump (84 at SN-Q1, 85 on `main` now: `apps/desktop/app.go:65`); the Proof swap bumps it too, so it is a serial point ([`wire-contract-change`](../../.claude/skills/wire-contract-change/SKILL.md)). The generated `wailsjs/**/host.ts` is regenerated, never edited. Trust boundary: [`threat-model.md`](../architecture/threat-model.md) rows 5h and 5l (apply FX, `set_active_take`) and 5p (the Takes panel's `WorkspaceUseTake`) are re-read, and edited if a command is removed.
+Removing a binding in the swap is a `hostAPIVersion` bump (84 at SN-Q1, 85 on `main` now: `apps/desktop/app.go:65`); the Proof swap bumps it too, so it is a serial point ([`wire-contract-change`](../../.claude/skills/wire-contract-change/SKILL.md)). The generated `wailsjs/**/host.ts` is regenerated, never edited. Trust boundary: [`threat-model.md`](../architecture/threat-model.md) rows 5h and 5l (apply FX, `set_active_take`) and the Takes panel's `WorkspaceUseTake` (row 5p then; now [reaper-bridge.md](../architecture/reaper-bridge.md#from-the-takes-panel)) are re-read, and edited if a command is removed.
 
 ### Cleanup apply path (ADR 0262)
 

@@ -35,8 +35,8 @@ What remained was to put take review on that surface. Four things had to be sett
 2. **A read is navigated by its index, through two more bindings.** `FindingsGoToRead(id, read)` and
    `FindingsLoopRead(id, read)` place `evidence.members[read]` by its own item and take GUIDs, over its own range in its
    source, and are refused in the same order and words as `FindingsGoTo` and `FindingsLoop`. The page sends only the id
-   and the index; the host reads the GUIDs and times from the store, so the page cannot name an arbitrary item (threat
-   model row 5f). The loop is the finding's, so `FindingsReaperStatus` names the finding and `FindingsStopLoop` stops
+   and the index; the host reads the GUIDs and times from the store, so the page cannot name an arbitrary item
+   ([going to and looping a finding](../architecture/reaper-navigation.md)). The loop is the finding's, so `FindingsReaperStatus` names the finding and `FindingsStopLoop` stops
    it. A read index the finding does not have is an error, not a refusal: the page only offers the reads it was sent.
    REAPER plays the item's active take, so a read that is another take of its item is heard through the in-app
    audition, which the guide says.

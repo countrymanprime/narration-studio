@@ -421,7 +421,10 @@ redirects here keeping its query and hash. What the narrator sees and does on it
   DAW's confident suggestion, ADR 0113, else the last chapter read) and loads the Story Bible entries and notes for the
   marks. It mounts one `BoothSession`, keyed by what it reads, which holds the one `useTeleprompterSession`
   subscription, the flags kept as findings, the resume prompt and recording in the DAW. `BoothView` lays it out on
-  `FocusShell`, with the `ReadingControlBar` as its command bar. Companion mode is `CompanionShell` (ADR 0401).
+  `FocusShell`, with the `ReadingControlBar` as its command bar. Companion mode is `CompanionShell` (ADR 0401). It
+  takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved
+  bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was
+  on is gone (`bindings_companion_test.go`).
 - **The highlight.** The current word is the `Cursor` kind of `Highlight`. The text does not reuse `ParagraphView`,
   which renders character-offset annotations, not words
   ([ADR 0024](../adr/0024-teleprompter-highlight-follows-the-sidecars-spans.md)).
