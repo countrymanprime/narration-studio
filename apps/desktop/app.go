@@ -225,6 +225,11 @@ type Host struct {
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
+	// backupKeeper is the DAW port's backups role (ADR 0863): on an Audacity launch with a project open, the Audacity adapter's,
+	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
+	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
+	// when the project opens. Nil otherwise.
+	backupKeeper dawport.BackupKeeper
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
@@ -683,6 +688,16 @@ func (h *Host) configureLocked(next config) {
 		h.takeStacker, _ = dawAdapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
+	}
+	if previous, ok := h.backupKeeper.(audacityBackups); ok {
+		previous.closePipe()
+	}
+	// Only an Audacity launch with a project has a backups role: REAPER and the built-in recorder declare backups not yet
+	// available or unsupported, and the table lives in the project folder.
+	h.backupKeeper = nil
+	if h.config.projectFolder != "" && dawport.Classify(h.config.daw) == dawport.KindAudacity {
+		h.backupKeeper = audacityBackupsFor(h.config.projectFolder, h.persist, settingsStore)
+		go h.pruneBackupsOnOpen(h.backupKeeper)
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,
@@ -1540,6 +1555,9 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"auto_start_launcher", "Start the launcher script automatically", "bool", nil},
 		{"experimental_reaper_actions", "Experimental REAPER actions", "bool", nil},
 		{"fx_favourites", "Favourite effects (FX chains and plug-ins)", "tags", nil},
+		// The Audacity backups' window and retention (ADR 0863), with the Studio Next mock's labels and ranges (BackupsTab.tsx).
+		{"backups.window_seconds", "Audio kept either side of a punch or an edit (s)", "number", nil},
+		{"backups.retention_days", "Keep backups for (days)", "number", nil},
 	}, capabilityFieldSchemas()...),
 	// RecordingCoverage is the recording check's four settings (docs/utilities/recording-coverage.md Q3, ADR 0131),
 	// read by coverage.ResolveSettings. The two thresholds judge a stored result on read; the two alignment settings are

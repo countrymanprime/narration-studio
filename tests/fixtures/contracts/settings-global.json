@@ -123,6 +123,38 @@
       "value": ""
     },
     {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "120",
+      "isSet": false,
+      "key": "backups.window_seconds",
+      "kind": "number",
+      "label": "Audio kept either side of a punch or an edit (s)",
+      "number": {
+        "max": 300,
+        "min": 10,
+        "step": 10,
+        "unit": "s"
+      },
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "7",
+      "isSet": false,
+      "key": "backups.retention_days",
+      "kind": "number",
+      "label": "Keep backups for (days)",
+      "number": {
+        "max": 365,
+        "min": 1,
+        "step": 1,
+        "unit": "days"
+      },
+      "value": ""
+    },
+    {
       "choices": [
         "auto",
         "on",
