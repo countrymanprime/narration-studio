@@ -1,6 +1,6 @@
 # 0147. Retakes on fixed lanes are chosen by lane play state, and the app never converts takes and lanes
 
-**Status:** Proposed
+**Status:** Proposed (superseded in part by ADR 0860: stacking, DQ-7, which makes later reads takes of the first read's item; the lane rules stand)
 **Date:** 2026-09-23
 
 ## Context

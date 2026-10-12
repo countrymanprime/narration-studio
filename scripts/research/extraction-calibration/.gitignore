@@ -1,0 +1,6 @@
+# Downloaded book texts, the gold sets, imported LLM files and run output stay local (protocol: nothing large is committed).
+# Everything under data/ is ignored except the folder marker and the committed book list.
+data/*
+!data/.gitkeep
+!data/books.json
+out/

@@ -1,6 +1,6 @@
 # 0262. Cleanup trims are found by matching the measured file to a live item and applied as a split-and-delete inside one undo block
 
-**Status:** Proposed
+**Status:** Proposed (superseded in part by ADR 0860: the delete, DQ-8; a trim's middle piece moves to the muted Cuts track instead of `DeleteTrackMediaItem`; the file-to-item mapping and payload commands stand)
 **Date:** 2026-09-26
 
 ## Context

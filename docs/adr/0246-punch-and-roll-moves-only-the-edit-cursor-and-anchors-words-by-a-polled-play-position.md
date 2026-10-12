@@ -1,6 +1,6 @@
 # 0246. Punch and roll moves only the edit cursor, and anchors words by a polled play position
 
-**Status:** Proposed
+**Status:** Proposed (superseded in part by ADR 0860: the roll, which is now one command that keeps the earlier audio as a take; `punch_to` and `play_position` stand)
 **Date:** 2026-09-25
 
 ## Context

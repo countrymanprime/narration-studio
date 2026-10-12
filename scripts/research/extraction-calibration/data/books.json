@@ -1,0 +1,38 @@
+{
+  "note": "The protocol's book list (docs/research/studio-next-extraction-calibration-protocol.md). Texts, gold files and run output are ignored local data; `fetch` downloads them. `confirmed` is false until a run has read the Project Gutenberg record and copied its public-domain line into data/<id>/source.json.",
+  "books": [
+    {
+      "id": "wind-in-the-willows",
+      "role": "scored",
+      "title": "The Wind in the Willows",
+      "author": "Kenneth Grahame",
+      "year": 1908,
+      "url": "https://www.gutenberg.org/cache/epub/289/pg289.txt",
+      "record": "https://www.gutenberg.org/ebooks/289",
+      "chapters": ["I", "VI", "VIII"],
+      "confirmed": false
+    },
+    {
+      "id": "three-men-in-a-boat",
+      "role": "scored",
+      "title": "Three Men in a Boat",
+      "author": "Jerome K. Jerome",
+      "year": 1889,
+      "url": "https://www.gutenberg.org/cache/epub/308/pg308.txt",
+      "record": "https://www.gutenberg.org/ebooks/308",
+      "chapters": ["I", "II", "III"],
+      "confirmed": false
+    },
+    {
+      "id": "alice",
+      "role": "smoke",
+      "title": "Alice's Adventures in Wonderland",
+      "author": "Lewis Carroll",
+      "year": 1865,
+      "file": "tests/fixtures/alice_raw.txt",
+      "record": "https://www.gutenberg.org/ebooks/11",
+      "chapters": ["I", "II"],
+      "confirmed": false
+    }
+  ]
+}

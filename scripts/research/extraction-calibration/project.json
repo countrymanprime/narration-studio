@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "extraction-calibration",
+  "projectType": "library",
+  "tags": ["toolchain:python"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "node scripts/quality.mjs python -m ruff format --check scripts/research/extraction-calibration",
+          "node scripts/quality.mjs python -m ruff check scripts/research/extraction-calibration"
+        ],
+        "parallel": false
+      }
+    }
+  }
+}
