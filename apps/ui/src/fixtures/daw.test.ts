@@ -30,6 +30,11 @@ import {
   rolledOf,
   rolledReplacingAnswer,
   takesHiddenAnswer,
+  backedUpAnswer,
+  backupLabelOk,
+  backupRestoredAnswer,
+  MockBackupTable,
+  noBackupAnswer,
 } from './daw';
 
 const SETUP_IDS: DawSetupId[] = ['reaper', 'reaper-off', 'builtin', 'audacity', 'audacity-backups'];
@@ -129,9 +134,14 @@ describe('the mock DAW setups', () => {
     expect(DAW_SETUPS[id].capabilities.fx_range.destructive).toBeUndefined();
   });
 
-  it('ui-mirror-names-exactly-the-go-catalogue: Audacity with backups still has no backups role here', () => {
-    expect(DAW_SETUPS['audacity-backups'].capabilities.backups).toEqual(DAW_SETUPS.audacity.capabilities.backups);
-    expect(DAW_SETUPS['audacity-backups'].capabilities.backups.level).toBe('not_yet_available');
+  it('mock-setup-agrees-with-the-host: Audacity declares backups experimental, on with backups and turned off in Settings without', () => {
+    expect(DAW_SETUPS['audacity-backups'].capabilities.backups).toEqual({ level: 'experimental', available: true });
+    expect(DAW_SETUPS.audacity.capabilities.backups).toEqual({
+      level: 'experimental',
+      available: false,
+      reason: 'turned_off',
+      message: 'Turned off in Settings.',
+    });
   });
 
   // Like the Audacity setups, the built-in one has its Experimental rows switched on; every other row is the host's own.
@@ -288,5 +298,39 @@ describe('the stack answers (SN-D72)', () => {
     expect(stackOf(withMode('steps'), 1)).toEqual({ message: steps.message, undoSteps: steps.undoSteps, steps: steps.steps });
     expect(steps.steps).toEqual([...STACK_STEPS]);
     expect(stackOf(withMode('app'), 1).undoSteps).toBe(0);
+  });
+});
+
+describe('the backups answers (SN-D82)', () => {
+  const golden = (name: string) =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as {
+      message: string;
+    };
+
+  it("words what dawport/audacity's Backups answers, as the host goldens have them", () => {
+    expect(backedUpAnswer(260, 'Audacity')).toBe(golden('daw-backup-done.json').message);
+    expect(backupRestoredAnswer(260, 'Audacity')).toBe(golden('daw-backup-restored.json').message);
+    expect(backedUpAnswer(4.25, 'Audacity')).toBe('Backed up 4.3 s of audio in Audacity.');
+    expect(noBackupAnswer('Audacity')).toBe('Audacity has no backup with that id.');
+  });
+
+  it('keeps a label as the host does: 1 to 256 bytes with no control characters', () => {
+    expect(backupLabelOk('Roll at ¶ 3')).toBe(true);
+    expect(backupLabelOk('')).toBe(false);
+    expect(backupLabelOk('Roll\u0007')).toBe(false);
+    expect(backupLabelOk('¶'.repeat(129))).toBe(false);
+  });
+
+  it('the mock table windows the words, lists the newest first and stamps a restore', () => {
+    const table = new MockBackupTable();
+    const setup = DAW_SETUPS['audacity-backups'];
+    expect(table.backup(setup, 'chapter-1', 140, 159, 'Roll at ¶ 3').message).toBe(golden('daw-backup-done.json').message);
+    table.backup(setup, 'chapter-1', 0, 0, 'Trim white space');
+    const [newest, oldest] = table.list();
+    expect([newest.label, oldest.label]).toEqual(['Trim white space', 'Roll at ¶ 3']);
+    expect([oldest.start, oldest.end, newest.start, newest.end]).toEqual([20, 280, 0, 121]);
+    expect(table.restore(setup, oldest.id).message).toBe(golden('daw-backup-restored.json').message);
+    expect(table.list()[1].restored).toMatch(/^2026-10-12T09:3\dZ$|^2026-10-12T09:3\d:00Z$/);
+    expect(table.restore(setup, '{11111111-1111-4111-8111-111111111111}').refused).toBe(noBackupAnswer('Audacity'));
   });
 });

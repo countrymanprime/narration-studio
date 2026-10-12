@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { createMockApi } from './mockApi';
 import {
+  backedUpAnswer,
+  backupRestoredAnswer,
+  noBackupAnswer,
   DAW_ANSWERS,
   fxChainAddedAnswer,
   fxChainRemovedAnswer,
@@ -2941,6 +2944,39 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawBackupsFileSchema.safeParse({ ...two, schemaVersion: 2 }).success).toBe(false);
   });
 
+  it('dawBackupAround, dawRestoreBackup and dawBackups: the host goldens parse, and the mock answers as the host does', async () => {
+    for (const file of ['daw-backup-done.json', 'daw-backup-restored.json', 'daw-backup-refused.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+    }
+    expectMatches(dawBackupsFileSchema, readGolden('daw-backups-list.json'), 'daw-backups-list.json');
+    expect(readGolden('daw-backup-done.json')).toMatchObject({ ok: true, changed: false, undoSteps: 0, message: backedUpAnswer(260, 'Audacity') });
+    expect(readGolden('daw-backup-restored.json')).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: backupRestoredAnswer(260, 'Audacity') });
+    const list = dawBackupsFileSchema.parse(readGolden('daw-backups-list.json'));
+    expect(list.backups.map((row) => row.label)).toEqual(['Trim white space', 'Roll at ¶ 3']);
+    expect(list.backups[1].restored).toBe('2026-10-12T11:00:00Z');
+    const [row] = list.backups;
+    expect(dawBackupsFileSchema.safeParse({ ...list, backups: [{ ...row, label: '' }] }).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse({ ...list, backups: [{ ...row, label: 'Roll\u0007' }] }).success).toBe(false);
+    expect(dawBackupsFileSchema.safeParse({ ...list, backups: [{ ...row, restored: 'yesterday' }] }).success).toBe(false);
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const reaper = await createMockApi().dawBackupAround(chapter.id, 140, 159, 'Roll at ¶ 3');
+    expect(reaper).toEqual(readGolden('daw-backup-refused.json'));
+    expect(await createMockApi().dawRestoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')).toEqual(readGolden('daw-backup-refused.json'));
+
+    // An Audacity launch: the host opens no pipe from a page yet, so the mock host refuses with the capability's sentence too, and the
+    // list is the (empty) table. The DawClient mock's audacity-backups setup covers a backup and a restore (daw.contract.test.ts).
+    const audacity = createMockApi({}, { daw: { daw: 'Audacity', toggles: { backups: 'on' } } });
+    const support = (await audacity.dawCapabilities()).capabilities.backups;
+    expect(support.available).toBe(false);
+    expect((await audacity.dawBackupAround(chapter.id, 140, 159, 'Roll at ¶ 3')).refused).toBe(support.message);
+    expect((await audacity.dawRestoreBackup('{11111111-1111-4111-8111-111111111111}')).refused).toBe(support.message);
+    const listed = await audacity.dawBackups();
+    expectMatches(dawBackupsFileSchema, listed, 'mock backups list');
+    expect(listed).toEqual({ schemaVersion: 1, backups: [] });
+    expect(noBackupAnswer('Audacity')).toBe('Audacity has no backup with that id.');
+  });
+
   it("the mock's stale refusal of a take says what the host says (tests/fixtures/contracts/workspace-use-take-refused.json)", () => {
     const golden = workspaceUseTakeResultSchema.parse(readGolden('workspace-use-take-refused.json'));
     expect(golden).toMatchObject({ outcome: 'refused', reason: 'stale', message: USE_TAKE_MESSAGES.stale });
@@ -3515,6 +3551,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawRemoveFxFromRange',
       'dawStackTakes',
       'dawUnstackTakes',
+      'dawBackupAround',
+      'dawRestoreBackup',
+      'dawBackups',
       'workspacePeaks',
       'workspaceSnap',
       'previewCandidates',

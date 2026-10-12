@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DawCapabilities, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupsState } from '../api/contracts/pickups';
-import { dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
+import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
 import { findingMarkerSchema } from '../api/schemas/findings';
 import { pickupsStateSchema } from '../api/schemas/pickups';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
@@ -12,6 +12,8 @@ import { workspaceFXChainsResultSchema, workspaceUseTakeResultSchema } from '../
 import { parseWire } from '../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../api/wire/standardSchema';
 import {
+  backedUpAnswer,
+  backupRestoredAnswer,
   BUILTIN_NOTHING_TO_MUTE,
   DAW_ANSWERS,
   DAW_PROJECT,
@@ -33,7 +35,16 @@ import {
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
-import { createHostDawClient, createMockDawClient, type DawClient, type DawHostApi, type DawPickupItem, NOTHING_TO_CHANGE, type StackRequest } from './daw';
+import {
+  createHostDawClient,
+  createMockDawClient,
+  type DawClient,
+  type DawHostApi,
+  type DawPickupItem,
+  NOTHING_TO_CHANGE,
+  type StackRequest,
+  type BackupRequest,
+} from './daw';
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
 // One suite over both adapters: the mock on the REAPER setup, and the host adapter fed by the goldens the Go host wrote. The
@@ -63,6 +74,10 @@ const GOLDEN_FILES = [
   'daw-stack-steps.json',
   'daw-unstack-done.json',
   'daw-stack-refused-stale.json',
+  'daw-backup-done.json',
+  'daw-backup-restored.json',
+  'daw-backup-refused.json',
+  'daw-backups-list.json',
   'workspace-fx-chains.json',
   'daw-project-state-saved.json',
   'read-aloud-recordings.json',
@@ -213,8 +228,16 @@ function hostApi(): DawHostApi {
     // refusal, and the one known passage is the done golden. Anything else has no golden.
     dawStackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-stack-done.json')),
     dawUnstackTakes: (chapterId, passageIds) => Promise.resolve(stackAnswer(known, chapterId, passageIds, 'daw-unstack-done.json')),
+    // The backups bindings on REAPER: the capability's refusal (the refused golden) for a backup and a restore, and the table the list
+    // golden holds.
+    dawBackupAround: () => Promise.resolve(read('daw-backup-refused.json', dawResultSchema)),
+    dawRestoreBackup: () => Promise.resolve(read('daw-backup-refused.json', dawResultSchema)),
+    dawBackups: () => Promise.resolve(read('daw-backups-list.json', dawBackupsFileSchema)),
   };
 }
+
+/** A backup of the fixture project's chapter around its words 140 to 159, which the mock times at 140 to 160 s: a 260 s window. */
+const BACKUP: BackupRequest = { chapterId: 'chapter-1', firstToken: 140, lastToken: 159, label: 'Roll at ¶ 3' };
 
 function stackAnswer(known: typeof DAW_PROJECT, chapterId: string, passageIds: string[], done: string): DawResult {
   if (passageIds.length === 0) return refusal(nothingToStackAnswer('REAPER'));
@@ -388,6 +411,10 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     ],
   },
   { name: 'dawclient-stack: no passage is nothing to move alike', observe: (daw) => daw.stackTakes({ ...STACK, groups: [] }) },
+  {
+    name: 'dawclient-backups: REAPER refuses a backup and a restore alike, with the capability sentence',
+    observe: async (daw) => [await daw.backupAround(BACKUP), await daw.restoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')],
+  },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
@@ -672,6 +699,59 @@ describe('the mock setups', () => {
       ['stack', 'chapter-1', ['pm-chapter-1-p-1']],
       ['unstack', 'chapter-1', ['pm-chapter-1-p-1']],
     ]);
+  });
+
+  it('dawclient-backups: the host adapter sends the chapter, tokens and label or the id only, and answers the bindings as they are', async () => {
+    const calls: unknown[][] = [];
+    const done = read('daw-backup-done.json', dawResultSchema);
+    const restored = read('daw-backup-restored.json', dawResultSchema);
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawBackupAround: (...args) => {
+        calls.push(['backup', ...args]);
+        return Promise.resolve(done);
+      },
+      dawRestoreBackup: (...args) => {
+        calls.push(['restore', ...args]);
+        return Promise.resolve(restored);
+      },
+    });
+    expect(await host.backupAround(BACKUP)).toEqual(done);
+    expect(await host.restoreBackup('{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}')).toEqual(restored);
+    expect(calls).toEqual([
+      ['backup', 'chapter-1', 140, 159, 'Roll at ¶ 3'],
+      ['restore', '{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}'],
+    ]);
+    const list = await host.backups();
+    expect(list).toEqual(read('daw-backups-list.json', dawBackupsFileSchema).backups);
+    expect(list.map((row) => row.createdAt)).toEqual([...list.map((row) => row.createdAt)].sort().reverse());
+    expect(done).toMatchObject({ ok: true, changed: false, undoSteps: 0, message: backedUpAnswer(260, 'Audacity') });
+    expect(restored).toMatchObject({ ok: true, changed: true, undoSteps: 1, message: backupRestoredAnswer(260, 'Audacity') });
+  });
+
+  it('dawclient-backups: the mock refuses where backups are unavailable, and with backups makes a row and restores it', async () => {
+    for (const id of ['reaper', 'reaper-off', 'builtin', 'audacity'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.backups.message;
+      expect(sentence, id).toBeTruthy();
+      const mock = createMockDawClient(DAW_SETUPS[id]);
+      expect(await mock.backupAround(BACKUP), id).toEqual(refusal(sentence ?? ''));
+      expect(await mock.restoreBackup('{00000000-0000-4000-8000-000000000001}'), id).toEqual(refusal(sentence ?? ''));
+      expect(await mock.backups(), id).toEqual([]);
+    }
+    const mock = createMockDawClient(DAW_SETUPS['audacity-backups']);
+    expect(await mock.backupAround(BACKUP)).toEqual(read('daw-backup-done.json', dawResultSchema));
+    expect(await mock.backupAround({ ...BACKUP, firstToken: 3, lastToken: 3, label: 'Trim white space' })).toMatchObject({ ok: true, changed: false });
+    const [newest, oldest] = await mock.backups();
+    expect(newest).toMatchObject({ label: 'Trim white space', chapterId: 'chapter-1', start: 0, end: 124 });
+    expect(oldest).toMatchObject({ label: 'Roll at ¶ 3', start: 20, end: 280 });
+    expect(oldest.restored).toBeUndefined();
+    for (const row of [newest, oldest]) expect(dawBackupsFileSchema.safeParse({ schemaVersion: 1, backups: [row] }).success).toBe(true);
+    expect(await mock.restoreBackup(oldest.id)).toEqual(read('daw-backup-restored.json', dawResultSchema));
+    expect((await mock.backups())[1].restored).toEqual(expect.any(String));
+    expect(await mock.restoreBackup('{11111111-1111-4111-8111-111111111111}')).toEqual(refusal('Audacity has no backup with that id.'));
+    expect(await mock.backupAround({ ...BACKUP, label: '' })).toEqual(refusal(DAW_ANSWERS.backupLabel));
+    expect(await mock.backupAround({ ...BACKUP, chapterId: 'chapter-9' })).toEqual(staleRefusal(DAW_ANSWERS.rangeStale));
+    expect(await mock.backups()).toHaveLength(2);
   });
 
   it('dawclient-stack: the mock follows the setups: one undo step natively, the steps listed in steps, none where the app stacks', async () => {

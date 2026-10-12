@@ -1,5 +1,5 @@
 // The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
-// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go), the stack (bindings_daw_stack_test.go), the Audacity backups table (internal/dawport/audacity/backups_contract_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
+// (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go), the stack (bindings_daw_stack_test.go), the backups bindings (bindings_daw_backups_test.go), the Audacity backups table (internal/dawport/audacity/backups_contract_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { dawBackupsFileSchema, dawCapabilitiesSchema, dawProjectStateSchema, dawResultSchema, dawTransportSchema } from '../schemas/daw';
@@ -46,4 +46,10 @@ export const dawGoldens: Record<string, z.ZodType> = {
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,
+  // DawBackupAround, DawRestoreBackup and DawBackups (bindings_daw_backups_test.go): a backup and a restore in Audacity, REAPER's
+  // refusal, and the list, newest first.
+  'daw-backup-done.json': dawResultSchema,
+  'daw-backup-restored.json': dawResultSchema,
+  'daw-backup-refused.json': dawResultSchema,
+  'daw-backups-list.json': dawBackupsFileSchema,
 };

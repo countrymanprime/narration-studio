@@ -58,9 +58,30 @@ import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommo
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
-import type { DawCapabilitiesApi, DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawResult, DawRollApi, DawStackTakesApi } from './contracts/daw';
+import type {
+  DawBackupsApi,
+  DawCapabilitiesApi,
+  DawDeleteRangeApi,
+  DawFxRangeApi,
+  DawHideTakesApi,
+  DawResult,
+  DawRollApi,
+  DawStackTakesApi,
+} from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
-import { DAW_ANSWERS, fxRangeOf, fxRangeRemovedOf, nothingToStackAnswer, plainChainName, rangeCutOf, rolledOf, stackOf, takesHiddenOf } from '../fixtures/daw';
+import {
+  backupLabelOk,
+  DAW_ANSWERS,
+  fxRangeOf,
+  fxRangeRemovedOf,
+  nothingToStackAnswer,
+  plainChainName,
+  rangeCutOf,
+  MockBackupTable,
+  rolledOf,
+  stackOf,
+  takesHiddenOf,
+} from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -349,6 +370,7 @@ export function createMockApi(
       () => workspace.workspaceListFXChains(),
     ),
     ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
     ...recording,
@@ -481,5 +503,29 @@ function createStackTakesMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: s
   return {
     dawStackTakes: (chapterId, passageIds) => restack(chapterId, passageIds, false),
     dawUnstackTakes: (chapterId, passageIds) => restack(chapterId, passageIds, true),
+  };
+}
+
+/** DawBackupAround, DawRestoreBackup and DawBackups as bindings_daw_backups.go answers them: the backups capability's sentence first, then
+ * a label the host would not keep, then a chapter the manuscript does not have or tokens that are no range (code stale); then the
+ * Audacity adapter's answers over a table the mock keeps (MockBackupTable). DawBackups reads the table on any launch. */
+function createBackupsMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawBackupsApi {
+  const table = new MockBackupTable();
+  return {
+    async dawBackupAround(chapterId, firstToken, lastToken, label) {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.backups;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (!backupLabelOk(label)) return refusedResult(DAW_ANSWERS.backupLabel);
+      if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { ...refusedResult(DAW_ANSWERS.rangeStale), code: 'stale' };
+      return table.backup(setup, chapterId, firstToken, lastToken, label);
+    },
+    async dawRestoreBackup(backupId) {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.backups;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      return table.restore(setup, backupId);
+    },
+    dawBackups: () => Promise.resolve({ schemaVersion: 1, backups: table.list() }),
   };
 }

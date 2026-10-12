@@ -399,12 +399,14 @@ type StackRequest struct {
 }
 
 // BackupRequest asks the engine to clone the audio from Start to End seconds of a chapter's track before it is changed. GUID is the
-// track or item the audio sits in, as the app last read it.
+// track or item the audio sits in, as the app last read it. Label says what the backup is for ("Roll at ¶ 3"), for the narrator's
+// list; empty is no label.
 type BackupRequest struct {
 	GUID      string
 	ChapterID string
 	Start     float64
 	End       float64
+	Label     string
 }
 
 // RangeCutter cuts words and their audio: split the item at both ends and take the middle piece out. One undo point where the engine

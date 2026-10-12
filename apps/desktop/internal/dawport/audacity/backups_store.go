@@ -30,7 +30,7 @@ const BackupsSchemaVersion = 1
 // MaxBackups is the most rows the table holds; a file with more is corrupt, and a backup past it is refused.
 const MaxBackups = 500
 
-// maxBackupTextBytes bounds a row's track name and chapter id.
+// maxBackupTextBytes bounds a row's track name, chapter id and label.
 const maxBackupTextBytes = 256
 
 // backupsWhat names the file for the narrator in a persist notice.
@@ -43,13 +43,17 @@ func BackupsFile(project string) string {
 
 // Backup is one row of the table. GUID is the source track as the request named it (Audacity reports no track ids, so it is the
 // track's name, ADR 0863); Start and End are the cloned window in project seconds, which is also where the backup track holds it.
+// Label (what the backup was made for) and Restored (when it was last put back) were added within version 1 and are absent from a
+// row that has neither, so a file written before them reads as it is.
 type Backup struct {
-	ID        string    `json:"id"`
-	GUID      string    `json:"guid"`
-	ChapterID string    `json:"chapterId"`
-	Start     float64   `json:"start"`
-	End       float64   `json:"end"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID        string     `json:"id"`
+	GUID      string     `json:"guid"`
+	ChapterID string     `json:"chapterId"`
+	Start     float64    `json:"start"`
+	End       float64    `json:"end"`
+	CreatedAt time.Time  `json:"createdAt"`
+	Label     string     `json:"label,omitempty"`
+	Restored  *time.Time `json:"restored,omitempty"`
 }
 
 // backupsTable is backups.json.
@@ -86,7 +90,25 @@ func finite(f float64) bool { return !math.IsNaN(f) && !math.IsInf(f, 0) }
 // validBackup reports whether a stored row keeps the rules BackupAround writes it by; a file with one that does not is corrupt.
 func validBackup(b Backup) bool {
 	return backupID.MatchString(b.ID) && backupText(b.GUID) && backupText(b.ChapterID) &&
-		finite(b.Start) && finite(b.End) && b.Start >= 0 && b.Start < b.End && !b.CreatedAt.IsZero()
+		finite(b.Start) && finite(b.End) && b.Start >= 0 && b.Start < b.End && !b.CreatedAt.IsZero() &&
+		(b.Label == "" || backupText(b.Label)) && (b.Restored == nil || !b.Restored.IsZero())
+}
+
+// ReadBackups is the project's table as stored, for the host's list: the rows in the order they were made. A missing, corrupt or
+// emptied file is no rows (a corrupt one is kept aside and reported, as every read does); a newer or unreadable file is an error whose
+// text is the sentence to show. project is the app's project folder, never a path from the page.
+func ReadBackups(project string, reporter *persist.Reporter) ([]Backup, error) {
+	if project == "" || !filepath.IsAbs(project) {
+		return nil, errBackupsUnusable(messageBackupNoProject)
+	}
+	path := BackupsFile(project)
+	unlock := lockBackups(path)
+	defer unlock()
+	table, err := readBackups(path, reporter)
+	if err != nil {
+		return nil, err
+	}
+	return table.Backups, nil
 }
 
 var backupsLocks sync.Map

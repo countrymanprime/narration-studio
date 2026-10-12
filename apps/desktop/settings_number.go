@@ -60,6 +60,12 @@ var numberSpecs = map[string]map[string]numberSpec{
 	"Teleprompter": {
 		"punch_preroll_seconds": {min: bound(0), max: bound(10), step: bound(0.5), unit: "s"},
 	},
+	// The Audacity backups (ADR 0863): the Studio Next mock's ranges (BackupsTab.tsx), a window of 10 to 300 s either side of the
+	// edit on a 10 s step and a retention of 1 to 365 whole days.
+	"DAW": {
+		"backups.window_seconds": {min: bound(10), max: bound(300), step: bound(10), unit: "s"},
+		"backups.retention_days": {min: bound(1), max: bound(365), step: bound(1), unit: "days"},
+	},
 	// The silence cleanup analyzer's five thresholds (ADR 0238): the ranges mirror measure.CleanupOptions.resolve's own per-field bounds (cleanup.go), so a value this
 	// page accepts is one cleanupSettings (cleanup_settings.go) never has to fall back from. pad_seconds keeps
 	// resolve's 0-2 s; min/max_breath_seconds start just above 0 (resolve requires min strictly positive) up to

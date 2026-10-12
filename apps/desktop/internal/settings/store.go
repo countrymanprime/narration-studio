@@ -76,7 +76,10 @@ var builtinDefaults = map[string]Values{
 	// capability.<name> is the narrator's per-capability toggle for the DAW port (ADR 0300): auto, on or off, defaulting
 	// auto, which is today's behaviour (on when Supported; when Experimental, on only while
 	// experimental_reaper_actions is on). One row per dawport capability; dawport's toggles_test.go holds the rows to its catalog.
+	// backups.window_seconds and backups.retention_days are the Audacity backups' window either side of an edit and how long a
+	// backup is kept (ADR 0863): the DAW PRD's process defaults, two minutes and seven days.
 	"DAW": {"auto_start_launcher": "false", "experimental_reaper_actions": "false",
+		"backups.window_seconds": "120", "backups.retention_days": "7",
 		"capability.review": "auto", "capability.navigate": "auto", "capability.markers": "auto", "capability.pickups": "auto",
 		"capability.line_identity": "auto", "capability.render_config": "auto", "capability.cleanup_tools": "auto",
 		"capability.retake_lanes": "auto", "capability.project_state": "auto", "capability.take_create": "auto",

@@ -1,0 +1,24 @@
+{
+  "backups": [
+    {
+      "chapterId": "c-0001",
+      "createdAt": "2026-10-12T10:30:00Z",
+      "end": 134.5,
+      "guid": "Chapter 1",
+      "id": "{7A6B5C4D-3E2F-4109-8877-665544332211}",
+      "label": "Trim white space",
+      "start": 0
+    },
+    {
+      "chapterId": "c-0001",
+      "createdAt": "2026-10-12T09:30:00Z",
+      "end": 280,
+      "guid": "Chapter 1",
+      "id": "{0F8E2A5C-1B3D-4E6F-8A9B-0C1D2E3F4A5B}",
+      "label": "Roll at ¶ 3",
+      "restored": "2026-10-12T11:00:00Z",
+      "start": 20
+    }
+  ],
+  "schemaVersion": 1
+}

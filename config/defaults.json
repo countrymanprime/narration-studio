@@ -64,7 +64,9 @@
     "capability.cut_range": "auto",
     "capability.fx_range": "auto",
     "capability.stack_takes": "auto",
-    "capability.backups": "auto"
+    "capability.backups": "auto",
+    "backups.window_seconds": "120",
+    "backups.retention_days": "7"
   },
   "RecordingCoverage": {
     "min_paragraph_present": "0.8",

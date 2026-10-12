@@ -77,6 +77,8 @@ type hostServices struct {
 	// takeStacker is the DAW port's stack_takes role over the same bridge client; nil (a true nil interface) with no bridge
 	// client or no such role.
 	takeStacker dawport.TakeStacker
+	// backupKeeper is the DAW port's backups role; nil (a true nil interface) with no Audacity launch or no project.
+	backupKeeper dawport.BackupKeeper
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
 	// teleprompterinput.go and chapterregions.go ask for (ADR 0300); nil with no bridge client.
 	dawPortResolver *dawport.Resolver
@@ -147,6 +149,7 @@ func (h *Host) services() hostServices {
 		rangeCutter:     h.rangeCutter,
 		rangeFX:         h.rangeFX,
 		takeStacker:     h.takeStacker,
+		backupKeeper:    h.backupKeeper,
 		dawPortResolver: h.dawPortResolver,
 	}
 }
