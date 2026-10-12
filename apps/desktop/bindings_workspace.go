@@ -16,7 +16,7 @@ import (
 // workspace"). No new Lua command: what is new is resolving a token, in the host, to the item GUID, take GUID and
 // source time bridge.Target needs, from the chapter's stored alignment (WorkspaceAlignment, ADR 0242) checked against
 // the saved project - the page sends only a chapter id and token indices, never a GUID or a time, exactly as the Review
-// page sends only a finding id (threat model row 5f).
+// page sends only a finding id (docs/architecture/reaper-navigation.md).
 
 // workspaceRefusal turns an error from resolving or sending a workspace target into a refused FindingNavigation, in
 // the workspace's own words (a word, not "this finding" - bridge.StaleError.Error() is worded for the Review page, so

@@ -15,7 +15,7 @@ import (
 //   - WorkspaceAddTakeFX puts one installed plug-in on a passage of a take (add_take_fx): the page sends a chapter id,
 //     a token range and a plug-in name from WorkspaceListFX, and the host resolves the range to one bridge.Passage from
 //     the chapter's stored alignment checked against the saved project. The page never sends a GUID or a time
-//     (threat model row 5f), and a passage that crosses two items is refused (one item per request).
+//     (docs/architecture/reaper-navigation.md), and a passage that crosses two items is refused (one item per request).
 //   - WorkspaceApplyFXChain puts one of the narrator's FX chains on the chapter's own track (apply_fx_chain). The track
 //     is the one the chapter's newest check covered, never a value from the page; the Lua resolves the chain by name
 //     inside FXChains (threat model row 5h).
