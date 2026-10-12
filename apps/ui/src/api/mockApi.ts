@@ -96,6 +96,7 @@ export function createMockApi(
     peekCoverage: (chapterId) => peekCoverage(chapterId),
   });
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets);
+  const extraction = createExtractionMock(endJob);
   const character = createCharacterMock(s);
   const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
   const teleprompter = createTeleprompterMock({
@@ -286,7 +287,15 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    ...createExtractionMock(endJob),
+    ...extraction,
+    // The host refuses the whole entry while a suggestion about it still needs verification (GuideMarkReviewed); one name is not refused.
+    guideMarkReviewed: async (id, aliasIndex) => {
+      if (aliasIndex == null) {
+        const waiting = (await extraction.extractionList()).some((suggestion) => suggestion.status === 'needs-verification' && suggestion.entryId === id);
+        if (waiting) throw new Error('Verify or reject its suggestions first.');
+      }
+      return storyBible.bindings.guideMarkReviewed(id, aliasIndex);
+    },
     ...createEditCutsMock(
       manuscriptReady,
       () => s.chapters,

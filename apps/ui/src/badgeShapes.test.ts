@@ -32,6 +32,8 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   'src/components/booth/side/VoicesNearby.tsx': { chip: 1, owner: 'alias chip, #1119' },
   // The script document's inline insertion marker (SN-E3): a mono pill drawn inside running text, which `Badge` has no inline form for.
   'src/components/editing/script/Word.tsx': { chip: 1, owner: 'inline marker, #1119' },
+  // The FX marker after the last word an effect is on (SN-E64): a mono pill that is the trigger of its menu and sits inside running text, so like `Word.tsx` it has no `Badge` form.
+  'src/components/editing/range/fx/FxButtons.tsx': { chip: 1, owner: 'inline marker, #1119' },
 };
 
 const DOT_SIZES = new Set(['size-1.5', 'size-2', 'size-[6px]', 'size-[7px]', 'size-[8px]', 'size-[0.5rem]']);

@@ -863,7 +863,9 @@ describe('answers of the mock client for the manuscript, Story Bible and project
 
   it('the Story Bible review flags and speaker colour', async () => {
     const api = createMockApi();
-    const entity = (await api.guideEntities()).find((row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked);
+    const entity = (await api.guideEntities()).find(
+      (row) => row.category === 'Character' && row.aliases.length > 0 && !row.locked && row.id !== 'white-rabbit',
+    );
     if (!entity) throw new Error('the mock has no unlocked character with an alias');
     const read = async () => (await api.guideEntities()).find((row) => row.id === entity.id);
     await api.guideFlagReview(entity.id);
