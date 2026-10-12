@@ -26,6 +26,46 @@ export const TWO = chapter('c2', 3, numbered(2), 2044, { subtitle: 'The Salt Mar
 const THREE = chapter('c3', 4, numbered(3), 1860, { subtitle: 'A Night at the Mill' });
 export const CHAPTERS: ManuscriptChapter[] = [CREDITS, PROLOGUE, ONE, TWO, THREE];
 
+export type HeadingStyle = 'gutenberg' | 'numbered' | 'colon';
+
+const ROMAN: [number, string][] = [
+  [1000, 'M'],
+  [900, 'CM'],
+  [500, 'D'],
+  [400, 'CD'],
+  [100, 'C'],
+  [90, 'XC'],
+  [50, 'L'],
+  [40, 'XL'],
+  [10, 'X'],
+  [9, 'IX'],
+  [5, 'V'],
+  [4, 'IV'],
+  [1, 'I'],
+];
+/** The label a manuscript writes before a chapter's title in each of the mock's three heading styles (`format/headings.ts`). */
+export const HEADING_LABELS: Record<HeadingStyle, (n: number) => string> = {
+  gutenberg: (n) => `CHAPTER ${romanNumeral(n)}.`,
+  numbered: (n) => `${n}.`,
+  colon: (n) => `Chapter ${n}:`,
+};
+
+function romanNumeral(n: number): string {
+  let left = n;
+  let out = '';
+  for (const [value, glyph] of ROMAN) {
+    while (left >= value) {
+      out += glyph;
+      left -= value;
+    }
+  }
+  return out;
+}
+
+/** `count` narration chapters whose own heading is in `style`: the label is the title and the chapter's name is the subtitle. */
+export const styledChapters = (style: HeadingStyle, count: number): ManuscriptChapter[] =>
+  Array.from({ length: count }, (_, i) => chapter(`s${i + 1}`, i, HEADING_LABELS[style](i + 1), 1000, { subtitle: `Title of ${i + 1}` }));
+
 const TYPES: MarkType[] = [{ key: 'ask', name: 'Query for author', colour: 'warn', style: 'highlight', asks: true }];
 const query = (chapterId: string, status: 'open' | 'resolved'): Mark => ({
   id: `q-${chapterId}-${status}`,

@@ -1,8 +1,8 @@
 // A chapter's two lines on the Script page, the mock's label and title ("CHAPTER VIII" over "The Queen's Croquet-Ground"), from the
 // chapter's own title and subtitle through `chapterName` (ADR 0191), never a literal. A chapter with no second line has no label.
 
-import { chapterName } from '../../../../chapterName';
-import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
+import { chapterName } from './chapterName';
+import type { ManuscriptChapter } from './api/contracts/manuscript';
 
 export type ChapterHeading = { label: string; title: string };
 

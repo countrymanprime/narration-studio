@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useApi } from '../api/ApiContext';
 import { ChapterList } from '../components/script/page/chapters/ChapterList';
-import { chapterHeading } from '../components/script/page/chapters/chapterHeading';
+import { chapterHeading } from '../chapterHeading';
 import { StudioProvider } from '../studio/StudioProvider';
 import type { ManuscriptChapter } from '../types';
 import { CHAPTER_SHAPES } from '../fixtures/chapters';

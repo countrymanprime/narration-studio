@@ -5,13 +5,15 @@
 // view module leaves bookmarks out. The `/script` route mounts it (App.tsx, SN-B8).
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark } from '../../../api/contracts/marks';
+import type { PrepState } from '../../../api/contracts/scriptPrep';
 import { chapterName } from '../../../chapterName';
 import { useLayoutClass } from '../../../hooks/useLayoutClass';
 import { CommandScope } from '../../../input/router';
+import { useUserKeymap } from '../../../input/useUserKeymap';
 import { overlay } from '../../../overlay/overlayService';
 import { isListableChapter } from '../../../state';
 import type { CreditsKind } from '../../booth/readerModel';
@@ -19,6 +21,7 @@ import { CreditsSetupDialog } from '../../credits/CreditsSetupDialog';
 import { LoadError } from '../../layout/LoadError';
 import { retailSampleRange } from '../../manuscript/retailSampleRange';
 import { IconButton } from '../../primitives/IconButton';
+import { KeyHints } from '../../primitives/KeyHints';
 import { PANEL_FRAME_CLASS } from '../../primitives/panelStyles';
 import type { Notify } from '../../primitives/Toast';
 import { useBookmarkCommands } from '../bookmarks/model/useBookmarkCommands';
@@ -26,6 +29,7 @@ import { useBookmarks } from '../bookmarks/model/useBookmarks';
 import type { LineText, Spot } from '../bookmarks/model/selectors';
 import { useBookmarkContextMenu } from '../bookmarks/ui/bookmarkContextMenu';
 import { BookmarksTab } from '../bookmarks/ui/BookmarksTab';
+import { dictionaryInstallPrompt } from '../dictionaryInstall';
 import { useScriptCredits, useSaveMarkTypes, useWordsHost } from '../scriptPageHost';
 import { ChapterCard } from './chapters/ChapterCard';
 import { ChapterList } from './chapters/ChapterList';
@@ -38,8 +42,10 @@ import { ScriptColumns } from './layout/ScriptColumns';
 import { ScriptCredits } from './layout/ScriptCredits';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
+import { scriptKeyHints } from './layout/scriptKeyHints';
 import { useLoadedParagraphs } from './layout/useLoadedParagraphs';
 import { Reader } from './reader/Reader';
+import { readFindQuery } from './scriptQuery';
 import { BibleTab } from './rail/bible/BibleTab';
 import { BIBLE_KINDS } from './rail/bible/kinds';
 import { ThreadsTab } from './rail/threads/ThreadsTab';
@@ -125,7 +131,11 @@ function ScriptWorkspace({
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
   const credits = useScriptCredits();
-  const wordsHost = useWordsHost();
+  const host = useWordsHost();
+  // The Words tab asks about the dictionary where it is missing, in place (G17); the prompt reads the asset registry, not this page.
+  const wordsHost = useMemo(() => ({ ...host, installPrompt: dictionaryInstallPrompt }), [host]);
+  const keymap = useUserKeymap();
+  const hints = useMemo(() => scriptKeyHints(keymap), [keymap]);
   const saveMarkTypes = useSaveMarkTypes(marks.retry);
   const [prefs, setPrefs] = useTextPrefs();
   // The reader's custom properties (`--rs`, `--rl`, `--rw`, `--rf`), which React sets as written.
@@ -207,6 +217,15 @@ function ScriptWorkspace({
     [update],
   );
   useDeepLink({ chapters: allChapters, goTo: goToLink, notify });
+
+  // `/script?find=<text>` opens Find on that text once (the Story Bible's Find button), then leaves the address as `/script`.
+  const { search } = useLocation();
+  useEffect(() => {
+    const text = readFindQuery(new URLSearchParams(search));
+    if (text === null) return;
+    update(openFind(text));
+    navigate({ pathname: '/script', search: '' }, { replace: true });
+  }, [search, update, navigate]);
 
   /* ---------- Bookmarks ---------- */
 
@@ -338,6 +357,20 @@ function ScriptWorkspace({
   );
   const scroller = () => document.querySelector<HTMLElement>('section[aria-label="Reader"] [role="region"]');
 
+  /* ---------- The chapter list's credits row ---------- */
+
+  // The mock lists the opening credits above chapter 1 with the prep dot; here they are the card above the first chapter. A manuscript that
+  // imported its own opening-credits chapter lists that one instead. The card has no prep state of its own: its dot is Prepped once the
+  // credits fields are filled in (the setup is no longer needed), else Not started.
+  const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
+  const openingCredits = useMemo(
+    () =>
+      credits.hasOpening && !ownsOpening
+        ? { state: (credits.setup && !credits.setup.needed ? 'prepped' : 'none') as PrepState, onJump: () => navigate('/script#credits-opening') }
+        : undefined,
+    [credits.hasOpening, credits.setup, ownsOpening, navigate],
+  );
+
   /* ---------- The reader's slots ---------- */
 
   const firstId = chapters[0]!.id;
@@ -446,7 +479,13 @@ function ScriptWorkspace({
         drawer={drawer}
         onClose={() => update({ drawer: null })}
         chapters={
-          <ChapterList chapters={chapters} currentId={inView} onJump={goToChapter} onClose={layout.narrow ? () => update({ drawer: null }) : undefined} />
+          <ChapterList
+            chapters={chapters}
+            currentId={inView}
+            onJump={goToChapter}
+            onClose={layout.narrow ? () => update({ drawer: null }) : undefined}
+            openingCredits={openingCredits}
+          />
         }
         reader={
           // A selection is read when the pointer or a key lets go, as the mock's reader does.
@@ -501,6 +540,7 @@ function ScriptWorkspace({
                 onTextClick={() => setPlace((current) => (current.at ? { ...current, at: null } : current))}
               />
             </div>
+            <KeyHints id="skeys" hints={hints} />
           </div>
         }
         rail={<RailPanel body={body} onClose={() => update({ drawer: null })} />}
