@@ -12,8 +12,7 @@ import (
 // The mastering chain a project masters with (ADR 0306, owner decision D86): a row of masteringport.Rows, chosen per project.
 // The choice is the project settings row Mastering.provider, written only by MasteringChooseProvider, which checks it against
 // the registry; it is not a generic Settings field, so the Settings page neither lists nor saves it, and no global or repo
-// default exists: a project with no choice masters with the registry's default row (builtin). Master & QC (stage navigation
-// Phase 8) reads it to draw the chain. The wire schema, golden payloads, wireContracts row and mock live in apps/ui/src/api.
+// default exists: a project with no choice masters with the registry's default row (builtin). Master & QC reads it to draw the chain. The wire schema, golden payloads, wireContracts row and mock live in apps/ui/src/api.
 const (
 	masteringSettingsTool = "Mastering"
 	masteringProviderKey  = "provider"
