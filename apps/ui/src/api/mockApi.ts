@@ -57,9 +57,9 @@ import { createPronunciationCommonsAudioMock } from './mockHost/wiktextractCommo
 import { createPronunciationOnlineMock } from './mockHost/pronunciationOnline';
 import { createWorkspaceSnapMock } from './workspaceSnapMock';
 import { createPronunciationSourcesMock } from './pronunciationSourcesMock';
-import type { DawCapabilitiesApi, DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawResult, DawRollApi } from './contracts/daw';
+import type { DawCapabilitiesApi, DawDeleteRangeApi, DawFxRangeApi, DawHideTakesApi, DawResult, DawRollApi, DawStackTakesApi } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
-import { DAW_ANSWERS, fxRangeOf, fxRangeRemovedOf, plainChainName, rangeCutOf, rolledOf, takesHiddenOf } from '../fixtures/daw';
+import { DAW_ANSWERS, fxRangeOf, fxRangeRemovedOf, nothingToStackAnswer, plainChainName, rangeCutOf, rolledOf, stackOf, takesHiddenOf } from '../fixtures/daw';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -337,6 +337,7 @@ export function createMockApi(
       (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId)),
       () => workspace.workspaceListFXChains(),
     ),
+    ...createStackTakesMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
     ...mastering,
     ...recording,
@@ -448,5 +449,26 @@ function createFxRangeMock(
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ok: true, changed: true, message: fx.message, undoSteps: fx.undoSteps, ...(fx.steps ? { steps: fx.steps } : {}) };
     },
+  };
+}
+
+/** DawStackTakes and DawUnstackTakes as bindings_daw_stack.go answers them: the stack_takes capability's sentence first, then no passage
+ * named, then a chapter the manuscript does not have or a passage id that is not the host's `pm-<chapter>-<paragraph>` for it (code
+ * stale); then what the launch's DAW answers, each named passage standing for one retry, since the mock records no passage map. */
+function createStackTakesMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawStackTakesApi {
+  const restack = async (chapterId: string, passageIds: string[], unstack: boolean): Promise<DawResult> => {
+    const setup = await daw.dawCapabilities();
+    const support = setup.capabilities.stack_takes;
+    if (!support?.available) return refusedResult(support?.message ?? '');
+    if (passageIds.length === 0) return refusedResult(nothingToStackAnswer(setup.daw));
+    if (!(await hasChapter(chapterId)) || passageIds.some((id) => !id.startsWith(`pm-${chapterId}-`))) {
+      return { ...refusedResult(DAW_ANSWERS.stackNotAPassage), code: 'stale' };
+    }
+    const stack = stackOf(setup, new Set(passageIds).size, unstack);
+    return { ok: true, changed: true, message: stack.message, undoSteps: stack.undoSteps, ...(stack.steps ? { steps: stack.steps } : {}) };
+  };
+  return {
+    dawStackTakes: (chapterId, passageIds) => restack(chapterId, passageIds, false),
+    dawUnstackTakes: (chapterId, passageIds) => restack(chapterId, passageIds, true),
   };
 }

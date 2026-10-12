@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 114
+const hostAPIVersion = 115
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -221,6 +221,10 @@ type Host struct {
 	// DawRemoveFxFromRange (bindings_daw_fx_range.go) ask it to put a chain on words and take it off. Nil with no bridge client
 	// or no such role.
 	rangeFX dawport.RangeFXApplier
+	// takeStacker is the DAW port's stack_takes role over the same adapter as takeCreator (ADR 0300): DawStackTakes and
+	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
+	// Nil with no bridge client or no such role.
+	takeStacker dawport.TakeStacker
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
@@ -676,8 +680,9 @@ func (h *Host) configureLocked(next config) {
 		h.puncher, _ = dawAdapter.Role(dawport.CapPunch).(dawport.Puncher)
 		h.rangeCutter, _ = dawAdapter.Role(dawport.CapCutRange).(dawport.RangeCutter)
 		h.rangeFX, _ = dawAdapter.Role(dawport.CapFXRange).(dawport.RangeFXApplier)
+		h.takeStacker, _ = dawAdapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
 	} else {
-		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX = nil, nil, nil, nil, nil
+		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,
