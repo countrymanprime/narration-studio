@@ -46,13 +46,14 @@ Skip it for a typo or a change inside one function that no ADR names.
    - **Accepted:** a rule. Follow it.
    - **Accepted (amended by ...)** or a status naming another ADR: read the amending ADR as well; the two together are the rule.
    - **Superseded by ...:** history. Follow the ADR that supersedes it.
+   - **Moved to `<path>`:** history. The rule now lives at that path (the design system, a user guide page, `docs/reference/data-files.md`, a doc comment); read it there and cite the path, not the ADR, in the precedent table. The topics page lists a moved ADR with the status `Moved`.
    - **Proposed:** the code does this but the owner has not accepted it. Treat it as current behaviour, say in the plan that you are relying on a Proposed ADR, and do not build a second feature on it without asking.
 5. **Write a precedent table in the plan.** One row per ADR that applies: number, status, the rule in a clause, and what it means for this change (follows, extends, or conflicts).
 
    | ADR | Status | Rule | Effect on this change |
    | --- | --- | --- | --- |
 6. **A conflict is surfaced, not resolved silently.** If the change contradicts an Accepted ADR, name the ADR, quote the Decision line, and ask the user whether it is an intentional supersession (then `adr-author` after the code lands) or an accident. Never edit the code to match an ADR without saying so.
-7. **If nothing applies, say so.** An empty precedent table after searching the right topics is a finding, and a sign the change may need an ADR of its own.
+7. **If nothing applies, say so.** An empty precedent table after searching the right topics is a finding. The change needs an ADR of its own only if it is architecturally significant (`docs/adr/README.md`, "When to write an ADR"); a behaviour, value or look is recorded where that section sends it.
 
 ## Keeping the index true
 
