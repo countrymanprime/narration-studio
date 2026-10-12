@@ -1716,6 +1716,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // delete_range moves the cut audio to the muted Cuts track: cut_range is Experimental, native and not destructive.
     expect(disconnectedReaper.capabilities.cut_range).toMatchObject({ level: 'experimental', mode: 'native' });
     expect(disconnectedReaper.capabilities.cut_range?.destructive).toBeUndefined();
+    // apply_fx_range puts take FX on a split piece and remove_fx_range takes them off: fx_range is Experimental, native and not
+    // destructive.
+    expect(disconnectedReaper.capabilities.fx_range).toMatchObject({ level: 'experimental', mode: 'native' });
+    expect(disconnectedReaper.capabilities.fx_range?.destructive).toBeUndefined();
   });
 
   it('dawCapabilities reports a connected-but-unreachable REAPER as not_running, except the heartbeat capability itself', async () => {

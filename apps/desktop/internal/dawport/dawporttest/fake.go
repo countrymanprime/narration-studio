@@ -353,11 +353,20 @@ func (r cutRangeRole) DeleteRange(context.Context, dawport.DeleteRangeRequest) (
 
 type fxRangeRole struct{ role }
 
+// ApplyFXToRange and RemoveFXFromRange answer as REAPER's apply_fx_range and remove_fx_range do: one undo step each.
 func (r fxRangeRole) ApplyFXToRange(context.Context, dawport.FXRangeRequest) (dawport.Result, error) {
-	return r.result("ApplyFXToRange", "Effect added.")
+	got, err := r.result("ApplyFXToRange", "Effect added.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
 }
 func (r fxRangeRole) RemoveFXFromRange(context.Context, string, string) (dawport.Result, error) {
-	return r.result("RemoveFXFromRange", "Effect removed.")
+	got, err := r.result("RemoveFXFromRange", "Effect removed.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(1), nil
 }
 
 type stackTakesRole struct{ role }

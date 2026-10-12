@@ -1192,5 +1192,167 @@
     "file": "narration_range.lua",
     "find": "    if not reaper.APIExists(name) then",
     "replace": "    if false then"
+  },
+  {
+    "name": "apply_fx_range: a stale item GUID falls back to another item",
+    "file": "narration_range.lua",
+    "find": "    item = find_item(wanted)",
+    "replace": "    item = reaper.GetMediaItem(0, 1)"
+  },
+  {
+    "name": "remove_fx_range: a stale item GUID falls back to another item",
+    "file": "narration_range.lua",
+    "find": "  local piece = wanted ~= '' and find_item(wanted) or nil",
+    "replace": "  local piece = reaper.GetMediaItem(0, 1)"
+  },
+  {
+    "name": "apply_fx_range: the chain name is not checked against the listing",
+    "file": "narration_range.lua",
+    "find": "    if not listed(enumerate, path, part) then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "apply_fx_range: a path-shaped chain name reaches REAPER",
+    "file": "narration_range.lua",
+    "find": "  if name == '' or name:find('[%c\\\\:]') or not name:lower():match('%.rfxchain$') then",
+    "replace": "  if name == '' then"
+  },
+  {
+    "name": "apply_fx_range: a '..' part is allowed in a chain name",
+    "file": "narration_range.lua",
+    "find": "    if part == '' or part == '.' or part == '..' then\n      return nil",
+    "replace": "    if part == '' then\n      return nil"
+  },
+  {
+    "name": "apply_fx_range: a chain deeper than the listing is used",
+    "file": "narration_range.lua",
+    "find": "  if #parts > CHAIN_PARTS_LIMIT then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "apply_fx_range: a neighbouring piece gets the FX",
+    "file": "narration_range.lua",
+    "find": "    take = reaper.GetActiveTake(middle)",
+    "replace": "    take = reaper.GetActiveTake(item)"
+  },
+  {
+    "name": "apply_fx_range: the load opens a second undo block",
+    "file": "narration_range.lua",
+    "find": "    local index = reaper.TakeFX_AddByName(take, path, -1)",
+    "replace": "    reaper.Undo_EndBlock2(0, UNDO_ADD_CHAIN, -1)\n    reaper.Undo_BeginBlock2(0)\n    local index = reaper.TakeFX_AddByName(take, path, -1)"
+  },
+  {
+    "name": "apply_fx_range: a chain that loads nothing is answered as applied",
+    "file": "narration_range.lua",
+    "find": "    if index < 0 or count <= before then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "apply_fx_range: the FX it added are not recorded",
+    "file": "narration_range.lua",
+    "find": "      reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_FX_KEY, table.concat(guids, ' '), true)",
+    "replace": "      reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_FX_KEY, '', true)"
+  },
+  {
+    "name": "apply_fx_range: a range outside the item gets the chain",
+    "file": "narration_range.lua",
+    "find": "  if first_fx < first - EDGE_TOLERANCE or last_fx > last + EDGE_TOLERANCE then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "apply_fx_range: an empty or reversed range gets the chain",
+    "file": "narration_range.lua",
+    "find": "  if not first_fx or not last_fx or last_fx - first_fx <= EDGE_TOLERANCE then",
+    "replace": "  if not first_fx or not last_fx then"
+  },
+  {
+    "name": "apply_fx_range: the fade goes on the neighbours' untouched edges",
+    "file": "narration_range.lua",
+    "find": "{ left, 'D_FADEOUTLEN', 'D_FADEINLEN' }, { right, 'D_FADEINLEN', 'D_FADEOUTLEN' }",
+    "replace": "{ left, 'D_FADEINLEN', 'D_FADEINLEN' }, { right, 'D_FADEOUTLEN', 'D_FADEOUTLEN' }"
+  },
+  {
+    "name": "remove_fx_range: the join is skipped",
+    "file": "narration_range.lua",
+    "find": "  local keep, last = left or piece, right or piece",
+    "replace": "  local keep, last = piece, piece"
+  },
+  {
+    "name": "remove_fx_range: a neighbour that does not carry on the audio is joined",
+    "file": "narration_range.lua",
+    "find": "    if math.abs(take.offset + length * take.rate - other.offset) > EDGE_TOLERANCE then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "remove_fx_range: a neighbour carrying another chain is joined",
+    "file": "narration_range.lua",
+    "find": "  if a.carries or b.carries or a.active ~= b.active",
+    "replace": "  if a.active ~= b.active"
+  },
+  {
+    "name": "remove_fx_range: the join opens a second undo block",
+    "file": "narration_range.lua",
+    "find": "  local left, right = joinable(piece, seams, true), joinable(piece, seams, false)",
+    "replace": "  reaper.Undo_EndBlock2(0, UNDO_REMOVE_CHAIN, -1)\n  reaper.Undo_BeginBlock2(0)\n  local left, right = joinable(piece, seams, true), joinable(piece, seams, false)"
+  },
+  {
+    "name": "remove_fx_range: every FX on the take is removed, not only the chain's",
+    "file": "narration_range.lua",
+    "find": "      if recorded[reaper.TakeFX_GetFXGUID(take, fx) or ''] then",
+    "replace": "      if true then"
+  },
+  {
+    "name": "remove_fx_range: a piece without the chain opens a block",
+    "file": "narration_range.lua",
+    "find": "  if #doomed == 0 then",
+    "replace": "  if take == nil then"
+  },
+  {
+    "name": "remove_fx_range: the removal runs while REAPER records",
+    "file": "narration_range.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'TakeFX_Delete'",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'TakeFX_Delete'"
+  },
+  {
+    "name": "apply_fx_range: the chain goes on while REAPER records",
+    "file": "narration_range.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'SplitMediaItem', 'TakeFX_AddByName'",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'SplitMediaItem', 'TakeFX_AddByName'"
+  },
+  {
+    "name": "remove_fx_range: a neighbour with another gain is joined",
+    "file": "narration_range.lua",
+    "find": "a.muted ~= b.muted or a.vol ~= b.vol or",
+    "replace": "a.muted ~= b.muted or"
+  },
+  {
+    "name": "remove_fx_range: a neighbour with other FX of the same count is joined",
+    "file": "narration_range.lua",
+    "find": "take.vol ~= other.vol or take.fx ~= other.fx then",
+    "replace": "take.vol ~= other.vol or #take.fx ~= #other.fx then"
+  },
+  {
+    "name": "remove_fx_range: a neighbour with another take volume is joined",
+    "file": "narration_range.lua",
+    "find": "take.rate ~= other.rate or take.vol ~= other.vol or",
+    "replace": "take.rate ~= other.rate or"
+  },
+  {
+    "name": "remove_fx_range: a neighbour the command did not split is joined",
+    "file": "narration_range.lua",
+    "find": "  local wanted = before and left or right\n  local other = wanted and wanted ~= '-' and find_item(normalize_guid(wanted)) or nil",
+    "replace": "  local wanted = before and left or right\n  local track = reaper.GetMediaItem_Track(piece)\n  local other = nil\n  for index = 0, reaper.CountTrackMediaItems(track) - 1 do\n    local candidate = reaper.GetTrackMediaItem(track, index)\n    if candidate ~= piece and (before and follows(candidate, piece) or not before and follows(piece, candidate)) then\n      other = candidate\n    end\n  end\n  wanted = wanted"
+  },
+  {
+    "name": "apply_fx_range: a second chain overwrites the record of the first",
+    "file": "narration_range.lua",
+    "find": "  if take_ext(active, CHAIN_KEY) ~= '' then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "remove_fx_range: an FX REAPER kept is ignored and the record cleared",
+    "file": "narration_range.lua",
+    "find": "  if kept > 0 then",
+    "replace": "  if false then"
   }
 ]

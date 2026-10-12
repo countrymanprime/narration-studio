@@ -81,9 +81,16 @@ What the bridge does with these: `narration_track_state.lua` reads `GetMediaSour
 - **Undo.** One block, "Narration Utils: delete words", around the splits, the track, the move and the close-up; the answer reports 1.
 - **Checked:** not checked. The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that the splits, the move to another track and the close-up in one block are one undo step and that one Undo gives the item back whole; that a track's `P_EXT` survives save and reload (if not, the name finds the track); what fades REAPER gives the pieces at a split, and that the seam fades set afterwards replace them; and that the piece on the muted Cuts track is silent and keeps its take and source.
 
+## Chain on a range
+
+- **What it does.** `apply_fx_range` splits the named item at both ends of the range as `delete_range` does and adds a saved chain to the middle piece's active take with `TakeFX_AddByName(take, path, -1)` ([ADR 0860](../../adr/0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md) point 3). The path is built from `GetResourcePath()` and the chain's name as `list_fx_chains` lists it, after `EnumerateSubdirectories` and `EnumerateFiles` (each cleared with index -1 first) list every part of it; the GUIDs of the FX it added (`TakeFX_GetFXGUID`) and the chain's name go in the take's `P_EXT`. The fade goes on the new seams (`D_FADEOUTLEN` and `D_FADEINLEN`).
+- **Removing it.** `remove_fx_range` deletes the recorded FX with `TakeFX_Delete`, highest index first, clears the take's `P_EXT`, and joins the piece to each piece the apply split off (their GUIDs are in the take's `P_EXT`) that still carries on its audio, compared by source, rate, offset, item and take volume, mute, active take and FX names (`TakeFX_GetFXName`): the first piece's `D_LENGTH` is set over the others, its `D_FADEOUTLEN` to the last piece's, and the folded pieces are removed with `DeleteTrackMediaItem`. The calls are the ReaScript reference's ([Ultraschall's copy](https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/blob/master/ultraschall_api/Documentation/Reaper_Api_Documentation.html); not run).
+- **Undo.** One block each, "Narration Utils: add chain to range" and "Narration Utils: remove chain from range"; the answer reports 1, and a removal that finds nothing opens no block and reports 0.
+- **Checked:** not checked. The QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) confirms that `TakeFX_AddByName` loads a `.RfxChain` onto a take by its full path, appends its FX at the end and how many; that the splits and the load are one undo step and one Undo gives the item back whole; that a split copies a take's FX, whether the copies get new FX GUIDs, and whether it copies its `P_EXT`; that the join plays the same audio with no click at the old seams; and that the removal and the join are one undo step.
+
 ## Not yet available
 
-`fx_range`, `stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. A command's row changes to Experimental when its command is built ([capabilities](capabilities.md#fx_range)).
+`stack_takes` and `backups` are in the catalogue but not yet available with REAPER: the bridge has no command for them. A command's row changes to Experimental when its command is built ([capabilities](capabilities.md#stack_takes)).
 
 ## Version rules
 
