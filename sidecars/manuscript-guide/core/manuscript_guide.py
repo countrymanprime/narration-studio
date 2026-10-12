@@ -1502,10 +1502,12 @@ def empty_guide() -> dict[str, Any]:
 
 
 def create(args: argparse.Namespace) -> None:
-    # A manuscript import can seed manual character candidates before the
-    # Story Bible has ever been Built, so there may be no guide file yet -
-    # start an empty one instead of requiring a prior build. status() then
-    # correctly reports it as stale until a real build populates `source`.
+    """Adds an entry by hand, under one of the Story Bible's types or as a Draft.
+
+    A manuscript import can seed manual character candidates before the Story Bible has ever been built, so there may be no guide
+    file yet: an empty one is started instead of requiring a prior build, and status() reports it as stale until a real build
+    fills ``source``.
+    """
     guide = load_json(args.guide) or empty_guide()
     category = args.category.strip() or "Draft"
     if category != "Draft" and category not in type_names(guide):
