@@ -11,6 +11,7 @@ import { countsOf, noiseFloorOf, proposals, selectedRows } from './cleanupRows';
 import { CleanupHeader } from './CleanupHeader';
 import { CleanupInspector } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
+import { usePreviewPlay, type PreviewPlayback } from './usePreviewPlay';
 
 const NO_TRIM = 'The DAW cannot trim ranges here yet.';
 
@@ -19,10 +20,12 @@ export interface CleanupTabProps {
   journal: Pick<Journal, 'act'>;
   /** The DAW's range cut and the cuts port, lent by the page. Without it Apply stays off with the reason. */
   deps?: CleanupDeps;
+  /** The page's playback, the one the take's Play uses, lent for Preview. Without it Preview lists and says it cannot play. */
+  playback?: PreviewPlayback;
 }
 
 /** The Clean up tab: the operation filter, the findings of the chosen one, and the inspector with its thresholds, Preview and Apply. */
-export function CleanupTab({ chapterId, journal, deps }: CleanupTabProps) {
+export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabProps) {
   const findingsPort = usePort('findings');
   const editing = usePort('editing');
   const daw = usePort('daw');
@@ -37,6 +40,7 @@ export function CleanupTab({ chapterId, journal, deps }: CleanupTabProps) {
   const [preview, setPreview] = useState<CleanupPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [version, setVersion] = useState(0);
+  const previewPlay = usePreviewPlay(playback);
 
   useEffect(() => {
     let live = true;
@@ -75,6 +79,7 @@ export function CleanupTab({ chapterId, journal, deps }: CleanupTabProps) {
   const fixed = rows.filter((r) => r.done).length;
 
   const choose = (next: CleanupKind) => {
+    previewPlay.stop();
     setOp(next);
     setPreview(null);
   };
@@ -133,7 +138,14 @@ export function CleanupTab({ chapterId, journal, deps }: CleanupTabProps) {
         noiseFloor={noiseFloorOf(findings)}
         dawReason={dawReason ?? (deps ? null : NO_TRIM)}
         preview={preview}
-        onPreview={() => setPreview(previewOf(op, on, params[op], dawName))}
+        onPreview={() => {
+          setPreview(previewOf(op, on, params[op], dawName));
+          previewPlay.start(on, on.length);
+        }}
+        previewNote={
+          previewPlay.status ? { text: previewPlay.status, playing: true } : previewPlay.reason ? { text: previewPlay.reason, playing: false } : null
+        }
+        onStopPreview={previewPlay.stop}
         onApply={() => void apply()}
         busy={busy}
       />

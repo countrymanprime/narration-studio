@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import axe from 'axe-core';
+import { act, useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { Finding } from '../../../api/contracts/findings';
@@ -92,7 +93,44 @@ beforeEach(() => {
   toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
 });
 
-function mount(opts: { setup?: DawSetupId; findings?: Finding[]; deps?: CleanupDeps | null } = {}) {
+/** The page's playback, reduced to what Preview calls: it plays one range at a time and says whether it is playing. */
+function fakePlayback() {
+  const listeners = new Set<() => void>();
+  const played: Array<[number, number | undefined]> = [];
+  const stop = vi.fn();
+  let playing = false;
+  const set = (on: boolean) => {
+    playing = on;
+    listeners.forEach((l) => l());
+  };
+  return {
+    played,
+    stop,
+    subscribe: (l: () => void) => (listeners.add(l), () => listeners.delete(l)),
+    get playing() {
+      return playing;
+    },
+    playFrom: (from: number, to?: number) => {
+      played.push([from, to]);
+      set(true);
+    },
+    halt: () => {
+      stop();
+      set(false);
+    },
+    /** The range that was playing reaches its end. */
+    finish: () => act(() => set(false)),
+  };
+}
+type FakePlayback = ReturnType<typeof fakePlayback>;
+
+function Host({ journal, deps, fake }: { journal: ReturnType<typeof createJournal>; deps: CleanupDeps | undefined; fake: FakePlayback | undefined }) {
+  const playing = useSyncExternalStore(fake?.subscribe ?? (() => () => undefined), () => fake?.playing ?? false);
+  const playback = fake ? { playing, playFrom: fake.playFrom, stop: fake.halt } : undefined;
+  return <CleanupTab chapterId="5" journal={journal} {...(deps ? { deps } : {})} {...(playback ? { playback } : {})} />;
+}
+
+function mount(opts: { setup?: DawSetupId; findings?: Finding[]; deps?: CleanupDeps | null; playback?: FakePlayback } = {}) {
   const setup = DAW_SETUPS[opts.setup ?? 'reaper'];
   const daw = createMockDawClient(setup, { chapterIds: ['5'], candidateIds: [], findingIds: [] });
   const base = createMockApi();
@@ -109,7 +147,7 @@ function mount(opts: { setup?: DawSetupId; findings?: Finding[]; deps?: CleanupD
     <ApiProvider api={api as typeof base}>
       <PortOverrides clients={{ daw }}>
         <main>
-          <CleanupTab chapterId="5" journal={journal} {...(deps ? { deps } : {})} />
+          <Host journal={journal} deps={deps} fake={opts.playback} />
         </main>
       </PortOverrides>
     </ApiProvider>,
@@ -249,6 +287,72 @@ describe('the Clean up tab', () => {
     await screen.findByRole('button', { name: /^Gaps 2/ });
     const result = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
     expect(result.violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+describe('Preview plays the findings', () => {
+  const FOUR = [...FINDINGS, finding({ id: 'g4', start: 70, end: 74, cls: 'silence' })];
+
+  it('Preview plays the first three selected with two seconds around each', async () => {
+    const fake = fakePlayback();
+    mount({ findings: FOUR, playback: fake });
+    await screen.findByRole('button', { name: /^Gaps 3/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Heavy' }));
+    await screen.findByRole('button', { name: 'Apply to 4 selected' });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(fake.played).toEqual([[8, 14.4]]);
+    expect(screen.getByText('Playing the first 3 of 4 selected, with 2 s before and after.')).toBeTruthy();
+    fake.finish();
+    expect(fake.played).toEqual([
+      [8, 14.4],
+      [28, 32.8],
+    ]);
+    fake.finish();
+    expect(fake.played).toEqual([
+      [8, 14.4],
+      [28, 32.8],
+      [48, 55],
+    ]);
+    fake.finish();
+    expect(fake.played).toHaveLength(3);
+    expect(screen.queryByText(/^Playing the first/)).toBeNull();
+    expect(screen.getByRole('region', { name: 'Preview' })).toBeTruthy();
+    expect(trim).not.toHaveBeenCalled();
+  });
+
+  it('leaves out what is skipped, and starts no earlier than zero', async () => {
+    const fake = fakePlayback();
+    mount({ findings: [finding({ id: 'a', start: 1, end: 4, cls: 'silence' }), ...FINDINGS], playback: fake });
+    await screen.findByRole('button', { name: /^Gaps 3/ });
+    fireEvent.click(screen.getByRole('checkbox', { name: '0:10' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(fake.played).toEqual([[0, 6]]);
+    fake.finish();
+    expect(fake.played[1]).toEqual([48, 55]);
+  });
+
+  it('Stop and Escape stop the preview, and no playback says why', async () => {
+    const fake = fakePlayback();
+    mount({ findings: FOUR, playback: fake });
+    await screen.findByRole('button', { name: /^Gaps 3/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop preview' }));
+    expect(fake.stop).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/^Playing the first/)).toBeNull();
+    fake.finish();
+    expect(fake.played).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(fake.stop).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeTruthy();
+    cleanup();
+
+    mount({ findings: FOUR });
+    await screen.findByRole('button', { name: /^Gaps 3/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(screen.getByRole('region', { name: 'Preview' })).toBeTruthy();
+    expect(screen.getByText('Nothing can play here: this page has no playback.')).toBeTruthy();
   });
 });
 
