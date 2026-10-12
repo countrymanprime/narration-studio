@@ -209,7 +209,7 @@ func storyBibleOperations(t *testing.T, label string, project string, svc *guide
 	var sources, targets []string
 	out = append(out, measure(t, label+" merge", runs, func(int) {
 		sources, targets = append(sources, create(unique("Source"))), append(targets, create(unique("Target")))
-	}, func(i int) error { return svc.Merge(sources[i], targets[i]) }))
+	}, func(i int) error { _, err := svc.Merge(sources[i], targets[i]); return err }))
 	out = append(out, measure(t, label+" relate", runs, nil, func(i int) error { return svc.Relate(subject, other, fmt.Sprintf("ally %d", i)) }))
 	out = append(out, measure(t, label+" seed 10 candidates (10 spawns)", envInt("LATENCY_SEED_RUNS", 5), nil, func(int) error {
 		for c := 0; c < 10; c++ {

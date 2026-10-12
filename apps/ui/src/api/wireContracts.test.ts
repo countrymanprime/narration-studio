@@ -136,6 +136,7 @@ import {
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
+  guideMergeResultSchema,
   guidePreviewSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
@@ -810,6 +811,29 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(guideCreatedSchema, { id: await api.guideCreate('New', 'Character', []) }, 'mock guide create');
     const entity = (await api.guideEntities())[0];
     expectMatches(guidePreviewSchema, await api.guidePreview(entity?.id ?? ''), 'mock preview');
+  });
+
+  it('the Story Bible merge answers its undo id, and the undo gives both entries back or refuses with the reason', async () => {
+    const golden = parseWire(guideMergeResultSchema, readGolden('guide-merge.json'), ctx('guide merge'));
+    expect(golden.undoId).toMatch(/^[0-9a-f]{16}$/);
+    expect(guideMergeResultSchema.safeParse({ undoId: 'NOT-AN-ID' }).success).toBe(false);
+    expect(guideMergeResultSchema.safeParse({ ...golden, targetId: 'alice' }).success).toBe(false);
+
+    const api = createMockApi();
+    const before = await api.guideEntities();
+    const merged = await api.guideMerge('march-hare', 'mad-hatter');
+    expectMatches(guideMergeResultSchema, merged, 'mock guide merge');
+    const after = await api.guideEntities();
+    expect(after.map((entity) => entity.id)).not.toContain('march-hare');
+    expect(after.find((entity) => entity.id === 'mad-hatter')?.aliases.map((alias) => alias.text)).toContain('March Hare');
+    await api.guideUnmerge(merged.undoId);
+    expect(await api.guideEntities()).toEqual(before);
+    await expect(api.guideUnmerge(merged.undoId)).rejects.toThrow('That merge can no longer be undone.');
+
+    const again = await api.guideMerge('march-hare', 'mad-hatter');
+    await api.guideEdit('mad-hatter', { description: 'Edited.' });
+    await expect(api.guideUnmerge(again.undoId)).rejects.toThrow('Hatter changed after the merge, so it cannot be undone.');
+    await expect(api.guideMerge('alice', 'alice')).rejects.toThrow('Cannot merge an entity into itself.');
   });
 
   it('the Story Bible dialogue cues and their correction', async () => {
@@ -3276,6 +3300,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideBuildState',
       'guideEntities',
       'guideCreate',
+      'guideMerge',
       'guidePreview',
       'guideDialogueCues',
       'characterListRegions',
@@ -3504,7 +3529,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guidePronounce',
       'guidePronounceUser',
       'guidePronunciationUseAlternate',
-      'guideMerge',
+      'guideUnmerge',
       'guideDelete',
       'guideRelate',
       'guideUnrelate',

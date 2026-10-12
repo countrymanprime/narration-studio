@@ -602,8 +602,51 @@ func (s *Service) createArgs(name, category string, aliases []string, descriptio
 	}
 	return append(args, s.defaultPronunciationSourceArgs()...)
 }
-func (s *Service) Merge(source, target string) error {
-	_, err := s.Run("merge", "--guide", s.guidePath(), "--source-id", source, "--target-id", target)
+
+// MergeResult is what GuideMerge answers: the id Unmerge takes the merge back by.
+type MergeResult struct {
+	UndoID string `json:"undoId"`
+}
+
+// Merge folds the source entry into the target (names with their pronunciations, relationships re-pointed, appearances unioned) and
+// deletes the source. The sidecar keeps what the merge changed in the Story Bible file, under the returned id.
+func (s *Service) Merge(source, target string) (MergeResult, error) {
+	out, err := s.Run("merge", "--guide", s.guidePath(), "--source-id", source, "--target-id", target)
+	if err != nil {
+		return MergeResult{}, err
+	}
+	return mergeResult(out)
+}
+
+func mergeResult(out string) (MergeResult, error) {
+	parts := strings.Split(out, "|")
+	if len(parts) != 3 || parts[0] != "MERGED" || !isUndoID(parts[2]) {
+		return MergeResult{}, fmt.Errorf("the Story Bible merge did not say how to undo it")
+	}
+	return MergeResult{UndoID: parts[2]}, nil
+}
+
+// isUndoID is the sidecar's own check of an undo id: 16 lowercase hexadecimal characters.
+func isUndoID(id string) bool {
+	if len(id) != 16 {
+		return false
+	}
+	for _, r := range id {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// Unmerge takes back one merge by the id Merge returned: both entries, every relationship it re-pointed and every absorbed name it
+// set, as they were. The sidecar refuses with the reason when the target or a re-pointed entry changed since, or the file no longer
+// holds that merge (undone already, a rebuild since, or ten newer merges).
+func (s *Service) Unmerge(undoID string) error {
+	if !isUndoID(undoID) {
+		return errors.New("that is not an undo id")
+	}
+	_, err := s.Run("unmerge", "--guide", s.guidePath(), "--undo-id", undoID)
 	return err
 }
 func (s *Service) Delete(id string) error {
