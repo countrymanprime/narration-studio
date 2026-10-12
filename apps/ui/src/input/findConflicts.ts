@@ -13,10 +13,13 @@ export type Conflict = {
 /**
  * A pure function over `scopesOverlap`: for every gesture two or more commands are bound to, reports every pair
  * whose scopes overlap. It has no notion of which page is actually mounted - a remap the narrator makes is checked
- * against the whole catalog, not just what happens to be on screen (Phase 6's recorder).
+ * against the whole catalog, not just what happens to be on screen (Phase 6's recorder). A pair where one row names
+ * the other in `shadows` is not a conflict: the shadowing page row wins on its own page and the router falls through elsewhere.
  */
 export function findConflicts(catalog: readonly CommandDescriptor[], keymap: Keymap): Conflict[] {
   const scopeOf = new Map(catalog.map((command) => [command.id, command.scope] as const));
+  const shadowsOf = new Map(catalog.map((command) => [command.id, command.shadows ?? []] as const));
+  const shadowed = (a: CommandId, b: CommandId) => shadowsOf.get(a)!.includes(b) || shadowsOf.get(b)!.includes(a);
   const commandsByGesture = new Map<string, CommandId[]>();
   for (const [commandId, gestures] of Object.entries(keymap)) {
     if (!scopeOf.has(commandId)) continue;
@@ -37,7 +40,8 @@ export function findConflicts(catalog: readonly CommandDescriptor[], keymap: Key
       for (let j = i + 1; j < commandIds.length; j++) {
         const a = commandIds[i];
         const b = commandIds[j];
-        if (scopesOverlap(scopeOf.get(a)!, scopeOf.get(b)!)) conflicts.push({ gesture: gestureKey, commands: [a, b].sort() as [CommandId, CommandId] });
+        if (scopesOverlap(scopeOf.get(a)!, scopeOf.get(b)!) && !shadowed(a, b))
+          conflicts.push({ gesture: gestureKey, commands: [a, b].sort() as [CommandId, CommandId] });
       }
     }
   }
