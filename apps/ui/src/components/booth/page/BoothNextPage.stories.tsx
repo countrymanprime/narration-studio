@@ -175,7 +175,8 @@ export const PickupSession: Story = {
     await recordButton(canvasElement);
     const canvas = within(canvasElement);
     await waitFor(() => expect(canvas.getAllByText('Pickups · 2 open').length).toBeGreaterThan(0));
-    await expect(canvas.getByRole('button', { name: /She turned and walked away/ }).getAttribute('aria-current')).toBe('true');
+    // The panel is a closed drawer at narrow widths, so the line is found by its jump id rather than by its (hidden) role.
+    await expect(canvasElement.ownerDocument.querySelector('[data-pj="k1"]')?.getAttribute('aria-current')).toBe('true');
     await expect(canvasElement.querySelector('#bkeys')?.textContent).toContain('Next pickup');
   },
 };
